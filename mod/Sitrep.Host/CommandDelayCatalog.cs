@@ -22,13 +22,13 @@ namespace Sitrep.Host
     /// a command no contract slice tags, which in practice means a test double.</para>
     ///
     /// <para>Scanned the same way <see cref="UplinkDiscovery"/> scans, for the
-    /// same reason: an Uplink's commands are tagged in ITS OWN contract slice,
+    /// same reason: an Uplink's commands are tagged in its own contract slice,
     /// which core cannot name, so the set of assemblies to read is "whatever
     /// references this contract". Per-assembly and per-type failures are logged
     /// and skipped rather than thrown, because a foreign assembly that will not
     /// load must not take command dispatch down with it.</para>
     ///
-    /// <para>The scan runs once and caches, and a MISS re-scans once before it
+    /// <para>The scan runs once and caches, and a miss re-scans once before it
     /// is believed: an Uplink assembly can be loaded after the first command is
     /// dispatched, and a cached "nobody tags this" would then be wrong forever.
     /// A second miss is cached, so an untagged id costs one rescan and not one
@@ -156,7 +156,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Whether the assembly references THIS core's contract, by simple name.
+        /// Whether the assembly references this core's contract, by simple name.
         /// Same filter and same reasoning as <see cref="UplinkDiscovery"/>'s: a
         /// tag this core can read has to have been compiled against the contract
         /// this core is running.

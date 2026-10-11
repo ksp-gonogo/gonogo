@@ -8,7 +8,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// A command centre with no route to a node is delivered nothing from it.
     /// It used to fall through to the node's default delay, which is the home
-    /// centre's light-time, so a centre that could not hear a craft at all was
+    /// centre's signal delay, so a centre that could not hear a craft at all was
     /// sent its telemetry on home's clock.
     /// </summary>
     public class NoRouteNoDeliveryTests
@@ -52,7 +52,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        /// <summary>What was sent while it had no route never arrives; it hears the craft from when the route opened, at its own light-time.</summary>
+        /// <summary>What was sent while it had no route never arrives; it hears the craft from when the route opened, at its own signal delay.</summary>
         [Fact]
         public async Task ACentreThatGainsARouteHearsOnlyWhatWasSentAfterItOpened()
         {
@@ -90,9 +90,9 @@ namespace Sitrep.Host.IntegrationTests
         /// A crewed craft becomes a command centre after the active craft's
         /// frame has left. It was not listening then, so the frame never
         /// arrives there. It used to read the frame's stamp at its base, the
-        /// home centre's light-time, and catch up on it on home's clock. What
+        /// home centre's signal delay, and catch up on it on home's clock. What
         /// is sent once it exists and has a route reaches it at its own
-        /// light-time.
+        /// signal delay.
         /// </summary>
         [Fact]
         public async Task ACentreBornAfterAFrameWasSentIsNotSentItOnHomesClock()
@@ -190,7 +190,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The far centre cannot reach the relay, so it hears nothing of it and
         /// does not plan it. When a route opens it hears where the relay is one of
-        /// its own light-times later, though the relay did nothing in between.
+        /// its own signal delays later, though the relay did nothing in between.
         /// </summary>
         [Fact]
         public async Task ACentreThatGainsARouteToACraftHearsItsStateOneLightTimeLater()

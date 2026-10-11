@@ -1,7 +1,7 @@
 /**
- * ONE delayed pipeline per camera, shared by every consumer of that camera.
+ * One delayed pipeline per camera, shared by every consumer of that camera.
  *
- * Delay is a property of the CAMERA, not of the viewer. Before this module,
+ * Delay is a property of the camera, not of the viewer. Before this module,
  * each consumer delayed its own copy: the delayed-playout hook built a fresh
  * pipeline per hook call, so a `CameraFeed` and the docking-HUD backdrop
  * pointed at the same camera would each try to build one. Two problems, one
@@ -9,7 +9,7 @@
  *
  *   - **Fatal**: both Breakout-Box backends construct a
  *     `MediaStreamTrackProcessor` over the track, and a `MediaStreamTrack`
- *     admits only ONE processor: the second consumer's build throws. Same
+ *     admits only one processor: the second consumer's build throws. Same
  *     shape for the encoded backend: `RTCRtpScriptTransform` is one-per
  *     `RTCRtpReceiver`. So a second viewer on one camera was never
  *     supportable, only unreachable-by-luck.
@@ -17,29 +17,29 @@
  *     twice.
  *
  * And it was incoherent on its face: two consumers of one camera showing
- * DIFFERENT delays is never what anyone wants, they are looking at the same
+ * different delays is never what anyone wants, they are looking at the same
  * lens through the same one delay authority.
  *
- * The fix is to delay ONCE at the source and hand the delayed output to every
+ * The fix is to delay once at the source and hand the delayed output to every
  * consumer: one processor per track, N consumers of its output. This module
  * is that seam, a refcounted, keyed cache of in-flight pipelines. It lives
  * in `sitrep-client` (beside the delay authority `ViewClock`, not in any
- * camera package) because it is about MEDIA + TIME. It knows nothing about
+ * camera package) because it is about media + time. It knows nothing about
  * WebRTC or any camera SDK: the caller supplies the key (the shared
  * `MediaStream`/track identity) and the build function.
  *
  * Lifecycle:
  *   - first `acquire(key)` starts a build; later `acquire(key)` calls while
- *     that build is in flight (or after it settled) attach to the SAME entry
+ *     that build is in flight (or after it settled) attach to the same entry
  *     and see the same result: so a consumer attaching mid-stream gets the
  *     existing delayed output rather than spawning a second processor;
- *   - the LAST `release()` disposes the pipeline and drops the entry. A build
+ *   - the last `release()` disposes the pipeline and drops the entry. A build
  *     that settles after the last release is disposed immediately and never
  *     published (the teardown race a `raw`-stream swap creates).
  *
  * The "contribution" seam: each lease contributes a value (in practice the
  * capture-clock sample provider) and the build reads `contribution()`, the
- * FIRST still-live lease's. This matters because the pipeline outlives the
+ * first still-live lease's. This matters because the pipeline outlives the
  * consumer that happened to build it: if that consumer unmounts while another
  * still watches, a closure captured over the builder's refs would silently go
  * stale (a frozen capture UT -> frames stamped against a dead clock). Reading
@@ -68,7 +68,7 @@ export interface BuiltDelayedStream<Result> {
  */
 export interface DelayedStreamBuildContext<Contribution> {
   /** The first still-live lease's contribution, or `undefined` if every
-   *  contributing lease has released. Call this PER USE (never hoist it),
+   *  contributing lease has released. Call this per use (never hoist it),
    *  re-pointing away from an unmounted builder is the whole point. */
   contribution(): Contribution | undefined;
 }
@@ -94,7 +94,7 @@ export interface DelayedStreamLease<Result, Contribution> {
   get(): Result | undefined;
   /** Notified whenever the published result changes. */
   subscribe(cb: () => void): () => void;
-  /** Update THIS lease's contribution (call on every render, cheap). */
+  /** Update this lease's contribution (call on every render, cheap). */
   setContribution(c: Contribution): void;
   /** Flush the shared pipeline (timeline reset). Affects every consumer,
    *  correct, since they share one buffer. */
@@ -128,7 +128,7 @@ export class SharedDelayedStreams<Result, Contribution, Key = object> {
 
   /**
    * Attach to the shared pipeline for `key`, building it if this is the
-   * first consumer. `build` runs AT MOST once per entry, a second acquire
+   * first consumer. `build` runs at most once per entry, a second acquire
    * on a live key never builds.
    */
   acquire(

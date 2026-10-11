@@ -35,7 +35,7 @@ export interface PlacedPoint {
   x: number;
   y: number;
   /**
-   * Distance out of the projection's reference plane, PLOT units. Multiply by
+   * Distance out of the projection's reference plane, plot units. Multiply by
    * the live zoom for screen pixels, which is what a depth cue is read from.
    */
   depthUnits: number;

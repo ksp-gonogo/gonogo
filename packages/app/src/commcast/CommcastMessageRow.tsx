@@ -74,7 +74,7 @@ export function CommcastMessageRow({
   );
 }
 
-/** When something arrived HERE: every stamp in the log is an instant at this vantage, so they compare down a column. */
+/** When something arrived here: every stamp in the log is an instant at this vantage, so they compare down a column. */
 function HeardVerdict({ msg }: { msg: CommcastEntry["msg"] }) {
   return (
     <Text size="xs" level="faint">

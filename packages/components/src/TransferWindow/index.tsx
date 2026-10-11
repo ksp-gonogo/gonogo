@@ -79,8 +79,8 @@ const WINDOW_COUNT = 5;
 
 /**
  * Transfer Window: departure planning derived client-side from the body
- * elements on `system.bodies`. Three linked instruments: the phase DIAL, the
- * WINDOWS LIST (select a row to focus the chart on it), and the PORKCHOP Δv
+ * elements on `system.bodies`. Three linked instruments: the phase dial, the
+ * windows list (select a row to focus the chart on it), and the porkchop Δv
  * surface for the selected window.
  */
 function TransferWindowComponent({
@@ -118,7 +118,7 @@ function TransferWindowComponent({
   /**
    * The vehicle's Δv budget: a description, so a held one is still drawn, never
    * withheld. An old budget can only OVER-state reach (it falls by burning), so
-   * `budgetHeld` hollows the verdict pips: a held GO must not read as GO.
+   * `budgetHeld` hollows the verdict pips: a held `GO` must not read as `GO`.
    */
   const budgetReading = useProcessor(DELTA_V_BUDGET);
   const budget =

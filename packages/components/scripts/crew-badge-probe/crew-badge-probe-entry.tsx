@@ -1,14 +1,14 @@
 /**
  * Dedicated probe for CrewStatus's WIDGET-LEVEL panel badge ("Crew
- * critical" / "N crew critical"), a CONTRIBUTION an Uplink drops into the
- * auto-wired `crew-status.badges` CONTRIBUTION slot, here the planted
+ * critical" / "N crew critical"), a contribution an Uplink drops into the
+ * auto-wired `crew-status.badges` contribution slot, here the planted
  * Uplink's (`../probe/plantedUplink.ts`). This is a
  * different registry from the per-row `crew-status.row-badges` AugmentSlot the
  * base widget itself declares in `index.tsx`, which carried this exact name
  * until the two were told apart, see `badge.ts`'s own doc comment.
  *
  * The shared `scripts/probe/probe-entry.tsx` (used by every other widget's
- * review render AND the visual-gate baselines) deliberately never mounts
+ * review render and the visual-gate baselines) deliberately never mounts
  * `PanelBadgesProvider`, see that file's own top comment: wiring it in there
  * would risk changing ShipSystems'/SpaceWeather's baselines too (they also
  * contribute panel badges) for a concern only this one render needs. This
@@ -77,7 +77,7 @@ let activeRoot: Root | null = null;
 /**
  * Verbatim mirror of `GridItemContent.tsx`'s own `WidgetBadges`: feeds the
  * widget's automatic `<componentId>.badges` contribution slot to whatever
- * `Panel` it renders. Mounted INSIDE `WidgetContributions`'s provider stack
+ * `Panel` it renders. Mounted inside `WidgetContributions`'s provider stack
  * so `useWidgetBadges` has a `ContributionsProvider` above it.
  */
 function WidgetBadges({ children }: { children: ReactNode }) {

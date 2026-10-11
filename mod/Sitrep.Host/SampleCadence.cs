@@ -19,7 +19,7 @@ namespace Sitrep.Host
     ///
     /// Backward jump (F9 quickload): KSP's UT can rewind. A forward-only
     /// <c>ut - lastSampledUt &lt; interval</c> gate goes strongly negative
-    /// and is ALWAYS true, so it stalls forever after a quickload - both the
+    /// and is always true, so it stalls forever after a quickload - both the
     /// recorder (which must sample unconditionally) and the live stream
     /// (whose <c>GonogoBodiesServer</c> rewind-detection can't even fire,
     /// because <c>Tick</c> is never reached) go dark exactly across the

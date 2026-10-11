@@ -48,7 +48,7 @@ import {
  * `packages/ui-kit`, so it cannot live in either, and core is the package
  * neither of them may depend on.
  *
- * THIS GATE SEES WHAT THE OTHER TWO CANNOT. `uplink-isolation` checks imports
+ * This gate sees what the other two cannot. `uplink-isolation` checks imports
  * and `uplink-boundary` checks the outward direction; a doc comment is neither.
  * `ITargetApproachSolver` advertised a capability seam out of an unpublished
  * assembly with the C# isolation gate's debt list at zero throughout, because
@@ -80,7 +80,7 @@ const CS_PRIVATE = new Set<string>(CS_PRIVATE_ASSEMBLIES);
 const PUBLISHED_NAMES = new Set<string>(PUBLISHED_PACKAGES.map((p) => p.name));
 
 /**
- * `--cached --others --exclude-standard`, so a NEW FILE that has not been staged
+ * `--cached --others --exclude-standard`, so a new file that has not been staged
  * yet is visible to the scan. Every other discovery mechanism here is
  * git-driven, and an untracked file is exactly where a fresh violation appears:
  * a `readdirSync` walk would see it and a `git ls-files` without `--others`
@@ -147,7 +147,7 @@ function statementName(st: ts.Statement): string | undefined {
 /**
  * Computed with the checker rather than by reading `export` statements, so a
  * re-export chain (`export * from "./spine"`, `export { x } from "./y"`) is
- * FOLLOWED. Guessing this is what makes a reachability check untrustworthy in
+ * followed. Guessing this is what makes a reachability check untrustworthy in
  * both directions at once: under-collect and the gate manufactures findings,
  * over-collect and it masks the one it exists to catch.
  */
@@ -240,7 +240,7 @@ function declarationIndex(): Map<string, Set<string>> {
 /**
  * Public C# type name -> the assemblies declaring it. A doc naming a C# host
  * type is tier T3 and ungated on the TypeScript side; the index exists so those
- * references are RECOGNISED and therefore excluded, rather than falling through
+ * references are recognised and therefore excluded, rather than falling through
  * predicate 3 as unresolved and vanishing.
  */
 function csharpTypeIndex(): Map<string, Set<string>> {
@@ -264,7 +264,7 @@ const CS_TYPE_DECL =
  * --------------------------------------------------------- */
 
 /**
- * Doc-comment ranges attached to a barrel-exported declaration OR to one of its
+ * Doc-comment ranges attached to a barrel-exported declaration or to one of its
  * members. Members matter: the `useViewUt` sentence is in the doc for
  * `CountdownProps.durationS`, not for `CountdownProps`, and a check that only
  * looked at top-level declarations would miss the case it was built for.
@@ -353,17 +353,17 @@ function csDocRefs(block: string): DocRef[] {
 }
 
 /**
- * Predicate 5, attached to ONE reference instead of to its neighbourhood.
+ * Predicate 5, attached to one reference instead of to its neighbourhood.
  *
  * A qualifier counts for a reference when it falls inside `QUALIFY_WINDOW`
- * characters either side AND no other code-form reference sits between the
+ * characters either side and no other code-form reference sits between the
  * two. Proximity alone let a specifier launder its neighbours: the
  * `@ksp-gonogo/components` written for `formatDensity` in `NullValue.tsx` also
  * marked `formatKspDate`, a ui-kit-internal reference two mentions earlier,
  * as provenance without anybody editing that doc.
  *
- * The window runs `QUALIFY_WINDOW` back from the reference's START and
- * `QUALIFY_WINDOW` on from its END. Measuring forward from the start spent the
+ * The window runs `QUALIFY_WINDOW` back from the reference's start and
+ * `QUALIFY_WINDOW` on from its end. Measuring forward from the start spent the
  * budget on the reference's own characters, so "the read side of
  * `useDataSeries`'s stream shim (`@ksp-gonogo/data`)" was flagged with the
  * specifier one character past the end of the slice.
@@ -554,7 +554,7 @@ interface CsScan {
 }
 
 /**
- * Capability seams are DERIVED from the mod source rather than listed, so a new
+ * Capability seams are derived from the mod source rather than listed, so a new
  * election joins the rule the day it is written. The seam that motivated this
  * survived precisely because nobody remembered to add it to anything, and it has
  * since been merged into `IPropagationProvider`: closest approach is a
@@ -688,8 +688,8 @@ function basePackageNames(
 
 describe("published doc reachability", () => {
   /**
-   * INSTRUMENT CHECKS FIRST, before any assertion that could pass by finding
-   * nothing. A regex matching nothing must FAIL, not pass. Every number here is
+   * Instrument checks first, before any assertion that could pass by finding
+   * nothing. A regex matching nothing must fail, not pass. Every number here is
    * a floor set well under the census measurement, so ordinary growth never
    * trips it and a scan that has gone blind always does.
    */
@@ -702,7 +702,7 @@ describe("published doc reachability", () => {
     });
 
     /**
-     * Spot-checks in BOTH directions. An over-broad barrel set masks real
+     * Spot-checks in both directions. An over-broad barrel set masks real
      * findings and cannot be told from a correct one by counting.
      */
     it("resolved re-export chains without over-collecting", () => {
@@ -754,10 +754,10 @@ describe("published doc reachability", () => {
     });
 
     /**
-     * THE WARRANTY. `useViewUt` is exported today, so the motivating bug cannot
+     * The warranty. `useViewUt` is exported today, so the motivating bug cannot
      * be observed live; the instrument is validated against a rebuilt instance
      * of it instead. Delete the symbol from both computed barrels, and a
-     * published interface whose MEMBER doc names it must come back as an
+     * published interface whose member doc names it must come back as an
      * unqualified T1b violation.
      *
      * This is the check that stops the gate going green for the wrong reason. A
@@ -840,7 +840,7 @@ describe("published doc reachability", () => {
      * Predicate 5's attachment and window, on constructed blocks because the
      * tree holds no instance of either shape today. Both fixes landed with the
      * finding count unchanged at 21, and an unchanged count is also exactly
-     * what a fix that did nothing produces: only a fixture that WOULD have come
+     * what a fix that did nothing produces: only a fixture that would have come
      * out the other way tells the two apart.
      */
     const attachesIn = (block: string, name: string) => {
@@ -986,10 +986,10 @@ describe("published doc reachability", () => {
      * The allowlist as it stood at the ratchet base, with the ref it came from
      * so a failure can quote it.
      *
-     * `ratchetBaseRef` THROWS when no base can be reached. This used to catch
+     * `ratchetBaseRef` throws when no base can be reached. This used to catch
      * that and return `undefined`, which every caller below reads as "nothing
      * to diff", so an unreachable base turned all four checks into passes.
-     * Undefined now means only that the checkout IS the base or that the list
+     * Undefined now means only that the checkout is the base or that the list
      * did not exist there, and `ratchet-base-ref.test.ts` grades the second
      * case.
      */
@@ -1053,7 +1053,7 @@ describe("published doc reachability", () => {
     });
 
     /**
-     * The debt lists shrink; the lists of what COUNTS as debt do the opposite.
+     * The debt lists shrink; the lists of what counts as debt do the opposite.
      * Dropping a name from any of these looks exactly like progress from every
      * other angle in this file: the scan stops finding it, its entries can be
      * deleted as cleared, and the shrink checks stop grading it. The suite goes
@@ -1125,7 +1125,7 @@ describe("published doc reachability", () => {
 
     /**
      * Predicate 5 is the escape valve, so it is the list most likely to be
-     * WIDENED to make an inconvenient finding disappear. It may grow, but the
+     * widened to make an inconvenient finding disappear. It may grow, but the
      * C# list must never acquire the informal patterns: "MOD-side" says where a
      * computation happens and not where a type lives, and adding it back marks
      * `ITargetApproachSolver` as qualified, which is measured and is how the two

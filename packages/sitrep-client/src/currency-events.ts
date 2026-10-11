@@ -8,14 +8,14 @@ import { useStream } from "./use-stream";
  * A career currency total reveals at home instantly (`career.status.balances.*` is
  * held at the home command, where the game gates a spend) while the vessel
  * telemetry confirming the underlying event is delayed.
- * These events carry each delta on its SOURCE vessel's own clock instead, so a
+ * These events carry each delta on its source vessel's own clock instead, so a
  * distant probe's science arrives when its light could have.
  *
- * Fields are BARE numbers, not wrapped `Value<"science">`/`Value<"s">` like the
+ * Fields are bare numbers, not wrapped `Value<"science">`/`Value<"s">` like the
  * generated `ScienceCreditEvent` contract type: `currency.<guid>.*` is a dynamic
  * topic the decode path cannot unit-wrap (`wrapTopicPayload` keys on the exact topic
  * string and a per-guid topic matches no entry in the unit maps), so every field
- * arrives as the raw wire number. The generated type describes the WIRE contract;
+ * arrives as the raw wire number. The generated type describes the wire contract;
  * this is the shape a client actually receives.
  */
 export interface ScienceCreditEvent {
@@ -29,7 +29,7 @@ export interface ScienceCreditEvent {
   subjectId: string;
   /** The research subject's human title. */
   subjectTitle: string;
-  /** UT the credit HAPPENED at, not when it arrived, so a consumer can age it. */
+  /** UT the credit happened at, not when it arrived, so a consumer can age it. */
   ut: number;
 }
 
@@ -41,7 +41,7 @@ export function scienceCreditTopic(guid: string): string {
 /**
  * The latest revealed science credit for one vessel, or undefined until one arrives.
  *
- * The value only appears once that vessel's light-time has elapsed; the reveal is
+ * The value only appears once that vessel's signal delay has elapsed; the reveal is
  * enforced server-side, so there is nothing here to wait on or gate client-side.
  */
 export function useScienceCredit(guid: string): ScienceCreditEvent | undefined {
@@ -56,7 +56,7 @@ export function useScienceCredit(guid: string): ScienceCreditEvent | undefined {
 export interface AgedScienceCredit extends ScienceCreditEvent {
   /**
    * View UT minus the credit's own `ut`: how stale the news is. Roughly the source
-   * vessel's one-way light-time at the moment it arrives, which is what lets a
+   * vessel's one-way signal delay at the moment it arrives, which is what lets a
    * render say "5m12s ago" rather than implying it just happened.
    */
   ageSeconds: number;
@@ -78,18 +78,18 @@ function isCredit(payload: unknown): payload is ScienceCreditEvent {
  * Every science credit revealed for `guids`, newest first, each aged against
  * `viewUt`, plus their sum.
  *
- * WHAT THIS DELIBERATELY DOES NOT EXPOSE: the amount of science still in flight.
+ * What this deliberately does not expose: the amount of science still in flight.
  * That figure is only derivable as `career.status.balances.science` (instant, true)
  * minus a revealed total, and displaying it would tell the operator that N science
  * is inbound the instant it is earned, which is exactly the inference the delayed
  * reveal exists to prevent. So no `pending` field is offered here, by design.
  *
- * WHY THERE IS NO ABSOLUTE "delayed total" EITHER: an exact delayed total would need
+ * Why there is no absolute "delayed total" either: an exact delayed total would need
  * to be seeded from a baseline read, but any baseline taken mid-session already
  * includes credits still in flight, and how much is in flight is unknowable to the
  * client by design. Seeding from it and then adding those credits as they reveal
  * double-counts them permanently. So the honest quantity is the one reported here:
- * the exact science that has been REVEALED to this observer. `career.status.balances
+ * the exact science that has been revealed to this observer. `career.status.balances
  * .science` remains the absolute total, instant and untouched, for spend gating.
  *
  * Subscribes imperatively through the client rather than one `useStream` per guid,
@@ -147,8 +147,8 @@ export function useRevealedScience(
 /**
  * One revealed reputation loss, attributed to the vessel it happened aboard.
  *
- * NARRATIVE ONLY. `delta` is a change, never a total, and there is deliberately no
- * absolute reputation on this shape: the number that GATES (a strategy's minimum-rep
+ * Narrative only. `delta` is a change, never a total, and there is deliberately no
+ * absolute reputation on this shape: the number that gates (a strategy's minimum-rep
  * unlock, contract offer availability) is `career.status.balances.reputation`, which
  * stays instant and untouched. Never render this beside an activate/accept control.
  */
@@ -157,13 +157,13 @@ export interface ReputationLossEvent {
   vesselId: string;
   /** The vessel's display name at the moment of the loss. */
   vesselName: string;
-  /** The reputation CHANGE, negative for a penalty (bare wire number). */
+  /** The reputation change, negative for a penalty (bare wire number). */
   delta: number;
   /** What caused it, e.g. `crew-loss`. */
   cause: string;
   /** The kerbals lost, all of those folded into this event's `delta`. */
   crewLost: string[];
-  /** UT the loss HAPPENED at, not when it arrived. */
+  /** UT the loss happened at, not when it arrived. */
   ut: number;
 }
 
@@ -187,11 +187,11 @@ function isReputationLoss(payload: unknown): payload is ReputationLossEvent {
 /**
  * Every reputation loss revealed for `guids`, newest first.
  *
- * Each arrives only once its vessel's light-time has elapsed, so an operator cannot
+ * Each arrives only once its vessel's signal delay has elapsed, so an operator cannot
  * infer a distant crew loss from the instant career total ticking down.
  *
- * Callers should pass a STICKY guid list, not a live roster: a destroyed vessel leaves
- * the roster while its own event is still crossing its light-time, and a subscription
+ * Callers should pass a sticky guid list, not a live roster: a destroyed vessel leaves
+ * the roster while its own event is still crossing its signal delay, and a subscription
  * keyed on the live roster alone would be gone by the time the event matured. The
  * ledger holds the event either way; only the subscription can go missing.
  */
@@ -227,7 +227,7 @@ export function useReputationLossEvents(
  * currently in `roster`, plus every guid seen earlier in this session.
  *
  * A vessel that is destroyed leaves the roster immediately, but its own reputation-loss
- * event is still crossing its light-time and will not be revealed for minutes. A
+ * event is still crossing its signal delay and will not be revealed for minutes. A
  * subscription set built from the live roster alone would therefore have dropped that
  * guid before the event matured, and the news of the loss would never arrive. Retaining
  * every guid ever seen is bounded by the vessels one save has actually flown, which is

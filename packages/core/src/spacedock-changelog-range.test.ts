@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 /**
- * The SpaceDock changelog runs from the previous STABLE tag to the release
+ * The SpaceDock changelog runs from the previous stable tag to the release
  * tag. A candidate's tag is never public, so a range that started at one
  * would drop every fix that landed in it. Held against a small fixture
  * history rather than the workflow text, with the workflow's own range

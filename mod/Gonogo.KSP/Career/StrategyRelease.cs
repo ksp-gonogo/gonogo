@@ -18,7 +18,7 @@ namespace Gonogo.KSP.Career
     /// Ending a strategy, answered by what happened to it rather than by how the
     /// call returned.
     ///
-    /// <para>A career mod's <c>Deactivate</c> can throw AFTER it has done the
+    /// <para>A career mod's <c>Deactivate</c> can throw after it has done the
     /// thing. RP-1's <c>StrategyRP0.DeactivateOverride</c> charges the removal
     /// reputation, clears <c>isActive</c> and unregisters the effects, then walks
     /// a tail of unguarded bookkeeping (build rates, upkeep, program deadlines,

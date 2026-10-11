@@ -13,10 +13,10 @@ import { describe, expect, it } from "vitest";
  * currency's own member and the intersection collapses to `never`.
  *
  * `reading.ts` states the list as `ReservedReadingKey` and works around a
- * collision with `Exclude<keyof P, ReservedReadingKey>`, which is SILENT: the
+ * collision with `Exclude<keyof P, ReservedReadingKey>`, which is silent: the
  * field drops off the field-property surface with no field reading and no
  * explanation. `RtConfig.ReservedReadingKeys` states the same list on the C#
- * side and REFUSES the collision at codegen, which is where the author who
+ * side and refuses the collision at codegen, which is where the author who
  * spelled it that way is standing.
  *
  * Neither can generate the other: one is a TypeScript type, the other a

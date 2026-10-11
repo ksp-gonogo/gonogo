@@ -25,13 +25,13 @@ import {
 import { getHostPeerId } from "./helpers";
 
 /**
- * Messages and radio go to a GROUP, and only its members hear them.
+ * Messages and radio go to a group, and only its members hear them.
  *
  * Three real screens talking through the mod: mission control at `ksc`, a
  * craft 3 s out and a craft 9 s out. What these show is that a screen outside
  * the group keeps, plays and lights nothing of it, and that a member added
  * while somebody is talking hears the change and then the stream from where it
- * had got to, each one light-time from mission control.
+ * had got to, each one signal delay from mission control.
  */
 
 test.use({ video: "off", trace: "off" });

@@ -13,7 +13,7 @@ import { recordRadioFrame } from "./wire";
  * class is exercisable without a secure context, a device or WebCodecs, and so
  * the browser half stays the one piece with no logic in it.
  *
- * **Loss of path stops DELIVERY, never transmission.** With no route to any
+ * **Loss of path stops delivery, never transmission.** With no route to any
  * member of the group the composer bar turns and flags `NO PATH`, and the
  * operator keeps talking: the separation is frozen as `null` and every chunk
  * still goes on the wire, where a member who does have a path to this vantage
@@ -35,7 +35,7 @@ export interface RadioCapture {
  *
  * `amplitude` is how loud that chunk was, 0..1, measured off the PCM the
  * encoder was already handed (`chunkAmplitude`). It rides alongside the bytes
- * rather than on the wire, and is LOCAL ONLY: it is the operator's own voice,
+ * rather than on the wire, and is local only: it is the operator's own voice,
  * drawn on their own rail. Publishing it so a listener could draw somebody
  * else's transmission crossing the gap would be a contract change, and is
  * deliberately not made.
@@ -63,7 +63,7 @@ export interface RadioCaptureOptions {
 export interface RadioKeyDown {
   groupId: string;
   /**
-   * The group's members as this vantage can see them NOW, read once per chunk
+   * The group's members as this vantage can see them now, read once per chunk
    * rather than frozen, so a member whose addition reaches this vantage while
    * it is talking is addressed from the next chunk onward.
    */
@@ -73,7 +73,7 @@ export interface RadioKeyDown {
   authorName: string;
   authorSeat: Seat;
   /**
-   * The separation to the recipient, read ONCE here and frozen into the
+   * The separation to the recipient, read once here and frozen into the
    * envelope. See `RadioTransmission.separationSeconds`: re-reading it per
    * chunk jitters the far end's playout across the 20 ms grid.
    */
@@ -90,18 +90,18 @@ export interface RadioTransmitState {
   chunks: number;
   /**
    * How loud each of the last {@link AMPLITUDE_HISTORY} chunks was, 0..1,
-   * NEWEST LAST. What the delay rail draws as the waveform ribbon of this
+   * newest last. What the delay rail draws as the waveform ribbon of this
    * transmission crossing the gap.
    *
    * Cleared at key-down, and bounded by {@link amplitudeHistoryFor} against the
    * separation this transmission was keyed at, so it holds the audio that is
    * still in flight rather than a fixed couple of seconds of it.
    *
-   * **How many of these there are is what the rail's trace MEASURES.** The rail
+   * **How many of these there are is what the rail's trace measures.** The rail
    * draws a sample at its own age, so the trace reaches as far as the oldest
    * sample held and no further. A short ring therefore does not make the
    * drawing coarse, it makes it claim less of the gap than the transmission
-   * occupies: 128 samples against a minute of light-time drew a 16 px corner
+   * occupies: 128 samples against a minute of signal delay drew a 16 px corner
    * mark for a rail that was full of voice end to end. The ring is the fix,
    * because the drawing may not spread what was kept over the whole rail
    * without putting recent audio where older audio actually is.
@@ -118,26 +118,26 @@ export interface RadioTransmitState {
   fault: string | null;
 }
 
-/** One captured chunk is 20 ms, so a light-time converts to that many samples. */
+/** One captured chunk is 20 ms, so a signal delay converts to that many samples. */
 const CHUNK_SECONDS = 0.02;
 
 /**
  * The shortest stretch of audio the ribbon's zone ever stands for, in seconds.
- * Under this light-time the zone still holds this much voice, so the wave is
+ * Under this signal delay the zone still holds this much voice, so the wave is
  * always a wave the operator can see grow as they talk, rather than a gap too
  * short to hold a single turning point.
  */
 export const MIN_RIBBON_SPAN_SECONDS = 5;
 
 /**
- * The ring's FLOOR: what to keep when the separation is small or unknown, the
+ * The ring's floor: what to keep when the separation is small or unknown, the
  * {@link MIN_RIBBON_SPAN_SECONDS} of chunks plus the one sample the rail's
  * reach measurement sits on.
  *
- * Relying on this floor alone against a long light-time is a defect: the rail
+ * Relying on this floor alone against a long signal delay is a defect: the rail
  * draws each sample at its own age, so the trace reaches only as far as the
  * oldest sample held. Against the operator's common ten to sixty seconds of
- * light-time the floor alone draws a fraction of the rail and reads as barely
+ * signal delay the floor alone draws a fraction of the rail and reads as barely
  * having started talking, when the gap is in fact full of voice the
  * transmitter has thrown away.
  */
@@ -145,20 +145,20 @@ export const AMPLITUDE_HISTORY =
   Math.ceil(MIN_RIBBON_SPAN_SECONDS / CHUNK_SECONDS) + 1;
 
 /**
- * The ring's CEILING: 3001 chunks, which is 60 seconds of light-time plus the
+ * The ring's ceiling: 3001 chunks, which is 60 seconds of signal delay plus the
  * one sample the rail's reach measurement needs on top of it. Sixty seconds is
  * the top of the separation the operator described working at, so a gap that
  * wide is covered exactly rather than one sample short.
  *
  * A bound is needed because nothing here knows how far the far end can get. It
- * is chosen against the SPEND, per chunk: the ring is rebuilt on every 20 ms
+ * is chosen against the spend, per chunk: the ring is rebuilt on every 20 ms
  * chunk to change its identity (see `emitChunk`), so at the cap that is a
  * 3000-element copy fifty times a second, ~24 kB an allocation and ~150 k
  * elements a second. Generous, measurable, and an order below anything that
  * would show on a frame budget. The 24 kB the ring itself occupies is not the
  * consideration; the copy rate is.
  *
- * **Past the cap the trace is TRUNCATED, and stops short of the boundary.** The
+ * **Past the cap the trace is truncated, and stops short of the boundary.** The
  * far part of the rail is then audio in flight that the transmitter did not
  * keep, which is exactly what a trace ending early says. The alternative,
  * spreading 60 seconds of samples over a wider gap, would put recent audio
@@ -171,23 +171,23 @@ export const AMPLITUDE_HISTORY_MAX = 3001;
  * separation: enough that the oldest sample held is the oldest still in flight,
  * so the rail's trace reaches the boundary rather than stopping short of it.
  *
- * One sample past the light-time, because the rail measures the extent off the
- * OLDEST sample's age (`length - 1` of them behind the newest), so covering a
+ * One sample past the signal delay, because the rail measures the extent off the
+ * oldest sample's age (`length - 1` of them behind the newest), so covering a
  * span of `n` takes `n + 1` samples.
  *
  * The separation is the one frozen into the envelope at key-down, which is
  * where every other use of it in this file comes from as well: re-reading it
  * per chunk jitters the far end's playout across the 20 ms grid. A separation
- * that MOVES during one transmission therefore does not resize the ring, and
- * the arithmetic says it need not: light-time changes at closing speed over c,
+ * that moves during one transmission therefore does not resize the ring, and
+ * the arithmetic says it need not: signal delay changes at closing speed over c,
  * so a minute of talking at 10 km/s of relative motion moves the far end 600 km,
- * two milliseconds of light-time, a tenth of one chunk. Should a separation ever
+ * two milliseconds of signal delay, a tenth of one chunk. Should a separation ever
  * jump mid-transmission the ring under-covers and the trace stops short, which
  * is the honest direction for it to fail in.
  */
 /**
  * Elements copied a second rebuilding the amplitude ring, which is the one cost
- * that now SCALES with the separation: the ring is rebuilt per chunk to change
+ * that now scales with the separation: the ring is rebuilt per chunk to change
  * its identity, so its length is a per-chunk spend rather than a one-off 24 kB.
  *
  * Measured rather than reasoned about, because neither existing radio budget can

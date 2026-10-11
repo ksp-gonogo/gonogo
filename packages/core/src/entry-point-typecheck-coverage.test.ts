@@ -30,12 +30,12 @@ import { tsconfigsRunBy } from "./typecheckScriptConfigs";
  * `app`, `components` and `ui-kit` each now carry a `tsconfig.scripts.json`
  * wired into their `typecheck` script, closing the hole those four files sat
  * in. This is the gate that keeps a fifth one from landing the same way: it
- * grades every render-harness and probe entry point BY SHAPE (an
+ * grades every render-harness and probe entry point by shape (an
  * `*.entry.tsx` driver, a `scripts/probe/**` file, a `render-*` script),
  * never by which primitive it happens to draw, so the next hole does not need
  * its own ticket to be seen.
  *
- * WHY THE COMPILER'S OWN CONFIG PARSER: reading a tsconfig's `include` /
+ * Why the compiler's own config parser: reading a tsconfig's `include` /
  * `exclude` by hand would answer a question adjacent to the real one: a
  * narrowed `include`, an inherited `exclude`, or a `files` array all reach
  * the same place a different way. This hands each config a `typecheck`
@@ -211,7 +211,7 @@ describe("every render-harness and probe entry point typechecks", () => {
 
   it("can see a planted violation, and stops seeing it once covered", () => {
     /**
-     * The dangerous failure mode is a detector that reports COVERED for a
+     * The dangerous failure mode is a detector that reports covered for a
      * package whose config excludes the file: it would pass on the exact
      * hole this gate exists to close. Both directions are planted on a
      * synthetic package outside the real tree, so the plant cannot be

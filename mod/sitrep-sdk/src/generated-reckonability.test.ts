@@ -14,7 +14,7 @@ const rows = readFileSync(
 );
 
 /**
- * Asserted against the generated TEXT rather than the imported const, the same
+ * Asserted against the generated text rather than the imported const, the same
  * way generated-control-channels.ts is: a stale artifact and a correct one
  * import identically, so a test that reads the values it is checking cannot tell
  * whether codegen ran.

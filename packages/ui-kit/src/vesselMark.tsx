@@ -28,7 +28,8 @@ const OUTLINE_WIDTH = 0.3;
 
 /**
  * The vessel mark's geometry, in units of the radius it is drawn at, and its
- * hues. A current vessel is a circle in the vessel's green. A held one is a
+ * hues. Useful for drawing the vessel the same way on every map and diagram.
+ * Used by the orbit diagram. A current vessel is a circle in the vessel's green. A held one is a
  * square in the held hue and a modelled one a triangle, point up, in the
  * modelled hue, each outlined in the vessel's green, so the shape is never the
  * only thing that says which craft it is and the hue never the only thing that
@@ -144,7 +145,9 @@ export interface VesselMarkSvgProps {
 
 /**
  * The vessel mark as SVG shapes centred on a point, the triangle always point
- * up. Draw it outside any rotated group, so the shape does not turn with the
+ * up. Useful for showing the operator where a vessel is, and whether that
+ * position is current, held or modelled. Used by the orbit diagram and the
+ * system view. Draw it outside any rotated group, so the shape does not turn with the
  * orbit. The group carries the point as its `translate`.
  *
  * @category Unit
@@ -255,7 +258,8 @@ export interface PaintVesselMarkOptions {
 
 /**
  * Paints the vessel mark on a canvas, centred on a point in canvas pixels, the
- * triangle always point up. `radius` is the current vessel's circle, 4 px
+ * triangle always point up. Useful for showing the operator where a vessel is
+ * on a canvas map. Used by the map view. `radius` is the current vessel's circle, 4 px
  * unless given.
  *
  * @category Unit
@@ -309,7 +313,8 @@ export type VesselPositions = Partial<
 
 /**
  * Paints every position given with its own vessel mark, the one nearest to now
- * on top. A held position and a modelled one are joined by a faint dashed
+ * on top. Useful for showing the operator a vessel's observed and modelled
+ * positions together. Used by the map view. A held position and a modelled one are joined by a faint dashed
  * track, so the pair reads as "was here, modelled to be there".
  *
  * @category Unit

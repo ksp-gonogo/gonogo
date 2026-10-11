@@ -6,7 +6,7 @@ using Sitrep.Host.Comms;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// One-way light-time over an already-walked comms path, the shared
+    /// One-way signal delay over an already-walked comms path, the shared
     /// primitive behind every routed delay the KSP layer reports: a vessel's
     /// own path home and an arbitrary node-to-node path both come through here,
     /// so the two can never drift.

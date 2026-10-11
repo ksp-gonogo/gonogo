@@ -3,13 +3,13 @@
  *
  * Pure module: no vitest, no allowlist, nothing but node builtins. Same reason
  * `banner-comments.allowlist.ts` is split out, and one more besides. The
- * allowlist is split so its DATA can be read at a git ref; this is split so its
- * LOGIC can be. When the matcher is widened, the ratchet loads the previous
+ * allowlist is split so its data can be read at a git ref; this is split so its
+ * logic can be. When the matcher is widened, the ratchet loads the previous
  * matcher at the base revision and re-runs it over the current tree, which is
  * what tells a reseed caused by the gate learning to see a new spelling from a
  * reseed laundering banners somebody just wrote. See `MATCHER_REVISION`.
  *
- * WHAT A BANNER IS, generally: a comment block whose first and last lines are a
+ * What A banner is, generally: a comment block whose first and last lines are a
  * bare rule and whose interior is a short title. It has exactly two spellings
  * and they are the same object, one collapsed and one spread:
  *
@@ -21,12 +21,12 @@
  *
  * The first version of this gate saw only the collapsed spelling, and the tree
  * writes the spread one 175 times. The fix before it had the same shape: the
- * version before THAT matched `[-=*]` alone and could not see a banner drawn
+ * version before that matched `[-=*]` alone and could not see a banner drawn
  * with box-drawing characters. Both were special cases of one thing, so both
  * missed the next spelling. Hence a definition here that names the object
  * rather than a pattern, and a matcher built from that definition.
  *
- * WHAT IT DELIBERATELY DOES NOT MATCH, because these are not the defect:
+ * What it deliberately does not match, because these are not the defect:
  *
  *   - a bare rule with no title: the `// -----` wrap that opens or closes a
  *     doc-comment block. 664 lines in this tree carry that shape, and none of
@@ -35,7 +35,7 @@
  *     one
  *   - a comment paragraph that merely opens with rule characters and runs on
  *     with no closing rule. Prose, not a banner
- *   - a PROSE BLOCK bracketed top and bottom by rules. The shape is a banner's
+ *   - a prose block bracketed top and bottom by rules. The shape is a banner's
  *     but the content is an essay, so `TITLE_MAX_LINES` cuts it off. The tree's
  *     interior-length histogram makes the cut for us rather than taste: 179
  *     banners have a one-line title, 18 have two and 12 have three (a title too
@@ -150,7 +150,7 @@ function repoRoot(): string {
 }
 
 /**
- * Tracked files AND untracked-but-not-ignored ones. The untracked half is
+ * Tracked files and untracked-but-not-ignored ones. The untracked half is
  * load-bearing: a banner written into a brand new file is exactly the case this
  * is meant to catch, and a tracked-only listing would report it clean until the
  * commit after the one that introduced it.
@@ -170,7 +170,7 @@ function sourceFiles(root: string): { kept: string[]; generated: number } {
 /**
  * Every hand-written source file in the checkout, as repo-relative paths.
  *
- * Exported because the re-seed check re-runs a PREVIOUS matcher over the same
+ * Exported because the re-seed check re-runs a previous matcher over the same
  * listing: only the matching is versioned, the enumeration is not.
  */
 export function handWrittenSources(): string[] {

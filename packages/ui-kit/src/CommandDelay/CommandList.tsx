@@ -149,10 +149,12 @@ function boxesOf(props: CommandListProps): CommandListBox[] {
 /**
  * Outcome boxes for dispatches of one {@link CommandListKind}: one box per
  * dispatch, with the command's identity and the whole sentence of what became
- * of it. The Panel delay rail draws these under its queues; a widget draws one
- * wherever it reports the same outcomes itself. The sentence wraps and is never
- * truncated, since names are unbounded and the numbers sit at the end. A
- * `found` is drawn in the notice tone, every other kind in the warning tone.
+ * of it. Useful for telling the operator which commands were refused, lost,
+ * found again or failed, and why. Used by the panel delay rail, under its
+ * queues, and by the maneuver planner's armed triggers list. The sentence wraps
+ * and is never truncated, since names are unbounded and the numbers sit at the
+ * end. A `found` is drawn in the notice tone, every other kind in the warning
+ * tone.
  *
  * The sentences are {@link commandRefusalSentence},
  * {@link commandLossSentence}, {@link commandUndeliveredSentence},
@@ -243,7 +245,7 @@ const CommandList__Region = styled(LiveRegion)`
   }
 `;
 
-/** `warn` for an outcome that did NOT happen (a refusal, a loss), `info` for one that did after all (a found). */
+/** `warn` for an outcome that did not happen (a refusal, a loss), `info` for one that did after all (a found). */
 type OutcomeTone = Extract<Tone, "warn" | "info">;
 
 const CommandList__Box = styled.div<{ $tone: OutcomeTone }>`

@@ -142,19 +142,19 @@ export async function probeUplinkRoster(
  * `SitrepPeerRelay` backfills the most recent frame to a newly-connecting
  * station, so the sticky value is often already cached on `client` by the
  * time this subscribes: `TelemetryClient.subscribe` invokes the callback
- * SYNCHRONOUSLY in that case, BEFORE `subscribe()` itself returns, which
+ * synchronously in that case, before `subscribe()` itself returns, which
  * means the `unsub` closure `subscribe()` is about to return isn't assigned
  * to anything yet at the moment that synchronous callback runs. A first cut
  * of this function declared `unsub` with `let` and a no-op default to dodge
  * the temporal-dead-zone crash that would otherwise cause, but that made
- * the synchronous-callback path call the STALE no-op instead of the real
+ * the synchronous-callback path call the stale no-op instead of the real
  * unsubscribe closure, silently leaking the subscription (caught by this
  * file's own test suite: "leaves another subscriber's subscription intact"
  * expected the shared subscription to end up unsubscribed and it never
  * did). The `subscribeReturned` flag below fixes that properly: a callback
  * firing before `subscribe()` has returned stashes its result instead of
  * touching `unsub`; the couple of lines immediately after the `subscribe()`
- * call: where `unsub` IS safely assigned; pick that stash up and finish
+ * call: where `unsub` is safely assigned; pick that stash up and finish
  * there instead. A callback firing later (the ordinary case, no backfill
  * yet cached) always sees `subscribeReturned === true` and finishes
  * directly. The `probeUplinkRoster` case above never hits any of this

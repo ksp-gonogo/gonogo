@@ -14,7 +14,7 @@ namespace Sitrep.Contract;
 /// <para>A prediction, and the receiving centre's own. Every craft is reckoned
 /// forward from the last orbit that centre has heard it report, so the plan
 /// holds nothing the centre could not know: a distant craft's burn moves the
-/// plan one light-time after it happened, and a craft the centre has never
+/// plan one signal delay after it happened, and a craft the centre has never
 /// heard of is not in it. Two centres can hold different plans at the same
 /// moment, and each session is sent only the plan of the centre it sits
 /// at.</para>
@@ -28,7 +28,7 @@ namespace Sitrep.Contract;
 /// Made by Sitrep.Host.Comms.ReckonedPlan from the craft states
 /// CentreHearing has received at that centre, and delivered through
 /// Courier.RecordAddressed to that centre alone, zero seconds after it was
-/// made: the light-time was spent by the craft states on their way in.
+/// made: the signal delay was spent by the craft states on their way in.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>

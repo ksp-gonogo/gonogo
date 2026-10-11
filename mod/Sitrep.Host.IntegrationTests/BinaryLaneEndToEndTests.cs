@@ -11,14 +11,14 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The binary lane through the REAL socket: a real
+    /// The binary lane through the real socket: a real
     /// <see cref="System.Net.WebSockets.ClientWebSocket"/> against a real
     /// <see cref="ChannelEngine"/>, so what is asserted is what a third party
     /// would see on the wire rather than what a codec unit test says it should.
     ///
     /// <para>The one that is easy to skip and is the reason the flag exists is
     /// <see cref="AByteArrayOnAnOrdinaryChannelStillGoesOutAsJson"/>: the lane
-    /// is DECLARED, and nothing may infer it from a payload's CLR type. Without
+    /// is declared, and nothing may infer it from a payload's CLR type. Without
     /// that assertion the obvious "optimisation" of sniffing for
     /// <c>byte[]</c> looks harmless, and it would silently change the wire
     /// shape of every channel that publishes a number array on purpose.</para>
@@ -96,7 +96,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// PLANTED CONTROL for "declared, never inferred". The payload here is
+        /// Planted control for "declared, never inferred". The payload here is
         /// the same CLR type the lane carries, on a channel that did not ask
         /// for the lane, and it must still arrive as an ordinary JSON
         /// <c>stream-data</c> holding a number array. Publishing a
@@ -201,7 +201,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The inbound half. The lane runs server-to-client only, and a client
-        /// that sends one UP the socket used to have its bytes UTF-8 decoded
+        /// that sends one up the socket used to have its bytes UTF-8 decoded
         /// unconditionally and then reported as a malformed envelope, which
         /// names the wrong problem. It is now refused by name.
         /// </summary>
@@ -229,7 +229,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// An inbound frame on a lane byte this build does not know is refused
-        /// as an UNKNOWN LANE rather than as the one lane it does know. The
+        /// as an unknown lane rather than as the one lane it does know. The
         /// distinction is what tells a newer client "this mod is older" instead
         /// of "you sent that the wrong way".
         /// </summary>
@@ -256,7 +256,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// PLANTED CONTROL for the inbound guard: an ordinary text subscribe on
+        /// Planted control for the inbound guard: an ordinary text subscribe on
         /// the same socket must still work. A discriminator that refused
         /// everything would pass every assertion above and break the protocol.
         /// </summary>

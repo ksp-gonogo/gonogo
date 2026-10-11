@@ -4,12 +4,12 @@
  * an arbitrary git ref without pulling in vitest or the scan machinery. Same
  * split-module shape as `uplink-boundary.allowlist.ts`.
  *
- * THIS GUARD RUNS THE OPPOSITE DIRECTION TO `uplink-boundary`. That one stops the
+ * This guard runs the opposite direction to `uplink-boundary`. That one stops the
  * app naming a mod. This one stops a mod reaching into the app, which nothing
  * checked until 2026-08-18, because the name `uplink-boundary` read as though it
  * covered both and so nobody looked.
  *
- * WHAT AN UPLINK MAY IMPORT is the PUBLISHED surface, plus the genuinely
+ * What an uplink may import is the published surface, plus the genuinely
  * third-party runtime singletons:
  *
  *   `@ksp-gonogo/sitrep-sdk`, `@ksp-gonogo/ui-kit`, `react`, `styled-components`
@@ -20,28 +20,28 @@
  * install, nothing to typecheck against, and no way to build. So are the Uplinks
  * themselves, which is why one Uplink may not import another.
  *
- * The app DOES bake an import map (`packages/app/src/uplinks/externals/`) that
+ * The app does bake an import map (`packages/app/src/uplinks/externals/`) that
  * resolves all of those specifiers at runtime to its singleton chunks, and that
  * mechanism is load-bearing for widget registration. It is not a licence to
- * import them: it fixes RUNTIME resolution only, and says nothing about how an
+ * import them: it fixes runtime resolution only, and says nothing about how an
  * author outside this repo builds in the first place.
  *
- * There is NO first-party exemption. Some Uplinks ship bundled with the mod,
+ * There is no first-party exemption. Some Uplinks ship bundled with the mod,
  * which changes how they are distributed and not what they may import. Every
  * Uplink here is meant to be a working example of what an outside author can
  * build.
  *
- * Every entry here is DEBT and the list is SHRINK-ONLY. Fix one by re-pointing the
+ * Every entry here is debt and the list is SHRINK-ONLY. Fix one by re-pointing the
  * import at a published package, or by moving the export into one, then delete
  * the line. Never add one.
  *
  * The test-side entries have a single shared cause: nothing published carried a
  * test harness, so every Uplink reached into `core` / `sitrep-client` /
  * `test-utils` for one. That harness is now `@ksp-gonogo/sitrep-sdk/testing`,
- * which hands an author the REAL `TelemetryClient` / `TimelineStore` /
+ * which hands an author the real `TelemetryClient` / `TimelineStore` /
  * `StubTransport` rather than a reimplementation of them. It was briefly a
  * separate `@ksp-gonogo/sitrep-testing` package sitting above the spine; that
- * package is DELETED, and the subpath is where the harness lives now.
+ * package is deleted, and the subpath is where the harness lives now.
  */
 
 /**
@@ -90,7 +90,7 @@ export const BLOCKED_FILENAMES = ["widgetDeclarations.test.ts"] as const;
 /**
  * file path -> the forbidden packages it imports. SHRINK-ONLY.
  *
- * EMPTY as of 2026-08-19, down from 71. Every Uplink in this repo builds against
+ * Empty as of 2026-08-19, down from 71. Every Uplink in this repo builds against
  * the published packages alone. An empty list is the point of the exercise, not
  * the end of it: the scan still runs, and the first import that reaches back
  * into the app fails the build rather than joining a list.
@@ -100,7 +100,7 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
 
 /**
  * A dependency that resolves through pnpm workspace hoisting is not a
- * dependency you have. This is the DECLARATION half of the same rule: an
+ * dependency you have. This is the declaration half of the same rule: an
  * Uplink's `client/package.json` may not name a forbidden package in
  * `dependencies` or `devDependencies`, because an outside author installing
  * from the registry gets a module-not-found rather than a working build.
@@ -109,7 +109,7 @@ export const INTERNAL_IMPORT_DEBT: Record<string, readonly ForbiddenPackage[]> =
  * reason. Without it two Uplinks kept a declared dependency on `components` for
  * weeks after the last import of it died.
  *
- * Also EMPTY as of 2026-08-19.
+ * Also empty as of 2026-08-19.
  */
 export const DECLARED_DEPENDENCY_DEBT: Record<
   string,
@@ -117,7 +117,7 @@ export const DECLARED_DEPENDENCY_DEBT: Record<
 > = {};
 
 /**
- * Which SUBPATHS of the two published packages an Uplink may import.
+ * Which subpaths of the two published packages an Uplink may import.
  *
  * The package-level checks cannot express this. `IMPORT_RE` is a denylist of
  * package names and both of these are permitted, at any depth, so
@@ -162,7 +162,7 @@ export const AUTHOR_SUBPATHS: Record<
 };
 
 /**
- * Published subpaths that are NOT author surfaces, with the reason each one is
+ * Published subpaths that are not author surfaces, with the reason each one is
  * reachable anyway. Reachable is the point: every entry here resolves, installs
  * and typechecks, which is why only a named list can stop it.
  */

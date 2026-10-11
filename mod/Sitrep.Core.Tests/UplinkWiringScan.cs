@@ -109,7 +109,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Every name on either side the walk read but could not turn into a
-        /// string. The walk compares VALUES, so an unresolved name is not a
+        /// string. The walk compares values, so an unresolved name is not a
         /// violation, it is a hole: it would drop out of both sides and the
         /// comparison would report nothing about it.
         /// </summary>
@@ -141,13 +141,13 @@ namespace Sitrep.Core.Tests
     }
 
     /// <summary>
-    /// Reads an Uplink's C# source and pairs the names it REGISTERS against the
-    /// names it DECLARES.
+    /// Reads an Uplink's C# source and pairs the names it registers against the
+    /// names it declares.
     ///
     /// <para><b>Why source rather than calling Register.</b> The obvious form is to
     /// hand the Uplink a recording host and compare what it asked for against its
     /// manifest, which is what <c>Sitrep.Contract.TestSupport.CommandRegistrationAssertion</c>
-    /// does. That form only sees what the headless test build can RUN, and on most
+    /// does. That form only sees what the headless test build can run, and on most
     /// Uplinks here it runs nothing: several keep their whole registration body in
     /// a <c>.Ksp.cs</c> half the test csproj
     /// deliberately excludes, so <c>Register</c> forwards to an unimplemented
@@ -163,12 +163,12 @@ namespace Sitrep.Core.Tests
     /// resolves each name to the string it actually carries, and reports anything
     /// it cannot resolve rather than dropping it.</para>
     ///
-    /// <para><b>THIS FILE IS VENDORED, and a copy of it is pinned by content
+    /// <para><b>this file is vendored, and a copy of it is pinned by content
     /// elsewhere.</b> Uplinks that leave this repo leave the reach of the walk that
     /// enrols them by their living under <c>mod/</c>, so the repo they move to runs
     /// this same walk over its own layout, from a byte-for-byte copy differing only
     /// in its namespace line. That is why <see cref="Scan"/> takes the source
-    /// DIRECTORIES rather than deriving them: two hand-maintained walks are two
+    /// directories rather than deriving them: two hand-maintained walks are two
     /// chances for one of them to stop matching <c>host.AddCommandHandler</c>, and
     /// a walk that matches nothing reports a clean repo. Editing this file is fine
     /// and expected; it puts the copy out of date, and the consequence is that the
@@ -460,7 +460,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Methods that BUILD a declaration from a name, e.g.
+        /// Methods that build a declaration from a name, e.g.
         /// <c>private static CommandDeclaration Declare(string command)</c>. Their
         /// call sites are declaration sites, which is where the name is written.
         /// </summary>
@@ -477,7 +477,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The PARAMETER names those helpers take. Inside a helper body the name is
+        /// The parameter names those helpers take. Inside a helper body the name is
         /// a parameter rather than a const, and resolving it is neither possible
         /// nor wanted: the real name is at the call site, which is scanned
         /// separately.
@@ -670,7 +670,7 @@ namespace Sitrep.Core.Tests
             /// <param name="index">Where <paramref name="raw"/> starts in the file.</param>
             /// <param name="at">
             /// The call this expression was read from, which is what decides whether
-            /// a loop variable is in scope. It is not where the NAME is written: a
+            /// a loop variable is in scope. It is not where the name is written: a
             /// loop's names are written in the array above the body.
             /// </param>
             private IEnumerable<WiringUse> Uses(string raw, int index, int at)

@@ -133,7 +133,7 @@ namespace Sitrep.Contract
         /// </summary>
         /// <param name="assembly">
         /// Which assembly to describe. Defaults to this one, the first-party
-        /// contract. An Uplink passes its OWN contract assembly and gets its
+        /// contract. An Uplink passes its own contract assembly and gets its
         /// own descriptor: <see cref="SitrepUnitAttribute"/> takes an arbitrary
         /// string, so an Uplink declares units the same way this contract does.
         /// </param>
@@ -168,7 +168,7 @@ namespace Sitrep.Contract
         /// core's catalog applies.
         ///
         /// <para><b>Why the suffix and not the exact name.</b> A catalog named
-        /// exactly <c>Units</c> SHADOWS this assembly's own <see cref="Units"/>
+        /// exactly <c>Units</c> shadows this assembly's own <see cref="Units"/>
         /// for any file in the same namespace, so the moment an Uplink adds one
         /// beside its payloads every existing <c>[SitrepUnit(Units.Flag)]</c> in
         /// that namespace stops resolving. The in-repo slices work round it by
@@ -723,7 +723,7 @@ namespace Sitrep.Contract
         /// name="isMap"/> is true for a <c>Dictionary&lt;string, T&gt;</c>,
         /// which the runtime has to map over rather than wrap whole;
         /// <paramref name="isList"/> is true for an array or sequence of the
-        /// shape. Both describe the ELEMENT type this returns, and a property
+        /// shape. Both describe the element type this returns, and a property
         /// is at most one of them.
         /// </summary>
         internal static Type NestedContractType(Type type, out bool isMap, out bool isList)
@@ -753,7 +753,7 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The VALUE type of a <c>Dictionary&lt;string, T&gt;</c>-shaped
+        /// The value type of a <c>Dictionary&lt;string, T&gt;</c>-shaped
         /// property, or null for anything else. A contract map is always keyed
         /// by string on the wire, so the key is never interesting.
         /// </summary>
@@ -830,7 +830,7 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The type's name AS THE EMITTED CONTRACT SPELLS IT, which for a generic
+        /// The type's name as the emitted contract spells it, which for a generic
         /// means without the CLR arity suffix: <c>CommandRequest`1</c> keyed as
         /// <c>CommandRequest</c>, matching the <c>CommandRequest&lt;TArgs&gt;</c>
         /// interface a consumer is looking the field up against.

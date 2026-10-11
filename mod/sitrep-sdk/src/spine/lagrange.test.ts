@@ -17,12 +17,12 @@ import {
 import { frameInstantAt, systemInstantAt, toFrame } from "./reference-frame";
 
 /**
- * The pair is the frame, so every test here names ONE body and lets the pair
+ * The pair is the frame, so every test here names one body and lets the pair
  * follow, which is the shape the widget's single control has too.
  *
  * The load-bearing test is `holds every marker still ...`: a libration point
  * that moves is not a libration point, and the pair it is measured over is
- * ECCENTRIC on purpose. Over a circular pair the separation never changes, so
+ * eccentric on purpose. Over a circular pair the separation never changes, so
  * every scale convention agrees and the assertion would pass on code that was
  * wrong. The eccentric pair is the only one that discriminates, and there is a
  * paired test that redoes the same transform under the convention this module

@@ -8,7 +8,7 @@
  * duplicated into the sdk's `api/types.ts` and held honest by the conformance
  * gate, and a registry and the shape it stores belong in one place.
  *
- * `MapView`'s `MapPoiLayer` is still the only consumer, and still owns the ONE
+ * `MapView`'s `MapPoiLayer` is still the only consumer, and still owns the one
  * shared hover/action/marker-styling surface, so N providers do not each invent
  * their own hover UX.
  *

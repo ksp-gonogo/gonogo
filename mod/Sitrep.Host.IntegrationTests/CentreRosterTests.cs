@@ -98,7 +98,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// Crew aboard and whether the radio answers are the craft's state too.
         /// The link going is told by the silence that follows it, which reaches
-        /// a centre one of its light-times after the last light the craft sent.
+        /// a centre one of its signal delays after the last light the craft sent.
         /// </summary>
         [Fact]
         public async Task ACraftsCrewAndItsLinkChangeOnACentresListWhenTheNewsArrives()

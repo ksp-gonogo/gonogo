@@ -1,29 +1,29 @@
 #!/usr/bin/env tsx
 /**
  * Golden-fixture generator for `mod/sitrep-server/src/courier.ts`'s
- * `Courier`, the reference delay engine for both TELEMETRY (streams) and
- * COMMANDS (round-trip request/response).
+ * `Courier`, the reference delay engine for both telemetry (streams) and
+ * commands (round-trip request/response).
  *
  * Like `StubNetwork`/`Archive`, `Courier` is stateful with no single global
- * observable value, but unlike those, its observations are ASYNCHRONOUS:
+ * observable value, but unlike those, its observations are asynchronous:
  * a stream subscriber or command response callback can fire either
  * synchronously (subscribe-time catch-up) or later, when a scheduled Clock
  * callback drains during `advanceTo`. So a scenario's `ops` list (`record`,
  * `subscribeStream`, `unsubscribeStream`, `setCommandHandler`,
  * `dispatchCommand`, `advanceTo`) is run against one real `Courier` wired to
- * a real `ManualClock` + `StubNetwork`, and EVERY callback invocation
+ * a real `ManualClock` + `StubNetwork`, and every callback invocation
  * (stream delivery or command response) is appended, in the exact order it
  * actually fired, to a single `expected.events` log; this is what lets a
  * single big `advanceTo` that drains several deliveries in one batch be
  * checked for both order and for each delivery reporting its own captured
  * fire-UT (not a shared re-read of `clock.now()`).
  *
- * `setCommandHandler` always installs the SAME fixed handler
+ * `setCommandHandler` always installs the same fixed handler
  * (`defaultCommandHandler` below), deterministic and JSON-fixture-free,
  * mirroring `command => ({ ok: command, args, node })` from
  * `courier-command.test.ts`.
  *
- * The `expected` log is NEVER hand-authored: `runScenario` executes the ops
+ * The `expected` log is never hand-authored: `runScenario` executes the ops
  * against a real `Courier` and records what actually happened. Both the TS
  * reference (already covered by `courier.test.ts` / `courier-command.test.ts`)
  * and the C# port (`Sitrep.Core.Tests/CourierGoldenFixtureTests.cs`) are

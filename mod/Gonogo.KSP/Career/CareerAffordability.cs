@@ -19,7 +19,7 @@ namespace Gonogo.KSP.Career
         /// The query for one spend: <paramref name="cost"/> in
         /// <paramref name="currency"/>, run through the game's modifier chain.
         ///
-        /// <para>A cost is a NEGATIVE delta to the query, which is how stock
+        /// <para>A cost is a negative delta to the query, which is how stock
         /// phrases it (<c>RunQuery(RnDTechResearch, 0f, -scienceCost, 0f)</c>),
         /// so the sign convention lives here once instead of at three call
         /// sites.</para>
@@ -54,7 +54,7 @@ namespace Gonogo.KSP.Career
         /// Whether the balance covers the spend, asked of the game rather than
         /// worked out here: <c>CurrencyModifierQuery.CanAfford(Currency)</c> is
         /// what <c>RDTech.ResearchTech</c> and <c>SpaceCenterBuilding.UpgradeFacility</c>
-        /// both call, and it compares the MODIFIED total against the live
+        /// both call, and it compares the modified total against the live
         /// balance.
         /// </summary>
         public static bool CanAfford(CurrencyModifierQuery query, Currency currency)

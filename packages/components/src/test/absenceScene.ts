@@ -71,7 +71,7 @@ export interface AbsenceScene {
   expects: string;
   /** Text the healthy render paints and the degraded one must not. */
   withholds?: string[];
-  /** Text the degraded render paints more often than its healthy twin: a count, since an em dash or HELD is already on most panels. */
+  /** Text the degraded render paints more often than its healthy twin: a count, since an em dash or `HELD` is already on most panels. */
   showsMore?: string[];
   /** Text both renders paint: the rest of the panel must survive one missing input. */
   stillPaints?: string[];

@@ -8,14 +8,14 @@ import { describe, expect, it } from "vitest";
 /**
  * `pnpm act-warning-gate --update` must refuse a rewrite it was not scoped to.
  *
- * The act debt is a per-file count of a RACE: the same file measures 0, 1 and 21
+ * The act debt is a per-file count of a race: the same file measures 0, 1 and 21
  * on an unchanged tree depending on machine load. So a rewrite of the whole list
  * from one run writes that run's roll for every file the commit never touched,
  * and it lands inside a diff that says it fixed something else. `--only` names
  * what was fixed; `--all` is the deliberate spelling for a reseed.
  *
  * Asserted from outside the script rather than trusted to its own source,
- * because the refusal has to happen BEFORE the measurement: the check used to
+ * because the refusal has to happen before the measurement: the check used to
  * sit after the walk of every package, which is minutes of waiting to be told
  * about an argument, and a person who has waited that long re-runs with
  * whatever makes the complaint stop. A test that spawns it and gets an answer

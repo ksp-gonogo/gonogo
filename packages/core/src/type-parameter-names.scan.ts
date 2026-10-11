@@ -5,7 +5,7 @@ import ts from "typescript";
 
 /**
  * The scan behind `styleguide-type-parameter-names.test.ts`: every type
- * parameter declared in a PUBLISHED package's source whose name is a single
+ * parameter declared in a published package's source whose name is a single
  * character or a `T`-prefixed abbreviation (`TArgs`, `TConfig`).
  *
  * A published type parameter is read in an author's hover and in the generated
@@ -156,7 +156,7 @@ export function scanTypeParameterNames(
 /**
  * The gate's verdict on one scan, or `null` when it passes.
  *
- * A scan that read nothing fails as BLIND rather than passing: a listing that
+ * A scan that read nothing fails as `BLIND` rather than passing: a listing that
  * errored into an empty string or a discovery that found no package would
  * otherwise look exactly like a clean tree.
  */

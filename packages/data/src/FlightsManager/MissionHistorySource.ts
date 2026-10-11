@@ -49,7 +49,7 @@ const FULL_HISTORY_REBUILD_BUDGET = new PerfBudget({
  * flight-history peer RPCs): reads exclusively off `MissionStore`'s
  * "press record" recordings instead of always-on flat-key capture.
  *
- * Registered under a FRESH id (`"missionHistory"`, see
+ * Registered under a fresh id (`"missionHistory"`, see
  * `packages/app/src/dataSources/missionHistory.ts`) rather than reusing
  * `"data"`: `"data"`/`BufferedDataSource` are being deleted wholesale in a
  * later pass (P4c-b) and are untouched by this port.
@@ -148,11 +148,11 @@ export class MissionHistorySource implements DataSource {
   }
 
   /**
-   * Persists a finished recording AND fires `onFlightListChange`, the only
+   * Persists a finished recording and fires `onFlightListChange`, the only
    * correct way to save a new mission. A caller that instead writes straight
    * to its own `MissionStore` instance (bypassing this method) still lands
    * the row in IndexedDB, but `PeerHostService.attachFlightListChangeBroadcaster`
-   * only forwards THIS source's `onFlightListChange`, so connected stations
+   * only forwards this source's `onFlightListChange`, so connected stations
    * never learn a new recording exists until some unrelated mutation fires
    * the listener (or they reconnect). See `RecordingControls.stopRecording`.
    */

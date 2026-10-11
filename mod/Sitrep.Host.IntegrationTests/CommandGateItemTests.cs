@@ -57,7 +57,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A static refusal declared AFTER the per-item requirement still decides
+        /// A static refusal declared after the per-item requirement still decides
         /// the command in advance. A career mod contributes "use my own command"
         /// behind core's per-item price, and the abstaining price must not hide it.
         /// </summary>

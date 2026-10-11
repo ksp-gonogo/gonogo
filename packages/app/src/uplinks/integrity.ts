@@ -30,7 +30,7 @@ export type UplinkIntegrityParty = "installed-mod" | "hub-index";
  * Which artifact carried the hash that turned out to be wrong.
  *
  * `declaration` is the odd one and the reason this union grew a third arm.
- * `bundle` and `manifest` are both MEASURED findings: something was fetched and
+ * `bundle` and `manifest` are both measured findings: something was fetched and
  * the hash it actually carries is not the hash it was checked against. A
  * `declaration` finding is fetched nothing: two parties described the build
  * they each expect and described different builds. That is what channel skew
@@ -51,10 +51,10 @@ export interface UplinkIntegrityFailure {
    * and more than one where the mod and the Hub index agreed on a hash the
    * bytes then failed to match.
    *
-   * More than one is the COMMON case and the reason this is a list rather than
+   * More than one is the common case and the reason this is a list rather than
    * a single value. `checkCompat` refuses before the fetch whenever the mod's
    * vouched hash differs from the index's, so by the time bytes are hashed the
-   * two agree, and a mismatch is the bundle disagreeing with BOTH at once. A
+   * two agree, and a mismatch is the bundle disagreeing with both at once. A
    * record naming only the index would read as a broken release when what
    * actually happened is that the bytes are not the ones the installed mod
    * stands behind.
@@ -64,7 +64,7 @@ export interface UplinkIntegrityFailure {
    * Every party that vouched `observed`, where `observed` is itself a claim
    * rather than a measurement: set for a `declaration` finding, absent for a
    * measured one, where the observed side is bytes and no party said anything
-   * about them. This is what lets a surface print BOTH parties by name rather
+   * about them. This is what lets a surface print both parties by name rather
    * than one party and one artifact.
    */
   observedBy?: UplinkIntegrityParty[];
@@ -77,7 +77,7 @@ export interface UplinkIntegrityFailure {
  * severity grading. Overriding a declaration disagreement does not turn the
  * hash gate off: the loader still fetches the bundle and still refuses unless
  * sha256(bytes) equals the hash the index published. All the override changes
- * is WHICH of two disagreeing parties anchors that comparison, and both of them
+ * is which of two disagreeing parties anchors that comparison, and both of them
  * are describing a build somebody built.
  *
  * A measured finding has no such choice to make. `observed` there is what the

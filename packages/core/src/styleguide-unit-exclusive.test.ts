@@ -18,7 +18,7 @@ import {
  * written down with nothing checking it.
  *
  * The module boundary is the primary fix and this ratchet is the second half
- * of it. Unexporting a function stops an import; it does NOT stop somebody
+ * of it. Unexporting a function stops an import; it does not stop somebody
  * hand-rolling the same s/m/h ladder locally, which is how four copies of one
  * existed before `formatDuration` was extracted. So:
  *
@@ -29,14 +29,14 @@ import {
  *           born unnoticed.
  *
  * Gate B is deliberately name-matched and therefore catches formatters that
- * are NOT unit renderers (`formatEntityLabel` builds an accessible name,
+ * are not unit renderers (`formatEntityLabel` builds an accessible name,
  * `formatBareArg` writes kerboscript). Those stay, each with a line saying why
  * it is not a quantity. The rule is not narrowed to make the number small: an
  * inventory that lists only the guilty cannot show a new entry arriving.
  */
 
 /**
- * The six string formatters that render a quantity, and the ONE thing allowed
+ * The six string formatters that render a quantity, and the one thing allowed
  * to call them.
  *
  * `formatQuantity` is the dispatcher behind `<Unit>`, `writeQuantity` and
@@ -56,7 +56,7 @@ const KIT_FORMATTERS = [
 ] as const;
 
 /**
- * Unit's own implementation. Not "ui-kit": a ui-kit WIDGET calling a raw
+ * Unit's own implementation. Not "ui-kit": a ui-kit widget calling a raw
  * formatter is the same violation as a widget anywhere else calling one, and
  * exempting the whole package would have hidden five of them.
  */
@@ -84,7 +84,7 @@ const UNIT_IMPL = new Set([
  * Files outside `UNIT_IMPL` that still name a kit formatter, with the reason.
  * Shrink-only: an entry may be deleted, never added or raised.
  *
- * EMPTY since 2026-09-16, so the gate fails on the first reach any file makes.
+ * Empty since 2026-09-16, so the gate fails on the first reach any file makes.
  * The last entry was `ReadOnlyField`'s bare-`number` branch, and it closed the
  * way every entry here has to: not by finding another formatter but by removing
  * the number from the published union, so a caller hands over a `Value` and the
@@ -467,7 +467,7 @@ describe("Unit is the only unit renderer", () => {
   });
 
   /**
-   * Both failures NAME THE FIX, and name the file that has to change.
+   * Both failures name the fix, and name the file that has to change.
    *
    * Pinned because guidance is the half of a ratchet nothing else exercises:
    * these messages are built only on the failing path, so every run of a green
@@ -493,12 +493,12 @@ describe("Unit is the only unit renderer", () => {
   });
 
   /**
-   * Gate C: the MODULE BOUNDARY, asked of tests too.
+   * Gate C: the module boundary, asked of tests too.
    *
    * Gates A and B skip `.test.ts(x)` because a test legitimately exercises a
    * formatter through a relative import, and holding a formatter's own suite to
    * "do not name the formatter" is absurd. That skip had a hole: two app tests
-   * imported `formatDuration` from the PACKAGE barrel, and when the export was
+   * imported `formatDuration` from the package barrel, and when the export was
    * removed they failed at runtime with `formatDuration is not a function`
    * while both gates above reported a clean tree. The suite caught what this
    * file did not.
@@ -564,7 +564,7 @@ describe("Unit is the only unit renderer", () => {
 
   /**
    * The instrument, asked apart from the result. Both gates above grade an
-   * offender LIST, and a walk that reads nothing produces the same empty list
+   * offender list, and a walk that reads nothing produces the same empty list
    * as a clean tree. `styleguide-wall-clock` sat on 1 widget root of 13 and
    * stayed green for months on exactly that.
    */
@@ -592,7 +592,7 @@ describe("Unit is the only unit renderer", () => {
   });
 
   /**
-   * And whether the matcher can RECOGNISE a reach once it has one. Neither
+   * And whether the matcher can recognise a reach once it has one. Neither
    * gate asks this: a pattern that stopped matching reports a clean tree.
    * Every spelling a caller could use, planted.
    */

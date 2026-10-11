@@ -145,7 +145,7 @@ namespace Sitrep.Propagation.Tests.Visibility
 
         /// <summary>
         /// The occluder the same-body geometry would never think to include: a
-        /// station that has rotated onto the far side of its OWN body cannot
+        /// station that has rotated onto the far side of its own body cannot
         /// see a vessel that is otherwise in the clear.
         /// </summary>
         [Fact]
@@ -208,8 +208,8 @@ namespace Sitrep.Propagation.Tests.Visibility
         /// KeplerProvider throw was fixed and which then reported residuals in
         /// the tens of millions of km.
         ///
-        /// <para>Frame is centred on the STATION's body (Kerbin). A craft in
-        /// solar orbit is reached by climbing to the Sun, which SUBTRACTS,
+        /// <para>Frame is centred on the station's body (Kerbin). A craft in
+        /// solar orbit is reached by climbing to the Sun, which subtracts,
         /// because the Sun sits on the far side of Kerbin's own orbit, and then
         /// adding the vessel's Sun-relative position. So the answer is exactly
         /// <c>vesselAboutSun - kerbinAboutSun</c>, computable by hand.</para>
@@ -238,7 +238,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         }
 
         /// <summary>
-        /// The live case, against a number the GAME produced.
+        /// The live case, against a number the game produced.
         ///
         /// <para>These elements were captured off the running save
         /// (<c>vessel.orbit</c>), and <c>comms.path</c> reported the very

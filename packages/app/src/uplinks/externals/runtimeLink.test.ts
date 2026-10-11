@@ -20,18 +20,18 @@ import {
  * map at load.
  *
  * The failure this exists for is silent in every other check. A subpath of a
- * PERMITTED package (`@ksp-gonogo/sitrep-sdk/spine`) typechecks, passes the
+ * permitted package (`@ksp-gonogo/sitrep-sdk/spine`) typechecks, passes the
  * Uplink isolation ratchet, and esbuilds without a warning: esbuild externalises
  * a subpath of an externalised package name, so the bare specifier survives into
  * the bundle untouched and the build reports success. It then fails at
  * `import(bundleUrl)` in the browser, because an import map matches a key
- * without a trailing slash EXACTLY and there is no key for the subpath. That is
+ * without a trailing slash exactly and there is no key for the subpath. That is
  * why `/media` has its own entry, and it was why `/spine` did not resolve.
  *
  * Two properties make this the honest experiment rather than a restatement of
  * the config:
  *
- * 1. It builds the REAL loader clients, with the REAL external list, through the
+ * 1. It builds the real loader clients, with the real external list, through the
  *    same esbuild call the Vite plugin makes. A statically bundled Uplink
  *    resolves its imports through Vite and never touches the import map, so a
  *    test using one would report clean no matter what the map contained.
@@ -139,13 +139,13 @@ async function externalSpecifiers(
 /**
  * A client importing the frame arithmetic from the `/frames` author surface.
  *
- * **This file cannot see a NAME, only a specifier.** The sdk is marked external,
+ * **This file cannot see a name, only a specifier.** The sdk is marked external,
  * so esbuild never resolves the module: renaming `frameVector` on the barrel
  * leaves all six tests here green, measured. The names below are written out so
  * the probe reads like the client it stands in for, and the surface itself is
  * pinned by `mod/sitrep-sdk/src/frames/frames.test-d.ts`, which `tsc` compiles
  * against the real declarations and which reported two diagnostics for that same
- * rename. What THIS answers is the one question that check cannot: whether a
+ * rename. What this answers is the one question that check cannot: whether a
  * browser could have found the module at all.
  */
 const FRAMES_PROBE_SOURCE = `

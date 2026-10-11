@@ -1,5 +1,5 @@
 /**
- * Libration points as places: the five positions a body PAIR holds still, and
+ * Libration points as places: the five positions a body pair holds still, and
  * how far off one of them a craft is.
  *
  * ## The pair is the frame, and that is the whole shape of this module
@@ -8,7 +8,7 @@
  * bodies. All five of one pair's points stand still in that pair's frame at the
  * same time, so five markers in one frame is exactly right, and Kerbin-Mun's
  * points and Kerbol-Kerbin's points cannot both stand still at once. Naming the
- * pair therefore IS naming the frame: there is one choice here, not two, and
+ * pair therefore is naming the frame: there is one choice here, not two, and
  * every function below takes the secondary body and derives the rest.
  *
  * ## Why the pulsating frame rather than a plain rotating one
@@ -27,18 +27,18 @@
  * else it does well: it would draw them moving, which is the one thing a
  * libration point is defined not to do.
  *
- * ## What the numbers ARE, stated rather than implied
+ * ## What the numbers are, stated rather than implied
  *
  * The five positions are the restricted three-body problem's equilibria for the
  * pair's mass ratio: L4 and L5 in closed form, L1 to L3 as the roots of the
  * collinear equilibrium equation, solved numerically. The mass ratio comes from
- * the two SIDES' summed gravitational parameters, the same sides the frame is
+ * the two sides' summed gravitational parameters, the same sides the frame is
  * built on, so the points and the frame cannot disagree about where the origin
  * is.
  *
  * Declared fidelity: **restricted three-body equilibria for the pair, in the
  * pair's own pulsating frame.** The other thirty-odd bodies move the true
- * equilibria slightly and are not solved for here; they DO enter through the
+ * equilibria slightly and are not solved for here; they do enter through the
  * frame, whose angular velocity is summed over the whole catalogue as point
  * masses. A craft is never at a mathematical equilibrium anyway, which is what
  * the station-keeping offset below is for.
@@ -119,7 +119,7 @@ export type LibrationRefusal =
  * @category Frames of reference
  */
 export interface LibrationPair {
-  /** The body the pair is named FOR, and the one whose system is the secondary side. */
+  /** The body the pair is named for, and the one whose system is the secondary side. */
   secondaryIndex: number;
   /** The secondary body's name, or `null` when it is not known. */
   secondaryName: string | null;
@@ -140,7 +140,7 @@ export interface LibrationPoint {
   name: LagrangePointName;
   /**
    * The point in the pair's rotating-pulsating frame: multiples of the pair's
-   * separation, and CONSTANT for as long as the pair's mass ratio is.
+   * separation, and constant for as long as the pair's mass ratio is.
    */
   frame: Vec3Tuple;
   /** The same point in root-centred inertial metres at the answer's `ut`. */
@@ -175,7 +175,7 @@ export interface LibrationAnswer {
   massRatio: number;
   /** The frame the points stand still in. Null unless `NotRefused`. */
   frame: FrameInstant | null;
-  /** The frame that was SOUGHT, whether or not it was formed. */
+  /** The frame that was sought, whether or not it was formed. */
   frameChoice: ReadFrameChoice;
   /** The instant the answer is for, in UT seconds. */
   ut: number;

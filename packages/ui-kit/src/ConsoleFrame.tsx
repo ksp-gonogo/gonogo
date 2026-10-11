@@ -58,9 +58,9 @@ export interface ConsoleFrameProps extends ComponentPropsWithoutRef<"div"> {
    */
   composer?: ReactNode;
   /**
-   * A standing reading of the link, drawn over the TOP border of the composer
+   * A standing reading of the link, drawn over the top border of the composer
    * and right-aligned to the queue's column of times. Out of flow while there
-   * IS a composer; an ordinary child at the foot when there is not.
+   * is a composer; an ordinary child at the foot when there is not.
    */
   standing?: ReactNode;
   children?: ReactNode;

@@ -6,7 +6,7 @@ export const GAME_HOST_KEY = "gameHost";
 /**
  * The authoritative host every Uplink dials. `saved ?? seed ?? build-default`,
  * where the build default is `VITE_SITREP_HOST` (bundle floor) or `localhost`.
- * Ports are per-service and NOT part of this, callers append their own.
+ * Ports are per-service and not part of this, callers append their own.
  */
 export function getGameHost(): string {
   /* Spelled `import.meta.env` on purpose: Vite substitutes that exact text,

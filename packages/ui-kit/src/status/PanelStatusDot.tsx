@@ -5,7 +5,7 @@ import type { Severity } from "./severity";
 export interface PanelStatusDotProps {
   severity: Severity;
   /**
-   * How many contributors sit at this severity. The number is shown INSIDE the
+   * How many contributors sit at this severity. The number is shown inside the
    * dot only when greater than 1; a single contributor is just the coloured dot.
    * Defaults to 1.
    */
@@ -13,10 +13,13 @@ export interface PanelStatusDotProps {
 }
 
 /**
- * One per-severity status dot for a Panel's collapsed header: a small coloured
- * disc carrying the count when more than one contributor sits at that
- * severity, growing sideways into a pill when the count takes more than one
- * digit.
+ * One per-severity status dot for a {@link Panel}'s collapsed header. Useful
+ * for telling the operator the worst states a panel reports when its title and
+ * aside no longer fit side by side. Used by {@link Panel}.
+ *
+ * The dot is a small coloured disc carrying the count when more than one
+ * contributor sits at that severity, growing sideways into a pill when the
+ * count takes more than one digit.
  *
  * It carries `role="img"` and an accessible name ("warning", "3 caution")
  * rather than being hidden: in a collapsed header the dot row is the status

@@ -30,12 +30,12 @@ namespace Sitrep.Host.CommandCentres
     /// KSP layer, which owns the KSP types. The two policy rules this class
     /// enforces are both KSP-free:</para>
     /// <list type="bullet">
-    /// <item>No min-over-authorities: each authority writes its OWN row; the
+    /// <item>No min-over-authorities: each authority writes its own row; the
     /// dispatched delay is the selected vantage's row, never a min collapse</item>
     /// <item>Self-at-zero: a <see cref="CommandCentreKind.CrewedVessel"/> centre is
-    /// authoritative about its OWN subject row, written as an explicit zero exactly as
+    /// authoritative about its own subject row, written as an explicit zero exactly as
     /// <see cref="PopulateCentrePairs"/> writes a centre's row against itself. A vantage
-    /// is where the operator is standing, and light-time is the distance to somewhere
+    /// is where the operator is standing, and signal delay is the distance to somewhere
     /// else, so zero is the honest number for a craft observing itself. The row is
     /// reachable only from that craft's own vantage, because the no-min rule above is
     /// what keeps it there</item>
@@ -46,7 +46,7 @@ namespace Sitrep.Host.CommandCentres
         /// <summary>The per-subject node id for a vessel guid, matching Plan 2's fleet namespace.</summary>
         public static string FleetNode(string guid) => ChannelEngine.FleetNodePrefix + guid;
 
-        /// <summary>The per-subject node id for a command centre addressed as a DESTINATION.</summary>
+        /// <summary>The per-subject node id for a command centre addressed as a destination.</summary>
         public static string CentreNode(string centreId) => ChannelEngine.CentreNodePrefix + centreId;
 
         /// <param name="activeCentres">The registry's currently-active centres.</param>
@@ -95,11 +95,11 @@ namespace Sitrep.Host.CommandCentres
         }
 
         /// <summary>
-        /// Populates each active centre's delay to the ACTIVE craft, the row every ordinary
+        /// Populates each active centre's delay to the active craft, the row every ordinary
         /// channel is delivered on (<see cref="ChannelEngine.NodeId"/>): those channels have
         /// no per-vessel node because they always describe whichever craft is active.
         ///
-        /// <para>The crewed centre that IS the active craft is written as zero, by the same
+        /// <para>The crewed centre that is the active craft is written as zero, by the same
         /// self-at-zero rule <see cref="Populate"/> applies to its fleet row. Any other centre
         /// is written at its route to the active craft, and a centre with no route gets no
         /// row.</para>
@@ -155,7 +155,7 @@ namespace Sitrep.Host.CommandCentres
         }
 
         /// <summary>
-        /// Populates each active centre's delay to the HOME COMMAND's ledger, the row
+        /// Populates each active centre's delay to the home command's ledger, the row
         /// every <see cref="ChannelDeclaration.HeldAtHome"/> channel is delivered on.
         ///
         /// <para>The ledger is reached over the ground network, so the home centre and
@@ -248,7 +248,7 @@ namespace Sitrep.Host.CommandCentres
         /// link home, which the engine already holds, so it is never listed. A
         /// ground station that is not home hears a craft only over its own route:
         /// left unlisted it read the node default, which is the home centre's
-        /// light-time, and was sent a craft it could not hear on home's clock. A
+        /// signal delay, and was sent a craft it could not hear on home's clock. A
         /// crewed centre always reaches its own craft. The home command's ledger
         /// is listed for a centre <see cref="OffTheGroundNetwork"/> names, and
         /// every ground station stands on that network.</para>
@@ -323,11 +323,11 @@ namespace Sitrep.Host.CommandCentres
         /// These time the addressed streams one centre sends another; no command
         /// is addressed to a centre.
         ///
-        /// <para>A centre's row against ITSELF is written as an explicit zero,
+        /// <para>A centre's row against itself is written as an explicit zero,
         /// and it is the one zero in this file that is not a guess: a node is
         /// exactly no distance from itself. Without it the pair would fall
         /// through to the whole-network default delay, so a centre hearing its
-        /// own stream would inherit whatever light-time the active craft happens
+        /// own stream would inherit whatever signal delay the active craft happens
         /// to be at, which is the wrong number and silently so. The routing callback still reports
         /// <c>null</c> for a self-path, because "route from a node to itself" is
         /// not a route; the zero is this pass's own statement, not a measurement.</para>

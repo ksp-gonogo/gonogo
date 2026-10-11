@@ -77,11 +77,11 @@ function makeHarness() {
  * The solve beside the view instant it was solved for.
  *
  * The hook answers `null` until the view clock's first frame lands, whatever
- * the elements say, because there is no instant to solve FOR yet. That frame
+ * the elements say, because there is no instant to solve for yet. That frame
  * arrives on a timer a tick after the samples, so a bare `waitFor(null)` can
  * be satisfied by the pre-frame `null` and assert nothing about the rule; on a
  * fast run it passes and on a slow one it catches the solve. A test that
- * expects `null` for a REASON waits for `viewUt` first.
+ * expects `null` for a reason waits for `viewUt` first.
  */
 function useSolveAtFrame() {
   return { solve: useOrbitSolve(), viewUt: useViewUt()?.magnitude };
@@ -136,7 +136,7 @@ describe("useOrbitSolve", () => {
 
   /**
    * Under physics the elements are osculating, so the conic declines to carry
-   * them to the view time. A CURRENT reading still answers in full: the apsides
+   * them to the view time. A current reading still answers in full: the apsides
    * and period are algebra on the elements as they stand, and the countdowns
    * are the game's own, sent on the sample and run down by the view time since.
    */
@@ -198,7 +198,7 @@ describe("useOrbitSolve", () => {
   });
 
   /**
-   * Where the refusal still bites. A STALE reading under physics answers
+   * Where the refusal still bites. A stale reading under physics answers
    * nothing: under thrust the elements are not constants of the orbit, so old
    * ones say nothing about the orbit the craft is on now, countdowns included.
    */

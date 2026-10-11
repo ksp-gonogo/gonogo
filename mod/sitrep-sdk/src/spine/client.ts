@@ -46,7 +46,7 @@ type StoreListener = () => void;
 export const LOSS_MARGIN = 3;
 
 /**
- * Dispatch-rate budget for EVERY command this client sends.
+ * Dispatch-rate budget for every command this client sends.
  *
  * Recorded in `dispatch()` because that is the one funnel. `useCommand`'s
  * `send`, `useControlStream`'s coalesced write and `dispatchActiveCommandTopic`
@@ -54,7 +54,7 @@ export const LOSS_MARGIN = 3;
  * envelope, so a budget here covers the command path a widget has not been
  * written yet as well as the ones that exist.
  *
- * It counts at the DISPATCH, never at the effect. A command asking the game for
+ * It counts at the dispatch, never at the effect. A command asking the game for
  * the state it is already in is absorbed silently and changes nothing anyone
  * can observe, so a fixture that watches outcomes counts one where the client
  * sent a hundred. That asymmetry is precisely what let a per-tick warp loop run
@@ -72,9 +72,9 @@ export const LOSS_MARGIN = 3;
  * What it catches: a dispatch per animation frame, a duplicated subscription
  * fanning one control out twice, a widget dispatching from a render body.
  *
- * What a global RATE cannot catch, worth knowing before trusting it: a slow
+ * What a global rate cannot catch, worth knowing before trusting it: a slow
  * loop. The warp storm this was written for was about 120 dispatches at the
- * alarm host's 1 Hz tick across one light-time, so 1/sec, and a threshold that
+ * alarm host's 1 Hz tick across one signal delay, so 1/sec, and a threshold that
  * has to let a 20/sec control stream through can never flag that. Catching a
  * slow loop needs a per-command-id rate, which is a different instrument and
  * not this one.
@@ -103,7 +103,7 @@ interface Subscription {
  * holding onto them serves no purpose beyond leaking closures and inviting a
  * duplicate late `command-response`/`error` to re-settle (and silently
  * overwrite) an already-terminal `status`. The entry itself is intentionally
- * NOT deleted from `commands` on settle: `getCommand` must keep returning
+ * not deleted from `commands` on settle: `getCommand` must keep returning
  * the terminal status forever after, and deleting it would make an unknown
  * request look identical to a *known, settled* one (both would read back as
  * `{ phase: "idle" }`), which reverts `useCommand`'s `getSnapshot` to a
@@ -111,11 +111,11 @@ interface Subscription {
  * `useSyncExternalStore`.
  *
  * That retention is what makes `found` possible, and the two channels this
- * record carries are why it costs no promise gymnastics. The PROMISE is a
+ * record carries are why it costs no promise gymnastics. The promise is a
  * one-shot await, "did my call settle", and settling it as `lost` is honest and
  * final: the caller genuinely did stop waiting, and nothing here ever settles it
  * twice. The `status`, read through `getCommand` and republished by
- * `notifyStore`, is the LIVING state the delay rail renders, and it is free to
+ * `notifyStore`, is the living state the delay rail renders, and it is free to
  * move again. So a reply arriving after the loss writes a further status and
  * notifies, while the nulled `resolve`/`reject` keep the promise exactly as it
  * was.
@@ -130,10 +130,10 @@ const UNKNOWN_COMMAND: CommandStatus = Object.freeze({ phase: "idle" });
 
 interface PendingCommand {
   /**
-   * What was dispatched, kept so a refusal can NAME it. Without these three a
+   * What was dispatched, kept so a refusal can name it. Without these three a
    * refusal could only ever say "command refused: ModeUnavailable": the reply
    * carries a `requestId` and a reason and deliberately no command name, so
-   * this is the ONLY place the name still exists once the request has left.
+   * this is the only place the name still exists once the request has left.
    *
    * Retained client-side rather than added to the wire on purpose. The mod
    * already told us what we asked it; asking it to say so again would be paying
@@ -346,7 +346,7 @@ export class TelemetryClient {
    * compatible one, like sitrep-server's `ManualClock`) so loss-inference
    * timing is controllable instead of racing real timers.
    *
-   * Whichever `Clock` is injected MUST share the same time domain as the
+   * Whichever `Clock` is injected must share the same time domain as the
    * transport's `predictConfirmEta()` (the UT clock the server/courier
    * advances): see the domain note on the `Clock` interface in `./clock`.
    * A mismatched domain makes loss inference meaningless: the
@@ -452,12 +452,12 @@ export class TelemetryClient {
 
   /**
    * Tap every raw wire message this client's transport delivers, verbatim
-   * and in arrival order: BEFORE this class's own topic-routing/store-ingest
+   * and in arrival order: before this class's own topic-routing/store-ingest
    * handling runs on it (`handleMessage` drops `command-response`/`error`
    * after its own bookkeeping and silently ignores `event` frames entirely,
    * so a listener that only used `subscribe`/`getValue` could never observe
    * either). This is the mission-recording tap point (`StreamRecorder`,
-   * `./replay-recorder.ts`): recording a session needs the SAME
+   * `./replay-recorder.ts`): recording a session needs the same
    * `stream-data`/`event` frames a `ReplayFixture` replays later, not the
    * flattened last-value view every other consumer of this class sees.
    *
@@ -614,7 +614,7 @@ export class TelemetryClient {
   /**
    * Feed this client's raw `stream-data` wire frames into `store`: from
    * this call on, every future `stream-data`
-   * message is ALSO delivered to `store.ingest(topic, point)`, in addition
+   * message is also delivered to `store.ingest(topic, point)`, in addition
    * to the existing `lastValues`/per-topic-subscriber delivery this class
    * already does, the two delivery paths are independent, neither replaces
    * the other. `point.validAt`/`point.epoch` are read straight off the
@@ -622,7 +622,7 @@ export class TelemetryClient {
    * makes this feed correct for a derived channel's epoch-guard/quality-pick
    * machinery without this class needing to know anything about derivation.
    *
-   * Does NOT replay history: a store attached after samples have already
+   * Does not replay history: a store attached after samples have already
    * arrived only sees samples from that point forward (this class keeps no
    * raw-message log, only the flattened `lastValues` sticky cache), matches
    * `TelemetryProvider`'s own lifecycle, which attaches its store before
@@ -678,7 +678,7 @@ export class TelemetryClient {
    * `etaConfirm` (never computes delay itself). When the transport can't
    * predict one (`predictConfirmEta` omitted or returning `undefined`, e.g.
    * `StubTransport`), `etaConfirm` falls back to "now" and no loss timer is
-   * started: the command just waits. When a prediction IS
+   * started: the command just waits. When a prediction is
    * available, a loss timer is armed for `etaConfirm + LOSS_MARGIN`; if the
    * command is still `in-flight` when it fires, silence is inferred as
    * `lost` and the promise rejects. Any real settle (response or error)
@@ -716,8 +716,8 @@ export class TelemetryClient {
    * is never answered. Returns a detach function; calling it restores the
    * transport-prediction fallback.
    *
-   * Takes an ACCESSOR rather than a number because the delay changes as a craft moves
-   * and a dispatch must be sized against the delay at ITS moment, not at wiring time.
+   * Takes an accessor rather than a number because the delay changes as a craft moves
+   * and a dispatch must be sized against the delay at its moment, not at wiring time.
    * `DelayAuthority.delaySeconds` is a bound arrow field with a stable identity for
    * exactly this hand-off.
    */
@@ -1140,7 +1140,7 @@ export class TelemetryClient {
   }
 
   /**
-   * Arm this command's loss deadline from the number the ENGINE used to send
+   * Arm this command's loss deadline from the number the engine used to send
    * it, replacing whatever was armed at dispatch.
    *
    * The dispatch-time deadline can only ever be built from the delay the client
@@ -1358,13 +1358,13 @@ export class TelemetryClient {
    *
    * - our own loss-inference timer reaching `etaConfirm + LOSS_MARGIN` with no
    *   response, which is the local case and the default reason
-   * - a transport RELAYING someone else's verdict (`Transport.onLost`), which is
+   * - a transport relaying someone else's verdict (`Transport.onLost`), which is
    *   how the host's loss reaches a station: the station's command is dispatched
    *   to the mod by the host, so the host's timer is the only one measuring that
    *   leg. A station arms its own off the relayed `comms.delay`, timing a
    *   different leg, so the two fire in either order and both must land here
    *
-   * Terminal for the PROMISE and not for the entry. The correlation record stays
+   * Terminal for the promise and not for the entry. The correlation record stays
    * in `commands`, so a reply arriving after this (the transport re-sends what it
    * queued while the socket was down, and a reply can simply be slow) still finds
    * its way home and moves the status to `found`. Nothing here tries to stop the
@@ -1407,10 +1407,10 @@ export class TelemetryClient {
    *   retry is safe rather than doubling anything
    * - the loss timer already called it `lost` and rejected. That promise is
    *   spent and is deliberately left alone, exactly as `handleFound` leaves it;
-   *   what moves is the STATUS, from "we do not know" to "it did not happen",
+   *   what moves is the status, from "we do not know" to "it did not happen",
    *   which is the whole reason a stranded command cannot be answered on the
    *   error channel. `handleCommandError` reads an error correlated to a lost
-   *   requestId as proof the mod HEARD us
+   *   requestId as proof the mod heard us
    *
    * Any other phase is ignored. A confirmed, refused or found command was
    * answered by the far side and so plainly did leave; a second report for an

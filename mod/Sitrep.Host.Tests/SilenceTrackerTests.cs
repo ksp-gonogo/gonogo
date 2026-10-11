@@ -7,7 +7,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Unit tests for the pure, KSP-free silence/lost state machine. Uses a
-    /// constant-deadline stub policy throughout so these tests exercise ONLY
+    /// constant-deadline stub policy throughout so these tests exercise only
     /// the tracker's own hysteresis/transition logic; the deadline formula
     /// itself is covered separately by <see cref="OrbitalPeriodSilenceDeadlinePolicyTests"/>.
     /// </summary>
@@ -337,7 +337,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Every verdict the deadline policy can reach has to be able to
-        /// REPLACE the armed orbital-period basis on the wire, including the
+        /// replace the armed orbital-period basis on the wire, including the
         /// ones that decline to predict.
         ///
         /// <para>Written as a loop over the whole vocabulary rather than one
@@ -381,7 +381,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The control for the loop above: a basis that is NOT a verdict, i.e.
+        /// The control for the loop above: a basis that is not a verdict, i.e.
         /// the policy falling back because it could not look at all, must leave
         /// the armed basis alone and keep its one retry.
         /// </summary>

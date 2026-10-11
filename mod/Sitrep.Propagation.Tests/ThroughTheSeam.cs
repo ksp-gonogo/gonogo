@@ -14,7 +14,7 @@ namespace Sitrep.Propagation.Tests
     /// <para>This is a readability wrapper over <see cref="IPropagationProvider"/>, not a
     /// way around it. It reaches nothing the interface does not have, which is exactly
     /// what <c>TheVanillaHasNoDoorBesideTheSeamTests</c> exists to keep true, and it is
-    /// deliberately NOT called <c>Solve</c>: a name that let the old call sites compile
+    /// deliberately not called <c>Solve</c>: a name that let the old call sites compile
     /// unchanged would hide the fact that they now go somewhere else.</para>
     /// </summary>
     internal static class ThroughTheSeam

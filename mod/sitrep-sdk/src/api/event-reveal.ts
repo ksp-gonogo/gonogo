@@ -47,8 +47,10 @@ function registry(): EventRevealRegistry {
 }
 
 /**
- * Adds a source of events that are revealed after the signal delay, replacing
- * any registered under the same id.
+ * Adds a source of the events an alarm with an `event` trigger fires on, which
+ * the operator sees only after the signal delay from the vessel to the command
+ * centre. Replaces any source registered under the same id. Useful for letting
+ * the operator set an alarm on an Uplink's events.
  *
  * An Uplink's client registers through {@link UplinkClientHandle.registerRevealedEventSource}
  * instead, which prefixes the id with the Uplink's id.
@@ -62,7 +64,8 @@ export function registerRevealedEventSource(
 }
 
 /**
- * Returns every registered {@link RevealedEventSourceDefinition}.
+ * Returns every registered {@link RevealedEventSourceDefinition}, in the order
+ * they were registered.
  *
  * @category Delay and vantage
  */
@@ -71,8 +74,7 @@ export function getRevealedEventSources(): RevealedEventSourceDefinition[] {
 }
 
 /**
- * Removes every registered source. For tests, so one test file's
- * registrations do not reach another.
+ * Removes every registered event source, so a test starts with none.
  *
  * @category Delay and vantage
  */
@@ -81,9 +83,10 @@ export function clearRevealedEventSources(): void {
 }
 
 /**
- * Returns the occurrences every source for `topic` reveals at `viewUt`, in
- * the order the sources were registered. Where two Uplinks feed one Topic,
- * both are included.
+ * Returns the event occurrences every source for `topic` reveals at `viewUt`,
+ * in the order the sources were registered. Useful for showing the operator
+ * only the events that have reached the command centre by the view time. Where
+ * two Uplinks feed one Topic, both are included.
  *
  * @category Delay and vantage
  */

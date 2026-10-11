@@ -70,7 +70,9 @@ export interface UseTooltipResult {
 /**
  * The kit's tip for `text`: padded, rounded, drawn over everything, and
  * placed below its anchor inside the viewport, so a clipping or scrolling
- * ancestor never cuts it off. It opens while the pointer is over the anchor or
+ * ancestor never cuts it off. Useful for giving the operator the words behind
+ * an icon or abbreviation when the tip needs its own placement. Used by the
+ * communications addressee control. It opens while the pointer is over the anchor or
  * the anchor has keyboard focus, and closes on a press of the anchor, on Escape (from anywhere on the page), scroll or resize. The pointer can move onto the tip, which stays open while it is hovered.
  *
  * The tip is hidden from the accessibility tree, so the anchor must already
@@ -279,7 +281,9 @@ function joined<Args extends unknown[]>(
 /**
  * A tip for any element, in place of the browser's `title` attribute: themed,
  * opened by pointer or keyboard focus, dismissed by Escape, and announced as
- * the element's description. The text is also set as the child's
+ * the element's description. Useful for explaining a control or figure to the
+ * operator without taking room on the tile. Used by the settings and alarms
+ * buttons. The text is also set as the child's
  * `aria-description`, so a screen reader hears it without the tip being open
  * and no hidden text is added to the page. Where the child already carries the
  * same words in its `aria-label`, nothing is added.

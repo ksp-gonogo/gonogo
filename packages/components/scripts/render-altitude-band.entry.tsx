@@ -1,6 +1,6 @@
 /**
  * The browser half of `render-altitude-band.ts`: one sheet of meters, each one
- * a REAL `TimelineStore` reading of `vessel.flight` taken on a descent below
+ * a real `TimelineStore` reading of `vessel.flight` taken on a descent below
  * the atmosphere interface.
  *
  * Nothing here hand-feeds a band. The rows differ only in their samples and in
@@ -75,7 +75,7 @@ interface FlightSample {
   gForce: Value<"g">;
 }
 
-/** The one-way light-time every sample is delivered across. */
+/** The one-way signal delay every sample is delivered across. */
 const LIGHT_TIME_SECONDS = VISIBLE_GAP_SECONDS;
 
 function point<Payload>(validAt: number, payload: Payload) {
@@ -96,7 +96,7 @@ function point<Payload>(validAt: number, payload: Payload) {
  * The store's reading of `vessel.flight` at the row's SCET, after its samples.
  *
  * The wall clock stands for the craft's UT and is advanced to each sample's
- * arrival, a light-time after its own instant, before it is ingested:
+ * arrival, a signal delay after its own instant, before it is ingested:
  * `ViewClock.observeSample` anchors the UT/wall fit where the packet landed, so
  * a run ingested without moving the wall reads every later frame further ahead
  * than the dial says.

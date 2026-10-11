@@ -5,7 +5,7 @@
  * `unknown` is the right return for a genuine boundary. It forces a reader to
  * narrow, and that is the whole value of it. What has no value is the exit:
  * `value as SomeType` is accepted out of `unknown` to anything at all, with no
- * check, so a WRONG assertion compiles exactly like a right one and the reader
+ * check, so a wrong assertion compiles exactly like a right one and the reader
  * gets a typed handle on a shape the value never had.
  *
  * That is not hypothetical. Seven call sites in one Uplink asserted that a
@@ -15,7 +15,7 @@
  * passing test whose fixture carried the same mistake. Nothing complained,
  * because `unknown` accepts every reader including a wrong one.
  *
- * WHY THE COMPILER AND NOT A REGEX. The question is "what is the type of the
+ * Why the compiler and not A regex. The question is "what is the type of the
  * thing being asserted", and only the compiler can answer it. A regex over
  * `as ` cannot tell `payload as Receipt` (payload is `unknown`, nothing was
  * checked) from the same line three statements later, after a `typeof` guard
@@ -29,22 +29,22 @@
  * which `unknown-cast.test.ts` compiles as its false-positive control. Measured,
  * not assumed, on 2026-09-04.
  *
- * WHAT COUNTS
+ * What counts
  *
- *  - `x as T` and `<T>x`, where the type of `x` AT THAT POINT is `unknown` or
+ *  - `x as T` and `<T>x`, where the type of `x` at that point is `unknown` or
  *    `any`. Narrowing is credited automatically: after a real guard the type is
  *    no longer `unknown` and there is nothing to report
- *  - `x as unknown as T` (and `as any as`) counts DOUBLE. It is the shape that
+ *  - `x as unknown as T` (and `as any as`) counts double. It is the shape that
  *    exists only to defeat the compiler's own refusal to allow the conversion,
  *    so it is reported separately and held to its own list
  *
- * WHAT DOES NOT
+ * what does not
  *
  *  - `as const`: an assertion about literalness, not about identity
  *  - `x as unknown` / `x as any` on their own: widening loses a guarantee, it
  *    does not claim one. The claim is in the assertion that follows, which is
  *    the one counted above
- *  - an assertion whose subject is the compiler's ERROR type. That is a build
+ *  - an assertion whose subject is the compiler's error type. That is a build
  *    that did not resolve, not a defect in the source, and reporting it would
  *    make the census depend on whether `dist` happened to be built. The scan
  *    counts those separately and the gate fails on any, so the case is loud
@@ -82,7 +82,7 @@ export const SCANNED_PACKAGE_ROOTS = [
 /**
  * `packages/*` deliberately outside the scan, each with the reason.
  *
- * EMPTY, and the empty list is the point: `unknown-cast.test.ts` asserts that
+ * Empty, and the empty list is the point: `unknown-cast.test.ts` asserts that
  * every `packages/*` carrying a `tsconfig.json` is either scanned or named
  * here, so a new package cannot be born outside the rule by nobody noticing.
  */
@@ -146,7 +146,7 @@ export interface RootScan {
   /** Every non-`const` assertion seen, offending or not. */
   assertions: number;
   /**
-   * Assertions whose subject was the compiler's ERROR type.
+   * Assertions whose subject was the compiler's error type.
    *
    * Counted rather than ignored. It means the program did not resolve, and a
    * scan reading unresolved types reports whatever it likes; the gate fails on
@@ -279,7 +279,7 @@ function skipParens(node: ts.Expression): ts.Expression {
  * Import specifiers in `sf` that bind a name and resolved to nothing.
  *
  * The point is not tidiness, it is whether the types this scan reads are real:
- * an import that did not resolve makes everything reached through it the ERROR
+ * an import that did not resolve makes everything reached through it the error
  * type, and a census taken through one is a census of the build.
  *
  * A SIDE-EFFECT import is skipped, and skipping it is not a loophole. `import
@@ -396,7 +396,7 @@ export function scanUnknownCasts(
 /**
  * Scan a directory of hand-written files as its own root.
  *
- * The planted-violation check uses this, and uses the SAME `scanProgram` the
+ * The planted-violation check uses this, and uses the same `scanProgram` the
  * real walk uses, so a plant that is seen proves the live predicate saw it
  * rather than proving a parallel implementation agrees with itself.
  */

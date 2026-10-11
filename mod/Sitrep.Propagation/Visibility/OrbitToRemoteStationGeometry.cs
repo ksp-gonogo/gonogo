@@ -5,7 +5,7 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation.Visibility
 {
     /// <summary>
-    /// A vessel orbiting one body, talking to a ground station on ANOTHER: a
+    /// A vessel orbiting one body, talking to a ground station on another: a
     /// craft at Minmus routed to a station on Kerbin, which is the shape most
     /// real deep-ish-space silences take.
     /// <see cref="OrbitToGroundStationGeometry"/> covers the same-body case and
@@ -13,7 +13,7 @@ namespace Sitrep.Propagation.Visibility
     /// once, the vessel's parent has moved off the origin, and the station's
     /// own body is now an occluder too.
     ///
-    /// <para><b>Frame: centred on the STATION's body</b>, Z-up inertial, the
+    /// <para><b>Frame: centred on the station's body</b>, Z-up inertial, the
     /// same convention <see cref="KeplerProvider"/> emits. The station is then
     /// a rotating point near the origin, and the vessel is asked for in that
     /// frame directly rather than described by one element set pretending to
@@ -61,7 +61,7 @@ namespace Sitrep.Propagation.Visibility
         private readonly double?[] _stationMaxRangeMeters;
 
         /// <param name="vessel">The craft, named along with the body it orbits.</param>
-        /// <param name="frame">Centred on the STATION's body. Reaching it from the vessel's parent is the provider's job, not this class's.</param>
+        /// <param name="frame">Centred on the station's body. Reaching it from the vessel's parent is the provider's job, not this class's.</param>
         /// <param name="occluders">
         /// Every body that can come between the two endpoints, from
         /// <see cref="PatchedConicChain.OccludersBetween"/>. Empty when the vessel
@@ -70,24 +70,24 @@ namespace Sitrep.Propagation.Visibility
         /// <param name="stationBodyOccludingRadiusMeters">Occluding radius of the station's body, from the elected comms backend's occlusion model.</param>
         /// <param name="stations">
         /// Every ground station on the frame-centre body, not one representative
-        /// of them. The craft is in contact when ANY of them can see it, so a
+        /// of them. The craft is in contact when any of them can see it, so a
         /// single station's horizon is not a constraint on the network.
         /// </param>
         /// <param name="maxRangeMetersPerStation">
         /// The greatest separation at which the elected comms backend carries
-        /// the link to EACH station, from its own <see cref="ICommsReachModel"/>,
+        /// the link to each station, from its own <see cref="ICommsReachModel"/>,
         /// index-aligned with <paramref name="stations"/>. Reach is per pair
         /// rather than per install: a heavily-modded ground network runs a dozen
         /// stations that do not share an antenna, so one number for all of them
         /// would either shorten the good stations or flatter the weak ones.
         ///
-        /// <para>A null ENTRY applies no reach term to that station, and so does
+        /// <para>A null entry applies no reach term to that station, and so does
         /// omitting the argument entirely: the prediction is then geometry
         /// alone, which is what every prediction was before reach reached the
         /// seam. Honest, and knowingly optimistic. Not a range measured as
         /// unlimited.</para>
         ///
-        /// <para>A SHORT list is a programming error rather than a shorthand, so
+        /// <para>A short list is a programming error rather than a shorthand, so
         /// it throws: silently treating the missing tail as unlimited would
         /// quietly restore the very over-promise this parameter exists to
         /// stop.</para>
@@ -164,9 +164,9 @@ namespace Sitrep.Propagation.Visibility
         }
 
         /// <summary>
-        /// The VESSEL's orbital period, seconds, as the elected propagation
+        /// The vessel's orbital period, seconds, as the elected propagation
         /// provider reports it, or null when it declines. One of the two terms a
-        /// sweep step has to resolve, and NOT reliably the faster of them: see
+        /// sweep step has to resolve, and not reliably the faster of them: see
         /// <see cref="ShortestCycleSeconds"/>, which is what a caller sizing a
         /// step should ask for.
         /// </summary>
@@ -272,7 +272,7 @@ namespace Sitrep.Propagation.Visibility
         }
 
         /// <summary>
-        /// Distance from the vessel to the FIRST station, which callers doing a
+        /// Distance from the vessel to the first station, which callers doing a
         /// frame reconciliation must therefore pass as the one they measured
         /// against. Comparing against any other station reports the distance
         /// between two points on the same planet as frame error.

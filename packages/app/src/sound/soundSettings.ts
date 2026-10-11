@@ -8,7 +8,7 @@ import { getSharedAudioContext, pulse } from "./audio";
  * to avoid a multi-tab cacophony.
  *
  * The setting is the game's, kept in KSP's settings file as
- * `CONSOLE/sound.enabled` (default ON) and copied into this screen's
+ * `CONSOLE/sound.enabled` (default on) and copied into this screen's
  * settings by `ConsoleSettingsFromHost`. A module-scoped flag mirrors that
  * copy so non-React call sites (`playAlarmTone`, the countdown/abort tones)
  * can gate cheaply without a hook. The flag is primed + kept in sync by

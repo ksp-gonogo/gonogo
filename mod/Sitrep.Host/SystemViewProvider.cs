@@ -13,7 +13,7 @@ namespace Sitrep.Host
     /// numeric sentinels for missing data, and no <c>eccentricAnomaly</c>
     /// field.
     ///
-    /// This class does NOT touch the Courier/transport, Task 4's
+    /// This class does not touch the Courier/transport, Task 4's
     /// MonoBehaviour pipeline calls <see cref="BuildSystemBodies"/> and
     /// records the result with <c>courier.record("system", Topic, payload, ut)</c>.
     ///
@@ -37,10 +37,10 @@ namespace Sitrep.Host
     ///   }
     /// </code>
     /// The seven orbital-element keys (everything but name/index/parentIndex/
-    /// radius) are meaningless for the root star and MAY be omitted there,
+    /// radius) are meaningless for the root star and may be omitted there,
     /// <see cref="BuildSystemBodies"/> ignores them whenever
     /// <c>parentIndex</c> is absent, regardless of what else is present.
-    /// ANY field may be omitted (or explicitly <c>null</c>) when the live
+    /// Any field may be omitted (or explicitly <c>null</c>) when the live
     /// game genuinely doesn't have the value yet; <see cref="BuildSystemBodies"/>
     /// maps that to <c>null</c> in the output, never a sentinel. Numbers may
     /// arrive as any boxed CLR numeric type (<c>int</c>/<c>long</c>/<c>float</c>/
@@ -77,9 +77,9 @@ namespace Sitrep.Host
     ///   ]
     /// }
     /// </code>
-    /// <para><c>horizon</c> is the one key here that does NOT come off the raw
+    /// <para><c>horizon</c> is the one key here that does not come off the raw
     /// snapshot: how far a body's elements reach is a statement about the
-    /// PHYSICS, and only whoever propagates them can make it. It arrives
+    /// physics, and only whoever propagates them can make it. It arrives
     /// through <see cref="SetBodyHorizonSource"/>, and with nothing installed
     /// says unbounded and analytic, which is the whole truth about a body under
     /// stock.</para>
@@ -103,7 +103,7 @@ namespace Sitrep.Host
         /// <summary>
         /// The R6 revert-availability capture-add: whether the two stock
         /// in-flight "revert" actions are currently available, split out
-        /// cheaply here (rather than waiting on the LARGE space-center
+        /// cheaply here (rather than waiting on the large space-center
         /// provider) so LaunchDirector can gate its revert controls. Feeds the
         /// <c>ksp.revertAvailability</c> Topic; see
         /// <see cref="BuildRevertAvailability"/>.
@@ -166,7 +166,7 @@ namespace Sitrep.Host
         /// propagation assembly, and nothing here can branch on which provider
         /// won.</para>
         ///
-        /// <para>It takes the BODY INDEX and not the catalogue, because the bound is a
+        /// <para>It takes the body index and not the catalogue, because the bound is a
         /// local property of one body: measured against the stock system's own
         /// geometry, a moon of Jool is off by a hundred metres inside five minutes
         /// where a planet holds for most of a day, so anything answering once for the
@@ -187,12 +187,12 @@ namespace Sitrep.Host
         /// under stock that is the whole truth rather than a stand-in. A body rides a
         /// fixed conic about a fixed parent, so where it is at a UT is a published
         /// fact a client computes on demand at whatever instant it is drawing; there
-        /// is nothing to propagate and so nothing to bound. Both halves are STATED,
+        /// is nothing to propagate and so nothing to bound. Both halves are stated,
         /// because <c>Unspecified</c> is what a producer that forgot would send and
         /// that has to stay distinguishable.</para>
         ///
         /// <para>A resolver that faults or answers null gets <c>Unspecified</c> on
-        /// both halves, for the reason the vessel side gets it: an install that HAS a
+        /// both halves, for the reason the vessel side gets it: an install that has a
         /// backend and whose backend broke has told us neither the reach nor the
         /// shape, and answering <c>Analytic</c> there would be a positive claim that
         /// the save runs two-body physics, made on the strength of an

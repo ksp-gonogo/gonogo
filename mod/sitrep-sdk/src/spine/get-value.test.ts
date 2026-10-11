@@ -17,7 +17,7 @@ import { ViewClock } from "./view-clock";
  * the store as a `Value` rather than as the bare number a hand-built fixture
  * would carry.
  *
- * `publish` takes a WHOLE Topic record, which is the only shape the wire has.
+ * `publish` takes a whole Topic record, which is the only shape the wire has.
  * A field is then read back off it by its dotted path, through the store's raw
  * field-subtopic walk, exactly as an operator-picked `dataKey` is.
  */

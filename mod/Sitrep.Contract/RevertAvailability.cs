@@ -14,7 +14,7 @@ namespace Sitrep.Contract;
 /// scene, where the flags mean nothing. In flight both bools are always
 /// present: <c>false</c> means that revert is not available right now.</para>
 ///
-/// <para>Not delayed by light time: it is a fact about the game, not vessel
+/// <para>Not delayed by signal delay: it is a fact about the game, not vessel
 /// telemetry, and carries no per-payload <c>Meta</c> of its own (the
 /// envelope's applies). Its delay role is <see cref="DelayRole.TrueNow"/>.</para>
 /// <internal>

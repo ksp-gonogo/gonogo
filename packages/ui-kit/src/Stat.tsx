@@ -21,8 +21,10 @@ export interface StatProps
 }
 
 /**
- * One cell of a stat strip, the row of key figures a widget keeps at the top of its body: a label, a figure, and at most one line under
- * it. A `<dl>` per cell, so the label is associated with the figure
+ * One cell of a stat strip, the row of key figures a widget keeps at the top
+ * of its body: a label, a figure, and at most one line under it. Useful for
+ * giving the operator the few numbers to check first, such as funds or crew
+ * count. Used by the astronaut complex. A `<dl>` per cell, so the label is associated with the figure
  * programmatically and a cell stays valid wherever it is dropped.
  *
  * The strip is a {@link Grid} with `minColWidth="7rem" fit align="stretch"

@@ -8,21 +8,21 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { beforeAll, describe, expect, it } from "vitest";
 
 /**
- * Can every type that reaches the Sitrep wire actually be WRITTEN?
+ * Can every type that reaches the Sitrep wire actually be written?
  *
  * `JsonWriter.AppendValue` dispatches on runtime type and throws for anything it
  * has no case for; `EnvelopeCodec` catches the throw and fail-softs, so the
  * frame is dropped and the client sits on "subscribed" with nothing red
  * anywhere. It has now happened five times, and the fourth
  * (`commandCentre.roster`) took a live save with real command centres in it to
- * see, because an EMPTY collection serialises perfectly and every headless rig
+ * see, because an empty collection serialises perfectly and every headless rig
  * publishes one.
  *
  * ## Why this is here and not only in C#
  *
  * `mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs` asks the same question by
  * reflection and missed two of the five, because both sat on its
- * `FlattenedByProducer` allowlist. An entry there is a human CLAIM about what a
+ * `FlattenedByProducer` allowlist. An entry there is a human claim about what a
  * producer does, and reflection cannot grade a claim: the roster's entry was
  * recorded as hand-flattened when nothing flattens it, and a command's reply
  * payload as riding out inside a flattened reply when `CommandResult<T>.Payload`
@@ -31,13 +31,13 @@ import { beforeAll, describe, expect, it } from "vitest";
  * corroborating itself.
  *
  * So this reads a different inventory and derives its verdicts instead of
- * accepting them. The inventory is the generated channel map of EVERY generated
+ * accepting them. The inventory is the generated channel map of every generated
  * slice, the core contract and each Uplink's own, walked transitively through
  * the contract's field types; the verdicts come off the mod sources. There is no
  * allowlist here to put a claim in.
  *
  * The Uplink half is what makes the third instance nameable. That one was an
- * Uplink publishing one of its OWN enums, and an Uplink's types generate into
+ * Uplink publishing one of its own enums, and an Uplink's types generate into
  * its own `client/src/__generated__`, so a sweep over the core slice alone can
  * pin the mechanism (`case System.Enum`) without ever reaching the type that
  * broke.

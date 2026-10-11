@@ -32,7 +32,7 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// What each thing said, by when it was said, so that what had been said
     /// by an earlier instant can be asked for: what a centre knew a route's
-    /// light-time ago is what a craft at the end of that route knows now.
+    /// signal delay ago is what a craft at the end of that route knows now.
     /// Asking for an instant forgets everything said before the answer, so an
     /// instant earlier than one already asked for is not to be asked.
     /// Courier thread only.
@@ -112,7 +112,7 @@ namespace Sitrep.Host.Comms
     /// Whether each craft's link was up, by when that was known, so that what
     /// was known by an earlier instant can be asked for. A command centre's
     /// belief about a craft's link reaches a craft at the end of its control
-    /// route one light-time of that route later, as everything else the centre
+    /// route one signal delay of that route later, as everything else the centre
     /// knows does. Asking for an instant forgets what was known before the
     /// answer. Courier thread only.
     /// </summary>
@@ -168,8 +168,8 @@ namespace Sitrep.Host.Comms
     /// <para>A craft learns of another in three ways, and holds whichever
     /// told it the newest thing: the other is within physics range, and is
     /// seen as it is; the other's radio reaches it directly, and what it said
-    /// one light-time of that link ago has arrived; or its command centre
-    /// knows of the other and what the centre knew one light-time of the
+    /// one signal delay of that link ago has arrived; or its command centre
+    /// knows of the other and what the centre knew one signal delay of the
     /// control route ago has arrived. A craft with none of the three learns
     /// nothing and keeps what it has, which ages. Courier thread only.</para>
     /// </summary>

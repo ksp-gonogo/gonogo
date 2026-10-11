@@ -59,12 +59,12 @@ type Assignable<Left, Right> = Left extends Right ? true : false;
 type Expect<Condition extends true> = Condition;
 
 /**
- * A DIFFERENT KIND of check from `Assignable`, and it exists because that one is
+ * A different kind of check from `Assignable`, and it exists because that one is
  * structurally blind to the drift that actually happened.
  *
  * `contributionSlots?: readonly ContributionSlotId[]` was added to core's
  * `ComponentDefinition` and never mirrored. Both `Assignable` directions still
- * passed, and they had to: an object type MISSING an optional property is
+ * passed, and they had to: an object type missing an optional property is
  * assignable to one that has it (nothing is required) and vice versa (nothing
  * conflicts). So the gate reported success on a facade that was missing a real
  * field, and it only surfaced when two widgets failed to compile against the
@@ -74,7 +74,7 @@ type Expect<Condition extends true> = Condition;
  * fails regardless of optionality. Kept separate from `Assignable` rather than
  * replacing it, because the two answer different questions, and a shape can pass
  * either one while failing the other (a property present on both sides with
- * incompatible TYPES passes this and fails `Assignable`).
+ * incompatible types passes this and fails `Assignable`).
  */
 type SameKeys<Left, Right> = [keyof Left] extends [keyof Right]
   ? [keyof Right] extends [keyof Left]

@@ -36,7 +36,7 @@ namespace Sitrep.Host.Settings
         /// <summary>Set to make the next write fail with this reason, so a consumer's failure arm can be exercised.</summary>
         public string? FailWith { get; set; }
 
-        /// <summary>How many times a document has been written, which is how a test sees one write per SAVE press rather than one per row.</summary>
+        /// <summary>How many times a document has been written, which is how a test sees one write per save press rather than one per row.</summary>
         public int Writes { get; private set; }
 
         public SettingsDocument Read()

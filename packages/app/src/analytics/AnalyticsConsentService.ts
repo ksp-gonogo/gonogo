@@ -1,7 +1,7 @@
 /**
  * Host-owned technical-analytics consent.
  *
- * A single global, tri-state value persisted in its OWN localStorage slot
+ * A single global, tri-state value persisted in its own localStorage slot
  * (`gonogo.analytics.consent`): deliberately separate from the
  * `gonogo.settings` store so the privacy-critical bit can't be tangled up
  * with unrelated preference writes. Values:
@@ -62,7 +62,7 @@ export class AnalyticsConsentService {
     for (const l of this.listeners) l(value);
   }
 
-  /** Subscribe to consent changes. Does NOT fire on subscribe, callers
+  /** Subscribe to consent changes. Does not fire on subscribe, callers
    *  read `get()` for the current value. Returns an unsubscribe. */
   subscribe(cb: Listener): () => void {
     this.listeners.add(cb);

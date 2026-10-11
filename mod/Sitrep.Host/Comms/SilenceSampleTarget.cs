@@ -16,9 +16,9 @@ namespace Sitrep.Host.Comms
         /// is left visible rather than hidden behind a factory named for the case,
         /// because a name would make it look handled. Both questions the policies
         /// ask are safe under it: a cycle depends only on the elements, and both
-        /// ask in the target's OWN parent frame, so the frame and the elements
+        /// ask in the target's own parent frame, so the frame and the elements
         /// still share a centre whatever that centre turns out to be. Anything that
-        /// wanted to reach a DIFFERENT body's frame would be refused, which is the
+        /// wanted to reach a different body's frame would be refused, which is the
         /// correct answer for a craft whose parent nobody can name.</para>
         /// </summary>
         public static PropagationTarget Of(SilenceSample sample) =>

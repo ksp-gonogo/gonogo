@@ -25,18 +25,18 @@ import { exitStatus } from "./ratchetBaseRef";
  * ## And 21,600 is not one either
  *
  * This guard originally caught only `86400`, because it was written to stop
- * people assuming EARTH. That left the opposite hole wide open: `21_600` is
+ * people assuming Earth. That left the opposite hole wide open: `21_600` is
  * Kerbin's rotation, and it is just as wrong the moment the game is not on
  * Kerbin time. Two situations make that ordinary rather than exotic:
  *
- * - `GameSettings.KERBIN_TIME` is a STOCK setting. Turn it off and KSP's own
+ * - `GameSettings.KERBIN_TIME` is a stock setting. Turn it off and KSP's own
  *   UI reads in 24-hour days; an app holding 21,600 disagrees with the game
  *   on the same screen.
  * - RSS and anything else on Kopernicus replaces `KSPUtil.dateTimeFormatter`
  *   outright.
  *
  * So the mod now publishes what the running game uses on `time.calendar`, and
- * BOTH literals are offences here. Two were found by widening this: a
+ * both literals are offences here. Two were found by widening this: a
  * ground-track horizon in `MapView` and a hand-rolled `Y# D#` clock in
  * `AlarmsModal` that also printed a literal "Y1" for every date.
  *
@@ -52,7 +52,7 @@ import { exitStatus } from "./ratchetBaseRef";
  * millisecond form is the one that matters most, because a wall-clock age in
  * milliseconds is exactly where a hand reaches for it.
  *
- * It also matched inside COMMENTS, so a file explaining why a KSP day is not
+ * It also matched inside comments, so a file explaining why a KSP day is not
  * 86,400 seconds failed the guard for saying so. Comments and string literals
  * are stripped before the scan now, which fixes that and makes the offender
  * report a line number rather than a filename.
@@ -73,8 +73,8 @@ const EARTH_DAY = /\b(?:86_?400(?:_?000)?|21_?600)\b/;
 /**
  * The `git grep -E` form of the above; POSIX ERE has no non-capturing group.
  *
- * Deliberately WITHOUT word boundaries, and it must stay that way. `git grep -E`
- * hands the pattern to the platform's regex engine, and `\b` is a GNU extension:
+ * Deliberately without word boundaries, and it must stay that way. `git grep -E`
+ * hands the pattern to the platform's regex engine, and `\b` is a gnu extension:
  * on macOS it matches nothing at all, so this guard found zero candidate files
  * and passed vacuously on every developer machine while CI on Linux failed with
  * three real offenders. A ratchet that cannot fail on the machine it is run on
@@ -87,12 +87,12 @@ const EARTH_DAY = /\b(?:86_?400(?:_?000)?|21_?600)\b/;
 const EARTH_DAY_GREP = "(86_?400(_?000)?|21_?600)";
 
 /**
- * Files whose 24-hour day is CORRECT because the thing being measured is real
+ * Files whose 24-hour day is correct because the thing being measured is real
  * time, not game time.
  *
- * **Two entries, both DEFINITION SITES rather than assumptions.** It briefly
+ * **Two entries, both definition sites rather than assumptions.** It briefly
  * held none, after `formatAge` moved to `irl:s`. Widening this guard to catch
- * a hardcoded KERBIN day (see the header) then caught the two places that are
+ * a hardcoded Kerbin day (see the header) then caught the two places that are
  * allowed to write a day length down: the calendar fallback itself, and the
  * declared unit ratio the live calendar overrides. Neither divides by the
  * number; both are where the number lives.
@@ -294,13 +294,13 @@ describe("design-system: the KSP day", () => {
   /**
    * The guard on the guard. Every other assertion here is satisfied by an empty
    * candidate list, so a prefilter that silently matches nothing reports a clean
-   * repo, which is exactly what happened: `\b` in the grep pattern is a GNU
+   * repo, which is exactly what happened: `\b` in the grep pattern is a gnu
    * extension, macOS matched nothing, and the ratchet passed locally for as long
    * as it has existed while CI failed on three real offenders.
    *
    * The exempt files are guaranteed to contain the number: they are the
    * definition sites, listed precisely because they say 21,600 out loud. If the
-   * prefilter cannot find THEM, it is broken rather than the repo being clean,
+   * prefilter cannot find them, it is broken rather than the repo being clean,
    * and this is the only assertion here able to tell those two apart.
    */
   it("the file prefilter actually finds files, so a clean result means clean", () => {

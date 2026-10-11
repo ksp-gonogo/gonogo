@@ -22,13 +22,13 @@ type ConnStatus = Parameters<
  * Its whole shape follows from separating two planes the rest of the app runs
  * together:
  *
- *   - the OBSERVATION plane is a `TelemetryClient` over a transport. A pilot
+ *   - the observation plane is a `TelemetryClient` over a transport. A pilot
  *     holds its own `WebSocketTransport` straight to the mod, so it has its own
  *     session and therefore its own vantage. `MainScreen` builds that itself
  *     when handed no transport, which is why this route renders `MainScreen`
  *     rather than forking it
- *   - the COORDINATION plane is the PeerJS mesh: the shared thread, notes,
- *     alarms, GO/NO-GO, the roster. A pilot joins it as a CLIENT
+ *   - the coordination plane is the PeerJS mesh: the shared thread, notes,
+ *     alarms, GO/NO-GO, the roster. A pilot joins it as a client
  *
  * A station happens to use the mesh for both, which is why the two read as one
  * thing. They are not, and a pilot is the case that separates them: direct-WS
@@ -37,7 +37,7 @@ type ConnStatus = Parameters<
  * would never send `station-info`, never join the roster, and could not reach
  * the thread.
  *
- * The mesh is NOT a gate on the page. A station blocks until it is connected
+ * The mesh is not a gate on the page. A station blocks until it is connected
  * because it has nothing to show otherwise; a pilot is flying either way, and
  * losing mission control is a thing that happens to a spacecraft rather than a
  * reason to stop rendering the instruments.

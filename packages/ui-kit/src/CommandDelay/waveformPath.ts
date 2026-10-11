@@ -1,5 +1,5 @@
 /**
- * The RIBBON mark's geometry: a continuous entry's amplitude history as an open
+ * The ribbon mark's geometry: a continuous entry's amplitude history as an open
  * waveform trace, in its own 16-unit-tall box. A pure module, so the drawing can
  * be asserted directly.
  */
@@ -21,8 +21,8 @@ export const WAVE_MID_Y = WAVE_VB_H / 2;
  */
 export const WAVE_HALF_H = 5.5;
 /**
- * The NOMINAL distance between turning points (half a period), in box units.
- * Fixed in the DRAWING rather than taken from the capture rate, so the trace
+ * The nominal distance between turning points (half a period), in box units.
+ * Fixed in the drawing rather than taken from the capture rate, so the trace
  * reads as a wave at any capture density rather than a solid hatch or a flat
  * line.
  */
@@ -32,8 +32,8 @@ const clamp01 = (v: number): number =>
   !Number.isFinite(v) ? 0 : v < 0 ? 0 : v > 1 ? 1 : v;
 
 /**
- * How far along the rail the drawn trace reaches: one light-time out at most,
- * and only as far as there is history. A MEASUREMENT, not a drawing choice:
+ * How far along the rail the drawn trace reaches: one signal delay out at most,
+ * and only as far as there is history. A measurement, not a drawing choice:
  * samples older than the span have arrived and are dropped.
  */
 export function waveformExtentX(

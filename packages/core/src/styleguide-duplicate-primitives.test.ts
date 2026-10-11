@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Design-system guard: a shared primitive is implemented ONCE, in
+ * Design-system guard: a shared primitive is implemented once, in
  * `@ksp-gonogo/ui-kit`.
  *
  * ui-kit is the published package, so it is the only one a third-party
@@ -29,21 +29,21 @@ import { describe, expect, it } from "vitest";
  * The fix in both cases is the same and is cheap: `packages/ui/src/X.tsx`
  * becomes a re-export from ui-kit. Thirteen of ui's files already are.
  *
- * What this does NOT forbid: a genuinely app-only primitive in ui (LineChart
+ * What this does not forbid: a genuinely app-only primitive in ui (LineChart
  * and the rest are fine, they have no ui-kit twin), or ui re-exporting a
- * ui-kit name. Only a second IMPLEMENTATION.
+ * ui-kit name. Only a second implementation.
  *
  * `Gauge` was on that app-only list until 2026-08-18 and should not have been:
  * it imports nothing but React, and an Uplink was reaching into this private
- * package for it. Being app-only is a claim about what a primitive DEPENDS on,
+ * package for it. Being app-only is a claim about what a primitive depends on,
  * not about who happens to render it today.
  *
  * ---
  *
- * The name check above is BLIND INSIDE ui-kit, and that is not an oversight
+ * The name check above is blind inside ui-kit, and that is not an oversight
  * that can be patched by pointing it at one more directory: TypeScript already
  * forbids two exports of one name in one module graph, so intra-package
- * duplication necessarily wears a DIFFERENT name and a name-equality scan can
+ * duplication necessarily wears a different name and a name-equality scan can
  * never see it. It needs a different kind of check, which is the second half of
  * this file.
  *

@@ -17,7 +17,7 @@ import type { TransportStatus } from "./transport";
 import { WebSocketTransport } from "./websocket-transport";
 
 /**
- * These drive the REAL `WebSocketTransport` over MSW's ws link, the same
+ * These drive the real `WebSocketTransport` over MSW's ws link, the same
  * network-boundary pattern as `websocket-transport.test.ts`, and take the delay from the
  * authority exactly as `TelemetryProvider` does (`setDelaySource`), never from the
  * transport.
@@ -185,7 +185,7 @@ describe("loss inference over the production WebSocket transport", () => {
  * The engine's own flight time, told to the dispatching client and replacing
  * the deadline it could only guess at.
  *
- * A client can see exactly one delay, `comms.delay`, which is the ACTIVE
+ * A client can see exactly one delay, `comms.delay`, which is the active
  * craft's path home. A command addressed anywhere else (a career order held at
  * home, a spend from a distant vessel) travels a different route, so a deadline
  * built from what the client can see grades it against the wrong flight. The

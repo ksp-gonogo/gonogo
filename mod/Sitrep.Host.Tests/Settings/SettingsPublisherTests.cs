@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests.Settings
 {
     /// <summary>
     /// <c>settings.gonogo</c> and <c>settings.save</c>: what a client is told
-    /// about every declared setting, and what one SAVE press does to the store
+    /// about every declared setting, and what one save press does to the store
     /// and the file.
     /// </summary>
     public class SettingsPublisherTests
@@ -100,7 +100,7 @@ namespace Sitrep.Host.Tests.Settings
         /// <summary>
         /// A press with one bad value changes nothing, including the good values
         /// beside it, so the operator is never left with half of what they
-        /// pressed SAVE on.
+        /// pressed save on.
         /// </summary>
         [Fact]
         public void ARefusedSaveChangesNothingAtAll()

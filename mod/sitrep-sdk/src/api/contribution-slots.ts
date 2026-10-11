@@ -505,7 +505,7 @@ export type MissionLogSourceState =
 /** Mirrors `MissionLogEventEntry`. */
 export interface MissionLogEventEntry {
   id: string;
-  /** An INSTANT, so a UT, in seconds. */
+  /** An instant, so a UT, in seconds. */
   ut: number;
   label: string;
   detail?: string;
@@ -517,10 +517,10 @@ export interface MissionLogEventEntry {
    * A figure the row moved: what a leader cost, what a contract paid in
    * reputation.
    *
-   * Typed rather than formatted into `detail`, so the HOST renders it through
+   * Typed rather than formatted into `detail`, so the host renders it through
    * `Unit` and a contributor never hand-formats a quantity. A magnitude and its
    * unit rather than a `Value`, because the two sides of this mirror must
-   * declare structurally IDENTICAL types to merge, and a `Value` resolved
+   * declare structurally identical types to merge, and a `Value` resolved
    * through two different module paths is not identical to itself. A contributor can pass a contract
    * `Value` straight in, since it already has both members.
    *
@@ -542,8 +542,8 @@ export interface MissionLogEventEntry {
  *
  * The widget groups contributed instruments under a heading naming the
  * contributing Uplink, then by `expId`, and counts them in the vessel's totals.
- * It draws a badge per flag: DATA, DEPLOYED, ONE-SHOT when not `rerunnable`,
- * and INOPERABLE. Contributed rows are read-only, with no Deploy or Transmit
+ * It draws a badge per flag: data, deployed, ONE-SHOT when not `rerunnable`,
+ * and inoperable. Contributed rows are read-only, with no Deploy or Transmit
  * control, because those commands reach only stock science parts, and they
  * get no `experiments.instrument` augment. An entry whose `partId` is already on
  * the stock list, or already contributed, is dropped.

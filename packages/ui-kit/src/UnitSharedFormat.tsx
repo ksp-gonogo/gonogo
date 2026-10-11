@@ -91,7 +91,7 @@ export type UnitPinsByGroup = {
 
 const NO_PINS: UnitPins = {};
 
-/** What a scope was ASKED for, as against what it settles. */
+/** What a scope was asked for, as against what it settles. */
 interface Policy {
   /** What each named group was pinned to, by its {@link formatGroupKey}. A missing key settles for itself. */
   readonly byKey: ReadonlyMap<string, UnitPins>;
@@ -219,7 +219,7 @@ function createScope(parent: Scope | undefined): Scope {
   const root = parent?.root ?? createRoot();
   let policy = NO_POLICY;
 
-  /** The rung of the LARGEST member, the one the group is a group about. */
+  /** The rung of the largest member, the one the group is a group about. */
   const ownRung = (members: Iterable<Report>): string | undefined => {
     let winner: LadderPosition | undefined;
     for (const member of members) {
@@ -325,7 +325,8 @@ const NO_SCOPE: Scope = {
 const ScopeContext = createContext<Scope>(NO_SCOPE);
 
 /**
- * Whether there is a real `<UnitSharedFormat>` above this point.
+ * Whether there is a real {@link UnitSharedFormat} above this point. Used by
+ * {@link Unit}.
  *
  * Membership cannot be read off {@link useSharedFormat}: a group over a unit with no ladder (`rpm`) legitimately settles an empty format.
  */
@@ -379,7 +380,11 @@ interface UnitSharedFormatAnyProps extends UnitSharedFormatBaseProps, UnitPins {
 }
 
 /**
- * A group of quantities that settles one format per kind, so the whole group reads as one instrument. It renders nothing of its own, so it can wrap a row, a cell, a table or a widget body.
+ * A group of quantities that settles one format per kind, so the whole group
+ * reads as one instrument. Useful for letting the operator compare figures at
+ * a glance, such as `999 m` beside `1000 m`. Used by a rotor tachometer widget.
+ * It renders nothing of its own, so it can wrap a row, a cell, a table or a
+ * widget body.
  *
  * Every `<Unit>` inside reports its value and is given back the settled format; outside a scope each value formats itself. The caller names no unit or digit count.
  *
@@ -443,7 +448,10 @@ export function UnitSharedFormat({
 }
 
 /**
- * Report a quantity to the enclosing {@link UnitSharedFormat} and hear back the format its group settled on, or `undefined` when there is none.
+ * Reports a quantity to the enclosing {@link UnitSharedFormat} and returns the
+ * format its group settled on, or `undefined` when there is none. Useful for
+ * writing a figure at the same format as the {@link Unit}s beside it. Used by
+ * {@link Unit} and {@link Meter}.
  *
  * `<Unit>` calls this itself, and so do the kit's own readouts that cannot draw a `<Unit>` (SVG axis text, an `aria-valuetext`) but must be written at the same format as the `<Unit>`s beside them. It is internal to the kit and not exported from the package. A quantity whose caller already decided its presentation (`format`, `as`, a non-auto `scale`) neither reports nor hears back.
  */
@@ -491,7 +499,9 @@ export function useSharedFormat<Unit extends string = string>(
 }
 
 /**
- * Whether the group this value belongs to reads as one figure at the format it settled on. Only a scope asked to `separate` answers true.
+ * Whether the group this value belongs to reads as one figure at the format it
+ * settled on. Only a scope asked to `separate` answers true. Useful for
+ * deciding whether members of a group may be drawn apart. Used by {@link Band}.
  *
  * Read-only, unlike {@link useSharedFormat}: a caller that decides what to draw from this must keep reporting as before, or membership becomes a function of the verdict.
  */

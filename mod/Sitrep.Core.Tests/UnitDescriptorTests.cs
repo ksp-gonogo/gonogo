@@ -185,7 +185,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// An Uplink's catalog under a SUFFIXED name, which is what an author
+        /// An Uplink's catalog under a suffixed name, which is what an author
         /// writes once they have to put it in the same namespace as their
         /// payloads: a class named exactly <c>Units</c> shadows
         /// <see cref="Units"/> there and breaks every existing

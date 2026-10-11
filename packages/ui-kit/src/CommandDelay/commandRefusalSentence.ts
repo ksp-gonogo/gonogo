@@ -60,7 +60,7 @@ export interface CommandRefusalEntry extends CommandRefusalLike {
  */
 export interface RailRefusal extends CommandRefusalEntry {
   /**
-   * The command's three axes. Only the MARK is read: a discrete command gets
+   * The command's three axes. Only the mark is read: a discrete command gets
    * its in-flight glyph tile, a continuous one its text label.
    */
   tags: RailTags;

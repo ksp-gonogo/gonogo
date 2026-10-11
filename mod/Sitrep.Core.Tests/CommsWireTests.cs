@@ -8,8 +8,8 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// Regression guard for the comms.* "subscribed but no stream-data" bug:
-    /// every comms.* payload type except <see cref="CommsDelay"/> had NO
-    /// <see cref="JsonWriter.AppendValue"/> case, so a POPULATED payload threw
+    /// every comms.* payload type except <see cref="CommsDelay"/> had no
+    /// <see cref="JsonWriter.AppendValue"/> case, so a populated payload threw
     /// <c>NotSupportedException</c> at the wire boundary and the frame was
     /// dropped: a client subscribed comms.connectivity / comms.path /
     /// comms.network / comms.signal but received only "subscribed" and

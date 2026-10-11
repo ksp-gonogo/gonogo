@@ -16,7 +16,7 @@ function frame(
 }
 
 /**
- * A frame as a mod AHEAD of this client reports it: a kind no
+ * A frame as a mod ahead of this client reports it: a kind no
  * `ControlFrameKind` names, which the compiler is right to refuse and which is
  * the only way such a frame reaches the label.
  */

@@ -4,7 +4,7 @@ import { silenceByVessel } from "./fleet-contact";
 /**
  * The fleet-wide roster exists so a consumer that cannot name a per-vessel
  * topic can still read the reckoning. That only holds if the reshaping is
- * lossless, so these check the fields that carry a MEANING rather than just a
+ * lossless, so these check the fields that carry a meaning rather than just a
  * number: a withheld prediction has to stay withheld, and a craft with no id
  * has to disappear rather than collide with another under an empty key.
  */

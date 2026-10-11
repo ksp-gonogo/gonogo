@@ -5,20 +5,20 @@
  * pulling in vitest or the scan machinery. Same split-module shape as
  * `uplink-isolation.allowlist.ts`.
  *
- * A DECLARATION NOBODY READS IS NOT A FEATURE. One Uplink's tooling Topic was folded
+ * A declaration nobody reads is not A feature. One Uplink's tooling Topic was folded
  * as the mod half only: a Topic, two commands and 159 lines of payload contract with no
  * client consumer at all. The isolation ratchets passed, the extraction probe
  * passed, the docs gate passed, and the queue recorded it built for days when it
  * was built only on the wire. Every gate in the tree asked whether what exists is
- * CORRECT; none asked whether it is REACHED.
+ * correct; none asked whether it is reached.
  *
  * Seeded 2026-09-02 from a full scan: 101 declarations (44 Topics, 57 commands)
- * across 11 Uplink clients, 20 of them unreached. Every entry here is DEBT and
+ * across 11 Uplink clients, 20 of them unreached. Every entry here is debt and
  * the list is SHRINK-ONLY. Fix one by writing the widget or control that reads
  * it, then delete the line. Never add one: a new declaration lands with its
  * consumer or it does not land.
  *
- * WHAT IS NOT HERE, and why the count is not larger. Two exclusions are correct
+ * What is not here, and why the count is not larger. Two exclusions are correct
  * rather than generous:
  *
  *   • `*.available` Domain presence gates. `AugmentAvailabilityFeeder` reads
@@ -29,20 +29,20 @@
  *     declares, and the scan skips `ExportDeclaration` so plumbing is not
  *     mistaken for use.
  *
- * THE SHAPE OF THE DEBT is worth reading before clearing it. Seventeen of the
+ * The shape of the debt is worth reading before clearing it. Seventeen of the
  * twenty as seeded were commands and three were Topics, which says the gap is
- * overwhelmingly on the CONTROL side: the mod will accept instructions the
+ * overwhelmingly on the control side: the mod will accept instructions the
  * dashboard has no button for.
  *
- * CLEARED SO FAR, 11 of the 20, all on 2026-09-02.
+ * Cleared so far, 11 of the 20, all on 2026-09-02.
  *
- * Eight were cleared by BUILDING the surface that reaches them; three by
- * DELETING them, which is the other honest answer and the one to reach for when
+ * Eight were cleared by building the surface that reaches them; three by
+ * deleting them, which is the other honest answer and the one to reach for when
  * the mechanism behind a command is already gone. `kos.dispatchNow`, `kos.exec`
  * and `kos.reEnable` were the dispatch controls of the centralised kOS script
  * registry: its register and read functions, its compute manager, its status
  * hook and the feed widgets that consumed them have no definitions left anywhere in the tree, nothing ships a
- * `0:/widget_scripts/<id>.ks` for `kos.exec` to RUNPATH, and the breaker
+ * `0:/widget_scripts/<id>.ks` for `kos.exec` to runpath, and the breaker
  * `kos.reEnable` re-armed was never built (its handler was a no-op ack).
  * Wiring them would have meant rebuilding a subsystem that was deliberately
  * removed. `kos.run` is the surviving way to run anything on a CPU.
@@ -51,7 +51,7 @@
  * facility upgrade and a strategy activation. Each landed in the surface the
  * operator was already looking at rather than in one Uplink screen: research on
  * the tech tree, the facility tier on the Space Center, and the Program accept on
- * the Administration building. The LEADER half of the activation has no control:
+ * the Administration building. The leader half of the activation has no control:
  * the mod publishes no availability fact for a leader and its command asks the
  * mod's own unlock predicate for none, so a picker would offer appointments the
  * mod's own building forbids.
@@ -59,7 +59,7 @@
  * And the whole Principia planning write path: `principia.plan.create`,
  * `.delete`, `.duplicate`, `.horizon` and `.send`. What that exercise taught,
  * for whoever takes the next entry: five unreached commands were not five
- * missing buttons. Create, duplicate, delete and send are the transitions of ONE
+ * missing buttons. Create, duplicate, delete and send are the transitions of one
  * state machine over whether a plan exists and how many there are, and the mod already refuses
  * the illegal one by name, so the surface that reaches them is a single section
  * that renders the slot state and offers whichever transition it permits.

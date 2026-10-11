@@ -45,9 +45,9 @@ beforeEach(() => clearRegistry());
 
 /**
  * All three reads are canonical now, `career.mode` (-> `career.mode.mode`,
- * the `GameMode` enum ORDINAL `resolveCareerMode` maps to a display string),
+ * the `GameMode` enum ordinal `resolveCareerMode` maps to a display string),
  * `kc.scene` (-> `spaceCenter.scene.scene`) and `kc.padOccupied` (-> the
- * derived `spaceCenter.state` channel): with NO legacy `DataSource` fallback.
+ * derived `spaceCenter.state` channel): with no legacy `DataSource` fallback.
  * So with no `TelemetryProvider` mounted (a station tree with no stream, or
  * the warmup window before the first frame) every read is `undefined` and the
  * context sits at its Unknown/false defaults; a legacy `DataSource` carrying

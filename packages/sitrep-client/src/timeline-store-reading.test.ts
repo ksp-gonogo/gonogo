@@ -30,7 +30,7 @@ function store(): TimelineStore {
 }
 
 /**
- * The fixture topic is `system.bodies`, which the contract declares NOTHING
+ * The fixture topic is `system.bodies`, which the contract declares nothing
  * reckonable on, and that is deliberate: these tests are about the store's
  * identity, staleness and tombstone mechanics, and a topic carrying a
  * `[SitrepReckonable]` mark answers its value-bearing `"none"` arms with a
@@ -38,14 +38,14 @@ function store(): TimelineStore {
  * what any of them is asking about. The decline has its own describe block.
  *
  * It was `vessel.orbit` until 2026-09-16, when that topic was marked so its
- * conic could REFUSE reachably (ticket 308). `system.bodies` is a better fixture than
+ * conic could refuse reachably (ticket 308). `system.bodies` is a better fixture than
  * "whatever is unmarked today": it is a catalogue rather than a reading of
  * anything, so there is nothing for a model to move and nothing should ever
  * mark it.
  *
  * **If #312 lands**, registering a model on an unmarked topic may be refused
  * outright, and this file is one of the places that will notice: it wants a
- * topic that is unmarked AND unmodelled, which is what this one is.
+ * topic that is unmarked and unmodelled, which is what this one is.
  */
 describe("TimelineStore.sampleReading", () => {
   it("returns the SAME object for repeat reads within one frame", () => {
@@ -140,7 +140,7 @@ describe("TimelineStore.sampleReading", () => {
 });
 
 /**
- * A topic the CONTRACT declares reckonable is the one place `reckoning: { status: "none" }`
+ * A topic the contract declares reckonable is the one place `reckoning: { status: "none" }`
  * on a value-bearing arm is not the honest default. The mark promises the wire
  * carries the model's inputs, so nothing answering is a specific refusal, and
  * the refusal names the input in the contract's own spelling.

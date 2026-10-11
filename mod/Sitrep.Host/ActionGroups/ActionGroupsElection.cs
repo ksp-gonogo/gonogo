@@ -13,19 +13,19 @@ namespace Sitrep.Host.ActionGroups
     /// factory</b>: the structural "action groups are never unsatisfiable"
     /// guarantee. It activates whenever no higher provider is registered,
     /// which is every stock install.</item>
-    /// <item><b>A future AGX uplink registers a provider</b>, but ONLY when
+    /// <item><b>A future AGX uplink registers a provider</b>, but only when
     /// the AGX assembly is actually loaded (the same reflection-probe gate
-    /// <c>GonogoRealAntennasUplink</c> uses). Registering the provider IS the
+    /// <c>GonogoRealAntennasUplink</c> uses). Registering the provider is the
     /// gate: an exclusive capability with one registered provider selects it;
     /// with zero it falls back to Vanilla. So AGX present ⇒ AGX wins; AGX
     /// absent ⇒ stock: no version-string gymnastics.</item>
     /// </list>
     ///
-    /// <para>The <c>vessel.control</c> channel is declared and sourced ONCE by
+    /// <para>The <c>vessel.control</c> channel is declared and sourced once by
     /// the vessel uplink, which resolves the elected backend at capture time
     /// via <c>Kernel.Query&lt;IActionGroupsBackend&gt;("actionGroups")</c>:
     /// the shared-namespace-single-declaration rule. An AGX uplink would
-    /// declare NO channel of its own for this and ship NO client code, exactly
+    /// declare no channel of its own for this and ship no client code, exactly
     /// as the RealAntennas uplink ships none for <c>comms.*</c>.</para>
     /// </summary>
     public static class ActionGroupsElection
@@ -45,7 +45,7 @@ namespace Sitrep.Host.ActionGroups
         /// stock backend as its always-present
         /// <see cref="CapabilityDescriptor.Vanilla"/> factory. Called from the
         /// vessel uplink's <c>DeclareCapabilities</c> (the pre-Register
-        /// discovery pass), so the capability exists before ANY uplink's
+        /// discovery pass), so the capability exists before any uplink's
         /// <c>Register</c> runs, a future AGX uplink's provider registration
         /// can then never race ahead of this declaration regardless of
         /// assembly-scan order. Same two-pass fix as comms.

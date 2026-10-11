@@ -4,7 +4,9 @@ import { focusRing } from "./focusRing";
 /**
  * A vertical form body, the root of a widget's config form. Each child is
  * usually a {@link Field} (label above control) or a {@link FieldRow} (label
- * beside control).
+ * beside control). Useful for laying out the settings the operator edits for
+ * one widget. Used by the config forms of the graph, warp control and target
+ * picker widgets.
  *
  * `$boxed` puts it on a panel surface with a border and its own padding, and
  * tightens the gap, since a boxed form is denser than a settings section.
@@ -72,11 +74,12 @@ export const ConfigForm = styled.div<{
 
 /**
  * One labelled control in a {@link ConfigForm}, stacked: {@link FieldLabel} on
- * top, the control below, an optional {@link FieldHint} under it. Tie the label
- * to the control with `htmlFor` and `id`. For a single line of text with no hint,
- * prefer {@link TextField}, which does all of this in one; build with `Field`
- * and {@link Input} for a control it does not cover or a field that needs a
- * {@link FieldHint}.
+ * top, the control below, an optional {@link FieldHint} under it. Useful for
+ * any setting the operator edits. Used by the graph config form and the alarms
+ * dialog. Tie the label to the control with `htmlFor` and `id`. For a single
+ * line of text with no hint, prefer {@link TextField}, which does all of this
+ * in one; build with `Field` and {@link Input} for a control it does not cover
+ * or a field that needs a {@link FieldHint}.
  *
  * @example
  * ```tsx
@@ -96,7 +99,10 @@ export const Field = styled.div`
 `;
 
 /**
- * A labelled control laid out horizontally: label on the left, control on the right, vertically centred.
+ * A labelled control laid out horizontally: label on the left, control on the
+ * right, vertically centred. Useful for a compact setting such as a switch or a
+ * short value. Used by the map view's configuration form and the serial input
+ * mapping tab.
  *
  * @category Form
  */
@@ -107,7 +113,10 @@ export const FieldRow = styled.div`
 `;
 
 /**
- * The label of a {@link Field} or {@link FieldRow}: a native `<label>` in small uppercase caption type. Pass `htmlFor` to tie it to its control.
+ * The label of a {@link Field} or {@link FieldRow}: a native `<label>` in small
+ * uppercase caption type. Useful for naming a control to the operator and to a
+ * screen reader. Used by the alarms dialog. Pass `htmlFor` to tie it to its
+ * control.
  *
  * @category Form
  */
@@ -120,7 +129,10 @@ export const FieldLabel = styled.label`
 `;
 
 /**
- * Small, faint help text under a control in a {@link Field}. Give it an `id` and point the control's `aria-describedby` at it when it should be read with the control.
+ * Small, faint help text under a control in a {@link Field}. Useful for telling
+ * the operator what a value means or what range it accepts. Used by the alarms
+ * dialog. Give it an `id` and point the control's `aria-describedby` at it when
+ * it should be read with the control.
  *
  * @category Form
  */
@@ -130,7 +142,9 @@ export const FieldHint = styled.span`
 `;
 
 /**
- * A horizontal row of buttons at the foot of a form, vertically centred.
+ * A horizontal row of buttons at the foot of a form, vertically centred. Useful
+ * for the save and cancel controls of a form the operator fills in. Used by the
+ * connection settings and the log manager.
  *
  * @category Form
  */
@@ -170,7 +184,10 @@ const inputBase = css`
 `;
 
 /**
- * A native `<input>` in the kit's field style, full width, with a visible focus ring and a 44px touch target on coarse pointers.
+ * A native `<input>` in the kit's field style, full width, with a visible focus
+ * ring and a 44px touch target on coarse pointers. Useful for a text or number
+ * value the operator types. Used by the alarms dialog and the connection
+ * settings.
  *
  * @category Form
  */
@@ -180,7 +197,9 @@ export const Input = styled.input`
 `;
 
 /**
- * A native `<select>` in the kit's field style, full width. For a long or searchable list, use {@link ComboboxListbox} with an {@link Input}.
+ * A native `<select>` in the kit's field style, full width. Useful for choosing
+ * one value from a short list. Used by the log manager. For a long or
+ * searchable list, use {@link ComboboxListbox} with an {@link Input}.
  *
  * @category Form
  */
@@ -207,7 +226,9 @@ export const Select = styled.select`
 `;
 
 /**
- * A native `<textarea>` in the kit's field style, full width, resizable vertically only.
+ * A native `<textarea>` in the kit's field style, full width, resizable
+ * vertically only. Useful for a multi-line value the operator types or pastes.
+ * Used by the log manager and the serial calibration wizard.
  *
  * @category Form
  */

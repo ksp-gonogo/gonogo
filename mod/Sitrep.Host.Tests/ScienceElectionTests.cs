@@ -6,14 +6,14 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The science-backend election, driven through the REAL <see cref="Kernel"/>:
+    /// The science-backend election, driven through the real <see cref="Kernel"/>:
     /// the same three cases <see cref="CommsElectionTests"/> covers for comms,
     /// because science is now the same kind of capability. Provider absent ⇒
     /// stock vanilla; provider present ⇒ provider wins; and the elected instance
     /// is genuinely queryable as an <see cref="IScienceBackend"/>.
     ///
     /// <para>The fourth case is the one that only a two-pass registration gets
-    /// right: a provider uplink discovered BEFORE the capability owner. That is
+    /// right: a provider uplink discovered before the capability owner. That is
     /// the registration-order hazard <see cref="IUplinkCapabilityDeclarer"/>
     /// exists to close, and it is the failure a stock-only dev box would never
     /// see.</para>
@@ -106,7 +106,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The adversarial ordering: the PROVIDER uplink is discovered BEFORE the
+        /// The adversarial ordering: the provider uplink is discovered before the
         /// capability-owning uplink. Single-pass registration would run the
         /// provider's Register (its Kernel.RegisterProvider) while the "science"
         /// capability did not yet exist, the registration would throw, the

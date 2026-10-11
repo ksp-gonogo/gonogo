@@ -40,7 +40,7 @@ export interface CommandDelayHandle {
    */
   inFlight: InFlightCommandLike[];
   /**
-   * What this entry IS on the delay rail's three axes, in full: `direction`
+   * What this entry is on the delay rail's three axes, in full: `direction`
    * (a `command` leaving or `telemetry` arriving), `kind` (`event` or
    * `discrete`, one point, or `continuous`, a span) and `delivery` (`acked`, answered, or
    * `fire-and-forget`). The delay rail is the strip a panel draws above its
@@ -64,7 +64,7 @@ export interface CommandDelayHandle {
    */
   delayReading?: Reading<Value<"s">> | null;
   /**
-   * Stream buffers for a CONTINUOUS handle (the in-transit + confirmed-echo
+   * Stream buffers for a continuous handle (the in-transit + confirmed-echo
    * samples `ControlDelayStream` draws). Ignored by the discrete queue.
    */
   streams?: ControlStreamDatum[];
@@ -81,31 +81,31 @@ export interface CommandDelayHandle {
    */
   "aria-label"?: string;
   /**
-   * Dispatches from this command the GAME REFUSED, until dismissed. Rendered by
+   * Dispatches from this command the game refused, until dismissed. Rendered by
    * the Panel rail under both queues, never by `<CommandDelay>`: a refusal is
    * terminal and has nothing to do with delay.
    */
   refusals?: CommandRefusalEntry[];
   /**
-   * Dispatches from this command that got NO ANSWER, until dismissed. Rendered
+   * Dispatches from this command that got "NO ANSWER", until dismissed. Rendered
    * by the Panel rail, since a loss can have no in-flight entry at all. Apart
    * from `refusals` because a loss carries no verdict: the command may have
    * executed.
    */
   losses?: CommandLossEntry[];
   /**
-   * Dispatches from this command that were called LOST and then replied after
+   * Dispatches from this command that were called lost and then replied after
    * all, until dismissed. An entry here has left `losses`: the same dispatch at
    * a later moment, never two boxes at once.
    */
   founds?: CommandFoundEntry[];
   /**
-   * Dispatches from this command that NEVER LEFT this machine, until dismissed:
+   * Dispatches from this command that never left this machine, until dismissed:
    * the command did not run. An entry here has left `losses`, as with `founds`.
    */
   undelivered?: CommandUndeliveredEntry[];
   /**
-   * Dispatches from this command the mod answered with a FAULT in place of a
+   * Dispatches from this command the mod answered with a fault in place of a
    * reply, until dismissed: it expired or was cancelled on its way, or a game
    * load undid it. Each carries the fault's code, which says which.
    */
@@ -153,11 +153,13 @@ export interface CommandDelayProps {
 }
 
 /**
- * Draws what a delayed command is doing on its way across the link. It draws
- * nothing at zero or unknown delay, the continuous {@link ControlDelayStream}
- * for a single stream command, or the discrete {@link InFlightList} (merged
- * across handles) otherwise, so a widget gets the right delay display with no
- * branching of its own.
+ * What each delayed command is doing between the command centre and its vessel
+ * or device. It draws nothing at zero or unknown delay, the continuous
+ * {@link ControlDelayStream} for a single stream command, or the discrete
+ * {@link InFlightList} (merged across handles) otherwise, so a widget gets the
+ * right delay display with no branching of its own. Useful for showing the
+ * operator that a command has been sent and has not yet arrived. Used by the
+ * panel delay rail, and by a widget that draws the same display in its body.
  *
  * On the dashboard every `useCommand` handle already reaches its `Panel`'s
  * delay rail; render this for the same display inside the widget body.

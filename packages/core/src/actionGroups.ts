@@ -5,22 +5,22 @@ import { useTelemetry } from "./hooks/useTelemetry";
 import type { ActionGroup } from "./types";
 
 /**
- * The STOCK, non-custom action groups: the fixed singletons KSP has always
+ * The stock, non-custom action groups: the fixed singletons KSP has always
  * had, each with its own first-class `vessel.control` field and its own
  * dedicated command (`vessel.control.setGear`, ...).
  *
  * This is still a literal, and must stay one: the registry is deliberately
- * HYBRID, static stock singletons (this array) + telemetry-derived customs
- * (`useActionGroups` below). Do NOT "simplify" it into a single
+ * hybrid, static stock singletons (this array) + telemetry-derived customs
+ * (`useActionGroups` below). Do not "simplify" it into a single
  * fully-derived list, that would be a regression, not a cleanup, because the
  * two halves are different kinds of thing:
  *
- *  - These eight are FIXED stock concepts. No mod extends them: Action Groups
- *    Extended adds CUSTOM groups; it does not add a second SAS. Each already
+ *  - These eight are fixed stock concepts. No mod extends them: Action Groups
+ *    Extended adds custom groups; it does not add a second SAS. Each already
  *    has a typed field on `vessel.control` and a dedicated command, so
  *    deriving them from a name-matched list would trade a typed read for a
  *    string match and invent a second source of truth for the same fact.
- *  - The CUSTOM groups are the extensible axis, and the only axis a backend
+ *  - The custom groups are the extensible axis, and the only axis a backend
  *    varies: stock reports ten anonymous ones, AGX reports up to 250 the
  *    player names. Those cannot be hardcoded, so they derive from telemetry.
  *
@@ -82,7 +82,7 @@ export const STOCK_ACTION_GROUPS = [
 ] as const satisfies readonly ActionGroup[];
 
 /**
- * Union of every STOCK action group name. Closed, because stock genuinely is,
+ * Union of every stock action group name. Closed, because stock genuinely is,
  * this is what keeps `ActionGroupId` validating and autocompleting the names we
  * can know at compile time (see `ActionGroupId`).
  */
@@ -93,15 +93,15 @@ export type StockActionGroupId = (typeof STOCK_ACTION_GROUPS)[number]["name"];
  *
  * `(string & {})` is the standard widening idiom: it admits an arbitrary custom
  * id (an AGX group can be named anything, and is only known at runtime) while
- * KEEPING editor autocomplete and validation for every stock name, TypeScript
- * won't collapse the union to plain `string`. Deliberately NOT bare `string`:
- * that would silently weaken config validation for the eight names we DO know
+ * keeping editor autocomplete and validation for every stock name, TypeScript
+ * won't collapse the union to plain `string`. Deliberately not bare `string`:
+ * that would silently weaken config validation for the eight names we do know
  * statically.
  */
 export type ActionGroupId = StockActionGroupId | (string & {});
 
 /**
- * The id a saved config addresses one group by: its INDEX for a custom group,
+ * The id a saved config addresses one group by: its index for a custom group,
  * its name for a stock singleton.
  *
  * A display name cannot serve as an identity on the custom half. Two AGX groups
@@ -109,15 +109,15 @@ export type ActionGroupId = StockActionGroupId | (string & {});
  * singleton. Because the stock half is listed first, a name-keyed save for a
  * custom group called "Stage" resolves to the stock Stage, whose pill does not
  * toggle anything: it fires `vessel.control.stage` and drops a stage off the
- * vessel. Anything that WRITES `actionGroupId` goes through here.
+ * vessel. Anything that writes `actionGroupId` goes through here.
  */
 export function actionGroupIdOf(group: ActionGroup): ActionGroupId {
   return group.index !== undefined ? `AG${group.index}` : group.name;
 }
 
 /**
- * The live registry: the stock singletons above, then every CUSTOM group the
- * elected backend reported: NAMED by the backend rather than by us.
+ * The live registry: the stock singletons above, then every custom group the
+ * elected backend reported: named by the backend rather than by us.
  *
  * Under stock this yields 18 entries, AG1..AG10 among them, and those ten
  * arrive as telemetry carrying the mod's own labels rather than being
@@ -149,7 +149,7 @@ export function useActionGroups(): ActionGroup[] {
 }
 
 /**
- * `useActionGroups` for a caller that has ALREADY read `vessel.control`, it
+ * `useActionGroups` for a caller that has already read `vessel.control`, it
  * derives from the payload instead of opening a second subscription to the same
  * topic. `ActionGroup` needs the record anyway (for its own group's value), so
  * without this the widget would subscribe to `vessel.control` twice: once for
@@ -181,7 +181,7 @@ export function actionGroupsFrom(
 
 /**
  * Builds a custom group's descriptor from its backend index (+ optional name).
- * The single place the `f.ag{n}` toggle convention is derived, keyed by INDEX,
+ * The single place the `f.ag{n}` toggle convention is derived, keyed by index,
  * never by name, because `map-command.ts` bridges `f.ag{n}` to
  * `setActionGroup{group: n}` and two AGX groups may share a display name.
  *
@@ -215,10 +215,10 @@ function customActionGroup(
 }
 
 /**
- * Resolves ONE configured group id against the live registry.
+ * Resolves one configured group id against the live registry.
  *
  * The fallback is the point. Because the custom half is telemetry-derived, a
- * widget configured for `AG1` finds NOTHING in the registry until the first
+ * widget configured for `AG1` finds nothing in the registry until the first
  * `vessel.control` sample lands: and rendering "No action group configured"
  * for a group the operator plainly did configure is a lie. It's also the state
  * a saved AGX group lands in after AGX is uninstalled.
@@ -237,7 +237,7 @@ function customActionGroup(
  * pill, and an `AG{n}` fabricated from nothing is otherwise byte-identical to
  * a reported one.
  *
- * Returns `undefined` only when nothing is configured at all, which IS the
+ * Returns `undefined` only when nothing is configured at all, which is the
  * genuine "No action group configured" case.
  */
 export function useActionGroup(
@@ -356,14 +356,14 @@ export function buildToggleArgs(
 /**
  * Resolves one group's live value off the canonical payloads.
  *
- * A CUSTOM group carries an `index` and is found in `control.actionGroups` by
+ * A custom group carries an `index` and is found in `control.actionGroups` by
  * that index: never by array position (position stopped implying identity when
  * the wire shape became a named list) and never by name (two AGX groups may
  * share a display name).
  *
- * A STOCK singleton has no `index` and reads its own typed field. `Stage` is
+ * A stock singleton has no `index` and reads its own typed field. `Stage` is
  * the odd one out: it isn't a control input at all, so it comes off
- * `vessel.structure.currentStage` and is the only NUMERIC readout here.
+ * `vessel.structure.currentStage` and is the only numeric readout here.
  *
  * `null` is a real answer and is passed through as one: a custom group's
  * `state` is three-valued, and `null` means the backend reported the group but

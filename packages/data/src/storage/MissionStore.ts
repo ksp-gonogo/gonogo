@@ -59,7 +59,7 @@ function asFixtureRow(row: unknown): FixtureRow | null {
 
 /**
  * IndexedDB-backed persistence for `StreamRecorder`-produced mission
- * recordings. Deliberately a SEPARATE database from `IndexedDbStore`'s
+ * recordings. Deliberately a separate database from `IndexedDbStore`'s
  * `gonogo-data`, which `BufferedDataSource` keeps for its own unrelated
  * flight-detection and graph bookkeeping: this schema is unrelated to that
  * one, not a migration of it. A `BufferedDataSource` sample does not map onto

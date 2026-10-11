@@ -170,7 +170,7 @@ describe("VantageControl on a station", () => {
 });
 
 /**
- * A pilot owns its session and CAN carry a selection, which is exactly why the
+ * A pilot owns its session and can carry a selection, which is exactly why the
  * transport is left alone here: the seat reads rather than picks because
  * `PilotVantage` already decided the answer, not because the wire refuses one.
  */

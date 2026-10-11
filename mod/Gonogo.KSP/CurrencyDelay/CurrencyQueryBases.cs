@@ -1,12 +1,12 @@
 namespace Gonogo.KSP.CurrencyDelay
 {
     /// <summary>
-    /// The base amount a stock currency change was ASKED for, remembered from
+    /// The base amount a stock currency change was asked for, remembered from
     /// the modifier query that precedes it so the following <c>On*Changed</c>
     /// can read a pre-clamp figure instead of a post-clamp difference.
     ///
     /// <para>Something does interleave. Between the two, the mutator also fires
-    /// <c>OnCurrencyModified</c>, and a subscriber to THAT is free to run a
+    /// <c>OnCurrencyModified</c>, and a subscriber to that is free to run a
     /// query of its own: a career overhaul that awards its own extra currency
     /// off a science award prices that award through a fresh query, carrying the
     /// same <c>ScienceTransmission</c> reason and zero science. Landing in one
@@ -16,7 +16,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// </para>
     ///
     /// <para>So a query is evidence about a currency only when it carries a
-    /// non-zero amount OF THAT CURRENCY, and each currency keeps its own slot.
+    /// non-zero amount of that currency, and each currency keeps its own slot.
     /// A query about somebody else's currency now passes straight through the
     /// two it says nothing about.</para>
     ///

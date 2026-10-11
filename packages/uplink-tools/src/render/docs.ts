@@ -26,7 +26,7 @@ import { commandSection, readWireSurface, wireSection } from "./wire";
  *
  * `page-check.ts` builds this list from the scenes alone, with no browser and so
  * no rendered files behind it, to compare the page's markdown against the code.
- * The generator writes image LINKS, so a filename and a size are all it reads,
+ * The generator writes image links, so a filename and a size are all it reads,
  * and asking it for a `shape` would either force that path to fabricate one or
  * put the freshness question somewhere that structurally cannot answer it.
  */
@@ -82,7 +82,7 @@ export function committedIntegrity(manifestPath: string): string {
  *
  * ## What the page contains, and why it is so short
  *
- * The Uplink's description, each widget's own registered description, DATA in
+ * The Uplink's description, each widget's own registered description, data in
  * tables, and the screenshots. Nothing else.
  *
  * A rationale paragraph per widget duplicates the description its registration
@@ -114,9 +114,9 @@ export function committedIntegrity(manifestPath: string): string {
 export type UplinkManifestJson = UplinkManifest;
 
 /**
- * The sha256 of the file the author DISTRIBUTES, and only when they name it.
+ * The sha256 of the file the author distributes, and only when they name it.
  *
- * Deliberately NO fallback to hashing `dist/index.js`, which is wrong twice
+ * Deliberately no fallback to hashing `dist/index.js`, which is wrong twice
  * over. That file is a `tsc` output, not the bundle anyone ships (the shipped
  * one is an esbuild bundle built elsewhere), so the hash would describe a file
  * no consumer ever fetches. And because it is a gitignored build artifact,
@@ -224,7 +224,7 @@ export function buildManifest(inputs: DocsInputs): {
  * look for before they overwrite one. It names both because either writes it.
  *
  * Both write the README from the registrations, so overwriting the one written
- * last time is the whole job. Overwriting a README a person WROTE is not,
+ * last time is the whole job. Overwriting a README a person wrote is not,
  * and the two are indistinguishable to a `writeFile`: an author who ran the
  * command in a package that already had a hand-written readme lost it, with no
  * warning and no recovery outside git. The marker is what tells them apart, so
@@ -337,7 +337,7 @@ function heroAssetsFor(
 }
 
 /**
- * The SCENES declared for one registration, as distinct from the ASSETS rendered
+ * The scenes declared for one registration, as distinct from the assets rendered
  * from them.
  *
  * <p>One scene becomes several assets (one per size), so counting assets answers
@@ -353,7 +353,7 @@ function scenesFor(inputs: DocsInputs, kind: string, id: string): Scene[] {
 /**
  * Scenes that assert nothing, which are pictures nobody has read.
  *
- * <p>A WARNING rather than a failure: a scene with no `paints` still renders and
+ * <p>A warning rather than a failure: a scene with no `paints` still renders and
  * still gets looked at. But `paints` is what catches an expected string that
  * does not appear, and a scene without any is one where nobody wrote down what
  * the render should say.</p>
@@ -401,7 +401,7 @@ function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
 }
 
 /**
- * Every augment in ONE table, with its images after it.
+ * Every augment in one table, with its images after it.
  *
  * As a table, each augment's facts are comparable at a glance, which is what
  * a reader is actually doing: seeing which host widgets this Uplink reaches
@@ -520,7 +520,7 @@ function modelTable(inputs: DocsInputs): string[] {
  * Absent entirely when there are none, which is the normal case and the one the
  * rules exist to make normal: the store holds every model to a reach no further
  * than its inputs and a band no wider than its inputs warrant, so a page with no
- * such table is saying its models take both defaults. A page that HAS one is
+ * such table is saying its models take both defaults. A page that has one is
  * where the reason gets read.
  */
 function inputRuleExemptions(inputs: DocsInputs): string[] {

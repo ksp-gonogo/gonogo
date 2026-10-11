@@ -31,6 +31,6 @@ export const GAMEPAD_ART_CREDITS: readonly GamepadArtCredit[] = [
   },
 ] as const;
 
-/** Disclosure text CC BY 3.0 requires alongside the credit above. */
+/** Disclosure text CC by 3.0 requires alongside the credit above. */
 export const GAMEPAD_ART_CHANGES_NOTE =
   "Recoloured to follow the active theme and re-encoded as inline styles (originally class-based); no other changes.";

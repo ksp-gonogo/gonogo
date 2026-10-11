@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Render the SAME Navball widget at four grid footprints and assemble them
+ * Render the same Navball widget at four grid footprints and assemble them
  * into one side-by-side PNG showing how a gonogo widget reflows and adapts to
  * its container: from a bare numeric readout at the tiniest size up to the
  * full GNC control surface (attitude dial + heading tape + throttle + SAS /
@@ -18,7 +18,7 @@
  * Output: `docs/assets/navball-adaptive-scaling.png`
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-navball-scaling`.
- * Requires ImageMagick (`convert` / `montage`) on PATH.
+ * Requires ImageMagick (`convert` / `montage`) on path.
  */
 import { execFile } from "node:child_process";
 import { mkdir, rm } from "node:fs/promises";

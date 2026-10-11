@@ -33,11 +33,11 @@ import { VantageRefusedContext } from "./vantageRefused";
  * streaming ingest had none).
  *
  * **Metric choice: frames/sec, not wire-bytes.** The mod's channel engine is
- * change-gated + keyframed, so BOTH byte volume and frame count are bursty on
+ * change-gated + keyframed, so both byte volume and frame count are bursty on
  * keyframe boundaries; neither is smooth. Frame count is picked because the
  * three regressions a budget must catch here, a runaway server tick rate, a
  * duplicated subscription (same topic fanned twice), and a reconnect storm
- * re-sending every keyframe: all show up directly as excess FRAMES, whereas a
+ * re-sending every keyframe: all show up directly as excess frames, whereas a
  * byte budget would also trip on a legitimately large one-off keyframe payload
  * (a big `system.bodies`/parts snapshot) that isn't a rate problem at all.
  *
@@ -89,7 +89,7 @@ const SITREP_BINARY_FRAME_BUDGET = new PerfBudget({
  * Payload bytes arriving on the binary lane, per second, summed across every
  * segment of every frame.
  *
- * A REAL byte count, unlike `StreamFrameInfo.byteLength` next door, which is a
+ * A real byte count, unlike `StreamFrameInfo.byteLength` next door, which is a
  * UTF-16 string length. Sized identically to the shipped `RADIO_BYTES_BUDGET`
  * and for its stated reason: loose enough to survive a codec that overshoots
  * its bitrate hint (firefox does, measured at 4338 B/s against a 24 kbit hint),
@@ -149,8 +149,8 @@ export interface SitrepTelemetryProviderProps {
 
 /**
  * Mounts a live `<TelemetryProvider>` fed by a `WebSocketTransport` to the mod
- * server: ON BY DEFAULT. The legacy `DataSource` is deleted, so this is the
- * app's ONLY telemetry source; there is no dev flag gating it and no fallback
+ * server: on by default. The legacy `DataSource` is deleted, so this is the
+ * app's only telemetry source; there is no dev flag gating it and no fallback
  * to fall back to.
  *
  * Host/port are runtime-configurable, not just build-time env vars: they

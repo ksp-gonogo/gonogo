@@ -11,7 +11,7 @@ namespace Sitrep.Host
     /// empty-<c>partId</c> fail-fast; it never touches KSP itself, only this
     /// interface. <c>Gonogo.KSP.KspScienceActuator</c> is the real
     /// implementation (part resolution + <c>ModuleScienceExperiment</c> /
-    /// <c>IScienceDataTransmitter</c> calls); a FAKE implementation
+    /// <c>IScienceDataTransmitter</c> calls); a fake implementation
     /// (<c>Sitrep.Host.Tests.FakeScienceActuator</c>) is what
     /// <see cref="ScienceCommandProvider"/>'s unit tests exercise instead:
     /// exactly the same KSP-free/real-impl split

@@ -13,7 +13,7 @@
  * the TS instance actually returned when it was reached, so ordering (e.g.
  * "query, then setScale, then query again") is preserved exactly.
  *
- * The `expected` fields are NEVER hand-authored: `runScenario` executes the
+ * The `expected` fields are never hand-authored: `runScenario` executes the
  * ops against a real `StubNetwork` and records what actually happened. Both
  * the TS reference (already covered by `stub-network.test.ts`) and the C#
  * port (`Sitrep.Core.Tests/StubNetworkGoldenFixtureTests.cs`) are checked

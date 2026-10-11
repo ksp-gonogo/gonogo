@@ -116,7 +116,7 @@ export interface DeltaVBudget {
    * Vessel-total ΔV per situation, straight off `dv.summary`: the game's own
    * accumulator, never a client-side sum of {@link stages}.
    *
-   * `null` means no usable figure, which is NOT `0`: a spent craft really has
+   * `null` means no usable figure, which is not `0`: a spent craft really has
    * 0 m/s and that is a statement about the vessel, while `null` is a statement
    * about the link. A caller must branch, and the branch is where "we do not
    * know" gets said out loud instead of being spelled `0`.
@@ -134,7 +134,7 @@ export interface DeltaVBudget {
    * Per-stage rows in wire order (high stage number first, matching the
    * stack-top-down render order).
    *
-   * Empty is NOT a zero-ΔV vessel: `dv.stages` is null-not-empty when the stock
+   * Empty is not a zero-ΔV vessel: `dv.stages` is null-not-empty when the stock
    * sim has nothing (`StageDeltaVViewProvider.BuildStages`), so an array that
    * arrived with no entries still means "no figure to break down".
    */
@@ -155,8 +155,8 @@ export interface DeltaVBudget {
  * only it, read by the contract's own names (`dvActual`, `twrActual`,
  * `thrustAsl`, ...).
  *
- * Deliberately NO alias set (`deltaVActual`, `TWRActual`, ...). A fixture that
- * spells a field the mod never sends should read as ABSENT, which is the only
+ * Deliberately no alias set (`deltaVActual`, `TWRActual`, ...). A fixture that
+ * spells a field the mod never sends should read as absent, which is the only
  * reason an e2e spelling one another way is ever found.
  */
 type StageWireEntry = Record<string, unknown>;

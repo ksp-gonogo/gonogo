@@ -26,7 +26,7 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *     a status badge rendered as ordinary muted text with no signal at all;
  *   - `--color-status-nogo-on-bg` added to the theme package while the app
  *     read a second copy that lacked it, so the badge it was added to fix
- *     got WORSE, 2.04:1 against the 2.61:1 it was correcting;
+ *     got worse, 2.04:1 against the 2.61:1 it was correcting;
  *   - `--color-border`, `--color-text-secondary`, `--color-surface-elevated`
  *     and `--color-danger-fg`/`--color-warning-fg`, none of which have ever
  *     existed, leaving an invisible button border, unstyled secondary text
@@ -35,7 +35,7 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * Two of those three were found by a human opening a PNG, which is not a
  * gate. This is.
  *
- * A reference WITH a fallback (`var(--example, 8px)`) is deliberately not
+ * A reference with a fallback (`var(--example, 8px)`) is deliberately not
  * flagged: the fallback is what makes it safe. A fallback on a name tokens.css
  * declares is dead instead, and the spacing gate bans it.
  */
@@ -49,7 +49,7 @@ const TOKEN_SOURCES = ["packages/theme/src/tokens.css"];
 /** `--foo:` in a stylesheet, and `"--foo":` in a JS style object. */
 const DECLARATION_RE = /(--[a-z0-9-]{2,})["']?\s*:/g;
 
-/** A `var(--foo)` with NO comma, i.e. no fallback to save it. */
+/** A `var(--foo)` with no comma, i.e. no fallback to save it. */
 const BARE_REFERENCE_RE = /var\(\s*(--[a-z0-9-]{2,})\s*\)/g;
 
 function matches(text: string, re: RegExp): string[] {
@@ -248,7 +248,7 @@ describe("design-system: every token reference resolves", () => {
 
   /**
    * The other half of the same guard, and the half that was missing. The check
-   * above proves the DECLARATION scan works; nothing proved the REFERENCE scan
+   * above proves the declaration scan works; nothing proved the reference scan
    * does, and `dangling` is empty both when every reference resolves and when
    * `BARE_REFERENCE_RE` has stopped matching. Those read identically, and the
    * failure this file exists to catch is silent in the browser too: an

@@ -15,7 +15,7 @@ import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
 import { deriveGlyph, PHASE_PROGRESS } from "./toInFlightListItems";
 
-/** Which ONE of the two delay readings a console draws. */
+/** Which one of the two delay readings a console draws. */
 export type SignalDelayPresentation = "badge" | "strip" | "none";
 
 export interface SignalDelayPresentationInput {
@@ -26,28 +26,28 @@ export interface SignalDelayPresentationInput {
   oneWaySeconds: number | null;
   /**
    * Whether this console can put something in the strip. A read-only viewer
-   * gets NEITHER reading at a long delay: no queue, and no cost it ever pays.
+   * gets neither reading at a long delay: no queue, and no cost it ever pays.
    */
   canQueue: boolean;
   /**
-   * Force the badge whatever the magnitude, for a terminal in CHARACTER mode:
+   * Force the badge whatever the magnitude, for a terminal in character mode:
    * every keystroke goes on its own, so the strip has nothing to list.
    */
   alwaysBadge?: boolean;
 }
 
 /**
- * Which ONE of the two delay readings a console shows, given how far away the
- * other end is:
+ * Which one of the two delay readings a console shows, given the one-way delay
+ * between the command centre and its vessel or device:
  *
- *   - a BADGE is a standing readout of the separation, useful before anything
+ *   - a badge is a standing readout of the delay, useful before anything
  *     has been sent
- *   - a STRIP (`InFlightList`) is one row per thing actually crossing, useful
+ *   - a strip ({@link InFlightList}) is one row per command in flight, useful
  *     once something is out
  *
- * They are MUTUALLY EXCLUSIVE: drawn together they say the same number twice
+ * The two are mutually exclusive: drawn together they say the same number twice
  * in two shapes. The boundary is `currentMode`'s, the same one the engine uses
- * to stage a dispatch rather than send it live.
+ * to stage a dispatch rather than send it live. Used by {@link Console}.
  */
 export function signalDelayPresentation({
   oneWaySeconds,
@@ -85,7 +85,7 @@ export interface InFlightListItem {
    */
   progress?: number;
   /**
-   * The command's OWN terse glyph ("PRO", "RET", "WARP"), shown in the
+   * The command's own terse glyph ("PRO", "RET", "WARP"), shown in the
    * `variant="expanded"` queue square. Phase is conveyed by colour, never by
    * the glyph. Defaults to an abbreviation of `label`.
    */
@@ -196,8 +196,8 @@ const FULL_MIN_WIDTH = 180;
 const COMPACT_MIN_WIDTH = 96;
 
 /**
- * The countdown a strip SPEAKS, for the accessible name and a row's `title`.
- * Clamped at zero: a strip shows time REMAINING, never a negative duration.
+ * The countdown a strip speaks, for the accessible name and a row's `title`.
+ * Clamped at zero: a strip shows time remaining, never a negative duration.
  */
 function clampedCountdown(seconds: number): string {
   return writeQuantity(value("s", Math.max(0, seconds)));
@@ -218,8 +218,9 @@ const RESYNC_THRESHOLD_SECONDS = 1;
 /**
  * A local-ticking countdown: seeds from `etaSeconds`, resyncs only on a real
  * jump, and otherwise decrements once per second on its own interval, so the
- * number stays smooth whatever the caller's cadence. Reads only the value
- * passed in.
+ * number stays smooth whatever the caller's cadence. Useful for showing the
+ * operator the seconds left before a command arrives. Used by
+ * {@link InFlightList}. Reads only the value passed in.
  */
 export function useCountdown(etaSeconds: number | null): number | null {
   const [value, setValue] = useState(etaSeconds);
@@ -251,8 +252,10 @@ export function useCountdown(etaSeconds: number | null): number | null {
 
 /**
  * A list of in-flight commands: rows with per-entry countdowns and phase
- * styling. Renders nothing for an empty set. It has no data hooks; build its
- * items from `useCommand().inFlight` with {@link toInFlightListItems}.
+ * styling. Useful for showing the operator which commands have left and when
+ * each arrives. Used by {@link CommandDelay} and {@link Console}. Renders
+ * nothing for an empty set. It has no data hooks; build its items from
+ * `useCommand().inFlight` with {@link toInFlightListItems}.
  *
  * @category CommandDelay
  */

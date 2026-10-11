@@ -17,7 +17,7 @@ import { WebSocketTransport } from "./websocket-transport";
  * `__fixtures__/command-refusal.wire.json`, asserting the committed copy still
  * matches.
  *
- * That fixture is the JOINT. Two green halves meeting at an assumption is what
+ * That fixture is the joint. Two green halves meeting at an assumption is what
  * let "commands just vanish" sit in the ledger for a month: engine tests proved
  * the drop, a client test proved silence becomes `lost`, and nothing asserted
  * the join. Here the bytes the engine actually emits are the bytes this test

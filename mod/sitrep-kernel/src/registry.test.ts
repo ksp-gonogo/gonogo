@@ -233,7 +233,7 @@ describe("Kernel", () => {
 
   /**
    * A winning provider can still reach the vanilla it displaced. `query` cannot
-   * serve this: it answers with whatever is ACTIVE, so a winner asking for its
+   * serve this: it answers with whatever is active, so a winner asking for its
    * own capability gets nothing during activation and itself afterwards. Without
    * a third answer the only way to use the displaced implementation was to ship a
    * second copy of it inside the provider.

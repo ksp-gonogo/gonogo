@@ -9,7 +9,7 @@ namespace Sitrep.Core.Tests
     /// A provider that wins an election can still reach the vanilla it displaced.
     ///
     /// <para>It could not before, and the gap was invisible from the outside:
-    /// <c>ctx.Query</c> answers with whatever is ACTIVE, so a winner asking for its
+    /// <c>ctx.Query</c> answers with whatever is active, so a winner asking for its
     /// own capability during activation found nothing (its instances are not
     /// published until its factory returns) and afterwards found itself. There was
     /// no third answer, and the only way to get one was to ship a second copy of

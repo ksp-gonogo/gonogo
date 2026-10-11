@@ -32,7 +32,7 @@ function tankOf(
  * The case as it reaches the app: a reading of the figure, with whatever band
  * a model would offer about it.
  *
- * The band the sheet DESCRIBES is a pair of fractions, because that is the axis
+ * The band the sheet describes is a pair of fractions, because that is the axis
  * a reader judges it on. Which unit it has to arrive in is the primitive's
  * business, so it is minted here at the last moment: `ratio` for a fraction,
  * the tank's own unit for an amount.

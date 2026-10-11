@@ -11,12 +11,12 @@ const MOD_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
  * A command declared in C# and never tagged `[SitrepCommand]` is invisible to
  * the generated map, and invisible is exactly the state this whole registry
  * exists to end: it reads as "that command does not exist" to an author, with
- * nothing failing anywhere. So the map is judged against a SECOND instrument
+ * nothing failing anywhere. So the map is judged against a second instrument
  * that does not share its mechanism, a textual scan of the C# declarations,
  * rather than against itself.
  *
  * The scan is deliberately narrow and the narrowing is load-bearing. Requiring
- * the const's name to END with `Command` rather than merely contain one drops
+ * the const's name to end with `Command` rather than merely contain one drops
  * `CommandCentreTopic`, which is a Topic and matched the looser form; that one
  * false positive was 1 of 109 and would have failed this test forever on a
  * command that does not exist.
@@ -61,7 +61,7 @@ function declaredCommands(): Set<string> {
 
 /**
  * An id in the generated map whose args type lives in an Uplink's own contract
- * slice, and so is NOT in this SDK's `COMMAND_IDS`. Read off each slice's own
+ * slice, and so is not in this SDK's `COMMAND_IDS`. Read off each slice's own
  * generated map by the same parse the docs generator uses, so the two agree
  * about what an Uplink declares.
  */
@@ -108,7 +108,7 @@ describe("command map to C# sync", () => {
 
   /**
    * The direction that catches the failure this registry was built for. The
-   * other way round only catches a stale map entry; THIS one catches a command
+   * other way round only catches a stale map entry; this one catches a command
    * that exists, dispatches, and cannot be found.
    */
   it("every C# command const appears in a generated command map", () => {
@@ -123,7 +123,7 @@ describe("command map to C# sync", () => {
   /**
    * The scan finding nothing reports a clean pass, so its reach is asserted.
    *
-   * Asserted against CORE commands by name rather than against a count. A count
+   * Asserted against core commands by name rather than against a count. A count
    * is a floor on how many Uplinks happen to live in this repo today, so every
    * Uplink that departs breaks it: one Uplink leaving took the total from over 90 to
    * 77 and turned staging red for a scan that was working perfectly. Four more
@@ -134,7 +134,7 @@ describe("command map to C# sync", () => {
    * take away, so the assertion says what it means: the scan can still see the
    * C# it is scanning. A dead regex or a moved source root fails it.
    *
-   * Pick sentinels from `Sitrep.Contract` ONLY. A command declared in a
+   * Pick sentinels from `Sitrep.Contract` only. A command declared in a
    * departing Uplink's own contract slice was in this list for one draft, and
    * would have rebuilt the exact fragility this change exists to remove.
    */

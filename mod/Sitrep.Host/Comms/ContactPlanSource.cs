@@ -98,7 +98,7 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// For each object the game's tracking can place, by node id, the
-        /// straight-line light-time from it to each command centre, in seconds
+        /// straight-line signal delay from it to each command centre, in seconds
         /// at the speed the game is set to model, by centre id. Null when
         /// nothing can be tracked by sight at all, which leaves every craft
         /// known by its radio alone.
@@ -141,16 +141,16 @@ namespace Sitrep.Host.Comms
         /// <summary>The home centre's id, or null while there is none.</summary>
         string? HomeCentre();
 
-        /// <summary>What a real light time is multiplied by to get the delay the game is set to model: see <see cref="DeliveryInputs.LightFactor"/>.</summary>
+        /// <summary>What a real signal delay is multiplied by to get the delay the game is set to model: see <see cref="DeliveryInputs.LightFactor"/>.</summary>
         double LightFactor();
 
         /// <summary>Whether the save models a comms network at all: see <see cref="DeliveryInputs.NetworkModelled"/>.</summary>
         bool NetworkModelled();
 
-        /// <summary>The light-time of the active craft's control route to the home centre as the game has it now, in seconds, or null while it has no route.</summary>
+        /// <summary>The signal delay of the active craft's control route to the home centre as the game has it now, in seconds, or null while it has no route.</summary>
         double? ControlRouteSeconds();
 
-        /// <summary>The light-time of the direct radio link between two nodes as the game has it now, in seconds, or null when they have none.</summary>
+        /// <summary>The signal delay of the direct radio link between two nodes as the game has it now, in seconds, or null when they have none.</summary>
         double? LiveLinkSeconds(string from, string to);
 
         /// <summary>How a route may use the plan's retarget windows, or null while no comms backend can turn a dish.</summary>
@@ -166,13 +166,13 @@ namespace Sitrep.Host.Comms
     /// <para>A centre's plan is made only of what that centre has heard. The
     /// main thread reads each craft's <see cref="CraftState"/> when it changes
     /// and it is recorded on the craft's own node; <see cref="CentreHearing"/>
-    /// receives it at each centre one light-time later; and
+    /// receives it at each centre one signal delay later; and
     /// <see cref="ReckonedPlan"/> reckons every craft a centre has heard of
     /// forward from the orbit it last reported. So nothing a craft does moves
     /// a centre's plan until the news has reached that centre.</para>
     ///
     /// <para>Each plan and each centre's routes are published to that centre
-    /// alone, zero seconds after they are made: the light-time was spent by
+    /// alone, zero seconds after they are made: the signal delay was spent by
     /// the craft states on their way in. No other centre is ever sent them,
     /// and they are on no craft's node, so a centre keeps planning while the
     /// active craft is out of contact.</para>
@@ -623,7 +623,7 @@ namespace Sitrep.Host.Comms
             host.AddSampledSource(LookOnMain, PlanOnCourier);
         }
 
-        /// <summary>MAIN THREAD: reads the craft whose state is out of date, the ground stations, and who is planning.</summary>
+        /// <summary>Main thread: reads the craft whose state is out of date, the ground stations, and who is planning.</summary>
         internal object? LookOnMain(KspSnapshot? snapshot)
         {
             if (snapshot == null || _host == null || _craftHost == null)
@@ -730,7 +730,7 @@ namespace Sitrep.Host.Comms
 
         private float _slowLookReportedAt = float.NegativeInfinity;
 
-        /// <summary>MAIN THREAD: says how a slow look divided between reading the scene and reading craft links, at most once per <see cref="SlowLookReportIntervalSeconds"/>.</summary>
+        /// <summary>Main thread: says how a slow look divided between reading the scene and reading craft links, at most once per <see cref="SlowLookReportIntervalSeconds"/>.</summary>
         private void ReportSlowLook(float wall, long sceneTicks, long craftTicks, int craftRead, int nodes)
         {
             var frequency = (double)System.Diagnostics.Stopwatch.Frequency;
@@ -745,7 +745,7 @@ namespace Sitrep.Host.Comms
                 + (craftTicks * 1000.0 / frequency).ToString("F0", culture) + " ms");
         }
 
-        /// <summary>MAIN THREAD: whether the log already says the game could not be read.</summary>
+        /// <summary>Main thread: whether the log already says the game could not be read.</summary>
         private bool _noGameLogged;
 
         /// <summary>
@@ -776,7 +776,7 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// COURIER THREAD: records what was read, listens at every centre,
+        /// Courier thread: records what was read, listens at every centre,
         /// publishes the round of plans that finished, and starts the next for
         /// each centre whose plan is out of date.
         /// </summary>
@@ -994,7 +994,7 @@ namespace Sitrep.Host.Comms
         private bool _unreadSinceReset;
 
         /// <summary>
-        /// COURIER THREAD: finishes a load into a scene whose vessel list cannot
+        /// Courier thread: finishes a load into a scene whose vessel list cannot
         /// be read. Each centre has been given back what the loaded game
         /// carried, and is told its roster and its craft from that, as true as
         /// the save. No craft is recorded or missed, no radio is said, and no
@@ -1108,7 +1108,7 @@ namespace Sitrep.Host.Comms
         /// Sends each centre the centres it knows of, which of them have left,
         /// how far apart they are and how far each is from the active craft.
         /// The roster and what has left it go when they change, the two sets
-        /// of light-times once a second, and all four at once where a session
+        /// of signal delays once a second, and all four at once where a session
         /// has just sat down. What has left is remembered whether or not
         /// anyone is watching, so a centre's last time on a roster does not
         /// depend on who was subscribed when it went.
@@ -1214,7 +1214,7 @@ namespace Sitrep.Host.Comms
                 : System.Threading.Volatile.Read(ref _heardNow);
         }
 
-        /// <summary>MAIN THREAD: each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists no craft at all.</summary>
+        /// <summary>Main thread: each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists no craft at all.</summary>
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? RosterOf(KspSnapshot snapshot)
         {
             if (!(SystemViewProvider.BuildSystemVessels(snapshot) is IDictionary<string, object?> built)
@@ -1513,7 +1513,7 @@ namespace Sitrep.Host.Comms
         /// names different nodes, and to a session that has just sat down.
         ///
         /// <para>A centre the game routes the craft's samples to is sent that
-        /// route and its light-time, the very hops the delay ledger times the
+        /// route and its signal delay, the very hops the delay ledger times the
         /// samples by, so the figure is the delay of what arrives. Any other
         /// centre is sent the path its own plan has.</para>
         ///

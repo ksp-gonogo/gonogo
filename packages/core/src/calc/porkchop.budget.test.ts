@@ -8,13 +8,13 @@ import {
 /**
  * The instrument for a bug a test cannot express.
  *
- * A 32x32 porkchop is 1,024 Lambert solves and measures ~7ms. That FITS in a 16.7ms
+ * A 32x32 porkchop is 1,024 Lambert solves and measures ~7ms. That fits in a 16.7ms
  * frame, so rebuilding it every frame drops nothing and fails nothing: it just burns
  * about 42% of a core, continuously, on the main thread, for an answer that is identical
  * frame to frame. Nothing in a correctness suite can see that.
  *
  * So the budget is the test. These two cases pin what it is for: it must fire on a
- * frame-rate rebuild, and it must NOT fire on the interaction rate a real operator
+ * frame-rate rebuild, and it must not fire on the interaction rate a real operator
  * produces. A budget that only ever passes is not protecting anything.
  */
 

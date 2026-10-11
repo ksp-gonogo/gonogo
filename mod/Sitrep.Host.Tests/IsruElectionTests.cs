@@ -6,20 +6,20 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The ISRU-backend election, driven through the REAL <see cref="Kernel"/>:
+    /// The ISRU-backend election, driven through the real <see cref="Kernel"/>:
     /// the same cases <see cref="ScienceElectionTests"/> covers, because ISRU is
     /// the same kind of capability. Provider absent ⇒ the stock reader; provider
     /// present ⇒ the provider wins; and the elected instance is genuinely
     /// queryable as an <see cref="IIsruBackend"/>.
     ///
     /// <para>The adversarial case is the one only a two-pass registration gets
-    /// right: a provider uplink discovered BEFORE the capability owner. On a
+    /// right: a provider uplink discovered before the capability owner. On a
     /// stock-only dev box that ordering never bites, and with a modelling mod
     /// installed it would silently hand the channels back to stock.</para>
     ///
     /// <para>The vanilla factory is a fake here rather than
     /// <c>Gonogo.KSP.StockIsruBackend</c>: that reader walks live PartModules, and
-    /// this assembly has no KSP. Passing the factory IN is exactly what makes that
+    /// this assembly has no KSP. Passing the factory in is exactly what makes that
     /// possible.</para>
     /// </summary>
     public class IsruElectionTests
@@ -99,7 +99,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The adversarial ordering: the PROVIDER uplink is discovered BEFORE the
+        /// The adversarial ordering: the provider uplink is discovered before the
         /// capability-owning uplink. Single-pass registration would run the
         /// provider's Register while the "isru" capability did not yet exist, the
         /// registration would throw, the provider would be dropped, and stock would

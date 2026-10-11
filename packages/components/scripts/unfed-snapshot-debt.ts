@@ -1,5 +1,5 @@
 /**
- * Known un-fed snapshot debt. **This list may only ever SHRINK.**
+ * Known un-fed snapshot debt. **This list may only ever shrink.**
  *
  * Each entry is a snapshot scenario whose committed baseline contains none of the
  * data its fixture emits: the render is the widget's empty state, whatever the
@@ -10,9 +10,9 @@
  *
  * `unfed-snapshot-gate.ts` holds this list from both sides:
  *
- *  - a scenario that is un-fed and NOT listed here fails immediately, which is a
+ *  - a scenario that is un-fed and not listed here fails immediately, which is a
  *    new regression and the reason the gate exists
- *  - a scenario listed here that has become FED also fails, so fixing a widget
+ *  - a scenario listed here that has become fed also fails, so fixing a widget
  *    forces its entries out rather than leaving a permission behind
  *
  * The count is the number of size modes for that scenario, so adding a mode to a
@@ -21,7 +21,7 @@
  * ## Why these are here
  *
  * Both widgets share one cause: a settle-check that waits for a stream-status badge
- * to CLEAR. That badge is the dashboard's, derived by the host from
+ * to clear. That badge is the dashboard's, derived by the host from
  * `dataRequirements`, so under a bare widget harness it never renders at all and the
  * wait is satisfied on the first paint, before any emit. Both then snapshot the
  * un-emitted state.
@@ -32,11 +32,11 @@
  *   textual detector missed this one entirely, because its empty state is
  *   punctuation rather than a sentence
  *
- * Do NOT add an entry to make the gate green. An entry is an admission that a
+ * Do not add an entry to make the gate green. An entry is an admission that a
  * committed baseline is wrong, and the only correct way to remove one is to fix the
  * harness so the render contains its data.
  *
- * ## The list is EMPTY
+ * ## The list is empty
  *
  * All six AtmosphereProfile entries came out when its spec stopped hand-building
  * a stream and started reading the fixture's own `_stream` block, which every one

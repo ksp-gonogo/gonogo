@@ -98,7 +98,7 @@ export interface GoNoGoMainSceneProps {
 /**
  * The main screen's board, over a vote aggregator fed by stations that have
  * joined and voted. Every vote lands before the widget mounts, so a board
- * whose stations are all GO is already counting down when it first draws.
+ * whose stations are all `GO` is already counting down when it first draws.
  */
 export function GoNoGoMainScene(props: GoNoGoMainSceneProps) {
   const { stations, launched = false, abortBy, w, h } = props;
@@ -207,7 +207,7 @@ class ScenePeerClient implements PeerClient {
 }
 
 export interface GoNoGoStationSceneProps {
-  /** Past liftoff, so the button has become ABORT. */
+  /** Past liftoff, so the button has become `ABORT`. */
   launched?: boolean;
   /** Seconds left on a countdown the host has started. */
   countdownFrom?: number;

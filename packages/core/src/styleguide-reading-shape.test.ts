@@ -23,7 +23,7 @@ import { scanScope } from "./scanScope";
  * where an `as` cast silenced it even harder: someone had asserted the old type.
  *
  * So this scans for the shape rather than trusting the types. It is deliberately a
- * DIFFERENT KIND of check from the compiler and from
+ * different kind of check from the compiler and from
  * `styleguide-reading-gates.test.ts` (which watches for a `Reading` used as a
  * truthiness gate): three instruments, three failure modes, and the day these were
  * written each of them caught something the other two could not see.
@@ -69,7 +69,7 @@ function trackedSourceFiles(): string[] {
  * `deriveReading` hands back a reading too, with the model carried through.
  *
  * `readingOf` joined the list when the scan was widened to see the bound hook, and it
- * is a narrowing of a different kind from the rest: it maps the value INSIDE a
+ * is a narrowing of a different kind from the rest: it maps the value inside a
  * reading and hands back a reading, so the currency information travels with it
  * instead of being discarded at the call. That is exactly what the receivers this
  * scan protects need, and a site using it was never at risk.
@@ -77,7 +77,7 @@ function trackedSourceFiles(): string[] {
  * `observedValue` and `hasAnswered` are the two exported from the SDK; the rest are
  * per-site local helpers matched by name. Both were shared for the same reason, which
  * is the reason this list should be read as a live judgement rather than a fixed set:
- * a narrowing written out by hand at many sites is a MISSING EXPORT, and it stays
+ * a narrowing written out by hand at many sites is a missing export, and it stays
  * copied for as long as the SDK withholds it. `hasAnswered` answers the presence-gate
  * question ("has the producer spoken at all") that five sites were answering by hand
  * as `state !== "pending"`, each reading the `unowned` arm as the producer having
@@ -88,14 +88,14 @@ const ACCESSORS =
   /observedValue|stillTrue|dateable|withoutReckoning|readingAge|hasAnswered|readingOf|deriveReading/;
 
 /**
- * A telemetry read bound to a variable, in EITHER of the two spellings the tree uses.
+ * A telemetry read bound to a variable, in either of the two spellings the tree uses.
  *
  * The optional `<identifier>.` prefix is the whole point. A widget in the built-in
  * library declares its topics through `defineTopicManifest` and reads through the
  * bound hook it yields, `const x = topics.useTelemetry("vessel.orbit")`, and that is
  * the form CLAUDE.md prescribes precisely because declaration and read cannot drift
  * apart. Matching only the free function made this scan blind to the recommended
- * shape: 30 of the 115 reads in the tree, and a share that GREW every time a widget
+ * shape: 30 of the 115 reads in the tree, and a share that grew every time a widget
  * adopted the house style. A gate whose coverage shrinks as the codebase improves is
  * worse than no gate, because its green is read as evidence.
  *
@@ -159,7 +159,7 @@ function localNarrowers(text: string): string[] {
 }
 
 /**
- * The same narrowing, IMPORTED rather than declared beside its callers.
+ * The same narrowing, imported rather than declared beside its callers.
  *
  * A widget with its own rule writes a helper; several widgets sharing one rule
  * import it, and the parameter type is what makes either safe. Reading only the
@@ -168,7 +168,7 @@ function localNarrowers(text: string): string[] {
  * purely for living in `shared/current.ts`. The alternative on offer was 22
  * copies of one helper, which is the thing a gate exists to prevent.
  *
- * <b>Resolved to a DECLARATION, never matched by name.</b> A name list would
+ * <b>Resolved to a declaration, never matched by name.</b> A name list would
  * bless every future `current` regardless of what it takes, which is the hole
  * this is supposed to close rather than widen: the import is followed to its
  * file, and the helper counts only if that file declares it taking a reading.
@@ -291,11 +291,11 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
  * sites at once. Each asked "has the producer spoken at all", each reasoned that
  * `pending` was the only answer meaning nothing is there, and each was right until
  * the `unowned` arm existed. From that moment the same expression reads the
- * STRONGEST evidence of no producer as the producer having answered, so an
+ * strongest evidence of no producer as the producer having answered, so an
  * augment's UI renders on an install without its Uplink. Nothing in `tsc` moves,
  * because a negative test against one arm stays legal however many arms there are.
  *
- * `hasAnswered` is the sanctioned form and the whole point of it is that the NEXT
+ * `hasAnswered` is the sanctioned form and the whole point of it is that the next
  * arm gets considered in one place instead of missed in five.
  *
  * Scoped to variables bound from a telemetry read, so it cannot fire on the alarm
@@ -335,7 +335,7 @@ function pendingOnlyGates(sources: ReadonlyMap<string, string>): Suspect[] {
 /**
  * A payload field taken straight off a `useStream(...)` call.
  *
- * A stream read answers with a reading, and a reading answers ANY property it does
+ * A stream read answers with a reading, and a reading answers any property it does
  * not own with that field's own reading, so `useStream<VesselIdentity>(t)?.vesselId`
  * compiles and hands over a `Reading<string>` where a string was meant. Where the
  * receiver is typed the compiler says so; where it takes `unknown`, compares with
@@ -516,11 +516,11 @@ describe("styleguide: a Reading is never handed on whole", () => {
   });
 
   /**
-   * The widening for a SHARED narrower, with the plant that stops it becoming a
+   * The widening for a shared narrower, with the plant that stops it becoming a
    * blanket pass.
    *
    * Three files, one scan. The first imports a helper whose own file declares it
-   * taking a reading, and is clean. The second imports a helper of the same NAME
+   * taking a reading, and is clean. The second imports a helper of the same name
    * from a file that declares it taking `unknown`, and must still be reported:
    * that is the hazard, and a gate that trusted the name would wave it through.
    * The third hands the read to a helper the tree never declares at all.
@@ -687,7 +687,7 @@ describe("styleguide: useReading is gone", () => {
    * widget a choice about whether to confront currency, which is the thing the
    * migration removes, so it was deleted rather than migrated to.
    *
-   * Asserted as BOTH "no references" and "no file", because either alone can pass
+   * Asserted as both "no references" and "no file", because either alone can pass
    * for the wrong reason: a deleted file with a lingering import is a broken build,
    * and a referenced-nowhere file is dead code waiting to be rediscovered.
    */

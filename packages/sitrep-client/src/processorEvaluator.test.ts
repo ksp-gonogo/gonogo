@@ -17,7 +17,7 @@ import { ViewClock } from "./view-clock";
  *
  * A processor whose deps are readings answers with a reading of its own, so
  * what `compute` returned sits one level in. These assertions are about what
- * the derivation SAW, which is a different question from how current the
+ * the derivation saw, which is a different question from how current the
  * derivation is, so the value is taken off whichever arm carries one.
  */
 function derived<Result>(id: string): Result | undefined {
@@ -389,13 +389,13 @@ describe("processorEvaluator", () => {
 // ---------------------------------------------------------------------------
 
 /**
- * A unit-carrying wrapper in exactly `Value`'s style, and deliberately NOT a
+ * A unit-carrying wrapper in exactly `Value`'s style, and deliberately not a
  * `Value`: an `Object.create` over a shared, methods-only prototype, which is
  * the shape any Uplink writing its own quantity type will produce.
  *
  * It exists to be the case a name-based fix fails. The guard's second version
  * was repaired by naming `Value`, so `Value` proves nothing about the third
- * one; this proves the recognition is on the SHAPE. Nested inside an array and
+ * one; this proves the recognition is on the shape. Nested inside an array and
  * an object, because that is where a wrapper actually appears in a result.
  */
 const bespokePrototype = {

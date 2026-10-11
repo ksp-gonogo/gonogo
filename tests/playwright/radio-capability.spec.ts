@@ -25,7 +25,7 @@ import {
  *
  * ## Why the secure-context test is first
  *
- * The very first hand run of this probe was a FALSE NEGATIVE. On
+ * The very first hand run of this probe was a false negative. On
  * `about:blank` chromium and firefox both report `AudioEncoder` absent, so
  * a presence-only check calls them unsupported: the two engines whose
  * codec is in fact fine. WebKit gets it wrong the other way, exposing the

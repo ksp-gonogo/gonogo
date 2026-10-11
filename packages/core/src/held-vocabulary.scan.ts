@@ -5,11 +5,11 @@ import { trackedSources } from "./else-if.scan";
 
 /**
  * The scan behind `styleguide-held-vocabulary.test.ts`: a value that stopped
- * updating is HELD, and it is spelled in one place.
+ * updating is `HELD`, and it is spelled in one place.
  *
  * Two findings:
  *
- * - a `label`: an operator word for the condition (HELD or STALE) written in a
+ * - a `label`: an operator word for the condition (`HELD` or stale) written in a
  *   string, a template or JSX text anywhere but the kit's own mapping, in
  *   product source. A widget draws the grade through that mapping, so the word
  *   cannot drift from the badge on the panel it sits in
@@ -148,7 +148,7 @@ export function scanHeldVocabulary(
 
 /**
  * The gate's verdict on one scan, or `null` when it passes. A scan that read
- * nothing fails as BLIND rather than passing.
+ * nothing fails as `BLIND` rather than passing.
  */
 export function heldVocabularyVerdict(scan: HeldVocabularyScan): string | null {
   if (scan.read.length === 0) {

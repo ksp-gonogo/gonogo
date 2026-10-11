@@ -15,7 +15,7 @@ import { scanTestFiles } from "../scan-tests.mjs";
  *
  * What a key covers is asked of turbo itself (`--dry=json`), never modelled: a
  * task hashes its own `inputs`, and through `dependsOn` the inputs of every
- * build task it transitively waits on. What a test READS is found from the
+ * build task it transitively waits on. What a test reads is found from the
  * tree:
  *
  * 1. core's scans walk and `git grep` the whole repo, so their key covers

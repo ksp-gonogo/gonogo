@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 /**
  * Base-revision resolution shared by every shrink-only ratchet in this repo.
  *
- * A shrink-only ratchet grades a committed debt list by reading the SAME file at
+ * A shrink-only ratchet grades a committed debt list by reading the same file at
  * a base revision and diffing the two. If that revision cannot be read the diff
  * never happens, and until this module existed each of the five gates caught the
  * git failure and returned early, so the comparison not happening was
@@ -15,14 +15,14 @@ import { fileURLToPath } from "node:url";
  *
  * Two rules follow, and both are enforced here rather than at each call site:
  *
- * - a base that cannot be read is an ERROR, never a skip
- * - a base that IS the commit under test is an error too, because a file
+ * - a base that cannot be read is an error, never a skip
+ * - a base that is the commit under test is an error too, because a file
  *   compared against itself can only ever report "unchanged", and a gate
  *   incapable of failing must not report success
  *
  * The second rule is the one a push to `staging` walks into: `origin/staging` on
  * such a run is the pushed commit, so the obvious-looking base is the subject.
- * The real base there is the branch tip BEFORE the push, which CI supplies
+ * The real base there is the branch tip before the push, which CI supplies
  * through `RATCHET_BASE_REF` (see `scripts/resolve-ratchet-base-ref.sh`).
  *
  * Excluded from the package build in `tsconfig.build.json`: this is test support
@@ -251,7 +251,7 @@ export function baseStrings(
     : undefined;
 }
 
-/** A per-key COUNT map, the shape most debt lists have. */
+/** A per-key count map, the shape most debt lists have. */
 export function baseCounts(
   lists: BaseExports | undefined,
   name: string,
@@ -303,7 +303,7 @@ export function baseMapOf<Entry>(
 }
 
 /**
- * An export that is an object of NUMBER fields, naming which fields the caller
+ * An export that is an object of number fields, naming which fields the caller
  * goes on to read. `undefined` when any of them is missing or is not a number,
  * for the same reason `baseMapOf` refuses a partial map.
  */

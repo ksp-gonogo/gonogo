@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
  * `JsonWriter.AppendObject` walks every pair of a payload dictionary and calls
  * `AppendValue` unconditionally, and `AppendValue`'s `case null:` writes the
  * four bytes `null`. So a reading nobody could take arrives as `"key":null`
- * with the key KEPT, and a published type of `T | undefined` makes the correct
+ * with the key kept, and a published type of `T | undefined` makes the correct
  * guard a compile error while the substitution compiles clean:
  *
  *     if (g.state === null)   // TS2367 against `state?: boolean`
@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
  *
  * The file is generated, so nothing here is fixed by editing it: the rule lives
  * in `RtConfig.ApplyUnitValueTypes` (see `NullUnionApplies`). What this guards
- * is the REGENERATION. A knob nudged, a new Uplink slice registered through a
+ * is the regeneration. A knob nudged, a new Uplink slice registered through a
  * path that skips the pass, or a Reinforced.Typings upgrade that resolves types
  * differently would all silently take the unions back out, and a generated file
  * is exactly where nobody looks.
@@ -27,15 +27,15 @@ import { describe, expect, it } from "vitest";
  *
  * A count floor passes when one field loses its union and another gains one,
  * and it needs re-seeding every time a payload grows a field. The expectation
- * here is DERIVED from the file instead: every optional member must carry the
- * union unless the wire OMITS its key, so the check states the rule rather than
+ * here is derived from the file instead: every optional member must carry the
+ * union unless the wire omits its key, so the check states the rule rather than
  * last week's total.
  *
  * The rule holds for a reference type exactly as for a value type, because
  * `JsonWriter` never consults the C# nullable annotation: a `string?` and a
  * `double?` both arrive as `"key":null`.
  *
- * `asyncapi.yaml` looks like a better witness and is not. It is generated FROM
+ * `asyncapi.yaml` looks like a better witness and is not. It is generated from
  * this same TypeScript and takes its nullability from the `?`, so holding one
  * to the other proves only that the file agrees with itself.
  */
@@ -50,7 +50,7 @@ function repoRoot(): string {
 }
 
 /**
- * Every generated contract in the tree, DISCOVERED rather than listed: the set
+ * Every generated contract in the tree, discovered rather than listed: the set
  * of Uplinks under mod/ is not fixed, and a removed one must not read as a
  * regression, nor a new one as covered when it is not.
  */
@@ -69,12 +69,12 @@ function generatedContracts(root: string): string[] {
 }
 
 /**
- * The properties whose KEY a flattener leaves out entirely, so `| null` would
+ * The properties whose key a flattener leaves out entirely, so `| null` would
  * describe a state that cannot arrive. This list is the assertion's own copy of
  * what the flatteners do.
  *
  * A payload property says it with `[SitrepOmittedWhenNull]` at its C# property,
- * which is what the codegen reads. An ENVELOPE property has no marker: the
+ * which is what the codegen reads. An envelope property has no marker: the
  * envelope is outside `ApplyUnitValueTypes` altogether (see the reasoning at
  * that call), so an attribute there would be read by nothing.
  */
@@ -122,7 +122,7 @@ const OMITTED_WHEN_NULL = new Set([
 /**
  * The provider extension bag. `JsonWriter.AppendProviderExtensions` omits the
  * key when no provider filled one, so a payload no provider extended carries no
- * trace of the mechanism. Matched by TYPE because it is one rule spread over
+ * trace of the mechanism. Matched by type because it is one rule spread over
  * every elected payload rather than a rule per payload.
  */
 const OMITTED_BAG_TYPE = "ProviderExtensions";

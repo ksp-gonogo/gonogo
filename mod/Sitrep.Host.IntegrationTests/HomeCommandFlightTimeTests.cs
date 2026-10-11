@@ -11,7 +11,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para>The command names a held-at-home topic as its subject, so the node
     /// it resolves to is the ledger's, and its flight time is the vantage's row
-    /// against that node. The active craft is kept at a light-time far from the
+    /// against that node. The active craft is kept at a signal delay far from the
     /// vessel's own, so a command timed by the wrong node lands at the wrong
     /// tick.</para>
     /// </summary>

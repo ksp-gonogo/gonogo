@@ -16,7 +16,7 @@ namespace Sitrep.Host.IntegrationTests
     /// an unknown command, or one whose owning uplink is Unavailable.
     ///
     /// <para>This exit used to fall silent, and silence here was indistinguishable
-    /// from a command still in flight for EVERY consumer: the client's loss timer
+    /// from a command still in flight for every consumer: the client's loss timer
     /// eventually rejected the promise as "signal-lost" (untrue, the link was
     /// fine), and the operator's queue could not call it a failure at all, because
     /// the exit returns before the pending bookkeeping so there was no entry to
@@ -25,7 +25,7 @@ namespace Sitrep.Host.IntegrationTests
     /// landed here, so a whole widget failed while the board showed a healthy
     /// link.</para>
     ///
-    /// <para>The comms-loss exit is deliberately NOT covered here: honest silence
+    /// <para>The comms-loss exit is deliberately not covered here: honest silence
     /// during a blackout is correct, "lost"/"signal-lost" is the true statement
     /// there, and it has its own test in
     /// <see cref="CommsGateCommandTests"/>.</para>
@@ -116,7 +116,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A DECIDED gate refusal is a refusal, not a breakage.
+        /// A decided gate refusal is a refusal, not a breakage.
         ///
         /// <para>It used to leave through the same callback the unavailable-uplink
         /// exit uses, which emits an <c>commandUnavailable</c> error frame. The client
@@ -191,7 +191,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The other half of the split: a gate that could not decide is still an
         /// error frame. Abstain and Unknown mean a bad declaration or unreadable
-        /// live state, which IS the machinery-broke class, and the prose naming
+        /// live state, which is the machinery-broke class, and the prose naming
         /// the cause is the whole value of them.
         /// </summary>
         [Fact]
@@ -253,7 +253,7 @@ namespace Sitrep.Host.IntegrationTests
         /// consumes (<c>command-refusal.wire.json</c>) and asserts the committed
         /// copy still matches.
         ///
-        /// <para>Regenerate-and-assert is what makes the fixture a JOINT rather
+        /// <para>Regenerate-and-assert is what makes the fixture a joint rather
         /// than a second assumption: a committed fixture nobody re-derives is a
         /// stale expectation with extra steps. If the engine's frame changes, this
         /// test fails until the fixture is regenerated, and the TS test then fails
@@ -307,7 +307,7 @@ namespace Sitrep.Host.IntegrationTests
         ///
         /// <para>The <c>.wire.json</c> suffix is load-bearing: biome is told to
         /// leave <c>__fixtures__/*.wire.json</c> alone, because this file is
-        /// RECORDED BYTES rather than source. Pretty-printing it would change the
+        /// recorded bytes rather than source. Pretty-printing it would change the
         /// text while leaving it valid JSON, and the byte comparison below, which
         /// is the whole point of the fixture, would then fail for a formatting
         /// reason that looks like an engine change.</para>

@@ -7,7 +7,7 @@ using Sitrep.Contract.Serialization;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// Hand-rolled JSON codec for <see cref="RecordedSession"/>: REUSES
+    /// Hand-rolled JSON codec for <see cref="RecordedSession"/>: reuses
     /// <c>Sitrep.Core</c>'s zero-external-dep <c>JsonWriter</c>/<c>JsonReader</c>
     /// (and, transitively through them, the NaN/Infinity sentinel policy in
     /// <c>NanPolicy</c>) rather than hand-rolling a second JSON

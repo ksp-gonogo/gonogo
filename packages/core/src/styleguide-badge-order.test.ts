@@ -7,12 +7,12 @@ import { modClientRoots } from "./styleguideScanRoots";
 
 /**
  * Design-system guard: a status badge never reads before the thing it is a
- * status OF.
+ * status of.
  *
  * Status badges belong above the subject, or aligned to its right: a badge
  * before the title reads badly because the state arrives before the subject
  * it describes. It is a general rule rather than a fix to one pane, which is
- * what this file makes it: order in the SOURCE is order in the DOM, and order
+ * what this file makes it: order in the source is order in the DOM, and order
  * in the DOM is what a screen reader walks and an eye scans.
  *
  * `SubjectHeading` in `@ksp-gonogo/ui-kit` is the sanctioned way to build one of
@@ -39,7 +39,7 @@ const WINDOW = 4;
 
 /**
  * The badge is being handed to a component through a named prop rather than
- * laid out beside a sibling, so the COMPONENT decides where it lands and the
+ * laid out beside a sibling, so the component decides where it lands and the
  * source order above it says nothing. `SubjectHeading`'s `status=` and
  * `ProjectCard`'s `badge=` are both this: they render the badge after their
  * subject however the call site is written, which is the whole reason to reach
@@ -70,7 +70,7 @@ function repoRoot(startDir: string): string {
  * it.
  *
  * The Uplinks are selected in JS rather than by a `mod/*Uplink/client/src`
- * pathspec, because that pathspec matches NOTHING: git's `*` does not cross a
+ * pathspec, because that pathspec matches nothing: git's `*` does not cross a
  * path separator here, so the whole `mod/` half of the scan silently found zero
  * files and the guard reported a clean tree while blind to the two violations
  * that prompted it. `uplinkFiles` below is the anchor that would have caught it.

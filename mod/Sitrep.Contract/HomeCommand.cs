@@ -19,12 +19,12 @@ namespace Sitrep.Contract
     /// then a sole <see cref="ProviderRegistration.IsDefault"/> provider, then the
     /// unique highest <see cref="ProviderRegistration.Priority"/>. A tie at the
     /// top, or two <c>IsDefault</c> providers, is ambiguous: the home command is
-    /// left with NO claimant, not even the stock one, and the kernel reports an
+    /// left with no claimant, not even the stock one, and the kernel reports an
     /// "ambiguous" <see cref="ResolutionNotice"/> naming each tied provider.
     /// Other capabilities still resolve.</para>
     ///
     /// <para>So two claimants that can be installed together must register at
-    /// DISTINCT priorities, the one that should win strictly higher, and neither
+    /// distinct priorities, the one that should win strictly higher, and neither
     /// may set <c>IsDefault</c>, which would override priority. Rank by how
     /// directly a claimant knows where the ledger is: one that reads it straight
     /// from the save outranks one that can only infer it from the ground

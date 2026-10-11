@@ -3,18 +3,18 @@
  * cross-browser video-delay work of 2026-07-16, implementing the capture-UT
  * mapping that work validated per engine.
  *
- * UNLIKE `frame-delay.ts`'s decoded backend (`MediaStreamTrackProcessor` /
+ * Unlike `frame-delay.ts`'s decoded backend (`MediaStreamTrackProcessor` /
  * `MediaStreamTrackGenerator`: Chromium-only on the main thread), this
  * backend attaches to the standard, cross-browser
  * `RTCRtpScriptTransform`/`RTCTransformEvent.transformer` shape: a
- * `{readable, writable}` pair of ENCODED `RTCEncodedVideoFrame`s, delivered
+ * `{readable, writable}` pair of encoded `RTCEncodedVideoFrame`s, delivered
  * pre-decode. Empirically confirmed to hold a real multi-second delay with
  * zero drops on Chromium, Firefox, and WebKit (spike report), gated on a
- * REAL `confirmedEdgeUt()` computation rather than arrival+fixedDelayMs
+ * real `confirmedEdgeUt()` computation rather than arrival+fixedDelayMs
  * (Phase-1 report): this module is the production wiring of that proof.
  *
  * `attachEncodedFrameDelayTransform` is a thin adapter: it reuses
- * `runFrameDelayPipeline` VERBATIM ("a new backend
+ * `runFrameDelayPipeline` verbatim ("a new backend
  * is a new source/sink pair, not a new engine") with three encoded-specific
  * defaults `frame-delay.ts`'s decoded backend doesn't need:
  *
@@ -23,7 +23,7 @@
  *    frame has no GOP dependency).
  *  - `frameBytes: (f) => f.data.byteLength`: real payload size, not the
  *    decoded backend's frame-count-as-1 cap.
- *  - `gopSafeEviction: true`, MANDATORY here (see
+ *  - `gopSafeEviction: true`, mandatory here (see
  *    `DelayedPlayoutBuffer.gopSafeEviction`'s doc): an encoded delta frame
  *    depends on a prior reference frame, so the decoded backend's
  *    drop-oldest-non-keyframe-one-at-a-time eviction would corrupt the
@@ -33,7 +33,7 @@
  * holds no GPU/decoder resource (a plain data object), which is exactly why
  * `frame-delay.ts`'s `FrameLike.close` became optional.
  *
- * NOT wired into the camera Uplink's delayed-stream hook; see the encoded-video-delay
+ * Not wired into the camera Uplink's delayed-stream hook; see the encoded-video-delay
  * report's "what's blocked" section. Attaching `receiver.transform =
  * new RTCRtpScriptTransform(...)` needs the `RTCRtpReceiver` object, which
  * lives inside the camera SDK's browser transport
@@ -87,7 +87,7 @@ export interface EncodedTransformerLike {
  * @category Delayed video
  */
 export interface EncodedFrameDelayOptions {
-  /** THE delay clock: the same instance telemetry reads. */
+  /** The delay clock: the same instance telemetry reads. */
   view: DelayClockLike;
   /**
    * Returns the UT to stamp a frame with, called once for each frame as it is

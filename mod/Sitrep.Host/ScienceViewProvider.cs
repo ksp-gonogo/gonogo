@@ -20,7 +20,7 @@ namespace Sitrep.Host
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildScience must
     /// populate exactly this shape at <c>Values["science"]</c>: entirely
-    /// OMITTED, no key at all, whenever there's no active vessel):</b></para>
+    /// omitted, no key at all, whenever there's no active vessel):</b></para>
     /// <code>
     /// snapshot.Values["science"] = Dictionary&lt;string, object?&gt; {
     ///   "experiments": [ { "partName", "location" ("experiment"|"container"),
@@ -46,7 +46,7 @@ namespace Sitrep.Host
     /// the election is indirection only.</para>
     ///
     /// <para><b><c>science.archive</c> is the one exception to the elected
-    /// vessel-science builders above.</b> It reads a SIBLING top-level key,
+    /// vessel-science builders above.</b> It reads a sibling top-level key,
     /// <c>Values["scienceArchive"]</c>: a flat list of one entry per subject
     /// in the whole-career R&amp;D archive, populated by
     /// <c>Gonogo.KSP.KspHost.BuildScienceArchive</c>. It has to live outside
@@ -82,7 +82,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Reads the whole-career R&D archive off a TOP-LEVEL
-        /// <c>Values["scienceArchive"]</c> key, deliberately NOT nested
+        /// <c>Values["scienceArchive"]</c> key, deliberately not nested
         /// under <c>Values["science"]</c> like every other builder in this
         /// class. The raw <c>"science"</c> group is only populated when
         /// there's an active vessel (see <c>KspHost.BuildScience</c>'s own
@@ -118,7 +118,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Shared "pull a list out of Values['science'][key]" walk. Returns
         /// <c>null</c> (never an empty list) whenever the snapshot has no
-        /// <c>"science"</c> key at all, OR the sub-group key is itself
+        /// <c>"science"</c> key at all, or the sub-group key is itself
         /// absent (KspHost's own <c>TryBuildGroup</c> can omit an individual
         /// sub-group on a build failure without taking out the others; see
         /// its own doc comment).

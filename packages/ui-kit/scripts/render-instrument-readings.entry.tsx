@@ -5,7 +5,7 @@
  * `?sheet=<id>` picks which of `SHEETS` to draw, so the PNGs come out of one
  * bundle and one page rather than one script each.
  *
- * `?bare=1` is the BEFORE side: every case is handed its plain quantity, which
+ * `?bare=1` is the before side: every case is handed its plain quantity, which
  * is all the instruments could take before this change. The control sheet must
  * come out identical either way, and the other sheets show what the widening
  * made drawable.

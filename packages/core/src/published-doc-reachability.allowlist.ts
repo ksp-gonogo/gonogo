@@ -5,7 +5,7 @@
  * without pulling in vitest or the scan machinery. Same split-module shape as
  * `uplink-isolation.allowlist.ts`.
  *
- * THE RULE: a doc comment on the PUBLISHED surface may not tell a third-party
+ * The rule: a doc comment on the published surface may not tell a third-party
  * author to reach for something no published barrel exports.
  *
  * `uplink-isolation` checks imports and `uplink-boundary` checks the other
@@ -16,29 +16,29 @@
  * and `IPropagationProvider` advertising an extension point from an assembly
  * nobody outside could reference. Both are fixed; neither was found by a gate.
  *
- * FIVE PREDICATES, all structural. A violation is a reference where all five
+ * Five predicates, all structural. A violation is a reference where all five
  * hold:
  *
- * 1. LOCATION. Inside a doc comment attached to a declaration exported from a
+ * 1. Location. Inside a doc comment attached to a declaration exported from a
  *    published barrel, or to one of its members. C#: a public type in
  *    `Sitrep.Contract` or an `<Uplink>.Contract` slice. A comment on an
  *    internal file is a note to us and is out of scope.
- * 2. FORM. Code form only: `` `X` `` or `{@link X}`; `<see cref>` or `<c>` in
+ * 2. Form. Code form only: `` `X` `` or `{@link X}`; `<see cref>` or `<c>` in
  *    C#. A prose mention is not a reference.
- * 3. REACHABILITY. The head identifier resolves to a symbol declared in this
+ * 3. Reachability. The head identifier resolves to a symbol declared in this
  *    repo and is exported by no published barrel. A name resolving to nothing
- *    is a STALE doc, a different bug, and out of scope: `useDataValue` appears
+ *    is a stale doc, a different bug, and out of scope: `useDataValue` appears
  *    19 times in the sdk and every one is "the retired `useDataValue` shim".
- * 4. TIER. See `TIERS`. T3 (`packages/app`, `sitrep-server`, the C# host
+ * 4. Tier. See `TIERS`. T3 (`packages/app`, `sitrep-server`, the C# host
  *    assemblies) is excluded, because nobody can import those at all, so a
  *    reference to one is provenance by construction. That cut is what keeps the
  *    seed at 59 instead of 129 and keeps the gate off documentation whose whole
  *    job is to say where a wire value came from.
- * 5. QUALIFIED REFERENCES PASS. If the doc says where the named thing lives,
+ * 5. Qualified references pass. If the doc says where the named thing lives,
  *    within `QUALIFY_WINDOW` characters either side of the reference and with
  *    no other reference standing between the two, it is provenance.
  *
- * Predicate 5 is the escape valve, and it is deliberately NOT the default fix.
+ * Predicate 5 is the escape valve, and it is deliberately not the default fix.
  * Qualifying "`useDataSeries`" into "`@ksp-gonogo/data`'s `useDataSeries`"
  * clears the gate while leaving the reader worse off: they now know there is a
  * named, homed thing that would apparently help and that they cannot install.
@@ -46,12 +46,12 @@
  * again the same day. Reach for it only where the mention is pure provenance
  * the reader benefits from knowing and could not act on either way.
  *
- * ATTACHMENT IS PER-REFERENCE, not per-neighbourhood, because a qualifier
+ * Attachment is PER-REFERENCE, not per-neighbourhood, because a qualifier
  * otherwise launders the references beside it: the `@ksp-gonogo/components`
  * written for `formatDensity` in `NullValue.tsx` also marked a ui-kit-internal
  * `formatKspDate` two mentions earlier as provenance, with that doc untouched.
  *
- * A LEXICAL DISCRIMINATOR WAS BUILT, MEASURED AND REJECTED. The obvious rule is
+ * A lexical discriminator was built, measured and rejected. The obvious rule is
  * an instruction verb within N characters before the reference. It catches the
  * true positive ("Subtract" sits 30 characters before `useViewUt`) and on live
  * code at N=30 produces 6 hits of which all 6 are false: "call **sites**",
@@ -61,7 +61,7 @@
  * parenthetical gloss. 0 of 6 either way. Do not re-derive it: a gate that
  * fires on "call sites" is a gate that gets turned off.
  *
- * Every entry in `DOC_DEBT` and `CS_CAPABILITY_SEAM_DEBT` is DEBT and both
+ * Every entry in `DOC_DEBT` and `CS_CAPABILITY_SEAM_DEBT` is debt and both
  * lists are SHRINK-ONLY. Fix one by rewriting the sentence so it does not point
  * outside, by moving the named export onto a published barrel where the reader
  * genuinely needs it, or, in the narrow provenance case, by qualifying the
@@ -76,7 +76,7 @@
  * The three graded tiers are things an author could in principle be handed. T3
  * is not gated at all and has no entry here, because `packages/app`,
  * `sitrep-server` and the C# host assemblies are not installable by anyone: a
- * doc naming one is telling the reader where a value came FROM, which is
+ * doc naming one is telling the reader where a value came from, which is
  * useful, and 59 of the census's 129 TS instances were exactly that.
  */
 export const TIERS = {
@@ -88,7 +88,7 @@ export const TIERS = {
    */
   T1a: "same published package, not in its barrel",
   /**
-   * The OTHER published package, not in its barrel. The `useViewUt` cell
+   * The other published package, not in its barrel. The `useViewUt` cell
    * exactly, and the reason the number seeded here is 2 rather than 0 is a name
    * collision on the word `key`, not real content. Any growth here is the
    * original bug recurring.
@@ -112,7 +112,7 @@ export const TIERS = {
 export type Tier = keyof typeof TIERS;
 
 /**
- * The published npm surfaces and their REAL entry points, which is what makes
+ * The published npm surfaces and their real entry points, which is what makes
  * predicate 3 trustworthy: exports are computed with the TypeScript checker's
  * `getExportsOfModule` over these files, so a re-export chain is followed
  * rather than guessed. An under-collecting barrel set would manufacture
@@ -166,8 +166,8 @@ export const PRIVATE_NPM_PACKAGES = [
 ] as const;
 
 /**
- * Characters predicate 5 reads for a qualifier, back from a reference's START
- * and on from its END. Symmetric on purpose: measured forward from the start it
+ * Characters predicate 5 reads for a qualifier, back from a reference's start
+ * and on from its end. Symmetric on purpose: measured forward from the start it
  * spent its budget on the reference's own characters and flagged "the read side
  * of `useDataSeries`'s stream shim (`@ksp-gonogo/data`)", where the specifier
  * sat one character past the end of the slice.
@@ -175,7 +175,7 @@ export const PRIVATE_NPM_PACKAGES = [
 export const QUALIFY_WINDOW = 90;
 
 /**
- * Predicate 5 for TypeScript: does the doc say WHERE the named thing lives? A
+ * Predicate 5 for TypeScript: does the doc say where the named thing lives? A
  * package specifier, an assembly or namespace, a file path, or the informal
  * "the app's" / "mod-side" that this codebase already uses.
  *
@@ -197,12 +197,12 @@ export const TS_QUALIFIER_PATTERNS: readonly (readonly [string, string])[] = [
 ];
 
 /**
- * Predicate 5 for C#, and DELIBERATELY NARROWER than the TypeScript list: an
+ * Predicate 5 for C#, and deliberately narrower than the TypeScript list: an
  * assembly name, a `mod/` path or a filename, and nothing informal.
  *
  * The informal patterns cannot mean anything here. Every doc comment in
  * `Sitrep.Contract` is about the mod, so "MOD-side" says where a computation
- * HAPPENS, not where a type LIVES. Reusing the TS list marks
+ * happens, not where a type lives. Reusing the TS list marks
  * `VesselTarget.cs`'s "computed MOD-side by the elected
  * `ITargetApproachSolver`" as qualified and drops the single most important
  * finding on this side of the tree, measured, before this list was split.
@@ -230,16 +230,16 @@ export const CS_PRIVATE_ASSEMBLIES = [
 ] as const;
 
 /**
- * Predicate 4's C# form, and it is NOT what the census claimed. The census said
+ * Predicate 4's C# form, and it is not what the census claimed. The census said
  * "the named type is implementable (interface or abstract)" separates the 3 real
  * findings from the 62 provenance ones exactly. Measured on the tree, that
- * predicate finds ONE of the three: `ITargetApproachSolver` is an interface,
+ * predicate finds one of the three: `ITargetApproachSolver` is an interface,
  * but `KeplerProvider` is a concrete class and the two findings naming it are
  * real. Widening it to "implements a published contract interface" catches all
  * three and 22 provenance mentions with them, because `ChannelEngine`
  * implements `IUplinkHost`.
  *
- * What actually separates them is the CAPABILITY SEAM. A type on one of these
+ * What actually separates them is the capability seam. A type on one of these
  * is elected at runtime through the kernel, which is precisely the mechanism a
  * third-party backend plugs into, so a contract doc naming one is describing an
  * extension point to somebody who cannot see it. `ISitrepUplink`, `IUplinkHost`
@@ -267,7 +267,7 @@ export const CS_CAPABILITY_ELECTION_PATTERNS: readonly string[] = [
  * Seeded 2026-08-20 from the census: 59 references across 36 files, T1a 20,
  * T1b 2, T2 37. Maximum 6 in any one file.
  *
- * T2 IS EMPTY as of 2026-09-01. All 34 that were still standing were rewritten
+ * T2 is empty as of 2026-09-01. All 34 that were still standing were rewritten
  * so the published doc no longer names the symbol at all, and none of them
  * needed an export moved: they described how the app happens to consume a
  * published thing, which is not a reader of the sdk's business. A new T2 entry
@@ -287,7 +287,7 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
 /**
  * The C# half, seeded at 5 references across 4 files and now down to 4 across 3.
  *
- * These are REAL and they are not this gate's to fix. All of them are the same
+ * These are real and they are not this gate's to fix. All of them are the same
  * capability-seam bug the `IPropagationProvider` / `IManeuverPlanSource` /
  * `ICommandCentreSource` moves addressed on 2026-08-20.
  *
@@ -501,10 +501,10 @@ export const GLOBAL_IDENTIFIERS: readonly string[] = [
  * instrument has to be validated against a rebuilt instance of it.
  *
  * The test plants a source of its own at `file`: the published `host`
- * interface, with `symbol` referenced in the doc of one of its MEMBERS, never
+ * interface, with `symbol` referenced in the doc of one of its members, never
  * the interface's own doc. With `symbol` deleted from the computed barrels,
  * that reference is the T1b violation the whole gate exists to catch, and the
- * check fails LOUDLY if the scan cannot see it. A scan that finds nothing
+ * check fails loudly if the scan cannot see it. A scan that finds nothing
  * reports a clean repo, and a broken path, a renamed entry point, a member walk
  * that stopped descending or a regex that stopped matching all look exactly
  * like success. Planted rather than read from a real file, so rewording a

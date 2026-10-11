@@ -14,7 +14,7 @@ namespace Sitrep.Contract;
 /// <c>Career</c> 1, <c>Science</c> 2, <c>Unknown</c> 3.</para>
 /// <internal>
 /// Sitrep.Host.CareerViewProvider.ParseGameMode maps the raw Game.Modes name.
-/// SCENARIO, SCENARIO_NON_RESUMABLE, MISSION, MISSION_BUILDER and any future
+/// Scenario, SCENARIO_NON_RESUMABLE, mission, MISSION_BUILDER and any future
 /// KSP addition fold into Unknown rather than the mapper throwing.
 /// </internal>
 /// </summary>

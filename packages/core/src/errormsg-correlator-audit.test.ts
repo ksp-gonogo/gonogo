@@ -17,8 +17,8 @@ import { describe, expect, it } from "vitest";
  * nothing ever printed it.
  *
  * So the client half is fixed and cannot regress (`connection-error-warning.test.ts`
- * covers it). What a type cannot hold is the MOD half: a refusal that answers a
- * REQUEST must carry that request's id, or the author's dispatch hangs to its
+ * covers it). What a type cannot hold is the mod half: a refusal that answers a
+ * request must carry that request's id, or the author's dispatch hangs to its
  * loss timer having been answered in full. The connection-level route is a real
  * destination, not a catch-all to drop a correlator into.
  *
@@ -44,7 +44,7 @@ const CONNECTION_LEVEL: Record<string, string> = {
  *
  * `RefuseInvalidEnvelope` salvages the requestId off the raw frame where the
  * frame carried a readable one, which is the most any code reading an envelope
- * it could not parse can do. It WRITES `RequestId`, so it passes the check
+ * it could not parse can do. It writes `RequestId`, so it passes the check
  * below on its own; it is named here only so the next reader knows the field
  * being present is not the same as the value being non-null.
  */
@@ -54,7 +54,7 @@ const BEST_EFFORT = ["RefuseInvalidEnvelope/invalidEnvelope"];
  * A `new ErrorMsg` and the object initializer that follows it.
  *
  * Non-greedy to the first `}`, which is enough: every mint in the tree is a
- * flat initializer of scalar fields, and the FLOOR below fails if a nesting
+ * flat initializer of scalar fields, and the floor below fails if a nesting
  * that broke this ever appeared and cost the scan its subjects.
  */
 const MINT_RE = /new\s+ErrorMsg\s*\{([^}]*)\}/g;
@@ -158,7 +158,7 @@ describe("every ErrorMsg the mod mints can be routed by the client", () => {
   });
 
   /**
-   * The gate can SEE the thing it is looking for. A planted request-scoped
+   * The gate can see the thing it is looking for. A planted request-scoped
    * refusal with no correlator must be reported, and the same text with a
    * `RequestId` must not, or the clean result above means nothing.
    */

@@ -1,14 +1,14 @@
 import type { MapPoiProviderDefinition } from "./types";
 
 /**
- * The map-POI registry, which lives HERE rather than in `@ksp-gonogo/core`
+ * The map-POI registry, which lives here rather than in `@ksp-gonogo/core`
  * because an Uplink is the main thing that contributes to it: registering a
  * provider was already reachable from the published surface as a host shim, but
- * READING one back (`getMapPoiProviders`) was not, so an Uplink could write to
+ * reading one back (`getMapPoiProviders`) was not, so an Uplink could write to
  * this registry and then had no published way to assert it had.
  *
- * A provider contributes DATA (an array of points for the currently-mapped
- * body), not a renderable component. MapView owns the ONE shared
+ * A provider contributes data (an array of points for the currently-mapped
+ * body), not a renderable component. MapView owns the one shared
  * hover/action/marker-styling surface, so N providers do not each invent their
  * own hover UX. Consumed by MapView's `MapPoiLayer`.
  */
@@ -50,7 +50,9 @@ function notifyChange(): void {
 
 /**
  * Calls `cb` whenever a map point-of-interest provider is registered or removed,
- * and returns the unsubscribe function.
+ * and returns the unsubscribe function. Useful for a map layer that redraws its
+ * markers when the set of providers changes. Used by the map widget's
+ * point-of-interest layer.
  *
  * @category Maps and coverage
  */
@@ -64,7 +66,9 @@ export function onMapPoiProvidersChange(cb: () => void): () => void {
 
 /**
  * Adds a provider of points of interest for the map, replacing any registered
- * under the same id.
+ * under the same id. Useful for putting an Uplink's own markers on the body
+ * map the operator is viewing. Used by the map widget's provider of stock
+ * points of interest.
  *
  * @category Maps and coverage
  */
@@ -75,7 +79,9 @@ export function registerMapPoiProvider(def: MapPoiProviderDefinition): void {
 }
 
 /**
- * Every registered provider, in registration order.
+ * Every registered provider, in registration order. Useful for drawing the
+ * points of every provider on the map. Used by the map widget's
+ * point-of-interest layer.
  *
  * @category Maps and coverage
  */

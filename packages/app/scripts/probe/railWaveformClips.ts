@@ -1,5 +1,5 @@
 /**
- * Clips built to a stated LOUDNESS CURVE, for driving the rail's voice ribbon.
+ * Clips built to a stated loudness curve, for driving the rail's voice ribbon.
  *
  * `makeClip` shapes a whole utterance with one raised cosine, which is the
  * right thing for the roundtrip tests it was written for and the wrong thing
@@ -9,7 +9,7 @@
  * actually was). A render fed that shows a flat-topped band for most of its
  * length, which is precisely the thing `clips.ts` warns a naive fixture hides.
  *
- * So a clip here is built BACKWARDS from the reading it should produce: the
+ * So a clip here is built backwards from the reading it should produce: the
  * caller names an amplitude per chunk in the 0..1 the ribbon draws, and the
  * byte that yields it is found by bisecting the real measurement. The clip is
  * still a `RadioClip` in every other respect (integer hertz, byte-quantised

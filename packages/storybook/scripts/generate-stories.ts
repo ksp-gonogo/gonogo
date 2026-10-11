@@ -44,11 +44,11 @@ import { writeUiKitStories } from "./uikit-stories";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const STORIES = resolve(HERE, "../dist/stories");
 /**
- * Where a run writes before it swaps into STORIES. A sibling at the same depth,
- * so every relative import computed against it is also right from STORIES, and
+ * Where a run writes before it swaps into stories. A sibling at the same depth,
+ * so every relative import computed against it is also right from stories, and
  * outside the `dist/stories/**` glob, so no Storybook indexes a half-written tree.
  * Two runs overlap whenever `pnpm storybook` starts beside `review-sheet`, and a
- * run that cleared STORIES in place emptied the other's index mid-build.
+ * run that cleared stories in place emptied the other's index mid-build.
  */
 const OUT = `${STORIES}.next-${process.pid}`;
 const SRC = resolve(HERE, "../src");

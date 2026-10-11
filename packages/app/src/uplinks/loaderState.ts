@@ -41,7 +41,7 @@ export interface UplinkLoadOutcome {
    */
   summary?: string;
   /**
-   * Set only when the quarantine was a HASH DISAGREEMENT, and the whole reason
+   * Set only when the quarantine was a hash disagreement, and the whole reason
    * this field exists rather than a reader matching `reason` for the word
    * "hash": a compat refusal and a tampered bundle are not the same kind of
    * event, and the surface that has to shout about the second must be able to

@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The geometry is covered by its own tests against margin functions with
-    /// known roots; these cover the POLICY, i.e. which of the geometry's
+    /// known roots; these cover the policy, i.e. which of the geometry's
     /// findings becomes a prediction, which becomes a basis, and, the point
     /// of the whole class, that none of them ever shortens a deadline.
     /// </summary>
@@ -49,7 +49,7 @@ namespace Sitrep.Host.Tests
             public double SeparationAt(double ut) => 1_000_000.0;
         }
 
-        /// <summary>Clear except for one blocked window, so the sweep starts CLEAR and still finds a later opening.</summary>
+        /// <summary>Clear except for one blocked window, so the sweep starts clear and still finds a later opening.</summary>
         private sealed class BlockedWindowGeometry : IVisibilityGeometry
         {
             private readonly double _from;
@@ -286,7 +286,7 @@ namespace Sitrep.Host.Tests
         private const double KerbinSiderealDay = 21_549.425;
 
         /// <summary>
-        /// The sweep has to be stepped against the FASTEST term in the
+        /// The sweep has to be stepped against the fastest term in the
         /// geometry, and for anything slower than the station's day that is the
         /// day. A solar-orbit craft (T = 1.02e7 s) stepped at T/720 gets 1.5
         /// samples per visibility cycle, so the sweep walks past the first
@@ -522,8 +522,8 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A late-arriving prediction must never move the deadline EARLIER. The
-        /// upgrade evaluates from the silence ORIGIN, so its duration is
+        /// A late-arriving prediction must never move the deadline earlier. The
+        /// upgrade evaluates from the silence origin, so its duration is
         /// measured from a UT hours in the past; writing that over the armed
         /// deadline moved it backwards, and in the worst case behind the
         /// current tick, declaring the vessel Lost in the same call that first
@@ -581,7 +581,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// The upgrade must be spent whether or not it produced a prediction.
         /// Setting the flag only on success turned "one re-evaluation per
-        /// silence run" into a full ~1400-sample sweep on EVERY silent tick for
+        /// silence run" into a full ~1400-sample sweep on every silent tick for
         /// every vessel the predictor cannot help, which at warp is the stutter
         /// the whole sliced-solver design exists to avoid.
         /// </summary>
@@ -670,7 +670,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// A silence that geometry does not explain must not borrow a
-        /// geometric explanation. If the path was already CLEAR when contact
+        /// geometric explanation. If the path was already clear when contact
         /// was lost, the craft did not go behind anything, it lost power, or
         /// its antenna went out of range, and the next time the sweep happens
         /// to open a path is not that craft's return.
@@ -709,7 +709,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The onset instant is validated for FINITENESS, not for sign.
+        /// The onset instant is validated for finiteness, not for sign.
         ///
         /// <para>One guard used to serve both the onset instant and the cycle
         /// duration, and its <c>&gt; 0.0</c> arm is correct for only one of them.
@@ -718,7 +718,7 @@ namespace Sitrep.Host.Tests
         /// plausible deadline rather than an error, which is why the loss was
         /// silent.</para>
         ///
-        /// <para>Each case asserts the BASIS, not the duration. The fallback and a
+        /// <para>Each case asserts the basis, not the duration. The fallback and a
         /// real prediction can agree on a number, so a test that only checked
         /// seconds could not tell which path ran, and that indistinguishability
         /// was the original defect rather than a way to detect it.</para>
@@ -791,7 +791,7 @@ namespace Sitrep.Host.Tests
         /// integrating one does, and answers everything else out of the
         /// two-body vanilla.
         ///
-        /// <para>The bound is applied ONLY to a non-zero vessel window,
+        /// <para>The bound is applied only to a non-zero vessel window,
         /// mirroring the integrating provider's own <c>CanPropagate</c> exactly:
         /// a zero-length ask is always answerable, which is what makes the
         /// policy's own guard useless and is the whole subject of these two
@@ -867,7 +867,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The control, and the reason the fix cannot simply shorten every
-        /// sweep: an emergence INSIDE the vouched-for span is still published,
+        /// sweep: an emergence inside the vouched-for span is still published,
         /// because the conic is certified there rather than merely tolerated.
         /// </summary>
         [Fact]

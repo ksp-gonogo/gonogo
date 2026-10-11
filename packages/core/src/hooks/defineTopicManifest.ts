@@ -25,17 +25,17 @@ import { useTelemetry } from "./useTelemetry";
  *
  * ## Both arrays read the same, and this is the correction worth reading
  *
- * The original design had the bound hook resolve a REQUIRED Topic to its
- * payload non-null and an OPTIONAL one to `payload | undefined`, and this doc
+ * The original design had the bound hook resolve a required Topic to its
+ * payload non-null and an optional one to `payload | undefined`, and this doc
  * described that for long after the type stopped doing it. It does not do it
- * and must not: see {@link WidgetTopicValue} for the argument. `pending` IS
+ * and must not: see {@link WidgetTopicValue} for the argument. `pending` is
  * "nothing has arrived", the `Reading` union already carries the distinction,
  * and a conditional layered on top would be a lie that nothing could catch,
  * because the bound hook is built with `as unknown as`.
  *
- * The claim that made it sound safe was also false: the orchestrator does NOT
+ * The claim that made it sound safe was also false: the orchestrator does not
  * withhold a widget until its required Topics are live. What it gates on is the
- * owning Uplink's HEALTH (`RequiresGuard` + `useUplinkHealthFor`, longest-prefix
+ * owning Uplink's health (`RequiresGuard` + `useUplinkHealthFor`, longest-prefix
  * match against the `system.uplinkHealth` roster), which is a different
  * question and answers `unresolved` for a while on every page load.
  *
@@ -65,9 +65,9 @@ import { useTelemetry } from "./useTelemetry";
  * The per-call return type of a widget-bound telemetry hook: a `Reading` of the
  * Topic's payload.
  *
- * Deliberately NOT a conditional resolving a REQUIRED Topic to its payload
+ * Deliberately not a conditional resolving a required Topic to its payload
  * non-null and an optional one to `payload | undefined`. That distinction is the
- * one the `Reading` union already carries in its own arms: `pending` IS "nothing
+ * one the `Reading` union already carries in its own arms: `pending` is "nothing
  * has arrived", and it is unreachable only for the required ones. A conditional
  * on top of a `Reading` would also be a lie, and because the bound hook is built
  * with `as unknown as`, nothing would catch it: every widget reading through a
@@ -76,7 +76,7 @@ import { useTelemetry } from "./useTelemetry";
  * `Required` stays in the signature because it still constrains which Topics may be
  * read at all, which is the mechanism's real value.
  *
- * What it IS conditional on is the contract's reckonability declaration, and it
+ * What it is conditional on is the contract's reckonability declaration, and it
  * has to be: this resolves to the same store read the base hook makes, so a
  * marked Topic read through a manifest and the same Topic read through the base
  * hook must be the same type. Flattening `ReckonableReading`'s projection back
@@ -97,7 +97,7 @@ export type WidgetTopicValue<Topic extends TopicId> =
  * reading an undeclared channel is a compile error, and maps the return type
  * through {@link WidgetTopicValue}.
  *
- * The argument is `Extract<..., TopicId>`, narrower than what may be DECLARED. A
+ * The argument is `Extract<..., TopicId>`, narrower than what may be declared. A
  * widget may declare a derived channel, but the derived ones are read with
  * `useStream`, which
  * answers with the value rather than a `Reading`. Admitting them here would mean

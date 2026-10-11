@@ -3,7 +3,7 @@
  * mirror test follows the same shape:
  *
  *   1. Seed both browser contexts with the test Sitrep stream endpoint
- *      AND a dashboard config that places the widget under test on
+ *      and a dashboard config that places the widget under test on
  *      the grid (so we don't have to drive the FAB/modal click chain).
  *   2. Open the main page, wait for the widget to render, grab the
  *      host's peer id.
@@ -17,10 +17,10 @@
  * Don't add widget-specific logic here: keep this generic so a new
  * widget test is "import bootstrapPair; read DOM on both sides; assert".
  *
- * NOTE: station-side telemetry is currently a known gap: only the MAIN
+ * Note: station-side telemetry is currently a known gap: only the main
  * screen mounts `SitrepTelemetryProvider` (see that file's own doc
  * comment: station stream forwarding over PeerJS is "a later task").
- * A spec whose station assertion depends on an actual telemetry VALUE
+ * A spec whose station assertion depends on an actual telemetry value
  * (not just static chrome) will not see it mirrored yet; that's an app
  * gap this harness surfaces rather than papers over.
  */
@@ -128,7 +128,7 @@ export async function seedContext(
 
 /**
  * Wait for the host's PeerJS peer to open on the broker, then return its
- * stable SHARE CODE. Under the stable-host-id model the station derives
+ * stable share code. Under the stable-host-id model the station derives
  * `gonogo-host-<code>` from this and connects directly: the broker-directory
  * resolve hop (and the host's id-rotation it worked around) are gone, so a
  * plain wait-for-open + return-the-code is all that's needed. The share code
@@ -219,10 +219,10 @@ export async function bootstrapPair(
     contextOptions?: Parameters<Browser["newContext"]>[0];
     /**
      * Uplink ids the runtime loader should actually load, for specs testing a
-     * widget PROVIDED BY an Uplink (robotics-console = breakingGround) or one
+     * widget provided by an Uplink (robotics-console = breakingGround) or one
      * whose data comes from an Uplink feed (target-picker = kos). Default (omitted or
-     * empty) = load NOTHING, the loader-agnostic boot every built-in-widget
-     * spec wants. When set, both pages run against the PRODUCTION preview
+     * empty) = load nothing, the loader-agnostic boot every built-in-widget
+     * spec wants. When set, both pages run against the production preview
      * server (the loader is build-time-only, see the boot comment below), boot
      * with `?uplinkLoaderIds=<ids>`, have consent pre-seeded (so no modal),
      * then reload so the loader runs with the grant in place. The station runs
@@ -233,10 +233,10 @@ export async function bootstrapPair(
     /**
      * Which fake Sitrep replay server/port this pair points at. Default
      * `PORTS.sitrepReplay`: the shared snapshot every widget spec normally
-     * runs against, deliberately WITHOUT `vessel.parts`/`dv.*` (see
+     * runs against, deliberately without `vessel.parts`/`dv.*` (see
      * sitrep-stream-server.mjs's doc comment). Pass
      * `PORTS.sitrepReplayTopology` for a spec that needs real topology/ΔV
-     * data (power-systems, fuel-status): a SEPARATE server carrying those
+     * data (power-systems, fuel-status): a separate server carrying those
      * extra topics on top of the same base snapshot, so the shared fixture
      * (and every absence-dependent assertion built on it) is untouched.
      */
@@ -368,7 +368,7 @@ export async function readPanelLabelValue(
 export { expect };
 
 /**
- * Waits until what a SIGHTED READER sees on the page contains `text`.
+ * Waits until what a sighted reader sees on the page contains `text`.
  *
  * A readout is no longer one text node: `<Unit>` renders the number, the
  * symbol, and a hidden word for screen readers as separate elements. So

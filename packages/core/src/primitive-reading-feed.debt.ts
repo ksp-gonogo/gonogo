@@ -1,11 +1,11 @@
 /**
- * Per file, how many primitives are fed a figure that CAME from a reading with
+ * Per file, how many primitives are fed a figure that came from a reading with
  * the currency dropped on the way: `value("funds", careerFunds)` where the
  * funds were read, `career?.balances?.funds` reached off a payload, or a
  * `describeReckonable(reading)` helper that hands back bare values.
  *
  * Derived from the walk rather than typed out, so the total lives in the list
- * below rather than in this sentence. It is a CEILING and an exact one,
+ * below rather than in this sentence. It is a ceiling and an exact one,
  * because unlike the act-warning counts this number comes from a deterministic
  * static walk rather than from a race, so a file that drops below its entry
  * can and must tighten it in the same commit. An approximate ceiling on an

@@ -7,12 +7,12 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// Per-vessel link facts on <c>fleet.&lt;guid&gt;.delay</c>: the one-way
-/// light-time to that vessel and whether it is currently reachable. The same
+/// signal delay to that vessel and whether it is currently reachable. The same
 /// numbers the mod uses to delay that vessel's channels, published for display.
 /// Not a control input.
 ///
 /// <para>Delayed like <c>fleet.&lt;guid&gt;.orbit</c>, so the value itself
-/// arrives one light-time late, which is how old the space centre's knowledge
+/// arrives one signal delay late, which is how old the space centre's knowledge
 /// of the link is.</para>
 ///
 /// <para>A vessel with no comms path carries a null
@@ -28,7 +28,7 @@ namespace Sitrep.Contract;
 #endif
 public class FleetVesselLink
 {
-    /// <summary>One-way light-time to this vessel, in seconds. Null when there is
+    /// <summary>One-way signal delay to this vessel, in seconds. Null when there is
     /// no comms path to it.</summary>
     [SitrepUnit(Units.Seconds)]
     public double? OneWaySeconds { get; set; }
@@ -48,7 +48,7 @@ public class FleetVesselLink
 /// judgement is on <see cref="FleetVesselSilence"/>.
 ///
 /// <para>Delayed like <see cref="FleetVesselLink"/>, so the value arrives one
-/// light-time late. Unlike most delayed telemetry it keeps updating while the
+/// signal delay late. Unlike most delayed telemetry it keeps updating while the
 /// vessel is out of contact, so the loss of contact itself reaches the
 /// client.</para>
 /// <internal>Freeze-exempt through <c>ChannelEngine.ContactMetaSuffix</c>, the
@@ -164,7 +164,7 @@ public class FleetVesselSilence
 /// belongs to whichever Uplink models the draw, contributed on top of this.</para>
 ///
 /// <para>Delayed like <c>fleet.&lt;guid&gt;.orbit</c>, so the reading arrives
-/// one light-time late. While the craft is out of contact the reading is held
+/// one signal delay late. While the craft is out of contact the reading is held
 /// at its last-known value.</para>
 /// <internal>Loaded craft read their live parts, unloaded ones their
 /// <c>ProtoPartSnapshot</c>s; a failed read omits the whole payload rather
@@ -263,9 +263,9 @@ public class FleetSilenceEntry
 /// that exist.</para>
 ///
 /// <para>Delayed as one payload on the stream's main delay, not on each
-/// vessel's own light-time, as with <see cref="SystemVessels"/>.
+/// vessel's own signal delay, as with <see cref="SystemVessels"/>.
 /// <see cref="FleetVesselSilence"/> on <c>silence.&lt;guid&gt;.state</c> stays
-/// authoritative for one vessel on that vessel's own light-time; this is the
+/// authoritative for one vessel on that vessel's own signal delay; this is the
 /// fleet-wide index, and is not a substitute for it.</para>
 /// </summary>
 /// <category>Solar system and fleet</category>

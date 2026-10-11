@@ -10,7 +10,8 @@ const PanelBadgesCtx = createContext<readonly BadgeEntry[] | null>(null);
  * Supplies the badges contributed to the current widget's
  * `${componentId}.badges` slot to the {@link Panel} inside it, which draws
  * them after its own `panelBadges`. The dashboard mounts it for every widget,
- * fed by {@link useWidgetBadges}; a widget never mounts it itself.
+ * fed by {@link useWidgetBadges}; a widget never mounts it itself. Useful for
+ * showing the operator the badges an Uplink adds to a widget it did not write.
  *
  * @category Panel
  */
@@ -26,7 +27,11 @@ export function PanelBadgesProvider({
   );
 }
 
-/** Host-derived badges for the current widget, or null outside a dashboard. Internal: Panel.tsx is the only caller. */
+/**
+ * The badges contributed to the current widget's `${componentId}.badges` slot,
+ * or `null` outside a dashboard. Useful for drawing those badges in a panel
+ * header. Used by {@link Panel}.
+ */
 export function usePanelBadgesContext(): readonly BadgeEntry[] | null {
   return useContext(PanelBadgesCtx);
 }

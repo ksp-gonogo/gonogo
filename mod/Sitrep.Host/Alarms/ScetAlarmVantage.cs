@@ -37,10 +37,10 @@ namespace Sitrep.Host.Alarms
     ///
     /// <para><b>Identity, never a delay test.</b> "Zero delay reads the
     /// snapshot, positive delay reads the archive" is the tempting rule and it
-    /// is wrong: at zero light-time the archive answers only for as long as
+    /// is wrong: at zero signal delay the archive answers only for as long as
     /// something is subscribed, so a delay test puts a cliff at one second of
-    /// light time that an operator cannot see and a widget's visibility decides.
-    /// Whether a vantage IS the subject is a stable fact about the alarm.</para>
+    /// signal delay that an operator cannot see and a widget's visibility decides.
+    /// Whether a vantage is the subject is a stable fact about the alarm.</para>
     /// </summary>
     public static class ScetAlarmVantage
     {
@@ -60,7 +60,7 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// What an arm is ABOUT, with the contract's default applied. Empty is
+        /// What an arm is about, with the contract's default applied. Empty is
         /// read as <c>"game"</c>, the token for anything the whole simulation
         /// shares.
         /// </summary>
@@ -68,7 +68,7 @@ namespace Sitrep.Host.Alarms
             string.IsNullOrEmpty(args?.Subject) ? "game" : args!.Subject!;
 
         /// <summary>
-        /// Where an arm will be READ, with an empty vantage resolved to its
+        /// Where an arm will be read, with an empty vantage resolved to its
         /// subject.
         ///
         /// <para>Here rather than at each caller because the arm is validated in
@@ -103,7 +103,7 @@ namespace Sitrep.Host.Alarms
         /// is the posture an unaddressable Topic already gets.</para>
         ///
         /// <para><paramref name="selectable"/> is the simulation's answer about
-        /// the place, and its NULL means the simulation does not yet know what
+        /// the place, and its null means the simulation does not yet know what
         /// places exist: the set is empty until the first tick, and at the main
         /// menu where no game is loaded. That refuses too, but as its own
         /// verdict: accepting there would arm an alarm that reads nothing and
@@ -111,7 +111,7 @@ namespace Sitrep.Host.Alarms
         /// whole check exists to remove, while refusing it as "no such place"
         /// would state something the simulation has not established.</para>
         ///
-        /// <para>Asked ONCE, when the arm is requested, and never again. A
+        /// <para>Asked once, when the arm is requested, and never again. A
         /// crewed centre stops being one the moment its crew leaves, and
         /// re-asking would kill a standing alarm for a reason the operator never
         /// acted on. The engine holds a command's own vantage to the same rule.</para>

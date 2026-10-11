@@ -68,12 +68,12 @@ export interface DisclosureProps {
 }
 
 /**
- * A button that shows and hides a panel of detail. The trigger is a real
- * `<button aria-expanded>`, so Enter and Space toggle it, and Escape closes
- * the panel and returns focus to the trigger. Use it for detail on demand
- * wherever a hover-only reveal would be unreachable without a mouse. By
- * default the panel pops over what follows; `variant="inline"` expands it in
- * flow as an accordion.
+ * A button that shows and hides a panel of detail. Useful for detail on demand
+ * wherever a hover-only reveal would be unreachable without a mouse. Used by
+ * the warp control's target row and the first-run readiness step. The trigger
+ * is a real `<button aria-expanded>`, so Enter and Space toggle it, and Escape
+ * closes the panel and returns focus to the trigger. By default the panel pops
+ * over what follows; `variant="inline"` expands it in flow as an accordion.
  *
  * @example
  * ```tsx

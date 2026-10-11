@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Core
 {
     /// <summary>
-    /// Builds the input a propagation may honestly start from: the newest VESSEL
+    /// Builds the input a propagation may honestly start from: the newest vessel
     /// state that has actually reached a vantage, carrying the instant it was true.
     ///
     /// <para>The propagation seam cannot supply this on its own.
@@ -34,7 +34,7 @@ namespace Sitrep.Core
         /// (orbital elements, on the wire today) into a position and velocity about a
         /// centre. It is supplied rather than built in because that conversion is
         /// orbital mechanics and this is the archive layer. What this guarantees is
-        /// that the INSTANT travels with the value, whatever the value turns out to
+        /// that the instant travels with the value, whatever the value turns out to
         /// be.</para>
         /// </summary>
         public static DelayedObservation Read(

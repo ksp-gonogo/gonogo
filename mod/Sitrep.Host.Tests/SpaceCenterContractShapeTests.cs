@@ -16,17 +16,17 @@ namespace Sitrep.Host.Tests
     /// Locks the typing for <c>spaceCenter.*</c>: proves the named
     /// <c>Sitrep.Contract</c> payload types (<see cref="LaunchSiteEntry"/>,
     /// <see cref="SpaceCenterScene"/>) mirror: field name for field name,
-    /// camelCase wire key for camelCase wire key, type for type, the EXACT
+    /// camelCase wire key for camelCase wire key, type for type, the exact
     /// serialized shape <see cref="SpaceCenterViewProvider"/> already emits.
     /// This is the ToWire-completeness guard for this provider: it hand-builds
     /// dicts (no separate <c>ToWire</c> method), so binding the POCO field set
     /// to the emitted dict keys at run time is what catches a drift (a field
     /// renamed/removed/added/retyped on either side).
     ///
-    /// <para><c>spaceCenter.launchSites</c> is a BARE ARRAY of
+    /// <para><c>spaceCenter.launchSites</c> is a bare array of
     /// <see cref="LaunchSiteEntry"/> (tagged <c>isArray: true</c>), like the
-    /// <c>science.*</c> channels; <c>spaceCenter.scene</c> is a single WRAPPER
-    /// OBJECT (<c>isArray: false</c>).</para>
+    /// <c>science.*</c> channels; <c>spaceCenter.scene</c> is a single wrapper
+    /// object (<c>isArray: false</c>).</para>
     /// </summary>
     public class SpaceCenterContractShapeTests
     {

@@ -12,11 +12,11 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// Regression for the <c>kos.processors</c> "subscribed but never any
     /// stream-data" bug (live raw-WS capture): a client subscribing to
-    /// <c>kos.processors</c> got the <c>subscribed</c> ack but ZERO
+    /// <c>kos.processors</c> got the <c>subscribed</c> ack but zero
     /// <c>stream-data</c> frames whenever the vessel actually had kOS CPUs.
     ///
-    /// <para>Root cause was NOT the delay clock or the keyframe-on-subscribe
-    /// path (both fine, an EMPTY list delivered as <c>[]</c>): the channel
+    /// <para>Root cause was not the delay clock or the keyframe-on-subscribe
+    /// path (both fine, an empty list delivered as <c>[]</c>): the channel
     /// payload was a <c>List&lt;KosProcessorInfo&gt;</c>, and <c>KosProcessorInfo</c>
     /// had no wire-flatten in <see cref="Sitrep.Contract.Serialization.JsonWriter"/>,
     /// so a NON-EMPTY list threw <c>NotSupportedException</c> at the wire boundary

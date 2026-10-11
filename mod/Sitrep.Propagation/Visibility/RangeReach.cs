@@ -4,7 +4,7 @@ namespace Sitrep.Propagation.Visibility
 {
     /// <summary>
     /// The other half of the visibility question, as a scalar the sweep can
-    /// root-find on: a link needs a clear line AND two ends that can hear each
+    /// root-find on: a link needs a clear line and two ends that can hear each
     /// other, and <see cref="ChordOcclusion"/> only answers the first.
     ///
     /// <para>The elected comms backend owns the rule (see
@@ -12,7 +12,7 @@ namespace Sitrep.Propagation.Visibility
     /// turns its one number into something composable with a horizon margin,
     /// which is a geometry concern rather than a comms one.</para>
     ///
-    /// <para><b>Metres SQUARED, matching
+    /// <para><b>Metres squared, matching
     /// <see cref="ChordOcclusion.HorizonMargin"/>.</b> Not a coincidence and
     /// not cosmetic: the two are combined by taking the worse of them, and a
     /// minimum over quantities in different units is meaningless. Both are

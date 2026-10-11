@@ -7,7 +7,7 @@ import { unitOf, unitOfTypeField, unitsForTopic, unitsForType } from "./units";
 /**
  * The end-to-end proof for the unit mechanism: a `[SitrepUnit(...)]` attribute on a
  * `Sitrep.Contract` property has to survive the codegen run and arrive as a value a
- * TypeScript consumer can read AT RUNTIME, not as a comment.
+ * TypeScript consumer can read at runtime, not as a comment.
  *
  * Each expectation below is anchored to what the C# doc comment already stated in
  * prose, so this file doubles as the check that nobody annotated a field by guessing:

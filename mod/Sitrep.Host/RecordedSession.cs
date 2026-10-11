@@ -48,7 +48,7 @@ namespace Sitrep.Host
         public string Kind { get; set; } = "";
 
         /// <summary>
-        /// Recorder provenance: the REAL wall-clock instant (UTC) this entry
+        /// Recorder provenance: the real wall-clock instant (UTC) this entry
         /// was captured at, alongside the in-game <see cref="T"/> (UT).
         /// Wall-clock is fine to stamp here specifically because
         /// <see cref="Recorder"/> is the runtime edge (see its doc comment) -
@@ -64,7 +64,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Recorder provenance: a monotonically increasing counter, one per
         /// <see cref="RecordedEntry"/>, assigned by <see cref="Recorder"/> in
-        /// capture order (snapshots and events share one counter - it is NOT
+        /// capture order (snapshots and events share one counter - it is not
         /// per-kind). Redundant with the entry's position in
         /// <see cref="RecordedSession.Entries"/> today, but self-describing:
         /// a future consumer that filters, reorders, or partially transmits

@@ -142,7 +142,7 @@ export class ConsoleLogger implements Logger {
    * Merge identity fields into the device context attached to every
    * subsequent log entry. Call once at app start with `{role, id}` and
    * again as more becomes known (e.g. station learns its hostPeerId on
-   * connect). Does NOT replay past entries.
+   * connect). Does not replay past entries.
    */
   setIdentity(identity: Partial<DeviceIdentity>): void {
     this.identity = { ...this.identity, ...identity };

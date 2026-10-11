@@ -115,9 +115,9 @@ export type PresentableAsKind<Kind> =
   | ConversionTargetsOfKind<Kind>;
 
 /**
- * How many of the kind's BASE unit one of `symbol` is worth.
+ * How many of the kind's base unit one of `symbol` is worth.
  *
- * The LIVE CALENDAR first, because `d`, `h`, `min` and `science/day` are sized
+ * The live calendar first, because `d`, `h`, `min` and `science/day` are sized
  * by the running game and codegen bakes stock Kerbin figures for all four.
  * Then the unit's declared ratio, then the rung's own divisor. The calendar
  * table is the SDK's, so a formatted duration and a computed one agree.
@@ -235,7 +235,7 @@ export type Rung = UnitRung;
  * Deliberately absent:
  *  - `speed`, because delta-v and surface speed are read in m/s universally
  *  - `temperature`, because kelvin has no prefix convention and Celsius is an
- *    OFFSET conversion (see `as`)
+ *    offset conversion (see `as`)
  *  - `time`, which has its own composite formatter
  *  - `gravParameter`, which uses scientific notation (see `SCIENTIFIC`)
  *  - `planeAngle`, `ratio`, `dimensionless`, which have no magnitudes to climb
@@ -406,12 +406,12 @@ export { STANDARD_GRAVITY } from "@ksp-gonogo/sitrep-sdk";
 import { STANDARD_GRAVITY } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * Presentation conversions: what a value may be SHOWN as, given what it IS.
+ * Presentation conversions: what a value may be shown as, given what it is.
  *
  * Keyed source→target, `target = value / per + offset`, which covers the
  * offset conversions a ladder cannot. Only within a kind: `formatQuantity`
  * refuses a cross-kind conversion. `as const` is load-bearing, since
- * {@link PresentableAs} reads the pair KEYS.
+ * {@link PresentableAs} reads the pair keys.
  */
 const CONVERSIONS = {
   "K→°C": { per: 1, offset: -273.15 },
@@ -427,7 +427,7 @@ const CONVERSION_BY_PAIR: Record<string, { per: number; offset: number }> =
   CONVERSIONS;
 
 /**
- * How much precision a kind is read at, as decimal places on the SCALED value.
+ * How much precision a kind is read at, as decimal places on the scaled value.
  *
  * Per kind rather than per magnitude, so a readout holds a stable digit count
  * as the value moves.
@@ -475,8 +475,8 @@ const DECIMALS: Record<string, number> = {
 };
 
 /**
- * What to SHOW beside the number, when it differs from the token the wire
- * carries. The non-dimensional tokens name a CATEGORY, not a symbol ("12
+ * What to show beside the number, when it differs from the token the wire
+ * carries. The non-dimensional tokens name a category, not a symbol ("12
  * count" is not a readout), so they render with no symbol at all. `ratio` and
  * `time` carry extra behaviour and keep their own branches below.
  */
@@ -578,10 +578,10 @@ function kindOfConversion(symbol: string): QuantityKind | undefined {
 }
 
 /**
- * What each displayed symbol is CALLED, for the accessibility tree: a screen
+ * What each displayed symbol is called, for the accessibility tree: a screen
  * reader announces `km` as "kay em" and `°` as nothing at all.
  *
- * Keyed on the DISPLAYED symbol rather than the wire token, so every rung and
+ * Keyed on the displayed symbol rather than the wire token, so every rung and
  * every currency abbreviation has its own entry.
  */
 const WORD_BY_SYMBOL: Record<string, string> = {
@@ -764,7 +764,7 @@ function sameRungs(a: readonly Rung[], b: readonly Rung[]): boolean {
 }
 
 /**
- * Applies what one `registerUnit` call says about how a unit READS, including
+ * Applies what one `registerUnit` call says about how a unit reads, including
  * registrations made before this module loaded.
  *
  * Two registrations of one symbol must mean the same thing by it, and two of
@@ -824,7 +824,7 @@ export interface FormatQuantityOptions {
    * Pin the unit rather than letting the ladder choose, for where convention
    * beats magnitude (orbital velocity in km/s, a broadcast in km/h).
    *
-   * Typed by KIND, so `format="km/h"` checks on a speed and is an error on a
+   * Typed by kind, so `format="km/h"` checks on a speed and is an error on a
    * length. Any unit of the same kind is accepted, including ones the ladder
    * would never pick.
    */
@@ -840,7 +840,7 @@ export interface FormatQuantityOptions {
    */
   scale?: "auto" | "never" | "scientific" | "compact";
   /**
-   * Show the value in a different unit OF THE SAME KIND: `as: "°C"` on a kelvin
+   * Show the value in a different unit of the same kind: `as: "°C"` on a kelvin
    * field, `as: "g"` on an m/s² one. A cross-kind request is refused and the
    * value renders in its true unit.
    */
@@ -867,7 +867,7 @@ export interface FormattedQuantity {
 }
 
 /**
- * How far a value must fall BELOW a rung's threshold before dropping back down,
+ * How far a value must fall below a rung's threshold before dropping back down,
  * so 999.6 m does not flicker between "1.0 km" and "1000 m".
  */
 const HYSTERESIS = 0.05;
@@ -1163,7 +1163,7 @@ export function formatQuantity(
  * A scale: one rung, settled once, and every mark printed against it.
  *
  * For a moving-scale instrument (an altimeter strip, a chart axis): the marks
- * carry NO symbol, the symbol is shown once at the head, and every mark sits
+ * carry no symbol, the symbol is shown once at the head, and every mark sits
  * on the rung settled from the value that defines the scale, so a strip never
  * reads "500 m" three marks below "1.0 km".
  *
@@ -1176,7 +1176,7 @@ export interface QuantityScale {
   /** The unit every mark is printed in. */
   readonly rung: string;
   /**
-   * The symbol for that rung, to show ONCE beside the scale. Empty for a kind
+   * The symbol for that rung, to show once beside the scale. Empty for a kind
    * that displays none, in which case the scale shows no header at all.
    */
   readonly symbol: string;
@@ -1223,9 +1223,9 @@ function toBase(
 
 /** Where one reading sits on the ladder it climbs. */
 export interface LadderPosition {
-  /** How big it is in the ladder's BASE unit, absolute: the only figure comparable across rungs. */
+  /** How big it is in the ladder's base unit, absolute: the only figure comparable across rungs. */
   readonly base: number;
-  /** The rung this reading ALONE would climb to, which is what a group votes with. */
+  /** The rung this reading alone would climb to, which is what a group votes with. */
   readonly rung: string;
 }
 
@@ -1251,7 +1251,7 @@ export function ladderPosition(
  * Undefined for a unit that never climbs, deliberately: a duration, a mission
  * date and a scientific value report a `rung` nothing may be pinned to.
  *
- * Keyed by the LADDER a unit declares, never by its kind, since bits and bytes
+ * Keyed by the ladder a unit declares, never by its kind, since bits and bytes
  * are both `data` and must never share rungs.
  */
 export function unitScaleKey(unit: string | undefined): string | undefined {
@@ -1269,12 +1269,12 @@ function ladderGroupKey(ladder: string): string {
 }
 
 /**
- * The group a reading settles its whole FORMAT with, as a key.
+ * The group a reading settles its whole format with, as a key.
  *
  * Wider than {@link unitScaleKey}: a rung can only be settled among readings
  * that share a ladder, but a digit count can be settled among any readings
  * written alike. A unit on a ladder groups by the ladder (even one with no
- * rungs registered yet), and a unit on none groups by ITSELF, never by kind.
+ * rungs registered yet), and a unit on none groups by itself, never by kind.
  */
 export function formatGroupKey(unit: string): string;
 export function formatGroupKey(unit: string | undefined): string | undefined;
@@ -1289,7 +1289,7 @@ export function formatGroupKey(unit: string | undefined): string | undefined {
 }
 
 /**
- * The group a PIN is addressed to, from the token a caller keyed it by.
+ * The group a pin is addressed to, from the token a caller keyed it by.
  *
  * The mirror of {@link formatGroupKey}: a pin names its group outright, so a
  * ladder name is a key here and never there. An unknown token resolves as an
@@ -1301,7 +1301,7 @@ export function pinGroupKey(token: string): string {
     : ladderGroupKey(token);
 }
 
-/** How many digits it takes for two distinct readings to READ as distinct. */
+/** How many digits it takes for two distinct readings to read as distinct. */
 const MAX_SEPARATING_DECIMALS = 6;
 
 /** One reading of a group, as the rules below compare them. */
@@ -1392,12 +1392,12 @@ export function separatingDecimals(
 }
 
 /**
- * Whether a group reads as ONE figure: every member comes out as the same text
+ * Whether a group reads as one figure: every member comes out as the same text
  * at the format the group has settled on.
  *
  * A band asks this before drawing two ends, so it never prints
  * `65.3 km - 65.3 km`. It compares the rendered text rather than magnitudes,
- * so there is no tolerance to tune. Ask with the SETTLED options, so the
+ * so there is no tolerance to tune. Ask with the settled options, so the
  * figures compared are the ones that will be drawn.
  */
 export function readsAsOneFigure(

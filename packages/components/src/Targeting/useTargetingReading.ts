@@ -18,7 +18,7 @@ export const targetingTopics = defineTopicManifest({
 
 /**
  * `vessel.target` is a Reading, so a dropped link can never render "No target
- * set". `vessel.dock` splits per FIELD: the pairing is a fact, while the
+ * set". `vessel.dock` splits per field: the pairing is a fact, while the
  * geometry (reticle, alignment, closing rate) is read as "fly this, now" and
  * stops being drawn once it is held. Its `absent` and `pending` both
  * mean no HUD.

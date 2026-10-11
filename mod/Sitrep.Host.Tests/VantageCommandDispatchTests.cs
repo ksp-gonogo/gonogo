@@ -4,7 +4,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// A vantage-aware command has to survive the DISPATCH gate, not merely be
+    /// A vantage-aware command has to survive the dispatch gate, not merely be
     /// registered.
     ///
     /// <para>Written after the live game refused a vantage-aware command with the

@@ -62,7 +62,7 @@ export function PowerSystemsComponent({
   const { topology, liveByFlightId, resourcesWithFlow } = useLiveParts();
 
   /**
-   * `parts.power.totalProductionEc` never feeds PROD/NET, which always sum the itemised rows; it is shown apart, as MEASURED, only when it disagrees.
+   * `parts.power.totalProductionEc` never feeds PROD/NET, which always sum the itemised rows; it is shown apart, as measured, only when it disagrees.
    *
    * A held figure is withheld, since it would manufacture a disagreement out of two readings taken at different times.
    */

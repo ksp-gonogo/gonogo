@@ -9,7 +9,7 @@ namespace Gonogo.KSP.Career
     /// <c>UpgradeableFacility</c> seen for it, so a scene with no live component
     /// can still price and apply an upgrade.
     ///
-    /// <para>Only SPACECENTER, EDITOR and FLIGHT register the KSC's components with
+    /// <para>Only SPACECENTER, editor and flight register the KSC's components with
     /// <c>ScenarioUpgradeableFacilities</c>; TRACKSTATION leaves every
     /// <c>facilityRefs</c> empty. The save still carries the tier there, as the
     /// normalised <c>lvl</c> on <c>ProtoUpgradeable.configNode</c>, but the count

@@ -32,7 +32,7 @@ import { type ReachEntry, reachVerdict } from "./transferData";
 
 /**
  * The reach list: which destinations this craft can get to on its current
- * budget, cheapest first. The verdict column is DROPPED when there is no budget:
+ * budget, cheapest first. The verdict column is dropped when there is no budget:
  * an empty column invites a verdict nobody can supply.
  */
 export function ReachList({

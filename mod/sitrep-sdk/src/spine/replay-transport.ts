@@ -25,7 +25,7 @@ export interface ReplayFixture {
 
 export interface ReplayTransportOptions {
   /**
-   * Drives WHEN each frame is delivered. Never real wall time, this is the
+   * Drives when each frame is delivered. Never real wall time, this is the
    * whole point of `ReplayTransport` as the no-KSP iteration engine: a test
    * (or a headless replay screen) injects a deterministic clock so "replay
    * this recorded flight"
@@ -44,7 +44,7 @@ export interface ReplayTransportOptions {
 }
 
 interface ScheduledFrame {
-  /** Offset (seconds) from the FIRST frame's `deliveredAt`, what actually drives scheduling, never the fixture's raw absolute UT (which belongs to the ORIGINAL recording session, not this replay's clock). */
+  /** Offset (seconds) from the first frame's `deliveredAt`, what actually drives scheduling, never the fixture's raw absolute UT (which belongs to the original recording session, not this replay's clock). */
   offsetFromStart: number;
   message: ServerMessage;
 }

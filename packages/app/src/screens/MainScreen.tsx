@@ -136,8 +136,8 @@ const DEFAULT_NAME_FOR: Record<Screen, string> = {
  * its children with no provider and the widget builds its own log over the peer
  * link.
  *
- * The log is NOT a thread on anybody else's behalf. What it holds is what
- * reached THIS vantage, and the reason it is built here rather than in the
+ * The log is not a thread on anybody else's behalf. What it holds is what
+ * reached this vantage, and the reason it is built here rather than in the
  * widget is that a message addressed here arrives whether or not the tile is on
  * the dashboard, and the relay has to keep running for the other stations.
  */
@@ -155,7 +155,7 @@ function CommcastLogProviderOrPassthrough({
 /**
  * What a pilot sees when there is no craft to be aboard.
  *
- * NOT an error, and not a blank page. The operator is in the VAB or the
+ * Not an error, and not a blank page. The operator is in the VAB or the
  * tracking station and there is simply no vessel; a widget area that says so is
  * the honest answer, and the shared thread keeps working underneath because a
  * pilot sitting on the ground is still someone their crew can talk to.
@@ -204,7 +204,7 @@ const NoActiveVessel__Body = styled.div`
  * The direct-WS screen, at whichever seat the route puts it.
  *
  * `"main"` is a command centre at KSC and hosts the peer mesh; `"pilot"` is a
- * human aboard the craft, which is a different SEAT on the same transport and
+ * human aboard the craft, which is a different seat on the same transport and
  * is not a host. The two share this file rather than forking it because the
  * twenty-deep provider tower below is the thing that would drift, and every
  * genuine difference between them is one of the three values threaded from
@@ -488,7 +488,7 @@ function MainDashboard({
  * `@ksp-gonogo/data` (where it lives) has no access to `@ksp-gonogo/app`'s
  * `SettingsService`: this tiny wrapper bridges the two, and must be
  * rendered inside `<SettingsProvider>` (unlike `MainScreen` itself, which
- * constructs the `SettingsService` instance but sits OUTSIDE its own
+ * constructs the `SettingsService` instance but sits outside its own
  * provider's subtree).
  */
 function FlightsFabWithMissionHistory() {

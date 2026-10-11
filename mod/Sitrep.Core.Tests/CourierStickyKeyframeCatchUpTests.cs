@@ -9,7 +9,7 @@ namespace Sitrep.Core.Tests
     /// <see cref="Courier.SubscribeStream"/>'s sticky-keyframe catch-up
     /// (<see cref="Courier.Record"/>'s <c>isKeyframe</c> parameter): a
     /// subscriber joining a <see cref="Delivery.ReliableOrdered"/> topic
-    /// AFTER a keyframe and some diffs have already been recorded must catch
+    /// after a keyframe and some diffs have already been recorded must catch
     /// up on the sticky keyframe, never on the bare trailing diff, which has
     /// no baseline a brand-new subscriber could apply it to.
     /// </summary>

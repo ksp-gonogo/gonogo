@@ -3,13 +3,13 @@
  * on the host.
  *
  * The fixture's `vessel.control.sas` is `false`, so configuring the
- * widget for action group "SAS" produces a deterministic OFF readout:
+ * widget for action group "SAS" produces a deterministic off readout:
  *   - Group label: "SAS"
  *   - State indicator: "OFF"
  *
  * Station-side assertion scope: only the "SAS" label (static, config-driven)
  * is checked on the station, the "OFF" state comes from live Sitrep stream
- * data, and only the MAIN screen mounts `SitrepTelemetryProvider` today
+ * data, and only the main screen mounts `SitrepTelemetryProvider` today
  * (station stream forwarding over PeerJS is a documented pending gap, see
  * that provider's own doc comment). Checking "OFF" on the station would
  * fail for that reason, not a widget or harness bug.

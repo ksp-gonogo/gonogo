@@ -7,7 +7,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// A vantage read answers only for a topic somebody is SUBSCRIBED to, and
+    /// A vantage read answers only for a topic somebody is subscribed to, and
     /// that is a property of the archive rather than of the read.
     ///
     /// <para>Both paths that feed the archive check the subscription first: the

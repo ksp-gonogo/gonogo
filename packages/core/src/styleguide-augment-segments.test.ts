@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * A widget-authored augment slot must not be named after a FRAMEWORK segment.
+ * A widget-authored augment slot must not be named after a framework segment.
  *
  * `Panel` mounts `${componentId}.sections` and `${componentId}.actions` for
- * every widget, whether or not that widget asked. A widget that ALSO renders
+ * every widget, whether or not that widget asked. A widget that also renders
  * `<AugmentSlot name="its-own-id.sections">` therefore has two mounts on one
  * string, and every augment bound to it renders twice: once with the widget's
  * props and once with the segment's empty ones. Augments have no dedupe, so
@@ -20,10 +20,10 @@ import { describe, expect, it } from "vitest";
  * position and one more (`warp-control.actions`) was body-inline under a name
  * the framework now owns.
  *
- * The rule is a NAMING one and it is cheap: a per-row or positioned slot is
+ * The rule is a naming one and it is cheap: a per-row or positioned slot is
  * named for what it addresses (`deployed-science.experiment`,
  * `experiments.instrument`, `crew-status.row-badges`), never for a segment. A
- * slot that genuinely IS the universal seam does not need a name at all: delete
+ * slot that genuinely is the universal seam does not need a name at all: delete
  * the render site and let `Panel` mount it, or place `<WidgetSections>` where it
  * belongs.
  */
@@ -35,8 +35,8 @@ const ROOTS = [join(REPO, "packages"), join(REPO, "mod")];
 
 /**
  * The segments `Panel` mounts for every widget. Duplicated from ui-kit's
- * `FRAMEWORK_AUGMENT_SEGMENTS` rather than imported: this file scans SOURCE
- * TEXT across packages that do not all depend on each other, and a scanner that
+ * `FRAMEWORK_AUGMENT_SEGMENTS` rather than imported: this file scans source
+ * text across packages that do not all depend on each other, and a scanner that
  * imports its own subject can be defeated by the subject changing. The unit test
  * beside the constant asserts the two agree.
  */

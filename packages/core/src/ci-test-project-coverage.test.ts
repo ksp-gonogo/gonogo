@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
  * That array is hand-maintained by construction and cannot stop being: the
  * solution cannot be tested wholesale while the KSP-linked projects reference a
  * gitignored KSP install, which is sound and documented in `ci.yml`'s own
- * SCOPING note. The problem is that **nothing noticed when the two drifted**,
+ * scoping note. The problem is that **nothing noticed when the two drifted**,
  * and the result was not a warning but a suite that silently never ran. Four
  * projects accumulated that way over four weeks (`GonogoAvionicsUplink.Tests`
  * and `GonogoTestFlightUplink.Tests` from 2026-07-22, `GonogoMechJebUplink.Tests`

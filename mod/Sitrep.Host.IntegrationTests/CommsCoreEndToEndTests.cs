@@ -11,20 +11,20 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// U5 "Layer A" synthetic end-to-end coverage for the CORE comms surface,
+    /// U5 "Layer A" synthetic end-to-end coverage for the core comms surface,
     /// the KSP-INDEPENDENT half of <c>Gonogo.KSP.CommsCoreUplink</c>. The real
     /// uplink is net472/KSP-facing (it hard-references the live-KSP
     /// <c>CommNetBackend</c>), so it can't build headless; this suite proves
-    /// everything the uplink does that ISN'T the live backend:
+    /// everything the uplink does that isn't the live backend:
     /// <list type="bullet">
-    /// <item>the exclusive <c>"comms"</c> capability ELECTION
+    /// <item>the exclusive <c>"comms"</c> capability election
     /// (<see cref="CommsElection"/>) resolves an <see cref="ICommsBackend"/>
     /// through the real <see cref="ChannelEngine"/> two-pass discovery path;</item>
-    /// <item>the core <see cref="SignalDelay"/> light-time math over that
+    /// <item>the core <see cref="SignalDelay"/> signal delay math over that
     /// backend's <see cref="CommsPath"/> geometry is delivered as the
-    /// <c>comms.delay</c> payload over a REAL ClientWebSocket, with the correct
+    /// <c>comms.delay</c> payload over a real ClientWebSocket, with the correct
     /// one-way seconds and <see cref="CommsDelaySource.SignalDelay"/> provenance;</item>
-    /// <item><c>comms.delay</c> is DELAYED, revealed one light-time after the
+    /// <item><c>comms.delay</c> is delayed, revealed one signal delay after the
     /// tick it was computed on. Gating it is not circular: what carries every
     /// Delayed channel is the engine's ledger, which the capture pass writes,
     /// and this channel is a readout off the same numbers.</item>
@@ -60,7 +60,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The delay reaches the wire one light-time after the geometry that
+        /// The delay reaches the wire one signal delay after the geometry that
         /// produced it, carrying its own <c>ValidAt</c>. This is the test that
         /// would have caught the classification silently reverting: it fails on
         /// a TrueNow <c>comms.delay</c>, because the frame then arrives on the
@@ -115,7 +115,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// SignalDelay flag OFF ⇒ <c>comms.delay</c> is still emitted (the
+        /// SignalDelay flag off ⇒ <c>comms.delay</c> is still emitted (the
         /// authority is always present) but carries 0 seconds /
         /// <see cref="CommsDelaySource.None"/>: the "no delay authority" state
         /// a consumer reads as pass-through, never mistaking the 0 for a
@@ -153,7 +153,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="ICommsBackend.Path"/> carries the hop geometry
         /// <see cref="SignalDelay"/> integrates over. This is the coverage for
         /// the shared <c>comms.*</c> readouts that don't (yet) have a wire
-        /// flatten: asserted against the SAME elected instance the wire
+        /// flatten: asserted against the same elected instance the wire
         /// <c>comms.delay</c> above is derived from.
         /// </summary>
         [Fact]

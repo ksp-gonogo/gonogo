@@ -23,7 +23,7 @@ function pickCurrentStage(
  * Register the built-in derived keys shipped with @ksp-gonogo/data.
  *
  * Called once from app setup (e.g. packages/app/src/dataSources/buffered.ts).
- * Tests that do not want derived-key side-effects should NOT call this.
+ * Tests that do not want derived-key side-effects should not call this.
  */
 export function registerBuiltinDerivedKeys(): void {
   registerDerivedKey({

@@ -17,14 +17,14 @@ namespace Sitrep.Contract.Tests
     /// <para>These are the first tests this type has ever had, which is most of
     /// the explanation for how it survived. They are contract-reflection tests,
     /// not integration tests: the question is whether a consumer that references
-    /// `Sitrep.Contract` and NOT the codegen package can reflect over it. This
+    /// `Sitrep.Contract` and not the codegen package can reflect over it. This
     /// project exists to be that consumer, and its csproj carries the rule.</para>
     /// </summary>
     public class ControlChannelDescriptorReflectionTests
     {
         /// <summary>
         /// Is the compile-time-only codegen package resolvable in this process?
-        /// It should NOT be: `Sitrep.Contract.csproj` references it
+        /// It should not be: `Sitrep.Contract.csproj` references it
         /// `PrivateAssets="all"` with no `runtime` asset, deliberately, because a
         /// deployed net472 assembly carrying Reinforced.Typings attributes would
         /// make Kopernicus fail to resolve them at KSP startup.
@@ -67,7 +67,7 @@ namespace Sitrep.Contract.Tests
 
         /// <summary>
         /// The regression. On the netstandard2.0 contract every property carries
-        /// Reinforced.Typings' `[TsProperty]`, and asking for ONE attribute type
+        /// Reinforced.Typings' `[TsProperty]`, and asking for one attribute type
         /// still makes the runtime materialise the property's whole attribute
         /// list, so the scan had to resolve an assembly that is correctly absent.
         /// It threw `FileNotFoundException` from inside the pending-uplink object

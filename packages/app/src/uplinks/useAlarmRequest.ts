@@ -13,7 +13,7 @@ import { DEFAULT_LEAD_SECONDS, DEFAULT_SUSTAIN_SECONDS } from "../alarms/types";
  * an alarm, and the app creates and owns the result.
  *
  * It routes through the `AlarmCreator` context that `AlarmsLauncherBridge`
- * already mounts around the dashboard on BOTH screens, rather than reaching for
+ * already mounts around the dashboard on both screens, rather than reaching for
  * an alarm service directly. That is the whole reason a station works for free:
  * on the main screen the creator lands on `AlarmHostService.addAlarm`, on a
  * station it lands on `AlarmClientService.addAlarm`, which sends the request to

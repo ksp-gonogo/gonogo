@@ -5,7 +5,7 @@ import type { ReplayFixture } from "./replay-transport";
 export interface StreamRecorderOptions {
   /**
    * Full-archive opt-in. When `true`, `start()` additionally subscribes to
-   * EVERY topic `getAllKnownTopicIds()` reports (`@ksp-gonogo/sitrep-sdk`: the
+   * every topic `getAllKnownTopicIds()` reports (`@ksp-gonogo/sitrep-sdk`: the
    * SDK's own topics plus every bare-primitive Uplink topic a loaded client has
    * registered) so the
    * resulting fixture can replay any widget's history, not just whatever the
@@ -110,7 +110,7 @@ export class StreamRecorder {
    * Stop capturing and return the `ReplayFixture` built from this session.
    * Idempotent-safe to call while not recording (returns whatever frames are
    * currently buffered, tearing down nothing extra). `subscribedTopics` is
-   * the set of topics actually OBSERVED, never a static declaration, so it
+   * the set of topics actually observed, never a static declaration, so it
    * stays accurate whether or not `recordAllTopics` forced extra subscriptions.
    */
   stop(): ReplayFixture {

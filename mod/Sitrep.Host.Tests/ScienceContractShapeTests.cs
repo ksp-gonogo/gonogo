@@ -16,14 +16,14 @@ namespace Sitrep.Host.Tests
     /// <c>Sitrep.Contract</c> payload types (<see cref="ExperimentEntry"/>,
     /// <see cref="LabEntry"/>) mirror: field name
     /// for field name, camelCase wire key for camelCase wire key, type for
-    /// type: the EXACT serialized shape <see cref="ScienceViewProvider"/>
+    /// type: the exact serialized shape <see cref="ScienceViewProvider"/>
     /// already emits. This is a typing change only: the wire is written by
     /// <c>JsonWriter</c> walking the typed entries the provider returns, so if
     /// the wire and the type ever drift (a field renamed, removed,
     /// added, or retyped on either side) this test fails, the guarantee that
     /// the contract type a widget codes against is byte-identical to the wire.
     ///
-    /// <para>Each channel's payload is a BARE ARRAY of the entry type (or
+    /// <para>Each channel's payload is a bare array of the entry type (or
     /// null), tagged via <c>[SitrepTopic(..., isArray: true)]</c>, so the
     /// element type's property set is what must match one emitted dictionary
     /// entry.</para>
@@ -189,7 +189,7 @@ namespace Sitrep.Host.Tests
         /// set (no extra, no missing), and every non-null value's JSON kind must
         /// match the corresponding property's (Nullable-unwrapped) type. Guards
         /// against a field added, removed, renamed, re-cased or retyped on
-        /// EITHER the provider, the writer or the contract type.
+        /// either the provider, the writer or the contract type.
         /// </summary>
         private static void AssertTypeMirrorsEntry(Type entryType, object? payload)
         {

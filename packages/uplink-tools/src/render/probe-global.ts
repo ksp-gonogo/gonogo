@@ -8,7 +8,7 @@
 export const RENDER_PROBE_GLOBAL = "__gonogoRenderProbe";
 
 /**
- * The attribute marking text the HARNESS drew, not the subject.
+ * The attribute marking text the harness drew, not the subject.
  *
  * A stand-in host is a `Panel` with a title, and that title sits inside `#root`
  * like everything else, so every check that reads the page reads it too. Both of
@@ -32,7 +32,7 @@ export const PROBE_CHROME_ATTR = "data-probe-chrome";
 export const SUPPLIED_ATTR = "data-uplink-supplied";
 
 /**
- * The contribution segments a stand-in host can actually DRAW, so a scene that
+ * The contribution segments a stand-in host can actually draw, so a scene that
  * names one needs no `_scene.hostWidget`.
  *
  * `Panel` renders every host's `<id>.badges` aside itself, through
@@ -40,7 +40,7 @@ export const SUPPLIED_ATTR = "data-uplink-supplied";
  * lands in the real widget. Measured, and the measurement is the reason this is
  * narrower than "any slot with a dot in it": a hostless
  * `ship-map.part-meters` scene renders a completely blank frame, because
- * `part-meters` is drawn by Ship Map's OWN body and a stand-in has none. Same
+ * `part-meters` is drawn by Ship Map's own body and a stand-in has none. Same
  * for the other two host-invariant segments, `meters` and `filters`: a widget
  * places `<WidgetMeters>` / `<FilterList>` in its body, the framework does not.
  *
@@ -51,7 +51,7 @@ export const SUPPLIED_ATTR = "data-uplink-supplied";
 export const HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"] as const;
 
 /**
- * The segments the framework aggregates for EVERY widget on top of the slots it
+ * The segments the framework aggregates for every widget on top of the slots it
  * declares, so a widget that places `<FilterList>` or `<WidgetMeters>` in its
  * body receives `<id>.filters` / `<id>.meters` contributions without listing
  * the slot. A scene naming such a host is buildable although the host's

@@ -1,25 +1,25 @@
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 
 /**
- * Commcast: ADDRESSED text between the people flying one mission, with
- * light-time applied across the one separation the message actually crosses.
+ * Commcast: addressed text between the people flying one mission, with
+ * signal delay applied across the one separation the message actually crosses.
  *
  * It is not a broadcast and it has no canonical transcript. A message names who
  * it is for, travels to them, and is acknowledged back; both ends keep only
  * what reached them. Two vantages therefore hold genuinely different message
- * SETS, not merely different orders, and that is the feature rather than a
+ * sets, not merely different orders, and that is the feature rather than a
  * consistency bug to be fixed by a server.
  */
 
 /**
  * Message modes. `members` is a change to a group's membership, carried and
  * delayed exactly like a message so it reaches each vantage after that
- * vantage's own light-time. Recorded audio and video are not built.
+ * vantage's own signal delay. Recorded audio and video are not built.
  */
 export type CommsMessageKind = "text" | "members" | "audio" | "video";
 
 /**
- * Who a message is for, or who it came from: a VANTAGE key, the same
+ * Who a message is for, or who it came from: a vantage key, the same
  * vocabulary `SetVantage` and `commandCentre.roster` use (`"ground:<name>"`,
  * `"vessel:<guid>"`).
  *
@@ -33,7 +33,7 @@ export type RecipientId = string;
 
 export interface CommsMessage {
   /**
-   * Stable for the life of the message, INCLUDING across a resend.
+   * Stable for the life of the message, including across a resend.
    *
    * This is the mechanism the single idempotent resend rests on rather than an
    * implementation detail: the recipient dedupes on it, so a resend whose
@@ -58,13 +58,13 @@ export interface CommsMessage {
   /** Which end of the light-path it was spoken from. */
   authorSeat: Seat;
   /**
-   * The author's `utNowEstimate()` at the FIRST send: their own present, which
-   * carries no delay term. NOT `confirmedEdgeUt()`, which is already a
-   * light-time behind and would push the reveal out to a round trip.
+   * The author's `utNowEstimate()` at the first send: their own present, which
+   * carries no delay term. Not `confirmedEdgeUt()`, which is already a
+   * signal delay behind and would push the reveal out to a round trip.
    */
   sentUt: number;
   /**
-   * The author's present at the LATEST transmission, equal to `sentUt` until a
+   * The author's present at the latest transmission, equal to `sentUt` until a
    * resend. Every leg the strip draws is measured from this one, because a
    * resend starts a fresh journey with a fresh acknowledgement window; `sentUt`
    * stays put so the log can say when the thing was first said.
@@ -78,7 +78,7 @@ export interface CommsMessage {
    * member at all (never a measured zero).
    *
    * The longest because it bounds the acknowledgement window: the farthest
-   * member is the last one who could answer. Each RECEIVER resolves its own
+   * member is the last one who could answer. Each receiver resolves its own
    * separation from the published matrix and falls back to this, which is
    * only reached when the matrix is absent and every member then shares the
    * one path-home figure anyway.
@@ -99,7 +99,7 @@ export interface CommsMessage {
   authorVesselId?: string;
   /**
    * The instant it reached this vantage, as the mod delivered it one
-   * light-time after it was said. Set on everything received; absent from this
+   * signal delay after it was said. Set on everything received; absent from this
    * screen's own words.
    */
   arrivedUt?: number;
@@ -109,7 +109,7 @@ export interface CommsMessage {
  * One end of a message's return leg: the recipient telling the author it
  * arrived.
  *
- * It is the delay UX and the LOSS SIGNAL in one. A vessel-to-vessel message
+ * It is the delay UX and the loss signal in one. A vessel-to-vessel message
  * that never lands is invisible to everyone by construction, so the only
  * evidence available anywhere is the absence of this, at the author.
  */
@@ -121,7 +121,7 @@ export interface CommsAck {
   seat: Seat;
   /** When the recipient acknowledged it. */
   atUt: number;
-  /** When the acknowledgement reached the author, one light-time later. */
+  /** When the acknowledgement reached the author, one signal delay later. */
   arrivedUt: number;
 }
 
@@ -129,7 +129,7 @@ export interface CommsAck {
  * One message this screen sent, and what has come back about it.
  *
  * The author's half of the ledger, and it lives here rather than on a host
- * because a vantage owns what reached IT. Nobody else's copy of this message
+ * because a vantage owns what reached it. Nobody else's copy of this message
  * carries the acknowledgements, and nobody else's needs to.
  */
 export interface OutboundMessage {
@@ -174,7 +174,7 @@ export interface CommcastLogSnapshot {
    * How many messages have been dropped off the front of each list to stay
    * under the cap, cumulative for this screen's lifetime.
    *
-   * A log that forgets must SAY it forgot. Silently shortening a transcript
+   * A log that forgets must say it forgot. Silently shortening a transcript
    * leaves an operator reading a gap as though nothing was said across it,
    * which is the one thing a comms log cannot do. The same claim the mod's own
    * recorder makes with `Meta.GapSinceUt` when its ring drops a sample.

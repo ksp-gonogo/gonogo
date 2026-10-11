@@ -7,7 +7,7 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// Turning a burn's delta-v into the two instants a finite burn actually
     /// has. The properties asserted here are physical, not arithmetic: a
-    /// craft gets lighter as it burns, so the halves of a burn do NOT take
+    /// craft gets lighter as it burns, so the halves of a burn do not take
     /// equal time, and the same burn flown later takes less time than it would
     /// have earlier.
     /// </summary>
@@ -25,7 +25,7 @@ namespace Sitrep.Host.Tests
             };
 
         /// <summary>
-        /// The FIRST half of a burn takes longer than the second, because the
+        /// The first half of a burn takes longer than the second, because the
         /// craft is heavier for it. A model that splits the duration evenly
         /// about the node is asserting constant mass, which is exactly the
         /// assumption a burn long enough to model breaks.
@@ -45,7 +45,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// With no mass change there is nothing for the rocket equation to
-        /// bite on, so the split IS even. Pinned because it is the degenerate
+        /// bite on, so the split is even. Pinned because it is the degenerate
         /// case the test above is contrasted against, and because a model that
         /// got this wrong would be wrong everywhere.
         /// </summary>
@@ -62,7 +62,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Burns are a sequence and each one spends what the last left. The
-        /// same delta-v flown second takes LESS time, because the craft
+        /// same delta-v flown second takes less time, because the craft
         /// carrying it is lighter.
         /// </summary>
         [Fact]

@@ -27,13 +27,13 @@ import { COINCIDENTAL, RENDER_GAP } from "./render-fixture-coverage.debt";
  * one artefact a human actually looks at, the render, shows the behaviour that
  * was there before. Nothing goes red. Three instances landed in one week:
  * a coverage field's unreadable-part states, six Principia
- * ground-track rows that stopped every render at LOWEST until commit
+ * ground-track rows that stopped every render at lowest until commit
  * `a718dd36a` gave them a fixture, and a ThermalStatus characterisation that
  * was green because it read the frame before its own emit.</p>
  *
  * <h3>The approximation, and what it cannot see</h3>
  *
- * <p>Three sets per widget, all keyed on FIELD NAMES:</p>
+ * <p>Three sets per widget, all keyed on field names:</p>
  *
  * <ul>
  * <li><b>universe</b>: the transitive field names the generated units
@@ -41,14 +41,14 @@ import { COINCIDENTAL, RENDER_GAP } from "./render-fixture-coverage.debt";
  *   the C# contract, so it is the one half of this that is not a guess</li>
  * <li><b>populated</b>: every key reached under `_stream.emits[].payload` (or
  *   `.value`) in any JSON fixture in that widget's `__fixtures__` dir, nesting
- *   and arrays included, counting a key only when its value is NOT null</li>
+ *   and arrays included, counting a key only when its value is not null</li>
  * <li><b>read</b>: identifiers the widget's own non-test `.ts`/`.tsx` files
  *   dereference (`.field`, or a destructuring binding), after esbuild strips
  *   the types and a second pass blanks strings and comments, intersected with
  *   the universe</li>
  * </ul>
  *
- * <p>The gap is `read` minus `populated`. It is a NAME comparison and it is
+ * <p>The gap is `read` minus `populated`. It is a name comparison and it is
  * unsound in both directions, deliberately, because the sound version needs
  * real dataflow and this one needs a regex:</p>
  *
@@ -60,7 +60,7 @@ import { COINCIDENTAL, RENDER_GAP } from "./render-fixture-coverage.debt";
  * <li>it is blind to any topic the descriptors do not carry, which today
  *   includes `crash.hasRecent` and every `*.available` flag, so
  *   a widget reading only those is graded against an empty universe</li>
- * <li>it reads only files sitting directly IN the widget's own directory, so a
+ * <li>it reads only files sitting directly in the widget's own directory, so a
  *   field dereferenced in a shared helper a level up is invisible</li>
  * <li>it unions the universes of every topic the fixtures emit, so a field read
  *   off topic A and populated by topic B reads as covered</li>
@@ -225,8 +225,8 @@ function topicFieldNames(
 /**
  * Keys a fixture actually carries, recursing through objects and arrays.
  *
- * A key whose value is null does NOT count. That is the case the gate is for:
- * `"firstCollisionUt": null` is a fixture declaring the field's ABSENCE, and
+ * A key whose value is null does not count. That is the case the gate is for:
+ * `"firstCollisionUt": null` is a fixture declaring the field's absence, and
  * the row that renders it is as unseen as if the key were missing.
  */
 function collectPopulatedFields(
@@ -337,7 +337,7 @@ function blankStringsAndComments(source: string): string {
 /**
  * Identifiers the source dereferences: `.field` and `{ field } = ...`.
  *
- * A quoted index access, `payload["field"]`, is deliberately NOT matched. The
+ * A quoted index access, `payload["field"]`, is deliberately not matched. The
  * string it needs has already been blanked by the pass above, and matching it
  * on the raw source instead would take every string in an array literal with
  * it, so a `paints: ["ROTOR"]` scene declaration would read as a field.

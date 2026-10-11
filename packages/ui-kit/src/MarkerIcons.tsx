@@ -166,7 +166,7 @@ export type MarkerId = keyof typeof SHAPES;
 
 /**
  * Every {@link MarkerId}, in the order a legend or contact sheet should show
- * them.
+ * them. Useful for building a legend that shows the operator every marker.
  *
  * @category Icons
  */
@@ -261,66 +261,77 @@ function makeMarker(id: MarkerId, displayName: string) {
 
 /**
  * The navball prograde marker: a ring with a centre dot and three ticks (top, left, right), in the prograde hue.
+ * Useful for marking the direction the vessel is travelling in for the operator.
  *
  * @category Icons
  */
 export const ProgradeIcon = makeMarker("prograde", "ProgradeIcon");
 /**
  * The navball retrograde marker: a ring with a centre cross and three ticks (two diagonal above, one below), in the prograde hue.
+ * Useful for marking the direction opposite to the vessel's travel for the operator.
  *
  * @category Icons
  */
 export const RetrogradeIcon = makeMarker("retrograde", "RetrogradeIcon");
 /**
  * The navball normal marker: an upward triangle with a centre dot, in the normal hue.
+ * Useful for marking the orbit normal direction for the operator.
  *
  * @category Icons
  */
 export const NormalIcon = makeMarker("normal", "NormalIcon");
 /**
  * The navball anti-normal marker: a downward triangle with a centre cross, in the normal hue.
+ * Useful for marking the direction opposite to the orbit normal for the operator.
  *
  * @category Icons
  */
 export const AntiNormalIcon = makeMarker("antiNormal", "AntiNormalIcon");
 /**
  * The navball radial-out marker: a small ring with a centre dot and four chevrons pointing outward, in the radial hue.
+ * Useful for marking the direction away from the body being orbited for the operator.
  *
  * @category Icons
  */
 export const RadialOutIcon = makeMarker("radialOut", "RadialOutIcon");
 /**
  * The navball radial-in marker: a small ring with a centre cross and four chevrons pointing inward, in the radial hue.
+ * Useful for marking the direction towards the body being orbited for the operator.
  *
  * @category Icons
  */
 export const RadialInIcon = makeMarker("radialIn", "RadialInIcon");
 /**
  * The navball manoeuvre-node marker: a diamond with a centre dot and a tick at the top, in the manoeuvre hue.
+ * Useful for marking the planned maneuver node for the operator.
  *
  * @category Icons
  */
 export const ManeuverIcon = makeMarker("maneuver", "ManeuverIcon");
 /**
  * The navball target marker: a square with corner rays and a centre dot, in the target hue.
+ * Useful for marking the direction to the target for the operator.
  *
  * @category Icons
  */
 export const TargetIcon = makeMarker("target", "TargetIcon");
 /**
  * The navball anti-target marker: a square with corner rays and a centre cross, in the target hue.
+ * Useful for marking the direction away from the target for the operator.
  *
  * @category Icons
  */
 export const AntiTargetIcon = makeMarker("antiTarget", "AntiTargetIcon");
 /**
  * The relative-velocity prograde marker (prograde in the target's frame): a ring with diagonal corner rays and a centre dot, in the target hue.
+ * Useful for marking the direction of the vessel's motion relative to the target for the operator.
  *
  * @category Icons
  */
 export const RelativePlusIcon = makeMarker("relativePlus", "RelativePlusIcon");
 /**
  * The relative-velocity retrograde marker (retrograde in the target's frame): a ring with diagonal corner rays and a centre cross, in the target hue.
+ * Useful for marking the direction opposite to the vessel's motion relative to the target for the operator.
  *
  * @category Icons
  */
@@ -330,12 +341,14 @@ export const RelativeMinusIcon = makeMarker(
 );
 /**
  * The parallel marker (along the target's own facing): two vertical rails with a centre dot, in the target hue.
+ * Useful for marking the direction along the target's own facing for the operator.
  *
  * @category Icons
  */
 export const ParallelPlusIcon = makeMarker("parallelPlus", "ParallelPlusIcon");
 /**
  * The anti-parallel marker (against the target's own facing): two vertical rails with a centre cross, in the target hue.
+ * Useful for marking the direction against the target's own facing for the operator.
  *
  * @category Icons
  */
@@ -346,7 +359,8 @@ export const ParallelMinusIcon = makeMarker(
 
 /**
  * The tangent direction of the Frenet frame that n-body flight plans are
- * expressed in. The same component as {@link ProgradeIcon}.
+ * expressed in. Useful for marking that direction on a flight plan for the
+ * operator. The same component as {@link ProgradeIcon}.
  *
  * @category Icons
  */
@@ -354,7 +368,8 @@ export const TangentIcon = ProgradeIcon;
 
 /**
  * The normal direction of the Frenet frame, pointing at the centre of
- * curvature. The same component as {@link RadialInIcon}.
+ * curvature. Useful for marking that direction on a flight plan for the
+ * operator. The same component as {@link RadialInIcon}.
  *
  * @category Icons
  */
@@ -362,7 +377,8 @@ export const FrenetNormalIcon = RadialInIcon;
 
 /**
  * The binormal direction of the Frenet frame, which is the orbit normal. The
- * same component as {@link NormalIcon}.
+ * same component as {@link NormalIcon}. Useful for marking that direction on a
+ * flight plan for the operator.
  *
  * @category Icons
  */
@@ -370,7 +386,9 @@ export const BinormalIcon = NormalIcon;
 
 /**
  * The marker component for each {@link MarkerId}, for callers driven by data
- * rather than JSX.
+ * rather than JSX. Useful for drawing the marker that names a navball mode for
+ * the operator. Used by the navball control surface to draw each autopilot
+ * mode's marker.
  *
  * @example
  * ```tsx

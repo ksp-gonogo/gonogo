@@ -6,14 +6,14 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation.Tests
 {
     /// <summary>
-    /// Reaching a frame centred on some OTHER body than the one a target orbits is
-    /// the PROVIDER's job, not the caller's.
+    /// Reaching a frame centred on some other body than the one a target orbits is
+    /// the provider's job, not the caller's.
     ///
     /// <para>It used to be the caller's: the visibility geometry held a list of
     /// conics and a direction flag per link, and summed them itself. That put the
     /// two-body assumption in the one place the seam could not reach, and it left
     /// the sign of each link as something a caller could state wrongly. Here the
-    /// caller states only WHAT it wants and WHERE it wants it expressed, and how the
+    /// caller states only what it wants and where it wants it expressed, and how the
     /// answer is reached is the implementation's business.</para>
     ///
     /// <para>Every expected value below is computed from single-body solves
@@ -41,7 +41,7 @@ namespace Sitrep.Propagation.Tests
 
         private static OrbitElements LaytheAboutJool() => Circular(27_184_000.0, JoolMu, 0.7);
 
-        /// <summary>The root's stored elements are NOT an orbit, exactly as KSP has it.</summary>
+        /// <summary>The root's stored elements are not an orbit, exactly as KSP has it.</summary>
         private static IReadOnlyList<SystemBody> Kerbol() => new[]
         {
             new SystemBody(-1, new OrbitElements(0.0, 1.0, 0, 0, 0, 0, 0, 0.0)),
@@ -80,7 +80,7 @@ namespace Sitrep.Propagation.Tests
 
         /// <summary>
         /// The sign that used to be a caller's to state, and so a caller's to get
-        /// wrong. Climbing SUBTRACTS: the frame sits on the far side of the body
+        /// wrong. Climbing subtracts: the frame sits on the far side of the body
         /// being climbed past. Adding instead is wrong by twice Kerbin's orbital
         /// radius, which is a plausible-looking number in the wrong place.
         /// </summary>

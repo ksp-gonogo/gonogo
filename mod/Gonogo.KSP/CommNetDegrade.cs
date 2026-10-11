@@ -38,7 +38,7 @@ namespace Gonogo.KSP
         /// touch.
         ///
         /// <para>Unknown rather than 1 in that case, and the distinction is the
-        /// point: a craft whose link the game says is down IS fully degraded,
+        /// point: a craft whose link the game says is down is fully degraded,
         /// while a tick where nothing could be read says nothing about the link
         /// at all. Rating the second as unusable would black a video feed out
         /// during a scene settle.</para>

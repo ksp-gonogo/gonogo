@@ -8,10 +8,10 @@ namespace Sitrep.Core.Tests
     /// told about a topic, with the delay applied from the Courier's own ledger.
     ///
     /// <para>The archive's read behaviour is pinned by its own suite and by the
-    /// golden fixtures. What can only be asserted HERE is that the delay comes
+    /// golden fixtures. What can only be asserted here is that the delay comes
     /// from the network rather than from the caller, which is the whole reason
     /// this method is on the Courier: a caller that looked the archive up itself
-    /// would be picking its own light time.</para>
+    /// would be picking its own signal delay.</para>
     /// </summary>
     public class CourierReadRawAtVantageTests
     {

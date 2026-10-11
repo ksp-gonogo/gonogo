@@ -8,11 +8,11 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// <c>Gonogo.KSP.ScetAlarmUplink</c>'s roster-publish shape, KSP-free: an
-    /// UNGATED sampled source (production's must be, its real effect is stopping
+    /// ungated sampled source (production's must be, its real effect is stopping
     /// the warp) publishing a list-shaped roster on a
     /// <see cref="Delivery.ReliableOrdered"/> channel.
     ///
-    /// <para>The decision of WHEN to publish is not transcribed here, it is the
+    /// <para>The decision of when to publish is not transcribed here, it is the
     /// shipped <see cref="ScetRosterAudience"/>, so these tests exercise the rule
     /// the uplink actually runs rather than a copy that would agree with itself
     /// forever. What is modelled is only the surrounding shape: the ungated
@@ -161,11 +161,11 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="ScetThresholdSources"/> resolves a threshold through, so the
     /// payload the archive records and the payload the snapshot reader builds
     /// are the same shape from the same source. Two readers disagreeing here
-    /// would be a disagreement about DELAY, which is what the equivalence gate
+    /// would be a disagreement about delay, which is what the equivalence gate
     /// is asking about, rather than about the wire.</para>
     ///
     /// <para>The delay and connectivity seams are production-shaped, as
-    /// <see cref="FreezeGateTestUplink"/> has them: the whole-network light-time
+    /// <see cref="FreezeGateTestUplink"/> has them: the whole-network signal delay
     /// a command vantage falls through to is driven by the tick's own
     /// <c>delay</c>, so one snapshot argument moves the OWLT the gate turns
     /// on.</para>

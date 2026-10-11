@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  *
  * This is not a style nitpick: a re-declared copy already caused a real
  * bug. A fix added `--color-nogo-on-status` to the theme package only;
- * `global.css` (which the app AND the render harness both actually load)
+ * `global.css` (which the app and the render harness both actually load)
  * kept its own stale copy of the `:root` block without the new token, so
  * the app silently fell back to inherited text colour on the NOGO badge,
  * making the contrast bug the fix was supposed to correct worse (2.04:1
@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
  * reason for the count to ever be anything else.
  *
  * If a consumer genuinely needs an app-local override, that's still
- * possible: scope it to a selector OTHER than `:root` (so it layers on
+ * possible: scope it to a selector other than `:root` (so it layers on
  * top of, rather than shadows, the shared token) and add the token name
  * to ALLOWED_LOCAL_OVERRIDES below with a comment explaining why. Do not
  * widen this test to allow a bare `:root` re-declaration.
@@ -42,8 +42,8 @@ function cssFiles(dir: string): string[] {
   return readdirSync(dir).filter((f) => f.endsWith(".css"));
 }
 
-/** Custom-property DECLARATIONS only (`--color-foo: ...`), not `var(--color-foo)`
- *  USAGES, which are the whole point of importing the tokens in the first place. */
+/** Custom-property declarations only (`--color-foo: ...`), not `var(--color-foo)`
+ *  usages, which are the whole point of importing the tokens in the first place. */
 function declaredColorTokens(css: string): string[] {
   const matches = css.matchAll(/(--color-[a-zA-Z0-9-]+)\s*:/g);
   return [...matches].map((m) => m[1]);

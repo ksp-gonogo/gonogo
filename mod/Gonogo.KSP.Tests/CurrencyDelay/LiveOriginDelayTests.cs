@@ -8,7 +8,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// <summary>
     /// The roster walk that turns an away event's vessel id into a measured
     /// delay: the step that was missing, so a craft with a working link home was
-    /// held for the silence deadline instead of its light-time.
+    /// held for the silence deadline instead of its signal delay.
     ///
     /// <para>The live roster and the CommNet read are both scene-bound and cannot
     /// be entered here, so they arrive as a sequence and a function. What is left

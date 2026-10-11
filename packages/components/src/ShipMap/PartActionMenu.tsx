@@ -10,7 +10,7 @@ export const INVOKE_PART_ACTION_COMMAND = "vessel.invokePartAction";
  * How many actions a part offers ("N actions available") on the hover
  * tooltip. Mounted only while a part is hovered, because mounting subscribes
  * and subscribing makes the mod enumerate that part. Under signal delay the
- * count arrives a light-time late, so the pending state says so rather than
+ * count arrives a signal delay late, so the pending state says so rather than
  * showing "0".
  */
 export function PartActionCount({ flightId }: Readonly<{ flightId: number }>) {

@@ -1,6 +1,6 @@
 /**
  * The listening model, through the whole widget: audio follows an explicit
- * monitor and NEVER the conversation that happens to be open.
+ * monitor and never the conversation that happens to be open.
  *
  * The unit suites own the arithmetic (`RadioSession.test.ts`) and the drawn
  * controls (`RadioIndicator.test.tsx`, `RadioMute.test.tsx`). What only the
@@ -8,7 +8,7 @@
  * the radio inside the composer would tear the session down on stepping back
  * to the inbox, cutting off whoever was mid-sentence, and opening another
  * conversation would build a fresh session that could not place the keying it
- * was already hearing. Which loop an operator can HEAR is a consequence of
+ * was already hearing. Which loop an operator can hear is a consequence of
  * where they are looking.
  *
  * Nothing internal is mocked. The real log, the real session, the real delay
@@ -38,7 +38,7 @@ const LIGHT_TIME = 240;
 /**
  * Spoken, and delivered here, far enough in the past that the playout hold is
  * already over at the fixture's clock, so one frame releases the chunk and the
- * test is about the MONITOR rather than about the timing, which its own suite
+ * test is about the monitor rather than about the timing, which its own suite
  * covers.
  */
 const SPOKEN_UT = -1000;
@@ -157,7 +157,7 @@ function scene() {
     log,
     played: radio.played,
     mount,
-    /** Key up and say one word: the transmission is left OPEN, which is what
+    /** Key up and say one word: the transmission is left open, which is what
      *  the light reports on. */
     begin(id: string, from: string, word: string) {
       const authorStationKey = `station-${from}`;

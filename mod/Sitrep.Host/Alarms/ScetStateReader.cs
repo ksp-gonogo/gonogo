@@ -9,7 +9,7 @@ namespace Sitrep.Host.Alarms
     public enum ScetReadingStatus
     {
         /// <summary>
-        /// Nothing to compare THIS TICK, and no statement about why. No vessel
+        /// Nothing to compare this tick, and no statement about why. No vessel
         /// loaded yet, the alarm's craft is not the one the payload describes,
         /// the path names nothing, or the value is not a finite number.
         ///
@@ -89,10 +89,10 @@ namespace Sitrep.Host.Alarms
     /// <summary>
     /// Getting a provenance stamp and a number out of one wire payload.
     ///
-    /// <para>Shared because the two readers differ ONLY in where the payload
+    /// <para>Shared because the two readers differ only in where the payload
     /// came from: <see cref="SnapshotScetStateReader"/> builds it from this
     /// tick's snapshot, <see cref="RevealedScetStateReader"/> takes the one the
-    /// archive says a vantage has been told. What a payload MEANS once you hold
+    /// archive says a vantage has been told. What a payload means once you hold
     /// it is the same question either way, and two copies of this walk would be
     /// two chances for a SCET alarm and its command-vantage twin to disagree for
     /// a reason that has nothing to do with delay.</para>
@@ -100,7 +100,7 @@ namespace Sitrep.Host.Alarms
     internal static class ScetPayload
     {
         /// <summary>
-        /// The payload's own provenance stamp, which is the ONLY thing that
+        /// The payload's own provenance stamp, which is the only thing that
         /// stops an alarm armed against one craft answering off another's
         /// readings after the player switches vessels. A payload that does not
         /// say who it is about is not an answer to a question that names a

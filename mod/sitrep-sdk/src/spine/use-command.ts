@@ -110,12 +110,12 @@ function isModFault(code: string): boolean {
 }
 
 /**
- * How long (real UT seconds) a dispatched id may go without EVER appearing
+ * How long (real UT seconds) a dispatched id may go without ever appearing
  * in `system.uplink.pending` before this hook gives up tracking it, the
  * graceful no-delay/LAN degradation path. A genuinely delayed command's
  * entry appears in the very next queue snapshot regardless of its own
  * `oneWaySeconds` (the reveal-gate stamps `dispatchedAt` the instant the
- * command leaves the ground station; only its RESOLUTION takes
+ * command leaves the ground station; only its resolution takes
  * `2*oneWaySeconds`), so this window only needs to outlast one queue
  * broadcast cycle, never a full round trip.
  */
@@ -166,12 +166,12 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   inFlight: InFlightCommand[];
   /**
-   * What this command IS on the rail's three axes, from what its owning
+   * What this command is on the rail's three axes, from what its owning
    * assembly declared (`railTagsForCommand(command)`). Handed straight to
    * `<CommandDelay>`, which reads the axes to pick a renderer rather than
    * asking what kind of command this is.
    *
-   * It replaced a two-valued `shape` field. That field was the CONTINUITY axis
+   * It replaced a two-valued `shape` field. That field was the continuity axis
    * under another name, and carrying both would have been two spellings of one
    * property, which is the drift this vocabulary exists to end.
    */
@@ -218,13 +218,13 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * (or an `overdue` one on a still-up path that never acks) can otherwise sit
    * forever with no user-facing out; `dismiss(id)` is that out. It filters this
    * hook's own `inFlight`, and because the handle is the shared channel into the
-   * panel's delay rail, a dismiss from the widget-top queue OR from the issuing
+   * panel's delay rail, a dismiss from the widget-top queue or from the issuing
    * control clears the entry in both. Handed to `<CommandDelay>` as
    * `handle.dismiss`.
    */
   dismiss: (id: string) => void;
   /**
-   * Every dispatch from this hook the GAME REFUSED, newest last, until the
+   * Every dispatch from this hook the game refused, newest last, until the
    * operator clears it with the same `dismiss`.
    *
    * Separate from `inFlight` because a refusal is not a delay state: it is
@@ -234,13 +234,13 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * nothing at all in most widgets, and at best as "command refused:
    * ModeUnavailable" in a message nobody renders.
    *
-   * Deliberately refusals ONLY. A `lost` command decided nothing and may well
+   * Deliberately refusals only. A `lost` command decided nothing and may well
    * have executed; saying it was refused would be a confident wrong answer, and
    * the queue already shows it as lost.
    */
   refusals: CommandRefusal[];
   /**
-   * Every dispatch from this hook that got NO ANSWER, newest last, until the
+   * Every dispatch from this hook that got "NO ANSWER", newest last, until the
    * operator clears it with the same `dismiss`.
    *
    * Separate from both `inFlight` and `refusals`, and it has to be. A loss can
@@ -254,7 +254,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   losses: CommandLoss[];
   /**
-   * Every dispatch from this hook that was reported LOST and then answered
+   * Every dispatch from this hook that was reported lost and then answered
    * after all, newest last, until the operator clears it with the same
    * `dismiss`. An entry here has left `losses`: the two are the same dispatch at
    * different moments, never two things to render side by side.
@@ -272,7 +272,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   founds: CommandFound[];
   /**
-   * Every dispatch from this hook that NEVER LEFT THIS MACHINE, newest last,
+   * Every dispatch from this hook that never left this machine, newest last,
    * until the operator clears it with the same `dismiss`. Like a found, an entry
    * here has left `losses`: one dispatch, one box.
    *
@@ -284,13 +284,13 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * command that provably did not run.
    *
    * Worth its own list rather than a flag on the loss, because it inverts the
-   * advice. A loss warns that re-sending may DOUBLE a command that already ran;
+   * advice. A loss warns that re-sending may double a command that already ran;
    * this one is safe to press again the moment there is a link, and that is the
    * whole reason an operator wants to be told.
    */
   undelivered: CommandUndelivered[];
   /**
-   * Every dispatch from this hook the mod answered with a FAULT rather than a
+   * Every dispatch from this hook the mod answered with a fault rather than a
    * reply, newest last, until the operator clears it with the same `dismiss`:
    * it expired or was cancelled on its way, a continuous input was dropped
    * where it would have waited, or a game load undid it. The mod said what
@@ -299,7 +299,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   failures: CommandFailure[];
   /**
-   * What the mod says about this command BEFORE anyone presses anything: the
+   * What the mod says about this command before anyone presses anything: the
    * standing verdict of its declared gates, off `system.uplink.gates`.
    *
    * `undefined` when the command declares no gates, or the stream is not
@@ -308,7 +308,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * control was before the channel existed, so a control that ignores this
    * field behaves exactly as it did.
    *
-   * A `blocked` gate is a reason to draw the control dark and SAY WHY. It is
+   * A `blocked` gate is a reason to draw the control dark and say why. It is
    * not a reason to make it unpressable and silent: see `CommandButton`.
    * While it blocks, `send` refuses locally with the gate's own reason and
    * dispatches nothing.
@@ -331,7 +331,7 @@ type TrackedResolution =
   | { kind: "classified"; item: InFlightCommand }
   /** No queue entry yet, but still within the never-tracked grace window; keep tracking, nothing to render yet. */
   | { kind: "waiting" }
-  /** Reached `predictedPhase: "due"` AND actually came back, stop tracking. */
+  /** Reached `predictedPhase: "due"` and actually came back, stop tracking. */
   | { kind: "resolved" }
   /** No queue entry ever arrived within the grace window, assume this dispatch never used the pending-uplink queue at all. */
   | { kind: "expired" };
@@ -345,7 +345,7 @@ type TrackedResolution =
  *
  * `acknowledged` is what stops a dispatch being dropped on faith. Reaching
  * `predictedPhase: "due"` under a connected path is not enough: the reply being
- * DUE does not mean one came, and a command nobody answered must not read as
+ * due does not mean one came, and a command nobody answered must not read as
  * one that arrived. The client knows the difference per dispatch and is asked
  * for it here.
  */

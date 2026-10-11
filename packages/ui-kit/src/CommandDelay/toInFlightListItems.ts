@@ -48,7 +48,7 @@ export const PHASE_PROGRESS: Record<InFlightListItem["phase"], number> = {
 };
 
 /**
- * An entry's TRUE progress along the 3-stage delay axis (0 just sent, 1 the
+ * An entry's true progress along the 3-stage delay axis (0 just sent, 1 the
  * end of the 3T span). `T = replyEtaSeconds - reachEtaSeconds`, which holds even once
  * `reachEtaSeconds` goes negative, or the sent-under delay for an entry with no reply
  * leg; elapsed is `T - reachEtaSeconds`. Falls back to a phase anchor when `T` or the

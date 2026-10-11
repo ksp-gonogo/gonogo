@@ -11,15 +11,15 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// The integration-test project's own tiny <see cref="ISitrepUplink"/>,
-    /// NOT a copy of <c>Gonogo.KSP.SystemUplink</c> (this project can't
+    /// not a copy of <c>Gonogo.KSP.SystemUplink</c> (this project can't
     /// reference the net472/KSP-referencing <c>Gonogo.KSP</c> assembly at
     /// all, per this project's own csproj comment), but a few lines instead
     /// of the ~300-line hand-copied <c>ReplayBodiesServer</c> the previous
-    /// design required. Registers TWO channels against the same
+    /// design required. Registers two channels against the same
     /// <see cref="ChannelEngine"/> the production mod uses:
     ///
     /// <list type="bullet">
-    /// <item><description><c>system.bodies</c>: the REAL retrofit, using
+    /// <item><description><c>system.bodies</c>: the real retrofit, using
     /// <see cref="SystemViewProvider.BuildSystemBodies"/> verbatim, exercised
     /// by <see cref="ReplayToWebSocketEndToEndTests"/>'s payload-shape
     /// assertions.</description></item>
@@ -92,10 +92,10 @@ namespace Sitrep.Host.IntegrationTests
     /// manifest/wiring (17 channels + 17 commands, verbatim from the real
     /// uplink) is duplicated here against a trivial
     /// <see cref="NoOpVesselActuator"/> rather than the real
-    /// <c>KspVesselActuator</c>. This milestone suite replays a REAL
+    /// <c>KspVesselActuator</c>. This milestone suite replays a real
     /// recording (snapshots + lifecycle events only: no client ever
     /// dispatches a command against it), so a no-op actuator is sufficient:
-    /// what's under test here is the READ pipeline (mapper -> channel ->
+    /// what's under test here is the read pipeline (mapper -> channel ->
     /// courier -> transport -> client) for every declared channel, not
     /// command actuation (already covered by <c>VesselCommandProviderTests</c>
     /// and this project's own command-dispatch tests). <c>FakeVesselActuator</c>
@@ -432,9 +432,9 @@ namespace Sitrep.Host.IntegrationTests
     /// §7.3 Steps 1–3). Declares three channels spanning the delay roles a raw
     /// (non-SDK) client sees over the wire:
     /// <list type="bullet">
-    /// <item><description><c>comms.delay</c>: the delay AUTHORITY. Its
+    /// <item><description><c>comms.delay</c>: the delay authority. Its
     /// <see cref="CommsDelay"/> payload sets the one-way delay the gate applies
-    /// to every Delayed channel. Declared TrueNow HERE, unlike production, so a
+    /// to every Delayed channel. Declared TrueNow here, unlike production, so a
     /// test can watch the authority land on the tick that set it; production
     /// declares the readout Delayed, and <see cref="TestCommsCoreUplink"/> is
     /// the fixture that mirrors that.</description></item>
@@ -540,17 +540,17 @@ namespace Sitrep.Host.IntegrationTests
     /// referencing and unreachable from this project (same cross-project
     /// rationale as <see cref="TestSystemUplink"/>'s doc comment), and it
     /// hard-references <c>Gonogo.KSP.CommNetBackend</c> (a live-KSP
-    /// <see cref="ICommsBackend"/>) as its vanilla factory. Everything ELSE
+    /// <see cref="ICommsBackend"/>) as its vanilla factory. Everything else
     /// the real uplink does is KSP-independent and reused verbatim here:
     /// <list type="bullet">
-    /// <item>it OWNS the exclusive <c>"comms"</c> capability via
+    /// <item>it owns the exclusive <c>"comms"</c> capability via
     /// <see cref="CommsElection.RegisterCapability"/> (the two-pass
     /// <see cref="IUplinkCapabilityDeclarer"/> path), but backed by a
     /// synthetic <see cref="FakeCommsBackend"/> that supplies hop geometry
     /// instead of the live CommNet backend;</item>
-    /// <item>it declares <c>comms.delay</c> as a DELAYED channel, exactly as
+    /// <item>it declares <c>comms.delay</c> as a delayed channel, exactly as
     /// the real uplink does, and sources
-    /// it from the CORE <see cref="SignalDelay.Compute"/> light-time math over
+    /// it from the core <see cref="SignalDelay.Compute"/> signal delay math over
     /// the elected backend's <see cref="CommsPath"/>: gonogo's own
     /// computation, resolved every tick via
     /// <c>Kernel.Query&lt;ICommsBackend&gt;</c>, exactly as the real uplink's
@@ -562,7 +562,7 @@ namespace Sitrep.Host.IntegrationTests
     /// can serialize to the wire today (the other comms payload POCOs,
     /// <see cref="CommsConnectivity"/> etc.: have no wire flatten and are
     /// covered at the contract/election level, see
-    /// <c>CommsCoreEndToEndTests</c>). It is also the one channel that DRIVES
+    /// <c>CommsCoreEndToEndTests</c>). It is also the one channel that drives
     /// the server-side reveal gate (<see cref="ChannelEngine"/>'s
     /// <c>RefreshSignalDelayFromCapability</c> reads exactly this registered
     /// source every tick), so it is the meaningful end-to-end comms surface.</para>
@@ -640,7 +640,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The one-way light-time (seconds) the core <see cref="SignalDelay"/>
+        /// The one-way signal delay (seconds) the core <see cref="SignalDelay"/>
         /// math produces for this uplink's synthetic hop geometry at real
         /// light-speed: the exact value a test asserts <c>comms.delay</c>
         /// carries on the wire.
@@ -724,23 +724,23 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// Registers <c>comms.delay</c> EXACTLY the way the bundled
+    /// Registers <c>comms.delay</c> exactly the way the bundled
     /// <c>Gonogo.KSP.CommsCoreUplink</c> does in production, via a
     /// <see cref="IUplinkHost.Publisher"/> plus a capture-on-main /
     /// handle-on-Courier <see cref="IUplinkHost.AddSampledSource"/>, declared
-    /// <see cref="DelayRole.TrueNow"/>: NOT via
-    /// <see cref="IUplinkHost.AddChannelSource"/> (the shape every OTHER
-    /// reveal-gate test uplink used, which happened to be the ONLY shape
+    /// <see cref="DelayRole.TrueNow"/>: not via
+    /// <see cref="IUplinkHost.AddChannelSource"/> (the shape every other
+    /// reveal-gate test uplink used, which happened to be the only shape
     /// <c>RefreshSignalDelayFromCapability</c> could read). This is the
     /// test-vs-production divergence that hid the reveal-gate bug: with this
     /// production shape, the reveal gate's delay authority was never set, so
     /// Delayed channels were delivered live despite a non-zero computed delay.
     ///
-    /// <para>The delay authority is ALSO advertised to the engine via
+    /// <para>The delay authority is also advertised to the engine via
     /// <see cref="IUplinkHost.SetSignalDelaySource"/>: the fix's
     /// subscription-independent, main-thread server-side seam, mirroring the
     /// real uplink. The Delayed channel is a plain pull source; the bug is in
-    /// how the delay AUTHORITY reaches the gate, independent of the delayed
+    /// how the delay authority reaches the gate, independent of the delayed
     /// channel's own registration.</para>
     /// </summary>
     internal sealed class ProdShapeCommsRevealUplink : ISitrepUplink
@@ -853,7 +853,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// Two role-carrying channels for the full-chain delay proof
     /// (<c>RevealGateTests.FullChainDelayOverRealBackendComputedDelay</c>):
-    /// deliberately WITHOUT a <c>comms.delay</c> channel of its own, so the
+    /// deliberately without a <c>comms.delay</c> channel of its own, so the
     /// delay authority is owned solely by <see cref="TestCommsCoreUplink"/>
     /// (whose value the reveal gate computes from real hop geometry). A
     /// <c>vessel.*</c>-shaped Delayed channel plus a <c>time.warp</c>-shaped
@@ -924,16 +924,16 @@ namespace Sitrep.Host.IntegrationTests
     /// Freeze-on-disconnect reveal-gate test uplink: mirrors
     /// <see cref="ProdShapeCommsRevealUplink"/>'s PRODUCTION-shape delay
     /// registration (subscription-independent <see cref="IUplinkHost.SetSignalDelaySource"/>)
-    /// and ADDS the CONNECTED/DISCONNECTED authority via
+    /// and adds the CONNECTED/DISCONNECTED authority via
     /// <see cref="IUplinkHost.SetConnectivitySource"/>, exactly as the bundled
     /// <c>Gonogo.KSP.CommsCoreUplink</c> does. Declares:
     /// <list type="bullet">
-    /// <item><c>comms.delay</c>: the delay authority, declared TrueNow HERE
+    /// <item><c>comms.delay</c>: the delay authority, declared TrueNow here
     /// (production declares it Delayed) and emitted on the wire so a test can
     /// prove a TrueNow channel keeps flowing during an outage.</item>
     /// <item><c>freeze.truenow</c>: TrueNow; a second live-through-outage
     /// proof carrying a plain double.</item>
-    /// <item><c>freeze.delayed</c>: Delayed; the channel that must FREEZE
+    /// <item><c>freeze.delayed</c>: Delayed; the channel that must freeze
     /// (withheld, never revealed) while the link is down.</item>
     /// </list>
     /// The tick snapshot carries <c>connected</c> (bool), <c>delay</c>,
@@ -1080,30 +1080,30 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// Same shape as <see cref="FreezeGateTestUplink"/>, for exactly ONE test
+    /// Same shape as <see cref="FreezeGateTestUplink"/>, for exactly one test
     /// (<c>RevealGateTests.ConnectivityMetaTopicRevealsDisconnectEdgeThroughFreeze</c>)
     /// that needs to assert the connectivity MetaTopic's disconnect edge
     /// reveals at its correct <c>_lastConnectedDelaySeconds</c> horizon, not
     /// early. <see cref="FreezeGateTestUplink"/> itself can't be used for that:
-    /// it registers <c>comms.delay</c> via BOTH <c>host.SetSignalDelaySource</c>
-    /// (Path 1, the production-shape authoritative source) AND
+    /// it registers <c>comms.delay</c> via both <c>host.SetSignalDelaySource</c>
+    /// (Path 1, the production-shape authoritative source) and
     /// <c>host.AddChannelSource(ChannelEngine.CommsDelayTopic, ...)</c> (Path 2,
     /// the legacy pull-style fallback <c>RefreshSignalDelayFromCapability</c>
     /// keeps for uplinks that only register that way), so on the very tick
     /// the delay collapses (disconnect), <c>ChannelEngine.CaptureSignalDelay</c>
-    /// runs TWICE with the tick's incoming value: the first call correctly
+    /// runs twice with the tick's incoming value: the first call correctly
     /// snapshots the outgoing (pre-collapse) delay into
     /// <c>_lastConnectedDelaySeconds</c>, but the second call re-snapshots
-    /// using the value the FIRST call just wrote, which is already the new,
+    /// using the value the first call just wrote, which is already the new,
     /// collapsed one: clobbering it back to 0 before <c>RevealDelayFor</c>
     /// ever reads it. The three other <see cref="FreezeGateTestUplink"/>-based
-    /// tests never notice (none of them assert reveal TIMING on a channel
+    /// tests never notice (none of them assert reveal timing on a channel
     /// whose delay changes mid-run), and production's real
     /// <c>Gonogo.KSP.CommsCoreUplink</c> never double-registers (it delivers
     /// <c>comms.delay</c>/<c>comms.link</c> via <c>AddSampledSource</c>, using
     /// <c>SetSignalDelaySource</c>/<c>SetConnectivitySource</c> purely as the
     /// gate-authority seam): so this dual-registration quirk is a property
-    /// of that ONE shared test fixture, not a reachable production bug. This
+    /// of that one shared test fixture, not a reachable production bug. This
     /// uplink is the fixture-side fix: it keeps Path 1 (matching production)
     /// and drops the redundant Path 2 registration for <c>comms.delay</c>,
     /// harmless here since the one test using it never subscribes to
@@ -1157,7 +1157,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The DROP EVENT, raised on the tick whose snapshot carries
+        /// The drop event, raised on the tick whose snapshot carries
         /// <c>breakOut</c>: how far out along the route, in light-seconds, a hop
         /// stopped carrying. Silent on every other tick, so every fixture that
         /// never sets it is byte-for-byte unaffected.
@@ -1292,7 +1292,7 @@ namespace Sitrep.Host.IntegrationTests
     /// Exercises <see cref="IUplinkHost.RegisterDynamicNamespace"/>: the
     /// contract's dynamic-topic mechanism (see
     /// <c>.superpowers/sdd/contract-dynamic-delay-report.md</c>). Registers
-    /// ONE dynamic namespace (<see cref="Prefix"/>) with a template
+    /// one dynamic namespace (<see cref="Prefix"/>) with a template
     /// declaration, then lets a test publish to any runtime-computed
     /// sub-topic under it via <see cref="PublishTo"/> without that sub-topic
     /// ever appearing in <see cref="Manifest"/>.
@@ -1397,14 +1397,14 @@ namespace Sitrep.Host.IntegrationTests
     /// Recoverable-fail-soft reveal-gate test uplink, the headless proxy for
     /// the live-KSP regression where the server-side signal-delay /
     /// connectivity source (<c>Gonogo.KSP.CommsCoreUplink.ComputeDelayOnMain</c>
-    /// / <c>ComputeConnectedOnMain</c>) THREW ONCE during scene settle (a
+    /// / <c>ComputeConnectedOnMain</c>) threw once during scene settle (a
     /// transiently-unloaded vessel with no CommNet control path) and the old
-    /// fail-soft PERMANENTLY disabled the source + marked the whole comms uplink
-    /// Unavailable: killing ALL comms.* channels + delay enforcement for the
+    /// fail-soft permanently disabled the source + marked the whole comms uplink
+    /// Unavailable: killing all comms.* channels + delay enforcement for the
     /// rest of the session. Mirrors <see cref="FreezeGateTestUplink"/>'s
-    /// production-shape seams, but the delay/connectivity closures THROW on any
+    /// production-shape seams, but the delay/connectivity closures throw on any
     /// tick whose snapshot carries <c>throwDelay</c> / <c>throwConn</c>, so a
-    /// test can assert the source is RETRIED (uplink stays Available, delay
+    /// test can assert the source is retried (uplink stays Available, delay
     /// enforcement resumes) on the next non-throwing tick.
     /// </summary>
     internal sealed class RecoverableSourceTestUplink : ISitrepUplink
@@ -1540,8 +1540,8 @@ namespace Sitrep.Host.IntegrationTests
 
     /// <summary>
     /// Reveal-gate-meets-reliable-outbox test uplink for the invariant that a
-    /// revert BEFORE an un-revealed event's reveal
-    /// horizon must ERASE it from the reliable-ordered replay lane, not just
+    /// revert before an un-revealed event's reveal
+    /// horizon must erase it from the reliable-ordered replay lane, not just
     /// the change-gated lossy one. Modeled directly on the shape
     /// <c>Gonogo.KSP.CrashUplink</c>/<c>RecoveryUplink</c> actually ship:
     /// <c>Delay = DelayRole.Delayed</c>, <c>Delivery = Delivery.ReliableOrdered</c>,
@@ -1549,7 +1549,7 @@ namespace Sitrep.Host.IntegrationTests
     /// one-shot "last event" channel, not a cadence stream), published via
     /// <see cref="PublishEvent"/> (an event-driven <see cref="IChannelPublisher.Publish"/>
     /// call, exactly like <c>CrashUplink.HandleCrash</c>'s
-    /// <c>_lastCrash?.Publish(...)</c>), NOT a tick-mapped
+    /// <c>_lastCrash?.Publish(...)</c>), not a tick-mapped
     /// <see cref="IUplinkHost.AddChannelSource"/>: so a test can publish an
     /// event at an arbitrary UT independent of the tick snapshot, the same
     /// way a live crash/recovery GameEvents callback fires independent of
@@ -1620,10 +1620,10 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// Mirrors the GonogoScansatUplink capture->publish shape EXACTLY: a
+    /// Mirrors the GonogoScansatUplink capture->publish shape exactly: a
     /// dynamic namespace whose per-sample capture is subscription-gated on the
-    /// namespace PREFIX (<see cref="IUplinkHost.AddSampledSource"/> prefix
-    /// overload), publishing to a DOTTED sub-topic (<c>Prefix + "Kerbin.1"</c>,
+    /// namespace prefix (<see cref="IUplinkHost.AddSampledSource"/> prefix
+    /// overload), publishing to a dotted sub-topic (<c>Prefix + "Kerbin.1"</c>,
     /// the shape <c>ScanChannels.BodyTypeSubTopic</c> produces:
     /// <c>scansat.coverage.Kerbin.1</c>). Used to reproduce, headlessly, the
     /// live finding that a 4-segment per-(body,type) subscribe does not open
@@ -1673,10 +1673,10 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// A sampled source whose capture THROWS while <see cref="StopThrowing"/>
+    /// A sampled source whose capture throws while <see cref="StopThrowing"/>
     /// hasn't been called: the headless analogue of GonogoScansatUplink's
     /// CaptureOnMain throwing on an early tick because Planetarium isn't ready
-    /// yet. Used to prove a source disabled by an early capture throw RECOVERS
+    /// yet. Used to prove a source disabled by an early capture throw recovers
     /// (re-runs) once the capture stops throwing, rather than being permanently
     /// disabled + its owner marked Unavailable.
     /// </summary>
@@ -1731,9 +1731,9 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// The live SCANsat coverage shape that plain delivery tests miss: a DELAYED
-    /// (reveal-gated) DYNAMIC per-(body,type) topic whose keyframe is published
-    /// exactly ONCE (keyframe-on-change, the grid stops changing after the first
+    /// The live SCANsat coverage shape that plain delivery tests miss: a delayed
+    /// (reveal-gated) dynamic per-(body,type) topic whose keyframe is published
+    /// exactly once (keyframe-on-change, the grid stops changing after the first
     /// capture), while a real comms delay is active. `scansat.available` is TrueNow
     /// (bypasses the reveal gate) and delivers fine; coverage is Delayed and, live,
     /// never reached the subscriber. This uplink reproduces that combination
@@ -1812,10 +1812,10 @@ namespace Sitrep.Host.IntegrationTests
 
     /// <summary>
     /// Mirrors GonogoScansatUplink's grid channels + late-subscriber reseed: a
-    /// DELAYED dynamic per-body topic whose keyframe is published exactly ONCE
+    /// delayed dynamic per-body topic whose keyframe is published exactly once
     /// (like biome/height). With <c>reseedOnSubscribe</c>, it caches the last
     /// published payload and, on a new subscribe (OnSubscribed), re-emits it at the
-    /// CURRENT ut: so a keyframe first published while the vessel was disconnected
+    /// current ut: so a keyframe first published while the vessel was disconnected
     /// (withheld forever by the reveal gate's ConnectivityAt(entry.Ut)) still seeds
     /// a subscriber that joins after reconnect. Drive connectivity/delay with
     /// <see cref="FreezeGateTestUplink"/> in the same engine.

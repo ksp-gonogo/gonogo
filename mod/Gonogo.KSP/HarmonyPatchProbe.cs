@@ -63,7 +63,7 @@ namespace Gonogo.KSP
         /// Every Harmony 2 install in this process, asked about
         /// <paramref name="original"/>.
         ///
-        /// <para>No Harmony loaded means nothing patched THROUGH HARMONY. This
+        /// <para>No Harmony loaded means nothing patched through harmony. This
         /// reads Harmony's own registry and nothing else, so a mod that detours a
         /// method by some other means is invisible to it.</para>
         /// </summary>

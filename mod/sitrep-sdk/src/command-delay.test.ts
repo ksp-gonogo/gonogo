@@ -133,7 +133,7 @@ describe("classifyRetained", () => {
   /**
    * The mod ages an entry out at exactly `DispatchedAt + 2*OneWaySeconds`
    * (`ChannelEngine.PrunePendingUplinks`), so `present` is false for every
-   * command that is LATE. Gating `overdue` on queue presence therefore made
+   * command that is late. Gating `overdue` on queue presence therefore made
    * the phase unreachable and read every unanswered command as an arrival.
    */
   it("goes overdue past reply + margin even once the queue has aged the entry out", () => {
@@ -153,7 +153,7 @@ describe("classifyRetained", () => {
   });
 
   /**
-   * The reply instant is the dispatch offset by TWO one-way legs, and the
+   * The reply instant is the dispatch offset by two one-way legs, and the
    * overdue margin is a duration added to that instant, not an instant of its
    * own. Dispatch 100, leg 4, margin 5: reply at 108, overdue past 113.
    *

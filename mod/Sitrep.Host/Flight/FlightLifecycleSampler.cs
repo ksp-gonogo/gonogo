@@ -15,22 +15,22 @@ namespace Sitrep.Host.Flight
     /// arrive via <see cref="SignalEnd"/> from the KSP-facing uplink and are
     /// drained here, on the Courier thread, at the top of every <see cref="Sample"/>.
     ///
-    /// <para><b>Why REVERT needs no GameEvent hook at all:</b> a revert (or an F9 quickload) is
-    /// ALREADY, unambiguously signalled by <c>KspSnapshot.Ut</c> jumping
+    /// <para><b>Why revert needs no GameEvent hook at all:</b> a revert (or an F9 quickload) is
+    /// already, unambiguously signalled by <c>KspSnapshot.Ut</c> jumping
     /// backward: the exact same signal <c>ChannelEngine.ProcessTick</c>
     /// itself uses to trigger <c>Courier.ResetTimeline</c> +
     /// <c>_revealBuffer.Clear()</c>, and the exact same signal
     /// <c>VesselEpochSampler</c> already uses for its own rewind-aware
     /// resync. Driving revert detection off a raw GameEvent instead would
-    /// race the engine's OWN rewind branch: <c>ChannelEngine.ProcessTick</c>
-    /// runs its rewind check, THEN every registered <see cref="ISnapshotSampler"/>,
-    /// in that fixed order, every tick: so a publish made from INSIDE
-    /// <see cref="Sample"/> is GUARANTEED to land strictly after this same
+    /// race the engine's own rewind branch: <c>ChannelEngine.ProcessTick</c>
+    /// runs its rewind check, then every registered <see cref="ISnapshotSampler"/>,
+    /// in that fixed order, every tick: so a publish made from inside
+    /// <see cref="Sample"/> is guaranteed to land strictly after this same
     /// tick's <c>_revealBuffer.Clear()</c> (if this tick triggered one),
     /// never at risk of being wiped by the very clear it needs to survive. A
     /// publish fired eagerly off a main-thread GameEvent handler instead has
     /// no such guarantee: it could race ahead of the engine's own tick and
-    /// get erased by the SAME unconditional clear that (correctly) erases a
+    /// get erased by the same unconditional clear that (correctly) erases a
     /// genuinely un-revealed counterfactual. See
     /// <c>RevertBeforeRevealErasesAReliableOrderedDelayedEventForever</c>
     /// (commit <c>82132a08</c>) for the proof this clear must stay
@@ -39,15 +39,15 @@ namespace Sitrep.Host.Flight
     /// </para>
     ///
     /// <para><b>started vs. vesselChanged:</b> <see cref="FlightStarted"/>
-    /// fires for a vessel id this SESSION has never announced as started
+    /// fires for a vessel id this session has never announced as started
     /// before (a genuine launch, or deliberately, see <see cref="Sample"/>,
-    /// EVERY vessel active immediately after a rewind, even a same-id
+    /// every vessel active immediately after a rewind, even a same-id
     /// quickload-resume, since a rewind is treated as a hard timeline reset
     /// for lifecycle purposes). <see cref="FlightVesselChanged"/> fires on
-    /// every OTHER active-vessel-id transition (docking/undocking/
+    /// every other active-vessel-id transition (docking/undocking/
     /// tracking-station reselect): switching focus away from a still-flying
     /// vessel does not end its flight, and switching back to a known one is
-    /// not a new flight. An EVA is NOT one of those transitions any more:
+    /// not a new flight. An EVA is not one of those transitions any more:
     /// <c>Gonogo.KSP.ActiveVesselScope</c> goes on reporting the craft the
     /// kerbal stepped out of, so the id does not move and no flight changes
     /// hands for the walk outside.</para>
@@ -66,8 +66,8 @@ namespace Sitrep.Host.Flight
     /// publishes answers the wrong question: what matters is whether anyone is
     /// listening who has not been told. <see cref="AnnounceStartedIfUnheard"/>
     /// therefore asks the subscription (the same shape as
-    /// <c>Sitrep.Host.Alarms.ScetRosterAudience</c>) and re-announces the OPEN
-    /// flight, carrying its ORIGINAL start instant: a flight did not start
+    /// <c>Sitrep.Host.Alarms.ScetRosterAudience</c>) and re-announces the open
+    /// flight, carrying its original start instant: a flight did not start
     /// when an operator opened the dashboard, and that instant is also what
     /// lets a client tell a re-announce from a revert's genuinely new start
     /// for the same vessel id.</para>
@@ -162,7 +162,7 @@ namespace Sitrep.Host.Flight
         /// <summary>
         /// Courier-thread, tick-driven. Order matters: draining
         /// <see cref="_pendingEnds"/> first means a crash/recovery signalled
-        /// just before a rewind is applied BEFORE the rewind branch below
+        /// just before a rewind is applied before the rewind branch below
         /// re-derives <see cref="_activeVesselId"/> from this tick's
         /// snapshot: so an already-ended flight is never double-ended by
         /// the revert branch too.
@@ -316,10 +316,10 @@ namespace Sitrep.Host.Flight
         /// answers the wrong question.
         ///
         /// <para>The payload and the wire stamp both carry the flight's
-        /// ORIGINAL start UT rather than now. That keeps the event honest (a
+        /// original start UT rather than now. That keeps the event honest (a
         /// flight begun an hour ago did not begin when someone opened a
         /// dashboard), puts the frame on the timeline where it belongs, and
-        /// reveals it immediately, since its light-time elapsed long ago.</para>
+        /// reveals it immediately, since its signal delay elapsed long ago.</para>
         /// </summary>
         private void AnnounceStartedIfUnheard()
         {

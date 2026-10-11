@@ -17,7 +17,7 @@ import {
 } from "./release";
 
 /**
- * `bake` is exercised through the BIN, not the exported function, because the
+ * `bake` is exercised through the bin, not the exported function, because the
  * bin is what an author's release script calls. A test that imports `run` would
  * pass with a broken shim, an absent `bin` entry, or a dist that does not load.
  */

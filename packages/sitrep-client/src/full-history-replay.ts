@@ -16,7 +16,7 @@ import { ViewClock } from "./view-clock";
  * fixture spanning a revert routinely carries more than one distinct
  * `timelineEpoch`. Replayed as-is through the shared `TelemetryClient` →
  * `TimelineStore.ingest` path, the epoch bump on the first post-revert frame
- * triggers the SAME cross-topic "ghost data" sweep the live view relies on
+ * triggers the same cross-topic "ghost data" sweep the live view relies on
  * (`ClientTimeline.adoptEpoch`, `timeline-store.ts` `ingest`): every topic's
  * buffer is wiped, and `sampleRange` gates any topic still behind the new
  * epoch to `[]` (`timeline-store.ts` `sampleRange`). That's correct for the
@@ -55,7 +55,7 @@ function stripEpochs(fixture: ReplayFixture): ReplayFixture {
  * wall time) so any caller that compares successive `now()` reads for
  * ordering still sees forward progress, even though no real time elapses.
  *
- * `schedule` does NOT fire `fn` immediately, it queues it. This matters:
+ * `schedule` does not fire `fn` immediately, it queues it. This matters:
  * `ReplayTransport`'s constructor arms (calls `clock.schedule` for) its whole
  * frame list synchronously, before the caller has had a chance to construct
  * a `TelemetryClient` around the transport and register its message
@@ -106,9 +106,9 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
  *
  * Every production `TimelineStore` construction site (`TelemetryProvider`,
  * `ReplaySessionController.launch`) accepts `ClientTimeline`'s defaults, which
- * bound a LIVE stream: fine for "keep the recent past of the stream", wrong for
+ * bound a live stream: fine for "keep the recent past of the stream", wrong for
  * "graph a whole recorded flight". This helper is the third,
- * offline-range-read-only construction site, and it lifts BOTH bounds.
+ * offline-range-read-only construction site, and it lifts both bounds.
  *
  * `maxPoints: Number.POSITIVE_INFINITY` is the one that matters now: the point
  * cap is the always-on bound, and at its 1500 default a flight of any length
@@ -124,7 +124,7 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
  * there is zero divergence from how the live store or `ReplaySessionController`
  * populate data; only the clock and retention window differ.
  *
- * That "zero divergence" has to cover what the store can RESOLVE, not only
+ * That "zero divergence" has to cover what the store can resolve, not only
  * what it ingests. A recording carries raw wire topics and nothing else, so
  * without `PRODUCTION_DERIVED_CHANNELS` registered here every derived read
  * off this store (`spaceCenter.state.*`, `system.state.*`, and the rest)

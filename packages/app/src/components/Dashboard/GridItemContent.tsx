@@ -285,7 +285,7 @@ function WidgetContributions({
 
 /**
  * Feeds the widget's automatic `<id>.badges` contribution slot to whatever
- * `Panel` it renders, through ui-kit's `PanelBadgesProvider`. Mounted INSIDE
+ * `Panel` it renders, through ui-kit's `PanelBadgesProvider`. Mounted inside
  * `WidgetContributions` so `useWidgetBadges` has a `ContributionsProvider`
  * above it in the tree; the widget itself wires nothing.
  */

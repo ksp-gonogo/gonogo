@@ -21,11 +21,11 @@ import {
 import { describe, expect, it } from "vitest";
 
 /**
- * A station reads an Uplink's WIRE Topic, decoded, when that Uplink registered
+ * A station reads an Uplink's wire Topic, decoded, when that Uplink registered
  * after the provider mounted.
  *
  * This is the sibling of `StationLateContributedChannels.test.tsx`, which asks
- * the same station-ordering question about a DERIVED channel. Every Uplink
+ * the same station-ordering question about a derived channel. Every Uplink
  * registers when its bundle loads, which on a station is post-connect,
  * inside `StationUplinkLoader`.
  *
@@ -36,14 +36,14 @@ import { describe, expect, it } from "vitest";
  * ## Why the unit half needs its own test
  *
  * Registration is not the whole read. `TelemetryClient` calls
- * `wrapTopicPayload` at MESSAGE INGEST (`sitrep-sdk/src/client.ts`), which
+ * `wrapTopicPayload` at message ingest (`sitrep-sdk/src/client.ts`), which
  * reads the unit registry live, so whether a quantity is a `Value` or a bare
  * number is settled once, when the sample lands, and nothing re-decodes it
  * afterwards.
  *
  * ## What the early-sample case actually does, measured
  *
- * The early sample is STORED, with its quantities bare. `useStream`'s subscribe
+ * The early sample is stored, with its quantities bare. `useStream`'s subscribe
  * is not gated on registration, so the frame reaches the store whether
  * or not anything has registered the Topic; what it misses is the unit lookup
  * `wrapTopicPayload` does at ingest. Registering afterwards does not re-decode
@@ -128,7 +128,7 @@ function emit(transport: StubTransport, topic: string, depth: number): void {
 
 /**
  * Holds the act scope open across several of the provider's animation-frame
- * ticks, so an assertion that a reading has NOT changed is about a settled
+ * ticks, so an assertion that a reading has not changed is about a settled
  * state rather than about a frame that had not been minted yet. A `waitFor`
  * cannot express this: there is no change to wait for, and the whole point is
  * that none arrives.

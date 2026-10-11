@@ -4,8 +4,9 @@ import type { Logger } from "./logger-contract";
 /**
  * The app's logger. Entries go to the browser console, to the log buffer the
  * app keeps in the page (what its in-app log viewer and log export read), and,
- * where the app has a remote log sink set up, to that. Throws when used with
- * no app or test host installed.
+ * where the app has a remote log sink set up, to that. Useful for recording
+ * what an Uplink's code is doing, so the operator can export the log when
+ * reporting a problem. Throws when used with no app or test host installed.
  *
  * A tagged logger's `debug` entries are kept in the buffer and sent either
  * way, but reach the browser console only when the operator lists the tag in

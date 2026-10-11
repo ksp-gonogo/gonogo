@@ -8,7 +8,7 @@ import { affineVectorUnitFor, declaredUnitFor, lookupUnit } from "./registry";
 /**
  * Two units are interchangeable for `plus` when their dimensions match.
  *
- * The gate is DIMENSION, not kind. An earlier draft gated on kind so torque
+ * The gate is dimension, not kind. An earlier draft gated on kind so torque
  * could not be added to energy, and it could not be made to work: a computed
  * value has no kind to check. `force.times(distance)` is `{kg:1, m:2, s:-2}`,
  * which is torque or energy with nothing to distinguish them, so kind gating
@@ -125,7 +125,7 @@ type VectorKindOf<Unit> = Unit extends KnownUnit
   : never;
 
 /**
- * The units a point-like `Unit` may be offset BY: same dimension, and of the
+ * The units a point-like `Unit` may be offset by: same dimension, and of the
  * companion vector kind. For `ut` that is every duration (`s`, `min`, `h`, `d`) and
  * never another `ut`.
  */
@@ -137,10 +137,10 @@ type VectorFor<Unit> = {
 }[SameDimensionAs<Unit>];
 
 /**
- * What may be ADDED to a `Unit`, and what a `minus` of the same shape returns.
+ * What may be added to a `Unit`, and what a `minus` of the same shape returns.
  *
  * A point takes only its vectors: `ut + s` is a ut, `ut + ut` is meaningless. A
- * vector takes anything of its dimension EXCEPT a point, so `s + ut` is refused from
+ * vector takes anything of its dimension except a point, so `s + ut` is refused from
  * the other side too. A unit in neither camp is unrestricted, as before.
  */
 type Addend<Unit extends string> = [PointUnit] extends [never]
@@ -150,7 +150,7 @@ type Addend<Unit extends string> = [PointUnit] extends [never]
     : Exclude<CombinableWith<Unit>, PointUnit>;
 
 /**
- * The point a point may be subtracted FROM, yielding a vector. `never` for anything
+ * The point a point may be subtracted from, yielding a vector. `never` for anything
  * that is not point-like, which makes the point-minus-point overload unselectable
  * there rather than merely unused.
  */
@@ -177,7 +177,7 @@ type BaseVectorFor<Unit> = {
 }[VectorFor<Unit> & KnownUnit];
 
 /**
- * What `Unit` may be ORDERED against. A point compares to points and a vector to
+ * What `Unit` may be ordered against. A point compares to points and a vector to
  * vectors: "is this instant before that duration" has no answer, and
  * `value("ut", 100).greaterThan(value("s", 76))` was quietly true.
  */
@@ -194,26 +194,26 @@ type Comparand<Unit extends string> = [PointUnit] extends [never]
 type ScalarFor<Unit extends string> = Unit extends PointUnit ? never : number;
 
 /**
- * A bare operand, which is ALWAYS IN BASE UNITS. One rule, no inference.
+ * A bare operand, which is always in base units. One rule, no inference.
  *
- * So `value("km", 5).minus(3)` is 3 METRES, and comes back `Value<"km">` of
+ * So `value("km", 5).minus(3)` is 3 metres, and comes back `Value<"km">` of
  * 4.997. The reading never depends on the receiver: metres for any length,
  * seconds for any duration, whatever `dim` names as its base.
  *
  * This exists because the alternative in the codebase was worse on exactly the
  * axis that makes a bare number look dangerous. `x.magnitude - 3` reads as the
- * value's OWN unit, so the same `3` silently meant kilometres on one line and
- * metres on the next, AND the result shed its type on the way out. Base
+ * value's own unit, so the same `3` silently meant kilometres on one line and
+ * metres on the next, and the result shed its type on the way out. Base
  * normalisation is one stated rule; `.magnitude` was an unstated one that
  * changed per call site.
  *
- * Not offered for a POINT unit, matching {@link ScalarFor}. A bare number
+ * Not offered for a point unit, matching {@link ScalarFor}. A bare number
  * cannot say whether it means an instant or a duration, and telling those apart
  * is the entire job of the affine rules: `ut.minus(3)` would have to guess
  * between "three seconds earlier" and "the gap to epoch+3".
  *
- * NOTE the deliberate difference from `times`/`dividedBy`/`per`/`scaled`, whose
- * bare number is a dimensionless FACTOR rather than a quantity. That is not a
+ * Note the deliberate difference from `times`/`dividedBy`/`per`/`scaled`, whose
+ * bare number is a dimensionless factor rather than a quantity. That is not a
  * second convention for the same thing, it is a different operation: scaling
  * cannot take a quantity without changing the dimension, so a bare operand
  * there could never have meant "3 of the base unit".
@@ -251,7 +251,7 @@ type CoincidentWith<Unit> = {
 }[SameDimensionAs<Unit>];
 
 /**
- * The coincidental exclusion lands HERE rather than on `Addend` and `Comparand`
+ * The coincidental exclusion lands here rather than on `Addend` and `Comparand`
  * separately, because this type is the whole additive surface: `plus`, `minus`,
  * `in`, the four orderings and `min`/`max` all constrain through it, and
  * `Addend`/`Comparand` are built on top.
@@ -529,19 +529,19 @@ function baseMagnitude(value: Value): number {
 /**
  * The right-hand operand's magnitude in base units, whichever form it arrived in.
  *
- * A bare number is ALREADY a base magnitude by the rule in {@link BareOperand},
+ * A bare number is already a base magnitude by the rule in {@link BareOperand},
  * so it passes through untouched and skips the dimension check: there is no unit
  * on it to disagree with, and it adopts this value's dimension by construction.
  * A `Value` is checked and converted exactly as before.
  *
  * Returning a number rather than a coerced `Value` avoids having to name the
- * base unit's SYMBOL, which is not always a registered unit: a derived dimension
+ * base unit's symbol, which is not always a registered unit: a derived dimension
  * with no declared name formats as `kg·m²/s³`, and `value()` on that would look
  * up a definition that does not exist.
  */
 /**
  * A base magnitude re-expressed in `self`'s unit. For the `min`/`max` arm where a
- * bare operand WINS: it has no unit of its own to carry out, so it adopts the
+ * bare operand wins: it has no unit of its own to carry out, so it adopts the
  * receiver's, which is the same rule `plus`/`minus` already follow on their result.
  */
 function inThisUnit(self: Value, baseMagnitudeOfOther: number): Value {

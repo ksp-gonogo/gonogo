@@ -105,7 +105,7 @@ describe("useWidgetStreamStatus", () => {
    * worst-of summary across a widget's channels, and is right to: `absent`
    * means opposite things per topic, and a `held` heartbeat miss is one
    * channel's own. The two blackout grades are not like that. The blackout
-   * authority is per SUBJECT (`ChannelEngine.SetSubjectConnected` marks the
+   * authority is per subject (`ChannelEngine.SetSubjectConnected` marks the
    * node, `Courier.ReplayRecorded` stamps every topic of the dump), so if one
    * of a widget's channels is recorded, the craft was dark, and saying so for
    * the widget is not a lossy summary but the same fact restated.

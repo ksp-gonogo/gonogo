@@ -11,7 +11,7 @@ import {
  * Sticky banner shown across the top of the screen while a mission replay
  * is active. Renders nothing when idle, so callers can mount it
  * unconditionally at the app shell level, driven by
- * `ReplaySessionController`. MUST be mounted as a descendant of
+ * `ReplaySessionController`. Must be mounted as a descendant of
  * `ReplaySessionProvider` (same as the dashboard it controls), `useViewUt`
  * only reflects the replay session's own clock once that provider has
  * shadowed the live one.

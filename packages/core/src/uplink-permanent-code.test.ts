@@ -37,13 +37,13 @@ function findRepoRoot(start: string): string {
  * The `permanent` bucket's code-carrying subset only ever shrinks.
  *
  * <p><b>Why this exists.</b> `uplink-boundary.allowlist.ts` has two buckets and
- * the mechanical gate is on the smaller one. `domainDebt` holds ELEVEN entries
- * and is shrink-only, enforced against a base git ref. `permanent` holds THREE
- * HUNDRED AND FOUR and is unconstrained by design: its own doc says "add or
+ * the mechanical gate is on the smaller one. `domainDebt` holds eleven entries
+ * and is shrink-only, enforced against a base git ref. `permanent` holds three
+ * hundred and four and is unconstrained by design: its own doc says "add or
  * remove via a normal reviewed edit". So the ratchet's teeth are on about three
  * percent of the surface.</p>
  *
- * <p>That asymmetry does not merely leave a gap, it creates PRESSURE toward it.
+ * <p>That asymmetry does not merely leave a gap, it creates pressure toward it.
  * A genuine new violation cannot be recorded as `domainDebt`, because that gate
  * refuses growth outright, and the refusal message says in as many words to put
  * it in `permanent` instead. The only bucket a new coupling can be written down
@@ -65,8 +65,8 @@ function findRepoRoot(start: string): string {
  *   <li>it is in some token's `permanent`, and</li>
  *   <li>it appears in `SURVIVES_COMMENT_STRIP`, which is this repo's own
  *       existing notion of "the mod's name is still there once comments are
- *       removed", i.e. the file carries CODE and not only prose, and</li>
- *   <li>it is not one of the file KINDS the bucket legitimately covers.</li>
+ *       removed", i.e. the file carries code and not only prose, and</li>
+ *   <li>it is not one of the file kinds the bucket legitimately covers.</li>
  * </ol>
  *
  * <p>Tests are excluded as a kind of their own: a test for a mod's wire
@@ -78,14 +78,14 @@ function findRepoRoot(start: string): string {
  * into something they are not.</p>
  *
  * <p><b>Proven able to fail.</b> Planting
- * `packages/app/src/planted-violation.tsx` into BOTH `kerbcast.permanent` and
+ * `packages/app/src/planted-violation.tsx` into both `kerbcast.permanent` and
  * `SURVIVES_COMMENT_STRIP.kerbcast` turns the git-backed test red naming it:
- * "New CODE-CARRYING entries in ALLOWLIST.&lt;token&gt;.permanent vs HEAD~1 ...
- * kerbcast -&gt; packages/app/src/planted-violation.tsx". Planting into only ONE
- * of the two lists correctly does NOT fire, since an entry has to be both
+ * "New CODE-CARRYING entries in allowlist.&lt;token&gt;.permanent vs head~1 ...
+ * kerbcast -&gt; packages/app/src/planted-violation.tsx". Planting into only one
+ * of the two lists correctly does not fire, since an entry has to be both
  * excused and code-carrying to qualify.</p>
  *
- * <p><b>It is inert when the base ref IS the commit under test</b>, which is
+ * <p><b>It is inert when the base ref is the commit under test</b>, which is
  * every freshly-pushed branch, and it shares that with every other shrink-only
  * gate here: `ratchetBaseRef()` returns null and the test returns early. That
  * is why the demonstration above sets `RATCHET_BASE_REF=HEAD~1` explicitly. A
@@ -93,11 +93,11 @@ function findRepoRoot(start: string): string {
  * evidence it ran; `ratchet-base-ref.test.ts` is what grades base resolution,
  * in one place for the whole family.</p>
  *
- * <p><b>What it deliberately does NOT do.</b> It does not forbid a new
- * sanctioned KIND. If a genuinely new sort of wire or inventory file appears,
+ * <p><b>What it deliberately does not do.</b> It does not forbid a new
+ * sanctioned kind. If a genuinely new sort of wire or inventory file appears,
  * adding its pattern below is a reviewed edit, which is the same standard the
  * `permanent` bucket already holds itself to. The difference is that the edit
- * is now visible as a change to a RULE rather than invisible as one more line
+ * is now visible as a change to a rule rather than invisible as one more line
  * among hundreds.</p>
  *
  * <p><b>The seed grandfathers, it does not bless.</b> Because the check is
@@ -172,7 +172,7 @@ const SANCTIONED_KINDS: ReadonlyArray<{ pattern: RegExp; why: string }> = [
   },
 ];
 
-/** A test naming a mod has nothing to move: the mod IS its subject. */
+/** A test naming a mod has nothing to move: the mod is its subject. */
 function isTestFile(path: string): boolean {
   return /\.test\.|\.gate\.test\.|\/__tests__\/|Tests?\.cs$/.test(path);
 }

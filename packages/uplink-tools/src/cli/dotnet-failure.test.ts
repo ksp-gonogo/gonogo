@@ -6,7 +6,7 @@ import { dotnet, explainSilentFailure } from "./codegen";
 
 const originalPath = process.env.PATH;
 
-/** A `dotnet` on PATH that records its arguments and answers by whether the run is verbose. */
+/** A `dotnet` on path that records its arguments and answers by whether the run is verbose. */
 function fakeDotnet(quiet: string, verbose: string): string {
   const dir = mkdtempSync(join(tmpdir(), "fake-dotnet-"));
   const log = join(dir, "args.log");

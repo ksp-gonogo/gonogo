@@ -17,7 +17,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>OnMessageReceived</c>'s <c>catch (FormatException)</c> and get the
     /// same answer, a byte-for-byte echo of the frame. For a stray message the
     /// echo is the right answer and stays: the server genuinely does not know
-    /// what it was handed. For a RECOGNISED envelope with a bad field the echo
+    /// what it was handed. For a recognised envelope with a bad field the echo
     /// was a lie by omission, because the server knew exactly which envelope
     /// and exactly which field, and said neither. Worse, an echoed
     /// command-request is byte-for-byte what the author sent, so it reads as a
@@ -28,7 +28,7 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly TimeSpan Timeout = TestBudgets.Op;
 
         /// <summary>
-        /// The headline case: the error names the envelope AND the field, and
+        /// The headline case: the error names the envelope and the field, and
         /// carries the requestId so the caller's pending dispatch settles
         /// rather than running out its loss timer.
         /// </summary>
@@ -84,7 +84,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The other recognised client envelopes get the same treatment: the
-        /// fix is about the TYPE being known, not about commands.
+        /// fix is about the type being known, not about commands.
         /// </summary>
         [Theory]
         [InlineData("{\"type\":\"subscribe\"}", "subscribe", "topic")]
@@ -115,8 +115,8 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A frame that NAMES a type is on the other side of the line from one
-        /// that names none, because there IS something to say about it: which
+        /// A frame that names a type is on the other side of the line from one
+        /// that names none, because there is something to say about it: which
         /// type this build does not support. An echo of it is byte-identical to
         /// what the client sent, and reads as a frame accepted that did nothing.
         /// </summary>
@@ -172,7 +172,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The echo is DELIBERATE for a frame this build cannot identify at
+        /// The echo is deliberate for a frame this build cannot identify at
         /// all, and a third-party author may be relying on it as the "is
         /// anything listening" probe. Unparseable text, a JSON value that is
         /// not an object and a missing discriminant are the same fact: the

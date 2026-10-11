@@ -15,7 +15,7 @@ namespace Sitrep.Host.IntegrationTests
     /// precondition on a command somebody else declared.
     ///
     /// <para><b>Why the seam exists.</b> The Uplink that declares a command knows
-    /// what the GAME requires of it, and cannot know what an installed mod
+    /// what the game requires of it, and cannot know what an installed mod
     /// requires. <c>ksp.launch</c> is the case that forced it: stock will fly any
     /// craft file, and under a career overhaul the article that flies is one a
     /// launch complex integrated and rolled out, so a launch that skips both
@@ -24,7 +24,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <para><b>Contribution, not election.</b> Preconditions compose, and the
     /// two properties that makes load-bearing are both pinned below: every
     /// contribution holds in addition to the owner's, and the owner's are
-    /// evaluated FIRST so a contribution that abstains cannot hide an answer the
+    /// evaluated first so a contribution that abstains cannot hide an answer the
     /// game could give in advance.</para>
     /// </summary>
     public class ContributedRequirementTests
@@ -233,7 +233,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The ORDER property, and the reason the engine keeps the two lists
+        /// The order property, and the reason the engine keeps the two lists
         /// apart. The owner's requirement is static and can say no in advance; the
         /// contribution needs an argument and abstains without one. Asked with an
         /// empty bag, the answer must be the owner's refusal: an Abstain in its

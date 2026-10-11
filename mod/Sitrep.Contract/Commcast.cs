@@ -36,7 +36,7 @@ public class CommcastAuthor
 /// named here or not.
 ///
 /// <para>Never delayed on the way up. What is said crosses once, from the
-/// speaker to each listener at that pair's light-time, and the mod times that
+/// speaker to each listener at that pair's signal delay, and the mod times that
 /// crossing on the way down; delaying the command as well would count the gap
 /// twice.</para>
 /// </summary>
@@ -157,7 +157,7 @@ public class CommcastSendReceipt
 
 /// <summary>
 /// <c>commcast.message.ack</c>'s args: tell a message's author it arrived. The
-/// acknowledgement crosses back to the author at their pair's light-time, so the
+/// acknowledgement crosses back to the author at their pair's signal delay, so the
 /// author learns it was read one crossing after it was.
 /// </summary>
 /// <category>Command arguments</category>
@@ -219,7 +219,7 @@ public class CommcastRadioTransmitArgs
 
 /// <summary>
 /// One item of <c>commcast.traffic</c>: something said to a group this vantage
-/// belongs to, delivered one light-time after it was said from where it was
+/// belongs to, delivered one signal delay after it was said from where it was
 /// said.
 ///
 /// <para><b>Addressed, never broadcast.</b> A connection receives only the
@@ -299,7 +299,7 @@ public class CommcastTraffic
 /// <para><c>commcast.radio</c> is carried in <see cref="BinaryLane"/> frames
 /// and is addressed exactly as <see cref="CommcastTraffic"/> is: a
 /// connection hears only transmissions to groups its vantage belongs to, one
-/// light-time after each batch was spoken. Every frame carries this whole
+/// signal delay after each batch was spoken. Every frame carries this whole
 /// description, so a listener that starts hearing partway through a keying
 /// places it from the first frame it gets.</para>
 /// </summary>

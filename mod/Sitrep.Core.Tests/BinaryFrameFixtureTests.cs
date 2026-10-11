@@ -28,7 +28,7 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>The direction is reversed from every other fixture in this
     /// folder</b>, and deliberately. The rest are TS-reference to C#-port,
-    /// because the TS is the original. Here the C# IS the original: the client
+    /// because the TS is the original. Here the C# is the original: the client
     /// never writes this lane at all, so pinning the client to TS-generated
     /// bytes would pin it to a writer that does not exist in production.</para>
     ///
@@ -141,7 +141,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Compared as DATA, never as text. The file is JSON in a repo whose
+        /// Compared as data, never as text. The file is JSON in a repo whose
         /// formatter reflows JSON, so a string comparison against this
         /// serializer's own indentation goes red the first time anyone runs
         /// `pnpm lint`, and the red says "the wire format changed" about a

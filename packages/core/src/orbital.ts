@@ -95,14 +95,14 @@ export interface PressureProfile {
 /**
  * Atmospheric pressure at the given altitude, read off a reported profile.
  *
- * <p>Interpolates linearly in the LOG of the pressure, not in the pressure.
+ * <p>Interpolates linearly in the log of the pressure, not in the pressure.
  * That is not a smoothing preference: an atmosphere is exponential to first
  * order, so a log-linear join reproduces the ideal case exactly at any
  * spacing, and it is also the space the profile is read in, since the curve
  * is drawn on a log axis. Measured against the ten real pressure curves the
  * RSS install ships, joining the host's samples this way is within 1.51% of
  * `CelestialBody.GetPressure` everywhere and within 1.12% on nine of the ten;
- * joining the SAME samples linearly is out by up to 299%, on Mars.</p>
+ * joining the same samples linearly is out by up to 299%, on Mars.</p>
  *
  * <p>Returns `undefined` above the last sample rather than 0. The profile
  * stops where the air stops carrying anything worth stating, which is below
@@ -139,7 +139,7 @@ export function pressureFromProfile(
  * `atmosphere` model registered.
  *
  * <p>This is the SECOND-BEST answer and stays named as one. It is what the
- * bundled static table can offer, and the table holds STOCK bodies with a
+ * bundled static table can offer, and the table holds stock bodies with a
  * scale height nobody measured from the running game, because `CelestialBody`
  * has no scale-height field to measure. KSP does not evaluate this function:
  * a body with `atmosphereUsePressureCurve` set follows a tabulated curve, and
@@ -255,7 +255,7 @@ export function latLonToMap(
  * this keeps the conversion from being a bare `- 273.15` magic literal
  * sprinkled across the component library.
  *
- * Note the SIGN: this is absolute zero on the Celsius scale, so it is ADDED to
+ * Note the sign: this is absolute zero on the Celsius scale, so it is added to
  * a Kelvin reading. Prefer {@link kelvinToCelsius} over the constant, which is
  * only correct beside the right operator.
  */

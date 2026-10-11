@@ -53,8 +53,8 @@ export interface VesselOrbitPayload {
    * The sample's own provenance, `"vessel:<guid>"` for a craft and `"game"`
    * for a reading no vessel owns (`Sitrep.Host.VesselViewProvider.BuildMeta`).
    *
-   * NOT the same fact as the envelope `Meta.source` beside it, which is the
-   * Courier NODE a topic records under and is the literal `"system"` for every
+   * Not the same fact as the envelope `Meta.source` beside it, which is the
+   * Courier node a topic records under and is the literal `"system"` for every
    * non-fleet topic. `Sitrep.Host.IntegrationTests.FoundationChannelsEndToEndTests`
    * asserts both on one delivered frame, and says so.
    *
@@ -91,7 +91,7 @@ export interface VesselOrbitPayload {
    * (`PropagationHorizon`, required on the wire).
    *
    * Read it with `canPropagate` before extrapolating from these elements.
-   * Optional on the same grounds as `encounter`, and `canPropagate` REFUSES on
+   * Optional on the same grounds as `encounter`, and `canPropagate` refuses on
    * an absent one rather than reading silence as permission.
    */
   horizon?: PropagationHorizonLike;
@@ -143,14 +143,14 @@ export interface VesselIdentityPayload {
  * groups.
  */
 export interface ActionGroupStatePayload {
-  /** 1-based group number: the same number `vessel.control.setActionGroup` takes. Not dense, not necessarily sorted, and NOT bounded at 10. */
+  /** 1-based group number: the same number `vessel.control.setActionGroup` takes. Not dense, not necessarily sorted, and not bounded at 10. */
   index: number;
   /** Display name. Stock: `"AG1".."AG10"`. AGX: the player's own names. */
   name: string;
   /**
    * Whether the group is engaged. `null`/absent means the backend knows the
-   * group exists but could not read it, which is NOT the same as disengaged:
-   * collapsing the two draws an OFF toggle for a state nobody has read, and
+   * group exists but could not read it, which is not the same as disengaged:
+   * collapsing the two draws an off toggle for a state nobody has read, and
    * inverting it commands the wrong way. Stock never reports one (its indexer
    * always answers); a per-group backend like AGX can.
    */
@@ -168,7 +168,7 @@ export interface ActionGroupStatePayload {
 export interface VesselControlPayload {
   sasMode: number | null;
   /**
-   * Every CUSTOM action group the elected backend knows, each NAMED and
+   * Every custom action group the elected backend knows, each named and
    * carrying its own index: `mod/Sitrep.Contract/VesselControl.cs`'s
    * `ActionGroups: ActionGroupState[]?`. `null`/absent when action-group data
    * wasn't available this tick (never a partial list).
@@ -228,7 +228,7 @@ export interface SystemBodyPayload {
   rotationPeriod?: number | null;
   orbit: SystemBodyOrbitPayload | null;
   /**
-   * The body's atmosphere, present only when it HAS one (`BodyEntry.atmosphere`,
+   * The body's atmosphere, present only when it has one (`BodyEntry.atmosphere`,
    * "the airless vs. no-data distinction"). Absence is therefore a fact about
    * the body and not a gap, which is what lets `entryInterfaceRadius` treat an
    * airless body's floor as its surface rather than declining to have a floor.

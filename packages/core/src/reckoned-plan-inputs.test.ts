@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
  *
  * A source scan because the only thing that separates a plan made from heard
  * state from one made from live state is what the code that builds it can
- * name. Each rule plants its own violation first and fails as BLIND if the
+ * name. Each rule plants its own violation first and fails as `BLIND` if the
  * scan cannot see it, since a scan that cannot see reports a clean tree.
  */
 

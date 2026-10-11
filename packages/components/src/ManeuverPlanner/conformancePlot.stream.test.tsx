@@ -104,7 +104,7 @@ async function mountOnConformance(
   return view;
 }
 
-/** The projected conic is the only DASHED conic the diagram draws. */
+/** The projected conic is the only dashed conic the diagram draws. */
 function plannedConics(container: HTMLElement): number {
   return container.querySelectorAll(
     "[data-conformance-plot] svg [stroke-dasharray]",

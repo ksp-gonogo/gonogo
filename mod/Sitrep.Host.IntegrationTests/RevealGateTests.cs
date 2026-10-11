@@ -20,7 +20,7 @@ namespace Sitrep.Host.IntegrationTests
     /// through the exact wire a curl script / third-party dashboard / station
     /// relay would use; there is no SDK, no ViewClock, no client-side legibility
     /// layer. What the client receives on the raw stream is therefore, by
-    /// construction, ALREADY delayed: the un-bypassable choke point.
+    /// construction, already delayed: the un-bypassable choke point.
     /// </summary>
     public class RevealGateTests
     {
@@ -34,8 +34,8 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The live SCANsat coverage shape: a DELAYED, DYNAMIC per-(body,type)
-        /// topic whose keyframe is published exactly ONCE (keyframe-on-change),
+        /// The live SCANsat coverage shape: a delayed, dynamic per-(body,type)
+        /// topic whose keyframe is published exactly once (keyframe-on-change),
         /// with a real comms delay active. A continuously-subscribed client must
         /// still receive that one keyframe once its reveal horizon passes, even
         /// though it is never re-published. Live, coverage (Delayed) never reached
@@ -77,15 +77,15 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The archive DOES seed a once-published Delayed dynamic keyframe to a
-        /// subscriber that joins LONG after it was published + revealed, proven
+        /// The archive does seed a once-published Delayed dynamic keyframe to a
+        /// subscriber that joins long after it was published + revealed, proven
         /// here (client B joins at UT ~12, gets the UT-1 keyframe via catch-up).
         /// This is load-bearing for the live "biome/height/mask never render for
-        /// late subscribers" investigation: it RULES OUT archive-pruning /
+        /// late subscribers" investigation: it rules out archive-pruning /
         /// missing-sticky as the cause. The live grids fail to seed because they
-        /// were never RECORDED (the reveal-release ConnectivityAt gate withholds a
+        /// were never recorded (the reveal-release ConnectivityAt gate withholds a
         /// grid buffered at a UT when the vessel was disconnected, and biome/height
-        /// are captured once and never retried), NOT because the archive drops a
+        /// are captured once and never retried), not because the archive drops a
         /// recorded once-published keyframe.
         /// </summary>
         [Fact]
@@ -126,10 +126,10 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The fix for "biome/height/mask never render": a grid keyframe published
-        /// ONCE while the vessel is DISCONNECTED is withheld forever by the reveal
+        /// once while the vessel is disconnected is withheld forever by the reveal
         /// gate (ConnectivityAt at the keyframe's own ut) and never re-captured, so
         /// it never seeds a late subscriber. With the OnSubscribed reseed, a
-        /// subscriber joining AFTER reconnect re-triggers a re-emit of the cached
+        /// subscriber joining after reconnect re-triggers a re-emit of the cached
         /// grid at the current (connected) ut → released → delivered.
         /// </summary>
         [Fact]
@@ -177,7 +177,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Negative control for the reseed: WITHOUT the OnSubscribed reseed, the
+        /// Negative control for the reseed: without the OnSubscribed reseed, the
         /// once-published grid withheld while disconnected never reaches the late
         /// subscriber: the exact live bug. Proves the reseed is load-bearing.
         /// </summary>
@@ -218,10 +218,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A Delayed channel's sample is WITHHELD from the wire until its UT
+        /// A Delayed channel's sample is withheld from the wire until its UT
         /// crosses the reveal horizon (now − delay), then revealed; a TrueNow
         /// channel is revealed immediately; and <c>comms.delay</c> itself,
-        /// the value that DEFINES the delay: is never gated by it.
+        /// the value that defines the delay: is never gated by it.
         /// </summary>
         [Fact]
         public async Task DelayedChannelIsWithheldUntilHorizonWhileTrueNowIsLive()
@@ -333,13 +333,13 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The subscription-coupling regression: a raw client subscribes a
-        /// Delayed channel but NEVER subscribes <c>comms.delay</c>. With signal
-        /// delay enabled and a non-zero hop, the Delayed channel must STILL be
+        /// Delayed channel but never subscribes <c>comms.delay</c>. With signal
+        /// delay enabled and a non-zero hop, the Delayed channel must still be
         /// withheld until its UT crosses the reveal horizon (now − delay).
         ///
         /// <para>If the delay were captured off the <c>comms.delay</c> channel
         /// inside <c>Emit</c>, which only fires while <c>comms.delay</c> is
-        /// SUBSCRIBED (the channel loop is subscription-gated), a client that
+        /// subscribed (the channel loop is subscription-gated), a client that
         /// subscribes a Delayed channel but not <c>comms.delay</c> would get it
         /// revealed live/ungated, defeating "any API client experiences the
         /// delay". The delay is sourced from the server-side SignalDelay
@@ -396,18 +396,18 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REGRESSION (the production-shape reveal-gate bug): comms.delay is
+        /// Regression (the production-shape reveal-gate bug): comms.delay is
         /// registered the way the bundled <c>CommsCoreUplink</c> registers it,
         /// via <see cref="IUplinkHost.Publisher"/> + a capture-on-main /
         /// handle-on-Courier <see cref="IUplinkHost.AddSampledSource"/>, declared
-        /// TrueNow: NOT via <see cref="IUplinkHost.AddChannelSource"/> (the shape
+        /// TrueNow: not via <see cref="IUplinkHost.AddChannelSource"/> (the shape
         /// every other reveal-gate test used, and the only shape the old
         /// <c>RefreshSignalDelayFromCapability</c> could read). A raw client
-        /// subscribes ONLY the Delayed channel (never comms.delay). With a
-        /// non-zero computed one-way delay, the Delayed channel MUST still be
+        /// subscribes only the Delayed channel (never comms.delay). With a
+        /// non-zero computed one-way delay, the Delayed channel must still be
         /// withheld until its UT crosses the reveal horizon.
         ///
-        /// <para>Pre-fix this FAILED: the gate's delay authority was only ever
+        /// <para>Pre-fix this failed: the gate's delay authority was only ever
         /// set from the <c>_channelSources</c> refresh (which production never
         /// populates for comms.delay) or the subscription-gated <c>Emit</c>
         /// snoop, so the delay stayed 0 and the Delayed channel was revealed
@@ -462,7 +462,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Signal delay disabled (delay value 0: <see cref="CommsDelaySource.None"/>
-        /// semantics) ⇒ a Delayed channel is revealed LIVE, on the tick it is
+        /// semantics) ⇒ a Delayed channel is revealed live, on the tick it is
         /// emitted, exactly as a TrueNow channel. This is today's LAN behaviour,
         /// unchanged: the gate collapses to a pass-through when there is no
         /// delay authority.
@@ -496,22 +496,22 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// U5 "Layer A" full-chain delay proof: the headless proxy for
         /// spec-streaming-delay-model §7.3 Step 6's host→client delay check,
-        /// but with the delay authority sourced END-TO-END from the REAL comms
+        /// but with the delay authority sourced END-TO-END from the real comms
         /// stack instead of a raw snapshot number. A realistic multi-channel
         /// session over one real ClientWebSocket:
         /// <list type="bullet">
-        /// <item><c>comms.delay</c> is computed by the CORE
-        /// <see cref="SignalDelay"/> light-time math over the elected
+        /// <item><c>comms.delay</c> is computed by the core
+        /// <see cref="SignalDelay"/> signal delay math over the elected
         /// <see cref="ICommsBackend"/>'s hop geometry
         /// (<see cref="TestCommsCoreUplink"/>, election via
         /// <see cref="CommsElection"/>): a genuine 4s one-way delay from a
         /// 4-light-second hop, not a hand-fed constant;</item>
-        /// <item><c>vessel.flight</c> is DELAYED, withheld until its UT crosses
+        /// <item><c>vessel.flight</c> is delayed, withheld until its UT crosses
         /// the reveal horizon (now − 4);</item>
         /// <item><c>time.warp</c> is TRUE-NOW, revealed live;</item>
-        /// <item><c>comms.delay</c> is DELAYED like the telemetry it
-        /// describes, revealed one light-time after the tick that measured it,
-        /// while the AUTHORITY it feeds is established on that tick and
+        /// <item><c>comms.delay</c> is delayed like the telemetry it
+        /// describes, revealed one signal delay after the tick that measured it,
+        /// while the authority it feeds is established on that tick and
         /// ungated: which is the whole answer to "would that be circular".</item>
         /// </list>
         /// This closes the loop the single-channel RevealGate tests above leave
@@ -594,13 +594,13 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REPRO (freeze-on-disconnect): with the control link DOWN and delay 0
+        /// Repro (freeze-on-disconnect): with the control link down and delay 0
         /// (<see cref="CommsDelaySource.None"/>: exactly what a lost path yields),
-        /// a Delayed channel must be FROZEN, withheld, never delivered. A TrueNow
+        /// a Delayed channel must be frozen, withheld, never delivered. A TrueNow
         /// channel (here <c>comms.delay</c>) must keep flowing so the operator
         /// sees the outage live.
         ///
-        /// <para>Pre-change this FAILED: a down link produces delay 0, and the
+        /// <para>Pre-change this failed: a down link produces delay 0, and the
         /// old gate keyed solely on delay magnitude (0 ⇒ reveal live) so losing
         /// the link kept telemetry streaming (you'd "receive" what never arrived).
         /// The connectivity authority now distinguishes a real disconnect (freeze)
@@ -642,7 +642,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Freeze-on-disconnect, connected leg: a genuinely CONNECTED link with a
+        /// Freeze-on-disconnect, connected leg: a genuinely connected link with a
         /// positive delay still gates by the horizon (buffer then reveal), the
         /// connectivity signal does not change the connected-with-delay behaviour.
         /// This is the existing gate contract, re-proven through the production
@@ -686,7 +686,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Reacquisition: the window withheld during the outage is REPLAYED as
+        /// Reacquisition: the window withheld during the outage is replayed as
         /// the craft's own recording, and live delivery resumes alongside it.
         ///
         /// <para>This test asserted the opposite until the blackout recorder
@@ -694,7 +694,7 @@ namespace Sitrep.Host.IntegrationTests
         /// was deleted and the wire carried no trace of it. It is kept, inverted,
         /// as the place a reader of the reveal gate meets the decision;
         /// <c>BlackoutRecorderTests</c> is where the recorder's own behaviour
-        /// (light-time, storage bound, staleness, gaps) is pinned.</para>
+        /// (signal delay, storage bound, staleness, gaps) is pinned.</para>
         /// </summary>
         [Fact]
         public async Task ReconnectReplaysTheRecordingAndResumesFromReconnectMoment()
@@ -748,13 +748,13 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REGRESSION (live-KSP session-killer): the server-side signal-delay
-        /// source threw ONCE on a transient scene-settle tick, and the old
-        /// fail-soft PERMANENTLY disabled it + marked the comms uplink
+        /// Regression (live-KSP session-killer): the server-side signal-delay
+        /// source threw once on a transient scene-settle tick, and the old
+        /// fail-soft permanently disabled it + marked the comms uplink
         /// Unavailable: so comms.delay stopped flowing and delay enforcement
         /// stayed dead for the rest of the session. The fix makes the delay-source
-        /// fail-soft RECOVERABLE: a throwing tick yields no update, but the source
-        /// is retried the next tick and the uplink stays Available. This FAILS on
+        /// fail-soft recoverable: a throwing tick yields no update, but the source
+        /// is retried the next tick and the uplink stays Available. This fails on
         /// the old permanent-disable behaviour (uplink Unavailable, comms.delay
         /// inert after the throw) and passes after.
         /// </summary>
@@ -797,10 +797,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Twin of the delay-source recovery: the CONNECTIVITY source throwing on
-        /// a transient tick must fail-soft to CONNECTED and be RETRIED, never
+        /// Twin of the delay-source recovery: the connectivity source throwing on
+        /// a transient tick must fail-soft to connected and be retried, never
         /// permanently disable the comms uplink (which would leave every comms.*
-        /// channel inert for the session). FAILS on the old permanent-disable
+        /// channel inert for the session). Fails on the old permanent-disable
         /// behaviour.
         /// </summary>
         [Fact]
@@ -836,24 +836,24 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A connectivity source that THROWS on a transient
-        /// tick, while the link is otherwise CONNECTED with a POSITIVE delay,
-        /// must NOT be treated as a disconnect. If a throwing tick flipped the
-        /// gate to DISCONNECTED, then:
+        /// A connectivity source that throws on a transient
+        /// tick, while the link is otherwise connected with a positive delay,
+        /// must not be treated as a disconnect. If a throwing tick flipped the
+        /// gate to disconnected, then:
         /// <list type="number">
         /// <item>the buffered Delayed sample would freeze during the throwing
         /// tick, and</item>
-        /// <item>the very next CONNECTED tick would be a disconnect→reconnect
-        /// EDGE, DROPPING the backlog (<see cref="ChannelEngine"/>.SetCommsConnected),
+        /// <item>the very next connected tick would be a disconnect→reconnect
+        /// edge, dropping the backlog (<see cref="ChannelEngine"/>.SetCommsConnected),
         /// so the pre-throw sample would be lost forever and never reveal.</item>
         /// </list>
-        /// The correct fail-soft (a thrown source ⇒ CONNECTED, retried) keeps the
+        /// The correct fail-soft (a thrown source ⇒ connected, retried) keeps the
         /// gate connected across the blip, so the sample buffered before the throw
-        /// still matures at its horizon. Asserting the sample IS revealed at its
+        /// still matures at its horizon. Asserting the sample is revealed at its
         /// true SCET distinguishes the two precisely: it can only appear if the
         /// gate never froze/dropped it. This is the engine-side contract
         /// <c>Gonogo.KSP.CommsCoreUplink.ComputeConnectedOnMain</c> satisfies by
-        /// propagating the throw to THIS fail-soft instead of asserting a hard
+        /// propagating the throw to this fail-soft instead of asserting a hard
         /// disconnect.
         /// </summary>
         [Fact]
@@ -904,7 +904,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A delay/connectivity source that returns NULL (graceful "no authority /
+        /// A delay/connectivity source that returns null (graceful "no authority /
         /// no path": the real-world meaning of an unloaded/no-control-path
         /// vessel) must leave the last-known state untouched and reveal live,
         /// never disable the uplink. No throw, no permanent disable.
@@ -938,8 +938,8 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The reveal horizon is a COMMITMENT boundary for the RELIABLE
-        /// OUTBOX lane too, not just change-gated lossy values.
+        /// The reveal horizon is a commitment boundary for the reliable
+        /// outbox lane too, not just change-gated lossy values.
         /// <c>crash.lastCrash</c> and
         /// <c>recovery.lastSummary</c> are exactly this shape
         /// (<see cref="DelayRole.Delayed"/> + <see cref="Delivery.ReliableOrdered"/>,
@@ -947,16 +947,16 @@ namespace Sitrep.Host.IntegrationTests
         /// doc comment for how closely it mirrors <c>Gonogo.KSP.CrashUplink</c>).
         ///
         /// A reliable event publishes at UT 5 with a 4s reveal delay (horizon
-        /// UT 9): un-revealed. A revert to UT 2 fires BEFORE that horizon is
+        /// UT 9): un-revealed. A revert to UT 2 fires before that horizon is
         /// reached. The doomed event must never surface: not to the ALREADY-
         /// subscribed bare-WS client even ticking the new timeline well past
         /// the original UT-9 horizon (proving the un-revealed entry was
         /// actually erased from <c>ChannelEngine._revealBuffer</c>, not merely
         /// re-scheduled: a stale <see cref="Sitrep.Core.ManualClock"/> callback
         /// or an unflushed buffer entry would leak it right here), and not to
-        /// a LATE subscriber's reliable-lane catch-up keyframe after the
+        /// a late subscriber's reliable-lane catch-up keyframe after the
         /// revert. The reliable pipeline itself must still work for a
-        /// legitimate, non-reverted event on the SAME subscription (no
+        /// legitimate, non-reverted event on the same subscription (no
         /// re-subscribe): proving this is a targeted erasure of the
         /// abandoned branch, not a broken reliable lane.
         /// </summary>
@@ -1043,18 +1043,18 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Connectivity MetaTopic (comms-delay-model-consistency spec): a signal
-        /// loss must (1) still deliver the pre-outage in-flight TAIL of an
-        /// ordinary Delayed channel as the horizon overtakes it, then FREEZE
+        /// loss must (1) still deliver the pre-outage in-flight tail of an
+        /// ordinary Delayed channel as the horizon overtakes it, then freeze
         /// (no in-blackout samples), while (2) the freeze-EXEMPT connectivity
         /// MetaTopic (<c>comms.link</c>) reveals its <c>connected:false</c>
-        /// disconnect edge THROUGH the blackout at the last-known light-time
+        /// disconnect edge through the blackout at the last-known signal delay
         /// horizon, the whole point: "NO SIGNAL" reaches the client even though
-        /// every other Delayed channel is frozen. This is the behaviour the OLD
+        /// every other Delayed channel is frozen. This is the behaviour the old
         /// global <c>if (!_commsConnected) return;</c> in FlushReveal made
         /// impossible (it withheld the MetaTopic's own disconnect edge along with
         /// everything else, so the client could never learn the link dropped).
         ///
-        /// <para>NOTE: this is a NEW test, distinct from
+        /// <para>Note: this is a new test, distinct from
         /// <see cref="DisconnectFreezesDelayedChannelWhileTrueNowKeepsFlowing"/>
         /// (which uses a generic delayed channel and guards the delay-0-disconnect
         /// freeze: it must stay green and does).</para>
@@ -1144,7 +1144,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A cut stops what has not yet crossed the link; it cannot recall what
-        /// already has. Telemetry that left the craft BEFORE the link dropped is
+        /// already has. Telemetry that left the craft before the link dropped is
         /// still in transit and must keep arriving, one sample at a time, for a
         /// further one-way delay after the cut. Only then does the stream go
         /// quiet.
@@ -1152,7 +1152,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <para>Concretely, with a 4 s one-way delay and a cut at UT 6: the
         /// samples stamped UT 2, 3, 4, 5 are in flight at the moment of the cut
         /// and must land at UT 6, 7, 8, 9 respectively, each at its own instant
-        /// and in order. What the operator must NOT see is the whole tail
+        /// and in order. What the operator must not see is the whole tail
         /// collapsing into the cut instant, which is the shape a client gets if
         /// the delivery re-reads the delay at fire time after a disconnect has
         /// collapsed it to 0 (no path to measure ⇒ SignalDelay None ⇒ 0): the

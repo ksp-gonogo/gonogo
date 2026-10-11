@@ -19,7 +19,7 @@ namespace Sitrep.Core.Tests
     /// baseline that may only ever shrink.
     ///
     /// <para><b>Why a gate and not a habit.</b> <see cref="Vec3"/> is deliberately
-    /// minimal and its own doc comment says so: units are documented on the FIELD
+    /// minimal and its own doc comment says so: units are documented on the field
     /// that holds one, never implied by the shape. Frame was in the same category
     /// and got neither the attribute nor the sentence, which left it a per-payload
     /// convention that nothing checked. Its failure mode is silent in a way a
@@ -29,7 +29,7 @@ namespace Sitrep.Core.Tests
     /// cannot be enforced is a convention that drifts, so the rule and its
     /// enforcement land together.</para>
     ///
-    /// <para><b>The baseline was seeded EMPTY, and that was measured rather than
+    /// <para><b>The baseline was seeded empty, and that was measured rather than
     /// hoped for.</b> The whole surface was ten properties across five types and
     /// every one already stated its frame in prose, so annotating them was
     /// transcription, not a research project. That is the opposite of
@@ -38,7 +38,7 @@ namespace Sitrep.Core.Tests
     /// does borrow from that one is the shape of the ratchet and the metadata
     /// scan, for the reason recorded there.</para>
     ///
-    /// <para><b>A baseline entry carries a REASON, and there is no seed
+    /// <para><b>A baseline entry carries a reason, and there is no seed
     /// utility.</b> A debt list is a gate that permits violations, so each entry
     /// has to say what could not be established: not "this one is pending" but
     /// which fact about the producer was unavailable. A machine cannot write that
@@ -104,7 +104,7 @@ namespace Sitrep.Core.Tests
         /// The type whose frame is in question: a collection's element, or the type
         /// itself.
         ///
-        /// <para><b>A DICTIONARY's value type is unwrapped here and is not by
+        /// <para><b>A dictionary's value type is unwrapped here and is not by
         /// <see cref="UnitCoverageTests"/>, deliberately.</b> That gate exempts
         /// dictionaries because a bag of heterogeneous values has no one dimension.
         /// A <c>Dictionary&lt;string, Vec3&gt;</c> is not heterogeneous, it is a
@@ -151,17 +151,17 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// `TypeName.PropertyName` -&gt; the frame it declares, for every property
         /// carrying <see cref="SitrepFrameAttribute"/>, read from the assembly's
-        /// METADATA rather than through <c>PropertyInfo.GetCustomAttribute</c>.
+        /// metadata rather than through <c>PropertyInfo.GetCustomAttribute</c>.
         ///
         /// <para>The reason is recorded in full on
         /// <see cref="UnitCoverageTests.AnnotatedFromMetadata"/> and is not
-        /// repeated: filtering custom attributes has to RESOLVE each one to compare
+        /// repeated: filtering custom attributes has to resolve each one to compare
         /// it against the filter, a <c>MetadataReader</c> compares names as strings
         /// and resolves nothing, and a gate whose job is to describe an assembly
         /// should not be breakable by what that assembly happens to reference.</para>
         ///
         /// <para>The attribute's blob is decoded by hand because this gate needs the
-        /// VALUES, not merely the presence: the catalog check and the discriminant
+        /// values, not merely the presence: the catalog check and the discriminant
         /// check both read arguments. The layout is ECMA-335 II.23.3 and fixed by
         /// the attribute's own signature (one string constructor argument, then
         /// named string properties), so the walk below is exhaustive for it and
@@ -303,7 +303,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The camelCased names of every boolean property on each contract type, so
         /// a declared <see cref="SitrepFrameAttribute.SelectedBy"/> can be resolved
-        /// against a real sibling. camelCased because the attribute names the WIRE
+        /// against a real sibling. camelCased because the attribute names the wire
         /// field a client reads, which is what the generated TS calls it.
         /// </summary>
         private static Dictionary<string, HashSet<string>> BoolPropertiesByType()
@@ -393,7 +393,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// A per-tick frame is declared by naming the flag that decides it, and that
-        /// name has to resolve. Checking it HERE, at build time, against a sibling on
+        /// name has to resolve. Checking it here, at build time, against a sibling on
         /// the same payload is the whole reason the discriminant is a property name and
         /// not a reference into a central frame table: a table turns a missing frame
         /// into a dangling reference that fails at read time in a client, which is
@@ -454,7 +454,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The discovery reaches the Vec3 surface, so a clean gate means something.
         ///
-        /// <para>Every assertion above finds nothing wrong when the surface is EMPTY,
+        /// <para>Every assertion above finds nothing wrong when the surface is empty,
         /// and three separate edits empty it: <c>[SitrepContract]</c> renamed or moved,
         /// <see cref="Vec3"/> renamed (this gate matches it by full name, on purpose),
         /// or <see cref="ElementType"/> losing a container shape. The baseline cannot

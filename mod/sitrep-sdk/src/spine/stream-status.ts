@@ -22,14 +22,14 @@ export type { StreamStatusValue } from "../api/types";
  * uncertainty about currency, but `disconnected` is a link-wide fact (the
  * whole pipe is down) rather than one topic's own missed heartbeat, so it
  * outranks a single `held` topic: but it's still a weaker claim than
- * a server-stamped `last-before-blackout` (which at least knows WHEN the
+ * a server-stamped `last-before-blackout` (which at least knows when the
  * blackout started) or a confirmed `absent`.
  *
  * `recorded` sits between `live` and `held`, and it is the only grade
- * where severity is not really about how BAD the reading is. The value is
+ * where severity is not really about how bad the reading is. The value is
  * exact: it came off the subject's own recorder, stamped with the instant it
  * was taken, so it is a stronger claim than `held`'s "may have changed,
- * cannot tell" and stronger than anything below it. What it is not is CURRENT,
+ * cannot tell" and stronger than anything below it. What it is not is current,
  * which is why it must never rank equal to `live`: a derived channel joining a
  * recorded input with a live one has to propagate the recorded grade, or a
  * widget reads a replayed outage as the state of the craft now.

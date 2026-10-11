@@ -14,12 +14,12 @@ namespace Gonogo.KSP.CurrencyDelay
     /// The shared reveal path for every delayed currency credit, stock interception and buffered
     /// science crediting alike: pops matured rows off the <see cref="PendingCreditLedger"/> and
     /// re-applies each via
-    /// AddFunds/AddScience/AddReputation(BaseAmount) - the BASE amount, never whatever was
+    /// AddFunds/AddScience/AddReputation(BaseAmount) - the base amount, never whatever was
     /// neutralised at earn time, so the game re-clamps and (for reputation) re-normalises against
     /// the reveal-time balance, exactly as StockCurrencyDecision.BuildCredit's own doc comment
     /// requires.
     ///
-    /// Every AddX call here runs under the SAME <see cref="CurrencyDelayGuard"/> instance
+    /// Every AddX call here runs under the same <see cref="CurrencyDelayGuard"/> instance
     /// StockCurrencyInterceptor's neutralise path uses (constructed once by the owner - the future
     /// CurrencyDelayScenario - and passed to both). Without that shared guard, a reveal's AddX
     /// would look to the interceptor like a brand-new remote-origin change: it would neutralise the

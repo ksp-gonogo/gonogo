@@ -28,7 +28,7 @@ import {
  * The Uplink half of `packages/components/src/test/widgetDeclarations.test.ts`.
  *
  * That gate reads the real registry and classifies every declaration entry, and
- * it says plainly what it cannot see: the widgets THIS package registers, and
+ * it says plainly what it cannot see: the widgets this package registers, and
  * nothing else. An Uplink's widgets register into the same registry from
  * packages `components` does not depend on, so their declarations are governed
  * by nothing there, and `mod/*​/client` is where new widgets now go.
@@ -42,7 +42,7 @@ import {
  * Uplinks exist to model: the isolation rule forbids reaching for an
  * app-internal package from `mod/*​/client`, and `classifyRequirement` lives in
  * `@ksp-gonogo/core`, which is private and unpublished. This exact strategy was
- * tried and removed rather than allowlisted, and it is now a NAMED BAN in
+ * tried and removed rather than allowlisted, and it is now a named ban in
  * `uplink-isolation.allowlist.ts`'s `BLOCKED_FILENAMES`, for the reason that a
  * gate living in the Uplink makes the first-party Uplinks less like the
  * third-party ones they model.
@@ -52,7 +52,7 @@ import {
  * builds every first-party Uplink client and can also see `core`. That is
  * this package, whose bundle targets name them.
  *
- * So `classifyRequirement` does NOT need to move into `sitrep-sdk` for this
+ * So `classifyRequirement` does not need to move into `sitrep-sdk` for this
  * coverage to exist. It would need to move for an outside author to run the
  * same check on their own widgets, which is a separate and still-open question.
  *
@@ -71,7 +71,7 @@ import {
  * ## Two registries, not one
  *
  * `getComponents()` is only half the surface an Uplink declares against.
- * Augments register into a SEPARATE registry and carry their own `channels`,
+ * Augments register into a separate registry and carry their own `channels`,
  * and four of them do. `getAugments()` is the enumeration that makes them
  * countable; `getAugmentsForSlot` cannot serve here, because reaching every
  * augment through it means knowing every slot name first, and a slot nobody
@@ -122,7 +122,7 @@ describe("widget and augment declarations resolve to something real", () => {
    * `channels` and `optionalChannels` are typed ids, so the compiler already
    * rejects a token that is neither a `TopicId` nor a derived-channel id. They
    * are included anyway: the typed union is a build-time claim about the id's
-   * SPELLING, and this asserts the runtime registry resolves it, which is what
+   * spelling, and this asserts the runtime registry resolves it, which is what
    * `useWidgetStreamStatus` and `alarmMatchesWidget` actually do. A widget
    * built against a stale SDK carries an id the current contract dropped, and
    * the two checks disagree exactly there.
@@ -196,7 +196,7 @@ describe("widget and augment declarations resolve to something real", () => {
   });
 
   /**
-   * The positive control on the WIDENING rather than on the classifier.
+   * The positive control on the widening rather than on the classifier.
    * Dropping `channels` back out of the spread, or dropping the augment half,
    * leaves every assertion in this file passing over a smaller set: green, and
    * reading a fraction of what it claims. That is the state this gate was in

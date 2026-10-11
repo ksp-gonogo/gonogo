@@ -15,14 +15,14 @@ interface CommandGroupOwnProps<GroupValue extends Record<string, unknown>> {
   children: ReactNode;
   /**
    * What the commit button draws. Defaults to "Commit". A string names the
-   * button by itself; a node (an icon-only commit) MUST be paired with
+   * button by itself; a node (an icon-only commit) must be paired with
    * `commitAriaLabel`, because every kit icon is `aria-hidden`, and omitting it
    * is a compile error. A node also squares the button's inset.
    */
   commitLabel?: ReactNode;
   /**
    * The commit button's accessible name, for when `commitLabel` cannot be one.
-   * Always the ACTION, never the glyph ("Commit framing", not "Return arrow").
+   * Always the action, never the glyph ("Commit framing", not "Return arrow").
    */
   commitAriaLabel?: string;
   /** Why a gated commit is unavailable: the button's description, and its hover title. */
@@ -59,11 +59,11 @@ export type CommandGroupProps<GroupValue extends Record<string, unknown>> =
   CommandGroupOwnProps<GroupValue> & CommandGroupCommitNaming;
 
 /**
- * Grouped-confirm (select-then-commit) primitive: child inputs write into the
- * caller's controlled `value`, and nothing dispatches until the explicit commit
- * fires `onCommit` once with the whole group's value. One delayed dispatch for
- * the group, not one per input. It has no data hooks and no dispatch of its
- * own.
+ * A group of inputs committed together: child inputs write into the caller's
+ * controlled `value`, and nothing dispatches until the explicit commit fires
+ * `onCommit` once with the whole group's value. Useful for letting the operator
+ * set several values for one command and send them as one delayed dispatch. It
+ * has no data hooks and no dispatch of its own.
  *
  * @category CommandDelay
  */

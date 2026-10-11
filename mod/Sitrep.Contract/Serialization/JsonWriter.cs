@@ -629,7 +629,7 @@ namespace Sitrep.Contract.Serialization
         ///
         /// <remarks>
         /// <c>limit</c> and <c>actual</c> are nullable and are written as null
-        /// when absent rather than as 0. An unlimited facility has NO limit, and
+        /// when absent rather than as 0. An unlimited facility has no limit, and
         /// KSP says so with <c>float.MaxValue</c>, which must not reach the wire:
         /// 3.4e38 beside a craft mass is not "unlimited", it is a bug that reads
         /// as a units error. Collapsing either to 0 would be worse again, since 0

@@ -1,19 +1,19 @@
 #!/usr/bin/env tsx
 /**
- * Synthesize a physically-grounded Mun descent and emit (a) a 1 Hz SYNTHETIC
+ * Synthesize a physically-grounded Mun descent and emit (a) a 1 Hz synthetic
  * time-series ndjson for the record, and (b) `_stream` render fixtures
  * (high / ignition / approach / final / landed) for the Landing widget render
- * harness. The descent ends on a settled LANDED frame (situation Landed, motion
+ * harness. The descent ends on a settled landed frame (situation Landed, motion
  * nulled) so the widget reads landed, not a stale descent countdown.
  *
- * The trajectory is integrated forward with the widget's OWN full-vector burn
+ * The trajectory is integrated forward with the widget's own full-vector burn
  * solve (`solveSuicideBurn`) driving when the suicide burn starts, so the data
  * is self-consistent with what the widget re-derives. Terrain (slope / roughness
  * / biome at the predicted point) is swept from rough-and-steep high up to
  * smooth-and-flat near touchdown, so the reticle's hazard verdict walks
- * DIVERT -> MARGINAL -> SAFE across the descent, a real UX story, not random.
+ * `DIVERT` -> marginal -> `SAFE` across the descent, a real UX story, not random.
  *
- * NOT captured: model-generated. Run:
+ * Not captured: model-generated. Run:
  *   pnpm --filter @ksp-gonogo/components exec tsx scripts/synthesize-landing-descent.ts
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -128,7 +128,7 @@ const PRESETS: TerrainPreset[] = [
   },
 ];
 
-/** A single slow near-touchdown state, so the verdict tracks the TERRAIN not speed. */
+/** A single slow near-touchdown state, so the verdict tracks the terrain not speed. */
 const SHOWCASE_FRAME: Frame = {
   t: 0,
   aglMeters: 60,
@@ -208,7 +208,7 @@ export interface GeneratedScene {
 }
 
 /**
- * The five `__render__` scenes, picked from the integrated descent to sweep the hazard verdict DIVERT -> MARGINAL -> SAFE plus the burn states: high (freefall, DIVERT site far downrange), ignition (first burning frame: hot band lit, still fast so DIVERT), approach (slow final approach over a MARGINAL slope), final (SAFE soft touchdown) and the settled touched-down frame, where the widget shows the landed state and no stale descent countdown.
+ * The five `__render__` scenes, picked from the integrated descent to sweep the hazard verdict `DIVERT` -> marginal -> `SAFE` plus the burn states: high (freefall, `DIVERT` site far downrange), ignition (first burning frame: hot band lit, still fast so `DIVERT`), approach (slow final approach over a marginal slope), final (`SAFE` soft touchdown) and the settled touched-down frame, where the widget shows the landed state and no stale descent countdown.
  */
 export function descentFrames(frames: readonly Frame[]): {
   high: Frame;

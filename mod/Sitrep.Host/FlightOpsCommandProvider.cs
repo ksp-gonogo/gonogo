@@ -36,7 +36,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Bridges the opaque <c>"vab"</c>/<c>"sph"</c> wire string to the
-        /// KSP-free <see cref="EditorFacilityKind"/> HERE, before the actuator
+        /// KSP-free <see cref="EditorFacilityKind"/> here, before the actuator
         /// is ever called, an unrecognised facility is an out-of-range arg,
         /// rejected as <see cref="CommandErrorCode.Range"/> without touching the
         /// game (the same admission-gate split every arg-validated command in

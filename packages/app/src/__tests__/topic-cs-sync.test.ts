@@ -24,7 +24,7 @@ const MOD_ROOT = join(
  * Recursively collect production C# sources (skip build output, test projects, the example
  * skeleton server). Mirrors the collector the SDK's own `topics.test.ts` used before this
  * bidirectional check moved here: the SDK package cannot import the Uplink clients (that
- * would be the `^build` cycle the leaf architecture forbids), so the FULL C#↔registry sync
+ * would be the `^build` cycle the leaf architecture forbids), so the full C#↔registry sync
  * check lives here in `packages/app`, downstream of the Uplink clients, where the complete
  * registered union actually exists.
  */
@@ -120,7 +120,7 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
   /**
    * A scan budget rather than a unit-test budget. This walks every `.cs` file in
    * `mod/` with synchronous reads, and its cost is dominated by how busy the
-   * machine is, NOT by how much it has to scan.
+   * machine is, not by how much it has to scan.
    *
    * Measured, all on a 14-core box under six concurrent agents:
    *
@@ -130,7 +130,7 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
    *     load 13.53   tests 704ms
    *
    * and the same body has also been observed past 5s under heavier load. So the
-   * spread is better than 10x, and the VARIANCE is the finding rather than any
+   * spread is better than 10x, and the variance is the finding rather than any
    * one figure: a 5s default is simply the wrong instrument for a whole-tree
    * scan sharing a machine.
    *

@@ -11,7 +11,7 @@ namespace Sitrep.Core
     /// <para><b>Why this exists.</b> A mapper builds a fresh
     /// <c>Dictionary&lt;string, object?&gt;</c> on every call, and
     /// <c>Dictionary</c> does not override <c>Equals</c>, so the gate's
-    /// <c>!Equals(lastEmitted, value)</c> fallback was REFERENCE equality and
+    /// <c>!Equals(lastEmitted, value)</c> fallback was reference equality and
     /// answered "changed" for every structured payload ever considered. The
     /// gate worked for scalars and was inert for the rest. Measured against
     /// the deck's RO 200 km capture, <c>system.bodies</c> alone was 82% of the
@@ -27,7 +27,7 @@ namespace Sitrep.Core
     /// <para><b>What a producer owes this.</b> A payload must be built fresh,
     /// or at least never mutated after it is handed over. A producer that keeps
     /// a nested list or dictionary alive across ticks and edits it in place
-    /// hands the gate the SAME object as both sides of the comparison, and it
+    /// hands the gate the same object as both sides of the comparison, and it
     /// will correctly report that an object equals itself while the value it
     /// described has moved. Nothing in the tree does this (every mapper and
     /// every publisher allocates), and the previous reference comparison had

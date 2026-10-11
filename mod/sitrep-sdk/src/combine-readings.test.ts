@@ -6,7 +6,7 @@ import { value } from "./unit-system/value";
 /**
  * The combinator's currency rule, one test per clause of it.
  *
- * Two of the clauses exist BECAUSE the obvious reading was unavailable:
+ * Two of the clauses exist because the obvious reading was unavailable:
  * `HeldGrade` has no severity order and the three non-value states have no
  * precedence, so the rules are positional and tied to the instant rather
  * than ranked. Each is
@@ -110,7 +110,7 @@ describe("combineReadings on an input with no value", () => {
   });
 
   /**
-   * Positional because there IS no meaningful ranking of absent, pending and
+   * Positional because there is no meaningful ranking of absent, pending and
    * unowned. A rule that picked one as "worse" would be inventing a severity
    * the model does not have.
    */
@@ -135,7 +135,7 @@ describe("combineReadings on an input with no value", () => {
   /**
    * The shape the states alone get wrong, and the one a field reading hands
    * over every day: a field the payload did not carry is `observed` (the topic
-   * WAS observed) with no value (the field was not in it). Trusting `state`
+   * was observed) with no value (the field was not in it). Trusting `state`
    * here once handed `compute` an `undefined`, which threw on `.minus`.
    */
   it("treats an observed input that carries no value as one with none", () => {
@@ -262,7 +262,7 @@ describe("combineReadings when the arithmetic has no answer", () => {
   });
 
   /**
-   * The model half. `ReckoningAvailable.modelled` is a REQUIRED value, so a
+   * The model half. `ReckoningAvailable.modelled` is a required value, so a
    * combination with no answer for the modelled figures has no model rather
    * than an available one carrying nothing.
    */

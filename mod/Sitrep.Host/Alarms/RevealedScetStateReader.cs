@@ -4,14 +4,14 @@ using System.Collections.Generic;
 namespace Sitrep.Host.Alarms
 {
     /// <summary>
-    /// Reads a threshold against what ONE VANTAGE HAS BEEN TOLD, rather than
+    /// Reads a threshold against what one vantage has been told, rather than
     /// against the simulation's own state.
     ///
-    /// <para>The twin of <see cref="SnapshotScetStateReader"/>, and the ONLY
+    /// <para>The twin of <see cref="SnapshotScetStateReader"/>, and the only
     /// difference between them is where the payload comes from. That one builds
     /// it from this tick's snapshot, upstream of the reveal gate, which is what
     /// makes a SCET alarm a SCET alarm. This one takes the payload the archive
-    /// says has arrived at <see cref="_vantage"/>, which is a light-time old and
+    /// says has arrived at <see cref="_vantage"/>, which is a signal delay old and
     /// different at every place. Once a payload is in hand the question is
     /// identical, so both walk it through <see cref="ScetPayload"/>.</para>
     ///

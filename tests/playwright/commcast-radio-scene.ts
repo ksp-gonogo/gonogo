@@ -13,7 +13,7 @@ import { seedContext } from "./helpers";
  * that pane's decoder actually produced.
  *
  * Extracted from `commcast-radio.spec.ts` when the station scene needed the
- * same rig from a different mount. Nothing here decides what a scene DOES: the
+ * same rig from a different mount. Nothing here decides what a scene does: the
  * vantages, the beats and the assertions belong to the spec, and this owns only
  * the parts that would otherwise be copied.
  *
@@ -46,12 +46,12 @@ export const NAMES: Record<string, string> = {
 /**
  * Each screen renders at this size, so the stacked film tiles evenly.
  *
- * Large enough that the widget is READABLE at a normal playback size once three
+ * Large enough that the widget is readable at a normal playback size once three
  * of them are side by side, and no larger. The screencast is the constraint,
  * not the disk: three contexts recording at 900x620 could not keep up with the
  * wall, and a pane whose recording runs slow cannot be aligned by trimming,
  * because trimming assumes a second of video is a second of wall. Measured, the
- * station's pane came out THIRTY-THREE SECONDS behind the other two, which the
+ * station's pane came out THIRTY-THREE seconds behind the other two, which the
  * stopwatch drawn on each pane is what caught.
  *
  * The width also decides the grid: 800 leaves a container comfortably inside
@@ -66,7 +66,7 @@ export const SCREEN_SIZE = { width: 800, height: 520 } as const;
  * Repeated here rather than guessed, which is the whole reason this exists.
  * `dashboardWithWidget` in `helpers.ts` carries its own 12/10/8/6/4, which
  * matches nothing the app uses: at a 900 px viewport the grid picks `sm` and
- * gives out EIGHTEEN columns, so a layout asking for eight got less than half
+ * gives out eighteen columns, so a layout asking for eight got less than half
  * the pane and the widget was photographed in a corner of its own screen.
  * Every entry here is the full width of its breakpoint, so whichever one the
  * container lands on, the widget fills the pane.
@@ -119,7 +119,7 @@ export interface ReceptionWatch {
    * Streams started on each listening chain, newest chain last.
    *
    * The reading a mute leaves behind. A muted chunk ends the stream without
-   * decoding it, so the next audible one starts a fresh stream on the SAME
+   * decoding it, so the next audible one starts a fresh stream on the same
    * lane: the lane count is unchanged and this is the only place the gap shows
    * up as a positive fact rather than as an absence.
    */
@@ -247,7 +247,7 @@ export interface ClipSpec {
 /**
  * Runs this page's radio on a recorded clip, with a tape running on the sink.
  *
- * The clip module is reached through the DEV SERVER's own module URL rather
+ * The clip module is reached through the dev server's own module URL rather
  * than bundled into the app: the seam takes a backend the page hands it, so
  * nothing about a stand-in microphone is in the app's module graph, and what
  * loads here is the same `clips.ts` the jsdom suites use.
@@ -256,9 +256,9 @@ export interface ClipSpec {
  * chain is the whole shape of `RadioBackend`: `{ startCapture, createReceiver }`
  * and nothing else. An earlier tape wrapped a `createDecoder` that no backend
  * has ever had, so the handle it published failed `isRadioBackend`'s two-member
- * check, the page silently kept the REAL WebAudio backend, and every scene
+ * check, the page silently kept the real WebAudio backend, and every scene
  * timed out waiting for a receiver that was never going to be built. It wraps
- * rather than replaces because the recording is a property of THIS scene, and
+ * rather than replaces because the recording is a property of this scene, and
  * what it observes is exactly the samples the shipped session handed the
  * speakers, at the instant it handed them over. Converted to int16 on the spot
  * and left as binary until the dump, because this runs on the 20 ms playout
@@ -359,7 +359,7 @@ export async function installClipRadio(
 }
 
 /**
- * Starts watching what this screen HEARS, on a 10 ms poll.
+ * Starts watching what this screen hears, on a 10 ms poll.
  *
  * Two independent instruments, deliberately. The decoder says when audio
  * actually reached the speakers, to the poll's resolution; the lamp says what
@@ -368,7 +368,7 @@ export async function installClipRadio(
  * lamp lit by the envelope.
  *
  * `Date.now()` rather than `performance.now()` because the instants are
- * compared ACROSS pages: three time origins are three different zeroes, and
+ * compared across pages: three time origins are three different zeroes, and
  * the whole measurement is a difference between screens.
  */
 export async function watchReception(page: Page): Promise<void> {
@@ -476,13 +476,13 @@ export function decodedVerdict(
 }
 
 /**
- * Waits, from the TEST rather than from the page, for `until` to hold.
+ * Waits, from the test rather than from the page, for `until` to hold.
  *
  * `page.waitForFunction` is the obvious tool and it does not work here.
  * Measured on firefox: three contexts are open and at most one page is
  * foreground, and a poller injected into a backgrounded page is starved badly
  * enough that a condition true within four seconds went unseen for thirty. The
- * same run, waiting a fixed interval on the host and then reading the SAME
+ * same run, waiting a fixed interval on the host and then reading the same
  * value, saw it set. So the predicate is evaluated by a host-driven
  * `page.evaluate` on a host-driven interval, and nothing about the wait depends
  * on which of the three screens the engine decided to favour.
@@ -581,7 +581,7 @@ export async function keyUp(page: Page): Promise<void> {
  * The voice ribbon this screen is publishing onto its own panel's delay rail.
  *
  * `role="img"` with the crossing's own accessible name, which is what
- * `RailCrossing` renders and the only thing about the rail that names WHICH
+ * `RailCrossing` renders and the only thing about the rail that names which
  * crossing is drawn.
  */
 export const voiceRibbon = (page: Page) =>
@@ -591,7 +591,7 @@ export const voiceRibbon = (page: Page) =>
  * Speak the clip at the grid it was recorded on, and return immediately.
  *
  * At natural rate rather than in one go, because the scene is a measurement of
- * WHEN: a whole clip emitted in one tick would be a single instant on the wire
+ * when: a whole clip emitted in one tick would be a single instant on the wire
  * and would tell you nothing about a playout, and on the video it would be a
  * flash rather than somebody talking.
  */
@@ -779,7 +779,7 @@ async function joinedMesh(host: Page, peer: Page): Promise<void> {
  * ------------------------------------------------------------------------- */
 
 export interface CaptionOptions {
-  /** What this screen IS, in the largest type on the pane. */
+  /** What this screen is, in the largest type on the pane. */
   title: string;
   /** Its route and vantage, under the title. */
   subtitle: string;
@@ -790,7 +790,7 @@ export interface CaptionOptions {
    *
    * The panes are trimmed back to a common start, so one stopwatch drawn from
    * one epoch on three pages of one machine reads the same in all three. That
-   * is what lets a reviewer take the light-time off the PICTURE: keyed at
+   * is what lets a reviewer take the signal delay off the picture: keyed at
    * T+12.0 on one pane, heard at T+15.0 on another, with no timeline to trust
    * but the one they can see.
    */
@@ -927,7 +927,7 @@ export async function caption(
 /**
  * Say something, hold it long enough to read, and leave it up.
  *
- * The hold is the point. The delay ARITHMETIC is the subject and is never
+ * The hold is the point. The delay arithmetic is the subject and is never
  * paced, but everything around it is: a reviewer who cannot read the caption
  * before the state it describes has changed has been shown nothing.
  */
@@ -969,18 +969,18 @@ export function wavFile(pcm: Int16Array, sampleRate: number): Buffer {
  * One screen's tape laid out on the film's clock: silence, then what it heard,
  * where it heard it.
  *
- * Every block is placed at its OWN wall instant rather than butted against the
+ * Every block is placed at its own wall instant rather than butted against the
  * one before, which is the whole point: the silence between the key going down
- * and the first word is a light-time, and a track that simply concatenated what
+ * and the first word is a signal delay, and a track that simply concatenated what
  * was decoded would erase exactly the thing the film is about.
  *
  * The one liberty taken is a cursor that never runs backwards. A playout that
  * delivers two blocks inside the same millisecond is a real thing (the buffer
  * releases on a clock the engine can stall), and placing the second on top of
- * the first would DROP audio the code produced. Butting it on instead delays it
+ * the first would drop audio the code produced. Butting it on instead delays it
  * by 20 ms and keeps it.
  *
- * A screen that heard NOTHING still gets a track, and it is silent for its
+ * A screen that heard nothing still gets a track, and it is silent for its
  * whole length rather than absent. A pane whose audio was simply left out of
  * the mux would say "nobody spoke to me" with the same silence as a pane whose
  * audio the harness failed to collect.

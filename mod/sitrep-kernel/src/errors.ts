@@ -6,7 +6,7 @@
  */
 
 /**
- * Raised during `Kernel.resolve()`'s selection when an EXCLUSIVE capability
+ * Raised during `Kernel.resolve()`'s selection when an exclusive capability
  * has two or more equally-ranked provider candidates and there is no user
  * preference or unique `isDefault`/highest-priority provider to break the tie.
  *
@@ -37,7 +37,7 @@ export class AmbiguousResolutionError extends Error {
 /**
  * Thrown by `Kernel.resolve()` when a `spineCritical` capability has no
  * compatible provider (every registered provider was excluded by version
- * gating, or none were registered at all) AND no `vanilla` fallback.
+ * gating, or none were registered at all) and no `vanilla` fallback.
  *
  * The spine cannot boot without this capability, so the kernel refuses to
  * silently continue with the capability absent: unlike a non-spine-critical

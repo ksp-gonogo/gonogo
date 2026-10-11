@@ -10,7 +10,7 @@ namespace Sitrep.Host.Crew
     /// <para>Not a no-op. It is a real reader whose answer happens to be a
     /// one-to-one map, and it is deliberately the capability's Vanilla rather
     /// than a special case inside the view provider: with the mapping behind the
-    /// SPI, there is exactly ONE place a standing is decided and the provider
+    /// SPI, there is exactly one place a standing is decided and the provider
     /// never holds two derivations that could disagree.</para>
     ///
     /// <para>The map itself is <see cref="CrewStandings.FromQuery"/>, in the

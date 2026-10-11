@@ -1,5 +1,5 @@
 /**
- * Media playout buffer that rides the SAME delay clock as telemetry.
+ * Media playout buffer that rides the same delay clock as telemetry.
  *
  * The headline guarantee: video and telemetry stamped the same UT become
  * available at the same wall-time, because both read `confirmedEdgeUt()`
@@ -7,12 +7,12 @@
  * `arrival + delaySeconds` itself: a sample confirms, an estimate only
  * schedules.
  *
- * The `view` dependency is STRUCTURAL (`DelayClockLike`), not the concrete
+ * The `view` dependency is structural (`DelayClockLike`), not the concrete
  * `ViewClock`, even though `ViewClock` lives in this same package. Two reasons:
  *   1. it lets the buffer be unit-tested against a hand-rolled clock double
  *      (see `delayed-playout-buffer.test.ts`) with no real `ViewClock`, no
  *      provider, no wall clock;
- *   2. it documents the MINIMAL surface media delay needs off the one delay
+ *   2. it documents the minimal surface media delay needs off the one delay
  *      authority, exactly `confirmedEdgeUt()` + `onFrame()`, so the coupling
  *      to the clock stays a two-method contract, not the whole class.
  * The app wires the real `ViewClock` in at the call site; `ViewClock`

@@ -34,7 +34,7 @@ export function isOwnCraftVantage(
  * The craft the samples are about, held through a quiet link: which craft that
  * is does not change because its telemetry stopped arriving.
  *
- * Read off the orbit PAYLOAD's own `meta.source`, `"vessel:<guid>"` as
+ * Read off the orbit payload's own `meta.source`, `"vessel:<guid>"` as
  * `Sitrep.Host.VesselViewProvider.BuildMeta` stamps it. Never the envelope's
  * `meta.source`: that is the Courier node, the literal `"system"` for every
  * non-fleet topic, which no roster id can equal. Optional-chained because a
@@ -53,14 +53,14 @@ function subjectOf(reading: TopicReading<VesselOrbit>): string | undefined {
  * operator whatever centre they picked.
  *
  * Gated on the selected vantage, never the observed one. Observed lags a whole
- * light-time behind the request that moved it, so a clock keyed on it would
+ * signal delay behind the request that moved it, so a clock keyed on it would
  * stay ground-delayed for exactly as long as the delay it is meant to remove,
  * and `PilotVantage` (which sets the vantage) keys on selected for the same
  * reason. The cost is a transient at the moment of the request: `setVantage`
  * tracks optimistically, so between asking and the mod agreeing the clock
  * reads zero while frames are still arriving ground-delayed. That window is
  * bounded by one round trip and errs towards the live reading, where the
- * inverse (holding the ground's light-time over live frames) blanks the page
+ * inverse (holding the ground's signal delay over live frames) blanks the page
  * outright once the delay exceeds the timeline's retention.
  *
  * Screen-independent on purpose. The mod's zero row is written for whichever

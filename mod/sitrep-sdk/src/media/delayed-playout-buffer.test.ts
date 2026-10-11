@@ -11,7 +11,7 @@
  * `courier-transport.integration.test`'s `ManualClock.advanceTo` pattern):
  * none of them needs a real UT-estimator fit, just direct control over
  * `confirmedEdgeUt()`. The headline video↔telemetry sync scenario drives the
- * REAL `ViewClock` instead, so it lives beside that clock in the app's
+ * real `ViewClock` instead, so it lives beside that clock in the app's
  * `delayed-playout-buffer.viewclock.integration.test.ts`.
  */
 

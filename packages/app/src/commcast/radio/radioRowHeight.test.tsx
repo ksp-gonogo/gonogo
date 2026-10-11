@@ -7,7 +7,7 @@
  * so each control ended up as tall as whatever happened to be inside it and the
  * bar came out ragged.
  *
- * jsdom lays nothing out, so what is asserted here is the DECLARATION every one
+ * jsdom lays nothing out, so what is asserted here is the declaration every one
  * of them now carries: one shared control height from the kit, resolved through
  * the real styled-components cascade. A row where each control names the same
  * height cannot go ragged; a row where none of them names one always can.

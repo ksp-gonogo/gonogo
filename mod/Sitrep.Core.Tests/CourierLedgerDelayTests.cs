@@ -7,7 +7,7 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// Locks the invariant the ledger migration (Plan 1) relies on: once the
     /// network default carries the signal delay, the Courier/Archive apply that
-    /// delay EXACTLY ONCE (no double-delay, no zero-delay) for an ordinary
+    /// delay exactly once (no double-delay, no zero-delay) for an ordinary
     /// topic recorded straight through the reveal gate.
     /// </summary>
     public class CourierLedgerDelayTests

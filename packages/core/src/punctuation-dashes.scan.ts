@@ -5,36 +5,36 @@ import { join } from "node:path";
 /**
  * The scan behind `styleguide-punctuation-dashes.test.ts`.
  *
- * THE RULE, from CLAUDE.md: no em-dashes; use commas, colons, parentheses, or
+ * The rule, from CLAUDE.md: no em-dashes; use commas, colons, parentheses, or
  * separate sentences instead. The em dash is one character of a family, and
  * `styleguide-emdash.test.ts` gates that one character. Every other dash in the
  * family is the same defect wearing a different codepoint, and the en dash is
  * the one the tree actually writes.
  *
- * WHICH CHARACTERS, and why the set is derived rather than listed: a hand-picked
+ * Which characters, and why the set is derived rather than listed: a hand-picked
  * set only ever catches the spellings whoever picked it thought of. So the set
  * is Unicode's own `Dash_Punctuation` category, read off the regex engine at
  * load time, and a codepoint added to that category in a future Unicode release
  * is covered without anybody editing this file.
  *
- * TWO CHARACTERS ARE DELIBERATELY OUT, and both would be catastrophic in:
+ * Two characters are deliberately out, and both would be catastrophic in:
  *
- *   - BOX-DRAWING characters (U+2500 and its relatives) are a RULE, not
+ *   - BOX-DRAWING characters (U+2500 and its relatives) are a rule, not
  *     punctuation. They draw banners, diagrams and shell output tens of
  *     thousands of times across the tree, and `banner-comments.matcher.ts` is
  *     built out of them. Unicode agrees: they are `So`, not `Pd`, so the
  *     derivation excludes them without needing a rule
- *   - U+2212 MINUS SIGN is a mathematical OPERATOR: orbital formulae, signed
+ *   - U+2212 minus sign is a mathematical operator: orbital formulae, signed
  *     control ranges and rendered decrement buttons. It is `Sm`, so again the
  *     derivation excludes it, and this paragraph exists so nobody adds it back
  *     by hand
  *
  * The ASCII hyphen is excluded because it is the correct character, and the em
- * dash because `styleguide-emdash.test.ts` holds it to a STRICTER rule than this
+ * dash because `styleguide-emdash.test.ts` holds it to a stricter rule than this
  * one: zero outside a single sanctioned definition site, with no debt list at
  * all. Gating it in both places would let the two disagree about it.
  *
- * U+00AD SOFT HYPHEN is added to the derived set. It is `Cf` rather than `Pd`,
+ * U+00AD soft hyphen is added to the derived set. It is `Cf` rather than `Pd`,
  * so no derivation reaches it, and it renders as nothing at all: it can only
  * ever arrive by paste and is invisible to the reader who would otherwise catch
  * it.
@@ -96,7 +96,7 @@ const CAPTURED_RE = /\.snap$|\/__generated__\/|^__generated__\//;
  * `INTERVAL_DASH` in `Band.tsx`. It is a deliberate design choice rather than
  * debt, and recording it as debt would confuse whoever later tried to pay it
  * off. The same standing `NULL_DISPLAY` has in the em-dash gate, including the
- * assertion that the definition is still THERE, so the carve-out cannot outlive
+ * assertion that the definition is still there, so the carve-out cannot outlive
  * its reason.
  */
 export const SANCTIONED_FILE = "packages/ui-kit/src/Band.tsx";
@@ -129,7 +129,7 @@ function repoRoot(): string {
 /**
  * Files carrying at least one forbidden dash.
  *
- * `--untracked` is load-bearing: `git grep` alone searches only TRACKED files,
+ * `--untracked` is load-bearing: `git grep` alone searches only tracked files,
  * so a dash written into a brand new file is invisible until the moment it is
  * staged, and a local run before `git add` reports success while not looking at
  * it. It still honours `.gitignore`, so build output stays out. `-I` drops what

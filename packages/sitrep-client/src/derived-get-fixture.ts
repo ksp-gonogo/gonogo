@@ -3,7 +3,7 @@ import type { DerivedGet, TimelinePoint } from "@ksp-gonogo/sitrep-sdk";
 /**
  * A `DerivedGet` serving a fixed topic → point map, for a derivation under test.
  *
- * `DerivedGet` is generic in its CALLER: `<T>(topic) => TimelinePoint<T>`, where
+ * `DerivedGet` is generic in its caller: `<T>(topic) => TimelinePoint<T>`, where
  * the derivation picks `T` per read. No implementation can satisfy every `T` at
  * once, so the erasure that makes one is here, in one place, rather than in each
  * test's own fake.

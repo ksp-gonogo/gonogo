@@ -6,7 +6,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The CORE SignalDelay light-time math (comms-uplink-design.md §3).
+    /// The core SignalDelay signal delay math (comms-uplink-design.md §3).
     /// Pure: exercises gonogo's own computation over backend-supplied hop
     /// geometry with no KSP in the loop.
     /// </summary>

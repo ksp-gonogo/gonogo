@@ -90,7 +90,7 @@ public class WarpState
     /// at 10000x on another install. Read the rate here rather than assuming
     /// stock's table.</para>
     /// <internal>
-    /// <c>TimeWarp.fetch.warpRates</c>, HIGH warp only (the same table
+    /// <c>TimeWarp.fetch.warpRates</c>, high warp only (the same table
     /// <c>Gonogo.KSP.KspVesselActuator</c> bounds a <c>time.setWarpIndex</c>
     /// against), widened float -&gt; double on the way out. Physics warp has
     /// its own table and no client asks for one by index.

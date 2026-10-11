@@ -3,7 +3,7 @@
  * (`published-design-doc-refs.test.ts`). Pure data module, no test logic, same
  * split-module shape as the other allowlists here.
  *
- * THE RULE: a comment that reaches a third-party author's install may not point
+ * The rule: a comment that reaches a third-party author's install may not point
  * at a document only this repo has.
  *
  * Read the test file for why `published-doc-reachability` cannot see this class,
@@ -67,7 +67,7 @@ export const ORDINARY_COMPOUNDS: readonly string[] = [
 ];
 
 /**
- * PER FILE AND LINE, seeded empty: every instance the census found was rewritten
+ * Per file and line, seeded empty: every instance the census found was rewritten
  * rather than listed, so a first entry here is a fresh violation and not seed
  * residue.
  *

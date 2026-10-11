@@ -430,7 +430,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The control for the two tests above: handing back the SAME instance
+        /// The control for the two tests above: handing back the same instance
         /// was always suppressed, because <c>Equals</c> on one reference is
         /// true. Only a rebuilt-but-identical payload read as changed, which
         /// pins the defect on reference identity rather than on the gate's

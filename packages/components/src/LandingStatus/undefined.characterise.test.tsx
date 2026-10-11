@@ -72,7 +72,7 @@ describe("LandingStatus: what undefined means today", () => {
     availableThrust?: number;
   }
 
-  /** A Mun descent, by default the steep unrecoverable one (5 km AGL carrying 540 m/s); overrides give a viable descent where the ABORT hero is not under test. */
+  /** A Mun descent, by default the steep unrecoverable one (5 km AGL carrying 540 m/s); overrides give a viable descent where the `ABORT` hero is not under test. */
   function emitMunDescent(over: DescentOverrides = {}): void {
     stream.emit("system.bodies", {
       bodies: [
@@ -165,7 +165,7 @@ describe("LandingStatus: what undefined means today", () => {
 
   /**
    * `oneWaySeconds: null` is the documented no-path signal and must never be coerced to 0, which `classifyRegime` would read as `live`.
-   * Each case emits a good delay first and waits for the pill to leave NO LINK before emitting the absence, since NO LINK is also the pre-emit state.
+   * Each case emits a good delay first and waits for the pill to leave "NO LINK" before emitting the absence, since "NO LINK" is also the pre-emit state.
    */
   it("reads an explicit oneWaySeconds:null as NO LINK, never as a zero-delay link", async () => {
     renderWidget();

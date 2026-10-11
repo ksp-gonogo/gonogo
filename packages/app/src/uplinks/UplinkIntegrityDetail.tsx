@@ -6,7 +6,7 @@ import { readIntegrityFailure, type UplinkIntegrityFailure } from "./integrity";
  * A sha256 digest is 71 unbroken characters, so it needs somewhere to break and
  * a form that reads as a value rather than prose. No kit primitive renders a
  * raw digest, and letting it overflow would push the two hashes an operator is
- * meant to COMPARE off opposite edges of the screen.
+ * meant to compare off opposite edges of the screen.
  */
 const HashLine = styled.span`
   font-family: var(--font-family-mono);

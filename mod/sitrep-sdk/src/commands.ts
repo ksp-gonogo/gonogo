@@ -94,8 +94,8 @@ export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
 export type AnyCommandReply = CommandResultOf<unknown>;
 
 /**
- * The SDK's OWN command maps: the generated entries and nothing else.
- * DELIBERATELY distinct from the augmentable maps above, so a downstream Uplink
+ * The SDK's own command maps: the generated entries and nothing else.
+ * Deliberately distinct from the augmentable maps above, so a downstream Uplink
  * augmentation, which adds a key and registers an id at runtime but never
  * touches the static `COMMAND_IDS` array, cannot turn the SDK's own array↔map
  * assertions into false failures. Same split, and same reason, as

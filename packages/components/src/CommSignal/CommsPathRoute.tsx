@@ -25,7 +25,7 @@ const RAIL_STOP_DIAMETER_PX = 10;
 
 /**
  * The vertical train-schedule: vessel at the top, command centre at the
- * bottom, each leg's distance, light-time and contributed bitrate between its
+ * bottom, each leg's distance, signal delay and contributed bitrate between its
  * two stops. Renders nothing for an empty `hops` list.
  */
 export function CommsPathRoute({
@@ -110,7 +110,7 @@ function CommsPathStop({
 }
 
 /**
- * One leg's distance, light-time and, when contributed, forward bitrate. The
+ * One leg's distance, signal delay and, when contributed, forward bitrate. The
  * bottleneck hop's rate is tinted amber, with a hidden hint and a hover title
  * so colour is never the only signal.
  */

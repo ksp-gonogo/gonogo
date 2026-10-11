@@ -5,7 +5,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Comms
 {
     /// <summary>
-    /// What gonogo reports when the save models NO COMMS NETWORK AT ALL: the
+    /// What gonogo reports when the save models no comms network at all: the
     /// stock CommNet difficulty option (<c>GameParameters.DifficultyParams.EnableCommNet</c>,
     /// which is what <c>CommNetScenario.CommNetEnabled</c> reads) is off.
     ///
@@ -23,11 +23,11 @@ namespace Sitrep.Host.Comms
     /// directly, from anywhere, with no link involved.</para>
     ///
     /// <para><b>Absent, zero and held stay three different things.</b> "There
-    /// is no comms model, so there is no delay" is a POSITIVE FACT: it is a
+    /// is no comms model, so there is no delay" is a positive fact: it is a
     /// measured-and-known zero (<see cref="CommsDelaySource.NoCommsModel"/>,
     /// <c>oneWaySeconds = 0</c>), never a null and never a last-known value
     /// held through an outage. Signal strength goes the other way: it is not
-    /// modelled here, so it is ABSENT (null), not zero.</para>
+    /// modelled here, so it is absent (null), not zero.</para>
     ///
     /// <para><b>Kept free of KSP</b>: the one live read (is the option
     /// on) happens in <c>Gonogo.KSP</c> and arrives here as a
@@ -41,13 +41,13 @@ namespace Sitrep.Host.Comms
         /// models comms at all.
         ///
         /// <para><paramref name="modelPresent"/> is three-state on purpose.
-        /// <c>true</c> and <c>null</c> both return the config UNCHANGED: null
+        /// <c>true</c> and <c>null</c> both return the config unchanged: null
         /// is "nothing has said yet" (no save loaded, or the read threw), and
         /// treating an unknown as "no comms model" would silently switch a
         /// real career's delay off. Only a definite <c>false</c> cuts.</para>
         ///
         /// <para>Cuts even when the delay flag is already off, because the
-        /// derived config carries the REASON: without it a save with no comms
+        /// derived config carries the reason: without it a save with no comms
         /// model is indistinguishable on the wire from one whose operator
         /// simply never turned delay on.</para>
         /// </summary>
@@ -75,7 +75,7 @@ namespace Sitrep.Host.Comms
         /// <paramref name="modelPresent"/> is a definite <c>false</c>, in which
         /// case it comes back wrapped in <see cref="NoCommsModelBackend"/>.
         ///
-        /// <para>A WRAPPER rather than a check at each reader, because the
+        /// <para>A wrapper rather than a check at each reader, because the
         /// readers must never disagree: the reveal gate's connectivity source
         /// and the <c>comms.connectivity</c> channel are separate calls into
         /// the same backend, and a board whose channel says connected while
@@ -112,7 +112,7 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// The elected <see cref="ICommsBackend"/> as read on a save that models no
     /// comms network (see <see cref="CommsModelPolicy"/> for why). Everything
-    /// that describes a LINK is answered from the absence of a link model
+    /// that describes a link is answered from the absence of a link model
     /// rather than from the dead CommNet graph underneath; everything that
     /// describes the universe rather than the link (the occlusion geometry) is
     /// passed straight through.
@@ -142,7 +142,7 @@ namespace Sitrep.Host.Comms
         public string ProviderId => _inner.ProviderId;
 
         /// <summary>
-        /// CONNECTED, always: nothing can interrupt a link that is not
+        /// Connected, always: nothing can interrupt a link that is not
         /// modelled. The control tier comes from the craft's own parts, which
         /// is where KSP itself gets it once the CommNet branch is not taken, so
         /// a probe with no command module still reports no control and a manned
@@ -161,13 +161,13 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// FULL. Nothing attenuates a link that is not modelled.
+        /// Full. Nothing attenuates a link that is not modelled.
         ///
         /// <para>The honest answer is that there is no link budget to grade, so
-        /// the value is ABSENT, and <see cref="CommsSignal.Strength"/>
+        /// the value is absent, and <see cref="CommsSignal.Strength"/>
         /// cannot say that: it is not nullable, and making it nullable is a
         /// retype the contract shape gate refuses without a Major bump. Of the
-        /// two things it CAN say, 1 is the one that does not lie: 0 is what the
+        /// two things it can say, 1 is the one that does not lie: 0 is what the
         /// app's own loss verdict keys on, so reporting it would announce total
         /// signal loss on a board where every channel is arriving. A reader
         /// that needs to know this is not a grading has
@@ -184,7 +184,7 @@ namespace Sitrep.Host.Comms
         ///
         /// <para><see cref="CommsControl.Reason"/> never says "no
         /// connection to a command source" here, which would name a condition
-        /// that does not exist: there is no connection MODEL, not a missing
+        /// that does not exist: there is no connection model, not a missing
         /// connection. An uncontrollable craft is uncontrollable for the one
         /// reason left, which is that nothing aboard it can be a command
         /// source.</para>
@@ -200,7 +200,7 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// EMPTY, and that is the honest answer rather than a degraded one:
+        /// Empty, and that is the honest answer rather than a degraded one:
         /// a path is a route through a relay graph, and there is no graph. The
         /// zero delay a reader wants from this comes from the config cut
         /// (<see cref="CommsModelPolicy.Effective(SignalDelayConfig, bool?)"/>),
@@ -227,9 +227,9 @@ namespace Sitrep.Host.Comms
         public ICommsOcclusionModel OcclusionModel() => _inner.OcclusionModel();
 
         /// <summary>
-        /// EMPTY between two distinct places, which the contract defines as
+        /// Empty between two distinct places, which the contract defines as
         /// "routed, with nothing to measure", and that is exactly the case here:
-        /// there is no relay graph to solve and no light-time to accumulate. Not
+        /// there is no relay graph to solve and no signal delay to accumulate. Not
         /// null, which would mean no route exists and would put every pair back
         /// on a fallback this wrapper was added to stop them needing.
         ///
@@ -247,7 +247,7 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// ALWAYS CARRYING. Nothing can stop carrying on a save that models no
+        /// Always carrying. Nothing can stop carrying on a save that models no
         /// links, so no route change here is ever a break, and the drop event
         /// stays silent for the whole save. True rather than null because this
         /// is a positive fact about the save and not an absence of opinion.
@@ -255,7 +255,7 @@ namespace Sitrep.Host.Comms
         public bool? StillCarriesTo(object? vessel, string nodeId) => true;
 
         /// <summary>
-        /// NO MAXIMUM, and deliberately not <see cref="CommsReachModels.Unknown"/>.
+        /// No maximum, and deliberately not <see cref="CommsReachModels.Unknown"/>.
         ///
         /// <para>The two carry the same absent maximum and therefore compare the
         /// same through <see cref="CommsReachModels.Reaches"/>, but they mean
@@ -271,14 +271,14 @@ namespace Sitrep.Host.Comms
             "no-comms-model", "No comms model (nothing limits reach)", null);
 
         /// <summary>
-        /// PRISTINE, a rated zero, and this is the one readout where the absence
+        /// Pristine, a rated zero, and this is the one readout where the absence
         /// of a comms model can be said outright.
         ///
         /// <para><see cref="SignalStrength"/> above has to report 1 while
         /// explaining that the honest answer is an absence, because its field
         /// cannot carry one. <see cref="ICommsDegradeModel.Level"/> can, which
         /// makes the choice here a real one rather than a least-bad substitute,
-        /// and the answer is NOT the absence: "nothing attenuates a link that is
+        /// and the answer is not the absence: "nothing attenuates a link that is
         /// not modelled" is a positive fact about the save, exactly as
         /// <see cref="CommsDelaySource.NoCommsModel"/> is a measured zero rather
         /// than a null delay. An absence would tell a video feed nobody graded
@@ -297,7 +297,7 @@ namespace Sitrep.Host.Comms
             "no-comms-model", "No comms model (nothing degrades the link)", 0.0);
 
         /// <summary>
-        /// Null. A centre is where a control PATH terminates and there are no
+        /// Null. A centre is where a control path terminates and there are no
         /// paths, so there is no node to name.
         /// </summary>
         public CommsNodeHandle? ControlPathTerminus(object? vessel) => null;

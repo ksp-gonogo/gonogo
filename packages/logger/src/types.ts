@@ -44,7 +44,7 @@ export interface LogEntry {
 
 export interface LogTransport {
   /**
-   * Emit one or more log entries to the transport. Implementations MUST NOT
+   * Emit one or more log entries to the transport. Implementations must not
    * throw: log delivery failures must never crash the calling code path.
    */
   send(entries: readonly LogEntry[]): void;

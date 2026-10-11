@@ -23,22 +23,22 @@ namespace Sitrep.Propagation.Tests
     /// test would stay green, and nothing would say so: "the build passes" cannot express
     /// this failure. This can.</para>
     ///
-    /// <para>And it compares SIGNATURES rather than names, because the first draft did not
+    /// <para>And it compares signatures rather than names, because the first draft did not
     /// and passed while the door was still wide open: <c>Solve(OrbitElements, double)</c>
     /// shares its name with the seam's own <c>Solve</c>, so a name check called it a member
     /// of the interface. An overload is exactly how a second door gets added.</para>
     ///
-    /// <para><b>There are deliberately TWO checks here and they must not be consolidated
-    /// into one tidier one.</b> The first pins the SURFACE (nothing public that the
-    /// interface does not declare) and the second pins the SHAPE (nothing public that takes
-    /// a bare <see cref="OrbitElements"/>, whatever it is called). A door RENAMED onto the
+    /// <para><b>There are deliberately two checks here and they must not be consolidated
+    /// into one tidier one.</b> The first pins the surface (nothing public that the
+    /// interface does not declare) and the second pins the shape (nothing public that takes
+    /// a bare <see cref="OrbitElements"/>, whatever it is called). A door renamed onto the
     /// interface defeats the first and not the second; a door added under a new name
     /// defeats the second and not the first. Neither is redundant.</para>
     ///
     /// <para>The second exists because the first passed on the very thing it was written
     /// to catch, and that is the point worth keeping: a better name check would still have
     /// been a name check. The remedy for an instrument that cannot represent a failure is
-    /// a check of a different KIND, not a more careful version of the same one.</para>
+    /// a check of a different kind, not a more careful version of the same one.</para>
     /// </summary>
     public class TheVanillaHasNoDoorBesideTheSeamTests
     {
@@ -65,7 +65,7 @@ namespace Sitrep.Propagation.Tests
 
         /// <summary>
         /// The guard on the guard. The check above would also pass if the element-keyed
-        /// door were merely RENAMED onto the interface, so this pins the shape that must
+        /// door were merely renamed onto the interface, so this pins the shape that must
         /// not exist: nothing public may take a bare <see cref="OrbitElements"/>, whatever
         /// it is called.
         /// </summary>
@@ -107,7 +107,7 @@ namespace Sitrep.Propagation.Tests
         }
 
         /// <summary>
-        /// The seam INCLUDING what it inherits. An interface's own
+        /// The seam including what it inherits. An interface's own
         /// <c>GetMembers</c> stops at itself, so once <c>ProviderId</c> moved onto
         /// <see cref="ISitrepProvider"/> the checks above stopped seeing a member
         /// every provider still has to write: the surface check would have called
@@ -124,7 +124,7 @@ namespace Sitrep.Propagation.Tests
                 t => t.GetMembers(BindingFlags.Public | BindingFlags.Instance));
         }
 
-        /// <summary>Name plus parameter types, so an OVERLOAD cannot pass for the member it shares a name with.</summary>
+        /// <summary>Name plus parameter types, so an overload cannot pass for the member it shares a name with.</summary>
         private static string Signature(MemberInfo member)
         {
             if (member is MethodInfo method)

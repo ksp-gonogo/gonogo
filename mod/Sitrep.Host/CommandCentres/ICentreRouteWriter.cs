@@ -16,7 +16,7 @@ namespace Sitrep.Host.CommandCentres
     public interface ICentreRouteWriter
     {
         /// <summary>
-        /// Replace the whole set. Each key is a centre as a VANTAGE, and its
+        /// Replace the whole set. Each key is a centre as a vantage, and its
         /// values are the centres it has a routed path to as a destination, the
         /// same orientation as <c>IUplinkHost.SetCentreDelay</c>. A centre always
         /// reaches itself, whether or not it is listed.

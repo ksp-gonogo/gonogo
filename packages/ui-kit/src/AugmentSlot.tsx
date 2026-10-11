@@ -16,10 +16,10 @@ import { Section } from "./Section";
 import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
- * Renders every augment bound to a slot, in priority order, as siblings in a
- * fragment. A widget places an `<AugmentSlot>` where Uplinks may add content
- * and never names the Uplinks that fill it. Augments registered after the slot
- * mounts appear when they register.
+ * Every augment bound to a slot, rendered in priority order as siblings in a
+ * fragment. Useful for a widget that lets Uplinks add content without naming
+ * them. Used by the astronaut complex panels. Augments registered after the
+ * slot mounts appear when they register.
  *
  * `props` is required and passed to every augment, typed against the slot's
  * {@link SlotProps} entry: an overlay slot passes its parent's projection, for
@@ -99,10 +99,11 @@ export function useWidgetSegmentBound(segment: string): boolean {
 }
 
 /**
- * Whether anything would render in the slot with the full id `name`, for a
- * widget affordance (a tab, a reserved cell) that should exist only when
- * something can fill it. Counts only augments whose `requires` Domain is
- * present, so an Uplink whose mod is not running changes no layout. Unlike
+ * Whether anything would render in the slot with the full id `name`. Useful for
+ * a widget affordance (a tab, a reserved cell) that should exist only when
+ * something can fill it. Used by the astronaut complex view to show its augment
+ * tab. Counts only augments whose `requires` Domain is present, so an Uplink
+ * whose mod is not running changes no layout. Unlike
  * {@link useWidgetSegmentBound} it works outside a widget.
  *
  * @category Extensions
@@ -130,11 +131,12 @@ function useAnyAvailable(augments: AnyAugment[]): boolean {
 
 /**
  * The `label` of the first available augment bound to the slot `name`, in
- * render order, for a widget that needs a caption before it draws the slot,
- * such as a tab's label. `undefined` while nothing is bound, nothing bound has
- * its `requires` Domain present, or the first available augment declares no
- * label. With several augments bound, only the first one's label is used,
- * while {@link AugmentSlot} renders them all together.
+ * render order. Useful for a widget that needs a caption before it draws the
+ * slot, such as a tab's label. Used by the astronaut complex view for its
+ * augment tab. `undefined` while nothing is bound, nothing bound has its
+ * `requires` Domain present, or the first available augment declares no label.
+ * With several augments bound, only the first one's label is used, while
+ * {@link AugmentSlot} renders them all together.
  *
  * @category Extensions
  */
@@ -174,10 +176,11 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
 }
 
 /**
- * True when `augment` declares no `requires`, or the host reports its Domain
- * present: the same check {@link AugmentSlot} makes before rendering it. Use
- * it to ask that question without rendering the augment, since an Uplink
- * client registers its augments whether or not its mod is running.
+ * Whether `augment` declares no `requires`, or the host reports its Domain
+ * present: the same check {@link AugmentSlot} makes before rendering it. Useful
+ * for asking that question without rendering the augment, since an Uplink
+ * client registers its augments whether or not its mod is running. Used by the
+ * map view's vanilla suppression check.
  *
  * @category Extensions
  */

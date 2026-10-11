@@ -8,13 +8,13 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * and the debt generator cannot drift apart. Same split, and for the same
  * reason, as `comment-stacks.scan.ts`.
  *
- * THE RULE: a widget gives its `Panel` a body by passing `sections`, not by
+ * The rule: a widget gives its `Panel` a body by passing `sections`, not by
  * passing children. `sections` is what lets Panel own the wide-layout decision,
  * which is the thing a widget cannot make for itself: it cannot see the width it
  * was given, so a widget composing its own body runs every group down one column
  * and wastes the width of a landscape tile.
  *
- * So the population this counts is `<Panel>` elements that render CHILDREN. A
+ * So the population this counts is `<Panel>` elements that render children. A
  * converted panel is self-closing, which is what makes the rule cheap to state
  * and impossible to half-satisfy: you cannot pass `sections` and keep a body and
  * have the scan call it done. There is no exception: a widget that is wholly a
@@ -30,7 +30,7 @@ const SOURCE_RE = /\.tsx$/;
  * The children path is not going away: every hand-composed `Panel.Container` /
  * `Panel.Body` arrangement uses it. Panel's own
  * suite has to be able to render it, and a gate that forbade that would be
- * asking the kit to stop testing its own API. What the gate is about is WIDGETS,
+ * asking the kit to stop testing its own API. What the gate is about is widgets,
  * and a widget does not live in a test file.
  */
 const TEST_RE = /\.(test|spec)\.tsx$/;
@@ -194,7 +194,7 @@ export interface PanelBodyScan {
   /**
    * Every `<Panel ...>` opening tag seen, bodies and converted ones alike.
    *
-   * The instrument-check number, and the reason it counts TAGS rather than
+   * The instrument-check number, and the reason it counts tags rather than
    * bodies: converting a widget turns a body into a self-closing tag, so this
    * total does not fall as the debt is cleared. A floor on the debt population
    * itself would have been a floor the work is trying to walk through, and the
@@ -215,7 +215,7 @@ function repoRoot(): string {
 }
 
 /**
- * Tracked files AND untracked-but-not-ignored ones, the same listing the comment
+ * Tracked files and untracked-but-not-ignored ones, the same listing the comment
  * ratchet uses and for the same reason: a `<Panel>` body written into a brand
  * new widget is exactly the case this exists to catch, and a tracked-only
  * listing would report it clean until the commit after the one that added it.

@@ -75,14 +75,14 @@ export interface RosterEntry {
    */
   expectedClientHash?: string | null;
   /**
-   * Where the running mod says this Uplink's CLIENT bundle lives (design §3.2,
+   * Where the running mod says this Uplink's client bundle lives (design §3.2,
    * D5): its distributable `url` plus an optional `devPath` (localhost
    * dev-server URL / local build dir for a third-party dev loop). `null`/absent
    * for a mod-only Uplink with no client half, or a mod that predates D5. This
    * makes a third-party Uplink self-describing (the app learns the client URL
    * from the mod, no central index).
    *
-   * CONSUMED: an id installed in the roster with no local-registry descriptor
+   * Consumed: an id installed in the roster with no local-registry descriptor
    * but a `clientSource` is still enabled (`deriveEnabledIds`), and the loader
    * builds an `UplinkDescriptor` for it from this field + the bundle's own
    * manifest sidecar rather than the local index: see
@@ -103,7 +103,7 @@ export interface LoaderContext {
   bundlesFromHost?: true;
   /**
    * The explicit `?uplinkLoaderIds=` override, if the param is present. Takes
-   * PRECEDENCE over the roster: a deliberate override is intent, so it must win
+   * precedence over the roster: a deliberate override is intent, so it must win
    * even when a roster is talking (e.g. an e2e boots with
    * `?uplinkLoaderIds=` to keep an installed Uplink UNloaded and prove the gap
    * surface). `[]` (empty param) means "load nothing"; `undefined` (no param)
@@ -151,12 +151,12 @@ export interface LoaderContext {
   importBundle?: (bytes: ArrayBuffer, url: string) => Promise<unknown>;
   /**
    * Fetch bundle bytes. Injected for tests; defaults to `defaultFetchBytes`
-   * (a direct `fetch`). `expectedHash` is the SAME value `loadOne` is about
+   * (a direct `fetch`). `expectedHash` is the same value `loadOne` is about
    * to verify the returned bytes against (`version.integrity`), passed
    * through so a peer-backed implementation
    * (`../peer/PeerClientService.sendBundleFetch`
    * via `./peerBundleFetch.ts`'s `createPeerBundleFetcher`) can put it on
-   * the wire for the HOST to verify before it ever sends bytes back to a
+   * the wire for the host to verify before it ever sends bytes back to a
    * station: a station has no route to the author host to verify against
    * directly. Optional (not a breaking widen): the default direct-fetch
    * path ignores it entirely, and every existing single-arg
@@ -170,7 +170,7 @@ export interface LoaderContext {
    * fields (apiVersion/contractMajor/contractMinor/
    * minAppVersion) the local index would otherwise supply come from this
    * fetch instead, at the conventional sidecar URL `manifestUrlFor` derives).
-   * Returns the parsed-or-parseable JSON value (a string OR an already-parsed
+   * Returns the parsed-or-parseable JSON value (a string or an already-parsed
    * object are both accepted by `parseUplinkManifest`). Injected for tests;
    * defaults to a real `fetch` + `.json()`.
    */
@@ -191,7 +191,7 @@ function refuse(reason: string): never {
 class HealthRefusal extends LoadRefusal {}
 
 /**
- * A refusal that is a HASH DISAGREEMENT, carrying the machine-readable record
+ * A refusal that is a hash disagreement, carrying the machine-readable record
  * alongside the reason string. Both survive: the reason stays the diagnostic
  * line an operator reads in the loaded-clients list, and `failure` is what lets
  * a surface tell this apart from a compat gate or a dead network without
@@ -218,7 +218,7 @@ function refuseIntegrity(
  *
  * `integrityAnchor` says who supplied `version.integrity`: the published index
  * for a first-party descriptor, the installed mod for one
- * `descriptorFromClientSource` synthesised, where that field IS the mod's own
+ * `descriptorFromClientSource` synthesised, where that field is the mod's own
  * vouched hash and there is no Hub entry to be a second party.
  *
  * The mod joins an index-anchored hash whenever it vouched the same value,
@@ -317,8 +317,8 @@ interface CompatVerdict {
 }
 
 /**
- * The compat + roster + mod-hash gate; runs BEFORE any bytes are fetched
- * (design §5 step 3). The VERSION verdict itself (apiVersion/
+ * The compat + roster + mod-hash gate; runs before any bytes are fetched
+ * (design §5 step 3). The version verdict itself (apiVersion/
  * contractMajor/contractMinor/minAppVersion: design §6.3) is delegated
  * whole to core's `checkUplinkCompat`, the single source of truth for that
  * rule table; this function keeps only the orchestration core doesn't know
@@ -502,11 +502,11 @@ async function defaultFetchManifest(url: string): Promise<unknown> {
  * match ... its gonogo-uplink.json id") and `parseUplinkManifest` (core's
  * `uplinkVersionCompat.ts`: "as fetched from a bundle's sidecar
  * `gonogo-uplink.json`"). This function is what makes that convention real:
- * it's the ONE place the sidecar filename is spelled out, so a future rename
+ * it's the one place the sidecar filename is spelled out, so a future rename
  * only touches here.
  *
  * Plain string slicing, not `new URL(rel, base)`: a `clientSource.url`/
- * `devPath` MAY be a bare path with no origin (a same-origin fixture in
+ * `devPath` may be a bare path with no origin (a same-origin fixture in
  * dev/test), and `URL`'s relative-base form throws when the base itself
  * isn't an absolute URL: string slicing works for both a bare path and a
  * full `http://host:port/...` URL uniformly.
@@ -535,7 +535,7 @@ export function resolveClientBundleUrl(clientSource: {
 
 /**
  * Build an `UplinkDescriptor` for a third-party Uplink, one the mod reports
- * installed with NO matching entry in the local registry index, only a
+ * installed with no matching entry in the local registry index, only a
  * self-declared `clientSource` (D5): from that `clientSource` plus the
  * bundle's own parsed manifest sidecar. Pure: no I/O, no logging, so it's
  * fully unit-testable from a fixture roster entry + fixture manifest without
@@ -545,17 +545,17 @@ export function resolveClientBundleUrl(clientSource: {
  * Field provenance, each a deliberate call (logged here, not just in code):
  *   - `bundleUrl`: `resolveClientBundleUrl(roster.clientSource)`, devPath
  *     when present, else url.
- *   - `integrity`: `roster.expectedClientHash` (REQUIRED, the caller must
+ *   - `integrity`: `roster.expectedClientHash` (required, the caller must
  *     guard this non-null before calling; see `loadThirdParty`). For a
  *     an indexed descriptor, `integrity` is H_index (the build-published
- *     hash) and `roster.expectedClientHash` is the SEPARATE H_mod arm the
+ *     hash) and `roster.expectedClientHash` is the separate H_mod arm the
  *     three-way check reconciles against it. A third-party id has no
  *     index entry at all, so there is no independent H_index
- *     to serve as the trust anchor: the mod's own vouched hash is the ONLY
+ *     to serve as the trust anchor: the mod's own vouched hash is the only
  *     anchor available, so it fills the `integrity` slot directly. This
  *     collapses the "three-way" agreement to two arms for a third-party
  *     bundle (mod-vouched-hash == fetched-bytes-hash), which is still a real
- *     hash gate, just not a three-independent-party one, there IS no third
+ *     hash gate, just not a three-independent-party one, there is no third
  *     independent party here.
  *   - `name`/`author`/`repo`: the roster's where the mod declares them, the
  *     bundle's own manifest where it does not, and `identity` records which
@@ -563,7 +563,7 @@ export function resolveClientBundleUrl(clientSource: {
  *     An Uplink is a mod in its own right and its declared author and repo
  *     are what an operator wants to see; withholding them and printing
  *     `by unknown` is not safer, only less useful. What must survive is the
- *     DISTINCTION, and that lives in `identity`, never in the flat fields.
+ *     distinction, and that lives in `identity`, never in the flat fields.
  *   - the compat fields (apiVersion/contractMajor/
  *     contractMinor/minAppVersion) come straight from the parsed manifest,
  *     this is the whole point of the manifest-fetch seam: it's the one place
@@ -607,7 +607,7 @@ export function isThisComputer(
  * it may load as an unvouched development client.
  *
  * It may only when the plugin itself declares a dev path, which is what a
- * plugin baked with `--dev-path` does, AND that path is on this computer. Both
+ * plugin baked with `--dev-path` does, and that path is on this computer. Both
  * halves are needed. A dev path alone would let any installed plugin point
  * every operator at bytes nobody checked on a machine that is not theirs; this
  * computer alone would load an ordinary release whose build simply forgot the
@@ -720,12 +720,12 @@ function quarantineOutcome(
 
 /**
  * Load a third-party Uplink end-to-end: fetch its manifest sidecar, build a
- * descriptor from it + `clientSource`, then hand off to the SAME `loadOne`
+ * descriptor from it + `clientSource`, then hand off to the same `loadOne`
  * gate → consent → fetch → hash → import sequence a first-party Uplink runs
  * (design §5): the only difference from the first-party path is where the
  * descriptor comes from, never how it's subsequently gated/loaded.
  *
- * `roster.expectedClientHash == null` refuses BEFORE any fetch (manifest or
+ * `roster.expectedClientHash == null` refuses before any fetch (manifest or
  * bundle): a third-party id has no index entry, so an absent
  * mod-vouched hash means there is no integrity anchor at all, loading
  * hash-blind would be exactly the silent-trust gap D3 exists to close.
@@ -866,7 +866,7 @@ function resolveConsents(
  * Load one Uplink end-to-end, returning its outcome (never throws).
  *
  * `integrityAnchor` names who vouched `version.integrity`, and changes nothing
- * about the check: it is what an integrity failure NAMES. A descriptor read out
+ * about the check: it is what an integrity failure names. A descriptor read out
  * of the published index was vouched by the Hub; one built from a
  * `clientSource` carries the mod's own hash in that slot, with no Hub entry
  * behind it, so a failure there must not credit an index that never spoke.
@@ -1073,13 +1073,13 @@ async function loadOne(
  * Derive the set of ids `loadEnabledUplinks` attempts: the installed-mod
  * roster drives the loader rather than a static id list:
  *
- *   - `roster` PRESENT (the mod answered, even with an empty list) → enable
- *     exactly the ids the roster reports INSTALLED that either (a) have a
- *     descriptor in `index` (the build-emitted `registry.local.json`), OR (b)
- *     have no index descriptor but DO carry a self-declared `clientSource`
+ *   - `roster` present (the mod answered, even with an empty list) → enable
+ *     exactly the ids the roster reports installed that either (a) have a
+ *     descriptor in `index` (the build-emitted `registry.local.json`), or (b)
+ *     have no index descriptor but do carry a self-declared `clientSource`
  *     (D5), in which case `loadEnabledUplinks` builds a descriptor from that
  *     plus the bundle's own manifest sidecar (see `descriptorFromClientSource`
- *     / `loadThirdParty`). An installed id with NEITHER is excluded: there is
+ *     / `loadThirdParty`). An installed id with neither is excluded: there is
  *     nothing to fetch for it.
  *
  *     "Installed" ignores the `available` flag, so a mod-reported-unavailable
@@ -1087,7 +1087,7 @@ async function loadOne(
  *     which quarantines it with a legible reason. Excluding it here instead
  *     would silently drop it with no outcome at all, which is strictly less
  *     visible than a "quarantined: mod reports Uplink unavailable" row.
- *   - `roster` ABSENT (`undefined`, no mod talking: dev / e2e / offline
+ *   - `roster` absent (`undefined`, no mod talking: dev / e2e / offline
  *     first boot) → nothing. There is deliberately no shipped fallback list:
  *     one would have to name ids, and an id named here is a path a third-party
  *     author's Uplink could never reach. Nothing has said what is installed, so

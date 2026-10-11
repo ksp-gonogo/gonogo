@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
  * styled-components: they're the styling layer everything else should
  * be composing instead.
  *
- * The baseline is an EQUALITY: a migration that lowers the count fails this
+ * The baseline is an equality: a migration that lowers the count fails this
  * test until the number below is lowered with it.
  */
 
@@ -123,13 +123,13 @@ function collectOffenders(): { file: string; line: number }[] {
 }
 
 /**
- * Where the growth most likely is, for a gate that only knows a TOTAL.
+ * Where the growth most likely is, for a gate that only knows a total.
  *
  * `offenders.slice(-newCount)` reads as "the newest ones" and is not: the
  * list is in scan order, so the tail is simply whatever sorts last, which can
  * name an innocent file instead of the real regression.
  *
- * A file holding TWO is the real signal, because the migrated tree has exactly
+ * A file holding two is the real signal, because the migrated tree has exactly
  * one import per importing file, so a second in one file is the shape almost
  * every regression takes. When the growth is instead a whole new file with one
  * import, no heuristic can find it from a total and the message says so rather
@@ -160,7 +160,7 @@ function locateGrowth(offenders: { file: string; line: number }[]): string {
  * and this one did not.
  *
  * A ratchet whose scan matches nothing counts zero and reads as a clean tree,
- * and this one is a whole baseline BELOW its recorded number rather than above
+ * and this one is a whole baseline below its recorded number rather than above
  * it, so a broken scan lands in the direction that passes. The two failure
  * modes are separate and neither implies the other: the file walk can stop
  * finding files (a moved root, a renamed extension), or the walk can be fine

@@ -9,7 +9,7 @@ import descriptor from "./__generated__/units.json" with { type: "json" };
 import { getAllKnownTopicIds, isTopicId, type TopicPayloadMap } from "./topics";
 
 /**
- * `units.json` and `units.ts` come out of ONE reflection pass, and this is
+ * `units.json` and `units.ts` come out of one reflection pass, and this is
  * what keeps that true.
  *
  * The JSON exists because every other piece of unit knowledge in this design

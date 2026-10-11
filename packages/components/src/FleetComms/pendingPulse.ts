@@ -17,7 +17,7 @@ export type UplinkPulseLeg = "outbound" | "return";
 export interface UplinkPulse {
   /** `"outbound"` = Vantage -> target (the first `oneWaySeconds`); `"return"` = target -> Vantage (the second). */
   leg: UplinkPulseLeg;
-  /** 0..1 fraction of progress ALONG the current leg (0 = leg start, 1 = leg end). */
+  /** 0..1 fraction of progress along the current leg (0 = leg start, 1 = leg end). */
   progress: number;
   /** 0..1 render opacity, fades over the final `FADE_FRACTION` of the round trip so a pulse doesn't just vanish. */
   opacity: number;

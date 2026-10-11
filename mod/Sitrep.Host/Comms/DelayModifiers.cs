@@ -9,11 +9,11 @@ namespace Sitrep.Host.Comms
     /// Every delay modifier in force, and the one place they are folded into a
     /// signal-delay config.
     ///
-    /// <para>A modifier is a factor on every light-time, held until its handle
+    /// <para>A modifier is a factor on every signal delay, held until its handle
     /// is disposed. All of them multiply, and a factor of zero switches delay
-    /// off. Folding them into the CONFIG rather than into each reader is what
+    /// off. Folding them into the config rather than into each reader is what
     /// keeps the five readers of <c>CommsCoreUplink.SignalDelayConfig</c> (the
-    /// reveal gate, <c>comms.delay</c>, fleet light-time, the command-centre
+    /// reveal gate, <c>comms.delay</c>, fleet signal delay, the command-centre
     /// pass and the currency reveal deadline) in agreement without any of them
     /// knowing modifiers exist.</para>
     ///
@@ -88,7 +88,7 @@ namespace Sitrep.Host.Comms
         /// <paramref name="config"/> with every modifier in force applied: the
         /// same config when the product is 1 or delay is already off, delay
         /// switched off when the product is 0, and otherwise the light-speed
-        /// scale divided by the product, which multiplies every light-time
+        /// scale divided by the product, which multiplies every signal delay
         /// computed from it.
         /// </summary>
         public SignalDelayConfig Apply(SignalDelayConfig? config)

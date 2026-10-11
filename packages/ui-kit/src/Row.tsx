@@ -75,7 +75,9 @@ function RowBase({
 
 /**
  * The name inside a {@link Row}: fills the free width and truncates with an
- * ellipsis. Also reachable as `Row.Name`.
+ * ellipsis. Useful for keeping a long vessel or part name from pushing a row's
+ * badges and actions out of the tile. Used by the admin building's rows. Also
+ * reachable as `Row.Name`.
  *
  * @category Layout
  */
@@ -153,8 +155,10 @@ const Row__Root = styled.li<{
 
 /**
  * One list row with its children spread between the edges: the name on the
- * left in a {@link RowName}, badges and actions on the right. Renders an `li`
- * by default, so it belongs in a plain `ul`. Set `interactive` with
+ * left in a {@link RowName}, badges and actions on the right. Useful for
+ * listing vessels, facilities or parts so the operator reads each name and its
+ * state on one line. Used by the space centre status and the maneuver planner.
+ * Renders an `li` by default, so it belongs in a plain `ul`. Set `interactive` with
  * `as="button"` for a selectable row.
  *
  * @example

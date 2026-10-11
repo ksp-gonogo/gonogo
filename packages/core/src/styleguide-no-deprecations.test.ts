@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Pre-release guard: nothing in a PUBLISHED package is marked `@deprecated`.
+ * Pre-release guard: nothing in a published package is marked `@deprecated`.
  *
  * A deprecation is a promise to two parties: the author who keeps calling the
  * old thing, and the maintainer who eventually removes it. Neither party exists
@@ -104,7 +104,7 @@ describe("published packages carry no deprecations before release", () => {
    * The guard on the guard. Every assertion above passes on an empty result,
    * so a scan that silently reads nothing (a moved directory, a `readdirSync`
    * throwing into a swallowed catch) reports a clean tree and reads as success.
-   * Feeding it a line it MUST match is the only assertion here able to tell
+   * Feeding it a line it must match is the only assertion here able to tell
    * "no deprecations" from "no files".
    */
   it("can see a deprecation (planted)", () => {

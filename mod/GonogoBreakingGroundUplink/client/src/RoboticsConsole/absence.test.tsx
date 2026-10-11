@@ -17,7 +17,7 @@ import { parseServos } from "./index";
 import "./index";
 
 /**
- * Proves a withheld servo figure never becomes a zero: no AT TARGET verdict is derived from it, and no stepper or toggle commands from it.
+ * Proves a withheld servo figure never becomes a zero: no at target verdict is derived from it, and no stepper or toggle commands from it.
  */
 
 const INSTANCE = "rc-absence";

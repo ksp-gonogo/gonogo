@@ -14,8 +14,8 @@ namespace Gonogo.KSP
     ///
     /// <para><b>Why core owns this.</b> Listing craft is
     /// <c>ShipConstruction.GetShipsPathFor</c> plus <c>ConfigNode.Load</c>;
-    /// OPENING one is <c>ShipConstruct.LoadShip</c>, which instantiates a Unity
-    /// part per PART node and leaves the GameObjects for somebody to destroy. An
+    /// opening one is <c>ShipConstruct.LoadShip</c>, which instantiates a Unity
+    /// part per part node and leaves the GameObjects for somebody to destroy. An
     /// Uplink may not reference KSP or Unity, so an Uplink that did this would be
     /// managing Unity object lifetime through <c>MethodInfo.Invoke</c> from an
     /// assembly that cannot name <c>UnityEngine.Object</c>. That is how a scene
@@ -23,7 +23,7 @@ namespace Gonogo.KSP
     ///
     /// <para><b>Not the same thing as <c>spaceCenter.savedShips</c>.</b> That
     /// channel is a read for a widget listing what can be launched. This is a
-    /// capability, it carries the FILE name a command can address, it separates
+    /// capability, it carries the file name a command can address, it separates
     /// the parts an install lacks from the parts a career has not researched from
     /// the parts it has not bought, and it can hand back the loaded craft. The
     /// two are kept apart rather than merged because a channel cannot open
@@ -330,9 +330,9 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// One craft file measured WITHOUT loading it: stock's own metadata
+        /// One craft file measured without loading it: stock's own metadata
         /// loader for the name, part count and cost, a <c>ShipTemplate</c> for the
-        /// size, and a walk of the PART nodes for the mass with clamps left out
+        /// size, and a walk of the part nodes for the mass with clamps left out
         /// and for what the career can and cannot place.
         ///
         /// <para>Null when the file could not be parsed at all, which drops the
@@ -472,7 +472,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The part name inside a PART node. KSP writes it as
+        /// The part name inside a part node. KSP writes it as
         /// <c>&lt;partName&gt;_&lt;id&gt;</c>, and a node without the separator is
         /// taken whole rather than thrown over: an unparsable name reads as a part
         /// the install does not have, which is the safe direction.

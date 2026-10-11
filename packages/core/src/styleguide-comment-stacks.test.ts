@@ -34,8 +34,8 @@ import { scanScope } from "./scanScope";
  * proper multi-line formatting, never one long sentence mashed into a stack of
  * single-line fragments, and that a merely-long single comment stays one line.
  *
- * THE DEFINITION, in one sentence: a violation is two or more consecutive
- * line-comment lines whose joined text is a SINGLE sentence, in a hand-written
+ * The definition, in one sentence: a violation is two or more consecutive
+ * line-comment lines whose joined text is a single sentence, in a hand-written
  * source file. A divider or an empty comment line ends a run.
  *
  * The single-sentence part is what makes this gate usable. A loose scan for
@@ -279,10 +279,10 @@ describe("comment stacks", () => {
      * The list as it stood at the ratchet base, with the ref it came from so a
      * failure can quote it.
      *
-     * `ratchetBaseRef` THROWS when no base can be reached, deliberately:
+     * `ratchetBaseRef` throws when no base can be reached, deliberately:
      * catching that and returning `undefined` would make an unreachable base
      * read as "nothing to check", turning the whole shrink guard into a pass.
-     * Undefined here means only that the checkout IS the base, or that the list
+     * Undefined here means only that the checkout is the base, or that the list
      * did not exist there.
      */
     function baseAllowlist():
@@ -317,8 +317,8 @@ describe("comment stacks", () => {
      * A widening is the only change that legitimately raises these numbers, and
      * the numbers alone cannot tell "the gate learned to see a spelling" from
      * "somebody wrote more stacks". So the claim is checked rather than
-     * believed, in the only way that settles it: run the OLD matcher over the
-     * CURRENT tree. If the tree still passes the OLD gate outright, everything
+     * believed, in the only way that settles it: run the old matcher over the
+     * current tree. If the tree still passes the old gate outright, everything
      * newly counted is something the old matcher could not see, and none of it
      * is new code. Same mechanism as `styleguide-banner-comments.test.ts`.
      */
@@ -394,10 +394,10 @@ describe("comment stacks", () => {
      * Growth is refused two different ways, because a moved file and a new
      * violation look identical to a per-file comparison.
      *
-     * An EXISTING entry may only fall. That is the strict half and it never
+     * An existing entry may only fall. That is the strict half and it never
      * bends: a file that gains a stack has gained a defect.
      *
-     * A NEW entry is allowed only when the repo-wide total did not rise. That is
+     * A new entry is allowed only when the repo-wide total did not rise. That is
      * what a relocation looks like: the same stacks under a different path, one
      * key removed and one added, total unchanged. Without this the gate fails on
      * every file move and the only way past it is to lower a floor or delete the
@@ -452,7 +452,7 @@ describe("comment stacks", () => {
      * The floor is data in the same file and would otherwise be lowerable with
      * a one-digit edit that reads as maintenance, which would blind the
      * instrument check above. Same rule as the debt list, in the other
-     * direction: up only. It counts files WALKED, so no cleanup can lower the
+     * direction: up only. It counts files walked, so no cleanup can lower the
      * measurement it guards.
      */
     it("SCAN_FLOORS", () => {

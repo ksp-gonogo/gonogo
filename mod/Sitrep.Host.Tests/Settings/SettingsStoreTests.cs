@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests.Settings
     /// <summary>
     /// The store's own behaviour, with no KSP anywhere: what a declared default
     /// does to a document the file did not fill, what a commit tells its
-    /// watchers, and how many times a SAVE press reaches the medium.
+    /// watchers, and how many times a save press reaches the medium.
     /// </summary>
     public class SettingsStoreTests
     {
@@ -100,7 +100,7 @@ namespace Sitrep.Host.Tests.Settings
         }
 
         /// <summary>
-        /// One file write per SAVE press, not one per row. That is the whole of
+        /// One file write per save press, not one per row. That is the whole of
         /// why the surface is Stage plus Commit rather than a per-key write.
         /// </summary>
         [Fact]

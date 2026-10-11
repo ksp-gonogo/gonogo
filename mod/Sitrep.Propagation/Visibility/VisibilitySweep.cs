@@ -63,7 +63,7 @@ namespace Sitrep.Propagation.Visibility
 
         /// <summary>
         /// The published detection guarantee, seconds: any run of constant state
-        /// LONGER than this is certain to have been found. See
+        /// longer than this is certain to have been found. See
         /// <see cref="VisibilitySweep.Run"/> for what that does and does not
         /// promise.
         /// </summary>
@@ -103,12 +103,12 @@ namespace Sitrep.Propagation.Visibility
     /// question have already reached wrong conclusions; this is one of the shapes
     /// that error takes.</para>
     ///
-    /// <para>What IS legal is root-finding on the continuous margin behind that
+    /// <para>What is legal is root-finding on the continuous margin behind that
     /// boolean, and only inside a bracket a dense sweep has already shown to
     /// straddle a sign change. So: step the whole window at a fixed cadence,
     /// compare each sample against the last, and bisect within any interval where
-    /// the two disagree. The sweep decides WHERE the crossings are; the root-find
-    /// only sharpens WHEN.</para>
+    /// the two disagree. The sweep decides where the crossings are; the root-find
+    /// only sharpens when.</para>
     /// </summary>
     public static class VisibilitySweep
     {
@@ -137,7 +137,7 @@ namespace Sitrep.Propagation.Visibility
         /// so the tail of the window is never dropped. Any run of constant state
         /// longer than one step must therefore contain at least one sample, which
         /// makes both of its edges show up as sign changes between adjacent
-        /// samples, and both get refined. The guarantee PUBLISHED is two steps
+        /// samples, and both get refined. The guarantee published is two steps
         /// (<see cref="VisibilitySweepResult.GuaranteedDetectableRunSeconds"/>),
         /// which keeps a margin over that bound and matches the predictor spec.
         /// A run shorter than one step can fall entirely between two samples and
@@ -233,7 +233,7 @@ namespace Sitrep.Propagation.Visibility
         }
 
         /// <summary>
-        /// Bisect the CLEARANCE inside a bracket whose ends are already known to
+        /// Bisect the clearance inside a bracket whose ends are already known to
         /// disagree in sign. Every iteration keeps that disagreement, so the
         /// bracket always still contains a root and the midpoint is always a valid
         /// answer to within its width; the loop can be cut short by the cap

@@ -1,5 +1,5 @@
 /**
- * Carrying `comms.delay` forward by re-measuring ONE leg of the route.
+ * Carrying `comms.delay` forward by re-measuring one leg of the route.
  *
  * ## Why only the first hop
  *
@@ -12,7 +12,7 @@
  * measured for them is still their length, so their contribution carries
  * forward as the sum it already was.
  *
- * The FIRST hop is the one with the craft on one end, and the craft is the
+ * The first hop is the one with the craft on one end, and the craft is the
  * thing that has moved. So the model subtracts the first hop as measured, and
  * adds back the separation between the craft's propagated position and its
  * peer's position at the view time:
@@ -26,19 +26,19 @@
  * The obvious spelling of the last term is `/ c`, and it would be wrong on any
  * save that has moved the dial. The mod divides by `c × lightSpeedScale`
  * (`Sitrep.Host.Comms.SignalDelay.EffectiveC`), the scale is a career setting a
- * player is expected to turn down, and it is NOT on the wire. Dividing the
+ * player is expected to turn down, and it is not on the wire. Dividing the
  * observed delay by the observed route recovers whatever the mod actually used,
  * with no field to add and nothing to keep in sync.
  *
  * It buys a second property worth more than the first: at the observation's own
- * instant the re-measured first hop IS the measured one, so the model reproduces
+ * instant the re-measured first hop is the measured one, so the model reproduces
  * the observation exactly. The reckoned value therefore leaves the observed
  * value continuously rather than stepping off it, which is what an operator
  * watching the number move is entitled to.
  *
- * ## What this does NOT model
+ * ## What this does not model
  *
- * A route change. The chain is the one that was OBSERVED, and `comms.path` is
+ * A route change. The chain is the one that was observed, and `comms.path` is
  * declared never-reckonable for exactly this reason: a relay drops below the
  * horizon and the whole topology re-solves, discretely, with nothing to
  * interpolate. This model stretches one leg of a fixed chain; it will keep
@@ -99,7 +99,7 @@ export interface CommsDelayObservation {
  * Resolve the fixed half of the substitution, or say which published input
  * ruled it out.
  *
- * `hops` is the route as `comms.path` carried it and `observed` the light-time
+ * `hops` is the route as `comms.path` carried it and `observed` the signal delay
  * `comms.delay` reported for that route. The two ride one capture and are
  * change-gated independently, so the current value of each is what to pair: a
  * tick that carried neither is a tick on which neither moved.
@@ -110,7 +110,7 @@ export interface CommsDelayObservation {
  * other than "no distance": delay is switched off, or the save models no comms
  * network at all. Each is a statement about the
  * operator's configuration rather than about geometry, and none of them stops
- * being true as the craft moves. Deriving a growing light-time from one would
+ * being true as the craft moves. Deriving a growing signal delay from one would
  * put a delay on a board the player has deliberately switched off, which is a
  * worse answer than no reckoning at all.
  */

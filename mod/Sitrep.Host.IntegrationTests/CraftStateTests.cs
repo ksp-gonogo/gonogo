@@ -10,7 +10,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// A craft's state is recorded on its own node, so each command centre
-    /// hears of a change one of its own light-times after it happened: the home
+    /// hears of a change one of its own signal delays after it happened: the home
     /// centre ten light-minutes from the relay, the far centre five.
     /// </summary>
     public class CraftStateTests
@@ -77,7 +77,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A craft that is gone takes its delay rows with it on the same tick, so
-        /// its going is sent under the light-times it was last measured at.
+        /// its going is sent under the signal delays it was last measured at.
         /// </summary>
         [Fact]
         public async Task ADestroyedCraftsGoingReachesEachCentreWhenItsSilenceWould()

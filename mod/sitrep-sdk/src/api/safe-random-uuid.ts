@@ -1,6 +1,8 @@
 /**
  * A random version 4 UUID, as `crypto.randomUUID()` returns, that also works on
  * a page served over plain HTTP from a LAN address, where `randomUUID` throws.
+ * Useful for ids of things the operator creates, such as alarms, on a screen
+ * opened that way. Used by the alarm host service.
  *
  * @category Host and runtime
  */

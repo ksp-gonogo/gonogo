@@ -30,7 +30,7 @@ import { useStream } from "./use-stream";
 
 /**
  * One component exercising both hooks, same shape as the `MissionPanel` in
- * `integration.test.tsx`: the point is that NEITHER hook nor the
+ * `integration.test.tsx`: the point is that neither hook nor the
  * component changes when the transport underneath starts modelling delay.
  */
 function MissionPanel() {

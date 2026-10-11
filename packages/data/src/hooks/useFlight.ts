@@ -63,7 +63,7 @@ function useSourceFlight(sourceId: string): FlightRecord | null {
  * is normally already flying by the time a browser connects), so the same
  * flight can arrive more than once and the repeats must not mint a fresh
  * record with a fresh `launchedAt`. `(flightId, ut)` is what tells the two
- * apart: a revert republishes for the SAME vessel id and IS a new flight,
+ * apart: a revert republishes for the same vessel id and is a new flight,
  * carrying the revert-target UT where a re-announce carries the original
  * launch instant.
  *

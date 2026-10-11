@@ -53,7 +53,7 @@ export interface UplinkRelayHandle {
  * a client of its own.
  */
 /**
- * The vantage key for the host's OWN mod session: what every connection reads
+ * The vantage key for the host's own mod session: what every connection reads
  * from until it asks for one of its own.
  *
  * Deliberately not a `commandCentre.roster` id. Those are always
@@ -106,7 +106,7 @@ function extractErrorMeta(error: Error): Record<string, unknown> | undefined {
 
 /**
  * Cheap structural compare for two iceServers configs. Good enough
- * because the relay only ever emits one TURN entry with a known shape;
+ * because the relay only ever emits one turn entry with a known shape;
  * order changes between fetches are not expected. Used by the host's
  * periodic config refresh to skip the no-op case (relay still serving
  * the same creds) without touching the Peer.
@@ -155,7 +155,7 @@ const CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no ambiguous 0/O/1/I/L
  * How many characters a freshly-minted share code carries. Six of this
  * 32-character alphabet is about 1.07e9 codes, where four was 1,048,576.
  *
- * The code is the ONLY thing standing between a stranger and a hosted game:
+ * The code is the only thing standing between a stranger and a hosted game:
  * the host's broker peer id is derived from it (`gonogo-host-<CODE>`, see
  * `hostPeerId.ts`), so the public PeerJS broker will answer whether a guessed
  * code is live, and the broker has no rate limiting to slow that down. Four
@@ -193,7 +193,7 @@ function generateShortId(): string {
  * *same* derived id, so the operator's code stays valid and stations
  * reconnect transparently. Only `regenerateShareCode()` changes it.
  *
- * A stored code is returned AS IT WAS STORED, whatever its length: a host
+ * A stored code is returned as it was stored, whatever its length: a host
  * that minted a four-character code before `SHARE_CODE_LENGTH` grew keeps
  * it, and its stations keep joining, until the operator regenerates.
  */
@@ -246,7 +246,7 @@ type StationInfoListener = (
     buildTime?: string;
     /**
      * Stable per-device identity. Forwarded to subscribers, not only kept
-     * for ghost eviction: a shared thread attributes a message to the DEVICE
+     * for ghost eviction: a shared thread attributes a message to the device
      * rather than to a peer id that is fresh on every page load, so the
      * author of something said an hour ago is still the same person after
      * they refresh.
@@ -422,14 +422,14 @@ export class PeerHostService {
   /**
    * Which upstream session each connection reads from, absent until it asks
    * for one. A pilot wants the craft's own vantage so its instruments run at
-   * the craft's light-time rather than the host's; a station that never asks
+   * the craft's signal delay rather than the host's; a station that never asks
    * reads the host's, which is what every connection did before this existed.
    */
   private readonly connVantage = new Map<DataConnection, string>();
   /** Connections already torn down, so a `close` after an ICE death is a no-op. */
   private readonly droppedConnections = new WeakSet<DataConnection>();
   /**
-   * One entry per topic ANY station is reading, refcounted across connections,
+   * One entry per topic any station is reading, refcounted across connections,
    * holding the host's own upstream subscription. Two stations reading the same
    * topic pull it from the mod once, and the last one leaving is what drops it.
    */
@@ -442,7 +442,7 @@ export class PeerHostService {
    * way as {@link connVantage}. `HOST_SESSION` is the host's own, supplied by
    * `SitrepPeerRelay`; it is absent before that mounts.
    *
-   * Sessions are separate because the MOD applies delay per subscriber keyed
+   * Sessions are separate because the mod applies delay per subscriber keyed
    * on vantage, so two sessions at two vantages are the only way to get two
    * correctly-delayed streams out of one game. Merging them would mean
    * re-deriving one stream's delay from the other's, which nothing on the wire
@@ -451,7 +451,7 @@ export class PeerHostService {
   private readonly sitrepSinks = new Map<string, SitrepSubscriptionSink>();
 
   /** The host's broker peer id: the *derived* `gonogo-host-<shareCode>`
-   *  form (NOT the operator-facing share code). Null until the broker
+   *  form (not the operator-facing share code). Null until the broker
    *  confirms it with an `open`. Stations connect to this directly; the
    *  operator never sees it (they see `shareCode`). */
   peerId: string | null = null;
@@ -462,7 +462,7 @@ export class PeerHostService {
    *  modal's reset control); that's the only thing that changes it. */
   shareCode: string = getOrCreateShareCode();
   /** ICE servers fetched from the relay on start(). Exposed so the
-   *  TURN reachability probe can re-use exactly what the host's Peer
+   *  turn reachability probe can re-use exactly what the host's Peer
    *  was constructed with. Empty `[]` means the fetch failed or no
    *  relay is configured. */
   iceServers: RTCIceServer[] = [];
@@ -478,8 +478,8 @@ export class PeerHostService {
    * TURN-on-demand escalation flag. False by default: the host starts
    * STUN-only. Set to true permanently for the session when a station
    * connection fails to reach "open" within TURN_ESCALATION_MS, indicating
-   * the network needs TURN relay. Once escalated, all new connections (and
-   * refreshIceConfig) include TURN credentials.
+   * the network needs turn relay. Once escalated, all new connections (and
+   * refreshIceConfig) include turn credentials.
    */
   private turnEscalated = false;
   /**
@@ -572,7 +572,7 @@ export class PeerHostService {
    * Construct the PeerJS Peer claiming the *derived* `gonogo-host-<code>`
    * id and wire all of its events. Separate from `start()` so the reclaim
    * loop can re-open a fresh Peer (after the broker frees a stale slot)
-   * WITHOUT re-fetching ice config or re-registering page-lifecycle
+   * without re-fetching ice config or re-registering page-lifecycle
    * listeners. The derived id is deterministic, so every open, first
    * launch, refresh, reclaim: targets the same broker slot.
    */
@@ -796,7 +796,7 @@ export class PeerHostService {
   /**
    * Retry-reclaim the derived peer id after an `unavailable-id`. Destroys
    * the dead Peer, surfaces the "reclaiming" status, and schedules a
-   * backed-off `openPeer()` against the SAME id. Each subsequent
+   * backed-off `openPeer()` against the same id. Each subsequent
    * `unavailable-id` (the broker hasn't freed the slot yet) lengthens the
    * backoff up to a 30s cap: the broker's stale-slot timer fires within
    * ~30–60s, so we keep trying until `openPeer()`'s `open` clears it.
@@ -818,13 +818,13 @@ export class PeerHostService {
   }
 
   /**
-   * Escalate the host's Peer to use TURN relay for all future connections.
+   * Escalate the host's Peer to use turn relay for all future connections.
    * Called when an incoming station connection fails to open within
    * TURN_ESCALATION_MS: indicating the network path requires a relay.
    *
    * Sets `turnEscalated = true` (sticky for the session) and immediately
    * patches the Peer's internal `_options.config.iceServers` so the next
-   * connection attempt (the station's automatic reconnect) gathers TURN
+   * connection attempt (the station's automatic reconnect) gathers turn
    * candidates. Does nothing if already escalated or if there are no
    * iceServers to inject.
    */
@@ -1129,7 +1129,7 @@ export class PeerHostService {
    * from when it has asked to observe from somewhere other than the host.
    *
    * A session per vantage rather than one session re-pointed, because the mod
-   * keeps the chosen vantage per CLIENT SESSION and applies each subscriber's
+   * keeps the chosen vantage per client session and applies each subscriber's
    * delay from it. Re-pointing the host's own session would move every station
    * with it, and the delay on a frame already in flight cannot be recomputed
    * at this end: nothing on the wire carries the delay it was sent under.
@@ -1181,14 +1181,14 @@ export class PeerHostService {
   /**
    * Move `conn` to `vantage`, carrying whatever it is already reading across.
    *
-   * The claims have to MOVE rather than be re-asked for. A connection's topics
+   * The claims have to move rather than be re-asked for. A connection's topics
    * are refcounted per vantage, so leaving them behind would pin the old
    * session's subscriptions for the rest of the session and leave the new one
    * pulling nothing, and the peer has no reason to re-send a subscribe list it
    * has not changed. Re-claiming against the new vantage also subscribes them
    * upstream there, which is what makes the switch deliver anything at all.
    *
-   * The cached frame each re-claim replays is the NEW session's, so the peer
+   * The cached frame each re-claim replays is the new session's, so the peer
    * sees that vantage's view of every topic it holds as soon as it arrives
    * rather than keeping the old one's until the next emission.
    */
@@ -1214,7 +1214,7 @@ export class PeerHostService {
   /**
    * The refcount table for one vantage, created on demand. Per vantage because
    * two sessions holding the same topic are two real upstream subscriptions:
-   * collapsing them to one count would drop BOTH the moment either side let go.
+   * collapsing them to one count would drop both the moment either side let go.
    */
   private topicRefsFor(
     vantage: string,
@@ -1363,7 +1363,7 @@ export class PeerHostService {
   }
 
   /**
-   * Broadcast the current TURN creds to every connected station. Without them
+   * Broadcast the current turn creds to every connected station. Without them
    * a station's media connection cannot traverse the relay's container bridge
    * and its WebRTC negotiation dies with `negotiation-failed`.
    */
@@ -1877,10 +1877,10 @@ export class PeerHostService {
    * instead of fetching `msg.bundleUrl` directly. `BundleFetchCache`
    * collapses concurrent/repeat requests for the same url onto a single
    * download; this handler's own job is just the per-request hash check
-   * (against THIS request's `expectedHash`: a second requester could in
+   * (against this request's `expectedHash`: a second requester could in
    * principle pass a different one, and each gets its own verdict) and
    * wiring the verified-or-error response back to the requesting station.
-   * Verified bytes are NEVER sent back on a hash mismatch, same "refuse,
+   * Verified bytes are never sent back on a hash mismatch, same "refuse,
    * never silently load" rule the loader itself enforces (design D3).
    */
   private async handleUplinkBundleRequest(
@@ -2003,7 +2003,7 @@ export class PeerHostService {
    * `useCommand` routes a widget's command through the stream; if this RPC
    * didn't exist, that command would silently no-op on a station.
    *
-   * `getActiveTelemetryClient()` is the HOST's own live client (the same
+   * `getActiveTelemetryClient()` is the host's own live client (the same
    * plain-class accessor `dispatchActiveCommand()` uses), this is a
    * pass-through, never a second connection to the mod: the host is the
    * only thing that ever talks to the mod server.

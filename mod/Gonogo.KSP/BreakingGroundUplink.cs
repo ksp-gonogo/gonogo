@@ -9,11 +9,11 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The bundled, DLC-gated Breaking Ground (KSP Serenity) uplink: owns
-    /// BOTH the <c>robotics.*</c> and <c>deployed.*</c> prefixes: the robotics
+    /// both the <c>robotics.*</c> and <c>deployed.*</c> prefixes: the robotics
     /// servo state/actuation and the deployed-science surfaces, held here
     /// rather than co-mingled with vanilla code in <see cref="PartsUplink"/>
     /// (robotics) and <see cref="ScienceCoreUplink"/> (deployed science). Shipped
-    /// IN the core mod DLL like <see cref="PartsUplink"/>/
+    /// in the core mod DLL like <see cref="PartsUplink"/>/
     /// <see cref="VesselUplink"/> (auto-discovered, not a separate
     /// installable package). It registers its channels and commands whether or not
     /// Breaking Ground is installed and reports Unavailable through <see cref="Health"/>
@@ -30,7 +30,7 @@ namespace Gonogo.KSP
     /// <c>Values["science"]["deployed"]</c> (<c>KspHost.BuildScience</c>'s raw
     /// dict, fed by <c>KspHost.BuildDeployedScience</c>'s global
     /// <c>FlightGlobals.Vessels</c> walk). The KSP-free mapping itself lives in
-    /// <see cref="BreakingGroundViewProvider"/>. Only WHICH Uplink registers
+    /// <see cref="BreakingGroundViewProvider"/>. Only which Uplink registers
     /// the channel sources + commands changed.</para>
     ///
     /// <para>Robotics actuation (servo/rotor set-target/motor/lock/brake/rpm/
@@ -39,8 +39,8 @@ namespace Gonogo.KSP
     /// against the <see cref="IRoboticsActuator"/> this uplink is constructed
     /// with (<see cref="KspRoboticsActuator"/> in production,
     /// <c>Sitrep.Host.Tests.FakeRoboticsActuator</c> in tests). Every command
-    /// rides <c>delayed: true</c>: actuation of parts ON the craft is an
-    /// uplink that rides light-time, the same class as
+    /// rides <c>delayed: true</c>: actuation of parts on the craft is an
+    /// uplink that rides signal delay, the same class as
     /// <c>vessel.control.*</c>.</para>
     ///
     /// <para>Serenity is detected live, not at <see cref="Register"/>: KSP lists

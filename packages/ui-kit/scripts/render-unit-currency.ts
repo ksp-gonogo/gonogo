@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Render the held mark on `<Unit>`, and MEASURE what it costs a table.
+ * Render the held mark on `<Unit>`, and measure what it costs a table.
  *
  * Run: `pnpm --filter @ksp-gonogo/ui-kit render:unit-currency [--out <dir>] [--tag before|after]`
  * Default output: local_docs/renders/unit-currency
@@ -13,9 +13,9 @@
  * marked, and marked beside a deliberate IN-FLOW dot) and measures all three
  * in a real engine.
  *
- * The third is the CONTROL and is why the other two mean anything. A ruler
+ * The third is the control and is why the other two mean anything. A ruler
  * that cannot see a reflow reports none, which reads exactly like a mark that
- * does not cause one, so the sheet plants a reflow and the run FAILS if the
+ * does not cause one, so the sheet plants a reflow and the run fails if the
  * measurement cannot see it.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
@@ -66,7 +66,7 @@ function themeCss(css: string): string {
  *
  * Two claims, and both have to hold. The marked table measures the same as the
  * unmarked one to the hundredth of a pixel, and the control table (the same
- * dot, in the flow) measures WIDER. Without the second, "no change" is equally
+ * dot, in the flow) measures wider. Without the second, "no change" is equally
  * the reading of a broken ruler.
  */
 function report(taken: readonly TableMeasurement[]): string {

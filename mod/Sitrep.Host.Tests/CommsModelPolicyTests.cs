@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests
     /// <see cref="CommsModelPolicy"/>: what gonogo reports on a save whose
     /// stock CommNet difficulty option is off.
     ///
-    /// <para>The defect these pin is an INVERSION, not a degradation. With that
+    /// <para>The defect these pin is an inversion, not a degradation. With that
     /// option off KSP builds no network, so every <c>CommNetVessel</c> reads
     /// disconnected with an empty path for the whole session; gonogo read that
     /// literally and froze every Delayed channel forever, which is infinite
@@ -52,7 +52,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The cut carries a REASON even when delay was already off, which is
+        /// The cut carries a reason even when delay was already off, which is
         /// the whole point of deriving a config rather than returning a bool: a
         /// save with no comms model has to be tellable from one whose operator
         /// simply never turned delay on.
@@ -66,7 +66,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A POSITIVE, KNOWN zero, never a null. Null on
+        /// A positive, known zero, never a null. Null on
         /// <see cref="CommsDelay.OneWaySeconds"/> means "there is a comms model
         /// and it can measure nothing right now", which is a blackout, and a
         /// client reading this save's board must not be told that.
@@ -86,7 +86,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A blackout on a save that DOES model comms keeps saying what it
+        /// A blackout on a save that does model comms keeps saying what it
         /// always said: nothing measurable. This is the other half of the wire
         /// discriminator, and the reason the two must not share a member.
         /// </summary>
@@ -129,7 +129,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// The freeze lever. The reveal gate withholds every Delayed channel on
         /// a subject whose connectivity source says false, regardless of the
-        /// delay MAGNITUDE, so cutting the delay alone leaves the board frozen.
+        /// delay magnitude, so cutting the delay alone leaves the board frozen.
         /// </summary>
         [Fact]
         public void ModelAbsent_ReportsConnected_OverADeadCommNetGraph()
@@ -142,7 +142,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Control comes from the craft's own parts, which is where KSP itself
         /// gets it once <c>Vessel.GetControlLevel</c> declines the CommNet
-        /// branch. The dead graph underneath says NONE for everything.
+        /// branch. The dead graph underneath says none for everything.
         /// </summary>
         [Theory]
         [InlineData(CommsControlSource.Full, CommsControlStateKind.Full, true)]
@@ -164,7 +164,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// A refusal has to name its real condition. "No connection to a
         /// command source" is what both real backends say off a disconnected
-        /// link, and here there is no connection MODEL rather than a missing
+        /// link, and here there is no connection model rather than a missing
         /// connection, so a craft nothing can command is uncommandable for the
         /// one reason left.
         /// </summary>
@@ -181,7 +181,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Not zero. The honest answer is that signal strength is not modelled
         /// at all, and the field cannot carry an absence (see
-        /// <see cref="NoCommsModelBackend.Signal"/>); of what it CAN
+        /// <see cref="NoCommsModelBackend.Signal"/>); of what it can
         /// carry, a 0 is the one that lies, because it is exactly what the
         /// app's own signal-loss verdict keys on.
         /// </summary>
@@ -216,8 +216,8 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A save with no comms model grades the link PRISTINE, as a rated zero
-        /// under its own name, and does NOT pass the wrapped backend's grading
+        /// A save with no comms model grades the link pristine, as a rated zero
+        /// under its own name, and does not pass the wrapped backend's grading
         /// through: nothing can attenuate a link that is not modelled, so a
         /// grading taken off the dead CommNet graph underneath would be a reading
         /// of something that is not there.
@@ -226,7 +226,7 @@ namespace Sitrep.Host.Tests
         /// what <see cref="ModelAbsent_NeverReportsAZeroSignalStrength"/> next door
         /// cannot: signal strength has no way to express an absence and has to
         /// report 1 while explaining that the honest answer is "not graded", and
-        /// the rating CAN express one. It still does not, and that is a
+        /// the rating can express one. It still does not, and that is a
         /// judgement rather than a default: "nothing degrades this link" is a
         /// positive fact about the save, exactly as the no-comms-model delay is a
         /// measured zero rather than a null.</para>
@@ -352,7 +352,7 @@ namespace Sitrep.Host.Tests
             public ICommsReachModel ReachModel(CommsNodeHandle? from, CommsNodeHandle? to) => CommsReachModels.Unknown;
 
             /// <summary>
-            /// A REAL rating, unlike the inert answers above, and deliberately
+            /// A real rating, unlike the inert answers above, and deliberately
             /// one the wrapper must not pass through: the wrapper's own answer is
             /// a rated zero under its own model id, so a stub that also said
             /// "unknown" here would pass whether the wrapper delegated or not.

@@ -7,7 +7,7 @@ import {
 
 /**
  * What is left after mass, surface gravity and the hill sphere moved onto the
- * wire: the two values the GAME has no answer for, plus the orbital period,
+ * wire: the two values the game has no answer for, plus the orbital period,
  * which it does hold but computes with this exact expression.
  */
 

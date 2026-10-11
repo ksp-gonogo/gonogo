@@ -21,7 +21,7 @@ namespace Sitrep.Contract.Tests
     /// written by whoever is nearest a <c>Backend</c>-suffixed neighbour. So the
     /// rule is that an identity comes from <see cref="ISitrepProvider"/> and from
     /// nowhere else, which is checked here two ways. The first stops the old
-    /// spellings coming back under any interface. The second stops the NEW
+    /// spellings coming back under any interface. The second stops the new
     /// spelling being re-declared privately, which would pass the first check
     /// while re-creating exactly the drift it exists to prevent.</para>
     /// </summary>

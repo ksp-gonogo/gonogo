@@ -37,7 +37,7 @@ public class ExperimentActionArgs
 /// <c>science.experiment.transmit</c> returns it: when the stream began at the
 /// craft and how long the transmitter needs to send all of it. The result has
 /// left the craft at <see cref="StartedAt"/> plus <see cref="StreamSeconds"/>,
-/// and it lands one light-time after that.
+/// and it lands one signal delay after that.
 ///
 /// <para>Absent from the reply when the backend cannot say, as a modelling mod
 /// that drains results continuously cannot. A client then has nothing to draw

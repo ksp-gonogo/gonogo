@@ -12,7 +12,7 @@ namespace Sitrep.Host.IntegrationTests
     /// What each command centre has heard of each craft is saved with the game.
     /// A load leaves every centre knowing what it knew at the save: it can plan
     /// for and command a craft at once, where it used to be blind to every
-    /// craft for one light-time after every load, and it knows nothing that
+    /// craft for one signal delay after every load, and it knows nothing that
     /// was still on its way to it when the game was saved.
     ///
     /// <para>The relay is ten light-minutes from the home centre.</para>
@@ -55,7 +55,7 @@ namespace Sitrep.Host.IntegrationTests
         /// The relay burned a hundred seconds before the save, and its light was
         /// still five hundred seconds from home. The save carries what home had
         /// heard, which is the old orbit. After the load home still has the old
-        /// orbit, and hears of the burn one light-time after the load, when the
+        /// orbit, and hears of the burn one signal delay after the load, when the
         /// relay's state as it stands reaches it.
         /// </summary>
         [Fact]

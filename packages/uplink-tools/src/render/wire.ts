@@ -76,7 +76,7 @@ export interface WireSurface {
   /** The Topics the Uplink publishes. */
   channels: WireChannel[];
   /**
-   * Shapes another payload's field holds, so a reader reaches them THROUGH a
+   * Shapes another payload's field holds, so a reader reaches them through a
    * channel rather than by subscribing to one. Separated from `payloads` because
    * they are the one group whose route onto the wire is visible here, and
    * lumping them in with the command args made the page claim a `*Ext`
@@ -89,7 +89,7 @@ export interface WireSurface {
    * distinction between the two is not in the generated slice, so the page names
    * both rather than picking one.
    *
-   * A command's args USED to be in here too, unmarked, so an Uplink with one
+   * A command's args used to be in here too, unmarked, so an Uplink with one
    * topic and seven command-arg shapes read as ten payloads published on that
    * one topic. They are routed now, through `commands`, so they have left.
    */
@@ -129,7 +129,7 @@ const MAP_ENTRY = /^ {2}"([^"]+)": (\w+)(\[\])?;$/;
 
 /**
  * One entry of the generated command map. Looser than {@link MAP_ENTRY} because
- * a reply is a type EXPRESSION rather than a bare name: `CommandResult`,
+ * a reply is a type expression rather than a bare name: `CommandResult`,
  * `CommandResultOf<Record<string, unknown>>`, or the interface a command that
  * does not answer a `CommandResult` resolves. The whole expression is what the
  * table prints, so it is captured whole.
@@ -330,7 +330,7 @@ export function readWireSurface(pkgDir: string): WireSurface {
 }
 
 /**
- * The ELEMENT type of a shape entry, dropping the generated plural markers: a
+ * The element type of a shape entry, dropping the generated plural markers: a
  * leading `*` is a string-keyed dictionary of it and a trailing `[]` a list. The
  * element is what a consumer indexes into either way, so it is the name that has
  * to match a `types` key.
@@ -395,12 +395,12 @@ export function wireSection(surface: WireSurface): string[] {
  * reach. It is derived from the generated command map, the same rule the Wire
  * section follows, so a command added in C# reaches this table with no hand edit.
  *
- * The Result column is what a dispatch RESOLVES with, which is not what the
+ * The Result column is what a dispatch resolves with, which is not what the
  * handler returns: a refusal rejects, carrying its `CommandErrorCode`, so
  * `CommandResult` in that column means "ran, or threw", never "said no quietly".
  *
  * There is deliberately no Delay column, though `CommandDeclaration.Delay`
- * is a real fact an author wants. It is set in the PLUGIN assembly, which no
+ * is a real fact an author wants. It is set in the plugin assembly, which no
  * generated artifact reaches, and one Uplink builds its whole list through a
  * private `DeclareCommands(...)` helper: a source scan would have found nothing
  * for it and said so by printing 29 blank cells. The channel scan next door is

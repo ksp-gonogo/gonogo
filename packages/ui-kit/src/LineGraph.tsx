@@ -286,10 +286,12 @@ function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
 
 /**
  * A minimal multi-series time-trend chart: coloured lines against a shared
- * domain, plus optional reference lines. For readings that need a trend rather
- * than a precise value; pair it with a {@link Unit} readout for the value.
+ * domain, plus optional reference lines. Useful for showing the operator how a
+ * reading has moved over time; pair it with a {@link Unit} readout for the
+ * value.
  *
- * No axis ticks, no legend, no interaction. Gridlines are fixed quarter-marks.
+ * It has no axis ticks, no legend and no interaction. Gridlines are fixed
+ * quarter-marks.
  * Width fills the parent and strokes keep a constant width however the chart
  * is stretched. The y domain is derived from every series and threshold, with
  * headroom, unless `yDomain` pins it.

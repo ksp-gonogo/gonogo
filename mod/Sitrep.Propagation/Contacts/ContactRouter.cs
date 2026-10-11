@@ -50,7 +50,7 @@ namespace Sitrep.Propagation.Contacts
         /// <summary>When the message leaves <see cref="From"/>; later than its arrival there by the time it waits.</summary>
         public double DepartUt { get; }
 
-        /// <summary>When it lands on <see cref="To"/>: departure plus the light time to where the receiver will be.</summary>
+        /// <summary>When it lands on <see cref="To"/>: departure plus the signal delay to where the receiver will be.</summary>
         public double ArriveUt { get; }
 
         /// <summary>When the window this hop uses closes, or the pair's horizon when it is still open there.</summary>
@@ -164,9 +164,9 @@ namespace Sitrep.Propagation.Contacts
     ///
     /// <para>Without capacity, a contact's only state is its window and its light
     /// time, and leaving later can never arrive sooner. So the search runs on
-    /// NODES as a Dijkstra over earliest-arrival labels, with a message free to wait
+    /// nodes as a Dijkstra over earliest-arrival labels, with a message free to wait
     /// at a node for its next window. A hop is admitted only if it can land: it
-    /// leaves inside a window of its pair, and arrives, one light time later at
+    /// leaves inside a window of its pair, and arrives, one signal delay later at
     /// where the receiver will then be, before that window closes and before the
     /// message's own deadline.</para>
     ///
@@ -174,7 +174,7 @@ namespace Sitrep.Propagation.Contacts
     /// the later route termination (the soonest a used window closes), then node id
     /// order, so the answer never depends on enumeration order.</para>
     ///
-    /// <para>Every search takes a light factor: what a real light time is
+    /// <para>Every search takes a light factor: what a real signal delay is
     /// multiplied by to get the delay the game is set to model, one at real
     /// light speed and less for a faster light. The route is chosen on those
     /// times and each hop is admitted on them, because which route arrives
@@ -416,7 +416,7 @@ namespace Sitrep.Propagation.Contacts
         }
 
         /// <summary>
-        /// The light time for a message leaving at <paramref name="departUt"/>, to
+        /// The signal delay for a message leaving at <paramref name="departUt"/>, to
         /// where the receiver will be when it lands: the separation at the landing
         /// instant, solved by fixed-point iteration, which converges in a few steps
         /// because nothing in a planetary system moves at a sizeable fraction of
@@ -425,7 +425,7 @@ namespace Sitrep.Propagation.Contacts
         public static double? LightTime(PairPlan pair, double departUt, double lightFactor = 1.0) =>
             Crossing(pair, departUt, lightFactor)?.Seconds;
 
-        /// <summary>The light time of <see cref="LightTime"/>, with the separation it was taken over.</summary>
+        /// <summary>The signal delay of <see cref="LightTime"/>, with the separation it was taken over.</summary>
         private static (double Seconds, double Meters)? Crossing(PairPlan pair, double departUt, double lightFactor)
         {
             var separation = pair.SeparationAt(departUt);

@@ -19,7 +19,7 @@ namespace Gonogo.KSP
     /// there is no per-call vessel selector, matching every M1 read channel's
     /// "the vessel" scoping.
     ///
-    /// <para><b>This is now the SECOND class in the mod that touches KSP/
+    /// <para><b>This is now the second class in the mod that touches KSP/
     /// Unity APIs directly</b>: see <see cref="KspHost"/>'s doc comment,
     /// written before this class existed, for the READ-side half of that
     /// invariant ("the only class that touches KSP" was true for sampling;
@@ -54,7 +54,7 @@ namespace Gonogo.KSP
         /// Resolves the elected <see cref="IActionGroupsBackend"/> for
         /// <see cref="SetActionGroup"/>: the WRITE-side counterpart to the
         /// resolver <see cref="KspHost"/> holds for the read side, and
-        /// deliberately the SAME elected instance, so a group's index means the
+        /// deliberately the same elected instance, so a group's index means the
         /// same thing whether it arrived in a sample or is being commanded.
         /// Late-bound for the same reason (see
         /// <c>KspHost.SetActionGroupsBackendSource</c>): the capability Kernel
@@ -71,12 +71,12 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Resolves the elected <see cref="IManeuverPlanSource"/> so the three
-        /// maneuver WRITE commands respect the same election the read side
+        /// maneuver write commands respect the same election the read side
         /// already does. Late-bound for the same reason as
         /// <see cref="_actionGroupsBackend"/> above.
         ///
         /// <para>The read path has known this since it was written
-        /// (<c>KspHost.BuildManeuverNodes</c>: "Whatever the ELECTED provider
+        /// (<c>KspHost.BuildManeuverNodes</c>: "Whatever the elected provider
         /// answered, never <c>patchedConicSolver</c> directly"). The write path
         /// did not check at all, which is the asymmetry this resolver closes.</para>
         /// </summary>
@@ -92,25 +92,25 @@ namespace Gonogo.KSP
         /// The refusal for a write into stock's solver, or <c>null</c> when the
         /// write may proceed.
         ///
-        /// <para>Checked BEFORE the vessel/solver guards on purpose. Not owning
+        /// <para>Checked before the vessel/solver guards on purpose. Not owning
         /// the plan is a fact about authority that holds whether or not there is
         /// an active vessel, so it is the more fundamental answer; ordering it
         /// first also makes it reachable without live KSP state, which is what
         /// lets <c>ManeuverPlanOwnershipTests</c> exercise it.</para>
         ///
-        /// <para>A null elected source means there is no planner AT ALL (an
+        /// <para>A null elected source means there is no planner at all (an
         /// un-upgraded Tracking Station leaves <c>patchedConicSolver</c> null),
         /// which is a different fact with its own existing answer: it falls
         /// through to the solver-null guard rather than being reported as a
         /// foreign plan.</para>
         ///
-        /// <para>LIVE-INERT TODAY: the maneuver-plan election has exactly one
+        /// <para>LIVE-INERT today: the maneuver-plan election has exactly one
         /// member, so this never refuses on a stock install. It is tested rather
         /// than merely commented, because a branch nothing has executed is a
         /// claim with no evidence: see
         /// <c>Gonogo.KSP.Tests/ManeuverPlanOwnershipTests.cs</c>, which elects a
         /// second provider and asserts all three commands refuse, and asserts
-        /// they do NOT refuse with only the stock backend elected.</para>
+        /// they do not refuse with only the stock backend elected.</para>
         /// </summary>
         private RefusalCode? PlanWriteRefusal() =>
             ManeuverPlanWriteRule.RefusalFor(_planOwner?.Invoke() ?? PlanOwner.None);
@@ -166,7 +166,7 @@ namespace Gonogo.KSP
                 missionControlName: missionControlName);
         }
 
-        /// <summary>The facility as the GAME names it, through <c>Localizer</c>.</summary>
+        /// <summary>The facility as the game names it, through <c>Localizer</c>.</summary>
         private static string FacilityName(SpaceCenterFacility facility)
         {
             try
@@ -204,9 +204,9 @@ namespace Gonogo.KSP
         private readonly FlightInputCallback _flyByWireCallback;
 
         /// <summary>
-        /// T-POI-4's <see cref="TargetKind.Position"/> branch: the ONE
+        /// T-POI-4's <see cref="TargetKind.Position"/> branch: the one
         /// <c>PositionTarget</c> this actuator ever constructs. The stock
-        /// type (global namespace, NOT <c>FinePrint.PositionTarget</c>: the
+        /// type (global namespace, not <c>FinePrint.PositionTarget</c>: the
         /// plan's naming guess was wrong; confirmed via decompile against
         /// Assembly-CSharp.dll) allocates its own <c>GameObject</c> in its
         /// constructor and destroys it in a finalizer, so a fresh instance
@@ -327,14 +327,14 @@ namespace Gonogo.KSP
             SetVerified(actionGroups, KSPActionGroup.Abort, "Abort", enabled));
 
         /// <summary>
-        /// Writes the ACTIVE vessel's commanded throttle via
+        /// Writes the active vessel's commanded throttle via
         /// <c>FlightInputHandler.state.mainThrottle</c> -- the same static
         /// accessor KSP's own input pipeline reads/writes every frame (and
         /// clamps -- see <c>KspHost.BuildControl</c>'s doc comment on why
         /// <c>vessel.ctrlState.mainThrottle</c> itself is read-only ground
         /// truth downstream of this, not the write target).
         ///
-        /// <para><b>ACTIVE means KSP's, and that is why the EVA arm is here.</b>
+        /// <para><b>active means KSP's, and that is why the EVA arm is here.</b>
         /// <c>FlightInputHandler.Update</c> ends in a walk of
         /// <c>FlightGlobals.VesselsLoaded</c> that calls
         /// <c>vessel.SetControlState(state)</c> for the one vessel that is
@@ -376,7 +376,7 @@ namespace Gonogo.KSP
         /// <c>OnFlyByWire</c> (idempotent remove-then-combine) and sets the armed
         /// flag; the axes resume from their last-set values (or 0 on first arm).
         /// Disarming clears the flag, detaches the callback, and neutralizes the
-        /// stored axes AND trims so control is fully handed back to the player/SAS
+        /// stored axes and trims so control is fully handed back to the player/SAS
         /// with no residual override: a later re-arm starts from a clean stick.
         /// The override belongs to the craft it was armed on: once
         /// <see cref="ActiveVesselScope.Current"/> reports another, it disarms
@@ -385,7 +385,7 @@ namespace Gonogo.KSP
         /// <para><b>Arming is gated on the craft accepting control input at all</b>
         /// (<see cref="ControlInputAuthority"/>), because an armed override on a
         /// craft KSP will not propagate to is a stick that moves nothing and
-        /// reports success. DISARMING is deliberately not gated: it neutralises
+        /// reports success. Disarming is deliberately not gated: it neutralises
         /// the held axes and detaches the callback, which is the one useful thing
         /// left to do on such a craft.</para>
         /// </summary>
@@ -450,7 +450,7 @@ namespace Gonogo.KSP
         /// held for the next arm rather than flown.
         ///
         /// <para>Refuses on a craft KSP will not pass control input to
-        /// (<see cref="ControlInputAuthority"/>). The override does still RUN
+        /// (<see cref="ControlInputAuthority"/>). The override does still run
         /// there - <c>OnFlyByWire</c> fires before the propagation gate - so
         /// every axis was written, dropped, and reported as a success.</para>
         /// </summary>
@@ -510,7 +510,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The <c>FlightInputCallback</c> KSP runs each physics frame BEFORE the
+        /// The <c>FlightInputCallback</c> KSP runs each physics frame before the
         /// autopilot (so SAS can trim on top, matching stock stick behaviour). A
         /// no-op while disarmed, so on disarm the axes stop being written and
         /// SAS/manual input resumes with no residual override. Both axes and
@@ -605,9 +605,9 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Delegates to the ELECTED action-groups backend rather than a magic
+        /// Delegates to the elected action-groups backend rather than a magic
         /// <c>1 => Custom01 ... 10 => Custom10</c> switch. The
-        /// backend owns both the mapping and the RANGE, stock stops at 10, AGX
+        /// backend owns both the mapping and the range, stock stops at 10, AGX
         /// goes to 250: so an index it doesn't know comes back <c>false</c>
         /// and becomes <c>CommandErrorCode.Range</c> here.
         /// <see cref="VesselCommandProvider.HandleSetActionGroup"/> has already
@@ -643,7 +643,7 @@ namespace Gonogo.KSP
         /// <c>ManeuverNode.DeltaV</c> is in the node's own radial/normal/
         /// prograde frame -- x=radialOut, y=normal, z=prograde (re-confirmed by
         /// <c>KspHost.BuildManeuverNodes</c>' identical doc comment). This
-        /// assignment must NOT be reordered.
+        /// assignment must not be reordered.
         /// </summary>
         public CommandResult<string> AddManeuverNode(double ut, double prograde, double normal, double radialOut)
         {
@@ -720,8 +720,8 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Resolves an opaque <paramref name="nodeId"/> back to a LIVE
-        /// <c>ManeuverNode</c> by scanning the active vessel's CURRENT
+        /// Resolves an opaque <paramref name="nodeId"/> back to a live
+        /// <c>ManeuverNode</c> by scanning the active vessel's current
         /// <c>solver.maneuverNodes</c> and matching against
         /// <see cref="_maneuverNodeIdRegistry"/>: never a cached reference
         /// from whenever the id was first assigned, since a stale node
@@ -748,7 +748,7 @@ namespace Gonogo.KSP
         /// the client never needs (or supplies) a live array index itself.
         ///
         /// <para><paramref name="lat"/>/<paramref name="lon"/> (T-POI-4) are
-        /// consumed ONLY by <see cref="TargetKind.Position"/>: a client-
+        /// consumed only by <see cref="TargetKind.Position"/>: a client-
         /// picked surface fix on <paramref name="bodyIndex"/>'s body (e.g. a
         /// <c>spaceCenter.pois</c> entry's own coordinate), wired through
         /// stock's own <c>PositionTarget</c>: the exact mechanism the stock
@@ -764,7 +764,7 @@ namespace Gonogo.KSP
         /// <c>ActiveVessel.targetObject = tgt</c>, which is never rerouted, so a
         /// target set while a kerbal is outside is the kerbal's and leaves with
         /// them. The read side compounds it: <c>KspHost.SolveClosestApproach</c>
-        /// pairs the global <c>fetch.VesselTarget</c> with the REPORTED craft's
+        /// pairs the global <c>fetch.VesselTarget</c> with the reported craft's
         /// orbit, so accepting the write would have the console showing an
         /// approach between two different craft.</para>
         /// </summary>
@@ -881,7 +881,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Same call and so the same EVA arm as <see cref="SetTarget"/>: a clear
-        /// issued while a kerbal is outside clears the KERBAL's target, and the
+        /// issued while a kerbal is outside clears the Kerbal's target, and the
         /// craft's is untouched behind it.
         /// </summary>
         public CommandResult ClearTarget()
@@ -906,7 +906,7 @@ namespace Gonogo.KSP
         /// call, safe with or without an active vessel. Negative indices are
         /// already rejected upstream by
         /// <see cref="VesselCommandProvider.HandleSetWarpIndex"/>; this is
-        /// the ONLY place the real upper bound is known
+        /// the only place the real upper bound is known
         /// (<c>TimeWarp.fetch.warpRates.Length</c> -- the live rate table,
         /// which differs between on-rails and physics warp and isn't a fixed
         /// contract-side constant), so the design table's <c>CommandResult | CommandErrorCode.Range</c>

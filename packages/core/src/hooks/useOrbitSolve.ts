@@ -22,7 +22,7 @@ import { useMemo } from "react";
  * withdrew. A caller has nothing different to say about the three, because in
  * all of them the honest thing on screen is the absence.
  *
- * Under physics the model refuses to ADVANCE, and a current observation is
+ * Under physics the model refuses to advance, and a current observation is
  * still solved at its own epoch, its countdowns taken from the game's own and
  * run down to the received edge; see `solveSelfOrbit`.
  *
@@ -43,7 +43,7 @@ import { useMemo } from "react";
  *
  * ## Per-field absence is the solve's own, and passes through
  *
- * A `null` FIELD inside a returned solve is a different statement: the orbit is
+ * A `null` field inside a returned solve is a different statement: the orbit is
  * there and that quantity does not exist on it, an apoapsis on a hyperbolic
  * trajectory being the standing case. Both altitudes answer `undefined` while
  * the reference body's radius cannot be resolved, which is `bodyRadiusOf`'s

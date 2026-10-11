@@ -21,7 +21,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// A namespace core has never heard of, standing in for an Uplink that
         /// publishes its own per-vessel opinion (life support for every craft in
-        /// the save, say). It earns its per-vessel node routing by DECLARING
+        /// the save, say). It earns its per-vessel node routing by declaring
         /// <see cref="ChannelDeclaration.PerVesselNode"/> rather than by having
         /// its name written into the engine, which is what
         /// <see cref="ChannelEngine.NodeForTopic"/> would otherwise have to grow

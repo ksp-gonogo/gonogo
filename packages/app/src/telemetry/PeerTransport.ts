@@ -49,7 +49,7 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * frames instead of a direct mod connection.
  *
  * Architecturally the closest sibling is `ReplayTransport`, not
- * `WebSocketTransport`: neither is the ORIGIN of the data, both are a
+ * `WebSocketTransport`: neither is the origin of the data, both are a
  * scheduled/event-driven re-delivery of `ServerMessage`s that arrived some
  * other way. Here that "some other way" is the host's own gated stream,
  * relayed verbatim over a PeerJS data channel: relaying verbatim (no
@@ -72,7 +72,7 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * the replay a reconnected station would sit blank on every topic it had
  * already subscribed.
  *
- * `set-vantage` is CARRIED: the host holds one upstream session per vantage
+ * `set-vantage` is carried: the host holds one upstream session per vantage
  * anything asks for (`PeerHostService.attachSitrepSinkFor`), so the mod stays
  * one-vantage-per-session while the selection is honoured.
  *
@@ -83,7 +83,7 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * Left unhandled, that gap means a command whose peer connection drops
  * mid-flight (or that is dispatched with no live `conn` at all:
  * `PeerClientService.sendSitrepCommand` silently no-ops when `conn` is null)
- * has NO loss timer and hangs `TelemetryClient.dispatch()`'s promise forever,
+ * has no loss timer and hangs `TelemetryClient.dispatch()`'s promise forever,
  * until the connection resumes or `TelemetryClient` is disposed. Rather than
  * build the full round-trip timing model, this class settles pending commands
  * itself on the two events that actually make a command unanswerable:
@@ -92,7 +92,7 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  *     `StubTransport`/`WebSocketTransport` convention every `Transport`
  *     follows: a real transport never resolves in the same tick as the
  *     send).
- *   - the connection status transitions AWAY FROM `"connected"` while
+ *   - the connection status transitions away from `"connected"` while
  *     commands are still in flight, every tracked `requestId` gets an
  *     `error` immediately, since a dropped peer link can't be trusted to
  *     still deliver a response that was already in flight when it dropped.
@@ -112,7 +112,7 @@ export class PeerTransport implements Transport {
   private vantage: string | null = null;
   /**
    * A station cannot tell a served topic from an unserved one, so it must not
-   * try. Its subscribe reaches the mod only when the HOST's own refcount makes
+   * try. Its subscribe reaches the mod only when the host's own refcount makes
    * a 0 -> 1 transition, so a topic the host is already holding is never
    * re-acked, and every ack minted before this station connected is one it did
    * not see. Silence here is not evidence, and a false "nothing publishes this"
@@ -360,7 +360,7 @@ export class PeerTransport implements Transport {
   /**
    * See `Transport.onUndelivered`. This transport strands nothing of its own (a
    * command pressed with no peer link is refused at the press), so the only
-   * thing reported here is what the HOST could not send: its own queue, given
+   * thing reported here is what the host could not send: its own queue, given
    * up on, relayed as `undelivered`.
    */
   onUndelivered(listener: (command: UndeliveredCommand) => void): () => void {

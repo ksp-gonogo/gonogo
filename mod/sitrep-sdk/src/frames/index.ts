@@ -2,7 +2,7 @@
  * `@ksp-gonogo/sitrep-sdk/frames`: the reference-frame arithmetic, as an author
  * surface.
  *
- * An Uplink that contributes a projection needs to say where a point IS in the
+ * An Uplink that contributes a projection needs to say where a point is in the
  * frame it chose: a frame choice, that choice resolved to a state at one
  * instant, the forward and inverse position transforms, and the fact that a
  * pulsating frame's coordinates are ratios rather than distances.
@@ -57,7 +57,7 @@
  * tests and `tsc` reported two diagnostics.
  *
  * `systemInstantAt` and `SystemInstant` are on the list for a reason that is
- * not obvious: a widget placing bodies AND a craft in the same frame needs
+ * not obvious: a widget placing bodies and a craft in the same frame needs
  * every body's state at the view instant anyway, and passing that state into
  * `frameInstantAt` is what stops the catalogue being solved twice per placement.
  *
@@ -66,7 +66,7 @@
  * It is the one function here that makes a claim rather than restating one: it
  * evaluates the catalogue's elements at whatever UT you name. Which install the
  * operator is running changes the answer, and your widget sees the difference
- * WITHOUT branching on a mod name. There is no mod name to branch on here and
+ * without branching on a mod name. There is no mod name to branch on here and
  * that is deliberate: the horizon is a standard shape every provider fills, and
  * a vendor's name has no place in one.
  *
@@ -77,7 +77,7 @@
  *   instant you are drawing.
  * - **An n-body install.** A body's elements are the conic tangent to an
  *   integrated path at the sample instant, and the elected provider states how
- *   far they stay worth having. Past that a body is NOT in `positionByIndex`,
+ *   far they stay worth having. Past that a body is not in `positionByIndex`,
  *   and `withdrawnByIndex` names which body's horizon ran out and when. A moon
  *   whose own elements are unbounded is withdrawn too when its planet's ran
  *   out, naming the planet.
@@ -91,7 +91,7 @@
  * `body.horizon` on the catalogue carries the same statement per body, in the
  * same words a craft's `vessel.orbit` horizon uses: `kind`, `trajectoryKind`,
  * and a `untilUt` that is an absolute UT rather than a duration. Its
- * `trajectoryKind` is the separate question of SHAPE, and it is the one to
+ * `trajectoryKind` is the separate question of shape, and it is the one to
  * branch on before drawing a closed ellipse for a body.
  *
  * Deliberately absent, each because it is a choice we intend to keep making:

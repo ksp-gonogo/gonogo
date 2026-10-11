@@ -17,7 +17,7 @@ namespace Gonogo.KSP.CurrencyDelay
     ///
     /// <para>Generic over the vessel type on purpose. The roster and the route
     /// read are both live-scene reads that cannot be entered headlessly at all,
-    /// but the WALK - the half that was missing - takes an id and a sequence and
+    /// but the walk - the half that was missing - takes an id and a sequence and
     /// needs nothing, so it compiles and is exercised on every checkout. Same
     /// discipline as <c>RoutedPathDelay</c> and <c>CommNetOcclusion</c>.</para>
     /// </summary>

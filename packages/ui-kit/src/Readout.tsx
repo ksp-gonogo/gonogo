@@ -55,11 +55,13 @@ export interface ReadoutProps extends ComponentPropsWithoutRef<"div"> {
 }
 
 /**
- * The display-tier figure: bold, tracked, coloured by tone.
+ * The display-size figure: bold, tracked, coloured by tone. Useful for giving
+ * the operator the one value of a widget that matters most. Used by the launch
+ * director and the graph readout.
  *
  * `size="hero"` is the dominant value of a widget's tiny form (see
- * {@link TinyEssentials}; ΔV, time to impact and warp rate are examples): it fills the remaining panel space and centres. The
- * default `size="inline"` is the same treatment smaller, sitting beside other
+ * {@link TinyEssentials}; ΔV, time to impact and warp rate are examples): it
+ * fills the remaining panel space and centres. The default `size="inline"` is the same treatment smaller, sitting beside other
  * content.
  *
  * Pair with {@link ReadoutCaption} for an optional sub-label.
@@ -78,9 +80,10 @@ export function Readout({
 }
 
 /**
- * Muted uppercase secondary line for a {@link Readout}
- * (e.g. a mode tag), placed inside it after the figure. It renders a `span` and
- * takes every prop that element does.
+ * A muted uppercase secondary line for a {@link Readout} (a mode tag, say),
+ * placed inside it after the figure. Useful for telling the operator what the
+ * figure above it measures. Used by the settings version line and the warp
+ * control. It renders a `span` and takes every prop that element does.
  *
  * @category Readout
  */

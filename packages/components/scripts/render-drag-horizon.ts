@@ -9,7 +9,7 @@
  * `TimelineStore.sampleReckonedTail` asked `vessel.flight`'s reckoner across
  * the silence and `useDataSeries` joined it on.
  *
- * Two scenes ONE field apart, and the field is the reference body's
+ * Two scenes one field apart, and the field is the reference body's
  * `atmosphere`. Without it the wire says airless, the floor is the surface, and
  * the conic runs the whole window: that is the line a conic wants to draw, and
  * around an airless body it is the honest one. With it the view time is inside
@@ -20,9 +20,9 @@
  * Altitude rather than speed, because the atmosphere is an altitude and the
  * eye can put the two together.
  *
- * Deliberately NOT registered in `widgets.ts`: that file is the visual gate's
+ * Deliberately not registered in `widgets.ts`: that file is the visual gate's
  * input, and a scene added to it with no committed baseline fails the gate as
- * MISSING.
+ * missing.
  * These exist to be looked at by a person.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-drag-horizon`. Pass
@@ -71,7 +71,7 @@ const CONFIGS: WidgetRenderConfig[] = [
  * `packages/components` bundles from source, but everything it imports resolves
  * through a built `dist`, and esbuild bundles whatever is there without a word.
  * `render-chart-provenance.ts` learned this the expensive way: its first run
- * produced an entirely plausible picture of the PREVIOUS chart's rules, and it
+ * produced an entirely plausible picture of the previous chart's rules, and it
  * was caught by someone knowing which run should be dashed rather than by
  * anything in the tooling. A render that predates the change it is offered as
  * evidence of is the failure a picture is least able to show you, and it is

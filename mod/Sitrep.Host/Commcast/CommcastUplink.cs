@@ -13,16 +13,16 @@ namespace Sitrep.Host.Commcast
     ///
     /// <para>Everything is said by one centre to others. It goes up as an instant
     /// command and comes down addressed (<see cref="IAddressedStreamHost"/>), so
-    /// each listener receives it one light-time after it was said from where it
+    /// each listener receives it one signal delay after it was said from where it
     /// was said, and a centre that is not addressed receives nothing at all.</para>
     ///
-    /// <para>A speaker addresses the members IT can see. Membership is an add-only
+    /// <para>A speaker addresses the members it can see. Membership is an add-only
     /// timeline of changes, and a change counts at a vantage once it has crossed
     /// there from its author. So a centre brought in far away starts hearing a
     /// transmission already under way from the first batch its speaker spoke
     /// after word of the change reached it.</para>
     ///
-    /// <para>Radio is also LISTED, on <c>commcast.transmissions</c>, at every centre
+    /// <para>Radio is also listed, on <c>commcast.transmissions</c>, at every centre
     /// the speaker's signal reaches, member or not: addressing is who hears the
     /// audio, not a secret. Listing is detection only; a group is joined by
     /// invitation, never by a centre adding itself.</para>

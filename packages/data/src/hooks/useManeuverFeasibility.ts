@@ -18,7 +18,7 @@ export interface NodeFeasibility {
 export interface ManeuverFeasibility {
   /** Per-node verdicts in UT order. */
   nodes: readonly NodeFeasibility[];
-  /** True if every node is feasible AND we have ΔV telemetry. */
+  /** True if every node is feasible and we have ΔV telemetry. */
   allOk: boolean;
   /** True if any node is known-infeasible. */
   anyShort: boolean;

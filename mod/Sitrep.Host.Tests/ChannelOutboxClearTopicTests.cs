@@ -13,8 +13,8 @@ namespace Sitrep.Host.Tests
     /// recorded on an abandoned (pre-timeline-reset) timeline could still be
     /// sitting, serialized, in <c>ChannelOutbox</c>'s coalescing map when a
     /// quickload/rewind happens. Because the pump drains its reliable lane
-    /// (acks, the timeline-reset event) BEFORE its lossy lane, that abandoned
-    /// frame would then reach the wire AFTER the reset event the client uses
+    /// (acks, the timeline-reset event) before its lossy lane, that abandoned
+    /// frame would then reach the wire after the reset event the client uses
     /// to know the old timeline is gone, showing stale data.
     /// <c>ChannelEngine.BroadcastTimelineReset</c> now calls
     /// <see cref="ChannelOutbox.ClearTopic"/> for every subscribed topic,
@@ -32,13 +32,13 @@ namespace Sitrep.Host.Tests
     {
         /// <summary>
         /// The fail-first proof for LOW-4's mechanism: with the pump parked
-        /// mid-send (so both a stale lossy frame AND the reliable reset event
+        /// mid-send (so both a stale lossy frame and the reliable reset event
         /// are queued before the pump's next drain cycle), calling
         /// <see cref="ChannelOutbox.ClearTopic"/> before queuing the reset
-        /// event means the stale frame NEVER reaches the wire, only the
+        /// event means the stale frame never reaches the wire, only the
         /// reset does. Remove the <c>ClearTopic</c> call below (as production's
         /// <c>BroadcastTimelineReset</c> used to lack it) and the stale frame
-        /// drains to the wire AFTER the reset event, exactly the defect.
+        /// drains to the wire after the reset event, exactly the defect.
         /// </summary>
         [Fact]
         public void ClearTopicBeforeTheResetEventKeepsAStaleLossyFrameOffTheWireEntirely()
@@ -105,7 +105,7 @@ namespace Sitrep.Host.Tests
         private static byte[] Bytes(string s) => Encoding.UTF8.GetBytes(s);
 
         /// <summary>
-        /// A connection whose FIRST <see cref="TrySend"/> blocks on a gate
+        /// A connection whose first <see cref="TrySend"/> blocks on a gate
         /// until <see cref="ReleaseGate"/> is called, used to park the
         /// outbox pump thread mid-drain so a test can stage further frames
         /// with a guarantee about which drain cycle they land in.

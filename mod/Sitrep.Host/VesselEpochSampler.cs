@@ -15,10 +15,10 @@ namespace Sitrep.Host
     /// registers one instance via <see cref="IUplinkHost.AddSampler"/>.
     /// Registering it as an <see cref="ISnapshotSampler"/>: rather than
     /// detecting the change inside one of the channel mappers themselves,
-    /// guarantees the force happens BEFORE any of this tick's channel
+    /// guarantees the force happens before any of this tick's channel
     /// <c>Decide</c> calls, regardless of the engine's channel-source
     /// iteration order: <c>ChannelEngine.ProcessTick</c> runs every
-    /// registered sampler, THEN loops channel sources, in that fixed order,
+    /// registered sampler, then loops channel sources, in that fixed order,
     /// every tick.
     ///
     /// <see cref="IUplinkHost.ForceKeyframe"/> is the same mechanism a
@@ -27,13 +27,13 @@ namespace Sitrep.Host
     /// inventing a second "unconditional next emission" concept.
     ///
     /// Also calls <see cref="IUplinkHost.ResetChannelBirth"/> for the same
-    /// topic set, ALONGSIDE (not instead of) <see cref="IUplinkHost.ForceKeyframe"/>,
+    /// topic set, alongside (not instead of) <see cref="IUplinkHost.ForceKeyframe"/>,
     /// the M2 subject-scoped-birth fix. Without this, the engine's
     /// per-topic "has this channel ever emitted a real value" birth-guard
     /// (see <c>ChannelEngine</c>'s <c>_born</c> field) is keyed purely by
     /// topic, not by (topic, subject): switching to a vessel that has never
     /// populated a given channel (e.g. no target set) would otherwise
-    /// inherit the PREVIOUS vessel's "born" state for that topic and, since
+    /// inherit the previous vessel's "born" state for that topic and, since
     /// <see cref="IUplinkHost.ForceKeyframe"/> makes the very next
     /// <c>Decide</c> call unconditional, immediately emit a spurious
     /// tombstone for data the new subject never had in the first place.
@@ -42,11 +42,11 @@ namespace Sitrep.Host
     /// alone is not safe across a quickload -- a loaded save can perfectly
     /// ordinarily have had a different vessel active than whatever was
     /// flying immediately pre-load. <see cref="Sample"/> tracks the last
-    /// snapshot Ut it saw and treats a BACKWARD jump as a cold start (just
+    /// snapshot Ut it saw and treats a backward jump as a cold start (just
     /// resynchronize <c>_lastVesselId</c>, no force/reset) rather than a
     /// genuine switch -- see its own doc comment for why: the engine's own
     /// rewind branch (<c>ChannelEngine.ProcessTick</c>) already recomputed
-    /// birth correctly from the archive BEFORE this sampler runs, and a
+    /// birth correctly from the archive before this sampler runs, and a
     /// mis-detected "switch" here would silently undo that.
     /// </summary>
     public sealed class VesselEpochSampler : ISnapshotSampler

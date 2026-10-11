@@ -8,14 +8,14 @@ using Xunit;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The census of EXCLUSIVE capabilities, and the guard that every one an Uplink
+    /// The census of exclusive capabilities, and the guard that every one an Uplink
     /// can win has a behavioural case proving it is not starved.
     ///
     /// <para><b>What starvation is.</b>
     /// <c>IUplinkHost.AddSampledSource</c>'s subscription-gated overload skips its
     /// main-thread capture entirely on any tick where nothing under its declared
     /// topic prefixes is subscribed. That is a pure early-out only for a capture
-    /// whose whole effect is its return value. When a capture also WRITES state
+    /// whose whole effect is its return value. When a capture also writes state
     /// something else reads, and that something else is an exclusive capability's
     /// elected provider, the derived channel is starved: no exception, no log line,
     /// and because the capability is exclusive there is no vanilla answering
@@ -24,7 +24,7 @@ namespace Sitrep.Host.IntegrationTests
     /// documented to mean "there is no planner", and one told an operator that a
     /// career it was managing was a save it does not manage.</para>
     ///
-    /// <para><b>Everything here is DISCOVERED, and deliberately names no mod.</b>
+    /// <para><b>Everything here is discovered, and deliberately names no mod.</b>
     /// Which capabilities are exclusive, which have an Uplink provider, and which
     /// have a behavioural case are all read out of the tree on every run. A written
     /// list would drift, and naming the Uplinks would put specific third-party mods
@@ -57,7 +57,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <param name="DeclaredIn">Repo-relative path of the file declaring it exclusive.</param>
         /// <param name="FedByGatedCapture">
         /// Whether the elected provider's answer comes from a subscription-gated
-        /// capture. The unsafe shape, and the reason a case for it subscribes ONLY
+        /// capture. The unsafe shape, and the reason a case for it subscribes only
         /// the derived topic rather than driving a bare tick.
         /// </param>
         /// <param name="Excuse">
@@ -67,7 +67,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <param name="WhyNoBehaviouralCase">
         /// Why the capability has no case. Never a placeholder: an entry here is a
         /// gap somebody can close, written down so the gap is visible rather than
-        /// absent, and asserted STALE once a case appears or the walk stops agreeing
+        /// absent, and asserted stale once a case appears or the walk stops agreeing
         /// with <paramref name="Excuse"/>.
         /// </param>
         private sealed record Entry(
@@ -380,7 +380,7 @@ namespace Sitrep.Host.IntegrationTests
         /// violations, and no violations reads exactly like success. This repo has
         /// been bitten by that shape more than once, so all three discoveries are
         /// pinned separately: the exclusive set, the Uplink-provided set, and the
-        /// marker set. If the layout moves, this fails FIRST and says so, rather than
+        /// marker set. If the layout moves, this fails first and says so, rather than
         /// the guard above passing over an empty set.</para>
         /// </summary>
         [Fact]

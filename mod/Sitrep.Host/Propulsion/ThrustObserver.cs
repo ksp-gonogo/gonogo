@@ -3,7 +3,7 @@ using System;
 namespace Sitrep.Host.Propulsion
 {
     /// <summary>
-    /// Watches a vessel's thrust over time and LATCHES the two instants that
+    /// Watches a vessel's thrust over time and latches the two instants that
     /// describe it, so a consumer never has to have seen the frame the change
     /// happened on.
     ///
@@ -27,7 +27,7 @@ namespace Sitrep.Host.Propulsion
     /// on-rails vessel has no parts to read and reports no thrust, which is a
     /// fact about the simulation rather than about the engines. Observing
     /// through that would latch a cessation the moment a burning craft was
-    /// switched away from, so an unmeasurable tick HOLDS both latches instead
+    /// switched away from, so an unmeasurable tick holds both latches instead
     /// of moving them.</para>
     ///
     /// <para><b>A quickload can move UT backwards.</b> A latched instant then
@@ -49,9 +49,9 @@ namespace Sitrep.Host.Propulsion
         private bool _underThrust;
 
         /// <summary>
-        /// UT the CURRENT continuous period of thrust began, or null when the
+        /// UT the current continuous period of thrust began, or null when the
         /// craft is not under thrust as of the last measurable observation.
-        /// An OBSERVATION INSTANT: it says when something was seen to be true,
+        /// An observation instant: it says when something was seen to be true,
         /// so the only duration it may take part in is one measured against the
         /// reader's own view clock. Subtracting it from a plan's instants is
         /// type-legal and means nothing.
@@ -59,7 +59,7 @@ namespace Sitrep.Host.Propulsion
         public double? ThrustStartedUt { get; private set; }
 
         /// <summary>
-        /// UT the most recent period of thrust ENDED, or null when no period of
+        /// UT the most recent period of thrust ended, or null when no period of
         /// thrust has ever been observed to end for this craft. Same
         /// observation-instant reading as <see cref="ThrustStartedUt"/>.
         ///
@@ -82,7 +82,7 @@ namespace Sitrep.Host.Propulsion
         /// <param name="thrustKn">Measured thrust, kN.</param>
         /// <param name="measurable">
         /// Whether thrust was readable at all this tick (a loaded, unpacked
-        /// craft). False HOLDS both latches rather than reading the absence as
+        /// craft). False holds both latches rather than reading the absence as
         /// a cessation.
         /// </param>
         public void Observe(string subject, double ut, double thrustKn, bool measurable)

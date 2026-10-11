@@ -20,7 +20,7 @@ export type BundleFetchConduit = Pick<PeerClientService, "sendBundleFetch">;
 /**
  * Build a `LoaderContext.fetchBytes`-shaped function that pulls bundle
  * bytes through `client` instead of fetching directly. `expectedHash` is
- * REQUIRED on the wire (the host verifies before ever sending bytes back)
+ * required on the wire (the host verifies before ever sending bytes back)
  * even though the loader's widened `fetchBytes` type keeps it optional for
  * back-compat with the direct-fetch default (see loader.ts's `loadOne`,
  * the single call site that now passes `version.integrity` as the second

@@ -10,7 +10,7 @@ import { readJsonObject } from "./ratchetBaseRef";
  *
  * A `.test-d.ts` file is never executed. vitest compiles through esbuild and
  * strips types without checking them, and every package's main `tsconfig.json`
- * excludes the `.test-d.ts` glob, so the ONLY thing that evaluates these
+ * excludes the `.test-d.ts` glob, so the only thing that evaluates these
  * assertions is the per-package `tsc -p tsconfig.test-d.json` pass inside the
  * package's `typecheck` script, driven by `pnpm typecheck` in CI.
  *

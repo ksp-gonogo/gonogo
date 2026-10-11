@@ -3,7 +3,7 @@ import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 /**
  * How far the ladder is allowed to climb when nothing has said how long it is.
  *
- * KSP's own ladder is eight rungs, and an install republishes the VALUES on
+ * KSP's own ladder is eight rungs, and an install republishes the values on
  * them rather than the count: the deck's RSS/RO table is eight entries too.
  * The bound only ever applies to the learned table, because a published one
  * says how many rungs it has.
@@ -13,14 +13,14 @@ const MAX_LEARNED_INDEX = 7;
 /**
  * What each warp rung actually runs at on the install the client is talking to.
  *
- * The table is CONFIG, not a constant: a planet pack is free to republish it,
+ * The table is config, not a constant: a planet pack is free to republish it,
  * and asking for a rung believing it to be stock's 100x on an install that runs
  * it at 10000x spends a warp window that cannot be aborted from inside. Two
  * sources, in order of authority:
  *
  * 1. `time.warp.warpRates`, the install's own table as the mod reads it off
  *    `TimeWarp.fetch.warpRates`. Complete, so the ladder needs no guessing.
- * 2. What the game has been SEEN running at, rung by rung, when the mod is too
+ * 2. What the game has been seen running at, rung by rung, when the mod is too
  *    old to publish the table. Sparse by construction: it knows a rung only
  *    once the game has been at it.
  *
@@ -83,10 +83,10 @@ export class WarpRateTable {
    * The fastest rung this client is willing to ask for, given the fastest rate
    * that still leaves the safety margin intact.
    *
-   * Walks UP from rung 0 rather than scanning down from the top, because the
+   * Walks up from rung 0 rather than scanning down from the top, because the
    * learned table is sparse and a scan down would jump over the rungs it has
    * no evidence for. The walk stops at the first rung known to be too fast, and
-   * so also steps the ladder back DOWN when a rung turns out to run faster than
+   * so also steps the ladder back down when a rung turns out to run faster than
    * the client believed: the previous code could only ever overshoot, never
    * notice.
    *

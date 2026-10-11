@@ -12,7 +12,7 @@ afterEach(() => {
 
 /**
  * An Uplink laid out as the monorepo lays one out: the client in `client/`, the
- * plugin in a sibling `mod/`. Returns the CLIENT directory, which is what the
+ * plugin in a sibling `mod/`. Returns the client directory, which is what the
  * scanner is given.
  */
 function uplink(cs: string) {

@@ -73,7 +73,7 @@ namespace Sitrep.Core.Tests
     public class WindowGatedCaptureTests
     {
         /// <summary>
-        /// How a patch names its target. BOTH forms, and the second is the one
+        /// How a patch names its target. Both forms, and the second is the one
         /// that matters: the real offender used no attribute at all. It resolved
         /// the method by name through <c>AccessTools.Method</c> and patched it
         /// imperatively with <c>harmony.Patch(target, postfix: ...)</c>, which an
@@ -95,7 +95,7 @@ namespace Sitrep.Core.Tests
             RegexOptions.Compiled);
 
         /// <summary>
-        /// The namespaces that ARE the game's user interface, by the engine's own
+        /// The namespaces that are the game's user interface, by the engine's own
         /// classification rather than ours. A type under one of these exists to be
         /// looked at, so a capture reading state off it is reading the view.
         ///
@@ -228,7 +228,7 @@ namespace Sitrep.Core.Tests
         /// broken predicate or parse cannot. The source: the real <c>Gonogo.sln</c>
         /// declares a project that stays in this repo whatever leaves it. The
         /// agreement: the directory walk and the solution name the same projects in
-        /// BOTH directions, so a project on one and not the other says so before the
+        /// both directions, so a project on one and not the other says so before the
         /// gates below report clean on a set they never assembled.</para>
         /// </summary>
         [Fact]
@@ -283,8 +283,8 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// Nothing that ships a capture patches a rendering method.
         ///
-        /// <para>A capture's job is to read the game's MODEL and publish it. A
-        /// patch on a draw method reads the game's VIEW, and a view exists only
+        /// <para>A capture's job is to read the game's model and publish it. A
+        /// patch on a draw method reads the game's view, and a view exists only
         /// while it is on screen. There is no correct use of one for a capture,
         /// which is why this has no exemption list: if a value is genuinely
         /// unreachable except during a repaint, the honest answer is that we
@@ -402,7 +402,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// And does NOT fire on the shape that is legitimate: reading a UI-owned
+        /// And does not fire on the shape that is legitimate: reading a UI-owned
         /// type whose value is maintained outside rendering, which is the aerodynamics case
         /// described in this file's header.
         /// </summary>
@@ -423,7 +423,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The WALK sees a violation, not just the matcher.
+        /// The walk sees a violation, not just the matcher.
         ///
         /// <para>The two plants above prove the regex pair works on strings held
         /// in this file. They say nothing about whether the scan reaches any file
@@ -524,7 +524,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The decision, in one place. The scan and both planted cases call THIS,
+        /// The decision, in one place. The scan and both planted cases call this,
         /// so a plant can never pass against a rule the scan does not apply.
         /// </summary>
         private static bool Offends(IReadOnlyList<string> lines)
@@ -574,7 +574,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Every file under <paramref name="root"/> that names a game UI
-        /// namespace in CODE, mapped to the namespaces it names.
+        /// namespace in code, mapped to the namespaces it names.
         ///
         /// <para>Comment lines are stripped first, and that is load-bearing rather
         /// than tidy: this file's own exemption list explains what each reach is,

@@ -15,7 +15,7 @@ import { readJsonObject } from "./ratchetBaseRef";
  * Every subpath `@ksp-gonogo/sitrep-sdk` exports must be aliased in every Uplink
  * vitest config that aliases the sdk at all.
  *
- * The alias map does PREFIX matching, so a config that aliases the bare
+ * The alias map does prefix matching, so a config that aliases the bare
  * `@ksp-gonogo/sitrep-sdk` and not `@ksp-gonogo/sitrep-sdk/<sub>` rewrites the
  * subpath to a path underneath `index.ts` and the import fails to resolve. That
  * config's comment has said "every subpath the SDK exports needs a line here" for
@@ -101,7 +101,7 @@ function configsAliasingTheSdk(): { path: string; source: string }[] {
  * Which sdk subpaths a runtime-loaded Uplink can resolve at load, and which
  * deliberately cannot.
  *
- * esbuild externalises a SUBPATH of an externalised package name, so marking
+ * esbuild externalises a subpath of an externalised package name, so marking
  * `@ksp-gonogo/sitrep-sdk` external leaves every `@ksp-gonogo/sitrep-sdk/<sub>`
  * in a loaded bundle as a bare specifier. The app's import map then matches keys
  * exactly, so a subpath without its own `ext-*.ts` entry resolves to nothing at
@@ -110,12 +110,12 @@ function configsAliasingTheSdk(): { path: string; source: string }[] {
  * sdk is permitted at any depth), and esbuild reports no warning.
  *
  * That is what happened to `/spine` when the read-frame and libration-point
- * arithmetic landed on it. Listing both halves here means the NEXT subpath forces
+ * arithmetic landed on it. Listing both halves here means the next subpath forces
  * the decision to be made rather than defaulted.
  */
 const RUNTIME_RESOLVABLE_SUBPATHS = ["frames", "media", "spine"];
 
-/** Subpaths that must NOT have an entry, with the reason each is unreachable. */
+/** Subpaths that must not have an entry, with the reason each is unreachable. */
 const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
   /*
    * App orchestration (which widgets a dashboard renders). The app reaches it
@@ -202,7 +202,7 @@ describe("sdk subpath runtime resolution", () => {
    * unrelated styled-components reason, so this is the one class of break it
    * structurally cannot see.
    *
-   * Read off the SOURCE rather than `dist`: tsup externalises every
+   * Read off the source rather than `dist`: tsup externalises every
    * `@ksp-gonogo/*` specifier verbatim, so the two agree, and `dist` is a build
    * artifact that may not exist when this runs.
    */

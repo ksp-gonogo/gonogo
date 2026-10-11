@@ -6,7 +6,7 @@ using Xunit;
 /// that used to defeat it. Every case here is reachable with no KSP types at
 /// all, which is the point: the shape it produces on a live install
 /// (StockCurrencyInterceptor.cs, excluded from this project) is a change that
-/// resolves AWAY, claims its vessel, and then does nothing whatever, leaving no
+/// resolves away, claims its vessel, and then does nothing whatever, leaving no
 /// pending row, no defer and no correlation entry for anything to read.
 /// </summary>
 public class CurrencyQueryBasesTests

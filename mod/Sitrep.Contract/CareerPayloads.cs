@@ -116,7 +116,7 @@ public class CareerStatus
 /// parent channel's freshness outright (see the client's
 /// <c>TimelineStore.sampleStatus</c>), and <c>career.status</c> keeps arriving
 /// everywhere because the balances on it do, so a nested facilities group
-/// would read as a CURRENT null, which is the one thing it is not.</para>
+/// would read as a current null, which is the one thing it is not.</para>
 ///
 /// <para>The producer half is
 /// <c>Sitrep.Host.CareerViewProvider.BuildFacilities</c> over

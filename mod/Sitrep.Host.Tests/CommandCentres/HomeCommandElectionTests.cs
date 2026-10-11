@@ -7,7 +7,7 @@ using Xunit;
 namespace Sitrep.Host.Tests.CommandCentres
 {
     /// <summary>
-    /// The home-command election through the REAL <see cref="Kernel"/>, and the stock
+    /// The home-command election through the real <see cref="Kernel"/>, and the stock
     /// claimant's rule: home is the CommNet home that alone carries <c>isKSC</c>.
     ///
     /// <para>The expected id is always read off <see cref="HomeCentreIds.Mint"/> over

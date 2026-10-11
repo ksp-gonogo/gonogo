@@ -7,8 +7,8 @@ import { useFocusTrap } from "../a11y/useFocusTrap";
 import type { AnalyticsConsentService } from "./AnalyticsConsentService";
 
 /**
- * Blocking boot-time consent ask. Shown on the MAIN screen only, and only
- * while consent is unanswered. Deliberately NOT built on the shared
+ * Blocking boot-time consent ask. Shown on the main screen only, and only
+ * while consent is unanswered. Deliberately not built on the shared
  * `useModal` dialog: that one dismisses without recording a choice, which
  * would hide the ask and leave analytics in limbo. Every way out of this one
  * persists an answer, Escape included, where it counts as a decline.

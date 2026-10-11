@@ -4,16 +4,16 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Comms
 {
     /// <summary>
-    /// Watches a subject's route home tick by tick and raises the DROP EVENT
+    /// Watches a subject's route home tick by tick and raises the drop event
     /// when a hop it was routing through stops carrying.
     ///
-    /// <para>This is the half of the delay model that decides WHETHER a sample
+    /// <para>This is the half of the delay model that decides whether a sample
     /// arrives. <see cref="SignalDelay"/> sums the same hop geometry into one
-    /// scalar, which fixes when; the per-hop cumulative light-times it discards
+    /// scalar, which fixes when; the per-hop cumulative signal delays it discards
     /// are what say where a break sat, and light already past that point is a
     /// wavefront on the far leg that the break is behind.</para>
     ///
-    /// <para>A reroute and a destruction look IDENTICAL in the path: both are
+    /// <para>A reroute and a destruction look identical in the path: both are
     /// simply a different list of hops. The discriminator is
     /// <see cref="ICommsBackend.StillCarriesTo"/>, asked only of the hops that
     /// left the route, and only on the ticks the route changed. A hop that is
@@ -23,7 +23,7 @@ namespace Sitrep.Host.Comms
     /// <para>Refuses to answer rather than guessing, in four cases: incomplete
     /// hop geometry, an unusable light-speed scale, a backend with no opinion on
     /// whether a node still carries, and a tick that advanced UT by more than
-    /// the whole route's light-time. A wrongly-declared break deletes telemetry
+    /// the whole route's signal delay. A wrongly-declared break deletes telemetry
     /// that physically arrived, so every uncertainty resolves to today's
     /// behaviour, which is to deliver.</para>
     ///
@@ -33,7 +33,7 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class PathBreakWatch
     {
-        /// <summary>One hop's far endpoint and its cumulative light-time from the subject.</summary>
+        /// <summary>One hop's far endpoint and its cumulative signal delay from the subject.</summary>
         private readonly struct Rung
         {
             public Rung(string nodeId, double lightSecondsOut)
@@ -73,11 +73,11 @@ namespace Sitrep.Host.Comms
         /// route belongs to.
         ///
         /// <para><paramref name="stillCarries"/> is asked only about hops that
-        /// have LEFT the route, and only its explicit <c>false</c> counts:
+        /// have left the route, and only its explicit <c>false</c> counts:
         /// <c>true</c> is an ordinary reroute and <c>null</c> is a backend
         /// declining to say, which is not evidence of a break.</para>
         ///
-        /// <para>When several hops stopped carrying at once, the DEEPEST wins.
+        /// <para>When several hops stopped carrying at once, the deepest wins.
         /// Reaching a far break means crossing every nearer one first, so a
         /// sample survives exactly when it is past the furthest of them, and one
         /// drop at that position is the whole partition.</para>
@@ -166,7 +166,7 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// The route as rungs, or null when its geometry cannot honestly be
-        /// turned into light-times. An absent or empty path is a real answer
+        /// turned into signal delays. An absent or empty path is a real answer
         /// (an empty ladder), not a refusal: it is what a craft with no route
         /// home looks like, and it is exactly the case that must still be
         /// compared against what it had a moment ago.

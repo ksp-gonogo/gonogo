@@ -7,7 +7,7 @@ import { exitStatus } from "./ratchetBaseRef";
 
 /**
  * Delay-UX standard guard (unified-delay-ux plan, Task 8): the backstop that
- * keeps every craft command on the ONE delay-aware dispatch path.
+ * keeps every craft command on the one delay-aware dispatch path.
  *
  * Two invariants, both text/structure scans (the `noRestrictedImports` nudge in
  * `biome.json` is the AST-level companion: it flags any
@@ -19,13 +19,13 @@ import { exitStatus } from "./ratchetBaseRef";
  *    signal-delay UX. It is gone so that `useCommand` unambiguously means the
  *    delay-aware per-topic hook (`@ksp-gonogo/sitrep-client` / the sitrep-sdk
  *    facade). If the file or its re-export comes back, a command can once again
- *    ship with no delay UX under the SAME name, exactly the ambiguity the plan
+ *    ship with no delay UX under the same name, exactly the ambiguity the plan
  *    removed.
  *
  * 2. **`useExecuteAction` stays deleted.** It was the last legacy escape: a
  *    `(action: string) => Promise<void>` dispatcher that swallowed the
  *    dispatch's rejection outright (`result.then(()=>undefined, ()=>undefined)`),
- *    so a command sent through it could ship with no delay UX AND no way to tell
+ *    so a command sent through it could ship with no delay UX and no way to tell
  *    the operator the game had refused it. Its two remaining callers migrated
  *    (`Navball`'s trim actions and `LaunchDirector`'s launch, both onto
  *    `useCommand`) and the hook went with them, off the sdk barrel and the
@@ -158,9 +158,9 @@ describe("delay-ux: useExecuteAction stays deleted", () => {
  * published package, so an Uplink can reach it: `ScienceFileManager`'s local
  * copy was one a third party could not have shared.
  *
- * A widget that needs its own CHROME is expected and fine, and several have one
+ * A widget that needs its own chrome is expected and fine, and several have one
  * (a measured collapsing label, a colour per verb). Those take the hook. What
- * must not come back is a second copy of the STATE MACHINE.
+ * must not come back is a second copy of the state machine.
  */
 const ARM_TIMEOUT_OWNER = "packages/ui-kit/src/CommandButton/CommandButton.tsx";
 

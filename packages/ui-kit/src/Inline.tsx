@@ -33,9 +33,13 @@ export interface InlineProps extends HTMLAttributes<HTMLSpanElement> {
 }
 
 /**
- * A compact inline-flex `span` for a run of badges or action buttons. It does
- * not shrink (`flex-shrink: 0`), so a truncating sibling gives up space before
- * it does; set `wrap` when the number of children depends on data.
+ * A compact run of badges or action buttons, laid out in a line. Useful for
+ * keeping the operator's controls and status marks together on one row. Used
+ * by the badge slot of an administration building's short form and by the
+ * action slot of an experiment row.
+ *
+ * It does not shrink (`flex-shrink: 0`), so a truncating sibling gives up space
+ * before it does. Set `wrap` when the number of children depends on data.
  *
  * @category Layout
  */

@@ -6,12 +6,12 @@ namespace Gonogo.KSP.Tests
 {
     /// <summary>
     /// That the command-vantage (audience) alarm arm is wired the way its
-    /// correctness depends on, and that it is still SHADOW.
+    /// correctness depends on, and that it is still shadow.
     ///
     /// <para><b>Why source text.</b> The decision-making halves are behavioural
     /// suites elsewhere: <c>ScetAlarmRosterTests</c> for what a roster decides
     /// and <c>RevealedScetStateReaderTests</c> for what one vantage has been
-    /// told. Neither can say anything about which THREAD the audience
+    /// told. Neither can say anything about which thread the audience
     /// evaluation runs on, or about whether its warp stop is acted on, and
     /// <c>ScetAlarmUplink</c> needs a live scene (it reads <c>Planetarium</c>
     /// and commands the game's warp) so there is no other way to ask from here.
@@ -21,14 +21,14 @@ namespace Gonogo.KSP.Tests
     public class ScetShadowAudienceIsWiredTests
     {
         /// <summary>
-        /// The alarms that read the archive are evaluated on the COURIER, and
+        /// The alarms that read the archive are evaluated on the courier, and
         /// this is the one assertion here that is about a crash rather than about
         /// a rule. The archive is the Courier's own state and nothing guards it;
         /// the capture runs on the Unity main thread while the Courier thread is
         /// free, so the same call from there is a data race with sample
         /// recording.
         ///
-        /// <para>The split is by WHERE an alarm reads, so what says the capture
+        /// <para>The split is by where an alarm reads, so what says the capture
         /// stayed on its own side is the predicate it passes and the reader it
         /// builds, not which roster it reaches for.</para>
         /// </summary>
@@ -72,8 +72,8 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// EVERY alarm stops the warp, wherever it is read. The vantage decides
-        /// WHEN, never WHETHER, so the pass that reads the archive commands the
+        /// Every alarm stops the warp, wherever it is read. The vantage decides
+        /// when, never whether, so the pass that reads the archive commands the
         /// stop for what it decided just as the capture does for its own.
         ///
         /// <para>Both halves, because the two would otherwise drift apart: this
@@ -96,7 +96,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// The handle's stop is MARSHALLED and waited on, never left for the next
+        /// The handle's stop is marshalled and waited on, never left for the next
         /// capture. <c>TimeWarp.SetRate</c> is main-thread only, and a capture
         /// away is one snapshot cadence, which under warp is thousands of seconds
         /// of the precision the alarm was armed for.
@@ -121,7 +121,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// One stop per alarm, however many threads decide. The tick carries ONE
+        /// One stop per alarm, however many threads decide. The tick carries one
         /// <c>StopWarp</c> flag for every pass, so the handle has to subtract what
         /// the capture already acted on or a single alarm commands the warp twice.
         /// </summary>
@@ -137,7 +137,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// The capture hands the handle a payload on EVERY tick, including one
+        /// The capture hands the handle a payload on every tick, including one
         /// with nothing to say. <c>ScetRosterAudience</c> lives in the handle
         /// now and has to be told about a tick where nobody is subscribed: that
         /// is how it learns to answer the next subscriber. A capture that
@@ -159,7 +159,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// The read is installed from the addon, and TAKEN AWAY at shutdown. It
+        /// The read is installed from the addon, and taken away at shutdown. It
         /// is a static closure over one engine: left in place it would outlive
         /// the archive it reads and hand the next scene's alarm arm a dead one.
         /// </summary>
@@ -220,7 +220,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// An alarm's vantage is checked WHERE IT IS ASKED FOR and nowhere else.
+        /// An alarm's vantage is checked where it is asked for and nowhere else.
         ///
         /// <para>The engine already rules this for a command's own vantage: an
         /// override is checked, a session's chosen vantage is not re-checked,
@@ -255,7 +255,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// The reconciliation runs on the handle, where the roster's OWN changes
+        /// The reconciliation runs on the handle, where the roster's own changes
         /// are visible: a rewind clear and an alarm going Unreachable are decided
         /// inside an evaluation and reach no command handler, so an arm and
         /// disarm pair would keep a Topic held for an alarm that no longer

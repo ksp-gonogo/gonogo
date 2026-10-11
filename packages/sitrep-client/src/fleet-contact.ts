@@ -5,7 +5,7 @@ import { useStream } from "./use-stream";
 import { wireMagnitude } from "./wire-magnitude";
 
 /**
- * One vessel's CORE contact facts, read off `fleet.<guid>.contact`.
+ * One vessel's core contact facts, read off `fleet.<guid>.contact`.
  *
  * Every field arrives as a bare wire value rather than a wrapped `Value<"s">`,
  * for the same reason as {@link FleetVesselLink}: `fleet.<guid>.*` is a dynamic
@@ -16,7 +16,7 @@ import { wireMagnitude } from "./wire-magnitude";
  * Deliberately narrow: whether the vessel is in contact and when it was last
  * heard from, ordinary CommNet fact rather than any model's opinion. The
  * SilenceTracker's reckoning of that silence (state / deadline / prediction)
- * is a SEPARATE comms-owned wire shape, {@link FleetVesselSilence}.
+ * is a separate comms-owned wire shape, {@link FleetVesselSilence}.
  */
 export interface FleetVesselContact {
   /** Whether contact was observed on the most recent capture tick. */
@@ -26,7 +26,7 @@ export interface FleetVesselContact {
 }
 
 /**
- * One vessel's officially-lost RECKONING, read off `silence.<guid>.state`: a
+ * One vessel's officially-lost reckoning, read off `silence.<guid>.state`: a
  * comms-derived model's opinion (the SilenceTracker's), not a fact stock KSP
  * hands you. See {@link FleetVesselContact}'s doc comment for why the two are
  * separate wire shapes and separate dynamic namespaces.
@@ -39,7 +39,7 @@ export interface FleetVesselSilence {
   deadlineUt?: number | null;
   deadlineBasis?: SilenceDeadlineBasis | null;
   /**
-   * UT the radio path is predicted to re-open. Null is a prediction WITHHELD,
+   * UT the radio path is predicted to re-open. Null is a prediction withheld,
    * never an emergence of "now", see {@link contactPhase}, which is the only
    * place that distinction should have to be made.
    */
@@ -49,7 +49,7 @@ export interface FleetVesselSilence {
    * predicted return the craft may stay quiet before its silence is something
    * other than a late reappearance.
    *
-   * ONE-SIDED, and not a symmetric uncertainty: an allowance AFTER the
+   * ONE-SIDED, and not a symmetric uncertainty: an allowance after the
    * predicted moment, so render "allowing 5 min of slack" and never
    * "+/- 5 min". Null wherever the prediction is, since a budget beside a
    * withheld prediction is an error bar around nothing.
@@ -59,7 +59,7 @@ export interface FleetVesselSilence {
 
 /**
  * One entry of the fleet-wide `fleet.silence` roster, as it arrives. Unlike
- * the per-vessel `silence.<guid>.state`, this topic IS unit-wrapped on decode
+ * the per-vessel `silence.<guid>.state`, this topic is unit-wrapped on decode
  * (`wrapTopicPayload` matches its exact, static topic string), so every UT
  * arrives as a `Value<"ut">` rather than a bare number, hence the separate
  * shape and {@link silenceByVessel}'s unwrapping.
@@ -83,7 +83,7 @@ export interface FleetSilenceRoster {
  * The fleet-wide roster reshaped into the per-vessel form every consumer
  * already speaks, keyed by vessel id.
  *
- * This is what makes the reckoning readable by something that does NOT already
+ * This is what makes the reckoning readable by something that does not already
  * know which vessel to ask about: a contribution declares its dependencies
  * statically at module load, so it can never name a per-guid topic, and the
  * per-vessel bridge only holds vessels something is already subscribed to. One
@@ -143,7 +143,7 @@ export type ContactPhase =
   | "lost";
 
 /**
- * `silence.<guid>.state` carries `Sitrep.Host.Comms.SilenceState` as its NAME,
+ * `silence.<guid>.state` carries `Sitrep.Host.Comms.SilenceState` as its name,
  * so there is no ordinal to branch on and the branch has to be exhaustive
  * instead. Every declared state is named here, and the `never` binding in the
  * last arm makes a member added to {@link FleetVesselSilence} a compile error
@@ -151,12 +151,12 @@ export type ContactPhase =
  * half: it fails when that union stops covering the C# enum.
  *
  * This used to test for `Lost` and `Nominal` and let everything else fall into
- * the Silent treatment, which made Silent the DEFAULT rather than a case. A
+ * the Silent treatment, which made Silent the default rather than a case. A
  * member appended to the C# enum, however grave, would have been reported as a
  * vessel waiting quietly to come back, and FleetRoster renders that as no badge
  * at all.
  *
- * A state that reaches the last arm at runtime yields NO phase. That is not the
+ * A state that reaches the last arm at runtime yields no phase. That is not the
  * same as {@link FleetVesselSilence} never arriving, which yields no phase for
  * the honest reason that nothing was reckoned; here something was reckoned and
  * we cannot read it. Both render nothing, and nothing is the only answer that
@@ -215,7 +215,7 @@ export function useFleetVesselContact(
 /**
  * Per-vessel silence-reckoning bridge (contribution-slots-spec pattern): a
  * contribution's `deps` are declared once, statically, at module load, while
- * `silence.<guid>.state` only resolves once SOMETHING knows which guid to
+ * `silence.<guid>.state` only resolves once something knows which guid to
  * subscribe. {@link useFleetVesselSilence} is that something: whichever
  * widget renders a vessel keeps its silence topic subscribed by calling the
  * hook, and this mirrors the latest value here so a contribution's `compute`

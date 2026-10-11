@@ -31,7 +31,7 @@ namespace Gonogo.KSP
     /// on every tick from anywhere else, and a console career could not be told
     /// whether a single one of its strategies was eligible.</para>
     ///
-    /// <para><b>This walk can REFUSE and it can DECLINE TO ANSWER. It can never
+    /// <para><b>This walk can refuse and it can decline to answer. It can never
     /// say yes</b>, because arm 1 cannot be put off-screen and a pass is owed to
     /// every arm. That is not a gap to be closed later, it is the design: a yes
     /// reached without arm 1 would be <c>14c4a1ea6</c>'s fabrication with its
@@ -45,7 +45,7 @@ namespace Gonogo.KSP
     /// <c>GetStrategyCommitRange</c> and never again, so recomputing it from that
     /// same virtual method is reading the same source through the same door, and
     /// a facility-retiering mod's override is inherited rather than bypassed.
-    /// <c>activeStrategyCount</c> is a SCROLL-VIEW ITEM COUNTER: reset and
+    /// <c>activeStrategyCount</c> is a SCROLL-VIEW item counter: reset and
     /// recounted with an early break at the cap, incremented on the player's own
     /// click, never decremented, and written directly by RP-1 in a Harmony prefix
     /// precisely so that arm can never fire for a leader. Substituting a roster
@@ -53,7 +53,7 @@ namespace Gonogo.KSP
     /// stock's rule on a career that has replaced it, which is the one thing
     /// <see cref="KspCareerActuator"/>'s standing comment forbids.</para>
     ///
-    /// <para><b>A refusal is still sound.</b> Stock returns on the FIRST arm that
+    /// <para><b>A refusal is still sound.</b> Stock returns on the first arm that
     /// fires, so an arm that refuses here would have refused there whatever arm 1
     /// would have said. That asymmetry between a refusal and a pass is the whole
     /// argument, and it is why this is worth doing: a roster that used to arrive
@@ -72,7 +72,7 @@ namespace Gonogo.KSP
         /// caller.
         ///
         /// <para>A nullable balance means the currency's scenario module is
-        /// absent. That is NOT an unasked arm: stock guards each affordability
+        /// absent. That is not an unasked arm: stock guards each affordability
         /// arm with its own null check and skips it, so an absent module passes,
         /// exactly as it does in the game.</para>
         ///
@@ -93,12 +93,12 @@ namespace Gonogo.KSP
 
             public float CostFunds { get; }
 
-            /// <summary>Null when <c>Funding</c> is absent, which SKIPS the arm.</summary>
+            /// <summary>Null when <c>Funding</c> is absent, which skips the arm.</summary>
             public double? Funds { get; }
 
             public float CostReputation { get; }
 
-            /// <summary>Null when <c>Reputation</c> is absent, which SKIPS the arm.</summary>
+            /// <summary>Null when <c>Reputation</c> is absent, which skips the arm.</summary>
             public float? Reputation { get; }
 
             public float CostScience { get; }
@@ -106,14 +106,14 @@ namespace Gonogo.KSP
             /// <summary>
             /// <c>ResearchAndDevelopment.CanAfford</c>, asked by the caller
             /// because it is the game's own static rather than a comparison.
-            /// Null when R&amp;D is absent, which SKIPS the arm.
+            /// Null when R&amp;D is absent, which skips the arm.
             /// </summary>
             public bool? ScienceAffordable { get; }
 
             public float RequiredReputation { get; }
 
             /// <summary>
-            /// <c>Reputation.CurrentRep</c>. Null leaves arm 7 UNASKED rather
+            /// <c>Reputation.CurrentRep</c>. Null leaves arm 7 unasked rather
             /// than skipped, but only when a floor is actually set: a strategy
             /// requiring no reputation never reaches the comparison.
             /// </summary>
@@ -219,7 +219,7 @@ namespace Gonogo.KSP
         /// first refusal, or with no answer at all.
         ///
         /// <para>One thing this cannot promise is that the refusing arm is the
-        /// arm STOCK would have named: arm 1 goes unasked and sits ahead of every
+        /// arm stock would have named: arm 1 goes unasked and sits ahead of every
         /// arm here, so where it would have fired the verdict still agrees and
         /// the quoted reason does not. The verdict is what a control is armed
         /// from; the reason is prose for an operator, and naming a real refusal

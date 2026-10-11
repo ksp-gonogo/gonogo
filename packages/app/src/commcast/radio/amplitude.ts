@@ -14,7 +14,7 @@
  * (RMS of speech sits well under its peak), and clamped, so the caller gets a
  * plain 0..1 with no range to rediscover.
  *
- * **What it is NOT: a VU meter of the room.** Capture runs with
+ * **What it is not: a vu meter of the room.** Capture runs with
  * `autoGainControl: true`, so this is POST-AGC. It shows what is actually being
  * transmitted, which is the honest quantity for a rail about what is in flight,
  * and it is not the loudness of the operator's voice.

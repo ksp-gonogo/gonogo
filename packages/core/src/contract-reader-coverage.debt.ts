@@ -5,19 +5,19 @@
  * arbitrary git ref without pulling in vitest. Same split-module shape as
  * `declaration-reachability.allowlist.ts` and `unknown-cast.debt.ts`.
  *
- * SEEDED 2026-09-30, gonogo Saga task 727: the n-body arc (`vessel.orbit.Arc`) and
- * `vessel.trajectory.forVantage`, the ticket's motivating example, are GONE
+ * Seeded 2026-09-30, gonogo Saga task 727: the n-body arc (`vessel.orbit.Arc`) and
+ * `vessel.trajectory.forVantage`, the ticket's motivating example, are gone
  * from the contract as of contract 25 (`CONTRACT_MAJOR` in
  * `mod/sitrep-sdk/src/compat-versions.ts`); neither name appears anywhere in
  * `mod/sitrep-sdk/src/__generated__/contract.ts` any more, so they never
- * reach this list. What is seeded instead is what a full scan of the CURRENT
+ * reach this list. What is seeded instead is what a full scan of the current
  * contract actually found: 100 fields and 1 command with no production
  * reader anywhere in `packages/` or `mod/*\/client`, and none of them
  * confirmed read by a `gonogo-uplinks` Uplink either (checked by hand against
  * that repo's tree before seeding, no hit).
  *
- * SHAPE OF THE DEBT: 8 entries are `meta.source` on a Topic a SCET
- * threshold alarm can address, read by the MOD rather than by any client
+ * Shape of the debt: 8 entries are `meta.source` on a Topic a SCET
+ * threshold alarm can address, read by the mod rather than by any client
  * (`ScetPayload.ReadSource` checks it against the alarm's subject), which
  * this scan cannot see because it walks TypeScript only. The rest are
  * genuinely-next control surfaces (`vessel.control.translationX/Y/Z/yaw`

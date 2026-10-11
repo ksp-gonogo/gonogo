@@ -29,7 +29,7 @@
  * `./frames` entry in `exports`, because the link probe externalises the sdk
  * instead of resolving it.
  *
- * Nothing here runs. `tsc -p tsconfig.test-d.json` compiling it IS the
+ * Nothing here runs. `tsc -p tsconfig.test-d.json` compiling it is the
  * assertion; vitest goes through esbuild, which strips types and would happily
  * link a call that does not typecheck.
  */
@@ -206,7 +206,7 @@ export const _refusesADimensionlessVector: FrameVector3 = frameVector(
   { x: value("1", 1), y: value("1", 0), z: value("1", 0) } as Vec3Of<"1">,
 );
 
-/** The unit-carrying vector is NOT a frame input, however much the name suggests it. */
+/** The unit-carrying vector is not a frame input, however much the name suggests it. */
 export const _refusesTheWireShapeDirectly = (
   instant: FrameInstant,
 ): FrameVector3 =>

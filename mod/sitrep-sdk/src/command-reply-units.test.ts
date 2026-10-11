@@ -18,7 +18,7 @@ const GENERATED_COMMAND_MAP = join(
 );
 
 /**
- * The generated reply map's INTERFACE half, read as TEXT.
+ * The generated reply map's interface half, read as text.
  *
  * `GeneratedCommandReplyMap` is an interface, so it is erased before anything
  * can compare against it at runtime, and a `test-d` assertion cannot check a

@@ -16,7 +16,7 @@ import { trackedModClientRoots } from "./styleguideScanRoots";
  * already doing it the right way.
  *
  * A widget rendering how old a reading is has exactly one legitimate "now": the
- * FRAME's view time (`useViewUt`), which every read in a frame shares. Wall
+ * frame's view time (`useViewUt`), which every read in a frame shares. Wall
  * clock is the available wrong answer, and it is wrong in a way that is hard to
  * see: two readouts in the same widget, in the same frame, can disagree about
  * how old the same sample is, because each called `Date.now()` at a different
@@ -24,12 +24,12 @@ import { trackedModClientRoots } from "./styleguideScanRoots";
  * single-view-time invariant exist to prevent, and under a signal delay it also
  * silently conflates UT with wall time.
  *
- * This ratchet exists BEFORE the `TopicReading<T>` sweep rather than after it,
+ * This ratchet exists before the `TopicReading<T>` sweep rather than after it,
  * deliberately: the sweep touches thirty-nine widgets and each one grows an
  * age rendering. A guardrail landed afterwards is a guardrail that has to be
  * paid for twice.
  *
- * Wall clock is NOT banned outright, because some uses are honestly about wall
+ * Wall clock is not banned outright, because some uses are honestly about wall
  * time: a UI dwell timer, a spinner's own age, an injectable clock seam, an id
  * generator. Those are enumerated below with a one-line justification each.
  * Anything new fails the build until a human either routes it through
@@ -233,7 +233,7 @@ describe("wall-clock allowlist: currency is measured against the frame, never Da
 
   /**
    * The instrument, asked separately from the result. The stale half above
-   * catches a walk that reads NOTHING, because five allowlisted files would
+   * catches a walk that reads nothing, because five allowlisted files would
    * then all report zero, but it says nothing about a walk that reads one root
    * and misses eleven: that is exactly the state this file was in until the
    * Uplink roots were added, and every count in it was green throughout.
@@ -263,8 +263,8 @@ describe("wall-clock allowlist: currency is measured against the frame, never Da
   });
 
   /**
-   * And whether the walk can RECOGNISE a read once it has one, which neither
-   * check above asks: both grade an offender LIST, and a pattern that stopped
+   * And whether the walk can recognise a read once it has one, which neither
+   * check above asks: both grade an offender list, and a pattern that stopped
    * matching produces the same empty list as a clean tree.
    */
   it("recognises a wall-clock read, and not a comment about one", () => {

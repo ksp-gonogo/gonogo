@@ -23,7 +23,7 @@ namespace Sitrep.Host.Tests
     /// <c>ICommandCentre</c>, the election backends and so on, while the host
     /// alone implements <c>IUplinkHost</c> and the few types in
     /// <see cref="HostImplemented"/>, which a plugin only calls. A removed or
-    /// retyped member breaks both kinds. A NEW abstract member breaks only a
+    /// retyped member breaks both kinds. A new abstract member breaks only a
     /// plugin-implemented type, since a plugin has to supply it, whereas the host
     /// is rebuilt with the contract. The default is plugin-implemented, so a type
     /// nobody classified is held to the stricter rule and relaxing one is a

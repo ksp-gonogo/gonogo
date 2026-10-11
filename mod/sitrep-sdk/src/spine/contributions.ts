@@ -8,7 +8,7 @@ import type {
 import { assertSizeDelta } from "./size-delta";
 
 /**
- * The contribution REGISTRATION seam: the
+ * The contribution registration seam: the
  * live registry `registerContribution` writes and the per-frame aggregation
  * reads.
  *
@@ -20,14 +20,14 @@ import { assertSizeDelta } from "./size-delta";
  * Everything it named was already on this side of the line once
  * `Contributed` and `UplinkClientIdentity` came down from
  * `@ksp-gonogo/ui-kit`: the definition type, the settings shape and the logger are
- * all sdk-side. The READ half (the per-widget store and the `useContributions`
+ * all sdk-side. The read half (the per-widget store and the `useContributions`
  * hooks) stays in ui-kit, which reaches this through the ordinary
  * ui-kit-imports-sdk direction.
  */
 
 /**
  * One global slot rather than module statics, keyed by a string so two different
- * builds of this package still find the same registry. A second copy of THIS one
+ * builds of this package still find the same registry. A second copy of this one
  * is a contribution registering into a Map the aggregation never reads, with no
  * error anywhere, which is the failure mode the shim design existed to prevent.
  * Same reasoning as `api/action-dispatch.ts`.

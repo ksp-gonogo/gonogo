@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
     /// M5b review-fix regression tests.
     ///
     /// 1. <see cref="ReplayKspHost.Step"/> must correctly drive a recording
-    /// whose UT goes BACKWARD partway through: a real capture contains
+    /// whose UT goes backward partway through: a real capture contains
     /// exactly this shape after an F9 quickload (a <c>game-state-load</c>
     /// event, then entries resuming from the loaded save's earlier UT).
     /// <see cref="ReplayKspHost.AdvanceTo"/> cannot pace this: its

@@ -20,14 +20,14 @@ namespace Gonogo.KSP
     /// change via <see cref="DontDestroyOnLoad"/> - so the WS server and the
     /// recorder run continuously across main-menu -&gt; load save -&gt;
     /// flight -&gt; scene-flips -&gt; quickload -&gt; quit, exactly the
-    /// session RUN.md asks the user to capture.
+    /// session run.md asks the user to capture.
     ///
-    /// Threading: KSP is touched ONLY from here and from
+    /// Threading: KSP is touched only from here and from
     /// <see cref="KspHost"/>'s GameEvents callbacks - both main-thread. Once
     /// <see cref="FixedUpdate"/> samples the game, it hands the raw
     /// <see cref="KspSnapshot"/> straight to <see cref="ChannelEngine.Tick"/>,
     /// which only touches primitives/registered mapper delegates and an
-    /// explicit job queue on ITS side too - the per-channel mapping/Courier/
+    /// explicit job queue on its side too - the per-channel mapping/Courier/
     /// serialization/socket work all happens off the main thread, per
     /// <see cref="ChannelEngine"/>'s doc comment.
     /// </summary>
@@ -69,7 +69,7 @@ namespace Gonogo.KSP
         /// M3 R3's shared id registry, hoisted to a mod-wide static so the
         /// discovery-required parameterless <c>VesselUplink()</c> constructor
         /// (see its own doc comment) can build a <see cref="KspVesselActuator"/>
-        /// against the SAME instance <see cref="KspHost"/> stamps
+        /// against the same instance <see cref="KspHost"/> stamps
         /// <c>vessel.maneuver</c> node ids from, without <see cref="UplinkDiscovery"/>
         /// needing any KSP-specific constructor-argument-resolution mechanism.
         /// Set once, here, before discovery runs; never reassigned afterward.
@@ -349,10 +349,10 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Reads the light-time delay config from
+        /// Reads the signal delay delay config from
         /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>SIGNAL_DELAY</c>
         /// node: <c>enabled = true|false</c>, <c>lightSpeedScale = &lt;double&gt;</c>).
-        /// Default when the file/node is absent: delay ON at real light-speed
+        /// Default when the file/node is absent: delay on at real light-speed
         /// (scale 1.0): the mod's realism default. A smaller scale lengthens
         /// delay (slower light); a larger scale shortens it. Never throws.
         /// </summary>
@@ -362,7 +362,7 @@ namespace Gonogo.KSP
         /// <para>Verifying a live fix means knowing the game loaded the DLL you
         /// just built, and that is not safe to assume: a stale RealAntennas
         /// uplink silently broke the whole comms capability for hours, and file
-        /// SIZE is no identity check - two different builds collided on the same
+        /// size is no identity check - two different builds collided on the same
         /// byte count twice in one day. The MVID is a fresh GUID per
         /// compilation, so two builds cannot agree by accident.</para>
         ///
@@ -388,7 +388,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Names, in <c>KSP.log</c>, which mods have an arm keeping a quantity they
-        /// DERIVE from a currency change withheld for as long as the change is.
+        /// derive from a currency change withheld for as long as the change is.
         ///
         /// <para>Here because this is the only place that can say it: an arm lives in
         /// its own Uplink assembly, which references no game assembly and so has no
@@ -421,12 +421,12 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// F2-fix (CRITICAL): the command-queue drain runs from Update(), NOT
+        /// F2-fix (critical): the command-queue drain runs from Update(), not
         /// FixedUpdate(). KSP pause (<c>Time.timeScale = 0</c>, the Esc menu /
-        /// <c>FlightDriver.SetPause</c>) STOPS FixedUpdate but Update() keeps
+        /// <c>FlightDriver.SetPause</c>) stops FixedUpdate but Update() keeps
         /// running every frame regardless of timeScale: so an instant command
         /// dispatched while paused (time.warp / time.pause / vessel.target, and
-        /// critically the UNPAUSE command itself) now executes on the main
+        /// critically the unpause command itself) now executes on the main
         /// thread instead of parking the single-drain Courier thread on
         /// <c>Done.Wait()</c> until the player unpauses in-game (which, for the
         /// unpause command, could never happen, a self-wedge). These are the

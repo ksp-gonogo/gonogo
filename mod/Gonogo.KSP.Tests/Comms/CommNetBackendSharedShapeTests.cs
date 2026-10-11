@@ -13,7 +13,7 @@ namespace Gonogo.KSP.Tests.Comms
     ///
     /// <para>The behavioural tests elsewhere check that each backend produces
     /// the right payload; what they cannot check is that the two are produced by
-    /// ONE implementation, which is the property that stops them drifting.
+    /// one implementation, which is the property that stops them drifting.
     /// A duplicate that agrees today passes every behavioural test right up
     /// until somebody edits one copy.</para>
     ///
@@ -35,7 +35,7 @@ namespace Gonogo.KSP.Tests.Comms
     public class CommNetBackendSharedShapeTests
     {
         /// <summary>
-        /// The accessors whose SHAPE the contract owns.
+        /// The accessors whose shape the contract owns.
         /// </summary>
         private static readonly string[] SharedShape =
         {
@@ -48,7 +48,7 @@ namespace Gonogo.KSP.Tests.Comms
         };
 
         /// <summary>
-        /// The questions a backend genuinely answers differently. These MUST
+        /// The questions a backend genuinely answers differently. These must
         /// stay per-backend: a shared implementation of any of them would be
         /// core deciding a backend's own rule, which is the defect class this
         /// seam exists to prevent.

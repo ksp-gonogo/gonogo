@@ -31,7 +31,8 @@ export interface TextFieldProps {
 }
 
 /**
- * A single line of free text: a name somebody types.
+ * A single line of free text: a name the operator types. Useful for naming a
+ * station, a vessel or a saved layout.
  *
  * `TextField`, {@link UnitInput} or {@link Stepper}? The value decides:
  *

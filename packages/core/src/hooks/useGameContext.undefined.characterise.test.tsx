@@ -7,8 +7,8 @@ import { clearRegistry } from "../registry";
 import { useGameContext } from "./useGameContext";
 
 /**
- * CHARACTERISATION: what `useGameContext` reports TODAY when its three
- * telemetry reads are `undefined`, and what it CANNOT distinguish.
+ * Characterisation: what `useGameContext` reports today when its three
+ * telemetry reads are `undefined`, and what it cannot distinguish.
  *
  * Every one of the three reads goes through an absence gate:
  *   - `useTelemetry("spaceCenter.scene")?.scene` then a `KNOWN_SCENES` check
@@ -17,7 +17,7 @@ import { useGameContext } from "./useGameContext";
  *   - `useTelemetry("career.mode")?.mode` then `resolveCareerMode`'s typeof gates
  *
  * The scene and career reads still collapse "nothing arrived", "confirmed
- * nothing", and "arrived but unrecognised" onto ONE answer; both are string
+ * nothing", and "arrived but unrecognised" onto one answer; both are string
  * lookups whose miss and whose absence are the same `"Unknown"`. The pad read
  * no longer does, and the tests below carry that difference: it is the one
  * field a caller can ask "do we actually know?" of.
@@ -77,7 +77,7 @@ describe("useGameContext characterisation: a provider is mounted but nothing has
 describe("useGameContext characterisation: the scene gate", () => {
   /**
    * `?.scene` fires on the absent record: the optional chain is the gate.
-   * A partial record (arrived, `scene` field missing) lands on the SAME
+   * A partial record (arrived, `scene` field missing) lands on the same
    * "Unknown" as nothing having arrived at all.
    */
   it("reports Unknown for a record that arrived without a scene field", async () => {
@@ -136,7 +136,7 @@ describe("useGameContext characterisation: the scene gate", () => {
 describe("useGameContext characterisation: the careerMode gate", () => {
   /**
    * `resolveCareerMode(undefined)` answers "Unknown", and so does an ordinal
-   * of 3 (`GameMode.Unknown` on the wire). A CONFIRMED unknown-mode from the
+   * of 3 (`GameMode.Unknown` on the wire). A confirmed unknown-mode from the
    * mod and a mode that has never arrived are the same string here.
    */
   it("cannot distinguish a never-arrived mode from the mod reporting GameMode.Unknown", async () => {
@@ -173,7 +173,7 @@ describe("useGameContext characterisation: the careerMode gate", () => {
   });
 
   /**
-   * null vs undefined: the code does NOT distinguish them. `?.mode` yields
+   * null vs undefined: the code does not distinguish them. `?.mode` yields
    * undefined for an absent record, and `resolveCareerMode(null)` takes the
    * same final `return "Unknown"`. A tombstoned mode field reads as pending.
    */
@@ -272,7 +272,7 @@ describe("useGameContext characterisation: the padOccupied gate", () => {
   /**
    * padOccupied still does not imply `inFlight` in the context's own reads:
    * the two arrive on different channels and the hook reconciles nothing.
-   * What HAS changed is that a reported occupancy now counts as having heard
+   * What has changed is that a reported occupancy now counts as having heard
    * from the game, so it can no longer be true while `hasGameSignal` is false.
    */
   it("counts a reported occupancy as game signal, whichever way it reports", async () => {

@@ -5,7 +5,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SignalLossIndicator } from "./SignalLossIndicator";
 
 /**
- * Characterisation of what `SignalLossIndicator` DOES today when its two
+ * Characterisation of what `SignalLossIndicator` does today when its two
  * telemetry reads (`comms.link`, `vessel.comms`) come back `undefined`, and
  * where it does or does not distinguish `undefined` from `null`.
  *
@@ -18,7 +18,7 @@ import { SignalLossIndicator } from "./SignalLossIndicator";
  *    which never satisfies the confirmed-true gate and so never arms the banner
  *  - `comms?.signalStrength`, plus `signalStrength !== undefined` inside
  *    `deriveState`, so a missing strength is "no reading" and never 0%
- *  - `comms == null`, which deliberately covers BOTH warmup and a tombstone,
+ *  - `comms == null`, which deliberately covers both warmup and a tombstone,
  *    guarding `.controlState` access from crashing on either
  */
 
@@ -39,7 +39,7 @@ const CONTROL_STATE_KERBAL_FULL = 10;
  * without this a broken fixture (nothing subscribed, no provider) would satisfy
  * every absence assertion in this file.
  *
- * It also pins the SHAPE of the read: the arm names `pending` (unarrived) and
+ * It also pins the shape of the read: the arm names `pending` (unarrived) and
  * `absent` (tombstone) rather than leaving them as indistinguishable
  * `undefined`/`null`.
  */
@@ -70,7 +70,7 @@ function mount() {
     });
   };
   /**
-   * Mint a frame and let the widget render on it. Required BETWEEN a
+   * Mint a frame and let the widget render on it. Required between a
    * `connected: true` and a later `connected: false`: `hasConfirmedConnection`
    * is set by an effect, so the true has to reach a render for the banner to
    * ever arm. Two edges coalesced into one frame leave the banner disarmed.

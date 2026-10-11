@@ -29,7 +29,7 @@ const SITREP_REPLAY_PORT = 18090;
 // power-systems.spec.ts/fuel-status.spec.ts via bootstrapPair's `sitrepPort`.
 const SITREP_REPLAY_TOPOLOGY_PORT = 18091;
 /**
- * One stream per SCREEN for the radio scenes, because a light-time is a
+ * One stream per screen for the radio scenes, because a signal delay is a
  * property of a pair: the vantage a screen observes comes off its own session's
  * frames. Three ports, three vantages, one mission control and two craft at
  * different distances, served by one process so Commcast crosses between them.

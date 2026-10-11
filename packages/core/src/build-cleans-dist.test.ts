@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
  * still turns up in a grep, and still rides along in a `pnpm pack` of the
  * published sdk, while no source anywhere can be edited to change it.
  *
- * The prune runs AFTER `tsc` rather than as an `rm -rf dist` before it. An
+ * The prune runs after `tsc` rather than as an `rm -rf dist` before it. An
  * emptied `dist` is a window in which the package has no build, and turbo runs
  * a package's own `test` alongside its own `build` unless told otherwise, and a
  * suite that executes `dist` fails inside that window.

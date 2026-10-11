@@ -36,7 +36,7 @@ interface ConsoleMatrixPayload {
   inFlightFrozenAtDispatch?: boolean;
   composer: ComposerKind;
   /**
-   * The composer's own refusal flag, which straddles the LEFT end of the same
+   * The composer's own refusal flag, which straddles the left end of the same
    * border the console's standing chip straddles the right end of. Here so a
    * scenario can put both up at once: the terminal reads its refusal and its
    * separation off two topics that reveal on different clocks, so on a link

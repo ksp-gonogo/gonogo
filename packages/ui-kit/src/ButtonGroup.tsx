@@ -23,8 +23,10 @@ export interface ButtonGroupProps extends HTMLAttributes<HTMLDivElement> {
 
 /**
  * A row of related buttons that share a size: the same height whatever each
- * button's own `size` or content, and by default the same width. It hugs its
- * buttons rather than filling the row, so place it with a layout primitive.
+ * button's own `size` or content, and by default the same width. Useful for
+ * presenting a few alternative or paired actions to the operator as one block.
+ * Used by the contract manager and the commcast inbox. It hugs its buttons
+ * rather than filling the row, so place it with a layout primitive.
  *
  * Name the group with `aria-label` when it is a toolbar a screen reader should
  * announce as one.

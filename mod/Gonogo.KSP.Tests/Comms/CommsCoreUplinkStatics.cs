@@ -10,7 +10,7 @@ namespace Gonogo.KSP.Tests.Comms
     /// three settable statics (the authored config, the delay modifiers, and
     /// the comms-model probe), because five surfaces reach it without an
     /// instance of the uplink in hand. Two test classes write them, each
-    /// restoring what it set; xunit runs different classes IN PARALLEL, so one
+    /// restoring what it set; xunit runs different classes in parallel, so one
     /// class's window of a probe saying "this save models no comms network" fell
     /// across the other's assertions and cut the delay under them. Both classes
     /// were individually correct and the suite failed anyway, at a rate that

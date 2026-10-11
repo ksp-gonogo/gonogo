@@ -21,7 +21,9 @@ export interface SpinnerProps
 
 /**
  * A small inline pending indicator: a ring with a coloured arc, sized to sit
- * beside a row label or value without reflowing the layout. It is
+ * beside a row label or value without reflowing the layout. Useful for telling
+ * the operator that a command has been sent and has not yet taken effect. Used
+ * by the target picker's rows. It is
  * `role="status"` with an accessible name. Under `prefers-reduced-motion` the
  * ring does not spin.
  *

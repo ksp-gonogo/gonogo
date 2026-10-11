@@ -8,7 +8,7 @@ namespace Sitrep.Host
     /// view says what frame it is in, and core resolves it without learning a
     /// name.
     ///
-    /// <para><b>This one HAS a vanilla</b>, unlike the gravity-model election
+    /// <para><b>This one has a vanilla</b>, unlike the gravity-model election
     /// beside it, because stock genuinely answers the question: a stock map view
     /// really is body-centred with inertial axes, and every conic the game draws
     /// is drawn in it. That is a true answer rather than a stand-in, which is the
@@ -75,7 +75,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Asks the elected source to put the view in <paramref name="frame"/>.
         ///
-        /// <para>Whoever answers the READ answers the write, which is what stops
+        /// <para>Whoever answers the read answers the write, which is what stops
         /// the view being reported by one source and moved by another. An
         /// unsatisfied capability refuses rather than throwing, because "nothing
         /// here owns the view" is an answer an operator can act on.</para>

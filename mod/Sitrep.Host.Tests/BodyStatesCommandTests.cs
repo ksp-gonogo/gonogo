@@ -5,7 +5,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// <c>system.bodies.statesAt</c>: where a body is at instants the CALLER chose,
+    /// <c>system.bodies.statesAt</c>: where a body is at instants the caller chose,
     /// from whichever propagation provider the install elected.
     ///
     /// <para>Registered into the vantage-aware store, so the dispatch gate is

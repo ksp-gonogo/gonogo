@@ -17,7 +17,7 @@ function Column({ children }: { children: ReactNode }) {
   return <div style={{ width: 480 }}>{children}</div>;
 }
 
-/** One-way light-time to a craft in low Mun orbit, as the strip's T. */
+/** One-way signal delay to a craft in low Mun orbit, as the strip's T. */
 const ONE_WAY = 1.6;
 
 const THROTTLE_TAGS = railTagsForControlAxis("vessel.control.setThrottle");

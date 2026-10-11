@@ -517,7 +517,10 @@ And the voice:
   land", "the press" or "crossing the gap"
 - **No capitals for emphasis.** A word in capitals is an acronym or a label the
   UI prints (`HELD`). If a sentence needs the stress to be read correctly,
-  reword the sentence
+  reword the sentence. `styleguide-doc-emphasis.test.ts` holds every doc
+  comment in the repo (`/** */` in TS and TSX, `///` in C#) to zero; a real
+  acronym, unit or file name goes in `ACRONYMS` in `doc-emphasis.scan.ts`, and
+  a label the UI prints goes in quotes or code font
 - **No aphorisms and no rhetorical contrasts** ("read before the press rather
   than learned after it", "a list nothing reads rots"). "X, not Y" stays only
   where Y is a mistake a caller can make with this export

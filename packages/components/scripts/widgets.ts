@@ -2092,7 +2092,7 @@ const WIDGETS: WidgetRenderConfig[] = [
  * Appended automatically to every widget's `modes` array. New widgets get mobile DOM-snapshot +
  * PNG coverage without remembering to add an entry. Widgets with
  * mobile-specific layout quirks can opt out by declaring their own
- * `mobile-*` mode in WIDGETS: the helper skips appending when any
+ * `mobile-*` mode in widgets: the helper skips appending when any
  * existing mode name starts with `mobile-`.
  *
  * Reported as needed in the 2026-05-18 self-test: the CameraFeed
@@ -2144,7 +2144,7 @@ export function getWidget(id: string): WidgetRenderConfig | undefined {
 }
 
 /**
- * Screen-level render entries, the screen analog of WIDGETS. Each renders a
+ * Screen-level render entries, the screen analog of widgets. Each renders a
  * full-viewport view at several device breakpoints and visual states through
  * the shared `renderScreens` harness path (page-viewport resize + coarse
  * pointer emulation, so the screen's own `@media` rules engage). Driven from
@@ -2153,7 +2153,7 @@ export function getWidget(id: string): WidgetRenderConfig | undefined {
  * Why screens live here and not in `@ksp-gonogo/app`: the harness tooling
  * (playwright / esbuild / tsx) and the probe entries all live in
  * `@ksp-gonogo/components`, and app→components is the existing dependency edge,
- * a screen driver in app would have no harness to call. The screen VIEW
+ * a screen driver in app would have no harness to call. The screen view
  * (`StationConnectView`) is a pure presentational component exported from
  * `@ksp-gonogo/ui` and imported by app's StationScreen, so there is
  * a single source of the markup the harness verifies.

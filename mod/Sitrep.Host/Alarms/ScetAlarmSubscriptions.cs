@@ -37,7 +37,7 @@ namespace Sitrep.Host.Alarms
         /// Alarm id -&gt; the Topic held for it. What the last
         /// <see cref="Reconcile"/> left open, which is the only thing a close can
         /// be derived from: the roster that comes in carries where the alarm is
-        /// NOW, and an alarm that moved Topics has to let go of the one it left.
+        /// now, and an alarm that moved Topics has to let go of the one it left.
         /// </summary>
         private readonly Dictionary<string, string> _held =
             new Dictionary<string, string>(StringComparer.Ordinal);
@@ -51,7 +51,7 @@ namespace Sitrep.Host.Alarms
         /// <summary>
         /// Bring the standing subscriptions in line with <paramref name="roster"/>.
         ///
-        /// <para>Only an ARMED threshold is wanted. A time condition addresses no
+        /// <para>Only an armed threshold is wanted. A time condition addresses no
         /// Topic, and an alarm that has fired or gone unreachable will never take
         /// another reading, so keeping its Topic recorded would pin a history
         /// nothing is going to read.</para>

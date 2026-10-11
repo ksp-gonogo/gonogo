@@ -5,7 +5,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.Comms
 {
     /// <summary>
-    /// <see cref="RosterControlSource.For"/> against the REAL
+    /// <see cref="RosterControlSource.For"/> against the real
     /// <c>Vessel.ControlLevel</c> out of <c>Assembly-CSharp.dll</c>. Its default
     /// arm has to exist for a newer KSP at runtime, so a level added to the enum
     /// would compile silently into it; this is where that addition fails instead.

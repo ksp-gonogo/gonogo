@@ -7,7 +7,7 @@ namespace Sitrep.Contract.TestSupport
     /// Serializes a payload the way the courier does, so a test can assert what
     /// an extension actually puts on the wire.
     ///
-    /// <para>The point is the BYTES, not the builder. A payload object that
+    /// <para>The point is the bytes, not the builder. A payload object that
     /// looks right and serializes wrong is the defect these tests exist to
     /// catch, so this goes through the real <see cref="EnvelopeCodec"/> rather
     /// than reimplementing the shape: the same call the host makes, holding the
@@ -27,7 +27,7 @@ namespace Sitrep.Contract.TestSupport
         /// <summary>
         /// The whole envelope as it would leave the host, as raw JSON.
         ///
-        /// <para>For assertions about the bytes THEMSELVES: key order, an
+        /// <para>For assertions about the bytes themselves: key order, an
         /// omitted optional, a nested object's exact spelling. A parsed
         /// <see cref="JsonElement"/> cannot see any of those, because parsing
         /// is what throws them away.</para>

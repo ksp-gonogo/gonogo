@@ -18,13 +18,13 @@ import {
 import { getHostPeerId } from "./helpers";
 
 /**
- * One keying from a PEER is heard exactly once, everywhere.
+ * One keying from a peer is heard exactly once, everywhere.
  *
  * A station reaches the mod only through its host: its batches go up as the
  * host's commands, and what the mod sends back reaches it through the host's
  * relay. Every hop is a place a copy can be repeated, and a chunk carries no id
  * a listener could dedupe on, so a repeat is heard as a stutter. Kept as its own
- * scene, with no film and no light-time, because it is a property of the wire
+ * scene, with no film and no signal delay, because it is a property of the wire
  * and wants to fail in seconds.
  */
 

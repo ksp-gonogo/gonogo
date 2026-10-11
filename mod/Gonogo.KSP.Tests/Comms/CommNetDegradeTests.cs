@@ -11,14 +11,14 @@ namespace Gonogo.KSP.Tests.Comms
     ///
     /// <para>The distinction under test is the one a live install makes
     /// constantly and a naive rule collapses: a tick where the comms graph was
-    /// not safe to read is NOT a degraded link. Collapsing them rates every
+    /// not safe to read is not a degraded link. Collapsing them rates every
     /// scene settle as unusable, which is a video feed blacking out on a craft
     /// whose telemetry never stopped arriving.</para>
     /// </summary>
     public class CommNetDegradeTests
     {
         /// <summary>
-        /// Nothing to read is UNRATED, not unusable. The tick says nothing about
+        /// Nothing to read is unrated, not unusable. The tick says nothing about
         /// the link, so the grading says nothing either, and the id says so too
         /// rather than leaving a consumer to infer it from a missing number.
         /// </summary>
@@ -32,7 +32,7 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// A link the game reports as DOWN rates 1: fully degraded, as a real
+        /// A link the game reports as down rates 1: fully degraded, as a real
         /// graded answer under stock's own name. Note it does not consult the
         /// strength field at all, which is deliberate: a disconnected craft's
         /// signal strength describes a link that is not there.

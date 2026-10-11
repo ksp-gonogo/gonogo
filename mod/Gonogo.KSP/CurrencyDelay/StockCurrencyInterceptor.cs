@@ -21,7 +21,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// Subscribes to the stock KSP currency events, neutralises any change
     /// attributable to a vessel away from KSC, and enqueues it into a
     /// <see cref="PendingCreditLedger"/> to reveal at that vessel's KSC
-    /// light-time. Live-confirmed origin data (currency-delay-feasibility.md
+    /// signal delay. Live-confirmed origin data (currency-delay-feasibility.md
     /// + its followups doc): <c>OnScienceRecieved</c> carries the
     /// transmitting/recovered vessel for ordinary science, stock lab
     /// transmission credits with no <c>OnScienceRecieved</c> at all but is
@@ -66,7 +66,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <see cref="CurrencyDelayGuard"/> below stops that restoring write from
     /// being reprocessed as a new change; <see cref="OnCurrencyModifierQuery"/>
     /// also skips under it, defensively, in case a future stock build changes
-    /// that. The SAME guard instance is passed to <c>RevealApplier</c> so its
+    /// that. The same guard instance is passed to <c>RevealApplier</c> so its
     /// reveal-time AddFunds/AddScience/AddReputation calls are recognised
     /// here too - without that sharing, a reveal would look like a brand-new
     /// remote-origin change and get neutralised right back into the ledger.</para>
@@ -166,7 +166,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// because settling resyncs a shadow to a live total and inside an
         /// <c>On*Changed</c> that total has already moved to the change being
         /// classified. Handed the post-change total, the very change that triggered
-        /// the settle then resolves AWAY against a neutralise target the balance
+        /// the settle then resolves away against a neutralise target the balance
         /// already holds: nothing is clawed back, a credit is enqueued anyway, and
         /// the reveal pays it twice.</para>
         /// </summary>
@@ -275,9 +275,9 @@ namespace Gonogo.KSP.CurrencyDelay
         /// destruction, possibly the GameObject itself) before any crew-kill reputation change this
         /// correlates with is guaranteed to have fired. Pushing into the state machine may
         /// immediately resolve one or more already-deferred VesselLoss changes (a loaded vessel's
-        /// crew is killed BEFORE Die() runs, so their reputation changes arrive first) or simply
+        /// crew is killed before Die() runs, so their reputation changes arrive first) or simply
         /// stash for OnReputationChanged to claim as they arrive (an unloaded vessel's crew dies
-        /// AFTER this fires, inside the rest of Die()).
+        /// after this fires, inside the rest of Die()).
         /// </summary>
         private void OnVesselWillDestroy(Vessel vessel)
         {
@@ -359,7 +359,7 @@ namespace Gonogo.KSP.CurrencyDelay
             }
         }
 
-        /// <summary>Neutralises the live science balance back to the given shadow value and, via the aggregator, enqueues a pending credit once its window flushes. Called once per AWAY science increment regardless of whether this call happens to flush a chunk.</summary>
+        /// <summary>Neutralises the live science balance back to the given shadow value and, via the aggregator, enqueues a pending credit once its window flushes. Called once per away science increment regardless of whether this call happens to flush a chunk.</summary>
         private void ResolveScienceAway(string vesselId, double baseAmount, double ut, double shadowToRestore, ProtoVessel? protoOrigin = null)
         {
             if (string.IsNullOrEmpty(vesselId))
@@ -537,10 +537,10 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Shared neutralise-and-enqueue for every AWAY reputation decision, whichever of the two
+        /// Shared neutralise-and-enqueue for every away reputation decision, whichever of the two
         /// vessel-bearing reasons produced it: VesselRecovery resolves against the recovery
-        /// ProtoVessel's light-time, VesselLoss against the light-time <see cref="OnVesselWillDestroy"/>
-        /// captured for the correlated death vessel. A HOME decision (including a still-deferred
+        /// ProtoVessel's signal delay, VesselLoss against the signal delay <see cref="OnVesselWillDestroy"/>
+        /// captured for the correlated death vessel. A home decision (including a still-deferred
         /// VesselLoss change awaiting its destruction push) is a no-op here.
         /// </summary>
         private void ResolveReputationAway(CurrencyChangeDecision decision, double ut)

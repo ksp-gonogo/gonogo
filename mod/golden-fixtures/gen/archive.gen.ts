@@ -1,9 +1,9 @@
 #!/usr/bin/env tsx
 /**
  * Golden-fixture generator for `mod/sitrep-server/src/archive.ts`'s `Archive`,
- * specifically its READ behavior (`record` / `readAtVantage`). The C#-only
+ * specifically its read behavior (`record` / `readAtVantage`). The C#-only
  * snapshot/restore addition (for M5b quicksave) has no TS reference and is
- * NOT covered here; it's tested C#-side against a fresh `Archive` instance
+ * not covered here; it's tested C#-side against a fresh `Archive` instance
  * (see `Sitrep.Core.Tests/ArchiveSnapshotRestoreTests.cs`).
  *
  * Like `StubNetwork`, `Archive` is stateful with no single global observable
@@ -14,7 +14,7 @@
  * This preserves the exact call order the freeze-on-recession and
  * two-vantage-independence semantics depend on.
  *
- * The `expected` fields are NEVER hand-authored: `runScenario` executes the
+ * The `expected` fields are never hand-authored: `runScenario` executes the
  * ops against a real `Archive` and records what actually happened. Both the
  * TS reference (already covered by `archive.test.ts`) and the C# port
  * (`Sitrep.Core.Tests/ArchiveGoldenFixtureTests.cs`) are checked against this

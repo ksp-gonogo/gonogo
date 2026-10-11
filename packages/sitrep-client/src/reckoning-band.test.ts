@@ -18,10 +18,10 @@ import { ViewClock } from "./view-clock";
  * The uncertainty band: how well a model knows the number it just produced.
  *
  * Two halves are tested here because they fail differently. The consumer
- * helpers are pure and answer a question a widget asks; the PLUMBING is where
+ * helpers are pure and answer a question a widget asks; the plumbing is where
  * a band can silently go missing, and a missing band reads downstream exactly
  * like a model that honestly would not say. So every plumbing case asserts the
- * band ARRIVED, not merely that nothing threw.
+ * band arrived, not merely that nothing threw.
  */
 
 function newStore(viewUt: number): TimelineStore {
@@ -415,9 +415,9 @@ describe("a reckoned tail carries the band per instant", () => {
 });
 
 /**
- * A FIELD read borrows its record's model, and it has to borrow the band the
+ * A field read borrows its record's model, and it has to borrow the band the
  * same way or every plotted field-subtopic silently loses its shading. What it
- * must NOT borrow is a band declared at a shorter path: a basis is a property
+ * must not borrow is a band declared at a shorter path: a basis is a property
  * of the model and inherits down the tree, two numbers in a quantity's unit do
  * not.
  */

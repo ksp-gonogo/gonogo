@@ -31,7 +31,7 @@ namespace Sitrep.Host.Tests
         /// Optional -- defaults to a no-op so every PRE-EXISTING call site
         /// (which only ever cared about <see cref="ForceKeyframe"/>) keeps
         /// compiling and behaving identically now that
-        /// <see cref="VesselEpochSampler"/> ALSO calls
+        /// <see cref="VesselEpochSampler"/> also calls
         /// <see cref="ResetChannelBirth"/> on every subject switch. Pass a
         /// callback to assert on it, matching <paramref name="onForceKeyframe"/>'s
         /// shape.

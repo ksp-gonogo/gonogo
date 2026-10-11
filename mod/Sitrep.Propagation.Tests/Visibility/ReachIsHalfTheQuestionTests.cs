@@ -16,7 +16,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// was.
     ///
     /// <para>That is the failure mode worth a test of its own because it is a
-    /// PREDICTION an operator plans against, not a readout they can sanity-check
+    /// prediction an operator plans against, not a readout they can sanity-check
     /// against the game. A craft that clears Kerbin's limb 40 Gm out gets a
     /// contact window that never opens, and the silence tracker declares it
     /// reacquired on schedule.</para>
@@ -134,7 +134,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         }
 
         /// <summary>
-        /// Reach cuts a station's OWN margin before the stations compete, the
+        /// Reach cuts a station's own margin before the stations compete, the
         /// same place the chain occluders cut it. A station on the far side of
         /// the body cannot hear the craft either, so "best station wins" must
         /// pick one that can do both rather than combining the sight of one
@@ -152,7 +152,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         }
 
         /// <summary>
-        /// Reach is asked PER PAIR, so two stations on one body need not share
+        /// Reach is asked per pair, so two stations on one body need not share
         /// a limit: a modded ground network runs a dozen that do not share an
         /// antenna. A craft one station cannot hear but another can is in
         /// contact, which is the same "best station wins" the horizon term

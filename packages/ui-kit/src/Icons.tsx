@@ -138,7 +138,7 @@ export const InfoIcon = makeIcon(Info);
  */
 export const LockIcon = makeIcon(Lock);
 /**
- * A point with radio waves spreading on either side, for broadcasting or a live link.
+ * A point with radio waves spreading on either side, for broadcasting or a live connection.
  *
  * @category Icons
  */

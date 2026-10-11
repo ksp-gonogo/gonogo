@@ -25,7 +25,9 @@ export interface HeldBadgeProps {
 /**
  * The badge a widget draws beside one part of itself whose reading is held: a
  * row, a card, a totals cell. It prints the grade's word and severity, so it
- * always agrees with the panel's own badge.
+ * always agrees with the panel's own badge. Useful for telling the operator
+ * that one row or card shows a held figure. Used by the
+ * contract manager cards and the experiment lab rows.
  *
  * It is not a live region, unlike {@link StreamStatusBadge}: the panel's own
  * badge announces the change once.

@@ -61,11 +61,12 @@ const DelayPanelStore = createPanelStore(createDelayRailStore);
 export const DelayRailContext = DelayPanelStore.Context;
 
 /**
- * Mints one delay-rail store and holds it for its whole life. It is also the
- * rail registry every `useCommand` beneath it registers with, so each command's
- * outcome reaches the rail with nothing wired in the widget. The dashboard
- * mounts one around every widget; a dev build throws on a dispatch with none
- * mounted.
+ * The delay-rail registry for one widget: it creates one delay-rail store,
+ * holds it for its whole life, and every `useCommand` beneath it registers
+ * there, so each command's outcome reaches the rail with nothing wired in the
+ * widget. Useful for showing the operator the commands a widget has sent. Used
+ * by the dashboard, which mounts one around every widget. A dev build throws on
+ * a dispatch with none mounted.
  *
  * @category CommandDelay
  */

@@ -82,8 +82,8 @@ export function DepthRing({
 /**
  * The vessel's trajectory, drawn as the propagation seam authorised it, through the same placement as the bodies so both share one frame.
  *
- * - CONIC: the elements are the curve, sampled in three dimensions like a body's ring
- * - ARC: already in parent-centred inertial metres
+ * - Conic: the elements are the curve, sampled in three dimensions like a body's ring
+ * - Arc: already in parent-centred inertial metres
  *
  * Any other frame, or a refusal, draws nothing: an empty path and no trajectory look identical and mean opposite things.
  */

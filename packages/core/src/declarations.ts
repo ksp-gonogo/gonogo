@@ -10,7 +10,7 @@ import { isTopicId } from "@ksp-gonogo/sitrep-sdk";
  *
  * `useWidgetStreamStatus` and `alarmMatchesWidget` both resolve a declaration
  * at runtime, and both are permissive by necessity: read resolution walks a
- * dotted PATH and cannot tell a real leaf from a plausible one, so
+ * dotted path and cannot tell a real leaf from a plausible one, so
  * `career.status.balances.notAField` resolves exactly as well as
  * `career.status.balances.funds` and then renders `undefined` forever. A widget
  * that declares a typo therefore loses its badge and its alarms with no

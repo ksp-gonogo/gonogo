@@ -7,10 +7,10 @@ namespace Sitrep.Core.StoreAndForward
     /// <summary>What the game reports about links right now. The backend's live network decides what actually gets through.</summary>
     public interface IDeliveryLinks
     {
-        /// <summary>The light time of a live path from one node to another right now, relays included, or null when there is none.</summary>
+        /// <summary>The signal delay of a live path from one node to another right now, relays included, or null when there is none.</summary>
         double? LivePath(string from, string to);
 
-        /// <summary>The light time of a direct live link between two nodes right now, or null when there is none.</summary>
+        /// <summary>The signal delay of a direct live link between two nodes right now, or null when there is none.</summary>
         double? LiveLink(string from, string to);
     }
 
@@ -184,7 +184,7 @@ namespace Sitrep.Core.StoreAndForward
     /// and is asked of the live network when it lands.</para>
     ///
     /// <para><b>Custody.</b> A node that sends keeps its copy until twice the
-    /// hop's light time after it left, which is the soonest it could know the
+    /// hop's signal delay after it left, which is the soonest it could know the
     /// hop failed. Until then the copy can be neither sent again nor stopped:
     /// a cancel pressed in that window goes after the command and says no more
     /// than that it was sent. A hop whose link was gone when the light landed
@@ -1019,7 +1019,7 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>
         /// Runs <paramref name="action"/> under the lock, then runs every command it
-        /// released OUTSIDE the lock, reporting each reply as its result comes back.
+        /// released outside the lock, reporting each reply as its result comes back.
         /// A command's handler can wait on another thread, which must be free to
         /// take the lock meanwhile.
         /// </summary>
@@ -1636,7 +1636,7 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>
         /// Sends <paramref name="held"/> on its way. The node keeps its copy, in
-        /// custody, until twice the light time has passed: see
+        /// custody, until twice the signal delay has passed: see
         /// <see cref="EndCustody"/>.
         /// </summary>
         /// <param name="light">How long the light really takes, which is when it lands and what custody is timed by.</param>
@@ -1690,7 +1690,7 @@ namespace Sitrep.Core.StoreAndForward
         }
 
         /// <summary>
-        /// Twice the light time after a copy left: the soonest its node could know
+        /// Twice the signal delay after a copy left: the soonest its node could know
         /// whether the hop was received. A copy that landed is let go. A copy that
         /// was caught is the node's again: it is stopped if a cancel has been
         /// stored here since, and otherwise waits to leave, never for the node it
@@ -2019,7 +2019,7 @@ namespace Sitrep.Core.StoreAndForward
             /// <summary>The node this copy was sent to, while its own node still has custody of it; null for a copy that is waiting here.</summary>
             public string? Away { get; set; }
 
-            /// <summary>When custody ends: twice the hop's light time after it left.</summary>
+            /// <summary>When custody ends: twice the hop's signal delay after it left.</summary>
             public double CustodyUntilUt { get; set; }
 
             /// <summary>Whether the copy that was sent was received. The node holding custody does not know this until custody ends.</summary>

@@ -6,7 +6,7 @@ import type {
 import { useStream } from "@ksp-gonogo/sitrep-client";
 
 /**
- * Resolution of a widget's declared REQUIRED `channels` against the
+ * Resolution of a widget's declared required `channels` against the
  * `system.uplinkHealth` roster: the Phase 2 half of the uplink-health
  * render-gating design (local_docs/uplink-health-render-gating-design.md).
  * `RequiresGuard` (Phase 3) blocks rendering on `"resolved"` with a
@@ -63,9 +63,9 @@ function worstOf(entries: readonly UplinkHealthEntry[]): UplinkHealthEntry {
 }
 
 /**
- * Resolves `channels` (a widget's declared REQUIRED topics) to their
+ * Resolves `channels` (a widget's declared required topics) to their
  * owning Uplink(s) via longest-prefix match against the
- * `system.uplinkHealth` roster, and reports the WORST health state among
+ * `system.uplinkHealth` roster, and reports the worst health state among
  * every distinct owner found. Never infers ownership itself, it only
  * reads what the mod's `ownedPrefixes` already says (Task 1/2).
  */

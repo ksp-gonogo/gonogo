@@ -22,7 +22,7 @@ describe("the channel-error warning", () => {
   });
 
   /**
-   * The regression this exists for. An `error` frame carries a topic and NO
+   * The regression this exists for. An `error` frame carries a topic and no
    * requestId when a channel dies at the wire boundary, and the command
    * correlator returns immediately on a missing requestId: the frame used to
    * be discarded there, leaving the author with exactly the silence the mod

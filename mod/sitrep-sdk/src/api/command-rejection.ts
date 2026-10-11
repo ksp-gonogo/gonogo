@@ -2,15 +2,16 @@ import type { LimitBreach } from "../__generated__/contract";
 import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
 
 /**
- * The markers a dispatch promise's rejection carries in `code` for the two
- * outcomes that are not a fault, defined here rather than at the throw site so
- * the published guard below and the spine that throws read ONE definition.
- * Every other rejection carries a `FaultCode`.
+ * The rejection code of a command the game received and refused. Every other
+ * rejection carries a {@link FaultCode}, except {@link COMMAND_LOST}. Useful
+ * for telling a refusal from a fault, though {@link classifyCommandRejection}
+ * does that for you.
  */
 export const COMMAND_REFUSED = "E_REFUSED";
 /**
- * The rejection code of a command that was sent and never replied to. It may
- * have run, so sending it again may run it twice.
+ * The rejection code of a command that was sent from the command centre and
+ * never replied to by the vessel's mod. It may have run, so sending it again
+ * may run it twice. Useful for warning the operator before they resend.
  *
  * @category Commands
  */
@@ -79,8 +80,10 @@ export type CommandRejection =
 
 /**
  * Sorts the error a command's `send` rejected with into a
- * {@link CommandRejection}. Anything it does not recognise, including an
- * error thrown by your own code, is `failed`.
+ * {@link CommandRejection}. Useful for showing the operator whether the game
+ * refused a command, never confirmed it, or something broke on the way. Used by
+ * the command button to word its result. Anything it does not recognise,
+ * including an error thrown by your own code, is `failed`.
  *
  * @example
  * ```ts
@@ -184,8 +187,10 @@ function firstStringArg(args: unknown): string | undefined {
 }
 
 /**
- * Returns a name for a refused command, to start the sentence the operator
- * reads: `"Hire Valentina Kerman"`, `"Upgrade Launch Pad"`.
+ * A short name for a refused command, to start the sentence the operator
+ * reads: `"Hire Valentina Kerman"`, `"Upgrade Launch Pad"`. Useful for saying
+ * which command was refused without repeating its id. Used by the command list
+ * and the sentences that describe a refused, lost or failed command.
  *
  * The dispatch's own `label` is used when it has one. Otherwise the name is
  * the last segment of the command id, title-cased, followed by the first

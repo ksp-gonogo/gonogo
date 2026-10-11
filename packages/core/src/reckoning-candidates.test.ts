@@ -13,35 +13,35 @@ import VERDICTS from "./reckoning-candidates.json";
  *
  * ## Why this is a ratchet and never a default
  *
- * The appealing idea is that a reckoning class DERIVES: a quantity with a
+ * The appealing idea is that a reckoning class derives: a quantity with a
  * companion rate is rate-integrable, so nobody has to declare anything. Run
  * over the real contract it does not survive contact. Of the candidates below,
- * most carry TWO OR MORE sibling rates, so the rule cannot even pick which one
+ * most carry two or more sibling rates, so the rule cannot even pick which one
  * to integrate; and among those it can, almost none is the actual derivative.
- * The rule proposes integrating a tank's CAPACITY because a flow sits beside
+ * The rule proposes integrating a tank's capacity because a flow sits beside
  * it, an accident report's peak altitude because a peak speed does, and a
  * terrain-sampling radius because a terminal velocity does.
  *
  * The failures are structural, not a naming accident. `divide({s:1},{s:1})` is
- * `{}`, and `1`, `ratio` and `%` are all dimensionless, so EVERY dimensionless
- * field is the dimensional rate of EVERY time field in its own type,
+ * `{}`, and `1`, `ratio` and `%` are all dimensionless, so every dimensionless
+ * field is the dimensional rate of every time field in its own type,
  * permanently. That is what the algebra says; no vocabulary work fixes it.
  *
  * So the scan's job is to ask a question, not to answer one. A new rate-bearing
  * field lands, the candidate set changes, this fails, and a person writes down
  * whether it is a real model or a coincidence. Recording the verdicts is the
  * point: a `coincidence` here is the same artefact as a `[SitrepReckonable]`
- * mark that was CONSIDERED and not made, a record of a decision taken, at a
+ * mark that was considered and not made, a record of a decision taken, at a
  * place the next person looks, that cannot rot without failing.
  *
  * It fails on a new candidate, on one that has vanished, and on a unit token no
  * descriptor declares. The last matters because a missing unit registration
- * would otherwise SHRINK the candidate set silently, which reads as progress.
+ * would otherwise shrink the candidate set silently, which reads as progress.
  */
 
 interface Verdict {
   /**
-   * `real-but-unmodelled`: the sibling genuinely IS this quantity's rate, and
+   * `real-but-unmodelled`: the sibling genuinely is this quantity's rate, and
    * nobody has written the model. `modelled`: a registered reckoner now claims
    * it, which is not the same as saying it integrates the offered sibling (see
    * `KerbalismCrewRule.value`, where the offered rate is the wrong one and the
@@ -120,7 +120,7 @@ const descriptors = descriptorPaths(root).map(readDescriptor);
  * Tokens an Uplink declared for itself, which core's registry has never heard
  * of and cannot assign a dimension to. Legitimate: an Uplink models quantities
  * core does not know, and `UnitDescriptor` reflects its own `Units` catalog for
- * exactly that. The consequence is that this scan is BLIND to those fields, so
+ * exactly that. The consequence is that this scan is `BLIND` to those fields, so
  * they are recorded rather than passed over silently.
  */
 const opaqueTokens = new Set<string>();

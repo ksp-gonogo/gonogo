@@ -10,9 +10,9 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// C#-only tests (no TS reference) for the server-stampable half of the
     /// M2 staleness model: <see cref="Meta.Staleness"/> is <see cref="Staleness.Fresh"/>
-    /// on every LIVE delivery unconditionally, and on a CATCH-UP delivery
+    /// on every live delivery unconditionally, and on a CATCH-UP delivery
     /// (the synchronous serve inside <see cref="Courier.SubscribeStream"/>)
-    /// UNLESS <see cref="Courier.MarkLinkDown"/> has recorded the link to
+    /// unless <see cref="Courier.MarkLinkDown"/> has recorded the link to
     /// this (node, vantage) as down -- the seam a future M3 comms-capability
     /// provider drives (not yet built; this milestone only wires the
     /// mechanism/plumbing).
@@ -126,7 +126,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// A subject marked dark while NOTHING subscribes to it still grades the
+        /// A subject marked dark while nothing subscribes to it still grades the
         /// first vantage that subscribes afterwards. The catch-up is served
         /// synchronously inside the subscribe, before any later tick could
         /// re-apply the mark, so a mark stored only against the vantages present

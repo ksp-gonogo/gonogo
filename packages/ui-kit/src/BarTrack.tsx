@@ -23,8 +23,10 @@ export interface BarTrackProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * The track and fill a `Meter` draws. The role and its aria attributes arrive
- * through `rest`, since a decorative track carries none.
+ * The track and fill of a bar, drawn at a share of its length. Useful for
+ * showing the operator how full a quantity is. Used by {@link Meter}. The role
+ * and its aria attributes arrive through `rest`, since a decorative track
+ * carries none.
  */
 export function BarTrack({
   percent,

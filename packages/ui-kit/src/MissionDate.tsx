@@ -9,10 +9,10 @@ import { VisuallyHidden } from "./VisuallyHidden";
 /**
  * Which clock an instant is on. Under signal delay they differ for the same
  * event: SCET is when it happens at the craft, and the received clock is when
- * the telemetry showing it reaches a command centre, one light-time later.
+ * the telemetry showing it reaches a command centre, one signal delay later.
  *
  * The qualifier belongs to each reading, not to the screen, since two vessels
- * have different light-times. It is drawn as `SCET` or `AT <vantage>`. A
+ * have different signal delays. It is drawn as `SCET` or `AT <vantage>`. A
  * space-centre channel describes no craft, so it takes no context.
  *
  * @category MissionDate
@@ -107,14 +107,16 @@ export interface MissionDateProps {
 }
 
 /**
- * A universal time, rendered as a date on the calendar the game is running:
+ * A universal time, shown as a date on the calendar the game is running:
  * `Y1 D5 03:22:37` under stock, `14 Mar 1957 03:22:37` under a real calendar.
+ * Useful for showing the operator when something happens or happened. Used by
+ * the mission banner and the alarms dialog.
  *
- * An instant rather than a quantity: {@link Unit} draws lengths of time, and
- * this draws points in it, since 9,201,600 seconds after the epoch is Year 2
- * Day 1, not "106 days". The calendar is the one the game reports on
- * `time.calendar`. A missing or non-finite value renders {@link NULL_DISPLAY},
- * not the epoch. A held `Reading` keeps its date and takes the held mark.
+ * It draws a point in time, where {@link Unit} draws a length of time: 9,201,600
+ * seconds after the epoch is Year 2 Day 1, not "106 days". The calendar is the
+ * one the game reports on `time.calendar`. A missing or non-finite value
+ * renders {@link NULL_DISPLAY} and never the epoch. A held `Reading` keeps its
+ * date and takes the held mark.
  *
  * @example
  * ```tsx

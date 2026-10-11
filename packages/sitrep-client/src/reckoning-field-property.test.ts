@@ -12,7 +12,7 @@ import { ViewClock } from "./view-clock";
 
 /**
  * A payload field reached as a plain property off the topic reading, and the
- * one thing about it that is not mechanical: where its BAND comes from.
+ * one thing about it that is not mechanical: where its band comes from.
  *
  * `vessel.flight.altitudeAsl` is the case the whole design turns on. A field
  * property built by delegating to a subtopic read is answered by whichever
@@ -22,7 +22,7 @@ import { ViewClock } from "./view-clock";
  * still says `available`, still carries a modelled number, and quietly draws no
  * interval around it.
  *
- * So the field property is PROJECTED out of the topic reading's own model
+ * So the field property is projected out of the topic reading's own model
  * instead, and these cases are what says so. A delegation is wrong for any
  * topic whose model bands one field of several, whatever the name resolves to.
  */
@@ -61,7 +61,7 @@ function altitudeBand(at: number): UncertaintyBand<"m"> {
 }
 
 /**
- * The shape of the real descent branch: it MOVES `altitudeAsl` and bands it at
+ * The shape of the real descent branch: it moves `altitudeAsl` and bands it at
  * that path, and copies every sibling verbatim. `orbitalSpeed` is here as the
  * sibling, because a field the model does not move must not come back wearing
  * the model's basis.

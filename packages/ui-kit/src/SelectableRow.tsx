@@ -41,9 +41,10 @@ export interface SelectableRowProps
 
 /**
  * A real `<button>` drawn as a full-width, left-aligned list row, for one
- * option in a pick-one list. It stacks its children vertically (typically a
- * name line over a muted meta line) and fills in the go tone while
- * `selected`. Text inherits the row's colour, so plain spans inside pick up
+ * option in a pick-one list. Useful for letting the operator choose one entry,
+ * such as a vessel or a radio channel, from a list. Used by the communications
+ * inbox. It stacks its children vertically (typically a name line over a muted
+ * meta line) and fills in the go tone while `selected`. Text inherits the row's colour, so plain spans inside pick up
  * the selected tint. `aria-pressed` follows `selected`.
  *
  * @example

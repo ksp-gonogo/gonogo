@@ -13,7 +13,7 @@ export type {
 } from "../view-clock-formula";
 
 /**
- * The light-time below which SCET and the received clock are the same instant as
+ * The signal delay below which SCET and the received clock are the same instant as
  * far as anything on screen can show: instants are printed to the whole second.
  *
  * @category Stream fixture
@@ -80,9 +80,9 @@ export class ViewClock {
    * a present that runs ahead can never pin the received edge ahead of what
    * has been delivered.
    *
-   * One PER LANE, because the two cursors run a whole light-time apart: a
+   * One per lane, because the two cursors run a whole signal delay apart: a
    * shared one would let the first true-now read of a frame pin the delayed
-   * cursor at true now, and every delayed topic would then be read a light-time
+   * cursor at true now, and every delayed topic would then be read a signal delay
    * into its own future, which is the failure the delay clock exists to
    * prevent.
    */
@@ -182,7 +182,7 @@ export class ViewClock {
    *  `utNowEstimate`/`confirmedEdgeUt` (via `view-clock-formula.ts`) and
    *  `snapshot()` (below) read from, so the two can never drift apart.
    *
-   *  The LANE is the whole of the difference between the two horizons: a
+   *  The lane is the whole of the difference between the two horizons: a
    *  true-now read is the same formula with no delay subtracted, so it stays
    *  clamped to the max sample UT actually observed exactly like the delayed
    *  one. That clamp is why this is safe before any true-now channel has
@@ -200,7 +200,7 @@ export class ViewClock {
   }
 
   /**
-   * Serializable snapshot of this clock's formula inputs, for a SECOND
+   * Serializable snapshot of this clock's formula inputs, for a second
    * context to mirror `confirmedEdgeUt()`/`utNowEstimate()` locally against
    * its own wall clock, such as a video-delay worker. The
    * receiving side evaluates the exact same `view-clock-formula.ts`
@@ -214,9 +214,9 @@ export class ViewClock {
 
   /**
    * The certainty horizon: a first-class alias for
-   * `confirmedEdgeUt()`. A `viewUt` at-or-before this is CONFIRMED (a
+   * `confirmedEdgeUt()`. A `viewUt` at-or-before this is confirmed (a
    * delivered sample or an honest interpolation between two of them);
-   * strictly after it is PREDICTED (propagated / held-last). It's the exact
+   * strictly after it is predicted (propagated / held-last). It's the exact
    * same sample-clamped quantity as `confirmedEdgeUt()`: exposed under its
    * own name because callers (the SDK surface, `TimelineStore.beginFrame`'s
    * per-frame certainty classification) reason about it as a first-class
@@ -226,7 +226,7 @@ export class ViewClock {
     return this.confirmedEdgeUt(lane);
   }
 
-  /** Classify `ut` against the certainty horizon: `<=` is CONFIRMED, matching `viewUt() === confirmedEdgeUt()` exactly (never falsely "predicted" while merely tracking live). Classified against the SAME lane the `ut` was drawn from, or a true-now read lands a light-time past the delayed horizon and every one of them reports `"predicted"`. */
+  /** Classify `ut` against the certainty horizon: `<=` is confirmed, matching `viewUt() === confirmedEdgeUt()` exactly (never falsely "predicted" while merely tracking live). Classified against the same lane the `ut` was drawn from, or a true-now read lands a signal delay past the delayed horizon and every one of them reports `"predicted"`. */
   certaintyFor(ut: number, lane: DelayLane = "delayed"): Certainty {
     return ut <= this.certaintyHorizonUt(lane) ? "confirmed" : "predicted";
   }
@@ -246,7 +246,7 @@ export class ViewClock {
   }
 
   /**
-   * THE view time: every read in a frame uses this (via the frozen
+   * The view time: every read in a frame uses this (via the frozen
    * `FrameToken`, see `timeline-store.ts`).
    *
    * - **Live**: tracks `confirmedEdgeUt()`, monotonic non-decreasing within
@@ -256,7 +256,7 @@ export class ViewClock {
    * - **Scrubbed**: `scrubTo`'s target wins outright, but the live cursor
    *   still advances underneath (see `scrubTo`'s doc).
    *
-   * The LANE picks which of the two confirmed edges is tracked, and the store
+   * The lane picks which of the two confirmed edges is tracked, and the store
    * asks for whichever one the topic being read declared. It changes nothing
    * while scrubbed, where a scrub target is a past instant both lanes agree on.
    */
@@ -277,7 +277,7 @@ export class ViewClock {
    *   re-anchors on each delivery and can step back
    * - `viewUt` itself while scrubbed, since history is observed rather than
    *   modelled
-   * - `viewUt` itself when the light-time is under one second
+   * - `viewUt` itself when the signal delay is under one second
    *   (`VISIBLE_GAP_SECONDS`), where the two clocks read the same on screen,
    *   and before anything has been received
    */
@@ -292,7 +292,7 @@ export class ViewClock {
 
   /**
    * When a command sent now reaches the craft: {@link scetUt} plus the one-way
-   * light-time, for a surface that plans what a command will find on arrival.
+   * signal delay, for a surface that plans what a command will find on arrival.
    * The SCET itself while scrubbed, where nothing is being sent.
    */
   commandArrivalUt(scetUt: number): number {
@@ -313,7 +313,7 @@ export class ViewClock {
   /**
    * Best-effort per-frame notification, driven by `requestAnimationFrame`
    * when available (browser) and a ~60Hz timer fallback otherwise (SSR/test
-   * environments without rAF). NOT what enforces the single-view-time
+   * environments without rAF). Not what enforces the single-view-time
    * invariant: that's `TimelineStore`'s frozen `FrameToken` (structural);
    * this is just a convenience scheduling hook for callers that want to
    * drive `TimelineStore.beginFrame()` from wall-clock frames.
@@ -360,7 +360,7 @@ export class ViewClock {
    *
    * The frame loop has no stopping condition by design, so a quiet link still
    * advances view time. That makes it unquiescable, and React's async `act()`
-   * drains its queue and then requires the queue to be EMPTY: a frame landing
+   * drains its queue and then requires the queue to be empty: a frame landing
    * in that window means it never is, and the mount hangs until the test times
    * out. A test harness that needs `act()` to return has to stop the clock and
    * drive it, not race it.

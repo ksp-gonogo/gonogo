@@ -15,7 +15,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         }
 
         /// <summary>
-        /// The zero is for the craft's OWN row and nothing else, which is the only
+        /// The zero is for the craft's own row and nothing else, which is the only
         /// reading under which it is honest. Every assertion here is paired: an
         /// over-broad zero (dropping the kind/id test, or zeroing the routed value)
         /// fails on the second half of each pair even though the first half passes.
@@ -154,7 +154,7 @@ namespace Sitrep.Host.Tests.CommandCentres
 
         /// <summary>
         /// Paired like the fleet test above: the active craft's own centre reads zero, and
-        /// a crewed centre that is NOT the active craft, the ground, and a station whose id
+        /// a crewed centre that is not the active craft, the ground, and a station whose id
         /// spells the active craft all keep their routed number.
         /// </summary>
         [Fact]

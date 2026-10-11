@@ -5,18 +5,18 @@
  * `Unit` and `Meter` each widened to `Value<U> | Reading<Value<U>>`, because
  * a definite quantity should be passable as one. The
  * cost of that widening is that the compiler can no longer tell a caller who
- * HAS a reading to pass the reading:
+ * has a reading to pass the reading:
  *
  *     const altitude = flight.altitudeAsl;   // Reading<Value<"m">>
  *     <Unit value={altitude.value} />        // compiles. Band and staleness gone
  *
  * Both lines typecheck, both render a number, and the second silently drops the
  * held mark and the uncertainty band. That
- * is not a hypothetical failure mode: it is the SHORTER thing to write, and it
+ * is not a hypothetical failure mode: it is the shorter thing to write, and it
  * is what a call site reaches for the moment the reading's optional `value`
  * annoys it.
  *
- * WHY THE COMPILER AND NOT A REGEX. The question is "what is the type of the
+ * Why the compiler and not A regex. The question is "what is the type of the
  * thing this prop was handed", and only the compiler answers it. A text scan
  * for `value={x.value}` reports zero on this tree today and would keep
  * reporting zero through
@@ -28,18 +28,18 @@
  * reading's `.value` from any other member spelled `value`. A gate that a
  * one-line refactor walks through is a gate that certifies the defect.
  *
- * WHAT COUNTS
+ * What counts
  *
- *  - a JSX attribute whose DECLARED type accepts a reading (any union arm of
+ *  - a JSX attribute whose declared type accepts a reading (any union arm of
  *    the contextual type is reading-shaped), handed an expression whose type is
- *    NOT a reading, where that expression is `<reading>.value`: directly, or
+ *    not a reading, where that expression is `<reading>.value`: directly, or
  *    through a `const` whose initialiser is one
  *
  * The rule names no primitive and no prop. It asks the props type what it
  * accepts, so a primitive that widens to take a reading next month is covered
  * next month.
  *
- * THIS GATE PAIRS WITH `styleguide-primitive-inputs.test.ts`, and the
+ * This gate pairs with `styleguide-primitive-inputs.test.ts`, and the
  * two are not duplicates. That one refuses a bare magnitude, top-level
  * arithmetic or a cast reaching the prop; this one refuses a reading that was
  * unwrapped on the way in. Cross-planted both ways rather than reasoned about:
@@ -47,7 +47,7 @@
  * `<Unit value={reading.value} />` fails this one and passes that. Deleting
  * either leaves a live fault uncovered.
  *
- * WHAT DOES NOT
+ * What does not
  *
  *  - a prop that accepts only a `Value`. Nothing was dropped: the primitive
  *    never offered to carry the currency
@@ -58,7 +58,7 @@
  *    the reckoning is a deliberate act with the reading still in hand, not the
  *    accidental discard this looks for
  *
- * WHAT IT STILL CANNOT SEE, stated because a gate's limit belongs beside it:
+ * what it still cannot see, stated because a gate's limit belongs beside it:
  * an unwrap laundered through anything other than one `const` hop: a function
  * return, a `??`, a ternary, an array element. Those are reachable and are not
  * reached today; the plant list in the test says which shapes are proven.
@@ -95,7 +95,7 @@ export interface UnwrappedFeedSite {
   prop: string;
   /**
    * How the figure lost its currency: unwrapped inline, unwrapped through a
-   * `const`, or DERIVED from a reading further back (arithmetic named on an
+   * `const`, or derived from a reading further back (arithmetic named on an
    * earlier line, a magnitude taken through a helper). The three want
    * different fixes, so the report distinguishes them.
    */
@@ -122,7 +122,7 @@ export interface FeedScan {
   /** Every JSX attribute seen whose declared type accepts a reading. */
   readingProps: number;
   /**
-   * Reading-accepting attributes whose expression was the compiler's ERROR
+   * Reading-accepting attributes whose expression was the compiler's error
    * type.
    *
    * Counted rather than ignored, for the same reason `unknown-cast` counts
@@ -145,7 +145,7 @@ export interface FeedScan {
 const CURRENCY_MEMBERS = ["state", "reckoning"] as const;
 
 /**
- * The reading members a figure may be taken off WITHOUT the rule counting it.
+ * The reading members a figure may be taken off without the rule counting it.
  *
  * `value` is deliberately absent: taking the value off a reading is the whole
  * fault this file looks for. Everything else on a reading is about the reading
@@ -153,12 +153,12 @@ const CURRENCY_MEMBERS = ["state", "reckoning"] as const;
  * act with the reading still in hand, which is what the rule at the top of
  * this file already says does not count.
  *
- * ## An age handed its own reading would MAKE THE WIDGET LIE
+ * ## An age handed its own reading would make the widget lie
  *
  * This is not a tidiness exemption, and `Targeting`'s two age readouts are why.
  * An age is `viewUt.minus(observedAt(reading))`: recomputed against the current
  * frame on every render, so it is exactly current at the instant it is drawn,
- * and its entire job is to say that something ELSE is old. Hand it the reading
+ * and its entire job is to say that something else is old. Hand it the reading
  * it measured and `Unit` marks it held, which is self-refuting: the one
  * figure on the panel that is certainly current, drawn as held, beside the
  * value it exists to caveat. A gate that forces that is a gate that produces
@@ -181,7 +181,7 @@ const EXEMPT_READING_MEMBERS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Functions that take a reading and answer about its CURRENCY, never its value.
+ * Functions that take a reading and answer about its currency, never its value.
  *
  * The member exemption above cannot cover these, because they reach the
  * currency inside their own body and the walk deliberately never enters a
@@ -201,9 +201,9 @@ const EXEMPT_READING_MEMBERS: ReadonlySet<string> = new Set([
  * exists to catch. So the rule is a closed list, because the alternative that
  * is not a list is unsound.
  *
- * ## Resolved by DECLARATION, never by name
+ * ## Resolved by declaration, never by name
  *
- * Membership is the declaring FILE plus the name, so a local helper a widget
+ * Membership is the declaring file plus the name, so a local helper a widget
  * happens to call `observedAt` is not exempted by sharing a spelling. That is
  * the same mistake `styleguide-reading-shape` avoided when it learned to see an
  * imported narrower: keying on the name would reopen the hole for the next
@@ -219,7 +219,7 @@ const CURRENCY_ACCESSOR_MODULE =
   /[/\\]sitrep-sdk[/\\](src|dist)[/\\]reading\.(ts|d\.ts)$/;
 
 /**
- * Whether this call is one of the currency accessors, asked of its DECLARATION.
+ * Whether this call is one of the currency accessors, asked of its declaration.
  *
  * A callee with no resolvable declaration answers `false`, so an unresolved
  * import is treated as capable of leaking the value rather than assumed safe:
@@ -307,19 +307,19 @@ function unwrapOf(
  *
  * Twelve rather than a smaller round number, measured rather than chosen. The
  * plant named `PlantedIndirectUnwrap` mints a ratio from a payload quantity
- * defaulted with `??` and divided by a literal: that is SEVEN hops from the
+ * defaulted with `??` and divided by a literal: that is seven hops from the
  * prop back to the reading (call, identifier, two binaries, two optional
  * property accesses, identifier), and a cap of six caught its sibling at
  * exactly six while missing it. A real call site nests further than a
  * written-out example suggests, so the cap sits well clear of the deepest
  * shape the tree actually contains rather than against its edge.
  *
- * It is a bound on WORK, not a rule about what counts: every path that
+ * It is a bound on work, not a rule about what counts: every path that
  * terminates does so at a reading or at a literal, and the `seen` set is what
  * stops a cycle.
  */
 /**
- * Array methods that hand a callback an ELEMENT of their receiver, and which
+ * Array methods that hand a callback an element of their receiver, and which
  * parameter position that element arrives in.
  *
  * A callback's parameter is not a variable declaration, so the one `const` hop
@@ -328,10 +328,10 @@ function unwrapOf(
  * this gate had already reported on: the array was plainly a reading's payload
  * and every element taken out of it was invisible.
  *
- * A closed list, for the reason `CURRENCY_ACCESSORS` is one. Following ANY
+ * A closed list, for the reason `CURRENCY_ACCESSORS` is one. Following any
  * callback parameter back to its receiver would make `reduce`'s accumulator
  * reading-derived on the receiver's account even when it is seeded from a
- * literal. The POSITION matters as much as the method: `reduce` hands the
+ * literal. The position matters as much as the method: `reduce` hands the
  * element second, so a rule keyed on parameter 0 would follow the accumulator
  * and miss the element.
  */
@@ -353,10 +353,10 @@ const ELEMENT_YIELDING_CALLBACKS: ReadonlyMap<string, readonly number[]> =
   ]);
 
 /**
- * The array a callback parameter's elements come from, when that parameter IS
+ * The array a callback parameter's elements come from, when that parameter is
  * an element rather than an index, an accumulator or the array itself.
  *
- * The callback must be the call's FIRST argument, which it is for every method
+ * The callback must be the call's first argument, which it is for every method
  * on the list, so a function handed over as a later argument cannot be mistaken
  * for the element-yielding one.
  */
@@ -380,7 +380,7 @@ function callbackElementReceiver(
 }
 
 /**
- * A COST ceiling, not a termination one.
+ * A cost ceiling, not a termination one.
  *
  * Termination is `seen`'s job: it is one shared set for the whole walk, every
  * node enters it before its children are visited, and a program has finitely
@@ -388,35 +388,35 @@ function callbackElementReceiver(
  * guards is the pathological case where one attribute drags in a large slice of
  * the file, and it is set high enough that no honest chain reaches it.
  *
- * It was 12 and that TRUNCATED a real site: `RotorTachometer`'s torque figure
+ * It was 12 and that truncated a real site: `RotorTachometer`'s torque figure
  * reaches its reading in thirteen hops (a `??` chain, a `find`, a conditional,
  * then `parseRotors`, `stillTrue` and `useTelemetry`), so the gate reported the
  * file clean of it while the fault was there. A cap that silently answers "no
- * provenance" for a chain that HAS provenance reports the tree clean, which is
+ * provenance" for a chain that has provenance reports the tree clean, which is
  * this gate's one unacceptable failure direction, so the number wants headroom
  * rather than tightness.
  */
 const DERIVATION_DEPTH = 64;
 
 /**
- * Whether this expression's value was DERIVED from a reading, however far back.
+ * Whether this expression's value was derived from a reading, however far back.
  *
  * The direct unwrap above is one shape of a bigger fault, and the other shapes
  * defeat both of the tree's existing checks. `styleguide-primitive-inputs` is
- * textual and refuses arithmetic written IN the prop, so a quotient named on
+ * textual and refuses arithmetic written in the prop, so a quotient named on
  * the previous line walks through it. This file's own rule keys on a property
  * literally spelled `value`, so a magnitude taken two calls deep walks through
  * that. Both hand a primitive a figure that came off a reading with the
  * currency stripped, which is the thing the combinator exists to stop.
  *
- * So the question is PROVENANCE rather than shape: does the data flow behind
+ * So the question is provenance rather than shape: does the data flow behind
  * this expression reach something reading-typed. It follows operands, call
- * ARGUMENTS (never a callee's body, which would be a whole-program analysis),
+ * arguments (never a callee's body, which would be a whole-program analysis),
  * property objects and one `const` hop per identifier.
  *
- * It deliberately does NOT flag the legitimate case. A literal, a
+ * It deliberately does not flag the legitimate case. A literal, a
  * constant, a prop the widget was handed: none of those reach a reading, so
- * none of them is reported. The discriminator is where the number CAME FROM,
+ * none of them is reported. The discriminator is where the number came from,
  * not what it looks like on arrival, and a rule that cannot tell those apart
  * is one that gets switched off in a week.
  */
@@ -645,7 +645,7 @@ export function scanPrimitiveReadingFeed(
 /**
  * Scan a directory of hand-written files as its own root.
  *
- * The planted-violation check uses this, through the SAME `scanProgram` the
+ * The planted-violation check uses this, through the same `scanProgram` the
  * real walk uses, so a plant that is seen proves the live predicate saw it.
  */
 export function scanScratchDir(

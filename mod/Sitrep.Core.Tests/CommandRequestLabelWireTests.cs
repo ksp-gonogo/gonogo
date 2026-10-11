@@ -12,7 +12,7 @@ namespace Sitrep.Core.Tests
     /// <see cref="EnvelopeCodec.WriteCommandRequest"/>) used to read/write only
     /// <c>requestId, command, args, sentAt</c>: a live client's <c>label</c>
     /// was silently dropped before it ever reached the host. These prove the
-    /// field now survives the REAL wire round trip both directions.
+    /// field now survives the real wire round trip both directions.
     /// </summary>
     public class CommandRequestLabelWireTests
     {

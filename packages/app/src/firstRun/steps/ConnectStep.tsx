@@ -9,7 +9,7 @@ import { Hint, HintList, Prose, StepCheck } from "./StepParts";
 const ADDRESS_SYSTEMS = ["windows", "macos", "linux"] as const;
 
 /**
- * The connect step embeds the SAME host row the Settings Connection tab
+ * The connect step embeds the same host row the Settings Connection tab
  * renders (`SitrepConnection`, which lives in its own file for
  * exactly this reuse), so an operator meets one connection control, not two
  * that could drift.

@@ -13,7 +13,7 @@ namespace Gonogo.DevTools
     /// the game's warp rate, so an SSH-only test controller can measure the
     /// sampling cadence at rates a human would otherwise have to click through.
     ///
-    /// Request format (mirrors <see cref="GonogoDevTeleport"/>'s TELEPORT node):
+    /// Request format (mirrors <see cref="GonogoDevTeleport"/>'s teleport node):
     /// <code>
     /// TIMEWARP
     /// {
@@ -23,7 +23,7 @@ namespace Gonogo.DevTools
     /// }
     /// </code>
     ///
-    /// <para><b>The result reports what the game ACHIEVED, never what was
+    /// <para><b>The result reports what the game achieved, never what was
     /// asked.</b> KSP refuses warp rates it considers unsafe for the vessel's
     /// altitude and situation, and it does so by clamping rather than by
     /// failing, so a result echoing the request would report a rate the game is

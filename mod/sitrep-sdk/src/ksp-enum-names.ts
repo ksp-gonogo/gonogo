@@ -10,14 +10,14 @@ import {
 import { namesByValue } from "./enum-names";
 
 /**
- * Value→name tables and closed name unions for KSP's OWN enums, derived from
+ * Value→name tables and closed name unions for KSP's own enums, derived from
  * the generated mirrors in `Sitrep.Contract/KspEnums.cs`.
  *
  * These exist for the same reason `contract-enum-names.ts`'s `SituationName`
  * and friends do. A KSP enum reaching the client as a bare `.ToString()` name typed
  * `string` lets a comparison against any literal at all compile, including a
  * literal no version of KSP has ever emitted. Typed as the union below, such a
- * comparison is TS2367 and the error lists the members that ARE valid.
+ * comparison is TS2367 and the error lists the members that are valid.
  *
  * Every table here is a `namesByValue` map rather than the ordinal-indexed
  * array `namesOf` produces, uniformly, even for the enums that happen to be

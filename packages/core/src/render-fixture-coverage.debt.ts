@@ -5,11 +5,11 @@
  * field name the widget's own source dereferences, belonging to a topic its
  * fixtures emit, that no fixture in its `__fixtures__` dir ever carries with a
  * non-null value. Which of the two lists it goes in is the whole judgement, and
- * it is a judgement about the MATCH, not about the widget.</p>
+ * it is a judgement about the match, not about the widget.</p>
  *
  * <p><b>{@link COINCIDENTAL}</b> is for a match that was never a payload read:
  * a plot coordinate called `x`, a canvas call `ctx.arc`, a local spec's own
- * `id`, the `Reading` discriminant `state`. The scan compares NAMES, so these
+ * `id`, the `Reading` discriminant `state`. The scan compares names, so these
  * are the price of that approximation and they are not debt anybody can pay.
  * Unconstrained: add and remove by reviewed edit, with the line that earned it
  * quoted in a comment.</p>

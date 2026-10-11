@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Maneuver
 {
     /// <summary>
-    /// The maneuver-plan election. ONE EXCLUSIVE capability
+    /// The maneuver-plan election. One exclusive capability
     /// <c>"maneuverPlan"</c> whose active instance is an
     /// <see cref="IManeuverPlanSource"/>, expressed entirely in terms of the
     /// existing <see cref="Kernel"/> with no new mechanism.
@@ -18,7 +18,7 @@ namespace Sitrep.Host.Maneuver
     /// <item><b>A provider registers itself</b> from its own uplink's Register,
     /// through the kernel's generic <c>RegisterProvider</c>, and only when its
     /// own probe confirms the planner it models is actually loaded.
-    /// Registering IS the gate.</item>
+    /// Registering is the gate.</item>
     /// </list>
     ///
     /// <para><b>This file names no mod, and that is a rule rather than an
@@ -29,7 +29,7 @@ namespace Sitrep.Host.Maneuver
     /// <c>packages/core/src/uplink-boundary.test.ts</c> is what keeps it true,
     /// and this file must pass it with no allowlist entry at all.</para>
     ///
-    /// <para><b>The read shape generalises; the WRITE does not.</b>
+    /// <para><b>The read shape generalises; the write does not.</b>
     /// <c>vessel.maneuver.add</c>/<c>.update</c>/<c>.remove</c> are not part of
     /// this capability, because a planner can perfectly well publish a plan it
     /// will not let anything outside itself author. A provider that accepts

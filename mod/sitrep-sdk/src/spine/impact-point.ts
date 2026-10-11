@@ -3,7 +3,7 @@
  * trajectory the elected propagation provider vouches for.
  *
  * The descent itself (terrain below, falling toward it, a finite gravity) is
- * measured off `vessel.flight` and `vessel.orbit.mu`. WHERE it ends is a
+ * measured off `vessel.flight` and `vessel.orbit.mu`. Where it ends is a
  * propagation, and a propagation is the provider's to authorise: the answer
  * comes from `orbitTrajectory` on the same `vessel.orbit` sample, and each of
  * its three shapes gets its own treatment rather than a Kepler walk run
@@ -46,7 +46,7 @@ function radToDeg(rad: number): number {
 
 /**
  * A body-fixed-longitude converter calibrated against the vessel's observed
- * ground position: the inertial longitude it has at `ref.ut` IS `ref.lon`, and
+ * ground position: the inertial longitude it has at `ref.ut` is `ref.lon`, and
  * the surface turns under it at the body's sidereal rate from there.
  */
 function calibratedLongitude(
@@ -334,7 +334,7 @@ function lerpPoint(
  * than a guess, and never falls back to a conic the provider did not offer.
  *
  * The longitude is calibrated the same way as the conic walk's: the craft's
- * inertial longitude at the view instant, read off the arc itself, IS its
+ * inertial longitude at the view instant, read off the arc itself, is its
  * observed longitude, and the surface turns under the path at the body's
  * sidereal rate from there to the crossing instant. An arc that does not span
  * the view instant cannot be calibrated and gives no point.

@@ -10,7 +10,7 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// Where the Uplinks are on disk, and what <c>Gonogo.sln</c> says they are.
     ///
-    /// <para>Shared by the coverage gates that walk Uplink SOURCE rather than
+    /// <para>Shared by the coverage gates that walk Uplink source rather than
     /// loaded assemblies. No project in this repo may reference every Uplink (see
     /// <c>UplinkIsolationTests</c>), and one loading them from <c>bin/</c> is green
     /// whenever they have not been built, so a walk is the only shape a
@@ -82,7 +82,7 @@ namespace Sitrep.Core.Tests
         /// cannot. The source: the real <c>Gonogo.sln</c> exists and declares the
         /// project running this test, so the solution compared against is the one
         /// in use and not an empty stand-in. The agreement: the real walk and the
-        /// real solution name the same set in BOTH directions, which is exact and
+        /// real solution name the same set in both directions, which is exact and
         /// stays meaningful at zero, because the first two halves are what an
         /// empty set is then read against.</para>
         /// </summary>
@@ -128,7 +128,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Every directory holding one Uplink's C#, as THIS repo lays it out: the
+        /// Every directory holding one Uplink's C#, as this repo lays it out: the
         /// project itself and its <c>.Contract</c> sibling, which is where the
         /// command-name and topic constants usually live. The layout is stated
         /// here rather than inside the walk because the walk is shared with the

@@ -14,7 +14,7 @@ interface Props {
  * `currentColor` so it follows the active theme in both light and dark.
  * Purely decorative: renders nothing for the `positional` pack (name-only)
  * or a role with no art in the chosen pack. Always `aria-hidden`, callers
- * MUST render the input's resolved name alongside it (see
+ * must render the input's resolved name alongside it (see
  * `describeGamepadInput`) so the meaning isn't glyph-only.
  */
 export function GamepadGlyph({ role, pack, size = 16 }: Readonly<Props>) {

@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Contract.Tests
 {
     /// <summary>
-    /// Contract-shaped POCOs that exist only to be WRONG, so the reckonability gate
+    /// Contract-shaped POCOs that exist only to be wrong, so the reckonability gate
     /// can be shown failing.
     ///
     /// <para><b>Why these are fixtures and not compile errors.</b>
@@ -15,13 +15,13 @@ namespace Sitrep.Contract.Tests
     /// into <c>Sitrep.Contract</c> itself, where it either ships to every consumer or
     /// blocks the build for everyone. A red test is the honest form.</para>
     ///
-    /// <para>They live in the TEST assembly, so the production sweep over
+    /// <para>They live in the test assembly, so the production sweep over
     /// <c>Sitrep.Contract</c> never sees them and no fake topic id can reach the
     /// wire.</para>
     /// </summary>
     public static class ReckonabilityFakes
     {
-        /// <summary>A clean declaration: the gate must report NOTHING for this one.</summary>
+        /// <summary>A clean declaration: the gate must report nothing for this one.</summary>
         [SitrepContract]
         [SitrepTopic("fake.resolvable")]
         public class Resolvable
@@ -134,8 +134,8 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// Two marks on one property naming the SAME basis. A second mark is a second
-        /// MODEL, so this is a duplicate declaration rather than a value served twice,
+        /// Two marks on one property naming the same basis. A second mark is a second
+        /// model, so this is a duplicate declaration rather than a value served twice,
         /// and both rows would reach the generated artifact.
         /// </summary>
         [SitrepContract]
@@ -151,7 +151,7 @@ namespace Sitrep.Contract.Tests
 
         /// <summary>
         /// Two marks on one property, each a real model with its own basis and its own
-        /// inputs. The shape <c>VesselFlight.AltitudeAsl</c> ships, and the CLEAN arm
+        /// inputs. The shape <c>VesselFlight.AltitudeAsl</c> ships, and the clean arm
         /// for it: a gate that rejected this would make the second model undeclarable.
         /// </summary>
         [SitrepContract]

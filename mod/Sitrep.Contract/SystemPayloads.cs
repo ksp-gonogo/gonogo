@@ -391,7 +391,7 @@ public class OrbitEntry
 /// with its name and kind, and leaves when the light of its going has.</para>
 ///
 /// <para><b>By radio: everything else.</b> A vessel's crew and its link are its
-/// own to say, and arrive over its radio's route at that route's light-time.
+/// own to say, and arrive over its radio's route at that route's signal delay.
 /// A vessel that has been seen and not yet heard has no crew count and no
 /// link state, which are absent and not zero. Where a vessel has a radio its
 /// location is as fresh as the newer of the two.</para>
@@ -408,7 +408,7 @@ public class OrbitEntry
 /// Gonogo.KSP's ContactPlanUplink; every stock level answers AllOrbits or
 /// better, and an object with no state vectors is left out at capture. It was
 /// one list on the active craft's node, which handed every centre each
-/// craft's live orbit and link at the active craft's light-time and froze the
+/// craft's live orbit and link at the active craft's signal delay and froze the
 /// whole list while the active craft was dark.
 /// </internal>
 /// </summary>
@@ -529,7 +529,7 @@ public class VesselRosterEntry
 
     /// <summary>
     /// Whether this vessel has a live control link home, as the receiving
-    /// centre has heard it: an outage shows one of the centre's light-times
+    /// centre has heard it: an outage shows one of the centre's signal delays
     /// after the vessel's last light, and its return when its light arrives
     /// again. Read for every roster vessel, loaded or not. This is stock
     /// CommNet's reading (<c>Vessel.connection.IsConnected</c>), not the active

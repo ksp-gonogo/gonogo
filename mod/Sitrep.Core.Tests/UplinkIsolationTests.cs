@@ -30,7 +30,7 @@ namespace Sitrep.Core.Tests
     /// its own walk, its own plant, and its own pair of debt lists
     /// (<see cref="TestProjectReferenceDebt"/>, <see cref="TestProjectImportDebt"/>).</para>
     ///
-    /// <para><b>Why this gates the REACHABLE set and not the declared one.</b>
+    /// <para><b>Why this gates the reachable set and not the declared one.</b>
     /// ProjectReference is transitive and nothing in this graph sets
     /// <c>PrivateAssets</c>, so a csproj naming one internal project gets that
     /// project's own references too. A guard counting csproj lines would score the
@@ -40,7 +40,7 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>Shrink-only, and strictly.</b> An entry may leave
     /// <see cref="ReferenceDebt"/> / <see cref="ImportDebt"/> only by the breach
-    /// being fixed. A NEW breach fails, and so does a STALE entry: an Uplink listed
+    /// being fixed. A new breach fails, and so does a stale entry: an Uplink listed
     /// here that no longer reaches the assembly it is excused for fails just as
     /// loudly, because a debt list nobody prunes stops describing anything. Both
     /// directions are asserted.</para>
@@ -92,7 +92,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Projects in <see cref="PrivateProjects"/> that a <c>&lt;Uplink&gt;.Tests</c>
-        /// project MAY reach, because an outside author has them too.
+        /// project may reach, because an outside author has them too.
         ///
         /// <para>Both ship in the <c>net10.0</c> group of the
         /// <c>KspGonogo.Sitrep.Contract</c> NuGet package, which is how a Tests
@@ -121,7 +121,7 @@ namespace Sitrep.Core.Tests
             PrivateProjects.Except(ShippedToTestProjects, StringComparer.Ordinal).ToArray();
 
         /// <summary>
-        /// Private assemblies each Uplink can still REACH, transitively, through the
+        /// Private assemblies each Uplink can still reach, transitively, through the
         /// project references its csproj declares. Shrink only, and there is
         /// nothing left to shrink: every
         /// Uplink in this repo now compiles against <c>Sitrep.Contract</c> and its
@@ -136,7 +136,7 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> ReferenceDebt = new(StringComparer.Ordinal);
 
         /// <summary>
-        /// Namespaces each Uplink still IMPORTS from a private assembly. Shrink only.
+        /// Namespaces each Uplink still imports from a private assembly. Shrink only.
         ///
         /// <para>Deliberately separate from <see cref="ReferenceDebt"/>, because
         /// "we stopped importing it" and "we stopped depending on it" are different
@@ -147,7 +147,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Private assemblies each <c>&lt;Uplink&gt;.Tests</c> project can still
-        /// REACH. Shrink only, same rules as
+        /// reach. Shrink only, same rules as
         /// <see cref="ReferenceDebt"/>.
         ///
         /// <para>What an entry costs: that Uplink cannot leave. A Tests project is
@@ -168,7 +168,7 @@ namespace Sitrep.Core.Tests
             new(StringComparer.Ordinal);
 
         /// <summary>
-        /// Namespaces each <c>&lt;Uplink&gt;.Tests</c> project still IMPORTS from a
+        /// Namespaces each <c>&lt;Uplink&gt;.Tests</c> project still imports from a
         /// private assembly. Shrink only.
         ///
         /// <para>Separate from <see cref="TestProjectReferenceDebt"/> for the same
@@ -330,12 +330,12 @@ namespace Sitrep.Core.Tests
         /// <para>So the invariant is asserted on the thing that causes it. Every KSP
         /// GameData plugin loads into one AppDomain, so an Uplink shipping its own copy
         /// of a core assembly shadows core's. <c>Private=false</c> on an outer
-        /// ProjectReference does not suppress copying of that project's OWN transitive
+        /// ProjectReference does not suppress copying of that project's own transitive
         /// references, which means a reachable project that the Uplink does not name
         /// itself gets copied. Naming every one of them, flagged, is the only thing
         /// that holds it.</para>
         ///
-        /// <para>Note this is NOT subsumed by the isolation debt lists: an Uplink is
+        /// <para>Note this is not subsumed by the isolation debt lists: an Uplink is
         /// allowed to be in <see cref="ReferenceDebt"/> while it pays down that debt,
         /// but it is never allowed to bundle what it reaches. The two gates
         /// fail for different reasons and an Uplink can fail this one alone.</para>
@@ -446,7 +446,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The projects a csproj references directly AND marks as non-copying. Both
+        /// The projects a csproj references directly and marks as non-copying. Both
         /// spellings are in use in this repo and mean the same thing: the attribute
         /// form <c>Private="false"</c> and the child-element form
         /// <c>&lt;Private&gt;false&lt;/Private&gt;</c>.
@@ -540,7 +540,7 @@ namespace Sitrep.Core.Tests
         /// Gonogo.*</c>) an unqualified <c>KSP.Foo</c> that binds to
         /// <c>Gonogo.KSP.Foo</c> through the enclosing namespace. The
         /// reference gate above is what actually holds that line: nothing can be
-        /// reached by ANY of those routes without the assembly being reachable
+        /// reached by any of those routes without the assembly being reachable
         /// first, and that is asserted independently.
         /// </summary>
         private static Dictionary<string, List<string>> PrivateNamespaceImports(

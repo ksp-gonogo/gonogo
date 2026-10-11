@@ -4,7 +4,7 @@ import type { DerivedChannelId } from "../topics";
 import { registerReckoner } from "./reckoners";
 
 /**
- * What `registerReckoner`'s signature is FOR, asserted rather than believed.
+ * What `registerReckoner`'s signature is for, asserted rather than believed.
  *
  * Its first parameter was a bare `string`, which cost twice over and silently:
  * a topic with a typo registered a model nothing would ever elect, and the

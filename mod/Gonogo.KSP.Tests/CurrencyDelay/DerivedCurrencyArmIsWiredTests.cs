@@ -4,7 +4,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.CurrencyDelay
 {
     /// <summary>
-    /// That the derived-currency arms are actually REACHED, which no unit test can
+    /// That the derived-currency arms are actually reached, which no unit test can
     /// establish: <c>StockCurrencyInterceptor.cs</c> and
     /// <c>CurrencyDelayScenario.cs</c> both need a live scene and are not compiled
     /// into this project at all.
@@ -19,7 +19,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     public class DerivedCurrencyArmIsWiredTests
     {
         /// <summary>
-        /// The observation has to come off the MODIFIER QUERY, not off the
+        /// The observation has to come off the modifier query, not off the
         /// <c>On*Changed</c> that follows it. a career mod's AddScience prefix fires
         /// query, then <c>OnCurrencyModified</c> (where a career mod banks its derived
         /// award), then <c>OnScienceChanged</c> (where the interceptor neutralises).
@@ -51,7 +51,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         /// <summary>
         /// And the withhold has to come off the away-science arm, immediately after
         /// the neutralise. Anywhere earlier and the derived currency has not moved
-        /// yet; anywhere else entirely and a change that resolved HOME would have
+        /// yet; anywhere else entirely and a change that resolved home would have
         /// its derived currency taken away, which is the operator's to keep.
         /// </summary>
         [Fact]
@@ -106,7 +106,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         /// <summary>
         /// The arms are found through the capability kernel, and the only half of
         /// this subsystem holding one is the uplink: a <c>ScenarioModule</c> has no
-        /// <c>IUplinkHost</c>. So the same uplink that DECLARES the capability binds
+        /// <c>IUplinkHost</c>. So the same uplink that declares the capability binds
         /// the kernel the interceptor resolves it through. Unbound, every arm is
         /// skipped and the leak is open with nothing said about it.
         /// </summary>
@@ -120,13 +120,13 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// And it binds it again on the way BACK INTO a game. Without that re-bind,
+        /// And it binds it again on the way back into a game. Without that re-bind,
         /// the science would be withheld correctly while a derived currency moved
         /// anyway, with nothing in <c>KSP.log</c> either way.
         ///
         /// <para><c>Register</c> runs once for the whole process (the host addon is
-        /// <c>KSPAddon(Instantly, once)</c>) and it runs during LOADING, which is
-        /// BEFORE the first LOADING -> MAINMENU transition. KSP fires
+        /// <c>KSPAddon(Instantly, once)</c>) and it runs during loading, which is
+        /// before the first loading -> MAINMENU transition. KSP fires
         /// <c>onGameSceneLoadRequested(MAINMENU)</c> from
         /// <c>HighLogic.SetLoadSceneEventsAndFlags</c>, immediately before the
         /// "Scene Change : From LOADING to MAINMENU" line, so the main-menu teardown
@@ -146,8 +146,8 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
 
         /// <summary>
         /// Both transitions name the scene that caused them, because the pair is what
-        /// makes the state readable: a BOUND line with no TORN DOWN after it is a live
-        /// fan-out, and a TORN DOWN with no BOUND after it is the leak. Without the
+        /// makes the state readable: a bound line with no torn down after it is a live
+        /// fan-out, and a torn down with no bound after it is the leak. Without the
         /// cause on the line, that has to be reconstructed by lining the timestamps up
         /// against KSP's own scene-change log, which is how a whole cycle was spent.
         /// </summary>
@@ -163,7 +163,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// And the log sinks are installed BEFORE the bind, or the bind's own
+        /// And the log sinks are installed before the bind, or the bind's own
         /// announcement is the single line that lands in the no-op default: the one
         /// transition nobody can see is the one that says the rest are visible.
         /// </summary>
@@ -198,7 +198,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// The capability is SHARED, and that is the general-case half of the fix
+        /// The capability is shared, and that is the general-case half of the fix
         /// rather than a detail: an exclusive one would elect a single winner, so on
         /// an install where two mods each derive something from the same change only
         /// one of them would ever be told and the other would keep leaking. It also

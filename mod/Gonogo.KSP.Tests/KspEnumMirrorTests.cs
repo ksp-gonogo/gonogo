@@ -8,7 +8,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests
 {
     /// <summary>
-    /// Every mirror in <c>Sitrep.Contract/KspEnums.cs</c> against the REAL enum
+    /// Every mirror in <c>Sitrep.Contract/KspEnums.cs</c> against the real enum
     /// out of <c>Assembly-CSharp.dll</c>, member for member and value for value.
     ///
     /// <para>This is the only thing standing between a KSP enum's ordinal on the
@@ -52,7 +52,7 @@ namespace Gonogo.KSP.Tests
 
         /// <summary>
         /// Renders a member set as one string per line, so a mismatch shows
-        /// WHICH member moved instead of only that something did.
+        /// which member moved instead of only that something did.
         /// </summary>
         private static string Render(IEnumerable<KeyValuePair<string, long>> members)
         {
@@ -93,7 +93,7 @@ namespace Gonogo.KSP.Tests
 
         /// <summary>
         /// <c>PartCategories.none</c> is <c>-1</c>, so this mirror is the one
-        /// that proves the comparison is on VALUES rather than on position: an
+        /// that proves the comparison is on values rather than on position: an
         /// implicitly-numbered mirror would put <c>none</c> at 0 and shift every
         /// category by one, and a position-only check would not notice.
         /// </summary>
@@ -132,7 +132,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// The BINDABLE action groups, as <c>KspHost.NamedActionGroups</c>
+        /// The bindable action groups, as <c>KspHost.NamedActionGroups</c>
         /// derives them: every <see cref="KSPActionGroup"/> member with a
         /// positive value.
         ///

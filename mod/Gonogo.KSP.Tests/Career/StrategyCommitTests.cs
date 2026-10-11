@@ -10,7 +10,7 @@ namespace Gonogo.KSP.Tests.Career
     ///
     /// <para><c>Strategy.Factor</c> is a plain persisted setter: it is the
     /// commitment level the player is on the hook for, and it is written to the
-    /// save. The console used to set it and THEN ask, so a refused activation
+    /// save. The console used to set it and then ask, so a refused activation
     /// left the strategy's commitment changed with no activation to show for it
     /// and no way for the operator to know. Stock's Administration UI moves its
     /// slider only inside its own <c>CanBeActivated</c>-guarded flow.</para>

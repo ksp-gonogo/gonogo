@@ -25,7 +25,7 @@ import { ViewClock } from "./view-clock";
  * The payload a processor computed, off the {@link Reading} it answers with.
  *
  * A processor whose deps are readings answers with a reading of its own, so the
- * derived record sits one level in. Every assertion below is about WHAT was
+ * derived record sits one level in. Every assertion below is about what was
  * derived rather than about how current it is, and the currency has its own
  * tests, so this reaches the value on whichever arm carries one.
  */
@@ -36,7 +36,7 @@ function derived<Result>(id: string): Result | undefined {
 }
 
 /**
- * The two shared Processors the SDK publishes, exercised against the REAL
+ * The two shared Processors the SDK publishes, exercised against the real
  * evaluator and a real `TimelineStore`.
  *
  * The point of a Processor is that one derivation serves every consumer, and a
@@ -200,7 +200,7 @@ function countEvaluations(): { get: () => number; stop: () => void } {
 /**
  * The counter above is the instrument every once-per-frame assertion rests on,
  * so it gets its own control: a counter that cannot exceed one-per-frame would
- * report success no matter what the evaluator did. Two DISTINCT processors,
+ * report success no matter what the evaluator did. Two distinct processors,
  * each activated twice, must read 2 per frame, which is the shape the migrated
  * widgets would have produced had each kept deriving for itself.
  */

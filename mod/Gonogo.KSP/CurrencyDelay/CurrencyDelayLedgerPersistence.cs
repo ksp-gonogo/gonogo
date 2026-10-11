@@ -3,10 +3,10 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <summary>
     /// Nests a <see cref="PendingCreditLedger"/>'s <c>ToConfigNode</c>/<c>FromConfigNode</c>
     /// round-trip inside a scenario module's own persisted <c>ConfigNode</c>, and loads it back
-    /// into an EXISTING ledger instance rather than replacing it.
+    /// into an existing ledger instance rather than replacing it.
     ///
     /// That distinction matters because <c>CurrencyDelayScenario</c> constructs one shared
-    /// <see cref="PendingCreditLedger"/> in <c>OnAwake</c> and hands the SAME instance to the
+    /// <see cref="PendingCreditLedger"/> in <c>OnAwake</c> and hands the same instance to the
     /// stock interceptor and the reveal applier (and binds it onto DelayedScienceSink); if
     /// <c>OnLoad</c> swapped in
     /// a brand-new ledger returned by <c>PendingCreditLedger.FromConfigNode</c>, those three would

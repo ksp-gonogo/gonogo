@@ -7,7 +7,7 @@ namespace Gonogo.KSP.Gates
     /// The requirements the built-in Uplinks declare, written once so a command
     /// declaration reads as what it needs rather than as a bag of strings.
     ///
-    /// <para>Every one is STATIC: <see cref="CommandRequirement.Needs"/> is empty,
+    /// <para>Every one is static: <see cref="CommandRequirement.Needs"/> is empty,
     /// so the engine can decide it with no arguments at all. That is what makes
     /// the answer askable in advance, which is the whole point of a declared gate
     /// over a check inside the handler. An argument-dependent requirement is

@@ -12,20 +12,20 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// U5 "Layer A" synthetic end-to-end coverage for the FOUNDATION channels,
+    /// U5 "Layer A" synthetic end-to-end coverage for the foundation channels,
     /// the vessel/system/career/science/parts core surface that needs no
     /// KSP-facing uplink. Each test subscribes a real
     /// <see cref="System.Net.WebSockets.ClientWebSocket"/> to a channel,
-    /// ticks ONE hand-authored synthetic <see cref="KspSnapshot"/> through the
+    /// ticks one hand-authored synthetic <see cref="KspSnapshot"/> through the
     /// real production mapper (the same <c>*ViewProvider</c> the in-game uplink
     /// registers, wired via this project's KSP-free <c>Test*Uplink</c> replicas),
-    /// and asserts BOTH the payload shape AND the envelope <see cref="Meta"/>
+    /// and asserts both the payload shape and the envelope <see cref="Meta"/>
     /// that arrives on the wire.
     ///
     /// <para><b>Meta on the wire</b> (<c>Sitrep.Core.Courier.MakeMeta</c>):
     /// <see cref="Meta.Source"/> is the Courier node id
-    /// (<see cref="ChannelEngine.NodeId"/> = <c>"system"</c>): NOT the topic
-    /// and NOT the payload's own <c>PayloadMeta.Source</c>; <see cref="Meta.ValidAt"/>
+    /// (<see cref="ChannelEngine.NodeId"/> = <c>"system"</c>): not the topic
+    /// and not the payload's own <c>PayloadMeta.Source</c>; <see cref="Meta.ValidAt"/>
     /// is the UT the sample was recorded at (the tick UT); <see cref="Meta.Seq"/>
     /// is a strictly-increasing per-Courier sequence counter (&gt; 0 on the
     /// first delivery). With <c>networkDelaySeconds: 0</c> the sample is
@@ -59,7 +59,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Runs ONE synthetic snapshot through the given uplinks and returns the
+        /// Runs one synthetic snapshot through the given uplinks and returns the
         /// single StreamData delivered for <paramref name="topic"/>. Subscribes
         /// via <see cref="WsTestHarness.SubscribeAsync"/> (which consumes the
         /// subscribe ack) then the tick's keyframe is the next frame.
@@ -292,7 +292,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The envelope <see cref="Meta.Seq"/> strictly increases across
-        /// successive deliveries on the SAME Courier: proving the sequence
+        /// successive deliveries on the same Courier: proving the sequence
         /// counter on the wire is real and monotonic, not a per-payload
         /// fabrication. Two ticks, two frames, ascending Seq.
         /// </summary>

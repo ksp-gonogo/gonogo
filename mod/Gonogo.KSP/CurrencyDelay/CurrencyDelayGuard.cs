@@ -5,7 +5,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <summary>
     /// Marks a currency-balance write as "ours" so the stock On*Changed events it fires get
     /// recognised and skipped, whichever of StockCurrencyInterceptor's neutralise path or
-    /// RevealApplier's reveal-replay path is NOT the one currently writing. Both hold the same
+    /// RevealApplier's reveal-replay path is not the one currently writing. Both hold the same
     /// instance (constructed once by their owner and passed to each) rather than each keeping a
     /// private flag: a reveal's AddFunds/AddScience/AddReputation call re-fires the exact events
     /// the interceptor subscribes to, and without a guard shared between the two, the interceptor

@@ -143,7 +143,7 @@ public class CommandRequest<TArgs>
     /// <see cref="Meta.ValidAt"/>, which therefore reads 0 on a command response
     /// unless the client fills this in.</para>
     /// <internal>
-    /// The <c>Value&lt;"ut"&gt;</c> retyping pass runs over wire PAYLOAD types
+    /// The <c>Value&lt;"ut"&gt;</c> retyping pass runs over wire payload types
     /// only, so this stays a bare number in <c>contract.ts</c> and carries its
     /// unit in <c>units.json</c>.
     /// </internal>
@@ -221,7 +221,7 @@ public class CommandResponse<TResult>
 
 /// <summary>
 /// Sent the moment a command starts its delayed journey, carrying the one-way
-/// light-time it will actually travel. It says the command is on its way and
+/// signal delay it will actually travel. It says the command is on its way and
 /// when to expect a reply, never that anything executed.
 ///
 /// <para>A client cannot work this out for itself. The delay depends on the
@@ -236,7 +236,7 @@ public class CommandResponse<TResult>
 /// <c>system.uplink.pending</c> carry an id Gonogo assigns instead, since two
 /// clients can choose the same request id.</para>
 ///
-/// <para>Absent for a dispatch that never rides light-time (a
+/// <para>Absent for a dispatch that never rides signal delay (a
 /// <c>TrueNow</c> command, or a live delay resolving to zero), because there is
 /// no flight to wait out. Absent also for a refusal, which sends an
 /// <see cref="ErrorMsg"/> instead. A client must therefore treat "no acceptance
@@ -262,7 +262,7 @@ public class CommandAccepted
     public string RequestId { get; set; } = "";
 
     /// <summary>
-    /// One-way light-time from the sending vantage to the node this command is
+    /// One-way signal delay from the sending vantage to the node this command is
     /// addressed to, as Gonogo knows it at dispatch. It is never re-sent: the
     /// sender may never learn of a route change after dispatch.
     ///
@@ -472,13 +472,13 @@ public class Hello
 /// any topic. Sent straight after <see cref="Hello"/> on every connection that
 /// has anything to learn, and again at every change.
 ///
-/// <para>It is not delayed by light time at any command centre: a load is a
+/// <para>It is not delayed by signal delay at any command centre: a load is a
 /// fact about the game on the machine, not about anything in flight.</para>
 /// <internal>
 /// A frame of its own, and not a value on a topic, because a game that is
 /// loading a scene has no clock that moves, and everything on a topic is
 /// delivered by that clock: a topic could say a load had started only after it
-/// had ended. There is no game time to count light time in while a load runs,
+/// had ended. There is no game time to count signal delay in while a load runs,
 /// and nothing else reaches any centre during it anyway.
 /// </internal>
 ///

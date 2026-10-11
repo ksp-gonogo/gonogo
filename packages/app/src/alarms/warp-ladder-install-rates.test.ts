@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AlarmHostService } from "./AlarmHostService";
 
 /**
- * The warp ladder has to be the INSTALL's, not stock's.
+ * The warp ladder has to be the install's, not stock's.
  *
  * An install is free to publish a warp table other than KSP's stock one,
  * Kopernicus and RealSolarSystem both do, so a ladder built from stock's rates

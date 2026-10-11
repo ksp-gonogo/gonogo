@@ -21,7 +21,7 @@ export type ThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
  *
  * - `"command"`: what the command centre this screen commands from has been
  *   told, so the alarm fires when that place learns the condition holds, one
- *   light-time after the craft passed it
+ *   signal delay after the craft passed it
  * - `"scet"`: the craft's own state, so the alarm fires when the craft reaches
  *   the condition
  *
@@ -84,15 +84,15 @@ export interface ThresholdTrigger {
 }
 
 /**
- * Whether this alarm's `onFire` actions are meant to run ABOARD: held by the
+ * Whether this alarm's `onFire` actions are meant to run aboard: held by the
  * mod and run in the frame the alarm fires, with no delay. Otherwise this
  * screen sends them when it learns of the fire, and they reach the craft one
- * light-time later.
+ * signal delay later.
  *
  * Aboard only where the craft itself could have judged the condition in that
  * frame: a time, which a sequencer aboard keeps, or a SCET threshold on a
  * reading of the craft. A threshold judged against what the command centre
- * has been told fires a light-time after the craft passed it, and one on the
+ * has been told fires a signal delay after the craft passed it, and one on the
  * game's own state (a career's funds) is not aboard any craft, so acting on
  * the craft in the same frame as either would carry the decision there
  * faster than light.
@@ -145,7 +145,7 @@ export type AlarmTrigger =
  * `project_central_alarm_pipeline.md`.
  *
  * Discriminated union from the start so future trigger-style side
- * effects (kOS RUN, log-and-move-on, emit-peer-message etc.) can be
+ * effects (kOS run, log-and-move-on, emit-peer-message etc.) can be
  * added without churning consumers.
  */
 export type AlarmFireAction = {
@@ -239,7 +239,7 @@ export interface AlarmSnapshot {
    * `warpSafetyMarginSeconds` of real-time, guaranteeing the alarm's
    * arming window is reachable. Null when no session is active.
    *
-   * `targetRate` is what that rung runs at on THIS install, or null while
+   * `targetRate` is what that rung runs at on this install, or null while
    * nothing has said. It rides the snapshot so a station never looks a rung up
    * in a ladder of its own: the rung numbers are shared, the rates behind them
    * belong to whichever game the host is connected to.
@@ -254,14 +254,14 @@ export interface AlarmSnapshot {
    * current rate and the alarm's lead window. Higher = more pessimistic /
    * earlier step-down. Configurable from the banner.
    *
-   * The FLOOR, not the whole margin: on a delayed craft the controller uses
-   * `max(this, owlt)`, because the operator's view is one light-time behind
+   * The floor, not the whole margin: on a delayed craft the controller uses
+   * `max(this, owlt)`, because the operator's view is one signal delay behind
    * and a warp window cannot be aborted from inside. See
    * `WarpControl.computeWarpToIndex`.
    */
   warpSafetyMarginSeconds: number;
   /**
-   * One-way light time to the craft, seconds, when the controller is holding
+   * One-way signal delay to the craft, seconds, when the controller is holding
    * open more room than the setting above asks for. Absent on a LAN session,
    * and absent from a snapshot minted by a host that predates it.
    *
@@ -274,7 +274,7 @@ export interface AlarmSnapshot {
    * Why the simulation would not arm a SCET alarm, keyed by alarm id, in the
    * mod's own words. Absent when nothing has been refused.
    *
-   * The refusal is the ONLY way a client learns a Topic cannot be read
+   * The refusal is the only way a client learns a Topic cannot be read
    * pre-reveal: what a SCET threshold may be armed against is a table inside
    * the mod and nothing publishes it, so the picker can offer a Topic the
    * simulation turns down. Carried on the snapshot so the row can say so,
@@ -286,7 +286,7 @@ export interface AlarmSnapshot {
    * Why an alarm's `onFire` list did not all reach the wire the last time it
    * fired, keyed by alarm id. Absent when nothing has been refused.
    *
-   * An action group is toggled by sending its INVERSE as an absolute set, so a
+   * An action group is toggled by sending its inverse as an absolute set, so a
    * fire whose `vessel.control` reading is held has nothing current to invert
    * and sends nothing. Without this the alarm reads `fired` while the gear sits
    * exactly where it was, and the row gives the operator no way to connect the
@@ -294,7 +294,7 @@ export interface AlarmSnapshot {
    */
   onFireRefusals?: Record<string, string>;
   /**
-   * The ids of alarms the simulation holds as UNREACHABLE: the craft the
+   * The ids of alarms the simulation holds as unreachable: the craft the
    * condition watches no longer exists, so they can never come due. Absent when
    * there are none.
    *

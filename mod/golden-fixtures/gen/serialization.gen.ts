@@ -6,11 +6,11 @@
  *
  * Unlike the other fixtures, there's no stateful TS reference class to run
  * scenarios against: the "reference implementation" being conformance-tested
- * IS `JSON.stringify` itself, plus the NaN/Infinity sentinel policy defined
+ * is `JSON.stringify` itself, plus the NaN/Infinity sentinel policy defined
  * here (see the big comment on `safeStringify` below). Each vector is one
  * representative message (every envelope variant, a Meta with normal
  * values, a second Meta with the non-default enum values, and NaN/Infinity
- * cases in both a fixed-schema numeric field AND a free-form payload value)
+ * cases in both a fixed-schema numeric field and a free-form payload value)
  * plus the exact JSON string `safeStringify` produces for it.
  *
  * `Sitrep.Core.Tests/EnvelopeSerializationGoldenFixtureTests.cs` parses each
@@ -19,7 +19,7 @@
  * produces the exact same on-wire shape the real TS SDK does for the same
  * message, sentinel encoding included.
  *
- * NOTE: `safeStringify`'s NaN/Infinity handling is NOT yet part of the
+ * Note: `safeStringify`'s NaN/Infinity handling is not yet part of the
  * shipped SDK (`@ksp-gonogo/sitrep-sdk` has no `serialize`/`write` helper at
  * all today, only `parseServerMessage` for reading). This generator
  * defines the policy so the C# side has a real contract to conform to; a
@@ -52,7 +52,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_FILE = join(__dirname, "..", "serialization.json");
 
 /**
- * THE NaN/Infinity wire-format sentinel policy (TS side); see
+ * The NaN/Infinity wire-format sentinel policy (TS side); see
  * `Sitrep.Core/Serialization/NanPolicy.cs` for the matching C# definition,
  * which both sides must agree on for this fixture to mean anything.
  *
@@ -64,7 +64,7 @@ const OUT_FILE = join(__dirname, "..", "serialization.json");
  * number is encoded as one of three fixed JSON string tokens matching JS's
  * own `String(x)` conversion: `"NaN"`, `"Infinity"`, `"-Infinity"`.
  *
- * Applied UNIFORMLY via `JSON.stringify`'s replacer function, which is
+ * Applied uniformly via `JSON.stringify`'s replacer function, which is
  * invoked for every value in the tree (top-level fields and every nested
  * payload/args/result value alike); there's no separate code path for
  * "schema" numbers vs "free-form" numbers, exactly mirroring

@@ -360,7 +360,7 @@ namespace Sitrep.Host.IntegrationTests
         /// quiet, the exact opposite of the point. The channel is freeze-exempt
         /// (the treatment <c>comms.link</c> already carries) and this pins both
         /// halves: the report gets through, and it gets through no earlier than
-        /// the vessel's last-known light-time allows.
+        /// the vessel's last-known signal delay allows.
         /// </summary>
         [Fact]
         public async Task AContactReportPublishedWhileTheVesselIsDarkStillReachesTheClient()
@@ -504,7 +504,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Vessel "q" at a 3-second light-time while connected, collapsing to 0
+        /// Vessel "q" at a 3-second signal delay while connected, collapsing to 0
         /// when it drops off the network (what the live routed read returns once
         /// there is no path to measure).
         /// </summary>
@@ -578,7 +578,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The other half of tracking a fleet link without a subscriber: an
-        /// outage that ENDS while nobody is watching lifts the mark, so the next
+        /// outage that ends while nobody is watching lifts the mark, so the next
         /// client is not told a craft back in contact is still dark.
         ///
         /// <para>The last subscriber leaving mid-outage forgets the subject's
@@ -647,13 +647,13 @@ namespace Sitrep.Host.IntegrationTests
         /// for ever, and its unsent recording does not sit in the engine for the
         /// life of the save.
         ///
-        /// <para>The mark is lifted by the tick that reports the craft CONNECTED
+        /// <para>The mark is lifted by the tick that reports the craft connected
         /// again, and a craft that no longer exists is never reported again at
         /// all. So the engine learns it is gone the only way it can: the ungated
         /// capture names every vessel every tick, and this one stopped being
         /// named.</para>
         ///
-        /// <para>The held recording is DROPPED rather than delivered. A wreck has
+        /// <para>The held recording is dropped rather than delivered. A wreck has
         /// no transmitter, so there is no instant a dump could honestly be
         /// stamped as sent from, and handing it over later would tell the
         /// operator things that never reached them.</para>
@@ -710,7 +710,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The sweep needs a roster to compare against. A tick that names NO
+        /// The sweep needs a roster to compare against. A tick that names no
         /// vessel cannot be told apart from a capture that did not run, and
         /// reading it as "the fleet is empty" would drop a dark craft's recording
         /// on one skipped tick, which is the opposite of the bug being fixed.
@@ -866,12 +866,12 @@ namespace Sitrep.Host.IntegrationTests
     }
 
     /// <summary>
-    /// Routing for a per-vessel namespace whose key is NOT a vessel id.
+    /// Routing for a per-vessel namespace whose key is not a vessel id.
     ///
     /// <para>A namespace keyed by a device rather than by a craft cannot use
-    /// the plain <c>PerVesselNode</c> reading, which takes the key to BE the
+    /// the plain <c>PerVesselNode</c> reading, which takes the key to be the
     /// vessel id: it would address <c>fleet.&lt;deviceKey&gt;</c>, a node
-    /// nothing ever writes a delay for. That is a QUIETER failure than the
+    /// nothing ever writes a delay for. That is a quieter failure than the
     /// wrong delay it would be fixing, which is why such a namespace declares
     /// a resolver instead.</para>
     ///
@@ -895,7 +895,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A key this pass cannot place routes to the ACTIVE CRAFT, where an
+        /// A key this pass cannot place routes to the active craft, where an
         /// unrouted topic already sits, rather than to a minted node the ledger
         /// has never heard of. Never inventing an id is the point: a node with
         /// no delay row is worse than one with the wrong delay, because nothing
@@ -926,7 +926,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A per-vessel namespace with NO resolver keeps reading its key AS the
+        /// A per-vessel namespace with no resolver keeps reading its key as the
         /// vessel id, which is how every <c>fleet.&lt;guid&gt;</c> namespace
         /// works and what must not change.
         /// </summary>

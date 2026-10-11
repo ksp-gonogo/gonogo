@@ -8,9 +8,9 @@ import {
 import { LocalStorageStore } from "@ksp-gonogo/data";
 
 /**
- * Runtime host/port + live status for the Sitrep telemetry stream. The HOST
+ * Runtime host/port + live status for the Sitrep telemetry stream. The host
  * is now the shared core `gameHost` (every Uplink reads the same one; see
- * core `settings/`); this module owns only the telemetry PORT (:8090), which
+ * core `settings/`); this module owns only the telemetry port (:8090), which
  * is a property of the service, not the machine.
  *
  * Shared between `SitrepTelemetryProvider` (which owns and builds the actual
@@ -76,7 +76,7 @@ export function setSitrepHostConfig(config: SitrepHostConfig): void {
   }
 }
 
-/** Subscribe to any change in the effective host/port (a save OR a core gameHost change). */
+/** Subscribe to any change in the effective host/port (a save or a core gameHost change). */
 export function subscribeSitrepHostConfig(cb: () => void): () => void {
   hostConfigListeners.add(cb);
   return () => hostConfigListeners.delete(cb);
@@ -85,7 +85,7 @@ export function subscribeSitrepHostConfig(cb: () => void): () => void {
 let transportStatus: DataSourceStatus = "disconnected";
 const statusListeners = new Set<(status: DataSourceStatus) => void>();
 
-/** Called by `SitrepTelemetryProvider` whenever its OWNED live transport's status changes. */
+/** Called by `SitrepTelemetryProvider` whenever its owned live transport's status changes. */
 export function reportSitrepTransportStatus(status: DataSourceStatus): void {
   if (transportStatus === status) return;
   transportStatus = status;
@@ -146,7 +146,7 @@ export function subscribeSitrepReconnectNonce(cb: () => void): () => void {
  * pattern in `dataSources/kos.ts`), so tests that touch it must reset
  * between runs to avoid leaking state across `it()`s in the same file.
  *
- * Does NOT clear the core `gameHost` setting, tests that need a clean host
+ * Does not clear the core `gameHost` setting, tests that need a clean host
  * also call `resetSettingsForTests()` from `@ksp-gonogo/core`.
  */
 export function resetSitrepRuntimeForTests(): void {

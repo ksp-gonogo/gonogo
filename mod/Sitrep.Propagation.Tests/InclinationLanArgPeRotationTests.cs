@@ -6,7 +6,7 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation.Tests
 {
     /// <summary>
-    /// Nonzero inc/lan/argPe case, verified by rotation INVARIANTS rather
+    /// Nonzero inc/lan/argPe case, verified by rotation invariants rather
     /// than a re-derivation of the rotation matrix itself (which would just
     /// duplicate <see cref="KeplerProvider"/>'s own arithmetic):
     ///

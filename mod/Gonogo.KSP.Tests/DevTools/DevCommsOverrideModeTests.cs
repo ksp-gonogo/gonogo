@@ -4,7 +4,7 @@ namespace Gonogo.KSP.Tests.DevTools
 {
     /// <summary>
     /// A request file left at <c>restore</c> once forced the active craft's link
-    /// CONNECTED for as long as the file stood. Behind the Mun the craft's path
+    /// connected for as long as the file stood. Behind the Mun the craft's path
     /// measured zero, the reveal gate was told it was in contact, and telemetry
     /// and commands crossed with no delay. No mode may force a link up.
     /// </summary>

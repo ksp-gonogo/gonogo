@@ -17,7 +17,7 @@ namespace Sitrep.Host.IntegrationTests
     /// populated from <c>ChannelEngine.ProcessDispatchCommand</c>'s delayed
     /// branch and pruned on Tick. Prediction-only, hard invariant (see
     /// <see cref="PendingUplink"/>'s doc comment): an entry carries only
-    /// dispatch-time facts and ages out on the PREDICTED round trip
+    /// dispatch-time facts and ages out on the predicted round trip
     /// (<c>DispatchedAt + 2*OneWaySeconds</c>), never on real completion,
     /// this suite never asserts on <c>uplink.HandledCount</c> or any other
     /// execution-side signal, only on the queue's own delivered shape.
@@ -254,7 +254,7 @@ namespace Sitrep.Host.IntegrationTests
         /// expectation it can draw and a spinner.
         ///
         /// <para>Still a dispatch-time fact: the engine reads the args it was
-        /// handed and never the craft. It is also the only path a SECOND command
+        /// handed and never the craft. It is also the only path a second command
         /// centre or a station screen has to the value, since own-dispatch
         /// memory is per-client by construction.</para>
         /// </summary>
@@ -464,7 +464,7 @@ namespace Sitrep.Host.IntegrationTests
 
 
         /// <summary>
-        /// The engine tells the DISPATCHING CLIENT the flight time it actually
+        /// The engine tells the dispatching client the flight time it actually
         /// scheduled, so a loss deadline is sized from the route the command
         /// took rather than from the only delay a client can see.
         ///
@@ -507,7 +507,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A dispatch with no light-time to wait out reports nothing. Silence
+        /// A dispatch with no signal delay to wait out reports nothing. Silence
         /// here is the ordinary answer for an instant command, not a failure,
         /// and a client must not read it as one.
         /// </summary>
@@ -716,7 +716,7 @@ namespace Sitrep.Host.IntegrationTests
             /// <summary>
             /// Two real declared control-channel commands, handled here so a
             /// dispatch of one actually enqueues: ProcessDispatchCommand only
-            /// enqueues a command some uplink handles. Their NAMES are what
+            /// enqueues a command some uplink handles. Their names are what
             /// matter, since the commanded-value lookup is keyed on the command
             /// and reflected off the contract's own [SitrepControlChannel]
             /// declarations, not off anything this double says.

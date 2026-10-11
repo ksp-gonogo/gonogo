@@ -10,9 +10,9 @@ import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
  * The reveal rule for `selector` (":hover" or ":focus") on `heading`'s own
  * generated class, ancestored under `panel`'s: the shape styled-components
  * compiles `${PanelContainer}:hover &` to, which is the reverse nesting of
- * `emittedStateRuleFor` (that helper reads a state on the element's OWN
+ * `emittedStateRuleFor` (that helper reads a state on the element's own
  * class, not an ancestor's). An interpolated `${Component}` reference
- * compiles to the STABLE `sc-` class, not the dynamic one `emittedRuleFor`
+ * compiles to the stable `sc-` class, not the dynamic one `emittedRuleFor`
  * matches on, so the two helpers key off different classes. `undefined` when
  * no such rule was emitted.
  */

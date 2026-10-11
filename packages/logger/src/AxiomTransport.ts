@@ -15,14 +15,14 @@ export interface AxiomTransportOptions {
   /** Axiom dataset name. Required. */
   dataset: string;
   /**
-   * Pre-built Axiom client. Provide this OR `token`. Tests typically
+   * Pre-built Axiom client. Provide this or `token`. Tests typically
    * inject a mock; production builds pass `token` and let the transport
    * construct the SDK's `Axiom` client itself.
    */
   client?: AxiomIngestClient;
   /** Axiom API token. Used only when `client` is omitted. */
   token?: string;
-  /** Custom Axiom URL (e.g. EU region or self-hosted). */
+  /** Custom Axiom URL (e.g. Eu region or self-hosted). */
   url?: string;
   /** Org id for personal tokens. */
   orgId?: string;

@@ -13,7 +13,7 @@ namespace Sitrep.Host.Comms
     ///
     /// <para>Every figure is worked out from the receiving centre's own roster
     /// and its own contact plan, which are made of what that centre has heard.
-    /// So a centre is never quoted a light-time to a craft it has not heard
+    /// So a centre is never quoted a signal delay to a craft it has not heard
     /// is a centre, and a figure moves only when the news that moves it has
     /// arrived. The delays the engine times traffic by are not these: those
     /// are measured over the game's own links, because they decide when light
@@ -31,7 +31,7 @@ namespace Sitrep.Host.Comms
         /// <param name="home">The home centre, or null.</param>
         /// <param name="antennas">Every ground station, each of which is home's own antenna: see <see cref="GroundNetwork"/>.</param>
         /// <param name="ut">Now.</param>
-        /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
+        /// <param name="lightFactor">What a real signal delay is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         public static CommandCentreSeparation Separation(
             IReadOnlyList<CommandCentreEntry> roster,
             ContactPlan? plan,
@@ -91,7 +91,7 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// The light-time of the route the plan has open now between two nodes,
+        /// The signal delay of the route the plan has open now between two nodes,
         /// measured as <c>comms.delay</c> measures a path: the length of each
         /// hop to where its receiver will be, at the speed the game is set to
         /// model. Zero for a node and itself, null with no open route.

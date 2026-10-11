@@ -11,7 +11,7 @@ namespace Gonogo.KSP
     ///
     /// <para>Unlike <c>SilenceTrackerScenario</c> this does not own the state it
     /// persists: the book belongs to <see cref="ActiveVesselScope"/>, which is a
-    /// static read from channel mappers that outlive any scene. So OnAwake CLEARS
+    /// static read from channel mappers that outlive any scene. So OnAwake clears
     /// the book instead of rebuilding it - the incoming save's own relations arrive
     /// through OnLoad a moment later, and a kerbal from the save being left behind
     /// is not in this world.</para>

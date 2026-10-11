@@ -4,18 +4,18 @@ import { defaultDarkTheme, type UiKitTheme } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 
 /**
- * `@ksp-gonogo/sitrep-sdk/testing`'s `harnessTheme` is a PORT of
+ * `@ksp-gonogo/sitrep-sdk/testing`'s `harnessTheme` is a port of
  * `@ksp-gonogo/theme`'s `defaultDarkTheme`, not a re-export: the sdk is the leaf
  * everything else depends on, so it can name neither `@ksp-gonogo/theme` (private)
  * nor `@ksp-gonogo/ui-kit` (which imports the sdk, so the edge would be a cycle).
  * This is the guard that keeps the copy honest.
  *
  * It lives in `packages/core` because core is the only package that can see both
- * ends: it already depends on the sdk AND on ui-kit, which re-exports the real
+ * ends: it already depends on the sdk and on ui-kit, which re-exports the real
  * theme wholesale. Neither of the two packages under comparison can import the
  * other.
  *
- * It WALKS the real theme rather than listing what to check, so a token added to
+ * It walks the real theme rather than listing what to check, so a token added to
  * `defaultDarkTheme` is caught by the next run without anyone remembering this file
  * exists. That property is the whole point: a fixture listing 45 keys would go
  * stale silently the first time a 46th was added.

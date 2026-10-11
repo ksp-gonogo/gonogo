@@ -6,21 +6,21 @@
  * The bug it fixes is one only a picture states plainly: with the
  * Administration Building shut, KSP answers eligibility for nothing on the
  * roster, and the old parse coerced that silence to `false`, so a large
- * career put its whole programme list under a heading reading LOCKED while
+ * career put its whole programme list under a heading reading locked while
  * every card underneath said the state was unknown.
  *
  * Two scenes, and the pair is the point:
  *
  * - `admin-building-shut` is that career at the same scale: 91 synthetic
- *   rows, 88 of them unanswered. It is the scene worth rendering against BOTH sides of the
+ *   rows, 88 of them unanswered. It is the scene worth rendering against both sides of the
  *   commit, because the heading is the defect
  * - `three-buckets` cuts the same roster down until Available, Locked and
  *   Eligibility unknown are on screen together, which the shut-facility scene
  *   cannot show: it leaves Available empty by construction
  *
- * Deliberately NOT registered in `widgets.ts`, for the reason
+ * Deliberately not registered in `widgets.ts`, for the reason
  * `render-reckoned-tail.ts` gives: that file is the visual gate's input, and a
- * scene added to it with no committed baseline fails the gate as MISSING.
+ * scene added to it with no committed baseline fails the gate as missing.
  * These exist to be looked at by a person.
  *
  * No `dist` staleness guard here, unlike `render-reckoned-tail.ts`: the change
@@ -29,7 +29,7 @@
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-eligibility-unknown`.
  * Pass `--out <dir>` to write somewhere other than this checkout's
- * `local_docs`, which is how the BEFORE half is captured without the two runs
+ * `local_docs`, which is how the before half is captured without the two runs
  * overwriting each other.
  */
 import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";

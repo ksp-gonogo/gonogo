@@ -1,8 +1,8 @@
 /**
  * `SharedDelayedStreams`: the per-camera delayed-pipeline cache. Proves the
  * headline correctness claim of the 2026-07-17 sharing work: delay is a
- * property of the CAMERA, so N consumers of one track share ONE build (one
- * processor), the last consumer tears it down, and a SECOND camera is
+ * property of the camera, so N consumers of one track share one build (one
+ * processor), the last consumer tears it down, and a second camera is
  * independent. A mid-stream late consumer joins the existing pipeline rather
  * than spawning a second.
  */

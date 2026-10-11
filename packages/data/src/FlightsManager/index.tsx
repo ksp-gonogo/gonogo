@@ -134,10 +134,10 @@ export interface FlightsManagerProps {
  * nothing left for the operator to press.
  *
  * Station visibility: browsing/star/chapters/graph/export/delete/bulk
- * actions/keep-latest-N are NOT gated by `isMain`, Task 4's peer RPCs
+ * actions/keep-latest-N are not gated by `isMain`, Task 4's peer RPCs
  * (`flight-rpc-request`/`query-range-request` against `"missionHistory"`)
  * make them work identically on a station via `PeerClientDataSource`. Only
- * the REPLAY action stays `isMain`-only: `ReplaySessionProvider`/
+ * the replay action stays `isMain`-only: `ReplaySessionProvider`/
  * `ReplaySessionController` are only mounted on `MainScreen`, not a
  * data-availability gap peer RPCs could close, a screen the station
  * genuinely doesn't run. Recording is not rendered here at all:
@@ -595,7 +595,7 @@ export function FlightsManager({
  * Read-only recording status readout. `AutoRecordController`, mounted once at
  * `MainScreen` independent of whether this modal is even open, records every
  * flight automatically. There is deliberately no start/stop control here: a button
- * that could start a SECOND, independent `StreamRecorder` session on top of
+ * that could start a second, independent `StreamRecorder` session on top of
  * the auto-recorder's would fight it (two open sessions on the same
  * `TelemetryClient`, two competing fixtures), and a "stop" button has
  * nothing well-defined to do to a recording this component doesn't own.

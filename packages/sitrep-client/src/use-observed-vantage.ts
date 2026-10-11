@@ -7,7 +7,7 @@ import { useTelemetryClientOptional } from "./context";
  * `TelemetryProvider` mounted.
  *
  * The counterpart to `useSelectedVantage`, and the one to reach for wherever a
- * surface must STATE which vantage the data in front of the operator is delayed
+ * surface must state which vantage the data in front of the operator is delayed
  * from rather than reflect a choice they made. On a station the two disagree:
  * its frames are relayed from a host session it does not own, so its own
  * selection never moves off the default while the host's can be anywhere.

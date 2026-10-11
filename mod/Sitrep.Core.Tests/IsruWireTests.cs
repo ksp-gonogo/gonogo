@@ -7,7 +7,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// The <c>isru.*</c> payloads through the REAL stream-data wire path. Both
+    /// The <c>isru.*</c> payloads through the real stream-data wire path. Both
     /// topics publish a bare <c>List&lt;T&gt;</c> raw, so without a
     /// <see cref="JsonWriter.AppendValue"/> case per element type a populated
     /// payload throws <c>NotSupportedException</c> at the wire boundary and a
@@ -138,7 +138,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The vanilla path leaves the bag null, and a null bag writes NO key at
+        /// The vanilla path leaves the bag null, and a null bag writes no key at
         /// all. This is the additive claim the extension mechanism rests on: a
         /// payload no provider extended is byte-for-byte what it would be if the bag
         /// did not exist.

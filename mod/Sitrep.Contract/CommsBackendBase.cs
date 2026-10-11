@@ -178,7 +178,7 @@ public abstract class CommsBackendBase : ICommsBackend
     /// distance between its two endpoint positions.</para>
     /// <internal>
     /// Built here rather than per backend for the same reason signal delay is
-    /// core: light-time over shared geometry is physics, and a backend that
+    /// core: signal delay over shared geometry is physics, and a backend that
     /// could shorten a hop could shorten a delay.
     /// </internal>
     /// </summary>

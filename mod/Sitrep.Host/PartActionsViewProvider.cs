@@ -44,7 +44,7 @@ namespace Sitrep.Host
         /// to that: the C#-to-registry Topic sync gate
         /// (<c>packages/app/src/__tests__/topic-cs-sync.test.ts</c>) scrapes
         /// <c>const string *Topic* = "..."</c> and would then demand this appear in
-        /// the runtime Topic registry, which a PREFIX never can, it is not a topic
+        /// the runtime Topic registry, which a prefix never can, it is not a topic
         /// id. Every other dynamic namespace in the mod is named <c>*Prefix</c> for
         /// exactly this reason.</para>
         /// </summary>
@@ -135,7 +135,7 @@ namespace Sitrep.Host
         /// deployable modules on one part) stay separate, which is correct, they
         /// are separate buttons in the real PAW.</para>
         ///
-        /// <para>Ordering is stable and NOT alphabetical: the actuator yields the
+        /// <para>Ordering is stable and not alphabetical: the actuator yields the
         /// part's own events before its modules', in module order, which is the
         /// order KSP itself builds the window in. Re-sorting would make the
         /// operator's list disagree with the game's for no gain. Ties are
@@ -181,7 +181,7 @@ namespace Sitrep.Host
         /// <para><b>Why the producer has to gate at all.</b>
         /// <c>Sitrep.Core.ChannelEmitter</c>'s own change-gate compares values with
         /// <c>Equals</c>, which for a freshly-built
-        /// <c>Dictionary&lt;string, object?&gt;</c> is REFERENCE equality: a
+        /// <c>Dictionary&lt;string, object?&gt;</c> is reference equality: a
         /// per-tick rebuild of an identical payload would therefore look like a
         /// change every single tick and emit a keyframe every single tick. That
         /// would defeat the whole point of a near-static channel (a part's action
@@ -262,8 +262,8 @@ namespace Sitrep.Host
         /// Provenance, matching <see cref="VesselPartsViewProvider"/>'s: the
         /// subject is the vessel the part is on, carried in the prefixed
         /// <c>vessel:&lt;guid&gt;</c> form every other vessel payload's
-        /// <c>meta.source</c> uses. This is the ONLY place the payload names its
-        /// vessel; the topic string carries a PART id, not a vessel guid, and the
+        /// <c>meta.source</c> uses. This is the only place the payload names its
+        /// vessel; the topic string carries a part id, not a vessel guid, and the
         /// per-Topic <c>vesselId</c> field is deliberately absent (the subject
         /// boundary belongs at the ledger, not repeated on every sample).
         /// </summary>

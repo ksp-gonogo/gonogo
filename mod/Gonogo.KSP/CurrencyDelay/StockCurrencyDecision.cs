@@ -44,7 +44,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>Granted at KSC (or with no resolvable vessel): reveals instantly.</summary>
         Home,
 
-        /// <summary>Earned somewhere with a known vessel: delayed to KSC light-time.</summary>
+        /// <summary>Earned somewhere with a known vessel: delayed to KSC signal delay.</summary>
         Away,
     }
 
@@ -124,11 +124,11 @@ namespace Gonogo.KSP.CurrencyDelay
         };
 
         /// <summary>
-        /// AWAY only when the reason is one of the vessel-bearing stock
-        /// reasons AND the caller actually resolved a vessel for this
+        /// Away only when the reason is one of the vessel-bearing stock
+        /// reasons and the caller actually resolved a vessel for this
         /// change - a null/vessel-less source (some third-party mod awards,
         /// reverse-engineered recovery credit, a VesselLoss with no
-        /// correlated death vessel) degrades to HOME rather than inventing
+        /// correlated death vessel) degrades to home rather than inventing
         /// an origin.
         /// </summary>
         public static CurrencyOrigin ClassifyOrigin(StockTransactionReason reason, bool hasVessel)
@@ -137,7 +137,7 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Builds the pending credit for a neutralised AWAY change, or null
+        /// Builds the pending credit for a neutralised away change, or null
         /// when there is nothing worth queuing (a zero base amount neutralises
         /// to nothing and would only clutter the ledger).
         ///
@@ -145,11 +145,11 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <c>OnCurrencyModifierQuery.GetInput(Currency)</c>, pre-clamp -
         /// never derived from <c>shadowBalance</c>. This is deliberate and
         /// load-bearing: reputation gains are curve-normalised against the
-        /// CURRENT balance (<c>ModifyReputationDelta</c>), so a base of -10
+        /// current balance (<c>ModifyReputationDelta</c>), so a base of -10
         /// can apply as ~-18.7 depending on where reputation sits at the
         /// moment it lands. Reversing an already-applied delta would bake in
-        /// whatever normalisation happened at EARN time; replaying the base
-        /// at REVEAL time lets the game re-normalise against the
+        /// whatever normalisation happened at earn time; replaying the base
+        /// at reveal time lets the game re-normalise against the
         /// reveal-time balance instead, which is the only way the credit
         /// nets out correctly. <c>shadowBalance</c> is accepted for
         /// traceability in <see cref="StockCurrencyCredit.OriginDescription"/>

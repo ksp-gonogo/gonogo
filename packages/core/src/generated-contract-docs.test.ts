@@ -13,13 +13,13 @@ import { describe, expect, it } from "vitest";
  * `mod/codegen.sh` used to emit 1,906 lines of field names with no doc comment
  * characters at all, from C# carrying 10,265 `///` lines. Two things restore it
  * and either can be undone without breaking a build: the codegen twins emit an
- * XMLDOC file (`mod/CodegenTwin.props`) and `RtDocVisitor` translates it. CI
+ * xmldoc file (`mod/CodegenTwin.props`) and `RtDocVisitor` translates it. CI
  * already diffs the committed SDK against a fresh run, so a generator that
  * stopped carrying prose would be caught for the core file. Nothing covered the
  * ten Uplink slices, which CI's diff does not look at.
  *
  * The leak half is the other failure. What Reinforced.Typings hands the writer
- * is the summary's RAW XML, so the way this breaks is not an empty file but a
+ * is the summary's raw XML, so the way this breaks is not an empty file but a
  * `/** <para><b>Typing-only mirror.</b>` on the published surface.
  */
 

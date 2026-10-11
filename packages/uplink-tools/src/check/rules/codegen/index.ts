@@ -5,7 +5,7 @@ import { findUplinkDir } from "../../../cli/bake";
 import { generate } from "../../../cli/codegen";
 import type { CheckContext, FixableFinding, Rule } from "../../types";
 
-/** Whether the .NET SDK answers on PATH, which codegen builds the contract slice with. */
+/** Whether the .NET SDK answers on path, which codegen builds the contract slice with. */
 export function dotnetAvailable(): boolean {
   const probe = spawnSync("dotnet", ["--version"], { stdio: "ignore" });
   return probe.error === undefined && probe.status === 0;

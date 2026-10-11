@@ -68,7 +68,7 @@ namespace Sitrep.Host
         /// latest snapshot entry with <c>T &lt;= ut</c>.
         ///
         /// <para>
-        /// UNSAFE for driving a live replay of a recording that may contain
+        /// Unsafe for driving a live replay of a recording that may contain
         /// a UT rewind (e.g. a <c>game-state-load</c> quickload): this
         /// method compares each entry's <c>T</c> against the caller's
         /// monotonically-increasing target, so once <paramref name="ut"/>

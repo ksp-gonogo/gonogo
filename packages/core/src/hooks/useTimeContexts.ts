@@ -10,13 +10,13 @@ import { useTelemetry } from "./useTelemetry";
 /** The two qualifiers for the current screen, and the gap behind them. */
 export interface TimeContexts {
   /**
-   * One-way light time from the craft to the observing vantage, seconds, as
+   * One-way signal delay from the craft to the observing vantage, seconds, as
    * the view clock itself is offset by. 0 on a LAN session, when no stream is
    * mounted, and when the vantage is the craft.
    *
-   * Exposed because a caller that must CONVERT between the clocks needs the
+   * Exposed because a caller that must convert between the clocks needs the
    * number and not just the label: a warp target computed as a SCET fires on
-   * the view clock one light-time earlier.
+   * the view clock one signal delay earlier.
    */
   owltSeconds: number;
   /**
@@ -61,7 +61,7 @@ export function deriveTimeContexts(
  * <MissionDate value={apoapsisUt} context={scet} />
  * ```
  *
- * Both halves come from what the stream is ACTUALLY doing rather than from a
+ * Both halves come from what the stream is actually doing rather than from a
  * setting: the delay is the one the view clock is offset by (so it holds
  * through a blackout, the same as every other delayed readout does), and the
  * vantage is `useObservedVantage`, the centre the arriving frames are stamped
@@ -70,7 +70,7 @@ export function deriveTimeContexts(
  *
  * **Not for a space-centre value.** Funds, the research queue and every career-mod
  * completion date are held at the home command and describe no craft, so there
- * is no far-end clock for a SCET to name. Reach for this where a DELAYED craft
+ * is no far-end clock for a SCET to name. Reach for this where a delayed craft
  * channel's instant is drawn, or where the app computes one from delayed
  * telemetry.
  */
@@ -93,7 +93,7 @@ export function useTimeContexts(): TimeContexts {
  *
  * A held roster is still the roster: centres do not move, so nothing but
  * never-arrived leaves it empty. The roster is held at the home command, so a
- * vessel vantage reads it at its own light-time home and the raw id stands in
+ * vessel vantage reads it at its own signal delay home and the raw id stands in
  * until it lands. Same branch `VantageControl` takes over the same read, for
  * the same reason.
  */

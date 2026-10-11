@@ -10,13 +10,13 @@ import {
 
 /**
  * The invariant this file exists for: `uplink-tools bundle` and
- * `uplink-tools docs` write the SAME bytes for the same Uplink.
+ * `uplink-tools docs` write the same bytes for the same Uplink.
  *
  * They used to write nine fields and thirteen under one filename, and no reader
  * of either could tell which the loader honours. The two callers still differ in
  * what they can see (only `docs` evaluates the client, so only `docs` has its
  * registrations), so the check is not "one function, therefore one answer": it is
- * that the two INPUT shapes reach the same output.
+ * that the two input shapes reach the same output.
  */
 
 const scratch: string[] = [];

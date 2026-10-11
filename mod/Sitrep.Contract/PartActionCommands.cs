@@ -9,7 +9,7 @@ namespace Sitrep.Contract;
 /// right-click Part Action Window, the remote-control equivalent of the player
 /// clicking it in-game.
 ///
-/// <para>It acts on a part aboard the craft, so it is delayed by light time
+/// <para>It acts on a part aboard the craft, so it is delayed by signal delay
 /// (<see cref="DelayRole.Delayed"/>), like <c>vessel.control.*</c> and the
 /// robotics commands.</para>
 ///
@@ -18,7 +18,7 @@ namespace Sitrep.Contract;
 /// settable value, and the button's own label is what changes ("Deploy"
 /// becomes "Retract"). Read the result back from
 /// <c>vessel.partActions.&lt;flightId&gt;</c>, which reports the new set of
-/// buttons one light time later.</para>
+/// buttons one signal delay later.</para>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]

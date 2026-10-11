@@ -7,18 +7,18 @@
  *   vessel.identity.parentBodyIndex = 1, named "Kerbin" by system.bodies
  *   vessel.flight.altitudeAsl       = ~101 km (above Kerbin's atmosphere)
  *
- * Kerbin is a known body with an atmospheric model, so on the HOST:
+ * Kerbin is a known body with an atmospheric model, so on the host:
  *   - The reference pressure curve renders (no GraphView empty-state,
  *     the "Waiting for body telemetry..." fallback only fires when `body`
  *     is `undefined`).
  *   - Neither "No atmospheric model registered" nor "Unknown body"
  *     notices fire (Kerbin resolves cleanly with `body.atmosphere` set).
  *
- * On the STATION, `bodyName` never resolves: only the MAIN screen mounts
+ * On the station, `bodyName` never resolves: only the main screen mounts
  * `SitrepTelemetryProvider` today (station stream forwarding over PeerJS
  * is a documented pending gap, see that provider's own doc comment), so
  * `body` stays `undefined` there and GraphView's "Waiting for body
- * telemetry..." empty state DOES fire. The "Unknown body"/"No atmospheric
+ * telemetry..." empty state does fire. The "Unknown body"/"No atmospheric
  * model registered" notices still correctly stay absent on the station
  * (they require a DEFINED-but-unregistered body name, not an absent one),
  * so those two checks are safe on both screens.

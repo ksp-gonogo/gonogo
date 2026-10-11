@@ -15,7 +15,7 @@ import { harnessTheme } from "./theme";
 type Wrapper = JSXElementConstructor<{ children: ReactNode }>;
 
 /**
- * Composes rather than replaces: a caller's own `wrapper` nests INSIDE the theme,
+ * Composes rather than replaces: a caller's own `wrapper` nests inside the theme,
  * so adding a `TelemetryProvider` or a router never silently drops the theme
  * underneath it and turns every kit primitive into a TypeError.
  */

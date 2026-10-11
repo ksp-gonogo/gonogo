@@ -13,7 +13,7 @@ namespace Sitrep.Host.Tests
     ///
     /// <para><c>_arcSource</c> and <c>_horizonSource</c> are plain statics. While
     /// one test has a resolver installed, a <c>BuildOrbit</c> anywhere else in the
-    /// assembly runs through THAT test's closure, and xunit runs collections in
+    /// assembly runs through that test's closure, and xunit runs collections in
     /// parallel. The reader does not fail: the counter it inflates belongs to the
     /// installing test, which fails instead, and only under enough load to widen
     /// a window a few statements wide.</para>
@@ -108,7 +108,7 @@ namespace Sitrep.Host.Tests
         /// it; <c>BuildOrbitTruth</c> and <c>BuildOrbitTruthWire</c> do not, so a
         /// truth call is not a reach however much it looks like one.
         ///
-        /// <para>Qualified on the type, so a method DECLARATION named after the
+        /// <para>Qualified on the type, so a method declaration named after the
         /// routine does not match, and read from comment-stripped source, so
         /// prose about the routine does not either.</para>
         /// </summary>

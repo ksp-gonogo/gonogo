@@ -11,7 +11,7 @@ import {
 } from "./websocket-transport";
 
 /**
- * The BINARY LANE at the transport seam: which lane a frame lands on, what the
+ * The binary lane at the transport seam: which lane a frame lands on, what the
  * budget seams see, and what happens to a frame that cannot be read.
  *
  * The frames are the ones the C# writer actually produced
@@ -108,7 +108,7 @@ function bytesOf(base64: string): Uint8Array {
 }
 
 /**
- * UTF-8 bytes in THIS realm's `Uint8Array`.
+ * UTF-8 bytes in this realm's `Uint8Array`.
  *
  * Not `new TextEncoder().encode(...)`, which is Node's under jsdom and returns
  * a buffer from Node's realm: `buffer instanceof ArrayBuffer` is then false
@@ -237,7 +237,7 @@ describe("WebSocketTransport on the binary lane", () => {
   });
 
   /**
-   * PLANTED CONTROL: the JSON lane still works, and reports on its own seam.
+   * Planted control: the JSON lane still works, and reports on its own seam.
    * A discriminator that sent everything down the binary branch would pass
    * every assertion above and break the whole telemetry stream.
    */
@@ -264,7 +264,7 @@ describe("WebSocketTransport on the binary lane", () => {
   /**
    * Absence discipline at the receiving end, and the reason the unreadable arm
    * exists at all. A truncated frame is dropped rather than delivered
-   * half-read, and it is SAID: at every layer above this, a dropped frame and
+   * half-read, and it is said: at every layer above this, a dropped frame and
    * a quiet channel are the same thing, so the console line is the only place
    * the difference is ever visible.
    */

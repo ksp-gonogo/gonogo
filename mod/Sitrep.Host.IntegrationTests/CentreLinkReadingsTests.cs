@@ -12,7 +12,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// <c>comms.delay</c>, <c>comms.signal</c> and <c>comms.degrade</c> are
-    /// each command centre's own. The delay is the light-time of the path that
+    /// each command centre's own. The delay is the signal delay of the path that
     /// centre believes in. The signal and its grading are the active craft's
     /// own reading of its whole path, which reaches a centre no sooner than
     /// light from the farthest node on that path.
@@ -149,7 +149,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The relay is destroyed, so the game's own path for the active craft,
         /// and with it the game's own delay, is gone that instant. A centre's
-        /// delay stays the light-time of the path it still believes in until
+        /// delay stays the signal delay of the path it still believes in until
         /// the relay's silence could have reached it.
         /// </summary>
         [Fact]
@@ -298,7 +298,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The craft's link goes. Its radio then reads nothing at all, and that
         /// reading is how a centre learns the strength fell to nothing: it
-        /// arrives one light-time after the loss, as the news that the link is
+        /// arrives one signal delay after the loss, as the news that the link is
         /// down does, and the last good reading does not stand through the
         /// outage.
         /// </summary>

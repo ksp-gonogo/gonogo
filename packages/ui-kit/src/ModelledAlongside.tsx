@@ -40,8 +40,11 @@ export interface ModelledFigureAlongsideProps<Figure> {
 }
 
 /**
- * A modelled figure drawn beside the observation it was carried from, never in
- * its place, with the modelled mark. The caller draws the observation first.
+ * A modelled figure drawn beside the observation it was carried from, with the
+ * modelled mark. The caller draws the observation first, and the modelled
+ * figure never replaces it. Useful for showing the operator what a vessel's
+ * state is estimated to be now, next to the last value received from it. Used
+ * by {@link Countdown}.
  *
  * Drawn only where the figure stands apart from the observation at the
  * precision both are drawn (see {@link standsApart}), so a model that agrees
@@ -91,8 +94,9 @@ function ModelledMark({ children }: { children: ReactNode }) {
 /**
  * A reading's observation through {@link Unit}, followed by the model's figure
  * with the modelled mark where the model reaches past the newest data
- * received to a figure that reads apart from it. Shorthand for a {@link Unit} followed by a
- * {@link ModelledAlongside} fed from {@link modelledBeyondReceived}.
+ * received to a figure that reads apart from it. Useful for showing the
+ * operator both the last value received from a vessel and the value estimated
+ * for now. Used by the almanac rows of the system view.
  *
  * @category Unit
  */

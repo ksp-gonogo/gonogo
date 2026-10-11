@@ -65,7 +65,7 @@ export interface DeviceTransport {
    */
   onSchema?(cb: (update: SchemaUpdate) => void): () => void;
   /**
-   * Subscribe to raw lines arriving from the device, BEFORE parsing. Used
+   * Subscribe to raw lines arriving from the device, before parsing. Used
    * by the calibration wizard to display what the device is actually
    * sending so the user can drag-select offset/length. Optional: virtual
    * transports may not fire it.

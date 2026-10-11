@@ -51,7 +51,7 @@ namespace Sitrep.Host
     /// Kerbin, on the Mun or at Minmus may launch from any pad in that system,
     /// and a centre at Duna may launch from none of them.
     ///
-    /// <para>The launch itself stays instant. This gates the SENDER, not the
+    /// <para>The launch itself stays instant. This gates the sender, not the
     /// moment, which is why it is a refusal and not a delay: a centre on another
     /// world may watch a pad at KSC but may not put a craft on it.</para>
     ///

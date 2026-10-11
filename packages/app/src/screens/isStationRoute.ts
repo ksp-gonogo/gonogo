@@ -26,7 +26,7 @@ export function currentRoute(): "main" | "station" | "pilot" {
  * (`/`)?
  *
  * Kept as its own predicate rather than folded into `currentRoute` at every
- * call site. What the BOOT sequence branches on is a different question, and
+ * call site. What the boot sequence branches on is a different question, and
  * has its own predicate below: see `bootsWithoutDirectMod`.
  */
 export function isStationRoute(): boolean {
@@ -34,11 +34,11 @@ export function isStationRoute(): boolean {
 }
 
 /**
- * Does this page load have NO direct socket to the mod, so the boot sequence
+ * Does this page load have no direct socket to the mod, so the boot sequence
  * must skip the live roster probe?
  *
  * A station never has one. A pilot on `http://` holds its own session at its
- * own vantage and takes the main screen's boot path, but a pilot on a SECURE
+ * own vantage and takes the main screen's boot path, but a pilot on a secure
  * origin cannot open an insecure socket, so it reads its
  * telemetry over the peer link instead (`PilotScreen` picks the transport by
  * the same test) and has nothing to probe. Probing anyway costs the full

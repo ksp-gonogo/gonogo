@@ -8,7 +8,7 @@ namespace Sitrep.CaptureAnalysis;
 /// <summary>
 /// Renders a <see cref="CaptureReport"/> as text.
 ///
-/// <para>The CANNOT CONCLUDE section is printed last and unconditionally, even
+/// <para>The cannot conclude section is printed last and unconditionally, even
 /// when it is empty, so a reader who scrolls to the bottom always learns whether
 /// they are looking at a verdict or at a set of observations that fall short of
 /// one. It is not an error channel and it is not a warning: it is the answer to

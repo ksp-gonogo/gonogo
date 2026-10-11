@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The comms backend election (comms-uplink-design.md §2): the sharpest
-    /// correctness risk the U2 brief flagged. Drives the REAL <see cref="Kernel"/>
+    /// correctness risk the U2 brief flagged. Drives the real <see cref="Kernel"/>
     /// (byte-for-byte the TS reference port, golden-fixture-conformed) through
     /// the three cases: RA absent ⇒ CommNet vanilla; RA present ⇒ RA wins;
     /// and the elected instance is actually queryable as an
@@ -96,7 +96,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The adversarial ordering the happy-path tests above miss: the
-        /// PROVIDER uplink is discovered BEFORE the capability-owning uplink.
+        /// provider uplink is discovered before the capability-owning uplink.
         /// Single-pass registration would run the provider's Register (its
         /// Kernel.RegisterProvider) before the "comms" capability existed:
         /// RegisterProvider would throw, RA would be dropped, and CommNet would

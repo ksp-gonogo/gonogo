@@ -89,7 +89,7 @@ export type ResolvedSystemEntity =
       /** Apex (the entity's own `position`, projected). */
       x1: number;
       y1: number;
-      /** Tip (`shape.to`, projected): where the pulse travels TOWARD. */
+      /** Tip (`shape.to`, projected): where the pulse travels toward. */
       x2: number;
       y2: number;
       segmentLengthPx: number;

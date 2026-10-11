@@ -10,22 +10,22 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// What an UNMODIFIED game actually answers, reached the way the mod reaches it:
+    /// What an unmodified game actually answers, reached the way the mod reaches it:
     /// bootstrap a kernel, register nothing, resolve the <c>"propagation"</c> capability,
     /// and hold whatever comes back to <c>mod/golden-fixtures/propagation.json</c>.
     ///
     /// <para><c>GoldenFixtureConformanceTests</c> pins the same fixtures against
     /// <see cref="KeplerProvider"/> directly, which is the cross-language pin against
     /// <c>packages/sitrep-client/src/propagation.test.ts</c>. This one pins something
-    /// different and one layer up: that the ELECTION PATH, with no providers registered,
+    /// different and one layer up: that the election path, with no providers registered,
     /// arrives at a propagator satisfying them. Nothing else checks that the two ends of
     /// that path meet, and a wiring change could silently put an unrelated propagator in
     /// front of every silence prediction while both halves stayed green on their
     /// own.</para>
     ///
-    /// <para><b>Deliberately conditional on nothing being elected.</b> It does NOT say
+    /// <para><b>Deliberately conditional on nothing being elected.</b> It does not say
     /// "whatever is elected must match two-body fixtures", and it must never be widened
-    /// into saying that: a backend running different physics SHOULD disagree with these
+    /// into saying that: a backend running different physics should disagree with these
     /// numbers, and a test that punished it for disagreeing would be pressure on a future
     /// provider to match values it has no business matching. The claim is only about the
     /// stock game.</para>

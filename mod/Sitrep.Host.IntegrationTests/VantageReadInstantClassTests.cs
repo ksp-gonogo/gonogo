@@ -11,16 +11,16 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// A topic is worth the same at one instant however it is asked for.
     ///
-    /// <para>Two paths reach the same archive: a SUBSCRIBER is routed onto
+    /// <para>Two paths reach the same archive: a subscriber is routed onto
     /// <see cref="ChannelEngine.MetaVantage"/> when its topic is instant-class
-    /// (<c>TrueNow</c>), and a READ
+    /// (<c>TrueNow</c>), and a read
     /// (<see cref="ChannelEngine.ReadTopicAtVantage"/>, which is what a
     /// command-vantage alarm evaluates against) names a vantage of its own. The
-    /// read used to take the whole-network light-time on every topic, so an
-    /// instant-class topic answered a light-time late at a command vantage while
+    /// read used to take the whole-network signal delay on every topic, so an
+    /// instant-class topic answered a signal delay late at a command vantage while
     /// the subscriber already had it. Same topic, same instant, two answers.</para>
     ///
-    /// <para>These tests are deliberately about that ASYMMETRY and not about the
+    /// <para>These tests are deliberately about that asymmetry and not about the
     /// routing that fixes it: what an operator's alarm compares is the value, and
     /// it has to be the value the dashboard beside them is showing.</para>
     /// </summary>
@@ -34,7 +34,7 @@ namespace Sitrep.Host.IntegrationTests
         /// (vantage, node) delay pair and no node-default serves, so
         /// <c>StubNetwork.DelayTo</c> falls through to the whole-network default,
         /// which is exactly the tier <c>CaptureSignalDelay</c> drives from the
-        /// active vessel's signal delay. That fall-through IS the defect.
+        /// active vessel's signal delay. That fall-through is the defect.
         /// </summary>
         private const string CommandVantage = "ground:Kerbal Space Center";
 
@@ -74,10 +74,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A freeze-exempt topic is NOT instant-class. comms.link reports the
-        /// link, so it crosses a blackout, but it is still a light-time old
+        /// A freeze-exempt topic is not instant-class. comms.link reports the
+        /// link, so it crosses a blackout, but it is still a signal delay old
         /// wherever it is read: the subscriber and the read both get it one of
-        /// the vantage's own light-times after the instant it describes, and
+        /// the vantage's own signal delays after the instant it describes, and
         /// neither gets it sooner.
         ///
         /// <para>Uses <see cref="ConnectivityHorizonTestUplink"/> rather than the
@@ -124,8 +124,8 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The control, and the reason this cannot be fixed by dropping the
-        /// delay from the read: an ORDINARY Delayed topic must still be a
-        /// light-time old at a command vantage. Nothing has reached it yet at
+        /// delay from the read: an ordinary Delayed topic must still be a
+        /// signal delay old at a command vantage. Nothing has reached it yet at
         /// UT 0 on a 240s link.
         /// </summary>
         [Fact]

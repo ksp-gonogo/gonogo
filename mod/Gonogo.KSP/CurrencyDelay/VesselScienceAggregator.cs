@@ -76,14 +76,14 @@ namespace Gonogo.KSP.CurrencyDelay
         /// just flushed (cadence elapsed or threshold crossed), or null if
         /// the increment was merely accumulated.
         ///
-        /// RevealUt anchors to the UT of the LAST increment in the window
+        /// RevealUt anchors to the UT of the last increment in the window
         /// (this one, since a flush always happens on the call that
         /// triggers it), not the flush-check time - the credit is "earned"
-        /// as of the last real activity, and light-time is captured from
+        /// as of the last real activity, and signal delay is captured from
         /// that same moment. This is the class's answer to "science smears
         /// across arrival": a vessel travelling Mun -> Kerbin during one
-        /// window reveals with the light-time of wherever it was on the
-        /// increment that closed the window, and the NEXT window (starting
+        /// window reveals with the signal delay of wherever it was on the
+        /// increment that closed the window, and the next window (starting
         /// fresh, closer to Kerbin) reveals sooner - coarser than
         /// per-increment smearing, but the same effect at chunk
         /// granularity.

@@ -7,13 +7,13 @@ namespace Sitrep.Propagation.Visibility
     /// Which bodies lie between a station's body and a vessel's parent, and so which
     /// ones can block the path.
     ///
-    /// <para>The walk goes UP from the station's body to the common ancestor, then
-    /// DOWN to the vessel's parent, and every body it passes through is an occluder.
+    /// <para>The walk goes up from the station's body to the common ancestor, then
+    /// down to the vessel's parent, and every body it passes through is an occluder.
     /// Both directions occur constantly: a craft at a moon of the station's planet
     /// only descends, while anything interplanetary must first climb to the
     /// star.</para>
     ///
-    /// <para><b>This no longer says where any of them IS.</b> It used to hand the
+    /// <para><b>This no longer says where any of them is.</b> It used to hand the
     /// geometry a conic per link, which is what left the two-body assumption sitting
     /// in a caller. It now names the bodies and leaves their positions to whichever
     /// propagation provider is elected, which is the only thing that can answer that

@@ -16,10 +16,10 @@ namespace Sitrep.Host.Tests
     /// Locks the <c>vessel.parts</c> typing: proves the named
     /// <see cref="VesselParts"/>/<see cref="VesselPart"/>/<see cref="PartBounds"/>
     /// contract POCOs mirror: field name for field name, camelCase wire key for
-    /// camelCase wire key: the EXACT serialized shape
+    /// camelCase wire key: the exact serialized shape
     /// <see cref="VesselPartsViewProvider.BuildPartsWire"/> emits. This is the
     /// ToWire-completeness guard: add a POCO field, add a wire key, or this goes
-    /// RED (an emitted key with no property, or a property with no emitted key).
+    /// red (an emitted key with no property, or a property with no emitted key).
     /// The wire is written by <c>JsonWriter</c> walking the provider's
     /// dictionary, not by serializing these POCOs, so drift between the two
     /// shapes is exactly what this catches.

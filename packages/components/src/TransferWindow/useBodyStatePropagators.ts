@@ -68,7 +68,7 @@ const ORIGIN_UNKNOWN: StateLike = {
  * `Unbounded`: a transfer search asks about instants nobody has reached. One
  * batched dispatch per body.
  *
- * Null unless it can deliver the WHOLE of both axes, since a half-provider,
+ * Null unless it can deliver the whole of both axes, since a half-provider,
  * half-local grid would put a seam through the Δv surface. `axes` must be
  * memoised by the caller: a new identity dispatches again.
  */

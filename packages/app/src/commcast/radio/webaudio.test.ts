@@ -3,7 +3,7 @@
  *
  * The rest of `webaudio.ts` is the one file in this folder that cannot be
  * exercised without a browser, which is why the clip backend exists. This much
- * can: the sink's failure mode is a PROMISE, and a promise nobody catches is
+ * can: the sink's failure mode is a promise, and a promise nobody catches is
  * an uncaught error whatever it was built on.
  */
 import { describe, expect, it } from "vitest";

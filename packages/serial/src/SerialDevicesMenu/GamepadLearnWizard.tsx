@@ -58,7 +58,7 @@ function axisDirectionHint(role: GamepadRole): string {
  * "Learn roles..." offer point): it renders no dialog chrome of its own.
  *
  * Button-shaped roles (face-*, bumper-*, select/start/home, stick-*-press,
- * dpad-*) capture the FIRST input crossing `isCapturable`'s threshold, same
+ * dpad-*) capture the first input crossing `isCapturable`'s threshold, same
  * as `InputMappingTab`'s "press to bind" flow, and auto-advance. Axis-
  * shaped roles (stick-*-x/y) instead track the largest excursion seen while
  * the prompt is active, a diagonal push would otherwise false-fire the

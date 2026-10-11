@@ -1,16 +1,16 @@
 /**
- * Animation-capture probe entry: mounts a widget with a REAL, live-ticking
+ * Animation-capture probe entry: mounts a widget with a real, live-ticking
  * clock, unlike `probe-entry.tsx`'s deterministic `Date.now`-pinned mount,
  * so time-driven visuals (the SystemView command-traffic pulses) actually
  * move frame to frame while a Playwright video recording runs. Kept as its
  * own bundle, entirely separate from `probe-entry.tsx`: the deterministic
  * PNG/visual-gate path never imports or depends on anything in this file.
  *
- * A single live `TelemetryProvider` carries EVERY topic, mirroring
+ * A single live `TelemetryProvider` carries every topic, mirroring
  * `setupStreamFixture` (the widgets' own stream test-adapter, see
  * `selection.integration.test.tsx`/`commsTraffic.integration.test.tsx` for
  * the pattern this borrows): SystemView's `useTelemetry("vessel.orbit")`
- * etc. are single-arg TOPIC reads, routed through whichever
+ * etc. are single-arg topic reads, routed through whichever
  * `TelemetryClient` is mounted, never the legacy `MockDataSource` registry.
  * The one difference from `setupStreamFixture`: this `ViewClock` uses its
  * own default `nowWall` (real wall time), never scrubbed, so
@@ -64,7 +64,7 @@ export interface CapturePayload {
   /** Replayed once, in order, right after the live provider mounts. */
   streamEmits: CaptureStreamEmit[];
   /**
-   * UT-per-wall-second slope for THIS capture's clock. Defaults to 1 (real
+   * UT-per-wall-second slope for this capture's clock. Defaults to 1 (real
    * time), the setting a traffic-pulse capture needs (a pulse's leg length
    * is a real `oneWaySeconds`, so it must animate at 1 UT-second per real
    * second to read as smooth motion). An orbit-tracking capture instead
@@ -182,7 +182,7 @@ async function renderCapture(payload: CapturePayload): Promise<void> {
   await rafTick();
 }
 
-/** Re-emit on the CURRENTLY mounted capture's transport: the driver's hook
+/** Re-emit on the currently mounted capture's transport: the driver's hook
  *  for keeping traffic flowing across a long recording (e.g. re-dispatching
  *  `system.uplink.pending` with a fresh `dispatchedAt` every few seconds so
  *  the video shows more than one pulse cycle). No-op if nothing is mounted
@@ -195,13 +195,13 @@ let liveSampleTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
  * Starts a repeating re-emit of `emits`, each tick stamped with the
- * mounted clock's OWN current `(wall, utNowEstimate)` pair as
+ * mounted clock's own current `(wall, utNowEstimate)` pair as
  * `deliveredAt`/`validAt`. `useViewUt()` (what `SystemDiagram` positions
- * body/vessel dots from) is the CONFIRMED view: it only advances as far as
+ * body/vessel dots from) is the confirmed view: it only advances as far as
  * the max `validAt` any delivered sample has actually claimed
  * (`confirmedEdgeUt`'s clamp), so a single one-shot emit at mount leaves it
  * pinned forever, however fast the clock's `warpRate` runs. Repeatedly
- * re-stamping the SAME payloads at the clock's own current estimate keeps
+ * re-stamping the same payloads at the clock's own current estimate keeps
  * the confirmed edge glued to it, the same way a live mod connection's
  * steady sample stream would, so orbital motion actually animates for an
  * orbit-tracking capture. Idempotent: a second call replaces the first.
@@ -226,7 +226,7 @@ function startLiveSamples(
 
 /** The mounted clock's current TrueNow estimate (`useUtNow()`'s own read):
  *  lets the driver build a `system.uplink.pending` entry's `dispatchedAt`
- *  relative to what the clock ACTUALLY reports, rather than guessing at the
+ *  relative to what the clock actually reports, rather than guessing at the
  *  UT<->wall anchor `observeSample` establishes internally. `null` before
  *  anything is mounted. */
 function captureUtNow(): number | null {

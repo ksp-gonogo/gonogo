@@ -69,8 +69,8 @@ export interface UplinkReadinessEntry {
 }
 
 /**
- * A contract-major refusal, recognised by applying the mod's OWN rule to the
- * mod's OWN two numbers rather than by re-adjudicating anything: the host
+ * A contract-major refusal, recognised by applying the mod's own rule to the
+ * mod's own two numbers rather than by re-adjudicating anything: the host
  * refused it (`available: false`) and the majors differ. Both versions have to
  * have arrived, so an older mod that reports neither reads as a plain
  * unavailability, which is what it was before the numbers existed.

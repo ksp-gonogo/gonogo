@@ -26,7 +26,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The craft's window to the relay closes at 200, and a sample handed over in its last seconds lands after it does: what the relay carries is what was taken before this.</summary>
         private const double RelayCarriedBefore = 190;
 
-        /// <summary>A plan the test writes: each pair's windows and the light time across it, in game seconds.</summary>
+        /// <summary>A plan the test writes: each pair's windows and the signal delay across it, in game seconds.</summary>
         private static ContactPlan Plan(params (string A, string B, double Open, double? Close, double Light)[] pairs)
         {
             const double horizon = 100_000.0;
@@ -234,7 +234,7 @@ namespace Sitrep.Host.IntegrationTests
         /// The craft's link report describes the path as it is, so a copy held
         /// behind a recording would describe a path that no longer exists by the
         /// time it arrived. It stays exempt from holding: the loss reaches a centre
-        /// one light time after it happens and the clear one light time after the
+        /// one signal delay after it happens and the clear one signal delay after the
         /// path returns, whatever a relay is still holding, and nothing but the
         /// recorded telemetry arrives as a span.
         /// </summary>

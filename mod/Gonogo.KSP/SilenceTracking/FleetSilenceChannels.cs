@@ -89,16 +89,16 @@ namespace Gonogo.KSP.SilenceTracking
         }
 
         /// <summary>
-        /// MAIN-THREAD, UNGATED capture: reads every <c>FlightGlobals</c>
+        /// MAIN-THREAD, ungated capture: reads every <c>FlightGlobals</c>
         /// vessel's live connectivity/orbit/situation, advances
-        /// <see cref="SilenceTracker.Tick"/> (mutating the CURRENT save's
+        /// <see cref="SilenceTracker.Tick"/> (mutating the current save's
         /// tracker via <see cref="SilenceTrackerSink"/>), and returns an
         /// immutable snapshot of the touched vessels for the Courier thread
         /// to publish.
         ///
         /// <para>Snapshots rather than handing out the tracker's own
         /// <see cref="VesselContactState"/> instances: those are reused and
-        /// mutated again in place on the VERY NEXT main-thread tick, which
+        /// mutated again in place on the very next main-thread tick, which
         /// can run before the Courier thread has processed this one, so a
         /// raw reference crossing the thread boundary here could be read
         /// mid-mutation.</para>
@@ -243,7 +243,7 @@ namespace Gonogo.KSP.SilenceTracking
         }
 
         /// <summary>
-        /// The FULL element set, matching <c>KspHost</c>'s <c>vessel.orbit</c>
+        /// The full element set, matching <c>KspHost</c>'s <c>vessel.orbit</c>
         /// extraction field for field.
         ///
         /// <para>Zeroed inc/lan/argPe/meanAnomaly propagate an equatorial
@@ -254,7 +254,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// </summary>
         /// <summary>
         /// Whether the craft sits on its body rather than on a conic, which is the
-        /// game's own <c>LandedOrSplashed</c>: a craft in PRELAUNCH is landed too.
+        /// game's own <c>LandedOrSplashed</c>: a craft in prelaunch is landed too.
         /// The game stops maintaining such a craft's orbit once it is packed, so
         /// its elements describe nothing and a geometry swept from them fails the
         /// frame self-check by the body's radius on every capture.
@@ -301,7 +301,7 @@ namespace Gonogo.KSP.SilenceTracking
         {
             public double Ut { get; set; }
 
-            /// <summary>The vessels this tick TOUCHED, which is what the per-vessel topics publish.</summary>
+            /// <summary>The vessels this tick touched, which is what the per-vessel topics publish.</summary>
             public List<SilenceContactSnapshot> Vessels { get; set; } = new List<SilenceContactSnapshot>();
 
             /// <summary>Every tracked vessel, which is what the fleet-wide roster publishes.</summary>

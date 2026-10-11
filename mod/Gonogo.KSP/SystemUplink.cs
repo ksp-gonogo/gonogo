@@ -11,13 +11,13 @@ namespace Gonogo.KSP
     /// <see cref="ISitrepUplink"/>, proving the uplink contract fits
     /// the exact channel <c>GonogoBodiesServer</c> used to hand-wire.
     ///
-    /// Only ONE line of actual wiring survives the retrofit:
+    /// Only one line of actual wiring survives the retrofit:
     /// <see cref="SystemViewProvider.BuildSystemBodies"/> drops straight in
     /// as the <see cref="IUplinkHost.AddChannelSource"/> mapper argument,
     /// unchanged. No <see cref="ISnapshotSampler"/> is registered because
     /// <c>KspHost.Sample</c> already populates the raw <c>"bodies"</c>
     /// snapshot key unconditionally (see its own doc comment), a future
-    /// uplink whose data ISN'T already on the snapshot is what
+    /// uplink whose data isn't already on the snapshot is what
     /// <see cref="IUplinkHost.AddSampler"/> exists for.
     /// </summary>
     [SitrepUplink("system")]
@@ -27,7 +27,7 @@ namespace Gonogo.KSP
         /// Declares the <c>controlFrame</c> capability, with stock's own answer as
         /// its vanilla.
         ///
-        /// <para>Declared by the uplink that OWNS <c>system.frame</c> rather than
+        /// <para>Declared by the uplink that owns <c>system.frame</c> rather than
         /// alongside the vessel capabilities, which is the contract's own rule: the
         /// channel and the capability behind it move together, so a reader looking
         /// for what answers this topic finds both in one place.</para>

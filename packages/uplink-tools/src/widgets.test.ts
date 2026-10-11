@@ -5,7 +5,7 @@ import { beforeAll, describe, expect, it } from "vitest";
  * The package's whole contract is a side effect, so the test is that the side
  * effect happened. There is no API to assert on, which is the point.
  *
- * Held to the widgets that ticket 221 was FILED about rather than to a count, for the
+ * Held to the widgets that ticket 221 was filed about rather than to a count, for the
  * reason the sdk's own command scan was rewritten the same way: a count turns
  * "a widget was deleted" and "a widget was added" into the same failure, and
  * neither is what this guards. These four are the ones an Uplink outside this
@@ -30,7 +30,7 @@ const WIDGETS_THAT_BLOCKED_AN_UPLINK_PAGE = [
 describe("@ksp-gonogo/uplink-tools/widgets", () => {
   /**
    * Warmed once, with its own budget, because the whole cost of this file is
-   * ONE cold import and it lands on whichever test runs first. Measured: the
+   * one cold import and it lands on whichever test runs first. Measured: the
    * first test 2110ms and the second 1ms, which is not two tests of different
    * weight.
    *
@@ -43,7 +43,7 @@ describe("@ksp-gonogo/uplink-tools/widgets", () => {
    * already does, and one measured at 1356ms for it and passes in CI.
    *
    * Here rather than on each test so that the cost is attributed where it
-   * occurs and a genuinely slow ASSERTION still fails on the default.
+   * occurs and a genuinely slow assertion still fails on the default.
    */
   beforeAll(async () => {
     await import("./widgets");
@@ -65,7 +65,7 @@ describe("@ksp-gonogo/uplink-tools/widgets", () => {
      * ticket 317 measured and why this package exists rather than a second
      * stand-in.
      *
-     * Compared on what a stand-in CANNOT have rather than on the component
+     * Compared on what a stand-in cannot have rather than on the component
      * identity: `not.toBe(() => null)` reads like the right assertion and is
      * worthless, because the arrow it compares against is a fresh function that
      * could never be equal to anything.

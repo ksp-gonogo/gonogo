@@ -102,17 +102,17 @@ export interface StationUplinkLoaderProps {
  * mirrors `main.tsx` running its loader before `renderApp()`, since the
  * component registry doesn't notify on a late `registerComponent()` call.
  *
- * Waits for BOTH `useTelemetryClientOptional()` (the peer `TelemetryClient`,
+ * Waits for both `useTelemetryClientOptional()` (the peer `TelemetryClient`,
  * built in `SitrepTelemetryProvider`'s own mount effect: undefined for a
  * render or two after this component itself mounts) and `usePeerClient()`
  * (the `PeerClientService`, provided synchronously by `PeerClientProvider`
  * in practice, but read defensively the same way) before starting the load.
  *
- * Runs the load EXACTLY ONCE per mounted instance: `startedRef` latches
+ * Runs the load exactly once per mounted instance: `startedRef` latches
  * before the async work begins, so a React StrictMode dev double-invoke of
  * this effect (mount -> cleanup -> mount, same component instance, same
  * ref) never fires the loader twice: the guard is a ref, not state, so it
- * survives the simulated remount untouched. It does NOT re-run merely
+ * survives the simulated remount untouched. It does not re-run merely
  * because `telemetryClient`/`peerClient` change identity after the first
  * successful start; both are effectively stable for the lifetime of a
  * connected station session (see `StationScreen`), so this is a one-shot by
@@ -123,7 +123,7 @@ export interface StationUplinkLoaderProps {
  * doc comment: so this can never block forever waiting on a mod that isn't
  * talking (dev/offline/no-CPU station-only sessions still get the default
  * client set). A per-widget load failure quarantines that one Uplink
- * (existing loader behaviour); it never prevents the OTHER Uplinks (or the
+ * (existing loader behaviour); it never prevents the other Uplinks (or the
  * gate itself) from completing.
  */
 export function StationUplinkLoader({

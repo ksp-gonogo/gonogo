@@ -12,11 +12,11 @@ namespace Sitrep.Propagation.Tests
 {
     /// <summary>
     /// Cross-language conformance: asserts <see cref="KeplerProvider"/> matches
-    /// EVERY case in <c>mod/golden-fixtures/propagation.json</c> -- the same
+    /// every case in <c>mod/golden-fixtures/propagation.json</c> -- the same
     /// fixture file <c>packages/sitrep-client</c>'s TS <c>solve()</c> is
     /// asserted against (see <c>propagation.test.ts</c>). Both languages
     /// conforming to one shared fixture set is how we prove the C# server
-    /// and the TS SDK derive positions IDENTICALLY -- rather than each
+    /// and the TS SDK derive positions identically -- rather than each
     /// language separately "looking correct" while silently disagreeing
     /// with the other.
     ///

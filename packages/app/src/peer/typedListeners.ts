@@ -6,7 +6,7 @@ import { ListenerSet } from "@ksp-gonogo/data";
  * and `PeerClientService` were hand-rolling ~20 times each.
  *
  * `EventMap` maps an event key to the *argument tuple* fired for that event,
- * mirroring the existing `ListenerSet<[...]>` generics. It is NOT a
+ * mirroring the existing `ListenerSet<[...]>` generics. It is not a
  * message-type → payload map: the services derive listener args inside their
  * dispatcher handlers (e.g. `gonogoVote` fires `(conn.peer, msg.status)`),
  * and several events (`peerConnect`, `peerId`, `connStatus`, ...) aren't wire

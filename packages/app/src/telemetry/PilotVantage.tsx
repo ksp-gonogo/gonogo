@@ -7,15 +7,15 @@ import { useEffect } from "react";
 
 /**
  * The vantage id of the craft this page is aboard, or `undefined` until the
- * craft has named itself AND the roster agrees it is a command centre.
+ * craft has named itself and the roster agrees it is a command centre.
  *
- * The id comes off the `vessel.orbit` PAYLOAD's own `meta.source`. The mod
+ * The id comes off the `vessel.orbit` payload's own `meta.source`. The mod
  * stamps that `"vessel:<guid>"` (`Sitrep.Host.VesselViewProvider.BuildMeta`)
  * and `Gonogo.KSP.CommandCentres.CrewedVesselSource` mints a crewed centre's
  * id from the same guid the same way, so the two strings are equal by
  * construction rather than by a format this file would otherwise restate.
  *
- * NOT the ENVELOPE `meta.source` beside it, which is the Courier node and is
+ * Not the envelope `meta.source` beside it, which is the Courier node and is
  * the literal `"system"` for every non-fleet topic, so no roster id could ever
  * equal it and this binding would never fire. A sample with no payload meta
  * (a recording or golden fixture) names no craft, and keeps the ground vantage.
@@ -53,14 +53,14 @@ function usePilotCraftVantageId(): string | undefined {
  * Renders nothing: it is a binding, not a control. A pilot holds their own
  * session and therefore their own vantage, and nothing on the page ever
  * selected one, so the mod kept the session at home and a human strapped into
- * the craft read every instrument at the GROUND's light-time. That is the one thing `/pilot` exists to prevent.
+ * the craft read every instrument at the ground's signal delay. That is the one thing `/pilot` exists to prevent.
  *
- * Gated on the SELECTED vantage rather than the observed one. Observed lags a
- * whole light-time behind the request that moved it, so comparing against it
+ * Gated on the selected vantage rather than the observed one. Observed lags a
+ * whole signal delay behind the request that moved it, so comparing against it
  * would re-send `set-vantage` (and re-subscribe every active topic with it) on
  * every render until the frames caught up.
  *
- * It only ever moves the vantage ONTO a craft. Losing the reading is not
+ * It only ever moves the vantage onto a craft. Losing the reading is not
  * evidence the pilot got out, so a frame that stops arriving leaves the
  * binding where the last one put it, and a vessel switch re-points it as soon
  * as the new craft's own sample names itself.

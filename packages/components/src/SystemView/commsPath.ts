@@ -7,7 +7,7 @@ import {
 /**
  * The selected vessel's CommNet route to home, by BFS over `comms.network`'s edges; a graph node's `id` is a vessel's `vesselId`.
  *
- * `quality` governs traversal only: `"full"` uses only active edges, `"partial"` falls back to every edge, `"none"` is unreachable. It is NOT the colour source, because a vessel can route over another's active relay while its own control is Partial or None; `commsControlQuality` colours the line from the roster so it agrees with the info panel.
+ * `quality` governs traversal only: `"full"` uses only active edges, `"partial"` falls back to every edge, `"none"` is unreachable. It is not the colour source, because a vessel can route over another's active relay while its own control is Partial or None; `commsControlQuality` colours the line from the roster so it agrees with the info panel.
  */
 export type CommsPathQuality = "full" | "partial" | "none";
 

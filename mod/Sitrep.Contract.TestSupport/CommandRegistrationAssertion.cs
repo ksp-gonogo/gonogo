@@ -26,8 +26,8 @@ using System.Linq;
 namespace Sitrep.Contract.TestSupport
 {
     /// <summary>
-    /// Assertions about the agreement between what an Uplink DECLARES and what it
-    /// REGISTERS. Call both from each Uplink's own test project.
+    /// Assertions about the agreement between what an Uplink declares and what it
+    /// registers. Call both from each Uplink's own test project.
     /// </summary>
     public static class CommandRegistrationAssertion
     {
@@ -87,7 +87,7 @@ namespace Sitrep.Contract.TestSupport
         /// <summary>
         /// A registration that throws does not cost the registrations after it.
         ///
-        /// <para>Takes a FACTORY rather than an instance because it registers
+        /// <para>Takes a factory rather than an instance because it registers
         /// twice and an Uplink that has already registered may not be asked
         /// again.</para>
         /// </summary>

@@ -152,7 +152,7 @@ const INVENTORY: UplinkInventory = {
  * bites: an augment mounted inside a cross-package host threw "Cannot read
  * properties of null (reading 'useEffect')" from its first hook.
  *
- * Both assertions below are about the alias VALUE, and both are mistakes that
+ * Both assertions below are about the alias value, and both are mistakes that
  * were made and measured on the way to this rule rather than hypotheticals.
  */
 describe("one copy per page", () => {
@@ -201,14 +201,14 @@ describe("one copy per page", () => {
  * author reading the interface has no way to tell the difference either.
  *
  * Source text rather than behaviour, deliberately: the call site is in the
- * BROWSER half, which this node realm cannot mount, and the defect is
+ * browser half, which this node realm cannot mount, and the defect is
  * structural rather than conditional. Both halves are read off the file rather
  * than typed here, so a fifth hook added to the interface and not called fails
  * without anyone editing this test.
  *
- * It reads `renderScene`'s OWN BODY and not the whole file, which is the
+ * It reads `renderScene`'s own body and not the whole file, which is the
  * difference between a check and a decoration. The first draft asked whether
- * the file MENTIONED each hook, and removing the call passed it: the mention
+ * the file mentioned each hook, and removing the call passed it: the mention
  * had moved into a helper that nothing called any more, which is the same shape
  * as the bug. `renderScene` is what the driver invokes, so a call in its body
  * is one that runs.
@@ -358,7 +358,7 @@ describe("the generated browser entry", () => {
    * was `packages/components`, which is unpublished: naming it by specifier
    * would have meant a dependency the isolation rules forbid. Publishing
    * `@ksp-gonogo/uplink-tools/widgets` is what changed that, and it is the only way an
-   * Uplink that has LEFT this repo can draw a scene that names `_scene.hostWidget`.
+   * Uplink that has left this repo can draw a scene that names `_scene.hostWidget`.
    */
   it("takes an installed specifier and hands it to esbuild as written", () => {
     const dir = fakePackage({
@@ -670,7 +670,7 @@ describe("fixtures become scenes", () => {
    * succeeds with a picture of the wrong thing. That is why this refuses rather
    * than warning.
    *
-   * The assertions are on the MESSAGE, not merely that something threw. Two
+   * The assertions are on the message, not merely that something threw. Two
    * old-key fixtures were once observed exiting 1 for an unrelated reason,
    * which reads as the guard working and is not.
    */
@@ -727,7 +727,7 @@ describe("fixtures become scenes", () => {
    * A hostless contribution scene, which this file used to refuse outright
    * though `render-probe.tsx` implements one.
    *
-   * The line is whether the FRAMEWORK draws the slot or a host's own body does.
+   * The line is whether the framework draws the slot or a host's own body does.
    * `<id>.badges` is drawn by `Panel` for every host, so a stand-in renders it
    * exactly as the real widget would; both of the refusals below were measured
    * by running the real harness with the host removed, and each photographed a
@@ -1079,7 +1079,7 @@ describe("the widget section of the page", () => {
  * `uplink.md` was the one file an author wrote, and its per-registration
  * `## widget:<id>` sections were a second, longer answer to a question the
  * registration's own description already answers. The whole prose surface was
- * removed: what the page needs from an author is one FIELD, `description` on
+ * removed: what the page needs from an author is one field, `description` on
  * `defineUplinkClient`, and `buildReadme` refuses a page without it. A field has
  * a shape; a markdown file has whatever someone types.
  */
@@ -1153,7 +1153,7 @@ describe("frames become an animation", () => {
 });
 
 /**
- * A rendered PNG's BYTES are not drift, and its NAME is.
+ * A rendered PNG's bytes are not drift, and its name is.
  *
  * Written down in three places and disbelieved twice, most recently as a finding
  * that one Uplink's `docs --check` was "a coin flip on PNG bytes, independent of
@@ -1208,7 +1208,7 @@ describe("what makes an asset stale", () => {
  * "this picture moved", and the per-asset lines cannot say which happened.
  *
  * The negatives matter more than the positive here. A note that appears under
- * every red is a note nobody reads, and a kit change is the ONE cause that
+ * every red is a note nobody reads, and a kit change is the one cause that
  * reaches every asset at once while leaving every element count and every string
  * alone.
  */

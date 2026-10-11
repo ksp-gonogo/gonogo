@@ -28,7 +28,7 @@ export type ReadOnlyFieldValue =
  * @category Form
  */
 export interface ReadOnlyFieldProps {
-  /** What the value IS. Read first, and read every time. */
+  /** What the value is. Read first, and read every time. */
   label: ReactNode;
   /** Why it matters, or where it comes from. Announced with the label. */
   description?: ReactNode;
@@ -39,8 +39,9 @@ export interface ReadOnlyFieldProps {
 }
 
 /**
- * A labelled value the reader cannot change: data, not a disabled control,
- * which some screen readers skip and which promises it would work otherwise.
+ * A labelled value the operator cannot change, drawn as data and not as a
+ * disabled control (which some screen readers skip). Useful for showing a
+ * setting the operator can read but not edit. Used by the settings rows.
  *
  * Renders a description list, one `<dl>` per field so a lone field stays valid,
  * so a reader gets the label and value as one unit. A quantity goes through
@@ -70,8 +71,9 @@ export function ReadOnlyField({
 }
 
 /**
- * The value half on its own, for a caller that already draws its own label,
- * drawn exactly as {@link ReadOnlyField} draws it.
+ * The value half of a {@link ReadOnlyField} on its own, drawn exactly as
+ * `ReadOnlyField` draws it. Useful for a caller that already draws its own
+ * label beside a value the operator cannot change.
  *
  * @category Form
  */

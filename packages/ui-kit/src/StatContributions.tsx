@@ -21,10 +21,11 @@ export interface StatContributionsProps {
 
 /**
  * Every stat contributed to `slot`, drawn through the kit's own {@link Stat}.
+ * Useful for showing the operator figures that an Uplink adds to a widget's
+ * stat strip. Used by the astronaut complex.
  *
- * A fragment, not a wrapper: the cells land in the host's own `Grid` of stats
- * as siblings of its built-in ones. Renders nothing when
- * nothing is contributed, so a host can place it unconditionally. An entry's
+ * It renders a fragment: the cells land in the host's own `Grid` of stats as
+ * siblings of its built-in ones. Renders nothing when nothing is contributed, so a host can place it unconditionally. An entry's
  * quantity is drawn through {@link Unit}, else its text, else the null token;
  * a held figure is drawn with the held mark either way.
  *
@@ -60,8 +61,9 @@ export function StatContributions({ slot }: StatContributionsProps) {
 }
 
 /**
- * The figure: a quantity through `Unit`, else the entry's own text. An entry
- * carrying neither draws the null token rather than a blank cell.
+ * The figure of a contributed stat: a quantity through `Unit`, else the
+ * entry's own text. An entry carrying neither draws the null token rather than
+ * a blank cell. Used by {@link StatContributions}.
  */
 export function StatFigure({ entry }: { entry: StatEntry }) {
   // A `null` value still goes through `Unit`, which draws the null token itself.

@@ -19,7 +19,7 @@ import { resolveReadFrame } from "./reference-frame";
 /** Kerbin's GM, so the periods below are the real ~2000 s of a low orbit. */
 const KERBIN_MU = 3.5316e12;
 
-/** A low, near-circular Kerbin orbit in WIRE units: degrees where KSP uses degrees. */
+/** A low, near-circular Kerbin orbit in wire units: degrees where KSP uses degrees. */
 function lko(overrides: Record<string, unknown> = {}) {
   return {
     sma: { magnitude: 681_500 },

@@ -7,13 +7,13 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The sampler's error bound is measured here rather than asserted in a
-    /// comment, and it is measured against a REAL atmosphere: the pressure
+    /// comment, and it is measured against a real atmosphere: the pressure
     /// curve RealSolarSystem ships for Earth, evaluated the way KSP evaluates
     /// it (a Unity <c>AnimationCurve</c> cubic Hermite, in float32). That is
     /// the case the widget this exists for is actually flown in.
     ///
     /// <para>A synthetic exponential is tested alongside it for the opposite
-    /// reason: it is the shape a log-linear join reproduces EXACTLY, so it
+    /// reason: it is the shape a log-linear join reproduces exactly, so it
     /// catches an implementation that has stopped interpolating in log space
     /// at all, which a tolerance check on a real curve would still pass.</para>
     /// </summary>

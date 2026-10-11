@@ -14,7 +14,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// M5b Task 6 -- the headless payoff test: wires the KSP-FREE pipeline
-    /// EXACTLY as production does in-game (<see cref="ReplayKspHost"/> -&gt;
+    /// exactly as production does in-game (<see cref="ReplayKspHost"/> -&gt;
     /// <see cref="ChannelEngine"/>'s registered <see cref="SystemViewProvider"/>
     /// mapper -&gt; Courier/outbox wiring -&gt; a real
     /// <see cref="FleckTransportListener"/>), but driven by a synthetic
@@ -22,7 +22,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="ClientWebSocket"/> observes the delayed <c>system.bodies</c>
     /// stream correctly -- including through a UT rewind (an F9 quickload).
     ///
-    /// This now runs against the SAME <see cref="ChannelEngine"/> class
+    /// This now runs against the same <see cref="ChannelEngine"/> class
     /// <c>Gonogo.KSP.GonogoAddon</c> constructs in production (registering
     /// this project's own tiny <see cref="TestSystemUplink"/> instead of
     /// <c>Gonogo.KSP.SystemUplink</c>, since this project can't reference
@@ -35,13 +35,13 @@ namespace Sitrep.Host.IntegrationTests
     /// transport -&gt; client) is proven end to end without ever launching
     /// KSP.
     ///
-    /// NOTE (M5b final review): the "rewind" this test drives is a dip in
-    /// the RECORDED SESSION's own <c>t</c> values (entry C's t=3.0 sits
+    /// Note (M5b final review): the "rewind" this test drives is a dip in
+    /// the recorded session's own <c>t</c> values (entry C's t=3.0 sits
     /// below the immediately-preceding event's t=4.0) -- but that event
     /// entry never calls <c>server.Tick</c> (see <see cref="DriveOneStep"/>),
     /// so the UTs actually handed to the Courier/Clock across this whole
     /// test are 0, 2, 3, 6, 8: monotonically NON-DECREASING throughout. This
-    /// test does NOT exercise a backward tick UT at the server/Courier
+    /// test does not exercise a backward tick UT at the server/Courier
     /// Clock level, and so never caught the real defect (a live UT-backward
     /// quickload wedging the courier on the abandoned pre-quickload
     /// timeline). <see cref="ServerClockRewindResetsCourierAndResumesDeliveryWithoutStalling"/>
@@ -194,15 +194,15 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="ReplayKspHost"/> entirely, via <see cref="TestSystemUplink"/>'s
         /// raw-passthrough <c>test.raw</c> channel) so the UT sequence handed
         /// to the Courier/Clock is exactly what a live quickload produces: UT
-        /// climbs to a peak (0 -&gt; 5), then jumps BACKWARD (5 -&gt; 1,
+        /// climbs to a peak (0 -&gt; 5), then jumps backward (5 -&gt; 1,
         /// simulating an F9 load to an earlier save), then resumes forward.
         ///
-        /// FAILS against the pre-fix no-op-on-backward
+        /// Fails against the pre-fix no-op-on-backward
         /// <c>ManualClock.AdvanceTo</c>: the UT-5 tick's own pending delivery
         /// (fireUt=7) strands the clock at 5, so the post-rewind UT-1 tick's
         /// delivery (fireUt=3) can never fire while UT stays below 5 --
         /// <see cref="ReceiveStreamDataAsync"/> for the post-rewind frame
-        /// times out. PASSES once the server resets the courier's timeline
+        /// times out. Passes once the server resets the courier's timeline
         /// on a detected backward tick.
         /// </summary>
         [Fact]
@@ -292,14 +292,14 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Track C's fix, proven headlessly against the SAME
+        /// Track C's fix, proven headlessly against the same
         /// <see cref="ChannelEngine"/> production uses -- see this class's
-        /// doc comment. Ticks with ZERO subscribers must never even reach
+        /// doc comment. Ticks with zero subscribers must never even reach
         /// the emitter (proven via <see cref="ChannelEngine.ChannelCounters"/>,
         /// since "nothing arrived on the wire" alone doesn't distinguish this
         /// from the pre-fix behavior of no one being subscribed to receive it
         /// either way) -- and the moment a client subscribes, the very next
-        /// tick both reaches the emitter AND streams immediately (the
+        /// tick both reaches the emitter and streams immediately (the
         /// subscribe-triggered keyframe), with no wait for a change or a
         /// keyframe-cadence rollover.
         /// </summary>
@@ -355,7 +355,7 @@ namespace Sitrep.Host.IntegrationTests
         /// event, whichever is next in capture order -- see its own doc
         /// comment for why this, and not <c>AdvanceTo</c>, is the correct
         /// driver for a real recording that may rewind). If the step
-        /// consumed a SNAPSHOT, the raw snapshot is handed straight to
+        /// consumed a snapshot, the raw snapshot is handed straight to
         /// <see cref="ChannelEngine.TickAndWait"/> -- the exact shape
         /// <c>GonogoAddon.FixedUpdate</c> uses in-game
         /// (<c>engine.Tick(host.NowUt(), snapshot)</c>), just blocking so the
@@ -363,11 +363,11 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="SystemViewProvider.BuildSystemBodies"/> (registered by
         /// <see cref="TestSystemUplink"/>) rather than this method
         /// building the payload by hand. If the step consumed a lifecycle
-        /// EVENT instead, no tick is driven at all -- deliberately preserved
+        /// event instead, no tick is driven at all -- deliberately preserved
         /// from the pre-engine version of this test: this scenario's whole
-        /// point (see this class's own doc comment NOTE) is that the UTs
+        /// point (see this class's own doc comment note) is that the UTs
         /// reaching the Courier/clock stay monotonically non-decreasing
-        /// (0, 2, 3, 6, 8) even though the RECORDING'S own timestamps dip:
+        /// (0, 2, 3, 6, 8) even though the recording's own timestamps dip:
         /// ticking on the UT-4 event step too would hand the clock a real
         /// backward tick at step 4 (4 -&gt; 3), firing an unrelated
         /// timeline-reset this test doesn't expect. Detected by checking

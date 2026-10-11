@@ -8,11 +8,11 @@
  * over points the caller already holds, which is what makes a read frame free of
  * the hazard the in-game plotting frame carries. That one is singular and
  * synced, so a second screen picking it moves what the player sees; this one
- * cannot move anything at all. The boundary is the TRAJECTORY, not the
+ * cannot move anything at all. The boundary is the trajectory, not the
  * transform: a read frame inherits the fidelity of whatever propagated the
  * curve rather than conferring any of its own.
  *
- * {@link systemInstantAt} is NOT that. It EVALUATES the catalogue's elements at
+ * {@link systemInstantAt} is not that. It evaluates the catalogue's elements at
  * an arbitrary UT, which is a claim about where a body will be and not a
  * restatement of one. The claim is sound under stock, where a body rides a fixed
  * conic about a fixed parent and its place at a UT is a published fact computed
@@ -28,14 +28,14 @@
  * |---|---|---|---|
  * | body-centred inertial | one body | nothing, the axes are the catalogue's | nothing |
  * | parent-direction | the selected body | the bearing to its parent | the pair's relative acceleration |
- * | rotating-pulsating | the pair's mass centre | the bearing between two SETS | the same, plus the separation's rate |
+ * | rotating-pulsating | the pair's mass centre | the bearing between two sets | the same, plus the separation's rate |
  *
  * The accelerations are the part that looks expensive and is not. A frame's
  * angular velocity depends on the relative acceleration only through the
  * component orthogonal to the plane the separation and its rate span, and a
  * two-body acceleration is parallel to the separation, so it contributes
  * nothing there at all. What is missing under a two-body shortcut is the pull of
- * the OTHER bodies, and restoring it is a point-mass sum over the catalogue.
+ * the other bodies, and restoring it is a point-mass sum over the catalogue.
  * The oblateness of the bodies, which is the part that would need a gravity
  * field we do not have, moves the angular velocity by about four parts in a
  * hundred million for the Earth-Moon pair, and is not computed here.
@@ -48,7 +48,7 @@
  * positions at the render instant and velocities at their own, and says in its
  * own source that the result is a convenience rather than a physical quantity.
  *
- * **This module divides each point by the separation at THAT POINT'S OWN
+ * **This module divides each point by the separation at that point's own
  * instant**, and says so on every curve it produces
  * ({@link TRAJECTORY_SCALE_CONVENTIONS}). That is the convention under which the
  * two bodies sit at fixed coordinates for the whole length of the curve, which

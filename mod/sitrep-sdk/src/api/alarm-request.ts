@@ -124,10 +124,12 @@ export interface UplinkAlarmRequest {
 }
 
 /**
- * Returns a function that asks Gonogo to create an alarm for your Uplink. Pass
- * the handle {@link defineUplinkClient} returned, so the alarm records which
- * Uplink asked for it. Where no alarm list is mounted, such as outside the
- * dashboard, the function does nothing.
+ * Returns a function that asks Gonogo to add an alarm to the operator's alarm
+ * list on behalf of your Uplink. Useful for letting a widget offer to warn the
+ * operator, and drop out of time warp, before an event such as a facility
+ * upgrade finishing. Pass the handle {@link defineUplinkClient} returned, so
+ * the alarm records which Uplink asked for it. Where no alarm list is mounted,
+ * such as outside the dashboard, the function does nothing.
  *
  * @example
  * ```tsx

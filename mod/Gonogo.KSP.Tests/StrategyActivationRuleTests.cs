@@ -10,7 +10,7 @@ namespace Gonogo.KSP.Tests
     ///
     /// <para>Each arm here mirrors a comparison read out of the installed
     /// <c>Assembly-CSharp</c>. What earns the most from a test is not any single
-    /// arm but the SHAPE of the answer: this walk refuses, or it declines to
+    /// arm but the shape of the answer: this walk refuses, or it declines to
     /// answer, and it never says yes. Arm 1 compares a counter that lives on the
     /// shut screen and that RP-1 overwrites, so it cannot be put at all, and a
     /// pass is owed to every arm. A yes reached without it would be a fabricated

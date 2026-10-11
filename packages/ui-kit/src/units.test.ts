@@ -519,7 +519,7 @@ describe("non-dimensional units", () => {
   });
 });
 
-/** The extension point, using only what a third-party Uplink can import, with a unit and a KIND this package has never heard of. */
+/** The extension point, using only what a third-party Uplink can import, with a unit and a kind this package has never heard of. */
 describe("registerUnit", () => {
   it("renders an unknown unit bare rather than dropping it", () => {
     // A unit nobody taught the kit still renders; it just cannot scale or round.

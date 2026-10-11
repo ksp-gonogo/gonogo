@@ -10,8 +10,8 @@ const CommcastLogContext = createContext<CommcastLog | null>(null);
  * It exists at all because a log must outlive the widget: a message addressed
  * here arrives whether or not anybody has the Commcast tile on their dashboard,
  * and a log created by the widget would start empty every time the tile was
- * added back. This is NOT the host-authoritative provider it replaces: what it
- * carries is one vantage's OWN log, and the host's copy is its own, not
+ * added back. This is not the host-authoritative provider it replaces: what it
+ * carries is one vantage's own log, and the host's copy is its own, not
  * everybody's.
  */
 export function CommcastLogProvider({

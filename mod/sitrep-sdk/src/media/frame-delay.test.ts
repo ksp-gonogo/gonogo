@@ -379,12 +379,12 @@ describe("runFrameDelayPipeline: memory safety (every frame closed exactly once)
 // `DelayedPlayoutBuffer`, and `gopSafeEviction` protects a GOP under cap
 // pressure end-to-end.
 describe("runFrameDelayPipeline: encoded frame shape (no close(), keyframe/bytes classification)", () => {
-  /** Minimal stand-in for RTCEncodedVideoFrame: NO close() method, a
+  /** Minimal stand-in for RTCEncodedVideoFrame: no close() method, a
    *  `type` discriminant, and a byte-sized `data` payload. */
   /**
    * An encoded chunk, which carries no `close()`: declared as extending
    * `FrameLike` rather than inferred, because every member of `FrameLike` is
-   * optional and an object sharing NONE of them is not assignable to it.
+   * optional and an object sharing none of them is not assignable to it.
    */
   interface FakeEncodedFrame extends FrameLike {
     type: "key" | "delta";

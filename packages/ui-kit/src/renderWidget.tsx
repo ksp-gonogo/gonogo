@@ -49,7 +49,8 @@ export interface RenderWidgetOptions {
  * The provider stack the dashboard puts around every widget, in the same
  * order, for a registered widget id: the command rail, the panel status store,
  * the widget's instance and metadata, augment settings and contributions.
- * {@link renderWidget} uses it; use it directly to wrap a tree of your own.
+ * Useful for drawing a widget, or a tree of your own, with the context the
+ * operator's dashboard gives it. Used by {@link renderWidget}.
  *
  * It omits three things the dashboard also wraps a widget in, because each
  * would make a test quieter rather than truer:
@@ -85,8 +86,8 @@ export function WidgetHost({
 
 /**
  * The same stack as {@link WidgetHost}, given the component definition rather
- * than an id to look one up by: for a harness previewing an augment against a
- * synthetic host definition.
+ * than an id to look one up by. Useful for previewing an augment against a
+ * synthetic host widget. Used by the render probe that `uplink-tools` runs.
  *
  * @intent Published so a harness can preview an augment against a synthetic host definition.
  * @category Testing
@@ -172,8 +173,10 @@ function requireComponent(widgetId: string): ComponentDefinition {
 const NOOP = () => {};
 
 /**
- * Render a widget the way the dashboard does: by its registered id, inside the
- * provider stack the dashboard puts around one ({@link WidgetHost}). A bare
+ * Renders a widget the way the dashboard does: by its registered id, inside the
+ * provider stack the dashboard puts around one ({@link WidgetHost}). Useful for
+ * showing what the operator sees of a widget, in a test or a picture. Used by
+ * the built-in library's widget render harness. A bare
  * `render` omits that stack, so for instance a `Panel` status badge would never
  * appear. The widget must already be registered, which a widget's module does
  * when it is loaded by calling the sdk's `registerComponent`, so import that

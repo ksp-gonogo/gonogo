@@ -10,14 +10,14 @@
  * from the generator's `review-targets.json`, each checked against the built
  * `index.json`. Fails, writing nothing, when a listing has no story or names
  * one the index does not hold, or when a slot the sdk declares has no augment
- * row: every run first drops one slot's rows and fails as BLIND if that check
+ * row: every run first drops one slot's rows and fails as `BLIND` if that check
  * does not report it.
  *
  * A fourth kind, `prose`, lists every string of each registered copy table
  * (`prose-sources.ts`): its current text, a box to rewrite it in, and the
  * story that shows it, found by reading each of the table's stories in the
  * built preview. A string no story shows is a fault like a missing story, and
- * every run plants one and fails as BLIND if it is not reported. The export
+ * every run plants one and fails as `BLIND` if it is not reported. The export
  * carries each rewritten string with the text it replaces, for `prose-apply`.
  *
  * Each item carries its fingerprint and how it stands against the review

@@ -10,7 +10,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// THE MIDDLEMAN DESTRUCTION, over the raw wire, end to end.
+    /// The middleman destruction, over the raw wire, end to end.
     /// <see cref="MiddlemanRerouteTests"/> covers a relay going offline while
     /// another route home still exists, where the tail keeps arriving at the
     /// delay it was sent under. This is the case that suite names as outside
@@ -19,7 +19,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para>That case used to be undeliverable-in-principle and delivered
     /// anyway. The route's per-hop geometry is summed into one scalar by
-    /// <c>SignalDelay.Compute</c>, so nothing downstream could say WHERE the
+    /// <c>SignalDelay.Compute</c>, so nothing downstream could say where the
     /// break sat, and a record-time delay stamp fixes when a sample arrives
     /// rather than whether. The drop event is what carries the position, and
     /// this is the whole chain it travels: a main-thread observation, the tick
@@ -85,7 +85,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A relay TWO light-seconds along a four-second path dies at UT 6. The
+        /// A relay two light-seconds along a four-second path dies at UT 6. The
         /// tail splits where it physically has to: the samples stamped UT 2, 3
         /// and 4 were already past that relay (2 + 2, 3 + 2, 4 + 2 all at or
         /// before 6) and keep arriving on their own timing, and the UT 5 sample,
@@ -117,7 +117,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The same death, the same instant, the same five samples, with the
-        /// break FURTHER along the route: four light-seconds out instead of two.
+        /// break further along the route: four light-seconds out instead of two.
         /// More of the tail is short of it, so more of the tail is lost. Only
         /// the sample stamped UT 2 survives, having completed the whole
         /// four-second crossing at the very instant the break opened, and UT 3,
@@ -126,7 +126,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <para>Paired with the test above deliberately, and this pair is the
         /// argument for the whole design. One fixture, one difference, opposite
         /// answers for three of the five samples: a break is not a flag that
-        /// telemetry stopped, it is a POSITION, and a model that only knew a
+        /// telemetry stopped, it is a position, and a model that only knew a
         /// relay had died could not choose between these two outcomes.</para>
         /// </summary>
         [Fact]

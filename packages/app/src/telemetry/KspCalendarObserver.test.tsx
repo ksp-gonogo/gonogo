@@ -15,7 +15,7 @@ import { KspCalendarObserver } from "./KspCalendarObserver";
 
 /**
  * The whole point of the channel, end to end: a duration rendered anywhere in
- * the app has to be measured on the calendar the GAME is running.
+ * the app has to be measured on the calendar the game is running.
  *
  * Before this observer existed the kit compiled in Kerbin's 6-hour day, so a
  * player on RSS, or simply one who turned the stock `KERBIN_TIME` setting off,

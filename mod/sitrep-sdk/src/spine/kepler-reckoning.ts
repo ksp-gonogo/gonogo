@@ -19,7 +19,7 @@ import {
 } from "./kepler";
 
 /**
- * The conic, in ONE place, for every path that reaches it.
+ * The conic, in one place, for every path that reaches it.
  *
  * The guard withdraws off rails, at an SOI transition, past the producer's
  * stated horizon and at the atmosphere interface. The registered reckoners in
@@ -303,10 +303,10 @@ export function atmosphereDepthOf(
 }
 
 /**
- * Whether an UNBOUNDED reach is one a conic may be carried across, or the
+ * Whether an unbounded reach is one a conic may be carried across, or the
  * refusal that says nobody vouched for it.
  *
- * The question is a CAPABILITY's, not a mod's. `PropagationElection` runs one
+ * The question is a capability's, not a mod's. `PropagationElection` runs one
  * exclusive `propagation` capability whose vanilla factory is the two-body
  * solver, because stock KSP physics genuinely is two-body; an n-body backend
  * registers a higher-priority provider only when its own probe finds the
@@ -319,7 +319,7 @@ export function atmosphereDepthOf(
  * `TrajectoryKind` says "what is this like" rather than "who computed this".
  *
  * **Only `Unbounded` is asked about, and the narrowness is the whole design.**
- * An `Until` bound is not a producer admitting a limit, it is a MEASUREMENT:
+ * An `Until` bound is not a producer admitting a limit, it is a measurement:
  * `IntegratedHorizon.UntilUt` recovers it by bisecting the integrating
  * provider's own `CanPropagate`, and its subject is "how far a two-body
  * extrapolation of an integrated trajectory stays trustworthy". A provider that
@@ -445,7 +445,7 @@ export function keplerAdmissibility(
  * when they are.
  *
  * Under physics KSP rebuilds the elements from the integrated state every
- * frame, so in vacuum with the engines cold they ARE the two-body orbit the
+ * frame, so in vacuum with the engines cold they are the two-body orbit the
  * craft is on and a conic advances them as well as it advances a craft on
  * rails. What it takes is positive evidence of each half of that, which is the
  * opposite posture to the atmosphere floor's: a loaded craft is the one most

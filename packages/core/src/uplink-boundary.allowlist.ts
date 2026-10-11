@@ -5,14 +5,14 @@
  * ref (via `git show <ref>:<path>` + an esbuild transpile) without pulling
  * in vitest or the walk/pattern machinery.
  *
- * Full catalogue, categorisation (HARD / gray / test / comment-only), and
+ * Full catalogue, categorisation (hard / gray / test / comment-only), and
  * the reasoning behind every entry: this file, per entry. Each comment below
  * carries its own, which is the point of writing them here rather than
  * pointing at a document that can move away from the list it describes.
  *
  * Every token's allowlist splits into two buckets:
  *
- *   - `permanent`: wire/contract/generated-code files (naming the mod IS
+ *   - `permanent`: wire/contract/generated-code files (naming the mod is
  *     the file's job), cross-Uplink ratchet/inventory files that by design
  *     enumerate every Uplink, sanctioned self-registration imports, and
  *     text-only doc/comment mentions with zero code coupling. Unconstrained:
@@ -52,7 +52,7 @@ export type ModToken =
   | "realfuels";
 
 /**
- * How much of a `packages/<pkg>` directory the scan walks. Recorded HERE, in
+ * How much of a `packages/<pkg>` directory the scan walks. Recorded here, in
  * the data module, so the shrink-only checks can read it at their base ref.
  *
  * `packages/components/scripts/` holds the visual-gate probe
@@ -65,7 +65,7 @@ export type ModToken =
  * Widening a scan is the one change every shrink-only gate reads as a flood of
  * new debt. Grading it that way makes the rule impossible to widen without
  * disabling its own ratchet, which is why `uplink-isolation.test.ts` learned the
- * same trick for `FORBIDDEN_PACKAGES` first: an entry for a path the BASE could
+ * same trick for `FORBIDDEN_PACKAGES` first: an entry for a path the base could
  * not reach is a reseed, not growth, and it is graded strictly from the next
  * commit onwards, when the base carries this same value. The seam is inert the
  * moment this lands, and cannot excuse a second widening without this constant
@@ -74,7 +74,7 @@ export type ModToken =
 export const PACKAGE_SCAN_SCOPE = "package";
 
 /**
- * Which file extensions the scan walks. Recorded HERE, beside
+ * Which file extensions the scan walks. Recorded here, beside
  * `PACKAGE_SCAN_SCOPE` and for the identical reason: an extension the walk did
  * not visit is a path no allowlist line could ever have named, so the
  * shrink-only checks have to be able to read the set at their base ref to tell a
@@ -87,10 +87,10 @@ export const PACKAGE_SCAN_SCOPE = "package";
  * correctly in a `packages/core` comment, where the gate fires, and just as
  * easily land in `tokens.css`, where nothing would catch it.
  *
- * The reseed seam this opens is narrower than the scope one, because a LIST
+ * The reseed seam this opens is narrower than the scope one, because a list
  * needs no interpretation: `PACKAGE_SCAN_SCOPE` is an opaque marker, so a value
  * the checks do not recognise has to be read as "it saw everything", whereas a
- * base's extension list says outright what it reached. Only an ABSENT list has
+ * base's extension list says outright what it reached. Only an absent list has
  * to be guessed at, and absent means a base predating this constant, which is
  * the `ts`/`tsx`/`cs` era.
  */
@@ -1266,17 +1266,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
 };
 
 /**
- * Allowlisted files whose mod reference SURVIVES having comments stripped.
+ * Allowlisted files whose mod reference survives having comments stripped.
  *
- * <p>An allowlist entry excuses the FILE, not the line that earned it, and
+ * <p>An allowlist entry excuses the file, not the line that earned it, and
  * almost every entry was earned by a comment. So real coupling added to such a
  * file later would be covered silently, because the boundary gate sees a file
  * it has already excused. This list is the second look: the entries here are
- * known to match without their prose, and anything JOINING it has to be
+ * known to match without their prose, and anything joining it has to be
  * explained rather than absorbed.</p>
  *
  * <p><b>Surviving the strip is not the same as being code.</b> These are almost
- * entirely the mod name as DATA, install-profile ids, fixture keys, and
+ * entirely the mod name as data, install-profile ids, fixture keys, and
  * assertions about the name itself, where a string is the honest way to say it.
  * Measured when this was seeded: nothing under `packages/` imports an Uplink
  * package or reads a mod topic in code. Shrink-only, like the debt list.</p>

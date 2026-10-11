@@ -6,7 +6,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * A reading's identity must track its DATA, not the frame it was read in.
+ * A reading's identity must track its data, not the frame it was read in.
  *
  * `useTelemetry` hands the reading straight to `useSyncExternalStore`, which
  * compares snapshots with `Object.is`. A store that rebuilt the union on every
@@ -14,7 +14,7 @@ import { ViewClock } from "./view-clock";
  * cadence forever, whether or not anything arrived, and put a fresh `reckon`
  * thunk identity into every consumer's dependency arrays while it was at it.
  *
- * The per-frame memo alone does NOT give this: `beginFrame()` mints a new
+ * The per-frame memo alone does not give this: `beginFrame()` mints a new
  * `FrameToken` on every ingest tick, so a token-keyed cache is a fresh object
  * per frame by construction. The identity has to be keyed on the inputs.
  *

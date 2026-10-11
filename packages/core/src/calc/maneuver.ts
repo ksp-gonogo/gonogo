@@ -78,7 +78,7 @@ export interface ManeuverSequence {
   burns: ManeuverPlan[];
   /** Sum of `Math.abs(burn.requiredDeltaV)` across all burns (m/s). */
   totalDeltaV: number;
-  /** Orbit shape after the LAST burn: what the vessel ends up on. */
+  /** Orbit shape after the last burn: what the vessel ends up on. */
   finalProjected: ProjectedOrbit | null;
   /**
    * For Hohmann transfers, the elliptic orbit between burn 1 and burn 2.
@@ -384,7 +384,7 @@ export function customAtUT(
 /**
  * True anomaly of the ascending / descending node for the current orbit,
  * both in degrees in [0, 360). `argumentOfPeriapsis` is the angle from the
- * ascending node to periapsis, so the AN itself sits at ν = -argPe and
+ * ascending node to periapsis, so the an itself sits at ν = -argPe and
  * the DN at ν = 180° - argPe (mod 360°).
  */
 function nodeAnomalies(argumentOfPeriapsisDeg: number): {
@@ -439,7 +439,7 @@ function timeToTrueAnomaly(
  *
  * `currentInclinationDeg` / `targetInclinationDeg` are absolute
  * inclinations from the body's equator (matching `o.inclination`). The
- * result's `normal` is signed: positive at an AN burn increases
+ * result's `normal` is signed: positive at an an burn increases
  * inclination, negative decreases it: and vice-versa at the DN, so
  * "where are we?" is folded into the sign for us here.
  */
@@ -508,9 +508,9 @@ export function matchInclination(
 }
 
 /**
- * Match the full orbital plane of a target, both inclination AND LAN.
+ * Match the full orbital plane of a target, both inclination and LAN.
  * Burns at the intersection line of the two planes, which in general
- * is NOT the current orbit's equatorial AN/DN. Uses the relative
+ * is not the current orbit's equatorial AN/DN. Uses the relative
  * angular-momentum geometry:
  *
  *   cos(θ_rel) = cos(i₁)·cos(i₂) + sin(i₁)·sin(i₂)·cos(Ω₂ − Ω₁)

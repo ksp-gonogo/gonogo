@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { deriveActiveBurnParams } from "./burnParams";
 
 /**
- * The suicide-burn solve uses the ACTIVE engine's specific impulse, with the whole-vessel multi-stage total only as a fallback.
+ * The suicide-burn solve uses the active engine's specific impulse, with the whole-vessel multi-stage total only as a fallback.
  * Rows are the normalised `DeltaVStage` shape, so an absent figure is `NaN`.
  */
 /** A normalised row with `NaN` everywhere the case does not care about. */

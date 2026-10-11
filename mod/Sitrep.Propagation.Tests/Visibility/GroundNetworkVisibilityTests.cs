@@ -18,12 +18,12 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// misses the shadow's centre is shorter still). No single sphere can block
     /// 62% of a circular orbit, so the extra 1310 s came from the other
     /// occluder in the sweep: the station's own planet, which hides the craft
-    /// below ONE station's horizon for hours.</para>
+    /// below one station's horizon for hours.</para>
     ///
     /// <para>A real network does not go blind that way. KSP had thirteen home
     /// nodes live at the time; while one faces away another faces the craft.
     /// Modelling the ground segment as a single point on a rotating sphere
-    /// invents a blackout the network never has, and it errs LATE, the
+    /// invents a blackout the network never has, and it errs late, the
     /// direction that delays every overdue and lost declaration.</para>
     /// </summary>
     public class GroundNetworkVisibilityTests
@@ -82,7 +82,7 @@ namespace Sitrep.Propagation.Tests.Visibility
 
         /// <summary>
         /// Stations spread around the planet: the craft is in contact whenever
-        /// ANY of them can see it, so the only thing that can hide it is the
+        /// any of them can see it, so the only thing that can hide it is the
         /// moon.
         /// </summary>
         [Fact]

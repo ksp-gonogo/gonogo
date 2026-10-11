@@ -24,7 +24,7 @@ export interface SignalVerdict {
   /** Nothing about the link has arrived yet. */
   nothingHasArrived: boolean;
   /**
-   * Nothing has arrived and something is on its way: the first light-time of a
+   * Nothing has arrived and something is on its way: the first signal delay of a
    * session, when the craft's first word has not crossed the distance yet.
    * That is not a verdict on the link, so it never reads as no signal. A
    * topic that arrived saying it has nothing is an answer, and is not awaited.
@@ -187,7 +187,7 @@ const ESSENTIAL_TONE: Record<Tone, TinyEssentialTone> = {
   neutral: "neutral",
 };
 
-/** The tiny tile's word for the first light-time, before the link has said anything. */
+/** The tiny tile's word for the first signal delay, before the link has said anything. */
 export const AWAITING_WORD = "AWAIT";
 
 /** The signal figure with its bars, which is all a tiny tile has room for; a lost link says LOS beside the bars, as the body's headline does. */

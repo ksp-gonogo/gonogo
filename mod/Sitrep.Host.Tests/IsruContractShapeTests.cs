@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// The anti-pattern ratchet for <c>isru.*</c>, the same guard
     /// <see cref="ScienceProviderExtensionRatchetTests"/> holds for its own elected
-    /// payloads: a NEW provider-specific ISRU field lands in the extension bag, not
+    /// payloads: a new provider-specific ISRU field lands in the extension bag, not
     /// as another hand-listed member on <see cref="IsruDrillEntry"/> or
     /// <see cref="IsruConverterEntry"/>.
     ///
@@ -18,7 +18,7 @@ namespace Sitrep.Host.Tests
     /// That makes the rule stricter in practice, because there is no legacy
     /// provider-specific member to point at as precedent.</para>
     ///
-    /// <para>The set is exact rather than a max count, so a RENAME fails too: a
+    /// <para>The set is exact rather than a max count, so a rename fails too: a
     /// renamed wire field is the same break as a removal wearing a different hat.
     /// Removals are already gated by <see cref="ContractShapeGateTests"/>.</para>
     /// </summary>
@@ -68,7 +68,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Both elected payloads actually carry a bag, so the guard above offers a
         /// real alternative rather than just refusing the old route. Asserted
-        /// through the ATTRIBUTE, since that is what codegen and the wire writer
+        /// through the attribute, since that is what codegen and the wire writer
         /// both key off.
         /// </summary>
         [Fact]
@@ -89,7 +89,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The nested recipe-flow shape deliberately has NO bag. A provider that
+        /// The nested recipe-flow shape deliberately has no bag. A provider that
         /// wants to say more about a flow says it on the converter entry that owns
         /// the recipe: a bag per flow would multiply the namespace by every resource
         /// in every recipe for no reader that wants it.

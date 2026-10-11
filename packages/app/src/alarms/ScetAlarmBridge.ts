@@ -45,7 +45,7 @@ const TRANSIENT_REARM_INTERVAL_MS = 10_000;
 const MAX_UNANSWERED_ARMS = 5;
 
 /**
- * `buildArmArgs`'s answer when the arm cannot be stated YET: no vantage has
+ * `buildArmArgs`'s answer when the arm cannot be stated yet: no vantage has
  * been observed, or no vessel identity has arrived to name the craft.
  */
 const NOT_YET = Symbol("not-yet");
@@ -129,11 +129,11 @@ export interface ScetAlarmBridgeContext {
  * ## Why this reads raw frames rather than `useTelemetry`
  *
  * The notice is `DelayRole.TrueNow` on the mod, so it reaches the wire on the
- * tick it was captured rather than a light-time later.
+ * tick it was captured rather than a signal delay later.
  *
  * The store honours the role (`warp-delay.characterise.test.ts` measures what
  * it buys), so the ordinary path would work. This still reads raw frames,
- * because `TelemetryClient.subscribe` delivers on ARRIVAL with no view clock in
+ * because `TelemetryClient.subscribe` delivers on arrival with no view clock in
  * the way, which is the right shape for a one-shot event: a fire notice is an
  * edge, and a view-time read of an edge can only ever miss one that fell
  * between two frames.
@@ -242,11 +242,11 @@ export class ScetAlarmBridge {
   }
 
   /**
-   * Whether the MOD holds this alarm, and therefore whether it will stop the
+   * Whether the mod holds this alarm, and therefore whether it will stop the
    * warp when the alarm comes due.
    *
-   * The mod's own statement off its roster: an arm it REFUSED, or one not
-   * made yet, is absent. UNDEFINED before the first roster frame, when what it
+   * The mod's own statement off its roster: an arm it refused, or one not
+   * made yet, is absent. Undefined before the first roster frame, when what it
    * holds is not known at all.
    */
   holdsAlarm(id: string): boolean | undefined {
@@ -255,10 +255,10 @@ export class ScetAlarmBridge {
   }
 
   /**
-   * Whether the MOD holds this alarm's `onFire` actions and runs them itself in
+   * Whether the mod holds this alarm's `onFire` actions and runs them itself in
    * the frame it fires. The mod's own statement off the roster, like
    * {@link holdsAlarm}: sending them from here as well would act on the craft
-   * twice, the second time a light-time late.
+   * twice, the second time a signal delay late.
    */
   actsAboard(id: string): boolean {
     return this.rosterActing.has(id);
@@ -469,7 +469,7 @@ export class ScetAlarmBridge {
    * the place this screen commands from, or a craft-scoped Topic before any
    * vessel identity has arrived. Both are the first moments of a connection.
    *
-   * A refusal to GUESS: an arm carrying the wrong subject or place is accepted
+   * A refusal to guess: an arm carrying the wrong subject or place is accepted
    * and then never fires, which is the one outcome an alarm must not have.
    */
   private buildArmArgs(alarm: Alarm): Record<string, unknown> | typeof NOT_YET {
@@ -600,18 +600,18 @@ export class ScetAlarmBridge {
 }
 
 /**
- * What a threshold on `topic` is ABOUT, in the vocabulary `meta.source` uses:
+ * What a threshold on `topic` is about, in the vocabulary `meta.source` uses:
  * `"vessel:<guid>"` for a craft, `"game"` for the simulation as a whole. Null
  * when it is about a craft and no identity has arrived to name one.
  *
  * Decided from the Topic's own namespace rather than from a list of which
  * Topics are craft-scoped. A list would be a second copy of something the mod
  * already knows, and the namespace is not a proxy for the answer: a Topic under
- * `vessel.` is a reading OF a vessel, which is exactly what the stamp records.
+ * `vessel.` is a reading of a vessel, which is exactly what the stamp records.
  * The guid is the one the contract points at for this. `VesselIdentity
  * .vesselId` is documented as the currency of the `"vessel:<guid>"` stamp.
  *
- * The identity read is a light-time old, and that is right rather than a
+ * The identity read is a signal delay old, and that is right rather than a
  * compromise: the craft the operator is looking at is the craft they mean.
  */
 function subjectFor(topic: string): string | null {
@@ -650,7 +650,7 @@ function onboardAction(fx: AlarmFireAction): ScetAlarmAction | null {
  * The `onFire` and `actsOn` arm fields for an alarm whose actions run aboard,
  * or nothing. All or none: a list the craft can run only part of stays with
  * this screen whole, so the operator's order is never split across two places
- * a light-time apart.
+ * a signal delay apart.
  */
 function aboard(
   alarm: Alarm,
@@ -839,7 +839,7 @@ function readWireUt(raw: unknown): number | null {
  * The `alarm.scet.fired` payload as this side needs it, or null for anything
  * that is not one.
  *
- * Checked field by field rather than asserted into a shape. The two fields ARE
+ * Checked field by field rather than asserted into a shape. The two fields are
  * the whole channel, so there is nothing an assertion would buy that a check
  * does not, and what arrives here is raw wire rather than anything this code
  * constructed.

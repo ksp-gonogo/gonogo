@@ -18,7 +18,7 @@ import {
  *   1. Add the value to `packages/theme/src/tokens.css` as a `--color-*`
  *      token (or pick an existing one). It is the single source of
  *      truth: `packages/app/src/styles/global.css` only `@import`s it,
- *      and a separate ratchet (`tokenSingleSource.test.ts`) FORBIDS
+ *      and a separate ratchet (`tokenSingleSource.test.ts`) forbids
  *      re-declaring a token there.
  *   2. Add the matching role to `packages/theme/src/defaultDarkTheme.ts`
  *      (re-exported through ui-kit and ui) if a call site needs it from

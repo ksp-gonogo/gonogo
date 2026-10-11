@@ -17,7 +17,7 @@ namespace Sitrep.Host.Tests
     /// the sim isn't ready (no <c>deltaV</c> group), per-stage order and field
     /// mapping, the R1/F-1 non-finite-is-absent rule (a <c>NaN</c> ΔV → null,
     /// never a sentinel), the summary totals round-tripping, and the payloads
-    /// serializing cleanly through the REAL production path
+    /// serializing cleanly through the real production path
     /// (<c>EnvelopeCodec.WriteStreamData</c>/<c>ParseStreamData</c>). The live
     /// stock <c>VesselDeltaV</c> read itself is exercised only in-game.
     /// </summary>

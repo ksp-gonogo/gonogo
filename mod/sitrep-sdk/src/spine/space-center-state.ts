@@ -25,7 +25,7 @@ interface LaunchSiteWireEntry {
  */
 export interface SpaceCenterState {
   /**
-   * Whether the ACTIVE VESSEL is sitting on the stock KSC pad in `PRELAUNCH`,
+   * Whether the active vessel is sitting on the stock KSC pad in `PRELAUNCH`,
    * old `kc.padOccupied`. Despite the name this is not pad tenancy: the mod
    * derives it from the reported active vessel's `situation`, so a craft parked
    * on the pad while you are in the Space Centre scene reads `false`, and a
@@ -83,7 +83,7 @@ export const spaceCenterStateChannel: DerivedChannelDefinition<SpaceCenterState>
   };
 
 /**
- * What each `spaceCenter.state` field MEANS, in the contract's own unit
+ * What each `spaceCenter.state` field means, in the contract's own unit
  * vocabulary. This channel is derived client-side, so the unit-map codegen has
  * no type to reflect over and a key picker built on the generated maps would
  * find nothing to offer under it.

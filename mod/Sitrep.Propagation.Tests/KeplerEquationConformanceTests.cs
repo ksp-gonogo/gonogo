@@ -11,7 +11,7 @@ namespace Sitrep.Propagation.Tests
 {
     /// <summary>
     /// The same contract every solver of Kepler's equation must satisfy, applied to the
-    /// C# vanilla THROUGH <see cref="IPropagationProvider"/>, on the same grid as
+    /// C# vanilla through <see cref="IPropagationProvider"/>, on the same grid as
     /// <c>packages/core/src/kepler-conformance.test.ts</c>.
     ///
     /// <para>The grid comes from <c>mod/golden-fixtures/kepler-equation.json</c> so the two
@@ -28,7 +28,7 @@ namespace Sitrep.Propagation.Tests
     /// <para><b>Reaching E through the seam.</b> The interface answers with a state vector
     /// and not an anomaly, which is correct: nothing outside a provider should be handed a
     /// conic's internals. So the eccentric anomaly is recovered from the state instead, with
-    /// the orbit laid flat (inc = lan = argPe = 0) so the perifocal frame IS the answer's
+    /// the orbit laid flat (inc = lan = argPe = 0) so the perifocal frame is the answer's
     /// frame and <c>x = a(cos E - e)</c>, <c>y = b sin E</c>. Recovered by
     /// <c>Atan2</c> rather than by <c>Acos</c> on the radius, which would be badly
     /// conditioned near E = 0, exactly where this grid is densest and where the client-side
@@ -161,7 +161,7 @@ namespace Sitrep.Propagation.Tests
         }
 
         /// <summary>
-        /// Kepler's SECOND law, which the residual cannot check: a residual is satisfied by
+        /// Kepler's second law, which the residual cannot check: a residual is satisfied by
         /// any solver consistent with the equation as written, including one written wrongly.
         /// This derives the same relationship from somewhere else entirely, the swept area,
         /// so a misstated equation fails it while satisfying the residual perfectly.
@@ -197,7 +197,7 @@ namespace Sitrep.Propagation.Tests
 
         /// <summary>
         /// The externally-attributable half. The residual proves the vanilla solves the
-        /// equation as WE state it; these prove we state it the way an outside authority
+        /// equation as we state it; these prove we state it the way an outside authority
         /// does, at two eccentricities including 0.99.
         ///
         /// <para>Read <c>publishedTriplesProvenance</c> in the fixture before trusting the
@@ -239,7 +239,7 @@ namespace Sitrep.Propagation.Tests
             }
         }
 
-        /// <summary>Published values are stored in the units they were PRINTED in, so the fixture transcribes nothing.</summary>
+        /// <summary>Published values are stored in the units they were printed in, so the fixture transcribes nothing.</summary>
         private static double ToRadians(double value, string units) =>
             units == "degrees" ? value * Math.PI / 180.0 : value;
 

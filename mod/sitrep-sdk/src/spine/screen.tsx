@@ -14,7 +14,7 @@ export type Screen = "main" | "station" | "pilot";
 
 /**
  * Where the operator is physically sitting. Every widget rule that cares about
- * light-time is a rule about the seat, never about the screen: a pilot on a
+ * signal delay is a rule about the seat, never about the screen: a pilot on a
  * peer-fed page is a different screen and the same seat.
  */
 export type Seat = "mission-control" | "pilot";

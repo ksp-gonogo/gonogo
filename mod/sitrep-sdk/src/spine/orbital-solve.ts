@@ -365,7 +365,7 @@ export function solveSelfOrbit(
  * later.
  *
  * Once the apsis has passed, a closed orbit (`period` finite and positive)
- * counts to the NEXT one, the same wrap KSP applies to its own figure. An open
+ * counts to the next one, the same wrap KSP applies to its own figure. An open
  * orbit has no next one, so a passed apsis is `null`, as is a missing sample
  * (`NaN`, which is what an absent wire field reads as).
  */

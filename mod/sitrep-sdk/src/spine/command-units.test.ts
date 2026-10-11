@@ -7,7 +7,7 @@ import { isValue, value } from "../unit-system";
 import { dehydrateArgs } from "../wrap-units";
 
 /**
- * The command boundary in both directions, asserted on the WIRE rather than on
+ * The command boundary in both directions, asserted on the wire rather than on
  * the object handed to the transport.
  *
  * `StubTransport.sentCommands` records the args by reference, so a `Value` in

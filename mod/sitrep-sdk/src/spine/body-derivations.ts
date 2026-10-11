@@ -1,7 +1,7 @@
 import { solveAnomalies } from "./kepler";
 
 /**
- * The two celestial-body almanac values the GAME has no answer for, so the
+ * The two celestial-body almanac values the game has no answer for, so the
  * client has to derive them. Everything else about a body is a wire field: see
  * `celestial-facts.ts` for the split and the reasoning.
  *

@@ -8,7 +8,7 @@ import { hasSeenFirstRunSetup, markFirstRunSetupSeen } from "./firstRunFlag";
 import { onFirstRunSetupRequested } from "./firstRunRequest";
 
 /**
- * The single first-run auto-open. Mounted on the MAIN screen only: a station
+ * The single first-run auto-open. Mounted on the main screen only: a station
  * never talks to the mod directly (see `SettingsModal`'s own data-sources
  * gate), so there is nothing for a station to open.
  *

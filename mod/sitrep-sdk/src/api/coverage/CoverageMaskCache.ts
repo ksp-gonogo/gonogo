@@ -22,14 +22,15 @@ interface CacheOptions {
 }
 
 /**
- * The width, in cells, of a new coverage mask: the cells across its 360 degrees of longitude.
+ * The width, in cells, of a new coverage mask: the cells across a body's 360
+ * degrees of longitude.
  *
  * @category Maps and coverage
  */
 export const DEFAULT_MASK_WIDTH = 2048;
 
 /**
- * The height, in pixels, of a new coverage mask.
+ * The height, in cells, of a new coverage mask: the cells from pole to pole.
  *
  * @category Maps and coverage
  */
@@ -40,8 +41,10 @@ function makeCacheKey(bodyId: string, layerId: string): string {
 }
 
 /**
- * Holds coverage masks in memory. Reach the app's instance with
- * `useCoverageMaskCache`.
+ * Holds in memory one coverage mask per body and layer, each a grid of cells
+ * that are hidden or revealed on the body's map. Useful for keeping the ground
+ * a scanner has covered so the map can draw it. Reach the app's instance with
+ * {@link useCoverageMaskCache}.
  *
  * @category Maps and coverage
  */

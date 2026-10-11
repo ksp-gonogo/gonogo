@@ -18,7 +18,7 @@ namespace Sitrep.Core.Tests
     /// to understand the last one. The whole tree is held to zero, with no debt
     /// list.</para>
     ///
-    /// <para>The walk is every TRACKED <c>*.cs</c> file, test projects included,
+    /// <para>The walk is every tracked <c>*.cs</c> file, test projects included,
     /// read through <see cref="ProducerFlattenScan.Mask"/> so a comment or a string
     /// that mentions the construct is not a use of it.</para>
     /// </summary>
@@ -47,7 +47,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The scan can SEE the thing it forbids, in both spellings, and leaves a
+        /// The scan can see the thing it forbids, in both spellings, and leaves a
         /// mention in a comment or a string alone. A pattern that stopped matching
         /// would report the zero this tree is held at, and zero reads as success.
         /// </summary>

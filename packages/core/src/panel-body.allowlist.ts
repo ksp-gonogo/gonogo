@@ -6,7 +6,7 @@
  * entry means new code just wrote a body, which is the thing the gate exists to
  * stop; pass `sections` instead.
  *
- * Unlike most debt lists in this repo, THIS ONE HAS A REAL ZERO TO AIM AT. Every
+ * Unlike most debt lists in this repo, this one has A real zero to aim at. Every
  * entry here is a widget that can be converted, and the conversion is mechanical:
  * wrap each group in a `Section` with its `title`, hand the list to
  * `sections`, close the tag. What the widget gets back is Panel deciding how
@@ -29,7 +29,7 @@ export const PANEL_BODY_DEBT: Record<string, number> = {};
  * `git ls-files` that errored into an empty string each look exactly like a
  * clean repo.
  *
- * Neither number counts the DEBT, on purpose. This list has a real zero to aim
+ * Neither number counts the debt, on purpose. This list has a real zero to aim
  * at, and a floor under the debt population would be one the work has to walk
  * through: the shrink-only guard refuses to lower a floor, so clearing the last
  * widgets would have meant fighting the gate. `tags` counts every `<Panel>`

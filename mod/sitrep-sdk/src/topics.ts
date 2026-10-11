@@ -177,7 +177,7 @@ export interface SystemUplinksTopicPayloadMap {
  * `system.uplink.pending`: the in-transit command queue (prediction-only
  * bookkeeping). `ChannelEngine` declares it directly (not any one Uplink's
  * contract), so like `system.uplinks` it carries no `[SitrepTopic]` payload
- * TYPE to reflect and is hand-declared here. Its payload IS a real reflected
+ * type to reflect and is hand-declared here. Its payload is a real reflected
  * contract type (`PendingUplinkQueue`), so this maps to that generated
  * interface rather than re-describing the shape inline.
  */
@@ -187,14 +187,14 @@ export interface SystemUplinkPendingTopicPayloadMap {
 }
 
 /**
- * `system.uplink.gates`: every gated command's CURRENT verdict, evaluated with
+ * `system.uplink.gates`: every gated command's current verdict, evaluated with
  * no arguments, so a control knows it is gated before it is pressed.
  * `ChannelEngine` declares it directly (not any one Uplink's contract), so like
  * `system.uplinks` and `system.uplink.pending` it is hand-mapped here; its
- * payload IS a real reflected contract type, so this maps to the generated
+ * payload is a real reflected contract type, so this maps to the generated
  * interface rather than re-describing it.
  *
- * Not a permission. The snapshot is up to half a second old and the DISPATCH
+ * Not a permission. The snapshot is up to half a second old and the dispatch
  * re-evaluates the same gates against live state, so an out-of-date `Pass`
  * never lets a command through. It exists to say no in advance, never to say
  * yes.
@@ -214,7 +214,7 @@ export interface SystemUplinkGatesTopicPayloadMap {
  * mod reflects this off `Sitrep.Contract` at startup and serves it here, so
  * anyone who can reach the stream can reach its units.
  *
- * A STRING carrying JSON, not a structured payload: the document describes
+ * A string carrying JSON, not a structured payload: the document describes
  * this contract's own types, so giving it a contract type would put it inside
  * the thing it describes. Its schema is its own `version` field.
  *
@@ -229,7 +229,7 @@ export interface SystemUnitsTopicPayloadMap {
 
 /**
  * `system.channels`: every declared channel's emission counters, so a Topic that
- * is silent can say WHICH silence it is. Hand-mapped here for the same reason as
+ * is silent can say which silence it is. Hand-mapped here for the same reason as
  * the three above: `ChannelEngine` declares it directly, because only the engine
  * sees the emitter, the subscription registry, the birth set and the
  * availability map at once, and the report is the four of them read together.
@@ -250,12 +250,12 @@ export interface SystemChannelsTopicPayloadMap {
 }
 
 /**
- * The SDK's OWN Topic map: the generated entries plus the engine-owned tail
- * (`system.uplinks`, `system.uplink.pending`). DELIBERATELY distinct from the
+ * The SDK's own Topic map: the generated entries plus the engine-owned tail
+ * (`system.uplinks`, `system.uplink.pending`). Deliberately distinct from the
  * public, augmentable `TopicPayloadMap` below: bare-primitive Uplink Topics
  * augment `TopicPayloadMap` (not this), so this interface stays fixed to
- * exactly what the SDK owns in EVERY program: augmented or not. The
- * compile-time invariants below bind `TOPIC_IDS` to THIS map (not the
+ * exactly what the SDK owns in every program: augmented or not. The
+ * compile-time invariants below bind `TOPIC_IDS` to this map (not the
  * augmentable one), so a downstream Uplink augmentation, which adds a key to
  * `TopicPayloadMap` and an id to the runtime registry, never to the static
  * `TOPIC_IDS` array: cannot turn the SDK's own array↔map assertions into false

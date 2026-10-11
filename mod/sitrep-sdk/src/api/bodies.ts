@@ -19,12 +19,15 @@
 import type { BodyDefinition } from "./types";
 
 /**
- * Imaging altitude window for a body, with sensible defaults derived from
- * radius and atmosphere when explicit values are missing.
+ * The altitudes, in metres, between which a vessel can image a body, with the
+ * best altitude and the camera field of view in degrees. Useful for showing
+ * the operator where over a body a survey camera works. Used by the map view to
+ * mark the imaging band.
  *
- * The defaults: the lowest altitude is the top of the atmosphere plus 10 km,
- * or 5% of the radius for an airless body; the highest is 0.8 × the radius;
- * the ideal is 0.2 × the radius.
+ * A value the body definition does not give is derived: the lowest altitude is
+ * the top of the atmosphere plus 10 km (5% of the radius for an airless body),
+ * the highest is 0.8 times the radius, the ideal is 0.2 times the radius, and
+ * the field of view is 30 degrees.
  *
  * @category Solar system and fleet
  */
@@ -47,9 +50,11 @@ export function getImagingWindow(body: BodyDefinition): {
 }
 
 /**
- * Trapezoidal quality curve over altitude: 0 below `min`, ramps up to 1 at
- * `ideal`, holds 1 until halfway between `ideal` and `max`, ramps back to 0
- * at `max`.
+ * How good an image a vessel takes of a body from `altitude`, from 0 to 1. It
+ * is 0 at or below the lowest imaging altitude, rises to 1 at the ideal
+ * altitude, holds 1 until halfway between the ideal and the highest altitude,
+ * and falls back to 0 at the highest. Useful for showing the operator how well
+ * placed a vessel is to survey.
  *
  * @category Solar system and fleet
  */
@@ -79,8 +84,10 @@ function bodies(): Map<string, BodyDefinition> {
 }
 
 /**
- * Adds a body, or replaces one with the same id. A planet pack calls it after
- * {@link registerStockBodies} to replace stock bodies.
+ * Adds a celestial body to the registry, or replaces the one with the same id.
+ * Useful for making a body from a planet pack known to every widget that
+ * looks bodies up. A planet pack calls it after {@link registerStockBodies} to
+ * replace stock bodies.
  *
  * @category Solar system and fleet
  */
@@ -89,7 +96,10 @@ export function registerBody(def: BodyDefinition): void {
 }
 
 /**
- * Returns the body registered under `id`, or `undefined`.
+ * Returns the celestial body registered under `id` (the name the telemetry
+ * stream reports, such as `"Kerbin"`), or `undefined`. Useful for looking up
+ * a body's radius, atmosphere and colours from a reading that names it. Used by
+ * the system diagram to draw each body.
  *
  * @category Solar system and fleet
  */
@@ -98,7 +108,9 @@ export function getBody(id: string): BodyDefinition | undefined {
 }
 
 /**
- * Returns every registered body.
+ * Returns every registered celestial body. Useful for letting the operator
+ * pick a body from a list. Used by the map view's settings to offer its body
+ * choices.
  *
  * @category Solar system and fleet
  */
@@ -107,7 +119,7 @@ export function getAllBodies(): BodyDefinition[] {
 }
 
 /**
- * Removes every registered body. For tests.
+ * Removes every registered celestial body, so a test starts with none.
  *
  * @category Solar system and fleet
  */

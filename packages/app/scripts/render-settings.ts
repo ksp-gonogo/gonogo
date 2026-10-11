@@ -28,7 +28,7 @@ const PROBE_ENTRY = join(PROBE_DIR, "settings-probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "settings-probe.html");
 
 /**
- * The theme package's SOURCE tokens.css. `global.css` only `@import`s it now,
+ * The theme package's source tokens.css. `global.css` only `@import`s it now,
  * so a driver pointing at that file finds no `:root` to extract and every
  * probe renders unthemed.
  */
@@ -36,7 +36,7 @@ const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 /**
  * Where the renders land. Overridable, because a render is a thing somebody is
- * asked to APPROVE: a reviewer needs it at a path they were given, and a
+ * asked to approve: a reviewer needs it at a path they were given, and a
  * worktree that is pruned takes its own `local_docs` with it.
  */
 const OUT_DIR =
@@ -45,7 +45,7 @@ const OUT_DIR =
 
 /**
  * A stock Kerbin day, in seconds, taken from the unit model's own calendar
- * rather than through ui-kit's re-export: this is the NODE half of the
+ * rather than through ui-kit's re-export: this is the node half of the
  * harness, and importing the design system here pulls styled-components into
  * a runtime with no DOM for it. Pinned to the stock calendar on purpose, a
  * render fixture must not shift with whatever the last test set.

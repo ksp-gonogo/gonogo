@@ -10,7 +10,7 @@ import type { GamepadRole } from "./gamepadRoles";
 export type DeviceInputKind = "button" | "analog";
 
 /**
- * Shape applied to an analog input AFTER it's been normalised to -1..1 using
+ * Shape applied to an analog input after it's been normalised to -1..1 using
  * `{ min, max }`. `linear` is pass-through; `squared` (sign-preserving) and
  * `cubic` give finer control near centre: handy for translation/rotation
  * sticks where small flying corrections need precision but the full range

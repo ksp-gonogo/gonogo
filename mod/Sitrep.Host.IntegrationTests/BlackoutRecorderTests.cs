@@ -14,15 +14,15 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The blackout RECORDER, proven end-to-end over a real WebSocket, the same
+    /// The blackout recorder, proven end-to-end over a real WebSocket, the same
     /// un-bypassable choke point <see cref="RevealGateTests"/> uses.
     ///
-    /// <para>An outage window used to be DELETED. On the disconnected-to-connected
+    /// <para>An outage window used to be deleted. On the disconnected-to-connected
     /// edge the engine called <c>DropInBlackoutBacklog</c>, the first post-outage
     /// sample was stamped <see cref="Staleness.Fresh"/>, and everything read
     /// normal instantly: the outage left no trace on the wire at all. These tests
     /// pin the replacement, which is that the craft holds the window and dumps it
-    /// on acquisition of signal, at the light-time of the REACQUISITION geometry.
+    /// on acquisition of signal, at the signal delay of the reacquisition geometry.
     /// </para>
     /// </summary>
     public class BlackoutRecorderTests
@@ -36,14 +36,14 @@ namespace Sitrep.Host.IntegrationTests
         private static double Value(StreamData frame) => Convert.ToDouble(frame.Payload);
 
         /// <summary>
-        /// The whole recording is dumped, and it arrives at the REACQUISITION
-        /// light-time rather than the one in force at loss of signal.
+        /// The whole recording is dumped, and it arrives at the reacquisition
+        /// signal delay rather than the one in force at loss of signal.
         ///
         /// <para>The two are deliberately far apart (9s at LOS, 2s at
         /// reacquisition) because a dump scheduled off the frozen last-connected
         /// delay is the plausible wrong answer and it is invisible at one delay:
         /// it would land at UT 14 instead of UT 7. The samples arrive at UT 7
-        /// carrying their ORIGINAL <c>validAt</c> from inside the outage, and a
+        /// carrying their original <c>validAt</c> from inside the outage, and a
         /// <c>deliveredAt</c> of the real arrival, not <c>validAt + light-time</c>.
         /// </para>
         /// </summary>
@@ -106,7 +106,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A link report from inside an outage leaves under the light-time the
+        /// A link report from inside an outage leaves under the signal delay the
         /// craft was last in contact at, and one from after reacquisition under
         /// the route it has now. When that route is shorter the live report
         /// overtakes the dark one still crossing, so the wire would interleave
@@ -203,7 +203,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The recorder's byte budget: a recording that outgrows it keeps the span
-        /// ADJACENT to reacquisition, drops the oldest, and states what it dropped
+        /// adjacent to reacquisition, drops the oldest, and states what it dropped
         /// rather than presenting a truncated recording as a whole one.
         ///
         /// <para>The budget is shrunk to a thousand samples' worth so the test can
@@ -414,7 +414,7 @@ namespace Sitrep.Host.IntegrationTests
             On(frames, BlackoutRecorderTestUplink.OnboardTopic).Where(f => f.Meta.Staleness == Staleness.Recorded).ToList();
 
         /// <summary>
-        /// A subscriber that joins DURING the outage is served the last sample
+        /// A subscriber that joins during the outage is served the last sample
         /// that got out before it, honestly labelled
         /// <see cref="Staleness.LastBeforeBlackout"/> rather than
         /// <see cref="Staleness.Fresh"/>.
@@ -469,7 +469,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The link-down mark reaches a vantage that did not exist at loss of
-        /// signal: the ONLY subscriber here connects mid-outage.
+        /// signal: the only subscriber here connects mid-outage.
         ///
         /// <para>The catch-up is served inside the subscribe, before any later
         /// tick, so a mark that only reached the vantages subscribed when it was
@@ -524,9 +524,9 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The pre-outage in-flight tail is NOT the recording and must not be
+        /// The pre-outage in-flight tail is not the recording and must not be
         /// relabelled as one: a sample captured while the link was up rides its
-        /// own light-time through the outage and arrives
+        /// own signal delay through the outage and arrives
         /// <see cref="Staleness.Fresh"/>, at <c>validAt + delay</c>.
         ///
         /// <para>That behaviour predates the recorder ("the last delaySeconds of

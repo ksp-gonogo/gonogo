@@ -18,17 +18,17 @@ namespace Gonogo.DevTools
         /// Tolerance, in seconds, for calling a reveal offset "exactly the silence
         /// deadline". The offset is a difference of two doubles that were themselves
         /// summed through the aggregator, so an exact compare would miss by an ulp and
-        /// report a routed light-time that happens to equal a Kerbin day.
+        /// report a routed signal delay that happens to equal a Kerbin day.
         /// </summary>
         private const double MatchToleranceSeconds = 0.001;
 
         /// <summary>
-        /// What a ledger row's reveal offset SAYS about how its delay was decided.
+        /// What a ledger row's reveal offset says about how its delay was decided.
         ///
         /// <para>A row whose reveal is one silence-declaration deadline after its
         /// event is classed <c>Unroutable</c>, and a row whose reveal is a plausible
-        /// light-time is routed. Derived, not observed - the row does not record which
-        /// branch produced it - so it is reported beside the ROUTE node's directly
+        /// signal delay is routed. Derived, not observed - the row does not record which
+        /// branch produced it - so it is reported beside the route node's directly
         /// observed answer, and a disagreement between the two is itself a finding.</para>
         /// </summary>
         internal static string ClassifyRevealOffset(double revealUt, double eventUt, double silenceDeclarationSeconds)
@@ -66,13 +66,13 @@ namespace Gonogo.DevTools
         /// is what <c>FleetCommsReader</c> reads. A field that printed that conclusion
         /// would read the same whether it stayed true or not, which is the failure mode
         /// this whole probe exists to avoid. So it is measured: when the override
-        /// DISAGREES with the real link, whichever of the two the route read followed
+        /// disagrees with the real link, whichever of the two the route read followed
         /// names the answer. When they agree there is nothing to tell apart, and it
         /// says so instead of guessing.</para>
         /// </summary>
         /// <param name="overrideMode">null = no override in force; true = forced connected; false = forced blackout.</param>
         /// <param name="rawCommNetConnected">What the live CommNet connection reports, before any override.</param>
-        /// <param name="routeReadFoundAPath">Whether the currency arm's own route read produced a light-time.</param>
+        /// <param name="routeReadFoundAPath">Whether the currency arm's own route read produced a signal delay.</param>
         internal static string JudgeOverrideReach(bool? overrideMode, bool rawCommNetConnected, bool routeReadFoundAPath)
         {
             if (!overrideMode.HasValue)
@@ -96,7 +96,7 @@ namespace Gonogo.DevTools
         ///
         /// <para>The two figures separately are both ambiguous. A balance that did not
         /// move is a withheld credit or an award that never happened; a balance that
-        /// moved is a credit that landed or one that landed AND is still queued to land
+        /// moved is a credit that landed or one that landed and is still queued to land
         /// again. Only the pair decides, and the pair was not being read: the matrix
         /// cell was being eyeballed off a column of raw balances.</para>
         ///
@@ -143,8 +143,8 @@ namespace Gonogo.DevTools
         /// <summary>
         /// Why a trigger-mode request cannot be applied, or null when it can.
         ///
-        /// <para>The trigger modes cause a REAL recovery, a REAL vessel destruction or a
-        /// REAL crew death, because those are the only producers of the events that
+        /// <para>The trigger modes cause a real recovery, a real vessel destruction or a
+        /// real crew death, because those are the only producers of the events that
         /// attribute funds and reputation to a place (see
         /// <c>GonogoDevCurrency</c>'s class doc). None of them is undoable, so every one
         /// of these refusals is load-bearing, and they are decided here rather than
@@ -152,12 +152,12 @@ namespace Gonogo.DevTools
         ///
         /// <para><paramref name="confirm"/> must repeat the resolved vessel's own name.
         /// The request cfg is synced, so it persists on disk and arrives on the rig
-        /// without anyone re-reading it; the id-stamp stops a replay of the SAME
+        /// without anyone re-reading it; the id-stamp stops a replay of the same
         /// request, and this stops a request written for one craft from destroying
         /// whichever craft answers to the origin selector today.</para>
         ///
         /// <para>A currency, amount or reason supplied alongside a trigger mode is a
-        /// refusal rather than something ignored. In a trigger mode the GAME decides all
+        /// refusal rather than something ignored. In a trigger mode the game decides all
         /// three, and a request that names them is a request whose author believes the
         /// tool is awarding the currency - accepting it silently would hand back a
         /// result file measuring something other than what was asked for.</para>

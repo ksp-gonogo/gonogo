@@ -1,5 +1,5 @@
 /**
- * The Topics this client knows about because a client package SAID SO at
+ * The Topics this client knows about because a client package said so at
  * module load, as opposed to the ones a generated map or a hand-written list in
  * the gonogo repo names.
  *
@@ -11,7 +11,7 @@
  * exists, so it is what everything downstream that needs "which Topics are real
  * right now" has to read.
  *
- * `registerTopicUnits` deliberately does NOT enrol a Topic here: a
+ * `registerTopicUnits` deliberately does not enrol a Topic here: a
  * client-derived channel declares its fields through it too, and nothing puts a
  * derived channel on the wire, so a units declaration is not evidence that
  * anything sends the Topic.
@@ -52,7 +52,7 @@ export function isRuntimeRegisteredTopic(id: string): boolean {
 }
 
 /**
- * Record that a registration changed what a Topic ENUMERATES without vouching
+ * Record that a registration changed what a Topic enumerates without vouching
  * for a new Topic: `registerTopicUnits` and `registerTypeUnits`. The id list is
  * unchanged and the snapshot's identity still moves, because a catalogue built
  * between an Uplink's Topic registration and its unit registration would

@@ -60,7 +60,7 @@ export interface ManeuverPreviewProps {
   currentUT: Value<"ut"> | undefined;
   error: string | null;
   committing: boolean;
-  /** The light time a node crosses on its way to the craft, stated beside the send control. */
+  /** The signal delay a node crosses on its way to the craft, stated beside the send control. */
   sendDelay: SendDelay;
   triggerEditorOpen: boolean;
   setTriggerEditorOpen: (next: boolean | ((prev: boolean) => boolean)) => void;

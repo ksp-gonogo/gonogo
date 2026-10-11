@@ -14,7 +14,7 @@ namespace Sitrep.Contract;
 /// from the row's own description, so a setting an Uplink adds needs no client
 /// code of its own.</para>
 ///
-/// <para>It is never delayed by light time, the time a signal takes to cross
+/// <para>It is never delayed by signal delay, the time a signal takes to cross
 /// between a craft and the command centre (the screen an operator sends
 /// commands from): a setting configures the system the operator is sitting
 /// at, not a craft.</para>
@@ -180,7 +180,7 @@ public class SettingsDeclarationFailure
 
 /// <summary>
 /// Apply the settings from one Save press together and write the settings file once. Arguments to <c>settings.save</c>: one Save press, applied together and
-/// written to the settings file once. Never delayed by light time.
+/// written to the settings file once. Never delayed by signal delay.
 ///
 /// <para>Safe to send again. A save sets each row to the value named,
 /// so repeating one that already landed changes nothing. That matters because

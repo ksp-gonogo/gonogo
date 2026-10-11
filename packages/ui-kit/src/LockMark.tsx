@@ -18,9 +18,12 @@ export interface LockMarkProps {
 }
 
 /**
- * The compact form of a lock: a padlock and the name of what is missing, for
- * a tile too small for the full notice, or inline where a gated field would
- * be read. The whole sentence is its tooltip and its accessible name.
+ * The compact form of a lock: a padlock and the name of what is missing (a
+ * technology not yet researched, or a building not yet upgraded), for a tile
+ * too small for the full notice, or inline where a gated field would be read.
+ * The whole sentence is its tooltip and its accessible name. Useful for
+ * telling the operator what to unlock without taking the room of a notice.
+ * Used by the orbital event chips of a vessel's encounters.
  *
  * @category Panel
  */

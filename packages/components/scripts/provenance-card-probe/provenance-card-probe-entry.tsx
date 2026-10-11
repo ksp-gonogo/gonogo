@@ -6,8 +6,8 @@
  * `ComponentOverlay` itself starts closed and is provider + search-state heavy,
  * so this renders a token-faithful copy of its list-item card (same
  * `--font-size-xs` / `--color-text-faint` description and `--color-accent-fg`
- * addition line) driven by the REAL core provenance functions against a live
- * registry: a Kerbalism-like Uplink that augments AND contributes to one
+ * addition line) driven by the real core provenance functions against a live
+ * registry: a Kerbalism-like Uplink that augments and contributes to one
  * widget, and a plain widget for contrast. So the screenshot shows exactly what
  * the picker draws, and it moves if the derivation does.
  */

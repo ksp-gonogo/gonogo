@@ -20,7 +20,7 @@ import { VantageControl } from "./VantageControl";
  * needed to reserve the space). `VantageControl` renders itself differently on
  * each; nothing else here branches.
  *
- * The strip itself is deliberately NOT a live region: the time field updates
+ * The strip itself is deliberately not a live region: the time field updates
  * roughly once a second off the live view clock, and an
  * `aria-live`/`role="status"` around it would announce every tick to a screen
  * reader. A single `aria-label` on the container makes the whole strip

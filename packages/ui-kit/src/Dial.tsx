@@ -151,6 +151,8 @@ function arcPath(
  * A round instrument whose needle sweeps a configurable arc (by default a full
  * 360° compass), so it can show a heading that wraps as well as a bounded
  * value. With `readout`, a half-circle face puts its figure under the hub.
+ * Useful for showing the operator a value against a scale at a glance. Used by
+ * the thrust-to-weight ratio widget.
  *
  * Angles are degrees clockwise from 12 o'clock (up is 0°), as on a compass.
  * `startAngle` places `min`; `sweep` is the span from `min` to `max`.

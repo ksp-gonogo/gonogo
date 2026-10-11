@@ -12,7 +12,7 @@ namespace Gonogo.KSP.CurrencyDelay
     // PendingCreditLedger.cs's own ConfigNode dependency and is unit-tested there.
 
     /// <summary>
-    /// Owns the currency-delay subsystem's whole lifecycle: constructs the ONE shared
+    /// Owns the currency-delay subsystem's whole lifecycle: constructs the one shared
     /// <see cref="CurrencyDelayGuard"/>, <see cref="PendingCreditLedger"/>, and
     /// <see cref="VesselScienceAggregator"/>, injects that same trio into the stock interceptor and
     /// the reveal applier, binds the aggregator/ledger onto <see cref="DelayedScienceSink"/> so an
@@ -64,7 +64,7 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Merges any persisted rows into the SAME ledger instance OnAwake already handed to the
+        /// Merges any persisted rows into the same ledger instance OnAwake already handed to the
         /// interceptor/applier (see CurrencyDelayLedgerPersistence's own doc comment for why a
         /// merge, not a reference swap). A brand-new game, or a save from before this subsystem
         /// existed, has no ledger node - the ledger simply stays empty, exactly as constructed.

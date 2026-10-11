@@ -37,7 +37,7 @@ namespace Sitrep.Contract
     /// reliable WebSocket as everything else.</para>
     /// <internal>
     /// Reliable delivery suits this lane because its payloads are held for
-    /// light-time before they are revealed, typically 10 to 60 seconds, and a
+    /// signal delay before they are revealed, typically 10 to 60 seconds, and a
     /// delay buffer is a jitter buffer: a retransmit costing tens of
     /// milliseconds is still early, so the listener gets the actual bytes where
     /// a media track would have concealed the drop. The regime it does not suit

@@ -12,15 +12,15 @@ namespace Sitrep.Host
     /// <see cref="IVesselActuator"/> method, hand back an already-typed
     /// result. No KSP/Unity type appears anywhere in this file, every
     /// domain check that doesn't need live game state (range validation on
-    /// the args themselves) happens HERE; every check that does (mode
+    /// the args themselves) happens here; every check that does (mode
     /// availability, whether a target id actually resolves, whether a
     /// vessel exists at all) is the actuator's job and comes back as a typed
     /// <see cref="CommandResult.ErrorCode"/>.
     ///
     /// <para><b>Absolute set, never toggle</b> (design doc §3/§6.2): every
-    /// boolean actuation command takes the state to APPLY, not "flip
+    /// boolean actuation command takes the state to apply, not "flip
     /// whatever it currently is", a toggle racing an unknown intervening
-    /// state under light-time delay is a footgun this contract doesn't
+    /// state under signal delay delay is a footgun this contract doesn't
     /// reproduce.</para>
     /// </summary>
     public static class VesselCommandProvider
@@ -93,7 +93,7 @@ namespace Sitrep.Host
         public static CommandResult HandleSetAbort(IVesselActuator actuator, SetEnabledArgs args) =>
             actuator.SetAbort(args.Enabled);
 
-        /// <summary>Validated (not silently clamped) at THIS admission gate, A-10's inconsistency fixed at the send gate, per the design doc §3.</summary>
+        /// <summary>Validated (not silently clamped) at this admission gate, A-10's inconsistency fixed at the send gate, per the design doc §3.</summary>
         public static CommandResult HandleSetThrottle(IVesselActuator actuator, SetThrottleArgs args)
         {
             if (args.Value < 0.0 || args.Value > 1.0)
@@ -107,9 +107,9 @@ namespace Sitrep.Host
             actuator.SetFlyByWire(args.Enabled);
 
         /// <summary>
-        /// Clamps every provided axis/trim field to −1..1 HERE (KSP-free
+        /// Clamps every provided axis/trim field to −1..1 here (KSP-free
         /// admission validation) before handing the whole partial-update struct
-        /// to the actuator. Axes are CLAMPED rather than rejected, an
+        /// to the actuator. Axes are clamped rather than rejected, an
         /// over-range stick reading is a routine hardware quirk, not an error
         /// (contrast <see cref="HandleSetThrottle"/>, which rejects out-of-range
         /// with <see cref="CommandErrorCode.Range"/> because a throttle past
@@ -152,18 +152,18 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Same split as <see cref="HandleSetWarpIndex"/>, and for the same
-        /// reason: the unambiguously-invalid case is rejected HERE, but the
-        /// REAL upper bound is only known live, so the actuator owns it.
+        /// reason: the unambiguously-invalid case is rejected here, but the
+        /// real upper bound is only known live, so the actuator owns it.
         ///
         /// <para>This used to hardcode <c>1..10</c>. It can't any more, the
         /// elected action-groups backend owns the range (stock stops at 10;
         /// Action Groups Extended legitimately goes to 250), and this
         /// KSP-free provider cannot see which backend won. A non-positive
-        /// group is still nonsense under EVERY backend, so it fails fast here;
+        /// group is still nonsense under every backend, so it fails fast here;
         /// anything else goes to the actuator, which asks the backend and
         /// returns <c>CommandErrorCode.Range</c> for a group it doesn't know.
         /// A command naming an unknown group therefore still fails cleanly,
-        /// the check MOVED, it did not disappear.</para>
+        /// the check moved, it did not disappear.</para>
         /// </summary>
         public static CommandResult HandleSetActionGroup(IVesselActuator actuator, SetActionGroupArgs args)
         {
@@ -191,7 +191,7 @@ namespace Sitrep.Host
         /// simply doesn't match a live vessel/body/position is the actuator's
         /// own <c>CommandErrorCode.NotFound</c> to return (it's the one with
         /// FlightGlobals in hand). <c>TargetKind.Position</c> (T-POI-4) needs
-        /// BOTH <see cref="SetTargetArgs.Latitude"/> and
+        /// both <see cref="SetTargetArgs.Latitude"/> and
         /// <see cref="SetTargetArgs.Longitude"/> set, mirroring the
         /// Vessel/Body cases' own "the one field this Kind needs is missing"
         /// guard.
@@ -215,7 +215,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Mirrors <see cref="HandleSetActionGroup"/>'s split: the
-        /// unambiguously-invalid case (negative) is rejected HERE, before the
+        /// unambiguously-invalid case (negative) is rejected here, before the
         /// actuator is ever called, exactly like every other range-checked
         /// command in this file. The real upper bound
         /// (<c>TimeWarp.warpRates.Length</c>) is only known live, so

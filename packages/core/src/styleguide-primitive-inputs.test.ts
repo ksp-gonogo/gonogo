@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { styleguideScanRoots } from "./styleguideScanRoots";
 
 /**
- * The two primitives that take a `Reading` are FED readings, enforced.
+ * The two primitives that take a `Reading` are fed readings, enforced.
  *
  * There's no point in `<Meter>` supporting `Reading` if it isn't enforced.
  * `<Unit>` and `<Meter>` each say, in their declared prop types, that they
@@ -17,7 +17,7 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *
  * ## Why a ratchet when the types already refuse a number
  *
- * Because the types refusing it is a DECISION, and the point of a ratchet is to
+ * Because the types refusing it is a decision, and the point of a ratchet is to
  * keep a decision from being undone quietly. Widening `UnitValue` back to
  * `number | UnitValue` is one word, it makes every gate green, and nothing but
  * this file would notice. That is not hypothetical: the same widening is how
@@ -40,20 +40,20 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *   `value` or `capacity` prop of either primitive, anywhere in the app or in
  *   any Uplink
  * - **C, blindness.** Every shape B refuses is planted and must be counted, and
- *   every shape it must ACCEPT is planted and must not be. A matcher that has
+ *   every shape it must accept is planted and must not be. A matcher that has
  *   stopped matching reports a clean tree, which reads exactly like success.
  *
  * ## Its other half, which is a different gate and not a duplicate
  *
  * `primitive-reading-feed.scan.ts` covers the fault this file cannot see: a
- * call site that HOLDS a reading and hands over `reading.value`. That is not a
+ * call site that holds a reading and hands over `reading.value`. That is not a
  * magnitude, not arithmetic and not a cast, so gate B passes it, and it
  * discards the band and the staleness exactly as silently as the shapes above.
  * It needs the compiler to spot, because the question is what the expression's
  * type is.
  *
  * Cross-planted both ways rather than assumed: arithmetic at a call site fails
- * THIS gate and passes that one, and `<Unit value={reading.value} />` fails
+ * this gate and passes that one, and `<Unit value={reading.value} />` fails
  * that one and passes this. Neither is redundant.
  */
 
@@ -82,7 +82,7 @@ function walk(dir: string): string[] {
 }
 
 /**
- * Comments stripped, so a paragraph ABOUT a violation is not one.
+ * Comments stripped, so a paragraph about a violation is not one.
  *
  * Both forms, and strings are left alone: a prop expression never spans a
  * string literal boundary in a way this needs, and blanking them would break
@@ -149,7 +149,7 @@ function quantityExpressions(attrs: string): string[] {
  * The expression with everything inside brackets removed, which is what the
  * checks below reason about.
  *
- * `value={value("ratio", linked / total)}` is CORRECT: the division happens
+ * `value={value("ratio", linked / total)}` is correct: the division happens
  * inside a call that mints a quantity from it, and the primitive is handed the
  * quantity. `value={linked / total}` is the violation, and the two differ only
  * in depth. Nothing else separates them, which is why this is a depth walk and
@@ -181,9 +181,9 @@ const BARE_MAGNITUDE = /^(-?[0-9][0-9_.eE+-]*|Number\.(NaN|[A-Z_]+))$/;
 /**
  * A cast, which buys past the declared type with no diagnostic anywhere.
  *
- * Read at the TOP LEVEL like the rest, and that is a distinction rather than
+ * Read at the top level like the rest, and that is a distinction rather than
  * consistency for its own sake. `value("m/s", relVel as number)` casts the
- * MAGNITUDE on its way into a quantity, which this gate has no opinion about;
+ * magnitude on its way into a quantity, which this gate has no opinion about;
  * what it refuses is a cast standing between the expression and the prop, which
  * is the one that says "trust me" about the very thing the prop declares.
  */

@@ -12,8 +12,8 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// A seam is good when the repo itself tells an outside implementer both halves
-    /// of the job. WHAT to provide: a doc comment on the interface and on every
-    /// member it declares. HOW TO KNOW they provided it right: a conformance
+    /// of the job. What to provide: a doc comment on the interface and on every
+    /// member it declares. How to know they provided it right: a conformance
     /// assertion in the shipped <c>Sitrep.Contract.TestSupport</c> that accepts the
     /// seam's own type, or a base of it.
     ///
@@ -27,22 +27,22 @@ namespace Sitrep.Core.Tests
     /// here: nothing in core names a mod.</para>
     ///
     /// <para><b>Two lists, and only one of them is allowed. Read this before adding
-    /// either.</b> An IMPLEMENTER list is banned outright: recording who implements a
+    /// either.</b> An implementer list is banned outright: recording who implements a
     /// seam invites deleting a seam that looks unused here while a third party is
-    /// building on it, and nothing in this repo can see that party. A CONFORMANCE
+    /// building on it, and nothing in this repo can see that party. A conformance
     /// debt list is allowed, and <see cref="ConformanceDebt"/> is one: it records
     /// documentation this repo still owes, so the only thing it can ever do is make
     /// skipping that work harder. It cannot make an implementation easier to
     /// delete, because it says nothing about implementations.</para>
     ///
-    /// <para><b>Which interfaces are seams is DERIVED, not listed.</b> An Uplink may
+    /// <para><b>Which interfaces are seams is derived, not listed.</b> An Uplink may
     /// reference <c>Sitrep.Contract</c> and nothing else of this repo's, so the
     /// public interfaces of that one assembly are
     /// exactly the set an outside party can implement or call. A 37th joins by being
     /// declared. Everything else (<c>Sitrep.Host</c>'s, <c>Sitrep.Core</c>'s,
     /// <c>Sitrep.Transport</c>'s) is an internal collaborator nobody outside can
     /// name, so "is it good for an outside implementer" is not a question about it
-    /// and the OLD check still applies there unchanged: see
+    /// and the old check still applies there unchanged: see
     /// <see cref="EveryInterfaceInAPrivateAssemblyHasAProductionImplementer"/>.</para>
     ///
     /// <para><b>How this still catches the original incident.</b>
@@ -51,7 +51,7 @@ namespace Sitrep.Core.Tests
     /// closed-form on every live frame while every test of the integrator behind it
     /// passed, because each of those tests opened the gate by hand. The absent
     /// implementer is now legitimate. What is not legitimate is the hand-opened
-    /// gate: a seam passes only when there is a SHARED, SHIPPED assertion that takes
+    /// gate: a seam passes only when there is a shared, shipped assertion that takes
     /// an implementation and says whether it is right. This repo's own tests then
     /// open the gate through that same assertion, so "the code behind the gate
     /// works" and "somebody else's implementation would get through it" stop being
@@ -61,7 +61,7 @@ namespace Sitrep.Core.Tests
     /// <c>Gonogo.sln</c> omits the projects needing the KSP managed assemblies, so a
     /// reflection scan cannot see <c>Gonogo.KSP</c> or any Uplink and would report
     /// their interfaces as unimplemented. The public half has the opposite problem
-    /// and the opposite answer: what an author gets is the ASSEMBLY and the XML doc
+    /// and the opposite answer: what an author gets is the assembly and the XML doc
     /// beside it, so those are what is read.</para>
     ///
     /// <para><b>Every half is made to see a violation.</b> Each audit below is a pure
@@ -198,7 +198,7 @@ namespace Sitrep.Core.Tests
         // ── The audits, pure so they can be handed a planted failure ─────────────
 
         /// <summary>
-        /// A seam is documented when the XML doc carries an entry for the type AND
+        /// A seam is documented when the XML doc carries an entry for the type and
         /// for every member the interface declares itself. Inherited members belong
         /// to the base that declares them and are checked when that base is.
         /// </summary>
@@ -277,14 +277,14 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The contract interfaces the shipped TestSupport assembly ASSERTS ABOUT: the
+        /// The contract interfaces the shipped TestSupport assembly asserts about: the
         /// parameter types of its public static helpers.
         ///
         /// <para>Two narrowings, and both were earned. Only interfaces declared in
         /// <c>Sitrep.Contract</c> count, because a parameter typed <c>object</c> or
         /// <c>Type</c> would otherwise "cover" seams it has nothing to say about. And
-        /// only STATIC methods on a type that does not itself implement a contract
-        /// interface count, because TestSupport's other half is test DOUBLES
+        /// only static methods on a type that does not itself implement a contract
+        /// interface count, because TestSupport's other half is test doubles
         /// (<c>ClockedUplinkHost</c>, <c>StarvationProbeHost</c> and
         /// <c>RegistrationRecordingHost</c> all implement <see cref="IUplinkHost"/>),
         /// and a double's own <c>AddGateEvaluator(ICommandGateEvaluator)</c> is a

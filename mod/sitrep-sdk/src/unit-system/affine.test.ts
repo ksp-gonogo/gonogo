@@ -4,14 +4,14 @@ import { affineVectorUnitFor } from "./registry";
 import { value } from "./value";
 
 /**
- * The affine rules at RUNTIME, which is the half a type test cannot reach.
+ * The affine rules at runtime, which is the half a type test cannot reach.
  *
  * `affine.test-d.ts` proves `ut.minus(ut)` is typed `Value<"s">`. That would be a lie
  * if the runtime still tagged the result `ut`, and it would be a quiet one: the type
  * would read `s`, the rendered token would read `ut`, and only a reader comparing the
  * two would notice. So the unit that comes back is asserted here, not assumed.
  *
- * The refusals are deliberately NOT tested here. They are compile-time only: nothing
+ * The refusals are deliberately not tested here. They are compile-time only: nothing
  * throws at runtime for `ut.plus(ut)`, because the dimension genuinely does match and
  * `requireSameDimension` has no opinion about kind. A test asserting a throw would
  * pass today by accident of the type layer and would be testing nothing.

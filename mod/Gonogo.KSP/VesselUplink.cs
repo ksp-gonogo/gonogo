@@ -12,7 +12,7 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// M1 Task 1/2/3: the vessel telemetry uplink foundation. Registers
-    /// the M1 vessel/time.warp READ channels with
+    /// the M1 vessel/time.warp read channels with
     /// <see cref="VesselViewProvider"/>'s typed mappers (via its wire-adapter
     /// <c>*Wire</c> overloads: see that class's doc comment), wires the
     /// subject-provenance + epoch mechanism: every <c>vessel.*</c> sample already
@@ -21,7 +21,7 @@ namespace Gonogo.KSP
     /// which detects an active-vessel GUID change and forces an
     /// unconditional keyframe on every vessel channel for that same tick via
     /// <see cref="IUplinkHost.ForceKeyframe"/>. Task 3 adds the typed
-    /// vessel/action COMMANDS (<see cref="VesselCommandProvider"/>'s
+    /// vessel/action commands (<see cref="VesselCommandProvider"/>'s
     /// <c>Handle*</c> glue against the <see cref="IVesselActuator"/> this
     /// uplink is constructed with, <see cref="KspVesselActuator"/> in
     /// production, <c>Sitrep.Host.Tests.FakeVesselActuator</c> in tests).
@@ -31,7 +31,7 @@ namespace Gonogo.KSP
     /// command-parsing logic lives in the KSP-free <c>Sitrep.Host</c>
     /// assembly (<see cref="VesselViewProvider"/>/<see cref="VesselEpochSampler"/>/
     /// <see cref="VesselCommandProvider"/>), headlessly testable there. Only
-    /// the actuator's REAL implementation (<see cref="KspVesselActuator"/>)
+    /// the actuator's real implementation (<see cref="KspVesselActuator"/>)
     /// touches KSP directly, exactly like <see cref="KspHost"/> on the read
     /// side.
     /// </summary>
@@ -90,7 +90,7 @@ namespace Gonogo.KSP
         /// <c>Sitrep.Host.UplinkDiscovery</c>'s doc comment: a discoverable
         /// Uplink resolves any real dependency itself rather than taking it
         /// as a discovery-time argument). Builds its own
-        /// <see cref="KspVesselActuator"/> against the mod-wide SHARED
+        /// <see cref="KspVesselActuator"/> against the mod-wide shared
         /// maneuver-node id registry (<see cref="GonogoAddon.SharedManeuverNodeIdRegistry"/>),
         /// the same single instance <see cref="KspHost"/> stamps node ids
         /// from, per that registry's own doc comment on why sharing it is
@@ -248,9 +248,9 @@ namespace Gonogo.KSP
         /// Declares the exclusive <c>"actionGroups"</c> capability with
         /// <see cref="StockActionGroupsBackend"/> as its always-present vanilla
         /// factory: the same two-pass discipline (and for the same reason) as
-        /// <see cref="CommsCoreUplink.DeclareCapabilities"/>: declaring HERE,
+        /// <see cref="CommsCoreUplink.DeclareCapabilities"/>: declaring here,
         /// in the pre-Register pass, guarantees the capability exists before
-        /// ANY uplink's <c>Register</c> runs, so a future AGX uplink's provider
+        /// any uplink's <c>Register</c> runs, so a future AGX uplink's provider
         /// registration can never race ahead of this declaration regardless of
         /// assembly-scan discovery order.
         /// </summary>
@@ -382,7 +382,7 @@ namespace Gonogo.KSP
         /// only needed while an operator has a part open. Two gates stack: the engine
         /// skips <see cref="CapturePartActionsOnMain"/> entirely while nothing under
         /// the prefix is subscribed, and the capture itself enumerates only the
-        /// individual parts that ARE subscribed. Nothing open costs nothing; one
+        /// individual parts that are subscribed. Nothing open costs nothing; one
         /// popover open costs one part's events.</para>
         /// </summary>
         private void RegisterPartActions(IUplinkHost host)
@@ -539,7 +539,7 @@ namespace Gonogo.KSP
         /// is read with or without an active vessel, and it was never a reading
         /// taken aboard a craft, which is also why it is not recordable. A fact
         /// the whole simulation shares is vantage-independent by construction,
-        /// so there is no light-time for it to cross, and this is the READ side
+        /// so there is no signal delay for it to cross, and this is the read side
         /// finally agreeing with the write side: <c>time.setWarpIndex</c> is
         /// already declared instant on exactly that reasoning (see its
         /// <c>[SitrepCommand]</c> in <c>Sitrep.Contract/VesselCommands.cs</c>).</para>
@@ -550,7 +550,7 @@ namespace Gonogo.KSP
         /// <para>Named for the one topic it builds rather than generalised to a
         /// topic-taking factory on purpose: a helper the truenow-allowlist scan
         /// does not recognise by name contributes one match no matter how many
-        /// channels ride it (see that file's KNOWN BLIND SPOT note), so a second
+        /// channels ride it (see that file's known blind spot note), so a second
         /// delay-bypassing channel here has to declare itself and be counted.</para>
         /// </summary>
         private static ChannelDeclaration WarpChannel()
@@ -571,7 +571,7 @@ namespace Gonogo.KSP
         /// never published and a client formatted every UT with the stock
         /// six-hour day on an RSS install.</para>
         ///
-        /// <para>NOT recordable, like <c>time.warp</c>: <c>BuildGameMeta</c>
+        /// <para>Not recordable, like <c>time.warp</c>: <c>BuildGameMeta</c>
         /// stamps it <c>Source = "game"</c>, so it was never a reading taken
         /// aboard the craft, and a blackout recorder that dumped it would have
         /// the vessel report the game's own calendar back to the player.</para>

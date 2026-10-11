@@ -18,7 +18,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
     /// browser tab happened to be open; the roster is an ordinary channel and
     /// gating it is free.
     ///
-    /// <para>These assertions are on the REGISTRATION, not on a capture: the
+    /// <para>These assertions are on the registration, not on a capture: the
     /// capture half reads <c>FlightGlobals</c> and only exists inside a running
     /// game. <c>Sitrep.Host.Tests.SampledSourceTests</c> covers the other half
     /// of the claim, that an ungated source's ledger writes actually land with
@@ -85,7 +85,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
-        /// The active craft's rows reach the engine as ONE set per pass, and an empty set
+        /// The active craft's rows reach the engine as one set per pass, and an empty set
         /// still goes out, since that is how a centre that stopped being the active craft
         /// loses its zero. None of them leaks into the fleet hook as a guid of "system".
         /// </summary>

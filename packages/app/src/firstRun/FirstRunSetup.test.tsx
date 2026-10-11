@@ -125,7 +125,7 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 /**
- * Registers the WS connection listener BEFORE mounting: `SitrepTelemetryProvider`
+ * Registers the WS connection listener before mounting: `SitrepTelemetryProvider`
  * opens its socket as soon as the wrapper mounts, not when the Uplinks step
  * first subscribes, so a listener added after `render()` would miss it.
  */

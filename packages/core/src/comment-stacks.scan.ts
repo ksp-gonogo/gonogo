@@ -10,14 +10,14 @@ import { join } from "node:path";
  * spans lines and depends on sentence detection that is easy to re-implement
  * slightly differently.
  *
- * THE RULE, from CLAUDE.md: a genuinely multi-line thought uses proper
+ * The rule, from CLAUDE.md: a genuinely multi-line thought uses proper
  * multi-line formatting, a `/** *\/` block or a real paragraph, and never one
  * long sentence mashed into a stack of single-line `//` fragments. A merely-long
  * single comment stays one line and relies on editor wrapping.
  *
- * So the defect is specifically ONE SENTENCE spread over two or more `//`
+ * So the defect is specifically one sentence spread over two or more `//`
  * lines. A stack of several complete sentences is the "real paragraph" the rule
- * permits and is NOT counted. That distinction is the whole difference between a
+ * permits and is not counted. That distinction is the whole difference between a
  * gate worth having and one that forbids the tree's entire comment style, so
  * re-running a loose regex for consecutive prose `//` lines and getting a bigger
  * number is not evidence this scan is broken: the two measure different things.
@@ -53,7 +53,7 @@ const DIRECTIVE_RE =
 /**
  * Commented-out code, which is a different defect with a different fix. A
  * trailing brace, semicolon or arrow is the cheap tell, and it is worth being
- * generous here: a false NEGATIVE costs one uncaught comment, a false POSITIVE
+ * generous here: a false negative costs one uncaught comment, a false positive
  * puts a line in the debt list that no rewrite can ever clear.
  */
 const CODE_LIKE_RE =
@@ -65,12 +65,12 @@ const PROSE_RE = /[a-z]{3,}\s+[a-z]{3,}/;
 /**
  * An internal sentence boundary: terminal punctuation, optionally closing a
  * quote or bracket, then whitespace, then something that starts a new sentence.
- * Its ABSENCE is what makes a stack a single mashed sentence.
+ * Its absence is what makes a stack a single mashed sentence.
  */
 const SENTENCE_BREAK_RE = /[.!?]["'’)\]]?\s+["'“(`[]?[A-Z0-9]/;
 
 /**
- * A line that ENDS a stack rather than continuing it: a divider, or an empty
+ * A line that ends a stack rather than continuing it: a divider, or an empty
  * comment line.
  *
  * Neither is a fragment of a sentence. A divider belongs to the banner gate; an
@@ -82,19 +82,19 @@ const SENTENCE_BREAK_RE = /[.!?]["'’)\]]?\s+["'“(`[]?[A-Z0-9]/;
  * sentence.
  *
  * Two shapes, and neither needs a list of rule characters. A bare divider
- * carries no letter at all. A TITLED one opens or closes with a run of the same
+ * carries no letter at all. A titled one opens or closes with a run of the same
  * character, which is what `// --- inFlight bookkeeping` and a box-drawn banner
  * title both are, so a divider drawn in a spelling nobody has thought of yet is
  * still not mistaken for prose.
  *
- * The run has to be at an EDGE. A `===` inside prose backticks is not a divider,
+ * The run has to be at an edge. A `===` inside prose backticks is not a divider,
  * and a run-anywhere test reads `\`== null\`, not \`=== undefined\`` as one.
  */
 const SEPARATOR_RE =
   /^[^A-Za-z]*$|^([^A-Za-z0-9\s])\1{2,}|([^A-Za-z0-9\s])\2{2,}$/;
 
 /**
- * The smallest stack that can be a violation. TWO, because the rule does not
+ * The smallest stack that can be a violation. Two, because the rule does not
  * turn on how many fragments a sentence was split into: "a merely-long single
  * comment stays one line and relies on editor wrapping".
  */
@@ -177,12 +177,12 @@ function repoRoot(): string {
 }
 
 /**
- * Tracked files AND untracked-but-not-ignored ones. The untracked half is
+ * Tracked files and untracked-but-not-ignored ones. The untracked half is
  * load-bearing: a stack written into a brand new file is exactly the case this
  * is meant to catch, and a tracked-only listing would report it clean until the
  * commit after the one that introduced it.
  *
- * `covers` narrows which listed files are READ, never the listing itself, so
+ * `covers` narrows which listed files are read, never the listing itself, so
  * `enumerated` is the whole tree on every run.
  */
 export function scanCommentStacks(

@@ -5,11 +5,11 @@ import type { Certainty } from "./view-clock";
 /**
  * Whether `topic` is `"confirmed"` (at-or-before its lane's certainty horizon)
  * or `"predicted"` (past it) in the current frame. Rides its own channel, read
- * at the SAME `FrameToken` `useTimelineStream`/`useStreamStatus` read for the
+ * at the same `FrameToken` `useTimelineStream`/`useStreamStatus` read for the
  * same topic: value, staleness/absence and certainty are three independent
  * channels a widget composes, never nested inside one another.
  *
- * Per topic because a frame reads two view times a light-time apart, one per
+ * Per topic because a frame reads two view times a signal delay apart, one per
  * delay lane, and each is judged against its own horizon. It stays out of
  * `TopicReading<T>` all the same: certainty is shared by every topic on one
  * lane in one frame, so nesting it per read would duplicate one fact and admit

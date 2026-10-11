@@ -5,11 +5,11 @@ using Xunit;
 namespace Gonogo.KSP.Tests
 {
     /// <summary>
-    /// That a contributed SCET threshold source is actually REACHED.
+    /// That a contributed SCET threshold source is actually reached.
     ///
     /// <para><b>Why source text.</b> <c>ScetThresholdSourcesTests</c> is the
     /// behavioural half and it proves the table merges core's entries with the
-    /// Kernel's. It cannot prove that the arm asks THAT table: every one of its
+    /// Kernel's. It cannot prove that the arm asks that table: every one of its
     /// assertions passes just as well against a <c>ScetAlarmUplink</c> that kept
     /// asking <c>ScetThresholdSources.CoreOnly</c>, and on that build no
     /// contributed Topic can be armed against at all while the seam's own suite
@@ -25,7 +25,7 @@ namespace Gonogo.KSP.Tests
     public class ScetThresholdSeamIsWiredTests
     {
         /// <summary>
-        /// The table is bound to the HOST's kernel, which is the whole of what
+        /// The table is bound to the host's kernel, which is the whole of what
         /// makes the seam a seam. Left at core's own entries, an arm against a
         /// contributed Topic is refused by name and an operator is told the
         /// simulation cannot read a Topic their own mod publishes.
@@ -66,7 +66,7 @@ namespace Gonogo.KSP.Tests
         }
 
         /// <summary>
-        /// The capability is SHARED, and that is not a detail: an exclusive one
+        /// The capability is shared, and that is not a detail: an exclusive one
         /// would elect a single winner, so on an install with two mods each
         /// offering a quantity worth stopping a warp for only one of them could be
         /// armed against. No vanilla either, because core's own Topics are a table

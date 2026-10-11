@@ -27,13 +27,13 @@ import {
  * room, because it is the widget composing its own body and a widget cannot see
  * the width it was given. So in a landscape tile it wastes the width, running
  * everything down one column. `Panel sections` moves that decision to the one
- * component that CAN answer it, alongside the two decisions of the same shape
+ * component that can answer it, alongside the two decisions of the same shape
  * Panel already owns: the compacted title and the aside collapse.
  *
- * THE RULE, in one sentence: a widget gives its `Panel` a body by passing
+ * The rule, in one sentence: a widget gives its `Panel` a body by passing
  * `sections`, and a converted panel is therefore self-closing.
  *
- * There is no exception. A widget that is WHOLLY a drawing (a map, a globe, an
+ * There is no exception. A widget that is wholly a drawing (a map, a globe, an
  * orbit view) passes one `<Section fill>` holding it.
  *
  * Tests are outside the population. The children path is not going away, since
@@ -54,7 +54,7 @@ describe("panel bodies", () => {
    * The instrument check, before any assertion that can pass by finding
    * nothing.
    *
-   * Both floors count things that do NOT fall as the debt is cleared: files
+   * Both floors count things that do not fall as the debt is cleared: files
    * walked, and `<Panel>` opening tags found. Converting a widget turns a body
    * into a self-closing tag, so the tag count survives the very work this gate
    * is asking for, where a floor under the debt population would be one the work
@@ -85,7 +85,7 @@ describe("panel bodies", () => {
    * converted itself overnight.
    *
    * The negative cases matter more than the positive one. Each is a `<Panel>`
-   * that is NOT a body, and a gate that flagged any of them would be muted
+   * that is not a body, and a gate that flagged any of them would be muted
    * within a day.
    */
   it("sees a body, a drawing kept as children, and not a converted or commented panel", () => {
@@ -211,10 +211,10 @@ describe("panel bodies", () => {
      * The list as it stood at the ratchet base, with the ref it came from so a
      * failure can quote it.
      *
-     * `ratchetBaseRef` THROWS when no base can be reached, deliberately:
+     * `ratchetBaseRef` throws when no base can be reached, deliberately:
      * catching that and returning `undefined` would make an unreachable base
      * read as "nothing to check", turning the whole shrink guard into a pass.
-     * Undefined here means only that the checkout IS the base, or that the list
+     * Undefined here means only that the checkout is the base, or that the list
      * did not exist there.
      */
     function baseAllowlist():
@@ -234,7 +234,7 @@ describe("panel bodies", () => {
      * Growth is refused two different ways, because a moved file and a new body
      * look identical to a per-file comparison.
      *
-     * An EXISTING entry may only fall. A NEW entry is allowed only when the
+     * An existing entry may only fall. A new entry is allowed only when the
      * repo-wide total did not rise, which is what a relocation looks like: the
      * same panels under a different path, one key removed and one added, total
      * unchanged. Without it the gate fails on every file move and the only way

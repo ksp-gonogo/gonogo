@@ -63,7 +63,7 @@ interface Keying {
 /**
  * Put `log` on the mod: what it says goes up as commands, and what is said to
  * this vantage comes down on `commcast.traffic` and `commcast.radio`, already
- * delayed by the mod for the light-time from each speaker. Returns the way off.
+ * delayed by the mod for the signal delay from each speaker. Returns the way off.
  *
  * The same on every screen. A host reaches the mod on its own socket; a station
  * or a remote pilot reaches it through the host, whose relays carry both topics

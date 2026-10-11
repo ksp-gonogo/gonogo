@@ -41,7 +41,7 @@ namespace Gonogo.KSP
         /// <para>Empty when the sim is dormant or the craft is unloaded, which
         /// is not an error: <c>VesselDeltaV.CheckDirtyAndRun</c> early-returns
         /// on an unloaded vessel, so an unloaded craft's burns honestly have no
-        /// duration. Unlike the stage-delta-v capture, this does NOT wake the
+        /// duration. Unlike the stage-delta-v capture, this does not wake the
         /// sim: that capture already asks, and asking twice per tick from two
         /// places is how one of them ends up fighting the other.</para>
         /// </summary>
@@ -88,7 +88,7 @@ namespace Gonogo.KSP
         ///
         /// <para><b>A kerbal stepping out is neither of those and used to read as
         /// the first.</b> <c>Vessel.MakeInactive</c> runs
-        /// <c>DetachPatchedConicsSolver</c> on the craft they left, which SAVES
+        /// <c>DetachPatchedConicsSolver</c> on the craft they left, which saves
         /// the plan into <c>flightPlanNode</c> and then destroys the solver. So
         /// a craft with a queued burn reported as unable to hold a plan at all,
         /// for as long as the EVA lasted. The saved plan is read instead: stock

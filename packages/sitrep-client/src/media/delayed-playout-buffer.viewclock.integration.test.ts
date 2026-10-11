@@ -2,11 +2,11 @@
  * Single-delay-authority proof (M2 design §5.1 / §5.5 scenario 2, "headline
  * sync"). `DelayedPlayoutBuffer` is unit-tested against a hand-rolled
  * `manualClock` double in the sdk's `media/delayed-playout-buffer.test.ts`; this
- * file instead drives it with the REAL `ViewClock` from `@ksp-gonogo/sitrep-client`, the same
+ * file instead drives it with the real `ViewClock` from `@ksp-gonogo/sitrep-client`, the same
  * clock instance telemetry reads its certainty horizon off, to prove the two
- * surfaces cross together off ONE authority, not two clocks that merely agree.
+ * surfaces cross together off one authority, not two clocks that merely agree.
  *
- * The invariant under test: a media frame stamped UT=X becomes RELEASABLE at
+ * The invariant under test: a media frame stamped UT=X becomes releasable at
  * exactly the same `confirmedEdgeUt()` crossing that flips a telemetry sample
  * stamped UT=X from `predicted` to `confirmed`. Whatever delay the one
  * authority applies (0 on LAN, N seconds under comms modelling) applies

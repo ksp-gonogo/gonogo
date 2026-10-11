@@ -45,12 +45,15 @@ export interface LockScopeProps {
  * inside it reads a Topic (with `useTelemetry` or `useStream`) or uses a
  * command (with `useCommand`) that this save has not unlocked (a technology
  * not yet researched, or a building not yet upgraded, in a career save), the
- * whole scope is replaced by its `fallback`. The innermost scope wins, so a scope inside a
- * section is replaced while the section stays.
+ * whole scope is replaced by its `fallback`. Useful for telling the operator
+ * what is still locked instead of showing a part of a widget that cannot work.
+ * Used by {@link Section} and {@link AugmentSlot}, and by the guard around a
+ * widget's required Topics.
  *
- * It draws no element of its own. A {@link Section}, each augment an
- * {@link AugmentSlot} renders, and every widget as a whole are lock scopes
- * already; wrap anything else that should be replaced on its own.
+ * The innermost scope wins, so a scope inside a section is replaced while the
+ * section stays. It draws no element of its own. A {@link Section}, each
+ * augment an {@link AugmentSlot} renders, and every widget as a whole are lock
+ * scopes already; wrap anything else that should be replaced on its own.
  *
  * @category Panel
  */

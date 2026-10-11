@@ -11,14 +11,14 @@ namespace Gonogo.KSP
     /// <summary>
     /// The stock-CommNet <see cref="ICommsBackend"/>: the always-present
     /// vanilla backend the exclusive <c>"comms"</c> capability falls back to
-    /// (comms-uplink-design.md §2.2). Reads the SAME stock object graph
+    /// (comms-uplink-design.md §2.2). Reads the same stock object graph
     /// (<c>Vessel.connection</c> / <see cref="CommNet.CommPath"/> /
     /// <see cref="CommNet.CommNode"/>) that RealAntennas layers onto: so
     /// connectivity/strength/control-state and hop geometry come from stock
     /// members regardless of which backend won the election (§4.3).
     ///
-    /// <para><b>THREADING:</b> every accessor here reads live KSP state, so it
-    /// MUST be called only on the Unity main thread, the comms core
+    /// <para><b>threading:</b> every accessor here reads live KSP state, so it
+    /// must be called only on the Unity main thread, the comms core
     /// registration calls it exclusively from its capture-on-main sampler
     /// (<see cref="CommsCoreUplink"/>). It is a stateless view over
     /// <see cref="ActiveVesselScope.Current"/>, not a cached snapshot.</para>
@@ -31,19 +31,19 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The active vessel's stock CommNet connection, or null when there is
-        /// no LIVE comms to read, no vessel, not in flight, OR the active vessel
-        /// is transiently UNLOADED (scene load/settle). An unloaded vessel has no
+        /// no live comms to read, no vessel, not in flight, or the active vessel
+        /// is transiently unloaded (scene load/settle). An unloaded vessel has no
         /// valid CommNet control graph: its <c>connection</c>/<c>ControlPath</c>/
         /// <see cref="CommNet.CommNode"/> getters can dereference torn-down state
         /// and throw an NRE deep inside stock code (the "Vessel ... has been
         /// unloaded" transient).
         ///
-        /// <para>This gate is a GUARD, not a swallow, and that distinction is
+        /// <para>This gate is a guard, not a swallow, and that distinction is
         /// the whole of it. Declining to touch a torn graph yields a graceful
-        /// "disconnected / no delay" result, which is ALSO the correct
+        /// "disconnected / no delay" result, which is also the correct
         /// real-world meaning: no live link, no hop geometry, no computable
         /// delay. What used to sit behind it was a per-method try/catch that
-        /// turned a read which DID throw into the same authoritative
+        /// turned a read which did throw into the same authoritative
         /// <c>connected:false</c>, and that is a freeze lever rather than a
         /// reading: see <see cref="CommsBackendBase"/>'s error contract, which
         /// this backend now inherits, and which lets a throw propagate to the
@@ -92,7 +92,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Stock's <c>ControlPath</c> as KSP-free link views.
         ///
-        /// <para>A link with a torn-down endpoint is SKIPPED rather than
+        /// <para>A link with a torn-down endpoint is skipped rather than
         /// contributing a degenerate view. That is the same rule
         /// <see cref="RouteHops"/> applies and for the same reason: a zero
         /// -length hop would shorten the route rather than fail it, and a view
@@ -150,8 +150,8 @@ namespace Gonogo.KSP
         /// not vessel-rooted and needs no special casing for a ground-station
         /// start.
         ///
-        /// <para>Correct HERE and nowhere else. Under this backend stock's rules
-        /// ARE the rules, so calling stock's router is not an assumption; under
+        /// <para>Correct here and nowhere else. Under this backend stock's rules
+        /// are the rules, so calling stock's router is not an assumption; under
         /// a network-replacing backend it is a different answer from the one the
         /// game is using, which is why routing is asked of the elected backend
         /// rather than solved by core (see <see cref="ICommsBackend.RouteBetween"/>).</para>
@@ -215,7 +215,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Stock's reach rule for a pair of nodes, from the LIVE range model and
+        /// Stock's reach rule for a pair of nodes, from the live range model and
         /// the two nodes' own antenna powers (see <see cref="CommNetReach"/> for
         /// the rule and where it was read from).
         ///
@@ -225,7 +225,7 @@ namespace Gonogo.KSP
         /// it.</para>
         ///
         /// <para>Fail-soft to <see cref="CommsReachModels.Unknown"/>, whose
-        /// maximum is ABSENT, for a node that is not a stock one, a range
+        /// maximum is absent, for a node that is not a stock one, a range
         /// model the scenario has not stood up yet (main menu), or a read that
         /// threw on torn-down state. Absent, not zero: a zero would assert that
         /// nothing reaches and darken every prediction on the strength of a
@@ -266,7 +266,7 @@ namespace Gonogo.KSP
         /// Stock's own grading of the live link (see <see cref="CommNetDegrade"/>
         /// for the rule and for why it is not shared with the RealAntennas
         /// backend that computes the same expression over a different quantity).
-        /// A tick with no readable link is UNRATED rather than rated unusable.
+        /// A tick with no readable link is unrated rather than rated unusable.
         /// </summary>
         public override ICommsDegradeModel DegradeModel() => CommNetDegrade.From(LinkState());
 
@@ -285,7 +285,7 @@ namespace Gonogo.KSP
         public double Combine(IReadOnlyList<double> hopStrengths) => CommNetStrength.Product(hopStrengths);
 
         /// <summary>
-        /// Stock's occlusion geometry, built from the LIVE difficulty settings
+        /// Stock's occlusion geometry, built from the live difficulty settings
         /// (see <see cref="CommNetOcclusion"/> for the rule itself). The two
         /// multipliers are per-save and player-settable, so they are read here
         /// rather than baked in; a game that hasn't loaded its parameters yet
@@ -311,7 +311,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// A node's UNIQUE join key, the same id space
+        /// A node's unique join key, the same id space
         /// <see cref="CommsHop.From"/>/<see cref="CommsHop.To"/> use. A vessel
         /// node resolves to its owning vessel's persistent id: two craft can
         /// share a player-chosen name, which made the display name unsafe as a

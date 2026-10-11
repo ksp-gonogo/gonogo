@@ -8,7 +8,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// Every Uplink that VOUCHES for its client bundle must actually say so in the
+    /// Every Uplink that vouches for its client bundle must actually say so in the
     /// manifest the loader reads.
     ///
     /// <para>Arming an Uplink is two halves that nothing joined up. One half is
@@ -143,7 +143,7 @@ namespace Sitrep.Core.Tests
         /// reads the wrong files, or none, finds no violations and is
         /// indistinguishable from a clean repo. So the walk is made to see a
         /// violation that is known to be there: the wiring is deleted from a real
-        /// Uplink's source IN MEMORY and the same predicate must reject it.
+        /// Uplink's source in memory and the same predicate must reject it.
         ///
         /// <para>The planted Uplink is armed and wired, so there is always one
         /// subject whose hash, source and wiring are read through the same helpers

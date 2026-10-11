@@ -26,7 +26,7 @@ export interface UplinkIdentityField {
   value: string;
   source: UplinkIdentitySource;
   /**
-   * A DIFFERENT value another source declared for this same field. The mod
+   * A different value another source declared for this same field. The mod
    * still wins, but the losing claim is kept rather than dropped, because the
    * disagreement is itself a reading: "the mod calls this X, the bundle calls
    * itself Y" is what an operator needs while deciding whether to pull it.
@@ -69,7 +69,7 @@ function field(
  * vouches, so its value wins wherever it has one, and the bundle's own claim is
  * used only where the mod said nothing.
  *
- * Where both spoke and DISAGREED, the mod's value still wins, unchanged, and
+ * Where both spoke and disagreed, the mod's value still wins, unchanged, and
  * the bundle's is carried along as `disputed`. Nothing here refuses: two
  * catalogues can differ for honest reasons (a repo renamed between the mod
  * release and the bundle), and only the operator can weigh which. What the app

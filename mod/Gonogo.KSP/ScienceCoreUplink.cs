@@ -8,15 +8,15 @@ using Sitrep.Host.Science;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The bundled CORE science registration: the science analogue of
+    /// The bundled core science registration: the science analogue of
     /// <see cref="CommsCoreUplink"/>. It
-    /// OWNS the exclusive <c>"science"</c> capability (registering
+    /// owns the exclusive <c>"science"</c> capability (registering
     /// <see cref="StockScienceBackend"/> as the always-present Vanilla factory),
     /// declares the five <c>science.*</c> channels and the two
-    /// <c>science.experiment.*</c> commands ONCE, and sources them from whichever
+    /// <c>science.experiment.*</c> commands once, and sources them from whichever
     /// backend the election picked, resolved at map/dispatch time via
     /// <c>host.Kernel.Query&lt;IScienceBackend&gt;("science")</c>. A
-    /// science-modelling mod registers a provider from its OWN
+    /// science-modelling mod registers a provider from its own
     /// uplink's Register and declares none of these channels itself: that is the
     /// shared-namespace-single-declaration rule comms.* follows.
     ///
@@ -48,7 +48,7 @@ namespace Gonogo.KSP
     /// (the vanilla one is <see cref="ScienceCommandProvider"/>'s <c>Handle*</c>
     /// glue against the <see cref="IScienceActuator"/> this uplink is constructed
     /// with, <see cref="KspScienceActuator"/> in production). Both are genuine
-    /// uplinks to the craft (they actuate an experiment ON the vessel), so both
+    /// uplinks to the craft (they actuate an experiment on the vessel), so both
     /// are declared <c>delayed: true</c>. Reset/collect remain a follow-up.</para>
     /// </summary>
     [SitrepUplink("science")]
@@ -171,7 +171,7 @@ namespace Gonogo.KSP
         };
 
         /// <summary>
-        /// Declared HERE in the pre-Register capability pass (two-pass fix, same
+        /// Declared here in the pre-Register capability pass (two-pass fix, same
         /// as CommsCoreUplink), so the capability exists
         /// before any provider uplink's Register runs: a provider's
         /// registration can never race ahead of this declaration regardless of
@@ -210,7 +210,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// The elected backend, or stock when the capability has not resolved.
         /// Resolved per call rather than cached at Register: capability
-        /// resolution happens AFTER every uplink's Register, and a quickload can
+        /// resolution happens after every uplink's Register, and a quickload can
         /// re-resolve.
         /// </summary>
         private IScienceBackend Backend() =>

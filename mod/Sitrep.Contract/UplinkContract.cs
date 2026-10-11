@@ -25,7 +25,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// Whether a channel or command rides the light-time signal delay,
+    /// Whether a channel or command rides the signal delay signal delay,
     /// declared per channel and per command rather than inferred from a topic
     /// name. Everything is <see cref="Delayed"/> unless it is a ground-side
     /// fact with no analogue in flight, such as <c>scansat.available</c>
@@ -43,7 +43,7 @@ namespace Sitrep.Contract
     /// <category>Channels and emission</category>
     public enum DelayRole
     {
-        /// <summary>Delivered after the one-way light-time between the subject and the command centre, and withheld while the subject is out of contact.</summary>
+        /// <summary>Delivered after the one-way signal delay between the subject and the command centre, and withheld while the subject is out of contact.</summary>
         Delayed,
 
         /// <summary>Delivered immediately, bypassing the signal delay and any loss of contact.</summary>
@@ -142,7 +142,7 @@ namespace Sitrep.Contract
         public EmissionPolicy Emission { get; set; } = null!;
 
         /// <summary>
-        /// Whether this channel rides the light-time signal delay. Defaults to
+        /// Whether this channel rides the signal delay signal delay. Defaults to
         /// <see cref="DelayRole.Delayed"/>, the same default a command takes on
         /// <see cref="SitrepCommandAttribute.Delay"/>. Set it explicitly on every
         /// declaration, so the disposition can be read off the declaration
@@ -290,11 +290,11 @@ namespace Sitrep.Contract
         /// <summary>
         /// Declares that topics under this dynamic namespace are keyed by
         /// vessel, <c>&lt;prefix&gt;&lt;guid&gt;.&lt;field&gt;</c>, so each
-        /// topic is delayed by its own craft's light-time. Any namespace that is
+        /// topic is delayed by its own craft's signal delay. Any namespace that is
         /// per-vessel must set it.
         ///
         /// <para>The default delays every topic by the active vessel's
-        /// light-time, which for anything keyed by vessel is wrong in the
+        /// signal delay, which for anything keyed by vessel is wrong in the
         /// direction that leaks: a Munar base's payload arrives at the delay of
         /// whatever craft the player happens to be flying, usually shorter.
         /// Nothing goes missing and nothing reports an error; the value simply
@@ -313,7 +313,7 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Turns this namespace's key segment into the id of the vessel that
-        /// owns it, for a namespace whose key is NOT itself a vessel id.
+        /// owns it, for a namespace whose key is not itself a vessel id.
         ///
         /// <para>Without this, <see cref="PerVesselNode"/> reads the segment
         /// after the prefix as a vessel id. That is right for a namespace keyed
@@ -339,7 +339,7 @@ namespace Sitrep.Contract
         ///
         /// <para>Defaults to <c>true</c>, following from <see cref="Delay"/>:
         /// <see cref="DelayRole.Delayed"/> already asserts the channel carries a
-        /// flight-side fact that ground learns at light-time, and a flight-side
+        /// flight-side fact that ground learns at signal delay, and a flight-side
         /// fact is one the craft's own instruments produced and could have
         /// written down. A <see cref="DelayRole.TrueNow"/> channel is never
         /// withheld, so there is nothing to hold and this has no effect on
@@ -382,7 +382,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// Whether each command centre is sent its own samples of this channel
         /// and no other centre's, each stamped as it is made. A client reads
-        /// such a channel as it is delivered, taking no light-time off it: what
+        /// such a channel as it is delivered, taking no signal delay off it: what
         /// a centre is sent is already what that centre knows.
         ///
         /// <para>Only Gonogo's own sources can publish an addressed sample, so
@@ -402,7 +402,7 @@ namespace Sitrep.Contract
     /// One command an Uplink declares: which id it serves, and what must hold
     /// before its handler runs.
     ///
-    /// <para>Whether the command rides the light-time delay is not declared
+    /// <para>Whether the command rides the signal delay delay is not declared
     /// here. It is declared once, on <see cref="SitrepCommandAttribute.Delay"/>,
     /// which is also what a client's delay display reads, so the two cannot
     /// disagree.</para>
@@ -497,7 +497,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One precondition on a command: WHAT is required, never how to find out.
+    /// One precondition on a command: what is required, never how to find out.
     ///
     /// <para>A requirement is a descriptor, not a predicate: an
     /// <see cref="ICommandGateEvaluator"/> registered for its
@@ -1434,7 +1434,7 @@ namespace Sitrep.Contract
         /// <param name="computeOnMainThread">Returns this tick's delay to the active vessel, or <c>null</c> to keep the last one.</param>
         void SetSignalDelaySource(Func<KspSnapshot?, CommsDelay?> computeOnMainThread);
 
-        /// <summary> Set the one-way routed light-time for one vessel's
+        /// <summary> Set the one-way routed signal delay for one vessel's
         /// telemetry: its <c>fleet.&lt;vesselId&gt;.*</c> topics, and any
         /// <see cref="ChannelDeclaration.PerVesselNode"/> namespace keyed by
         /// it, are delayed by this to any command centre with no more specific
@@ -1445,11 +1445,11 @@ namespace Sitrep.Contract
         /// is the active vessel's delay; this is any vessel's.
         /// </summary>
         /// <param name="vesselId">The vessel's id (its GUID, as the topic carries it).</param>
-        /// <param name="oneWaySeconds">One-way light-time, in seconds.</param>
+        /// <param name="oneWaySeconds">One-way signal delay, in seconds.</param>
         void SetVesselDelay(string vesselId, double oneWaySeconds);
 
         /// <summary>
-        /// Set the one-way light-time between two command centres: the delay a
+        /// Set the one-way signal delay between two command centres: the delay a
         /// command takes travelling from <paramref name="fromCentreId"/> to
         /// <paramref name="toCentreId"/>. The same as a centre's delay to a
         /// fleet craft, except that the destination is a centre, such as a
@@ -1459,7 +1459,7 @@ namespace Sitrep.Contract
         /// </summary>
         /// <param name="fromCentreId">The sending command centre's id.</param>
         /// <param name="toCentreId">The destination command centre's id.</param>
-        /// <param name="oneWaySeconds">One-way light-time, in seconds.</param>
+        /// <param name="oneWaySeconds">One-way signal delay, in seconds.</param>
         void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds);
 
         /// <summary>
@@ -1480,7 +1480,7 @@ namespace Sitrep.Contract
         /// centre.</para>
         /// </summary>
         /// <param name="centreId">The command centre's id.</param>
-        /// <param name="oneWaySeconds">One-way light-time home, in seconds.</param>
+        /// <param name="oneWaySeconds">One-way signal delay home, in seconds.</param>
         void SetHomeCommandDelay(string centreId, double oneWaySeconds);
 
         /// <summary> Replace every centre's delay to the active craft: the
@@ -1489,7 +1489,7 @@ namespace Sitrep.Contract
         /// describe whichever craft is active.
         ///
         /// <para>The map is the whole set, not an update. A centre left out
-        /// uses the active craft's own light-time home, and a centre that had a
+        /// uses the active craft's own signal delay home, and a centre that had a
         /// row on the previous call and has none now loses it.</para>
         /// <internal>
         /// Replacing rather than merging keeps a pilot who switches away from
@@ -1500,7 +1500,7 @@ namespace Sitrep.Contract
         /// that is the active craft, and its route to the active craft for any
         /// other centre that has one.</para>
         /// </summary>
-        /// <param name="oneWaySecondsByCentre">One-way light-time to the active craft, in seconds, keyed by command centre id.</param>
+        /// <param name="oneWaySecondsByCentre">One-way signal delay to the active craft, in seconds, keyed by command centre id.</param>
         void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre);
 
         /// <summary>
@@ -1569,7 +1569,7 @@ namespace Sitrep.Contract
         ///
         /// <para>A source that throws disables its owning Uplink. A <c>null</c>
         /// or empty result means no break this tick. With no source registered,
-        /// every recorded sample is delivered at its own light-time whatever
+        /// every recorded sample is delivered at its own signal delay whatever
         /// became of the route.</para>
         /// <internal>
         /// Sitrep.Host.Comms.PathBreakWatch is the shipped producer; its doc
@@ -1582,19 +1582,19 @@ namespace Sitrep.Contract
 
         /// <summary>
         /// Scale every signal delay by <paramref name="factor"/> until the
-        /// returned handle is disposed. <c>2</c> doubles each light-time,
+        /// returned handle is disposed. <c>2</c> doubles each signal delay,
         /// <c>0.5</c> halves it, and <c>0</c> switches delay off entirely, so
         /// telemetry arrives live and commands land at once.
         ///
         /// <para>Every modifier in force multiplies: two Uplinks each holding
-        /// <c>2</c> make every delay four times its light-time, and any one
+        /// <c>2</c> make every delay four times its signal delay, and any one
         /// holding <c>0</c> switches delay off whatever the others hold. The
         /// operator's own delay settings are applied the same way, so a
         /// modifier composes with them rather than overriding them.</para>
         ///
         /// <para>The factor reaches every place a delay is read at once: the
         /// release of delayed telemetry, <c>comms.delay</c>, each fleet craft's
-        /// own light-time, each command centre's, and when a change in the
+        /// own signal delay, each command centre's, and when a change in the
         /// career is announced. Hold a modifier for as long as its condition
         /// lasts and dispose it when the condition ends; disposing twice is
         /// harmless.</para>

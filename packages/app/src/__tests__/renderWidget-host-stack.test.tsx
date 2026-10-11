@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it } from "vitest";
  * a `waitFor` for that badge resolves immediately having proved nothing at all.
  * The check passes whatever the widget does, for as long as it exists.
  *
- * The store's PRESENCE is what is asserted, not a particular status value. A
+ * The store's presence is what is asserted, not a particular status value. A
  * non-null status additionally needs a mounted telemetry stream, because
  * `useWidgetStreamStatus` derives it from a live store: `renderWidget` puts the
  * plumbing up, and `setupStreamFixture` puts data through it.
@@ -41,7 +41,7 @@ function HostProbe({ id }: { id?: string }) {
 }
 
 /**
- * Calls `useDashboardItemId`, which THROWS outside a dashboard item by design.
+ * Calls `useDashboardItemId`, which throws outside a dashboard item by design.
  * Its own widget so the hook is never called conditionally: it is only ever
  * rendered through `renderWidget`, where the context is guaranteed.
  */

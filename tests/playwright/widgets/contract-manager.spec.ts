@@ -11,7 +11,7 @@
  *     placeholder.
  *   - Inside the widget, `parseContracts(undefined)` returns null, so
  *     the early-return branch renders:
- *         <PanelTitle>CONTRACT MANAGER</PanelTitle>
+ *         <PanelTitle>contract manager</PanelTitle>
  *         <PanelSubtitle>Awaiting contract telemetry</PanelSubtitle>
  *     (The subtitle shows because the seeded layout uses h = 6 ≥ 4.)
  *

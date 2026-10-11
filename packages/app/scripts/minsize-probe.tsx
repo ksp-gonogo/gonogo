@@ -2,7 +2,7 @@
  * The browser half of the min-size gate: every registration the app makes, plus
  * one widget that is deliberately broken and one whose form controls all fit.
  *
- * Bundled as the render probe's entry (see `minsize-gate.ts`), so it runs AFTER
+ * Bundled as the render probe's entry (see `minsize-gate.ts`), so it runs after
  * `installRenderProbe()` and after the registration modules the gate names.
  * Everything registered by then is what the app registers, which is the whole
  * point: a gate that swept only the built-in library would miss the widgets that
@@ -34,7 +34,7 @@ import { NotesHostService } from "../src/notes/NotesHostService";
 /**
  * The two app-level contexts a widget can't be mounted without.
  *
- * `InputTester` and `Notes` both THROW outside their provider, so with nothing
+ * `InputTester` and `Notes` both throw outside their provider, so with nothing
  * here they crash the page instead of rendering and the gate audits a tile that
  * was never drawn. The app mounts both around the whole dashboard, so wrapping
  * every widget in them is what the app does, not a concession to the harness.
@@ -59,7 +59,7 @@ defineRenderSetup({
  * that can stop happening: a bundling change that mounts nothing, a probe that
  * throws before the audit, a selector that stops matching. Every one of those
  * makes the audit return an empty array, and an empty array reads as "everything
- * fits". So the gate mounts this widget too and REFUSES to report on the others
+ * fits". So the gate mounts this widget too and refuses to report on the others
  * unless this one comes back broken.
  *
  * Broken in all seven ways the audit can name, so a check that loses one of them
@@ -84,7 +84,7 @@ const BARE_PILL = {
 
 /**
  * Where the canary's covered line sits, measured from its own zero-height
- * anchor at the end of the body, which is NOT a fixed height: the rows above it
+ * anchor at the end of the body, which is not a fixed height: the rows above it
  * take the size of the document text, so the line is placed against the body
  * rather than flowed after them.
  */
@@ -161,7 +161,7 @@ registerComponent({
 });
 
 /**
- * The planted PASS: form controls that fit, which must audit clean.
+ * The planted pass: form controls that fit, which must audit clean.
  *
  * The canary proves the control check can see a cut field. This proves it does
  * not call a field cut because it is a field: each one here shows its whole
@@ -209,7 +209,7 @@ registerComponent({
 });
 
 /**
- * The planted pair for the overflow mask, which needs BOTH halves to mean
+ * The planted pair for the overflow mask, which needs both halves to mean
  * anything.
  *
  * `Panel.Glow` paints a fixed 44px box over the bottom of the body the moment
@@ -232,9 +232,9 @@ const SCROLLS_ID = "minsize-gate-scrolls";
  * Measured rather than reasoned: at 3x3 the panel's body scroller is 89px and
  * its own title unit and insets take 85 of them around a single 22px line, so
  * twelve more pixels overflow it by eight and leave thirteen of that line under
- * a mask reaching about seventeen. The number has to sit BETWEEN the overflow
+ * a mask reaching about seventeen. The number has to sit between the overflow
  * and the mask, which is the whole point of the widget and not something CSS
- * can state. If the panel's chrome changes height the gate fails as BLIND
+ * can state. If the panel's chrome changes height the gate fails as `BLIND`
  * rather than going quiet, and retuning this is the fix.
  */
 const MASKED_SPACER_PX = 12;

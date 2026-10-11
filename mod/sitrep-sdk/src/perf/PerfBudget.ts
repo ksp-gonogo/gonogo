@@ -198,7 +198,7 @@ export class PerfBudget {
    * This is why `GonogoHost.createPerfBudget` exists, and it stays: it is the
    * documented author-facing route and costs nothing. Reaching the class
    * directly is safe too, which matters because a budget is constructed at
-   * MODULE SCOPE (`const B = new PerfBudget(...)`) and so cannot go through a
+   * module scope (`const B = new PerfBudget(...)`) and so cannot go through a
    * host that may not be installed yet.
    */
   private static get registry(): Set<PerfBudget> {

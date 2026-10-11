@@ -1,5 +1,5 @@
 /**
- * Type-level proof that this control speaks the handle's OWN types in both
+ * Type-level proof that this control speaks the handle's own types in both
  * directions: the reply it hands to `onConfirmed` and the args it dispatches.
  * Reading a field the reply does not have, or omitting a required argument, is
  * a compile error at the widget.
@@ -32,14 +32,14 @@ type _ConfirmedSeesTheReply = Expect<
   >
 >;
 
-/** And it is INFERRED off `send`, so no call site names the type. */
+/** And it is inferred off `send`, so no call site names the type. */
 type ReplyOf<Handle> =
   Handle extends CommandButtonHandle<infer Reply> ? Reply : never;
 type _ReplyComesOffTheHandle = Expect<
   Equal<ReplyOf<CommandButtonHandle<Envelope>>, Envelope>
 >;
 
-/** A bare handle's reply is the ENVELOPE, not `unknown`, so a wrong reader cannot typecheck. */
+/** A bare handle's reply is the envelope, not `unknown`, so a wrong reader cannot typecheck. */
 type _DefaultsToTheEnvelope = Expect<
   Equal<ReplyOf<CommandButtonHandle>, CommandReplyLike>
 >;

@@ -7,7 +7,7 @@ import { VantageControl } from "./VantageControl";
 const KSC = "ground:Kerbal Space Center";
 
 /**
- * What `VantageControl` DOES today when `commandCentre.roster` reads
+ * What `VantageControl` does today when `commandCentre.roster` reads
  * `undefined`, recorded before `useTelemetry` starts returning a `Reading`.
  *
  * The whole control funnels the roster through one absence gate,
@@ -20,7 +20,7 @@ const KSC = "ground:Kerbal Space Center";
 
 /**
  * The raw read, beside the control, so a test asserting "null and undefined
- * render the same" also records WHICH of the two the control was handed.
+ * render the same" also records which of the two the control was handed.
  * `VantageControl` renders no trace of the distinction, so without this the
  * tombstone test could pass on a tombstone that never landed.
  */

@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 /**
  * Design-system guard: **every test setup pins the quantity locale.**
  *
- * `formatQuantity` writes a number in the READER's locale by default, which is
+ * `formatQuantity` writes a number in the reader's locale by default, which is
  * the right answer for an operator and the wrong one for a test. The same
  * reading is `1,234,567.5` here, `1 234 567,5` in France, `12,34,567.5` in
  * India and Arabic-Indic digits in Egypt: all the same number, none of them

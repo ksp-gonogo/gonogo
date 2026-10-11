@@ -13,7 +13,7 @@
  * do not have to move to say the same thing.
  *
  * **New code should import `@ksp-gonogo/sitrep-sdk/testing` and
- * `@ksp-gonogo/ui-kit/testing` directly.** An Uplink client MUST: this package
+ * `@ksp-gonogo/ui-kit/testing` directly.** An Uplink client must: this package
  * is `private: true`, and `packages/core/src/uplink-isolation.test.ts` fails on
  * it.
  *

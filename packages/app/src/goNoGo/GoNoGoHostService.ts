@@ -205,9 +205,9 @@ export class GoNoGoHostService {
    * Fire a command through the stream, naming it and its arguments directly.
    *
    * Never through a widget-facing action string, which costs the abort twice
-   * over: an action string resolves to a TOGGLE bridge, reading
+   * over: an action string resolves to a toggle bridge, reading
    * `vessel.control.abort` and sending the negation, so an abort raised while
-   * one was already engaged would CLEAR it, and an abort raised while nothing
+   * one was already engaged would clear it, and an abort raised while nothing
    * had subscribed to `vessel.control` would resolve to nothing at all and
    * dispatch silently nowhere. Neither is a thing an abort vote can be allowed
    * to do.

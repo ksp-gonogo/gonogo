@@ -86,8 +86,8 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The FREEZE still holds last-known through the ledger, and the held
-        /// window is now REPLAYED on reacquisition rather than dropped: this
+        /// The freeze still holds last-known through the ledger, and the held
+        /// window is now replayed on reacquisition rather than dropped: this
         /// test asserted the drop, which was the policy at the time and is not
         /// any more (see <c>BlackoutRecorderTests</c>). What it is here to prove
         /// is unchanged: the freeze is the ledger's, not a delay magnitude's, so

@@ -8,12 +8,12 @@ using Xunit;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The comms-loss UPLINK gate. The reveal gate already freezes the DOWNLINK
+    /// The comms-loss uplink gate. The reveal gate already freezes the downlink
     /// on disconnect (see <c>RevealGateTests</c>); this proves the symmetric
-    /// uplink rule: a DELAYED command (e.g. a kOS keystroke, a vessel actuation)
-    /// dispatched while the vessel's comms link is DOWN must be dropped with
-    /// honest silence: it must NEVER reach the CPU and never resolve, rather
-    /// than being delivered after the light-time delay as if the blackout never
+    /// uplink rule: a delayed command (e.g. a kOS keystroke, a vessel actuation)
+    /// dispatched while the vessel's comms link is down must be dropped with
+    /// honest silence: it must never reach the CPU and never resolve, rather
+    /// than being delivered after the signal delay delay as if the blackout never
     /// happened. Regression for the live-observed bug where keystrokes still
     /// reached the in-game kOS terminal during a signal blackout.
     /// </summary>

@@ -12,11 +12,11 @@ namespace Sitrep.Host.Tests
     /// <see cref="KspSnapshot"/>s carrying the raw <c>"spaceCenter"</c>/
     /// <c>"scene"</c> encodings are mapped and asserted against the class doc's
     /// rules: the launch-site roster keyed and distinguishable (stock pad +
-    /// runway + a synthetic MH/KK site), <c>isStock</c> honored, body NAME
+    /// runway + a synthetic MH/KK site), <c>isStock</c> honored, body name
     /// resolved to a <c>system.bodies</c> index, the scene enum folded to the
     /// six output strings (incl. the <c>"Other"</c> fallback), and null-not-
     /// empty when the snapshot has no data yet, plus a clean round-trip
-    /// through the REAL production wire path
+    /// through the real production wire path
     /// (<see cref="EnvelopeCodec.WriteStreamData"/>/<c>ParseStreamData</c>).
     /// </summary>
     public class SpaceCenterViewProviderTests
@@ -367,7 +367,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The defect this channel's ordinal exists to end. Whether a kerbal is
-        /// AVAILABLE - which decides whether the client offers to fire them, and
+        /// available - which decides whether the client offers to fire them, and
         /// which crew a mission can draw on - was decided by
         /// <c>rosterStatus == "Available"</c>. KSP owns that spelling. Rename the
         /// member and every kerbal in the game reads as unavailable, with the
@@ -375,7 +375,7 @@ namespace Sitrep.Host.Tests
         ///
         /// <para>Here the ordinal says <c>Available</c> and the name is a
         /// spelling this build has never seen. The kerbal is available, and the
-        /// LABEL is this contract's word rather than KSP's, so a Squad rename
+        /// label is this contract's word rather than KSP's, so a Squad rename
         /// cannot reach an operator's screen either.</para>
         /// </summary>
         [Fact]
@@ -410,10 +410,10 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A roster ordinal this build has never heard of is an UNKNOWN standing.
+        /// A roster ordinal this build has never heard of is an unknown standing.
         /// Unknown is not available, because we cannot promise the kerbal can
         /// fly; it is also not folded onto Dead or Missing, because we do not
-        /// know that either, and it does not become the WORD "Unknown" in the
+        /// know that either, and it does not become the word "Unknown" in the
         /// reason field, because that reads as a diagnosis where the truth is
         /// silence. The raw ordinal reaches the client intact.
         /// </summary>
@@ -569,7 +569,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The stand-down pair. <c>inactive</c> is a STOCK field on a separate
+        /// The stand-down pair. <c>inactive</c> is a stock field on a separate
         /// axis from the standing, so a resting kerbal is still
         /// <c>Available</c>; and the end time is withheld once the rest is over,
         /// because KSP leaves the field at whatever the last rest period set and
@@ -588,7 +588,7 @@ namespace Sitrep.Host.Tests
         /// found two things saying a resting kerbal was free to fly and nothing
         /// saying otherwise.
         ///
-        /// <para>The stand-down's END is still quoted only while the stand-down is
+        /// <para>The stand-down's end is still quoted only while the stand-down is
         /// live, which is the part the original case was right about: KSP leaves
         /// <c>inactiveTimeEnd</c> at whatever the last rest period wrote, so
         /// quoting it for a kerbal back on duty would date a rest already over.

@@ -100,7 +100,7 @@ export type _BareHandleKeepsTheEnvelope = AssertTrue<
   Equal<Awaited<ReturnType<UseCommandResult["send"]>>, AnyCommandReply>
 >;
 
-/** And a NAMED command still overrules it: the floor never widens a known reply. */
+/** And a named command still overrules it: the floor never widens a known reply. */
 export type _NamedCommandBeatsTheFloor = AssertTrue<
   Equal<
     Awaited<ReturnType<UseCommandResultFor<"vessel.control.stage">["send"]>>,

@@ -3,7 +3,7 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Marks a nullable property whose KEY is left out of the JSON entirely when
+    /// Marks a nullable property whose key is left out of the JSON entirely when
     /// the value is absent, instead of being written as <c>"key":null</c>.
     ///
     /// <para>That is the exception, not the rule: an absent reading normally

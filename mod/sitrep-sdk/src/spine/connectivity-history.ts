@@ -38,7 +38,7 @@ export class ConnectivityHistory {
    * Was the path continuously connected across `[fromUt, toUt]`? No
    * observation before `fromUt` reads as connected, the same
    * "undefined/unknown = connected" convention the kOS terminal's own
-   * no-path gate uses (only a CONFIRMED disconnect blocks anything).
+   * no-path gate uses (only a confirmed disconnect blocks anything).
    */
   connectedDuring(fromUt: number, toUt: number): boolean {
     let connectedAtStart = true;

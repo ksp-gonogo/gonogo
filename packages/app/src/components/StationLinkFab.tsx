@@ -169,7 +169,7 @@ function RegenerateRow() {
 }
 
 /**
- * TURN reachability badge. Probes the relay's iceServers for a `relay`
+ * Turn reachability badge. Probes the relay's iceServers for a `relay`
  * candidate; surfaces ✅ / 🟡 / ❌ so the operator can tell *before*
  * trying to share the link with a friend whether their relay is
  * actually reachable from outside their network.

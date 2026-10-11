@@ -14,19 +14,19 @@ import { RadioTransmitter } from "./RadioTransmitter";
 import { RadioClock } from "./radioClock";
 
 /**
- * The radio, mounted on the WIDGET: a latching key at this end and everything
+ * The radio, mounted on the widget: a latching key at this end and everything
  * this vantage is monitoring at the other.
  *
  * On the widget rather than inside a conversation, and that is the whole
  * listening model rather than a placement. A session built per thread would
  * exist only while that thread was open, so stepping back to the inbox would
  * tear down every held chunk and going into another conversation would build a
- * fresh one, which makes what an operator can HEAR a consequence of where they
+ * fresh one, which makes what an operator can hear a consequence of where they
  * happened to be looking. Mission control tunes by an explicit per-loop
  * monitor, so this is mounted once, hears every group it is in, and is told only
  * which ones the operator has deliberately muted.
  *
- * Both halves are built ONCE per clock and torn down with it, the same rule
+ * Both halves are built once per clock and torn down with it, the same rule
  * `useCommcastFeed`'s buffer follows and for the same reason: every held
  * chunk's release instant was computed against that clock, so a rebuild has to
  * drop them rather than carry them into a clock that never promised them.
@@ -47,7 +47,7 @@ export interface RadioControl {
    * Loudness per captured chunk, newest last, for the rail to draw this
    * screen's own voice crossing the gap.
    *
-   * Local to the transmitter and never on the wire: only the operator's OWN
+   * Local to the transmitter and never on the wire: only the operator's own
    * transmission is drawn, so nobody else needs the number. Empty while not
    * keyed.
    */
@@ -105,7 +105,7 @@ export interface UseRadioOptions {
   members: readonly RecipientId[];
   /**
    * The separation to the group as the widget already resolved it for its own
-   * delay reading, `null` for NO PATH.
+   * delay reading, `null` for "NO PATH".
    *
    * Taken from the widget rather than resolved again here, so the badge, the
    * text composer and the radio cannot disagree about how far away the other

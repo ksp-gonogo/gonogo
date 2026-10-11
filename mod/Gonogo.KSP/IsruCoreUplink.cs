@@ -7,13 +7,13 @@ using Sitrep.Host.Isru;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The bundled CORE ISRU registration: the resource-ops analogue of
-    /// <see cref="ScienceCoreUplink"/>. It OWNS the exclusive <c>"isru"</c>
+    /// The bundled core ISRU registration: the resource-ops analogue of
+    /// <see cref="ScienceCoreUplink"/>. It owns the exclusive <c>"isru"</c>
     /// capability (registering <see cref="StockIsruBackend"/> as the always-present
-    /// Vanilla factory), declares the two <c>isru.*</c> channels ONCE, and sources
+    /// Vanilla factory), declares the two <c>isru.*</c> channels once, and sources
     /// them from whichever backend the election picked: resolved at capture time
     /// via <c>host.Kernel.Query&lt;IIsruBackend&gt;("isru")</c>. A modelling mod
-    /// registers a provider from its OWN uplink's Register and declares neither
+    /// registers a provider from its own uplink's Register and declares neither
     /// channel itself; that is the shared-namespace-single-declaration rule
     /// comms.*/science.* both follow.
     ///
@@ -57,7 +57,7 @@ namespace Gonogo.KSP
         };
 
         /// <summary>
-        /// Declared HERE in the pre-Register capability pass (same two-pass fix as
+        /// Declared here in the pre-Register capability pass (same two-pass fix as
         /// CommsCoreUplink/ScienceCoreUplink), so the capability exists before
         /// any provider uplink's Register runs: a provider registration can never
         /// race ahead of this declaration regardless of assembly-scan order.

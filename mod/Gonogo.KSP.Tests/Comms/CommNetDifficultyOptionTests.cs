@@ -13,15 +13,15 @@ namespace Gonogo.KSP.Tests.Comms
     ///
     /// <para><b>What cannot be reached here, stated plainly.</b> The live read
     /// itself, <c>CommsModelPresence.Present</c>, cannot be exercised with the
-    /// option ON in any headless process. It goes through
-    /// <c>HighLogic.CurrentGame</c>, which is a static PROPERTY over the
+    /// option on in any headless process. It goes through
+    /// <c>HighLogic.CurrentGame</c>, which is a static property over the
     /// <c>HighLogic</c> MonoBehaviour singleton: its getter returns null and
     /// its setter silently no-ops whenever <c>HighLogic.fetch</c> is null, and
     /// fetch is a Unity object whose implicit bool is false for anything not
     /// actually in a scene, so an uninitialised stand-in does not satisfy it
     /// either. Constructing the save is not the obstacle (a <c>Game</c> can be
     /// assembled, see the scope below); reaching the singleton is. So the
-    /// option-on path is pinned against the SHIPPED BINARY instead, below, and
+    /// option-on path is pinned against the shipped binary instead, below, and
     /// the composition on top of it is driven through the probe seam.</para>
     ///
     /// <para>The composition that needs a live <c>Vessel</c> (CommNetBackend
@@ -34,7 +34,7 @@ namespace Gonogo.KSP.Tests.Comms
     public class CommNetDifficultyOptionTests
     {
         /// <summary>
-        /// The transcription pin, GENERATED from Assembly-CSharp rather than
+        /// The transcription pin, generated from Assembly-CSharp rather than
         /// copied out of it: stock's own <c>CommNetScenario.CommNetEnabled</c>
         /// is walked at the IL level and the field it loads is compared to the
         /// one <c>CommsModelPresence.Present</c> reads. A hand-written
@@ -69,7 +69,7 @@ namespace Gonogo.KSP.Tests.Comms
 
         /// <summary>
         /// The fail-soft arm, and the one live path a headless process really
-        /// does take: no save loaded reads as UNKNOWN, where stock's own
+        /// does take: no save loaded reads as unknown, where stock's own
         /// accessor collapses it to false. Stock can afford that (nothing is
         /// flying at the main menu); gonogo cannot, because a false switches
         /// the delay off and declares every craft connected, and a null game is
@@ -83,7 +83,7 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// A save CAN be assembled headlessly even though it cannot be
+        /// A save can be assembled headlessly even though it cannot be
         /// installed, so the option's own storage is exercised rather than
         /// assumed: it is a plain public bool on a plain class, and setting it
         /// is what a difficulty preset and the in-game difficulty dialog both
@@ -103,7 +103,7 @@ namespace Gonogo.KSP.Tests.Comms
         /// The whole delay surface reads one accessor
         /// (<c>CommsCoreUplink.SignalDelayConfig</c>), so the option has to
         /// reach it: the reveal gate, comms.delay, every fleet vessel's
-        /// light-time, the command-centre pass and the currency deadline all
+        /// signal delay, the command-centre pass and the currency deadline all
         /// cut together or the board is inconsistent with itself.
         /// </summary>
         [Fact]
@@ -160,7 +160,7 @@ namespace Gonogo.KSP.Tests.Comms
         /// <para>Driven against a backend standing in for stock's own once
         /// <c>CommNetScenario</c> has destroyed itself: disconnected, no
         /// control, empty path, forever. The reading it produces has to be
-        /// CONNECTED, and a false is what froze every Delayed channel for the
+        /// connected, and a false is what froze every Delayed channel for the
         /// session.</para>
         /// </summary>
         [Fact]
@@ -217,7 +217,7 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// The delay the gate is handed, through the same composition: a KNOWN
+        /// The delay the gate is handed, through the same composition: a known
         /// zero naming its own reason, not the null a craft with no measurable
         /// path reports.
         /// </summary>
@@ -246,12 +246,12 @@ namespace Gonogo.KSP.Tests.Comms
         /// CommNet graph would freeze each craft's <c>fleet.&lt;guid&gt;.*</c>
         /// individually even with the active vessel's gate open.
         ///
-        /// <para>Read off the SHIPPED SOURCE, because the value cannot be
+        /// <para>Read off the shipped source, because the value cannot be
         /// reached: <c>ReadVessel</c> takes a live <c>Vessel</c>, which is a
         /// MonoBehaviour, and a stand-in built without a scene compares equal
         /// to null through Unity's own operator, so it takes the no-craft arm
-        /// rather than the one under test. What IS checkable is that the cut
-        /// happens BEFORE the CommNet walk, which is the whole of the wiring:
+        /// rather than the one under test. What is checkable is that the cut
+        /// happens before the CommNet walk, which is the whole of the wiring:
         /// the walk answers disconnected for every craft on such a save, so a
         /// cut placed after it would never be reached.</para>
         /// </summary>
@@ -454,7 +454,7 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// Every field an IL body LOADS, resolved through the declaring
+        /// Every field an IL body loads, resolved through the declaring
         /// module's metadata. Enough for the one question here (which storage
         /// does stock's accessor actually read), and deliberately not a general
         /// disassembler: it walks the single-byte opcodes it needs and skips

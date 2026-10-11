@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
  * a human adds/edits that line.
  *
  * Same shape as `uplink-boundary.test.ts`'s ratchet (seeded allowlist,
- * fails on new/removed/stale entries) but per-file COUNT rather than
+ * fails on new/removed/stale entries) but per-file count rather than
  * per-file presence, because a single file can legitimately declare
  * several TrueNow channels (SystemUplink.cs has 4).
  *
@@ -47,13 +47,13 @@ import { describe, expect, it } from "vitest";
 const EXPLICIT_TRUENOW = /Delay\s*=\s*DelayRole\.TrueNow/g;
 
 /**
- * A COMMAND's delay disposition, which is the same property name and the same
+ * A command's delay disposition, which is the same property name and the same
  * enum since the two spellings were consolidated, and is not what this file
  * counts.
  *
- * This gate is about CHANNELS: its name, its prose and every justification
- * below are about what a console may READ before the light carrying it could
- * have arrived. A command's own disposition is about what it may WRITE, it is
+ * This gate is about channels: its name, its prose and every justification
+ * below are about what a console may read before the light carrying it could
+ * have arrived. A command's own disposition is about what it may write, it is
  * declared on an attribute rather than in a manifest, and it is gated
  * separately in `styleguide-command-delay-single-source.test.ts`. Counting both
  * here would fold fifteen instant commands into a channel allowlist and change
@@ -75,9 +75,9 @@ const channelsOnly = (source: string): string =>
 const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
 
 /**
- * KNOWN BLIND SPOT: the helper regex closes the hole only
- * for a helper literally NAMED `TrueNow`. A helper that sets the same
- * `Delay = DelayRole.TrueNow` under any other name contributes exactly ONE
+ * Known blind spot: the helper regex closes the hole only
+ * for a helper literally named `TrueNow`. A helper that sets the same
+ * `Delay = DelayRole.TrueNow` under any other name contributes exactly one
  * match, the line inside its own body, no matter how many channels are built
  * through it.
  *

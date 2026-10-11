@@ -7,11 +7,11 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The crew-standing election, driven through the REAL <see cref="Kernel"/>,
+    /// The crew-standing election, driven through the real <see cref="Kernel"/>,
     /// and the mapping either answer produces.
     ///
     /// <para>The interesting assertions below are not "does the election work".
-    /// They are: a backend that corrects ONE kerbal does not have to answer for
+    /// They are: a backend that corrects one kerbal does not have to answer for
     /// the rest of the roster; the default it declines into is the stock map
     /// rather than a hole; and a backend that overrides one field leaves every
     /// other field to the stock derivation.</para>
@@ -22,7 +22,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The stock backend's standing for one ordinal. A helper because a dozen
-        /// cases here vary ONLY by the ordinal, and an applicant is expressed by
+        /// cases here vary only by the ordinal, and an applicant is expressed by
         /// withholding the ordinal rather than by passing a value beside a flag.
         /// </summary>
         private static CrewStanding StockStanding(int? ordinal, bool isApplicant) =>
@@ -107,7 +107,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The adversarial ordering a two-pass registration exists for: the
-        /// provider uplink is discovered BEFORE the capability owner. Get this
+        /// provider uplink is discovered before the capability owner. Get this
         /// wrong and the roster silently reverts to the stock map on an install
         /// whose mod backend knows better.
         /// </summary>
@@ -145,7 +145,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The elected backend answers for the ONE kerbal it knows about and
+        /// The elected backend answers for the one kerbal it knows about and
         /// declines for the rest, which is the ordinary shape of a correction. A
         /// backend obliged to answer for everyone would have to reimplement the
         /// stock map, and a mod's copy of core's map is a copy that drifts.
@@ -203,7 +203,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The stock backend and the contract's own default are ONE declaration,
+        /// The stock backend and the contract's own default are one declaration,
         /// not two that agree today. The default is what the view provider falls
         /// back to with no Kernel wired, so a divergence would mean a bare host
         /// and a resolved host disagreed about the same roster.
@@ -223,12 +223,12 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// EVERY standing except the two that mean "free" is unavailable, and
+        /// Every standing except the two that mean "free" is unavailable, and
         /// this is driven off <c>Enum.GetValues</c> rather than a list, so a
         /// member added to the contract is covered without anybody editing it.
         /// </summary>
         /// <remarks>
-        /// The property under test is the DIRECTION of the rule.
+        /// The property under test is the direction of the rule.
         /// <see cref="CrewStandings.CanFly"/> is a whitelist, so a standing
         /// nobody has thought about yet fails closed. Written as a blocklist the
         /// same code would pass today and quietly hand a flight to whatever
@@ -305,7 +305,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A backend that answers ONLY availability leaves the standing to the
+        /// A backend that answers only availability leaves the standing to the
         /// stock derivation and still has its own wording and end carried.
         /// </summary>
         /// <remarks>
@@ -332,7 +332,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The standing does NOT mirror KSP's numbering, and that is deliberate:
+        /// The standing does not mirror KSP's numbering, and that is deliberate:
         /// a mirror would tie growth here to Squad shipping a new roster status,
         /// and Applicant and Resting have none. Pinned
         /// so a later tidy-up cannot quietly align the two and make an ordinal

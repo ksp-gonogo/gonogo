@@ -18,7 +18,7 @@ interface StageLike {
 /**
  * Active-engine burn parameters for the suicide-burn solve: effective exhaust velocity `ve` (Isp * g0) and burnout mass.
  *
- * Prefers the ACTIVE stage's `DELTA_V_BUDGET` row, since those engines fly the burn; the whole-vessel total averages engines of different Isp. Falls back to `dv.summary` plus `propulsion.dryMass` only without per-stage data (exact for a single-stage lander), and returns `{}` when nothing usable is on the wire.
+ * Prefers the active stage's `DELTA_V_BUDGET` row, since those engines fly the burn; the whole-vessel total averages engines of different Isp. Falls back to `dv.summary` plus `propulsion.dryMass` only without per-stage data (exact for a single-stage lander), and returns `{}` when nothing usable is on the wire.
  */
 export function deriveActiveBurnParams(
   active: StageLike | null | undefined,

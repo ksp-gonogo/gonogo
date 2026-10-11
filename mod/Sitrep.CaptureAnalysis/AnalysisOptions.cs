@@ -14,7 +14,7 @@ namespace Sitrep.CaptureAnalysis;
 public sealed class AnalysisOptions
 {
     /// <summary>
-    /// How long the capture ran by the WALL clock. The frames carry only UT, so
+    /// How long the capture ran by the wall clock. The frames carry only UT, so
     /// this is the only way to recover the time-warp factor, and without it the
     /// tool says so rather than assuming 1x.
     /// </summary>
@@ -32,7 +32,7 @@ public sealed class AnalysisOptions
     public double? StationLatitudeDeg { get; set; }
 
     /// <summary>
-    /// The station's INERTIAL longitude at the capture's first orbit epoch: the
+    /// The station's inertial longitude at the capture's first orbit epoch: the
     /// body-fixed longitude plus however far the body had already turned. The two
     /// are only the same when the body's rotation angle happened to be zero.
     /// </summary>

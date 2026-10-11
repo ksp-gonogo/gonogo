@@ -11,7 +11,7 @@ namespace Sitrep.Host.Tests
     /// The propagation election: stock two-body vanilla always present, any provider
     /// elected over it generically.
     ///
-    /// <para>Deliberately NOT shaped like CommsElection, which carries a mod-named public triple (<c>XProviderId</c>,
+    /// <para>Deliberately not shaped like CommsElection, which carries a mod-named public triple (<c>XProviderId</c>,
     /// <c>XPriority</c>, <c>RegisterXProvider</c>), the thing core is not supposed
     /// to do: a provider announces itself through
     /// <see cref="IPropagationProvider.ProviderId"/> and registers through the
@@ -170,7 +170,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// A provider that wins without the marker leaves trajectories closed-form.
         ///
-        /// <para>The question is about the ANSWER's shape, not about who answered:
+        /// <para>The question is about the answer's shape, not about who answered:
         /// a provider is free to displace the stock solver and still be analytic,
         /// and a check keyed on "somebody won" rather than on the marker would call
         /// that integrated.

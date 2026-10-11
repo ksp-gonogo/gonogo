@@ -17,7 +17,7 @@ namespace Sitrep.Propagation.Tests
     /// "orbits are conics is assumed in exactly one place" becomes a sentence that is
     /// true of the solver and quietly false of the tooling reporting on it.</para>
     ///
-    /// <para>Named for the closest and furthest RADIUS rather than for periapsis and
+    /// <para>Named for the closest and furthest radius rather than for periapsis and
     /// apoapsis on purpose. The conic words would carry the conic back into the seam's
     /// vocabulary, which is the mistake the whole exercise exists to undo; a craft under
     /// any physics has a closest and a furthest approach, and only a two-body one has

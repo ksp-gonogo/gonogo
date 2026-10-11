@@ -10,7 +10,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The subscription gate has to CLOSE again, and by the same rule it opened by.
+    /// The subscription gate has to close again, and by the same rule it opened by.
     ///
     /// <para><b>The failure this exists to catch, and it is the mirror of
     /// starvation.</b> Every gated capture is skipped while nothing under its
@@ -24,7 +24,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <para>That is not a starvation, it is its opposite, and it costs main-thread
     /// frame time on a walk nobody asked for. It matters here because a gate that
     /// cannot close makes the whole early-out unmeasurable: a passing "it skips
-    /// while unsubscribed" case would only ever be reporting the state BEFORE the
+    /// while unsubscribed" case would only ever be reporting the state before the
     /// first subscriber.</para>
     ///
     /// <para>Two ways a subscriber goes: it says so, and it vanishes. The second is

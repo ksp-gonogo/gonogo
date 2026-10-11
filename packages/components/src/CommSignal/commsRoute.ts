@@ -78,12 +78,12 @@ export function commsRouteRelayCount(hops: readonly CommsHop[]): number {
 }
 
 /**
- * One leg's light-time: the path's total one-way delay apportioned by the
+ * One leg's signal delay: the path's total one-way delay apportioned by the
  * hop's share of the route distance. The legs sum to the total delay and the
  * save's light speed cancels out, so it never has to be known.
  *
  * `undefined` when the hop or route has no distance, or the total delay is not
- * positive: a route that carries no delay gets no light-time annotation.
+ * positive: a route that carries no delay gets no signal delay annotation.
  */
 export function commsLegTime(
   hop: CommsHop,

@@ -27,8 +27,8 @@ export type WithheldTrajectory = Extract<
 /**
  * The heading and sentence for a withheld path, for a widget that lays the
  * words out itself. Each reason has its own wording, saying what would let the
- * path be drawn. Use this rather than your own words, so every widget
- * describes a withheld path the same way.
+ * path be drawn. Useful for telling the operator why a path is not drawn, in
+ * the same words in every widget. Used by the map view and the orbit view.
  *
  * @category EmptyState
  */
@@ -74,7 +74,8 @@ export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
 
 /**
  * Drawn in place of a path that is withheld: a heading and a sentence saying
- * why. It is announced as a status, not an alert, since a withheld path is
+ * why. Useful for telling the operator why a vessel's path is missing. Used by
+ * the maneuver planner's diagram. It is announced as a status, not an alert, since a withheld path is
  * normal behaviour rather than a fault. `compact` shows the heading only, with
  * the sentence on hover, for a strip beside a readout or a caption.
  *

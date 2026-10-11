@@ -9,7 +9,7 @@ import ts from "typescript";
  *   looking, and the test was renamed or never written
  * - a `path/to/file.ts:NNN` citation whose file is gone
  *
- * A citation whose file still exists is NOT graded on its line: a line that
+ * A citation whose file still exists is not graded on its line: a line that
  * moved stays in range, so a range check passes the very rot it would be
  * there for. What a line number says has to be read to be judged.
  */

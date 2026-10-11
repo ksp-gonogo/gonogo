@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
  * Plenty of these unwraps are correct and always will be. A d3 scale wants a
  * number, `<progress value>` wants a number, `Math.max` wants a number. Those
  * stay on the list permanently, and that is the point: the list is not a
- * backlog, it is a budget. What it stops is the next piece of ARITHMETIC being
+ * backlog, it is a budget. What it stops is the next piece of arithmetic being
  * added silently.
  *
  * ## Adding to the list
@@ -36,16 +36,16 @@ import { describe, expect, it } from "vitest";
  *     utA - utB.magnitude          ->  value("ut", utA).minus(utB)
  *     rate.magnitude * 3600        ->  rate.in("rad/h")
  *
- * Counts are per FILE rather than per line, because line numbers churn on every
+ * Counts are per file rather than per line, because line numbers churn on every
  * edit above them and a ratchet that fails for unrelated reasons gets disabled.
  *
  * ## Two acts, two counts
  *
- * Two things look identical in source: DISCARDING dimension in order to
+ * Two things look identical in source: discarding dimension in order to
  * compute on bare numbers, which is the defect this budget exists for, and
- * SERIALISING at a numeric boundary, which is unavoidable.
+ * serialising at a numeric boundary, which is unavoidable.
  *
- * `Value.toWire()` is the second act, named. It is counted HERE, by
+ * `Value.toWire()` is the second act, named. It is counted here, by
  * {@link WIRE_BUDGET}, on the same shrink-only terms: a separate ceiling, not
  * an exemption. An uncounted exit would just be `.magnitude` with a better
  * name.
@@ -53,7 +53,7 @@ import { describe, expect, it } from "vitest";
  * `magnitudeOf` and `magnitudeOr` are the same case from the other side: an
  * honest funnel whose one `.magnitude` is spent on behalf of every caller, so
  * the property scan cannot see any of them. {@link FUNNEL_BUDGET} counts their
- * CALLS instead, again as a separate ceiling rather than an exemption.
+ * calls instead, again as a separate ceiling rather than an exemption.
  *
  * A name is not a guard, so there is also
  * {@link WIRE_ARITHMETIC_PATTERNS}, which has no debt list at all and fails on
@@ -61,7 +61,7 @@ import { describe, expect, it } from "vitest";
  */
 
 /**
- * Per-file `.magnitude` budget. Each entry EQUALS what its file uses: a file
+ * Per-file `.magnitude` budget. Each entry equals what its file uses: a file
  * absent from this map may not use any, a file over its number fails, and so
  * does a file under it, because an entry above the live count is permission for
  * that many new unwraps rather than a record of anything. See "has no entry
@@ -427,7 +427,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
 
 /**
  * Per-file `Value.toWire()` budget, on exactly the same terms as
- * {@link MAGNITUDE_BUDGET}: each entry EQUALS what its file uses, a file
+ * {@link MAGNITUDE_BUDGET}: each entry equals what its file uses, a file
  * absent from this map may not use any, and both arms below fail.
  *
  * Separate from the magnitude budget rather than folded into it, because the
@@ -465,7 +465,7 @@ const WIRE_BUDGET: Record<string, number> = {
 
 /**
  * Per-PACKAGE ceiling on calls to `magnitudeOf` and `magnitudeOr`. Otherwise
- * the same terms: each entry EQUALS its package's live count, a package absent
+ * the same terms: each entry equals its package's live count, a package absent
  * from this map may not call either, and both arms below fail.
  *
  * Per package rather than per file because the calls are spread thin. Most
@@ -512,7 +512,7 @@ const SEARCH_GLOBS = ["*.ts", "*.tsx"];
  * to explain why a particular unwrap is correct. Those are prose, and a budget
  * that counted them would charge a file for documenting itself.
  *
- * The `]` comes FIRST inside the bracket expression because POSIX has no
+ * The `]` comes first inside the bracket expression because POSIX has no
  * escaping in there: `[...\]...]` ends the class at the backslash, and the
  * whole pattern then silently matches nothing.
  */
@@ -532,7 +532,7 @@ const WIRE_ACCESS = String.raw`\.toWire\(\)`;
  * The guard that makes the named exit a boundary rather than a laundering
  * route, and the reason `toWire()` could be introduced at all.
  *
- * `a.toWire() - b.toWire()` is the ORIGINAL defect in a better-sounding
+ * `a.toWire() - b.toWire()` is the original defect in a better-sounding
  * spelling. Naming the act does nothing to stop it: it reads as deliberate,
  * which is worse than `.magnitude`, because `.magnitude` at least looks like
  * what it is. So a wire number may not be an operand of `+ - * / %`, and
@@ -547,16 +547,16 @@ const WIRE_ACCESS = String.raw`\.toWire\(\)`;
  * a comment wrapped around a mention of the exit look like multiplication and
  * division to a regex:
  *
- *  - the LEFT form requires a value-like character AFTER the operator. A
- *    comment CLOSER puts a slash there, and a slash is not value-like, so the
+ *  - the left form requires a value-like character after the operator. A
+ *    comment closer puts a slash there, and a slash is not value-like, so the
  *    asterisk that precedes it is not read as a multiplication
- *  - the RIGHT form requires one BEFORE it. A comment OPENER puts a slash
+ *  - the right form requires one before it. A comment opener puts a slash
  *    there, so its asterisk is not read as one either. Its `.` in the trailing
  *    class is separately load-bearing: it is what lets the pattern see a
  *    dotted path, and without it `total + band.lo.toWire()` reads as clean,
  *    which was the first version's miss
  *
- * A unary `-a.toWire()` is deliberately NOT matched. It needs a value-like
+ * A unary `-a.toWire()` is deliberately not matched. It needs a value-like
  * character before the operator that a `= -` cannot supply, and a lone sign
  * flip is not the laundering shape; the per-file budget is what prices that.
  */
@@ -569,7 +569,7 @@ const WIRE_ARITHMETIC_PATTERNS = [
  * A call of either funnel, {@link FUNNEL_BUDGET}'s subject. The `(` is what
  * separates a call from an import or a `{@link}`.
  *
- * The leading class CONSUMES whatever identifier characters or backtick sit
+ * The leading class consumes whatever identifier characters or backtick sit
  * before the name, and {@link isFunnelCall} then drops any match that picked
  * one up: `vecmagnitudeOf(` is another function, and a backticked
  * `magnitudeOf(x)` is prose. The more obvious `(^|[^A-Za-z0-9_$])` prefix
@@ -587,15 +587,15 @@ function isFunnelCall(match: string): boolean {
 const FUNNEL_DEFINITION = "mod/sitrep-sdk/src/magnitude.ts";
 
 /**
- * `-o` is what makes this scan count OCCURRENCES. Without it `git grep` emits
- * one record per matching LINE and the tally below counts records, so two
+ * `-o` is what makes this scan count occurrences. Without it `git grep` emits
+ * one record per matching line and the tally below counts records, so two
  * unwraps on one source line scored as one: sixteen lines across the tree were
  * under-counted that way, and joining two lines was a way to spend an unwrap
  * the budget could not see.
  *
  * Counting the matches in JavaScript instead is not available. `PROPERTY_ACCESS`
  * is POSIX ERE, where the leading `]` is a literal class member; `new RegExp`
- * reads the same text as an EMPTY class and then chokes on the `)`. The engine
+ * reads the same text as an empty class and then chokes on the `)`. The engine
  * that matches has to be the engine that counts.
  *
  * Shared with the planted check below on purpose. That check asserts a figure
@@ -609,7 +609,7 @@ const GREP_FLAGS = "-noE";
  *  - `/dist/` build output, not source
  *  - tests and fixtures, which own the values they construct
  *  - `__generated__`, written by the contract generator
- *  - `unit-system/value.ts`, which IMPLEMENTS `.magnitude`
+ *  - `unit-system/value.ts`, which implements `.magnitude`
  */
 const EXCLUDED =
   /\/dist\/|\.test\.|\.spec\.|test-d|__fixtures__|__generated__|unit-system\/value\.ts/;
@@ -833,7 +833,7 @@ function staleEntries(
 /**
  * Every line where a wire number is an operand of arithmetic, `file:line:text`.
  *
- * Unioned into ONE `git grep` rather than run per pattern, so a line matching
+ * Unioned into one `git grep` rather than run per pattern, so a line matching
  * both forms (`a.toWire() - b.toWire()`, the canonical laundering shape) is
  * reported once. `-n` without `-o` is deliberate here: this arm reports lines
  * for a human to go and fix rather than counting occurrences, and the whole
@@ -868,7 +868,7 @@ const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
  * What an over-budget file is told to do instead, in the order the fixes are
  * usually needed: arithmetic, formatting, then the missing-API question.
  *
- * Named rather than inline so the guidance can be ASSERTED. Message text is the
+ * Named rather than inline so the guidance can be asserted. Message text is the
  * part of a ratchet nothing else checks, so it rots quietly: a message that
  * stopped naming the fix would still fail the build, just uselessly, and every
  * test here would stay green while it happened.
@@ -1083,11 +1083,11 @@ describe("the magnitude budget only shrinks", () => {
   });
 
   /**
-   * The failure NAMES THE FIX, which is the half of a ratchet that decides
+   * The failure names the fix, which is the half of a ratchet that decides
    * whether anyone acts on it.
    *
    * The operator asked for the `<Unit>` notice specifically: an unwrap done in
-   * order to FORMAT is the commonest kind, and the algebra advice above it does
+   * order to format is the commonest kind, and the algebra advice above it does
    * not answer that case at all, so a reader doing it was told to reach for
    * `minus`/`per` when what they needed was a component.
    *

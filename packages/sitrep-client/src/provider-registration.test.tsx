@@ -19,7 +19,7 @@ function pinnedStore(ut: number): TimelineStore {
 /**
  * The non-hook accessors follow the most recently mounted provider, and an
  * unmount hands them back to the one beneath rather than clearing them. The
- * app closes a modal (whose bridge re-provides the SAME client) while the
+ * app closes a modal (whose bridge re-provides the same client) while the
  * dashboard's provider stays mounted, and the dashboard's services keep
  * reading through these.
  */

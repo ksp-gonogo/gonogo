@@ -7,19 +7,19 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Reach as a DECLARED property of the elected comms backend, the sibling of
+    /// Reach as a declared property of the elected comms backend, the sibling of
     /// <see cref="CommsOcclusionTests"/> and the other half of the same wall.
     ///
     /// <para>The thing under test is a disagreement core cannot resolve. Stock
     /// gates a link on antenna power against a range curve; RealAntennas gates
-    /// on whether a budget closes in dB, AND zeroes the power fields stock's
+    /// on whether a budget closes in dB, and zeroes the power fields stock's
     /// rule reads. So core applying stock's rule on an RA install does not get a
     /// slightly wrong number, it gets zero for every craft in the game: a
     /// permanent blackout that looks exactly like a real one. Whoever is
     /// elected, the consumer reads one shape and never branches on which mod is
     /// installed.</para>
     ///
-    /// <para>The REPLICATION these tests carry is the second one below: before
+    /// <para>The replication these tests carry is the second one below: before
     /// reach reached the seam there was no reach question at all, so
     /// <c>Sitrep.Propagation.Visibility</c> modelled geometry and nothing else
     /// and every contact prediction promised reacquisition on line of sight
@@ -31,7 +31,7 @@ namespace Sitrep.Host.Tests
         private const string VanillaBackendId = "commnet";
 
         /// <summary>
-        /// The higher-priority provider, deliberately named for its ROLE rather
+        /// The higher-priority provider, deliberately named for its role rather
         /// than for any shipped mod: what this file tests is that election
         /// precedence decides whose reach rule a consumer reads, and binding a
         /// core test to one mod's provider id would make it about that mod.
@@ -122,7 +122,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// The replication, stated as the property that was missing. A consumer
         /// asking the seam gets a rule whose id says whether anybody actually
-        /// answered, so a prediction built on geometry alone is DECLARED rather
+        /// answered, so a prediction built on geometry alone is declared rather
         /// than assumed. Before this method existed there was nothing to ask and
         /// no way to tell the two apart.
         /// </summary>
@@ -139,7 +139,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// A backend whose declaration throws must not take the prediction with
         /// it, and must not be read as "nothing reaches" either: the fallback is
-        /// ABSENT, so a consumer keeps predicting what it could before rather
+        /// absent, so a consumer keeps predicting what it could before rather
         /// than blacking out on a failed read.
         /// </summary>
         [Fact]
@@ -186,7 +186,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Reaching AT the maximum counts as reaching, matching stock's own
+        /// Reaching at the maximum counts as reaching, matching stock's own
         /// <c>InRange</c> and the sign convention the sweep's margin uses. Two
         /// copies of this comparison that disagreed by one <c>=</c> would put a
         /// refiner on the other side of the limit from the sweep that bracketed

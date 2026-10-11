@@ -1168,7 +1168,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The AGX-readiness guarantee, asserted against the provider rather
-        /// than assumed: a backend reporting MORE than ten groups, with
+        /// than assumed: a backend reporting more than ten groups, with
         /// player-chosen names and a non-contiguous index range, maps through
         /// untouched. Nothing in this provider may re-impose stock's ten-ness.
         /// </summary>
@@ -1199,7 +1199,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// R1(a): absent action-group data is NULL, never an empty list, an
+        /// R1(a): absent action-group data is null, never an empty list, an
         /// empty list would wrongly assert "this vessel has zero groups". Also
         /// covers a recording predating the named list, which simply has no
         /// "actionGroups" key.
@@ -1218,14 +1218,14 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// An entry with no INDEX is skipped rather than defaulted (the index
+        /// An entry with no index is skipped rather than defaulted (the index
         /// is the identity a setActionGroup command names, so an entry without
         /// one is not a group): same discipline as BuildManeuver's missing-Ut
         /// rule. A group with an index but no name still renders, falling back
         /// to the stock-style label.
         ///
-        /// <para>A group with an index but no STATE is a different case and is
-        /// KEPT, carrying a null <c>State</c>. It used to be skipped, back when
+        /// <para>A group with an index but no state is a different case and is
+        /// kept, carrying a null <c>State</c>. It used to be skipped, back when
         /// <c>State</c> was a plain bool and there was nowhere to put "the
         /// backend knows this group and could not read it": dropping the entry
         /// folded that into the whole-tick null, which a client cannot tell
@@ -1267,7 +1267,7 @@ namespace Sitrep.Host.Tests
         /// An explicit <c>null</c> state on the wire is the same answer as an
         /// absent one and reaches the contract as a null, never as false. This
         /// is the shape a per-group backend (AGX) actually emits: it enumerates
-        /// every group and fails to READ one of them.
+        /// every group and fails to read one of them.
         /// </summary>
         [Fact]
         public void BuildControlCarriesAnExplicitlyNullGroupStateThroughRatherThanDefaultingItFalse()
@@ -1710,7 +1710,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// An unmodelled duration reports ABSENT, never a zero-length burn at
+        /// An unmodelled duration reports absent, never a zero-length burn at
         /// <c>Ut</c>. Collapsing them would make "we do not know when to light
         /// the engines" indistinguishable from "this burn is instantaneous".
         /// </summary>
@@ -3171,7 +3171,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The shape gate above only asks whether a key EXISTS, so it passes a
+        /// The shape gate above only asks whether a key exists, so it passes a
         /// wire that carries pitch under "yaw". Each axis therefore gets a
         /// value of its own here, and the assertion is that it arrives under
         /// its own key: a transposed pair is a wrong readback in the operator's

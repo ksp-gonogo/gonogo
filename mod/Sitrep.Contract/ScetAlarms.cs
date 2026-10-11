@@ -31,7 +31,7 @@ public enum ScetAlarmConditionKind
     ///
     /// <para>Only the game can check this. A time alarm needs only a clock,
     /// which a client has; a threshold needs the craft's true state, which
-    /// reaches the ground a light-time late and by then no longer says whether
+    /// reaches the ground a signal delay late and by then no longer says whether
     /// the craft is above 100 km now.</para>
     /// </summary>
     Threshold,
@@ -158,7 +158,7 @@ public class ScetAlarmCondition
     /// The instant the alarm is set for, as a universal time on the craft's
     /// clock rather than on the clock the command centre is reading.
     ///
-    /// <para>The difference between the two is the one-way light time, which
+    /// <para>The difference between the two is the one-way signal delay, which
     /// changes as the craft moves. This field is the instant itself, compared
     /// against the game's own clock every tick, so it stays right however the
     /// distance changes between setting the alarm and its firing.</para>
@@ -340,12 +340,12 @@ public class ScetAlarmAction
 /// remembers. The roster is held in memory for the game session and is not
 /// written to the save: when the session ends it is gone, and a client sets its
 /// alarms again. It is a list of what somebody asked for, not a reading of any
-/// craft, so the channel is not delayed by light time.</para>
+/// craft, so the channel is not delayed by signal delay.</para>
 /// <internal>
 /// Held in memory by <c>Sitrep.Host.Alarms.ScetAlarmRoster</c> and published by
 /// <c>Gonogo.KSP.ScetAlarmUplink</c>. Not written to the save because the
 /// client's own list is the one the operator edits, and two authorities for one
-/// list diverge across a quickload. Published RAW, so <c>JsonWriter.AppendScetAlarm</c> is what puts it on the
+/// list diverge across a quickload. Published raw, so <c>JsonWriter.AppendScetAlarm</c> is what puts it on the
 /// wire.
 /// </internal>
 /// </summary>
@@ -392,7 +392,7 @@ public class ScetAlarm
     /// (<c>AddVantageCommandHandler</c>) rather than taken from the command's
     /// arguments. The dispatch vantage it resolves from is either the session's
     /// <c>SelectedVantage</c> or the per-command override on the request
-    /// envelope, and BOTH are client-supplied, so neither is trusted: each is
+    /// envelope, and both are client-supplied, so neither is trusted: each is
     /// checked against <c>ChannelEngine.IsSelectableVantage</c>, which requires a
     /// currently-active command centre (or the always-allowed default). A
     /// set-vantage naming anything else keeps the prior vantage, and a command
@@ -413,7 +413,7 @@ public class ScetAlarm
     ///
     /// <para>A vantage that is the subject reads the craft's true state, so the
     /// alarm comes due at the instant the condition is met. Any other vantage
-    /// reads what that place has been told, which is a light-time old and
+    /// reads what that place has been told, which is a signal delay old and
     /// different everywhere, so the same condition comes due there when the
     /// light carrying it lands. The vantage decides when, never whether.</para>
     ///
@@ -430,7 +430,7 @@ public class ScetAlarm
     /// <c>useAlarmRequest</c> that names no vantage is judged on the command
     /// centre's, as the SDK's <c>UplinkAlarmVantage</c> describes.</para>
     /// <internal>
-    /// Taken from the command's ARGUMENTS rather than resolved from where the
+    /// Taken from the command's arguments rather than resolved from where the
     /// command entered, which is the opposite of <see cref="ArmedBy"/>.
     /// <c>Sitrep.Host.Alarms.ScetAlarmVantage</c> holds the rule, and
     /// which of the two readers an entry gets follows from it.
@@ -518,7 +518,7 @@ public class ScetAlarm
 ///
 /// <para><b>Nothing about the craft.</b> It says which alarm fired and when.
 /// The stop is immediate, because warp is; the telemetry is not, and stays a
-/// light-time behind. Readings shown beside this notice may still show the
+/// signal delay behind. Readings shown beside this notice may still show the
 /// craft as it was minutes ago, so a widget should not treat the notice as a
 /// reading: what the craft was doing at <see cref="FiredAtUt"/> arrives with
 /// its telemetry.</para>
@@ -574,7 +574,7 @@ public class ScetAlarmFired
     ///
     /// <para>Says nothing about how the craft responded to an action that was sent.
     /// That is a fact aboard the craft, and it reaches the ground the way every
-    /// other one does, a light-time later in the craft's own telemetry: this
+    /// other one does, a signal delay later in the craft's own telemetry: this
     /// notice travels at once and must not carry it.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
@@ -585,10 +585,10 @@ public class ScetAlarmFired
 /// <c>alarm.scet.arm</c>'s args: register an alarm with the game, or replace
 /// one already registered under the same <see cref="Id"/>.
 ///
-/// <para>Never delayed by light time: setting an alarm changes nothing aboard
+/// <para>Never delayed by signal delay: setting an alarm changes nothing aboard
 /// the craft, so like <c>time.setWarpIndex</c> it is a control on
 /// the game, not a signal to a spacecraft. An alarm can therefore be set for
-/// an event less than one light time away, and during a blackout.</para>
+/// an event less than one signal delay away, and during a blackout.</para>
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]
@@ -678,7 +678,7 @@ public class ScetAlarmDisarmArgs
 /// Backed by Sitrep.Host.Alarms.ScetThresholdSources, which is hand-written
 /// rather than a tap on the channel loop because that loop skips a Topic nothing
 /// subscribes to. The same table gives the engine the set of Topics an armed
-/// alarm needs kept on the record. Published RAW: see
+/// alarm needs kept on the record. Published raw: see
 /// <c>JsonWriter.AppendScetAddressableTopic</c>.
 /// </internal>
 /// </summary>

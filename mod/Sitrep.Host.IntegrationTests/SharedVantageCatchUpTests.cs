@@ -14,14 +14,14 @@ namespace Sitrep.Host.IntegrationTests
     /// Plan 3 vantage-seam multi-client safety: the observer vantage moved from the
     /// per-connection <c>session.Connection.Id</c> to the shared session vantage
     /// (every client here is at the same one, never having chosen). The Archive read
-    /// cursor is keyed <c>_cursors[topic][vantage]</c>, shared and MONOTONIC, so all
-    /// clients at one vantage share ONE cursor per topic. This suite proves a second client
-    /// subscribing AFTER a first has advanced that shared cursor still catches up
+    /// cursor is keyed <c>_cursors[topic][vantage]</c>, shared and monotonic, so all
+    /// clients at one vantage share one cursor per topic. This suite proves a second client
+    /// subscribing after a first has advanced that shared cursor still catches up
     /// correctly:
     /// <list type="number">
     /// <item>a LossyLatest state topic -&gt; the second client reads the latest value;</item>
     /// <item>a keyframe-bearing ReliableOrdered diff stream (kOS-terminal-shaped)
-    /// -&gt; the second client gets the self-contained KEYFRAME + reconstructed
+    /// -&gt; the second client gets the self-contained keyframe + reconstructed
     /// state, never a cursor-advanced-past-the-keyframe fragment.</item>
     /// </list>
     /// Case 2 is the one at risk: if it passes, the sticky-keyframe catch-up lane

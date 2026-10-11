@@ -5,7 +5,7 @@
  * Every widget declares a `minSize`, and the dashboard enforces it as a floor:
  * react-grid-layout refuses to drag the tile smaller and a saved layout below it
  * is clamped up. So the number is a promise to the operator, and until now
- * nothing checked it. A live sweep of 53 widgets found 12 whose own TITLE
+ * nothing checked it. A live sweep of 53 widgets found 12 whose own title
  * ellipsises at their own minimum and two with content clipped behind an
  * `overflow: hidden` that has nothing to scroll.
  *
@@ -16,7 +16,7 @@
  * `minSize`, or the kit-wide tiny size for a widget with a tiny mode, where the
  * kit draws the tiny form. Such a widget is also mounted at its `minSize`, the
  * smallest tile that shows its own body. That is deliberate and it is a
- * FLOOR rather than a compromise: an unfed widget shows its empty state, which
+ * floor rather than a compromise: an unfed widget shows its empty state, which
  * is the least content it will ever carry. A title that ellipsises, or content
  * clipped with nothing to scroll, when the widget is showing the least it can,
  * is worse with data and never better. So every finding here is real, and the
@@ -31,7 +31,7 @@
  * ## It proves it can still see
  *
  * `minsize-probe.tsx` registers a widget that is broken in all seven ways the
- * audit can name. The gate mounts it too and REFUSES to report on anything else
+ * audit can name. The gate mounts it too and refuses to report on anything else
  * unless it comes back broken, because every way this check can quietly stop
  * working (a bundle that mounts nothing, a probe that throws before the audit, a
  * selector that stops matching) produces an empty findings array, and an empty

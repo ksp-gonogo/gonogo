@@ -1,12 +1,12 @@
 /**
  * Two and three real screens, keying a real radio at each other through the
- * mod, and hearing each other one light-time later.
+ * mod, and hearing each other one signal delay later.
  *
- * **Every radio test before this one exercised ONE side.** `RadioSession` runs
+ * **Every radio test before this one exercised one side.** `RadioSession` runs
  * against a stub, `clips.roundtrip` compares sample for sample, `RadioPtt`
  * renders alone, and the render harness mounts two panes whose logs are seeded
  * rather than connected. So the delay model's central claim, that a
- * transmission is due at DIFFERENT wall instants at different vantages, was
+ * transmission is due at different wall instants at different vantages, was
  * structurally invisible: one side cannot disagree with itself about when it
  * is.
  *
@@ -19,31 +19,31 @@
  *
  * ## The three screens, and why there are three
  *
- * Two screens can only show a light-time being SYMMETRIC, because a separation
- * is. The sentence worth proving is that ONE transmission is due at two
+ * Two screens can only show a signal delay being symmetric, because a separation
+ * is. The sentence worth proving is that one transmission is due at two
  * different instants, and that needs a third vantage:
  *
  *   - mission control at `ksc`, hosting the peer link, on `/`
  *   - a pilot 3 s away at `vessel:near`, on `/pilot`
  *   - a pilot 9 s away at `vessel:far`, on `/pilot`
  *
- * A transmission goes to a GROUP and only its members hear it. Mission control
+ * A transmission goes to a group and only its members hear it. Mission control
  * opens one with both craft, so keying once is heard by both, six seconds
  * apart, off the same bytes. `commcast-radio-groups.spec.ts` is where a craft
  * outside the group is shown hearing nothing.
  *
  * ## The light, and the leak it must not have
  *
- * `RadioReception.live` is populated only when a chunk is PRESENTED, never on
+ * `RadioReception.live` is populated only when a chunk is presented, never on
  * anything earlier: a lamp lit before the words could be heard would announce a
  * speaker a light-minute before their first word. That is asserted here with a
  * real wire under it, and it is planted in both directions rather than
  * assumed:
  *
- *   - it must be DARK while the words are crossing, with the transmitter
+ *   - it must be dark while the words are crossing, with the transmitter
  *     provably already talking
  *   - it must not be dark merely because nothing arrived. The far end decodes
- *     the utterance from CHUNK ZERO, in order, in about the wall time the clip
+ *     the utterance from chunk zero, in order, in about the wall time the clip
  *     lasts, after a silence several times longer: audio that was held and
  *     released, which a wire that only woke up late cannot produce
  *   - and the second test is the strongest plant of all. If the lamp were lit
@@ -53,13 +53,13 @@
  * ## The video, and the audio in it
  *
  * Recorded per screen (`video: "on"`) and stacked side by side into one mp4,
- * attached to the run. A timing failure is a thing you SEE: a jittered
+ * attached to the run. A timing failure is a thing you see: a jittered
  * playout, a lamp that lights before the words could have arrived, a
- * transmission that fades at the wrong instant. It is deliberately NOT routed
+ * transmission that fades at the wrong instant. It is deliberately not routed
  * through the `visual` job, which diffs deterministic stills and is a
  * different instrument entirely.
  *
- * **The film has SOUND, and it is not a recording of a speaker.** Playwright
+ * **The film has sound, and it is not a recording of a speaker.** Playwright
  * records video only, a hard limit of the Chromium screencast API, so there is
  * no audio track to be had from the recorder at any setting. What there is
  * instead is better evidence: the decoder each screen actually runs writes its
@@ -72,13 +72,13 @@
  *
  * ## And it is paced for a human
  *
- * The delay ARITHMETIC is untouched, and must stay untouched: three seconds and
+ * The delay arithmetic is untouched, and must stay untouched: three seconds and
  * nine seconds are the subject. What is stretched is everything around it. The
  * scene holds still before the key and after the last word, the utterance is
  * three seconds rather than one, and nothing is hurried between them. That last
  * one is the load-bearing change: with a one-second clip the near craft's lamp
  * lit at +3 s and went dark at +4 s, five seconds before the far craft lit at
- * all, so THE one frame worth seeing (near lit, far still dark) was a
+ * all, so the one frame worth seeing (near lit, far still dark) was a
  * twenty-five frame flicker. At three seconds it is three seconds.
  */
 import { expect, test } from "@playwright/test";
@@ -108,7 +108,7 @@ import { getHostPeerId } from "./helpers";
  * Three seconds of somebody talking, at 20 ms a chunk.
  *
  * Built here rather than taken from the named clips, because the length is a
- * property of THIS scene: what an utterance has to outlast is the six seconds
+ * property of this scene: what an utterance has to outlast is the six seconds
  * between the two craft hearing it, and none of the shared clips is written for
  * that. `makeClip` is the same deterministic constructor they are all built
  * with, so nothing about the audio is sampled or seeded.
@@ -131,7 +131,7 @@ test.use({ video: "on" });
 test.describe.configure({ timeout: 180_000 });
 
 /**
- * Chromium only, and MEASURED rather than assumed.
+ * Chromium only, and measured rather than assumed.
  *
  * On chromium this is steady: three consecutive runs put the near craft at
  * 3.03 s and the far one at 9.03, 9.03 and 9.04 against separations of 3 and 9.
@@ -142,7 +142,7 @@ test.describe.configure({ timeout: 180_000 });
  * anything the radio owns, and a timing measurement that silently loses its
  * subject is worse than one that does not run. Webkit is untried.
  *
- * The delay ARITHMETIC is engine-independent and covered per engine already;
+ * The delay arithmetic is engine-independent and covered per engine already;
  * what is scoped here is the three-context WebRTC scene it is measured over.
  */
 test.describe("commcast radio: two screens hearing each other @chromium-only", () => {

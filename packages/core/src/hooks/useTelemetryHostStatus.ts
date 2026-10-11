@@ -11,7 +11,7 @@ export const NO_TELEMETRY_HOST_MESSAGE = "No telemetry host";
 /**
  * True when the `sitrep` `DataSource` (the Gonogo/Sitrep WebSocket, the
  * app's sole telemetry source) is not connected, "disconnected", "error",
- * or not registered at all (pre-boot). `"reconnecting"` reports NOT down:
+ * or not registered at all (pre-boot). `"reconnecting"` reports not down:
  * it's a transient, still-recoverable blip, not a confirmed loss.
  */
 export function useTelemetryHostDown(): boolean {

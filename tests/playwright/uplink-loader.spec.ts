@@ -8,22 +8,22 @@ import { dashboardWithWidget } from "./helpers";
  * for D4 step 2 (2026-07-25): the runtime loader is the only path for a
  * first-party client, there is no static-bundled fallback left and no flag
  * gating it (main.tsx always runs the loader; see that file's
- * `bootUplinksAndRender`). Proves, in a REAL browser on all three engines,
+ * `bootUplinksAndRender`). Proves, in a real browser on all three engines,
  * that a loaded Uplink client works end to end. It names one id
  * (`breakingGround`) rather than sweeping `packages/app/uplink-bundle-targets.ts`:
  * the mechanism is per-Uplink identical, so one widget id is all this looks
  * for. Widget
- * COVERAGE across every Uplink is `scripts/minsize-gate.ts`'s and the visual
- * gate's job. What is proved here is the LOADER, on all three engines:
+ * coverage across every Uplink is `scripts/minsize-gate.ts`'s and the visual
+ * gate's job. What is proved here is the loader, on all three engines:
  *
  *  1. named through `?uplinkLoaderIds=`, it is not statically bundled
  *     (`main.tsx` has no static import path), it is fetched as a standalone ESM bundle (/uplinks/<id>.client.js) and
  *     import()ed at runtime, its bare imports resolving through the baked
  *     import map to the app's singleton chunks, so its module-load
- *     registerComponent writes into the app's ONE registry (`robotics-console`
+ *     registerComponent writes into the app's one registry (`robotics-console`
  *     appears);
  *  2. the injected SDK host is installed on globalThis;
- *  3. a widget from a LOADED (not statically-bundled) Uplink actually RENDERS on
+ *  3. a widget from a loaded (not statically-bundled) Uplink actually renders on
  *     the dashboard: not merely registers. The dashboard is seeded (same
  *     `dashboardWithWidget` mechanism `tests/playwright/helpers.ts`'s
  *     `bootstrapPair` uses for every widget-DOM-mirror spec) with breakingGround's
@@ -31,7 +31,7 @@ import { dashboardWithWidget } from "./helpers";
  *     so `RequiresGuard` never gates it behind the "No telemetry host"
  *     placeholder this preview build's disconnected Sitrep source would
  *     otherwise force); because
- *     `main.tsx` only calls `renderApp()` AFTER `loadEnabledUplinks` resolves
+ *     `main.tsx` only calls `renderApp()` after `loadEnabledUplinks` resolves
  *     (bootUplinksAndRender awaits the whole load sequence before the first
  *     render), by the time React mounts the widget's `registerComponent` has
  *     already run, so waiting for the widget's own panel title is a genuine
@@ -58,7 +58,7 @@ import { dashboardWithWidget } from "./helpers";
  * consent (design §3.5). Both tests seed a remembered grant in localStorage so
  * the load reaches import() without a manual modal click.
  *
- * Runs against the production `vite preview` webServer (PORTS.preview): the loader
+ * Runs against the production `vite preview` webServer (ports.preview): the loader
  * mechanism is build-only, so the dev server every other spec uses can't exercise
  * it. import()ing a bare specifier inside page.evaluate uses the document's import
  * map: the same singleton-preservation mechanism the loaded Uplink relies on.

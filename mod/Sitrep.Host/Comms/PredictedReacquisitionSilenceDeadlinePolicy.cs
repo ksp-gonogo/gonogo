@@ -98,7 +98,7 @@ namespace Sitrep.Host.Comms
         /// Seconds allowed between the geometric path opening and CommNet
         /// reporting the vessel connected again.
         ///
-        /// <para>An ALLOWANCE, not a measurement. The predicted event and the
+        /// <para>An allowance, not a measurement. The predicted event and the
         /// observed one are not the same event: the sweep predicts line of
         /// sight to a ground station, while what ends the silence is the
         /// backend's own verdict, which routes through relays and applies a
@@ -125,7 +125,7 @@ namespace Sitrep.Host.Comms
         /// the two are no longer the same event, and on a station-day cycle a
         /// whole further occultation can begin inside it.
         ///
-        /// <para>Exceeding it does NOT truncate to it: see
+        /// <para>Exceeding it does not truncate to it: see
         /// <see cref="SilenceDeadlineBasis.GraceExceedsCeiling"/>. In practice
         /// it binds only at extreme warp against a slow cycle, which is exactly
         /// where the prediction deserves the least trust.</para>
@@ -144,7 +144,7 @@ namespace Sitrep.Host.Comms
         /// What this policy will accept from the propagation provider, stated
         /// rather than implied.
         ///
-        /// <para>A predicted emergence UT is an OPERATIONAL claim: an operator
+        /// <para>A predicted emergence UT is an operational claim: an operator
         /// reads it as "it should be back by then" and judges a vessel late
         /// against it. So it may only be read off arc the provider vouches for,
         /// and this policy declines past that instead of quoting a number with
@@ -152,7 +152,7 @@ namespace Sitrep.Host.Comms
         /// the opposite reason.</para>
         ///
         /// <para>Constant rather than a parameter because it is a property of
-        /// what this policy PUBLISHES, not of who is calling it. Under the
+        /// what this policy publishes, not of who is calling it. Under the
         /// two-body vanilla nothing is bounded, so it changes no behaviour
         /// there.</para>
         /// </summary>
@@ -420,7 +420,7 @@ namespace Sitrep.Host.Comms
         /// not declare a cadence at all, or null when neither exists.
         ///
         /// <para>Guarded rather than trusted. A cadence of zero or NaN would
-        /// divide the step to nothing, and one LONGER than the orbit would
+        /// divide the step to nothing, and one longer than the orbit would
         /// coarsen a step that was already fine enough, so anything that is not
         /// a usable value strictly shorter than the period leaves the period in
         /// place. The step only ever gets finer than it was.</para>
@@ -449,7 +449,7 @@ namespace Sitrep.Host.Comms
             new SilenceDeadline(deadline.DurationSec, basis);
 
         /// <summary>
-        /// A DURATION this policy can size a sweep step against.
+        /// A duration this policy can size a sweep step against.
         ///
         /// <para><c>&gt; 0.0</c> is a real constraint here: a cadence of zero or
         /// less divides the step to nothing (see <see cref="CycleOf"/>), so a
@@ -459,7 +459,7 @@ namespace Sitrep.Host.Comms
             !double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds > 0.0;
 
         /// <summary>
-        /// An INSTANT this policy can sweep from.
+        /// An instant this policy can sweep from.
         ///
         /// <para>Finiteness only, deliberately. This used to share the duration
         /// guard above, and <c>&gt; 0.0</c> is meaningless for an instant: zero is

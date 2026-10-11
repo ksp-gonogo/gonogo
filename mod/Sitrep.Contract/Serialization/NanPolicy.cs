@@ -3,7 +3,7 @@ using System;
 namespace Sitrep.Contract.Serialization
 {
     /// <summary>
-    /// THE single definition of the NaN/Infinity wire-format sentinel policy
+    /// The single definition of the NaN/Infinity wire-format sentinel policy
     /// used by every envelope serializer in this project; see
     /// <c>mod/golden-fixtures/gen/serialization.gen.ts</c> for the matching
     /// TS-side policy applied when the golden fixture is generated.
@@ -13,23 +13,23 @@ namespace Sitrep.Contract.Serialization
     /// source of these values on the wire (eccentric-anomaly and landing
     /// telemetry can genuinely be NaN). Rather than dropping the sample or crashing the writer, a
     /// non-finite <c>double</c> is encoded as one of three fixed JSON
-    /// STRING tokens (<c>"NaN"</c>, <c>"Infinity"</c>, <c>"-Infinity"</c>)
+    /// string tokens (<c>"NaN"</c>, <c>"Infinity"</c>, <c>"-Infinity"</c>)
     /// matching JavaScript's own <c>String(NaN)</c> / <c>String(Infinity)</c>
     /// / <c>String(-Infinity)</c>, so the sentinel reads naturally in logs
     /// (Axiom, browser devtools) without extra translation.
     ///
-    /// Applied UNIFORMLY: both the fixed-schema numeric fields (e.g.
+    /// Applied uniformly: both the fixed-schema numeric fields (e.g.
     /// <c>Meta.ValidAt</c>/<c>DeliveredAt</c>,
     /// <c>CommandRequest.SentAt</c>) and the free-form generic
     /// <c>Payload</c>/<c>Args</c>/<c>Result</c> value trees go through the
     /// exact same <see cref="TryEncode"/> / <see cref="TryDecode"/> pair,
-    /// see <see cref="JsonWriter.AppendNumber"/> (write side, the ONLY place
+    /// see <see cref="JsonWriter.AppendNumber"/> (write side, the only place
     /// a <c>double</c> is ever appended) and <see cref="JsonReader"/>'s
-    /// string-value parsing (read side, the ONLY place a JSON string token
+    /// string-value parsing (read side, the only place a JSON string token
     /// is converted into a CLR value).
     ///
     /// Known trade-off: because the decode side applies to every parsed string
-    /// uniformly, a genuine string PAYLOAD value that happens to be exactly
+    /// uniformly, a genuine string payload value that happens to be exactly
     /// <c>"NaN"</c>, <c>"Infinity"</c>, or <c>"-Infinity"</c> is read back as
     /// the corresponding double rather than preserved as a string.
     /// </summary>

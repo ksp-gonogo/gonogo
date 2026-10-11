@@ -78,7 +78,7 @@ public class ContractEnumRenderingTests
     /// <see cref="FieldInfo"/> instead of calling <see cref="Enum.Parse(Type, string, bool)"/>:
     /// the reflective parse path materialises every custom attribute on the
     /// enum type, so it threw for exactly the same reason
-    /// <c>ToString()</c> did, in the net10.0 test host AND in the live KSP
+    /// <c>ToString()</c> did, in the net10.0 test host and in the live KSP
     /// deploy, where a string-form enum command argument would have dead-softed
     /// the command in-game.
     /// </summary>
@@ -115,12 +115,12 @@ public class ContractEnumRenderingTests
     }
 
     /// <summary>
-    /// The load-bearing assertion, and NOT redundant with the behavioural ones
+    /// The load-bearing assertion, and not redundant with the behavioural ones
     /// above however much it looks it.
     ///
     /// <para>Measured by reintroducing the leak deliberately: with a stray
     /// <c>Reinforced.Typings.dll</c> sitting in this project's output, the
-    /// rendering and parsing tests above all PASS (1 failed, 5 passed) while the
+    /// rendering and parsing tests above all pass (1 failed, 5 passed) while the
     /// contract is genuinely broken, because a resolvable assembly is all those
     /// tests need. Delete that one file and the same build fails 6 of 6.</para>
     ///

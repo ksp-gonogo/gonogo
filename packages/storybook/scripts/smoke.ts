@@ -19,7 +19,7 @@
  * components.
  *
  * Before it trusts a clean run it mounts the planted stories (`Smoke plant`),
- * which fail on purpose, and fails as BLIND if any is reported clean: a
+ * which fail on purpose, and fails as `BLIND` if any is reported clean: a
  * checker that cannot see a failure reports every story clean. One planted
  * story must come back clean, the dimmed words inside an inert region, so the
  * inert exemption cannot grow wider unseen.

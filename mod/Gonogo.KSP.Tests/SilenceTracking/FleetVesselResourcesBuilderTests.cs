@@ -60,7 +60,7 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         }
 
         /// <summary>
-        /// A resource with no capacity is STRUCTURAL absence: the craft does not
+        /// A resource with no capacity is structural absence: the craft does not
         /// carry it. Emitting `0 / 0` would turn that into a reading, which is
         /// the exact ambiguity the three-way absence contract exists to stop.
         /// </summary>

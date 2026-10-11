@@ -16,12 +16,12 @@ namespace Gonogo.KSP
     ///
     /// <para>So the question is now put arm by arm instead
     /// (<see cref="StrategyActivationRule"/>), against the same members stock
-    /// reads, and this type records WHICH route produced the answer. A consumer
+    /// reads, and this type records which route produced the answer. A consumer
     /// deciding whether to arm a control, rather than merely to print a sentence,
     /// can then tell the game's own verdict from one assembled out of its
     /// parts.</para>
     ///
-    /// <para>The unanswered case stays ABSENT and never false. A false with a
+    /// <para>The unanswered case stays absent and never false. A false with a
     /// reason beside it says the game judged this strategy and refused it, and an
     /// operator reads "eligibility check failed" as an intermittent fault in
     /// something. Neither is true.</para>

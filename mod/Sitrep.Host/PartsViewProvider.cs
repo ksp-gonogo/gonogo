@@ -5,7 +5,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// KSP-free mapping logic for the <c>parts.power</c> channel, added THIS
+    /// KSP-free mapping logic for the <c>parts.power</c> channel, added this
     /// session, same "primitives-dict pass-through is fine for now" posture
     /// as <see cref="CareerViewProvider"/>/<see cref="ScienceViewProvider"/>.
     /// Reads <c>Values["parts"]["power"]</c>,
@@ -18,7 +18,7 @@ namespace Sitrep.Host
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildParts must
     /// populate exactly this shape at <c>Values["parts"]</c>: entirely
-    /// OMITTED, no key at all, whenever there's no active vessel):</b></para>
+    /// omitted, no key at all, whenever there's no active vessel):</b></para>
     /// <code>
     /// snapshot.Values["parts"] = Dictionary&lt;string, object?&gt; {
     ///   "power": {

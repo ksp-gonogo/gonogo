@@ -31,18 +31,18 @@ namespace Gonogo.DevTools
     /// that same public entry point rather than re-implementing the sequence, so
     /// we inherit whatever stock does on this KSP version.
     ///
-    /// <b>NOT</b> production behaviour. Lives in the Deck-only GonogoDevTools
+    /// <b>not</b> production behaviour. Lives in the Deck-only GonogoDevTools
     /// assembly and is never shipped. With no request file (the production
     /// default), this addon does nothing at all.
     ///
     /// <c>once: false</c> re-instantiates this every time the flight scene loads.
-    /// <see cref="DevRequestLedger"/> applies a request once across scene reloads AND
+    /// <see cref="DevRequestLedger"/> applies a request once across scene reloads and
     /// restarts, and refuses one written before the running session started.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Flight, once: false)]
     public sealed class GonogoDevTeleport : MonoBehaviour
     {
-        /// <summary>Keys a TELEPORT node may carry. Anything else is a refusal:
+        /// <summary>Keys a teleport node may carry. Anything else is a refusal:
         /// this addon used to ignore a name it did not recognise, so a request
         /// saying <c>periKm</c> instead of <c>periapsisKm</c> silently placed the
         /// craft somewhere else entirely and read as a successful setup.</summary>
@@ -285,7 +285,7 @@ namespace Gonogo.DevTools
             return null;
         }
 
-        /// <summary>The names in this TELEPORT node that mean nothing here, comma
+        /// <summary>The names in this teleport node that mean nothing here, comma
         /// separated, or an empty string when every name is one we act on.</summary>
         private static string UnknownKeys(ConfigNode node)
         {

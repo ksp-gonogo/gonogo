@@ -43,7 +43,7 @@ const axes: PorkchopAxes = {
   muParent: 1.327e20,
 };
 
-/** A reply in WIRE form: bare numbers, which is what a command response carries. */
+/** A reply in wire form: bare numbers, which is what a command response carries. */
 function reply(uts: number[], scale: number) {
   return {
     solved: true,

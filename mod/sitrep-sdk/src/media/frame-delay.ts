@@ -7,9 +7,9 @@
  * *when a feed became visible* is delayed, while ongoing motion inside that
  * stream plays live. This module reads the real video
  * track frame-by-frame (WebCodecs "Breakout Box": `MediaStreamTrackProcessor`
- * / `MediaStreamTrackGenerator`, see `webcodecs-track-io.d.ts`), stamps EACH
+ * / `MediaStreamTrackGenerator`, see `webcodecs-track-io.d.ts`), stamps each
  * frame with the live interpolated capture UT, and gates release through
- * the SAME `DelayedPlayoutBuffer` telemetry uses (never `arrival + delay`,
+ * the same `DelayedPlayoutBuffer` telemetry uses (never `arrival + delay`,
  * only `confirmedEdgeUt()`, the single-authority guarantee).
  *
  * `runFrameDelayPipeline` is the pure engine: deliberately decoupled from
@@ -135,7 +135,7 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
  * @category Delayed video
  */
 export interface FrameDelayPipeline {
-  /** Drop (closing) whatever's currently queued, WITHOUT tearing down
+  /** Drop (closing) whatever's currently queued, without tearing down
    *  source/sink: the timeline-reset case (revert/quickload/scene reload): the
    *  track keeps flowing, only the pre-reset backlog is discarded so it can
    *  never surface once the clock sweeps back past those UTs post-reset. */

@@ -16,11 +16,11 @@ const TRAJECTORY_TOPIC = "vessel.orbit";
  * Whether this widget draws numbers out of the trajectory payload, and is
  * therefore a widget the horizon has something to say about.
  *
- * Containment walks DOWN from the declaration into the payload's fields, never
- * UP from a derived field to the inputs it was computed from, which is the same
+ * Containment walks down from the declaration into the payload's fields, never
+ * up from a derived field to the inputs it was computed from, which is the same
  * direction rule `alarmMatchesWidget` follows and for the same reason. Walking
  * up would light every widget on a derived channel with `vessel.orbit` among
- * its inputs, whatever field it reads, so a badge would say PAST HORIZON on a
+ * its inputs, whatever field it reads, so a badge would say past horizon on a
  * reading a trajectory problem cannot touch. A badge that cries wolf is a badge
  * nobody reads, and this one exists to be believed. A widget that draws orbit
  * figures declares `vessel.orbit` itself.
@@ -39,13 +39,13 @@ export function widgetReadsTrajectory(
  * What a widget's panel should say about its trajectory's currency, or `null`
  * when the horizon has nothing to add.
  *
- * The instant that matters is the VIEW instant, not the sample's own: a producer
+ * The instant that matters is the view instant, not the sample's own: a producer
  * is always current with itself, and an operator reading a delayed second screen
  * is not. Asking `canPropagate` for `[viewUt, viewUt]` is asking exactly
  * the operator's question, "can these elements answer for the moment I am
  * looking at", which is why both ends are the view instant.
  *
- * The two refusals are deliberately NOT collapsed into one badge. "You have
+ * The two refusals are deliberately not collapsed into one badge. "You have
  * outrun a stated bound" and "nobody stated a bound" are different facts with
  * different remedies, and a single label covering both would be the confident
  * wrong answer this seam exists to remove. Outrunning a stated horizon is the
@@ -53,7 +53,7 @@ export function widgetReadsTrajectory(
  * fact about this reading. An unstated horizon is a `caution`: it may well be
  * fine, but nothing has said so, and silence must not render as health.
  *
- * Inside the window an INTEGRATED trajectory still contributes, at `info`: its
+ * Inside the window an integrated trajectory still contributes, at `info`: its
  * elements are a snapshot of a path, exact at the sample instant and drifting
  * from there, so a conic drawn through them is an approximation even before the
  * horizon is reached. An analytic trajectory inside its window contributes
@@ -66,7 +66,7 @@ export function widgetReadsTrajectory(
  * Labels are short because `Badge` sets `white-space: nowrap` and the panel
  * header has no ellipsis to fall back on, so a long label pushes the title
  * rather than truncating. `BEYOND INTEGRATION` is preferred over qualifying
- * `PAST HORIZON` with the kind: it is shorter AND it says the more useful
+ * `PAST HORIZON` with the kind: it is shorter and it says the more useful
  * thing, that the integrator has not computed this far yet, which is a state
  * that resolves on its own where an analytic trajectory claiming a bound is a
  * producer bug that does not.

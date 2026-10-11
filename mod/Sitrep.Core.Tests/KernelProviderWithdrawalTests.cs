@@ -5,17 +5,17 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// A provider that cannot serve a capability on THIS install withdraws from
+    /// A provider that cannot serve a capability on this install withdraws from
     /// the election rather than winning it and answering nothing.
     ///
     /// <para>The live case: a life-support mod registers for the exclusive
     /// <c>"reliability"</c> capability, and the player has that mod's failure
     /// modelling switched off. It has nothing to model, but an exclusive
     /// capability is held by exactly one provider, so while it holds it every
-    /// other backend that COULD model reliability is starved.</para>
+    /// other backend that could model reliability is starved.</para>
     ///
     /// <para><b>Why withdrawal and not a factory decline.</b> A factory runs after
-    /// the winner has been chosen, so declining there falls through to VANILLA and
+    /// the winner has been chosen, so declining there falls through to vanilla and
     /// the runner-up never gets a look in: the capability ends up unserved because
     /// the provider that could not serve it got there first. Withdrawing before
     /// selection means relative priority stops mattering, which is the whole point,
@@ -44,7 +44,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The requirement in its hardest form: the withdrawing provider outranks
-        /// the one that can serve, and the one that can serve STILL wins. If
+        /// the one that can serve, and the one that can serve still wins. If
         /// withdrawal happened any later than selection this would resolve to the
         /// vanilla backend instead, which is the bug being fixed.
         /// </summary>
@@ -127,7 +127,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The predicate is asked during RESOLVE, not at registration. A mod
+        /// The predicate is asked during resolve, not at registration. A mod
         /// registers while the game is still loading, when its own settings may not
         /// be parsed, so a decision taken at registration would pin whatever
         /// happened to be true that early and never revisit it.

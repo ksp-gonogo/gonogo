@@ -6,11 +6,11 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// C#-side tests for <see cref="Archive.Snapshot"/> / <see cref="Archive.Restore"/>,
-    /// a capability with NO TS reference (added for M5b quicksave, so a
+    /// a capability with no TS reference (added for M5b quicksave, so a
     /// delayed archive survives save/load). Unlike
     /// <see cref="ArchiveGoldenFixtureTests"/>, there is no golden fixture
     /// here: these tests build an <see cref="Archive"/> directly, drive it
-    /// through reads that advance (and, in one case, FREEZE) its cursors, then
+    /// through reads that advance (and, in one case, freeze) its cursors, then
     /// prove an OBJECT-LEVEL round trip (<see cref="Archive.Snapshot"/> straight
     /// into <see cref="Archive.Restore"/>, no serialization involved: that's
     /// deliberately out of scope for <c>Sitrep.Core</c>, deferred to M5b)

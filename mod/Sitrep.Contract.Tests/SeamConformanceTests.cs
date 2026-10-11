@@ -5,10 +5,10 @@ using Xunit.Sdk;
 namespace Sitrep.Contract.Tests
 {
     /// <summary>
-    /// The shipped conformance assertion can SEE a non-conforming implementation.
+    /// The shipped conformance assertion can see a non-conforming implementation.
     ///
     /// <para><b>Why this is not circular.</b> <c>SeamIsGoodTests</c> in
-    /// <c>Sitrep.Core.Tests</c> checks that an assertion EXISTS for each seam; it
+    /// <c>Sitrep.Core.Tests</c> checks that an assertion exists for each seam; it
     /// cannot check that the assertion asserts anything, and an assertion that
     /// asserts nothing is worse than none because it reads as coverage. This is the
     /// other half: a conforming provider passes, and each thing the contract
@@ -17,7 +17,7 @@ namespace Sitrep.Contract.Tests
     /// green in the wrong direction and fails.</para>
     ///
     /// <para>It lives beside the contract rather than in the Uplink suites because
-    /// it is about the ASSERTION, not about any one provider.</para>
+    /// it is about the assertion, not about any one provider.</para>
     /// </summary>
     public class SeamConformanceTests
     {

@@ -24,7 +24,7 @@ namespace Gonogo.KSP
     /// because a live career carries around a hundred strategies and this runs on
     /// every one of them.</para>
     ///
-    /// <para><b>A reflection failure is ABSENT, never a refusal.</b> Both
+    /// <para><b>A reflection failure is absent, never a refusal.</b> Both
     /// unreached arms report through an <c>asked</c> flag rather than through a
     /// caught exception that falls into the refusing branch. A missing method, a
     /// changed signature and a third-party throw all mean the question was never
@@ -183,7 +183,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Arm 8. Returns whether the question was PUT; the refusal, if any, comes
+        /// Arm 8. Returns whether the question was put; the refusal, if any, comes
         /// back through <paramref name="refusal"/>. The two are separate precisely
         /// so an unreachable method cannot be mistaken for a no.
         /// </summary>

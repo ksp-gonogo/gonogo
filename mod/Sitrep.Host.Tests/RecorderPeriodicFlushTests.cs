@@ -9,9 +9,9 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Covers the periodic-flush behaviour <c>GonogoAddon</c> now relies on:
-    /// <see cref="Recorder.Save"/> called repeatedly against the SAME fixed
+    /// <see cref="Recorder.Save"/> called repeatedly against the same fixed
     /// path does a full re-write each time (not an append), so reading the
-    /// file back after the Nth flush always reflects the FULL session
+    /// file back after the Nth flush always reflects the full session
     /// recorded so far - and <see cref="Recorder.SnapshotCount"/>/
     /// <see cref="Recorder.EventCount"/> track entries as they're recorded,
     /// for <c>GonogoAddon</c>'s per-flush log line.

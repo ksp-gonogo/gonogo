@@ -8,27 +8,27 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// The mod-side ownership guard: NO Uplink-specific wire type may live in
+    /// The mod-side ownership guard: no Uplink-specific wire type may live in
     /// <c>mod/Sitrep.Contract/</c>, even for an in-monorepo Uplink. Mirrors
     /// the frontend's <c>packages/core/src/uplink-boundary.test.ts</c>
     /// mechanically (a registered token's distinctive pattern, scanned
-    /// outside the owning Uplink's directory), scoped here to the ONE
+    /// outside the owning Uplink's directory), scoped here to the one
     /// directory that must never carry a registered token at all:
     /// <c>Sitrep.Contract</c> is core, not an owning directory for anything.
     ///
     /// <para><b>Polarity, deliberately different from the frontend
     /// ratchet.</b> The frontend allowlist has a <c>permanent</c> bucket
-    /// because, TODAY, a mod's wire types genuinely belong in
+    /// because, today, a mod's wire types genuinely belong in
     /// <c>Sitrep.Contract</c> by design (see that file's own header comment
     /// on the 5 already-registered tokens). This gate's whole point is the
     /// opposite: for a token registered here,
-    /// <c>Sitrep.Contract</c> should hold ZERO references to its
-    /// DECLARATIONS, permanently. So there is no allowlist, no
+    /// <c>Sitrep.Contract</c> should hold zero references to its
+    /// declarations, permanently. So there is no allowlist, no
     /// permanent/domainDebt split, just a hard "0 non-comment matches per
     /// registered token" assertion. A future re-add is a violation, not an
     /// allowlist candidate.</para>
     ///
-    /// <para><b>Comment lines are exempt.</b> A relocation's own PROVENANCE
+    /// <para><b>Comment lines are exempt.</b> A relocation's own provenance
     /// record legitimately names the mod it moved out (see
     /// <c>RtConfig.cs</c>'s "moved OUT of core into
     /// GonogoMechJebUplink.Contract" comment): prose, not a type
@@ -49,7 +49,7 @@ namespace Sitrep.Core.Tests
     /// <para><b>Two token shapes, and when each applies.</b> A token names its
     /// mod when the relocated types were written as that mod's own file and
     /// carry the mod's name in every identifier. A token names the extracted
-    /// TYPES instead when they are carved out of a SHARED contract file: the
+    /// types instead when they are carved out of a shared contract file: the
     /// mod name would not appear in any identifier there, so a bare mod-name
     /// pattern would be vacuous, and the mod name surfaces only in prose,
     /// which this scan already exempts.</para>
@@ -57,7 +57,7 @@ namespace Sitrep.Core.Tests
     public class UplinkContractOwnershipTests
     {
         /// <summary>
-        /// Token name -> distinctive pattern. Add a line here in the SAME
+        /// Token name -> distinctive pattern. Add a line here in the same
         /// commit a type moves out of <c>Sitrep.Contract</c> into that
         /// Uplink's own contract slice.
         /// </summary>

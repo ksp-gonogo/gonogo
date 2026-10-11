@@ -127,7 +127,7 @@ public class FlightStarted
 /// event sent once per flight when it stops being trackable: recovered,
 /// crashed, destroyed or reverted. It shares the delay class of
 /// <c>crash.lastCrash</c> and <c>recovery.lastSummary</c>, so an end that a
-/// rewind discards before its light-time has elapsed is never revealed.
+/// rewind discards before its signal delay has elapsed is never revealed.
 /// <para>Debris, flags and vessels of unknown type never end a flight.</para>
 /// </summary>
 /// <category>Flights</category>

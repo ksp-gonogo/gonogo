@@ -87,7 +87,7 @@ export function seaLevelOnRail(
 /**
  * Altitude above sea level: the last measurement, where the model puts it now, and how well it claims to know that.
  *
- * ASL is the quantity `vessel.flight` has a reckoner for; AGL has none, since a fitted rate says nothing about the terrain ahead. The observation stays the headline and is marked, never replaced, and the carried figure and interval appear whenever the observation is not the craft's present: the reading is held, or a light-time behind SCET.
+ * ASL is the quantity `vessel.flight` has a reckoner for; AGL has none, since a fitted rate says nothing about the terrain ahead. The observation stays the headline and is marked, never replaced, and the carried figure and interval appear whenever the observation is not the craft's present: the reading is held, or a signal delay behind SCET.
  */
 export function CarriedAltitude({ reading }: { reading: FlightReading }) {
   const measured = readingOf(reading, (f) => f.altitudeAsl);

@@ -27,7 +27,7 @@ function point(validAt: number, payload: number | null): TimelinePoint<number> {
 
 /**
  * A model that always has an answer, so `reckoning: "available"` is reachable.
- * It covers the payload ROOT, which is what a whole-topic read needs: a model
+ * It covers the payload root, which is what a whole-topic read needs: a model
  * naming only a sub-path has nothing to say about the payload as a whole.
  */
 const alwaysReckons: ReckonerFor<number> = (p) => ({
@@ -329,7 +329,7 @@ describe("observedValue", () => {
   });
 
   /**
-   * The OBSERVATION, never the model, on the arm where both are present. A
+   * The observation, never the model, on the arm where both are present. A
    * caller who wants the modelled figure writes the reckoning branch; this
    * helper existing is not a second way to reach one.
    */
@@ -340,7 +340,7 @@ describe("observedValue", () => {
   });
 
   /**
-   * Stale gives NOTHING, which is the whole judgement in the helper and the one
+   * Stale gives nothing, which is the whole judgement in the helper and the one
    * a caller has to agree with before using it. The last real observation is
    * still on the arm for a widget that wants it; what this says is that the
    * widget asking must say so by branching, rather than getting a decayed
@@ -369,7 +369,7 @@ describe("observedValue", () => {
   });
 
   /**
-   * A falsy payload is a VALUE, and this is the trap the helper is worth
+   * A falsy payload is a value, and this is the trap the helper is worth
    * having for: `observedValue(r) ?? fallback` is right and
    * `observedValue(r) || fallback` is wrong, so the helper has to be able to
    * hand back a `0` for the difference to matter.
@@ -402,7 +402,7 @@ describe("Reading, as a type", () => {
 
   /**
    * The second discriminant carries the same compiler pressure the `reckonable`
-   * arm used to: the modelled value is a required field of an ARM selected by a
+   * arm used to: the modelled value is a required field of an arm selected by a
    * required `status`, so reaching it costs a written test exactly as reaching a
    * value does. An optional field would have compiled here.
    */
@@ -428,7 +428,7 @@ describe("observedAt", () => {
    * `readingAge` used to live here and did the subtraction itself, returning a bare
    * `number`. An age is now `viewUt.minus(observedAt(reading))`, which is a
    * `Value<"s">` natively because the affine rules made a difference of two instants
-   * say what it is. So the library answers WHEN, and the caller does the arithmetic.
+   * say what it is. So the library answers when, and the caller does the arithmetic.
    *
    * Two things moved to the caller with it, and both are asserted below rather than
    * assumed: the undefined-view-time case, and the clamp.
@@ -516,7 +516,7 @@ describe("the unowned arm", () => {
   });
 
   /**
-   * The verdict only ever redirects the EMPTY case. A topic that has published
+   * The verdict only ever redirects the empty case. A topic that has published
    * was necessarily acked, so it can never be carrying one, and the arm order
    * must not let a stale verdict outrank a real observation.
    */

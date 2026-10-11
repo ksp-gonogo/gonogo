@@ -1,5 +1,5 @@
 /**
- * Deciding whether anything will EVER publish a topic, from the mod's own
+ * Deciding whether anything will ever publish a topic, from the mod's own
  * answer rather than from a reconstruction of it.
  *
  * ## The authority, and the one that was rejected
@@ -14,7 +14,7 @@
  *
  * The alternative was deriving it from `system.uplinks`'s `ownedPrefixes`, and
  * it does not work: that list is built from `_channelOwner`, which is only
- * written for channels declared through an uplink MANIFEST. Four engine
+ * written for channels declared through an uplink manifest. Four engine
  * built-ins are declared outside one and would have been reported as unowned,
  * `system.units` among them. Worse, an Uplink whose `Register` throws is
  * fail-soft-caught and declares no channels at all, so the rule would tell an
@@ -26,14 +26,14 @@
  *
  * A false `unowned` tells an author their correct code is broken, which is
  * worse than the silence it removes. So this tracker only ever moves a topic to
- * `"unowned"` from a POSITIVE observation: a subscribe frame that we know left
+ * `"unowned"` from a positive observation: a subscribe frame that we know left
  * on a live connection, and a window that then elapsed with the connection
  * still live. Everything else is {@link TopicOwnership} `"undecided"`, which
  * the reading layer renders as `pending`.
  *
  * The lifecycle rules that keep that true:
  *
- * - a topic is armed only when a subscribe is actually SENT
+ * - a topic is armed only when a subscribe is actually sent
  * - losing the connection disarms everything and forgets every verdict. A
  *   subscribe whose ack was still in flight when the socket dropped must not
  *   mature into "unowned" while nothing can answer
@@ -143,7 +143,7 @@ export class TopicOwnershipTracker {
   }
 
   /**
-   * The mod REFUSED `topic` outright, with an `unknownTopic` error frame.
+   * The mod refused `topic` outright, with an `unknownTopic` error frame.
    * Settles it unowned now rather than waiting out the ack window.
    *
    * The window exists because an undeclared topic can otherwise only be

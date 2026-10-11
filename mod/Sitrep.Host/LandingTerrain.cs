@@ -6,7 +6,7 @@ namespace Sitrep.Host
     /// <summary>
     /// Pure, KSP-free terrain maths for the <c>vessel.landing</c> channel: a
     /// least-squares plane fit over sampled terrain heights, yielding the slope
-    /// angle, the downhill heading, and the RESIDUAL roughness (the bumpiness
+    /// angle, the downhill heading, and the residual roughness (the bumpiness
     /// left after the tilt is removed, so a smooth incline does not read as
     /// rough). Isolated here (no KSP types, no PQS) so it is unit-testable; the
     /// KSP capture reads <c>PQS.GetSurfaceHeight</c> at a ring of offsets around
@@ -53,7 +53,7 @@ namespace Sitrep.Host
         /// Returns null when there are fewer than 3 samples or the normal
         /// equations are singular (degenerate sample geometry). The downhill
         /// heading is suppressed (null) below <paramref name="headingNoiseFloorDeg"/>,
-        /// where the gradient is numerical noise (KER's 0.05-degree precedent).
+        /// where the gradient is numerical noise (ker's 0.05-degree precedent).
         /// </summary>
         public static Fit? FitPlane(
             IReadOnlyList<Sample> samples,

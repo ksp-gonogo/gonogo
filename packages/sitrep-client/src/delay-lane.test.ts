@@ -10,7 +10,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * What a channel's declared `DelayRole` buys the READER.
+ * What a channel's declared `DelayRole` buys the reader.
  *
  * The mod has classified channels since the delay architecture landed and the
  * client ignored the answer: every topic was read at the delayed view time, so
@@ -19,7 +19,7 @@ import { ViewClock } from "./view-clock";
  * nothing could see it. `warp-delay.characterise.test.ts` is where that was
  * measured; this is the mechanism that ends it.
  *
- * Read against the REAL generated table rather than a fixture topic invented
+ * Read against the real generated table rather than a fixture topic invented
  * here. A test that declares its own roles proves the plumbing and says nothing
  * about whether the roles the mod actually declares reach it, which is the half
  * that was missing.
@@ -169,9 +169,9 @@ describe("a channel's declared delay role", () => {
 });
 
 /**
- * A fact HELD AT THE HOME COMMAND: delivered to each vantage after that vantage's
+ * A fact held at the home command: delivered to each vantage after that vantage's
  * own delay to home, by the mod, so the client subtracts nothing further. The
- * light-time the delayed lane takes off is the ACTIVE craft's, which is neither a
+ * light-time the delayed lane takes off is the active craft's, which is neither a
  * ground centre's distance from its own ledger (none) nor a crewed vessel's (its
  * path home).
  */

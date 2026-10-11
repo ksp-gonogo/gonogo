@@ -20,7 +20,7 @@ const STANDARD_ANALOG_BUTTON_INDICES = new Set([6, 7]);
 /**
  * Deterministic type id from shape alone, so pads that report the same
  * button/axis counts and mapping share one DeviceType instead of each
- * connection breeding a near-duplicate. NOT based on `gamepad.id`, two
+ * connection breeding a near-duplicate. Not based on `gamepad.id`, two
  * different physical pads of the same shape (e.g. two 17-button/4-axis
  * standard pads) are meant to share a type.
  */
@@ -41,7 +41,7 @@ export function gamepadTypeId(
  *    0-16, axes 0-3); buttons 6/7 are analog+unipolar (the triggers); any
  *    button beyond 16 (e.g. a DualSense's touchpad click at 17) gets no
  *    role and a generic name, but stays bindable.
- *  - anything else (`""`, or an unrecognised string): NO roles assigned at
+ *  - anything else (`""`, or an unrecognised string): no roles assigned at
  *    all. Every button defaults to `kind: "button"`, every axis to
  *    `kind: "analog"` + `polarity: "bipolar"`: deliberately not guessed,
  *    since a non-standard pad's real layout (e.g. whether its triggers are

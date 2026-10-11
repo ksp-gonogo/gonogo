@@ -9,7 +9,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// and a set of elements per body, keyed on the same indices
     /// <c>FlightGlobals.Bodies</c> uses.
     ///
-    /// <para>MAIN THREAD ONLY. The propagation capability is elected at bootstrap,
+    /// <para>Main thread only. The propagation capability is elected at bootstrap,
     /// well before the game has a body list to hand over, so the provider holds a
     /// callback to this rather than a list.</para>
     ///

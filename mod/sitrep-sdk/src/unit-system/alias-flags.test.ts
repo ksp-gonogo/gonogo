@@ -4,13 +4,13 @@ import * as Dim from "./dimension";
 import { declaredUnitFor } from "./registry";
 
 /**
- * The two layers must agree on which unit a COMPUTED dimension is called.
+ * The two layers must agree on which unit a computed dimension is called.
  *
  * `force.times(distance)` lands on `{kg:1,m:2,s:-2}`, and two ratio-1 units
  * claim it: `J` and `N·m`. Something has to break the tie, and the two layers
  * break it by different means:
  *
- * - **Runtime**: `declaredUnitFor` returns the FIRST ratio-1 unit registered
+ * - **Runtime**: `declaredUnitFor` returns the first ratio-1 unit registered
  *   for the dimension. Order comes from `UNIT_DEFINITIONS`.
  * - **Types**: `CanonicalUnit` in `algebra.ts` excludes anything flagged
  *   `alias: true`, because the order of a union produced by a mapped-type
@@ -19,7 +19,7 @@ import { declaredUnitFor } from "./registry";
  * Two mechanisms, one answer required. If they ever diverge, a value renders
  * as `J` and type-checks as `N·m`, which is the kind of split nobody notices
  * until something downstream compares the two. That is what this file exists
- * to prevent, and it is why `alias` is a property of the DATA rather than a
+ * to prevent, and it is why `alias` is a property of the data rather than a
  * type-only union: a type-only list could not be checked from here at all.
  */
 

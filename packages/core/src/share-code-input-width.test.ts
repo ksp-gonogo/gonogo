@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * No field that takes a host share code may cap its input BELOW the length the
+ * No field that takes a host share code may cap its input below the length the
  * host mints.
  *
  * The defect this generalises: the share code grew from four characters to six

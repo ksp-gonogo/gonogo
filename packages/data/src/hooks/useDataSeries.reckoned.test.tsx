@@ -63,7 +63,7 @@ function readProbe(): string {
 }
 
 /**
- * The tail's VALUES rather than its runs: what a chart axis is actually handed
+ * The tail's values rather than its runs: what a chart axis is actually handed
  * where the modelled quantity arrived wrapped.
  */
 function ValueProbe({
@@ -314,7 +314,7 @@ describe("useDataSeries: a modelled quantity that arrived with a unit", () => {
 
 describe("useDataSeries: the inputs the model was promised", () => {
   /**
-   * A plot of a RAW topic holds up its elected reckoner's declared deps for as
+   * A plot of a raw topic holds up its elected reckoner's declared deps for as
    * long as it is mounted.
    *
    * The plotted topic and a derived channel's inputs were the whole of what a

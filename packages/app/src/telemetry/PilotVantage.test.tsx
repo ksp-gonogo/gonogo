@@ -22,7 +22,7 @@ const ROSTER = [
 
 /**
  * Mounts the binding over a real client/store pipeline, with the craft's own
- * source on the orbit PAYLOAD's meta, which already spells the centre id. The
+ * source on the orbit payload's meta, which already spells the centre id. The
  * envelope's `meta.source` beside it is the Courier node and reads "system"
  * for every non-fleet topic; `emitOrbitFrom` takes it separately so a case can
  * put a real centre id there and prove the binding ignores it.

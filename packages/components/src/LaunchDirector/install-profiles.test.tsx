@@ -16,7 +16,7 @@ import { LaunchDirectorComponent } from "./index";
  * The same pre-launch scene under a stock career and under a career mod that
  * runs its own space centre: vanilla is not a degraded mode. Stock carries the
  * pads and their occupancy, so both installs render the same widget off the
- * same reads and differ ONLY in the pads.
+ * same reads and differ only in the pads.
  */
 const SCENE = preLaunchMixed._stream as InstallProfileStreamBlock;
 

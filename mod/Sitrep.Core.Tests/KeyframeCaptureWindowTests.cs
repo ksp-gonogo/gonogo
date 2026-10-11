@@ -14,7 +14,7 @@ namespace Sitrep.Core.Tests
     /// 20 seconds while <c>vessel.orbit</c> delivered in the same window, and
     /// that stood as an anomaly with a list of eliminated explanations. One of
     /// the eliminations read "an empty control emits an empty node list at
-    /// ~1 Hz", which asserts an emission RATE from an observed SAMPLING rate.
+    /// ~1 Hz", which asserts an emission rate from an observed sampling rate.
     /// The two are different numbers. Under
     /// <c>EmissionPolicy(keyframeIntervalUt: 30, quantum: Absolute(0))</c> a
     /// zero deadband declines an unchanged payload, so a channel with nothing
@@ -23,7 +23,7 @@ namespace Sitrep.Core.Tests
     /// second capture at 1x is 20 UT, which is shorter than the cadence, so
     /// zero frames is the correct answer rather than a fault.</para>
     ///
-    /// <para>These tests pin that arithmetic, with a channel that DOES move
+    /// <para>These tests pin that arithmetic, with a channel that does move
     /// every tick as the control: without it "few emissions" would be
     /// indistinguishable from an emitter that had stopped.</para>
     ///
@@ -41,7 +41,7 @@ namespace Sitrep.Core.Tests
     /// records: a genuine 0 to 1 subscribe forces an out-of-cadence keyframe
     /// (<see cref="ChannelEmitter.NotifySubscribed"/>), so a capture that opens
     /// by subscribing carries one frame however short it is. Cadence alone
-    /// therefore does not explain a capture that saw NOTHING; it explains a
+    /// therefore does not explain a capture that saw nothing; it explains a
     /// capture that saw only the joining frame and then went quiet.</para>
     ///
     /// <para>Emission cadence is one of several reasons a vessel channel can
@@ -50,7 +50,7 @@ namespace Sitrep.Core.Tests
     /// the game at the space centre and no active vessel returned only a
     /// subscribe ACK on both <c>vessel.maneuver</c> and <c>vessel.orbit</c>
     /// while an ungated TrueNow channel delivered 103 frames: with no subject,
-    /// the mapper returns null and an unborn channel is skipped BEFORE
+    /// the mapper returns null and an unborn channel is skipped before
     /// <c>Decide</c> is reached, so nothing is ever considered. Which vantage
     /// the capture was taken from has to be known before a count means
     /// anything.</para>
@@ -189,7 +189,7 @@ namespace Sitrep.Core.Tests
         /// than approximating its shape.</para>
         ///
         /// <para>Two properties separate the rules, and neither is visible on a
-        /// boundary. The elapsed-since rule emits on the first tick at or PAST
+        /// boundary. The elapsed-since rule emits on the first tick at or past
         /// the interval, so every gap is at least the interval and less than one
         /// tick more; and because the keyframe stamps itself with that tick's ut
         /// rather than with the boundary it passed, the overshoot accumulates
@@ -312,7 +312,7 @@ namespace Sitrep.Core.Tests
         /// that joins inside the window. A 0 to 1 subscribe re-arms the forced
         /// keyframe, which bypasses cadence and deadband both, so the first
         /// consideration after joining emits whatever the clock says. A short
-        /// capture that opened by subscribing and saw NOTHING was therefore
+        /// capture that opened by subscribing and saw nothing was therefore
         /// never considered at all, and the cause lies upstream of this class.
         /// </summary>
         [Fact]

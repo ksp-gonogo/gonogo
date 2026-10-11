@@ -25,7 +25,9 @@ export interface WidgetMetersProps {
 
 /**
  * Every meter contributed to the mounting widget's `${componentId}.meters`
- * slot, drawn as a {@link MeterStack} of {@link Meter}s.
+ * slot, drawn as a {@link MeterStack} of {@link Meter}s. Useful for showing the
+ * operator the gauges an Uplink adds to a widget it did not write. Used by the
+ * crew status widget.
  *
  * Renders nothing when nothing is contributed, so a host can place it
  * unconditionally, one per row.

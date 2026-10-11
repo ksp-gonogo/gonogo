@@ -48,14 +48,15 @@ const STRIP_MAX_PX = 96;
 /**
  * A bordered, sunken box for visual content (SVG diagrams, canvases, maps,
  * gauges) inside an ordinary padded panel body, so readouts beside it keep the
- * standard inset and the diagram has a visible edge. A direct `svg` or
- * `canvas` child fills the frame.
+ * standard inset and the diagram has a visible edge. Useful for giving the
+ * operator's diagram or plot a clear boundary. Used by the graph and docking
+ * HUD widgets. A direct `svg` or `canvas` child fills the frame.
  *
  * It does not scroll or size itself: the caller decides how much room the
  * visual gets. It grows with `flex: 1`, so a tall flex sibling squeezes it;
- * overlay a control on the frame rather than placing it beside. The visual
- * fills to the rounded edge unless `padded`. A drawing and its trend share one
- * frame through `strip` rather than two frames stacked.
+ * overlay a control on the frame instead of placing it beside. The visual fills
+ * to the rounded edge unless `padded`. A drawing and its trend share one frame
+ * through `strip`.
  *
  * @category Layout
  */

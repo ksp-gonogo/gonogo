@@ -16,18 +16,18 @@ namespace Gonogo.DevTools
     /// already uses - so an SSH-only test controller can confirm the game
     /// process saw the request without needing the app open.
     ///
-    /// <b>This addon does NOT itself touch comms connectivity.</b>
+    /// <b>This addon does not itself touch comms connectivity.</b>
     /// GonogoDevTools deliberately has no reference to Sitrep.*/Gonogo.KSP
     /// (see this project's csproj comment), so it cannot reach
     /// ChannelEngine/CommsCoreUplink directly. The actual override is applied
     /// by <c>Gonogo.KSP.DevCommsOverride</c> (in the production Gonogo
-    /// assembly), which polls this SAME request file independently and is
+    /// assembly), which polls this same request file independently and is
     /// itself gated on the GonogoDevTools assembly being loaded - see that
     /// class's doc comment for the full design. There is no hand-off between
     /// this addon and that class; they are two independent readers of one
     /// file.
     ///
-    /// Request format (mirrors <see cref="GonogoDevTeleport"/>'s TELEPORT node):
+    /// Request format (mirrors <see cref="GonogoDevTeleport"/>'s teleport node):
     /// <code>
     /// FORCECOMMS
     /// {
@@ -36,7 +36,7 @@ namespace Gonogo.DevTools
     /// }
     /// </code>
     /// <c>blackout</c> forces the active vessel's comms connectivity to
-    /// DISCONNECTED; <c>restore</c> and <c>auto</c> both
+    /// disconnected; <c>restore</c> and <c>auto</c> both
     /// clear the override and return to the real elected comms backend
     /// (stock CommNet or whichever backend an Uplink installed). With no request file (the
     /// production-safe default), nothing here does anything at all, and

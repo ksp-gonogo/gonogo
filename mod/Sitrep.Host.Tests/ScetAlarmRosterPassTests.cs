@@ -179,7 +179,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// The pass that holds the actuator reads what has asked for the warp so
         /// far, before the other pass has run. Anything a later pass adds is not
-        /// the simulation's business, which is what keeps a light-time-old
+        /// the simulation's business, which is what keeps a signal delay-old
         /// reading from halting the game for everybody.
         /// </summary>
         [Fact]

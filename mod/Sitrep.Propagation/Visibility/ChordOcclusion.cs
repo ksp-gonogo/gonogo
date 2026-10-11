@@ -9,7 +9,7 @@ namespace Sitrep.Propagation.Visibility
     ///
     /// <para>Two signed answers are offered, and the difference between them is
     /// load-bearing rather than cosmetic. <see cref="Clearance"/> is the
-    /// segment-to-sphere distance in METRES, the quantity a human can reason about
+    /// segment-to-sphere distance in metres, the quantity a human can reason about
     /// and compare against a radius. <see cref="HorizonMargin"/> answers the same
     /// yes/no question with a scalar that is fit to be ROOT-FOUND on. They agree
     /// on the sign for any pair of endpoints at or above the occluder's surface,
@@ -26,18 +26,18 @@ namespace Sitrep.Propagation.Visibility
         /// Signed clearance, metres, of the segment <paramref name="a"/>-to-<paramref name="b"/>
         /// past a sphere of radius <paramref name="occluderRadiusMeters"/> centred
         /// at <paramref name="occluderCentre"/>: the distance from the sphere's
-        /// centre to the nearest point ON THE SEGMENT, minus the radius.
+        /// centre to the nearest point on the segment, minus the radius.
         ///
         /// <para>Positive means the path is clear, negative means the rock is in
         /// the way, and zero is the exact tangent. The parameter is clamped to
         /// [0,1] so this is a segment test and not an infinite-line test: an
-        /// occluder BEHIND one of the endpoints does not block a path that stops
+        /// occluder behind one of the endpoints does not block a path that stops
         /// short of it, which is the difference between "Kerbin is between these
         /// two craft" and "Kerbin is somewhere along that bearing".</para>
         ///
         /// <para>This is the form the comms backends themselves use, and it is
         /// what makes a result explicable ("the beam passed 43 km inside a 600 km
-        /// occluder"). What it is NOT is a good search variable: see
+        /// occluder"). What it is not is a good search variable: see
         /// <see cref="HorizonMargin"/>.</para>
         ///
         /// <para>Degenerate inputs are answered rather than thrown on: coincident
@@ -61,15 +61,15 @@ namespace Sitrep.Propagation.Visibility
         /// <summary>
         /// The same question as <see cref="Clearance"/>, signed the same way, but
         /// as <c>dot(A,B) + L(A)L(B) - R^2</c> where <c>L(P) = sqrt(|P|^2 - R^2)</c>
-        /// is P's tangent length: units of metres SQUARED, zero exactly on the
+        /// is P's tangent length: units of metres squared, zero exactly on the
         /// mutual horizon, and the scalar the sweep actually searches.
         ///
         /// <para>The reason for a second form is a degeneracy that breaks the
         /// first one precisely where this codebase needs it most. A ground station
-        /// at zero altitude stands exactly ON an occluder whose radius is the
+        /// at zero altitude stands exactly on an occluder whose radius is the
         /// body's own, which is the RealAntennas case. For every instant the
         /// vessel is above that station's horizon, the nearest point of the chord
-        /// to the body's centre IS the station, so <see cref="Clearance"/> returns
+        /// to the body's centre is the station, so <see cref="Clearance"/> returns
         /// exactly zero, unchanging, across the whole visible arc. A quantity
         /// pinned at the decision boundary has no usable sign: in floating point
         /// it jitters either side of zero and a sweep reads dozens of
@@ -80,7 +80,7 @@ namespace Sitrep.Propagation.Visibility
         /// contain a crossing and bisection really does converge on it. It is
         /// also cheaper: two square roots, no clamping, no branches.</para>
         ///
-        /// <para>An endpoint that has somehow sunk INSIDE the occluder is treated
+        /// <para>An endpoint that has somehow sunk inside the occluder is treated
         /// as though it were on the surface (its tangent length clamps to zero)
         /// rather than producing NaN from a negative square root. That keeps the
         /// function continuous everywhere, and the substituted answer is the

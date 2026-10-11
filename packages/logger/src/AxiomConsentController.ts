@@ -10,7 +10,7 @@ import type { LogTransport } from "./types.js";
  * The Axiom token is the credential; consent is the additional runtime
  * gate. Without a token (`makeTransport` returns `null`) the controller
  * can never install anything, `apply(true)` is then a no-op. This keeps
- * dev/test/CI silent exactly as before unless a token is present AND the
+ * dev/test/CI silent exactly as before unless a token is present and the
  * operator has enabled analytics.
  *
  * One controller per logger per process. `apply` is idempotent: repeated
@@ -28,7 +28,7 @@ export class AxiomConsentController {
   private readonly makeTransport: () => LogTransport | null;
   private installed: LogTransport | null = null;
   /** Set once the pre-consent ring buffer has been shipped. A consent
-   *  revoke → re-grant re-installs the transport but must NOT re-ship the
+   *  revoke → re-grant re-installs the transport but must not re-ship the
    *  whole buffer again. */
   private backfilled = false;
 

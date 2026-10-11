@@ -3,11 +3,11 @@
  * Write the `LandingStatus/__render_handover__` fixtures: one Kerbin descent,
  * sampled either side of the atmosphere interface.
  *
- * The scene these exist for is the HANDOVER. `vessel.flight` carries TWO
+ * The scene these exist for is the handover. `vessel.flight` carries two
  * forward models of one altitude, selected by `withinAtmosphere` over the span
  * from the observation to the view time: clear of the interface across that
  * whole span a conic advances it, and inside the air at either end
- * `atmospheric-reckoning.ts` integrates the OBSERVED vertical acceleration. A
+ * `atmospheric-reckoning.ts` integrates the observed vertical acceleration. A
  * picture of either regime alone says nothing about the boundary, so every frame
  * here is the same craft on the same trajectory with the same 6-second gap since
  * its last packet, and the only thing that changes down the set is how far it
@@ -20,7 +20,7 @@
  * acceleration the frame claims, that slope must sit inside
  * `(gravity + gForce * g0) * 1.5`, the gap must sit inside
  * `15 / max(1, gForce)`, and the conic frames need a `meanAnomalyAtEpoch` that
- * actually puts the craft at the stated radius on the DESCENDING branch. Those
+ * actually puts the craft at the stated radius on the descending branch. Those
  * are five arithmetic constraints per frame across six frames, and a fixture
  * hand-typed against them is a fixture that silently declines for a reason
  * nobody can see in a PNG. Here the arithmetic is the generator's, and
@@ -72,7 +72,7 @@ interface Frame {
   verticalSpeed: number;
   /** Total vertical acceleration in m/s², the slope the history must produce. */
   verticalAcceleration: number;
-  /** Multiples of standard gravity, SENSED (non-gravitational). */
+  /** Multiples of standard gravity, sensed (non-gravitational). */
   gForce: number;
   atmDensity: number;
   mach: number;
@@ -80,7 +80,7 @@ interface Frame {
    * The mod's own terminal-velocity model for this frame, where the air is
    * doing enough for it to have one.
    *
-   * `vessel.landing` is a SEPARATE topic with no reckoner, so nothing here is
+   * `vessel.landing` is a separate topic with no reckoner, so nothing here is
    * carried forward; it is on the fixtures because without it the board draws
    * almost nothing at low altitude and the set becomes seven pictures of an
    * empty instrument. Omitted on the frames where the density is negligible,
@@ -287,7 +287,7 @@ function assertConsistent(frame: Frame): void {
 }
 
 /**
- * The eccentric anomaly on the DESCENDING branch that puts the craft at
+ * The eccentric anomaly on the descending branch that puts the craft at
  * `radius`, and the mean anomaly that goes with it.
  *
  * `r = a(1 - e cos E)` has two solutions and only one of them is a craft coming
@@ -311,7 +311,7 @@ function descendingMeanAnomaly(
 
 /**
  * The reentry ellipse every frame's `vessel.orbit` carries: apoapsis at 200 km,
- * periapsis 50 km BELOW sea level.
+ * periapsis 50 km below sea level.
  *
  * Sub-surface periapsis because that is what a reentry actually is, and because
  * an ellipse that bottomed out inside the air could not express the low frames
@@ -320,7 +320,7 @@ function descendingMeanAnomaly(
  * physics, so what the wire carries during a descent is the drag-free conic the
  * craft is instantaneously on, and that conic passes through the ground.
  *
- * The elements only decide the CONIC frames. Below the interface they are read
+ * The elements only decide the conic frames. Below the interface they are read
  * for `mu` alone, which `localGravity` needs for the envelope, and the branch is
  * chosen off the observed altitude rather than off anything solved here.
  */
@@ -333,13 +333,13 @@ const REENTRY = (() => {
 
 /**
  * The history the fit is taken over: four samples ending at the anchor, spaced
- * IRREGULARLY.
+ * irregularly.
  *
  * Irregular on purpose, and it costs nothing: `verticalAccelerationOver` is a
  * least-squares fit over `(validAt, verticalSpeed)` pairs precisely because the
  * stream is change-gated, so an evenly spaced fixture would be the one shape
  * production never produces. The speeds are the anchor's speed walked backwards
- * at the frame's own acceleration, so the fitted slope IS that acceleration by
+ * at the frame's own acceleration, so the fitted slope is that acceleration by
  * construction.
  */
 const HISTORY_OFFSETS = [-11, -7, -3, 0] as const;

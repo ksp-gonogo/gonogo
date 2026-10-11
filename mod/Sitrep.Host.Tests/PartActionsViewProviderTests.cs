@@ -92,7 +92,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The other half of the same rule: one name on two different modules is two
-        /// genuinely different buttons in the real PAW, so it must NOT collapse.
+        /// genuinely different buttons in the real PAW, so it must not collapse.
         /// </summary>
         [Fact]
         public void BuildKeepsTheSameEventNameOnTwoDifferentModulesSeparate()
@@ -150,7 +150,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// An inert button is CARRIED with <c>active: false</c>, not filtered out:
+        /// An inert button is carried with <c>active: false</c>, not filtered out:
         /// KSP greys it rather than removing it, and dropping it would make the
         /// list jump around as craft state changes.
         /// </summary>
@@ -225,7 +225,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The gate exists because <c>ChannelEmitter</c> compares payloads with
-        /// <c>Equals</c>, which is REFERENCE equality for a freshly-built
+        /// <c>Equals</c>, which is reference equality for a freshly-built
         /// dictionary: without this, an unchanged action list would emit a keyframe
         /// on every single tick an operator kept a part open.
         /// </summary>

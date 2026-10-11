@@ -9,10 +9,10 @@ namespace Gonogo.KSP
     /// <summary>
     /// The <c>fleet.&lt;guid&gt;.*</c> dynamic namespace: each fleet-capture
     /// tick, reads every
-    /// <c>FlightGlobals.Vessels</c> vessel's OWN routed light-time
+    /// <c>FlightGlobals.Vessels</c> vessel's own routed signal delay
     /// (<see cref="FleetCommsReader"/>) + orbit, sets the per-vessel node delay
     /// via <see cref="IUplinkHost.SetVesselDelay"/>, and emits the orbit on
-    /// <c>fleet.&lt;guid&gt;.orbit</c> (delayed by that vessel's own light-time).
+    /// <c>fleet.&lt;guid&gt;.orbit</c> (delayed by that vessel's own signal delay).
     ///
     /// <para>This is the KSP-facing hookup of the mechanism proven engine-side by
     /// <c>FleetDelayTestUplink</c> (which is snapshot-driven; this reads live
@@ -25,7 +25,7 @@ namespace Gonogo.KSP
     /// any comms backend has been elected, so it is registered directly by
     /// <see cref="GonogoAddon"/> alongside every other core Uplink rather than
     /// through a hook installed by <see cref="CommsCoreUplink"/>. The
-    /// SilenceTracker's officially-lost RECKONING (state, deadlines,
+    /// SilenceTracker's officially-lost reckoning (state, deadlines,
     /// predicted reacquisition) is a comms-owned model's opinion, not a fact
     /// stock KSP hands you, and is registered separately by
     /// <see cref="SilenceTracking.FleetSilenceChannels"/> from inside
@@ -35,7 +35,7 @@ namespace Gonogo.KSP
     ///
     /// <para>Subscription-gated on the <c>fleet.</c> prefix: the whole fleet
     /// read is skipped when no client subscribes to any fleet topic. Each
-    /// vessel's LINK is the exception, read by a second, ungated capture
+    /// vessel's link is the exception, read by a second, ungated capture
     /// (<see cref="CaptureLinksOnMain"/>) every tick. An outage that starts or
     /// ends with nobody watching has to be on record for the first client to
     /// subscribe, whose catch-up is graded by it; a gated read would hand that
@@ -49,7 +49,7 @@ namespace Gonogo.KSP
     /// can register it directly (mirroring
     /// <c>CommandCentres.CommandCentreDelayUplink</c>), but carries no
     /// <c>[SitrepUplink]</c> attribute: an Uplink earns an Availability by
-    /// being separately installable, and <c>fleet</c> is not, it is a SCOPE,
+    /// being separately installable, and <c>fleet</c> is not, it is a scope,
     /// the same vessel domain seen across every craft instead of the active
     /// one, and ships inside <c>Gonogo.dll</c> unconditionally.</para>
     /// </summary>
@@ -60,7 +60,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Resource rows read per second across the fleet. This is the one
-        /// per-vessel read here that walks a craft's PARTS rather than a couple
+        /// per-vessel read here that walks a craft's parts rather than a couple
         /// of scalars, so it is the one that would show a fleet outgrowing the
         /// per-vessel subscription gate: a runaway here means the gate stopped
         /// gating, not that the fleet got big.
@@ -120,7 +120,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// MAIN-THREAD, UNGATED: every vessel's connectivity, and the
+        /// MAIN-THREAD, ungated: every vessel's connectivity, and the
         /// last-contact bookkeeping that follows from it, so both stay true
         /// while nobody subscribes to a fleet topic.
         /// </summary>
@@ -221,7 +221,7 @@ namespace Gonogo.KSP
         ///
         /// <para>The per-vessel subscription check is the point. The whole
         /// fleet read is already gated on the <c>fleet.</c> prefix, but that
-        /// gate opens as soon as ANY fleet topic has a subscriber, so a tracker
+        /// gate opens as soon as any fleet topic has a subscriber, so a tracker
         /// watching one probe's contact state would otherwise pay for a
         /// part-walk of every craft in the save on every tick. That is fine at
         /// four vessels and not fine at forty.</para>

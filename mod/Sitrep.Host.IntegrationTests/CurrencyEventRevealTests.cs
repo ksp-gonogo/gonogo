@@ -12,7 +12,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Source-attributed currency events under delay: a currency delta caused by a
-    /// specific vessel is revealed at THAT vessel's own light-time, not instantly and
+    /// specific vessel is revealed at that vessel's own signal delay, not instantly and
     /// not at the observer's ambient vantage delay. Driven by
     /// <see cref="CurrencyEventTestUplink"/> over the real WS harness (the same shape
     /// as <see cref="RevealGateTests"/> / <see cref="FleetDelayTests"/>).
@@ -21,8 +21,8 @@ namespace Sitrep.Host.IntegrationTests
     /// at the home command and reaches a ground centre at once (it gates what tech the
     /// operator can afford), while the vessel telemetry confirming a transmit is
     /// Delayed. An operator at home watching the total could infer a distant event a
-    /// full return light-time early. These tests pin that the new event does NOT arrive
-    /// before its source vessel's light-time, and that a channel a ground centre reads
+    /// full return signal delay early. These tests pin that the new event does not arrive
+    /// before its source vessel's signal delay, and that a channel a ground centre reads
     /// at once is untouched. How the total reaches a crewed vessel instead is
     /// <see cref="HomeCommandLedgerDelayTests"/>.</para>
     /// </summary>
@@ -376,7 +376,7 @@ namespace Sitrep.Host.IntegrationTests
             };
         }
 
-        /// <summary>Two vessels at different light-times, both crediting on the same tick.</summary>
+        /// <summary>Two vessels at different signal delays, both crediting on the same tick.</summary>
         private static KspSnapshot TwoVesselFixture(double ut, bool credit)
         {
             var vessels = new List<object?>

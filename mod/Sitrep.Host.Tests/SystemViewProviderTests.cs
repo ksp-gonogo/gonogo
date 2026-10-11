@@ -13,11 +13,11 @@ namespace Sitrep.Host.Tests
     /// Headless test for Task 3's <see cref="SystemViewProvider"/>: a fake
     /// <see cref="KspSnapshot"/> carrying the raw <c>"bodies"</c> encoding
     /// (root star with no parent, an orbiting planet with a full orbit, and
-    /// a moon MISSING a couple of raw fields) is mapped to the
+    /// a moon missing a couple of raw fields) is mapped to the
     /// <c>system.bodies</c> payload and asserted against every rule in the
     /// class doc: the parent-index tree, root orbit == null, missing raw
     /// fields → null (never a sentinel), no <c>eccentricAnomaly</c> key
-    /// anywhere, and the payload serializing cleanly through the REAL
+    /// anywhere, and the payload serializing cleanly through the real
     /// production path: <c>StreamData&lt;object?&gt;.Payload</c> via
     /// <c>Sitrep.Contract.Serialization.EnvelopeCodec.WriteStreamData</c>/
     /// <c>ParseStreamData</c>: round-tripping to an equivalent tree.

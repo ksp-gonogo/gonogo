@@ -14,7 +14,7 @@ namespace Sitrep.Contract;
 /// Turns a C# XMLDoc <c>summary</c> body into the lines of a TSDoc block.
 ///
 /// <para>Reinforced.Typings reads the doc file natively, but what it hands the
-/// writer is <c>reader.ReadInnerXml()</c>: the summary's RAW XML, tags and
+/// writer is <c>reader.ReadInnerXml()</c>: the summary's raw XML, tags and
 /// entities intact. Passed through unchanged, an author hovering the type reads
 /// <c>&lt;para&gt;&lt;b&gt;Typing-only mirror.&lt;/b&gt;</c>. This is the
 /// translation that stops that, and it is a pure function of its input, so the

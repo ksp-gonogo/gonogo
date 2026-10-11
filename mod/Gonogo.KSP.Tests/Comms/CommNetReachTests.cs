@@ -14,7 +14,7 @@ namespace Gonogo.KSP.Tests.Comms
     /// transmit-to-relay. There is no fourth. These tests exist because each of
     /// those clauses is a place where "close enough" produces a plausible wrong
     /// number rather than an obvious failure, and because the whole point of
-    /// putting reach on the seam is that this rule is stock's and NOT
+    /// putting reach on the seam is that this rule is stock's and not
     /// everyone's.</para>
     /// </summary>
     public class CommNetReachTests
@@ -62,7 +62,7 @@ namespace Gonogo.KSP.Tests.Comms
         /// <summary>
         /// Zero and absent are different answers, and this is the one place the
         /// difference is load-bearing: a pair stock will not connect has a
-        /// MEASURED maximum of zero, and reporting it as absent would tell the
+        /// measured maximum of zero, and reporting it as absent would tell the
         /// predictor "no rule declared" and quietly restore the over-promise.
         /// </summary>
         [Fact]

@@ -5,10 +5,10 @@ using Sitrep.Core;
 namespace Sitrep.Host.Comms
 {
     /// <summary>
-    /// Config for the CORE SignalDelay capability (comms-uplink-design.md
+    /// Config for the core SignalDelay capability (comms-uplink-design.md
     /// §3, revised: promoted from an opt-in Uplink to a config-flagged core
     /// capability). <see cref="Enabled"/> gates whether gonogo computes a
-    /// light-time delay at all; <see cref="LightSpeedScale"/> scales the
+    /// signal delay delay at all; <see cref="LightSpeedScale"/> scales the
     /// speed of light (1.0 = real light-speed, the "clean realism" default;
     /// a larger scale shortens delay for a gentler experience).
     /// </summary>
@@ -18,11 +18,11 @@ namespace Sitrep.Host.Comms
         public double LightSpeedScale { get; set; } = 1.0;
 
         /// <summary>
-        /// How long a currency event with NO route home waits before KSC stops
+        /// How long a currency event with no route home waits before KSC stops
         /// waiting and reconciles the books anyway. Default one Kerbin day.
         ///
-        /// <para>Honestly a POLICY, not a pretend measurement: there is no
-        /// light-time to a craft nothing can reach. It exists so the
+        /// <para>Honestly a policy, not a pretend measurement: there is no
+        /// signal delay to a craft nothing can reach. It exists so the
         /// never-regains-contact case terminates at all, rather than leaving a
         /// penalty pending forever. An event released early on reacquisition
         /// takes <c>min(deadline, reacquisitionUt + lightTime)</c>.</para>
@@ -31,7 +31,7 @@ namespace Sitrep.Host.Comms
             GameDayDefaults.StockDaySeconds;
 
         /// <summary>
-        /// Set only on the DERIVED config <see cref="CommsModelPolicy"/> hands
+        /// Set only on the derived config <see cref="CommsModelPolicy"/> hands
         /// out while this save models no comms network at all (the stock
         /// CommNet difficulty option is off), never on an authored one. It is
         /// what lets <see cref="SignalDelay.Compute"/> report
@@ -45,7 +45,7 @@ namespace Sitrep.Host.Comms
     }
 
     /// <summary>
-    /// gonogo's OWN light-time computation over backend-supplied hop geometry
+    /// gonogo's own signal delay computation over backend-supplied hop geometry
     /// (comms-uplink-design.md §3.1). Composes identically over CommNet or
     /// RealAntennas: it reads only <see cref="CommsHop.DistanceMeters"/> from
     /// the elected backend's <see cref="CommsPath"/>, never any backend's own
@@ -53,7 +53,7 @@ namespace Sitrep.Host.Comms
     /// registration calls <see cref="Compute"/> from a channel-source closure
     /// after resolving the backend via the Kernel.
     ///
-    /// <para>R7 typed absence: <see cref="CommsDelaySource.None"/> covers TWO
+    /// <para>R7 typed absence: <see cref="CommsDelaySource.None"/> covers two
     /// distinct cases, told apart by <c>OneWaySeconds</c>'s value (see
     /// <see cref="CommsDelay.OneWaySeconds"/>'s own doc comment): the flag
     /// being off is a genuine "zero delay applied" while connected
@@ -78,7 +78,7 @@ namespace Sitrep.Host.Comms
         /// not a positive number and so would divide by zero or run time
         /// backwards.
         ///
-        /// <para>The ONE place the scale is applied. <see cref="Compute"/> sums
+        /// <para>The one place the scale is applied. <see cref="Compute"/> sums
         /// a route against it and <see cref="PathBreakWatch"/> builds its
         /// per-hop ladder against it, and the two must agree exactly or a break
         /// position lands on a route whose total the delay disagrees with.</para>
@@ -90,7 +90,7 @@ namespace Sitrep.Host.Comms
         /// <see cref="EffectiveC(SignalDelayConfig)"/> for a caller holding the
         /// bare scale, which <see cref="PathBreakWatch"/> is: the drop event is
         /// handed a scale rather than a config, because everything else on the
-        /// config decides WHETHER there is a delay and only this decides how
+        /// config decides whether there is a delay and only this decides how
         /// long the route is.
         /// </summary>
         public static double? EffectiveC(double lightSpeedScale)
@@ -168,7 +168,7 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Delay feature is off but the vessel IS connected, a real "zero
+        /// Delay feature is off but the vessel is connected, a real "zero
         /// applied", so <c>OneWaySeconds = 0</c> (never null).
         ///
         /// <para>Two ways to be off, told apart by <see cref="Source"/>: delay
@@ -205,8 +205,8 @@ namespace Sitrep.Host.Comms
         ///
         /// <para><see cref="Journey.TotalSeconds"/> is guaranteed
         /// bit-for-bit equal to what <see cref="Compute"/> would return for
-        /// the same hops: both divide the SAME running total of metres by
-        /// the SAME <see cref="EffectiveC(SignalDelayConfig)"/>, at every
+        /// the same hops: both divide the same running total of metres by
+        /// the same <see cref="EffectiveC(SignalDelayConfig)"/>, at every
         /// step here rather than once at the end, so the last leg's
         /// cumulative always lands exactly on the one-shot total. Each leg's
         /// own seconds is that running total's step, a derived breakdown for

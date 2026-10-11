@@ -5,14 +5,14 @@ namespace Gonogo.KSP
     /// <summary>
     /// ConfigNode round-trip for <see cref="EvaParentage"/>, one child node per
     /// kerbal. Same discipline as <c>SilenceTracking.SilenceTrackerPersistence</c>:
-    /// <see cref="Load"/> restores INTO the caller's existing book rather than
+    /// <see cref="Load"/> restores into the caller's existing book rather than
     /// replacing it, so <see cref="EvaParentageScenario"/> can hold one book for
     /// the process and have OnLoad fill that same instance.
     ///
     /// <para>This is the whole of the quickload answer. Stock puts nothing in the
     /// save that says which craft a kerbal stepped out of - the kerbal's part
     /// inherits <c>missionID</c>/<c>launchID</c> from the craft, but those name a
-    /// LAUNCH and are shared by every vessel that ever undocked from it, so they
+    /// launch and are shared by every vessel that ever undocked from it, so they
     /// cannot tell a lander from its mothership. Without this node, a quicksave
     /// taken during an EVA reloads with the relation gone and the kerbal reported
     /// as active again, which is the collapse the seam exists to prevent.</para>

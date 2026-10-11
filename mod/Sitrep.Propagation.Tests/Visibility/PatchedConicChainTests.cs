@@ -16,7 +16,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// wrong number rather than a crash.</para>
     ///
     /// <para>It used to answer with a conic per link as well. Where each of these
-    /// bodies IS at a given UT is now the elected propagation provider's answer,
+    /// bodies is at a given UT is now the elected propagation provider's answer,
     /// pinned in <c>ChainWalkIsTheProvidersJobTests</c>; what is left here is the
     /// question the visibility side actually has, which is who is in the way.</para>
     /// </summary>
@@ -68,7 +68,7 @@ namespace Sitrep.Propagation.Tests.Visibility
 
         /// <summary>
         /// The case that was silently broken live. Climbing to the star puts the
-        /// STAR in the way, not the planet being left behind.
+        /// star in the way, not the planet being left behind.
         /// </summary>
         [Fact]
         public void ASolarOrbitIsBlockedByTheStarRatherThanByThePlanetLeftBehind()

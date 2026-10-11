@@ -73,7 +73,9 @@ export interface TabsProps {
 }
 
 /**
- * The minimum width in pixels each panel needs before {@link Tabs} with `expandWhenRoomy` lays them side by side.
+ * The minimum width in pixels each panel needs before {@link Tabs} with
+ * `expandWhenRoomy` lays them side by side. Useful for a widget that decides
+ * whether it can show its views together. Used by {@link shouldExpandTabs}.
  *
  * @category Tabs
  */
@@ -83,7 +85,11 @@ export const TABS_PANEL_MIN_WIDTH = 240;
 const TABS_PANEL_GAP = 8;
 
 /**
- * True when a container `containerWidth` pixels wide fits `panelCount` panels side by side at {@link TABS_PANEL_MIN_WIDTH} each, with an 8px gap between neighbours: two panels need 2 × 240 + 8 = 488px. Always false for fewer than two panels.
+ * True when a container `containerWidth` pixels wide fits `panelCount` panels
+ * side by side at {@link TABS_PANEL_MIN_WIDTH} each, with an 8px gap between
+ * neighbours: two panels need 2 × 240 + 8 = 488px. Always false for fewer than
+ * two panels. Useful for deciding whether the operator sees every view at once
+ * or one at a time. Used by {@link Tabs}.
  *
  * @category Tabs
  */
@@ -98,7 +104,9 @@ export function shouldExpandTabs(
 }
 
 /**
- * A tab strip with one panel shown below it, following the
+ * A tab strip with one panel shown below it. Useful for letting the operator
+ * switch a widget's body between views. Used by the maneuver planner and the
+ * astronaut complex. It follows the
  * [WAI-ARIA Authoring Practices (APG) tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/):
  * arrow keys move between tabs, Home and End jump to the ends, and disabled
  * tabs are skipped. The strip tightens its spacing, then scrolls, when the

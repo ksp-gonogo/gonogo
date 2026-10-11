@@ -2,9 +2,9 @@
  * Choosing the microphone the key transmits from.
  *
  * `AudioInputPicker` has its own suite in the kit; what this asserts is the
- * WIRING, which is the half that was missing: that the panel offers the
+ * wiring, which is the half that was missing: that the panel offers the
  * operator a real labelled control, that a device they select is reported as
- * the one that actually OPENED rather than the one that was asked for, and that
+ * the one that actually opened rather than the one that was asked for, and that
  * the radio's own capture constraints are the ones auditioned.
  *
  * The whole of `navigator.mediaDevices` is stubbed. A microphone cannot be

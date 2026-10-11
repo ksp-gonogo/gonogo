@@ -23,7 +23,7 @@ import { useDashboardItemId } from "./dashboard-item";
  *
  * Call sites pass an inline object literal; that object's identity changes
  * on every render. The hook stores the latest version in a ref and registers
- * stable proxy handlers ONCE on mount, so:
+ * stable proxy handlers once on mount, so:
  *
  *   - Closures inside handlers always see the latest state (the ref reads
  *     the current render's object).

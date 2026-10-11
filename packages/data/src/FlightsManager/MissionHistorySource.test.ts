@@ -45,7 +45,7 @@ function flightFrame(altitudeAsl: number, ut: number): string {
 }
 
 /**
- * Frames in the shape a real `StreamRecorder` capture carries: RAW wire
+ * Frames in the shape a real `StreamRecorder` capture carries: raw wire
  * topics only. A client-side derived channel such as `spaceCenter.state`
  * never appears in a recording, so a fixture that invents a frame on one
  * exercises the raw-record path and can never reach the derivation the live

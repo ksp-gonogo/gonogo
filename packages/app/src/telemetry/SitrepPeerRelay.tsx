@@ -21,7 +21,7 @@ const BOOTSTRAP_TOPIC = "system.uplinks";
  * fan-out path needs its own budget" rule. Sized off `SITREP_STREAM_BUDGET`'s
  * own 750/sec steady-state figure with headroom for 1-3 connected stations
  * (each relayed frame is broadcast to every connected station, but this
- * budget counts RELAY events: one record per frame tapped off the host's
+ * budget counts relay events: one record per frame tapped off the host's
  * own client: not per-station sends, so it doesn't need to scale with
  * station count itself).
  */
@@ -76,9 +76,9 @@ function isCarriedFrame(message: ServerMessage): boolean {
 
 /**
  * Host-side stream forwarding: taps the host's own live `TelemetryClient`
- * (via `useTelemetryClientOptional()`: the SAME client instance
+ * (via `useTelemetryClientOptional()`: the same client instance
  * `SitrepTelemetryProvider` mounted, never a second connection to the mod)
- * and relays every `stream-data`/`stream-binary`/`event`/`game-state` frame it receives VERBATIM to every
+ * and relays every `stream-data`/`stream-binary`/`event`/`game-state` frame it receives verbatim to every
  * connected station, wrapped in a `sitrep-frame` envelope. Architecturally a
  * live sibling of `StreamRecorder` (`@ksp-gonogo/sitrep-client`): instead of
  * pushing frames into an array for later replay, it pushes them onto the
@@ -104,13 +104,13 @@ function isCarriedFrame(message: ServerMessage): boolean {
  * Backfill: keeps its own run of the last `HISTORY_PER_TOPIC` frames per
  * topic, filled from mount rather than from the first station's arrival, and
  * cleared only when the client is rebuilt, so it stays useful across a
- * connect/disconnect gap. A NEWLY connecting peer is sent the newest frame of
+ * connect/disconnect gap. A newly connecting peer is sent the newest frame of
  * each topic alone (`sendToPeer`, never `broadcast`), and a station that
  * subscribes a topic the host was already holding is sent the whole run, so
  * neither sits blank on a low-rate topic that has not changed since it asked
  * and a chart starts with the trace the main screen drew. The station
  * discards a frame it has already ingested. `event` frames and
- * transmissions are one-shot by nature and deliberately NOT backfilled, same posture as
+ * transmissions are one-shot by nature and deliberately not backfilled, same posture as
  * `StreamRecorder`'s "don't replay events out of causal context".
  */
 export function SitrepPeerRelay({ peerHost }: { peerHost: PeerHostService }) {

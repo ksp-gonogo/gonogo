@@ -57,7 +57,7 @@ type DeviceServiceShape = ReturnType<typeof useSerialDeviceService>;
  *   1. Port identity. If any existing managed transport's live SerialPort
  *      is the same JS object the browser just handed us, that's a
  *      collision: reliable even when VID/PID is 0 or undefined.
- *   2. VID/PID match, but ONLY when the picked port has a real
+ *   2. VID/PID match, but only when the picked port has a real
  *      `usbVendorId`. Otherwise `undefined === undefined` would falsely
  *      collapse every VID-less device into a single match.
  *

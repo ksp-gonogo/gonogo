@@ -16,7 +16,7 @@ export interface UplinkBundleTarget {
  * bundles. Each is emitted to public/uplinks/<id>.client.js and recorded in the
  * local registry fixture. Adding another Uplink here is the whole change.
  *
- * This is EVERY Uplink client the repo ships, and that is the point. There used
+ * This is every Uplink client the repo ships, and that is the point. There used
  * to be two lists: this one, and nine `import("@ksp-gonogo/gonogo-*-uplink")`
  * calls in `src/main.tsx` that registered the rest at build time. The second
  * list was a privilege no outside author could reach, because a static import
@@ -28,7 +28,7 @@ export interface UplinkBundleTarget {
  * Uplinks we wrote and another for everybody else's.
  *
  * Lives outside `src/` on purpose. A build has to name what it builds, but the
- * SHIPPED app must not carry a list of Uplink ids: the loader derives what to
+ * shipped app must not carry a list of Uplink ids: the loader derives what to
  * load from the live roster, and an app that also knows eleven names by heart
  * contradicts the decentralised model (mod names inside `src/` are separately
  * what the mod-ownership boundary guard exists to stop).

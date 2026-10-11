@@ -6,7 +6,7 @@ namespace Sitrep.Host.CommandCentres
 {
     /// <summary>
     /// The stock home-command claimant, and the vanilla of
-    /// <see cref="HomeCommandElection"/>: home is the CommNet home that ALONE
+    /// <see cref="HomeCommandElection"/>: home is the CommNet home that alone
     /// carries <c>isKSC</c>.
     ///
     /// <para>No flagged home is <see cref="HomeCommand.NotIdentified"/>. A comms

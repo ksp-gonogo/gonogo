@@ -11,7 +11,7 @@ namespace Gonogo.KSP.Tests.FlightOps
     ///
     /// <para><c>ksp.toTrackingStation</c> shipped as a bare
     /// <c>HighLogic.LoadScene(GameScenes.TRACKSTATION)</c>: no save, no gate,
-    /// nothing. Leaving flight that way is a RELOAD, not a move (see
+    /// nothing. Leaving flight that way is a reload, not a move (see
     /// <see cref="Gonogo.KSP.SceneExitRule"/>), and it cost the rig 240,355
     /// seconds of universal time, the funds earned since the last write, and a
     /// construction queue, twice.</para>

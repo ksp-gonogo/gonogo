@@ -22,7 +22,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>Not a vessel-bearing reason (or degraded to one): shadow is already resynced to the live total.</summary>
         Home,
 
-        /// <summary>No vessel context in hand yet: shadow is deliberately left untouched until a later push claims this change (or it settles stale). NOT the same as Home - the shadow has NOT been resynced.</summary>
+        /// <summary>No vessel context in hand yet: shadow is deliberately left untouched until a later push claims this change (or it settles stale). Not the same as Home - the shadow has not been resynced.</summary>
         Deferred,
 
         /// <summary>Attributed to a vessel: caller should neutralise to <see cref="CurrencyChangeDecision.ShadowToRestore"/> and enqueue a credit.</summary>
@@ -92,7 +92,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <see cref="StockCurrencyDecision"/>, just stateful where that one is stateless.
     ///
     /// The glue (<c>StockCurrencyInterceptor.cs</c>) owns the actual GameEvents subscriptions,
-    /// live SetX/AddX calls, and light-time lookups; it feeds this machine primitives (reasons,
+    /// live SetX/AddX calls, and signal delay lookups; it feeds this machine primitives (reasons,
     /// totals, UT, vessel id strings) and applies whatever decision comes back.
     /// </summary>
     public sealed class StockCurrencyStateMachine
@@ -107,7 +107,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// UT-second tolerance for matching a death-vessel push to the VesselLoss reputation defers
         /// it explains. A single destruction's onVesselWillDestroy push and every reputation change
-        /// its MurderCrew burst produces all read Planetarium.GetUniversalTime() from within the SAME
+        /// its MurderCrew burst produces all read Planetarium.GetUniversalTime() from within the same
         /// synchronous Vessel.Die() call, so in practice they carry the exact same UT - this epsilon
         /// only needs to absorb floating-point jitter between separate reads, not span any real
         /// elapsed time. Deliberately far tighter than AttributionWindowUt (which exists to bound how
@@ -210,9 +210,9 @@ namespace Gonogo.KSP.CurrencyDelay
         /// crew-death reputation hit for. Unlike recovery/lab, ordering between this push and the
         /// OnReputationChanged(VesselLoss) calls it correlates with is genuinely unguaranteed both
         /// ways: a loaded vessel destroyed mid-flight runs MurderCrew() (killing every crew member,
-        /// each firing its own reputation change) BEFORE Die() fires this push, while an unloaded
+        /// each firing its own reputation change) before Die() fires this push, while an unloaded
         /// vessel's Die() fires this push first and kills its crew afterwards. So this claims every
-        /// currently-deferred VesselLoss change AT THE SAME UT (there can be more than one -
+        /// currently-deferred VesselLoss change at the same UT (there can be more than one -
         /// MurderCrew kills a whole crew roster in one synchronous burst, all sharing this call's
         /// exact UT since Planetarium time doesn't advance mid-frame) if any are waiting, or stashes
         /// itself for OnReputationChanged to claim as they arrive. Matching by UT rather than "any
@@ -289,7 +289,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// A deferred VesselLoss reputation change nothing claims within the attribution window
         /// (its destroyed vessel's onVesselWillDestroy never fired - e.g. a debug/cheat kill, or a
-        /// death path outside the two decompile-confirmed ones) is accepted as HOME rather than
+        /// death path outside the two decompile-confirmed ones) is accepted as home rather than
         /// stranding the shadow, mirroring SettleStaleScienceDefers.
         /// </summary>
         private void SettleStaleReputationDefers(double ut, double currentLiveReputation)
@@ -303,7 +303,7 @@ namespace Gonogo.KSP.CurrencyDelay
 
         /// <summary>
         /// Catches the shadows up on every defer the attribution window has run out
-        /// on. The ONLY way a defer settles, and deliberately the only public one:
+        /// on. The only way a defer settles, and deliberately the only public one:
         /// settling resyncs a shadow to a live total, and the only moment a live
         /// total means anything is one with no currency change in flight.
         ///
@@ -322,7 +322,7 @@ namespace Gonogo.KSP.CurrencyDelay
 
         /// <summary>
         /// A deferred science change nothing has claimed within the attribution window is
-        /// accepted as HOME rather than stranding the shadow out of sync with the real balance
+        /// accepted as home rather than stranding the shadow out of sync with the real balance
         /// forever.
         /// </summary>
         private void SettleStaleScienceDefers(double ut, double currentLiveScience)
@@ -368,11 +368,11 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// Ordinary experiment transmission and recovered (non-lab) science both fire this with
         /// the exact credited value and the source vessel - self-contained, no correlation
-        /// needed for the base amount. Every HOME path (nothing deferred behind the receipt, no
+        /// needed for the base amount. Every home path (nothing deferred behind the receipt, no
         /// usable amount/source, or a vessel-less degrade like a mod award or reverse-engineered
         /// recovery credit) resyncs the shadow to the live post-change total before returning,
-        /// same as every other resolution path. Skipping that resync is what let a later AWAY
-        /// neutralise silently erase a HOME earn that landed in between (the shadow stayed
+        /// same as every other resolution path. Skipping that resync is what let a later away
+        /// neutralise silently erase a home earn that landed in between (the shadow stayed
         /// stale, so "restore to shadow" wiped out real currency the live balance already held).
         /// </summary>
         public ScienceChangeDecision OnScienceReceived(double amount, bool hasSourceVessel, bool reverseEngineered, string vesselId, double ut, double currentLiveScience)
@@ -472,18 +472,18 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Claims a death vessel pushed at THE SAME UT as <paramref name="ut"/> (within
-        /// <see cref="SameDestructionUtEpsilon"/>) WITHOUT consuming it - unlike recovery/lab, one
+        /// Claims a death vessel pushed at the same UT as <paramref name="ut"/> (within
+        /// <see cref="SameDestructionUtEpsilon"/>) without consuming it - unlike recovery/lab, one
         /// destroyed vessel's crew can produce several separate VesselLoss reputation changes
         /// (MurderCrew kills every crew member in one synchronous burst), and each one needs to
         /// attribute to the same vessel. Matching by UT rather than "any push still inside the
         /// attribution window" is what stops a reputation change from one destruction cross-claiming
-        /// a DIFFERENT vessel's push that merely happens to still be sitting in the list from a
+        /// a different vessel's push that merely happens to still be sitting in the list from a
         /// moment earlier - two destructions in different frames always have different UTs, since
         /// Planetarium time only advances between frames, not within the synchronous Die() call
         /// either one fires from. Two vessels destroyed in the exact same frame (a simultaneous
-        /// collision) DO share a UT and stay genuinely ambiguous here - acceptable, since same-frame
-        /// destructions are also same-location-ish and so have similar light-time regardless of
+        /// collision) do share a UT and stay genuinely ambiguous here - acceptable, since same-frame
+        /// destructions are also same-location-ish and so have similar signal delay regardless of
         /// which one a stray claim lands on. The entry only ever leaves via Prune's time-based
         /// expiry, never a claim.
         /// </summary>
@@ -505,14 +505,14 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Claims every deferred VesselLoss reputation change pushed at THE SAME UT as
+        /// Claims every deferred VesselLoss reputation change pushed at the same UT as
         /// <paramref name="pushUt"/> (within <see cref="SameDestructionUtEpsilon"/>), in original
         /// enqueue order - the multi-crew counterpart to TryClaimScienceDefer's single claim, since
         /// one destroyed vessel's push can explain an entire crew roster's worth of deferred changes
         /// at once. See TryClaimDeathVessel's doc comment for why UT-matching (not "any defer still
         /// inside the attribution window") is what keeps two different destructions from
         /// cross-attributing to each other; a UT match is inherently fresh, so no separate staleness
-        /// check is needed here (that's SettleStaleReputationDefers' job, for defers NO push ever
+        /// check is needed here (that's SettleStaleReputationDefers' job, for defers no push ever
         /// claims).
         /// </summary>
         private List<double> ClaimAllReputationDefers(double pushUt)
@@ -576,13 +576,13 @@ namespace Gonogo.KSP.CurrencyDelay
         /// vessel and needs the defer only as proof that a balance actually moved. Defers are
         /// appended in UT order, so the first match is the oldest claimable.
         ///
-        /// <para>Matching on the AMOUNT is what stops a notification-only fire from claiming a
+        /// <para>Matching on the amount is what stops a notification-only fire from claiming a
         /// real change that happens to be in flight beside it. Stock passes the same
         /// <c>scienceValue</c> to <c>AddScience</c> and to the <c>OnScienceRecieved</c> it fires
         /// fourteen lines later, and the interceptor records the first as the defer's base off
         /// <c>OnCurrencyModifierQuery.GetInput</c>, so a genuine pair agrees exactly. Without
         /// this, a token 0.01 subject-completion fire landing inside a stock lab's two-second
-        /// attribution window would claim the lab's deferred change, resolve AWAY against the
+        /// attribution window would claim the lab's deferred change, resolve away against the
         /// lab's pre-change shadow, and neutralise the lab's whole credit away in exchange for a
         /// pending 0.01. The tolerance only absorbs a float round trip; it is far tighter than
         /// any two real credits are close.</para>

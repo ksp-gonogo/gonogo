@@ -52,7 +52,7 @@ const STRIP_WIDTH = "3px";
 /**
  * `Block` plus a surface, as a styled extension of the same root.
  *
- * A card is the COMPACT density tier: it re-declares `--gap-related` and
+ * A card is the compact density tier: it re-declares `--gap-related` and
  * `--gap-section` one rung down, so anything inside it written as
  * `gap: var(--gap-related)` tightens without a conditional, including a third
  * party's CSS. Only those two gap names step; insets do not, because a chip
@@ -124,8 +124,10 @@ function CardRoot({
 
 /**
  * A record on a sunken surface: {@link Block}'s arrangement inside a bordered,
- * padded box. Its parts are `Block`'s own (`Card.Title === Block.Title`); use
- * `Block` for the grouping without the box.
+ * padded box. Useful for showing the operator one item of a list, such as an
+ * alarm, as a record of its own. Used by the alarms dialog. Its parts are
+ * `Block`'s own (`Card.Title === Block.Title`); use `Block` for the grouping
+ * without the box.
  *
  * Inside a card the `related` and `section` gaps are one step smaller, so a
  * {@link Stack} or {@link Cluster} with no `gap` of its own is tighter there

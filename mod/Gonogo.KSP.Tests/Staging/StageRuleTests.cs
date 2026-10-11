@@ -47,7 +47,7 @@ namespace Gonogo.KSP.Tests.Staging
         }
 
         /// <summary>
-        /// The Making History mission override holds the stack. Stock does NOT
+        /// The Making History mission override holds the stack. Stock does not
         /// treat that as a refusal: the keypress still fires the Stage action
         /// group, because <c>ToggleGroup</c> sits outside that arm and inside
         /// the lock.

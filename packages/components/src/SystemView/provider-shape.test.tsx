@@ -83,7 +83,7 @@ function kerbinSystem() {
   };
 }
 
-/** The vessel's own mark, which is a POSITION and not a trajectory. */
+/** The vessel's own mark, which is a position and not a trajectory. */
 const VESSEL_DOT = "[data-vessel-mark]";
 
 async function mount(horizon: PropagationHorizonLike) {

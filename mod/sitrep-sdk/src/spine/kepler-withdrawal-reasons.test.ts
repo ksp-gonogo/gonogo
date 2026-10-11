@@ -124,7 +124,7 @@ describe("keplerAdmissibility names each withdrawal", () => {
 
   /**
    * The ordering that matters for the label: a craft under physics that is
-   * ALSO off an integrated provider is refused on the authority, which is the
+   * also off an integrated provider is refused on the authority, which is the
    * permanent fact. Calling it under physics would be true and misleading.
    */
   it("does not call a craft under physics when the authority rules it out first", () => {

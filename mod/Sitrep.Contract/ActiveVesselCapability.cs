@@ -57,7 +57,7 @@ namespace Sitrep.Contract
         string? ReportedId { get; }
 
         /// <summary>
-        /// True while <see cref="Reported"/> is NOT what KSP is flying: a kerbal
+        /// True while <see cref="Reported"/> is not what KSP is flying: a kerbal
         /// is outside, and this is the craft they left.
         ///
         /// <para>It matters to commands, not reads. Most stock calls take no

@@ -6,7 +6,7 @@ namespace Sitrep.Contract.Tests
     /// <summary>
     /// The three promises <c>comms.degrade</c> makes to a consumer that keys a
     /// quality decision on it: the scale is 0..1 whatever a backend hands over,
-    /// ABSENT is a third answer rather than a low number, and a backend that
+    /// absent is a third answer rather than a low number, and a backend that
     /// declines to grade is distinguishable from one that grades the link
     /// perfect.
     ///
@@ -24,7 +24,7 @@ namespace Sitrep.Contract.Tests
     public class CommsDegradeTests
     {
         /// <summary>
-        /// ABSENT IS NOT ZERO, the whole reason the rating is nullable.
+        /// Absent is not zero, the whole reason the rating is nullable.
         ///
         /// <para>Asserted through <see cref="CommsDegradeModels.LevelOf"/> as
         /// well as off the model, because the read is where a consumer would
@@ -50,7 +50,7 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// A backend that REFUSES to grade and one that grades the link perfect
+        /// A backend that refuses to grade and one that grades the link perfect
         /// are told apart by two independent things: the rating itself, and the
         /// id that travels with it. Either alone would do; both is what lets a
         /// consumer act on the number and a surface report the provenance.
@@ -73,7 +73,7 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// A finite rating outside the scale CLAMPS to the end it overshot, so
+        /// A finite rating outside the scale clamps to the end it overshot, so
         /// no consumer ever sees a number the contract promised could not exist.
         /// Both directions, because both are reachable: a headroom fraction can
         /// exceed 1 and a difference of two live reads can go slightly negative.
@@ -92,7 +92,7 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// A NON-finite rating becomes ABSENT rather than clamping, and that
+        /// A NON-finite rating becomes absent rather than clamping, and that
         /// asymmetry with the case above is the point. A NaN is an arithmetic
         /// that did not run, so there is no end it overshot; worse, it fails
         /// every comparison silently, so a NaN that survived would read as "not
@@ -112,7 +112,7 @@ namespace Sitrep.Contract.Tests
 
         /// <summary>
         /// The shared comparison's three answers, at the boundary that decides a
-        /// quality ladder's rung. Meeting a threshold EXACTLY counts as meeting
+        /// quality ladder's rung. Meeting a threshold exactly counts as meeting
         /// it, so ascending thresholds pick the highest rung the rating reaches
         /// rather than falling between two of them.
         /// </summary>
@@ -136,7 +136,7 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// The payload carries the rating AND the rule, and a producer holding
+        /// The payload carries the rating and the rule, and a producer holding
         /// no model publishes the honest "nobody graded this" rather than
         /// nothing: the channel is always-present, so a silent one would be
         /// indistinguishable from a stalled uplink.

@@ -22,13 +22,13 @@ namespace Sitrep.Host.IntegrationTests
     /// is the surface an author is actually watching while they build, and it
     /// said nothing at all.</para>
     ///
-    /// <para>Two halves, and they are separate fixes. A boxed ENUM is no longer
+    /// <para>Two halves, and they are separate fixes. A boxed enum is no longer
     /// an unsupported type: it writes as its integer ordinal like every
     /// declared enum in the codec, so that payload now simply arrives. A plain
     /// POCO is still unsupported (deliberately: see the report on this branch),
     /// but the drop is now announced to the subscriber as an
     /// <see cref="ErrorMsg"/> naming the topic and the offending CLR type, the
-    /// same treatment an unserializable COMMAND result has had since C2-4.</para>
+    /// same treatment an unserializable command result has had since C2-4.</para>
     /// </summary>
     public class UnsupportedPayloadDiagnosticsTests
     {
@@ -37,7 +37,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The report's headline case, fixed: a subscriber whose channel
-        /// publishes an unserializable POCO is TOLD, rather than being acked
+        /// publishes an unserializable POCO is told, rather than being acked
         /// and then starved in a way it cannot tell from "no data yet".
         /// </summary>
         [Fact]
@@ -78,7 +78,7 @@ namespace Sitrep.Host.IntegrationTests
         /// bug report gives you. The engine's diagnostic sink is
         /// <c>UnityEngine.Debug.LogWarning</c> in production (GonogoAddon), so
         /// a line reaching it here is a line reaching KSP.log there. It must
-        /// name the topic and the type, and must NOT claim the mapper threw:
+        /// name the topic and the type, and must not claim the mapper threw:
         /// the mapper returned a perfectly good value and an author sent to
         /// audit it is being sent to the wrong file.
         /// </summary>

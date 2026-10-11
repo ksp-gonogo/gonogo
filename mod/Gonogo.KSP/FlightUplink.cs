@@ -13,7 +13,7 @@ namespace Gonogo.KSP
     /// (see <c>Sitrep.Contract.Flight.cs</c>'s doc comment for the full
     /// design). Retires the client-side <c>FlightDetector</c> heuristic.
     ///
-    /// <para>Everything that a per-tick vessel-id comparison CAN classify on
+    /// <para>Everything that a per-tick vessel-id comparison can classify on
     /// its own: a genuine launch, a revert/quickload, an operator switching
     /// active-vessel focus: lives in the KSP-free
     /// <see cref="FlightLifecycleSampler"/>, registered as an
@@ -125,7 +125,7 @@ namespace Gonogo.KSP
         /// splashdown detector, <see cref="FlightEndReason.Destroyed"/> for
         /// the catch-all (a non-collision death such as a re-entry burn-up,
         /// which fires no <c>onCrash</c>). The de-dupe window means whichever
-        /// detector fires FIRST for a given death wins the reason.
+        /// detector fires first for a given death wins the reason.
         /// </summary>
         private void HandleDestruction(Vessel? vessel, FlightEndReason reason)
         {

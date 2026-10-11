@@ -2,17 +2,17 @@
 /**
  * Per-engine visual regression gate.
  *
- * Renders every widget (fixture × mode) for ONE browser engine via the shared
+ * Renders every widget (fixture × mode) for one browser engine via the shared
  * harness, then compares each render against its committed baseline under
  * `packages/components/visual-baselines/<engine>/`. The model is per-engine
- * (each engine vs its OWN baseline), never cross-engine, engines legitimately
+ * (each engine vs its own baseline), never cross-engine, engines legitimately
  * rasterise differently, so only a same-engine threshold is defensible.
  *
  *   visual-gate --engine firefox            # gate: diff vs baselines, fail on drift
  *   visual-gate --engine firefox --update   # accept: (re)write baselines from renders
  *   visual-gate --engine firefox --widget thermal-status   # scope to one widget
  *
- * Baselines MUST be generated in the same OS the gate runs in (CI Linux),
+ * Baselines must be generated in the same OS the gate runs in (CI Linux),
  * font rasterisation differs across OSes. Use the `update-baselines` GitHub
  * workflow to (re)generate them on the runner and commit them back.
  *

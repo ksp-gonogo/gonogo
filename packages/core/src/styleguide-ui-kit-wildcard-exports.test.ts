@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
  * Design-system guard: no wholesale `export *` from an internal package on the
  * ui-kit barrel.
  *
- * ui-kit is the PUBLISHED package: every name it exports is API a third-party
+ * ui-kit is the published package: every name it exports is API a third-party
  * Uplink can import, chosen one name at a time. A star export breaks that
  * choice, anything the re-exported package's own barrel gains later becomes
  * ui-kit API with nobody having reviewed it.

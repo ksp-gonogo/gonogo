@@ -15,7 +15,7 @@ namespace Sitrep.Host.IntegrationTests
     /// A fact held at the home command reaches each vantage after that vantage's
     /// delay to home, and the operator's own acceptance test: a vessel that transmits
     /// science does not see the new total until the science has reached the ledger
-    /// AND the new value has come back.
+    /// and the new value has come back.
     ///
     /// <para>The rows are written by <see cref="AuthorityMatrixPass.PopulateHomeCommand"/>
     /// fed with <see cref="KscDelayPolicy"/>, the rule the award itself is timed by, so
@@ -31,7 +31,7 @@ namespace Sitrep.Host.IntegrationTests
         private const string Home = "ground:Cape";
         private const string OtherGround = "ground:Goldstone";
 
-        /// <summary>The active craft's light-time, deliberately far from the vessel centre's own.</summary>
+        /// <summary>The active craft's signal delay, deliberately far from the vessel centre's own.</summary>
         private const double ActiveVesselDelay = 240.0;
 
         private static readonly SignalDelayConfig DelayOn = new SignalDelayConfig { Enabled = true };

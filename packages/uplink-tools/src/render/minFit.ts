@@ -1,9 +1,9 @@
 /**
- * Does this widget FIT the tile it is being drawn in?
+ * Does this widget fit the tile it is being drawn in?
  *
  * Every widget declares a `minSize`, which is a promise: an operator who drags
  * the tile down to it gets a widget that still works. Nothing checked that
- * promise, and a sweep of 53 widgets found 12 whose own TITLE ellipsises at
+ * promise, and a sweep of 53 widgets found 12 whose own title ellipsises at
  * their own minimum and two with content clipped behind an `overflow: hidden`
  * that has nothing to scroll, so it is not reachable by scrolling, by resizing
  * within the minimum, or by any other means.
@@ -14,7 +14,7 @@
  *
  * Deliberately narrow on three axes, so the answer is a defect and not a taste:
  *
- * - Text counts as cut off, and so does a box that DECLARES its own edges are
+ * - Text counts as cut off, and so does a box that declares its own edges are
  *   content: see `FIT_BOX`. A box that declares nothing does not, because a
  *   decorative box drawn oversized inside a clipping parent (a gauge arc, a
  *   gradient bleed, a graph's plot area) is routinely and correctly clipped.
@@ -28,9 +28,9 @@
  * - Only where the operator cannot get to it. Content below the fold of a
  *   vertical scroll area is content they reach without thinking, and a widget
  *   that puts its overflow behind a scroller at a small size is doing the right
- *   thing. A HORIZONTAL scroller is not the same affordance and does not count:
+ *   thing. A horizontal scroller is not the same affordance and does not count:
  *   see `readableBeyond`. The one exception is text a scroller's own overflow
- *   mask PAINTS OVER where it sits, which is unreadable without scrolling even
+ *   mask paints over where it sits, which is unreadable without scrolling even
  *   though it is on screen: see `maskFindings`, which is narrow in its turn and
  *   speaks only where the mask is deeper than the scroll it advertises.
  */
@@ -55,7 +55,7 @@
 const HEADINGS = 'h1, h2, h3, h4, h5, h6, [role="heading"]';
 
 /**
- * The custom property a primitive sets on itself to say its own EDGES are
+ * The custom property a primitive sets on itself to say its own edges are
  * content: a pill, a chip, a toolbar strip. Its value names the primitive, so a
  * finding can say which box was cut rather than only what it contained.
  *
@@ -67,13 +67,13 @@ const HEADINGS = 'h1, h2, h3, h4, h5, h6, [role="heading"]';
  * Custom properties inherit, so every descendant of a marked box reports the
  * same value and `boundedName` credits only the element whose value differs
  * from its parent's. That misses a marked box nested directly inside another
- * carrying the SAME name, which no primitive in the kit does, and it errs
+ * carrying the same name, which no primitive in the kit does, and it errs
  * towards saying nothing rather than saying it twice.
  */
 const FIT_BOX = "--fit-box";
 
 /**
- * The custom property a box sets on itself to say it PAINTS OVER the scrolling
+ * The custom property a box sets on itself to say it paints over the scrolling
  * content behind it, rather than merely sitting in front of it. See `fitMask`.
  *
  * Read the same way as `FIT_BOX`, and for the same reasons: custom properties
@@ -120,7 +120,7 @@ function sample(el: Element): string {
 }
 
 /**
- * Whether this element is the one CARRYING the text rather than an ancestor of
+ * Whether this element is the one carrying the text rather than an ancestor of
  * whatever does.
  *
  * A finding on every ancestor of a cut-off word would report the same defect a
@@ -144,7 +144,7 @@ function clips(style: CSSStyleDeclaration, axis: "x" | "y"): boolean {
 
 /**
  * Whether being able to scroll this box makes the text beyond its edge
- * REACHABLE, which is only ever true downwards.
+ * reachable, which is only ever true downwards.
  *
  * Vertical scrolling is the universal reading affordance: content below the fold
  * of a scroll area is content an operator reaches without thinking about it, and
@@ -158,7 +158,7 @@ function clips(style: CSSStyleDeclaration, axis: "x" | "y"): boolean {
  * scrolling body fixed 264px of unreachable rows and left "MODEL STALE" sliced
  * by the tile edge exactly as before, because the new scroller technically
  * scrolls both ways. Counting an x-scroller as an escape hid that, and six more
- * widgets whose empty-state SENTENCE is clipped mid-word.
+ * widgets whose empty-state sentence is clipped mid-word.
  */
 function readableBeyond(style: CSSStyleDeclaration, axis: "x" | "y"): boolean {
   if (axis === "x") return false;
@@ -169,7 +169,7 @@ function readableBeyond(style: CSSStyleDeclaration, axis: "x" | "y"): boolean {
  * The box that decides whether this element is visible: the nearest ancestor
  * that clips on `axis`, or the tile when nothing between them does.
  *
- * Measured against the ancestor's CLIENT box (padding box minus scrollbars)
+ * Measured against the ancestor's client box (padding box minus scrollbars)
  * rather than its border box, because that is the region it actually paints
  * children into.
  */
@@ -264,11 +264,11 @@ function drawn(el: Element): boolean {
  * an answer to a question nobody asked.
  *
  * `Panel` is the case that forced this. Once the header's measured-fit collapse
- * fires, the FULL aside stays in the document under `visibility: hidden` so
+ * fires, the full aside stays in the document under `visibility: hidden` so
  * `useHeaderAsideFit` can go on cloning it to measure, absolutely positioned off
  * a trigger only as wide as its own dots, and therefore free to overhang the
  * panel by more than it is wide. Audited, that reads as Science Data slicing its
- * own SYNCING badge at its declared minimum; what the operator sees there is the
+ * own syncing badge at its declared minimum; what the operator sees there is the
  * dots-and-chevron summary the collapse put in its place precisely so the header
  * would fit. Judging the hidden copy would have every widget with a header aside
  * answering for chrome that already did the right thing.
@@ -294,7 +294,7 @@ function painted(el: Element): boolean {
  * A control carries its words in its value, which is not a text node, so the text
  * pass cannot see them at all: an altitude field showing only the "1" of "100"
  * reported nothing. The option elements of a closed select and the
- * default-value text node React writes into a textarea DO carry text nodes, and
+ * default-value text node React writes into a textarea do carry text nodes, and
  * are skipped by the text pass so each control is spoken about once.
  */
 const CONTROLS = "input, select, textarea";
@@ -572,7 +572,7 @@ interface GradientStop {
 }
 
 interface Gradient {
-  /** Which edge of the box the gradient line STARTS at. */
+  /** Which edge of the box the gradient line starts at. */
   from: "top" | "bottom";
   stops: GradientStop[];
 }
@@ -638,7 +638,7 @@ function readGradient(layer: string, height: number): Gradient | undefined {
   return { from, stops: raw.map((s, i) => ({ at: at[i], alpha: s.alpha })) };
 }
 
-/** A gradient's alpha at `down` px from the TOP of its box. */
+/** A gradient's alpha at `down` px from the top of its box. */
 function alphaAt(gradient: Gradient, down: number, height: number): number {
   const along = gradient.from === "top" ? down : height - down;
   const { stops } = gradient;
@@ -691,7 +691,7 @@ function maskedBand(el: Element): { top: number; bottom: number } | undefined {
 }
 
 /**
- * Where this element's OWN words are actually INKED: top and bottom of the
+ * Where this element's own words are actually inked: top and bottom of the
  * glyphs, one band per line.
  *
  * Three boxes are in play and only the innermost is the answer. The element's
@@ -799,7 +799,7 @@ function scrollerUnder(mask: Element): HTMLElement | undefined {
  * operator has to scroll a body that barely scrolls to read a line that was
  * already on screen.
  *
- * So this reports only where the mask reaches DEEPER than the remaining scroll.
+ * So this reports only where the mask reaches deeper than the remaining scroll.
  * That is the difference between covering content because there is more below
  * and covering content because the mask is a fixed size: past that point the
  * cover cannot be explained by what is under it. Everything else a scroller
@@ -866,7 +866,7 @@ function maskFindings(tile: HTMLElement): MinFitFinding[] {
  */
 export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
   const findings: MinFitFinding[] = [];
-  /** Boxes already named by the text pass, so a pill whose LABEL is sliced is
+  /** Boxes already named by the text pass, so a pill whose label is sliced is
    *  one finding rather than two saying the same thing. */
   const spoken = new Set<Element>();
 

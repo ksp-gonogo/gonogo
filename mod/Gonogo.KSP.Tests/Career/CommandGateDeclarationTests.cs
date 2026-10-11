@@ -145,7 +145,7 @@ namespace Gonogo.KSP.Tests.Career
 
         /// <summary>
         /// Every requirement declared today is answerable before the press: with
-        /// NO arguments, or per item, through an evaluator that names its items
+        /// no arguments, or per item, through an evaluator that names its items
         /// so the gate report can ask each one. That is what lets a control be
         /// dark with a reason instead of live and doomed. A requirement needing
         /// an argument nobody enumerates would abstain until the dispatch; if

@@ -20,7 +20,7 @@ namespace Sitrep.Host.CommandCentres
         void SetAuthorityDelays(IReadOnlyCollection<(string CentreId, string VesselId, double OneWaySeconds)> rows);
 
         /// <summary>
-        /// Replace the whole set. Each key is a centre as a VANTAGE, and its
+        /// Replace the whole set. Each key is a centre as a vantage, and its
         /// values are the subject nodes it has no route to. A centre not listed
         /// is never refused on its own reach.
         /// </summary>

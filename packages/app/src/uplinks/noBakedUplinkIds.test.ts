@@ -21,8 +21,8 @@ import { firstPartyUplinkIds } from "../test/firstPartyUplinkIds";
  *
  * ## Two shapes
  *
- * The id check below matches a QUOTED BARE ID (`"kos"`), the shape a fallback
- * list takes. A package SPECIFIER is not a quoted bare id, and a build-time
+ * The id check below matches a quoted bare ID (`"kos"`), the shape a fallback
+ * list takes. A package specifier is not a quoted bare id, and a build-time
  * import is the more privileged shape of the two: a fallback id list at
  * least names something the loader could reach, where a static import is
  * reachable only from inside this build.
@@ -47,7 +47,7 @@ function quotedIds(source: string, ids: string[]): string[] {
 /**
  * Every Uplink client package this source names as an import specifier.
  *
- * Matches the package-name SHAPE rather than the eleven names, and that is
+ * Matches the package-name shape rather than the eleven names, and that is
  * deliberate: an Uplink client is `@ksp-gonogo/gonogo-<something>-uplink` by
  * convention, so a gate keyed on the convention catches the twelfth Uplink's
  * import without anyone remembering to extend a list. A list keyed on the
@@ -72,7 +72,7 @@ function uplinkClientSpecifiers(source: string): string[] {
  * Shipped files that still import an Uplink client package. SHRINK-ONLY: remove
  * a line when the coupling goes, never add one.
  *
- * EMPTY. Its one entry was `screens/StationScreen.tsx`, whose `import type`
+ * Empty. Its one entry was `screens/StationScreen.tsx`, whose `import type`
  * went when that Uplink left the repo. The coupling the import stood for went
  * later: the station attaches a broker to whatever Uplink declared one through
  * `registerStationBroker`, rather than naming one by id.

@@ -11,7 +11,7 @@ import { AlarmHostService } from "./AlarmHostService";
  * What an alarm's `onFire` action group does when the `vessel.control` reading
  * behind it is held.
  *
- * A toggle is sent as an ABSOLUTE set of the inverse (the contract has no
+ * A toggle is sent as an absolute set of the inverse (the contract has no
  * relative form for any of these commands), so the dispatch has to invert a
  * state it just read. The store is hold-last and never drops a released
  * topic's timeline, so the payload the alarm used to read stayed frozen at

@@ -1,8 +1,8 @@
 /**
- * A command the mod REFUSES must reach a station as a refusal, with the reason
+ * A command the mod refuses must reach a station as a refusal, with the reason
  * the mod gave and the numbers behind it.
  *
- * The mod answers a refusal on the RESPONSE channel (`CommandResult` with
+ * The mod answers a refusal on the response channel (`CommandResult` with
  * `success: false`), and the host's own `TelemetryClient` turns that into a
  * `CommandError` carrying `errorCode`/`breach`/`detail`. Relaying that rejection
  * as a `sitrep-command-error` kept only `code` and `message`, so a station saw a
@@ -12,7 +12,7 @@
  * Exercises the real `PeerHostService`/`PeerClientService`/`PeerTransport` stack
  * over a fake PeerJS data channel (the `FakeHub` pattern
  * `sitrep-command-label-topic-tunnel.test.ts` and `kos-execute-tunnel.test.ts`
- * both use), with a real `TelemetryClient` on BOTH ends: the host's backed by a
+ * both use), with a real `TelemetryClient` on both ends: the host's backed by a
  * `StubTransport` standing in for the mod, the station's backed by the
  * `PeerTransport` it uses in production. So the refusal is observed where an
  * operator would meet it, on the station's own command status and its own

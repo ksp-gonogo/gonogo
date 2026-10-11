@@ -184,7 +184,7 @@ public class ServoEntry
 ///
 /// <para>Not the same as the Breaking Ground DLC-presence fact
 /// (<c>deployed.available</c>): this reflects parts on this vessel, so it is
-/// delayed by light time, whereas DLC presence is known on the ground at
+/// delayed by signal delay, whereas DLC presence is known on the ground at
 /// once.</para>
 ///
 /// <para><see cref="Available"/> is three-state. <c>null</c> means the craft

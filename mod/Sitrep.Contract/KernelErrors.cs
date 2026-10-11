@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Raised during <see cref="Kernel.Resolve"/>'s selection when an EXCLUSIVE
+    /// Raised during <see cref="Kernel.Resolve"/>'s selection when an exclusive
     /// capability has two or more equally-ranked provider candidates and there
     /// is no preference, single
     /// <see cref="ProviderRegistration.IsDefault"/> provider or unique highest

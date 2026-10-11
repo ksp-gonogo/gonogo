@@ -6,7 +6,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// An unbreakable tie on ONE exclusive capability leaves that capability
+    /// An unbreakable tie on one exclusive capability leaves that capability
     /// unresolved and every other capability resolved.
     ///
     /// <para>The tie-break rules are unchanged: a preference, then a sole
@@ -88,7 +88,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Unresolved means no instance at all, and in particular NOT the vanilla.
+        /// Unresolved means no instance at all, and in particular not the vanilla.
         /// Falling back would be the kernel quietly picking a winner, which is the
         /// thing the ambiguity rule exists to refuse.
         /// </summary>
@@ -219,7 +219,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The spine-critical halt is NOT isolated. A spine-critical capability with
+        /// The spine-critical halt is not isolated. A spine-critical capability with
         /// nothing to serve it means the kernel cannot start, so it still throws out
         /// of the whole resolution and activates nothing.
         /// </summary>

@@ -304,7 +304,7 @@ export const UNIT_DEFINITIONS = {
 
   // ── Data, level, radiation ───────────────────────────────────────────────
   /**
-   * The BASE of the data dimension, and the only data unit core declares.
+   * The base of the data dimension, and the only data unit core declares.
    *
    * Rungs and families belong to whoever models them: an antenna mod deals in
    * bits and a life-support mod in bytes, and neither has to know the other

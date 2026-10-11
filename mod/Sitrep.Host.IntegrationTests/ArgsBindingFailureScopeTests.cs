@@ -82,7 +82,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Refused at dispatch, so a delayed command's malformed call is answered
-        /// at once rather than after its light-time, and never reaches the Courier.
+        /// at once rather than after its signal delay, and never reaches the Courier.
         /// </summary>
         [Fact]
         public void AMalformedDelayedCallIsRefusedAtDispatchAndTheCommandStaysUp()

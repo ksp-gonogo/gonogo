@@ -6,12 +6,12 @@
  * that fills that slot is a camera Uplink's, which ships from its own
  * repository and needs a live WebRTC feed, so `probe-entry.tsx` renders the
  * HUD with an empty slot however the widget is configured. This probe
- * registers a STUB backdrop in its place, on the same slot, with the same
+ * registers a stub backdrop in its place, on the same slot, with the same
  * structural style the real augment uses (`position: absolute; inset: 0;
  * object-fit: cover; opacity: 0.55`), so the render shows where a video layer
  * lands rather than what any particular camera's picture looks like.
  *
- * The REAL augment can now be photographed in this widget, and this stub does
+ * The real augment can now be photographed in this widget, and this stub does
  * not replace that. It runs from the Uplink's side: a fixture naming
  * `_scene.hostWidget: "targeting"` plus `uplink-tools render --with <this repo's
  * packages/components/src/index.ts>` mounts the genuine `<video>` inside the

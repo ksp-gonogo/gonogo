@@ -8,7 +8,7 @@ namespace Sitrep.Contract;
 /// Topic names for the vessel-attributed currency events. Each is a
 /// <c>currency.&lt;vesselGuid&gt;.&lt;currency&gt;</c> dynamic topic, recorded
 /// against the vessel's <c>fleet.&lt;guid&gt;</c> node and revealed at that
-/// vessel's own light-time to the observer rather than instantly.
+/// vessel's own signal delay to the observer rather than instantly.
 /// <internal>
 /// The namespace is ChannelEngine.CurrencyEventPrefix.
 /// </internal>
@@ -50,7 +50,7 @@ public static class CurrencyEventTopics
 /// <para>Carried on <c>currency.&lt;guid&gt;.science</c> as a delayed,
 /// reliable, ordered event, the same shape as <c>crash.lastCrash</c>: a one-shot
 /// record with its own <c>ut</c>, replayed to a late subscriber. It reveals at
-/// the light-time from the observer's vantage to that vessel, so a probe five
+/// the signal delay from the observer's vantage to that vessel, so a probe five
 /// light-minutes out reports its transmit five minutes after the fact.</para>
 ///
 /// <para>It does not change <c>career.status.balances.science</c>. That field

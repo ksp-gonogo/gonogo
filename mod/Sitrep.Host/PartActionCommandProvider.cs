@@ -14,7 +14,7 @@ namespace Sitrep.Host
     /// No KSP/Unity type appears here.
     ///
     /// <para><b>Two-tier validation</b>, matching every other command provider: a
-    /// check that needs only the args themselves happens HERE (an empty
+    /// check that needs only the args themselves happens here (an empty
     /// <c>partId</c> or <c>eventName</c> can never resolve anything live, so it
     /// fails fast with <see cref="CommandErrorCode.NotFound"/> /
     /// <see cref="CommandErrorCode.ModeUnavailable"/> respectively, each naming
@@ -34,7 +34,7 @@ namespace Sitrep.Host
     {
         /// <summary>
         /// Fires one PAW button. <c>delayed: true</c>: invoking an action on a
-        /// part ON the craft is an uplink that rides light-time, the same class as
+        /// part on the craft is an uplink that rides signal delay, the same class as
         /// <c>vessel.control.*</c> and the robotics commands.
         /// </summary>
         public const string InvokePartActionCommand = "vessel.invokePartAction";

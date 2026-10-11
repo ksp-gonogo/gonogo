@@ -127,7 +127,7 @@ import { PeerClientService } from "../peer/PeerClientService";
 import { PeerHostService } from "../peer/PeerHostService";
 
 /**
- * A dispatch as an OLDER station sends it: the wire message carries no
+ * A dispatch as an older station sends it: the wire message carries no
  * `label` or `topic` at all, which the current signature declares required and
  * is the case this file exists to characterise.
  */

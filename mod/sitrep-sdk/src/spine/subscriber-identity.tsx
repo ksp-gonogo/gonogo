@@ -5,11 +5,11 @@ import { createContext, type ReactNode, useContext } from "react";
  *
  * It exists for one purpose: an author whose widget renders blank because it
  * subscribed to a topic nothing publishes gets a log line naming both halves,
- * the topic AND the widget that asked for it. The topic alone is half an answer
+ * the topic and the widget that asked for it. The topic alone is half an answer
  * on a dashboard where thirty widgets are mounted.
  *
  * ui-kit already carries the same identity in `WidgetMetaContext`, and this is
- * deliberately NOT that: ui-kit depends on this package, so the dependency
+ * deliberately not that: ui-kit depends on this package, so the dependency
  * cannot run the other way. Both are mounted from the same two places (the
  * dashboard's `GridItemContent` and ui-kit's `WidgetHostFor`) from the same
  * `ComponentDefinition.id`, so they cannot drift without someone editing one

@@ -150,7 +150,7 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The stock reading over EVERY axis KSP itself exposes: the roster
+        /// The stock reading over every axis KSP itself exposes: the roster
         /// status, applicant-hood, and the stand-down flag. Where
         /// <see cref="FromRosterStatus"/> says what an ordinal means, this says
         /// what stock makes of the whole kerbal.

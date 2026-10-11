@@ -13,7 +13,7 @@ namespace Sitrep.Core.Tests
     /// every <c>Sitrep.Contract</c> payload type needs its own hand-flattened
     /// case, or a subscriber to that topic gets zero stream-data. Without the
     /// <see cref="PendingUplinkQueue"/>/<see cref="PendingUplink"/> cases added
-    /// alongside <c>system.uplink.pending</c>'s engine wiring, even an EMPTY
+    /// alongside <c>system.uplink.pending</c>'s engine wiring, even an empty
     /// queue would fail-soft at the wire boundary.
     /// </summary>
     public class PendingUplinkQueueWireTests

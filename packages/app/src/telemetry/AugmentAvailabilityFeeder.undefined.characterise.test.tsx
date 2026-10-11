@@ -11,11 +11,11 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AugmentAvailabilityFeeder } from "./AugmentAvailabilityFeeder";
 
 /**
- * What `AugmentAvailabilityFeeder` DOES today when `<domain>.available` reads
+ * What `AugmentAvailabilityFeeder` does today when `<domain>.available` reads
  * `undefined`, recorded before `useTelemetry` starts returning a `Reading`.
  *
  * The entire component is one absence test used as a positive fact:
- * `store.setAvailable(domain, value !== undefined)`. It is PRESENCE, not truth
+ * `store.setAvailable(domain, value !== undefined)`. It is presence, not truth
  * and not content, and that is deliberate per its own doc ("a Domain is
  * available while ANY value has arrived"). So `undefined` here carries the
  * whole meaning of "this Uplink's Domain is not installed", and everything an
@@ -126,7 +126,7 @@ describe("AugmentAvailabilityFeeder: what undefined means for <domain>.available
    * Recorded prior behaviour: "marks the Domain available on a confirmed tombstone,
    * because null is not undefined". Recorded as an inversion and not endorsed, and it
    * turns out to be the right answer reached by the wrong route: a producer saying
-   * "there is no value" is still a producer, so the domain IS installed. The gate is
+   * "there is no value" is still a producer, so the domain is installed. The gate is
    * now `state !== "pending"`, which says that on purpose.
    */
   it("marks the Domain available on a confirmed tombstone: a producer saying nothing-here is still a producer", () => {

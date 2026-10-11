@@ -13,7 +13,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// nothing to say. That is fine in normal running and useless the moment
     /// you need to know which of the two you have.</para>
     ///
-    /// <para>Logs on CHANGE only, never per tick: this runs at capture cadence
+    /// <para>Logs on change only, never per tick: this runs at capture cadence
     /// and a per-tick line would bury KSP.log. Uses
     /// <see cref="Debug"/> rather than Console.Error, which is invisible in a
     /// KSP process.</para>
@@ -88,7 +88,7 @@ namespace Gonogo.KSP.SilenceTracking
 
         /// <summary>
         /// What the home-node search actually saw, once. The search failing is
-        /// reported by <see cref="NoGeometry"/>, but that says only THAT it
+        /// reported by <see cref="NoGeometry"/>, but that says only that it
         /// failed; distinguishing "no active vessel" from "a control path with
         /// no home flagged on it" needs the counts, and inferring them from
         /// outside has already cost several rebuild cycles.
@@ -109,8 +109,8 @@ namespace Gonogo.KSP.SilenceTracking
         /// <summary>
         /// The outcome of solving this body's station-longitude offset.
         ///
-        /// <para>On CHANGE, not once. A one-shot here was the third instance of
-        /// the same mistake in this subsystem: the FIRST call wins, and the
+        /// <para>On change, not once. A one-shot here was the third instance of
+        /// the same mistake in this subsystem: the first call wins, and the
         /// first call is invariably the uninteresting one from a tick before
         /// the scene is ready, after which every later outcome - including the
         /// success - is suppressed for the rest of the session. De-duplication
@@ -169,7 +169,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// What makes one frame-check failure a different one worth printing:
         /// the residual to three significant figures.
         ///
-        /// <para>A RELATIVE bucket, because the residual moves every frame by an
+        /// <para>A relative bucket, because the residual moves every frame by an
         /// amount that scales with the geometry. A fixed kilometre bucket holds
         /// a low-orbit residual of a few hundred kilometres steady, and at
         /// interplanetary range, where the residual is an AU and shifts by more
@@ -217,7 +217,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// <summary>
         /// Which reach rule the sweep is applying, and how far it says each
         /// station carries. Worth its own line because a prediction that
-        /// modelled geometry ONLY and one that modelled a real range limit are
+        /// modelled geometry only and one that modelled a real range limit are
         /// different claims, and until reach reached the comms seam every
         /// prediction was silently the first. A model id of <c>"unknown"</c>
         /// says so out loud: no backend rated the pair, so the sweep is back to

@@ -1,6 +1,6 @@
 /**
  * `attachEncodedFrameDelayTransform`: the encoded-domain backend adapter.
- * Uses REAL `ReadableStream`/`WritableStream` objects (available in
+ * Uses real `ReadableStream`/`WritableStream` objects (available in
  * Node/jsdom, unlike `MediaStreamTrackProcessor`/`RTCRtpScriptTransform`
  * themselves) rather than raw fake reader/writer objects, so these tests
  * exercise the actual `.getReader()`/`.getWriter()` extraction this

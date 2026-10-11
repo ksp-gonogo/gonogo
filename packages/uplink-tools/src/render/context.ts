@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
  * Where the tool is running and what it found there. Everything resolved once,
  * so no other module reaches for a path.
  *
- * Every lookup here goes through a PUBLISHED specifier or the invoking package's
+ * Every lookup here goes through a published specifier or the invoking package's
  * own tree. The four hand-copied harnesses this replaces did not: two drivers
  * read `../../../../packages/theme/src/tokens.css` and
  * `../../../../packages/app/src/styles/global.css`, neither of which exists
@@ -119,9 +119,9 @@ function findFixtures(root: string): string[] {
  * Extra modules whose registrations belong in the page, declared once.
  *
  * A scene naming `_scene.hostWidget` needs that host widget in the bundle, and a
- * host widget ships with the APP, in a package no Uplink may import. `--with`
+ * host widget ships with the app, in a package no Uplink may import. `--with`
  * can name one per run, but a render that only works when someone remembers a
- * flag is a render nobody runs: the FIRST Uplink to use `_scene.hostWidget` shipped a
+ * flag is a render nobody runs: the first Uplink to use `_scene.hostWidget` shipped a
  * plain `uplink-tools render` script beside a fixture naming a host, which
  * cannot succeed. So the modules are a fact about the package, beside
  * `minAppVersion` in the same `gonogo` block:
@@ -129,7 +129,7 @@ function findFixtures(root: string): string[] {
  *     "gonogo": { "renderWith": ["../../../packages/components/src/index.ts"] }
  *     "gonogo": { "renderWith": ["@ksp-gonogo/uplink-tools/widgets"] }
  *
- * An entry is EITHER a path relative to the client directory, or a bare module
+ * An entry is either a path relative to the client directory, or a bare module
  * specifier. The two are the same registrations reached two ways, and which one
  * an Uplink writes is decided by where it lives rather than by preference: a
  * path only exists inside this repository, so an Uplink here names one; an
@@ -167,7 +167,7 @@ function resolveRenderWith(dir: string, gonogo: unknown): string[] {
   });
 }
 
-/** A specifier is anything that is not a relative or absolute PATH. */
+/** A specifier is anything that is not a relative or absolute path. */
 function isBareSpecifier(entry: string): boolean {
   return !entry.startsWith(".") && !entry.startsWith("/");
 }
@@ -202,11 +202,11 @@ function packageNameOf(specifier: string): string {
  * Shared by both so the two cannot drift: a flag that accepted a shape the
  * declaration refused would be a render that works once, for whoever ran it.
  *
- * A specifier is returned AS WRITTEN, for esbuild to resolve from the client's
+ * A specifier is returned as written, for esbuild to resolve from the client's
  * own directory when it builds the page. Resolving it to a file here would pick
  * whatever condition a Node `require` picks, and every package in play
  * publishes an `import`-only `exports` map. So the check below is for the
- * package's PRESENCE, which is enough to turn a missing install into an error
+ * package's presence, which is enough to turn a missing install into an error
  * naming the declaration rather than an esbuild failure naming a generated file
  * nobody wrote.
  */
@@ -431,7 +431,7 @@ export function display(dir: string, file: string): string {
  *
  * `renderWith` carries two shapes, and this is where the second one has to be
  * turned back into a file. A relative entry arrived here already resolved to an
- * absolute PATH; a bare SPECIFIER was deliberately left as written, because the
+ * absolute path; a bare specifier was deliberately left as written, because the
  * render path hands it to esbuild, which resolves it from the client directory.
  *
  * **`page-check` has no bundler**, so it resolves the specifier itself, and
@@ -440,7 +440,7 @@ export function display(dir: string, file: string): string {
  * directory with the package name glued on the end. That was the defect, and it
  * only appeared once a specifier became legal.
  *
- * Resolved from `dir`, the CLIENT, and never from this module: a bare
+ * Resolved from `dir`, the client, and never from this module: a bare
  * `import()` here would resolve against the tools package's own directory,
  * which is right by accident for this package's own `/hosts` and wrong for
  * everything else.

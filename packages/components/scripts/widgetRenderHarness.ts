@@ -4,7 +4,7 @@
  * shrink to a config export. Adding a widget = new config, no new driver
  * script, no new package.json entry.
  *
- * The harness bundles `scripts/probe/probe-page.tsx` ONCE per invocation
+ * The harness bundles `scripts/probe/probe-page.tsx` once per invocation
  * and reuses the same Chromium page across every widget when running
  * `--all`, so 10 widgets render in one launch instead of 10.
  */
@@ -147,7 +147,7 @@ export interface SizeMode {
   /**
    * Optional synthetic pointer entries, dispatched after the clicks. Captures
    * a surface that only exists under the pointer, chiefly a hover tooltip, and
-   * a click cannot stand in for one: on a ship diagram a click SELECTS a part
+   * a click cannot stand in for one: on a ship diagram a click selects a part
    * where a hover opens the readout beside it.
    */
   hovers?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
@@ -192,7 +192,7 @@ export interface WidgetRenderConfig {
   outPath: string;
   /** Grid-size variants to render every fixture at. */
   modes: SizeMode[];
-  /** Force full-content capture for THIS config even when the caller (e.g. the
+  /** Force full-content capture for this config even when the caller (e.g. the
    * visual gate) renders fixed-tile by default, grows `#root` to the whole
    * widget so nothing is cropped below the fold. For composed instruments whose
    * content scrolls in a real cell (LandingStatus) but must be reviewed whole. */
@@ -201,14 +201,14 @@ export interface WidgetRenderConfig {
    * Fail the render when any element matching `selector` is cut off by the
    * panel's own bottom edge.
    *
-   * For a widget whose content is a COMPARISON, a row that renders below the
+   * For a widget whose content is a comparison, a row that renders below the
    * fold is not merely cropped: it is missing from the thing the widget exists
    * to show, while every DOM assertion still passes on it. jsdom computes no
    * boxes, so a unit test is structurally incapable of expressing this and
    * putting it there would be a second blind instrument.
    *
    * `mayScroll` names the modes where the property is deliberately given up: at
-   * a tile too small to hold the content, scrolling IS the accepted
+   * a tile too small to hold the content, scrolling is the accepted
    * degradation. Everything not listed is checked, so a mode added later is
    * covered by default and an exemption has to be written down as one.
    */
@@ -217,7 +217,7 @@ export interface WidgetRenderConfig {
 
 /** A viewport size the screen harness renders a screen at. Unlike a widget
  *  `SizeMode` (grid units → `#root` pixels), a screen breakpoint sizes the
- *  whole PAGE viewport so the screen's own `@media` rules engage. */
+ *  whole page viewport so the screen's own `@media` rules engage. */
 export interface ScreenBreakpoint {
   /** Slug used in the output filename. */
   name: string;
@@ -280,14 +280,14 @@ export async function renderWidgets(
     outSuffix?: string;
     outBase?: string;
     /**
-     * Capture each widget's FULL rendered content rather than the fixed
+     * Capture each widget's full rendered content rather than the fixed
      * grid-tile crop. The mount still uses the mode's `w`/`h` (so the widget
      * lays out at the real tile size and its responsive breakpoints engage),
      * but before the screenshot the harness grows `#root` to swallow any
      * content clipped by the Panel's `overflow:hidden` or trapped inside a
      * ScrollArea: so nothing below the fold is lost. The review path
-     * (`render-widget`) turns this ON harness-wide so every widget renders
-     * uncropped; the VISUAL GATE leaves it OFF so its per-tile baselines are
+     * (`render-widget`) turns this on harness-wide so every widget renders
+     * uncropped; the visual gate leaves it off so its per-tile baselines are
      * unaffected.
      */
     fullContent?: boolean;
@@ -621,11 +621,11 @@ export async function renderWidgets(
  * single Chromium session. The screen-entry bundle is built once and reused.
  *
  * The defining difference from `renderWidgets`: a screen owns the whole
- * viewport, so this resizes the PAGE viewport per breakpoint (and toggles
+ * viewport, so this resizes the page viewport per breakpoint (and toggles
  * touch emulation) rather than sizing `#root`. That is what makes a screen's
  * `@media (max-width: ...)` / `(pointer: coarse)` rules actually engage,
  * those match against the viewport + device, not an element's box. A fresh
- * browser CONTEXT is created per breakpoint because `hasTouch` is a
+ * browser context is created per breakpoint because `hasTouch` is a
  * context-level option (it can't be flipped on a live page).
  */
 export async function renderScreens(
@@ -723,20 +723,20 @@ const ASPECT_TOLERANCE = 0.02;
  *
  * This is the failure a screenshot cannot describe and a jsdom snapshot cannot
  * see. An `<svg>` carries the UA's `overflow: hidden`, which by CSS makes its
- * automatic minimum size ZERO, so as a flex item it is the first thing a
+ * automatic minimum size zero, so as a flex item it is the first thing a
  * too-narrow row gives up: it shrinks towards `width: 0` while the sibling text
  * keeps every pixel it asked for. The element stays in the DOM, `visibility:
  * visible`, opacity 1, and paints a sliver or nothing. Both instruments this
  * project approves work with call that a pass, one because it has no layout
  * engine, one because a missing glyph on a dark panel is a handful of pixels.
  *
- * ASPECT is the signal rather than absolute size, because a stylesheet is
+ * Aspect is the signal rather than absolute size, because a stylesheet is
  * entitled to override an icon's attributes (`width: 1em`) and does so in both
  * axes: the box changes, the ratio does not. Flex shrink acts on one axis only,
  * so distortion is specific to it. A graphic measuring 0×0 is genuinely hidden,
  * which is a legitimate render, not a defect.
  *
- * Only ABSOLUTE width/height attributes carry a claim about shape. A diagram
+ * Only absolute width/height attributes carry a claim about shape. A diagram
  * sized `width="100%" height="100%"` fills whatever box it is given and its
  * attributes say nothing about the ratio, so it is skipped: parsing those as
  * `100`×`100` reported every responsive diagram in the tree as distorted.
@@ -800,13 +800,13 @@ const OVERLAP_TOLERANCE_PX = 2;
  * notices on a dark panel, and a jsdom snapshot cannot see it at all, because
  * both sections are present and correct in the markup: only the boxes collide.
  *
- * A container is measured by its PAINTED extent, not its own border box, since
+ * A container is measured by its painted extent, not its own border box, since
  * the whole failure mode is content escaping a box that was sized too small for
  * it. The walk unions in every descendant's rect and stops descending at any
  * element whose `overflow` clips (`hidden`/`clip`/`auto`/`scroll`), because a
  * clipping ancestor is exactly the promise that its content stays inside.
  *
- * Three kinds of overlap are DELIBERATE and are left out rather than allowed
+ * Three kinds of overlap are deliberate and are left out rather than allowed
  * back in one by one:
  *
  * - Out-of-flow children: anything `absolute`/`fixed`/`sticky`, or `relative`
@@ -983,23 +983,23 @@ const CLIP_TOLERANCE_PX = 4;
 /**
  * Does any widget hide its own content inside a box the operator cannot scroll?
  *
- * The sibling question to {@link findOverlappingSections}, and NOT the same one:
+ * The sibling question to {@link findOverlappingSections}, and not the same one:
  * that asks whether two sections paint into one place, which says nothing about
  * a reading that fell off the bottom of a tile. A widget that clips renders,
  * asserts and diffs green, so nothing else in the tree fails on it.
  *
- * Reported only where the content is UNREACHABLE. An `auto` or `scroll` box is
+ * Reported only where the content is unreachable. An `auto` or `scroll` box is
  * somebody's scroller and its content is one gesture away; a single line cut
  * short under `text-overflow: ellipsis` is the documented last resort several
  * kit primitives take at narrow widths, and both are design rather than defect.
  * What is left is a box told to hide, holding more than it shows, with no way
  * to reach the rest.
  *
- * Meaningful at the FIXED tile size only. The full-content capture path grows
+ * Meaningful at the fixed tile size only. The full-content capture path grows
  * the box until nothing is clipped, which is the same reason the overlap gate
  * renders tiles.
  *
- * Its caller REFUSES rather than relying on this paragraph. The sentence above
+ * Its caller refuses rather than relying on this paragraph. The sentence above
  * was here first and I still ran the detector through the review path and read
  * its zero as a clean widget: when you are running something you are not
  * reading it, so adjacency in a file is not a delivery mechanism.
@@ -1077,14 +1077,14 @@ export async function surveyClippedContent(page: Page): Promise<string[]> {
  *
  * A detector that cannot see its own failure reports zero and zero reads as a
  * pass, which is the shape of every instrument this project has been burned by.
- * So the run refuses to start unless the detector both FIRES on a deliberately
- * broken stack and STAYS QUIET on each kind of overlap that is somebody's
+ * So the run refuses to start unless the detector both fires on a deliberately
+ * broken stack and stays quiet on each kind of overlap that is somebody's
  * design: an absolutely-positioned badge hung over the section below it, a
  * relatively-offset element shifted onto its neighbour, a grid stacking two
  * children in one cell, and layered SVG shapes.
  *
  * Every case sits in its own absolutely-positioned wrapper. Out-of-flow siblings
- * are never compared to each other, so the case that is SUPPOSED to overflow
+ * are never compared to each other, so the case that is supposed to overflow
  * cannot leak a finding onto the case below it, while the children inside each
  * wrapper are still scanned normally.
  */
@@ -1158,18 +1158,18 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
 
 /**
  * Every element under `#root` that an operator reads, or that its author
- * declared must be seen, and that NO scroll position can show, because a box
+ * declared must be seen, and that no scroll position can show, because a box
  * that hides its overflow leaves none of it visible.
  *
- * The INVERSE of {@link findOverlappingSections}, and a separate walk rather
+ * The inverse of {@link findOverlappingSections}, and a separate walk rather
  * than a widening of it, because the two rules that make that one correct are
  * exactly what blind it here:
  *
- * - it STOPS DESCENDING at a clipping ancestor, on the sound reasoning that
+ * - it stops descending at a clipping ancestor, on the sound reasoning that
  *   such an ancestor is a promise its content stays inside. That is the promise
  *   being broken, so this walk descends through them and looks at what is
  *   inside
- * - it SKIPS out-of-flow children, because a badge over a corner is design.
+ * - it skips out-of-flow children, because a badge over a corner is design.
  *   Absolute positioning is how an element is put deliberately outside its
  *   parent's box, which is precisely the arrangement a clipping grandparent
  *   destroys, so this walk includes them
@@ -1182,14 +1182,14 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * at 340, six pixels wholly outside. DOM correct, component correct, suite
  * green, nothing on screen.
  *
- * ## Why ENTIRELY hidden, and not "any pixel lost"
+ * ## Why entirely hidden, and not "any pixel lost"
  *
  * `overflow: hidden` plus `text-overflow: ellipsis` is how this codebase
  * truncates on purpose, and a truncated phrase loses pixels by design while
  * staying readable and signalled. Firing on partial loss would report every one
  * of those, and a gate that reports design is a gate that gets switched off.
  *
- * An element with NO visible pixels is a different statement: whatever it was
+ * An element with no visible pixels is a different statement: whatever it was
  * for, the operator cannot act on it, and there is no reading under which that
  * was intended. If it were meant to be absent it would not be rendered.
  *
@@ -1204,7 +1204,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  *
  * ## Scope: content and declared marks, and the one thing left to a declaration
  *
- * CONTENT is an element holding text of its own, an image, a canvas, a form
+ * content is an element holding text of its own, an image, a canvas, a form
  * control, or the outermost element of a drawing. Asked of all of it, the walk
  * finds content that overflowed a box that hides: a fit-to-size body whose
  * content outgrew the tile, a squeezed section, a label crushed to no width.
@@ -1212,7 +1212,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  *
  * Content that has been positioned or transformed inside the box that hides it
  * is left alone. A tape's far heading labels and a pannable graph's far nodes
- * are absolutely positioned, wholly outside a clipping ancestor, and CORRECT,
+ * are absolutely positioned, wholly outside a clipping ancestor, and correct,
  * because a tape and a pannable graph are windows onto something larger. They
  * are geometrically identical to a defect, so the intent has to come from the
  * component: an element carrying `data-held-mark` is asked about wherever
@@ -1227,7 +1227,7 @@ async function proveOverlapDetectorWorks(page: Page): Promise<void> {
  * Widgets that already draw content, or a declared mark, where no scroll
  * position shows it. Shrink-only: a widget not named here fails the render.
  *
- * The key is the widget id and NOT a count, because a count moves with the
+ * The key is the widget id and not a count, because a count moves with the
  * number of scenes and tile sizes the widget is rendered at, and neither of
  * those says anything about whether the defect is still there.
  *
@@ -1601,11 +1601,11 @@ type CdpDomNode = Awaited<ReturnType<typeof describeSubtree>>;
  * Every text node under `#root` that Chromium actually drew in a font other
  * than JetBrains Mono, reported as `<tag#id.class> "text" drawn in <family>`.
  *
- * `getComputedStyle().fontFamily` only reports what the page ASKED for: a
+ * `getComputedStyle().fontFamily` only reports what the page asked for: a
  * stack ending `, monospace` reads identically whether every glyph landed in
  * JetBrains Mono or the engine walked off the end of it for one character and
  * drew that one in a system font. `CSS.getPlatformFontsForNode` is the one
- * instrument that reports back the RESOLVED platform font per text run,
+ * instrument that reports back the resolved platform font per text run,
  * which is why this is a DevTools Protocol call rather than a
  * `page.evaluate`, and why the gate is chromium-only.
  *
@@ -1616,7 +1616,7 @@ type CdpDomNode = Awaited<ReturnType<typeof describeSubtree>>;
  * all to the frontend in one batch and asks about each real nodeId that
  * comes back, rather than pushing one node at a time.
  *
- * `CSS.getPlatformFontsForNode` answers from the node's LAYOUT, not its DOM
+ * `CSS.getPlatformFontsForNode` answers from the node's layout, not its DOM
  * state, so a node queried in the same tick as the mutation that created it
  * comes back with an empty `fonts` array: the text is there, but nothing has
  * shaped it yet. A double `requestAnimationFrame` first (the idiom
@@ -1955,7 +1955,7 @@ async function proveTinyFitAuditWorks(page: Page): Promise<void> {
  * beyond tidiness: one stale interaction selector used to abort the whole
  * session, so `astronaut-complex` failing its Fire click meant 17 of 45 widget
  * configs rendered and the other 28 were never gated or compared to a baseline. In the `visual` job, which is red on purpose, that is invisible. A
- * run now surveys the WHOLE set and fails at the end holding all of it.
+ * run now surveys the whole set and fails at the end holding all of it.
  */
 interface RenderFindings {
   /** Graphics laid out at zero width or height (the paint gate). */
@@ -1997,7 +1997,7 @@ function noFindings(): RenderFindings {
 }
 
 /**
- * The installs one fixture is rendered under: every profile the SCENE declares
+ * The installs one fixture is rendered under: every profile the scene declares
  * in its own `_stream.profiles`, or a single unprofiled render (`undefined`)
  * when it declares none.
  *
@@ -2367,7 +2367,7 @@ export interface PreparePageOpts {
  * whenever the imported package declares `sideEffects: false` (as
  * `@xterm/xterm` does), producing an "ignored bare import" warning and a
  * fully unstyled render. This plugin rewrites every `.css` import into a JS
- * module whose OWN top-level code appends a `<style>` tag with the file's
+ * module whose own top-level code appends a `<style>` tag with the file's
  * contents, and marks the resolved import `sideEffects: true` so esbuild
  * never drops it regardless of the source package's own declaration.
  */

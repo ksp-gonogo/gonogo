@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests.Settings
     /// this launch declared. The block these tests call Ghost stands for any
     /// Uplink with no declarer this launch: uninstalled, refused on its contract
     /// major, or failed to start. A writer that rebuilt the file from
-    /// declarations would delete its settings at the first SAVE press, and an
+    /// declarations would delete its settings at the first save press, and an
     /// empty settings panel would read as fine.
     /// </summary>
     public class SettingsPreserveUnknownTests

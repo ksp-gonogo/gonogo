@@ -1,14 +1,14 @@
 /**
  * What several people talking at once sounds like at one listener.
  *
- * The radio is ONE BAND. Every transmission this vantage has a path to is
+ * The radio is one band. Every transmission this vantage has a path to is
  * decoded on its own and summed into a single output, so two people who key
  * together are both audible, each at their own natural rate, each released one
- * light-time after they spoke.
+ * signal delay after they spoke.
  *
- * **The sum has to happen DOWNSTREAM of per-source delay**, and that is the
- * constraint, not the location. What is impossible is mixing ONCE and fanning
- * the result out: the transmissions in it have different light-times to
+ * **The sum has to happen downstream of per-source delay**, and that is the
+ * constraint, not the location. What is impossible is mixing once and fanning
+ * the result out: the transmissions in it have different signal delays to
  * different listeners, so no single mixed stream is correct for two of them.
  *
  * The host could still do it correctly, per listener, since it knows every
@@ -31,7 +31,7 @@
 
 /**
  * Where the limiter starts working. Below this the sum is passed through
- * UNTOUCHED, which is what keeps a single talker bit-exact: one voice on a
+ * untouched, which is what keeps a single talker bit-exact: one voice on a
  * quiet band is the overwhelmingly common case and it must not be reshaped by
  * machinery that exists for the rare one.
  *
@@ -56,7 +56,7 @@ export const MIX_KNEE = 0.8;
  * reaching it, so two loud talkers overlap and distort in the overlap rather
  * than either one disappearing or the whole band breaking up.
  *
- * The curve is continuous in value AND in slope at the knee (its derivative
+ * The curve is continuous in value and in slope at the knee (its derivative
  * there is exactly 1), so a voice crossing the threshold does not audibly step.
  *
  * **Written as a self-contained function on purpose.** It is the same arithmetic

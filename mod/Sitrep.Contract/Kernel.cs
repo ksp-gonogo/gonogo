@@ -343,7 +343,7 @@ namespace Sitrep.Contract
         /// <summary>
         /// Vanilla instances built during the current resolution, one per
         /// capability. Shared between <see cref="ProviderContext.Vanilla{T}"/> and
-        /// the fallback path so that a stock install has ONE vanilla per
+        /// the fallback path so that a stock install has one vanilla per
         /// capability rather than one on the wire and a second one some provider
         /// is quietly consulting.
         /// </summary>
@@ -467,7 +467,7 @@ namespace Sitrep.Contract
         /// <para>An ambiguous exclusive election is reported as one "ambiguous"
         /// notice per tied provider, and any other selection failure (a provider's
         /// own <see cref="ProviderRegistration.CanServe"/> throwing, say) as one
-        /// "selection-failed" notice. Either way the capability is left UNRESOLVED:
+        /// "selection-failed" notice. Either way the capability is left unresolved:
         /// no instance, and no vanilla either, since falling back would be the
         /// kernel quietly picking a winner, which is what the ambiguity rule
         /// refuses to do.</para>
@@ -550,15 +550,15 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// Ability-to-serve pass: runs BEFORE exclusive selection, so a provider
-        /// that cannot serve the capability on this install is not a CANDIDATE and
+        /// Ability-to-serve pass: runs before exclusive selection, so a provider
+        /// that cannot serve the capability on this install is not a candidate and
         /// the runner-up wins the election outright.
         ///
         /// <para>Deliberately not the same thing as declining from the factory. A
         /// factory decline happens after the winner is already chosen, so for an
-        /// exclusive capability it falls through to VANILLA and the runner-up never
+        /// exclusive capability it falls through to vanilla and the runner-up never
         /// gets a look in: the capability ends up unserved because the provider
-        /// that could NOT do it got there first. Withdrawing here means relative
+        /// that could not do it got there first. Withdrawing here means relative
         /// priority stops mattering, which is the point, since a provider modelling
         /// nothing should lose to one modelling something at any priority.</para>
         ///
@@ -593,7 +593,7 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// Version-gate pass: runs BEFORE exclusive/shared selection, so
+        /// Version-gate pass: runs before exclusive/shared selection, so
         /// ambiguity is computed only over providers compatible with the
         /// running kernel/mod version. A provider whose
         /// <c>Versions.MinKernelVersion</c> exceeds

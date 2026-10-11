@@ -24,15 +24,15 @@ export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
 
 /**
  * Download-once cache for Uplink bundle bytes (D6, the station conduit).
- * Keyed by `bundleUrl`: concurrent or sequential requests for the SAME url
+ * Keyed by `bundleUrl`: concurrent or sequential requests for the same url
  * coalesce onto a single in-flight fetch+digest, so N stations asking for
  * the same bundle cost the author host exactly one download, the
  * "downloads each bundle once" requirement from the D6 spec. See
  * `PeerHostService.handleUplinkBundleRequest` for the caller.
  *
- * A failed fetch (network error, non-2xx) is NOT cached, the entry is
+ * A failed fetch (network error, non-2xx) is not cached, the entry is
  * evicted so a later retry gets a fresh attempt rather than replaying the
- * same rejection forever. A successful fetch+digest IS cached indefinitely
+ * same rejection forever. A successful fetch+digest is cached indefinitely
  * for the life of this host page/session: bytes are immutable once
  * fetched, and a `bundleUrl` is expected to be content-addressed/versioned
  * (a new Uplink version ships a new url), so there's no invalidation story
@@ -47,7 +47,7 @@ export class BundleFetchCache {
   /**
    * Resolve the verified `{ bytes, digest }` for `bundleUrl`, fetching (and
    * SHA-256-digesting) at most once no matter how many callers ask for the
-   * same url concurrently: later callers, even mid-flight, get the SAME
+   * same url concurrently: later callers, even mid-flight, get the same
    * pending promise rather than starting a second fetch. `fetchBytes` is
    * injected so tests can drive it without a live network call.
    */

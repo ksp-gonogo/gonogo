@@ -16,8 +16,11 @@ export type PanelInactiveReason =
     };
 
 /**
- * The one body an inactive panel or section draws in place of its content:
- * the reason, centred, announced politely.
+ * The body an inactive panel or section draws in place of its content: the
+ * reason it is inactive, centred, with an optional hint under it at what would
+ * bring it back. It is announced politely. Useful for telling the operator why
+ * a part of the screen has nothing to show. Used by {@link Panel},
+ * {@link Section} and {@link AugmentSlot}.
  *
  * @category Panel
  */

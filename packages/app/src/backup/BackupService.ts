@@ -5,7 +5,7 @@
  * data-source configs, serial device types, alarms, notes, station identity,
  * etc. This service captures that surface into a single versioned JSON file
  * the operator can download, and restores it on another machine (or after a
- * wipe) in REPLACE mode: every key present in the backup overwrites the local
+ * wipe) in replace mode: every key present in the backup overwrites the local
  * value. Keys absent from the backup are left untouched, this is a per-key
  * overwrite, not a wipe-then-restore.
  *
@@ -50,7 +50,7 @@ const TRANSIENT_KEYS = new Set<string>([
  * Per-device-instance identity: the station's stable key. Restoring it onto
  * another device clones the instance identity, which
  * is usually wrong, so they're excluded unless the operator opts in via the
- * "Include device identity" checkbox. `gonogo.station.name` is deliberately NOT
+ * "Include device identity" checkbox. `gonogo.station.name` is deliberately not
  * here (it's a human label, safe to carry across devices), and neither is
  * `gonogo-host-share-code`: that's a chosen, portable host address you'd want
  * preserved on restore, not per-device identity, so it backs up like any other
@@ -165,7 +165,7 @@ export function exportAsFile(options: BuildBackupOptions = {}): void {
 }
 
 /**
- * Read + validate a backup file and apply it in REPLACE mode. Does NOT reload,
+ * Read + validate a backup file and apply it in replace mode. Does not reload,
  * the UI confirm handler triggers `window.location.reload()` after this
  * resolves, so the pure write stays test-clean. Throws BackupValidationError on
  * a malformed or wrong-version file.

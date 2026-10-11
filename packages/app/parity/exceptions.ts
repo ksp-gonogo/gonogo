@@ -1,5 +1,5 @@
 /**
- * Widgets that are MEANT to draw differently on a station, by registered id,
+ * Widgets that are meant to draw differently on a station, by registered id,
  * each with the reason. A widget named here is not compared.
  *
  * The bar for an entry: the difference is the widget doing its job, because

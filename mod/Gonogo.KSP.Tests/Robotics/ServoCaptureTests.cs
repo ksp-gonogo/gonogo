@@ -48,7 +48,7 @@ namespace Gonogo.KSP.Tests.Robotics
         }
 
         /// <summary>
-        /// <c>ModuleRoboticRotationServo</c> is a SIBLING of
+        /// <c>ModuleRoboticRotationServo</c> is a sibling of
         /// <c>ModuleRoboticServoHinge</c> under <see cref="BaseServo"/>, not a
         /// subclass, so a per-kind scan would never see one: a craft's rotation
         /// servos would be dropped before they reached the wire, while the
@@ -121,12 +121,12 @@ namespace Gonogo.KSP.Tests.Robotics
 
         /// <summary>
         /// The guard against the defect coming back. The set of servo kinds is
-        /// read out of the GAME's own assembly rather than written down here,
+        /// read out of the game's own assembly rather than written down here,
         /// so a kind KSP adds fails this test until the capture names it and
         /// gives it whatever readings it alone has. A written-down list is what
         /// went wrong the first time and it would go wrong again.
         ///
-        /// <para>The <c>>= 4</c> floor guards the INSTRUMENT, not the
+        /// <para>The <c>>= 4</c> floor guards the instrument, not the
         /// behaviour: reflecting over a 10MB assembly with a five-DLL reference
         /// set can come back short, and a discovery loop that found nothing
         /// would otherwise pass by having asked nothing.</para>

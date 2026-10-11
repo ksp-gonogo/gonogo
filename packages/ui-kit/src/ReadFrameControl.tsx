@@ -38,7 +38,10 @@ export interface ReadFrameControlProps {
 
 /**
  * The control a frame-dependent widget picks its read frame with: a labelled,
- * keyboard-operable `<select>` over `options`, with an optional hint below. A
+ * keyboard-operable `<select>` over `options`, with an optional hint below.
+ * Useful for letting the operator choose which body or vessel a drawing is
+ * centred on. Used by the configuration forms of the current orbit and system
+ * view widgets. A
  * read frame is the frame of reference a widget draws positions in, such as
  * centred on a body; it changes only the drawing. The Control Frame is the
  * frame the game itself is set to, reported on the `system.frame` Topic.

@@ -35,7 +35,10 @@ export interface LiveRegionProps {
 }
 
 /**
- * A live region that is in the document before anything is said in it.
+ * A live region that is in the document before anything is said in it, so
+ * screen-reader users hear the words put into it. Useful for telling the
+ * operator the outcome of a command or a change of state without moving
+ * focus. Used by {@link Notice} and {@link StreamStatusBadge}.
  *
  * Assistive tech announces changes to a region, so one inserted already holding
  * its message is often never announced. Mount this for as long as the thing it

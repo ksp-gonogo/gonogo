@@ -7,7 +7,7 @@ using Sitrep.Contract;
 namespace Sitrep.CaptureAnalysis;
 
 /// <summary>
-/// The interval between consecutive samples, MEASURED rather than assumed.
+/// The interval between consecutive samples, measured rather than assumed.
 ///
 /// <para>Assuming 1 Hz is one of the mistakes that produced a wrong answer here.
 /// The stream's cadence is a UT cadence, and UT advances at the time-warp rate,
@@ -63,7 +63,7 @@ public sealed class CapturedOrbit
     /// The craft as a propagation provider takes it: named, along with the body it
     /// orbits, with the elements as the payload the two-body vanilla needs.
     ///
-    /// <para>A capture carries a NAME rather than a guid, which is the only
+    /// <para>A capture carries a name rather than a guid, which is the only
     /// identity this tool has to offer. That is enough for the two-body vanilla,
     /// which reads the elements; a provider that resolved craft against its own
     /// model would need the capture to have carried a guid, and would rightly
@@ -195,7 +195,7 @@ public sealed class DirectLinkEvent
     public bool Acquired { get; }
 
     /// <summary>
-    /// The UT of the FIRST sample in the new state. The true transition lies
+    /// The UT of the first sample in the new state. The true transition lies
     /// somewhere in the preceding sample interval, which is why the cadence is
     /// reported alongside: it is the resolution of every observed time here.
     /// </summary>
@@ -251,7 +251,7 @@ public static class CaptureFacts
     }
 
     /// <summary>
-    /// The orbit as of the capture's FIRST orbit sample. Elements drift a little
+    /// The orbit as of the capture's first orbit sample. Elements drift a little
     /// over a capture (drag, a burn, plain numerical wander), so the last epoch is
     /// carried too and a caller can see how far apart they are.
     /// </summary>
@@ -359,7 +359,7 @@ public static class CaptureFacts
     }
 
     /// <summary>
-    /// Every acquisition and loss of a DIRECT link, taken off the timeline. The
+    /// Every acquisition and loss of a direct link, taken off the timeline. The
     /// separation attached to an acquisition is the new link's own distance; the
     /// one attached to a loss is the distance on the last sample that still had
     /// the link, because that is the last moment the geometry is known to have

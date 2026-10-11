@@ -21,7 +21,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>VesselViewProviderTests.BuildManeuverNormalizesNullNodesListToEmptyArrayNeverNull</c>
     /// proves <see cref="VesselViewProvider.BuildManeuver"/> returns
     /// <c>Nodes = []</c> rather than null. It cannot prove a frame carrying
-    /// that empty list is EMITTED, because the birth gate that would suppress
+    /// that empty list is emitted, because the birth gate that would suppress
     /// one lives in <c>ChannelEngine.ProcessTick</c>, downstream of the
     /// mapper. A test adjacent to the property is not a test of it.</para>
     ///
@@ -101,7 +101,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A throwing channel mapper takes its owner's OTHER channels off the
+        /// A throwing channel mapper takes its owner's other channels off the
         /// air with it, which is what rules out "the maneuver mapper threw" as
         /// an explanation for a capture where <c>vessel.maneuver</c> was silent
         /// while <c>vessel.orbit</c> kept delivering. Both belong to the same

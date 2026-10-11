@@ -10,7 +10,7 @@ import { modTsRoots } from "./unknown-cast.scan";
  * it. The kit's `Tooltip` is themed, opens on focus as well as hover, closes on
  * Escape and is announced as the element's description.
  *
- * WHY THE COMPILER AND NOT A REGEX. `title` is also a prop of `Panel`, `Section`,
+ * Why the compiler and not A regex. `title` is also a prop of `Panel`, `Section`,
  * `Card` and `Notice`, where it is a heading and never a tooltip, and the two
  * spell identically. Only the type of the property says which one a JSX
  * attribute is: it is a tooltip when its declaration is React's own

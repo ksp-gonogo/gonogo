@@ -68,7 +68,7 @@ export interface FixtureScene {
   /** The id of the registered contribution to mount. */
   contribution?: string;
   /**
-   * A registered widget to mount this augment INSIDE, rather than the stand-in
+   * A registered widget to mount this augment inside, rather than the stand-in
    * `Panel`. The only way an overlay augment gets an honest picture: it draws
    * in its host's projection, so with no host there is nothing to draw against.
    * The scene is then sized and fed as the host, since that is what is on
@@ -93,8 +93,8 @@ export interface FixtureScene {
   /**
    * The tile to render in, overriding what would be derived.
    *
-   * For a stand-in augment or contribution scene it IS the size, since a slot
-   * has no size of its own. For a HOSTED one it overrides the host's, because a
+   * For a stand-in augment or contribution scene it is the size, since a slot
+   * has no size of its own. For a hosted one it overrides the host's, because a
    * host sized for itself alone is not the shape an operator who has added
    * sections to it is running.
    */
@@ -102,7 +102,7 @@ export interface FixtureScene {
   /** The data source id the fixture's bare top-level keys feed, for a widget still reading a `DataSource`. Absent, `data`. */
   dataSourceId?: string;
   /**
-   * This scene's subject IS an empty state, with the reason.
+   * This scene's subject is an empty state, with the reason.
    *
    * The only escape from the starved-render comparison, and it takes prose
    * rather than a boolean on purpose: asserting that a widget genuinely has
@@ -129,17 +129,17 @@ export interface FixtureScene {
    * operator could take for current: a vocabulary, a control, a label. A
    * subject that draws a reading does not qualify, however small the reading.</p>
    *
-   * <p>A scene carrying it whose held render DOES change fails, so the excuse
+   * <p>A scene carrying it whose held render does change fails, so the excuse
    * comes off the moment it stops being needed.</p>
    */
   unchangedWhenHeld?: string;
   /**
-   * Text this scene must actually PAINT, each in a box wider and taller than
+   * Text this scene must actually paint, each in a box wider and taller than
    * nothing.
    *
    * The fed-versus-starved check asks whether the render depends on the fixture
    * at all, which is a question about the whole picture. This asks whether one
-   * NAMED thing survived the layout, which is a question about one element, and
+   * named thing survived the layout, which is a question about one element, and
    * neither answers the other. A label squeezed to zero width by a neighbour
    * that wrapped satisfies every `toBeInTheDocument` in a jsdom suite, passes
    * the starve check because the rest of the picture still moved, and is
@@ -194,9 +194,9 @@ export interface FixtureStream {
    */
   pinnedUt?: number;
   /**
-   * A one-way light time between the craft and the screen, in seconds. Each
+   * The one-way signal delay between the vessel and the command centre screen, in seconds. Each
    * emit is delivered that long after its `validAt`, the view time is the
-   * newest `validAt` delivered, and every reading is reckoned to the craft's
+   * newest `validAt` delivered, and every reading is reckoned to the vessel's
    * present as it is in the app, so a scene can show a modelled figure beside
    * the observed one. Absent or `0`, nothing is carried across.
    */
@@ -250,7 +250,7 @@ export interface Scene {
   before: SceneAct[];
   /** The instant the scene is drawn at, from `_stream.pinnedUt`. */
   pinnedUt: number;
-  /** The one-way light time staged between craft and screen, from `_stream.delaySeconds`. */
+  /** The one-way signal delay staged between vessel and screen, from `_stream.delaySeconds`. */
   delaySeconds?: number;
   /** What is sent on the stream, each with its `validAt` filled in. */
   emits: SceneEmit[];
@@ -457,9 +457,9 @@ function oneScene(
 }
 
 /**
- * `_stream.delaySeconds`, refused where it could not stage a light time.
+ * `_stream.delaySeconds`, refused where it could not stage a signal delay.
  *
- * Zero is left out rather than carried, so a scene with no light time renders
+ * Zero is left out rather than carried, so a scene with no signal delay renders
  * down exactly the path a scene without the key does. Under a delay the view
  * clock only moves forward, as the received edge does, so an `advanceUt` step
  * that runs it back is refused rather than silently ignored.

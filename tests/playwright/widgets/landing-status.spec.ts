@@ -17,7 +17,7 @@
  *
  * The "Kerbin · atmospheric" subtitle is different: it's gated on
  * `bodyName !== undefined` (`packages/components/src/LandingStatus/index.tsx`),
- * and only the MAIN screen mounts `SitrepTelemetryProvider` today (station
+ * and only the main screen mounts `SitrepTelemetryProvider` today (station
  * stream forwarding over PeerJS is a documented pending gap, see that
  * provider's own doc comment): so it's checked on the host only.
  */

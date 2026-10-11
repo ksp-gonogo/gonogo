@@ -40,8 +40,10 @@ const Notice__Root = styled(Block__Root)<{ $tone: Tone }>`
 
 /**
  * A banner stating something about the widget rather than a record inside it,
- * such as what is limiting the ship. It takes {@link Block}'s anatomy (title,
- * asides, footer) on a sunken surface bordered in its tone. Most banners need
+ * such as what is limiting the vessel. It takes {@link Block}'s anatomy (title,
+ * asides, footer) on a sunken surface bordered in its tone. Useful for telling
+ * the operator about a condition that affects the whole widget. Used by the
+ * maneuver preview to show an error. Most banners need
  * only `title`, `tone` and their text; the other anatomy props are for a banner
  * that also carries a figure beside it or a footer of actions.
  *

@@ -17,7 +17,7 @@ import { SignalLossIndicator } from "./SignalLossIndicator";
 /**
  * Client-side coverage for the comms-delay-model-consistency headline claim
  * ("NO SIGNAL flips at the freeze instant"), added per the adversarial
- * review's Finding #1 (MEDIUM): every prior test either exercised the pure
+ * review's Finding #1 (medium): every prior test either exercised the pure
  * `deriveState` function directly, or drove `CommSignal`'s stream test with
  * `pinnedUt` set: a pinned `ViewClock.scrubTo` target wins outright over the
  * certainty-horizon/delay computation (see `setupStreamFixture`'s own doc
@@ -30,7 +30,7 @@ import { SignalLossIndicator } from "./SignalLossIndicator";
  * package) but is hand-rolled here (matching this package's own
  * `MissionBanner.test.tsx` / `telemetry-components.test.tsx` convention of
  * building the `StubTransport`/`TelemetryClient`/`TimelineStore`/`ViewClock`
- * stack directly) with `pinnedUt` UNSET and a nonzero `delaySeconds`, the
+ * stack directly) with `pinnedUt` unset and a nonzero `delaySeconds`, the
  * live, certainty-gated clock. Time is driven explicitly via
  * `wall.advanceBy` + `store.beginFrame()` (nothing else advances a frame
  * between ingests).

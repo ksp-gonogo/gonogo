@@ -26,12 +26,12 @@ import { AlarmsLauncherBridge } from "./AlarmsLauncherBridge";
 import type { AlarmSnapshot } from "./types";
 
 /**
- * An Uplink asks for an alarm, and the APP creates and owns the result.
+ * An Uplink asks for an alarm, and the app creates and owns the result.
  *
  * ## What is real here
  *
  * Everything on the path is production code, and that is the point of the file
- * rather than a nicety: the widget imports `useAlarmRequest` from the PUBLISHED
+ * rather than a nicety: the widget imports `useAlarmRequest` from the published
  * `@ksp-gonogo/sitrep-sdk` barrel, exactly as a third-party Uplink would, and
  * the call resolves through the app's injected host (installed for every app
  * test by `src/test/setup.ts`) into the app's own `AlarmsLauncherBridge` and
@@ -45,7 +45,7 @@ import type { AlarmSnapshot } from "./types";
  * report the same clean result for a request that reached nothing at all.
  *
  * The instrument is checked rather than assumed: `"records nothing when the
- * bridge is absent"` is the planted control. It renders the SAME widget with
+ * bridge is absent"` is the planted control. It renders the same widget with
  * the alarm surface deliberately unmounted and asserts the list stays empty, so
  * a harness that has quietly stopped driving the button reports a failure here
  * instead of reporting every other test in the file as passing.
@@ -144,7 +144,7 @@ describe("an Uplink's alarm request", () => {
     setActiveTelemetryClientForTests(undefined);
   });
 
-  /** The main screen's wiring: the bridge's `onAdd` IS the host's `addAlarm`. */
+  /** The main screen's wiring: the bridge's `onAdd` is the host's `addAlarm`. */
   function mountMainScreen(widget: React.ReactNode) {
     const useSnapshot = (): AlarmSnapshot => host.snapshot();
     return render(

@@ -30,7 +30,7 @@ const META = {
 /**
  * The Fleet/Comms augment registers `.actions` and nothing else, its toggles
  * gate SystemView's own connection-line and pulse entities, and the route and
- * pulse each render EXACTLY ONCE with the toggles on.
+ * pulse each render exactly once with the toggles on.
  */
 describe("FleetComms: actions augment on SystemView, comms drawing on the contribution model", () => {
   let fixture: StreamFixture;

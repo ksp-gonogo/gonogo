@@ -11,7 +11,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// The CommNet-off inversion, through the REAL reveal gate.
+    /// The CommNet-off inversion, through the real reveal gate.
     ///
     /// <para><b>The defect.</b> With the stock CommNet difficulty option off,
     /// <c>CommNetScenario.OnAwake</c> destroys itself, so no network is built,
@@ -19,9 +19,9 @@ namespace Sitrep.Host.IntegrationTests
     /// <c>ControlPath</c> stays empty for the whole session. gonogo read that
     /// literally: <c>ChannelEngine.RevealDelayFor</c> returns
     /// <c>+Infinity</c> for any subject whose connectivity source says false,
-    /// and it does so REGARDLESS of the delay magnitude (its own comment says
+    /// and it does so regardless of the delay magnitude (its own comment says
     /// so: "this fires even when _signalDelaySeconds is 0"). So every Delayed
-    /// channel froze at last-known for the whole session, which is INFINITE
+    /// channel froze at last-known for the whole session, which is infinite
     /// delay on a save that is supposed to have none at all.</para>
     ///
     /// <para><b>What is real here and what stands in.</b> The engine, the
@@ -53,7 +53,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The control, and the behaviour that must not regress: on a save that
-        /// DOES model comms, a craft with no path home freezes its Delayed
+        /// does model comms, a craft with no path home freezes its Delayed
         /// telemetry. That is a real blackout and freezing is correct.
         /// </summary>
         [Fact]
@@ -85,7 +85,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The fix. The SAME dead graph, on a save with no comms model, must
+        /// The fix. The same dead graph, on a save with no comms model, must
         /// deliver Delayed telemetry live: nothing is between the craft and the
         /// operator, so nothing may be withheld.
         /// </summary>

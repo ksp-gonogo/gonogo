@@ -90,7 +90,7 @@ const Unit__Word = styled(VisuallyHidden)`
 
 export type { UnitValue } from "./readingCurrency";
 
-/** U+2009 THIN SPACE. SI puts a space between a number and its unit. */
+/** U+2009 thin space. SI puts a space between a number and its unit. */
 const THIN_SPACE = "\u2009";
 
 /**
@@ -149,7 +149,7 @@ interface Interval {
   /** The low end for the eye: no symbol, since the pair shares one. */
   lo: string;
   hi: string;
-  /** The low end for the ear, with the unit's WORD rather than its symbol. */
+  /** The low end for the ear, with the unit's word rather than its symbol. */
   loSaid: string;
   hiSaid: string;
   kind: BandKind;
@@ -191,8 +191,8 @@ export interface UnitProps<UnitSymbol extends string = string>
   format?: FormatsFor<UnitSymbol>;
   /**
    * Show the value in a different unit of the same kind: `as="°C"` on a kelvin
-   * field, `as="g"` on an m/s² one. The contract says what the field IS, this
-   * says what the operator wants to READ.
+   * field, `as="g"` on an m/s² one. The contract says what the field is, this
+   * says what the operator wants to read.
    *
    * Validated against the value's kind, as `format` is. A cross-kind request at runtime renders the value in its own unit.
    */
@@ -278,7 +278,10 @@ function UnitSymbol({
 }
 
 /**
- * A quantity, rendered whole: `<Unit value={altitude} />`. The value carries its own unit, so the call site names neither the unit nor the format.
+ * A quantity, rendered whole: `<Unit value={altitude} />`. The value carries
+ * its own unit, so the call site names neither the unit nor the format. Useful
+ * for showing the operator a figure with its unit, formatted the same way in
+ * every widget. Used by the maneuver planner's burn rows and the settings.
  *
  * An absent or null value renders `NULL_DISPLAY`, never blank space, and a magnitude of zero keeps its zero.
  *

@@ -2,7 +2,7 @@
  * The delay-native layer of the landing widget: under signal delay a landing cannot be hand-flown, so the question becomes whether the burn was committed before the vessel went blind.
  *
  * - Regime pill and round trip
- * - Hero: live, the ignition countdown; delayed, the burn-GO clock (the last instant a GO can still reach the vessel, T_ignition - N), then BURN LOCKED
+ * - Hero: live, the ignition countdown; delayed, the burn-GO clock (the last instant a `GO` can still reach the vessel, T_ignition - N), then burn locked
  *
  * An instrument, not a command surface: gear and brakes are fired from the operator's own action-group widgets.
  */
@@ -93,7 +93,7 @@ function parachuteLine(parachute: ParachuteStatus | undefined): ReactNode {
 export interface CommitLayerProps {
   regime: LandingRegime;
   /**
-   * True when the loop is real-time. A `no-path` regime is NOT live: an unknown
+   * True when the loop is real-time. A `no-path` regime is not live: an unknown
    * link takes its own hero arm below rather than borrowing this one.
    */
   live: boolean;
@@ -104,13 +104,13 @@ export interface CommitLayerProps {
   committed: boolean;
   /** The height is the root part's: the burn solve is biased by the lowest point's offset, so no burn timing is named. */
   centreOfMass?: boolean;
-  /** True once the vessel has touched down: the descent clocks are void and the hero shows LANDED. */
+  /** True once the vessel has touched down: the descent clocks are void and the hero shows landed. */
   landed?: boolean;
   /** True when even an optimal burn cannot arrest the vessel in the remaining altitude; distinct from a nominal committed burn. */
   noLandingVector?: boolean;
   /** The touchdown speed of the best burn started now (`bestSpeedAtImpact`, m/s); the row holds the absent-value token when there is none. */
   impactSpeed?: number | null;
-  /** True while the engines are lit, from a reading of now: the headline reads BURNING in place of the countdown to a burn that has begun. */
+  /** True while the engines are lit, from a reading of now: the headline reads burning in place of the countdown to a burn that has begun. */
   burning?: boolean;
   /** False for a craft with no engine to burn (none, no thrust, or none reported): the block says nothing of a burn. True when omitted. */
   engine?: boolean;

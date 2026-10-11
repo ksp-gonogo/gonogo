@@ -7,7 +7,7 @@ namespace Gonogo.KSP.Career
     /// activation, and the one field the sequence writes.
     ///
     /// <para>An interface rather than <c>Strategies.Strategy</c> itself so the
-    /// ORDER of those four operations can be entered by a test. A real
+    /// order of those four operations can be entered by a test. A real
     /// <c>Strategy</c> cannot: <c>CanBeActivated</c>'s first line dereferences
     /// <c>Administration.Instance</c>, and <c>Activate</c> calls
     /// <c>CanBeActivated</c>, so neither runs anywhere but the Administration

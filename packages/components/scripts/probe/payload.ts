@@ -24,7 +24,7 @@ export interface ProbePayload {
    * fixture's `_stream` block is rewritten into the wire that install would put
    * out, uplink roster included. An augment gated on an elected capability
    * renders nothing without one, so a scene about an election has no other way
-   * to reach a PNG. Only bites on a fixture that HAS a `_stream` block, a flat
+   * to reach a PNG. Only bites on a fixture that has a `_stream` block, a flat
    * legacy fixture declares no wire to rewrite.
    */
   profile?: string;
@@ -52,7 +52,7 @@ export interface ProbePayload {
    */
   clicks?: ReadonlyArray<{ selector: string; awaitMs?: number }>;
   /**
-   * Optional synthetic POINTER entries, for a surface that only exists while
+   * Optional synthetic pointer entries, for a surface that only exists while
    * the pointer is over something: a hover tooltip, a hover-revealed control.
    *
    * Separate from `clicks` because the two reach different states and one

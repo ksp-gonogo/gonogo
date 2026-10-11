@@ -161,7 +161,7 @@ export class DelayAuthority {
   private readonly lastCentreDelays = new Map<string, number>();
   /** Each centre's predicted downlink delay, waits included, from the latest routes. */
   private routeDelays: ReadonlyMap<string, number> = new Map();
-  /** Each centre's last predicted LIVE downlink delay, kept after the route stops being live. */
+  /** Each centre's last predicted live downlink delay, kept after the route stops being live. */
   private readonly lastLiveRouteDelays = new Map<string, number>();
   /** The centre the roster names home, once a roster has said. */
   private homeCentre: string | undefined;
@@ -170,7 +170,7 @@ export class DelayAuthority {
   /**
    * Feed one `comms.delay` payload. A frame that reports a measurable one-way
    * time sets it; one that reports none (no path home, or a malformed frame)
-   * HOLDS the last known delay.
+   * holds the last known delay.
    *
    * Holding is what makes a blackout behave like a blackout. Losing the path
    * does not move the craft closer, and `comms.delay` stops arriving while the
@@ -180,7 +180,7 @@ export class DelayAuthority {
    * the TrueNow channels, so `ViewClock.maxSampleUt` still advances through the
    * outage: the sample clamp does not hold the horizon back, only the delay
    * term does. Reset it to 0
-   * and `confirmedEdgeUt()` snaps a whole light-time forward at the moment the
+   * and `confirmedEdgeUt()` snaps a whole signal delay forward at the moment the
    * craft becomes unreachable, dumping the media playout buffer and reporting
    * the disconnect at T+0 instead of the T+delay `CommsLink` promises.
    *
@@ -257,7 +257,7 @@ export class DelayAuthority {
    * that list reaches the new session: a pilot's vantage changes on the frame
    * the craft names itself, and until then the clock would read home's
    * `comms.delay` over frames the mod is already delivering live. At a
-   * light-time over the timeline's retention that is not merely late:
+   * signal delay over the timeline's retention that is not merely late:
    * `ClientTimeline.at(viewUt)` falls below the oldest retained point and
    * every widget goes absent on a live feed.
    */
@@ -283,7 +283,7 @@ export class DelayAuthority {
    * the route that would reach it, waits included. `comms.delay` is home's, and
    * every centre's until the roster and a route say otherwise. All of it is
    * kept across a vantage change, so a move to another centre reports that
-   * centre's last measured light-time immediately instead of waiting a whole
+   * centre's last measured signal delay immediately instead of waiting a whole
    * one to re-learn it.
    */
   delaySeconds = (): number => {

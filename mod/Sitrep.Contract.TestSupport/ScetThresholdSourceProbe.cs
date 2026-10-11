@@ -5,7 +5,7 @@ using Sitrep.Contract;
 namespace Sitrep.Contract.TestSupport
 {
     /// <summary>
-    /// A SCET threshold source written from an UPLINK's position, and the proof
+    /// A SCET threshold source written from an uplink's position, and the proof
     /// that the seam is one.
     ///
     /// <para><b>Where this type lives is the whole assertion.</b> This assembly
@@ -67,7 +67,7 @@ namespace Sitrep.Contract.TestSupport
         /// two calls an Uplink makes: the declaration from the host's
         /// pre-Register pass, the registration from the contributing mod's.
         ///
-        /// <para>Both are here so a test exercises the REAL <see cref="Kernel"/>
+        /// <para>Both are here so a test exercises the real <see cref="Kernel"/>
         /// rather than a stand-in for it. The registration is what a third-party
         /// author writes; the declaration is core's and is repeated here only
         /// because a test's kernel has no uplink discovery behind it.</para>

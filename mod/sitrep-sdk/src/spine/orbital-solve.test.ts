@@ -9,7 +9,7 @@ const ut = (seconds: number) => value("ut", seconds);
 /**
  * The orbital solve, pinned as a pure function before anything is wired to it.
  *
- * The fixtures are chosen so every expected figure can be WRITTEN DOWN from the
+ * The fixtures are chosen so every expected figure can be written down from the
  * elements rather than recomputed by the code under test: a circular orbit at a
  * round `sma`, and a body whose radius is a round fraction of it.
  */
@@ -63,7 +63,7 @@ describe("solveOrbit", () => {
 
   /**
    * The three-way discipline the caller's channel owns, passed through rather
-   * than flattened: a radius that cannot be resolved YET is not the same answer
+   * than flattened: a radius that cannot be resolved yet is not the same answer
    * as one whose channel is a confirmed tombstone, and both differ from a real
    * altitude. Only the two altitude fields see it.
    */
@@ -80,7 +80,7 @@ describe("solveOrbit", () => {
   });
 
   /**
-   * `sma·(1+ecc)` is still FINITE when `sma < 0`, just meaningless, so a finite
+   * `sma·(1+ecc)` is still finite when `sma < 0`, just meaningless, so a finite
    * guard cannot catch this one and it needs its own check. Periapsis stays a
    * real positive radius for both signs.
    */
@@ -148,7 +148,7 @@ describe("solveOrbit", () => {
   });
 
   /**
-   * The whole reason this is a function rather than a hook: ONE implementation
+   * The whole reason this is a function rather than a hook: one implementation
    * has to serve the craft's orbit and its target's, which are the same
    * `VesselOrbit` shape solved at the same instant. Nothing in here can reach
    * for a topic, so an orbit is an orbit.

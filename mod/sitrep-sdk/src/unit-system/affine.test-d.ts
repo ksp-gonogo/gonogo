@@ -9,13 +9,13 @@ import { value } from "./value";
  * multiplied by a scalar, and `value("ut", 100).greaterThan(value("s", 76))` was
  * quietly true.
  *
- * Half of these cases assert what is now REFUSED, which a type test can only do with
+ * Half of these cases assert what is now refused, which a type test can only do with
  * `@ts-expect-error`: the directive fails the build if the line it guards starts
  * compiling again. So the negative half is load-bearing in both directions, and a
  * rule that silently widened would break this file rather than pass it.
  *
  * The other half is the regression net. `energy`/`torque` and `percent`/`ratio` are
- * the two other dimensions carrying more than one kind, and NEITHER is affine: the
+ * the two other dimensions carrying more than one kind, and neither is affine: the
  * first is a coincidence, the second is one quantity at two scales. Both keep working
  * exactly as before, and they are asserted here rather than trusted, because the
  * mechanism reads a declaration and a widened declaration would reach them first.

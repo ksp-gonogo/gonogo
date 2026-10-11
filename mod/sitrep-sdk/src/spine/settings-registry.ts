@@ -8,7 +8,7 @@ import type { Screen } from "./screen";
  * own setting definition with the code that consumes it, and `SettingsModal`
  * renders whatever's registered, generically, with no per-mod knowledge.
  *
- * This is the PREFERRED way an Uplink surfaces settings: declare a row here and
+ * This is the preferred way an Uplink surfaces settings: declare a row here and
  * the app renders + persists it. Reach for a whole custom tab
  * (`registerSettingsTab`, see `./settings-tabs.ts`) only when a setting's UI
  * genuinely can't be expressed as a declarative row, that's the rare escape
@@ -21,7 +21,7 @@ import type { Screen } from "./screen";
  *   - `client-pref`: a pure gonogo-side preference persisted to localStorage
  *     via `SettingsService`/`useSetting`. No mod round-trip.
  *   - `stream-backed`: the value arrives on a telemetry Topic and there is no
- *     writer at all. This is what a setting looks like when it is PROVENANCE
+ *     writer at all. This is what a setting looks like when it is provenance
  *     rather than preference: a plugin's own configuration, read off the wire,
  *     which the operator needs in order to know what every other number means.
  *
@@ -38,7 +38,7 @@ import type { Screen } from "./screen";
  * lie, and the operator finds out only by trying.
  *
  * **Grouping** is orthogonal to all three. `category` is the heading a row
- * files under; `group` is a named block INSIDE that category, so a mod with
+ * files under; `group` is a named block inside that category, so a mod with
  * forty rows reads as five short lists rather than one wall.
  */
 

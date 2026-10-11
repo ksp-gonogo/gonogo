@@ -4,7 +4,7 @@
  *
  * The replay feeds `vessel.target` as a literal `null` (see
  * `sitrep-stream-server.mjs`), the mod's own no-target convention: the topic is
- * declared `absenceIsData`, so a cleared target arrives as a TOMBSTONE and the
+ * declared `absenceIsData`, so a cleared target arrives as a tombstone and the
  * widget renders "No target set in KSP". A reading with no frame yet renders
  * "Waiting for target telemetry" instead, so asserting one and not the other
  * says which reading produced the placeholder.

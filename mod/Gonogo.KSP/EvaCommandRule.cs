@@ -7,7 +7,7 @@ namespace Gonogo.KSP
     /// stepped out of and the stock call underneath it cannot reach that craft.
     ///
     /// <para><b>Why the seam does not cover these.</b>
-    /// <see cref="ActiveVesselScope"/> moved every active-vessel-scoped READ
+    /// <see cref="ActiveVesselScope"/> moved every active-vessel-scoped read
     /// onto the craft rather than the kerbal. A write cannot be moved the same
     /// way, because the stock calls take no vessel and resolve one themselves:
     /// <c>FlightInputHandler</c> applies its control state only to the loaded
@@ -76,7 +76,7 @@ namespace Gonogo.KSP
         /// </summary>
         /// <param name="reportingTheCraftAKerbalLeft">
         /// <see cref="ActiveVesselScope.SubstitutedForEva"/>: gonogo is
-        /// reporting a craft that is NOT what KSP is flying.
+        /// reporting a craft that is not what KSP is flying.
         /// </param>
         /// <param name="detail">
         /// Which of the constants above applies. The code is the load-bearing

@@ -6,7 +6,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 /**
  * `true` connected, `false` a positive report of no link, `null` unknown, and
  * `"awaiting"` while the link's first word is still on its way: the first
- * light-time of a session, which says nothing about the link either way.
+ * signal delay of a session, which says nothing about the link either way.
  */
 export type CommsLinkState = boolean | "awaiting" | null;
 

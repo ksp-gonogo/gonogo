@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Sitrep.Core
 {
     /// <summary>
-    /// An immutable snapshot of every one-way delay that applied to ONE node at
+    /// An immutable snapshot of every one-way delay that applied to one node at
     /// one instant: the vantage-independent base, plus whatever explicit
     /// per-(vantage, node) rows overrode it.
     ///
@@ -15,12 +15,12 @@ namespace Sitrep.Core
     /// record time and the wrong one when a backlog is replayed later: nothing
     /// else answered "what was it when this sample left".</para>
     ///
-    /// <para>A stamp is per NODE and per VANTAGE, not one number per sample. A
+    /// <para>A stamp is per node and per vantage, not one number per sample. A
     /// scalar cannot express the two-vantage case the golden fixtures already
     /// pin (KSC at 2 s and DSN at 5 s off the same node), so a late subscriber
-    /// on one of them would be replayed the other one's light-time.</para>
+    /// on one of them would be replayed the other one's signal delay.</para>
     ///
-    /// <para>Immutable, so it is shared BY REFERENCE across every sample
+    /// <para>Immutable, so it is shared by reference across every sample
     /// recorded while the ledger held still (see
     /// <see cref="INetwork.StampFor"/>'s caching contract). The per-sample cost
     /// is therefore one reference, not a copy of the map.</para>
@@ -83,7 +83,7 @@ namespace Sitrep.Core
         public double BaseSeconds => _baseSeconds;
 
         /// <summary>
-        /// Whether this stamp says when ONE vantage received the sample, which no
+        /// Whether this stamp says when one vantage received the sample, which no
         /// other vantage has yet. An archive that holds such a sample serves it
         /// only to a vantage whose arrival has passed, since the archive is one per
         /// craft and is read by every command centre.
@@ -140,11 +140,11 @@ namespace Sitrep.Core
 
         /// <summary>
         /// This stamp with <paramref name="extraSeconds"/> added to every tier:
-        /// the journey time of a sample that WAITED before it was sent. A
+        /// the journey time of a sample that waited before it was sent. A
         /// blackout recording is the case (see <see cref="Courier.ReplayRecorded"/>):
         /// it describes an instant long before it travelled, so the interval
-        /// from its ValidAt to its arrival is the wait plus the light-time, and
-        /// a stamp carrying only the light-time would date its arrival to the
+        /// from its ValidAt to its arrival is the wait plus the signal delay, and
+        /// a stamp carrying only the signal delay would date its arrival to the
         /// middle of the outage.
         /// </summary>
         public DelayStamp Plus(double extraSeconds)
@@ -209,7 +209,7 @@ namespace Sitrep.Core
         /// The UT the node finds out and re-targets.
         ///
         /// <para>Word of the break travels back to the node over the route the
-        /// break sits on, so it arrives one one-way light-time from the node to
+        /// break sits on, so it arrives one one-way signal delay from the node to
         /// the break point, which is exactly <see cref="LightSecondsOut"/>. That
         /// is the earliest instant the node can route around this break, and a
         /// model that let it re-target at <see cref="AtUt"/> would have it
@@ -268,7 +268,7 @@ namespace Sitrep.Core
     /// </summary>
     public interface INetwork
     {
-        /// <summary>One-way light-time seconds from <paramref name="vantage"/> to <paramref name="node"/>.</summary>
+        /// <summary>One-way signal delay seconds from <paramref name="vantage"/> to <paramref name="node"/>.</summary>
         double DelayTo(string vantage, string node);
 
         /// <summary>
@@ -287,9 +287,9 @@ namespace Sitrep.Core
         /// right now, so a sample recorded at this instant can carry the delay
         /// its own journey rides (see <see cref="DelayStamp"/>).
         ///
-        /// <para>Implementations MUST satisfy
+        /// <para>Implementations must satisfy
         /// <c>StampFor(node).For(vantage) == DelayTo(vantage, node)</c> for
-        /// every vantage at the instant the stamp is taken, and SHOULD return
+        /// every vantage at the instant the stamp is taken, and should return
         /// the same instance for repeated calls while nothing has changed: the
         /// Courier stamps every recorded sample, so a fresh allocation per
         /// record would put the cost on the hottest path there is.</para>
@@ -304,15 +304,15 @@ namespace Sitrep.Core
         void SetDefaultDelay(double seconds);
 
         /// <summary>
-        /// Sets the one-way delay for a NODE, applied for that node from any
+        /// Sets the one-way delay for a node, applied for that node from any
         /// vantage without a per-(vantage, node) override. The per-vessel
         /// downlink primitive (Plan 2): each vessel node carries its own routed
-        /// light-time for the single KSC observer.
+        /// signal delay for the single KSC observer.
         /// </summary>
         void SetNodeDelay(string node, double seconds);
 
         /// <summary>
-        /// Sets the ordered hops of a NODE's journey, the journey-carrying
+        /// Sets the ordered hops of a node's journey, the journey-carrying
         /// sibling of <see cref="SetNodeDelay"/>: applies to that node from
         /// any vantage without a per-(vantage, node) <see cref="SetDelay"/>
         /// override, same as <see cref="SetNodeDelay"/>, except
@@ -323,7 +323,7 @@ namespace Sitrep.Core
         /// so <see cref="DelayTo"/> and <see cref="StampFor"/> agree with
         /// whichever of the two setters wrote this node last.
         ///
-        /// <para>A later <see cref="SetNodeDelay"/> call for the SAME node
+        /// <para>A later <see cref="SetNodeDelay"/> call for the same node
         /// drops the journey: a bare scalar write means there is no hop
         /// breakdown for this delay any more, and the node falls back to the
         /// ordinary single-hop journey every other node already gets.</para>
@@ -331,11 +331,11 @@ namespace Sitrep.Core
         void SetNodeJourney(string node, Journey journey);
 
         /// <summary>
-        /// Sets the one-way delay for an EXPLICIT (vantage, node) pair, the
+        /// Sets the one-way delay for an explicit (vantage, node) pair, the
         /// highest-precedence tier of <see cref="DelayTo"/>. Overrides the
         /// <see cref="SetNodeDelay"/> node-default for that specific observer.
         /// The per-(authority, subject) command primitive (Plan 3): a command
-        /// centre's routed light-time to a fleet subject, applied only when an
+        /// centre's routed signal delay to a fleet subject, applied only when an
         /// operator selects that centre as its vantage.
         /// </summary>
         void SetDelay(string vantage, string node, double seconds);
@@ -354,13 +354,13 @@ namespace Sitrep.Core
         /// <summary>
         /// C#-ONLY. Record that the route carrying <paramref name="node"/>'s
         /// signal broke at <paramref name="atUt"/>,
-        /// <paramref name="lightSecondsOut"/> of light-time out from the node,
+        /// <paramref name="lightSecondsOut"/> of signal delay out from the node,
         /// and was whole again at <paramref name="restoredAtUt"/> (omit for a
         /// break that never closes: a destroyed relay).
         ///
-        /// <para>THE DROP EVENT, and it is an event rather than a value on
-        /// purpose. Every other write on this ledger sets a DELAY, which can say
-        /// "further away" and "nearer" and has no honest way to say GONE. Forced
+        /// <para>The drop event, and it is an event rather than a value on
+        /// purpose. Every other write on this ledger sets a delay, which can say
+        /// "further away" and "nearer" and has no honest way to say gone. Forced
         /// through that channel, gone has to be smuggled as a zero, a null or an
         /// infinity, and an overloaded sentinel is what produced the
         /// <c>overdue</c>/<c>lost</c> confusion elsewhere in this system. So a
@@ -376,9 +376,9 @@ namespace Sitrep.Core
         /// that would have retransmitted it is the relay that died. That is what
         /// this records.</para>
         ///
-        /// <para>RE-TARGETING IS NOT INSTANT, and the position is what dates it.
+        /// <para>RE-TARGETING is not instant, and the position is what dates it.
         /// A node learns its route broke when word of the break reaches it, one
-        /// one-way light-time out and back over the same
+        /// one-way signal delay out and back over the same
         /// <paramref name="lightSecondsOut"/>, so it keeps feeding the dead
         /// route until <see cref="PathDrop.LearnedAtUt"/> and everything it
         /// sends in that window is retired alongside the tail. Only after that
@@ -386,41 +386,41 @@ namespace Sitrep.Core
         /// which may re-establish the stream at a different delay.</para>
         ///
         /// <para>A break opening while the node is still blind to an earlier one
-        /// is DISCARDED, because the node is not on the route it describes.</para>
+        /// is discarded, because the node is not on the route it describes.</para>
         ///
-        /// <para>The POSITION is the part that could not be inferred. A delay
-        /// stamp fixes WHEN a sample arrives; where the break sat along the
-        /// route is what decides WHETHER it arrives, and it is the one quantity
+        /// <para>The position is the part that could not be inferred. A delay
+        /// stamp fixes when a sample arrives; where the break sat along the
+        /// route is what decides whether it arrives, and it is the one quantity
         /// nothing else in the stack carries. Light already past the break point
         /// when the break opened is unaffected: it is a wavefront on the far
         /// leg and the break is behind it.</para>
         ///
-        /// <para>INTERNAL to the delay machinery. Nothing about a drop reaches
+        /// <para>Internal to the delay machinery. Nothing about a drop reaches
         /// the wire: a client sees only the silence it produces, which is the
         /// same silence it would see from a sample that had genuinely not
         /// arrived yet.</para>
         ///
         /// <para>Deliberately orthogonal to <see cref="Reachable"/> and to every
-        /// delay tier. Reachability answers whether a NEW message can be sent;
+        /// delay tier. Reachability answers whether a new message can be sent;
         /// this answers what happens to the light already on the wire, and the
         /// two have different answers during exactly the window that matters.
         /// Recording a drop therefore changes no delay and invalidates no
         /// <see cref="StampFor"/> cache.</para>
         ///
-        /// <para>FED, by exactly one production caller:
+        /// <para>Fed, by exactly one production caller:
         /// <c>ChannelEngine.ApplyPathBreak</c>, scoped to the active vessel's
         /// own node. What raises it is <c>PathBreakWatch</c>, which retains the
         /// ordered hop list (<c>CommsBackendBase.Path</c>) that
         /// <c>SignalDelay.Compute</c> sums into a single scalar, and keeps the
-        /// per-hop cumulative light-times that scalar discards: those are the
-        /// break's POSITION, which is the quantity this seam could not be given
+        /// per-hop cumulative signal delays that scalar discards: those are the
+        /// break's position, which is the quantity this seam could not be given
         /// before. The per-vessel fleet delays and the command-centre matrix
         /// still raise nothing, because their routes carry no node ids to name a
         /// break on.</para>
         ///
         /// <para>Bounded by warp, and the bound is enforced in the watch rather
         /// than assumed here: at a rate where one physics tick spans more UT than
-        /// the whole one-way light-time there is no ordering between "sent",
+        /// the whole one-way signal delay there is no ordering between "sent",
         /// "crossed" and "broke" to be had, so it raises nothing and the honest
         /// behaviour is the old one, which is to deliver, because we do not know
         /// it did not cross.</para>
@@ -436,18 +436,18 @@ namespace Sitrep.Core
         /// <paramref name="sentAtUt"/> ran into a break recorded by
         /// <see cref="DropPath"/>, and so can never arrive anywhere.
         ///
-        /// <para>Asked at DELIVERY time rather than stamped at record time, and
+        /// <para>Asked at delivery time rather than stamped at record time, and
         /// that is the opposite of what <see cref="DelayStamp"/> exists to
         /// enforce, for a reason worth stating. A delay is a property of the
         /// journey and is fixed the instant the light leaves, so re-reading it
         /// later answers for a route the sample never took. Whether a break
-        /// caught it is a fact about an instant DURING that journey, which the
+        /// caught it is a fact about an instant during that journey, which the
         /// record could not have known. The stamp must be early and this must be
         /// late.</para>
         ///
         /// <para>Node-scalar, where a delay is per-vantage. A break sits on the
         /// node's route home, and while two vantages can legitimately be at
-        /// different light-times off one node, nothing here can yet express a
+        /// different signal delays off one node, nothing here can yet express a
         /// break on one vantage's branch and not the other's. Say so rather than
         /// pretending: a branch-point break wants the per-vantage shape
         /// <see cref="DelayStamp"/> already has.</para>
@@ -478,7 +478,7 @@ namespace Sitrep.Core
     }
 
     /// <summary>
-    /// C# port of <c>mod/sitrep-server/src/stub-network.ts</c>. Semantics MUST
+    /// C# port of <c>mod/sitrep-server/src/stub-network.ts</c>. Semantics must
     /// stay byte-for-byte identical to the TS reference, conformance is
     /// asserted by <c>Sitrep.Core.Tests</c> against the shared golden fixtures
     /// in <c>mod/golden-fixtures/stub-network.json</c>, not by re-deriving
@@ -576,7 +576,7 @@ namespace Sitrep.Core
 
         /// <summary>
         /// A stored node journey, at the current <see cref="_scale"/>. Hops
-        /// carry a light-time already computed at the config's own
+        /// carry a signal delay already computed at the config's own
         /// light-speed scale, so this is a second, independent multiplier on
         /// top of that (the same test-only knob every other tier already
         /// applies); production never sets it away from 1, where this hands
@@ -685,14 +685,14 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Set the one-way delay for a NODE, applied to <see cref="DelayTo"/> for
-        /// that node from ANY vantage that has no explicit per-(vantage, node)
+        /// Set the one-way delay for a node, applied to <see cref="DelayTo"/> for
+        /// that node from any vantage that has no explicit per-(vantage, node)
         /// <see cref="SetDelay"/> override. This is the per-vessel downlink
         /// primitive (Plan 2): the fleet capture sets each vessel node's own
-        /// routed light-time, and every KSC-observer connection reads it. NaN /
+        /// routed signal delay, and every KSC-observer connection reads it. NaN /
         /// infinite / negative values clamp to 0 (matching
         /// <see cref="SetDefaultDelay"/>). Plan 3 layers per-(vantage, node)
-        /// <see cref="SetDelay"/> overrides ON TOP of this node-default for
+        /// <see cref="SetDelay"/> overrides on top of this node-default for
         /// multiple command authorities -- keep both.
         ///
         /// <para>Retires any <see cref="SetNodeJourney"/> held for this node:

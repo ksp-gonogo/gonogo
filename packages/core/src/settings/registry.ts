@@ -1,7 +1,7 @@
 /**
  * The settings registry moved to `@ksp-gonogo/sitrep-sdk`.
  *
- * Declaring a setting row is the PREFERRED way an Uplink surfaces one, so the
+ * Declaring a setting row is the preferred way an Uplink surfaces one, so the
  * registry an Uplink's test reads back has to be reachable from a published
  * package. It named `Screen` and nothing else, and `Screen` moved in the same
  * change.

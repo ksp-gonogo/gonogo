@@ -95,7 +95,7 @@ export class FlightDetector {
   }
 
   /**
-   * Forget a flight: used when the user deletes one via the flights
+   * Forget a flight: used when the operator deletes one via the flights
    * manager. If it's the current flight, the next sample mints a new one.
    */
   forget(id: string): void {

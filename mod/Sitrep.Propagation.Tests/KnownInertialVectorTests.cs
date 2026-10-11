@@ -6,9 +6,9 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation.Tests
 {
     /// <summary>
-    /// Pins the FULL inertial <see cref="StateVector"/> (position AND
-    /// velocity, all three components each) against an INDEPENDENTLY
-    /// published reference case with nonzero inc, lan, AND argPe -- unlike
+    /// Pins the full inertial <see cref="StateVector"/> (position and
+    /// velocity, all three components each) against an independently
+    /// published reference case with nonzero inc, lan, and argPe -- unlike
     /// <see cref="InclinationLanArgPeRotationTests"/>, which only checks the
     /// orbit-plane normal (h = r x v). That check is mathematically
     /// invariant to argPe: rotating the orbit within its own plane changes

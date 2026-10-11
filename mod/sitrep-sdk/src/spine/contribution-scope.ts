@@ -14,7 +14,7 @@ import { logger } from "../api/logger";
  * a contribution is on the stack.
  *
  * A Processor is never in scope. It is evaluated every frame and compares its
- * RESULT, so its answer stays current whatever it reads, and comparing the
+ * result, so its answer stays current whatever it reads, and comparing the
  * result needs no declaration of which inputs a compute really reads.
  */
 interface ContributionScope {

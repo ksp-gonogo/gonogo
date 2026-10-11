@@ -26,7 +26,8 @@ export type Tone =
   | "offline";
 
 /**
- * Every {@link Tone}, in the order a legend lists them.
+ * Every {@link Tone}, in the order a legend lists them. Useful for drawing a
+ * legend of the states, or for checking that something handles every tone.
  *
  * @category Tone
  */

@@ -1,7 +1,7 @@
 /**
  * Adapts a `Courier` (the reference delay engine) to the `Transport`
  * interface consumed by `@ksp-gonogo/sitrep-client`'s `TelemetryClient`. This is
- * what lets the unchanged M2 client receive DELAYED streams and DELAYED
+ * what lets the unchanged M2 client receive delayed streams and delayed
  * command round-trips: from the client's point of view it's just talking to
  * a `Transport`, same as `StubTransport` in M2 tests.
  *

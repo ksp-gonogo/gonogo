@@ -11,12 +11,12 @@ import type { Scene } from "./scenes";
  * widgets to be held to this. A scene that already stages the drop is compared
  * with itself fed live; one that does not is compared with itself dropped.</p>
  *
- * <p>Two ways to fail. UNCHANGED: the subject draws exactly the same elements
+ * <p>Two ways to fail. Unchanged: the subject draws exactly the same elements
  * both ways, so an operator has nothing to tell a figure from twenty minutes ago
- * from one that just arrived. UNANNOUNCED: the subject draws a held mark with
+ * from one that just arrived. Unannounced: the subject draws a held mark with
  * no caption, so the dot is there and a screen reader is told nothing.</p>
  *
- * <p>A guest drawn inside a real host is judged on what IT draws. The host may
+ * <p>A guest drawn inside a real host is judged on what it draws. The host may
  * mark its own readings, and a render that changed only because the host did is
  * the case this exists for: a correctly marked panel carrying a figure nobody
  * marked. So a hosted scene is also rendered with its guest withheld, in both

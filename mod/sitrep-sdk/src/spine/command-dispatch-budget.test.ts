@@ -5,18 +5,18 @@ import { TelemetryClient } from "./client";
 import type { Clock } from "./clock";
 
 /**
- * A command storm is only visible where the command LEAVES, and until this
+ * A command storm is only visible where the command leaves, and until this
  * budget existed nothing in the tree counted there.
  *
  * The trap this file exists to close: the game silently absorbs a command
- * asking for the state it is already in. So a fixture that measures EFFECTS
+ * asking for the state it is already in. So a fixture that measures effects
  * counts one dispatch where the client sent a hundred, and the loop that sent
  * the other ninety-nine registers nowhere. The warp controller ran exactly that
  * way, about 120 `time.setWarpIndex` dispatches across one light-time where one
  * was correct, and every gate in the repo stayed green.
  *
  * The first test therefore asserts on the budget at `TelemetryClient.dispatch`
- * and on the effect count side by side. The gap between the two numbers IS the
+ * and on the effect count side by side. The gap between the two numbers is the
  * storm, and it is the thing an outcome-watching test cannot report. The other
  * two hold the threshold from both sides: it trips on a runaway, and it stays
  * quiet through the loudest traffic a real operator produces.
@@ -70,7 +70,7 @@ function startSession() {
 
   /** The warp index the game is actually at, moved only by a command that asks for a different one. */
   let gameIndex = 0;
-  /** Every command that CHANGED the game, the only thing an effect-watching fixture can see. */
+  /** Every command that changed the game, the only thing an effect-watching fixture can see. */
   const effects: number[] = [];
 
   transport.setCommandHandler((command, args) => {

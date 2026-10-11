@@ -8,7 +8,7 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// The <c>comms.route</c> rows: the earliest-arrival route each way between
     /// every command centre and the active craft, from the current contact plan,
-    /// on the light times the game is set to model.
+    /// on the signal delays the game is set to model.
     ///
     /// <para>The way to the craft is a command's: any node holding it may turn
     /// an idle dish to send it on. The way back is a reply's, which only the
@@ -23,7 +23,7 @@ namespace Sitrep.Host.Comms
         /// A centre that is the active craft itself has no route to plan and gets
         /// no row.
         /// </summary>
-        /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
+        /// <param name="lightFactor">What a real signal delay is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         /// <param name="home">The home centre, or null.</param>
         /// <param name="antennas">Every ground station, each of which is the home centre's own antenna: see <see cref="GroundNetwork"/>.</param>
         /// <param name="retarget">How a route may use the plan's retarget windows, or null to route on the dishes' own aims alone.</param>

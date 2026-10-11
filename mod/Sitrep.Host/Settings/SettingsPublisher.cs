@@ -65,7 +65,7 @@ namespace Sitrep.Host.Settings
         }
 
         /// <summary>
-        /// One SAVE press. Every change is checked before any is applied, so a
+        /// One save press. Every change is checked before any is applied, so a
         /// refusal changes nothing; the accepted ones are then applied and
         /// written once. A write that fails is not a refusal: the values are in
         /// force, and the payload says the file does not hold them.

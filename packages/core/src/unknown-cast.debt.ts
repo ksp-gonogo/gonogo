@@ -8,7 +8,7 @@
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
  * reader to narrow, and that is the whole of its value. The defect this list
- * measures is the EXIT. `value as SomeType` is accepted out of `unknown` to
+ * measures is the exit. `value as SomeType` is accepted out of `unknown` to
  * anything at all, unchecked, so a wrong assertion compiles exactly like a right
  * one and the reader is handed a typed view of a shape the value never had.
  *
@@ -22,8 +22,8 @@
  *
  * **A wire or storage payload read straight into a domain type.** The largest
  * group and the one that produced the rule. `JSON.parse(raw) as Note[]`,
- * `(await res.json()) as IceConfig`, `reply.payload as Receipt`. REMOVED BY
- * NARROWING: check the fields you are about to read, and return "none" when they
+ * `(await res.json()) as IceConfig`, `reply.payload as Receipt`. Removed by
+ * narrowing: check the fields you are about to read, and return "none" when they
  * are absent, rather than defaulting. `mod/GonogoPrincipiaUplink/client/src/planWrite.ts`
  * is the worked example: `planWriteReceipt` narrows off `reply.payload` through
  * a `typeof` guard and two required-field checks, and every assertion left in it
@@ -31,24 +31,24 @@
  *
  * **A dictionary field read as a magnitude or an enum.** `e.courage as
  * Quantityish`, `r.state as AlarmState`. The producer flattens its own shape and
- * the consumer names the field back. REMOVED BY the generated contract map or a
+ * the consumer names the field back. Removed by the generated contract map or a
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
  * **A test fixture minted through an assertion.** 16 of the 47 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
- * REMOVED BY minting the value through the generated contract type or a real
+ * Removed by minting the value through the generated contract type or a real
  * builder, so a fixture that drifts from the contract fails to compile.
  *
  * **A DOM, platform or third-party boundary.** `event.target as
- * HTMLInputElement`, an untyped library handle. REMOVED BY a typed guard helper
+ * HTMLInputElement`, an untyped library handle. Removed by a typed guard helper
  * (`ui-kit` is the home for the DOM ones) or by a `.d.ts` for the library.
  *
  * ## Shrinking it
  *
  * In that order. The wire reads come first because they are the category the
- * defect came from and the only one that can be wrong SILENTLY at runtime; the
+ * defect came from and the only one that can be wrong silently at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
  * 23 of the 47 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
@@ -145,7 +145,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
 };
 
 /**
- * The `x as unknown as T` subset, held to its OWN ceiling.
+ * The `x as unknown as T` subset, held to its own ceiling.
  *
  * Two lists rather than one because a place with headroom under the count
  * above must still not gain a double. A single assertion out of `unknown` is
@@ -188,7 +188,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
 };
 
 /**
- * The instrument, floored on what the walk COVERS rather than on what it finds.
+ * The instrument, floored on what the walk covers rather than on what it finds.
  *
  * Every other assertion in the gate is `expect(offenders).toEqual([])`, and a
  * walk that lost its roots satisfies all of them: a moved path, a tsconfig that
@@ -196,7 +196,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  * tree. None of these count the debt, on purpose. The debt has a real zero to aim
  * at, and a floor under it would be one the work has to walk through.
  *
- * `assertions` counts EVERY non-`const` assertion, offending or not, so it holds
+ * `assertions` counts every non-`const` assertion, offending or not, so it holds
  * steady as the debt falls and still fails if the walk stops seeing assertions.
  */
 export const SCAN_FLOORS = {

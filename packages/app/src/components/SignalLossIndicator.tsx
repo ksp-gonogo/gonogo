@@ -9,18 +9,18 @@ import { useEffect, useRef, useState } from "react";
  *
  * Signal state is derived from:
  *  - `comms.link.connected`: is there a link to KSC at all? Read off the
- *    dedicated Delayed, freeze-EXEMPT `comms.link` MetaTopic (NOT the frozen
+ *    dedicated Delayed, freeze-EXEMPT `comms.link` MetaTopic (not the frozen
  *    `vessel.comms` struct), so a disconnect edge actually reaches the client
  *    through a blackout and flips the banner (comms-delay-model-consistency
  *    spec: a Delayed `vessel.comms.connected` froze at last-known, so the
  *    banner could never fire).
  *  - `vessel.comms.signalStrength`: 0..1 link strength. A last-known reading
  *    of ~0 ("0% signal") reads as no-signal even if `connected` was never
- *    observed false, so a link that decays to nothing still shows SIGNAL LOSS.
+ *    observed false, so a link that decays to nothing still shows signal loss.
  *  - `vessel.comms.controlState`: the raw `ControlState` enum, collapsed to
  *    CommSignal's 0/1/2 level via the SharedLib `collapseControlStateLevel`:
  *    0 no control, 1 partial, 2 full. Stays on the frozen
- *    `vessel.comms` struct: control state SHOULD freeze at last-known.
+ *    `vessel.comms` struct: control state should freeze at last-known.
  *
  * Until the stream reports these topics (warmup, no vessel active, or no
  * provider mounted) we stay in the "connected" state so the banner stays
@@ -33,7 +33,7 @@ import { useEffect, useRef, useState } from "react";
 /**
  * Strength at or below this reads as "0% signal" ⇒ no-signal. Tiny (a
  * float-noise guard), not a "weak link" threshold: a genuinely weak-but-present
- * link (e.g. 1%) must NOT flash the banner, only an effectively-zero reading.
+ * link (e.g. 1%) must not flash the banner, only an effectively-zero reading.
  */
 const NO_SIGNAL_STRENGTH_EPSILON = value("ratio", 1e-6);
 
@@ -116,12 +116,12 @@ export function SignalLossIndicator() {
 
 /**
  * "Lost" is bound to a confirmed disconnect (`comms.link.connected === false`)
- * OR an effectively-zero signal strength: both gated on having seen a
+ * or an effectively-zero signal strength: both gated on having seen a
  * confirmed-true link first, so a cold-start false / 0% (no vessel, CommNet
  * off, no antenna) never flashes the banner. This keeps it honest: when it says
- * SIGNAL LOSS, the link really is down or at 0%. `controlState` low without
+ * signal loss, the link really is down or at 0%. `controlState` low without
  * disconnection (crewed ship missing its pilot etc.) is informational only and
- * shown as PARTIAL.
+ * shown as partial.
  */
 export function deriveState(
   connected: boolean | undefined,

@@ -31,17 +31,17 @@ import type { Dep } from "./processors";
  * Last-write-wins is also not election, whatever it is called: the winner is
  * decided by module import order, which is a fact about the bundler. A real
  * conflict is two Uplinks both claiming to model one topic, and the honest
- * answer is to serve NEITHER OF THEM: a reading carrying whichever model
+ * answer is to serve neither of them: a reading carrying whichever model
  * happened to load second is a confident picture assembled by accident, and
  * `Reading`'s own doc is explicit that a wrong reckoner is worse than none. Same
  * resolution `getResolvedComponents` uses for two widgets claiming one
  * replacement target: withhold both, surface the conflict, never silently merge.
  *
- * What withholding both must NOT mean is serving nothing while core holds a
+ * What withholding both must not mean is serving nothing while core holds a
  * working vanilla for the same topic. See {@link getReckoner}: the contest
  * withdraws the contenders and core's own model answers.
  *
- * Re-registration under the SAME owner is last-write-wins and deliberately not
+ * Re-registration under the same owner is last-write-wins and deliberately not
  * an error, matching `defineUplinkClient`: a module re-evaluating under HMR or
  * a test re-importing after `resetModules` is a benign single-owner case, and
  * there is no cross-package collision to guard against within one owner.
@@ -188,7 +188,7 @@ export interface ReckonerExemption {
  *
  * The point of the rules is that a model gets them without writing anything, so
  * the exceptions are the only part anyone has to read, and they have to be
- * readable in ONE place rather than found by grepping twelve Uplinks. An
+ * readable in one place rather than found by grepping twelve Uplinks. An
  * Uplink's generated page lists its own off this, and the ledger suite pins the
  * whole set so a new exemption arrives as a reviewed diff rather than as a line
  * inside a model nobody re-reads.
@@ -277,7 +277,7 @@ export interface ReckonerConflict {
   topic: string;
   /**
    * The competing owners, sorted, core included where it also registered. Every
-   * CONTENDER is withheld; core is not a contender and covers where it has a
+   * contender is withheld; core is not a contender and covers where it has a
    * model. See {@link getReckoner}.
    */
   owners: string[];

@@ -13,7 +13,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * `comms.delay`, carried forward by re-measuring the FIRST hop and nothing else.
+ * `comms.delay`, carried forward by re-measuring the first hop and nothing else.
  *
  * Every hop but the first joins two things that do not move relative to each
  * other on a telemetry timescale, so the length the mod measured for them is
@@ -21,7 +21,7 @@ import { ViewClock } from "./view-clock";
  * left, so the leg with the craft on it is the only one worth re-deriving, and
  * the rest of the route carries forward as the sum it already was.
  *
- * The fixtures below are built so the expected numbers can be WRITTEN DOWN
+ * The fixtures below are built so the expected numbers can be written down
  * rather than recomputed by the code under test: one root planet at the origin,
  * a circular equatorial craft orbit, a relay whose period is exactly twice the
  * craft's, and a rotation period four times the craft's. At half a craft period
@@ -39,7 +39,7 @@ const CRAFT_PERIOD = 2 * Math.PI * Math.sqrt(CRAFT_SMA ** 3 / PLANET_MU);
 const RELAY_SMA = CRAFT_SMA * Math.cbrt(4);
 const RELAY_GUID = "8f0d2d3c-0000-4000-8000-000000000001";
 
-/** Deliberately NOT a multiple of the craft's period: the station has to move. */
+/** Deliberately not a multiple of the craft's period: the station has to move. */
 const ROTATION_PERIOD = 4 * CRAFT_PERIOD;
 
 /** The mod's own constant (`Sitrep.Host.Comms.SignalDelay`), at scale 1. */
@@ -140,7 +140,7 @@ const DIRECT_LIGHT_TIME_SECONDS = (CRAFT_SMA - PLANET_RADIUS) / C;
 
 /**
  * A store holding one observation of every input, a light-time from the craft,
- * with the transport DOWN so a read past the observation grades stale rather
+ * with the transport down so a read past the observation grades stale rather
  * than waiting out a heartbeat. The wall clock stands for the craft's UT, so
  * each point lands a light-time after it was stamped, and `at` dials SCET.
  */

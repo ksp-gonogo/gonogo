@@ -79,7 +79,7 @@ namespace Gonogo.KSP
         /// no-comms-model wrapper to stamp its own payloads with.
         ///
         /// <para>Built here rather than borrowed from a backend: the shared
-        /// derivation moved onto <c>CommsBackendBase</c> as a PROTECTED instance
+        /// derivation moved onto <c>CommsBackendBase</c> as a protected instance
         /// member, which is right for a backend stamping its own payloads and
         /// unreachable from a wrapper that is not one. Same field off the
         /// same <see cref="ActiveVesselScope.Current"/> read, so the two cannot

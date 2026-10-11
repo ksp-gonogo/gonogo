@@ -37,11 +37,11 @@ import {
 } from "./ratchetBaseRef";
 
 /**
- * gonogo Saga task 727: does any PRODUCTION client read this published contract field or
+ * gonogo Saga task 727: does any production client read this published contract field or
  * send this contract command. Core integrated the n-body arc and published it
  * as `vessel.orbit.Arc`, plus a `vessel.trajectory.forVantage` command;
  * neither had a production reader, only tests and an sdk hook, and no
- * existing ratchet asked the question at FIELD granularity: a widely read
+ * existing ratchet asked the question at field granularity: a widely read
  * Topic makes every field on it look consumed. See `contract-reader-coverage.scan.ts`
  * for the two reader signals and their tradeoffs.
  */
@@ -124,7 +124,7 @@ describe("every contract field and command has a production reader", () => {
 
 describe("the scan can be seen to work", () => {
   /**
-   * Both halves plant against REAL contract data (`vessel.orbit` and
+   * Both halves plant against real contract data (`vessel.orbit` and
    * `vessel.control.stage`), not a fabricated Topic: `enumerateTopicFields`
    * reads the sdk's live unit/shape registry regardless of which repo root
    * the scan otherwise walks, so a fake Topic id would enumerate zero fields

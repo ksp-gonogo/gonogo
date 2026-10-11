@@ -1,8 +1,8 @@
 /**
  * The two delay-native clocks and the regime classifier, as margins in seconds: the burn countdown and time-to-impact are already measured against the operator's delayed view, so no view clock is needed.
  *
- * - Commit Clock, `T_ignition - N`: the last instant a human GO can still reach the vessel before ignition. At or below 0 the burn happens autonomously or not at all
- * - Blind Clock, `T_impact - 2N`: the last instant a command's result could still be seen before impact. Surfaced as the COMMIT POINT; at or below 0 the outcome is fixed and merely unseen
+ * - Commit Clock, `T_ignition - N`: the last instant a human `GO` can still reach the vessel before ignition. At or below 0 the burn happens autonomously or not at all
+ * - Blind Clock, `T_impact - 2N`: the last instant a command's result could still be seen before impact. Surfaced as the commit point; at or below 0 the outcome is fixed and merely unseen
  *
  * The regime turns the round trip into the operator's role (pilot, flight director, mission planner).
  *
@@ -47,7 +47,7 @@ export interface DelayClocks {
   roundTripSeconds: number | null;
   /** Seconds until commit (`countdown - N`); null when no burn solution. */
   commitInSeconds: number | null;
-  /** True once past the commit point: a GO can no longer reach the vessel. */
+  /** True once past the commit point: a `GO` can no longer reach the vessel. */
   committed: boolean;
   /** Seconds until blind (`impact - 2N`); null when no impact time. */
   blindInSeconds: number | null;
@@ -107,7 +107,7 @@ export function deriveDelayClocks(inp: DelayClockInputs): DelayClocks {
 /**
  * The one-way delay off `comms.delay`, or `null` when nothing has established one.
  *
- * `null` means NO PATH and zero means a measured zero-distance link, so this never coerces: a coerced zero reads as `live` and shows a burn countdown for a craft nothing can reach. The VALUE decides, never `source`, since `CommsDelaySource.None` carries both a LAN zero and the no-path null. A negative delay is impossible and reads as unknown.
+ * `null` means "NO PATH" and zero means a measured zero-distance link, so this never coerces: a coerced zero reads as `live` and shows a burn countdown for a craft nothing can reach. The value decides, never `source`, since `CommsDelaySource.None` carries both a LAN zero and the no-path null. A negative delay is impossible and reads as unknown.
  */
 export function readOneWaySeconds(
   delay:

@@ -4,7 +4,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.CurrencyDelay
 {
     /// <summary>
-    /// Where the away-science arm gets the AMOUNT it is told a change was worth,
+    /// Where the away-science arm gets the amount it is told a change was worth,
     /// which no unit test can reach: <c>StockCurrencyInterceptor.cs</c> needs a
     /// live scene and is not compiled into this project at all.
     ///
@@ -13,7 +13,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// rule itself proves the rule works and says nothing about whether the shipped
     /// game reaches it.</para>
     ///
-    /// <para>Where that arm gets the DELAY is the other half, and lives in
+    /// <para>Where that arm gets the delay is the other half, and lives in
     /// <see cref="AwayScienceOriginIsResolvedTests"/> beside the headless
     /// exercise of the roster walk it now shares with the per-increment
     /// sink.</para>
@@ -27,7 +27,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         /// interceptor it was one shared slot, and on an RP-1 install a second
         /// query fired between the real one and the change (Confidence pricing
         /// itself through <c>CurrencyUtils.Conf</c>, same reason, zero science)
-        /// erased the base. The change then resolved AWAY with a base of zero and
+        /// erased the base. The change then resolved away with a base of zero and
         /// the arm did nothing at all.
         /// </summary>
         [Fact]

@@ -9,7 +9,7 @@ import { scanScope } from "./scanScope";
  * One border-box reset, in the sheet every gonogo page loads, and nowhere else.
  *
  * `box-sizing` is a document-level decision: `width: 100%` beside horizontal
- * padding resolves to 100% PLUS the padding under the default `content-box`,
+ * padding resolves to 100% plus the padding under the default `content-box`,
  * so a rule that overflows reads as if it asks for exactly the space it has.
  *
  * So the reset lives in `packages/theme/src/tokens.css`, which the app imports

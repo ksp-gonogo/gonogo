@@ -17,7 +17,7 @@ namespace Sitrep.Host
     /// <see cref="IKspHost.Sample"/> snapshot carries (populated by
     /// <c>Gonogo.KSP.KspHost.BuildSpaceCenter</c>/<c>BuildScene</c>) and hand-
     /// builds the wire trees, following <see cref="SystemViewProvider"/>'s
-    /// untyped-dict convention (NOT <c>VesselViewProvider</c>'s typed-POCO +
+    /// untyped-dict convention (not <c>VesselViewProvider</c>'s typed-POCO +
     /// ToWire): the <see cref="LaunchSiteEntry"/> / <see cref="SpaceCenterScene"/> /
     /// <see cref="SpaceCenterPoiEntry"/> contract types are TS-shape-only
     /// mirrors, never serialized: the live dict/list tree this produces is
@@ -93,22 +93,22 @@ namespace Sitrep.Host
     /// </summary>
     public static class SpaceCenterViewProvider
     {
-        /// <summary>The keyed launch-site roster channel (a BARE ARRAY, <c>isArray: true</c>).</summary>
+        /// <summary>The keyed launch-site roster channel (a bare array, <c>isArray: true</c>).</summary>
         public const string LaunchSitesTopic = "spaceCenter.launchSites";
 
         /// <summary>The current-scene channel (a wrapper object <c>{ "scene": string }</c>).</summary>
         public const string SceneTopic = "spaceCenter.scene";
 
-        /// <summary>The hired-crew roster channel (a BARE ARRAY, <c>isArray: true</c>).</summary>
+        /// <summary>The hired-crew roster channel (a bare array, <c>isArray: true</c>).</summary>
         public const string CrewRosterTopic = "spaceCenter.crewRoster";
 
-        /// <summary>The saved-craft roster channel (a BARE ARRAY, <c>isArray: true</c>).</summary>
+        /// <summary>The saved-craft roster channel (a bare array, <c>isArray: true</c>).</summary>
         public const string SavedShipsTopic = "spaceCenter.savedShips";
 
         /// <summary>The buildable-parts-count channel (a wrapper object <c>{ "count": int }</c>).</summary>
         public const string PartsAvailableTopic = "spaceCenter.partsAvailable";
 
-        /// <summary>The map points-of-interest channel (a BARE ARRAY, <c>isArray: true</c>).</summary>
+        /// <summary>The map points-of-interest channel (a bare array, <c>isArray: true</c>).</summary>
         public const string PoisTopic = "spaceCenter.pois";
 
         /// <summary>The Astronaut Complex hire channel (a wrapper object: applicant pool + roster cap + active-crew count).</summary>
@@ -117,12 +117,12 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["launchSites"]</c> list to the
-        /// <c>spaceCenter.launchSites</c> payload: a BARE
+        /// <c>spaceCenter.launchSites</c> payload: a bare
         /// <c>List&lt;object?&gt;</c> (matching <c>isArray: true</c>), one dict per
         /// site mirroring <see cref="LaunchSiteEntry"/> field-for-field.
-        /// <c>body</c> (a captured body NAME) resolves to a
+        /// <c>body</c> (a captured body name) resolves to a
         /// <see cref="SystemBodies"/> index via
-        /// <see cref="SharedMappers.ResolveBodyIndex"/>: the SAME pattern
+        /// <see cref="SharedMappers.ResolveBodyIndex"/>: the same pattern
         /// <see cref="SystemViewProvider.BuildSystemVessels"/> uses; never a
         /// fabricated sentinel index. Returns <c>null</c> (not an empty list)
         /// when the snapshot carries no <c>spaceCenter</c>/<c>launchSites</c> key
@@ -198,7 +198,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>Values["scene"]</c> string:
-        /// the RAW <c>GameScenes</c> enum name KspHost captured, to the
+        /// the raw <c>GameScenes</c> enum name KspHost captured, to the
         /// <c>spaceCenter.scene</c> payload <c>{ "scene": string }</c>, folding
         /// the enum onto the six migration-target strings the legacy
         /// <c>kc.scene</c> key used (<c>FLIGHT</c>→<c>"Flight"</c>,
@@ -237,7 +237,7 @@ namespace Sitrep.Host
         /// the <c>CrewRosterEntry</c> wire shape shared by the hired-crew
         /// roster and the Astronaut Complex applicant pool.
         ///
-        /// <para>The STANDING is the elected <see cref="ICrewStandingBackend"/>'s
+        /// <para>The standing is the elected <see cref="ICrewStandingBackend"/>'s
         /// answer, stamped into the raw dict at capture time (the same
         /// capture→provider split <see cref="BuildScene"/> uses), and
         /// <c>situation</c> / <c>available</c> / <c>unavailableReason</c> are all
@@ -338,7 +338,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["crewRoster"]</c> list to the
-        /// <c>spaceCenter.crewRoster</c> payload: a BARE <c>List&lt;object?&gt;</c>
+        /// <c>spaceCenter.crewRoster</c> payload: a bare <c>List&lt;object?&gt;</c>
         /// (matching <c>isArray: true</c>), one dict per kerbal mapped by
         /// <see cref="BuildCrewEntryPayload"/>. Returns <c>null</c>, not an
         /// empty list: when the snapshot carries no <c>crewRoster</c> key (no
@@ -375,7 +375,7 @@ namespace Sitrep.Host
         /// <c>applicants</c> is mapped per-entry by <see cref="BuildCrewEntryPayload"/>,
         /// the same shape as the hired-crew roster; the numeric header fields
         /// are a straight re-map through <see cref="SnapshotDict"/>'s readers.
-        /// Returns <c>null</c> (the SANDBOX / no-career / no-game case) when the
+        /// Returns <c>null</c> (the sandbox / no-career / no-game case) when the
         /// snapshot carries no <c>astronautComplex</c> key at all, distinct from a
         /// career save whose pool is genuinely empty (a non-null payload with an
         /// empty <c>applicants</c> list).
@@ -423,7 +423,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw
         /// <c>Values["spaceCenter"]["savedShips"]</c> list to the
-        /// <c>spaceCenter.savedShips</c> payload: a BARE <c>List&lt;object?&gt;</c>
+        /// <c>spaceCenter.savedShips</c> payload: a bare <c>List&lt;object?&gt;</c>
         /// (matching <c>isArray: true</c>), one dict per craft file mirroring
         /// <see cref="SavedShipEntry"/> field-for-field. Every value is already a
         /// primitive KspHost read off <c>CraftProfileInfo</c>, so this is a
@@ -497,7 +497,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>launchSites</c> and
         /// <c>contractTargets</c> sub-lists to the <c>spaceCenter.pois</c>
-        /// payload: a BARE <c>List&lt;object?&gt;</c> (matching
+        /// payload: a bare <c>List&lt;object?&gt;</c> (matching
         /// <c>isArray: true</c>) combining both sources into one flat roster,
         /// mirroring <see cref="SpaceCenterPoiEntry"/> field-for-field.
         ///
@@ -506,7 +506,7 @@ namespace Sitrep.Host
         /// never a sentinel" discipline <see cref="BuildLaunchSites"/>'s
         /// <c>bodyIndex</c> follows); a stock site (<c>isStock</c>) maps to
         /// <c>Kind = "ksc"</c>, everything else to <c>"launchSite"</c>.
-        /// Contract targets are filtered to <c>isOnSurface</c> AND a raw
+        /// Contract targets are filtered to <c>isOnSurface</c> and a raw
         /// <c>contractState</c> of <c>"Active"</c> or <c>"Offered"</c>: the
         /// inclusion decision this KSP-free layer owns (the capture side
         /// passes every waypoint's raw state through unfiltered, same
@@ -516,7 +516,7 @@ namespace Sitrep.Host
         ///
         /// <para><c>body</c>/<c>celestialName</c> (captured body/celestial
         /// NAMEs) resolve to a <see cref="SystemBodies"/> index via
-        /// <see cref="SharedMappers.ResolveBodyIndex"/>, the SAME pattern
+        /// <see cref="SharedMappers.ResolveBodyIndex"/>, the same pattern
         /// <see cref="BuildLaunchSites"/> uses (never a fabricated sentinel
         /// index). Returns <c>null</c>, not an empty list, when the snapshot
         /// carries no <c>spaceCenter</c> group at all (no sample landed yet),
@@ -707,7 +707,7 @@ namespace Sitrep.Host
         /// Folds a raw <c>GameScenes</c> enum name onto the six fixed output
         /// strings. Kept internal-static so the provider test can assert the
         /// mapping for every enum value (incl. the <c>"Other"</c> fallback)
-        /// without a KSP reference. NOTE the real enum member is
+        /// without a KSP reference. Note the real enum member is
         /// <c>TRACKSTATION</c> (verified via decompile): not the
         /// <c>TRACKINGSTATION</c> the earlier scoping guessed.
         /// </summary>

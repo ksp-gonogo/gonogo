@@ -10,7 +10,7 @@ namespace Sitrep.Host
     /// <see cref="IUplinkHost.AddCommandHandler{TArgs,TResult}"/>: validate the
     /// already-typed args, call the one matching <see cref="ICareerActuator"/>
     /// method, hand back an already-typed result. No KSP/Unity type appears
-    /// anywhere in this file: the only checks done HERE are on the args
+    /// anywhere in this file: the only checks done here are on the args
     /// themselves (an empty/whitespace id can never resolve to a live entity, so
     /// it fails fast as <see cref="CommandErrorCode.NotFound"/> without ever
     /// reaching the actuator). Every check that needs live game state, whether

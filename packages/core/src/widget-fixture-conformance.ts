@@ -105,7 +105,7 @@ const SKIP_DIRS = new Set([
 ]);
 
 /**
- * A resolver that also says WHERE each topic was declared.
+ * A resolver that also says where each topic was declared.
  *
  * The provenance is what lets a test ask whether both halves of the wire really
  * loaded without naming a single Uplink, which matters because a check that
@@ -420,7 +420,7 @@ export function scanAllFixtures(
 /**
  * The debt-list key for a finding: widget directory, topic and field name.
  *
- * Deliberately NOT the fixture path. The same invented name is copied across
+ * Deliberately not the fixture path. The same invented name is copied across
  * every fixture in a widget's dir (`departmentName` sits in five of the six
  * Strategies fixtures), and keying per file would turn one defect into five
  * entries that have to be deleted in lockstep. The path inside the payload is

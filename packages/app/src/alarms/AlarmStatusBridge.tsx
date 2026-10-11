@@ -55,10 +55,10 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
  * A widget consuming a whole payload (`useTelemetry("career.status")`,
  * `useStream("vessel.orbit")`) declares the channel, while an alarm's subject
  * resolves to one field inside it, and two strings that differ by a suffix are
- * never equal. So a declaration also matches every field BENEATH it.
+ * never equal. So a declaration also matches every field beneath it.
  *
- * The direction matters and is the whole design. Containment walks DOWN from
- * the declaration into its fields; it must never walk UP from a derived field
+ * The direction matters and is the whole design. Containment walks down from
+ * the declaration into its fields; it must never walk up from a derived field
  * to that channel's inputs. A derived field resolves to every input of its
  * channel, so an upward walk would light a widget for an alarm on a quantity it
  * never draws: a loud false positive traded for a silent miss.

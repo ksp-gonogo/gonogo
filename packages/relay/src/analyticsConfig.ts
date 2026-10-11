@@ -5,7 +5,7 @@ import type { FastifyInstance, FastifyReply } from "fastify";
  *
  * The host POSTs its consent (`{ enabled }`) on every change and re-asserts
  * it on its registry heartbeat. The relay holds the current value in memory
- * (defaulting to DISABLED until the first POST, privacy-first) and fans it
+ * (defaulting to disabled until the first post, privacy-first) and fans it
  * out to the services that can't reach the host directly:
  *
  *   - `GET  /analytics-config`        , pull the current value.
@@ -21,11 +21,11 @@ import type { FastifyInstance, FastifyReply } from "fastify";
  */
 
 export interface AnalyticsConfigController {
-  /** Current consent. Defaults false until the first POST. */
+  /** Current consent. Defaults false until the first post. */
   get(): boolean;
   /** Update the consent and notify SSE subscribers. */
   set(enabled: boolean): void;
-  /** Subscribe to changes (does NOT fire on subscribe). Returns unsubscribe. */
+  /** Subscribe to changes (does not fire on subscribe). Returns unsubscribe. */
   subscribe(cb: (enabled: boolean) => void): () => void;
   /** Live SSE subscriber count: for tests. */
   subscriberCount(): number;
@@ -67,7 +67,7 @@ function writeSseEvent(reply: FastifyReply, enabled: boolean): void {
  * Mount the analytics-config broker onto a Fastify instance. CORS is
  * inherited from the relay's global `@fastify/cors` registration (same as
  * `/ice-config` and the host registry). Optionally takes a callback fired
- * on every change so the relay can gate its OWN Axiom transport.
+ * on every change so the relay can gate its own Axiom transport.
  *
  * Returns the controller so the caller can read/gate and tests can inspect.
  */

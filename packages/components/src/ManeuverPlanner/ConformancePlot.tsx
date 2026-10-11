@@ -71,7 +71,7 @@ const REGIME: Record<
 };
 
 export interface ConformancePlotProps {
-  /** The vessel's CURRENT orbit: always "where it is", whatever the regime. */
+  /** The vessel's current orbit: always "where it is", whatever the regime. */
   current: {
     sma: number;
     ecc: number;
@@ -91,12 +91,12 @@ export interface ConformancePlotProps {
   regime: ConformanceRegime;
   /**
    * Share of the burn's delta-v the impulsive plan does not account for, or
-   * null when nothing models a duration. Null is NOT zero.
+   * null when nothing models a duration. Null is not zero.
    */
   residual: number | null;
   /**
-   * Whether the CURRENT orbit is a live observation. The planned conic is
-   * AUTHORED and never dims: a plan does not be held, it just is.
+   * Whether the current orbit is a live observation. The planned conic is
+   * authored and never dims: a plan does not be held, it just is.
    */
   currentIsObserved: boolean;
   bodyRadius?: number | null;

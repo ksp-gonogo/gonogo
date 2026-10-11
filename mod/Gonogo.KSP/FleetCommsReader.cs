@@ -12,18 +12,18 @@ namespace Gonogo.KSP
     /// Routed comms reads over the live CommNet graph. Two entry points, one
     /// primitive: <see cref="ReadVessel"/> reads a vessel's own solved path home
     /// (the graph KSP already maintains for every vessel, loaded or not), and
-    /// <see cref="ReadNodePath"/> measures a route between ANY two nodes, asked
-    /// of the ELECTED BACKEND rather than solved here. Both hand their hops to
-    /// <see cref="RoutedPathDelay"/>, so a vessel's light-time and a
-    /// centre-to-centre light-time are computed by the same arithmetic.
+    /// <see cref="ReadNodePath"/> measures a route between any two nodes, asked
+    /// of the elected backend rather than solved here. Both hand their hops to
+    /// <see cref="RoutedPathDelay"/>, so a vessel's signal delay and a
+    /// centre-to-centre signal delay are computed by the same arithmetic.
     ///
-    /// <para>THREADING: reads live KSP state, MAIN-THREAD only (the capture half
+    /// <para>Threading: reads live KSP state, MAIN-THREAD only (the capture half
     /// of the fleet <c>AddSampledSource</c>).</para>
     /// </summary>
     internal static class FleetCommsReader
     {
         /// <summary>
-        /// Routed one-way light-time (null = no measurable path) + connectivity
+        /// Routed one-way signal delay (null = no measurable path) + connectivity
         /// for a single vessel. Fail-soft: any torn-down-state throw yields
         /// (null, false), the correct "no live link" meaning.
         ///
@@ -78,7 +78,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// The same route as <see cref="ReadVessel"/>, broken into its
         /// ordered legs rather than summed to a single delay. Walks the
-        /// vessel's OWN solved control path again -- already solved by
+        /// vessel's own solved control path again -- already solved by
         /// CommNet, so this is a second enumeration of an existing list, not
         /// a second pathfind -- under the same fail-soft and
         /// no-comms-model rules as <see cref="ReadVessel"/>: see there for
@@ -173,7 +173,7 @@ namespace Gonogo.KSP
         /// every one carries the home command's ledger, so this is what reaching it
         /// means. Null when it cannot be read.
         ///
-        /// <para>Not <c>IsConnected</c>. Stock sets that for a path to ANY control
+        /// <para>Not <c>IsConnected</c>. Stock sets that for a path to any control
         /// source, and a crewed craft with a probe control point is one, so a
         /// vessel relaying only through another ship reads connected while nothing
         /// it sends reaches the ground. The path's own last hop is asked instead,
@@ -217,14 +217,14 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Routed one-way light-time between two arbitrary comms nodes, or null
-        /// when the ELECTED BACKEND does not route between them. Unlike
+        /// Routed one-way signal delay between two arbitrary comms nodes, or null
+        /// when the elected backend does not route between them. Unlike
         /// <see cref="ReadVessel"/>, which can only ever answer "how far is this
         /// vessel from home", this is a route between a named start and a named
         /// end, which is what a command centre addressing another centre (or a
         /// subject that is not its own home) needs.
         ///
-        /// <para><b>The route is the BACKEND's, never stock's.</b> This used to
+        /// <para><b>The route is the backend's, never stock's.</b> This used to
         /// call <c>CommNetwork.FindPath</c> itself, on the stated premise that
         /// "RealAntennas overrides only link CONSTRUCTION, never the pathfinder".
         /// That premise was false and it hid a live wrong number for as long as
@@ -234,10 +234,10 @@ namespace Gonogo.KSP
         /// (and therefore <c>comms.delay</c>) is RA-correct with nobody doing
         /// anything, and why the two look interchangeable. They are not:
         /// <c>FindPath</c> has its own <c>CreateShortestPathTree</c> walk that RA
-        /// never touches, so it solved RA's link set by STOCK's rules, which know
+        /// never touches, so it solved RA's link set by stock's rules, which know
         /// nothing of RA's minimum relay tech level (2 on an RSS/RO career) and
         /// nothing of its directional forward/reverse link costs. The delay that
-        /// came back was a real light-time over real links, and it was measured
+        /// came back was a real signal delay over real links, and it was measured
         /// along a route the game itself refuses to carry.</para>
         ///
         /// <para>So the question goes to <see cref="ICommsBackend.RouteBetween"/>,

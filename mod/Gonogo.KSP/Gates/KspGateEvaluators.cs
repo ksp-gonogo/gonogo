@@ -20,7 +20,7 @@ namespace Gonogo.KSP.Gates
     /// it.</para>
     ///
     /// <para><b>Why a gate rather than another check in the actuator.</b> A
-    /// declared requirement is evaluated by the engine BEFORE the handler runs,
+    /// declared requirement is evaluated by the engine before the handler runs,
     /// and the same declaration evaluated with an empty argument bag is the
     /// addressability answer: whether the control should be live at all. That is
     /// the difference between pressing a button to find out the pad is occupied
@@ -35,7 +35,7 @@ namespace Gonogo.KSP.Gates
     ///
     /// <para><b>An authority that does not exist is not an authority that could
     /// not be read.</b> In the facility gates, <c>ScenarioUpgradeableFacilities</c>
-    /// is absent from a sandbox save because sandbox HAS no facility tiers, and
+    /// is absent from a sandbox save because sandbox has no facility tiers, and
     /// answering Unknown there would refuse capabilities that are maximally
     /// available. That is decided by
     /// <see cref="FacilityGateHelp.ReadFacilityTiers"/>, from the game mode, and
@@ -95,7 +95,7 @@ namespace Gonogo.KSP.Gates
             /// <summary>
             /// Whether <see cref="FacilityLimitGate"/> knows this quantity.
             ///
-            /// <para>Asked BEFORE the gate decides anything about facility tiers,
+            /// <para>Asked before the gate decides anything about facility tiers,
             /// so a declaration naming a limit that does not exist answers
             /// Unknown in every mode rather than passing in the modes where the
             /// tiers happen not to matter. A typo must not be answered
@@ -156,7 +156,7 @@ namespace Gonogo.KSP.Gates
     ///
     /// <para><see cref="CommandRequirement.Quantity"/> is a <c>|</c>-separated
     /// list of the scenes the command may run from, because several commands
-    /// accept more than one and a requirement per scene would AND them into
+    /// accept more than one and a requirement per scene would and them into
     /// something unreachable.</para>
     /// </summary>
     internal sealed class SceneGate : ICommandGateEvaluator
@@ -654,7 +654,7 @@ namespace Gonogo.KSP.Gates
         /// <para><b>Both of the last two present identically</b> - a null
         /// <c>ScenarioUpgradeableFacilities.Instance</c> - and they want opposite
         /// answers, so the discriminator has to come from somewhere else. It is
-        /// the game MODE, which is what KSP itself decides scenario existence
+        /// the game mode, which is what KSP itself decides scenario existence
         /// from: <c>Game.CreateNew</c> and <c>Game.UpdateScenarioModules</c> both
         /// switch on <c>Game.Mode</c> and add a scenario only when its
         /// <c>[KSPScenario]</c> options name that mode.
@@ -670,14 +670,14 @@ namespace Gonogo.KSP.Gates
         ///
         /// <para><b>Max is not a fail-open guess, it is what stock already
         /// answers.</b> <c>ScenarioUpgradeableFacilities.GetFacilityLevel(string)</c>
-        /// is a STATIC that starts its result at <c>1f</c> and only lowers it
+        /// is a static that starts its result at <c>1f</c> and only lowers it
         /// when <c>protoUpgradeables</c> has an entry for the facility, so a
         /// sandbox save already reads every facility at its top tier through
         /// KSP's own code path, with or without an Instance. The refusal came
         /// from our null-Instance guard, never from anything the game declined
         /// to tell us.</para>
         ///
-        /// <para>The training-scenario modes are deliberately NOT in the max
+        /// <para>The training-scenario modes are deliberately not in the max
         /// list. <c>SCENARIO</c>, <c>SCENARIO_NON_RESUMABLE</c> and
         /// <c>MISSION_BUILDER</c> get neither arm of KSP's own dispatch, so
         /// whether they carry the scenario depends on the file they were built
@@ -737,7 +737,7 @@ namespace Gonogo.KSP.Gates
             return false;
         }
 
-        /// <summary>The facility as the GAME names it, through <c>Localizer</c>.</summary>
+        /// <summary>The facility as the game names it, through <c>Localizer</c>.</summary>
         public static string DisplayName(SpaceCenterFacility facility)
         {
             try

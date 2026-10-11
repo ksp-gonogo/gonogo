@@ -11,14 +11,14 @@ namespace Sitrep.Core.Tests
     /// <summary>
     /// The binary lane's wire format, and the four ways a frame can be wrong.
     ///
-    /// <para>Three of the assertions here are PLANTED CONTROLS rather than
+    /// <para>Three of the assertions here are planted controls rather than
     /// checks on the happy path, and they are the ones that matter. A
     /// discriminator that never sees a JSON frame cannot be shown to
     /// discriminate; a refusal path that is never given a malformed frame
     /// reports success by doing nothing. So an ordinary envelope is offered to
     /// the magic-byte check, a frame is written on a lane this build does not
     /// know, and a well-formed frame is truncated by one byte, and each is
-    /// asserted to be refused BY NAME.</para>
+    /// asserted to be refused by name.</para>
     /// </summary>
     public class BinaryFrameCodecTests
     {
@@ -103,7 +103,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// PLANTED CONTROL. Every frame the protocol writes today is a JSON
+        /// Planted control. Every frame the protocol writes today is a JSON
         /// document, and the discriminator's whole claim is that none of them
         /// can be mistaken for a binary one. Asserted against real output from
         /// <see cref="EnvelopeCodec"/> rather than a hand-typed `{`, so the day
@@ -136,7 +136,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// PLANTED CONTROL, and the reason the lane byte exists at all: a
+        /// Planted control, and the reason the lane byte exists at all: a
         /// decoder meeting a lane it does not know must refuse it by name. The
         /// failure this rules out is the silent one, where the bytes fall
         /// through to a UTF-8 decoder and the resulting mojibake fails JSON
@@ -158,8 +158,8 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// PLANTED CONTROL for absence discipline: a truncated frame is UNREAD.
-        /// The temptation this rules out is returning the segments that DID
+        /// Planted control for absence discipline: a truncated frame is unread.
+        /// The temptation this rules out is returning the segments that did
         /// arrive whole, which hands a listener a fragment of a transmission
         /// with nothing to say it is one.
         /// </summary>
@@ -181,7 +181,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The other direction of the same exactness. A frame carrying MORE
+        /// The other direction of the same exactness. A frame carrying more
         /// bytes than its table accounts for is a producer whose header and
         /// buffer disagree, and reading the prefix that happens to line up
         /// would deliver part of the disagreement as though it were the whole
@@ -201,7 +201,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Zero segments is a LEGAL frame, and it has to be, or "this producer
+        /// Zero segments is a legal frame, and it has to be, or "this producer
         /// had nothing to say this tick" has no spelling that a listener can
         /// tell apart from a broken frame. The pairing with the truncation test
         /// above is the actual assertion: same empty segment list, opposite
@@ -262,7 +262,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The length table is DERIVED from the bytes rather than trusted from
+        /// The length table is derived from the bytes rather than trusted from
         /// the caller, so a producer cannot state a length that disagrees with
         /// what it is writing and hand the far end an undecodable frame for a
         /// reason invisible at this end.
@@ -285,7 +285,7 @@ namespace Sitrep.Core.Tests
         /// segments behind one header cost far less per segment than ten
         /// frames would. The ratio is checked loosely (the header carries a
         /// real Meta, whose size moves with the topic string) because the claim
-        /// is the ORDER of the saving, not a byte count.
+        /// is the order of the saving, not a byte count.
         /// </summary>
         [Fact]
         public void BatchingAmortisesTheHeaderAcrossSegments()

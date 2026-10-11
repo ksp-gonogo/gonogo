@@ -26,9 +26,10 @@ export interface FitLabelButtonProps
 
 /**
  * A `button` that shows its label while the label fits and its icon when it
- * does not. The switch is measured against the button's own width, not a
- * breakpoint, and follows resizes. It is an unstyled native button
- * (`type="button"` by default), so it has no border, fill or padding until you give it some: style it with
+ * does not. Useful for a control in a panel the operator can narrow. The switch
+ * is measured against the button's own width and follows resizes. It is an
+ * unstyled native button (`type="button"` by default), so it has no border,
+ * fill or padding until you give it some: style it with
  * `styled(FitLabelButton)` or wrap it as the layout needs.
  *
  * The accessible name is always `label`, carried in `aria-label` in both
@@ -59,8 +60,9 @@ export const FitLabelButton = forwardRef<
 
 /**
  * The label-or-icon content of a {@link FitLabelButton}, for another control
- * that draws its own button and wants the same collapse. It measures its
- * parent's content box, so the parent must be able to shrink below the label
+ * that draws its own button and wants the same collapse. Used by
+ * {@link FitLabelButton} and {@link CommandButton}. It measures its parent's
+ * content box, so the parent must be able to shrink below the label
  * (`min-width: 0`). Both states are `aria-hidden`: the parent carries the name.
  * Kit-internal, not on the barrel.
  */

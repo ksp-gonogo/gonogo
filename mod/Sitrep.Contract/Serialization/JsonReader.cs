@@ -12,7 +12,7 @@ namespace Sitrep.Contract.Serialization
     /// writes: <c>null</c>, <c>bool</c>, <c>double</c>, <c>string</c>,
     /// <c>Dictionary&lt;string, object?&gt;</c>, <c>List&lt;object?&gt;</c>.
     ///
-    /// THE only place a JSON string VALUE (not an object key) is converted
+    /// The only place a JSON string value (not an object key) is converted
     /// to a CLR value: every string token is checked against
     /// <see cref="NanPolicy.TryDecode"/> and, if it matches, decoded straight
     /// to the corresponding non-finite <c>double</c> instead of staying a
@@ -185,7 +185,7 @@ namespace Sitrep.Contract.Serialization
                 return result;
             }
 
-            /// <summary>Parses a JSON string VALUE and applies the NaN/Infinity sentinel decode. Use <see cref="ParseRawString"/> for object keys.</summary>
+            /// <summary>Parses a JSON string value and applies the NaN/Infinity sentinel decode. Use <see cref="ParseRawString"/> for object keys.</summary>
             private object ParseStringValue()
             {
                 var raw = ParseRawString();

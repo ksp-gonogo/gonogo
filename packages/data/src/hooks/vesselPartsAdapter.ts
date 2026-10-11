@@ -15,7 +15,7 @@ import type {
 
 /**
  * Reshapes the mod's `vessel.parts` Topic (the structural part-tree stream,
- * `VesselStructure.cs`'s doc comment calls it a SIBLING channel) into the
+ * `VesselStructure.cs`'s doc comment calls it a sibling channel) into the
  * legacy `VesselTopology` shape `ShipMap`/`PowerSystems`'s diagram code
  * already consumes, so `useTopology` can un-gap `v.topology`/`v.topologySeq`
  * without touching either widget's rendering logic.
@@ -108,7 +108,7 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
 // the other silently lands you 546.3 K out.
 
 /**
- * Per-part internal temperature off the SAME `vessel.parts` payload
+ * Per-part internal temperature off the same `vessel.parts` payload
  * `deriveTopologyFromVesselParts` reads, carrying both units, and with no wire
  * round-trip of its own. `null` when the
  * part hasn't been simulated yet this session (`currentTemp` unset,

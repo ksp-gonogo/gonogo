@@ -5,7 +5,7 @@
  * entry means new code just wrote the character, which is the thing the gate
  * exists to stop; use ordinary punctuation instead.
  *
- * Most of what is here is a NUMERIC RANGE rather than prose punctuation
+ * Most of what is here is a numeric range rather than prose punctuation
  * (`0-100`, `30-60 s`, `49160-49170`). It is still the wrong character: an
  * ASCII hyphen reads identically in a monospace editor, survives every
  * encoding, and does not need this list.

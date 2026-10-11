@@ -9,8 +9,8 @@ namespace Sitrep.Contract.TestSupport
 {
     /// <summary>
     /// The per-Uplink half of the uplink-types-out-of-core plan's Unit guard
-    /// (§5b), in ONE place: once an Uplink's wire types live in their own
-    /// assembly instead of <c>Sitrep.Contract</c>, nothing FORCES a future
+    /// (§5b), in one place: once an Uplink's wire types live in their own
+    /// assembly instead of <c>Sitrep.Contract</c>, nothing forces a future
     /// property on them to declare its unit, so each relocated slice re-asserts
     /// the exhaustiveness core's own gate gives its own types.
     ///
@@ -23,13 +23,13 @@ namespace Sitrep.Contract.TestSupport
     /// their DTOs were flat. A trimmed copy is not a smaller gate, it is a gate
     /// with a hole: a <c>List&lt;double&gt;</c> added to one of those slices
     /// later would have been waved through. This helper carries core's rule in
-    /// FULL for every caller, so the sequence, dictionary and Vec3 branches are
+    /// full for every caller, so the sequence, dictionary and Vec3 branches are
     /// there before the type that needs them is.</para>
     ///
     /// <para><b>What stays in the caller.</b> Only the mechanical sweep is
     /// shared. Each Uplink's Tests project keeps its own <c>[Fact]</c>s naming
     /// its own real properties, because those assertions are what stop the sweep
-    /// passing VACUOUSLY: that a nested type is still reached, that a container
+    /// passing vacuously: that a nested type is still reached, that a container
     /// is still exempt, that a name-keyed map the sweep cannot demand is
     /// annotated anyway. Sharing the sweep does not make those generic, and a red
     /// still names the Uplink that broke.</para>
@@ -50,7 +50,7 @@ namespace Sitrep.Contract.TestSupport
     public static class UnitCoverageAssertion
     {
         /// <summary>
-        /// True when a property carries a VALUE rather than a structure, and so
+        /// True when a property carries a value rather than a structure, and so
         /// is something a unit can describe. Mirrors
         /// <c>UnitCoverageTests.RequiresUnit</c> in full, all three branches.
         /// </summary>
@@ -64,7 +64,7 @@ namespace Sitrep.Contract.TestSupport
         /// Every <see cref="SitrepContractAttribute"/>-tagged type in an
         /// Uplink's own contract assembly, nested-only shapes included.
         ///
-        /// <para>GENERIC TYPE DEFINITIONS ARE INCLUDED. Exactly three contract
+        /// <para>Generic type definitions are included. Exactly three contract
         /// types are generic, and they are
         /// the three envelope types every message on the wire is one of:
         /// <c>StreamData&lt;T&gt;</c>, <c>CommandRequest&lt;TArgs&gt;</c> and
@@ -73,7 +73,7 @@ namespace Sitrep.Contract.TestSupport
         /// <see cref="EventMsg"/> and <see cref="ErrorMsg"/> declared one on
         /// every field.</para>
         ///
-        /// <para>A type PARAMETER is not scalar, so <c>Payload</c>,
+        /// <para>A type parameter is not scalar, so <c>Payload</c>,
         /// <c>Args</c> and <c>Result</c> are skipped by the property filter on
         /// their own merits and need no exemption here.</para>
         /// </summary>
@@ -124,13 +124,13 @@ namespace Sitrep.Contract.TestSupport
         }
 
         /// <summary>
-        /// The assembly's contract types are EXACTLY the named set.
+        /// The assembly's contract types are exactly the named set.
         ///
         /// <para><see cref="AssertExhaustive"/> passes vacuously on any type the
         /// scan does not reach, and there are two silent ways for that to
         /// happen: a type loses <c>[SitrepContract]</c>, or a nested type stops
         /// being referenced by its parent. Both are failures of the guard rather
-        /// than of the wire. Asserting the set both ways also means a NEW type
+        /// than of the wire. Asserting the set both ways also means a new type
         /// added to a slice shows up as a red here rather than joining the sweep
         /// unexamined, which is the point at which someone should be looking at
         /// its annotations.</para>
@@ -159,8 +159,8 @@ namespace Sitrep.Contract.TestSupport
         /// <summary>
         /// Mirrors <c>UnitCoverageTests.IsVec3</c>: a <c>Vec3</c>-typed field is
         /// a composite that carries a real unit, not a structural container to
-        /// be exempted. The ONE canonical Vec3 is used at sites carrying
-        /// different units, so the unit sits on the FIELD and codegen propagates
+        /// be exempted. The one canonical Vec3 is used at sites carrying
+        /// different units, so the unit sits on the field and codegen propagates
         /// it to the three scalar leaves. Matched by name, the same string-only
         /// discipline core's copy keeps.
         /// </summary>
@@ -171,7 +171,7 @@ namespace Sitrep.Contract.TestSupport
         /// type itself. Mirrors <c>UnitCoverageTests.ElementType</c> including
         /// its dictionary branch (a dictionary is a bag of heterogeneous values
         /// by definition, so one unit could not describe all of them, and the
-        /// consequence for a map of BARE scalars is a hole each Uplink holding
+        /// consequence for a map of bare scalars is a hole each Uplink holding
         /// one has to pin by name itself). <c>string</c> is short-circuited
         /// because it is an <see cref="IEnumerable"/> of <c>char</c> and is
         /// emphatically not a sequence of quantities.

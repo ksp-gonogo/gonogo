@@ -11,7 +11,7 @@ namespace Sitrep.Host.Tests
     /// when the notice goes out, and what survives a re-arm or a rewind.
     ///
     /// <para>Every assertion here is about a clock and a reading the roster is
-    /// TOLD, never ones it takes, which is what lets the feature be exercised
+    /// told, never ones it takes, which is what lets the feature be exercised
     /// without a game. The KSP half is <c>Gonogo.KSP.ScetAlarmUplink</c> and is
     /// three calls long by design.</para>
     /// </summary>
@@ -20,7 +20,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// A reading the test decides. Stands in for the snapshot read the
         /// uplink does on the main thread, so what is being asserted here is the
-        /// DECISION rather than the plumbing that fetches the number.
+        /// decision rather than the plumbing that fetches the number.
         /// </summary>
         private sealed class FakeReader : IScetStateReader
         {
@@ -644,7 +644,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Reported ONCE. A pending change that kept being reported would
+        /// Reported once. A pending change that kept being reported would
         /// republish the roster on every tick for the rest of the session.
         /// </summary>
         [Fact]
@@ -709,7 +709,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The audience comes off the ARGUMENTS, unlike <c>ArmedBy</c>, which
+        /// The audience comes off the arguments, unlike <c>ArmedBy</c>, which
         /// the engine resolves from where the command entered. The two answer
         /// different questions and an operator at one centre may legitimately
         /// ask what another has been told, which the entering vantage cannot

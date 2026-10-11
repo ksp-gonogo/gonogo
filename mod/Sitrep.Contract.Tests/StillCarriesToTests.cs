@@ -6,7 +6,7 @@ namespace Sitrep.Contract.Tests
 {
     /// <summary>
     /// The discriminator the drop event rests on: telling a relay that was
-    /// REPLACED from one that STOPPED CARRYING.
+    /// replaced from one that stopped carrying.
     ///
     /// <para>Both look identical in <see cref="ICommsBackend.Path"/>: a
     /// different list of hops. Only the first should let the in-flight tail

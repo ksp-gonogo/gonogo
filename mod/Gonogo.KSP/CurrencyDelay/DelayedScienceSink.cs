@@ -39,7 +39,7 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Records one science increment earned by a vessel. The KSC-anchored one-way light-time is
+        /// Records one science increment earned by a vessel. The KSC-anchored one-way signal delay is
         /// derived here, from the vessel <see cref="KscLightTime.ForVesselId"/> finds in the live
         /// roster for <paramref name="vesselId"/>, so a delayed credit's reveal-UT is computed the
         /// same way for every source: the caller supplies only the vessel identity, the raw amount,

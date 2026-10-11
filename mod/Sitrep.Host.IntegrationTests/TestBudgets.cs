@@ -8,7 +8,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// Central wall-clock budgets for this suite, plus a thread-pool warm-up.
     ///
-    /// Every test here drives a REAL Fleck WebSocket server + a real
+    /// Every test here drives a real Fleck WebSocket server + a real
     /// <c>ClientWebSocket</c>, and asserts on message delivery under a
     /// wall-clock deadline. The whole delivery path, accept, handshake,
     /// receive, Courier processing, send, client receive, runs either on the
@@ -21,22 +21,22 @@ namespace Sitrep.Host.IntegrationTests
     /// or CI runner also running <c>turbo</c>/<c>vitest</c> under
     /// <c>--force</c>, plus the usual background load (security scanners, etc.)
     ///, the test process is repeatedly descheduled for seconds at a time. The
-    /// operation is still correct and WOULD complete given CPU, but the
+    /// operation is still correct and would complete given CPU, but the
     /// wall-clock deadline advances anyway, so a too-tight budget expires and
     /// the op surfaces as an <see cref="OperationCanceledException"/> /
     /// <c>TimeoutException</c>. Because the starvation is stochastic, a
-    /// DIFFERENT test trips each run, the classic "passes in isolation, fails
-    /// under load, never the same one twice" signature. It is NOT intra-suite
+    /// different test trips each run, the classic "passes in isolation, fails
+    /// under load, never the same one twice" signature. It is not intra-suite
     /// parallelism (that's already disabled, see <c>TestParallelization.cs</c>),
-    /// NOT a product race (the transport path is fully async and non-blocking,
-    /// and every engine/socket is disposed per test), and NOT a leaked thread
+    /// not a product race (the transport path is fully async and non-blocking,
+    /// and every engine/socket is disposed per test), and not a leaked thread
     /// (vendored Fleck keeps no per-connection thread).
     ///
     /// The fix therefore is not a code-path change, it is (a) removing the
     /// self-inflicted portion of the latency by warming the thread pool so a
-    /// ready continuation never ALSO has to wait for the pool's slow
+    /// ready continuation never also has to wait for the pool's slow
     /// hill-climb to inject a worker, and (b) sizing these budgets as genuine
-    /// load HEADROOM rather than tight deadlines. Every value here is a
+    /// load headroom rather than tight deadlines. Every value here is a
     /// "how long before we give up and call it hung", never a real timing
     /// assertion, correct ops finish in milliseconds and never pay it. All are
     /// env-overridable so a pathologically slow runner can be given even more
@@ -55,7 +55,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// Quiet window for the "drain until the wire goes silent" helpers
         /// (<c>DrainToLatestStreamDataAsync</c> / <c>DrainAllStreamDataAsync</c>).
-        /// This is the FRAGILE budget: a frame merely delayed by starvation past
+        /// This is the fragile budget: a frame merely delayed by starvation past
         /// the window is misread as "stream finished", silently dropping it and
         /// failing a downstream assertion. A larger window can only ever avoid
         /// missing a real frame, it never invents one, so it is pure

@@ -9,7 +9,7 @@ namespace Sitrep.Host
     ///
     /// <para>The alternative a client had was <c>P0·exp(-h/H)</c> over a
     /// bundled table of stock bodies. That is wrong twice: the table is keyed
-    /// by NAME and a planet pack renames every body, and the exponential is
+    /// by name and a planet pack renames every body, and the exponential is
     /// not the function KSP evaluates. A body with
     /// <c>atmosphereUsePressureCurve</c> set follows a tabulated curve, which
     /// is what stock's own atmospheres and the RealAtmospheres-style packs
@@ -18,7 +18,7 @@ namespace Sitrep.Host
     /// <c>GetPressure</c> is right for all three cases at once.</para>
     ///
     /// <para><b>Why the spacing is chosen rather than fixed.</b> The profile
-    /// is read on a LOG pressure axis, so what matters is the error in the log
+    /// is read on a log pressure axis, so what matters is the error in the log
     /// of the pressure, and a consumer that joins the samples log-linearly
     /// reproduces a pure exponential atmosphere exactly at any spacing. What
     /// it cannot reproduce is real curvature, and where that curvature sits

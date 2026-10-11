@@ -10,8 +10,8 @@ namespace Gonogo.KSP.Tests
     /// That an uplink's GameEvents hooks outlive the main menu.
     ///
     /// <para>The host addon is <c>KSPAddon(Instantly, once)</c> and DontDestroyOnLoad, so
-    /// <c>Register</c> runs once per process, during LOADING. KSP fires
-    /// <c>onGameSceneLoadRequested(MAINMENU)</c> on the LOADING to MAINMENU transition that
+    /// <c>Register</c> runs once per process, during loading. KSP fires
+    /// <c>onGameSceneLoadRequested(MAINMENU)</c> on the loading to MAINMENU transition that
     /// follows, so a handler that unhooks on that request runs at boot, before any game is
     /// loaded, and nothing re-hooks. The crash, recovery and flight-end producers did that
     /// and published nothing in any session.</para>

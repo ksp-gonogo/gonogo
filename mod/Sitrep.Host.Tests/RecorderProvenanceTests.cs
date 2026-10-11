@@ -12,7 +12,7 @@ namespace Sitrep.Host.Tests
     /// (<see cref="RecordedEntry.T"/>), with no way to correlate a captured
     /// entry against real-world evidence (screen recording, Axiom logs) or
     /// to detect a dropped/duplicated entry independent of list order.
-    /// <see cref="Recorder"/> now stamps every entry - snapshot AND event -
+    /// <see cref="Recorder"/> now stamps every entry - snapshot and event -
     /// with a real wall-clock timestamp and a shared monotonic sequence
     /// number, and <see cref="RecordedSessionCodec"/> carries both through
     /// a JSON round-trip.

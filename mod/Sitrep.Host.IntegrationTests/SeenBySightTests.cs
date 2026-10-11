@@ -8,7 +8,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Where an object is can be seen, radio or none, in contact or out. A
-    /// sighting reaches a command centre after the straight-line light-time
+    /// sighting reaches a command centre after the straight-line signal delay
     /// from the object, through no relay. Everything else about a craft comes
     /// only by its radio.
     ///

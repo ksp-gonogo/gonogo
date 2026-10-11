@@ -26,7 +26,7 @@ namespace Sitrep.Core.Tests
     /// unannotated <c>double</c> cannot hide behind a <c>bool</c>, and silence
     /// always means someone forgot.</para>
     ///
-    /// <para><b>Structural properties are exempt BY TYPE, not by name.</b> A
+    /// <para><b>Structural properties are exempt by type, not by name.</b> A
     /// container has no dimension of its own: a nested contract POCO, or a list
     /// of them, is described entirely by the units on its leaves. Deriving that
     /// from the property type means a payload can gain a sub-object without
@@ -37,7 +37,7 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>A declining ratchet, not a cliff.</b> The baseline holds what
     /// was already bare, and <see cref="BaselineOnlyShrinks"/> fails if an
-    /// entry goes stale, so a batch that annotates properties MUST delete its
+    /// entry goes stale, so a batch that annotates properties must delete its
     /// lines here. The ratchet cannot quietly stall.</para>
     /// </summary>
     public class UnitCoverageTests
@@ -56,7 +56,7 @@ namespace Sitrep.Core.Tests
 
 
         /// <summary>
-        /// True when a property carries a VALUE rather than a structure, and so
+        /// True when a property carries a value rather than a structure, and so
         /// is something a unit can describe.
         ///
         /// <para>Scalars are the numerics, strings, booleans and enums, plus a
@@ -73,9 +73,9 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// A <c>Vec3</c>-typed field is a composite that carries a real unit,
-        /// not a structural container to be exempted. The ONE canonical Vec3 is
+        /// not a structural container to be exempted. The one canonical Vec3 is
         /// used at sites carrying three different units, so the unit sits on the
-        /// FIELD and codegen propagates it to the three scalar leaves (see
+        /// field and codegen propagates it to the three scalar leaves (see
         /// <c>RtConfig.EmitUnitMap</c>). The gate therefore requires an
         /// annotation on the Vec3 field itself, exactly as it does a scalar.
         /// Matched by name so this test needs no reference back to the Vec3
@@ -148,19 +148,19 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// `TypeName.PropertyName` for every property carrying a
         /// <see cref="SitrepUnitAttribute"/>, read straight out of the assembly's
-        /// METADATA.
+        /// metadata.
         ///
         /// <para><b>Why not <c>PropertyInfo.IsDefined</c>.</b> It looks equivalent
         /// and passes locally, and it fails on a clean checkout with
         /// <c>FileNotFoundException: Reinforced.Typings</c>. Filtering custom
-        /// attributes has to RESOLVE each attribute's type to compare it against
+        /// attributes has to resolve each attribute's type to compare it against
         /// the filter, so one property carrying a <c>[TsProperty]</c> is enough to
         /// throw, and <c>Reinforced.Typings</c> is compile-time-only by explicit
         /// design (see <see cref="SitrepContractAttribute"/>). It passed here only
         /// because a local codegen run leaves that DLL in <c>bin/</c>; CI has no
         /// such run and went red.
         ///
-        /// <para>The type-level check above survives because no contract TYPE
+        /// <para>The type-level check above survives because no contract type
         /// carries an attribute that fails to resolve, which is exactly why this
         /// hazard is easy to walk into: the same call is safe one level up.</para>
         ///
@@ -414,8 +414,8 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The repo's source copy. The .csproj links the baseline in as a BUILD
-        /// OUTPUT, so writing to the loaded path would land in <c>bin/</c> and be
+        /// The repo's source copy. The .csproj links the baseline in as a build
+        /// output, so writing to the loaded path would land in <c>bin/</c> and be
         /// discarded on the next build. Same walk, and same trap, as
         /// ContractShapeGateTests.ResolveLedgerSourcePath.
         /// </summary>

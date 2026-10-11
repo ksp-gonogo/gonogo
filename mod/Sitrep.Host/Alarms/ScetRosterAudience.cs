@@ -3,17 +3,17 @@ namespace Sitrep.Host.Alarms
     /// <summary>
     /// When a tick should put the SCET alarm roster on the wire.
     ///
-    /// <para><b>An EMPTY roster is an answer, and it is the one a cold client
+    /// <para><b>An empty roster is an answer, and it is the one a cold client
     /// needs most.</b> The client reconciles its own alarm list against the
     /// roster, so it will not arm anything until it has seen one: reconciling
     /// against a roster it has not been given would disarm alarms the host
-    /// actually holds. "There are no alarms" is therefore the state that MUST
+    /// actually holds. "There are no alarms" is therefore the state that must
     /// reach a client, and under a publish-on-change rule it is the only state
     /// that never can, because a roster that starts empty and stays empty never
     /// changes.</para>
     ///
     /// <para><b>Why counting our own publishes does not work.</b> The engine
-    /// DROPS a publish for a topic nobody is subscribed to, so an uplink that
+    /// drops a publish for a topic nobody is subscribed to, so an uplink that
     /// publishes once at registration and remembers having done so has spent its
     /// one publish on a frame that went nowhere. Nothing replays it either: a
     /// keyframe is decided inside the emitter and the emitter is only consulted
@@ -29,7 +29,7 @@ namespace Sitrep.Host.Alarms
     /// is, so a subscriber is answered by the first tick after it arrives. This
     /// uplink's capture cannot be gated, because its real effect is stopping the
     /// warp and that must happen whether or not anyone is watching, so the
-    /// subscription check sits on the PUBLISH instead
+    /// subscription check sits on the publish instead
     /// (<see cref="Sitrep.Contract.IUplinkHost.IsAnyTopicSubscribed"/>), which
     /// is what that method exists for.</para>
     /// </summary>

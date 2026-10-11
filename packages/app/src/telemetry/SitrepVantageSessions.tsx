@@ -12,7 +12,7 @@ import type { PeerMessage } from "../peer/protocol";
 import { getSitrepHostConfig } from "./sitrepRuntime";
 
 /**
- * Frames relayed out of a SECOND session, counted apart from the host's own
+ * Frames relayed out of a second session, counted apart from the host's own
  * (`Telemetry relay frames/sec`). Separate because the two answer different
  * questions: that one asks whether the host's stream is healthy, this one asks
  * what an extra remote vantage is costing, and a budget that mixed them could
@@ -78,8 +78,8 @@ const openLiveSession: OpenVantageSession = (vantage) => {
  * One live mod session per vantage a connected peer has asked to observe from,
  * and the relay of each session's frames to the peers at that vantage.
  *
- * **Why a second session at all.** The mod keeps the chosen vantage per CLIENT
- * SESSION and applies each subscriber's delay from it, so two humans observing
+ * **Why a second session at all.** The mod keeps the chosen vantage per client
+ * session and applies each subscriber's delay from it, so two humans observing
  * from two places need two sessions. There is no way to serve both from one:
  * re-pointing the host's own session would move every station with it, and a
  * frame does not carry the delay it travelled under, so the second view cannot
@@ -90,7 +90,7 @@ const openLiveSession: OpenVantageSession = (vantage) => {
  * `activeTimelineStore` as module-scope last-writer-wins singletons, so a
  * second provider would hijack `getActiveTelemetryClient()` out from under
  * `PeerHostService.handleSitrepCommand`, `ScetAlarmBridge` and
- * `uplinks/host.ts`, all of which mean the HOST's client when they ask for it.
+ * `uplinks/host.ts`, all of which mean the host's client when they ask for it.
  * Nothing here needs a store or a clock: the session is a pipe, and the peer at
  * the far end does its own deriving.
  *

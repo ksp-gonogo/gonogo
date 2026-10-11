@@ -2,12 +2,12 @@
 /**
  * Render CrewStatus's WIDGET-LEVEL panel badges to a PNG under
  * `local_docs/renders/crew-status-panel-badge/`, the header chips two
- * SEPARATE `crew-status.badges` contributions drop into the panel chrome:
+ * separate `crew-status.badges` contributions drop into the panel chrome:
  * the base widget's own info-tone "N/M aboard" headcount
  * (`src/CrewStatus/badge.ts`, `crewAboardBadge`) and a nogo-tone "crew
  * critical" danger badge from the planted Uplink (`probe/plantedUplink.ts`),
  * standing in for an Uplink that tracks crew survival. Both are registered
- * against the SAME automatic slot and coexist (info is unconditional, nogo
+ * against the same automatic slot and coexist (info is unconditional, nogo
  * only fires once a kerbal crosses into the critical band), so the fixture
  * exercises both at once.
  *
@@ -23,19 +23,19 @@
  * would render, not a hand-built mock.
  *
  * Replays `probe/planted-crew.json`, shared with the avatar render so the two
- * describe the SAME vessel state: Jebediah past the planted danger line, so
+ * describe the same vessel state: Jebediah past the planted danger line, so
  * the header reads "crew critical" beside his meters, plus the "3/4 aboard" info
  * chip from the crew count itself.
  *
- * The tile is rendered WIDE (`PANEL_PX_W` below) rather than at the
+ * The tile is rendered wide (`PANEL_PX_W` below) rather than at the
  * `defaultSize` 6x8's actual grid width: `Panel`'s header runs a measured-fit
  * collapse (`usePanelAsideSize`/`PanelHeader` in ui-kit's `Panel.tsx`) that
  * hides the aside behind a dots+chevron summary the moment title + both
  * badges don't fit inline side by side, and that collapsed summary reflects
- * `useStatusBreakdown()` (stream/alarm severity), a completely SEPARATE
+ * `useStatusBreakdown()` (stream/alarm severity), a completely separate
  * signal from badge content, so a collapsed shot of this fixture shows an
  * empty chevron even though both badges are genuinely present in state. This
- * render exists to show badge CONTENT, so it uses a width both badges
+ * render exists to show badge content, so it uses a width both badges
  * actually fit at, the same as an operator would see on a sufficiently wide
  * tile; the collapse behavior itself is real dashboard behavior, not
  * something to work around in the component.

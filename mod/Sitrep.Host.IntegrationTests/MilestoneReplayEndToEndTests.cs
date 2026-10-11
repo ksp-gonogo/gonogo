@@ -18,29 +18,29 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// M1 Task 4a, the MILESTONE-level end-to-end replay validation: the
-    /// WHOLE M1 pipeline (<see cref="ReplayKspHost"/> -&gt;
-    /// <see cref="ChannelEngine"/>, BOTH <see cref="TestSystemUplink"/>
-    /// (the KSP-free replica of <c>Gonogo.KSP.SystemUplink</c>) AND
+    /// whole M1 pipeline (<see cref="ReplayKspHost"/> -&gt;
+    /// <see cref="ChannelEngine"/>, both <see cref="TestSystemUplink"/>
+    /// (the KSP-free replica of <c>Gonogo.KSP.SystemUplink</c>) and
     /// <see cref="TestVesselUplink"/> (the KSP-free replica of
     /// <c>Gonogo.KSP.VesselUplink</c>) registered together -- 18 declared
     /// channels, 17 declared commands, exactly as production wires them)
-    /// driven by the REAL 7.5&#160;MB reference capture
+    /// driven by the real 7.5&#160;MB reference capture
     /// (<c>local_docs/telemetry-mod/recordings/reference-session-2026-07-07.json</c>,
     /// gitignored/local-only -- see <see cref="ReferenceRecordingReplayTests"/>'s
     /// doc comment for the same skip-cleanly contract this test follows),
     /// through a real <see cref="System.Net.WebSockets.ClientWebSocket"/>.
     ///
     /// Where the per-task tests (<see cref="ReferenceRecordingReplayTests"/>
-    /// in <c>Sitrep.Host.Tests</c>) already prove each CHANNEL's mapper logic
+    /// in <c>Sitrep.Host.Tests</c>) already prove each channel's mapper logic
     /// against this same recording by calling <c>VesselViewProvider.Build*</c>
-    /// directly, this test proves the FULL WIRE PIPELINE end to end -- mapper
+    /// directly, this test proves the full wire pipeline end to end -- mapper
     /// -&gt; <see cref="ChannelEngine"/>'s change-gate/emitter -&gt; the
     /// Courier's delay model -&gt; the transport -&gt; a real client -- for
     /// every one of those channels at once, across the whole session,
     /// including the delay model and the 3 quickload UT-rewinds together
     /// (rather than one concern in isolation).
     ///
-    /// Runs the recording through <see cref="ChannelEngine"/> TWICE:
+    /// Runs the recording through <see cref="ChannelEngine"/> twice:
     /// once with zero network delay (proves passthrough: <c>deliveredAt ==
     /// validAt</c>) and once with a 5s one-way delay (proves
     /// <c>deliveredAt == validAt + 5</c>) -- see <see cref="RunPassAsync"/>.
@@ -206,10 +206,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Drives the WHOLE recording through a fresh <see cref="ChannelEngine"/>
+        /// Drives the whole recording through a fresh <see cref="ChannelEngine"/>
         /// (both <see cref="TestVesselUplink"/> and <see cref="TestSystemUplink"/>
         /// registered) with the given one-way network delay, subscribing a
-        /// real <see cref="TestClient"/> to all 18 declared channels FIRST,
+        /// real <see cref="TestClient"/> to all 18 declared channels first,
         /// then ticking snapshot-by-snapshot via <see cref="ChannelEngine.TickAndWait"/>
         /// (mirroring <c>ReplayToWebSocketEndToEndTests.DriveOneStep</c>'s
         /// skip-tick-on-lifecycle-event-step rule exactly) while a background
@@ -377,13 +377,13 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// No-wart scan over the RAW wire JSON text (before parsing) -- the
+        /// No-wart scan over the raw wire JSON text (before parsing) -- the
         /// most direct proof that these strings genuinely never reach the
         /// wire, matching how <see cref="ReferenceRecordingReplayTests"/>'s
         /// O-1 assertion scans <c>wireJson</c> directly. <see cref="Sitrep.Contract.Serialization.JsonWriter"/>'s
         /// NaN/Infinity sentinel policy (see its own doc comment) means these
         /// should never appear; this is the regression guard proving that
-        /// holds across the WHOLE real session, not just one hand-built
+        /// holds across the whole real session, not just one hand-built
         /// sample.
         /// </summary>
         private static void ScanRawFrameForWarts(string raw, PassResult result)
@@ -475,7 +475,7 @@ namespace Sitrep.Host.IntegrationTests
         private static string Truncate(string s) => s.Length <= 300 ? s : s.Substring(0, 300) + "...";
 
         /// <summary>
-        /// Builder-level maneuver/target emission counts against the SAME
+        /// Builder-level maneuver/target emission counts against the same
         /// technique <see cref="ReferenceRecordingReplayTests"/>'s Task 2
         /// test uses, independent of the engine's lossy-latest wire
         /// coalescing (which would otherwise undercount how many raw

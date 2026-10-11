@@ -77,7 +77,7 @@ namespace Sitrep.Contract
         /// <internal>
         /// <see cref="PropagationCertification.CertifiedOnly"/> is refused too,
         /// and not because it is unwanted: certification is a property of a
-        /// SPAN (from one instant to another), and this request carries a bare
+        /// span (from one instant to another), and this request carries a bare
         /// list of instants with no origin to measure one from. Making it
         /// expressible means adding that origin, which is a change to the
         /// request rather than to the handler. Refusing is what keeps the field

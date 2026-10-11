@@ -24,7 +24,7 @@ namespace Sitrep.Host
     /// deliberately KSP-free/multi-targeted (see its own .csproj comment)
     /// and so carries no compile-time reference to KSP's
     /// <c>Assembly-CSharp</c>: the type <c>KSPAssemblyDependency</c> itself
-    /// lives in: meaning this scan cannot check for the REAL attribute
+    /// lives in: meaning this scan cannot check for the real attribute
     /// without breaking that separation. The equivalent, KSP-free pre-filter
     /// used here instead: does the candidate assembly reference
     /// <c>Sitrep.Contract</c> at all (<see cref="ReferencesContract"/>)? Any
@@ -33,12 +33,12 @@ namespace Sitrep.Host
     /// Uplink-foundation review's fix round, which moved
     /// <see cref="ISitrepUplink"/>, <see cref="IUplinkHost"/>,
     /// <see cref="UplinkManifest"/>, and the rest of the Uplink-facing shape
-    /// OUT of this assembly and into <c>Sitrep.Contract</c> (see
+    /// out of this assembly and into <c>Sitrep.Contract</c> (see
     /// <see cref="ISitrepUplink"/>'s own doc comment for the full carve-out
     /// rationale). Before that move this justification was aspirational,
-    /// the interface actually lived in THIS assembly (<c>Sitrep.Host</c>),
+    /// the interface actually lived in this assembly (<c>Sitrep.Host</c>),
     /// so the real reason the filter worked was that applying
-    /// <c>[SitrepUplink]</c> (which HAS always lived in
+    /// <c>[SitrepUplink]</c> (which has always lived in
     /// <c>Sitrep.Contract</c>) emits an assembly-ref to it regardless of
     /// where <c>ISitrepUplink</c> itself lived. That fallback reasoning no
     /// longer matters now that the doc comment's original claim is simply
@@ -56,7 +56,7 @@ namespace Sitrep.Host
             /// <summary>
             /// The id off the <see cref="SitrepUplinkAttribute"/>, which is the only
             /// name for a MAJOR-mismatched Uplink this core can safely read: the
-            /// attribute is resolved by THIS core's <c>Sitrep.Contract</c> during the
+            /// attribute is resolved by this core's <c>Sitrep.Contract</c> during the
             /// scan, where <see cref="ISitrepUplink.Manifest"/> is a shape belonging to
             /// whichever contract the Uplink was built against. Null when the caller
             /// had no attribute to read from, in which case the manifest is the only

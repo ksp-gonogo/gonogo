@@ -24,7 +24,7 @@ namespace Gonogo.KSP.Tests
 
             public string? Property => "from a property";
 
-            /// <summary>A member that is present and genuinely reads as null, which is NOT a failed read.</summary>
+            /// <summary>A member that is present and genuinely reads as null, which is not a failed read.</summary>
             public object? EmptyProperty => null;
 
             /// <summary>Breaking Ground's types are read reflectively because they are obfuscation-risky; a throwing member is a routine event, not an impossible one.</summary>

@@ -14,7 +14,7 @@ import {
 /**
  * A planted Uplink for the render probes: contributions a real Uplink would
  * make into built-in widgets, so a render whose subject is a built-in widget
- * WITH an Uplink's contributions can be taken without importing one.
+ * with an Uplink's contributions can be taken without importing one.
  *
  * Every contribution requires the planted Domain, so a fixture opts in by
  * emitting {@link PLANTED_AVAILABLE_TOPIC} and every other fixture renders the
@@ -183,7 +183,7 @@ PLANTED_UPLINK.registerContribution({
  * A screen naming no departments, the shape an Uplink's own tab contributes:
  * chrome for whatever augment binds `admin-building.screen-body`, no
  * departments to list. No augment is planted here, so the tab is deliberately
- * blank: the render this exists for is about the HOST drawing no strategy
+ * blank: the render this exists for is about the host drawing no strategy
  * lists on it, not about any particular body.
  */
 PLANTED_UPLINK.registerContribution({

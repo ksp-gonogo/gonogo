@@ -142,7 +142,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The relay is coasting and says nothing new. While its link to the
-        /// craft is up that silence is itself word, one light-time old, that
+        /// craft is up that silence is itself word, one signal delay old, that
         /// nothing has changed; once the link is gone it is word of nothing.
         /// </summary>
         [Fact]

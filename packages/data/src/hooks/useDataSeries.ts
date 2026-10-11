@@ -33,12 +33,12 @@ import {
 const EMPTY: SeriesRange = { t: [], v: [] };
 
 /**
- * A sample's own STAMPED grade, or `null` when it carries none.
+ * A sample's own stamped grade, or `null` when it carries none.
  *
  * Deliberately not `TimelineStore.sampleStatus`: that answers for a topic at
  * the view frame, folding in transport state and the heartbeat tracker, which
  * is the right read for "how current is this widget" and the wrong one to ask
- * once per sample. A series needs what the server said about THIS point. The
+ * once per sample. A series needs what the server said about this point. The
  * precedence between the stamped grades is `sampleRawStatus`'s own.
  */
 function stalenessToStreamStatus(
@@ -63,7 +63,7 @@ function stalenessToStreamStatus(
  * `recorded` and `last-before-blackout` are per-sample facts about where the
  * sample came from.
  *
- * A consumer NAMES these runs, it does not grade them: every sample here is
+ * A consumer names these runs, it does not grade them: every sample here is
  * one the craft measured, so `LineChart` draws them exactly as it draws live
  * ones. See `SeriesStatusSpan`, which carries the reasoning.
  */
@@ -229,7 +229,7 @@ export function plotValue(payload: unknown): unknown {
  * Windowed time-series of one Topic or field path, read off the stream's
  * `TimelineStore`. Empty when no `TelemetryProvider` is mounted.
  *
- * A raw Topic or field path reads its window through `sampleRange`. A DERIVED
+ * A raw Topic or field path reads its window through `sampleRange`. A derived
  * Topic stores no history of its own, so `sampleDerivedRange` replays the
  * channel's `derive()` at every UT its raw inputs changed within the window.
  *

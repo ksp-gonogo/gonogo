@@ -77,7 +77,7 @@ namespace Sitrep.Propagation.Tests
         }
 
         /// <summary>
-        /// The FIRST turn, not the deepest one in the window. An operator flying a
+        /// The first turn, not the deepest one in the window. An operator flying a
         /// rendezvous is asking what happens next, and a closer pass three orbits
         /// later is an answer to a different question.
         /// </summary>

@@ -25,7 +25,7 @@ namespace Gonogo.KSP.Career
     ///
     /// <para><c>PreFlightTests.LaunchSiteClear.Test</c> calls
     /// <c>ShipConstruction.FindVesselsLandedAt(flightState, site, ...)</c> over
-    /// the save's vessel list. A vessel counts when its <c>landedAt</c> CONTAINS
+    /// the save's vessel list. A vessel counts when its <c>landedAt</c> contains
     /// the site name (a substring test, not equality), whatever its situation.
     /// Debris never holds a site. Of several matches the reported one is the
     /// last non-debris vessel, or the first match when all are debris.</para>

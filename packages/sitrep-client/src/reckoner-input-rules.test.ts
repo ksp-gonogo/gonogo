@@ -17,7 +17,7 @@ import { ViewClock } from "./view-clock";
  * model asking: a reach no further than its inputs reach, and a band no
  * narrower than its inputs' own uncertainty warrants.
  *
- * Every case here drives a SYNTHETIC model, because no shipped model has a
+ * Every case here drives a synthetic model, because no shipped model has a
  * banded or horizon-bearing input today: every registered model declares either
  * no deps at all or a Topic nobody else models. The mechanism is what is under
  * test, and `reckoner-input-rule-ledger.test.ts` is the file that says out loud
@@ -452,7 +452,7 @@ describe("an exemption is declared, reasoned and listed", () => {
   });
 
   /**
-   * The enumeration has to SEE every declared opt-out, and that is worth its own
+   * The enumeration has to see every declared opt-out, and that is worth its own
    * assertion rather than a neighbour's luck.
    *
    * The per-basis form was invisible to `getReckonerExemptions` when it was

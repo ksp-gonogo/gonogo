@@ -8,19 +8,19 @@ using Xunit;
 namespace Gonogo.KSP.Tests.Comms
 {
     /// <summary>
-    /// Which ROUTER a node-to-node delay is solved by.
+    /// Which router a node-to-node delay is solved by.
     ///
     /// <para>The graph below is shaped like the one RealAntennas actually flies:
     /// a near relay whose antenna is below <c>minRelayTL</c> and a far one that
     /// is above it. Stock's own Dijkstra (<c>CommNetwork.CreateShortestPathTree</c>
     /// / <c>UpdateShortestPath</c>, maximising a product of per-link signal
     /// strength) knows nothing about a relay tech level and takes the near route.
-    /// RA's router refuses to RELAY through a below-minimum antenna at all and
+    /// RA's router refuses to relay through a below-minimum antenna at all and
     /// takes the far one. Two different routes over one link set, so two
-    /// different light-times, and only one of them is the route the game is
+    /// different signal delays, and only one of them is the route the game is
     /// using.</para>
     ///
-    /// <para>Stock's walk here is the REAL one: the network is a plain
+    /// <para>Stock's walk here is the real one: the network is a plain
     /// <see cref="CommNetwork"/> and <c>FindPath</c> is left inherited, exactly
     /// as RealAntennas leaves it. Only <see cref="RelayGatedNetwork.FindClosestWhere"/>
     /// is overridden, which is the one routing method RA does override.</para>
@@ -34,7 +34,7 @@ namespace Gonogo.KSP.Tests.Comms
 
         /// <summary>
         /// A backend with RealAntennas' routing shape: it asks the network for
-        /// the closest node that IS the destination, which is the one routing
+        /// the closest node that is the destination, which is the one routing
         /// method RA overrides. Only <see cref="RouteBetween"/> is real; nothing
         /// else here is exercised. The shipped RA backend does the same thing in
         /// <c>RaRouting.Between</c>, which lives in the RA Uplink and cannot be
@@ -83,13 +83,13 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// A network with RealAntennas' routing SHAPE: stock's <c>FindPath</c>
+        /// A network with RealAntennas' routing shape: stock's <c>FindPath</c>
         /// inherited untouched, and <c>FindClosestWhere</c> overridden to apply a
         /// relay gate. The gate is RA's own rule, read off the shipped assembly:
         /// a neighbour is admitted to the frontier only when its receiving
-        /// antenna's tech level clears <c>minRelayTL</c>, OR when the caller's
+        /// antenna's tech level clears <c>minRelayTL</c>, or when the caller's
         /// own predicate already accepts it (so a below-minimum node can still be
-        /// the DESTINATION, it just cannot carry someone else's traffic).
+        /// the destination, it just cannot carry someone else's traffic).
         /// </summary>
         private sealed class RelayGatedNetwork : CommNetwork
         {

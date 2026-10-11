@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The anti-pattern ratchet for the four elected <c>science.*</c> payloads: a
-    /// NEW provider-specific science field belongs in the extension bag under the
+    /// new provider-specific science field belongs in the extension bag under the
     /// provider's own id, not as another hand-listed nullable member here.
     ///
     /// <para><b>Why science needs this.</b> The stock-versus-modelled-science
@@ -20,7 +20,7 @@ namespace Sitrep.Host.Tests
     /// fills, and every future science mod would face the same core PR. That is the
     /// pressure the bag exists to absorb.</para>
     ///
-    /// <para>Fails on an ADDITION. The frozen sets below are the members as they
+    /// <para>Fails on an addition. The frozen sets below are the members as they
     /// stood when science took the bag: the pre-existing ones are recorded, not
     /// condemned. Removals belong to <see cref="ContractShapeGateTests"/> and a
     /// Major bump.</para>
@@ -35,7 +35,7 @@ namespace Sitrep.Host.Tests
     {
         /// <summary>
         /// <see cref="ExperimentEntry"/> as frozen when the bag landed.
-        /// <c>Extensions</c> is in the set because it IS the bag, and
+        /// <c>Extensions</c> is in the set because it is the bag, and
         /// <c>ValueModel</c> because it is source-AGNOSTIC: every backend fills it,
         /// which is the one case a shared member is still the right answer.
         /// </summary>
@@ -117,7 +117,7 @@ namespace Sitrep.Host.Tests
             AssertNoNewMembers(typeof(ExperimentBreakdownEntry), FrozenBreakdownMembers);
 
         /// <summary>
-        /// The bag is actually THERE on all four, which is what makes the ratchet's
+        /// The bag is actually there on all four, which is what makes the ratchet's
         /// advice followable: a test that only forbade new members while no
         /// alternative existed would just be a wall.
         /// </summary>

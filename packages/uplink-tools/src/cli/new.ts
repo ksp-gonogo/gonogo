@@ -1486,7 +1486,7 @@ function siblingsFolder(
   return undefined;
 }
 
-/** What a repo that IS one Uplink keeps out of git: installs, builds, local renders, the .NET output, what bake writes and where this machine's KSP is. */
+/** What a repo that is one Uplink keeps out of git: installs, builds, local renders, the .NET output, what bake writes and where this machine's KSP is. */
 const SINGLE_REPO_GITIGNORE = `node_modules/
 dist/
 renders/

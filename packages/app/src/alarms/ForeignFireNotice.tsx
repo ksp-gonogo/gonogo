@@ -7,7 +7,7 @@ import type { AlarmSnapshot } from "./types";
  * Announces alarms that fired on another screen's behalf.
  *
  * Every screen hears every alarm fire, but a screen at a different vantage is
- * told only THAT one armed at that vantage fired, never what it watched.
+ * told only that one armed at that vantage fired, never what it watched.
  */
 export function ForeignFireNotice({
   snap,

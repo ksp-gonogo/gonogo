@@ -190,7 +190,7 @@ export const CommandErrorCode = {
    */
   FacilityDamaged: "facilityDamaged",
   /**
-   * The command consumes a countable ITEM and there are not enough of them
+   * The command consumes a countable item and there are not enough of them
    * aboard.
    *
    * The command's handler decides how many are needed. This code says only that
@@ -539,7 +539,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there are not enough of what it uses aboard",
-    meaning: "The command consumes a countable ITEM and there are not enough of them aboard.\n\nThe command's handler decides how many are needed. This code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
+    meaning: "The command consumes a countable item and there are not enough of them aboard.\n\nThe command's handler decides how many are needed. This code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
   },
   {
     id: "unreadable",

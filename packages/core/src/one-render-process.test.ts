@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
  *   that has renders
  *
  * The second is the one with teeth against the failure this exercise found: the
- * client of one Uplink had three `_scene` fixtures AND a hand-rolled driver that ignored
+ * client of one Uplink had three `_scene` fixtures and a hand-rolled driver that ignored
  * them, so `pnpm ... render` rendered a different set of pictures from the one the
  * fixtures described, and nothing said so.
  *
@@ -41,7 +41,7 @@ const MOD = join(REPO_ROOT, "mod");
 
 const SHARED_TOOL = "uplink-tools render";
 
-/** The packages only a render DRIVER imports. Third-party, so nothing else in
+/** The packages only a render driver imports. Third-party, so nothing else in
  *  this repo's boundary rules has an opinion about them. */
 const DRIVER_ONLY = ["playwright", "playwright-core", "puppeteer"];
 

@@ -5,7 +5,7 @@ import { deriveTopologyFromVesselParts } from "./vesselPartsAdapter";
 /**
  * Live vessel part-tree topology: the diagram-side view `ShipMap`/
  * `PowerSystems` build their per-part rendering off. Reads the mod's
- * `vessel.parts` Topic (the structural part-tree stream, a SIBLING of
+ * `vessel.parts` Topic (the structural part-tree stream, a sibling of
  * `vessel.structure` per that channel's own doc comment) and reshapes it
  * into the `VesselTopology` shape the diagram code (`shipTopology.ts`) reads,
  * via `deriveTopologyFromVesselParts`.

@@ -22,7 +22,7 @@ namespace Gonogo.KSP.Tests
     /// on the real wire and getting back not even a subscribe
     /// acknowledgement.</para>
     ///
-    /// <para>Reads SOURCE rather than reflecting over the assembly: this test
+    /// <para>Reads source rather than reflecting over the assembly: this test
     /// project deliberately cherry-picks KSP-free files rather than referencing
     /// <c>Gonogo.KSP</c> (which would drag in the KSP DLLs), so the uplink types
     /// are not loadable here. A text scan is the weaker tool but it is the one

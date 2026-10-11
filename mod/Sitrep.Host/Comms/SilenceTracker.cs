@@ -43,13 +43,13 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// The sweep ran and found the path clear for the whole window: no
         /// body ever comes between the vessel and a station, so geometry
-        /// offers NO explanation for this silence and predicts no emergence.
+        /// offers no explanation for this silence and predicts no emergence.
         ///
         /// <para>This means "there is no countdown to show", and it must never
         /// be read as "declare fast". The naive treatment, no occultation, so
         /// nothing to wait for, fall to the floor, declares an LKO vessel lost
         /// ten minutes after any blip, and under this save's relay ring an LKO
-        /// craft is geometrically blind 0.0% of the time, so that is EVERY LKO
+        /// craft is geometrically blind 0.0% of the time, so that is every LKO
         /// vessel. The deadline falls through to the orbital-period policy
         /// instead; only the prediction is withheld.</para>
         /// </summary>
@@ -96,7 +96,7 @@ namespace Sitrep.Host.Comms
         ///
         /// <para>Distinct from <see cref="NoEmergenceInWindow"/>, and the
         /// distinction is the whole point. That one says the craft is behind
-        /// something for AT LEAST the span the policy wanted to search, which
+        /// something for at least the span the policy wanted to search, which
         /// under an integrating provider would be a claim about arc nobody
         /// vouched for. This one says the search itself was cut short, so
         /// nothing at all is being asserted about the part that was not
@@ -122,7 +122,7 @@ namespace Sitrep.Host.Comms
         /// visibility sweep found one. Null whenever no honest prediction
         /// exists, which is most of the time: no geometry available, no
         /// occultation found, or a warp too fast to resolve one. A null here
-        /// is a prediction WITHHELD, never a prediction of "now".
+        /// is a prediction withheld, never a prediction of "now".
         /// </summary>
         public readonly double? PredictedReacquisitionUt;
 
@@ -138,8 +138,8 @@ namespace Sitrep.Host.Comms
         /// <see cref="PredictedReacquisitionUt"/> is: a budget quoted next to a
         /// withheld prediction is an error bar around nothing.</para>
         ///
-        /// <para>One-sided, and NOT a symmetric uncertainty. It is an allowance
-        /// AFTER the predicted moment, so a client renders "allowing 5 min of
+        /// <para>One-sided, and not a symmetric uncertainty. It is an allowance
+        /// after the predicted moment, so a client renders "allowing 5 min of
         /// slack" and never "+/- 5 min". A real two-sided error bar would have
         /// to come out of the sweep itself, which is separate and larger
         /// work.</para>
@@ -260,7 +260,7 @@ namespace Sitrep.Host.Comms
         public double? DeclaredLostUt;
 
         /// <summary>
-        /// Monotonic: incremented once per NEW declare-lost transition, never
+        /// Monotonic: incremented once per new declare-lost transition, never
         /// on a repeat sample that is already Lost. A future currency
         /// consumer arms against (VesselId, LostSeq) so a reload replaying
         /// the same declaration cannot double-charge, and a later
@@ -285,7 +285,7 @@ namespace Sitrep.Host.Comms
         internal bool DestroyedReported;
 
         /// <summary>
-        /// Consecutive silent samples in the CURRENT run (warp hysteresis).
+        /// Consecutive silent samples in the current run (warp hysteresis).
         /// Deliberately not part of what gets persisted: a reload always
         /// resumes at 0, requiring two fresh post-reload samples before an
         /// already-overdue vessel is (re)confirmed Lost, biasing toward not
@@ -304,11 +304,11 @@ namespace Sitrep.Host.Comms
     ///
     /// <para><b>Warp hysteresis.</b> A single connected sample clears a
     /// vessel back to <see cref="SilenceState.Nominal"/> instantly. Declaring
-    /// <see cref="SilenceState.Lost"/> is the opposite: it requires BOTH the
-    /// UT dwell (the policy's deadline has actually passed) AND at least two
-    /// CONSECUTIVE silent samples, so a single stale or glitchy reading at
+    /// <see cref="SilenceState.Lost"/> is the opposite: it requires both the
+    /// UT dwell (the policy's deadline has actually passed) and at least two
+    /// consecutive silent samples, so a single stale or glitchy reading at
     /// high warp cannot trip a declaration on its own. Every ambiguity
-    /// resolves toward NOT declaring.</para>
+    /// resolves toward not declaring.</para>
     ///
     /// <para><b>Destroyed vessels never go through the deadline policy.</b>
     /// <see cref="Tick"/> reconciles its own known-vessel set against the ids

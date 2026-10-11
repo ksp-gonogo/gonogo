@@ -15,7 +15,7 @@ import { useStream } from "./use-stream";
 
 /**
  * Proof that one component can read a live telemetry stream
- * AND dispatch a command, both routed through the real
+ * and dispatch a command, both routed through the real
  * `TelemetryProvider` -> `TelemetryClient` -> `Transport` boundary, with only
  * the transport's other end (`StubTransport`) faked.
  */
@@ -78,7 +78,7 @@ describe("sitrep-client end-to-end spine", () => {
   });
 
   /**
-   * Reading a DERIVED topic must open a wire subscription for its declared
+   * Reading a derived topic must open a wire subscription for its declared
    * input, because no server channel ever publishes the derived name and a
    * caller that subscribed to it verbatim would wait forever.
    *

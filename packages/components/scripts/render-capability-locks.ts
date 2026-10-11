@@ -8,7 +8,7 @@
  *
  * Not registered in `widgets.ts`, for the reason
  * `render-eligibility-unknown.ts` gives: a scene there with no committed
- * baseline fails the visual gate as MISSING. This exists to be looked at.
+ * baseline fails the visual gate as missing. This exists to be looked at.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-capability-locks`.
  * Pass `--out <dir>` to write somewhere other than this checkout's

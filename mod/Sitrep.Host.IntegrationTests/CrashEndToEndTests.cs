@@ -12,8 +12,8 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// End-to-end coverage for the crash event stream over the REAL
-    /// <see cref="ChannelEngine"/> reliable lane and a REAL ClientWebSocket.
+    /// End-to-end coverage for the crash event stream over the real
+    /// <see cref="ChannelEngine"/> reliable lane and a real ClientWebSocket.
     /// The KSP-facing <c>Gonogo.KSP.CrashUplink</c> can't build headless (it
     /// reads live KSP), so, exactly as <see cref="CommsCoreEndToEndTests"/>
     /// does for comms, a tiny KSP-independent uplink publishes the same

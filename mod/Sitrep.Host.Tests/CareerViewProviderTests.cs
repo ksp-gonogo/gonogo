@@ -14,7 +14,7 @@ namespace Sitrep.Host.Tests
     /// payload and asserted against the class doc's rules, the Sandbox
     /// (no "career" key at all) -&gt; null guard, primitives-only shape,
     /// missing fields -&gt; null never a sentinel, and the payload
-    /// serializing cleanly through the REAL production path.
+    /// serializing cleanly through the real production path.
     /// </summary>
     [Collection("SystemViewProviderStatics")]
     public class CareerViewProviderTests

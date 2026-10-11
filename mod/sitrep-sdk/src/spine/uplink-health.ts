@@ -3,7 +3,7 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 /**
  * The `system.uplinks` derived reader: the client-side half of Uplink
  * health self-reporting.
- * Each Uplink reports its OWN health via the mod-side
+ * Each Uplink reports its own health via the mod-side
  * `Sitrep.Contract.ISitrepUplink.Health()`; the client never infers
  * readiness from topic staleness: it only reads what the mod already
  * decided. `ChannelEngine`'s built-in `system.uplinks` channel (declared
@@ -15,7 +15,7 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
  * wire topic; this derived channel
  * registers as `system.uplinkHealth`) for the same reason
  * `system.bodies` -> `system.state` are two different topic names: a derived
- * channel registered under the SAME name as its own input would recurse
+ * channel registered under the same name as its own input would recurse
  * into itself the first time `derive` calls `get()` on that input.
  */
 

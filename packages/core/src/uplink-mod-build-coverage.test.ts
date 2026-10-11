@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
  * 2. **Every exemption names a project that exists.** The script checks the
  *    other direction (an exemption whose blocking DLL has been vendored is
  *    stale and fails there, since only it can see the reference set)
- * 3. **The discovery reaches every Uplink**, measured against a DIFFERENT
+ * 3. **The discovery reaches every Uplink**, measured against a different
  *    source of truth than the one the script uses
  *
  * Point 3 is the one worth the effort. The script discovers with `find`, so a
@@ -67,7 +67,7 @@ function discoveredUplinkProjects(): string[] {
     .sort();
 }
 
-/** `"<name>|<dll>|<reason>"` entries from the script's EXEMPT array. */
+/** `"<name>|<dll>|<reason>"` entries from the script's exempt array. */
 function exemptions(): { name: string; dll: string; reason: string }[] {
   const block = script.match(/^EXEMPT=\(\n([\s\S]*?)^\)$/m);
   if (!block)

@@ -23,8 +23,8 @@ import { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
  *
  * The conic's withdrawal at the interface is correct and is also why a reckoned
  * altitude was unavailable during exactly the descent that motivated reckoning
- * it. What replaces it integrates the OBSERVED rates over a declared window, so
- * every case here is either about the HANDOVER (which of the two models owns a
+ * it. What replaces it integrates the observed rates over a declared window, so
+ * every case here is either about the handover (which of the two models owns a
  * frame, and that it is never both or neither) or about a withdrawal the
  * integration makes on its own evidence.
  *
@@ -33,7 +33,7 @@ import { VISIBLE_GAP_SECONDS, ViewClock } from "./view-clock";
  * fixed-interval assumption would get wrong: the stream is change-gated, so a
  * topic carries a point when its value changed and at no other time.
  *
- * Every case reads a light-time from the craft with the transport DOWN, which is
+ * Every case reads a light-time from the craft with the transport down, which is
  * what puts the frame's SCET ahead of the newest sample and grades the reading
  * stale. A rate
  * integration declines on a live reading by design (there is no gap to carry the
@@ -70,7 +70,7 @@ const SYSTEM = {
 };
 
 /**
- * A circular orbit whose radius sits ABOVE Kerbin's entry interface, so the
+ * A circular orbit whose radius sits above Kerbin's entry interface, so the
  * conic is admissible on every frame here.
  *
  * That is the point of choosing it: with both models able to answer, the only
@@ -94,11 +94,11 @@ function orbitOf(referenceBodyIndex: number, radius: number, mu = KERBIN_MU) {
 }
 
 /**
- * A reentry ellipse: apoapsis 200 km, periapsis 50 km BELOW sea level.
+ * A reentry ellipse: apoapsis 200 km, periapsis 50 km below sea level.
  *
  * The circular orbit above holds the conic still, which is what isolates the
  * selector in most of this file. The crossing band needs the opposite: elements
- * that actually fall, so the radius the conic SOLVES for at the view time is
+ * that actually fall, so the radius the conic solves for at the view time is
  * lower than the one it was at when the last packet arrived. Sub-surface
  * periapsis because that is what the wire carries during a descent, KSP
  * recomputing the drag-free conic the craft is instantaneously on.
@@ -113,7 +113,7 @@ const REENTRY = (() => {
 })();
 
 /**
- * The mean anomaly that puts the craft at `radius` on the DESCENDING branch.
+ * The mean anomaly that puts the craft at `radius` on the descending branch.
  *
  * `r = a(1 - e cos E)` has two solutions and only one of them is coming down;
  * taking `2π - E` is what picks it, and getting it wrong produces a fixture
@@ -221,11 +221,11 @@ function point<Payload>(
 const LIGHT_TIME_SECONDS = VISIBLE_GAP_SECONDS;
 
 /**
- * A store whose SCET is dialled directly, with the transport DOWN so every
+ * A store whose SCET is dialled directly, with the transport down so every
  * reading is graded `disconnected` rather than waiting out a heartbeat margin.
  *
  * The wall clock stands for the craft's UT and is advanced to each sample's
- * arrival, a light-time after its own instant, BEFORE it is ingested, which is
+ * arrival, a light-time after its own instant, before it is ingested, which is
  * not decoration: `ViewClock.observeSample` anchors the UT/wall fit at
  * `(now(), deliveredAt)`, so ingesting a run of samples without moving the wall
  * anchors UT 10 to wall 0 and every later SCET reads ten seconds further
@@ -288,7 +288,7 @@ function scene(
  *
  * The spacing is the assertion. Three samples bunched at the start and one eight
  * seconds later is what a change-gated stream produces when a value moves in
- * bursts, and a fit that divided the total change by the SAMPLE COUNT would read
+ * bursts, and a fit that divided the total change by the sample count would read
  * the slope as -50/3 rather than -5. Perfectly linear so the least-squares slope
  * is exact and the expected altitude can be written down rather than
  * approximated.
@@ -306,7 +306,7 @@ const UNEVEN_DESCENT = [
  * open.
  *
  * The anchor is UT 20 and the speeds are it walked backwards at a constant
- * -7.9 m/s², so the least-squares slope IS that acceleration and the envelope
+ * -7.9 m/s², so the least-squares slope is that acceleration and the envelope
  * (gravity plus 0.03 g, times the slack) comfortably holds it. What decides the
  * case is the selector and nothing else.
  */
@@ -717,7 +717,7 @@ describe("what the descent withdraws on", () => {
 });
 
 /**
- * The same descent as a SERIES: what a chart can draw across the silence the
+ * The same descent as a series: what a chart can draw across the silence the
  * readings above describe one frame at a time.
  *
  * `vessel.flight`'s fields are `Value`s, so the tail has to carry a wrapped
@@ -770,13 +770,13 @@ describe("the carried altitude as a plotted tail", () => {
 });
 
 /**
- * A descent whose vertical speeds do NOT sit on one line, sampled unevenly
+ * A descent whose vertical speeds do not sit on one line, sampled unevenly
  * inside `DESCENT_WINDOW`'s eight-second lookback.
  *
  * Every instant is within eight seconds of the anchor, which
  * {@link UNEVEN_DESCENT} deliberately is not: its two oldest samples fall
  * outside the window and the fit there runs on the two that remain. A residual
- * needs a THIRD sample, so a fixture meant to produce one has to sit inside the
+ * needs a third sample, so a fixture meant to produce one has to sit inside the
  * lookback, and that is the difference between the two.
  *
  * The scatter is chosen rather than sprinkled, and the choice is the whole
@@ -849,7 +849,7 @@ const CAMPAIGN_UT = 1_000_000;
  *
  * The scale the residue is judged against has to bound every rounding that went
  * into a predicted value, and the largest of them is not in the speeds. `tBar`
- * is a mean of INSTANTS, so its own rounding is a fraction of an ulp of UT, and
+ * is a mean of instants, so its own rounding is a fraction of an ulp of UT, and
  * the slope multiplies that up into the speeds it is compared against. These
  * three samples sit exactly on a -5 m/s² line and leave a residual RMS of
  * 6.7e-10 m/s: fifteen hundred times a rounding of their own 250 m/s speeds, and
@@ -873,7 +873,7 @@ const LINEAR_AT_CAMPAIGN_UT = [
  * disagreement is faint and entirely real.
  *
  * The control in the other direction. Withholding on residue has to be a claim
- * about the ARITHMETIC's precision and not a floor under how small a genuine
+ * about the arithmetic's precision and not a floor under how small a genuine
  * error may be, and a threshold set by eye rather than by the machine's epsilon
  * would swallow this: the residual RMS here is 1.7e-3 m/s where the rounding of
  * a 250 m/s sample is 4e-13. The same orthogonal residuals, so the slope is
@@ -1026,13 +1026,13 @@ describe("how well the descent fit knows the altitude it carried", () => {
 });
 
 /**
- * The band's journey through the store's input-rule walk, driven by SYNTHETIC
+ * The band's journey through the store's input-rule walk, driven by synthetic
  * models on the flight reckoner's two real declared inputs.
  *
  * Synthetic because nothing in the shipped tree models `vessel.orbit` or
  * `system.bodies`: `reckoner-input-rule-ledger.test.ts` pins that the set of
  * pairs either rule can act on is empty, and it stays empty after this change.
- * So every case here is about STRUCTURE, and none of it fires on a live client
+ * So every case here is about structure, and none of it fires on a live client
  * today. What it is worth is that the day someone does model the body roster,
  * the altitude is already held to it.
  */

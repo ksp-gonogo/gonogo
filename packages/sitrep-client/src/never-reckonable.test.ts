@@ -6,7 +6,7 @@ import { getReckoner } from "./reckoners";
 /**
  * The classification cannot rot, because this is what reads it.
  *
- * A list recording a DEFAULT with no consumer rots without failing, which is
+ * A list recording a default with no consumer rots without failing, which is
  * why recording class D per topic was argued against. This list has two
  * consumers: the type checker (which narrows a declared topic to
  * `UnmodelledReading`, dropping the `reckoning: "available"` members, so a wrong

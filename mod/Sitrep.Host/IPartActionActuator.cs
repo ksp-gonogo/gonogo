@@ -39,7 +39,7 @@ namespace Sitrep.Host
         /// <summary>
         /// The PAW buttons the part with this <c>flightID.ToString()</c>
         /// currently exposes: the union of the part's own events and every one of
-        /// its modules', filtered to <c>guiActive</c>. Returns an EMPTY list both
+        /// its modules', filtered to <c>guiActive</c>. Returns an empty list both
         /// when the part genuinely has no actions and when the id does not
         /// resolve: a read has no error channel, and the invoke command is where
         /// an unresolvable id is reported as

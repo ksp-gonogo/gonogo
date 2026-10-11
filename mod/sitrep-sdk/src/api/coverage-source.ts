@@ -11,7 +11,7 @@ import type {
 /**
  * Mod-agnostic registry for coverage sources.
  *
- * A coverage source contributes DATA (coverage bytes for a body under some layer
+ * A coverage source contributes data (coverage bytes for a body under some layer
  * id), not a renderable component, which is why it is a registry parallel to the
  * augment one rather than another slot kind. Consumed by MapView's own coverage
  * gate as a PAINT-GATE: there is no darkening overlay layer in this design, only
@@ -28,7 +28,7 @@ import type {
  * symbol so two different builds of this package still find the same state. See
  * `map-poi.ts` for why a module static is not safe once this can be bundled.
  *
- * The key still says FOG because it is a cross-build rendezvous identifier, not a
+ * The key still says fog because it is a cross-build rendezvous identifier, not a
  * name: an Uplink bundled against an older copy of this package registers into
  * whatever string that copy holds, so changing it would split the registry in two
  * and the sources from one half would never be seen by the other. It can be
@@ -60,7 +60,8 @@ function notifyChange(): void {
 
 /**
  * Calls `cb` whenever a coverage source is registered or removed, and returns
- * the unsubscribe function.
+ * the function that stops it. Useful for redrawing a body map when the set of
+ * scanned-ground layers changes. Used by the map view's coverage gate.
  *
  * @category Maps and coverage
  */
@@ -74,7 +75,8 @@ export function onCoverageSourcesChange(cb: () => void): () => void {
 
 /**
  * Adds a coverage source: a layer of the body map that reveals the cells the
- * source reports as covered, such as the ground a scanner has mapped.
+ * source reports as covered, such as the ground a scanner has mapped. Useful
+ * for showing the operator which parts of a body have been surveyed.
  * Registering a second source with an id already in use replaces the first.
  *
  * @category Maps and coverage
@@ -93,8 +95,8 @@ export function registerCoverageSource(def: CoverageSourceDefinition): void {
 }
 
 /**
- * Removes the coverage source registered under `id`. Does nothing if there is
- * none.
+ * Removes the coverage source registered under `id`, so its layer no longer
+ * reveals ground on the body map. Does nothing if there is none.
  *
  * @category Maps and coverage
  */
@@ -103,7 +105,8 @@ export function unregisterCoverageSource(id: string): void {
 }
 
 /**
- * Every registered coverage source, in registration order.
+ * Every registered coverage source, in registration order. Useful for deciding
+ * which parts of a body map to reveal. Used by the map view's coverage gate.
  *
  * @category Maps and coverage
  */
@@ -115,8 +118,9 @@ export function getCoverageSources(): CoverageSourceDefinition[] {
 
 /**
  * The settings each coverage source adds to the map's settings panel, one block
- * per source that declares any. Each block is keyed by the source's id, so two
- * sources' settings with the same key never collide.
+ * per source that declares any. Useful for letting the operator adjust each
+ * coverage layer. Used by the map view's settings. Each block is keyed by the
+ * source's id, so two sources' settings with the same key never collide.
  *
  * @category Maps and coverage
  */
@@ -131,7 +135,7 @@ export function getCoverageSourceSettings(): NamespacedAugmentSettings[] {
 }
 
 /**
- * Removes every coverage source. For tests; a running app never calls it.
+ * Removes every coverage source, so a test starts with none.
  *
  * @category Maps and coverage
  */

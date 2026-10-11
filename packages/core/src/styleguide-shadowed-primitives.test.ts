@@ -38,7 +38,7 @@ const UI_KIT = join(REPO, "packages/ui-kit/src");
 /**
  * Where widgets live. ui-kit itself is excluded here because it legitimately
  * declares every one of these names once, at its own canonical file (that
- * declaration is not a shadow). ui-kit IS still scanned, separately, below:
+ * declaration is not a shadow). ui-kit is still scanned, separately, below:
  * `Combobox.tsx` once had a private `const EmptyState = styled.div` that
  * shadowed the public `EmptyState.tsx` export, and this list alone couldn't
  * see it. A within-ui-kit shadow gets the same regex pass, minus the file(s)
@@ -121,11 +121,11 @@ function kitExportOwners(): Map<string, Set<string>> {
 /**
  * What already shadows a kit name, as `Name@repo-relative-path`.
  *
- * A DECLINING baseline, the same shape as the token ratchets: a new entry
+ * A declining baseline, the same shape as the token ratchets: a new entry
  * fails the build, a removed one is a cleanup and passes. It is a record of
  * a backlog, not an endorsement.
  *
- * **EMPTY, and it must stay that way.** 89 entries at the start of the sweep,
+ * **Empty, and it must stay that way.** 89 entries at the start of the sweep,
  * zero now, so a new shadow is a build failure rather than a line someone can
  * add to a list.
  *
@@ -138,16 +138,16 @@ function kitExportOwners(): Map<string, Set<string>> {
  * 2. **Rename for what it actually is**, once an adversarial look has shown
  *    the widget does something the kit genuinely cannot, and that reason is
  *    recorded. This is what the failure message below has always advised, and
- *    it is correct precisely BECAUSE the component is different: leaving a
+ *    it is correct precisely because the component is different: leaving a
  *    disclosure button called `ToggleButton` is an active hazard, since a
  *    reader assumes the kit's two-state control and its `aria-pressed`.
  *
- * A rename done INSTEAD of step 1 is the failure mode. It satisfies the guard
+ * A rename done instead of step 1 is the failure mode. It satisfies the guard
  * and leaves a hand-rolled duplicate of something the kit already offers,
  * now invisible to the thing that was inventorying it. That happened once,
  * to nine components, and all nine were put back and redone.
  *
- * **Before accepting that a widget is special, ask what the KIT is missing.**
+ * **Before accepting that a widget is special, ask what the kit is missing.**
  * Ten additions came out of this sweep (`Cluster.wrap`/`align`/`center`,
  * `Grid.align`/`rowGap`, `Section.as`, `SectionTitle`'s weight and `$rule`,
  * `ConfigForm.$boxed`, `Card.tone`/`dimmed`, `Value`'s `faint` tone,
@@ -156,7 +156,7 @@ function kitExportOwners(): Map<string, Set<string>> {
  * around. The sharpest: three components were logged as needing a `Surface`
  * primitive the kit lacked, and the real gap was one missing enum member.
  *
- * The counterpart is by FUNCTION, not by name, and reading the name as the
+ * The counterpart is by function, not by name, and reading the name as the
  * target is what produced the renames. The kit's `Row` is specifically a
  * `styled.li` with `space-between` for a list row carrying a name and badges;
  * most local components called `Row` are not that, and convert to `Cluster`,

@@ -32,12 +32,13 @@ export interface FloatingProps extends HTMLAttributes<HTMLDivElement> {
 
 /**
  * A layer drawn over the whole page rather than inside its widget: a hover
- * card, a tooltip, an anchored menu. It is portalled to the document body, so
- * no panel or scroll box clips it, and placed against the viewport by
- * {@link anchoredPosition}. It is measured before paint (and stays hidden
- * until then), and re-placed on every render, on resize and on any scroll.
- * The layer has no surface of its own: style what you put inside it. Any
- * other `div` attribute passes through to the layer.
+ * card, a tooltip, an anchored menu. Useful for showing the operator detail
+ * that no panel or scroll box should clip. Used by {@link HoverCard} and the
+ * ship map's part tooltip. It is portalled to the document body and placed
+ * against the viewport by {@link anchoredPosition}. It is measured before paint
+ * (and stays hidden until then), and re-placed on every render, on resize and
+ * on any scroll. The layer has no surface of its own: style what you put inside
+ * it. Any other `div` attribute passes through to the layer.
  *
  * React events still bubble through the component tree, not the DOM, so a
  * pointer handler on an ancestor sees events from inside the layer.

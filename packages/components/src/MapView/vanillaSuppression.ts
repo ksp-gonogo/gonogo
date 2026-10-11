@@ -7,7 +7,7 @@ export interface VanillaSuppressionCandidate {
   available: boolean;
 }
 
-/** True when any candidate declares `suppressesVanillaBase` and is `available`: an order-independent OR. */
+/** True when any candidate declares `suppressesVanillaBase` and is `available`: an order-independent or. */
 export function shouldSuppressVanillaBase(
   candidates: readonly VanillaSuppressionCandidate[],
 ): boolean {

@@ -70,7 +70,7 @@ const TimelineStoreContext = createContext<TimelineStore | undefined>(
  * jsdom constructed without `pretendToBeVisual`).
  *
  * **Under vitest's jsdom environment `pretendToBeVisual` defaults to true, so
- * tests DO get a real `requestAnimationFrame` and exercise the frame path, not
+ * tests do get a real `requestAnimationFrame` and exercise the frame path, not
  * the microtask fallback.** Worth stating plainly: believing otherwise sends an
  * act-warning investigation into the microtask branch, and an act warning here
  * originates in test teardown ordering instead.
@@ -441,11 +441,11 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
 }
 
 /**
- * The nearest `TelemetryProvider`'s **one** `ViewClock`: THE single delay
+ * The nearest `TelemetryProvider`'s **one** `ViewClock`: the single delay
  * authority. Every surface that must stay delay-consistent with telemetry
  * (staleness, reckoning to SCET, and crucially the kerbcast media
  * `DelayedPlayoutBuffer`) reads its release/certainty edge off
- * THIS clock instance, never a second one it constructs itself. A media frame
+ * this clock instance, never a second one it constructs itself. A media frame
  * and a telemetry sample stamped the same UT therefore surface at the same
  * `confirmedEdgeUt()` crossing: a shared common-mode property.
  *
@@ -506,7 +506,7 @@ export type ViewClockView = Pick<
  * a replay session, a docs page), so an unmount hands it back to the most
  * recent provider still mounted rather than clearing it.
  *
- * Deliberately typed as `Pick<ViewClock, "viewUt">`, NOT the narrower
+ * Deliberately typed as `Pick<ViewClock, "viewUt">`, not the narrower
  * `ViewClockView` (`confirmedEdgeUt` + `onFrame`) `useViewClockOptional`
  * returns: `useViewUt`'s reactive value tracks `onFrame`'s per-frame
  * `viewUt()` callback argument, not `confirmedEdgeUt()` directly (the two
@@ -691,7 +691,7 @@ export function getViewUt(): Value<"ut"> | undefined {
  * that drives its own fake telemetry reader and has no React tree to render at
  * all. A fake with no `scetUt` answers SCET as its view time, and one with no
  * `commandArrivalUt` answers arrival as its SCET, which is what a clock with no
- * light-time does. Pass `undefined` to clear; a test's
+ * signal delay does. Pass `undefined` to clear; a test's
  * `afterEach` should always do this so a later, unrelated suite's `getViewUt()`
  * call can't see a stale clock left over from this one.
  */
@@ -1020,7 +1020,7 @@ export function getValue(key: string): number | undefined {
 
 /**
  * The magnitude of a picked key's payload, in both shapes it can arrive in. A
- * field of a RAW Topic carries its unit by the time it reaches the store,
+ * field of a raw Topic carries its unit by the time it reaches the store,
  * because the decode wraps every declared quantity (`wrapTopicPayload`) and the
  * store's field-subtopic walk hands back whatever the parent record holds; a
  * field of a client-DERIVED channel is computed here and never met the wrap, so
@@ -1109,7 +1109,7 @@ export interface DispatchCommandRefusal {
   code: string;
   message: string;
   /**
-   * The mod's TYPED reason, when the refusal came from a command handler rather
+   * The mod's typed reason, when the refusal came from a command handler rather
    * than from the transport. Absent on a transport-level failure, which has no
    * contract code to carry.
    *

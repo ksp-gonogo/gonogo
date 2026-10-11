@@ -28,8 +28,10 @@ function handles(): Map<string, unknown> {
 /**
  * Stores one object under an Uplink's id, so code elsewhere can find it with
  * {@link getUplinkHandle} without importing the Uplink's own module: a client
- * for the Uplink's own server, say. The object can be anything; whoever reads
- * it knows its shape. A second call for the same id replaces the first.
+ * for the Uplink's own server, say. Useful for letting a station's call to an
+ * Uplink reach the object on the main screen. The object can be anything;
+ * whoever reads it knows its shape. A second call for the same id replaces the
+ * first.
  *
  * For {@link useUplinkRelay} to reach the object, it needs a
  * `relay(method, args)` function that returns a promise.
@@ -45,7 +47,8 @@ export function registerUplinkHandle<Handle>(
 
 /**
  * The object {@link registerUplinkHandle} stored under `uplinkId`, typed as
- * `Handle`, or `undefined` if there is none.
+ * `Handle`, or `undefined` if there is none. Used by the main screen when it
+ * answers a station's call to an Uplink.
  *
  * @category Registering
  */

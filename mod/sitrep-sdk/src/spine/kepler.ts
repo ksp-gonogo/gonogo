@@ -11,12 +11,12 @@
  * transmits sparse orbital
  * elements over the wire, and each consumer -- the mod itself, and this SDK
  * -- derives position on demand rather than streaming dense position
- * samples every tick. For that to work, the SDK MUST derive positions
- * IDENTICALLY to the C# server; `propagation.test.ts` pins this module
+ * samples every tick. For that to work, the SDK must derive positions
+ * identically to the C# server; `propagation.test.ts` pins this module
  * against `mod/golden-fixtures/propagation.json`, which is generated from
  * (and independently cross-checked against) `KeplerProvider`.
  *
- * MIRROR C# EXACTLY: same math, same conventions, same Newton-Raphson
+ * Mirror C# exactly: same math, same conventions, same Newton-Raphson
  * initial-guess heuristic. Do not "improve" this independently of
  * `KeplerProvider.cs` -- if the algorithm needs to change, change both
  * sides and regenerate the golden fixtures.
@@ -90,7 +90,7 @@ export type PropagationRefusal =
       reason: "past-horizon";
       horizonUt: number;
       /**
-       * What kind of result was bounded. Present so a readout can say WHY a
+       * What kind of result was bounded. Present so a readout can say why a
        * conic stopped rather than going blank: an integrated trajectory past its
        * horizon is a different sentence from an analytic one, and the operator
        * can act on the difference.

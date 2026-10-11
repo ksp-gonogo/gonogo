@@ -31,10 +31,10 @@ namespace Sitrep.Skeleton
     /// explicit main-&gt;courier queue: it never touches <see cref="Courier"/>,
     /// <see cref="ManualClock"/>, or any Fleck/socket type directly.</description></item>
     /// <item><description><b>Courier domain</b>: one dedicated background
-    /// thread (<see cref="_courierThread"/>) that is the ONLY thread ever
+    /// thread (<see cref="_courierThread"/>) that is the only thread ever
     /// allowed to touch <see cref="_courier"/> / <see cref="_clock"/> (neither
     /// is internally thread-safe). It drains a single ordered job queue fed by
-    /// BOTH the main-loop (<see cref="Tick"/>) and the socket domain (subscribe
+    /// both the main-loop (<see cref="Tick"/>) and the socket domain (subscribe
     /// / unsubscribe / disconnect), so ordering between "record this sample"
     /// and "this client (un)subscribed" is preserved exactly as the two
     /// domains issued it. Serialization (<see cref="EnvelopeCodec"/>) also
@@ -55,7 +55,7 @@ namespace Sitrep.Skeleton
     /// on the single node <see cref="ShipNode"/>; the server acks with an
     /// <see cref="EventMsg"/> (<c>name: "subscribed"</c>) sent as a reliable
     /// frame, then delivers delayed <see cref="StreamData"/> frames as the
-    /// main loop records samples. Any inbound frame that ISN'T a recognized
+    /// main loop records samples. Any inbound frame that isn't a recognized
     /// <c>subscribe</c>/<c>unsubscribe</c>/<c>command-request</c> envelope
     /// (i.e. <see cref="EnvelopeCodec.ParseClientMessage"/> throws
     /// <see cref="FormatException"/>) is echoed back byte-for-byte, unchanged,
@@ -71,7 +71,7 @@ namespace Sitrep.Skeleton
     /// the field, because it serves third-party clients that need diagnosing.
     /// The skeleton serves only its own wiring proof and has no diagnostic
     /// surface to route such an answer through, so it keeps catching the base
-    /// <see cref="FormatException"/> and echoing everything: the echo IS the
+    /// <see cref="FormatException"/> and echoing everything: the echo is the
     /// thing under test here.</para>
     /// </summary>
     public sealed class SkeletonServer : IDisposable
@@ -420,7 +420,7 @@ namespace Sitrep.Skeleton
         }
 
         /// <summary>
-        /// Per-connection state. <see cref="Unsubscribers"/> is mutated ONLY
+        /// Per-connection state. <see cref="Unsubscribers"/> is mutated only
         /// from the Courier thread (Process* methods above), same
         /// single-writer invariant as <see cref="_courier"/> itself.
         /// <see cref="Outbox"/> is the courier-&gt;socket queue crossing and

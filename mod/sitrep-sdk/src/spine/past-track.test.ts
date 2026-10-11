@@ -5,11 +5,11 @@ import { type OrbitSample, pastTrack } from "./past-track";
 const MU = 3.5316e12;
 
 /**
- * A TILTED, rotated, non-circular orbit, and every one of those three matters.
+ * A tilted, rotated, non-circular orbit, and every one of those three matters.
  *
  * <p>This fixture was `inc = lan = argPe = 0` for every test in the file. In
  * that orbit the body-centred inertial frame and the orbit's own perifocal frame
- * are the SAME frame, and periapsis is wherever you like because the orbit is a
+ * are the same frame, and periapsis is wherever you like because the orbit is a
  * circle. So a trail solved into the wrong one of those frames came out
  * identical to a trail solved into the right one, every assertion here passed,
  * and the frame the points were in was never under test at all. The angles below
@@ -166,7 +166,7 @@ describe("the points are real places", () => {
  * could not express and the reason this describe exists.
  *
  * <p>The trail is drawn beside a forward arc on the same diagram, and that arc
- * is expressed in the orbit's own PERIFOCAL frame: the plane of the orbit, with
+ * is expressed in the orbit's own perifocal frame: the plane of the orbit, with
  * periapsis on +x. A trail handed back in the body-centred inertial frame draws
  * a second curve, of the right shape and the right size, rotated away from the
  * one the craft is on by the orbit's own three angles. On a tilted orbit it

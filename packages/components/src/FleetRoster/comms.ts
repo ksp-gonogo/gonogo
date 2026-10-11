@@ -50,7 +50,7 @@ function rollupVerdict(
   return { badgeLabel: `${none} Not Linked`, tone: "warn" };
 }
 
-/** Fleet-wide comms rollup for the header badge and footer meter, worded around LINK: the widget has no data for a health verdict. */
+/** Fleet-wide comms rollup for the header badge and footer meter, worded around link: the widget has no data for a health verdict. */
 export function commsRollup(vessels: FleetVessel[]): {
   linked: number;
   none: number;

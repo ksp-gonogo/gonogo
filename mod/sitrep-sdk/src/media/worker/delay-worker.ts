@@ -2,7 +2,7 @@
 /**
  * The shared worker's entry point: cross-browser video-delay
  * design, 2026-07-16, "one long-lived worker; each feed is a pipeline keyed
- * by id" (locked decision 2). Deliberately THIN: everything it does routes
+ * by id" (locked decision 2). Deliberately thin: everything it does routes
  * straight into already-unit-tested pieces:
  * `runFrameDelayPipeline`/`DelayedPlayoutBuffer` (unchanged, F1),
  * `createWorkerDelayClock` (`worker-delay-clock.ts`), `createNowWall`
@@ -10,7 +10,7 @@
  * `startPacingTicker` (`../frame-delay.ts`, shared with the main-thread
  * backend). This file itself is message plumbing only.
  *
- * NOT unit-tested: jsdom has neither real Workers nor WebCodecs (per this
+ * Not unit-tested: jsdom has neither real Workers nor WebCodecs (per this
  * task's brief), so there is no way to exercise `self.onmessage` / a real
  * `MediaStreamTrackProcessor` in vitest. Correctness here rests on (a) every
  * piece it calls being independently tested, and (b) a manual cross-browser
@@ -18,7 +18,7 @@
  * Safari/WebKit transfers a `MediaStreamTrack` into a worker and supports
  * `MediaStreamTrackProcessor` + `VideoTrackGenerator` there; Chrome and
  * Firefox (as of that verification) do not support the transfer at all,
- * `postMessage(..., [track])` throws SYNCHRONOUSLY on the MAIN thread
+ * `postMessage(..., [track])` throws synchronously on the main thread
  * before this file ever runs, which is exactly why `createPipeline` never
  * needs to handle "the transfer silently failed": if we're executing this
  * handler at all, the track objectively arrived.
@@ -26,9 +26,9 @@
  * Message protocol (see `delay-worker-client.ts` for the main-thread
  * side of each of these):
  *  - `init`           : once, at worker startup, reconciles wall-clock bases.
- *  - `clockSnapshot`   : ~60Hz, worker-global, the ONE shared ViewClock's
+ *  - `clockSnapshot`   : ~60Hz, worker-global, the one shared ViewClock's
  *                          formula inputs (every pipeline reads the same
- *                          `WorkerDelayClock`, matching the app's ONE real
+ *                          `WorkerDelayClock`, matching the app's one real
  *                          `ViewClock` instance).
  *  - `captureSample`   : per-pipeline, whenever that camera's low-rate
  *                          capture-clock sample changes.
@@ -44,12 +44,12 @@
  *                               mirrors `runFrameDelayPipeline`'s `onError`.
  *
  * Encoded-transform path (2026-07-16):
- * `self.onrtctransform` (native platform event, NOT one of the message
+ * `self.onrtctransform` (native platform event, not one of the message
  * types above) is the entry point for the encoded-domain backend; see
- * `handleRtcTransform`'s doc. It reuses the SAME `pipelines` map,
+ * `handleRtcTransform`'s doc. It reuses the same `pipelines` map,
  * `sharedClock`, and `captureSample`/`clockSnapshot` messages this file
- * already handles; only pipeline CONSTRUCTION differs (no handshake, no
- * transferred track). NOT YET REACHABLE from the real app, the main thread
+ * already handles; only pipeline construction differs (no handshake, no
+ * transferred track). Not yet reachable from the real app, the main thread
  * has no `RTCRtpReceiver` to call `receiver.transform = new
  * RTCRtpScriptTransform(worker, {pipelineId})` on (the camera SDK
  * discards it in `onTrack` today): see the report's "what's blocked"
@@ -183,10 +183,10 @@ declare const self: WorkerGlobalSurface;
 const workerSelf = self;
 
 let sharedClock: WorkerDelayClock | null = null;
-/** Set once by `handleInit`: the SAME time-origin-corrected wall clock the
+/** Set once by `handleInit`: the same time-origin-corrected wall clock the
  *  shared `WorkerDelayClock` uses, reused for `captureUt` interpolation so
  *  both read the main thread's basis consistently (`sample.atMs` is a raw
- *  `performance.now()` reading taken ON the main thread). */
+ *  `performance.now()` reading taken on the main thread). */
 let nowWall: (() => number) | null = null;
 
 interface PipelineEntry {
@@ -206,7 +206,7 @@ function nowWallMs(readNowWall: () => number): number {
 
 /** Feature-detect the writer, standard shape first (`VideoTrackGenerator`)
  *  then the fallback; see
- *  `webcodecs-track-io.d.ts`. Returns the constructed generator's OWN
+ *  `webcodecs-track-io.d.ts`. Returns the constructed generator's own
  *  writable/output-track pair, uniformly, regardless of which shape won. */
 function buildWriter(): {
   writable: WritableStream<VideoFrame>;
@@ -335,13 +335,13 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
 
 /**
  * Encoded-transform attach (encoded-transform video-delay work,
- * 2026-07-16). UNLIKE `handleCreatePipeline`, there is no message-based
+ * 2026-07-16). Unlike `handleCreatePipeline`, there is no message-based
  * handshake: `receiver.transform = new RTCRtpScriptTransform(worker,
  * options)` on the main thread fires this event directly, synchronously
  * from the platform's perspective: there is no "pipelineReady"/
  * "pipelineError" round trip to send, because attaching a script transform
  * either works (this handler runs) or the constructor itself throws on the
- * MAIN thread, before this file ever sees anything (mirrors this file's own
+ * main thread, before this file ever sees anything (mirrors this file's own
  * module-doc note about `MediaStreamTrack` transfer failures).
  *
  * Reuses the exact same `pipelines` map, `sharedClock`, and `captureSample`

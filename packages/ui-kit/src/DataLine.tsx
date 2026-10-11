@@ -10,7 +10,7 @@ import { TONE_TEXT } from "./tone";
  */
 export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
   /**
-   * What the reading IS, in one or two words. Set in a quiet uppercase so the
+   * What the reading is, in one or two words. Set in a quiet uppercase so the
    * eye skips it on a second pass and lands on the reading.
    */
   label: ReactNode;
@@ -33,7 +33,8 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * One labelled reading on a line: what it is, then what it says.
+ * One labelled reading on a line: what it is, then what it says. Useful for
+ * listing several figures of one subject, one under another.
  *
  * The label is quiet uppercase; the reading takes the primary foreground with
  * tabular figures, so a run of lines never reads as one block of grey. `tone`

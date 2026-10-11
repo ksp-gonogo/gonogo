@@ -65,7 +65,7 @@ export class WarpObserver {
    *
    * Strictly before, because a fire is the instant warp is stopped: the mod
    * drops warp as it fires and the client steps down as it does, so the
-   * reading taken AT a fire says 1x whatever the craft was doing on the way in.
+   * reading taken at a fire says 1x whatever the craft was doing on the way in.
    * `null` rather than 1 when nothing was read, so a session that never
    * received `time.warp` cannot pass for one that ran at 1x.
    */

@@ -156,12 +156,12 @@ const CARRIES_VALUE: ReadonlySet<ReadingState> = new Set<ReadingState>([
 /**
  * The oldest instant any input speaks for, and the grade that explains it.
  *
- * The grade travels WITH the instant rather than being ranked across inputs,
+ * The grade travels with the instant rather than being ranked across inputs,
  * because `HeldGrade` is not a severity ladder: its own doc calls the four
- * different KINDS of missed update, and singles out `recorded` as exact for its
+ * different kinds of missed update, and singles out `recorded` as exact for its
  * own `asOfUt`. There is no defensible "worse" between a dead transport and an
  * exact value taken out of contact, so nothing here invents one. The result is
- * as of one instant; the grade is why THAT instant is where it is.
+ * as of one instant; the grade is why that instant is where it is.
  *
  * Where several inputs tie on the oldest instant, the grade is kept only if
  * they agree on it. Disagreement means the reason is not single, and saying so
@@ -201,7 +201,7 @@ function oldestSpoken(inputs: readonly Reading<unknown>[]): {
  * did. The first declining input in argument order is the one reported, the
  * same positional rule the absent states use.
  *
- * An `available` reckoning whose modelled value is MISSING is no model here,
+ * An `available` reckoning whose modelled value is missing is no model here,
  * for the reason the value guard above gives: a field projection covered by a
  * model can still find nothing at its path, and `compute` cannot be handed an
  * `undefined` to multiply.

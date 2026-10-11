@@ -3,7 +3,7 @@
  *
  * Every prior task (T3-T7) has its own focused unit tests in
  * `registry.test.ts` / `broker.test.ts` / `version.test.ts` /
- * `proof/comms.test.ts`. This file proves the mechanisms compose: ONE
+ * `proof/comms.test.ts`. This file proves the mechanisms compose: one
  * `resolve()` call wiring an exclusive default+loser, a shared capability,
  * a cross-capability dependency, and a version-excluded-to-vanilla fallback
  * all in the same kernel, asserting the full result (active sets + notices)

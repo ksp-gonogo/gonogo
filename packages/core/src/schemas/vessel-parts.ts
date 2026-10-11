@@ -8,7 +8,7 @@
 /**
  * One part in the `v.topology` payload. Shape mirrors the source walker
  * exactly: no client-side renaming.
- * Live per-tick values (resources, temperatures) are NOT here; they live on
+ * Live per-tick values (resources, temperatures) are not here; they live on
  * the separate `r.resourceFor[flightId]` / `therm.part[flightId]` keys so
  * the topology snapshot stays cacheable across staging-quiet stretches.
  */
@@ -26,11 +26,11 @@ export interface TopologyPart {
   name: string;
   title: string;
   manufacturer: string;
-  /** `PartCategories` enum name as a DISPLAY LABEL (e.g. "Engine", "FuelTank").
+  /** `PartCategories` enum name as a display label (e.g. "Engine", "FuelTank").
    *  {@link categoryOrdinal} is what a consumer should branch on. */
   category: string;
   /**
-   * `PartCategories` ORDINAL (`KspPartCategory`). Optional because a fixture
+   * `PartCategories` ordinal (`KspPartCategory`). Optional because a fixture
    * captured before the mod emitted it stays readable, and `null` when the part
    * carried no `partInfo`. Note `none` is `-1` and is a real category, not an
    * absence.

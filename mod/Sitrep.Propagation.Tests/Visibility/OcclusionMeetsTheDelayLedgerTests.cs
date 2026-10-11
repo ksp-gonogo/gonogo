@@ -8,19 +8,19 @@ using Xunit;
 namespace Sitrep.Propagation.Tests.Visibility
 {
     /// <summary>
-    /// VESSEL TO VESSEL AT HALF AN HOUR OF LIGHT-TIME, where the occlusion
+    /// Vessel to vessel at half an hour of LIGHT-TIME, where the occlusion
     /// geometry meets the delay model. Both halves are already covered on their
     /// own: the chord test, the sweep, both edges and the clearance sign live in
     /// this directory, and silence prediction is tested against emergence and
     /// deadlines elsewhere. What nothing tested is what happens when the trip
-    /// time is long enough that the path's state at SEND and its state at
-    /// ARRIVAL are different facts.
+    /// time is long enough that the path's state at send and its state at
+    /// arrival are different facts.
     ///
     /// <para>The answer is that neither of them decides anything. What decides is
     /// whether the rock was standing on the route at the instant the wavefront
     /// reached the rock, which is a third question the sweep does not ask and the
     /// delay ledger could not express until <see cref="INetwork.DropPath"/>
-    /// existed. Over 30 minutes of light-time a sample can be sent into a clear
+    /// existed. Over 30 minutes of signal delay a sample can be sent into a clear
     /// path and lost, or sent into a path that closes behind it and arrive.</para>
     ///
     /// <para>The occlusion is run through the real
@@ -32,7 +32,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     {
         private const double MetresPerLightSecond = 299792458.0;
 
-        /// <summary>Half an hour of light-time between the two craft.</summary>
+        /// <summary>Half an hour of signal delay between the two craft.</summary>
         private const double TripSeconds = 1800.0;
 
         private const double SeparationMetres = MetresPerLightSecond * TripSeconds;
@@ -53,7 +53,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         /// <see cref="ChordOcclusion.HorizonMargin"/>, which is the exception
         /// rather than the rule and is worth saying why: the flat region that
         /// makes clearance unusable as a search variable comes from an endpoint
-        /// standing ON the occluder, the ground-station case. These endpoints are
+        /// standing on the occluder, the ground-station case. These endpoints are
         /// half a light-hour off a 600 km body, so the clearance falls smoothly
         /// through zero, and metres of clearance is also the quantity this test
         /// wants to talk about.</para>
@@ -69,7 +69,7 @@ namespace Sitrep.Propagation.Tests.Visibility
                 _alongChordMetres = SeparationMetres * alongChordFraction;
             }
 
-            /// <summary>How far out from the SENDER the body crosses the route, in light-seconds.</summary>
+            /// <summary>How far out from the sender the body crosses the route, in light-seconds.</summary>
             public double LightSecondsOut => _alongChordMetres / MetresPerLightSecond;
 
             /// <summary>
@@ -135,7 +135,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         }
 
         /// <summary>
-        /// TWO CRAFT, ONE OCCULTATION, OPPOSITE OUTCOMES. Both samples leave into
+        /// Two craft, one occultation, opposite outcomes. Both samples leave into
         /// a demonstrably clear route and both are still in flight when it
         /// closes. The only difference is where along the route the body crosses:
         /// at a quarter of the way the wavefront is long past it, at three
@@ -167,7 +167,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         }
 
         /// <summary>
-        /// AND THE REVERSE. The same body, the same three-quarter crossing, but
+        /// And the reverse. The same body, the same three-quarter crossing, but
         /// the sample leaves 100 seconds before the route closes: it reaches the
         /// crossing point at UT 2450, fifty seconds after the body has moved on,
         /// and lands.

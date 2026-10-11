@@ -14,7 +14,7 @@ import { describe, expect, it } from "vitest";
 import { usePartsLive } from "./usePartsLive";
 
 /**
- * Characterisation of what `usePartsLive` DOES when its one telemetry read
+ * Characterisation of what `usePartsLive` does when its one telemetry read
  * (`useTelemetry("vessel.parts")`) carries no payload, ahead of that read
  * becoming a `Reading` union.
  *
@@ -22,7 +22,7 @@ import { usePartsLive } from "./usePartsLive";
  * `vesselPartsAdapter.ts` that each open with `if (!wire) return out`, then
  * coerces every miss to a value: `?? null` for thermal, `?? {}` for
  * resources, nothing for partState. So the interesting question is not
- * whether it returns something, it always does, but WHAT it says about a part
+ * whether it returns something, it always does, but what it says about a part
  * nobody has told it anything about.
  */
 

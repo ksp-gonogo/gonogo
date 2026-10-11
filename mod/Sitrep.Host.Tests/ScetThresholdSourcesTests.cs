@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Resolving a SCET threshold's <c>{ topic, fieldPath }</c> to a number off
-    /// one tick's snapshot: the half of the arm that reads the craft's TRUE
+    /// one tick's snapshot: the half of the arm that reads the craft's true
     /// state, upstream of the reveal gate.
     ///
     /// <para>Every fixture here is a plain dictionary shaped like

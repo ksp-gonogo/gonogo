@@ -18,14 +18,14 @@ import { describe, expect, it } from "vitest";
  *      (`@ksp-gonogo/sitrep-client`, the app-side spine + hooks, or
  *      `@ksp-gonogo/sitrep-server`, the mod server). `import type` is allowed
  *      (erased at build, no runtime edge).
- *   2. `packages/sitrep-client/src` (production files, NOT tests) must not
+ *   2. `packages/sitrep-client/src` (production files, not tests) must not
  *      RUNTIME-import `@ksp-gonogo/ui-kit`. Tests may: ui-kit is a
  *      devDependency there, and a test legitimately renders real widgets.
  *      `import type` is allowed in production files too.
  *
- * NOT forbidden: ui-kit importing `@ksp-gonogo/sitrep-sdk` at runtime. The sdk
+ * Not forbidden: ui-kit importing `@ksp-gonogo/sitrep-sdk` at runtime. The sdk
  * is the generated typed contract + unit system both ui-kit and the spine sit
- * ON (dependency direction sdk <- ui-kit, sdk <- sitrep-client), not the spine;
+ * on (dependency direction sdk <- ui-kit, sdk <- sitrep-client), not the spine;
  * `kspTime`, `units`, `Unit`, `ControlDelayStream` and others depend on its
  * `value`/`calendarRatio`/`registerUnit` runtime helpers by design. Forbidding
  * it would red a boundary-clean tree.
@@ -72,8 +72,8 @@ function* walk(dir: string): Generator<string> {
 }
 
 /**
- * True if `content` has a RUNTIME import (or re-export) of `pkg`. A
- * statement-level `import type` / `export type` is type-only and does NOT
+ * True if `content` has a runtime import (or re-export) of `pkg`. A
+ * statement-level `import type` / `export type` is type-only and does not
  * count. The `import` must begin a line (after indentation), so a package
  * name mentioned inside a comment or string is not a false positive: a comment
  * line starts with `//` or `*`, never a bare `import`/`export` keyword. An

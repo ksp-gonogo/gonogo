@@ -17,7 +17,7 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   blocked?: boolean;
   /**
-   * A short label straddling the LEFT end of the row's top border, saying WHY
+   * A short label straddling the left end of the row's top border, saying why
    * the outline turned red. The right end belongs to the console's delay
    * reading. A few upper-case words, such as `READ ONLY`, pinned so it never
    * changes the row's height.
@@ -25,7 +25,7 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
   flag?: string;
   /**
    * The glyph that says "type here", at the head of the row and in the
-   * console's tone. Optional: a composer that CHOOSES rather than types has
+   * console's tone. Optional: a composer that chooses rather than types has
    * nothing to prompt for.
    */
   prompt?: string;
@@ -33,7 +33,7 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * Commit what is composed. Given, the row grows a send button at its far end;
    * omitted, the only send is whatever key the composer binds.
    *
-   * The button is an ADDITION to that key, for a touch screen with no keyboard
+   * The button is an addition to that key, for a touch screen with no keyboard
    * up. Wire it to the same entry point the key handler calls, not a second
    * copy of the send path. It carries the verb and nothing else, so it never
    * reflows the composer.
@@ -46,7 +46,7 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   sendDisabled?: boolean;
   /**
-   * The verb. Defaults to "Send". It is the button's ACCESSIBLE NAME whichever
+   * The verb. Defaults to "Send". It is the button's accessible name whichever
    * way the button is drawn.
    */
   sendLabel?: string;
@@ -69,12 +69,13 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
 
 /**
  * The input at the foot of a {@link Console}: a bordered, non-growing row whose
- * own border says whether input is being accepted. The border takes the
- * console's tone (`--console-tone-fg`), falling back to the primary accent, so
- * what is outlined is what the operator types into.
+ * own border says whether input is being accepted. Useful for showing the
+ * operator whether what they type will be sent. Used by the commcast composer.
+ * The border takes the console's tone (`--console-tone-fg`), falling back to
+ * the primary accent, so what is outlined is what the operator types into.
  *
  * The border turns error-toned when `blocked` (for example, no comms path), so
- * the operator sees it while typing rather than on pressing the key.
+ * the operator sees it while typing.
  *
  * It styles the row and nothing inside it except the send button (`onSend`)
  * and the prompt glyph (`prompt`); font and character pitch belong to the

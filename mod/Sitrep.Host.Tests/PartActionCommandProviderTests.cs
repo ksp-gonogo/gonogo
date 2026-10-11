@@ -41,7 +41,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A missing event name is ModeUnavailable, NOT NotFound: the part may well
+        /// A missing event name is ModeUnavailable, not NotFound: the part may well
         /// exist, the request just names no button on it. Keeping the two codes
         /// distinct is what lets an operator tell "wrong id" from "wrong action".
         /// </summary>

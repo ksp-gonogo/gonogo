@@ -14,7 +14,7 @@ import type { FastifyInstance } from "fastify";
  * `kspHost` is the verbatim container-perspective value. The app maps
  * container-internal names (`host.docker.internal`,
  * `host.containers.internal`) to `localhost` for the sources the
- * BROWSER dials; the kOS bridge value stays verbatim because the
+ * browser dials; the kOS bridge value stays verbatim because the
  * in-container proxy is the thing dialling it.
  *
  * Outside the bundle (public relay deployments) `KSP_HOST` is unset and

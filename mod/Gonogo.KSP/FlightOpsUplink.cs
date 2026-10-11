@@ -6,18 +6,18 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>ksp</c> uplink's COMMAND half: the game-level flight-ops
+    /// The <c>ksp</c> uplink's command half: the game-level flight-ops
     /// actions (<c>ksp.revertToLaunch</c>/<c>ksp.revertToEditor</c>/
     /// <c>ksp.toTrackingStation</c>/<c>ksp.switchVessel</c>/<c>ksp.recover</c>).
-    /// These are player/scene/game-level operations, NOT actuation uplinked to
+    /// These are player/scene/game-level operations, not actuation uplinked to
     /// a craft, so they live on their own uplink rather than on
     /// <see cref="VesselUplink"/> (whose commands are all craft actuation) and
     /// are declared instant on their args types, a scene load or a revert is a
-    /// local game action, never a signal that rides light-time (see
+    /// local game action, never a signal that rides signal delay (see
     /// <see cref="VesselUplink"/>'s command-classification table).
     ///
     /// <para>Read topics for the same domain (<c>ksp.revertAvailability</c>,
-    /// <c>ksp.scene</c>, ...) are produced elsewhere; this uplink declares NO
+    /// <c>ksp.scene</c>, ...) are produced elsewhere; this uplink declares no
     /// channels: it exists purely to carry the flight-ops command handlers.
     /// Mirrors <see cref="VesselUplink"/>'s KSP-free-provider / real-actuator
     /// split exactly: all the arg-parsing lives in the headlessly-testable

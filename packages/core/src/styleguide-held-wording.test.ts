@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { exitStatus } from "./ratchetBaseRef";
 
 /**
- * A figure that has stopped arriving is HELD, and the tree says so in one
+ * A figure that has stopped arriving is `HELD`, and the tree says so in one
  * word. The other phrasing for it is banned everywhere: operator-facing copy,
  * identifiers, data attributes, comments and test names alike, so the
  * vocabulary is one thing rather than two. "Currently" is ordinary English and

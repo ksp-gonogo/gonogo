@@ -26,18 +26,18 @@ import { rootsInScope, scanScope } from "./scanScope";
  * reading.
  *
  * The rule and its reasoning live in `primitive-reading-feed.scan.ts`. What
- * lives HERE is whether this gate can be trusted, which is five things:
+ * lives here is whether this gate can be trusted, which is five things:
  *
  *  1. it catches a planted unwrap, in each spelling one can be written in
- *  2. it catches one written against the REAL `Reading` and the REAL `Unit`,
+ *  2. it catches one written against the real `Reading` and the real `Unit`,
  *     not only against a hand-written lookalike that satisfies the rule by
  *     construction
- *  3. it does NOT flag the two shapes that are correct, and those are lifted
+ *  3. it does not flag the two shapes that are correct, and those are lifted
  *     from what the tree really does rather than written to pass
- *  4. it walked the roots AND the individual files it thinks it walked
+ *  4. it walked the roots and the individual files it thinks it walked
  *  5. the tree is at zero, and stays there
  *
- * The tree being at zero TODAY is exactly why 1 and 2 matter more than 5 here. A
+ * The tree being at zero today is exactly why 1 and 2 matter more than 5 here. A
  * gate with nothing to find reports the same green whether it works or not,
  * and this one was written against a tree that gives it nothing: the text
  * scan it replaces also reported zero, and would have gone on reporting zero
@@ -60,15 +60,15 @@ const SCANS: FeedScan[] = scanPrimitiveReadingFeed(REPO_ROOT, ROOTS);
 const SITES = SCANS.flatMap((scan) => scan.sites);
 
 /**
- * Files that use a primitive and are in NO package's tsconfig, each with why.
+ * Files that use a primitive and are in no package's tsconfig, each with why.
  *
  * Not a tolerance: a written-down hole. These files are unreachable by this
- * gate AND by `pnpm typecheck`, and that costs something measurable rather
+ * gate and by `pnpm typecheck`, and that costs something measurable rather
  * than in theory. Wiring `ui-kit/scripts` into a project by hand, against the
  * in-progress ticket 257 part 2 tree that narrows `Unit`'s prop to the per-value
  * `Reading`, surfaced four errors in `render-unit-currency.entry.tsx` (lines
  * 197, 397, 406, 416) where that fixture still minted a `TopicReading`. On
- * THIS tree the file is consistent and those errors do not exist yet; they
+ * this tree the file is consistent and those errors do not exist yet; they
  * arrive with part 2, and nothing part 2's author runs would show them.
  *
  * The entries stay because the render entry points need a `tsconfig` of their
@@ -96,7 +96,7 @@ const OUTSIDE_EVERY_PROJECT: Record<string, string> = {
  *
  * It declares its own JSX namespace and is compiled with `jsx: preserve` so
  * the plant needs no `react` on disk to resolve. What it must share with the
- * real tree is the SHAPE the rule keys on (the two currency members), not the
+ * real tree is the shape the rule keys on (the two currency members), not the
  * import graph.
  */
 const WORLD = `
@@ -127,7 +127,7 @@ const WORLD = `
   export declare const altitude: Reading<Value<"m">>;
   export declare const definite: Value<"m">;
 
-  /** A reading carrying an ARRAY, for the laundered-through-a-callback shape. */
+  /** A reading carrying an array, for the laundered-through-a-callback shape. */
   export interface Upkeep { sources: { amount: Value<"f"> }[] }
   export declare const upkeep: Reading<Upkeep>;
 `;
@@ -239,7 +239,7 @@ describe("the gate can see a plant written against the REAL types", () => {
   });
 
   /**
-   * The exemptions, asserted by WHICH plant is reported rather than by how
+   * The exemptions, asserted by which plant is reported rather than by how
    * many. A count alone passes an exemption that swallows the fault beside it,
    * which is the failure mode the whole fixture is arranged to expose: each
    * exempt shape sits one hop from a real unwrap of the same reading.
@@ -270,7 +270,7 @@ describe("the gate does not flag what is correct", () => {
   /**
    * The two false-positive controls, both real shapes.
    *
-   * The reading passed whole is the thing the rule is FOR. The definite
+   * The reading passed whole is the thing the rule is for. The definite
    * `Value` case: where a definite `Value` is what is needed, taking a
    * `Value` is right, and a gate that failed it would be a gate that had to
    * be turned off within a day.
@@ -345,14 +345,14 @@ describe("the walk covered what it claims", () => {
    * reporting green: a violation planted in
    * `packages/components/scripts/render-altitude-band.entry.tsx` was not seen,
    * because that package's tsconfig includes `src` and `scripts/**\/*.test.ts`
-   * and nothing else, so the render entry points are in NO package's project
+   * and nothing else, so the render entry points are in no package's project
    * graph. That is the same shape as the defect that broke staging on ticket 257
    * part 1: the authoring guide's examples compile under their own CI step and
    * are likewise in no project, so every suite and a full uncached typecheck
    * were green while the guide was broken.
    *
    * Grading the walk against `git ls-files` rather than against the walk means
-   * a file that falls out of a tsconfig fails HERE, naming itself, instead of
+   * a file that falls out of a tsconfig fails here, naming itself, instead of
    * quietly leaving the rule.
    */
   it("walked every tracked file that names a primitive", () => {
@@ -391,7 +391,7 @@ describe("the walk covered what it claims", () => {
   });
 
   /**
-   * An unresolved program types everything as ERROR, and a scan reading those
+   * An unresolved program types everything as error, and a scan reading those
    * reports whatever it likes. Failing here names the build step that fixes it
    * rather than absorbing the condition.
    */
@@ -412,7 +412,7 @@ describe("no primitive is fed a reading's value instead of the reading", () => {
    * there is nothing to excuse, and a list seeded empty is a list that invites
    * the first entry.
    *
-   * This is the UNWRAP, and only the unwrap: `<Unit value={reading.value} />`
+   * This is the unwrap, and only the unwrap: `<Unit value={reading.value} />`
    * in the two spellings it can be written in. The weaker relative, a figure
    * whose provenance is a reading but which arrived through arithmetic or a
    * helper, is a different fault with a different fix and is held separately
@@ -454,12 +454,12 @@ describe("the gate can see an unwrap laundered through a callback", () => {
    * The shape that hid seven sites in a file this gate had already reported on.
    *
    * The walk follows one `const` hop per identifier by resolving the
-   * identifier's variable declaration. A callback's PARAMETER is not a variable
+   * identifier's variable declaration. A callback's parameter is not a variable
    * declaration, so `s` in `rows.flatMap((s) => ...)` reaches nothing and every
    * figure taken off it reads as having no provenance, however plainly the array
    * it came from is a reading's payload.
    *
-   * The control is planted on the SAME reading and must be reported, so a zero
+   * The control is planted on the same reading and must be reported, so a zero
    * here cannot be a broken harness reporting clean. Two laundered spellings
    * rather than one, because a fix that special-cases `flatMap` and forgets
    * `map` would pass a single-shape assertion.
@@ -498,7 +498,7 @@ describe("the gate follows a provenance chain deeper than a dozen hops", () => {
    * gets this long by passing through a `??`, a `find`, a conditional and two
    * or three helpers, which is exactly how the site this guards was reached.
    *
-   * The control is the SAME chain one hop shorter than the plant is long, so a
+   * The control is the same chain one hop shorter than the plant is long, so a
    * cap set anywhere between them would fail this test rather than silently
    * shortening the gate's reach.
    */

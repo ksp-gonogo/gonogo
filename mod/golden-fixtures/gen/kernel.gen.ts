@@ -31,7 +31,7 @@
  *    so an intentionally-unsatisfied dep (e.g. "absent", spine-halted)
  *    doesn't turn into a spurious throw.
  *
- * `runScenario` builds a REAL `Kernel`, replays the ops, then calls
+ * `runScenario` builds a real `Kernel`, replays the ops, then calls
  * `resolve()` exactly once inside a try/catch:
  *  - success -> `expected` carries `activationOrder`, `activePerCapability`
  *    (every registered capability's `kernel.active(id)`, coerced to

@@ -29,7 +29,7 @@ namespace Sitrep.Host
     ///
     /// <para><b>Raw snapshot encoding (Gonogo.KSP.KspHost.BuildCareer must
     /// populate exactly this shape at <c>Values["career"]</c>: entirely
-    /// OMITTED, no key at all, outside career mode):</b></para>
+    /// omitted, no key at all, outside career mode):</b></para>
     /// <code>
     /// snapshot.Values["career"] = Dictionary&lt;string, object?&gt; {
     ///   "balances":   { "funds": double?, "reputation": double?, "science": double? }
@@ -63,7 +63,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The <c>career.mode</c> topic: the save's <see cref="GameMode"/>.
-        /// A SEPARATE channel from <see cref="Topic"/> because
+        /// A separate channel from <see cref="Topic"/> because
         /// <see cref="BuildCareer"/> returns <c>null</c> outside career mode,
         /// so the mode can't ride the <c>career.status</c> payload; a
         /// sandbox/science save still needs widgets to know which mode it is.
@@ -74,12 +74,12 @@ namespace Sitrep.Host
         /// The <c>career.facilities</c> topic: the space centre's buildings and
         /// their tier ladders.
         ///
-        /// <para>A SEPARATE channel from <see cref="Topic"/> for a staleness
+        /// <para>A separate channel from <see cref="Topic"/> for a staleness
         /// reason rather than a shape one. KSP can only report a facility's tier
         /// count while the live building objects exist, which is the space
         /// centre, the editor and flight near the KSC, so the reading is
         /// unavailable through most of a session. Riding <c>career.status</c> it
-        /// could not be HELD: a field takes its channel's staleness, and
+        /// could not be <c>HELD</c>: a field takes its channel's staleness, and
         /// <c>career.status</c> keeps arriving everywhere because the balances on
         /// it do, so the tiers read as a current answer of null. On its own
         /// channel the silence is the client's to date. See
@@ -90,7 +90,7 @@ namespace Sitrep.Host
         /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"career"</c> value to
         /// the <c>career.status</c> payload. Returns <c>null</c> (the
-        /// SANDBOX / no-data-yet case) whenever the snapshot doesn't carry
+        /// sandbox / no-data-yet case) whenever the snapshot doesn't carry
         /// a <c>"career"</c> dictionary at all, distinguishing "not career
         /// mode" from "career mode with everything genuinely empty" (which
         /// still produces a non-null payload with empty groups).
@@ -158,8 +158,8 @@ namespace Sitrep.Host
         /// <c>Mode.ToString()</c>) mapped onto <see cref="GameMode"/>'s
         /// members. <c>SCIENCE_SANDBOX</c> → <see cref="GameMode.Science"/>,
         /// <c>SANDBOX</c> → <see cref="GameMode.Sandbox"/>, <c>CAREER</c> →
-        /// <see cref="GameMode.Career"/>; everything else (SCENARIO,
-        /// MISSION, ..., and any future KSP addition) →
+        /// <see cref="GameMode.Career"/>; everything else (scenario,
+        /// mission, ..., and any future KSP addition) →
         /// <see cref="GameMode.Unknown"/>.
         /// </summary>
         private static GameMode ParseGameMode(string? raw)
@@ -198,7 +198,7 @@ namespace Sitrep.Host
         /// <c>career.facilities</c> payload, or <c>null</c> when there is no
         /// reading to be had.
         ///
-        /// <para><c>null</c> here means UNREADABLE, not empty, and the channel is
+        /// <para><c>null</c> here means unreadable, not empty, and the channel is
         /// declared <c>NullIsUnreadable</c> so the engine answers it with silence
         /// rather than a tombstone. Three things reach it and all three make the
         /// same statement: no save is loaded, the save is not a career, or the

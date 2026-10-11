@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
  * Reads the latest value of every tag, one Topic per note-body placeholder
  * (`{{v.altitude}}`-style), and re-renders whenever any of them change.
  *
- * Resolved imperatively for a DYNAMIC tag list rather than as one fixed hook
+ * Resolved imperatively for a dynamic tag list rather than as one fixed hook
  * call, since a `useTelemetry` loop would change hook count as the tag list
  * grows and shrinks mid-edit. A tag naming no topic never resolves and stays
  * `undefined`, like any other never-arrived value.

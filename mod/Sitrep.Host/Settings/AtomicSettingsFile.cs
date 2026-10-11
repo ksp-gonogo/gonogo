@@ -90,7 +90,7 @@ namespace Sitrep.Host.Settings
     /// sequence after each of its file operations, and tear the
     /// <c>.new</c> write part way, and show that the next launch reads either
     /// the old document or the new one every time. That is a proof about the
-    /// SEQUENCE. It rests on the platform's rename being atomic, which this code
+    /// sequence. It rests on the platform's rename being atomic, which this code
     /// cannot check; it does not survive a power cut inside the operating
     /// system's write-back window, since net472 has no way to flush a directory;
     /// it does not arbitrate two processes writing at once; and it does not

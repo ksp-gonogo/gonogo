@@ -4,12 +4,12 @@ import { defineConfig } from "tsup";
  * Three entries that must never share a chunk, for three different reasons.
  *
  * It is its own package because a design system has no business shipping a
- * Playwright-driven doc harness, and because the render HOSTS need
+ * Playwright-driven doc harness, and because the render hosts need
  * `@ksp-gonogo/components`, which depends on the kit: carrying them inside the
  * kit is a build-graph cycle, and outside it is an ordinary one-way
  * dependency.
  *
- * The kit is a PEER here, in one direction only. `gridUnits` is the single
+ * The kit is a peer here, in one direction only. `gridUnits` is the single
  * module this package takes back from it.
  */
 /**
@@ -43,7 +43,7 @@ export default defineConfig([
   {
     ...shared,
     /**
-     * The BROWSER half, built as a CONSUMER of the kit rather than as part of
+     * The browser half, built as a consumer of the kit rather than as part of
      * it: `@ksp-gonogo/ui-kit` and its subpaths stay external, so this file
      * shares no chunk with them and there is exactly one copy of the augment
      * registry once an Uplink's probe bundle resolves both. `splitting` is off
@@ -88,11 +88,11 @@ export default defineConfig([
   {
     ...shared,
     /**
-     * The render HOSTS: the app's own widgets, registered, so an Uplink's docs
-     * page can draw an augment or a contribution inside the REAL host it
+     * The render hosts: the app's own widgets, registered, so an Uplink's docs
+     * page can draw an augment or a contribution inside the real host it
      * extends rather than a stand-in whose body draws nothing.
      *
-     * Its own entry, and NOT part of the root barrel, because the two are
+     * Its own entry, and not part of the root barrel, because the two are
      * opposite kinds of thing. The barrel is a Node API an author imports for
      * its functions; this is a side-effect module carrying the whole private
      * app graph as browser code. Rolled together, `uplink-tools docs` would

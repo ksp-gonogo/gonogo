@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
  * write path that a table miss fell back to. Neither can reach a command now,
  * so either one is a dispatch that silently does nothing.
  *
- * The floor is on the SCAN, not on the findings. A gate that required a
+ * The floor is on the scan, not on the findings. A gate that required a
  * non-zero count of legacy call sites would fail on the success it exists to
  * produce, and one that counted them without a floor on what it walked would
  * pass on a scan that had gone blind: zero offenders is exactly what a broken
@@ -53,11 +53,11 @@ function stripComments(text: string): string {
 }
 
 /**
- * A LITERAL action key handed to either form. Matching a literal rather than any
+ * A literal action key handed to either form. Matching a literal rather than any
  * call is what the gate this replaces did, and it is the distinction that
  * matters: `PeerHostService` relays a station's `msg.action` to whatever
  * `DataSource` owns it, which names no command and asserts nothing about the
- * vocabulary. A literal in the source IS an assertion, by the author, that this
+ * vocabulary. A literal in the source is an assertion, by the author, that this
  * string reaches something.
  */
 const RETIRED_DISPATCH_FORMS: readonly RegExp[] = [

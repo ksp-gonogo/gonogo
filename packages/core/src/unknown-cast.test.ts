@@ -35,12 +35,12 @@ import {
  * The gate on assertions that escape `unknown`.
  *
  * The rule, the reasoning and the four categories of debt live in
- * `unknown-cast.scan.ts` and `unknown-cast.debt.ts`. What lives HERE is the
+ * `unknown-cast.scan.ts` and `unknown-cast.debt.ts`. What lives here is the
  * question of whether this gate can be trusted, which is four separate things
  * and not one:
  *
  *  1. it catches a planted assertion, in every spelling one can be written in
- *  2. it does NOT flag a legitimate narrow, and the narrow it is tried against
+ *  2. it does not flag a legitimate narrow, and the narrow it is tried against
  *     is a real one lifted out of the tree rather than one written to pass
  *  3. it walked the roots and the files it thinks it walked, per root
  *  4. the debt list only ever shrinks
@@ -123,7 +123,7 @@ describe("the gate can see a planted assertion", () => {
    * `<T>x` needs its own file: the angle-bracket form is a JSX element in
    * `.tsx`, which is why it is the spelling most likely to be missed.
    *
-   * Each nested plant asserts to its OWN named type, so the text the scan
+   * Each nested plant asserts to its own named type, so the text the scan
    * reports identifies which plant it came from. Reusing one name made four
    * plants indistinguishable in the report, and the first draft of this test
    * then asked for a needle no site could ever carry.
@@ -271,7 +271,7 @@ describe("the gate does not flag a legitimate narrow", () => {
    * The false-positive half, and the one that decides whether this rule is
    * usable at all.
    *
-   * `unknown` is the RIGHT return for a boundary, so a gate that reports every
+   * `unknown` is the right return for a boundary, so a gate that reports every
    * assertion out of one is a gate that punishes the correct design. The
    * subject here is lifted from `mod/GonogoPrincipiaUplink/client/src/planWrite.ts`,
    * the repo's worked example of the remedy: it narrows off `reply.payload`
@@ -573,10 +573,10 @@ describe("the debt list only ever shrinks", () => {
   /**
    * The lists as they stood at the ratchet base.
    *
-   * `ratchetBaseRef` THROWS when no base can be reached, and that throw failing
+   * `ratchetBaseRef` throws when no base can be reached, and that throw failing
    * this test is the intended behaviour: every one of the five original
    * shrink-only gates caught it, returned early, and reported green without
-   * comparing anything. `undefined` here means only that the checkout IS the
+   * comparing anything. `undefined` here means only that the checkout is the
    * base or that the list did not exist there, and `ratchet-base-ref.test.ts`
    * grades the second case separately.
    */
@@ -624,10 +624,10 @@ describe("the debt list only ever shrinks", () => {
    * Growth is refused two different ways, because a moved file and a new
    * violation look identical to a per-file comparison.
    *
-   * An EXISTING entry may only fall. That is the strict half and it never
+   * An existing entry may only fall. That is the strict half and it never
    * bends: a file that gains an assertion has gained a defect.
    *
-   * A NEW entry is allowed only when the repo-wide total did not rise. That is
+   * A new entry is allowed only when the repo-wide total did not rise. That is
    * what a relocation looks like: the same assertions under a different path,
    * keys removed and keys added, total unchanged. Without this the gate fails
    * on every file move and the only way past is to raise a ceiling or delete

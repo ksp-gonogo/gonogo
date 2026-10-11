@@ -17,10 +17,10 @@ function Column({ children }: { children: ReactNode }) {
   return <div style={{ width: 420 }}>{children}</div>;
 }
 
-/** One-way light-time to a probe at Duna, long enough that commands queue. */
+/** One-way signal delay to a probe at Duna, long enough that commands queue. */
 const ONE_WAY = 40;
 
-/** One-way light-time to a craft in Mun orbit, which a held throttle is flown under. */
+/** One-way signal delay to a craft in Mun orbit, which a held throttle is flown under. */
 const STREAM_ONE_WAY = 1.6;
 
 const SAS_TAGS = railTagsForCommand("vessel.control.setSasMode");

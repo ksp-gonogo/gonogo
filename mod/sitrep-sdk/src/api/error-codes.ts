@@ -12,9 +12,11 @@ const coreById = new Map<string, ErrorCodeDeclaration>(
 const registered = new Map<string, ErrorCodeDeclaration>();
 
 /**
- * What an error code means and what an operator reads for it: a core code
- * first, then any code an Uplink registered or the running mod listed, or
- * `undefined` for an id nothing here has declared.
+ * What an error code means and the sentence the operator reads for it: a core
+ * code first, then any code an Uplink registered or the running mod listed, or
+ * `undefined` for an id nothing here has declared. Useful for telling the
+ * operator why a command was refused or failed. Used by the command button
+ * and the command list to word a refusal.
  *
  * @category Error codes
  * @categoryDescription Error codes
@@ -28,8 +30,9 @@ export function describeErrorCode(
 }
 
 /**
- * Makes an Uplink's generated error-code table describable, so its refinements
- * read with their meaning as well as their sentence. A core id is never
+ * Adds an Uplink's generated error-code table, so {@link describeErrorCode}
+ * returns the meaning and the sentence of each refinement. Useful for showing
+ * the operator why one of your Uplink's commands was refused. A core id is never
  * replaced. An Uplink's table holds refusals only: faults are declared by core.
  *
  * @category Error codes
@@ -44,7 +47,9 @@ export function registerErrorCodes(
 }
 
 /**
- * Every code registered or learnt so far, core's excepted, in the order it arrived.
+ * Every error code registered by an Uplink or listed by the running mod so far,
+ * in the order it arrived. Core codes are not included. Useful for checking
+ * which Uplink codes a screen can describe.
  *
  * @category Error codes
  */
@@ -53,9 +58,11 @@ export function registeredErrorCodes(): readonly ErrorCodeDeclaration[] {
 }
 
 /**
- * Learns every refinement the running mod lists on `system.uplinks`, which is
- * how a code from an Uplink whose bundle never loaded still reads as a
- * sentence. A code already registered with its meaning keeps it.
+ * Reads every error-code refinement the running mod lists on `system.uplinks`
+ * and makes it describable, so a code from an Uplink whose client never loaded
+ * still reads as a sentence. Useful for showing the operator a refusal from an
+ * Uplink with no client on this screen. A code already registered with its
+ * meaning keeps it.
  *
  * @category Error codes
  */

@@ -11,7 +11,7 @@
  * view they happen to be in, and a decision that evaporated on reload would
  * quietly put a loop they had tuned out back in their ear.
  *
- * Keyed on the STATION key, the same identity `CommcastLog` files a screen's
+ * Keyed on the station key, the same identity `CommcastLog` files a screen's
  * own mail under: two tabs on one browser are two operators at two consoles and
  * are entitled to tune differently.
  */

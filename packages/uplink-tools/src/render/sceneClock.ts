@@ -1,8 +1,8 @@
 /**
  * The clock a motion scene's timers run on, so a film is the same film twice.
  *
- * The driver pins what a page can READ off a clock (`Date.now`, `new Date()`,
- * `performance.now`) before any module loads. That says nothing about WHEN a
+ * The driver pins what a page can read off a clock (`Date.now`, `new Date()`,
+ * `performance.now`) before any module loads. That says nothing about when a
  * callback runs, and a film is made of callbacks: a wheel stepping on a
  * `setInterval`, a held input released by a `setTimeout`. Both used to fire on
  * wall time while the driver spent real, machine-dependent milliseconds taking
@@ -11,7 +11,7 @@
  * renders of unchanged code; a rate wheel did the same before its interval was
  * taken.
  *
- * Here time is an INPUT: a `waitMs` step is an amount of the scene's own clock,
+ * Here time is an input: a `waitMs` step is an amount of the scene's own clock,
  * and every timer due within it fires, in order, before the frame is shot.
  *
  * ## Two phases, because setup code legitimately waits on wall time
@@ -21,14 +21,14 @@
  * timer, and a clock that only moves when a step says so would hang on the first
  * `await`.
  *
- * So the clock is LIVE while the scene is being set up and SEALED for the film:
+ * So the clock is live while the scene is being set up and sealed for the film:
  *
  * - live: `setTimeout` still schedules for real, and every registration is
  *   recorded. `setInterval` is fake from the start, because an interval that
  *   ticks during setup has already changed what frame zero shows.
  * - sealed ({@link sealSceneClock}, once the setup hooks have returned): the
  *   clock owns everything. Any recorded timeout that has not fired yet is
- *   cancelled and re-registered at its NOMINAL delay, measured from the first
+ *   cancelled and re-registered at its nominal delay, measured from the first
  *   frame. A setup that says "release the stick 1400ms from now" therefore means
  *   1400ms of film, whatever the machine was doing while the page was loading.
  *
@@ -67,7 +67,7 @@ interface Live {
  * The page's own timer functions, kept while the clock holds the globals.
  *
  * `original` is what `closeSceneClock` puts back. The other three are the same
- * functions BOUND to `globalThis`, because in a browser they are methods of
+ * functions bound to `globalThis`, because in a browser they are methods of
  * `window` and a detached `original.setTimeout(...)` throws "Illegal
  * invocation". That lands as a page error rather than a caught one, so every
  * render in the run fails and none of the frames say why.
@@ -165,7 +165,7 @@ export function openSceneClock(): void {
  * End the setup phase: every timer from here on is the scene's, and every
  * timeout the setup left pending is rebased onto the first frame.
  *
- * Rebasing at the NOMINAL delay rather than at what is left of it is the whole
+ * Rebasing at the nominal delay rather than at what is left of it is the whole
  * point. "Release the stick in 1400ms", asked for while the page was still
  * settling, is a statement about the film and not about the machine, so the
  * remainder a real clock would have counted down is exactly the quantity that

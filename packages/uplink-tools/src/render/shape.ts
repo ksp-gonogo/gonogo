@@ -4,10 +4,10 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 /**
- * What a rendered asset IS, in a form two machines can compare.
+ * What a rendered asset is, in a form two machines can compare.
  *
  * A docs page whose content is pictures had a gate that read the prose. `docs
- * --check` compared the README, the manifest and the asset FILENAMES, and said
+ * --check` compared the README, the manifest and the asset filenames, and said
  * nothing about whether the images were rendered from today's code: Vehicle
  * Assembly's page showed a layout the code had stopped producing for five
  * commits, green throughout, and a re-render then changed thirty assets nobody
@@ -28,7 +28,7 @@ import { join } from "node:path";
  * Admissible, because a browser derives them from the stylesheet and the DOM:
  * element order, the attributes below, text content, and the computed properties
  * in `ADMISSIBLE_PROPERTIES`. `padding: 8px` computes to `8px` everywhere;
- * `flex-shrink: 0` computes to `0`; `font-family` computes to the SPECIFIED
+ * `flex-shrink: 0` computes to `0`; `font-family` computes to the specified
  * stack rather than the face that won, so it is a fact about the stylesheet.
  *
  * Inadmissible, because a browser derives them from glyph advances and hinting:
@@ -53,7 +53,7 @@ import { join } from "node:path";
  * ## The second consumer, which is the point
  *
  * A regeneration used to be committed back by a workflow that discarded every
- * MODIFIED asset, keeping only additions and deletions, so it had never once
+ * modified asset, keeping only additions and deletions, so it had never once
  * healed a stale asset. The reasoning was sound and the rule was under-informed:
  * a motion scene's GIF re-encodes to different bytes from an unchanged tree, so
  * committing byte changes would push a churn commit on every run forever. It had
@@ -129,10 +129,10 @@ export const ADMISSIBLE_PROPERTIES = [
  * `style` and the SVG geometry attributes are here because that is where a
  * widget puts the numbers it means: a coverage bar's length is
  * `style="width: 42%"` and a gauge needle is a `d` or a `transform`, and both are
- * silent in `textContent`. They are AUTHORED numbers, which is what makes them
+ * silent in `textContent`. They are authored numbers, which is what makes them
  * admissible where a measured box is not.
  *
- * The `aria-`/`data-` prefixes are a SECOND alternative with its own anchor, and
+ * The `aria-`/`data-` prefixes are a second alternative with its own anchor, and
  * that is not tidiness. Inside the first group they sat in front of a `$`, so
  * only an attribute named exactly `data-` matched and every real `data-x` and
  * `aria-x` was silently dropped: `data-section-full`, which is how a panel marks
@@ -212,7 +212,7 @@ export const SHAPE_RECORD_VERSION = 1;
  * Read the mounted widget, in the page.
  *
  * Passed to `tab.evaluate` and so must close over nothing: the whitelists arrive
- * as arguments. It returns the shape TEXT rather than a hash, because hashing in
+ * as arguments. It returns the shape text rather than a hash, because hashing in
  * the page would mean a mismatch could only ever say "different", and the caller
  * derives the counts a message can act on.
  *
@@ -306,11 +306,11 @@ export const readShapeText = (args: {
  * Stop the tree moving, so a computed style is a fact about the stylesheet
  * rather than a reading off a clock.
  *
- * The shape read was the ONE capture in a render taken while animations were
+ * The shape read was the one capture in a render taken while animations were
  * still running. The picture beside it is not: `shoot` passes playwright's
  * `animations: "disabled"`, which fast-forwards a finite animation to its end
  * before the shutter. Nothing did the same for the walk, and
- * `getComputedStyle` on an element mid-transition returns the INTERPOLATED
+ * `getComputedStyle` on an element mid-transition returns the interpolated
  * value, which depends on how many milliseconds elapsed between the act that
  * started it and the read.
  *
@@ -325,7 +325,7 @@ export const readShapeText = (args: {
  *
  * Finite animations are finished rather than cancelled, to match what the
  * screenshot does: the settled value is the one the picture shows. An animation
- * with no end cannot be finished and is REPORTED instead, because a silent skip
+ * with no end cannot be finished and is reported instead, because a silent skip
  * here is how the next version of this defect would arrive.
  *
  * Passed to `tab.evaluate` and so closes over nothing.

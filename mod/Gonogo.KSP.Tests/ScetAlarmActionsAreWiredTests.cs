@@ -5,7 +5,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests
 {
     /// <summary>
-    /// That a SCET alarm's onboard actions are actually REACHED by the shipped
+    /// That a SCET alarm's onboard actions are actually reached by the shipped
     /// uplink.
     ///
     /// <para><c>ScetAlarmActionsTests</c> proves the rules and the runner. It

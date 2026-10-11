@@ -14,30 +14,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AlarmHostService } from "./AlarmHostService";
 
 /**
- * What a warp STOP does to a command centre a light-minute away, measured
+ * What a warp stop does to a command centre a light-minute away, measured
  * rather than reasoned about.
  *
  * Two facts are pinned here.
  *
- * ## 1. The channel's `DelayRole` decides when the client may READ it
+ * ## 1. The channel's `DelayRole` decides when the client may read it
  *
  * `time.warp` is `DelayRole.TrueNow`. On the mod that is real and
  * load-bearing: `ChannelEngine.RevealDelayFor` returns 0 and the topic rides
  * `MetaVantage`, so the frame reaches the wire on the tick it was captured
  * instead of a light-time later.
  *
- * A frame token freezes TWO view times, and a topic is read at the one its
+ * A frame token freezes two view times, and a topic is read at the one its
  * declared role entitles it to (`GENERATED_TRUENOW_TOPICS`, scanned off the
  * mod's own `ChannelDeclaration`s). So the `truenow` wire shape surfaces the
  * stop at the instant it happened, and the `delayed` shape still takes a
  * light-time to deliver a frame describing it. The classification is what
  * buys the light-time back.
  *
- * ## 2. A warp-to session ENDS on a stop it did not ask for
+ * ## 2. A warp-to session ends on a stop it did not ask for
  *
  * The controller remembers the index it asked for and the reading that was
  * current when it asked, and a reading that has moved to 0 on its own ends
- * the session rather than being reconciled against. It ends WITHOUT a second
+ * the session rather than being reconciled against. It ends without a second
  * `SetWarp(0)`, because the warp is already stopped.
  *
  * The same memory is what stops the controller re-dispatching while it is

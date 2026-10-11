@@ -76,7 +76,7 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// The write commands that carry a CONTINUOUS input: one whose value is
+        /// The write commands that carry a continuous input: one whose value is
         /// a number on a range, a throttle or a control axis, rather than a
         /// switch or a mode. A command is continuous when any channel it backs
         /// has a floating-point value field.
@@ -166,7 +166,7 @@ namespace Sitrep.Contract
         /// </summary>
         ///
         /// <remarks>
-        /// Asking for ONE attribute type still makes the runtime build the
+        /// Asking for one attribute type still makes the runtime build the
         /// property's whole attribute list, so it must resolve every attribute
         /// assembly present on that property, not just the one asked for. The
         /// contract's netstandard2.0 build carries Reinforced.Typings'
@@ -179,7 +179,7 @@ namespace Sitrep.Contract
         ///
         /// <para>Unguarded, that throw escapes through this method's only caller
         /// into the middle of an object initializer and aborts the whole dispatch,
-        /// so a delayed command is never enqueued AND never sent. Skipping the
+        /// so a delayed command is never enqueued and never sent. Skipping the
         /// property is right rather than merely safe: a property whose attributes
         /// will not load cannot be declaring a control channel that could be
         /// acted on.</para>

@@ -12,7 +12,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// The <c>system.channels</c> diagnostic Topic: proof that a channel the
-    /// engine considered and a channel it never considered read DIFFERENTLY off
+    /// engine considered and a channel it never considered read differently off
     /// the wire.
     ///
     /// <para>That difference is the whole deliverable. One vessel channel
@@ -22,7 +22,7 @@ namespace Sitrep.Host.IntegrationTests
     /// Decide for this channel" and "the engine called Decide and the emitter
     /// declined" produce identical silence. Those two have completely different
     /// causes, so a test that only proved the numbers appear on the wire would
-    /// miss the point: what is asserted here is that the two cases DISAGREE.</para>
+    /// miss the point: what is asserted here is that the two cases disagree.</para>
     /// </summary>
     public class ChannelEmissionCountersTests
     {
@@ -107,7 +107,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// An uplink taken Unavailable is the OTHER cause of a never-considered
+        /// An uplink taken Unavailable is the other cause of a never-considered
         /// channel, and it must not read like the birth gate: every channel the
         /// uplink owns goes inert together, so a channel that was emitting
         /// happily stops being considered with <c>available</c> false and
@@ -152,10 +152,10 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The roster is complete: a channel nobody ever subscribed to is
-        /// PRESENT with a zero subscriber count, never omitted. An omitted row
+        /// present with a zero subscriber count, never omitted. An omitted row
         /// would be indistinguishable from a channel that was never declared,
         /// which is the ambiguity this Topic exists to remove, and it would
-        /// remove it for the ONE channel most likely to be under investigation:
+        /// remove it for the one channel most likely to be under investigation:
         /// the quiet one.
         /// </summary>
         [Fact]

@@ -24,7 +24,8 @@ export interface SearchBoxProps
 
 /**
  * A search box with the kit's own clear control, shown while there is text to
- * clear. Clearing hands focus back to the field.
+ * clear. Clearing hands focus back to the field. Useful for letting the
+ * operator narrow a long list by typing. Used by the target picker.
  *
  * @category Form
  */

@@ -34,7 +34,7 @@ class FakeClock implements Clock {
     };
   }
 
-  /** Advances to `ut`, firing every due callback in ASCENDING `atUt` order (never insertion order), proves delivery order is driven by schedule time, not array position. */
+  /** Advances to `ut`, firing every due callback in ascending `atUt` order (never insertion order), proves delivery order is driven by schedule time, not array position. */
   advanceTo(ut: number): void {
     this.currentUt = ut;
     const due = this.pending

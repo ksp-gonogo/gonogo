@@ -33,9 +33,9 @@ export interface ContributionSlotEntry {
 const EMPTY_ENTRIES: readonly unknown[] = Object.freeze([]);
 
 /**
- * The host-invariant segments at RUNTIME, so both halves of the seam agree on
- * which bare names complete to `${componentId}.<segment>`. Checked against
- * `ComponentSlotSegment` in both directions, so the two lists cannot drift.
+ * The bare slot names that complete to `${componentId}.<segment>`. Useful for
+ * telling a standard widget slot from a slot id declared in full. Used by the
+ * contributions provider and by the size accounting of a widget's slots.
  */
 export const COMPONENT_SLOT_SEGMENTS = [
   "badges",
@@ -52,9 +52,11 @@ void _everySegmentListed;
 
 /**
  * The standard contribution segments every widget carries: `badges`. An
- * Uplink fills any widget's header badges by contributing to
+ * Uplink fills any widget's header badges, which the operator sees beside the
+ * widget's title, by contributing to
  * `"<widget-id>.badges"` with its handle's `registerContribution`, without the
- * widget declaring the slot. `compute` returns {@link BadgeEntry} items. How
+ * widget declaring the slot. Useful for an Uplink author checking which
+ * segment names every widget carries. `compute` returns {@link BadgeEntry} items. How
  * the panel draws them, and a whole example, are under Standard slots on
  * {@link Panel}.
  *
@@ -68,7 +70,8 @@ const EMPTY_SLOT_ENTRIES: readonly ContributionSlotEntry[] = Object.freeze([]);
 
 /**
  * The per-widget store of contribution entries, one {@link ContributionSlotEntry}
- * per slot. {@link ContributionsProvider} mounts and fills it; the read hooks
+ * per slot. Useful for showing the operator what Uplinks contribute to a
+ * widget. {@link ContributionsProvider} mounts and fills it; the read hooks
  * ({@link useContributions}, {@link useContributionsBySlotId}) read it. A
  * widget reads through those hooks rather than the store.
  *
@@ -95,7 +98,8 @@ function useAllContributionSlots(): readonly ContributionSlotEntry[] {
 }
 
 /**
- * The entries contributed to the slot with the full id `slot`, untyped. Empty
+ * The entries contributed to the slot with the full id `slot`, untyped. Used by
+ * {@link StatContributions}. Empty
  * when nothing contributes or no contribution store is mounted. Prefer
  * {@link useContributions}, which types the entries from the slot's
  * declaration; use this for a slot id built at runtime.
@@ -108,7 +112,9 @@ export function useContributionsBySlotId(slot: string): readonly unknown[] {
 }
 
 /**
- * The entries contributed to a slot, for a widget to draw. Three call shapes:
+ * The entries contributed to a slot, for a widget to draw. Useful for showing
+ * the operator what Uplinks add to a widget, such as header badges. Used by the
+ * dashboard grid and the screen header badges. Three call shapes:
  *
  * - a full slot id declared in `ContributionRegistry` (`"ship-map.part-meters"`):
  *   its entries, typed and stamped with `contributionId` and `owner`

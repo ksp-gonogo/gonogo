@@ -12,7 +12,9 @@ const WidgetScopeContext = createContext<{
 /**
  * Publishes what this widget instance is currently focused on (the selected
  * resource, the followed body) to augments rendered in any of its slots, which
- * read it with {@link useWidgetScope}. It carries one scope value; several
+ * read it with {@link useWidgetScope}. Useful for letting an Uplink's augment
+ * show the operator figures for the same body or resource the widget shows.
+ * Used by the map view and the power systems widget. It carries one scope value; several
  * unrelated fields belong in a slot's own props type instead.
  *
  * `widget` is the publishing widget's registered component id. It types
@@ -42,7 +44,8 @@ export function WidgetScopeProvider<Widget extends string>({
  * The current scope of the widget named by `componentId`, typed from its
  * `WidgetScopeRegistry` entry. `undefined` when that widget publishes none, or
  * when the augment is rendered outside it (in a test, say), so an augment must
- * handle `undefined`.
+ * handle `undefined`. Useful for an augment that shows the operator figures
+ * for what the widget is focused on.
  *
  * @example
  * ```tsx

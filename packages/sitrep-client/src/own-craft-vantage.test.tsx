@@ -83,11 +83,11 @@ describe("DelayAuthority own-craft override", () => {
 
 /**
  * The acceptance case, over the auto-built store a production
- * `TelemetryProvider` mounts: the ONE `ViewClock`'s delay is what every widget
+ * `TelemetryProvider` mounts: the one `ViewClock`'s delay is what every widget
  * read, every media buffer and every command lead is sized from, so this is
  * the assertion the whole task is for.
  *
- * An explicit `store` prop is deliberately NOT used: that caller owns their
+ * An explicit `store` prop is deliberately not used: that caller owns their
  * clock's delay wiring whole (the provider's own contract), so the override is
  * only wired onto the store the provider builds itself.
  */
@@ -139,7 +139,7 @@ describe("the pilot's view clock", () => {
        * would be invisible to the gate for reasons that have nothing to do
        * with the vantage.
        *
-       * `source` is the PAYLOAD's provenance, `null` for a sample carrying
+       * `source` is the payload's provenance, `null` for a sample carrying
        * none; `envelopeSource` is the Courier node the mod stamps beside it,
        * `"system"` for every non-fleet topic.
        */

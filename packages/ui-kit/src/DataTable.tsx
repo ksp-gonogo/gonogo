@@ -119,7 +119,9 @@ export interface DataTableProps<Row> {
 
 /**
  * A real table for tabular readouts, so figures in a column can be compared
- * down the page.
+ * down the page. Useful for showing the operator many rows of the same kind of
+ * reading, such as stored science data. Used by the science data widget's
+ * aboard and archive tabs.
  *
  * Semantic `<table>` throughout. Each section is a `<tbody>` of its own,
  * headed by a `<th scope="rowgroup">` spanning the width, and a `rowHeader`

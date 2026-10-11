@@ -5,8 +5,8 @@ import type { CommcastLogSnapshot, CommsMessage, RecipientId } from "./types";
  * Commcast groups: a list of vantages sharing one thread, which every message
  * and every radio transmission is addressed to.
  *
- * Membership is a VALUE built from the `members` changes a vantage holds. The
- * mod delivers a change to each member one light-time from wherever it was
+ * Membership is a value built from the `members` changes a vantage holds. The
+ * mod delivers a change to each member one signal delay from wherever it was
  * made, so a group opened or joined far away is not known here until word of it
  * has arrived, and it is the mod that addresses a speaker's words to the
  * members that speaker can see.

@@ -8,8 +8,8 @@ import { APP_INTERNAL, SDK_SURFACE } from "./vendor-name.allowlist";
  * The vendor-name ratchet. See `vendor-name.allowlist.ts` for what it guards and
  * why the counts are exact rather than a file list.
  *
- * The scan is `git grep -c -i`, which means it reads TRACKED files only and
- * counts LINES, not occurrences: two mentions on one line count once, which is
+ * The scan is `git grep -c -i`, which means it reads tracked files only and
+ * counts lines, not occurrences: two mentions on one line count once, which is
  * fine because the unit being ratcheted down is "a line someone has to read and
  * rewrite". Case-insensitive, because the name appears capitalised in prose and
  * lowercased in paths and identifiers.
@@ -30,7 +30,7 @@ const NEEDLE = ["tele", "machus"].join("");
  * History, deliberately kept: see the allowlist header.
  *
  * `.serena/` is a different case and is excluded for a different reason: it
- * holds TRACKED binary symbol caches (`*.pkl`) that a re-index rewrites, so
+ * holds tracked binary symbol caches (`*.pkl`) that a re-index rewrites, so
  * their match count moves on its own and would make this gate flaky. They are
  * derived from the source this already counts, so counting them is also double
  * counting. That they are tracked at all looks like an oversight worth fixing
@@ -103,8 +103,8 @@ describe("vendor name", () => {
    * confident zero while 67 files were in violation.
    *
    * The debt itself can no longer serve as the positive control, because it is
-   * down to two lines and is meant to reach zero. So the control is a DIFFERENT
-   * needle run through the SAME scan. It is the project's own name rather than
+   * down to two lines and is meant to reach zero. So the control is a different
+   * needle run through the same scan. It is the project's own name rather than
    * a mod's: a mod token would put this file in violation of the uplink-boundary
    * gate, and it would also be a needle that could legitimately reach zero one
    * day. A zero here means the pipeline is broken (wrong cwd, no git, mangled
@@ -115,7 +115,7 @@ describe("vendor name", () => {
   });
 
   /**
-   * The second instrument check, and a DIFFERENT KIND from the one above
+   * The second instrument check, and a different kind from the one above
    * rather than another of the same. That one proves the pipeline runs; this
    * one proves the needle is the word.
    *
@@ -129,7 +129,7 @@ describe("vendor name", () => {
    *
    * `CLAUDE.md` is the control because the project rule deliberately keeps the
    * name there, so it is a known-present instance no sweep will ever remove.
-   * Being EXEMPT is what qualifies it: its match was never part of the debt, so
+   * Being exempt is what qualifies it: its match was never part of the debt, so
    * this assertion cannot go blind at the moment the debt reaches zero, which
    * is the failure the pipeline control was itself introduced to avoid.
    */

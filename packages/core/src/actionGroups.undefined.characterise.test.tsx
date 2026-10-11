@@ -14,8 +14,8 @@ import {
 import { clearRegistry } from "./registry";
 
 /**
- * CHARACTERISATION: what the action-group registry yields TODAY when
- * `vessel.control` is `undefined`, and what it FABRICATES to stay operable.
+ * Characterisation: what the action-group registry yields today when
+ * `vessel.control` is `undefined`, and what it fabricates to stay operable.
  *
  * Two absence gates carry the whole behaviour:
  *   - `control?.actionGroups` then `named ?? []` in `useActionGroupsFrom`
@@ -23,7 +23,7 @@ import { clearRegistry } from "./registry";
  *     `resolveActionGroup`
  *
  * The second one is the dangerous one: with no telemetry at all, asking for
- * `AG1` still hands back a FULLY OPERABLE toggle pill bound to `f.ag1`. That
+ * `AG1` still hands back a fully operable toggle pill bound to `f.ag1`. That
  * is a control the operator can fire against a vessel we have heard nothing
  * from.
  *
@@ -109,7 +109,7 @@ describe("useActionGroups characterisation: nothing has arrived at all", () => {
 
 describe("useActionGroupsFrom characterisation: absent record vs absent field vs tombstone", () => {
   /**
-   * The three shapes are NOT distinguished. `undefined` (no record),
+   * The three shapes are not distinguished. `undefined` (no record),
    * `{}` (record arrived, field missing) and `{ actionGroups: null }` (the
    * backend confirming it has no action-group data this tick) all take the
    * same `named ?? []` path and produce byte-identical registries.
@@ -127,7 +127,7 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
   });
 
   /**
-   * An empty ARRAY is also the same answer, and that one genuinely means
+   * An empty array is also the same answer, and that one genuinely means
    * something different ("the backend reported zero custom groups"). Four
    * distinct wire states, one render.
    */
@@ -140,7 +140,7 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
   });
 
   /**
-   * Partial payload WITHIN an entry: `customActionGroup`'s `name ?? \`AG${index}\``
+   * Partial payload within an entry: `customActionGroup`'s `name ?? \`AG${index}\``
    * invents a stock-style label for a named-group entry whose name did not
    * arrive. So an AGX group with a dropped name reads as a stock AG pill.
    */
@@ -198,7 +198,7 @@ describe("useActionGroupsFrom characterisation: absent record vs absent field vs
   });
 
   /**
-   * The `useMemo` is keyed on `named`, so an absent read does NOT churn the
+   * The `useMemo` is keyed on `named`, so an absent read does not churn the
    * registry identity across re-renders. Worth pinning: a migration that
    * hands this hook a freshly-built object every frame would silently turn
    * every consumer into a per-frame re-render.
@@ -249,7 +249,7 @@ describe("useActionGroup characterisation: resolving a configured id against an 
 
   /**
    * A non-AG id (an AGX display name) degrades to a read-only pill instead:
-   * present, named, `toggle: null`, and carrying NO index. This is the
+   * present, named, `toggle: null`, and carrying no index. This is the
    * deliberately-inert half of the fallback.
    */
   it("degrades a non-AG configured name to a read-only pill with no index", () => {
@@ -265,8 +265,8 @@ describe("useActionGroup characterisation: resolving a configured id against an 
   });
 
   /**
-   * `if (!id) return undefined` is the ONLY route to `undefined`, and it is
-   * driven by CONFIG, never by telemetry. So "No action group configured" can
+   * `if (!id) return undefined` is the only route to `undefined`, and it is
+   * driven by config, never by telemetry. So "No action group configured" can
    * never be caused by absent telemetry, which is the property the fallback
    * exists to guarantee.
    */
@@ -297,8 +297,8 @@ describe("useActionGroup characterisation: resolving a configured id against an 
   });
 
   /**
-   * THE ONE THIS FILE EXISTS FOR. A fabricated AG1 and a reported AG1 are the
-   * same control, but not the same CLAIM: the
+   * The one this file exists for. A fabricated AG1 and a reported AG1 are the
+   * same control, but not the same claim: the
    * descriptor carries `provenance`, so a widget can caveat the pill it drew
    * from an absence instead of presenting it as reported fact.
    *

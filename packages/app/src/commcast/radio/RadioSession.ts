@@ -15,11 +15,11 @@ import { recordRadioFrame } from "./wire";
  * played at natural rate.
  *
  * The crossing is already behind a chunk when it arrives: the mod held it for
- * this vantage's light-time from the speaker. What is left here is a short
+ * this vantage's signal delay from the speaker. What is left here is a short
  * playout hold, so a batch arriving a little late plays straight on from the
  * one before, and the pacing back onto the 20 ms grid.
  *
- * The hold is a clock COMPARISON against the reader's own present
+ * The hold is a clock comparison against the reader's own present
  * (`utNowEstimate()`), via `DelayedPlayoutBuffer`, never a wall timer or a
  * `DelayNode`, so a warp, a quickload or a revert moves every held chunk with
  * the clock.
@@ -51,13 +51,13 @@ export interface RadioDecoderLike {
 }
 
 /**
- * This screen's one listening output, and the reason mixing happens HERE.
+ * This screen's one listening output, and the reason mixing happens here.
  *
  * Every transmission addressed here opens its own decode stream on the
- * receiver, and the receiver SUMS them into a single output. Each stream has
- * already crossed its own light-time before a sample of it reaches the sum,
- * which is the property that matters: the sum must sit DOWNSTREAM of per-source
- * delay, because the transmissions in a mix have different light-times to
+ * receiver, and the receiver sums them into a single output. Each stream has
+ * already crossed its own signal delay before a sample of it reaches the sum,
+ * which is the property that matters: the sum must sit downstream of per-source
+ * delay, because the transmissions in a mix have different signal delays to
  * different listeners.
  *
  * One stream per transmission rather than one for the channel is also what
@@ -78,7 +78,7 @@ export interface RadioReceiver {
 /**
  * One transmission whose audio is reaching this screen right now.
  *
- * Read off the AUDIO rather than off the envelope, which is the difference
+ * Read off the audio rather than off the envelope, which is the difference
  * between an indicator light and a faster-than-light channel: a chunk reaches
  * this screen at the speed of the internet, so a light lit on arrival would
  * announce somebody speaking a light-minute before their first word could be
@@ -112,7 +112,7 @@ export interface RadioReception {
    * reading and the one the lamps draw.
    */
   /**
-   * Every transmission currently reaching this screen, MUTED ONES INCLUDED,
+   * Every transmission currently reaching this screen, muted ones included,
    * in the order they were first heard.
    *
    * This is what the indicator light draws, and it is a list rather than the
@@ -134,7 +134,7 @@ export interface RadioReception {
    * two people cannot hold a conversation at 100,000x, and the design plays at
    * natural rate and reports the backlog rather than pretending otherwise.
    *
-   * Under a CHANGING separation it stays near zero, which is the whole point of
+   * Under a changing separation it stays near zero, which is the whole point of
    * the pacer's rate term: a listener closing on the transmitter is handed
    * chunks faster than the 20 ms grid they were spoken on, and a feed that
    * ignored that would climb here for the length of the transmission and never
@@ -174,15 +174,15 @@ interface HeardTransmission {
   /**
    * This keying's own release pacer.
    *
-   * ONE PER TRANSMISSION, not one for the channel, and the reason is how the
+   * One per transmission, not one for the channel, and the reason is how the
    * pacer spaces: by the UT deltas between the frames it holds. Within one
-   * keying that is exactly right, the deltas being the 20 ms grid. ACROSS two
+   * keying that is exactly right, the deltas being the 20 ms grid. Across two
    * keyings it is not: a gap of a minute between two things somebody said would
    * make the second wait a minute of wall time before its first word, which is
    * silence nobody asked for. A keying is one continuous stream and pacing
    * belongs to it.
    *
-   * It is also the scope the playout RATE is measured over, and the same
+   * It is also the scope the playout rate is measured over, and the same
    * boundary is right for that: the rate is a property of one crossing, and a
    * conversational gap carries no information about it at all.
    */
@@ -228,7 +228,7 @@ interface HeardTransmission {
 
 export interface RadioSessionOptions {
   /**
-   * The delay clock, whose `confirmedEdgeUt()` MUST return the reader's own
+   * The delay clock, whose `confirmedEdgeUt()` must return the reader's own
    * `utNowEstimate()`. See the class doc: the confirmed edge would hold a
    * spoken word for a round trip.
    */
@@ -250,7 +250,7 @@ export interface RadioSessionOptions {
   maxBacklogSeconds?: number;
   /**
    * The cap, in bytes of held audio. 8 MB is over half an hour at the measured
-   * 4.3 kB/s, longer than any light-time in the stock or RSS systems, and it is
+   * 4.3 kB/s, longer than any signal delay in the stock or RSS systems, and it is
    * the same figure the encoded video path already uses.
    *
    * Commcast's text buffer is uncapped on the argument that words must never be
@@ -281,7 +281,7 @@ export class RadioSession {
   /**
    * Conversations the operator has tuned out, by thread key.
    *
-   * The ONLY thing this class knows about the operator's attention. It is
+   * The only thing this class knows about the operator's attention. It is
    * deliberately not told which thread is on screen: tying audio to that would
    * tie hearing to where somebody's eyes happen to be, and glancing at another
    * conversation would silently mute a person mid-sentence, which is the exact
@@ -291,7 +291,7 @@ export class RadioSession {
   private muted: ReadonlySet<string> = new Set();
   /** Chunks still crossing: accepted, and not yet let through by the clock. */
   private crossing = 0;
-  /** Chunks the clock has released and playback has not reached: the BACKLOG. */
+  /** Chunks the clock has released and playback has not reached: the backlog. */
   private paced = 0;
   private droppedChunks = 0;
   /**
@@ -358,7 +358,7 @@ export class RadioSession {
   /**
    * Which conversations are tuned out, by thread key.
    *
-   * Consulted at the SPEAKER, per chunk: a mute is a decision the operator
+   * Consulted at the speaker, per chunk: a mute is a decision the operator
    * makes now, and one made mid-sentence has to take effect mid-sentence. It
    * cannot move a release instant.
    */
@@ -512,7 +512,7 @@ export class RadioSession {
    * goes out stamped behind the one spoken 20 ms earlier. A burst of chunks
    * stamped inside one clock tick ties instead, leaving only arrival order
    * between them. Either way the
-   * buffer would release two words in the order they were NOT spoken, which a
+   * buffer would release two words in the order they were not spoken, which a
    * listener hears as a glitch. The wait costs the size of that step.
    *
    * Bounded by `maxBacklogSeconds`, because a lower `seq` stamped further ahead
@@ -637,7 +637,7 @@ export class RadioSession {
 }
 
 /**
- * Insert keeping `seq` order, scanning from the END: chunks arrive almost
+ * Insert keeping `seq` order, scanning from the end: chunks arrive almost
  * always in order, so this is one comparison per chunk rather than a search.
  * An equal `seq` (a repeated frame) goes after the one already there.
  */
@@ -652,7 +652,7 @@ function insertBySeq<Entry>(
   list.splice(at, 0, item);
 }
 
-/** One chunk of this `seq` has left the delay buffer. Scans from the FRONT,
+/** One chunk of this `seq` has left the delay buffer. Scans from the front,
  *  where a chunk released in order always is. */
 function leaveBuffer(held: HeardTransmission, seq: number): void {
   const at = held.inBuffer.findIndex((c) => c.seq === seq);

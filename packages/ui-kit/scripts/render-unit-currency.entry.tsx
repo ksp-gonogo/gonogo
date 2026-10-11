@@ -9,7 +9,7 @@
  * tables of the same figures (nothing marked, marked, and marked with a
  * deliberate in-flow dot beside the mark) and measures all three after layout,
  * because the objection this mark had to answer is that a glyph beside a value
- * reflows the column under it. The third table is the CONTROL: a ruler that
+ * reflows the column under it. The third table is the control: a ruler that
  * cannot see a reflow reports none, so the sheet plants one and shows the
  * ruler catching it.
  *
@@ -438,8 +438,8 @@ function Sizes() {
 }
 
 /**
- * The same mark on an INSTANT rather than a figure, which is the case a date
- * makes differently: a stale instant stays TRUE, so nothing is withheld and
+ * The same mark on an instant rather than a figure, which is the case a date
+ * makes differently: a stale instant stays true, so nothing is withheld and
  * the only thing the reading adds is the mark. Drawn beside a stale figure so
  * the two can be read as one vocabulary rather than two.
  */
@@ -484,7 +484,7 @@ function Dates() {
  * whether a model is carrying the value, and that is invisible unless the two
  * sit next to each other with the same observation behind them.
  *
- * Every row's OBSERVATION is 90 seconds. Where a model is carrying it, the
+ * Every row's observation is 90 seconds. Where a model is carrying it, the
  * model's answer at this frame is 42 seconds, which is what the clock draws.
  */
 function Countdowns() {

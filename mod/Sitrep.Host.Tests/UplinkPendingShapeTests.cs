@@ -9,7 +9,7 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// G1 shape ratchet for <see cref="PendingUplink"/>: the prediction-only
     /// queue entry that will back <c>system.uplink.pending</c> (Task 3).
-    /// Locks the field set to EXACTLY the dispatch-time facts the spec's
+    /// Locks the field set to exactly the dispatch-time facts the spec's
     /// prediction-only invariant allows: <c>Id</c>, <c>Command</c>,
     /// <c>Label</c>, <c>Topic</c>, <c>Vantage</c>, <c>DispatchedAt</c>,
     /// <c>OneWaySeconds</c>. <c>Topic</c> is dispatch-time addressing, which

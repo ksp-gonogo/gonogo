@@ -71,7 +71,7 @@ function makeSnapshot(alarms: Alarm[] = []): AlarmSnapshot {
 }
 
 /**
- * The onFire picker lists the action-group registry, whose CUSTOM half
+ * The onFire picker lists the action-group registry, whose custom half
  * (`AG1`..`AG10`) is derived from live `vessel.control` telemetry rather than
  * hardcoded: so a bare `render()` shows only the stock singletons and `AG1`
  * isn't a selectable option at all. Mount the minimal real stream carrying the
@@ -742,7 +742,7 @@ describe("AlarmsModal threshold trigger key picker", () => {
 });
 
 /**
- * The trigger-kind control switches which fields the ONE "Add alarm" form
+ * The trigger-kind control switches which fields the one "Add alarm" form
  * shows. It is not a tab set: Name is shared, only the middle of the form
  * differs, and there are no tab panels for the tabs to control. It had
  * `role="tablist"`/`role="tab"` anyway, which is an ARIA claim the markup
@@ -1027,7 +1027,7 @@ describe("AlarmsModal where actions run", () => {
 });
 
 /**
- * An alarm is armed for the FUTURE, so a present-tense reading of the link
+ * An alarm is armed for the future, so a present-tense reading of the link
  * cannot decide which clock the operator meant. A craft two light-seconds out
  * today may be an hour out by the time the alarm comes due, and the operator
  * setting it up now is exactly the one who needs to say so.

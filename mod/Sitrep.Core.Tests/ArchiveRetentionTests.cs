@@ -9,7 +9,7 @@ namespace Sitrep.Core.Tests
     /// Retention, which exists because the archive grew without bound and the cost
     /// was never mainly memory.
     ///
-    /// <para><see cref="Courier"/> walks a topic's WHOLE history on every subscribe
+    /// <para><see cref="Courier"/> walks a topic's whole history on every subscribe
     /// to schedule the samples still in flight, skipping everything that has already
     /// arrived. So the work done per subscribe grew with the length of the session
     /// rather than with the number of samples still in flight.</para>
@@ -17,7 +17,7 @@ namespace Sitrep.Core.Tests
     /// <para>C#-only, like <see cref="Archive.ResetTimeline"/> beside it. The
     /// TypeScript reference in <c>mod/sitrep-server</c> is a test double that runs
     /// for milliseconds, so unbounded growth is not a defect it can exhibit, and
-    /// retention is deliberately not part of the conformed contract. What IS
+    /// retention is deliberately not part of the conformed contract. What is
     /// conformed is read behaviour, which a correct prune preserves inside the
     /// window by construction.</para>
     /// </summary>

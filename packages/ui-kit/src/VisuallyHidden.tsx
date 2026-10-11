@@ -2,10 +2,10 @@ import styled from "styled-components";
 
 /**
  * Screen-reader-only content: visually removed but kept in the accessibility
- * tree. Use it for what a sighted user reads from another channel (colour, a
- * ticking number) that an assistive-technology user would otherwise miss, such
+ * tree. Useful for giving an operator who uses assistive technology what a
+ * sighted operator reads from another channel (colour, a ticking number), such
  * as a discrete power-state word beside a colour-coded net-rate readout, or the
- * word a currency icon stands for.
+ * word a currency icon stands for. Used by the station radio indicator.
  *
  * Pair it with `role="status" aria-live="polite"` to announce a discrete state
  * change; keep a streaming value out of the live region so it does not flood

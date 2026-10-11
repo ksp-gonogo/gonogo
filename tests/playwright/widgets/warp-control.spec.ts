@@ -14,7 +14,7 @@
  * Station-side scope: only the "WARP" panel title (static chrome) is
  * checked on the station: the rate readout comes from live Sitrep stream
  * data (`useTelemetry("time.warp")`, the canonical single-arg form with no
- * legacy fallback), and only the MAIN screen mounts
+ * legacy fallback), and only the main screen mounts
  * `SitrepTelemetryProvider` today (station stream forwarding over PeerJS
  * is a documented pending gap, see that provider's own doc comment).
  * Checking the readout on the station would fail for that reason, not a

@@ -15,12 +15,12 @@ namespace Gonogo.KSP.Tests.Career
     /// is null in a sandbox save. Both gates guarded on that null and answered
     /// Unknown, and Unknown refuses at dispatch. The consequence was not that a
     /// sandbox player could not upgrade a building - there is nothing to upgrade
-    /// - it was that a capability gated on a facility TIER was refused in the one
+    /// - it was that a capability gated on a facility tier was refused in the one
     /// mode where every facility is already at its ceiling. Flight planning is
     /// Mission Control's; patched conics is the Tracking Station's; sandbox has
     /// both, maximally, from the first second.</para>
     ///
-    /// <para><b>And the case it must NOT break.</b> A career save whose scenario
+    /// <para><b>And the case it must not break.</b> A career save whose scenario
     /// has not woken up yet presents the same null, and there "max" would be a
     /// lie. The mode tells them apart because the mode is what KSP itself decides
     /// scenario existence from (<c>Game.CreateNew</c> and
@@ -52,7 +52,7 @@ namespace Gonogo.KSP.Tests.Career
         /// <summary>
         /// A <see cref="GateOutcome"/>'s name, spelled out rather than asked for.
         ///
-        /// <para>Nothing in this process can RENDER one. The type is reached
+        /// <para>Nothing in this process can render one. The type is reached
         /// through Sitrep.Contract's netstandard2.0 build, where it carries
         /// <c>[TsEnum]</c>, and <c>Reinforced.Typings</c> is a build-only
         /// dependency that is not beside the test binary, so anything that walks
@@ -126,7 +126,7 @@ namespace Gonogo.KSP.Tests.Career
 
         /// <summary>
         /// The half that keeps this from being a fail-open. Career and mission
-        /// both GET the scenario, so a null Instance there is a load in progress
+        /// both get the scenario, so a null Instance there is a load in progress
         /// and there is no honest answer yet.
         /// </summary>
         [Theory]
@@ -197,7 +197,7 @@ namespace Gonogo.KSP.Tests.Career
         }
 
         /// <summary>
-        /// The scenario BEING there is still read live, in every mode. The seam
+        /// The scenario being there is still read live, in every mode. The seam
         /// exists to present its absence, and a seam that changed the present
         /// case would have made the other tests meaningless.
         /// </summary>

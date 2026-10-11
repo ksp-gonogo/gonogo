@@ -11,8 +11,8 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// At zero light-time, an alarm at the craft's own vantage and an alarm at a
-    /// command centre's vantage on the SAME condition come due on the same tick.
+    /// At zero signal delay, an alarm at the craft's own vantage and an alarm at a
+    /// command centre's vantage on the same condition come due on the same tick.
     ///
     /// <para>One roster holds both, and the tick is taken in two passes because
     /// the two read from different places: the craft's own vantage reads this
@@ -25,7 +25,7 @@ namespace Sitrep.Host.IntegrationTests
     /// the control here is the one
     /// <see cref="VantageReadInstantClassTests.OrdinaryDelayedTopicIsStillLightTimeLateAtACommandVantage"/>
     /// keeps: put four minutes of light between the craft and the centre and the
-    /// two alarms MUST come due four minutes apart, the craft's first. A gate
+    /// two alarms must come due four minutes apart, the craft's first. A gate
     /// that can only pass is not a gate.</para>
     ///
     /// <para>Both cases hold a standing subscription on the threshold's Topic.

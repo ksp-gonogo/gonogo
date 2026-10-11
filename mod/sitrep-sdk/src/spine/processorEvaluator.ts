@@ -196,7 +196,7 @@ function isReadingDep(dep: Dep): dep is ReadingDep {
 const EQUALITY_NODE_BUDGET = 2048;
 
 /**
- * What one comparison can answer. THREE arms rather than two, and that is the
+ * What one comparison can answer. Three arms rather than two, and that is the
  * whole of the fix.
  *
  * ## Why the two-armed shape kept failing
@@ -204,18 +204,18 @@ const EQUALITY_NODE_BUDGET = 2048;
  * This guard has now been written twice and failed twice, the same way both
  * times, and the fault was never the comparison: it was the answer set.
  *
- * A boolean guard is a RECOGNISER. It enumerates the shapes it knows how to
+ * A boolean guard is a recogniser. It enumerates the shapes it knows how to
  * compare, and every shape it does not recognise falls through to `false`.
  * `false` is the safe direction (a value delivered when it need not have been
  * costs a render; a value withheld when it moved is a frozen dashboard), so
- * the fallback is correct. It is also INDISTINGUISHABLE from a real change,
+ * the fallback is correct. It is also indistinguishable from a real change,
  * which means a guard that recognises nothing at all reports as a perfectly
  * healthy, busy dashboard and nothing anywhere can tell the difference.
  *
  * - The first version gated on `Object.is(entry.value, next)`. Every `compute`
  *   allocates, so it answered `false` for every processor ever written: a
  *   guard that could not fire, at all, that nothing could see was not firing
- * - The second replaced it with a structural walk over an ALLOWLIST of
+ * - The second replaced it with a structural walk over an allowlist of
  *   prototypes (`Object.prototype`, arrays). A `Value` is
  *   `Object.create(sharedPrototype)`, so it was off the allowlist, and any
  *   result carrying so much as one wire quantity answered `false` on every
@@ -227,7 +227,7 @@ const EQUALITY_NODE_BUDGET = 2048;
  *
  * ## What this does instead
  *
- * The unrecognised case gets its own arm and is REPORTED (see
+ * The unrecognised case gets its own arm and is reported (see
  * `setProcessorUncomparableRecorder`, and `PROCESSOR_UNCOMPARABLE_BUDGET`
  * core-side, whose threshold is zero). `uncomparable` behaves like
  * `different` (the value is delivered, nothing is withheld), so the safe
@@ -239,7 +239,7 @@ type Comparison = "equal" | "different" | "uncomparable";
 
 /**
  * Per-prototype verdict on whether own-key enumeration sees the whole of an
- * instance's state. Keyed on the PROTOTYPE, not the instance: it is a fact
+ * instance's state. Keyed on the prototype, not the instance: it is a fact
  * about the shape, and one lookup per node per frame is the hot path.
  */
 const STATELESS_PROTOTYPE = new WeakMap<object, boolean>();
@@ -251,7 +251,7 @@ const STATELESS_PROTOTYPE = new WeakMap<object, boolean>();
  * This is what handles a `Value` without naming one. `Value` is a plain data
  * object over a shared prototype that holds only methods, precisely so the two
  * own properties are all that serialise (unit-system/value.ts), and that
- * PROPERTY is what makes it comparable by its own keys. Any wrapper an Uplink
+ * property is what makes it comparable by its own keys. Any wrapper an Uplink
  * writes in the same style is comparable for the same reason, with nothing to
  * add here.
  *
@@ -293,7 +293,7 @@ function prototypeOf(value: object): object | null {
  *
  * - `[object Object]`, because a `Date`, a `Map`, a `Set`, a `Promise` and a
  *   typed array all keep their state in internal slots that no enumeration
- *   reaches, AND their prototypes carry only methods, so the chain check alone
+ *   reaches, and their prototypes carry only methods, so the chain check alone
  *   waves every one of them straight through
  * - a stateless prototype chain, per above
  * - at least one own key. A method-bearing prototype whose instances expose no
@@ -332,9 +332,9 @@ let lastUncomparableShape: string | undefined;
  * arrays, and objects whose own enumerable keys are the whole of them,
  * recursively.
  *
- * The comparison is on the RESULT rather than on the inputs, which is where
+ * The comparison is on the result rather than on the inputs, which is where
  * this parts company with `sampleReading`'s input-identity gate one layer over.
- * Two cases in `processorEvaluator.test.ts` force it: a processor with NO deps
+ * Two cases in `processorEvaluator.test.ts` force it: a processor with no deps
  * whose answer is a function of `frame.viewUt` (a countdown) has no input to
  * compare and would freeze forever, and a processor that clamps or buckets a
  * moving upstream has a moving input and a still answer. Comparing the result
@@ -344,7 +344,7 @@ let lastUncomparableShape: string | undefined;
  * says nothing about whether a sibling moved, so the walk finishes and reports
  * `uncomparable` only if it found no outright difference.
  *
- * The residual it does NOT catch: state held in a non-enumerable or
+ * The residual it does not catch: state held in a non-enumerable or
  * symbol-keyed own property is invisible to `Object.keys` and would compare
  * equal. That was true of the previous walk too, it is not a shape any
  * processor returns, and unlike the failures above it errs towards a stuck
@@ -434,7 +434,7 @@ interface ProcessorRuntimeEntry {
 type TopicSubscriber = (topic: string) => () => void;
 
 /**
- * The evaluated state of every Processor against ONE `TimelineStore`: values,
+ * The evaluated state of every Processor against one `TimelineStore`: values,
  * ref-counts, listeners, the store's frame subscription and the raw Topic
  * subscriptions its active processors hold up.
  *
@@ -448,7 +448,7 @@ export class ProcessorRuntime {
   private frameUnsubscribe: (() => void) | undefined;
   private activeCount = 0;
   /**
-   * A processor that declares raw Topic deps must SUBSCRIBE them, not merely
+   * A processor that declares raw Topic deps must subscribe them, not merely
    * sample them off the store: a topic nothing else reads never streams, so
    * sampling it returns undefined forever. The store cannot reach its client,
    * so the provider hands its `client.subscribe` in through `setTopicSubscriber`.

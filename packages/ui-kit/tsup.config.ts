@@ -18,7 +18,7 @@ import { defineConfig } from "tsup";
  * the kit's icon exports work with zero extra installs for a consumer,
  * export-safe means the peer list stays exactly react/react-dom/styled-components.
  *
- * Everything in `external` is a peer and must NEVER be bundled. styled-components
+ * Everything in `external` is a peer and must never be bundled. styled-components
  * keeps a module-level registry, so a second copy inside our bundle would produce
  * components that silently don't share a ThemeProvider with the host app's.
  */

@@ -14,7 +14,7 @@ namespace Gonogo.DevTools
     /// test controller can prove that a craft loaded off-screen and then
     /// released left no stray parts at the world origin.
     ///
-    /// Request format (mirrors <see cref="GonogoDevTeleport"/>'s TELEPORT node):
+    /// Request format (mirrors <see cref="GonogoDevTeleport"/>'s teleport node):
     /// <code>
     /// SCENEPARTS
     /// {

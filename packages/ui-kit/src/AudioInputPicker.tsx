@@ -24,9 +24,11 @@ export interface AudioInputPickerProps extends UseAudioInputOptions {
 
 /**
  * Microphone access and device choice, as one control: it asks for permission,
- * lists what the browser will admit to, opens the chosen input and hands the
- * stream back through `onStream`. It knows nothing about what the stream is for.
- * Built on {@link useAudioInput}; use the hook directly to draw your own.
+ * lists the inputs the browser will admit to, opens the chosen input and hands
+ * the stream back through `onStream`. Useful for letting the operator choose
+ * which microphone a voice feature listens to. Used by the radio input of the
+ * voice loop. It knows nothing about what the stream is for. Built on
+ * {@link useAudioInput}; use the hook directly to draw your own.
  *
  * Every state it can be in is a distinguishable sentence in a live status line.
  * An insecure origin, a refused permission and an absent device all end with no

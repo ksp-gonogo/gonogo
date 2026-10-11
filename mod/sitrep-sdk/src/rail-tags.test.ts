@@ -14,7 +14,7 @@ import {
 } from "./rail-tags";
 
 /**
- * The generated table carries what a client must READ about a command rather
+ * The generated table carries what a client must read about a command rather
  * than assume, which is now one column. Continuity left it: it was a `Set` in
  * `spine/map-command.ts` holding one id, then a declaration on that same id
  * saying the same thing, and both were answering the wrong question. See
@@ -46,7 +46,7 @@ describe("the generated rail table", () => {
 });
 
 /**
- * DIRECTION is decidable from the contract, which is what lets there be one
+ * Direction is decidable from the contract, which is what lets there be one
  * derivation per direction instead of a judgement call at each call site: a
  * declared command id is a command and a Topic id is telemetry, and no id is
  * both.
@@ -167,7 +167,7 @@ describe("an Uplink registering its own command", () => {
 
 /**
  * Identity stability, which is load-bearing and invisible. These triples ride on
- * values compared by SHALLOW equality: a command handle is a fresh literal on
+ * values compared by shallow equality: a command handle is a fresh literal on
  * most renders and the delay rail's store only notifies when a handle actually
  * moved, so a freshly-minted `tags` would make every handle look moved every
  * render and the rail would redraw at frame rate to show the same thing.

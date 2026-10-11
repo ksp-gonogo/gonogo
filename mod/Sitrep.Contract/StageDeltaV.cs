@@ -28,7 +28,7 @@ namespace Sitrep.Contract;
 /// <para><b>Typing-only mirror.</b> This type reproduces, field-for-field, the
 /// exact serialized shape <c>Sitrep.Host.StageDeltaVViewProvider.BuildStages</c>
 /// already emits (same names, same camelCase wire keys via
-/// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
+/// <c>RtConfig.CamelCaseForProperties</c>, same units). It is not serialized
 /// itself: the wire is written by <c>JsonWriter</c> walking the provider's
 /// dictionary. The nullability rule above is <c>SnapshotDict.Get*</c>'s, not a
 /// choice made per field. Source is <c>VesselDeltaV.OperatingStageInfo</c>.</para>

@@ -28,7 +28,7 @@ namespace Gonogo.KSP
         public const string UnnamedKind = "servo";
 
         /// <summary>
-        /// Every servo on one part, as raw wire entries. Discovery of WHICH
+        /// Every servo on one part, as raw wire entries. Discovery of which
         /// modules these are is the caller's <c>GetModules&lt;BaseServo&gt;</c>
         /// call: this takes the base type so a servo kind can never be lost
         /// before it arrives.

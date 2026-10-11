@@ -8,7 +8,7 @@ namespace Gonogo.KSP
     /// DEV-ONLY signal-blackout override for <see cref="CommsCoreUplink"/>'s
     /// connectivity capture / reveal-gate source. Lets the GonogoDevTools
     /// mini-mod (Deck-only, never shipped - see its own project comments)
-    /// force the active vessel's comms connectivity to DISCONNECTED
+    /// force the active vessel's comms connectivity to disconnected
     /// regardless of what the elected <see cref="ICommsBackend"/>
     /// (stock CommNet or RealAntennas) actually reports, so a headless test
     /// run can reproduce signal-loss bugs (e.g. an uplink command like
@@ -16,22 +16,22 @@ namespace Gonogo.KSP
     /// on demand instead of waiting for a real occlusion/range window.
     ///
     /// <para><b>Cross-assembly contract, no reference either direction:</b>
-    /// GonogoDevTools deliberately has ZERO reference to Sitrep.*/Gonogo.KSP
+    /// GonogoDevTools deliberately has zero reference to Sitrep.*/Gonogo.KSP
     /// (see its own csproj comment), so it cannot call into this type
     /// directly - and this production assembly must never reference the
     /// Deck-only dev tooling either. The two sides communicate only through
-    /// a well-known cfg file, the SAME cfg-request-poller pattern
+    /// a well-known cfg file, the same cfg-request-poller pattern
     /// <c>GonogoDevTeleport</c>/<c>GonogoDevAutoLoad</c> already use:
     /// GonogoDevTools' own <c>GonogoDevForceComms</c> addon writes an
     /// acknowledgement/result file for SSH-side visibility, but the actual
-    /// override applied here comes from polling the SAME request file
+    /// override applied here comes from polling the same request file
     /// independently - there is no hand-off, just two readers of one file.</para>
     ///
     /// <para><b>Production-safe by construction:</b> a normal player install
     /// never has a <c>GonogoDevTools</c> assembly loaded in the process, so
     /// <see cref="Current"/> resolves <see cref="DevToolsLoaded"/> to
-    /// <c>false</c> on the FIRST check (cached forever after) and never even
-    /// touches the filesystem. Only when GonogoDevTools IS loaded (Deck test
+    /// <c>false</c> on the first check (cached forever after) and never even
+    /// touches the filesystem. Only when GonogoDevTools is loaded (Deck test
     /// runs only) does this poll the request file, at a modest 1s cadence.</para>
     /// </summary>
     internal static class DevCommsOverride
@@ -57,7 +57,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// <c>null</c> = no override, use the real elected backend's
-        /// connectivity. <c>false</c> = forced DISCONNECTED (blackout). Never
+        /// connectivity. <c>false</c> = forced disconnected (blackout). Never
         /// <c>true</c>: see <see cref="ModeOf"/>.
         /// </summary>
         internal static bool? Current
@@ -154,10 +154,10 @@ namespace Gonogo.KSP
         /// <c>blackout</c>, and none for everything else.
         ///
         /// <para><c>restore</c> ends a blackout by handing the link back to the
-        /// real backend, the same as <c>auto</c>. It used to force CONNECTED,
+        /// real backend, the same as <c>auto</c>. It used to force connected,
         /// and a request file left at <c>restore</c> then kept the reveal gate
         /// open over a craft that had really lost its path: the path measured
-        /// zero, the gate did not hold the last light-time, and telemetry and
+        /// zero, the gate did not hold the last signal delay, and telemetry and
         /// commands crossed at no delay at all. Nothing honest can be forced
         /// connected, so no mode does it.</para>
         /// </summary>

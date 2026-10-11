@@ -13,14 +13,14 @@ namespace Sitrep.Host
     /// <see cref="SystemViewProvider"/> so every provider -- present and
     /// future (M1 Task 2's ~10 providers) -- shares one implementation.
     ///
-    /// <para><b>R1/F-1 -- non-finite numbers are ABSENT, not present:</b>
+    /// <para><b>R1/F-1 -- non-finite numbers are absent, not present:</b>
     /// <see cref="GetDouble"/> and <see cref="GetVec3"/> both treat a
     /// <c>NaN</c>/<c>Infinity</c> raw value as though the key were missing
     /// entirely, returning <c>null</c> rather than the non-finite value,
     /// because a non-finite number is never a wire value. A caller that requires a field
     /// (see each provider's own "all required" guards) sees a non-finite
     /// input the same way it sees a missing one: the field maps to
-    /// <c>null</c>, and it is the CALLER's job to decide whether that
+    /// <c>null</c>, and it is the caller's job to decide whether that
     /// specific field is optional (e.g. <c>VesselOrbit.Lan</c>/<c>ArgPe</c>)
     /// or fatal to the whole record (e.g. <c>VesselOrbit.Sma</c>).</para>
     /// </summary>
@@ -45,7 +45,7 @@ namespace Sitrep.Host
         ///
         /// <para><b>Fix E (R1/F-1, mirrors <see cref="GetDouble"/>):</b> a
         /// <c>double</c>/<c>float</c> source that is <c>NaN</c>/<c>Infinity</c>
-        /// is ALSO treated as absent, never cast through to a fabricated
+        /// is also treated as absent, never cast through to a fabricated
         /// integer. Before this guard, an unchecked <c>(int)d</c> conversion
         /// silently produced <c>0</c> for <c>NaN</c> and <c>int.MaxValue</c>/
         /// <c>int.MinValue</c> for +/-<c>Infinity</c> -- reachable via a
@@ -75,7 +75,7 @@ namespace Sitrep.Host
         /// (a live <c>KspHost</c> may store a raw <c>int</c>/<c>float</c>; a
         /// <see cref="ReplayKspHost"/> snapshot post JSON round-trip always
         /// carries <c>double</c>). Returns <c>null</c> -- never the raw
-        /// value -- when the key is absent, explicitly <c>null</c>, OR when
+        /// value -- when the key is absent, explicitly <c>null</c>, or when
         /// the underlying number is <c>NaN</c>/<c>Infinity</c>/<c>-Infinity</c>
         /// (R1/F-1: see the class doc comment). Integral sources
         /// (<c>int</c>/<c>long</c>) are always finite by construction and

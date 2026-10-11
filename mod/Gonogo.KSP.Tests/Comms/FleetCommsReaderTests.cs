@@ -8,9 +8,9 @@ using Sitrep.Contract;
 namespace Gonogo.KSP.Tests.Comms
 {
     /// <summary>
-    /// <see cref="FleetCommsReader.ReadNodePath"/> against the REAL CommNet
+    /// <see cref="FleetCommsReader.ReadNodePath"/> against the real CommNet
     /// types (CommNode / CommLink / CommPath are plain classes, no scene
-    /// needed) and the REAL stock backend, with only the solver itself faked:
+    /// needed) and the real stock backend, with only the solver itself faked:
     /// the network subclass below overrides <c>FindPath</c>, which is the entry
     /// point <see cref="CommNetBackend.RouteBetween"/> routes through, so a test
     /// can say "these two are unroutable" or "the route is this chain of nodes"
@@ -18,7 +18,7 @@ namespace Gonogo.KSP.Tests.Comms
     /// test is the reader's own decisions -- which absences stay absent, and
     /// whether the whole walked route is measured -- not stock's Dijkstra.
     ///
-    /// <para>Which ROUTER answers at all is a separate question, and it is
+    /// <para>Which router answers at all is a separate question, and it is
     /// <see cref="RouteBackendDispatchTests"/>'s.</para>
     /// </summary>
     public class FleetCommsReaderTests
@@ -28,7 +28,7 @@ namespace Gonogo.KSP.Tests.Comms
         private static SignalDelayConfig Enabled() =>
             new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
 
-        /// <summary>The real vanilla backend, whose router IS stock's <c>FindPath</c>.</summary>
+        /// <summary>The real vanilla backend, whose router is stock's <c>FindPath</c>.</summary>
         private static CommNetBackend Stock() => new CommNetBackend();
 
         /// <summary>A CommNetwork whose pathfinding is scripted: null route = unroutable.</summary>

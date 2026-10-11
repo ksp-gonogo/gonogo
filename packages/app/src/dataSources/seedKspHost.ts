@@ -6,7 +6,7 @@ import { relayBaseUrl } from "../peer/iceServers";
  * First-run seeding of "where is KSP" from the bundled container's
  * `KSP_HOST` env var, republished by the relay at `/bootstrap-config`.
  *
- * Pointing a fresh browser at the bundle should need ZERO Settings
+ * Pointing a fresh browser at the bundle should need zero Settings
  * spelunking: one env var on `docker run` seeds the shared `gameHost`
  * setting that every KSP-facing source reads (the telemetry stream and the
  * kerbcast sidecar). The seed is in-memory only, any host the user has
@@ -19,7 +19,7 @@ import { relayBaseUrl } from "../peer/iceServers";
 
 /**
  * Container-internal aliases for "the machine the container runs on".
- * Sources the BROWSER dials (telemetry stream, kerbcast sidecar) can't
+ * Sources the browser dials (telemetry stream, kerbcast sidecar) can't
  * resolve these: the browser-side equivalent is `localhost`.
  */
 const CONTAINER_INTERNAL_HOSTS = new Set([

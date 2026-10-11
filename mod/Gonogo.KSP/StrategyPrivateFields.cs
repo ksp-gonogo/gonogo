@@ -9,7 +9,7 @@ namespace Gonogo.KSP
     /// <c>Strategy.Activate()</c> writes and exposes no setter for, resolved once.
     ///
     /// <para>Reflection resolves at run time, so a renamed or retyped field
-    /// breaks no compile. Each is therefore resolved against its exact name AND
+    /// breaks no compile. Each is therefore resolved against its exact name and
     /// type, and a miss is a null the caller must refuse on before it writes
     /// anything; <c>StrategyPrivateFieldsMirrorTests</c> holds both against the
     /// installed <c>Assembly-CSharp</c> so a KSP build that moves one turns a

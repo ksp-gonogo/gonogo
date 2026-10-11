@@ -8,7 +8,7 @@ namespace Sitrep.Host.Comms
     /// (<see cref="ICommsOcclusionModel"/>) to every celestial body the game
     /// knows about, producing the <c>comms.occlusion</c> payload.
     ///
-    /// <para>The body list is read from the SAME <see cref="KspSnapshot"/> that
+    /// <para>The body list is read from the same <see cref="KspSnapshot"/> that
     /// already feeds <c>system.bodies</c> (<c>KspHost.Sample</c> captures name /
     /// index / radius / hasAtmosphere per body on the Unity main thread), so
     /// this adds no KSP read of its own and is pure, KSP-free arithmetic over
@@ -31,7 +31,7 @@ namespace Sitrep.Host.Comms
         /// Builds the payload for <paramref name="model"/> over the bodies in
         /// <paramref name="snapshot"/>. Fail-soft throughout: a null model
         /// becomes <see cref="CommsOcclusionModels.Unknown"/>, and a snapshot
-        /// with no body list yet (main menu, cold start) yields a NAMED model
+        /// with no body list yet (main menu, cold start) yields a named model
         /// with an empty body list rather than null, so a consumer can always
         /// read which geometry is in play even before there is anything to apply
         /// it to.
@@ -69,7 +69,7 @@ namespace Sitrep.Host.Comms
         /// geometry for the same bodies. <c>Meta</c> is excluded, it is
         /// provenance rather than part of the declaration.
         ///
-        /// <para>Exists because the producer republishes the SAME instance while
+        /// <para>Exists because the producer republishes the same instance while
         /// the declaration holds, so that the emitter's change-gate (which has
         /// only reference equality to work with on a wire POCO) suppresses it
         /// instead of pushing a full body list at sample cadence.</para>

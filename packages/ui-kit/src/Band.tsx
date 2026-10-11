@@ -11,9 +11,9 @@ import {
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
- * The en dash {@link Band} draws between its two ends. It is `aria-hidden`,
- * since a screen reader is given the interval in words. Import it to match or
- * assert on the separator rather than writing the character again.
+ * The en dash {@link Band} draws between its two ends. Useful for matching or
+ * asserting on the separator without writing the character again. It is
+ * `aria-hidden`, since a screen reader is given the interval in words.
  *
  * @category Unit
  */
@@ -42,9 +42,10 @@ export interface BandProps<UnitSymbol extends string = string>
 
 /**
  * A closed interval drawn as its two ends, such as the range a mean orbital
- * element moves over. Useful where the width of the range matters as much as
- * where it sits: the width of a mean orbital element says whether the orbit
- * is stable. It is never reduced to a midpoint.
+ * element moves over. Useful for showing the operator the width of a range as
+ * well as where it sits: the width of a mean orbital element says whether the
+ * orbit is stable. It is never reduced to a midpoint. Used by the landing
+ * status widget for a carried altitude.
  *
  * - With either end missing it draws the null token, since one end alone
  *   would read as a single value
@@ -88,7 +89,7 @@ export function Band<UnitSymbol extends string = string>({
 /**
  * The ends, drawn once the group has settled how both are written.
  *
- * Two ends that come out as the same text are drawn ONCE, marked
+ * Two ends that come out as the same text are drawn once, marked
  * approximate (`~65.3 km`): the width is below what the display can show. The
  * rule is "the display cannot tell them apart", answered by the group, not a
  * tolerance.

@@ -10,7 +10,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// <summary>
     /// What a sweep step has to be sized against. Visibility from a rotating
     /// ground station cycles at whichever term moves fastest, and for anything
-    /// slower than the station's own day that is the DAY, not the orbit: a
+    /// slower than the station's own day that is the day, not the orbit: a
     /// solar-orbit craft has a period of 1.02e7 s, so a step of period/720 is
     /// 14,167 s against Kerbin's 21,549 s day, i.e. 1.5 samples per visibility
     /// cycle where the sweep needs more than 2 to see a cycle at all.
@@ -111,7 +111,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         }
 
         /// <summary>
-        /// The geometry takes a SET of stations, and they need not all sit on
+        /// The geometry takes a set of stations, and they need not all sit on
         /// the same body's spin. The fastest of them is the one the step has to
         /// resolve.
         /// </summary>
@@ -148,7 +148,7 @@ namespace Sitrep.Propagation.Tests.Visibility
         /// <summary>
         /// The measured consequence, on a margin whose crossings are known in
         /// closed form: sampled at period/720 the sweep walks straight past the
-        /// first emergence and reports the NEXT one, a full sidereal day late.
+        /// first emergence and reports the next one, a full sidereal day late.
         /// Bisection keeps its bracket, so the late answer is a genuine
         /// emergence, which is exactly what makes the error invisible without a
         /// test like this one.

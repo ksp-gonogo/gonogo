@@ -9,7 +9,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// De-risks M1's headless-validation anchor: proves a REAL 7.5 MB KSP
+    /// De-risks M1's headless-validation anchor: proves a real 7.5 MB KSP
     /// capture (<c>local_docs/telemetry-mod/recordings/reference-session-2026-07-07.json</c>,
     /// preserved outside git) round-trips through <see cref="RecordedSessionCodec.Parse"/>
     /// and replays start-to-finish through <see cref="ReplayKspHost"/>: the
@@ -21,7 +21,7 @@ namespace Sitrep.Host.Tests
     ///
     /// The recording lives under the gitignored <c>local_docs/</c> tree, so
     /// every test here is a <see cref="RecordingFactAttribute"/>: absent the
-    /// file, xunit reports it as SKIPPED, with the resolved path as the
+    /// file, xunit reports it as skipped, with the resolved path as the
     /// reason.
     /// </summary>
     [Collection("VesselViewProviderStatics")]
@@ -156,7 +156,7 @@ namespace Sitrep.Host.Tests
         /// through <see cref="VesselViewProvider"/>'s mappers +
         /// <see cref="VesselEpochSampler"/> and asserts the acceptance
         /// criteria: <c>vessel.orbit</c> emits real elements (sma&gt;0, mu&gt;0,
-        /// NO <c>eccentricAnomaly</c> key anywhere on the wire),
+        /// no <c>eccentricAnomaly</c> key anywhere on the wire),
         /// <c>vessel.flight</c> emits real lat/long, <c>vessel.identity</c>
         /// is stable, <c>meta.source</c> is <c>"vessel:&lt;guid&gt;"</c> on
         /// every payload, and a vessel-change event in the recording
@@ -279,7 +279,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Fix A (O-9 reproduced): this real recording was captured BEFORE
+        /// Fix A (O-9 reproduced): this real recording was captured before
         /// the phantom-encounter fix existed, so its raw
         /// <c>vessel.orbit.encounter</c> sub-dicts are exactly the buggy
         /// payloads the old <c>KspHost</c> produced -- 809 of its 816
@@ -512,8 +512,8 @@ namespace Sitrep.Host.Tests
         /// it guards went back to passing on nothing.
         ///
         /// <para>Both directions, because only one of them is a false green: an
-        /// absent recording MUST produce a Skip reason, and a present one MUST
-        /// NOT. Constructing the attribute directly is what makes the second half
+        /// absent recording must produce a Skip reason, and a present one must
+        /// not. Constructing the attribute directly is what makes the second half
         /// testable on a machine that has no capture.</para>
         /// </summary>
         [Fact]

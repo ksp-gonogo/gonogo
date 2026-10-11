@@ -47,7 +47,7 @@ const PRICEY_RESEARCHABLE = {
   parts: [],
 };
 
-/** Unavailable-with-unlocked-parent: whether it is RESEARCHABLE is the science gate. */
+/** Unavailable-with-unlocked-parent: whether it is researchable is the science gate. */
 const OWNED_ROOT = {
   id: "root",
   title: "Root Tech",

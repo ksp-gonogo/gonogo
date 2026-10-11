@@ -7,7 +7,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests
 {
     /// <summary>
-    /// A command centre has to be REACHABLE, not merely a control source.
+    /// A command centre has to be reachable, not merely a control source.
     ///
     /// <para><b>What was shipping.</b> <c>CrewedVesselSource</c> enumerated on
     /// <c>CommNode.isControlSource</c> alone, which says only that a command
@@ -49,7 +49,7 @@ namespace Gonogo.KSP.Tests
 
         /// <summary>
         /// Stock's own gate adds the two powers, and <c>CommNetVessel.UpdateComm</c>
-        /// forces the case: when transmit is the larger of the two it is MOVED into
+        /// forces the case: when transmit is the larger of the two it is moved into
         /// the relay slot and transmit is zeroed, so a healthy relay-capable craft
         /// sits at <c>antennaTransmit.power == 0</c>. A test on either half alone
         /// would reject it.

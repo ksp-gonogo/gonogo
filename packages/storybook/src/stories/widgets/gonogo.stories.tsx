@@ -44,7 +44,7 @@ type Story = StoryObj<typeof meta>;
 type StationStory = StoryObj<typeof GoNoGoStationScene>;
 
 /**
- * The main screen polling four stations before launch: two GO, one holding
+ * The main screen polling four stations before launch: two `GO`, one holding
  * NO-GO, and one whose tile is not mounted so it casts no vote.
  */
 export const PollInProgress: Story = {
@@ -61,7 +61,7 @@ export const PollInProgress: Story = {
   },
 };
 
-/** Every station GO, so the host is counting down to the auto-stage at T-0. */
+/** Every station `GO`, so the host is counting down to the auto-stage at T-0. */
 export const CountingDown: Story = {
   name: "Main, all GO and counting down",
   args: {
@@ -71,7 +71,7 @@ export const CountingDown: Story = {
   },
 };
 
-/** After liftoff every station has left the poll, and one has pressed ABORT. */
+/** After liftoff every station has left the poll, and one has pressed `ABORT`. */
 export const Aborted: Story = {
   name: "Main, launched and aborted",
   args: {
@@ -109,14 +109,14 @@ export const NoStations: Story = {
   args: { stations: [], w: 6, h: 4 },
 };
 
-/** A station's button before the operator has declared GO. */
+/** A station's button before the operator has declared `GO`. */
 export const StationNoGo: StationStory = {
   name: "Station, NO-GO",
   render: (args) => <GoNoGoStationScene {...args} />,
   args: { w: 4, h: 4 },
 };
 
-/** A station that has voted GO while the host counts down. */
+/** A station that has voted `GO` while the host counts down. */
 export const StationCountingDown: StationStory = {
   name: "Station, GO and counting down",
   render: (args) => <GoNoGoStationScene {...args} />,
@@ -128,7 +128,7 @@ export const StationCountingDown: StationStory = {
   },
 };
 
-/** After liftoff the button is ABORT, naming who pressed it once the host relays it. */
+/** After liftoff the button is `ABORT`, naming who pressed it once the host relays it. */
 export const StationAbort: StationStory = {
   name: "Station, launched and aborted",
   render: (args) => <GoNoGoStationScene {...args} />,

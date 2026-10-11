@@ -621,7 +621,7 @@ describe("TimelineStore.isUnresolvableField: RAW-FIELD phantom-mapping diagnosti
    * block above). A raw record field-subtopic (e.g.
    * `"vessel.resources.resources.<name>.current"`: `resolveRawFieldSubtopic`)
    * fell straight through that guard and always returned `false`, even once
-   * its RAW parent had arrived whole and genuinely lacked the field, so a
+   * its raw parent had arrived whole and genuinely lacked the field, so a
    * wrong/drifted raw fieldpath served a permanent `undefined` with no
    * legacy fallback (`use-telemetry.ts`'s belt-and-suspenders check never
    * fired for it). This mirrors the derived-channel behavior for the raw

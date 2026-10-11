@@ -60,9 +60,9 @@ export function parentOf(
  * The last UT a body's elements answer for, or null when its provider claimed
  * no limit.
  *
- * Only a stated `Until` bounds anything. `Unspecified` does NOT withdraw the
+ * Only a stated `Until` bounds anything. `Unspecified` does not withdraw the
  * body, and that is a deliberate reading of a genuinely awkward arm: it is what
- * a host sends when its horizon resolver FAULTED, and refusing every body on a
+ * a host sends when its horizon resolver faulted, and refusing every body on a
  * fault empties the system diagram rather than making it honest. A caller that
  * wants to know the shape has `body.horizon.trajectoryKind` beside this and can
  * refuse a conic renderer on it; what this function will not do is invent a

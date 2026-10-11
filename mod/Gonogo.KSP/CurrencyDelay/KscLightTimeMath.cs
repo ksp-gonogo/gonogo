@@ -4,7 +4,7 @@ namespace Gonogo.KSP.CurrencyDelay
 {
     /// <summary>
     /// The one and only way a currency event's delay is computed: the one-way
-    /// light-time of a live CommNet control path whose last hop is home.
+    /// signal delay of a live CommNet control path whose last hop is home.
     ///
     /// <para>A straight-line arm here - subject position to KSC position,
     /// divided by c, used whenever no route existed - would be wrong in a way
@@ -18,7 +18,7 @@ namespace Gonogo.KSP.CurrencyDelay
     internal static class KscLightTimeMath
     {
         /// <summary>
-        /// Wraps an already-routed one-way light-time, or reports the absence
+        /// Wraps an already-routed one-way signal delay, or reports the absence
         /// of one. <paramref name="routedOneWaySeconds"/> is null exactly when
         /// no control path reaches home.
         /// </summary>

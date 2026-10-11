@@ -35,7 +35,7 @@ namespace Sitrep.Host.Comms
     /// instant: that it exists, where it is going, and how its radio reaches
     /// every other node. One of these is recorded on the craft's own node
     /// whenever any of it changes, so each command centre hears of the change
-    /// one of its own light-times later and plans from what it has heard.
+    /// one of its own signal delays later and plans from what it has heard.
     ///
     /// <para>Never sent to a client. It carries the backend's link models,
     /// which are code and not data.</para>

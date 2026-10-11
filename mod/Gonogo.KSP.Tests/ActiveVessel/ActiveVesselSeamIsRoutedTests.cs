@@ -16,8 +16,8 @@ namespace Gonogo.KSP.Tests.ActiveVessel
     /// same reason <c>CurrencyDelaySettlePumpIsWiredTests</c> does: most of these
     /// files need a live scene and this project cannot load them.</para>
     ///
-    /// <para>The allow list is the set of reads that are deliberately NOT about
-    /// telemetry scope. It is a CEILING, so removing one of them does not fail;
+    /// <para>The allow list is the set of reads that are deliberately not about
+    /// telemetry scope. It is a ceiling, so removing one of them does not fail;
     /// each entry carries its reason at the call site too.</para>
     /// </summary>
     public class ActiveVesselSeamIsRoutedTests
@@ -29,17 +29,17 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         /// file is allowed. Reasons, in the same order:
         ///
         /// <list type="bullet">
-        /// <item>the crew-loss attribution names the thing that DIED, not the thing
+        /// <item>the crew-loss attribution names the thing that died, not the thing
         /// being reported</item>
         /// <item>the clear-to-save gate only guards stock's own
         /// <c>FlightGlobals.ClearToSave()</c>, which judges KSP's active vessel</item>
-        /// <item>TWO in the flight-ops actuator: the launch refusal asks whether
-        /// KSP has ANY vessel left in the world and runs in scenes that have no
+        /// <item>Two in the flight-ops actuator: the launch refusal asks whether
+        /// KSP has any vessel left in the world and runs in scenes that have no
         /// flight, and the tracking-station exit guards the same
         /// <c>FlightGlobals.ClearToSave()</c> the gate above does, for the same
         /// reason (it judges KSP's active vessel, so asking about the reported
         /// craft would make the refusal disagree with the thing it quotes)</item>
-        /// <item>the visibility calibration wants ANY propagatable orbit and falls
+        /// <item>the visibility calibration wants any propagatable orbit and falls
         /// through to the whole roster</item>
         /// </list>
         /// </summary>
@@ -123,7 +123,7 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         }
 
         /// <summary>
-        /// Reads on CODE lines only. A doc comment naming the stock property is
+        /// Reads on code lines only. A doc comment naming the stock property is
         /// prose about KSP, not a second answer to the scoping question.
         /// </summary>
         private static int CountDirectReads(string source) =>

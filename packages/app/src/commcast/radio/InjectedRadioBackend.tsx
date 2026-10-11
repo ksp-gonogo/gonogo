@@ -4,7 +4,7 @@ import type { RadioBackend } from "./backend";
 import { RadioBackendProvider, WEB_AUDIO_RADIO_BACKEND } from "./backend";
 
 /**
- * The provider `backend.ts` was missing: a radio backend the PAGE installs.
+ * The provider `backend.ts` was missing: a radio backend the page installs.
  *
  * `RadioBackend` exists because the microphone and the decoder are injected
  * rather than reached for, and it names the reason in as many words: a machine
@@ -23,7 +23,7 @@ import { RadioBackendProvider, WEB_AUDIO_RADIO_BACKEND } from "./backend";
  *
  * The read is behind `import.meta.env.DEV`, which the production build replaces
  * with `false`, so a shipped page cannot have its microphone swapped by
- * anything that can reach `globalThis`. It is also why the CLIP lives nowhere
+ * anything that can reach `globalThis`. It is also why the clip lives nowhere
  * near here: the page builds the backend itself and hands it over, so no
  * recorded audio and no stand-in codec is in the app's module graph at all.
  * Playwright reaches `clips.ts` through the dev server's own module URL.

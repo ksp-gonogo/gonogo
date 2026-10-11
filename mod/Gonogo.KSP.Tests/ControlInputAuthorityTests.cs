@@ -35,7 +35,7 @@ namespace Gonogo.KSP.Tests
     /// <para>Asserted over the shipped source for the reason
     /// <see cref="ActiveVessel.EvaCommandRefusalTests"/> gives: these command
     /// bodies reach Unity assemblies the reference set does not ship. The
-    /// DECISION is <see cref="Gonogo.KSP.ControlInputAuthority"/>, which names no
+    /// decision is <see cref="Gonogo.KSP.ControlInputAuthority"/>, which names no
     /// KSP type and is entered directly.</para>
     /// </summary>
     public class ControlInputAuthorityTests

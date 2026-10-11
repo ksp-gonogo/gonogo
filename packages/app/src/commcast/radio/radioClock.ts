@@ -32,13 +32,13 @@ export interface RadioClockStats {
  *
  * The raw estimate re-anchors on every delivered sample, at that sample's
  * `deliveredAt`. A sample that reaches this screen later than the one before it
- * therefore steps the present BACK by the difference, and on a station every
+ * therefore steps the present back by the difference, and on a station every
  * sample has crossed the host's relay first, so a busy host hands it a sawtooth.
  * Audio cannot absorb that: a chunk stamped behind the one spoken before it is
  * released out of order or early, and a release instant that moves back makes
  * the pacer read a burst as a backlog and skip it.
  *
- * So the present only moves FORWARD at natural rate from the furthest point the
+ * So the present only moves forward at natural rate from the furthest point the
  * estimate has reached. The furthest point is also the best one: the sample that
  * crossed fastest is the one closest to the true present, and a slower one says
  * nothing newer. A step back beyond `toleranceSeconds` is not jitter but a real

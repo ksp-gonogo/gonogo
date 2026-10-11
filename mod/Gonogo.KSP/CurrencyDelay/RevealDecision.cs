@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Gonogo.KSP.CurrencyDelay
 {
-    /// <summary>One decided reveal step: which balance, how much (the BASE amount, pre-clamp).</summary>
+    /// <summary>One decided reveal step: which balance, how much (the base amount, pre-clamp).</summary>
     public readonly struct RevealApplication
     {
         public DelayedCurrency Currency { get; }

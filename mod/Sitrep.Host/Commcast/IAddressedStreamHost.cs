@@ -5,9 +5,9 @@ using Sitrep.Core;
 namespace Sitrep.Host.Commcast
 {
     /// <summary>
-    /// Streams whose every sample is said BY one command centre TO a named set of
+    /// Streams whose every sample is said by one command centre to a named set of
     /// others: it crosses from the speaker to each listener at that pair's
-    /// light-time, and a listener outside the set never receives it.
+    /// signal delay, and a listener outside the set never receives it.
     ///
     /// <para>Implemented by the engine and reached by casting the
     /// <c>IUplinkHost</c> handed to <c>Register</c>, because the only producer is
@@ -53,7 +53,7 @@ namespace Sitrep.Host.Commcast
         /// session's vantage, each time a session subscribes to the addressed
         /// topic <paramref name="topic"/>. A transmission is not state, so a
         /// listener that arrives after one landed is not sent it; a producer
-        /// whose samples ARE state says the current one again for that vantage
+        /// whose samples are state says the current one again for that vantage
         /// from here.
         /// </summary>
         void OnAddressedSubscribed(string topic, Action<string> subscribed);

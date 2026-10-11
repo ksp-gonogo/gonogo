@@ -9,11 +9,11 @@ import { describe, expect, it } from "vitest";
 
 /**
  * The harness an Uplink's tests run on is published across the two packages that own
- * its halves, and this asserts the things a test CONSTRUCTS or CALLS are present at
+ * its halves, and this asserts the things a test constructs or calls are present at
  * runtime, not merely assignable in a signature.
  *
  * The distinction is the whole point, and it was hit independently by three people.
- * `TelemetryClient` is exported as a MIRRORED TYPE: it satisfies a grep, it satisfies
+ * `TelemetryClient` is exported as a mirrored type: it satisfies a grep, it satisfies
  * `let c: TelemetryClient`, and it fails at `new TelemetryClient(transport)`, which is
  * what every caller actually writes. A type-only export is indistinguishable from a
  * value export in the source and in the `.d.ts`, and differs only at runtime.
@@ -26,7 +26,7 @@ import { describe, expect, it } from "vitest";
  * hold a host builder that could not live in the sdk while the implementations were in
  * `@ksp-gonogo/core`; they are in the sdk now, so `installRealTestHost` is
  * `@ksp-gonogo/sitrep-sdk/testing`'s and `renderWidget` is
- * `@ksp-gonogo/ui-kit/testing`'s, each beside what it drives. The two do NOT re-export
+ * `@ksp-gonogo/ui-kit/testing`'s, each beside what it drives. The two do not re-export
  * each other: a design-system package fronting a generic test harness would be a
  * dependency inversion wearing a convenience.
  *
@@ -36,7 +36,7 @@ import { describe, expect, it } from "vitest";
 
 /**
  * One lookup across the four entries an Uplink's tests import from, so a name can be
- * asserted present without this file also pinning WHICH entry it came from. Where it
+ * asserted present without this file also pinning which entry it came from. Where it
  * lives is the isolation rule's business and moves as things move; that it is
  * a callable at runtime is this file's.
  *
@@ -55,7 +55,7 @@ const harness: Record<string, unknown> = {
 /**
  * Constructed with `new`, so they must be real classes.
  *
- * `TelemetryClient` is deliberately NOT here. It is published as a TYPE only:
+ * `TelemetryClient` is deliberately not here. It is published as a type only:
  * the class is spine plumbing and freezing it as public API would make every
  * future change to it someone else's breaking change. A test that wants a
  * stream calls `setupStreamFixture`. See `TYPE_ONLY` below.
@@ -106,13 +106,13 @@ const VALUES = [
 ] as const;
 
 /**
- * The other half of the type-vs-value distinction: these must NOT be values on the
- * AUTHOR surface. Without this, re-exporting `TelemetryClient` as a class from a root
+ * The other half of the type-vs-value distinction: these must not be values on the
+ * author surface. Without this, re-exporting `TelemetryClient` as a class from a root
  * barrel would restore the surface nobody wants and no test would notice.
  *
  * Checked against the two roots only, deliberately, not the merged view.
  * `@ksp-gonogo/sitrep-sdk/spine` exports the real class and is meant to: that subpath
- * exists precisely so a TEST can reach unfrozen internals (`TimelineStore` is there
+ * exists precisely so a test can reach unfrozen internals (`TimelineStore` is there
  * for the same reason, and says so) while an author composing a widget cannot get
  * them by reaching for the package they already import. Asserting against the merge
  * would have failed for the one arrangement everyone agreed on.

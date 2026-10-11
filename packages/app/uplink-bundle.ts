@@ -20,7 +20,7 @@ export interface UplinkClientBundle {
 /**
  * Build one Uplink client into the standalone ESM bundle the app `import()`s.
  *
- * This is the ONLY bundler in the repo for these bytes, and that is the point.
+ * This is the only bundler in the repo for these bytes, and that is the point.
  * Three parties compare a hash of this output: the registry index the app's
  * build writes, the bytes the loader fetches, and the `ExpectedClientHash` the
  * mod bakes at release. A second bundler with its own esbuild options makes the
@@ -28,7 +28,7 @@ export interface UplinkClientBundle {
  * no hash at all: it fails as tampering, on every load, for a correctly
  * installed mod.
  *
- * esbuild is resolved from the CLIENT rather than from the app, so the bundle a
+ * esbuild is resolved from the client rather than from the app, so the bundle a
  * release hashes is built by the version that client has pinned.
  */
 export async function buildUplinkClientBundle({
@@ -62,13 +62,13 @@ export async function buildUplinkClientBundle({
 }
 
 /**
- * Inline every CSS import as a self-injecting `<style>`, folded INTO the single
+ * Inline every CSS import as a self-injecting `<style>`, folded into the single
  * hashed JS bundle, mirroring what Vite does for the app's own static imports.
  *
  * Without this esbuild emits a sibling `<id>.client.css` the runtime
  * `import(bundleUrl)` never applies (the loader fetches only the JS), so a
  * loaded Uplink with a stylesheet (kOS's xterm.css) renders unstyled. Folding it
- * in also keeps the whole client under ONE integrity hash. xterm.css is
+ * in also keeps the whole client under one integrity hash. xterm.css is
  * self-contained: no `@import`/`url()` to resolve; a future CSS that isn't would
  * need esbuild's real CSS pipeline instead of this raw-text inline.
  */

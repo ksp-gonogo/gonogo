@@ -38,7 +38,7 @@ export type SlidableRange<Unit extends string> = Unit extends PointUnit
  * @category Form
  */
 export interface RateControl {
-  /** One notch, in the unit a value of this kind MOVES BY: seconds for an instant, the field's own unit otherwise. */
+  /** One notch, in the unit a value of this kind moves by: seconds for an instant, the field's own unit otherwise. */
   step: number;
   /** Notches per second at full displacement. The wheel's own default otherwise. */
   stepsPerSecond?: number;
@@ -105,7 +105,10 @@ function splitAcross(total: number, sizes: readonly number[]): number[] {
 
 /**
  * A quantity, typed: the input counterpart of {@link Unit}, built from the same
- * `Value<Unit>`, {@link FormatsFor} and unit conversions. It emits a `Value`,
+ * `Value<Unit>`, {@link FormatsFor} and unit conversions. Useful for letting
+ * the operator enter a figure such as a burn time or a delta-v with its unit.
+ * Used by the maneuver planner's node editor and the warp control's warp-to
+ * row. It emits a `Value`,
  * never a number, so the unit stays attached from the keystroke to the wire
  * boundary. An unfinished edit (an emptied box, a lone minus sign) is shown but
  * never emitted.

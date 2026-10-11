@@ -13,9 +13,9 @@ import type { Value } from "./unit-system/value";
  *
  * `reckonability` moved off `state` and onto its own `reckoning` discriminant so
  * that live-and-reckonable became representable. The obvious way to do that is
- * an OPTIONAL `reckoned` field, and it is the wrong way: an optional field
+ * an optional `reckoned` field, and it is the wrong way: an optional field
  * compiles everywhere and answers `undefined`, so a destructuring consumer
- * ignores a reckoning that EXISTS by default and the widget still looks right.
+ * ignores a reckoning that exists by default and the widget still looks right.
  * That is the exact failure the type is built to prevent, and nothing in a
  * migration of ninety call sites would have noticed the guarantee quietly
  * turning into that.
@@ -25,7 +25,7 @@ import type { Value } from "./unit-system/value";
  *
  * ## Every assertion here is two-sided
  *
- * Each `@ts-expect-error` fails BOTH ways round: it fails if the line starts
+ * Each `@ts-expect-error` fails both ways round: it fails if the line starts
  * compiling, because the directive is then unused, and it fails if the line
  * errors for some unrelated reason a reader would misread as the guarantee
  * holding. A one-sided check on absence reports success when it has gone blind,

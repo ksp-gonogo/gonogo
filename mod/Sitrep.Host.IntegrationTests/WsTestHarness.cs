@@ -38,7 +38,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Drains <see cref="StreamData"/> frames until none arrive for a
-        /// short quiet window, returning the LAST one seen -- the
+        /// short quiet window, returning the last one seen -- the
         /// lossy-latest convergence point for a coalescing per-topic outbox
         /// (see <c>ChannelOutbox</c>). Needed wherever two Courier deliveries
         /// for the same topic can become due within a single clock-advance:
@@ -47,7 +47,7 @@ namespace Sitrep.Host.IntegrationTests
         /// independent pump thread wakes up relative to the Courier thread's
         /// writes -- a genuine two-thread race, not something a single
         /// "receive the next message" call can assert on deterministically.
-        /// The LAST frame observed is NOT racy, though: whichever delivery's
+        /// The last frame observed is not racy, though: whichever delivery's
         /// <c>PublishTelemetry</c> call happened last in real time is
         /// guaranteed to be what any subsequent send reflects. Same idiom as
         /// <c>SkeletonServerIntegrationTests.DrainToLatestAsync</c>.
@@ -76,10 +76,10 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Drains every message that arrives within <paramref name="quietWindow"/>
-        /// of the last one seen, returning ALL <see cref="StreamData"/> frames
+        /// of the last one seen, returning all <see cref="StreamData"/> frames
         /// observed (any topic), in arrival order: the counterpart to
         /// <see cref="DrainToLatestStreamDataAsync"/> for asserting on the
-        /// FULL sequence (used to prove a reliable-ordered channel never
+        /// full sequence (used to prove a reliable-ordered channel never
         /// drops/coalesces a frame, where "just the last one" isn't a strong
         /// enough assertion). Callers subscribed to more than one topic
         /// should partition the result themselves (by <c>.Topic</c>) rather
@@ -149,7 +149,7 @@ namespace Sitrep.Host.IntegrationTests
                     SingleReader = false,
                 });
             /// <summary>
-            /// Binary-lane frames, kept OFF the string channel above rather
+            /// Binary-lane frames, kept off the string channel above rather
             /// than shoved through it. The pump splits on the same magic byte
             /// the real client's <c>decodeFrame</c> splits on, so a test
             /// reading telemetry never has to step over a frame of audio, and a
@@ -276,7 +276,7 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             /// <summary>
-            /// Send RAW BYTES up the socket as a WebSocket binary frame, which
+            /// Send raw bytes up the socket as a WebSocket binary frame, which
             /// nothing in the protocol accepts. Exists so the inbound refusal
             /// can be exercised as a client would trip it, rather than by
             /// calling the guard directly.
@@ -300,7 +300,7 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             /// <summary>
-            /// Assert nothing arrives on the BINARY channel in this window. The
+            /// Assert nothing arrives on the binary channel in this window. The
             /// twin of <see cref="AssertNoMessageArrivesAsync"/>, and the shape
             /// the "declared, never inferred" test needs: a channel that did
             /// not opt in must put nothing at all on this lane, which is not

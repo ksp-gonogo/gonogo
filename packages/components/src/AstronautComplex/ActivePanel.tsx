@@ -24,7 +24,7 @@ import { EMPTY_STYLE, LIST_STYLE } from "./styles";
 /**
  * The Active tab, sub-tabbed by the `CrewStanding` values actually present, so
  * no tab is ever empty and a new standing gets a tab with no edit. Grouped by
- * STANDING, not KSP's roster status, which reads `Available` for a kerbal
+ * standing, not KSP's roster status, which reads `Available` for a kerbal
  * standing down.
  */
 export function ActivePanel({

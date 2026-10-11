@@ -83,7 +83,7 @@ describe("every declared Topic and command is read by a client", () => {
 });
 
 /**
- * The gate has to be SEEN to fail.
+ * The gate has to be seen to fail.
  *
  * A reachability scan that resolves nothing reports every declaration reached
  * and passes, which is strictly worse than having no gate: it converts the
@@ -226,10 +226,10 @@ describe("the debt list only ever shrinks", () => {
   /**
    * The list as it stood at the ratchet base.
    *
-   * `ratchetBaseRef` THROWS when no base can be reached, deliberately: catching
+   * `ratchetBaseRef` throws when no base can be reached, deliberately: catching
    * that and returning undefined would make an unreachable base read as
    * "nothing to check", turning the shrink guard into a pass. Undefined here
-   * means only that the checkout IS the base, or that the list did not exist
+   * means only that the checkout is the base, or that the list did not exist
    * there.
    */
   function baseDebt():

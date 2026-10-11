@@ -6,7 +6,7 @@ using Sitrep.Contract;
 namespace Sitrep.Contract.TestSupport
 {
     /// <summary>
-    /// A host an Uplink can be registered into and TICKED, so a test can ask what
+    /// A host an Uplink can be registered into and ticked, so a test can ask what
     /// the Uplink answers under the subscriptions a client actually holds.
     ///
     /// <para><b>Why ticking is the whole point.</b> A capability fed by a
@@ -86,7 +86,7 @@ namespace Sitrep.Contract.TestSupport
         /// <summary>
         /// Runs the election, which the engine does once every Uplink has registered
         /// and before any tick. A capability queried before this resolves to
-        /// nothing, which is a fact about the ORDER rather than about the
+        /// nothing, which is a fact about the order rather than about the
         /// registration.
         /// </summary>
         public void Resolve() =>
@@ -210,7 +210,7 @@ namespace Sitrep.Contract.TestSupport
         public void SetAvailability(Availability availability) => Availability = availability;
 
         /// <summary>
-        /// Answered against the SAME set <see cref="DriveTick"/> gates on, so a
+        /// Answered against the same set <see cref="DriveTick"/> gates on, so a
         /// handle deciding whether to publish sees exactly what the capture gate
         /// saw. Outside a tick nothing is subscribed, which is the honest answer at
         /// registration time.

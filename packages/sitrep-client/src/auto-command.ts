@@ -1,6 +1,6 @@
 /**
  * Lead-compensated automatic commands: an automatic command that should take
- * EFFECT at game-UT `targetUt` must be DISPATCHED at `targetUt - oneWayDelay`,
+ * effect at game-UT `targetUt` must be dispatched at `targetUt - oneWayDelay`,
  * so it arrives at the craft on time under signal delay. This reuses the delay
  * machinery (`DelayAuthority` via the shared `ViewClock`), the game-UT clock
  * (`useUtNow`), and the command Courier (`useCommand`): no new physics.
@@ -42,7 +42,7 @@ export interface AutoCommandOptions {
   command: string;
   /** Command args (plain, per `useCommand.send`). */
   args?: unknown;
-  /** Game-UT the command should take EFFECT on the craft. */
+  /** Game-UT the command should take effect on the craft. */
   targetUt: number;
   /** Arm the auto-command. Default true; false holds it disarmed. */
   enabled?: boolean;
@@ -66,7 +66,7 @@ export interface AutoCommandStatus {
  * Courier the first game-UT tick that `utNow >= targetUt - oneWayDelay`, so it
  * arrives at the craft at `targetUt`. Watches `useUtNow` (the undelayed
  * ground-station UT) and recomputes the one-way delay each tick (it drifts as
- * the craft moves). Fires EXACTLY ONCE; re-arms when the command/target/enabled
+ * the craft moves). Fires exactly once; re-arms when the command/target/enabled
  * identity changes. If armed after the event has already passed, it skips
  * (surfaced via `onSkip` + `skipped`) rather than dispatching a doomed-late
  * command.

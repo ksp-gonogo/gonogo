@@ -229,7 +229,7 @@ public static class CommandErrorCode
     public static readonly RefusalCode FacilityDamaged = RefusalCode.DeclareRoot("facilityDamaged", "the building is out of action");
 
     /// <summary>
-    /// The command consumes a countable ITEM and there are not enough of them
+    /// The command consumes a countable item and there are not enough of them
     /// aboard.
     ///
     /// <para>The command's handler decides how many are needed. This code says

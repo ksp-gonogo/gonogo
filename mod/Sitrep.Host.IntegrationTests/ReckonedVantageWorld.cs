@@ -86,7 +86,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// A scripted game for the contact plan: two ground stations on Kerbin that
     /// are command centres, an active craft landed out of sight of both, and a
-    /// far relay in orbit above all three. Every light-time is scripted rather
+    /// far relay in orbit above all three. Every signal delay is scripted rather
     /// than measured, so a test can put the relay ten light-minutes away and
     /// still plan its windows around one planet.
     /// </summary>
@@ -117,9 +117,9 @@ namespace Sitrep.Host.IntegrationTests
         public const double RelayStartAngle = Math.PI / 3.0;
 
         /// <summary>
-        /// What a real light time is multiplied by in this game. The relay is ten
+        /// What a real signal delay is multiplied by in this game. The relay is ten
         /// light-minutes from home by decree and 2,800 km from it by geometry, and
-        /// this is what makes the plan's light times agree with the decree to
+        /// this is what makes the plan's signal delays agree with the decree to
         /// within a few percent.
         /// </summary>
         public const double LightFactor = 64_000.0;
@@ -142,16 +142,16 @@ namespace Sitrep.Host.IntegrationTests
             _relayOrbit = new OrbitElements(RelayRadius, 0.0, 0.0, 0.0, 0.0, relayStartAngle, 0.0, KerbinMu);
         }
 
-        /// <summary>The relay's light-time from the home centre, in seconds.</summary>
+        /// <summary>The relay's signal delay from the home centre, in seconds.</summary>
         public double RelayFromHomeSeconds { get; set; } = 600.0;
 
-        /// <summary>The relay's light-time from the far centre, in seconds.</summary>
+        /// <summary>The relay's signal delay from the far centre, in seconds.</summary>
         public double RelayFromFarSeconds { get; set; } = 300.0;
 
-        /// <summary>The active craft's light-time from every centre, in seconds.</summary>
+        /// <summary>The active craft's signal delay from every centre, in seconds.</summary>
         public double ActiveSeconds { get; set; } = 1.0;
 
-        /// <summary>Whether the active craft's light-time reads as none while it has no link, as the game's own does, rather than holding its figure.</summary>
+        /// <summary>Whether the active craft's signal delay reads as none while it has no link, as the game's own does, rather than holding its figure.</summary>
         public bool DarkMeasuresNoDelay { get; set; }
 
         private double? _break;
@@ -194,12 +194,12 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The route the game carries the active craft's samples to a centre by,
         /// as a comms backend solves it, keyed by centre. A centre listed here is
-        /// timed by its route's light-time, as the delay ledger times it; one left
-        /// out keeps the plain light-times above.
+        /// timed by its route's signal delay, as the delay ledger times it; one left
+        /// out keeps the plain signal delays above.
         /// </summary>
         public Dictionary<string, IReadOnlyList<CommsHop>> GameRoutes { get; } = new Dictionary<string, IReadOnlyList<CommsHop>>();
 
-        /// <summary>The light-time of a route as the game is set to model it.</summary>
+        /// <summary>The signal delay of a route as the game is set to model it.</summary>
         public static double SecondsOver(IReadOnlyList<CommsHop> route) =>
             SignalDelay.Compute(
                 new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 / LightFactor },
@@ -319,10 +319,10 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the relay is within physics range of the active craft, loaded beside it.</summary>
         public bool RelayInRange { get; set; }
 
-        /// <summary>The light-time of a direct radio link between the active craft and the home centre, in seconds, or null for none.</summary>
+        /// <summary>The signal delay of a direct radio link between the active craft and the home centre, in seconds, or null for none.</summary>
         public double? ActiveLinkedToHomeSeconds { get; set; }
 
-        /// <summary>The light-time of a direct radio link between the active craft and the relay, in seconds, or null for none.</summary>
+        /// <summary>The signal delay of a direct radio link between the active craft and the relay, in seconds, or null for none.</summary>
         public double? ActiveLinkedToRelaySeconds { get; set; }
 
         /// <summary>The game's own target list for the active craft: the relay as it stands this instant, and one body.</summary>
@@ -469,7 +469,7 @@ namespace Sitrep.Host.IntegrationTests
 
     /// <summary>
     /// Registers the production <see cref="ContactPlanSource"/> over a
-    /// <see cref="ScriptedContactGame"/>, and writes that game's light-times
+    /// <see cref="ScriptedContactGame"/>, and writes that game's signal delays
     /// and links into the engine's ledger each tick, as the game's own Uplinks
     /// do in production.
     /// </summary>
@@ -711,7 +711,7 @@ namespace Sitrep.Host.IntegrationTests
             host.SetConnectivitySource(_ => _game.ActiveConnected);
         }
 
-        /// <summary>COURIER THREAD: the game's light-times and links, as its delay Uplinks would write them.</summary>
+        /// <summary>Courier thread: the game's signal delays and links, as its delay Uplinks would write them.</summary>
         private void Apply(Ledger ledger)
         {
             if (!_listening)

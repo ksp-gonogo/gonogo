@@ -25,12 +25,12 @@ namespace Gonogo.KSP
     /// (<c>KSP.UI.Screens.MissionRecoveryDialog</c>) that stock KSP's own
     /// recovery-summary UI computes every earned/total funds/science/
     /// reputation figure and the itemized part/resource/science/crew
-    /// breakdown into a <see cref="MissionRecoveryDialog"/> instance BEFORE
+    /// breakdown into a <see cref="MissionRecoveryDialog"/> instance before
     /// firing <c>onVesselRecoveryProcessingComplete(ProtoVessel, MissionRecoveryDialog,
     /// float)</c>: reusing that computation is the whole point (the same
     /// "reuse the read, don't duplicate it" discipline <c>CareerViewProvider</c>
     /// follows for economy totals). <c>OnVesselRecoveryRequested</c> is the
-    /// pre-recovery REQUEST (nothing computed yet: see
+    /// pre-recovery request (nothing computed yet: see
     /// <c>KspFlightOpsActuator.Recover</c>, the actuator that fires it).
     /// <c>onVesselRecovered(ProtoVessel, bool)</c> is a bare completion
     /// notification with no earned/total figures at all.</para>
@@ -38,7 +38,7 @@ namespace Gonogo.KSP
     /// <para><b>Breakdown arrays: best-effort via reflection, judgement call:</b>
     /// <see cref="MissionRecoveryDialog"/>'s per-item widget lists
     /// (<c>scienceWidgets</c>/<c>partWidgets</c>/<c>resourceWidgets</c>/
-    /// <c>crewWidgets</c>) are PRIVATE fields on a UI `MonoBehaviour`, there
+    /// <c>crewWidgets</c>) are private fields on a UI `MonoBehaviour`, there
     /// is no public API surface for the itemized breakdown, only the
     /// aggregate totals (all public). Every other decompile-confirmed read in
     /// this codebase sticks to public API; this is a deliberate, narrow

@@ -39,10 +39,10 @@ export function firstFreeSlot(
 
 /**
  * Widget ids that have been renamed. Persisted layouts (localStorage, mission
- * profiles, station configs) store the OLD id; we map them forward on load so
+ * profiles, station configs) store the old id; we map them forward on load so
  * existing placements survive a rename instead of silently disappearing.
  *
- * MIGRATION CONVENTION (gonogo is 1.0+): whenever you change a registered
+ * Migration convention (gonogo is 1.0+): whenever you change a registered
  * component `id`, add an entry here: key = the old id, value = the new id.
  * Never reuse a retired id for a different widget. This is the single source
  * of truth for widget-id renames; every place that deserialises dashboard

@@ -10,7 +10,7 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// C#-side tests for <see cref="Courier.Record"/>'s per-channel delivery
-    /// LANE: a C#-ONLY capability (no TS reference / golden fixture, same
+    /// lane: a C#-ONLY capability (no TS reference / golden fixture, same
     /// rationale as <see cref="CourierTimelineResetTests"/>).
     ///
     /// <para><see cref="Delivery.ReliableOrdered"/> (the kOS terminal's
@@ -19,7 +19,7 @@ namespace Sitrep.Core.Tests
     /// <c>ValidAt</c>: the shape the ~20Hz terminal poll produces within one
     /// Courier tick. <see cref="Delivery.LossyLatest"/> (every state topic,
     /// orbit, resources, comms) must keep the exact historical re-read
-    /// behaviour: each scheduled delivery resolves the LATEST sample as of its
+    /// behaviour: each scheduled delivery resolves the latest sample as of its
     /// vantage scene, coalescing a same-<c>ValidAt</c> burst to the final
     /// value. This pins the "reclassify" fix: the shared <see cref="Courier"/>
     /// delivery change is gated on the channel's declared <see cref="Delivery"/>

@@ -21,7 +21,7 @@ import { touchdownBand } from "./hazardVerdict";
  * Urgency is driven entirely by the do-nothing outcome (`projectedTouchdownSpeed`) and the altitude left, never the current speed.
  * The outcome is judged by the landing verdict's own touchdown bands (`touchdownBand`), so the envelope and the verdict never disagree about the same speed.
  */
-/** Below this altitude a touchdown the verdict calls DIVERT has no room left to correct, so caution escalates. */
+/** Below this altitude a touchdown the verdict calls `DIVERT` has no room left to correct, so caution escalates. */
 const CRITICAL_ALTITUDE_M = 1500;
 
 export type EnvelopeUrgency = "safe" | "caution" | "urgent";
@@ -88,9 +88,9 @@ export interface DescentEnvelopeInputs {
   currentSpeed: number | null;
   /** Current height above terrain, m (0 = touchdown). */
   currentAltitude: number | null;
-  /** Terminal velocity at the CURRENT air density, m/s. */
+  /** Terminal velocity at the current air density, m/s. */
   terminalVelocity: number | null;
-  /** Terminal velocity at GROUND density, m/s: the touchdown anchor. */
+  /** Terminal velocity at ground density, m/s: the touchdown anchor. */
   projectedTouchdownSpeed: number | null;
   /** This body's own sky, from `BodyDefinition.atmosphereColor`. */
   atmosphereColor?: string | null;

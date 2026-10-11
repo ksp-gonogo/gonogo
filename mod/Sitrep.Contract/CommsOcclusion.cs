@@ -207,7 +207,7 @@ public class CommsOcclusionBody
 /// applied to every celestial body the game knows about: each body's blocking
 /// radius. Always present, and read from the comms mod in force.
 ///
-/// <para>Not delayed by light time: it is not an observation of the vessel
+/// <para>Not delayed by signal delay: it is not an observation of the vessel
 /// but the solar system's geometry and the rule the elected backend applies to
 /// it.</para>
 ///

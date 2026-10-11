@@ -8,7 +8,7 @@
  * find their next press going out through the laptop's own microphone, into a
  * room, because the tab was refreshed.
  *
- * Keyed on the STATION key for the reason `monitor.ts` gives: two tabs on one
+ * Keyed on the station key for the reason `monitor.ts` gives: two tabs on one
  * browser are two consoles, and they may well have two different headsets.
  *
  * `null` means the browser's default, which is what a screen that has never

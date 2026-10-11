@@ -25,7 +25,7 @@ import { railMark } from "./railTags";
 
 /**
  * Whether a handle's `CommandDelay` would draw anything, mirroring its own
- * null decision: a continuous handle needs real delay AND buffers, a discrete
+ * null decision: a continuous handle needs real delay and buffers, a discrete
  * one needs in-flight rows. An idle handle stays registered but draws no rail
  * chrome.
  */
@@ -42,9 +42,11 @@ function handleHasContent(handle: CommandHandle): boolean {
 }
 
 /**
- * The panel's signal-delay rail: a strip along the top edge that shows each
- * command the widget has sent, through {@link CommandDelay}, reading them
- * from the nearest {@link DelayRailContext}.
+ * The panel's delay rail: a strip along the top edge that shows each command
+ * the widget has sent, through {@link CommandDelay}, reading them from the
+ * nearest {@link DelayRailContext}. Useful for showing the operator which
+ * commands are on their way, and which were refused or lost. Used by
+ * {@link Panel}.
  *
  * Every panel reserves the strip whether or not it has a command to show, so
  * a command going out never moves the widget. `Panel` draws it itself; in a
@@ -52,8 +54,8 @@ function handleHasContent(handle: CommandHandle): boolean {
  *
  * Collapsed, the rail sits in normal flow inside the band and moves nothing.
  * It is a disclosure: a native `<button>` laid over the strip controls the
- * detail beside it. Activating it (Esc collapses) PINS the rail, and pinning
- * GROWS it: each command switches to its `expanded` view and the title and
+ * detail beside it. Activating it (Esc collapses) pins the rail, and pinning
+ * grows it: each command switches to its `expanded` view and the title and
  * body are pushed down. Opened while the body is already scrolled, it extends
  * over the content instead, so the scroll position is kept. `aria-expanded`
  * carries the pin; hover is a transient preview that says nothing to assistive

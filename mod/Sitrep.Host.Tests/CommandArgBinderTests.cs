@@ -12,7 +12,7 @@ namespace Sitrep.Host.Tests
     /// Unit tests for <see cref="ChannelEngine.BindCommandArgs"/>: the generic
     /// wire-args → typed-<c>TArgs</c> binder every command taking a typed args
     /// record needs, because <c>EnvelopeCodec</c> deserializes a command's args
-    /// to a GENERIC shape (<c>Dictionary&lt;string, object?&gt;</c> /
+    /// to a generic shape (<c>Dictionary&lt;string, object?&gt;</c> /
     /// <c>double</c> / <c>bool</c> / <c>string</c>), and a naive
     /// <c>(TArgs)args!</c> cast throws <c>InvalidCastException</c>
     /// ("Specified cast is not valid"). The existing
@@ -23,7 +23,7 @@ namespace Sitrep.Host.Tests
     /// generic shape the wire produces and assert the handler would receive the
     /// correctly-typed args.
     ///
-    /// <para>Every case here would FAIL without the binder (the raw cast
+    /// <para>Every case here would fail without the binder (the raw cast
     /// throws): a
     /// <c>Dictionary&lt;string, object?&gt;</c> is not a <see cref="SetEnabledArgs"/>,
     /// a boxed <c>double</c> is not a <see cref="SasMode"/>, etc.</para>
@@ -207,11 +207,11 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Reflection guard mirroring <c>WirePayloadCoverageTests</c> on the
-        /// INBOUND side: every <see cref="SitrepContractAttribute"/>-marked
+        /// inbound side: every <see cref="SitrepContractAttribute"/>-marked
         /// command-arg record (name ends in <c>Args</c>) must be bindable from
         /// the generic wire shape its properties would arrive as. A new command
         /// arg type with a property shape the binder can't handle is therefore a
-        /// RED test, not a silent dead command over the real socket.
+        /// red test, not a silent dead command over the real socket.
         /// </summary>
         [Fact]
         public void EveryContractCommandArgTypeIsBindableFromItsWireShape()

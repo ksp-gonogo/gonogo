@@ -24,8 +24,8 @@ namespace Gonogo.KSP
     /// the Making History mission override, narrow but real in a mission
     /// save.</para>
     ///
-    /// <para>And note where <c>ToggleGroup</c> sits: OUTSIDE the
-    /// <c>ActionControlBlocked</c> arm, INSIDE the lock. A blocked stage still
+    /// <para>And note where <c>ToggleGroup</c> sits: outside the
+    /// <c>ActionControlBlocked</c> arm, inside the lock. A blocked stage still
     /// fires the group; a locked one fires nothing. So the toggle belongs to the
     /// keypress, not to the staging, which is why it is described here rather
     /// than left to the caller to remember.</para>
@@ -50,7 +50,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Whether the stack actually advances. False is NOT a refusal: stock
+        /// Whether the stack actually advances. False is not a refusal: stock
         /// still fires the Stage action group when
         /// <c>ActionControlBlocked</c> holds the stack, so a mission that has
         /// overridden staging gets its group actions and no separation.

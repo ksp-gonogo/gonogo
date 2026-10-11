@@ -8,7 +8,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// A seam a production type exposes for something to be PLUGGED INTO must have
+    /// A seam a production type exposes for something to be plugged into must have
     /// something in production that plugs into it.
     ///
     /// <para><b>The gap this sits in.</b>
@@ -22,7 +22,7 @@ namespace Sitrep.Core.Tests
     /// unit test of the code behind the seam passes, and the feature has never
     /// executed.</para>
     ///
-    /// <para><b>Why a different KIND of check, again.</b> A test that sets the
+    /// <para><b>Why a different kind of check, again.</b> A test that sets the
     /// property and asserts what happens after proves the code behind the seam and
     /// says nothing about whether anything in the shipped game ever sets it. The
     /// check that catches that must not itself be able to set it, so this one
@@ -135,14 +135,14 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The scan can SEE an unwired seam, proved against a source tree written
+        /// The scan can see an unwired seam, proved against a source tree written
         /// for the purpose.
         ///
         /// <para>With <see cref="Debt"/> empty the real tree contains no unwired
         /// seam, so neither ratchet above can demonstrate the scan is capable of
         /// reporting one: a walk that had silently stopped matching declarations
         /// would pass both. Three claims, each failing differently: an assigned seam
-        /// is not reported, an unassigned one is, and a seam assigned ONLY from a
+        /// is not reported, an unassigned one is, and a seam assigned only from a
         /// test project is reported anyway, which is the distinction the file
         /// exists to draw.</para>
         /// </summary>

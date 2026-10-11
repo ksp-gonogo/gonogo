@@ -36,7 +36,7 @@ import {
 } from "./uplink-isolation.allowlist";
 
 /**
- * Uplink isolation: an Uplink client may import the PUBLISHED surfaces
+ * Uplink isolation: an Uplink client may import the published surfaces
  * (`@ksp-gonogo/sitrep-sdk`, `@ksp-gonogo/ui-kit`) and nothing else from this
  * repo. Reaching into `core` / `components` / `data` / `ui` / `logger` makes the
  * Uplink unbuildable by a third-party author, which is the whole point of the
@@ -47,7 +47,7 @@ import {
  * 46 files accumulated unnoticed from the first day of the Uplink architecture.
  *
  * This lives in `packages/core` rather than beside the Uplinks on purpose: core
- * is what the Uplinks must NOT depend on, so core is the right place to own the
+ * is what the Uplinks must not depend on, so core is the right place to own the
  * rule, and when the Uplinks eventually move to their own repos the guard simply
  * stops having subjects rather than needing to move with them.
  */
@@ -59,12 +59,12 @@ const ALLOWLIST_PATH = "packages/core/src/uplink-isolation.allowlist.ts";
 
 /**
  * Terminated on both sides. An unterminated `@ksp-gonogo/ui` also matches
- * `@ksp-gonogo/ui-kit`, which is the PERMITTED package: that exact mistake
+ * `@ksp-gonogo/ui-kit`, which is the permitted package: that exact mistake
  * inflated a first pass at this audit from 15 real violations to 72 and sent the
  * remediation after four Uplinks that were clean. A word boundary does not save
  * you, because `-` is a non-word character and `\bui\b` matches inside `ui-kit`.
  *
- * The terminator accepts `/` as well as a quote, so a SUBPATH import
+ * The terminator accepts `/` as well as a quote, so a subpath import
  * (`@ksp-gonogo/core/test`, which several Uplink vitest configs still alias) is
  * caught. Nothing matched that form when the alternative was added; a check that
  * only sees the bare specifier would have gone on reporting clean the first time
@@ -80,7 +80,7 @@ const SPECIFIER_PREFIX =
   "(?:from\\s*|import\\s*\\(\\s*|require\\s*\\(\\s*|(?:^|[;{}])[ \\t]*import\\s+)";
 
 /**
- * Every spelling that actually REACHES a module, not just the one everybody
+ * Every spelling that actually reaches a module, not just the one everybody
  * writes.
  *
  * It was `from` alone for the whole life of this gate, and `from` is three of
@@ -104,7 +104,7 @@ const IMPORT_RE = new RegExp(
 /**
  * Every source file in an Uplink's client, not just `client/src`.
  *
- * It WAS `client/src` alone, hardcoded, and that missed `client/scripts`, where
+ * It was `client/src` alone, hardcoded, and that missed `client/scripts`, where
  * the visual-gate probe harnesses live. Three of them imported
  * `@ksp-gonogo/core` and one also `@ksp-gonogo/data`, none of which those
  * packages declare, so they were resolving through pnpm hoisting and the
@@ -259,13 +259,13 @@ describe("uplink isolation", () => {
 
   /**
    * Walking the right files proves only that the scan had something to read.
-   * Whether it can RECOGNISE a violation in what it read is a separate
+   * Whether it can recognise a violation in what it read is a separate
    * question, and the check above cannot ask it: both regexes below returned
    * nothing for three of the four ways to reach a module, and every count in
    * this file stayed exactly as green as it is when the tree is clean.
    *
    * So each spelling is planted here, in a string, and graded. A pattern that
-   * stops matching one of them fails as BLIND rather than reporting a tree with
+   * stops matching one of them fails as `BLIND` rather than reporting a tree with
    * no violations in it. The false-positive half is graded in the same test
    * because widening a specifier regex is precisely when prose starts matching,
    * and three Uplink client headers carry the possessive form today.
@@ -467,7 +467,7 @@ describe("uplink isolation", () => {
    * scan catches on its own: a manifest entry for a package this Uplink no
    * longer imports anywhere. It still makes the Uplink uninstallable for an
    * outsider while looking like a live dependency to everyone reading it, which
-   * is how one Uplink's `components` declaration AND its vitest alias outlived
+   * is how one Uplink's `components` declaration and its vitest alias outlived
    * the last import by weeks, with a comment explaining a type-only import that
    * no file had contained for just as long.
    *
@@ -475,7 +475,7 @@ describe("uplink isolation", () => {
    * upkeep and cannot itself go stale.
    */
   /**
-   * The debt lists are checked for GROWTH everywhere else in this file. Nothing
+   * The debt lists are checked for growth everywhere else in this file. Nothing
    * checked whether an entry's violation was still there, so a fix somewhere else
    * left the entry behind, silently, and the list could never reach zero by
    * attrition: someone had to notice each dead line by hand. Publishing the render
@@ -484,8 +484,8 @@ describe("uplink isolation", () => {
    *
    * With this, every fix anywhere is an automatic reduction, and the list is
    * self-cleaning rather than merely non-growing. It is the counterpart to
-   * `FORBIDDEN_PACKAGES never shrinks`: that one stops the SUBJECT narrowing, this
-   * one stops the LIST outliving its subject.
+   * `FORBIDDEN_PACKAGES never shrinks`: that one stops the subject narrowing, this
+   * one stops the list outliving its subject.
    */
   it("lists no debt that is already fixed", () => {
     const found = scan();
@@ -558,11 +558,11 @@ describe("uplink isolation", () => {
      * Both lists as they stood at the ratchet base, with the ref they came from
      * so a failure can quote it.
      *
-     * `ratchetBaseRef` THROWS when no base can be reached, which is the whole
+     * `ratchetBaseRef` throws when no base can be reached, which is the whole
      * point of it. This used to catch that and return `undefined`, and every
      * caller below opens by returning early on `undefined`, so an unreachable
      * base made the shrink check evaporate and report green. Undefined now
-     * means only that the checkout IS the base (nothing to diff) or that the
+     * means only that the checkout is the base (nothing to diff) or that the
      * list did not exist there, and `ratchet-base-ref.test.ts` grades the
      * second case in one place rather than leaving each caller to shrug at it.
      */
@@ -583,7 +583,7 @@ describe("uplink isolation", () => {
     }
 
     /**
-     * Compare only packages forbidden at BOTH ends. When `FORBIDDEN_PACKAGES`
+     * Compare only packages forbidden at both ends. When `FORBIDDEN_PACKAGES`
      * itself changes, entries for a newly-forbidden package are a reseed rather
      * than new debt, and grading them as growth would make it impossible to
      * widen the rule without disabling its own ratchet. Debt for a package
@@ -645,16 +645,16 @@ describe("uplink isolation", () => {
     });
 
     /**
-     * The debt lists shrink; the list of what counts as debt does the OPPOSITE.
+     * The debt lists shrink; the list of what counts as debt does the opposite.
      * Dropping a name from `FORBIDDEN_PACKAGES` looks exactly like progress from
      * every other angle in this file: the scan stops finding that package, its
      * entries can be deleted as "cleared", and the shrink checks grade only
-     * packages forbidden at BOTH ends, so they stop grading it too. The suite
+     * packages forbidden at both ends, so they stop grading it too. The suite
      * goes green by no longer asking the question.
      *
      * That is not hypothetical. Clearing `ui` and `test-utils` from the debt
      * list on 2026-08-18 was done with a regex over this file, which matched the
-     * entries AND the `FORBIDDEN_PACKAGES` members, and the full suite passed
+     * entries and the `FORBIDDEN_PACKAGES` members, and the full suite passed
      * with `ui` silently unguarded, because by then nothing imported it. A build
      * error over an unrelated union type is the only reason anyone looked.
      */
@@ -687,7 +687,7 @@ describe("uplink isolation", () => {
      *
      * It is worse here than for the package list, because a blocked filename is a
      * strategy someone already arrived at twice by careful reasoning from a wrong
-     * premise. It is the entry MOST likely to be removed by someone who has just
+     * premise. It is the entry most likely to be removed by someone who has just
      * re-derived it and believes they are correcting an oversight.
      */
     it("BLOCKED_FILENAMES never shrinks", () => {
@@ -716,7 +716,7 @@ describe("uplink isolation", () => {
 
 /**
  * The subpath half of the rule, which the package-level checks structurally
- * cannot reach. `IMPORT_RE` is a denylist of package NAMES and both published
+ * cannot reach. `IMPORT_RE` is a denylist of package names and both published
  * packages are permitted at any depth, so a widget importing
  * `@ksp-gonogo/sitrep-sdk/spine` passes every check above. The extraction probe
  * passes it too, because `/spine` is published and therefore resolves and
@@ -734,7 +734,7 @@ describe("uplink subpath isolation", () => {
   });
 
   /**
-   * Every package this repo PUBLISHES, discovered rather than named.
+   * Every package this repo publishes, discovered rather than named.
    *
    * It was a two-entry literal, and that made the scan blind along a dimension
    * it never reported: `@ksp-gonogo/uplink-tools` is published, is a
@@ -785,7 +785,7 @@ describe("uplink subpath isolation", () => {
    *
    * A walk that finds nothing reports every subpath classified, which is the
    * failure mode this whole describe exists to prevent, one level up. Three is
-   * what the repo publishes today; it is a FLOOR rather than an equality so
+   * what the repo publishes today; it is a floor rather than an equality so
    * that publishing a fourth package does not fail here, where it has nothing
    * to say. It fails where it should: unclassified subpaths.
    */
@@ -793,7 +793,7 @@ describe("uplink subpath isolation", () => {
 
   /**
    * The module subpaths a package exports. `./biome` and the `.json` configs are
-   * shared CONFIG files rather than importable modules, matched by shape rather
+   * shared config files rather than importable modules, matched by shape rather
    * than by name so the next one needs no edit here, the same way
    * `sdk-subpath-alias.test.ts` does it.
    */
@@ -818,7 +818,7 @@ describe("uplink subpath isolation", () => {
    * subpaths today because `sdk-subpath-alias.test.ts` requires every published
    * subpath to be aliased wherever the sdk is.
    *
-   * The package alternation is DERIVED from the same walk the classification
+   * The package alternation is derived from the same walk the classification
    * uses, not written out. Hardcoding `(sitrep-sdk|ui-kit)` here left this half
    * blind to `@ksp-gonogo/uplink-tools` in exactly the way the classification
    * half was: planting an Uplink import of `/widgets` failed only the dedicated
@@ -879,7 +879,7 @@ describe("uplink subpath isolation", () => {
 
   /**
    * Extracted from the test body so the blindness check below can run it
-   * against PLANTED manifests. Inline, the only thing that could exercise it
+   * against planted manifests. Inline, the only thing that could exercise it
    * was the repo's real state, which is exactly the state it is supposed to be
    * auditing.
    */
@@ -998,13 +998,13 @@ describe("uplink subpath isolation", () => {
 
 /**
  * `@ksp-gonogo/uplink-tools/widgets` is the app's own widgets, registered, so an
- * Uplink's docs page can draw an augment inside its real host. It is PUBLISHED,
+ * Uplink's docs page can draw an augment inside its real host. It is published,
  * which is what makes it reachable from outside this repo at all, and that is
  * exactly what makes it dangerous: every other rule in this file works by a
  * package being unpublished, and this one cannot.
  *
  * Pulling the widgets into the UI kit is only for the docs page, not for
- * anything else, so the line is not WHETHER an Uplink may name it, but WHERE:
+ * anything else, so the line is not whether an Uplink may name it, but where:
  *
  *   - `devDependencies` and `gonogo.renderWith`: yes. That is the whole purpose
  *   - `dependencies`: no. A runtime dependency is the Uplink shipping the app's
@@ -1019,9 +1019,9 @@ describe("uplink subpath isolation", () => {
  */
 describe("uplink-tools/widgets is a render-time module, not an import", () => {
   /**
-   * TWO names, and conflating them silently disarms half this gate.
+   * Two names, and conflating them silently disarms half this gate.
    *
-   * A manifest can only ever declare the PACKAGE; `dependencies` never holds a
+   * A manifest can only ever declare the package; `dependencies` never holds a
    * subpath. An import, by contrast, has to name the subpath, because the
    * package root is the harness API that `uplink-page.test.ts` legitimately
    * imports in five Uplinks.
@@ -1036,13 +1036,13 @@ describe("uplink-tools/widgets is a render-time module, not an import", () => {
   /**
    * Same spellings as `IMPORT_RE`, for the one subpath.
    *
-   * `m` but deliberately NOT `g`: this one is used with `.test()`, and a global
+   * `m` but deliberately not `g`: this one is used with `.test()`, and a global
    * regex carries `lastIndex` between calls, so testing a second file starts
    * partway through it and can miss a match the file plainly contains. Clean,
    * that is invisible (nothing matches, `lastIndex` stays 0) and it only
-   * shows once TWO files are in violation, which is the worst time to find out.
+   * shows once two files are in violation, which is the worst time to find out.
    *
-   * `replaceAll`, not `replace`: the latter takes only the FIRST slash, and
+   * `replaceAll`, not `replace`: the latter takes only the first slash, and
    * this specifier has two.
    */
   const WIDGETS_MODULE_IMPORT_RE = new RegExp(
@@ -1051,7 +1051,7 @@ describe("uplink-tools/widgets is a render-time module, not an import", () => {
   );
 
   /**
-   * Does this manifest TEXT declare the package as a runtime dependency?
+   * Does this manifest text declare the package as a runtime dependency?
    *
    * Takes the source rather than a path so the instrument check below can feed
    * it a planted manifest and exercise this exact reader, instead of asserting
@@ -1123,7 +1123,7 @@ describe("uplink-tools/widgets is a render-time module, not an import", () => {
      * The manifest scanner, graded through the reader the check itself uses:
      * forbidden in `dependencies`, permitted in `devDependencies`. The
      * permitted position is the one worth planting, because a reader that
-     * reported BOTH would fail every correctly-written Uplink.
+     * reported both would fail every correctly-written Uplink.
      */
     expect(
       declaresItAtRuntime(

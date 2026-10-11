@@ -9,12 +9,12 @@ namespace Gonogo.KSP.Tests.Career
     ///
     /// <para>Three of the career actuator's spends look identical on the page
     /// and are not. A facility upgrade and a tech unlock leave the debit to
-    /// their caller, so we make it. A crew hire does NOT:
+    /// their caller, so we make it. A crew hire does not:
     /// <c>KerbalRoster.HireApplicant</c> fires
     /// <c>GameEvents.OnCrewmemberHired</c>, <c>Funding.OnAwake</c> subscribed
     /// <c>onCrewHired</c> to that event, and <c>onCrewHired</c> is
     /// <c>AddFunds(-GameVariables.Instance.GetRecruitHireCost(crewCount), CrewRecruited)</c>.
-    /// The event fires BEFORE the applicant becomes crew, so the count it
+    /// The event fires before the applicant becomes crew, so the count it
     /// carries is the same pre-hire count our price was quoted at: the two
     /// debits are equal, and a console hire charged exactly twice.</para>
     ///
@@ -52,7 +52,7 @@ namespace Gonogo.KSP.Tests.Career
         /// The control. <c>UpgradeableFacility.SetLevel</c> fires the upgrade
         /// events and debits nothing, and stock's own
         /// <c>SpaceCenterBuilding.UpgradeFacility</c> deducts explicitly, so the
-        /// console has to. That this scan still FINDS that debit is what says the
+        /// console has to. That this scan still finds that debit is what says the
         /// hire assertion above is looking at a real method body.
         /// </summary>
         [Fact]

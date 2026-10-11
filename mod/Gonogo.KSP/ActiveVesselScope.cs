@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     ///
     /// <para><c>FlightGlobals.ActiveVessel</c> keeps its authority everywhere else.
     /// This does not second-guess a vessel switch, a dock or an undock, and the
-    /// substitution lasts exactly as long as the EVA: a kerbal boarding ANY craft
+    /// substitution lasts exactly as long as the EVA: a kerbal boarding any craft
     /// ends it, so that transition is indistinguishable on the wire from the
     /// operator switching craft normally.</para>
     ///
@@ -58,10 +58,10 @@ namespace Gonogo.KSP
         public static Vessel? Current => Resolve(out _);
 
         /// <summary>
-        /// True while <see cref="Current"/> is NOT the vessel KSP is flying: a
+        /// True while <see cref="Current"/> is not the vessel KSP is flying: a
         /// kerbal is outside and this is the craft they left.
         ///
-        /// <para>The seam exists so a reader never has to ask. A WRITER does,
+        /// <para>The seam exists so a reader never has to ask. A writer does,
         /// and cannot be spared it: the stock calls behind the flight commands
         /// take no vessel and resolve <c>FlightGlobals.ActiveVessel</c>
         /// themselves, so a command issued in this state acts on the kerbal, or
@@ -182,7 +182,7 @@ namespace Gonogo.KSP
         /// <para>KSP's <c>EventData&lt;T&gt;.Add</c> wraps the handler in an
         /// <c>EvtDelegate</c> whose constructor reads
         /// <c>evt.Target.GetType().Name</c> with no null check. A delegate over a
-        /// STATIC method has a null <c>Target</c>, so subscribing one throws a
+        /// static method has a null <c>Target</c>, so subscribing one throws a
         /// NullReferenceException out of <c>Add</c> itself. Hook runs from
         /// <see cref="KspHost"/>'s constructor inside <c>GonogoAddon.Awake</c>,
         /// so that throw took the whole mod's startup with it: no host, no
@@ -264,7 +264,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// <c>from</c> is the kerbal, <c>to</c> is the craft they entered - which KSP
         /// lets be any airlock they were touching, not necessarily the one they left.
-        /// The relation is dropped either way and the craft entered is NOT recorded:
+        /// The relation is dropped either way and the craft entered is not recorded:
         /// the substitution lasts exactly as long as the EVA, and what KSP makes
         /// active next is reported as-is. A kerbal walking into a different craft is
         /// a routine vessel switch and must be indistinguishable from one.
@@ -317,7 +317,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The vessel with this id, if it is still in the world. <c>state</c> is a
-        /// plain managed field, so a DEAD vessel KSP has not yet removed from the
+        /// plain managed field, so a dead vessel KSP has not yet removed from the
         /// roster is excluded without asking Unity whether the object is alive.
         /// </summary>
         private static Vessel? FindLiving(Guid id)

@@ -8,13 +8,13 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import type { LinkClient } from "../test/peerFakes";
 
 /**
- * Closes the untested seam from the browser-transport brief: the LIVE
- * `WebSocketTransport` running INSIDE the real `<SitrepTelemetryProvider>`,
+ * Closes the untested seam from the browser-transport brief: the live
+ * `WebSocketTransport` running inside the real `<SitrepTelemetryProvider>`,
  * end-to-end over the MSW `ws` boundary, asserting a frame on the socket flows
  * all the way to a widget re-render. Nothing internal is faked, the provider
  * builds its own real `WebSocketTransport` (no `transport` prop), which defaults
  * to `globalThis.WebSocket`. MSW's `ws` interceptor patches that same global in
- * `server.listen()` (which runs AFTER the app's `installDomStubs` no-op
+ * `server.listen()` (which runs after the app's `installDomStubs` no-op
  * WebSocket), so the transport talks to the mocked socket.
  *
  * This is the same network-boundary approach the transport's own unit test uses

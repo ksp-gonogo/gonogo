@@ -19,7 +19,7 @@ namespace Sitrep.Host
     /// <see cref="CommandResult.ErrorCode"/>.
     ///
     /// <para><b>Delayed (uplink to the craft):</b> both commands actuate an
-    /// experiment ON the vessel, so they ride the same light-time delay every
+    /// experiment on the vessel, so they ride the same signal delay delay every
     /// other actuation does, declared <c>delayed: true</c> in
     /// <c>ScienceCoreUplink</c>'s command table.</para>
     /// </summary>
@@ -30,7 +30,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// An empty <c>partId</c> can never resolve to a live part, so it
-        /// fail-fasts as <see cref="CommandErrorCode.NotFound"/> HERE without
+        /// fail-fasts as <see cref="CommandErrorCode.NotFound"/> here without
         /// ever reaching the actuator: the same fail-fast
         /// <see cref="VesselCommandProvider.HandleTargetSet"/> applies to a
         /// structurally-unresolvable target. A well-formed but unknown

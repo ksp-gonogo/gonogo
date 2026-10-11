@@ -83,7 +83,7 @@ export function CategoryRows({ items }: { items: SettingDefinition[] }) {
  * A registered row may declare `type: "number"` and answer with a plain number,
  * and a plain number has lost the one thing that says how to write it. The row
  * still has to render, so the number is wrapped in a value whose unit is the
- * EMPTY one, which is the model's way of saying nobody declared a unit: `Unit`
+ * empty one, which is the model's way of saying nobody declared a unit: `Unit`
  * writes it bare and claims nothing, exactly as the formatter this replaced
  * did. What changes is where the claim is made. A row that means metres says
  * `value("m", x)` in its own `select` and gets metres drawn and announced; this
@@ -190,7 +190,7 @@ function ClientPrefRow({
 }
 
 /**
- * The control half of a WRITABLE row, chosen by the row's declared type. A
+ * The control half of a writable row, chosen by the row's declared type. A
  * read-only row never reaches here: it renders a `ReadOnlyField` instead, which
  * is the whole point of the flag.
  */

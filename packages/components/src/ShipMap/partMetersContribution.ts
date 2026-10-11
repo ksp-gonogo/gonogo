@@ -26,7 +26,7 @@ const DRAINABLE_RESOURCES = [
   "XenonGas",
 ] as const;
 
-/** Status thresholds as a fraction of capacity: below LOW reads "low", below CRITICAL "critical". */
+/** Status thresholds as a fraction of capacity: below low reads "low", below critical "critical". */
 const LOW_THRESHOLD = 0.15;
 const CRITICAL_THRESHOLD = 0.05;
 

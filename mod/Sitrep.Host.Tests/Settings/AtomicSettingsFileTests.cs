@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests.Settings
     /// A crash at any point in a save leaves a file the next launch reads as
     /// either the previous settings or the new ones.
     ///
-    /// <para>The proof is about the SEQUENCE, and it is exhaustive over it:
+    /// <para>The proof is about the sequence, and it is exhaustive over it:
     /// <see cref="DyingFiles"/> stops dead after its Nth file operation, with
     /// nothing after that point changing anything, which is what a process
     /// death does and a thrown exception with a catch after it does not. Every

@@ -158,10 +158,10 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The command-delay matrix a command centre writes is ENGINE STATE
+        /// The command-delay matrix a command centre writes is engine state
         /// that command dispatch and currency spends read back, not a published
         /// channel, so it has to be current whether or not a client is
-        /// subscribed to anything. Registered UNGATED (the two-argument
+        /// subscribed to anything. Registered ungated (the two-argument
         /// overload), it is.
         /// </summary>
         [Fact]
@@ -185,7 +185,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The contrast that makes the test above load-bearing: the SAME writes
+        /// The contrast that makes the test above load-bearing: the same writes
         /// registered behind a topic-prefix gate never happen at all while
         /// nothing is subscribed, so a ledger on that overload would hand
         /// command dispatch whatever stale (or absent) number it had before the

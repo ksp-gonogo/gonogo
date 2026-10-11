@@ -13,14 +13,14 @@
  * contract as closely as an inherently-async operation allows: it resolves
  * `null` (never throws, never rejects) whenever the pipeline can't be
  * built here: no `Worker` support, no video track, the worker rejected
- * construction, OR (the common case on Chrome/Firefox as of the
- * verification above) `postMessage(..., [track])` throws SYNCHRONOUSLY
+ * construction, or (the common case on Chrome/Firefox as of the
+ * verification above) `postMessage(..., [track])` throws synchronously
  * because this engine doesn't support transferring a `MediaStreamTrack`
  * at all. The caller treats a `null` resolution
  * exactly like the main-thread backend's `null` return, "can't delay ⇒
  * no video" (decision 5), never a live fallback.
  *
- * NOT unit-tested (see `delay-worker.ts`'s doc for why), thin
+ * Not unit-tested (see `delay-worker.ts`'s doc for why), thin
  * message-passing glue over already-tested pieces, validated by the manual
  * cross-browser check.
  */
@@ -127,7 +127,7 @@ function post(
 
 /** Starts the ~60Hz loop posting `clockSnapshot` (worker-global, so every
  *  pipeline on the shared worker reads the same clock, matches the app's
- *  ONE real `ViewClock`) and `captureSample` (per-pipeline, only when the
+ *  one real `ViewClock`) and `captureSample` (per-pipeline, only when the
  *  sample reference actually changed) for one pipeline. Returns a stop
  *  function. Shared by both backends this file exposes, narrowed to just
  *  the two members either needs, so `AttachEncodedFrameDelayOptions`

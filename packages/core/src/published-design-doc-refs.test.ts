@@ -17,9 +17,9 @@ import {
  * this repo has.
  *
  * `published-doc-reachability` is the gate for the neighbouring rule and is
- * BLIND to this one by construction, which is worth stating because 124
+ * `BLIND` to this one by construction, which is worth stating because 124
  * instances of this class stood while that gate's own debt sat at 21. It gates
- * SYMBOL reachability: a reference has to be in code form AND its head
+ * symbol reachability: a reference has to be in code form and its head
  * identifier has to resolve to a declaration in this repo. `design §4.5` and
  * `local_docs/reports/video-worker-report.md` are neither, so all four of its
  * predicates that could fire never do:
@@ -28,9 +28,9 @@ import {
  *   reference at all
  * - `design D-D` produces the head `design`, which resolves to no declaration,
  *   and that gate's predicate 3 puts a name resolving to nothing explicitly out
- *   of scope, because it is a STALE doc rather than an unreachable symbol
+ *   of scope, because it is a stale doc rather than an unreachable symbol
  * - a bare `packages/x/y.ts` or `@ksp-gonogo/x` is one of its own predicate-5
- *   QUALIFIER forms, so widening it to catch these would make it fire on the
+ *   qualifier forms, so widening it to catch these would make it fire on the
  *   provenance it was built to permit
  * - it scans only `/** *\/` blocks, so a `//` file header is invisible to it
  *   even when the reference inside is a real symbol, which is how
@@ -42,10 +42,10 @@ import {
  * file path it does not even say where a value came from. The fix is always to
  * rewrite the sentence so it stands without the pointer, never to qualify it.
  *
- * WHICH COMMENTS REACH AN AUTHOR differs per package, and the difference is
+ * Which comments reach an author differs per package, and the difference is
  * load-bearing rather than a detail:
  *
- * - `mod/sitrep-sdk` puts `src` in `files`, so EVERY comment in a non-test file
+ * - `mod/sitrep-sdk` puts `src` in `files`, so every comment in a non-test file
  *   lands in an author's `node_modules`, `//` headers included
  * - `packages/ui-kit` ships only `dist`, so only `/** *\/` blocks reach one, via
  *   tsup's `.d.ts` emit. Twelve `§` references were measured in its published
@@ -70,7 +70,7 @@ function isTestFile(path: string): boolean {
 }
 
 /**
- * Every comment in `text`, or only its JSDoc blocks, one entry PER LINE.
+ * Every comment in `text`, or only its JSDoc blocks, one entry per line.
  *
  * Split per line rather than per comment so a reported location is the line
  * carrying the reference. Reported per block, a header thirty lines long sends

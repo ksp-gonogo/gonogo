@@ -9,27 +9,27 @@ namespace Gonogo.KSP.Tests.ActiveVessel
     /// The commands that cannot act on the craft gonogo is reporting while a
     /// kerbal is outside it, and therefore have to refuse.
     ///
-    /// <para>The active-vessel seam moved every READ onto the craft a kerbal
-    /// stepped out of. It could not move the WRITES, because the stock calls
+    /// <para>The active-vessel seam moved every read onto the craft a kerbal
+    /// stepped out of. It could not move the writes, because the stock calls
     /// underneath them take no vessel: <c>FlightInputHandler</c> applies its
     /// control state only to <c>vessel == FlightGlobals.ActiveVessel</c>,
     /// <c>StageManager.ActivateStage</c> reads the same property, and
     /// <c>FlightGlobals.SetVesselTarget</c> ends in
-    /// <c>ActiveVessel.targetObject = tgt</c>. Every one of those is the KERBAL
+    /// <c>ActiveVessel.targetObject = tgt</c>. Every one of those is the Kerbal
     /// during an EVA, so each command reported success and moved nothing.</para>
     ///
     /// <para>Asserted structurally, over the shipped source, for the reason
     /// <c>ManeuverWriteAuthorityTests</c> and
     /// <c>CurrencyDelaySettlePumpIsWiredTests</c> already give: these command
     /// bodies reach Unity assemblies the reference set does not ship, so a
-    /// headless test cannot enter them at all. The DECISION each one delegates
+    /// headless test cannot enter them at all. The decision each one delegates
     /// to is <see cref="Gonogo.KSP.EvaCommandRule"/>, which names no KSP type
     /// and is entered directly below.</para>
     /// </summary>
     public class EvaCommandRefusalTests
     {
         /// <summary>
-        /// Nothing is refused when the reported craft IS the one KSP is flying,
+        /// Nothing is refused when the reported craft is the one KSP is flying,
         /// which is every moment but an EVA. A rule that refused here would take
         /// out five commands for the whole of a normal flight.
         /// </summary>
@@ -44,7 +44,7 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         /// contract draws is whether waiting resolves it: this resolves when the
         /// kerbal boards, which is an act. And <c>NotClearToProceed</c>'s
         /// documented authority is <c>FlightGlobals.ClearToSave()</c>, which
-        /// reads KSP's own active vessel and so judges the KERBAL - the one
+        /// reads KSP's own active vessel and so judges the Kerbal - the one
         /// check that structurally cannot see this state.
         /// </summary>
         [Theory]
@@ -116,12 +116,12 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         }
 
         /// <summary>
-        /// The plan READ is not a refusal and cannot be one: an
+        /// The plan read is not a refusal and cannot be one: an
         /// <c>IManeuverPlanSource</c> answers with a list or with null, and null
         /// is the contract's "this craft cannot hold a plan at all". A craft a
         /// kerbal has stepped out of holds whatever it held; KSP has only taken
         /// the live solver away (<c>Vessel.MakeInactive</c> ->
-        /// <c>DetachPatchedConicsSolver</c>, which SAVES the plan into
+        /// <c>DetachPatchedConicsSolver</c>, which saves the plan into
         /// <c>flightPlanNode</c> on its way out). So the backend has to read the
         /// saved plan rather than report the craft plannerless.
         /// </summary>
@@ -138,7 +138,7 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         /// <summary>
         /// A scan that cannot see a violation reports zero, and zero reads as
         /// success. The instrument is the brace matcher plus a substring, so the
-        /// thing to prove is that a body WITHOUT the call comes back without it:
+        /// thing to prove is that a body without the call comes back without it:
         /// <c>SetSas</c> is a command that legitimately does not refuse (the
         /// action group is written straight onto the reported craft), so it is a
         /// standing negative control rather than a planted string.
@@ -154,7 +154,7 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         }
 
         /// <summary>
-        /// And that the matcher is reading a BODY rather than the rest of the
+        /// And that the matcher is reading a body rather than the rest of the
         /// file: a declaration that does not exist has to fail as a broken
         /// instrument, not as a finding about the code.
         /// </summary>

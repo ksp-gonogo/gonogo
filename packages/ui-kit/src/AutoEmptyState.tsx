@@ -22,10 +22,12 @@ export interface AutoEmptyStateProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * A content region (a vertical flex column) followed by a fallback that hides
- * itself once the region has rendered anything. Use it where a frame owns the
- * fallback but its content comes from augments or other children it cannot
- * inspect. It never scrolls on its own; the panel body it sits in scrolls.
+ * A vertical flex column of content followed by a fallback that hides itself
+ * once the column has rendered anything. Useful where a frame owns the empty
+ * message but its content comes from augments or other children it cannot
+ * inspect, so the operator sees the message only when there is nothing else.
+ * Used by the space centre status and objectives widgets. It never scrolls on
+ * its own; the panel body it sits in scrolls.
  *
  * @example
  * ```tsx

@@ -1,26 +1,26 @@
 /**
- * Which declared Topics and commands a client actually READS.
+ * Which declared Topics and commands a client actually reads.
  *
  * Pure scan module, no test logic, so the shrink-only check can transpile it at
  * an arbitrary git ref without pulling in vitest. Same split-module shape as
  * `comment-stacks.scan.ts` and `panel-body.scan.ts`.
  *
- * WHY THIS EXISTS. Every other gate in the tree asks whether what exists is
- * CORRECT: the isolation ratchets police what an Uplink may import, the
+ * Why this exists. Every other gate in the tree asks whether what exists is
+ * correct: the isolation ratchets police what an Uplink may import, the
  * extraction probe proves the published surface builds standing alone, the docs
  * gate proves each page regenerates. None of them asks whether what exists is
- * REACHED. One Uplink's tooling Topic shipped as the mod half only, a Topic plus two commands
+ * reached. One Uplink's tooling Topic shipped as the mod half only, a Topic plus two commands
  * plus 159 lines of payload contract with no consumer at all, and passed every
  * one of them, because a declaration nothing reads is still a correct
  * declaration.
  *
- * WHY NOT A REGEX OVER TOPIC IDS. Each Uplink's `__generated__` directory
+ * Why not A regex over topic IDS. Each Uplink's `__generated__` directory
  * contains every id it declares, so grepping the tree for an id finds it whether
  * or not a human wrote a read. The scan therefore excludes generated files from
- * the CONSUMER corpus while taking the declaration list FROM them, which is the
+ * the consumer corpus while taking the declaration list from them, which is the
  * only arrangement where a hit means somebody typed the id on purpose.
  *
- * WHY THE AST AND NOT LINE MATCHING. `index.ts` re-exports every Topic constant
+ * Why the AST and not line matching. `index.ts` re-exports every Topic constant
  * its Uplink declares. Re-export is plumbing, not consumption: counting it marks
  * every declaration reached and the gate reports a permanent all-clear. Measured
  * on 2026-09-02, taking barrels at face value hid 8 of the 44 declared Topics,
@@ -101,7 +101,7 @@ const isTest = (path: string): boolean =>
   /\.test\.tsx?$|\.test-d\.ts$/.test(path);
 
 /**
- * Identifiers and string literals a file USES.
+ * Identifiers and string literals a file uses.
  *
  * `ExportDeclaration` is skipped whole, so `export { PLANTED_TOOLING_TOPIC } from
  * "./topics"` contributes nothing. A declaration site is excluded by the caller

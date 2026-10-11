@@ -23,7 +23,7 @@ export interface GameContext {
   inFlight: boolean;
   /**
    * True when the active vessel is in `PRELAUNCH` situation, false when it is
-   * confirmed not to be. Implies `inFlight` (KSP only sets PRELAUNCH after the
+   * confirmed not to be. Implies `inFlight` (KSP only sets prelaunch after the
    * flight scene loads).
    *
    * `undefined` when nothing has reported occupancy yet. A gate reading
@@ -47,7 +47,7 @@ export interface GameContext {
   isCareerLike: boolean;
   /**
    * Whether spending career funds actually costs anything in this mode. Only
-   * CAREER charges funds; SANDBOX and SCIENCE do not.
+   * career charges funds; sandbox and science do not.
    *
    * An unknown mode counts as charging. A widget guarding a spend has to decide
    * what to do before the mode arrives, and permitting the spend is the wrong
@@ -56,7 +56,7 @@ export interface GameContext {
    * nothing to check against.
    */
   chargesFunds: boolean;
-  /** As `chargesFunds`, for science points: CAREER and SCIENCE both charge them. */
+  /** As `chargesFunds`, for science points: career and science both charge them. */
   chargesScience: boolean;
   /**
    * True when we have telemetry but no live game context (no flight,
@@ -93,7 +93,7 @@ export const GAME_MODE_ORDINAL: readonly CareerMode[] = [
 ];
 
 /**
- * `career.mode.mode` is the mod's `GameMode` enum ORDINAL, since
+ * `career.mode.mode` is the mod's `GameMode` enum ordinal, since
  * `CareerMode.mode` is serialized as `(int)mode` on the wire, not the enum
  * name. Anything else is not a mode this app knows.
  */

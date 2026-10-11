@@ -3,14 +3,14 @@
  *
  * Every number below is a measurement, and a measurement means nothing without
  * the instrument that took it. Widening the matcher is the one change that
- * legitimately RAISES a shrink-only number, and a bare shrink-only check cannot
+ * legitimately raises a shrink-only number, and a bare shrink-only check cannot
  * tell that from somebody laundering stacks they just wrote. So the revision is
  * the declaration: bump it in the same commit as the matcher change and the
  * ratchet re-seeds, leave it alone and every number is shrink-only as before.
  *
  * It is not an escape hatch, because a bump is not taken on trust. The ratchet
- * loads `comment-stacks.scan.ts` AS IT STOOD at the base revision, runs that
- * older matcher over the CURRENT tree, and requires the older numbers to still
+ * loads `comment-stacks.scan.ts` as it stood at the base revision, runs that
+ * older matcher over the current tree, and requires the older numbers to still
  * hold. A re-seed therefore proves that everything newly counted is something
  * the old matcher could not see. Same mechanism as
  * `banner-comments.allowlist.ts`.
@@ -360,7 +360,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * all of them: a wrong cwd, a renamed root or a `git ls-files` that errored into
  * an empty string each look exactly like a clean repo.
  *
- * It counts files WALKED, and only that. What the scan FOUND is the debt, which
+ * It counts files walked, and only that. What the scan found is the debt, which
  * falls as it is paid, so a floor on it would fail the gate for the one outcome
  * it exists to produce; the census is printed beside the verdict instead.
  */

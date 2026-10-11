@@ -89,7 +89,7 @@ it("imports the error-code unions from their own generated file", () => {
 const NON_QUANTITY = new Set(["text", "flag", "enum", "id", "n/a"]);
 
 /**
- * Types whose declared quantities stay BARE, because they are transport rather
+ * Types whose declared quantities stay bare, because they are transport rather
  * than telemetry.
  *
  * `Meta` rides on every stream-data message and its timestamps are used by ten
@@ -100,7 +100,7 @@ const NON_QUANTITY = new Set(["text", "flag", "enum", "id", "n/a"]);
  *
  * This exemption exists because the exhaustive check below is right by default
  * and was wrong here: it saw `Meta.validAt` untyped, that looked like the bug
- * it is designed to catch, and closing it was backwards. The DECLARATION stays
+ * it is designed to catch, and closing it was backwards. The declaration stays
  * on the C# property, because the field really is in seconds; what stops is the
  * declaration becoming a type.
  */
@@ -320,13 +320,13 @@ describe("generated contract.ts unit types", () => {
 });
 
 /**
- * The generated command map emits THREE views of one set: two interfaces and a
+ * The generated command map emits three views of one set: two interfaces and a
  * runtime array. The compile invariants in `../commands.ts` already bind the
  * args interface to the array in both directions, and `pnpm typecheck` fails on
  * a planted drift with five errors. That is a real gate and it runs in the
  * pre-commit hook.
  *
- * This is a SECOND instrument of a different kind, because the first one is
+ * This is a second instrument of a different kind, because the first one is
  * invisible to anyone running the test suite: renaming one key in the map and
  * leaving the array alone passes the sdk's 861 tests, the 280 core scans and
  * the command-to-C# sync gate, all of which read the array and never the map.
@@ -334,7 +334,7 @@ describe("generated contract.ts unit types", () => {
  * observer, which is the same argument this repo already makes about a
  * self-healing docs workflow.
  *
- * It has to read the file as TEXT. Both maps are interfaces, so their keys are
+ * It has to read the file as text. Both maps are interfaces, so their keys are
  * erased before any runtime check could see them.
  */
 describe("generated command-map.ts", () => {

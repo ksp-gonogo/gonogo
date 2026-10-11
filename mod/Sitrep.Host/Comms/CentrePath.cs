@@ -70,7 +70,7 @@ namespace Sitrep.Host.Comms
         /// <param name="stations">Every ground station, as the plan names them.</param>
         /// <param name="nameOf">The name the centre last heard a craft go by, or null.</param>
         /// <param name="ut">Now.</param>
-        /// <param name="lightFactor">What a real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
+        /// <param name="lightFactor">What a real signal delay is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         /// <param name="strengths">What the centre can work out about hop strengths, or null to state none.</param>
         public static CentrePathView For(
             ContactPlan? plan,

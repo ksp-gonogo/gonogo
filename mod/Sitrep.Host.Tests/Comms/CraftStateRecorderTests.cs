@@ -246,7 +246,7 @@ namespace Sitrep.Host.Tests.Comms
         /// <summary>
         /// A craft that leaves is not read for: a pair ends when the centre
         /// hears the craft is gone, and a state read now would end it at the
-        /// light-time of whichever craft was read.
+        /// signal delay of whichever craft was read.
         /// </summary>
         [Fact]
         public void NothingIsReadForACraftThatLeavesOrAStationThatWasThereAlready()

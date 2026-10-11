@@ -14,14 +14,14 @@ namespace Sitrep.Propagation.Visibility
     public interface IVisibilityGeometry
     {
         /// <summary>
-        /// A signed margin at <paramref name="ut"/> whose SIGN is the answer:
+        /// A signed margin at <paramref name="ut"/> whose sign is the answer:
         /// zero or more is a clear path, negative is a blocked one
         /// (<see cref="ChordOcclusion.Unobstructed"/> is the single copy of that
         /// comparison).
         ///
         /// <para>The magnitude and its units are the implementation's business and
         /// no caller should read anything into them. What every implementation
-        /// owes is CONTINUITY in UT, and that the function actually crosses zero
+        /// owes is continuity in UT, and that the function actually crosses zero
         /// at a state change rather than resting on it. That is a contract, not an
         /// observation: the sweep brackets a sign change and then bisects, so a
         /// margin that jumps, or that sits pinned at exactly zero through a whole
@@ -36,7 +36,7 @@ namespace Sitrep.Propagation.Visibility
         /// <paramref name="ut"/>, whether or not the path is clear. This is what a
         /// prediction gets compared against: a capture reports the separation at
         /// which a link was observed to drop, and the only way to check a
-        /// candidate occluding radius is to ask what separation IT predicts.
+        /// candidate occluding radius is to ask what separation it predicts.
         /// </summary>
         double SeparationAt(double ut);
     }

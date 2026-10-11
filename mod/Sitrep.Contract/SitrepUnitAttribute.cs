@@ -64,13 +64,13 @@ namespace Sitrep.Contract
         public const string Radians = "rad";
 
         /// <summary>
-        /// A DURATION in seconds: how long something takes, how long is left.
+        /// A duration in seconds: how long something takes, how long is left.
         /// See <see cref="UniversalTime"/> for the other thing seconds measure.
         /// </summary>
         public const string Seconds = "s";
 
         /// <summary>
-        /// An INSTANT on the universal-time clock, past or future: seconds since
+        /// An instant on the universal-time clock, past or future: seconds since
         /// the game's epoch, never an interval.
         /// </summary>
         ///
@@ -127,7 +127,7 @@ namespace Sitrep.Contract
         public const string Tonnes = "t";
 
         /// <summary>
-        /// Kilograms, the unit KSP reports a BODY's mass in
+        /// Kilograms, the unit KSP reports a body's mass in
         /// (<c>CelestialBody.Mass</c>), as distinct from a vessel's, which it
         /// reports in tonnes. Both are mass and the unit system converts between
         /// them; the attribute states which one the wire carries.

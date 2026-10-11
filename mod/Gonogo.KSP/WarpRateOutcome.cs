@@ -16,7 +16,7 @@ namespace Gonogo.KSP
     /// warp readout disagreed with its own command result until the next sample
     /// landed.</para>
     ///
-    /// <para>The authority for the answer is the game AFTER the call:
+    /// <para>The authority for the answer is the game after the call:
     /// <c>setRate</c> assigns <c>current_rate_index</c> synchronously and
     /// returns <c>num == rateIdx</c> itself, so <c>TimeWarp.CurrentRateIndex</c>
     /// read back is what happened. Asking beforehand would mean reproducing

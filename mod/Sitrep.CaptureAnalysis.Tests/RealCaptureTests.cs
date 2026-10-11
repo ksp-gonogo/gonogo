@@ -8,7 +8,7 @@ namespace Sitrep.CaptureAnalysis.Tests;
 /// <summary>
 /// The two captures that three earlier analyses drew wrong conclusions from.
 /// Neither can settle the occluding-radius question, and the tests below pin
-/// down that the tool says so, and says WHY, rather than producing a number.
+/// down that the tool says so, and says why, rather than producing a number.
 /// </summary>
 public class RealCaptureTests
 {

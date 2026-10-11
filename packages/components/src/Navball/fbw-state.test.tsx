@@ -14,7 +14,7 @@ import {
 import { NavballComponent } from "./index";
 
 /**
- * The button reads the outcome of the latest arm or disarm: ARMED only once the
+ * The button reads the outcome of the latest arm or disarm: armed only once the
  * craft has said yes, and never across a vessel switch, which the mod answers
  * by dropping the override. The mod's own `vessel.control.flyByWire` settles it
  * whenever no command is travelling, so a reload cannot show off while armed.

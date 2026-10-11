@@ -37,7 +37,7 @@ namespace Sitrep.Host
         /// <summary>
         /// The topic the craft's link is reported under: whether its radio
         /// answers. Exempt from the freeze, as the other reports of a blackout
-        /// are, so each centre hears of an outage at its own light-time.
+        /// are, so each centre hears of an outage at its own signal delay.
         /// </summary>
         internal static string CraftLinkTopic(string vesselId) => CraftStatePrefix + vesselId + CraftLinkSuffix;
 
@@ -126,7 +126,7 @@ namespace Sitrep.Host
         ///
         /// <para>The reading is of a whole path, every hop of it as it stood at
         /// one instant, so it is sent to each centre under the longest of the
-        /// light-times from the nodes on that path: a centre farther from a
+        /// signal delays from the nodes on that path: a centre farther from a
         /// relay than from the craft does not learn through the craft's reading
         /// what the relay's own light has not yet told it.</para>
         ///
@@ -152,7 +152,7 @@ namespace Sitrep.Host
             _courier.Record(NodeFor(topic), topic, radio, ut, sentUnder: stamp);
         }
 
-        /// <summary>For every centre, the longest light-time to it from the craft or from any craft on <paramref name="hops"/>.</summary>
+        /// <summary>For every centre, the longest signal delay to it from the craft or from any craft on <paramref name="hops"/>.</summary>
         private DelayStamp WholePathStamp(string vesselId, IReadOnlyList<RadioHop> hops)
         {
             var stamps = new List<DelayStamp> { _network.StampFor(FleetNodePrefix + vesselId) };

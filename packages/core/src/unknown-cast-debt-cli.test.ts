@@ -11,7 +11,7 @@ import { describe, expect, it } from "vitest";
  * not scoped to.
  *
  * The floors at the foot of `unknown-cast.debt.ts` are derived from what the
- * walk COVERS rather than from the debt, so they move whenever files land
+ * walk covers rather than from the debt, so they move whenever files land
  * anywhere in the tree. A full rewrite puts that movement in the same diff as
  * the one key somebody meant to record, and the two read alike: it has already
  * been misread once, as the floors depending on which checkout regenerated
@@ -19,7 +19,7 @@ import { describe, expect, it } from "vitest";
  * `--all` is the deliberate spelling for reseeding them.
  *
  * Asserted from outside the script rather than trusted to its own source,
- * because the refusal has to happen BEFORE the measurement. The scan builds a
+ * because the refusal has to happen before the measurement. The scan builds a
  * TypeScript program over every root, which is a minute of waiting to be told
  * about an argument, and someone who has waited that long re-runs with whatever
  * makes the complaint stop. A spawn that answers in milliseconds is also the

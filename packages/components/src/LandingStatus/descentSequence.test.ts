@@ -5,7 +5,7 @@ import { solveSuicideBurn } from "./solveLanding";
 const MU = 6.5138398e10;
 const RADIUS = 200_000;
 const THRUST = 18;
-/** The best-burn touchdown speed above which the widget reads NO LANDING VECTOR (`useLandingModel`). */
+/** The best-burn touchdown speed above which the widget reads "NO LANDING VECTOR" (`useLandingModel`). */
 const NO_LANDING_VECTOR_ABOVE_MPS = 0.5;
 const MASS = 5;
 

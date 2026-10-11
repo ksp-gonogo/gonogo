@@ -2,9 +2,9 @@
  * Real per-frame video-delay proof (per-frame video delay,
  * 2026-07-15). Mirrors `DelayedPlayoutBuffer.blockColour.test.ts`'s
  * distinguishable-colour technique, but through `runFrameDelayPipeline`:
- * i.e. this drives MULTIPLE frames arriving off a SINGLE, continuously-open
+ * i.e. this drives multiple frames arriving off a single, continuously-open
  * source (one conceptual camera connection), which is exactly the gap the
- * old design had: `useDelayedPlayout` used to push ONE keyframe per raw
+ * old design had: `useDelayedPlayout` used to push one keyframe per raw
  * `MediaStream` *reference*, stamped once, and never re-examined ongoing
  * frames inside that same connection: so a red→green→blue sequence
  * arriving on one open stream would have shown "blue" (the live tail)

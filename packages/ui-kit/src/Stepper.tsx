@@ -36,7 +36,8 @@ export interface StepperProps<Option> {
 
 /**
  * A stepper over a fixed, ordered set of options, such as eight step counts,
- * four tolerances or five quality levels. For a free quantity with a unit use
+ * four tolerances or five quality levels. Useful for letting the operator move
+ * one member at a time through a closed set. For a free quantity with a unit use
  * {@link UnitInput}; for one tuned by feel use {@link JogWheel}.
  *
  * Rendered as the ARIA spinbutton pattern. The members need not be evenly

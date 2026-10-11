@@ -78,16 +78,16 @@ import {
 } from "./render/sceneClock";
 
 /**
- * The BROWSER half of the Uplink render harness: everything that has to run
+ * The browser half of the Uplink render harness: everything that has to run
  * inside the page.
  *
  * It is here rather than in `@ksp-gonogo/sitrep-sdk` for the same structural
- * reason `renderWidget` is: a scene's mount IS this package's providers
+ * reason `renderWidget` is: a scene's mount is this package's providers
  * (`WidgetHost`, `Panel`, `AugmentSlot`, `DomainAvailabilityProvider`,
  * `harnessTheme`), ui-kit imports the sdk, and the sdk cannot import them back.
  *
  * It exists because four Uplinks had hand-copied a probe entry each, and a copy
- * of a browser entry plus its driver is a PAIRING, which is the thing in this
+ * of a browser entry plus its driver is a pairing, which is the thing in this
  * repo that reliably drifts. Two of the four copies could not boot at all (no
  * host installed, no `ThemeProvider`), one driver read a repo-relative path into
  * `packages/theme/src`, and another read a `:root` block out of a file that
@@ -99,14 +99,14 @@ import {
  * deliberately: the generated entry, the page it is injected into and the
  * `window` global it installs are one contract.
  *
- * It reaches the kit through its own PACKAGE name rather than relative paths,
+ * It reaches the kit through its own package name rather than relative paths,
  * and that is load-bearing rather than stylistic. Relative imports would put
  * `renderWidget` into a code-split chunk shared with `./testing`, and a chunk
  * reachable only through `dist/testing.js` does not evaluate under a consumer's
  * vitest: the namespace carries the export names with every value `undefined`,
  * so `renderWidget is not a function` in eight of an Uplink's tests while
  * `dist/index.js` (a real exports entry, so its chunk does load) works. Reaching
- * the kit as a consumer keeps `render-probe` self-contained AND keeps exactly
+ * the kit as a consumer keeps `render-probe` self-contained and keeps exactly
  * one copy of the augment registry at probe-bundle time, which is the failure
  * the other direction produces: `registerAugment` writing to a Map that
  * `<AugmentSlot>` never reads.
@@ -184,7 +184,7 @@ export interface SceneStep {
    * Press the pointer on the control with this accessible name and drag it.
    *
    * Driver-side, so it never reaches this module: a synthetic `click()` cannot
-   * express a HELD pointer, and a control whose displacement sets a rate rather
+   * express a `HELD` pointer, and a control whose displacement sets a rate rather
    * than a value does nothing at all until one is held. Released by a later
    * `release` step, or when the scene ends.
    */
@@ -192,11 +192,11 @@ export interface SceneStep {
   /** Let go of whatever `hold` took. Driver-side. */
   release?: true;
   /**
-   * Milliseconds of the widget's OWN timers, spread over `frames`.
+   * Milliseconds of the widget's own timers, spread over `frames`.
    * Driver-side.
    *
    * The counterpart to `advanceUt` and not a substitute for it: that one steps
-   * the PINNED clock, which is what keeps a countdown reproducible. This one is
+   * the pinned clock, which is what keeps a countdown reproducible. This one is
    * for a control ticking on its own `setInterval`, or a state the widget leaves
    * behind on a `setTimeout`, neither of which the pinned clock reaches.
    *
@@ -229,11 +229,11 @@ export interface ScenePayload {
    */
   pinnedUt: number;
   /**
-   * A one-way light time, in seconds, between the craft and the screen.
+   * The one-way signal delay, in seconds, between the vessel and the command centre screen.
    *
    * <p>Each reading is sent at its `validAt` and delivered `delaySeconds`
    * later, and the view clock is left live rather than pinned, so it sits at
-   * the received edge while the craft's present runs a light time ahead of
+   * the received edge while the vessel's present runs one signal delay ahead of
    * it. The store reckons every reading to that present exactly as it does in
    * the app, which is the only way a render can show a modelled figure beside
    * the observed one.</p>
@@ -248,7 +248,7 @@ export interface ScenePayload {
   /** Everything the fixture sends, replayed once the scene has subscribed. */
   emits: SceneEmit[];
   /**
-   * Stage the scene as HELD: once every emit has landed and the setup
+   * Stage the scene as `HELD`: once every emit has landed and the setup
    * has run, drop the transport and mint a frame, so the shot is of a widget
    * whose figures have stopped arriving.
    *
@@ -259,7 +259,7 @@ export interface ScenePayload {
    * the same magnitude draw identical pixels, so a held scene rendered live is
    * byte-identical to its live twin and shows nothing.</p>
    *
-   * <p>The DROP is the lever rather than a clock advance because it is the one
+   * <p>The drop is the lever rather than a clock advance because it is the one
    * the widgets' own held tests use (`store.setTransportConnected(false)`), so
    * a render and the test asserting on it are staging the same thing.</p>
    *
@@ -274,7 +274,7 @@ export interface ScenePayload {
   /** Props handed to `<AugmentSlot>` for an augment scene. */
   slotProps: Record<string, unknown>;
   /**
-   * A REGISTERED widget id to mount an augment scene inside, instead of the
+   * A registered widget id to mount an augment scene inside, instead of the
    * stand-in `Panel`.
    *
    * An overlay augment draws in its host widget's projection: a map's camera,
@@ -296,7 +296,7 @@ export interface ScenePayload {
    * and every other scene are unchanged; see {@link RenderProbeApi.markSupplied}.
    */
   highlight?: true;
-  /** Legacy `DataSource` keys, by source id. */
+  /** The flat keys fed to a registered `DataSource`, by source id. */
   dataSources: Record<string, Record<string, unknown>>;
   /** The tile's width in grid columns. */
   w: number;
@@ -307,8 +307,8 @@ export interface ScenePayload {
   /** The tile's height in pixels, as the grid lays it out. */
   pxH: number;
   /**
-   * Feed the scene NOTHING: mount it, then suppress every emission and every
-   * legacy key. The driver renders each scene twice and compares, because a
+   * Feed the scene nothing: mount it, then suppress every emission and every
+   * flat data-source key. The driver renders each scene twice and compares, because a
    * render that is identical starved is a render of no data whatever the
    * fixture is called.
    */
@@ -515,13 +515,13 @@ export interface UplinkInventory {
   /** The ids of the processors it registers. */
   processors: string[];
   /**
-   * Every registered Processor's own TOPIC deps, keyed by processor id.
+   * Every registered Processor's own topic deps, keyed by processor id.
    *
    * A contribution may depend on a Processor rather than on topics, and then
    * the topics it ultimately needs are named nowhere in its own registration.
    * A scene fed from that registration alone therefore declared none of them,
    * the subscription-gated transport dropped every emit, and the render was of
-   * no data: the ONE case where a legitimate scene could not be expressed at
+   * no data: the one case where a legitimate scene could not be expressed at
    * all. Every processor is listed, not just this client's, because a
    * contribution may reasonably depend on one the app declares.
    */
@@ -531,7 +531,7 @@ export interface UplinkInventory {
   /**
    * This client's models that opted out of an input rule, and why.
    *
-   * On the page because the rules are a DEFAULT: an author gets a reach no
+   * On the page because the rules are a default: an author gets a reach no
    * further than their inputs and a band no wider than their inputs warrant
    * without writing anything, so the only part anyone has to read is the
    * exceptions, and an exception buried in a model file is not readable.
@@ -547,7 +547,7 @@ export interface UplinkInventory {
   /** Every declared client id in the bundle, `core` included. Diagnostic. */
   declaredClients: string[];
   /**
-   * Registered widgets this client does NOT own, the ones a scene may name as
+   * Registered widgets this client does not own, the ones a scene may name as
    * its `_scene.hostWidget`. Never part of the generated page: it describes what the
    * run happened to have in the bundle, not what the Uplink is.
    */
@@ -740,13 +740,13 @@ export interface RenderSetup {
   /**
    * Unwind what `beforeScene` set up, once per mount.
    *
-   * It runs at the START of the next mount rather than the instant the shot is
+   * It runs at the start of the next mount rather than the instant the shot is
    * taken: the page has no end-of-scene call, and this way the pairing with
    * `beforeScene` is structural (see `renderScene`). What that costs is the
    * last mount of a run, which gets no `afterScene` because nothing follows it
    * to carry one; the page closes there.
    *
-   * The ctx names the scene being UNWOUND, which is the previous one, not the
+   * The ctx names the scene being unwound, which is the previous one, not the
    * one about to render.
    */
   afterScene?: (ctx: { scene: ScenePayload }) => void | Promise<void>;
@@ -775,7 +775,7 @@ export function defineRenderSetup(setup: RenderSetup): RenderSetup {
  * Mirrors the app's `AugmentAvailabilityFeeder`: `<AugmentSlot>`'s `requires`
  * gate reads ui-kit's domain-availability store, and with nothing feeding it
  * `useDomainAvailable` answers `false` forever, so a gated augment never renders
- * however much the fixture emits. Watches every domain any REGISTERED augment or
+ * however much the fixture emits. Watches every domain any registered augment or
  * contribution declares rather than only the mounted one, matching the app's own
  * global-truth behaviour.
  */
@@ -806,7 +806,7 @@ function AvailabilityFeeder({
 }
 
 /**
- * One domain's presence, mirrored into the store. Live once ANY value has
+ * One domain's presence, mirrored into the store. Live once any value has
  * arrived, not by its payload, matching the app's own watcher.
  *
  * Subscribes through the fixture's client directly rather than the typed hook:
@@ -1279,7 +1279,7 @@ function readScene(mounted: Mounted): SceneReport {
  *
  * One pass is not enough, and the reason is a property of the widget rather
  * than a timing accident: a widget subscribes to a per-body or per-vessel topic
- * only after learning WHICH body, so a per-body coverage channel has no
+ * only after learning which body, so a per-body coverage channel has no
  * subscriber until `system.bodies` and `vessel.identity` have both arrived and
  * the rows keyed on them have mounted. Production behaves the same way (a mod only
  * produces a channel while something is subscribed to it), so rounds are the
@@ -1316,7 +1316,7 @@ async function feedInRounds(mounted: Mounted): Promise<string[]> {
  *
  * <p>This is production's own shape rather than a harness indulgence: the stream
  * replays the last value on subscribe, so in a running app a tab fills the
- * moment it is opened. What the harness must NOT do is pretend a topic nothing
+ * moment it is opened. What the harness must not do is pretend a topic nothing
  * ever subscribed to landed, and it still does not: whatever is unread after
  * this is the finding, and `assertEveryEmitLanded` is checked against it rather
  * than against the pre-press list.</p>
@@ -1364,7 +1364,7 @@ async function feedPending(mounted: Mounted): Promise<string[]> {
 
 /**
  * One emit onto the scene's stream, sent at its own `validAt` or at `sentUt`,
- * and delivered one light time later when the scene has one.
+ * and delivered one signal delay later when the scene has one.
  */
 function emitOnto(
   fixture: StreamFixture,
@@ -1602,8 +1602,8 @@ function isDeclared(topic: string, declared: readonly string[]): boolean {
  * Text alone is not enough: a coverage bar changing length and a gauge needle
  * moving are both silent in `textContent`, and both are the whole point of the
  * widget. So the signature carries every element's tag and rounded box
- * alongside the visible text. It is deliberately NOT a pixel hash: the driver
- * compares a FED render against a STARVED one, and two renders of the same
+ * alongside the visible text. It is deliberately not a pixel hash: the driver
+ * compares a fed render against a starved one, and two renders of the same
  * pixels differ by anti-aliasing on some engines while meaning the same thing.
  */
 function measure(host: HTMLElement): {
@@ -1664,7 +1664,7 @@ function hash(input: string): string {
 /**
  * Whether this scene runs on its own clock. See `./render/sceneClock`.
  *
- * Only a motion scene that WAITS: a still, and a film whose steps only emit or
+ * Only a motion scene that waits: a still, and a film whose steps only emit or
  * click, has nothing to gain from it and renders under the page's own timers
  * throughout. Opened before the mount, so the widget's own timers register on
  * the scene clock rather than on the page's; sealed once the setup hooks have
@@ -1793,7 +1793,7 @@ export interface RenderProbeApi {
   /** Mount a scene into an element of its own, beside the driver's and any other. See {@link RenderProbeApi.mountScene}. */
   mountScene: (el: HTMLElement, scene: ScenePayload) => SceneMount;
   /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
-   *  Separate from `renderScene`'s report because the driver GROWS the mount
+   *  Separate from `renderScene`'s report because the driver grows the mount
    *  box before it screenshots, and an audit taken after that grow is an audit
    *  of a tile nobody is running. */
   auditMinFit: () => MinFitFinding[];

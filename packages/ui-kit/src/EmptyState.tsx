@@ -26,6 +26,8 @@ export interface EmptyStateProps extends HTMLAttributes<HTMLDivElement> {
 
 /**
  * Muted placeholder text shown when a panel or list has nothing to render.
+ * Useful for telling the operator that nothing is missing, there is simply
+ * nothing to show. Used by the commcast widget.
  *
  * `inline` is the default: it adds no inset of its own and sits where it is
  * mounted, taking the padding of the body or section around it, so it lines up

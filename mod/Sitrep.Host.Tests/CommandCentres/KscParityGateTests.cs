@@ -12,7 +12,7 @@ namespace Sitrep.Host.Tests.CommandCentres
     /// node-default in place, the delay a KSC operator sees is byte-identical to
     /// Plan 2, because <c>DelayTo(vantage, node)</c>'s 3-tier lookup falls through
     /// the (absent) explicit (vantage, node) pair to the <c>SetNodeDelay</c>
-    /// node-default. The authority pass's explicit rows override ONLY the selected
+    /// node-default. The authority pass's explicit rows override only the selected
     /// vantage; every other vantage keeps the node-default untouched.
     /// </summary>
     public class KscParityGateTests
@@ -52,7 +52,7 @@ namespace Sitrep.Host.Tests.CommandCentres
         }
 
         /// <summary>
-        /// The same guarantee read through the LEDGER rather than off the write
+        /// The same guarantee read through the ledger rather than off the write
         /// sink: a pinned pilot reads its own craft instantly, and the KSC row the
         /// exclusion used to protect is byte-identical to what it was before.
         /// </summary>

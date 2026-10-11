@@ -5,7 +5,7 @@
  * A hand-kept list of delayed commands would draw an undeclared command with
  * a countdown and an in-flight queue row that is a fiction about the
  * operator's own order, so the answer comes off `commandRail`, which is fed by
- * the generated map codegen builds from the SAME `[SitrepCommand(Delayed = ...)]`
+ * the generated map codegen builds from the same `[SitrepCommand(Delayed = ...)]`
  * the host dispatches by, and by whatever an Uplink registered from its own
  * generated map. One declaration, both halves reading it.
  */

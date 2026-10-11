@@ -103,7 +103,7 @@ export function landsAtSea(world: StoryWorld): boolean {
   return world === "kerbin-ocean" || world === "eve-ocean";
 }
 
-/** The light-time to the craft every story is played under, seconds. */
+/** The signal delay to the craft every story is played under, seconds. */
 export const ONE_WAY_SECONDS = 4;
 
 /** One Topic payload a frame puts on the stream. */

@@ -24,7 +24,7 @@ namespace Sitrep.Host.Tests
     /// are no longer compiled into the shipped contract at all, they exist only
     /// in <c>Sitrep.Contract.Codegen</c>, so reflecting them here would find
     /// nothing)
-    /// and checks it against a checked-in LEDGER
+    /// and checks it against a checked-in ledger
     /// (<c>mod/Sitrep.Contract/contract-shape.baseline.json</c>, wired into
     /// this project the same way the other <c>golden-fixtures/</c> JSON
     /// fixtures are; see this project's .csproj).
@@ -32,14 +32,14 @@ namespace Sitrep.Host.Tests
     /// <para><b>Why a ledger and not a single baseline.</b> <b>The baseline had
     /// no memory.</b> The
     /// ledger fixes exactly that. Each entry records a Major's frozen
-    /// <c>Shape</c>, written ONCE when that Major is created and never
+    /// <c>Shape</c>, written once when that Major is created and never
     /// rewritten (see <see cref="FreezeCurrentMajor_ManualOnly"/>, which
     /// refuses to overwrite an existing entry). An additive change needs no
     /// regeneration at all (the gate already passes it) so the only thing
     /// that ever appends to the ledger is a Major bump, and that append has to
     /// declare what it broke.</para>
     ///
-    /// <para><b>The invariant, stated honestly: a Major names exactly ONE
+    /// <para><b>The invariant, stated honestly: a Major names exactly one
     /// shape.</b> Enforced by four rules, each its own test:</para>
     /// <list type="number">
     /// <item><see cref="EachMajorAppearsExactlyOnceInTheLedger"/>: two entries
@@ -56,7 +56,7 @@ namespace Sitrep.Host.Tests
     /// claim a wire break it did not make (nor omit one it did).</item>
     /// </list>
     ///
-    /// <para>Note what is deliberately NOT enforced: this gate never decides
+    /// <para>Note what is deliberately not enforced: this gate never decides
     /// whether a break is <i>allowed</i>. That is a human call. The gate's job
     /// is only to guarantee the call is made explicitly, recorded, and
     /// true.</para>
@@ -100,7 +100,7 @@ namespace Sitrep.Host.Tests
             /// computed into <see cref="Breaks"/> (see
             /// <see cref="ContractSeamSurface"/>), so this is for what remains,
             /// such as a changed contract of a member whose signature is the
-            /// same. Each one is DECLARED, with the members it changed and why.
+            /// same. Each one is declared, with the members it changed and why.
             /// </summary>
             public SeamBreak[] SeamBreaks { get; set; } = Array.Empty<SeamBreak>();
 
@@ -124,7 +124,7 @@ namespace Sitrep.Host.Tests
         /// A reflected contract shape: wire types keyed by full name, valued as
         /// sorted <c>"MemberName:MemberType"</c> strings, plus the enum
         /// analogue keyed by full name and valued as sorted
-        /// <c>"MemberName:UnderlyingValue"</c> strings. A renamed OR renumbered
+        /// <c>"MemberName:UnderlyingValue"</c> strings. A renamed or renumbered
         /// enum member changes its entry's string, so
         /// <see cref="ComputeRemovals"/>'s plain set-difference catches both
         /// without special-casing.
@@ -138,12 +138,12 @@ namespace Sitrep.Host.Tests
             /// Every <c>[SitrepTopic]</c> id, mapped to the tag's own contents
             /// (<c>"type:&lt;FullName&gt;"</c>, <c>"array:&lt;bool&gt;"</c>).
             ///
-            /// <para>The id is what a CLIENT binds to. The CLR type name is
+            /// <para>The id is what a client binds to. The CLR type name is
             /// invisible to it, so a rename that touches only the tag breaks
             /// every subscriber while leaving <see cref="Types"/> identical:
             /// planted and confirmed green before this was added.</para>
             ///
-            /// <para>NULLABLE on purpose, and the null is not "no topics". It
+            /// <para>Nullable on purpose, and the null is not "no topics". It
             /// means the dimension was never recorded, which is true of every
             /// Major before 17. <see cref="ComputeRemovals"/> skips the
             /// comparison entirely in that case, so backfilling this could not
@@ -158,7 +158,7 @@ namespace Sitrep.Host.Tests
             /// overridable, or an abstract member a plugin-implemented seam gained
             /// is a computed break.
             ///
-            /// <para>NULLABLE like <see cref="Topics"/>: null means the dimension
+            /// <para>Nullable like <see cref="Topics"/>: null means the dimension
             /// was never recorded, so <see cref="ComputeRemovals"/> skips it
             /// rather than inventing breaks against earlier Majors.</para>
             /// </summary>
@@ -176,7 +176,7 @@ namespace Sitrep.Host.Tests
         /// The parallel-branch collision, caught mechanically. Two branches
         /// each bumping 3 -&gt; 4 both append an entry for Major 4; whichever
         /// way a human resolves the merge conflict, something fires, a
-        /// take-both resolve trips THIS rule, and a take-one resolve trips
+        /// take-both resolve trips this rule, and a take-one resolve trips
         /// <see cref="CurrentShapeIsAdditiveOverTheFrozenMajorFloor"/> against
         /// the losing branch's code.
         /// </summary>
@@ -253,12 +253,12 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// A Major bump is the sanctioned way to break the wire, but it is no
         /// longer a blanket amnesty. Each Major's declared <c>Breaks</c> must
-        /// EXACTLY equal the diff computed from the previous recorded Major's
+        /// exactly equal the diff computed from the previous recorded Major's
         /// shape, with nothing claimed that did not happen and nothing omitted
         /// that did. So "Major" names a specific, enumerated, verified shape
         /// change rather than a free pass.
         ///
-        /// <para>A Major must break SOMETHING: a computed wire break, or a
+        /// <para>A Major must break something: a computed wire break, or a
         /// declared <see cref="MajorEntry.SeamBreaks"/> entry for a shipped C#
         /// seam, which the wire shape cannot see. A seam break is trusted as
         /// declared, so it must name the seam, the members and the reason; it
@@ -539,7 +539,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Enum analogue: the gate is not blind to enums. Covers a member
-        /// RENAMED and a member RENUMBERED while keeping its name (both real
+        /// renamed and a member renumbered while keeping its name (both real
         /// wire breaks), a whole enum removed, and the additive escape hatch.
         /// </summary>
         [Fact]
@@ -600,7 +600,7 @@ namespace Sitrep.Host.Tests
         /// would find missing. Empty means <paramref name="to"/> is a
         /// superset: additive, non-breaking.
         ///
-        /// <para>Deliberately ONE function serving all four rules, called with
+        /// <para>Deliberately one function serving all four rules, called with
         /// different arguments: (floor, current) asks "did this Minor break its
         /// Major?", and (previousMajorShape, thisMajorShape) asks "what did
         /// this Major actually break?". Same question, different endpoints,
@@ -859,7 +859,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Not part of the gate: a manual utility, always skipped in CI. Run
-        /// it ONLY when bumping <see cref="ContractVersion.Major"/>, in the
+        /// it only when bumping <see cref="ContractVersion.Major"/>, in the
         /// same commit:
         /// <code>
         /// # 1. temporarily drop the Skip on the [Fact] below
@@ -869,7 +869,7 @@ namespace Sitrep.Host.Tests
         /// </code>
         ///
         /// <para>Step 1 and 3 are not ceremony. xUnit 2's <c>Skip</c> is
-        /// UNCONDITIONAL: no <c>--filter</c> and no environment variable can
+        /// unconditional: no <c>--filter</c> and no environment variable can
         /// run a skipped fact. Filtering for this test without dropping the
         /// Skip reports <c>Skipped! 1</c> and writes nothing, which reads
         /// exactly like a freeze that had no work to do. The env var below is
@@ -956,7 +956,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Walks up from the test assembly to the repo's
         /// <c>mod/Sitrep.Contract/</c> source copy: the .csproj links the
-        /// ledger into <c>golden-fixtures/</c> as a BUILD OUTPUT, so writing to
+        /// ledger into <c>golden-fixtures/</c> as a build output, so writing to
         /// <see cref="LedgerPath"/> would land in <c>bin/</c> and be silently
         /// discarded on the next build.
         /// </summary>
@@ -1045,20 +1045,20 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Returns (1) the full names of every type carrying
-        /// <c>[SitrepContractAttribute]</c>, PLUS (2) the member shape
+        /// <c>[SitrepContractAttribute]</c>, plus (2) the member shape
         /// (<c>"Name:Value"</c>, sorted) of every one of those types that is
-        /// itself an ENUM: both read via raw ECMA-335 metadata
+        /// itself an enum: both read via raw ECMA-335 metadata
         /// (<see cref="System.Reflection.Metadata"/>/
-        /// <see cref="System.Reflection.PortableExecutable"/>), NOT
+        /// <see cref="System.Reflection.PortableExecutable"/>), not
         /// <c>System.Reflection</c>'s <c>Type.GetCustomAttributesData()</c>/
-        /// <c>IsDefined</c>. Both of those eagerly resolve EVERY custom
+        /// <c>IsDefined</c>. Both of those eagerly resolve every custom
         /// attribute applied to a type in one shot: even wrapping the
         /// enumeration call itself in try/catch is not enough, because
         /// <c>GetCustomAttributesData()</c> throws building its full record
         /// list before a single record is ever inspected.
         ///
         /// <para>The PE-metadata read stays regardless. It only ever needs the
-        /// attribute CONSTRUCTOR's simple name and never resolves it to a live
+        /// attribute constructor's simple name and never resolves it to a live
         /// <see cref="Type"/>, so a gate whose whole job is to describe an
         /// assembly's shape cannot be broken by anything that assembly happens
         /// to reference. That is the right property for this check to have on
@@ -1155,7 +1155,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Base-type check done at the metadata level (compares the base
         /// type reference's simple name against <c>"Enum"</c> in namespace
-        /// <c>"System"</c>): deliberately NOT <c>Type.IsEnum</c>, and kept that
+        /// <c>"System"</c>): deliberately not <c>Type.IsEnum</c>, and kept that
         /// way so this gate reads an assembly's shape without depending on
         /// anything that assembly references.
         ///

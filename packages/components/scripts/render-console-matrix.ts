@@ -36,7 +36,7 @@ const LOG = [
 ];
 
 /**
- * A scrollback that FILLS the surface, right edge included. The three-line log
+ * A scrollback that fills the surface, right edge included. The three-line log
  * above leaves the top-right of the pane blank, so it cannot show what an
  * overlay pinned there costs; these lines run to the edge and the topmost one
  * is the line a top-right chip sits on.

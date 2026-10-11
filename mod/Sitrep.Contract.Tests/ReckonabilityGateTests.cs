@@ -18,7 +18,7 @@ namespace Sitrep.Contract.Tests
     /// wire carries everything its model needs. These are the facts that keep the
     /// promise honest.
     ///
-    /// <para>There is deliberately NO baseline and no debt list. A shrink-only
+    /// <para>There is deliberately no baseline and no debt list. A shrink-only
     /// baseline records a legacy population that was already breaching; under
     /// positive declaration the tree starts at zero marks and every mark is added by
     /// someone who chose to add it, so there is nothing to record and adding one
@@ -71,7 +71,7 @@ namespace Sitrep.Contract.Tests
         /// The discovery reaches the contract, so a clean gate means something.
         ///
         /// <para><see cref="EveryDeclaredReckonableValueResolvesItsInputs"/> finds
-        /// nothing wrong when every mark resolves AND when the sweep narrows to
+        /// nothing wrong when every mark resolves and when the sweep narrows to
         /// nothing: <c>[SitrepContract]</c> renamed, the attribute moved, or the
         /// declared-only property filter losing its subject all empty the surface and
         /// report the same zero. Floors plus named spot-checks are what tell those
@@ -164,7 +164,7 @@ namespace Sitrep.Contract.Tests
         /// <para>A count floor cannot see this. The narrow sweep was one type short of
         /// 74 and every floor here passed, because a floor answers "did discovery
         /// collapse" and the question is "does it reach the same population the
-        /// emitter does". Named against the ATTRIBUTE rather than against
+        /// emitter does". Named against the attribute rather than against
         /// <c>ControlFrame</c>, so the next payload declared without
         /// <c>[SitrepContract]</c> is covered without anyone remembering to add it.</para>
         /// </summary>
@@ -192,7 +192,7 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// The marked set is ordered and each value is marked once PER MODEL, so the
+        /// The marked set is ordered and each value is marked once per model, so the
         /// generated artifact's row order never depends on reflection order.
         ///
         /// <para>The key is <c>(topic, field, basis)</c> rather than
@@ -232,7 +232,7 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// The joined key is for READING a failure, never for ordering one. Pinned because the
+        /// The joined key is for reading a failure, never for ordering one. Pinned because the
         /// two spellings agree on almost every pair, so a future simplification back to
         /// <c>OrderBy(joined)</c> would look harmless and pass until the next prefix pair.
         /// </summary>
@@ -252,12 +252,12 @@ namespace Sitrep.Contract.Tests
             m.Topic + "/" + m.Field + "/" + m.Declaration.Basis;
 
         /// <summary>
-        /// The gate can see BOTH answers, on planted fixtures.
+        /// The gate can see both answers, on planted fixtures.
         ///
         /// <para>The clean arm is not optional. A detector stuck on "clean" reports a
         /// green tree it never looked at; a detector stuck on "broken" reports the
         /// whole tree as debt forever, and neither failure is visible from the other
-        /// side. Each planted arm also asserts the OFFENDING TOKEN appears in the
+        /// side. Each planted arm also asserts the offending token appears in the
         /// message, because a count that moved says the gate fired, not that it fired
         /// for the right reason.</para>
         /// </summary>

@@ -41,7 +41,7 @@ const clamp01 = (v: number): number => (v < 0 ? 0 : v > 1 ? 1 : v);
 /**
  * Map a raw control value into the shared 0..1 band. `unit` passes 0..1 through
  * (throttle); `signed` maps -1..1 so neutral (0) sits at 0.5, the mid band the
- * design mandates for signed axes (pitch/yaw/roll). Normalisation is DISPLAY
+ * design mandates for signed axes (pitch/yaw/roll). Normalisation is display
  * only: the hook dispatches the raw value, never this.
  */
 export function normalize01(value: number, range: ControlRange): number {
@@ -52,7 +52,7 @@ export function normalize01(value: number, range: ControlRange): number {
 /**
  * Ring cap: a short-height sparkline is sub-pixel well before this many
  * points. Exported so both `recordSample` below and the hook's span-based
- * `trim` share ONE ring-bounding rule.
+ * `trim` share one ring-bounding rule.
  */
 export const MAX_SAMPLES = 600;
 
@@ -60,7 +60,7 @@ export const MAX_SAMPLES = 600;
  * Push `sample` onto `ring` and immediately cap it at `MAX_SAMPLES`,
  * unconditionally, independent of delay state, span, or whether/when a
  * caller ever re-derives the strip. This is what keeps `commandRing`/
- * `readbackRing` (`use-control-stream.tsx`) bounded on EVERY coalesced
+ * `readbackRing` (`use-control-stream.tsx`) bounded on every coalesced
  * tick, even while a widget sits on a direct/low-delay link, where the
  * span-based eviction below is never reached (that branch early-returns
  * before ever looking at the rings, so a cap that only lived there let the
@@ -107,7 +107,7 @@ export interface DerivedStrip {
 /**
  * Turn the raw command + readback rings into the two age-indexed sample arrays
  * the sparkline draws, now-left / age-right. The strip spans 3*T: a command ages
- * 0..T (outgoing), T..2T (echo inbound), 2T..3T (confirmed). A readback RECEIVED
+ * 0..T (outgoing), T..2T (echo inbound), 2T..3T (confirmed). A readback received
  * at UT r reflects the command issued at r - 2T, so it lands at age (nowUt-r)+2T,
  * i.e. the last T of received readback fills the confirmed zone [2T, 3T].
  */

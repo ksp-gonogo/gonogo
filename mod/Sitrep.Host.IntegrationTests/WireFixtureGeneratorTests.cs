@@ -19,14 +19,14 @@ using StreamData = Sitrep.Contract.StreamData<object?>;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// M2 end-to-end SDK validation, C# half: replays the REAL 7.5&#160;MB
+    /// M2 end-to-end SDK validation, C# half: replays the real 7.5&#160;MB
     /// reference capture (<c>local_docs/telemetry-mod/recordings/reference-session-2026-07-07.json</c>,
     /// gitignored/local-only -- same skip-cleanly contract as
     /// <see cref="MilestoneReplayEndToEndTests"/>) through the exact same
     /// <see cref="ReplayKspHost"/> -&gt; <see cref="ChannelEngine"/> pipeline
     /// (<see cref="TestSystemUplink"/> + <see cref="TestVesselUplink"/>
     /// registered, zero network delay), but instead of asserting on the
-    /// stream in-process, CAPTURES every raw wire frame for the FULL set of
+    /// stream in-process, captures every raw wire frame for the full set of
     /// channels the vessel + system uplinks serve (<c>vessel.identity</c>,
     /// <c>vessel.orbit</c>, <c>vessel.flight</c>, <c>vessel.attitude</c>,
     /// <c>vessel.resources</c>, <c>vessel.thermal</c>, <c>vessel.control</c>,
@@ -42,7 +42,7 @@ namespace Sitrep.Host.IntegrationTests
     /// The TS half of this milestone (<c>packages/sitrep-client</c>'s
     /// <c>reference-wire-fixture.test.ts</c>) loads this file and replays the
     /// frames through a real <c>TelemetryClient</c>/<c>TimelineStore</c>,
-    /// proving the FULL SDK -- derived channels, epoch/ghost handling,
+    /// proving the full SDK -- derived channels, epoch/ghost handling,
     /// staleness/certainty -- against genuine engine output, not a hand-built
     /// fixture. Since <see cref="EnvelopeCodec"/>'s field order is asserted
     /// byte-for-byte identical to what the real TS SDK serializes (see this
@@ -290,7 +290,7 @@ namespace Sitrep.Host.IntegrationTests
             public int[] EpochsSeen { get; set; } = Array.Empty<int>();
 
             /// <summary>
-            /// Each element is the EXACT raw wire text of one captured frame
+            /// Each element is the exact raw wire text of one captured frame
             /// (a JSON-encoded string containing JSON), not re-parsed/
             /// re-serialized objects, so the TS side reads byte-for-byte
             /// what a live connection would have delivered.

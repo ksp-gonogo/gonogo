@@ -11,7 +11,7 @@ namespace Sitrep.Propagation.Tests
     /// (ecc &gt;= 1) and negative eccentricities must be refused rather than
     /// silently returning a nonsense state vector.
     ///
-    /// <para>What that refusal LOOKS like changed when the element-keyed door was
+    /// <para>What that refusal looks like changed when the element-keyed door was
     /// closed. It used to be an <c>ArgumentOutOfRangeException</c> from deep in the
     /// solver; it is now a <see cref="NotSupportedException"/> from the seam, because
     /// <see cref="IPropagationProvider.CanPropagate"/> declines an unbound orbit before

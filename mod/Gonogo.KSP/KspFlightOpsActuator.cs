@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     /// constructed with <c>executeCommandsOnMainThread: true</c>, so every
     /// command handler is drained on the main thread in <c>GonogoAddon.FixedUpdate</c>
     /// (see <see cref="KspVesselActuator"/>'s doc comment for the full
-    /// marshaling story). Scene loads and revert calls MUST run there.
+    /// marshaling story). Scene loads and revert calls must run there.
     ///
     /// <para>Every method returns a typed <see cref="CommandResult"/> failure
     /// rather than throwing when its precondition isn't met, matching the
@@ -64,8 +64,8 @@ namespace Gonogo.KSP
         /// Reverts the flight back into the editor via
         /// <c>FlightDriver.RevertToPrelaunch(EditorFacility)</c>: the call
         /// KSP's own pause menu makes for its "Revert to VAB/SPH" buttons
-        /// (restoring the pre-launch state), NOT <c>FlightDriver.ReturnToEditor</c>
-        /// (which instead saves the CURRENT flight state and returns to the
+        /// (restoring the pre-launch state), not <c>FlightDriver.ReturnToEditor</c>
+        /// (which instead saves the current flight state and returns to the
         /// editor). Gated on <c>FlightDriver.CanRevertToPrelaunch</c>, the flag
         /// the pause menu reads for those same buttons (see
         /// <c>Sitrep.Contract.RevertAvailability</c>). The KSP-free
@@ -120,7 +120,7 @@ namespace Gonogo.KSP
         /// account of why; this method holds the live reads it decides from.
         ///
         /// <para>It shipped as the bare <c>LoadScene</c> alone, which is not a
-        /// scene change but a REVERT: the destination re-reads
+        /// scene change but a revert: the destination re-reads
         /// <c>persistent.sfs</c> and <c>Game.Load()</c> replaces the live world
         /// with it, while <c>ScenarioRunner</c> has already destroyed every live
         /// scenario module unharvested. Twice on the rig that cost 240,355
@@ -128,14 +128,14 @@ namespace Gonogo.KSP
         /// a construction queue.</para>
         ///
         /// <para>Three live reads. The two permission flags stock requires
-        /// before it will even DRAW its own Tracking Station button
+        /// before it will even draw its own Tracking Station button
         /// (<c>Parameters.Flight.CanLeaveToTrackingStation</c> and
         /// <c>Parameters.SpaceCenter.CanGoInTrackingStation</c>).
         /// <c>FlightGlobals.ClearToSave()</c>, but only when there is a flight
         /// to judge: its first line dereferences <c>ActiveVessel</c> with no
         /// null check, and this command is legitimately issued from the space
         /// centre, where the arm does not apply and the save still must happen.
-        /// And what <c>GamePersistence.SaveGame</c> RETURNED, which is an empty
+        /// And what <c>GamePersistence.SaveGame</c> returned, which is an empty
         /// string when <c>Parameters.Flight.CanAutoSave</c> is off; stock's own
         /// <c>PauseMenu.saveAndExit</c> ignores that.</para>
         ///
@@ -265,7 +265,7 @@ namespace Gonogo.KSP
         /// own words, or null when the flight is clear or when there is no
         /// flight to judge.
         ///
-        /// <para>Deliberately NOT <see cref="ActiveVesselScope"/>, for the same
+        /// <para>Deliberately not <see cref="ActiveVesselScope"/>, for the same
         /// reason <c>ClearToSaveGate</c> gives: this guards
         /// <c>FlightGlobals.ClearToSave()</c>, which judges whatever KSP itself
         /// has active. Asking about the craft while stock answers about the
@@ -285,7 +285,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Makes the vessel with the given STABLE id the one being flown. The
+        /// Makes the vessel with the given stable id the one being flown. The
         /// opaque <paramref name="vesselId"/> is resolved server-side by scanning
         /// <c>FlightGlobals.Vessels</c> and matching <c>vessel.id.ToString()</c>,
         /// the identical resolution <see cref="KspVesselActuator.SetTarget"/>
@@ -418,19 +418,19 @@ namespace Gonogo.KSP
         ///
         /// <para><b>Refused outright while a kerbal is outside the craft</b>, the
         /// one case where KSP honouring the target is the problem rather than the
-        /// reassurance. Two things are wrong at once. The recovery GOES THROUGH
+        /// reassurance. Two things are wrong at once. The recovery goes through
         /// and strands the kerbal: <c>FlightEVA</c> called
         /// <c>Part.RemoveCrewmember</c> on the way out, so the craft's crew
         /// recovery never sees them and they are left as a one-part EVA vessel,
         /// still rostered as Assigned, with nothing to board. And the permission
         /// gate cannot see it: <c>FlightGlobals.ClearToSave()</c> reads KSP's own
-        /// active vessel in every arm, so it judges the KERBAL, and a kerbal
-        /// drifting beside an accelerating craft reads CLEAR. See
+        /// active vessel in every arm, so it judges the Kerbal, and a kerbal
+        /// drifting beside an accelerating craft reads clear. See
         /// <see cref="EvaCommandRule"/>.</para>
         ///
         /// <para>The <c>ClearToSave</c> gate below is unchanged for every other
         /// case: it is the question stock's own button asks, and outside an EVA
-        /// the vessel it judges IS the one being recovered.</para>
+        /// the vessel it judges is the one being recovered.</para>
         /// </summary>
         public CommandResult Recover()
         {
@@ -484,14 +484,14 @@ namespace Gonogo.KSP
         /// a missing save is <see cref="CommandErrorCode.NoVessel"/>, a missing
         /// craft file <see cref="CommandErrorCode.NotFound"/>.</para>
         ///
-        /// <para>A <c>VesselCrewManifest</c> is ALWAYS built from the craft node
+        /// <para>A <c>VesselCrewManifest</c> is always built from the craft node
         /// (even unmanned: passing null NREs inside
         /// <c>FlightDriver.setStartupNewVessel</c>, leaving a half-initialised
         /// Flight scene that spams NREs every frame); seats are populated only
         /// when crew names are supplied.</para>
         ///
         /// <para>Then KSP's own launch tests run, through
-        /// <see cref="LaunchPreflight"/>, BEFORE the craft is placed. They used
+        /// <see cref="LaunchPreflight"/>, before the craft is placed. They used
         /// not to run at all, while the rollout cost was charged either way
         /// (<c>Funding.onVesselRollout</c>, with no floor at zero), so the
         /// console could put a craft on the pad the game's own button refuses

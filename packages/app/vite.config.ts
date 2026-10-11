@@ -18,9 +18,9 @@ const pkg = JSON.parse(
 /**
  * Extract a `export const NAME = "value";` string literal straight out of a
  * TS source file: no import, no build. A plain `import` here would resolve
- * through normal node_modules resolution to that package's BUILT
+ * through normal node_modules resolution to that package's built
  * `dist/index.js` (this file runs in raw Node, before the `resolve.alias`
- * below kicks in, that alias only rewires imports inside the APP's own vite
+ * below kicks in, that alias only rewires imports inside the app's own vite
  * module graph, not this config's own top-level imports), and `dist` is
  * gitignored: absent on a fresh checkout until `pnpm build` runs. Reading
  * the source as text keeps the "no build step needed before `pnpm dev`"

@@ -127,7 +127,7 @@ describe("published compat versions mirror their sources", () => {
 
     /**
      * Read as `unknown` and checked, rather than asserted into shape. A
-     * manifest that does not carry the pair AT ALL is not a manifest this test
+     * manifest that does not carry the pair at all is not a manifest this test
      * has no opinion about: it is one the compat gate cannot read either, so
      * it is reported here as its own kind of stale rather than defaulted to a
      * number that would compare equal.

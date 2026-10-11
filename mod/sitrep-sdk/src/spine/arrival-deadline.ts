@@ -12,7 +12,7 @@ export const LATE_ARRIVAL_ERROR_CODE = CommandErrorCode.Range;
 
 /**
  * When a command sent now reaches the craft: the send time plus the one-way
- * light time, or the send time itself for a command that does not ride the
+ * signal delay, or the send time itself for a command that does not ride the
  * delay. `undefined` before the clock has anything to say.
  */
 export function arrivalUtOf(

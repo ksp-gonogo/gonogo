@@ -14,7 +14,7 @@ namespace Sitrep.Host.Settings
     /// registers.</para>
     ///
     /// <para><b>Nothing re-reads for its values after that.</b> The in-memory
-    /// document is the authority for every row this store OWNS, meaning one
+    /// document is the authority for every row this store owns, meaning one
     /// declared or committed this session, for the process lifetime; every
     /// consumer would otherwise have to tolerate a setting changing under it at
     /// an arbitrary frame.</para>
@@ -32,7 +32,7 @@ namespace Sitrep.Host.Settings
     /// declaration a later version drops stays in the file as an unowned row,
     /// for good; removing one is an explicit act, not something a save infers
     /// from a declaration that is missing. An unowned row the operator deletes
-    /// by hand stays deleted. An OWNED row deleted by hand is written back at
+    /// by hand stays deleted. An owned row deleted by hand is written back at
     /// the next save, since memory is its authority.</para>
     ///
     /// <para><b>A failed persist is not a failed change.</b> <see cref="Commit"/>
@@ -96,7 +96,7 @@ namespace Sitrep.Host.Settings
 
         /// <summary>
         /// Declare a row and seed its default if the document does not already
-        /// carry one. Seeding does NOT persist: a launch that only read the file
+        /// carry one. Seeding does not persist: a launch that only read the file
         /// leaves it exactly as it found it.
         /// </summary>
         public void Declare(SettingsRow row)
@@ -188,7 +188,7 @@ namespace Sitrep.Host.Settings
 
         /// <summary>
         /// Watch a row, or a whole block, for the lifetime of the returned
-        /// handle. The callback fires IMMEDIATELY with the document as it
+        /// handle. The callback fires immediately with the document as it
         /// stands, which is what makes this a replacement for reading the file
         /// once at boot rather than an addition to it.
         /// </summary>
@@ -242,7 +242,7 @@ namespace Sitrep.Host.Settings
         public void Stage(string path, double value) => Stage(path, SettingsText.FromNumber(value));
 
         /// <summary>
-        /// The SAVE press: apply everything staged, persist the whole document
+        /// The save press: apply everything staged, persist the whole document
         /// once, then tell the watchers. One file write per press rather than
         /// one per row.
         /// </summary>

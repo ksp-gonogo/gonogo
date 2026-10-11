@@ -14,7 +14,7 @@ namespace Gonogo.KSP.Gates
     /// mismatched <see cref="CommandRequirement.Kind"/> would otherwise be found
     /// only by the mod refusing to start.</para>
     ///
-    /// <para>Most requirements below are STATIC:
+    /// <para>Most requirements below are static:
     /// <see cref="CommandRequirement.Needs"/> is empty, so the engine can decide
     /// it with no arguments at all. The per-item ones need the item's id and are
     /// published per item instead. That is what turns a refusal into an

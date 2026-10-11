@@ -3,7 +3,7 @@
  * their arrival onto the 20 ms grid.
  *
  * Driven off a hand-rolled clock and a recording decoder rather than a browser:
- * what is under test is WHEN a chunk may be heard and in what order, and both
+ * what is under test is when a chunk may be heard and in what order, and both
  * of those are arithmetic. The audio graph is exercised in a real engine by
  * `tests/playwright/radio-capability.spec.ts`.
  */
@@ -47,7 +47,7 @@ function fakeClock(startUt = 0) {
 /**
  * A listening output that records every lane opened on it, pooled.
  *
- * Pooled rather than kept apart because what this file asserts is the SESSION's
+ * Pooled rather than kept apart because what this file asserts is the session's
  * behaviour: which chunks reached a speaker, in what order, under what timing.
  * That two simultaneous transmissions land in two separate decode streams is
  * asserted where it belongs, against the clip harness, in

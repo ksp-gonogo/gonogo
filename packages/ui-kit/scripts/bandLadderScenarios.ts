@@ -2,7 +2,7 @@
  * The scenes `render-band-ladder.ts` draws: what `<Band>` prints when its two
  * ends are progressively harder to tell apart.
  *
- * One sheet, because the whole point is the three cases SIDE BY SIDE. Read
+ * One sheet, because the whole point is the three cases side by side. Read
  * separately each looks defensible; read together, the defect is that the two
  * indistinguishable inputs render differently and the wordier one reads as the
  * more precise.

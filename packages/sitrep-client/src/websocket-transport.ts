@@ -29,7 +29,7 @@ export interface WebSocketLike {
   readonly readyState: number;
   /**
    * Frame delivery mode for binary messages. The mod server (Fleck) sends
-   * stream frames as BINARY WebSocket frames; the DOM default `"blob"` would
+   * stream frames as binary WebSocket frames; the DOM default `"blob"` would
    * deliver them as `Blob`s (async to read, which reorders the stream), so the
    * transport requests `"arraybuffer"` for synchronous decode. Optional/
    * writable so injected test sockets that don't model it are unaffected.
@@ -101,14 +101,14 @@ export interface WebSocketTransportOptions {
   commandHoldMs?: number;
   /**
    * Called once per delivered `stream-data` frame: the perf-budget seam.
-   * `@ksp-gonogo/sitrep-client` deliberately does NOT depend on `@ksp-gonogo/core`
+   * `@ksp-gonogo/sitrep-client` deliberately does not depend on `@ksp-gonogo/core`
    * (that would be a cycle: core imports this package), so the `PerfBudget`
    * itself lives in the app layer and records from this callback.
    */
   onStreamFrame?: (info: StreamFrameInfo) => void;
   /**
    * Called once per delivered BINARY-LANE frame: that lane's own perf-budget
-   * seam, deliberately NOT `onStreamFrame`.
+   * seam, deliberately not `onStreamFrame`.
    *
    * A media lane and a ~1 Hz state stream do not belong on one counter. Mixed,
    * the combined rate describes neither, and the media traffic spends headroom
@@ -129,7 +129,7 @@ const FRAME_TEXT_DECODER = new TextDecoder();
 /**
  * Which lane a frame arrived on, and what came off it.
  *
- * `unreadable` is the arm that keeps absence honest: it is NOT the same as a
+ * `unreadable` is the arm that keeps absence honest: it is not the same as a
  * frame the transport chose to ignore. It carries the reason so the drop can be
  * said out loud, because the failures it covers (an unknown lane, a truncated
  * frame) all look exactly like silence from a widget's point of view.
@@ -142,10 +142,10 @@ type DecodedFrame =
 /**
  * Split a WebSocket message onto its lane.
  *
- * Handles the string frames the test harnesses (MSW/stub) send AND the binary
+ * Handles the string frames the test harnesses (MSW/stub) send and the binary
  * (`ArrayBuffer` / typed-array) frames the real mod server sends. Note both
- * lanes arrive as WebSocket BINARY frames in production: the discriminator is
- * the first BYTE, not the frame's own type, because the mod has always written
+ * lanes arrive as WebSocket binary frames in production: the discriminator is
+ * the first byte, not the frame's own type, because the mod has always written
  * its JSON as binary (`Fleck.Send(byte[])`).
  *
  * A `Blob` (only reachable if an injected socket ignores `binaryType`) is
@@ -198,7 +198,7 @@ export const SEND_QUEUE_FULL = FaultCode.SendQueueFull;
  * What the operator is told about a command that was still queued when the
  * outage outlasted the hold window.
  *
- * Says the thing that is TRUE and useful, and stops there: it never left, so
+ * Says the thing that is true and useful, and stops there: it never left, so
  * nothing over there ran it, so sending it again cannot do it twice. That last
  * clause is the whole difference between this and a lost command, which carries
  * the opposite advice for the opposite reason.
@@ -236,7 +236,7 @@ function requestIdsOf(
 export class WebSocketTransport implements Transport {
   /**
    * This is the connection that owns its own `ClientSession` with the mod, so
-   * the `subscribed` acks it receives are answers to its OWN subscribes and a
+   * the `subscribed` acks it receives are answers to its own subscribes and a
    * missing one is real evidence that nothing will ever publish the topic.
    *
    * The only transport in the tree that opts in. See
@@ -292,7 +292,7 @@ export class WebSocketTransport implements Transport {
    * State, not a queued message, which is why it does not share the command
    * queue's cap: a selection supersedes the one before it, so switching
    * command centre repeatedly during an outage can only ever leave one. It is
-   * also why it is replayed on EVERY open rather than only when one was missed:
+   * also why it is replayed on every open rather than only when one was missed:
    * a reconnect gets a new `ClientSession` on the mod, whose `SelectedVantage`
    * defaults back to `ksc`, and a client that did not re-assert its selection
    * would go on naming a command centre its data is not from.
@@ -331,26 +331,26 @@ export class WebSocketTransport implements Transport {
    *
    * The message types that reach here fall into two kinds, and they do not want
    * the same treatment while the link is down. Subscriptions and the vantage
-   * selection are STATE: the live set is replayed on every open, so one sent
+   * selection are state: the live set is replayed on every open, so one sent
    * into a dead socket costs nothing and needs no queue. A command-request is
-   * an EVENT: it happened once, nothing replays it, and dropping one is a real
+   * an event: it happened once, nothing replays it, and dropping one is a real
    * loss.
    *
-   * So only commands queue, and the queue is bounded. Past the cap the NEWEST
+   * So only commands queue, and the queue is bounded. Past the cap the newest
    * is refused rather than the oldest evicted, for two reasons:
    *
    * - the backlog drains in order on reconnect, and a sequence whose head was
    *   evicted runs its tail without its start (an ordered burn sequence,
    *   `ManeuverPlanner.dispatchPlanBurns`, is exactly that shape). Refusing
-   *   admission keeps whatever WAS accepted an unbroken prefix
-   * - the refusal is minted AT THE PRESS, while the command is still
+   *   admission keeps whatever was accepted an unbroken prefix
+   * - the refusal is minted at the press, while the command is still
    *   `in-flight`, so `TelemetryClient` settles it `failed`. A late eviction
    *   would land after the client's own loss timer had already called the
    *   command `lost`, and an `error` correlated to a lost requestId is read as
    *   proof the mod received it (`handleCommandError` flips it to `found`).
    *   Evicting later would therefore have to lie about where the command got to
    *
-   * A queue also needs an END, and the cap is not one: what is admitted still
+   * A queue also needs an end, and the cap is not one: what is admitted still
    * has to be answered if the link never returns. {@link abandonQueue} is that
    * answer, on a channel of its own for the reason the second bullet gives.
    */
@@ -625,7 +625,7 @@ export class WebSocketTransport implements Transport {
    * past the hold window.
    *
    * The queue is bounded, so nothing grows without limit; what it was still
-   * missing is an END. A command left here for hours would fire whenever the
+   * missing is an end. A command left here for hours would fire whenever the
    * game finally returns, long after the operator stopped expecting it, and
    * would never have been mentioned in between.
    *

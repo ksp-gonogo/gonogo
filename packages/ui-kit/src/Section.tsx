@@ -6,10 +6,16 @@ import { Stack } from "./Stack";
 import type { GapToken } from "./scales";
 import type { StaticElement } from "./staticElement";
 
-/** Marks a section that spans every column of a panel's section grid; the rule acting on it lives on the grid (see `Panel`). */
+/**
+ * The attribute that marks a section spanning every column of a panel's section
+ * grid. Used by {@link Section} to set it and by {@link Panel} to style it.
+ */
 export const SECTION_FULL_ATTR = "data-section-full";
 
-/** Marks a section that takes the panel body's leftover height; the rule acting on it lives on the body (see `Panel`). */
+/**
+ * The attribute that marks a section taking the panel body's leftover height.
+ * Used by {@link Section} to set it and by {@link Panel} to style it.
+ */
 export const SECTION_FILL_ATTR = "data-section-fill";
 
 /**
@@ -51,7 +57,9 @@ export interface SectionProps
 
 /**
  * A named group of rows inside a panel: a {@link Stack} at the `rows` gap,
- * headed by a {@link SectionTitle} when `title` is set. Inside a panel body,
+ * headed by a {@link SectionTitle} when `title` is set. Useful for grouping the
+ * figures of a widget under a heading the operator can scan. Used by the space
+ * centre status and the maneuver planner. Inside a panel body,
  * `full` spans every column of the section grid and `fill` takes the body's
  * leftover height.
  *
@@ -103,7 +111,8 @@ export function Section({
 
 /**
  * The uppercase, tracked-out heading {@link Section} draws for its `title`,
- * usable on its own. Use `as="h3"` (or another heading tag) for a real heading;
+ * usable on its own. Useful for headings outside a panel that should look like
+ * a panel's. Used by the settings and alarms dialogs. Use `as="h3"` (or another heading tag) for a real heading;
  * `$rule` draws a hairline under it.
  *
  * @category Layout

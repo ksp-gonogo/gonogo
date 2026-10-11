@@ -10,7 +10,7 @@ export interface SavedShip {
   totalMass: number;
   /** KSP's own `EditorFacility` name, verbatim: the label shown on the row. */
   facility: string;
-  /** KSP's `EditorFacility` ORDINAL, `null` when none was sent: what decides the launch editor; {@link facility} is display only. */
+  /** KSP's `EditorFacility` ordinal, `null` when none was sent: what decides the launch editor; {@link facility} is display only. */
   facilityOrdinal: number | null;
   requiresFunds: number;
   missingParts: string[];
@@ -45,7 +45,7 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
 
 /**
  * The editor a saved craft launches from, as `ksp.launch` spells it. Resolved
- * from the ORDINAL, never substituted with a default: a default in a dispatched
+ * from the ordinal, never substituted with a default: a default in a dispatched
  * argument launches a spaceplane from the pad. An unknown ordinal passes the
  * raw name through so the mod refuses it visibly.
  */

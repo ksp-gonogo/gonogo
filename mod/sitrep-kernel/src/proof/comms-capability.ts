@@ -2,10 +2,10 @@
  * The `comms` capability: the milestone's proof point that the whole M3
  * delay engine is just one swappable capability-kernel provider.
  *
- * This is the SMALLEST interface that lets a test observe "delayed vs
+ * This is the smallest interface that lets a test observe "delayed vs
  * immediate" through the kernel: record a sample, subscribe to it, and read
  * timing off a shared `Clock` (courier-provider.ts and vanilla-comms.ts both
- * expose the SAME clock instance they schedule delivery on, so a test can
+ * expose the same clock instance they schedule delivery on, so a test can
  * drive/observe delivery without reaching into either provider's internals).
  *
  * Declared `exclusive` (at most one `comms` provider is active) with

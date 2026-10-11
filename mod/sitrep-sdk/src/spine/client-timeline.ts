@@ -14,7 +14,7 @@ export interface ClientTimelineOptions {
    * are retained. Unset (and nothing in production sets it) means no UT bound
    * at all: `maxPoints` is the always-on one.
    *
-   * A UT window bounds MEMORY only if you assume a sample rate, so it holds a
+   * A UT window bounds memory only if you assume a sample rate, so it holds a
    * few dozen points of a slow channel and thousands of a fast one for the same
    * nominal cost. And its floor is measured from `latest.validAt`, which a
    * landed blackout dump moves: a dump spanning more than the window destroys
@@ -26,7 +26,7 @@ export interface ClientTimelineOptions {
 
   /**
    * The always-on bound: at most this many points per topic, dropping the
-   * OLDEST to make room. Bounds memory directly rather than through an assumed
+   * oldest to make room. Bounds memory directly rather than through an assumed
    * sample rate, and is indifferent to how much UT a burst spans, so a blackout
    * dump survives ingest whatever its width.
    *
@@ -91,8 +91,8 @@ export class ClientTimeline<Payload = unknown> {
    * at-or-below it and this client no longer has it.
    *
    * The client-side twin of the server's `Meta.gapSinceUt`, and separate from it
-   * because the two say different things: that one reports what the SUBJECT
-   * could not send, this one what the VIEWER could not keep. A consumer reading
+   * because the two say different things: that one reports what the subject
+   * could not send, this one what the viewer could not keep. A consumer reading
    * a range that starts at-or-below this UT is looking at a truncated span, and
    * has to be told rather than shown a chart that simply starts later and looks
    * complete.
@@ -174,7 +174,7 @@ export class ClientTimeline<Payload = unknown> {
    * `epoch` isn't actually higher than the one this timeline currently
    * holds. Used by `TimelineStore`'s cross-topic sweep (guards against
    * "the client ghost"): a rewind confirmed by one topic's
-   * ingest doesn't, on its own, tell every OTHER topic's `ClientTimeline` to
+   * ingest doesn't, on its own, tell every other topic's `ClientTimeline` to
    * reset: each timeline only ever learns about a rewind from its own next
    * `append`. Without this, a slow/change-gated topic that hasn't re-sampled
    * since the rewind keeps serving its dead-epoch points indefinitely. The

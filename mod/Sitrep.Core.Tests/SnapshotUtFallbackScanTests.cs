@@ -7,7 +7,7 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// A capture that runs without a snapshot must take the LIVE clock, never the
+    /// A capture that runs without a snapshot must take the live clock, never the
     /// epoch.
     ///
     /// <para><b>The defect this is the general form of.</b> Twenty-one sites
@@ -22,7 +22,7 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>Why a scan and not a behavioural test.</b> The branch cannot be
     /// entered today, so there is no behaviour to assert. What can be asserted is
-    /// that the guard stays written ONE way, which is the property that was
+    /// that the guard stays written one way, which is the property that was
     /// actually broken. A behavioural test would have to make the branch
     /// reachable first, and that is a change to the engine rather than to these
     /// call sites.</para>
@@ -49,7 +49,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// A <c>snapshot?.Ut</c> guard coalescing to a bare numeric literal.
         /// Matches <c>?? 0.0</c>, <c>?? 0</c>, <c>?? 0.0d</c> and the like, and
-        /// does NOT match a call, so both live-clock forms pass.
+        /// does not match a call, so both live-clock forms pass.
         /// </summary>
         private static readonly Regex EpochFallback = new Regex(
             @"snapshot\s*\?\s*\.\s*Ut\s*\?\?\s*-?\d+(\.\d+)?[dfDF]?",
@@ -57,7 +57,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The live-clock form(s) the guard may take. Held as text rather than as
-        /// paths so the assertion below can say the guard is still PRESENT without
+        /// paths so the assertion below can say the guard is still present without
         /// naming a project.
         ///
         /// <para>Core's own <c>Planetarium.GetUniversalTime()</c> form is the only
@@ -87,7 +87,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The scan can SEE the thing it forbids.
+        /// The scan can see the thing it forbids.
         ///
         /// <para>A counter that cannot see a violation reports zero, and zero
         /// reads as success. The tree is at zero on purpose, so without this the

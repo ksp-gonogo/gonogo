@@ -6,7 +6,7 @@ namespace Sitrep.Host.CommandCentres
 {
     /// <summary>
     /// The home-command election, the same shape as
-    /// <see cref="Comms.CommsElection"/>. ONE EXCLUSIVE capability
+    /// <see cref="Comms.CommsElection"/>. One exclusive capability
     /// <c>"homeCommand"</c> whose active instance is an
     /// <see cref="IHomeCommandProvider"/>: the logic that decides which command
     /// centre holds the career ledger.

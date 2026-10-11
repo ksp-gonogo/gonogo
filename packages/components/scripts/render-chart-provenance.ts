@@ -5,7 +5,7 @@
  * `local_docs/renders/reckoning/`.
  *
  * Uses a dedicated probe rather than the widget-fixture harness, for a reason
- * that is the point of the renders: the reckoned state has NO PRODUCER on the
+ * that is the point of the renders: the reckoned state has no producer on the
  * stream, so no telemetry fixture can drive it. `LineChart` is presentational
  * (arrays in, SVG out), so it mounts here with explicit props and the picture
  * shows the presentation the moment a model exists to fill it.
@@ -156,7 +156,7 @@ async function main(): Promise<void> {
  *
  * `packages/ui` resolves through `dist`, and esbuild bundles whatever is there
  * without a word. The first run of this driver produced a picture of the
- * PREVIOUS chart's rules and looked entirely plausible, which is the failure
+ * previous chart's rules and looked entirely plausible, which is the failure
  * mode a render is least able to show you: a shot that predates the change it
  * is offered as evidence of. Cheap to detect, so detected.
  */

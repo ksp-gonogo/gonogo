@@ -12,7 +12,7 @@ namespace Sitrep.Host.IntegrationTests
     /// A command centre knows, after a load, what it knew when the game was
     /// saved, the facts the comms backend states for each hop of the path it
     /// believes in included, and not only after each craft has been heard from
-    /// again a light-time later.
+    /// again a signal delay later.
     /// </summary>
     public class ColdLoadHopFactsTests
     {

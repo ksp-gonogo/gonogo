@@ -1,10 +1,10 @@
 /**
- * How the rail DRAWS an entry, given what the entry says it is.
+ * How the rail draws an entry, given what the entry says it is.
  *
  * The three axes and the derivations that fill them in live in the SDK
  * (`@ksp-gonogo/sitrep-sdk`'s `rail-tags.ts`), because they are read off what
  * the mod declares. This file is the other half: one accessor per axis, and a
- * TABLE saying which combination each renderer draws.
+ * table saying which combination each renderer draws.
  *
  * | direction | kind       | delivery         | a real example                  | drawn by           |
  * |-----------|------------|------------------|---------------------------------|--------------------|
@@ -15,7 +15,7 @@
  * | telemetry | event      | fire-and-forget  | a science result sent home      | `in-flight-row`    |
  * | telemetry | discrete   | fire-and-forget  | a state reported as it changes  | `in-flight-row`    |
  *
- * The table names a RENDERER (a component). WHICH MARK it draws follows from
+ * The table names a renderer (a component). Which mark it draws follows from
  * the data: both continuous rows share one strip, lines for a value against a
  * readback, a trace for an amplitude history.
  *
@@ -23,7 +23,7 @@
  * names it, and an entry carrying it is reported rather than silently omitted
  * or drawn wrongly. A new row costs an entry here plus the renderer it names.
  *
- * Each axis drives exactly ONE visual property.
+ * Each axis drives exactly one visual property.
  */
 
 import type {
@@ -40,23 +40,23 @@ export type {
   RailTags,
 } from "@ksp-gonogo/sitrep-sdk";
 
-/** The KIND axis, and only it: a span lying along the rail for a continuous entry, a point travelling it for a discrete one or an event. */
+/** The kind axis, and only it: a span lying along the rail for a continuous entry, a point travelling it for a discrete one or an event. */
 export function railMark(tags: RailTags): "dot" | "ribbon" {
   return tags.kind === "continuous" ? "ribbon" : "dot";
 }
 
-/** The DELIVERY axis, and only it: whether anything is drawn coming back. */
+/** The delivery axis, and only it: whether anything is drawn coming back. */
 export function railDrawsReturnLeg(tags: RailTags): boolean {
   return tags.delivery === "acked";
 }
 
-/** The DIRECTION axis, and only it: which way along the rail the entry runs. */
+/** The direction axis, and only it: which way along the rail the entry runs. */
 export function railFlow(tags: RailTags): "outbound" | "inbound" {
   return tags.direction === "command" ? "outbound" : "inbound";
 }
 
 /**
- * The DIRECTION axis, and only it, as a theme token NAME (no `var()` wrapper):
+ * The direction axis, and only it, as a theme token name (no `var()` wrapper):
  * accent for orders leaving, info for news arriving.
  */
 export function railToneToken(tags: RailTags): string {
@@ -92,7 +92,7 @@ export function railTagKey(tags: RailTags): RailTagKey {
  */
 export type RailRenderer = "in-flight-row" | "continuous-strip";
 
-/** Which renderer draws which combination. `Partial`: an absent combination has NO renderer, never a fallback. */
+/** Which renderer draws which combination. `Partial`: an absent combination has no renderer, never a fallback. */
 const RAIL_RENDERERS: Partial<Record<RailTagKey, RailRenderer>> = {
   "command/event/acked": "in-flight-row",
   "command/discrete/acked": "in-flight-row",

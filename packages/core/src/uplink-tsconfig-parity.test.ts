@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { readJsonObject } from "./ratchetBaseRef";
 
 /**
- * Every Uplink client must build on a tsconfig that TRAVELS with it.
+ * Every Uplink client must build on a tsconfig that travels with it.
  *
  * All ten extended `../../../tsconfig.base.json`, three levels up and out of the
  * package. Inside the workspace that resolves; an Uplink copied into its own

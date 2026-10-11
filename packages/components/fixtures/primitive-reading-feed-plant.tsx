@@ -1,6 +1,6 @@
 /**
  * The planted violation `primitive-reading-feed.test.ts` drives its gate with,
- * written against the REAL types rather than a lookalike.
+ * written against the real types rather than a lookalike.
  *
  * Outside `packages/components/tsconfig.json`'s `include` (`src` and
  * `scripts/**\/*.test.ts`), so the real walk never sees it and the gate's
@@ -13,7 +13,7 @@
  * `core` does not depend on `ui-kit`, so a fixture there could not import the
  * primitive whose prop type is half of what this proves.
  *
- * WHY IT IS NOT ENOUGH TO PLANT INTO A SYNTHETIC WORLD. The rule keys on a
+ * Why it is not enough to plant into A synthetic world. The rule keys on a
  * type having both currency members, and on a JSX prop's contextual type
  * having a reading-shaped arm. A hand-written `interface Reading` satisfies
  * both by construction, so a synthetic plant proves the predicate agrees with
@@ -44,10 +44,10 @@ export function PlantedUnwrap() {
 }
 
 /**
- * The two shapes the guard must learn, and which NEITHER existing gate sees.
+ * The two shapes the guard must learn, and which neither existing gate sees.
  *
  * `styleguide-primitive-inputs`'s gate B is textual: it refuses arithmetic, a
- * bare magnitude or a cast written IN the prop, and both of these are written
+ * bare magnitude or a cast written in the prop, and both of these are written
  * somewhere else. `primitive-reading-feed` keys on a property literally named
  * `value` on a reading-shaped object, and neither of these is that: the first
  * divides two payload numbers, the second takes a magnitude two calls deep.
@@ -81,7 +81,7 @@ function ratioOf(q: { magnitude: number } | undefined): Value<"ratio"> {
 /**
  * The exemptions, and the controls that keep each one honest.
  *
- * A figure taken off a reading's CURRENCY or its MODEL is not the accidental
+ * A figure taken off a reading's currency or its model is not the accidental
  * discard this gate looks for: the rule at the top of the scan has always said
  * so, and `unwrapOf` has always honoured it. The walk did not, so the exemption
  * survived `reading.reckoning.x` and evaporated for `f(reading.reckoning.x)`.
@@ -89,7 +89,7 @@ function ratioOf(q: { magnitude: number } | undefined): Value<"ratio"> {
  * The age is the case that makes it a correctness matter rather than a tidiness
  * one. `viewUt.minus(observedAt(reading))` is recomputed against the current
  * frame on every render, so it is exactly current when it is drawn, and its
- * whole job is to say that something ELSE is old. Forced to carry its reading
+ * whole job is to say that something else is old. Forced to carry its reading
  * it would draw itself held, which is the one figure on the panel that
  * certainly is not.
  *
@@ -134,7 +134,7 @@ export function PlantedCurrencyExemptions() {
 }
 
 /**
- * The name-versus-declaration control, in its own scope so it can SHADOW the
+ * The name-versus-declaration control, in its own scope so it can shadow the
  * import rather than approximate it.
  *
  * A local `observedAt` that hands back the value is the whole reason membership

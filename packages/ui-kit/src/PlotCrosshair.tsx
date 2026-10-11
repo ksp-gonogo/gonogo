@@ -256,7 +256,9 @@ function resolveCard({
  * Whether {@link PlotCrosshair} draws its readout card for these props: the
  * card fits, and over the plot there is a corner that covers no dot. A chart
  * that drew a legend in the same place hides it while the card is up, since
- * each row names its series in its colour.
+ * each row names its series in its colour. Useful for a chart that must give
+ * the operator either the legend or the card, never both on the same corner.
+ * Used by the line chart.
  *
  * @category LineGraph
  */
@@ -271,7 +273,9 @@ export function plotCrosshairShowsCard(
 
 /**
  * A crosshair for an SVG plot: a vertical line at an instant, a dot on each
- * trace where it is read, and a readout of every row's exact value.
+ * trace where it is read, and a readout of every row's exact value. Useful for
+ * letting the operator read the exact figure of each trace at a moment on a
+ * chart. Used by the line chart.
  *
  * The readout is drawn over the plot at a fixed corner on whichever side of
  * the line has room, so moving the line never resizes or reflows the chart. A

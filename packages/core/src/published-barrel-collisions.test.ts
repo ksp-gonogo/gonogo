@@ -6,7 +6,7 @@ import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 /**
- * A name exported from BOTH published packages must resolve to the same
+ * A name exported from both published packages must resolve to the same
  * declaration, or be named below with which import to reach for.
  *
  * An Uplink author imports `@ksp-gonogo/sitrep-sdk` and

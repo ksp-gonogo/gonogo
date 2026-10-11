@@ -8,7 +8,7 @@ namespace Sitrep.Host.Comms
 {
     /// <summary>
     /// The live link graph the backend reports this tick: which nodes have a
-    /// direct link right now, and its light time. A live path is the fastest
+    /// direct link right now, and its signal delay. A live path is the fastest
     /// chain of live links.
     /// </summary>
     public sealed class LiveLinkGraph
@@ -34,7 +34,7 @@ namespace Sitrep.Host.Comms
         /// <summary>Whether <paramref name="node"/> has a direct link to anything right now.</summary>
         public bool HasLink(string node) => _links.TryGetValue(node, out var near) && near.Count > 0;
 
-        /// <summary>The light time of the fastest chain of live links from one node to another, or null when none joins them.</summary>
+        /// <summary>The signal delay of the fastest chain of live links from one node to another, or null when none joins them.</summary>
         public double? LivePath(string from, string to)
         {
             if (string.Equals(from, to, StringComparison.Ordinal))
@@ -90,7 +90,7 @@ namespace Sitrep.Host.Comms
 
     /// <summary>
     /// What store-and-forward delivery reads of the live game: the link graph,
-    /// which decides whether light that was sent lands, and how light time is
+    /// which decides whether light that was sent lands, and how signal delay is
     /// scaled. Written by the link capture, read by the engine, so each value is
     /// swapped whole.
     /// </summary>
@@ -104,7 +104,7 @@ namespace Sitrep.Host.Comms
         public LiveLinkGraph Links => Volatile.Read(ref _links);
 
         /// <summary>
-        /// What a real light time is multiplied by to get the delay the game is
+        /// What a real signal delay is multiplied by to get the delay the game is
         /// set to model: one at real light speed, less for a faster light, zero
         /// with signal delay off.
         /// </summary>
@@ -181,7 +181,7 @@ namespace Sitrep.Host.Comms
         private readonly RetargetRouting? _retarget;
 
         /// <param name="plan">The plan, or null for no plan at all, which predicts no route.</param>
-        /// <param name="lightFactor">What each hop's real light time is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
+        /// <param name="lightFactor">What each hop's real signal delay is multiplied by: see <see cref="DeliveryInputs.LightFactor"/>.</param>
         /// <param name="home">The home centre, when the plan is its own, or null.</param>
         /// <param name="antennas">Every ground station, each of which is the home centre's own antenna: see <see cref="GroundNetwork"/>.</param>
         /// <param name="retarget">How a route may use the plan's retarget windows, or null to route on the dishes' own aims alone.</param>

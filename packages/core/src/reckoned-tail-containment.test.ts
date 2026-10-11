@@ -13,9 +13,9 @@ import { describe, expect, it } from "vitest";
  * store, a recording, an export, a threshold, an alarm. The type already helps
  * (`ReckonedSample` is not a `TimelinePoint`, so nothing that takes points will
  * take one), but a type cannot stop a second consumer copying the values into a
- * shape that IS an observation, which is the move this exists to notice.
+ * shape that is an observation, which is the move this exists to notice.
  *
- * So the containment is a COUNT of call sites rather than a rule about what
+ * So the containment is a count of call sites rather than a rule about what
  * they do. One producer, one consumer, and the consumer is the hook that builds
  * a series for a chart. A second one is not forbidden, it is a decision, and it
  * fails here until somebody writes down which surface is being handed a value
@@ -39,7 +39,7 @@ const SANCTIONED = new Set([
 const IS_TEST = /\.(test|test-d)\.tsx?$/;
 
 /**
- * Files that CALL or DECLARE it, not files that mention it.
+ * Files that call or declare it, not files that mention it.
  *
  * A bare name match counted three doc comments that name the method to explain
  * why they are not it, which is exactly the prose the rule wants written. A

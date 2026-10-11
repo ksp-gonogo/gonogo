@@ -13,7 +13,8 @@ const SettingsContext = createContext<SettingsService | null>(null);
 
 /**
  * Makes a `SettingsService` available to `useSetting` and `useSettingsService`
- * below it.
+ * below it. Useful for letting the widgets on a screen read and change the
+ * operator's settings. Used by the settings panel of the app.
  *
  * @category Settings
  */
@@ -32,7 +33,9 @@ export function SettingsProvider({
 }
 
 /**
- * The `SettingsService` from the nearest `SettingsProvider`. Throws outside one.
+ * The `SettingsService` from the nearest `SettingsProvider`. Useful for reading
+ * or saving a setting outside a component's render, or for a key only known at
+ * run time. Used by the settings panel of the app. Throws outside a provider.
  *
  * @category Settings
  */

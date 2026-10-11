@@ -129,7 +129,7 @@ describe("canBeSacked", () => {
   });
 
   /**
-   * The DIRECTION of the rule, which is the property worth pinning. It is a
+   * The direction of the rule, which is the property worth pinning. It is a
    * whitelist, so a standing added to the contract later is not sackable until
    * somebody writes down that it is. A number no build declares stands in for
    * that future member.

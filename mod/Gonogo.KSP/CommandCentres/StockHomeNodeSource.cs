@@ -42,7 +42,7 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>
         /// Every home that is a place to command from, under an id minted across
-        /// ALL homes at once by <see cref="HomeCentreIds.Mint"/>, so the suffix a
+        /// all homes at once by <see cref="HomeCentreIds.Mint"/>, so the suffix a
         /// shared name earns does not shift while a sibling station is still being
         /// built.
         ///

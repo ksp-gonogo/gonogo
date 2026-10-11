@@ -1,12 +1,12 @@
 /**
- * The instruments the reckoning sheets are drawn from, as DATA.
+ * The instruments the reckoning sheets are drawn from, as data.
  *
  * Separate from the entry that renders them so the before/after pair differs
  * only in what is handed to the primitive: the sheets, their order and their
  * captions are the same file on both sides, which is what makes the two PNGs
  * comparable at all.
  *
- * The BEFORE side hands each case its bare quantity, which is all the
+ * The before side hands each case its bare quantity, which is all the
  * instruments could take. So the first sheet is the control: every case on it
  * is a plain observation, and the two sides of it must be identical.
  */

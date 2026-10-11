@@ -17,7 +17,7 @@ import {
 } from "./styleguideScanRoots";
 
 /**
- * A hand-rolled command control must render the BLOCKED phase.
+ * A hand-rolled command control must render the blocked phase.
  *
  * `useCommandButton` returns `isBlocked` and `refusalText`: the game's standing
  * verdict on a command, issued before anybody presses anything. A caller that
@@ -32,15 +32,15 @@ import {
  * career the command is blocked outright on every managed save, and the widget never
  * read the gate. One screen showed:
  *
- *   - Launch Pad `112.5k` and R&D `60.0k` in RED with dark Upgrade buttons, a
+ *   - Launch Pad `112.5k` and R&D `60.0k` in red with dark Upgrade buttons, a
  *     shortfall verdict on a purchase nobody is charged for
- *   - VAB `40.0k` in GREEN with a LIVE Upgrade button, for a press the career refuses
+ *   - VAB `40.0k` in green with a live Upgrade button, for a press the career refuses
  *   - and 300px below, the correct sentence: "The career bills a construction as
  *     it builds, so a short career slows the work rather than stopping it",
  *     offering Queue upgrade on the same tiers
  *
  * Neither half of that was in the career Uplink. All three of its controls were
- * compliant; the wrong claim was in the CORE widget the Uplink contributes
+ * compliant; the wrong claim was in the core widget the Uplink contributes
  * into. That is structural to the augment model rather than one unlucky file:
  * an Uplink's spend control lands inside a host that already carries one, and
  * the host's claim was written for the stock economy. Nothing checked the host,
@@ -58,7 +58,7 @@ import {
  * `LaunchDirector` colours by verb), and taking it means taking every phase
  * with it.
  *
- * ## What this does NOT cover
+ * ## What this does not cover
  *
  * "A widget calling a spend free must have read every currency it could be
  * priced in", the `Strategies` half of the same audit, where "No setup cost"
@@ -109,7 +109,7 @@ const EXCLUDED = /\/dist\/|\.test\.|\.spec\.|test-d|__fixtures__|__generated__/;
  * `styleguide-wall-clock` is why the roots are checked separately: it walked 1
  * widget root of 13 and stayed green for months, because its only guard against
  * a broken scan was a stale-entry check, which protects against a walk reading
- * NOTHING and not against one reading a thirteenth of the tree. The number of
+ * nothing and not against one reading a thirteenth of the tree. The number of
  * Uplink client roots under mod/ is not fixed, so rather than a floor the roots
  * walked are held exactly to the package roots plus every client root git
  * tracks, none of them empty.
@@ -132,7 +132,7 @@ function repoRoot(): string {
  * then either preserves comments it should have dropped or blanks the code
  * after them. A gate that silently stops looking.
  *
- * Stripping matters in BOTH directions here, which is why it is not skipped:
+ * Stripping matters in both directions here, which is why it is not skipped:
  * a file that merely documents the hook in prose is not a caller, and a caller
  * that writes `// we ignore isBlocked here` has not rendered the phase. The
  * second is the dangerous one, because it satisfies the gate by writing about
@@ -161,9 +161,9 @@ function stripComments(source: string, path: string): string {
 }
 
 /**
- * `export { ... } from "..."`, matched on the RAW source.
+ * `export { ... } from "..."`, matched on the raw source.
  *
- * Order matters and cost a debugging round: esbuild NORMALISES a re-export into
+ * Order matters and cost a debugging round: esbuild normalises a re-export into
  * an `import { X } from "..."` plus a bare `export { X }`, so after stripping
  * there is no `from` clause left to recognise and the barrel came back a caller.
  * Both readers below therefore run against the raw text, before the parser
@@ -177,14 +177,14 @@ const RE_EXPORT = /export\s*\{[^}]*\}\s*from\s*["'][^"']+["']\s*;?/g;
  * A barrel that re-exports the hook is not a caller of it, and
  * `packages/ui-kit/src/index.ts` is exactly that. Removing the statement rather
  * than exempting the file by path means a future barrel is handled the day it
- * lands, and means a barrel that ALSO calls the hook is still caught.
+ * lands, and means a barrel that also calls the hook is still caught.
  */
 function withoutReExports(raw: string): string {
   return raw.replace(RE_EXPORT, "");
 }
 
 /**
- * Every spelling of reaching the hook, by looking for its IDENTIFIER rather
+ * Every spelling of reaching the hook, by looking for its identifier rather
  * than for a call shape.
  *
  * `uplink-isolation` is the cautionary tale: it required the token `from` and
@@ -217,7 +217,7 @@ function handlesBlockedPhase(strippedNoReExports: string): boolean {
 
 /**
  * The verdict on one file, as the walk computes it. Exists so the planted
- * checks drive the PRODUCTION path rather than a re-spelling of it: three
+ * checks drive the production path rather than a re-spelling of it: three
  * transformations in a fixed order, and it was the order that was wrong the
  * first time (see RE_EXPORT).
  */
@@ -233,7 +233,7 @@ function verdict(
 }
 
 /**
- * Names the hook is re-exported UNDER, other than its own.
+ * Names the hook is re-exported under, other than its own.
  *
  * The one spelling `isCaller` cannot see. A downstream file importing the alias
  * never types `useCommandButton`, so it would be walked past entirely: not

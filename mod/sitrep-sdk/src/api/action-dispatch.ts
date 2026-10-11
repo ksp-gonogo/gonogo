@@ -3,9 +3,9 @@ import type { ActionInputPayload } from "./types";
 /**
  * The action-handler registry: `instanceId` -> `actionId` -> handler.
  *
- * Lives here rather than in `@ksp-gonogo/core` because an Uplink WIDGET is what
+ * Lives here rather than in `@ksp-gonogo/core` because an Uplink widget is what
  * registers into it (`useActionInput` inside the component body) and an Uplink
- * TEST is what fires it: `dispatchAction` is how a test drives a widget's action
+ * test is what fires it: `dispatchAction` is how a test drives a widget's action
  * without a serial device attached, and `clearActionHandlers` is how it stops
  * handlers leaking between cases that share one instance id.
  *
@@ -48,11 +48,12 @@ function bucketFor(instanceId: string): Map<string, ActionHandler> {
 }
 
 /**
- * Registers the handler for one action of one widget instance, replacing any
- * before it. `useActionInput` does this for you, and is the way a widget
- * handles its actions: it knows the instance it is mounted as. `instanceId` is
- * the id the dashboard gave that one placed copy of the widget, which is how
- * two copies of one widget keep separate bindings.
+ * Sets the function that runs when an input bound to one action of one placed
+ * widget fires, replacing any set before it. Useful for letting the operator
+ * drive a widget from a serial device or keyboard key. `instanceId` is the id
+ * the dashboard gave that one placed copy of the widget, so two copies of one
+ * widget keep separate bindings. Used by `useActionInput`, which a widget calls
+ * instead of calling this directly.
  *
  * @category Actions
  */
@@ -65,7 +66,9 @@ export function registerActionHandler(
 }
 
 /**
- * Removes the handler for one action of one widget instance.
+ * Removes the function set for one action of one placed widget, so a bound
+ * input no longer reaches it. Useful for cleaning up when the widget leaves the
+ * dashboard. Used by `useActionInput` when its widget unmounts.
  *
  * @category Actions
  */
@@ -82,9 +85,11 @@ export function unregisterActionHandler(
 }
 
 /**
- * Calls the handler registered for this widget instance and action, and
- * returns what it returns, which is sent back to the device. Returns
- * `undefined` when no handler is registered.
+ * Runs the function set for one action of one placed widget, and returns what
+ * it returns, which is sent back to the device that fired the input. Returns
+ * `undefined` when none is set. Useful for sending a serial or keyboard input
+ * to the widget the operator bound it to. Used by the serial input dispatcher
+ * when a bound input fires.
  *
  * @category Actions
  */
@@ -99,7 +104,8 @@ export function dispatchAction(
 }
 
 /**
- * Removes every registered handler. For tests.
+ * Removes every action handler of every placed widget, so a test starts with
+ * none bound. Useful between test cases that share an instance id.
  *
  * @category Actions
  */

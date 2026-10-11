@@ -15,7 +15,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// station the vessel is trying to reach, which bodies sit between them,
     /// and how big each of those bodies is to a radio wave.
     ///
-    /// <para>MAIN THREAD ONLY. Everything here dereferences
+    /// <para>Main thread only. Everything here dereferences
     /// <c>FlightGlobals</c>, <c>CommNetHome</c> and the elected comms backend,
     /// which is why it runs inside the capture seam rather than on the
     /// Courier.</para>
@@ -56,7 +56,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// <param name="propagator">
         /// The elected propagation capability, which owns the walk from the vessel's
         /// parent to the station's body and so decides whether the path can be
-        /// followed at all. Defaults to the two-body vanilla over the LIVE body
+        /// followed at all. Defaults to the two-body vanilla over the live body
         /// table: without one it would decline every cross-body geometry, which is
         /// most of them.
         /// </param>
@@ -227,7 +227,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// and changes hop by hop, while an occultation prediction only needs a
         /// representative endpoint on the right body.
         ///
-        /// <para>Reads the LIVE CommNet graph FIRST, and the
+        /// <para>Reads the live CommNet graph first, and the
         /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> scene objects second (see
         /// <see cref="HomeNodes"/>). The graph is the read that always works:
         /// home nodes carry their own <c>precisePosition</c>, so the CommNetHome
@@ -308,7 +308,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// all, which means the two are in different systems or the hierarchy is
         /// malformed.
         ///
-        /// <para>Whether that path can be FOLLOWED is a separate question, and it
+        /// <para>Whether that path can be followed is a separate question, and it
         /// is the provider's: it owns the walk now, so it is the only thing that can
         /// answer for a physics other than two-body. This method's whole job is
         /// translating the live occlusion model into the radius lookup
@@ -335,10 +335,10 @@ namespace Gonogo.KSP.SilenceTracking
         }
 
         /// <summary>
-        /// Home nodes, from the LIVE routed control path first and the
+        /// Home nodes, from the live routed control path first and the
         /// <see cref="CommNetHome"/> scene objects second.
         ///
-        /// <para>Searching only the ACTIVE vessel's path was the bug, not the
+        /// <para>Searching only the active vessel's path was the bug, not the
         /// scene search: it produced no prediction for every vessel while
         /// <c>comms.path</c> was reporting hops to "Crater Rim Station" the whole
         /// time. Both halves work under a network-replacing backend.
@@ -357,7 +357,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// links carry home <see cref="CommNode"/>s with their own
         /// <c>precisePosition</c>, which is all the geometry needs.</para>
         ///
-        /// <para>The path yields the stations the ACTIVE vessel routes
+        /// <para>The path yields the stations the active vessel routes
         /// through, not every station in the game. For an occultation
         /// prediction that is enough, a representative endpoint on the right
         /// body is what the geometry wants, but it is a real limit: a silent
@@ -367,9 +367,9 @@ namespace Gonogo.KSP.SilenceTracking
         /// <summary>
         /// Every home node reachable from the live scene.
         ///
-        /// <para>Scans EVERY vessel's connection, not just the active one's. The
+        /// <para>Scans every vessel's connection, not just the active one's. The
         /// active vessel is the one most likely to be out of contact, it is the
-        /// craft being watched go dark, and a disconnected vessel has an EMPTY
+        /// craft being watched go dark, and a disconnected vessel has an empty
         /// ControlPath, so keying on it meant the predictor lost its stations at
         /// exactly the moment it needed them. Measured live: activeVessel=True,
         /// connection=True, pathLinks=0.</para>
@@ -380,7 +380,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// installed. The <see cref="CommNetHome"/> scene objects are a second
         /// source for a stock install whose network has not been built yet.</para>
         ///
-        /// <para>Returns a LIST, not a lazy sequence. The counts are traced by
+        /// <para>Returns a list, not a lazy sequence. The counts are traced by
         /// the caller: a diagnostic at the end of an iterator only runs if the
         /// consumer drains it, so an early <c>return</c> silently skipped the
         /// one line that explains why nothing was found.</para>
@@ -428,7 +428,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// <summary>
         /// Which body a home node sits on, by smallest altitude above the
         /// surface. A home node knows its world position but not its body, and
-        /// the answer is unambiguous: stations sit ON a surface, so the body
+        /// the answer is unambiguous: stations sit on a surface, so the body
         /// whose surface they are nearest is the one they are on.
         /// </summary>
         private static CelestialBody BodyUnder(Vector3d worldPosition, IList<CelestialBody> bodies)
@@ -467,7 +467,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// measured now if the body has none yet. The offset belongs to the
         /// body, not to any one point on it, so any node on the surface can be
         /// the one it is measured at: a landed craft calibrates a body with no
-        /// ground station. Null until a calibration is possible. MAIN THREAD.
+        /// ground station. Null until a calibration is possible. Main thread.
         /// </summary>
         internal RotatingGroundStation? CalibratedSurfacePoint(CelestialBody body, CommNode node)
         {
@@ -575,7 +575,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// world-space one. Coarse pass then fine, so the whole circle costs a
         /// few hundred cheap evaluations, once per body.
         ///
-        /// <para>Needs a LOADED vessel to measure against, so it returns false
+        /// <para>Needs a loaded vessel to measure against, so it returns false
         /// until one is available. That is the correct order of events anyway:
         /// there is nothing to calibrate against in a scene with no live craft,
         /// and a prediction withheld for a few ticks costs nothing.</para>
@@ -692,7 +692,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// <para>Being unloaded is no obstacle: <c>getPositionAtUT</c> is the
         /// same propagation KSP itself uses for an on-rails craft, and the
         /// world-space position it yields is exactly what the calibration
-        /// compares against. Requiring a LOADED reference found nothing at all
+        /// compares against. Requiring a loaded reference found nothing at all
         /// on a real save - only the active vessel is loaded, and it was at
         /// Minmus - which sent the solve back to a one-link chain and the
         /// polluted fit this preference exists to avoid.</para>
@@ -782,11 +782,11 @@ namespace Gonogo.KSP.SilenceTracking
         }
 
         /// <summary>
-        /// How far the ELECTED comms backend will carry the link between the
+        /// How far the elected comms backend will carry the link between the
         /// craft and one station. Its maximum being null asserts no limit and
         /// applies no term, which is what an unelected backend, an unrateable
         /// pair, and a vessel with no node all come back as; the model's id says
-        /// which of those it was, so a prediction that modelled geometry ONLY is
+        /// which of those it was, so a prediction that modelled geometry only is
         /// declared rather than assumed.
         ///
         /// <para>Asked of the seam rather than derived here for the reason
@@ -815,7 +815,7 @@ namespace Gonogo.KSP.SilenceTracking
 
         /// <summary>
         /// Reports each propagated term beside the live value it should match,
-        /// so a wrong answer says WHICH element set is wrong rather than only
+        /// so a wrong answer says which element set is wrong rather than only
         /// that the total does not reconcile.
         /// </summary>
         private void DecomposeResidual(SilenceSample sample, Vessel vessel, CelestialBody stationBody, double now)

@@ -13,7 +13,7 @@ import { exitStatus, readJsonObject } from "./ratchetBaseRef";
 /**
  * Holds the set of never-runs-in-CI suites to the ones that are written down.
  *
- * The register next door says WHY they cannot run and what is lost. This says
+ * The register next door says why they cannot run and what is lost. This says
  * the register still describes the code, because a register that has drifted
  * is worse than none: it reads as an audited set while the real set is bigger.
  *
@@ -24,7 +24,7 @@ import { exitStatus, readJsonObject } from "./ratchetBaseRef";
  * - a register entry whose file is gone, or whose test count no longer matches,
  *   is a claim about coverage that is not there to lose
  *
- * It deliberately does NOT fail when a fixture is missing. That is the normal
+ * It deliberately does not fail when a fixture is missing. That is the normal
  * state in CI and failing on it would be a permanently red check, which this
  * repo has already learned hides the next real failure behind it (see `visual`).
  * Loudness comes from `scripts/report-fixture-gated-suites.mjs`, which prints
@@ -75,7 +75,7 @@ function suitesWithSkipIf(): string[] {
 }
 
 /**
- * This file and the register itself, which the scan finds because they QUOTE
+ * This file and the register itself, which the scan finds because they quote
  * the pattern rather than use it. Inventory naming its own subject, the same
  * carve-out the uplink-boundary allowlist's ratchet-inventory bucket makes.
  */
@@ -85,8 +85,8 @@ const SELF: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * `it(...)` bodies INSIDE the gated describe, which is the coverage that does
- * not run, minus the one-line SKIPPED placeholder the suite registers so the
+ * `it(...)` bodies inside the gated describe, which is the coverage that does
+ * not run, minus the one-line skipped placeholder the suite registers so the
  * skip shows up in a reporter. A file's other suites are outside the gate and
  * run normally, so counting the whole file would overstate what is lost.
  *
@@ -190,7 +190,7 @@ describe("suites that cannot run in CI are declared, not merely skipped", () => 
 
   /**
    * The other half of the register's job, and the one the absence report
-   * cannot do: a fixture that IS present can still be wrong.
+   * cannot do: a fixture that is present can still be wrong.
    *
    * Absence is loud already (`scripts/report-fixture-gated-suites.mjs` prints
    * it in the job log). Presence is silent, and a recorded-wire fixture is a
@@ -200,12 +200,12 @@ describe("suites that cannot run in CI are declared, not merely skipped", () => 
    * the skip, because a skip reports as a skip while this reports as coverage.
    *
    * `subscribedTopics` is the checkable part. Every entry is a topic the
-   * capture subscribed to, so every entry has to still BE a topic:
+   * capture subscribed to, so every entry has to still be a topic:
    * `isTopicId` is generated from the C# contract, so a name the contract has
    * dropped fails here and the message says to regenerate.
    *
    * Scoped to what can be proved from the fixture alone. It does not compare
-   * payload SHAPES, which would need a contract stamp inside the fixture that
+   * payload shapes, which would need a contract stamp inside the fixture that
    * the generator does not write yet; a retyped field on a surviving topic
    * still gets through. Said plainly because a gate that reads as total and is
    * not is the failure this register exists to stop repeating.

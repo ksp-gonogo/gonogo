@@ -232,7 +232,7 @@ describe("SpaceCenterStatusComponent", () => {
     expect(container.textContent).not.toContain("LS DEPOT");
   });
 
-  /** Registers an augment with no clear afterwards, so a test expecting an empty slot must go ABOVE this one. */
+  /** Registers an augment with no clear afterwards, so a test expecting an empty slot must go above this one. */
   it("renders an augment bound to the sections slot", () => {
     registerAugment({
       id: "test-ksc-section",

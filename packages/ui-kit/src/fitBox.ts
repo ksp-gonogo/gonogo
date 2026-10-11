@@ -1,7 +1,7 @@
 import { css } from "styled-components";
 
 /**
- * Declare that this box's own EDGES are content, not decoration.
+ * Declare that this box's own edges are content, not decoration.
  *
  * The min-fit audit (`auditMinFit` in `@ksp-gonogo/uplink-tools`) reports text a
  * tile cuts off but not boxes, since many are drawn oversized on purpose. A box
@@ -16,7 +16,7 @@ export const fitBox = (name: string) => css`
 `;
 
 /**
- * Declare that this box PAINTS OVER the scrolling content behind it.
+ * Declare that this box paints over the scrolling content behind it.
  *
  * A scroll glow is drawn at a fixed height, so on a short body it can mask more
  * than the overflow it advertises. `auditMinFit` reports that under

@@ -59,7 +59,7 @@ public enum JourneyEventKind
 /// <para>A report made here, by this centre, says only what this centre could
 /// know. It reports a command held while its own plan says the way is shut, and
 /// sent on when its plan says the way is open, whatever the far end is doing;
-/// and it reports a command that went unanswered only once twice the light time
+/// and it reports a command that went unanswered only once twice the signal delay
 /// it expected has passed.</para>
 ///
 /// <para>Each session receives only its own vantage's events.</para>
@@ -145,7 +145,7 @@ public class CommsJourneyEvent
 /// reports.
 ///
 /// <para>The reply says the cancel was sent, never that the command was stopped.
-/// A command sent less than twice its light time ago may have been lost on the
+/// A command sent less than twice its signal delay ago may have been lost on the
 /// way, in which case it is still this centre's, but the centre cannot know that
 /// yet, so the cancel is sent after it all the same and the command is reported
 /// cancelled here only once it is known to have come back.</para>

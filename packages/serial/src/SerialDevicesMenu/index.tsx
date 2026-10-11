@@ -59,7 +59,7 @@ export function SerialDevicesMenu() {
 }
 
 /**
- * CC BY 3.0 attribution for the vendored gamepad button glyphs, required
+ * CC by 3.0 attribution for the vendored gamepad button glyphs, required
  * by the licence, not a nicety (it's also prescriptive about the wording;
  * see gamepadAttribution.ts). Always visible, not gated on having a
  * gamepad device configured: cheap, and avoids the credit disappearing

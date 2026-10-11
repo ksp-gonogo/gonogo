@@ -562,7 +562,7 @@ export function seedLedger(
 }
 
 /**
- * Re-prints the CURRENT floor under a new TypeScript. Sound only because the
+ * Re-prints the current floor under a new TypeScript. Sound only because the
  * gate already holds the floor to be reachable from the current tree: every
  * floor key still exists in it, so each can be printed afresh. Refuses when a
  * floor key has no line in the new print, which is a break and not a re-print.

@@ -1,7 +1,7 @@
 /**
  * The scenes `render-altitude-band.ts` draws, and the arithmetic behind each.
  *
- * Every row is the SAME descent sampled at the same four uneven instants; what
+ * Every row is the same descent sampled at the same four uneven instants; what
  * differs is how far past the anchor the frame is drawn and, for the last two
  * rows, which samples the window is allowed to see. So the pictures can be read
  * against each other rather than each on its own terms.
@@ -20,7 +20,7 @@
  *
  * The interval is `0.5 x sigma_a x dt²`, tens of metres at six seconds. On the
  * last kilometre of a landing that is several percent of the track and a reader
- * can see it. On a track drawn to the 70 km interface the SAME interval is four
+ * can see it. On a track drawn to the 70 km interface the same interval is four
  * ten-thousandths of the width and lands inside one pixel. The second sheet
  * exists to show that rather than to let the first imply otherwise.
  */

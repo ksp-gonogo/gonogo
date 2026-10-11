@@ -5,7 +5,7 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// A command centre's contact plan and routes are sent to that centre
-    /// alone, the instant they are made: the light-time was spent by the craft
+    /// alone, the instant they are made: the signal delay was spent by the craft
     /// states on their way in.
     /// </summary>
     public class ContactPlanPublishingTests

@@ -79,7 +79,7 @@ namespace Sitrep.Contract.TestSupport
             /// <summary>
             /// <see cref="Where"/> plus the basis, for a property carrying more than
             /// one mark: two problems reported under the same <c>Type.Property</c>
-            /// cannot be told apart, and which MODEL is unresolved is the whole
+            /// cannot be told apart, and which model is unresolved is the whole
             /// question.
             /// </summary>
             public string WhereModel => Where + " [" + Declaration.Basis + "]";
@@ -90,14 +90,14 @@ namespace Sitrep.Contract.TestSupport
         /// ordered by <c>(topic, field)</c> so a caller never depends on reflection
         /// order.
         ///
-        /// <para>DECLARED properties only. A mark inherited onto a Topic payload would
+        /// <para>Declared properties only. A mark inherited onto a Topic payload would
         /// generate a projection field the payload's own interface does not declare,
         /// and <c>Pick&lt;T, K&gt;</c> would stop being exact.</para>
         ///
-        /// <para>EVERY mark on a property, not the first: the attribute is
+        /// <para>Every mark on a property, not the first: the attribute is
         /// <c>AllowMultiple</c> because a value can be served by two models with
         /// different inputs, and <c>GetCustomAttribute</c> (singular) does not merely
-        /// miss the second, it THROWS on a property carrying both. So the ordering
+        /// miss the second, it throws on a property carrying both. So the ordering
         /// key is <c>(topic, field, basis)</c>, since two marks on one field are equal
         /// on the first two and would otherwise fall back to reflection order.</para>
         /// </summary>
@@ -145,7 +145,7 @@ namespace Sitrep.Contract.TestSupport
 
         /// <summary>
         /// The <c>topicId -&gt; payload type</c> map the gate resolves cross-topic
-        /// inputs against. For an array Topic the value is the ELEMENT type, which is
+        /// inputs against. For an array Topic the value is the element type, which is
         /// what the tag carries.
         /// </summary>
         public static IReadOnlyDictionary<string, Type> TopicPayloads(IEnumerable<Type> candidateTypes)
@@ -570,7 +570,7 @@ namespace Sitrep.Contract.TestSupport
         /// nested contract types segment by segment.
         ///
         /// <para>Nullable value types are unwrapped so <c>double?</c> is walkable as
-        /// <c>double</c>; a collection is NOT, because an input that names one element
+        /// <c>double</c>; a collection is not, because an input that names one element
         /// of a list has not said which element and the gate should say so by refusing
         /// rather than by guessing.</para>
         /// </summary>

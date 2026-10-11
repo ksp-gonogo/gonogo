@@ -17,7 +17,7 @@ namespace Sitrep.Host.Comms
     ///
     /// <para><b>Nothing another craft does has a craft read.</b> A craft read
     /// because a distant one was launched or destroyed would carry that news to
-    /// each centre at its own light-time, which can be far shorter than the
+    /// each centre at its own signal delay, which can be far shorter than the
     /// distant craft's.</para>
     ///
     /// <para>A craft is also read when its own entry on <c>system.vessels</c>
@@ -76,7 +76,7 @@ namespace Sitrep.Host.Comms
             public CraftState State { get; }
         }
 
-        /// <summary>One sighting, and the light-time from the object to each command centre when it was made, in seconds by centre id.</summary>
+        /// <summary>One sighting, and the signal delay from the object to each command centre when it was made, in seconds by centre id.</summary>
         public sealed class Sighted
         {
             public Sighted(CraftSighting sighting, IReadOnlyDictionary<string, double> lightSeconds)
@@ -134,7 +134,7 @@ namespace Sitrep.Host.Comms
         private readonly Dictionary<string, (IReadOnlyDictionary<string, object?>? Listed, double Ut)> _sighted =
             new Dictionary<string, (IReadOnlyDictionary<string, object?>?, double)>(StringComparer.Ordinal);
 
-        /// <summary>The light-times of the last pass, for an object that is gone by this one and can no longer be measured.</summary>
+        /// <summary>The signal delays of the last pass, for an object that is gone by this one and can no longer be measured.</summary>
         private IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? _lastSight;
 
         /// <summary>The centres the last pass measured to. A centre that is new has seen nothing, so everything is seen again for it.</summary>
@@ -148,7 +148,7 @@ namespace Sitrep.Host.Comms
         /// <summary>Has every craft read afresh on the next pass: the timeline was reset, and what was recorded ahead of it is gone. Safe from any thread.</summary>
         public void ReadAllAgain() => Interlocked.Exchange(ref _readAll, 1);
 
-        /// <summary>MAIN THREAD: the craft whose state is out of date, each read now.</summary>
+        /// <summary>Main thread: the craft whose state is out of date, each read now.</summary>
         /// <param name="roster">Each craft's <c>system.vessels</c> entry as the game shows it now, by node id, or null when the game lists none.</param>
         public Batch Capture(
             ContactGameLook look,
@@ -474,7 +474,7 @@ namespace Sitrep.Host.Comms
             return false;
         }
 
-        /// <summary>COURIER THREAD: records what <see cref="Capture"/> read.</summary>
+        /// <summary>Courier thread: records what <see cref="Capture"/> read.</summary>
         public static void Record(Batch batch, ICraftStateHost host)
         {
             foreach (var vesselId in batch.Gone)

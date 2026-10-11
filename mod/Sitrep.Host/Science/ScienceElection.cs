@@ -6,7 +6,7 @@ namespace Sitrep.Host.Science
     /// <summary>
     /// The science-backend election, expressed entirely in terms of the existing
     /// <see cref="Kernel"/>: the same shape as CommsElection
-    /// (mod/Sitrep.Host/Comms/CommsElection.cs). ONE EXCLUSIVE capability
+    /// (mod/Sitrep.Host/Comms/CommsElection.cs). One exclusive capability
     /// <c>"science"</c> whose active instance is an <see cref="IScienceBackend"/>:
     ///
     /// <list type="bullet">
@@ -15,20 +15,20 @@ namespace Sitrep.Host.Science
     /// unsatisfiable" guarantee. It activates whenever no science-modelling mod
     /// registered a provider, which is every stock install.</item>
     /// <item><b>A modelling mod registers as a provider</b> from its own uplink's
-    /// Register (host.Kernel.RegisterProvider), ONLY when its reflection probe
-    /// confirms the mod is loaded: registering IS the gate. A provider registers
+    /// Register (host.Kernel.RegisterProvider), only when its reflection probe
+    /// confirms the mod is loaded: registering is the gate. A provider registers
     /// above vanilla, so it wins when installed; absent, stock wins and the wire
     /// is exactly what it was before the election existed.</item>
     /// </list>
     ///
     /// <para>The five <c>science.*</c> channels and two
-    /// <c>science.experiment.*</c> commands are declared and sourced ONCE by
+    /// <c>science.experiment.*</c> commands are declared and sourced once by
     /// <c>Gonogo.KSP.ScienceCoreUplink</c>, which resolves the elected backend via
     /// <c>Kernel.Query&lt;IScienceBackend&gt;("science")</c> at map/dispatch time:
     /// no provider declares those channels itself (the same
     /// shared-namespace-single-declaration rule comms follows).</para>
     ///
-    /// <para><c>deployed.bases</c> is deliberately NOT part of this capability:
+    /// <para><c>deployed.bases</c> is deliberately not part of this capability:
     /// Breaking Ground deployed science lives on the <c>deployed.*</c> prefix
     /// owned by the DLC-gated <c>Gonogo.KSP.BreakingGroundUplink</c> alongside
     /// <c>robotics.*</c>, and it has no equivalent in any science-modelling mod

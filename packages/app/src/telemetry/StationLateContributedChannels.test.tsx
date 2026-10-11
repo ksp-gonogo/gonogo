@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 /**
  * A derived channel is the only mechanism that can join two Topics, so an
  * Uplink that models a quantity across a split contract has to contribute one.
- * Whether that channel survives depends on WHEN the Uplink's module graph runs
+ * Whether that channel survives depends on when the Uplink's module graph runs
  * relative to the store being built, and the two screens answer that
  * differently.
  *
@@ -21,7 +21,7 @@ import { describe, expect, it } from "vitest";
  * every contribution is in place before any store exists. On a station the
  * bundles cannot load until there is a peer-backed `TelemetryClient` to read
  * the roster off, which is why `StationScreen` mounts
- * `<SitrepTelemetryProvider>` as the PARENT of `<StationUplinkLoader>`. The
+ * `<SitrepTelemetryProvider>` as the parent of `<StationUplinkLoader>`. The
  * store is therefore built while the station knows its Uplink set is still
  * empty.
  *

@@ -273,7 +273,7 @@ describe("ViewClock", () => {
    * The frame loop has no stopping condition by design (a quiet link still has
    * to advance view time), which makes a tree that subscribes to it
    * unquiescable: React's async `act()` drains its queue and then requires the
-   * queue to be EMPTY, and a frame landing in that window means it never is. A
+   * queue to be empty, and a frame landing in that window means it never is. A
    * mount that races the loop settles only on a machine fast enough to win, and
    * CI is not. These four are the surface that lets a harness stop the loop and
    * drive it instead.

@@ -9,7 +9,7 @@ namespace Sitrep.Contract;
 ///
 /// <para>When signal delay is on, the core delays a currency change by
 /// neutralising it when it is earned and re-applying it once the vessel's
-/// light-time says the news could have arrived. A mod that computes something
+/// signal delay says the news could have arrived. A mod that computes something
 /// of its own from that change computes it at earn time, before the neutralise,
 /// and nothing tells it to revisit the result. Without a withholder, the derived
 /// quantity moves while the primary one is still withheld, and an operator

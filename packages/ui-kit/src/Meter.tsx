@@ -122,7 +122,9 @@ export interface MeterProps<UnitSymbol extends string = string>
 /**
  * A labelled bar showing how full something is: a dose, a resource level, a
  * charge. The value is always written beside the bar, so colour never
- * carries meaning alone.
+ * carries meaning alone. Useful for showing the operator how much of a
+ * vessel's resource is left. Used by the part tooltips of the ship map and by
+ * {@link MeterStack}.
  *
  * Pass `value` alone when it is already a fraction, in `ratio`, or `value` and
  * `capacity` in the same unit for an amount out of a whole.
@@ -465,7 +467,7 @@ interface MeterBarProps
   pct: number;
   tone: Tone;
   fillColor?: string;
-  /** Whether the AXIS has stopped being current. See `BarTrack`. */
+  /** Whether the axis has stopped being current. See `BarTrack`. */
   trackHeld: boolean;
   /**
    * Whether the figure has stopped being current: one treatment for the whole
@@ -689,8 +691,9 @@ const ROW_BAR_FLOOR_PX = 48;
 
 /**
  * A vertical list of meters. Row meters in it share columns, so every label,
- * bar and figure lines up. Where the figures do not fit beside the bars, every
- * figure moves under its bar.
+ * bar and figure lines up. Useful for letting the operator compare several
+ * resources at a glance. Used by the fuel status widget. Where the figures do
+ * not fit beside the bars, every figure moves under its bar.
  *
  * @category Meter
  */
@@ -742,7 +745,8 @@ export function MeterStack({
 /**
  * Keeps a row meter on its `MeterStack`'s columns while it shares one cell of
  * the stack with other lines, such as a caption under the bar. Wrap the meter
- * and the extra lines in one group.
+ * and the extra lines in one group. Used by the stage stack of the fuel status
+ * widget.
  *
  * @category Meter
  */

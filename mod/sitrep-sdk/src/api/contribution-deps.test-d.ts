@@ -3,13 +3,13 @@ import { defineUplinkClient } from "../spine/uplink-clients";
 import type { TopicPayload } from "../topics";
 
 /**
- * A contribution's `compute` is typed from the contribution's OWN `deps`, which
+ * A contribution's `compute` is typed from the contribution's own `deps`, which
  * are also the only Topics the aggregation feeds it. A slot declares its entry
  * and nothing about the data a contributor reads.
  *
  * <para>Every assertion in this file would compile whether or not the typing
  * works, so none of the checks below is an assertion: each is either a real
- * assignment to a precise type, or a `@ts-expect-error` that FAILS THE BUILD if
+ * assignment to a precise type, or a `@ts-expect-error` that fails the build if
  * the error it names stops happening.</para>
  */
 const CLIENT = defineUplinkClient({
@@ -114,7 +114,7 @@ CLIENT.registerContribution({
 /**
  * The one way left to read loosely, named rather than wished away.
  *
- * <para>`AnyContribution` is the registry's STORAGE type: slot and dep tuple
+ * <para>`AnyContribution` is the registry's storage type: slot and dep tuple
  * erased, `compute` taking an open record, which is the honest signature for a
  * value fished out of a string-keyed map. It is also still structurally
  * registrable, so an author who deliberately annotates their own definition with
@@ -125,7 +125,7 @@ CLIENT.registerContribution({
  *
  * <para>Asserted rather than forbidden because forbidding it means branding the
  * type the registry itself round-trips through, and a gate that breaks the
- * registry to close an unused door is a worse trade. If a contribution ever DOES
+ * registry to close an unused door is a worse trade. If a contribution ever does
  * appear annotated this way, this is the comment that says it was a choice.</para>
  */
 import type { AnyContribution } from "./types";

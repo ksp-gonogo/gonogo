@@ -149,7 +149,7 @@ namespace Sitrep.Propagation.Tests
         }
 
         /// <summary>
-        /// A provider whose bound is a property of the CRAFT, which is what one that
+        /// A provider whose bound is a property of the craft, which is what one that
         /// models forces has. The eccentricity stands in for a perturbation here;
         /// what matters is that the cycle is identical and the answers are not.
         /// </summary>

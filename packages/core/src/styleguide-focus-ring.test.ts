@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Design-system guard: a focus ring in ui-kit is drawn in the theme's FOCUS
+ * Design-system guard: a focus ring in ui-kit is drawn in the theme's focus
  * colour.
  *
  * `packages/theme/src/theme.ts` declares `focus: string` as a slot and the
@@ -39,14 +39,14 @@ const CURRENT_COLOR_EXEMPT =
   "packages/ui-kit/src/CommandDelay/InFlightList.tsx";
 
 /**
- * An `outline` declaration, anchored to the START of its line.
+ * An `outline` declaration, anchored to the start of its line.
  *
  * `outline:` also occurs in prose: `CommandButton` has a comment reading "it
  * stays the quiet outline: a row", which an unanchored pattern reports as a
  * ring in the colour "a row".
  *
  * The value is captured whole and `none` is filtered in code rather than by a
- * lookahead. `outline:[ \t]*(?!none)` does NOT work: the whitespace backtracks
+ * lookahead. `outline:[ \t]*(?!none)` does not work: the whitespace backtracks
  * to empty, the lookahead then tests " none" instead of "none", and every
  * suppression is reported as a ring. That cost two runs of this file's own
  * planted test.
@@ -133,8 +133,8 @@ describe("design-system: focus rings use the theme's focus role", () => {
   /**
    * The premise, asserted separately from the rings that rest on it.
    *
-   * Every other test here checks that a ring REFERENCES `--color-focus`. None
-   * of them can notice that the ROLE it references has been deleted: the rings
+   * Every other test here checks that a ring references `--color-focus`. None
+   * of them can notice that the role it references has been deleted: the rings
    * would still agree with each other, this file would still be green, and the
    * ratchet would go on enforcing a rule with nothing behind it.
    *

@@ -6,7 +6,7 @@ namespace Sitrep.Host
     /// <summary>
     /// KSP-free mapping logic for the <c>dv.stages</c> (bare array) and
     /// <c>dv.summary</c> (wrapper object) channels: the active vessel's
-    /// stage-ΔV rollup, sourced from KSP's STOCK <c>VesselDeltaV</c> stage
+    /// stage-ΔV rollup, sourced from KSP's stock <c>VesselDeltaV</c> stage
     /// simulation (captured by <c>Gonogo.KSP.KspHost.BuildDeltaV</c>; see that
     /// method for why the stock sim, not a hand-rolled rocket equation).
     ///

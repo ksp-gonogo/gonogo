@@ -256,7 +256,7 @@ namespace Sitrep.Skeleton.Tests
 
         /// <summary>
         /// Sends a subscribe envelope and waits specifically for the
-        /// "subscribed" ack (<see cref="EventMsg"/>) -- NOT just "the next
+        /// "subscribed" ack (<see cref="EventMsg"/>) -- not just "the next
         /// message", because when the archive is non-empty (delay 0, or a
         /// sample already recorded) <c>Courier.SubscribeStream</c>'s
         /// synchronous catch-up can also produce an immediate

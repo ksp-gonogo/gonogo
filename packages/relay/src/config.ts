@@ -7,7 +7,7 @@ export interface RelayConfig {
    */
   turnExternalIp: string | null;
   /**
-   * TURN signalling port, and the relay-session port window coturn
+   * Turn signalling port, and the relay-session port window coturn
    * allocates from (one port per active TURN-relayed client).
    *
    * Env-driven because every one of these has to match a router

@@ -125,7 +125,7 @@ namespace Sitrep.Host.IntegrationTests
         /// The home centre believes the relay is in sight, and the relay has just
         /// lost its link. The command is accepted and goes as live, because that is
         /// all the centre knows. The light is lost. The centre learns of it when
-        /// twice the light time has passed with nothing back, and no sooner, and
+        /// twice the signal delay has passed with nothing back, and no sooner, and
         /// sends the command again once it next hears from the relay.
         /// </summary>
         [Fact]
@@ -283,7 +283,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Between the hop's light landing and twice its light time, the centre
+        /// Between the hop's light landing and twice its signal delay, the centre
         /// cannot know whether the command was received. A cancel pressed then is
         /// sent, and says so, and the centre's screen is the same whether the hop
         /// landed or was lost.
@@ -345,7 +345,7 @@ namespace Sitrep.Host.IntegrationTests
             string.Join(",", Journey(world).Select(e => e.Kind + "@" + e.At));
 
         /// <summary>
-        /// Runs both worlds past the relay's light-time to the home centre, and
+        /// Runs both worlds past the relay's signal delay to the home centre, and
         /// checks they agree: two engines given the same game publish the same
         /// bytes, which is what lets a later difference be blamed on the relay.
         /// </summary>

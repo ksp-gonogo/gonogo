@@ -7,16 +7,16 @@ namespace Gonogo.KSP.SilenceTracking
     /// per-vessel record set, nested as one child node per vessel inside the
     /// scenario's own node. Same discipline as
     /// <c>CurrencyDelay.CurrencyDelayLedgerPersistence</c>: <see cref="Load"/>
-    /// restores INTO the caller's existing tracker (via
+    /// restores into the caller's existing tracker (via
     /// <see cref="SilenceTracker.RestoreState"/>), never a fresh replacement,
     /// so <see cref="SilenceTrackerScenario"/> can bind the tracker onto
     /// <see cref="SilenceTrackerSink"/> in OnAwake and have OnLoad fill in
-    /// that SAME instance.
+    /// that same instance.
     ///
-    /// <para>Persists the FULL record, not just <c>silenceSinceUt</c>/
+    /// <para>Persists the full record, not just <c>silenceSinceUt</c>/
     /// <c>deadlineUt</c>/<c>lostSeq</c>: <c>state</c>, <c>connected</c> and
     /// <c>declaredLostUt</c> ride along too, because a reload has to be able
-    /// to tell "already Lost" from "still Silent" WITHOUT re-running the
+    /// to tell "already Lost" from "still Silent" without re-running the
     /// warp-hysteresis two-sample requirement against a vessel that was
     /// legitimately declared before the save - otherwise a reload could
     /// either resurrect an already-lost vessel for one tick, or silently

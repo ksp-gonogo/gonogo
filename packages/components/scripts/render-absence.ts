@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Render every absence scene as a PAIR: the same widget, the same fixture, the
+ * Render every absence scene as a pair: the same widget, the same fixture, the
  * same tile, with and without one input.
  *
  * The pair is the deliverable rather than the degraded shot alone. A render of

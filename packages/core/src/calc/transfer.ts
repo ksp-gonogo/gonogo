@@ -10,8 +10,8 @@
  *   - `ITransferSolver` / `keplerTransferSolver`: the swappable seam. The
  *     default is this stock two-body Kepler solver; an n-body provider can
  *     register over it later, the same electable pattern the mod's
- *     `IPropagationProvider` uses. (The n-body provider is deliberately NOT
- *     built now, and a patched-conic answer is the RIGHT one for a transfer
+ *     `IPropagationProvider` uses. (The n-body provider is deliberately not
+ *     built now, and a patched-conic answer is the right one for a transfer
  *     search regardless: mission design is done in conics.)
  *
  * The porkchop/Lambert layer (departure×arrival Δv surface, inclination-aware)
@@ -31,7 +31,7 @@ import type { Severity } from "@ksp-gonogo/ui-kit";
  *
  *   θ = 180° × (1 − ((rA + rB) / (2 rB))^1.5)
  *
- * Positive → the target should be that many degrees AHEAD at burn time (outer
+ * Positive → the target should be that many degrees ahead at burn time (outer
  * target, rB > rA); negative → behind (inner target). Earth→Mars ≈ +44.3°,
  * Earth→Venus ≈ −54.2°.
  */
@@ -194,7 +194,7 @@ export interface CaptureResult {
  * Capture (arrival-hyperbola) figures: `ejectionBurn` read at the far end of the
  * same transfer, and deliberately the same algebra rather than a second model.
  *
- * Heliocentric leg: the transfer ellipse's APOAPSIS speed at the destination
+ * Heliocentric leg: the transfer ellipse's apoapsis speed at the destination
  * radius `v_t = √(μ_p·(2/r2 − 1/a_t))` against the destination's circular speed
  * `v2 = √(μ_p/r2)` gives the arrival excess `v∞ = |v_t − v2|`. Planetary leg: at
  * capture radius `r_c` about the destination, `v_hyp = √(v∞² + 2·μ_d/r_c)` and
@@ -203,7 +203,7 @@ export interface CaptureResult {
  * **Why this is not the porkchop's number.** `lambertDeltaV` sums the two legs'
  * excesses and its own doc says it excludes the parking-orbit Oberth discount.
  * That makes it a comparison scale for colouring cells, not a cost: Oberth means
- * departure costs MORE than its excess and arrival costs LESS, so a characteristic
+ * departure costs more than its excess and arrival costs less, so a characteristic
  * Δv is neither an upper nor a lower bound on what a craft actually spends. A
  * budget can only honestly be compared against ejection + capture.
  *

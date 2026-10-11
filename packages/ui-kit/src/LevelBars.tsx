@@ -23,9 +23,13 @@ export interface LevelBarsProps {
 }
 
 /**
- * A stepped level glyph, bars rising left to right with `lit` of them filled:
- * a signal-strength indicator. Sized in em, so it scales with the figure it
- * stands beside.
+ * A stepped level glyph, bars rising left to right with `lit` of them filled,
+ * as in a signal-strength indicator. Useful for showing the operator a level
+ * such as the strength of the signal between a vessel and the command centre
+ * at a glance. Used by {@link TinyEssentials} for an essential that declares a
+ * level.
+ *
+ * It is sized in em, so it scales with the figure it stands beside.
  *
  * @category Meter
  */

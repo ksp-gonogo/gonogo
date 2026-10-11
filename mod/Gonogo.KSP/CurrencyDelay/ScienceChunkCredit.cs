@@ -7,7 +7,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <see cref="DelayedScienceSink"/>'s per-increment flush (an external continuous science
     /// source, fed through the same aggregator) need identically. Kept separate from both so it is
     /// unit-tested unconditionally: the aggregator already resolved its own RevealUt (the
-    /// light-time of the increment that closed its window), so this is a straight field carry, not
+    /// signal delay of the increment that closed its window), so this is a straight field carry, not
     /// a recomputation.
     /// </summary>
     public static class ScienceChunkCredit

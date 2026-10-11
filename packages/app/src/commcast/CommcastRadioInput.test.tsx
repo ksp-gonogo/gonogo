@@ -1,5 +1,5 @@
 /**
- * The microphone an operator CHOOSES is the one the key transmits from.
+ * The microphone an operator chooses is the one the key transmits from.
  *
  * `RadioInput.test.tsx` owns the panel, `inputDevice.test.ts` owns the storage,
  * and neither can show the thing that was actually missing: the picker had no

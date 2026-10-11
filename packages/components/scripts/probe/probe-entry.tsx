@@ -114,7 +114,7 @@ export interface StreamFixtureBlock {
    */
   answers?: CommandAnswers;
   /**
-   * Stage the scene as HELD: once every emit has landed and the tree has
+   * Stage the scene as `HELD`: once every emit has landed and the tree has
    * settled, drop the transport and mint a frame, so the shot is of a widget
    * whose figures have stopped arriving.
    *
@@ -126,7 +126,7 @@ export interface StreamFixtureBlock {
    * scene rendered live is byte-identical to its live twin and shows nothing
    * (measured on a career widget before this existed: the same md5 for both).
    *
-   * The DROP is the lever rather than a clock advance because it is the one the
+   * The drop is the lever rather than a clock advance because it is the one the
    * widgets' own stale tests use (`store.setTransportConnected(false)`), so a
    * render and the test asserting on it are staging the same thing. The other
    * two routes to a held reading are already reachable from a fixture
@@ -136,7 +136,7 @@ export interface StreamFixtureBlock {
   stopsArriving?: boolean;
   /**
    * The install profiles this scene is interesting under
-   * (`src/test/installProfile.ts`), by id. The SCENE names them, so the matrix
+   * (`src/test/installProfile.ts`), by id. The scene names them, so the matrix
    * stays a scene's own decision rather than every widget times every install.
    * The render harness reads this list and asks for one render per id; a
    * fixture that names none renders under the wire it declares, unchanged.
@@ -148,7 +148,7 @@ export interface StreamFixtureBlock {
  * Extracts and narrows the optional `_stream` block off a fixture, rewritten
  * into the wire the requested install would put out.
  *
- * An install profile REPLACES the fixture's own wire rather than sitting beside
+ * An install profile replaces the fixture's own wire rather than sitting beside
  * it, so everything downstream (the emit order, the
  * subscription gating) stays one code path reading one block. Same treatment
  * the DOM-snapshot harness gives it, off the same fixture JSON and the same

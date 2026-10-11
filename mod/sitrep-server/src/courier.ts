@@ -1,6 +1,6 @@
 /**
- * Courier is the reference delay engine for both TELEMETRY (streams) and
- * COMMANDS (round-trip request/response).
+ * Courier is the reference delay engine for both telemetry (streams) and
+ * commands (round-trip request/response).
  *
  * Streams: a sample recorded at UT `V` for a node/topic is delivered to a
  * subscribing Vantage at UT `V + network.delayTo(vantage, node)`, scheduled
@@ -208,16 +208,16 @@ export class Courier {
   /**
    * Deliver to `subscriber` as of `fireUt`: the UT this delivery was
    * scheduled to fire at (or `clock.now()` for a synchronous catch-up).
-   * Callers MUST pass the delivery's own scheduled fire-UT rather than
+   * Callers must pass the delivery's own scheduled fire-UT rather than
    * re-reading `clock.now()`: ManualClock.advanceTo() sets `now` to the
    * target UT before draining callbacks, so several deliveries firing
    * within one advanceTo() call would otherwise all read the same `now()`
    * and compute the same scene, delivering the latest sample repeatedly
    * and silently dropping earlier ones.
    *
-   * `stampedDelaySeconds` is the delay this delivery was SCHEDULED under,
+   * `stampedDelaySeconds` is the delay this delivery was scheduled under,
    * captured at record()/subscribeStream() time and carried here in the
-   * closure. A scheduled delivery MUST pass it. The archive then resolves at
+   * closure. A scheduled delivery must pass it. The archive then resolves at
    * `fireUt - stamp`, which is exactly the sample's own validAt, so what lands
    * is what was sent, whatever the route has done since.
    *
@@ -230,7 +230,7 @@ export class Courier {
    * assumed it was unchanged between scheduling and firing. A relay going
    * offline while the craft reroutes breaks that assumption without ever
    * disconnecting the craft: the tail already in flight was re-resolved
-   * against the new route's light-time and came out skipped (shorter route) or
+   * against the new route's signal delay and came out skipped (shorter route) or
    * replayed as duplicate frames with the tail lost (longer route). See
    * `Archive.readAtInstant`.
    */

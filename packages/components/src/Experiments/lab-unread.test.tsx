@@ -6,7 +6,7 @@ import { ExperimentsComponent } from "./index";
 
 /**
  * A lab whose operational and processing flags could not be read renders
- * UNREAD, never an OFFLINE verdict. Its own file so no other test's
+ * unread, never an offline verdict. Its own file so no other test's
  * `science.lab` sample carries into it.
  */
 

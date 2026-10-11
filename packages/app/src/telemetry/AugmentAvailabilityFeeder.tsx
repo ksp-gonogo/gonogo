@@ -17,12 +17,12 @@ import { type ReactElement, useEffect, useSyncExternalStore } from "react";
  * `DelayRailContext` pattern calls for: ui-kit owns the store + the gate;
  * the app owns the wire read.
  *
- * Headless. Mounted once per screen INSIDE `SitrepTelemetryProvider` (so
- * `useTelemetry` resolves) and BELOW the root `DomainAvailabilityProvider` (so
+ * Headless. Mounted once per screen inside `SitrepTelemetryProvider` (so
+ * `useTelemetry` resolves) and below the root `DomainAvailabilityProvider` (so
  * the store resolves), sitting alongside the other headless telemetry siblings
  * the screen already mounts. With no store above it, it renders nothing.
  *
- * It watches EVERY distinct Domain any registered augment or contribution
+ * It watches every distinct Domain any registered augment or contribution
  * `requires`, not just the ones a mounted slot happens to show, so availability
  * is global truth: an augment's gate, a contribution's gate, a
  * `suppressesVanillaBase` decision and a slot in another widget all read the
@@ -50,7 +50,7 @@ export function AugmentAvailabilityFeeder(): ReactElement | null {
 /**
  * Subscribes to one Domain's `<domain>.available` Topic and mirrors its
  * presence into the store. Presence, not payload: a Domain is available while
- * ANY value has arrived (`!== undefined`), matching the Topic's own semantics.
+ * any value has arrived (`!== undefined`), matching the Topic's own semantics.
  * Isolated per Domain so its
  * `useTelemetry` hook has a stable position as the watched set changes.
  */
@@ -63,14 +63,14 @@ function DomainAvailabilityWatch({
 }): null {
   const availability = useTelemetry(`${domain}.available` as TopicId);
   /**
-   * Whether the domain has EVER reported, which is what a presence gate asks.
+   * Whether the domain has ever reported, which is what a presence gate asks.
    *
    * Two answers mean "no Uplink here": `pending`, and `unowned` which says so
    * outright. Everything else is the producer speaking: `observed` obviously,
    * `held` because a domain that reported and went quiet is still installed,
    * and `absent` because a producer saying "there is no value" is still a
    * producer. That last one is why the pre-migration `value !== undefined`
-   * accidentally got the tombstone case RIGHT while getting everything else
+   * accidentally got the tombstone case right while getting everything else
    * wrong, and it is the rule the Uplink-side availability feeders use too.
    */
   const reported = hasAnswered(availability);

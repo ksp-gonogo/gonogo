@@ -2,11 +2,11 @@
  * Widget DOM mirror: ManeuverPlanner. Asserts the panel title and both
  * section titles render identically on host and station.
  *
- * The recorded fixture does NOT ship any maneuver node, it carries no
+ * The recorded fixture does not ship any maneuver node, it carries no
  * `vessel.maneuver` (nor the legacy `o.maneuverNodes`), so `useManeuverNodes`
  * returns an empty list and ManeuverNodeList shows its empty state, not a
  * NodeRow. This test does not exercise node data at all: the section titles
- * `Planned nodes` and `New maneuver` render UNCONDITIONALLY (outside the
+ * `Planned nodes` and `New maneuver` render unconditionally (outside the
  * waiting / preview ternary), so they green regardless of node/telemetry
  * state and are the deterministic strings to assert. (An earlier version of
  * this comment wrongly claimed the fixture ships a 1146 m/s node; it does

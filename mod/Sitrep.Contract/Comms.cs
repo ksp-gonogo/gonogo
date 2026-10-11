@@ -458,7 +458,7 @@ public class CommsHop
 /// comms.network and comms.commandCentre, from the same route. The elected
 /// backend's ICommsBackend.Path is not published: it is every hop's state at
 /// this instant, so a centre shown it would learn of a far hop's change after
-/// only its own light-time to the craft. It is read for the delivery delay.
+/// only its own signal delay to the craft. It is read for the delivery delay.
 /// </internal>
 /// </summary>
 /// <category>Comms</category>
@@ -558,13 +558,13 @@ public enum CommsDelaySource
 {
     /// <summary>No delay measured: either there is no measurable path (the value is null) or delay is switched off (the value is 0).</summary>
     None,
-    /// <summary>A light-time computed over the route's hop geometry.</summary>
+    /// <summary>A signal delay computed over the route's hop geometry.</summary>
     SignalDelay,
 
     /// <summary>
     /// Zero, because this save models no comms network at all: the stock
     /// CommNet difficulty option is off, so there are no ground stations, no
-    /// relay graph and no path to measure a light-time over. Control reaches a
+    /// relay graph and no path to measure a signal delay over. Control reaches a
     /// craft directly, from anywhere, instantly.
     ///
     /// <para>Not the same as a null <see cref="CommsDelay.OneWaySeconds"/>,
@@ -593,7 +593,7 @@ public enum CommsDelaySource
 /// <c>Source</c> and are told apart only by whether the value is
 /// null.</description></item>
 /// <item><description>a real number: <see cref="Source"/> is
-/// <see cref="CommsDelaySource.SignalDelay"/>, a light-time computed over
+/// <see cref="CommsDelaySource.SignalDelay"/>, a signal delay computed over
 /// the elected backend's hop geometry.</description></item>
 /// </list>
 /// One zero names its own reason instead of sharing
@@ -606,7 +606,7 @@ public enum CommsDelaySource
 /// <c>connected:true</c>.
 ///
 /// <para>Each command centre is sent its own, and no other centre's. It is
-/// the light-time of the active vessel's path that centre is sent on
+/// the signal delay of the active vessel's path that centre is sent on
 /// <c>comms.path</c>, so the two always agree. Where the game routes the
 /// vessel's samples to the centre (at home, the vessel's own path to the
 /// ground), that path is the game's route and this is the delay the samples
@@ -632,7 +632,7 @@ public enum CommsDelaySource
 public class CommsDelay
 {
     /// <summary>
-    /// The one-way light-time to the command centre, in seconds. Null when
+    /// The one-way signal delay to the command centre, in seconds. Null when
     /// nothing is measurable, 0 for a measured or applied zero; this type's
     /// summary says which case is which.
     ///
@@ -657,7 +657,7 @@ public class CommsDelay
     /// with no comms network. Neither changes as the craft moves, so only
     /// <see cref="CommsDelaySource.SignalDelay"/> is carried forward.</para>
     /// <internal>
-    /// The client divides the OBSERVED delay by the OBSERVED route rather than
+    /// The client divides the observed delay by the observed route rather than
     /// by a light-speed constant, which recovers whatever
     /// <c>SignalDelay.EffectiveC</c> used, <c>LightSpeedScale</c> included,
     /// without that setting reaching the wire. It also makes the model reproduce the observation exactly at
@@ -690,7 +690,7 @@ public class CommsDelay
 ///
 /// <para><b>Delayed, and never frozen.</b> This channel is what reports a
 /// signal-loss freeze, so it keeps arriving through one. It reports a
-/// disconnect one light-time after it happens and goes on reporting
+/// disconnect one signal delay after it happens and goes on reporting
 /// <c>connected:false</c> through the blackout, so a "no signal" indicator
 /// changes at the right delayed instant. The <see cref="VesselComms"/>
 /// readings (signal strength, control state) are delayed too, but do freeze:
@@ -709,7 +709,7 @@ public class CommsDelay
 [SitrepTopic("comms.link")]
 public class CommsLink
 {
-    /// <summary>True while the active vessel has a control link home, as of one light-time ago; false through a blackout.</summary>
+    /// <summary>True while the active vessel has a control link home, as of one signal delay ago; false through a blackout.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Connected { get; set; }
     /// <summary>The payload's provenance (<c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>).</summary>
@@ -912,9 +912,9 @@ public interface ICommsBackend : ISitrepProvider
     /// On the interface because routing is the elected backend's rule, not a
     /// stock method core can call for it: RealAntennas overrides
     /// <c>CommNetwork.FindClosestWhere</c> and leaves <c>FindPath</c> alone, so
-    /// stock <c>FindPath</c> quotes light-times over routes RealAntennas will not
+    /// stock <c>FindPath</c> quotes signal delays over routes RealAntennas will not
     /// carry. Same-node is null because a route that does not exist has no
-    /// light-time, and a zero would claim one.
+    /// signal delay, and a zero would claim one.
     /// </internal>
     /// </summary>
     /// <param name="from">The start node.</param>
@@ -925,7 +925,7 @@ public interface ICommsBackend : ISitrepProvider
     /// <summary>
     /// Whether this backend can still carry a signal from
     /// <paramref name="vessel"/> to <paramref name="nodeId"/>, a node that
-    /// vessel's route was recently running THROUGH. <c>null</c> means it cannot
+    /// vessel's route was recently running through. <c>null</c> means it cannot
     /// say.
     ///
     /// <para>It tells a reroute from a break, which <see cref="Path"/> alone

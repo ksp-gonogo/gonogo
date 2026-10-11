@@ -97,7 +97,7 @@ public sealed class RatedDegradeModel : ICommsDegradeModel
     /// every comparison and so reads as "not degraded". This is where a
     /// reflection read that came back empty stops being a value.</para>
     ///
-    /// <para>A FINITE rating outside 0..1 clamps to the nearer end, and that
+    /// <para>A finite rating outside 0..1 clamps to the nearer end, and that
     /// asymmetry with the non-finite case is deliberate. An out-of-range finite
     /// number is an arithmetic that ran and overshot (a headroom fraction above
     /// 1, a difference that went slightly negative), so the end it overshot is

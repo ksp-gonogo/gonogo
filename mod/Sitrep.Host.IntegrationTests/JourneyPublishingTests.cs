@@ -8,7 +8,7 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// A journey report reaches the centre that sent the command, and no other,
     /// when its own journey through the network lands there: valid as of when it
-    /// was made at its node, delivered a light-time later.
+    /// was made at its node, delivered a signal delay later.
     /// </summary>
     public class JourneyPublishingTests
     {

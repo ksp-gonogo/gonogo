@@ -44,7 +44,7 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  * `dataIsCollectable`. `SpaceCenterStatus` fixtures carried a legacy short-code
  * facility shape, so the enum-keyed record the mod actually sends had never once
  * rendered. `ScienceData` sent `part` for `partName`. Kerbalism's `CrewSurvival`
- * sent `deathClockSec`, a C# LOCAL name, where the wire carries `deathClockUt`,
+ * sent `deathClockSec`, a C# local name, where the wire carries `deathClockUt`,
  * so a fatal-countdown badge had never drawn. Every one of them was green in
  * unit tests, in the render harness, and in the visual gate.</p>
  *
@@ -77,7 +77,7 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  * which is the convention `scenes.ts` already uses to separate directives from
  * data.</p>
  *
- * <p>The contract is the GENERATED one: `mod/sitrep-sdk/src/topics.ts` plus each
+ * <p>The contract is the generated one: `mod/sitrep-sdk/src/topics.ts` plus each
  * Uplink client's `__generated__/topic-map.ts`. Both halves are needed. An
  * Uplink's topics exist only in its own map, so a resolver built from the sdk
  * alone would grade every fixture an Uplink ships against nothing and report a
@@ -94,7 +94,7 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  * <h3>What it cannot see</h3>
  *
  * <ul>
- * <li><b>A topic the generated maps do not declare is UNGRADED, not a
+ * <li><b>A topic the generated maps do not declare is ungraded, not a
  *   failure.</b> Whole dynamic namespaces are registered at runtime
  *   (`fleet.<guid>.*`, `silence.*`, `currency.*`, per-vessel part actions) and
  *   no `[SitrepTopic]` type exists for them, and every legacy `DataSource` key
@@ -107,7 +107,7 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  *   `ProviderExtensions` is `Record<string, unknown>`, so the walk reaches
  *   `extensions.<provider>` and stops. Grading inside it would need the
  *   runtime's `registerProviderExtensionShape` registry. Those positions are
- *   REPORTED, and the test below pins them to that one shape so a new kind of
+ *   reported, and the test below pins them to that one shape so a new kind of
  *   hole cannot hide among them</li>
  * <li><b>Names, never values.</b> A fixture sending a correctly spelled field
  *   with a number the game could never produce passes, and a `null` where the
@@ -118,7 +118,7 @@ import { FIXTURE_CONTRACT_DRIFT } from "./widget-fixture-conformance.debt";
  *   missing a field the contract declares required is often a deliberate
  *   fixture, driving a widget into its waiting branch, and no fixture can yet
  *   say so. The count is printed so the gap is visible rather than silent</li>
- * <li><b>It cannot see a widget READING the wrong name.</b> Fixture and widget
+ * <li><b>It cannot see a widget reading the wrong name.</b> Fixture and widget
  *   drifted together in the `Strategies` case, and only the fixture half is
  *   visible from here</li>
  * </ul>

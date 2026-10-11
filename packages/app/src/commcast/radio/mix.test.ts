@@ -1,6 +1,6 @@
 /**
  * What several talkers sound like once they are summed, asserted against the
- * SHIPPED worklet rather than against a re-description of it.
+ * shipped worklet rather than against a re-description of it.
  *
  * The audio thread cannot import a module, so `webaudio.ts` builds the playout
  * processor as a source string. A test written against a copy of that source

@@ -30,7 +30,7 @@ import {
  * Validation): intercept the real WebSocket via MSW's `ws` link, the same
  * pattern the app's other WS tests use, and drive connect -> subscribe
  * -> receive decoded envelope -> status transitions -> reconnect through the
- * REAL transport. No internal module is mocked.
+ * real transport. No internal module is mocked.
  */
 
 const SITREP_URL = "ws://localhost:8090";
@@ -639,7 +639,7 @@ describe("WebSocketTransport", () => {
  *
  * A tab left open through a long outage kept queueing command-requests with no
  * cap at all, so the backlog grew until the page stopped working. Bounding it
- * means SOMETHING has to be dropped, and the rule these tests pin is that no
+ * means something has to be dropped, and the rule these tests pin is that no
  * command is ever dropped silently: every one is either delivered on the next
  * open or refused to its sender.
  */

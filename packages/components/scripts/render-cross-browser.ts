@@ -3,8 +3,8 @@
  * Cross-browser bootstrap: render every widget in chromium/firefox/webkit,
  * stitch a 3-up composite per fixture/mode, and print each composite path
  * plus its cross-engine diff ratios. This is the artifact a human reviews
- * before per-engine baselines are committed. It does NOT write baselines,
- * and it does NOT gate on diff ratio, a large ratio is expected for some
+ * before per-engine baselines are committed. It does not write baselines,
+ * and it does not gate on diff ratio, a large ratio is expected for some
  * widgets and is reported, not treated as failure.
  *
  * Robustness: rendering every widget across three engines is the real

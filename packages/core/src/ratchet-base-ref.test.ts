@@ -99,7 +99,7 @@ describe("the shrink-only ratchets can reach a base revision", () => {
    * commit is present and the blob is not, which is the same silent skip this
    * whole file exists to end.
    *
-   * A list added AFTER the base is genuinely absent from both, on a seeding
+   * A list added after the base is genuinely absent from both, on a seeding
    * commit or on a branch cut before the list landed, and is not anybody's
    * mistake.
    */

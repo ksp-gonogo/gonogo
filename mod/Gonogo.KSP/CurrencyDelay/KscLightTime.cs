@@ -20,12 +20,12 @@ namespace Gonogo.KSP.CurrencyDelay
     // unconditionally.
 
     /// <summary>
-    /// KSC-anchored one-way light-time for a currency-earning event:
+    /// KSC-anchored one-way signal delay for a currency-earning event:
     /// earn-location -&gt; KSC, always, regardless of any command-centre
     /// vantage (the currency-delay design's deliberate simplification,
     /// distinct from CommandCentreDelayUplink's per-vantage authority
     /// matrix). Reuses FleetCommsReader for the routed vessel&lt;-&gt;KSC
-    /// light-time when a vessel is live, and StockHomeNodeSource for the KSC
+    /// signal delay when a vessel is live, and StockHomeNodeSource for the KSC
     /// position on the straight-line fallback - the same two building blocks
     /// CommandCentreDelayUplink.RouteDelay already composes for its own
     /// (ksc, subject) row.
@@ -33,7 +33,7 @@ namespace Gonogo.KSP.CurrencyDelay
     public static class KscLightTime
     {
         /// <summary>
-        /// The routed one-way light-time from a live vessel to KSC, or
+        /// The routed one-way signal delay from a live vessel to KSC, or
         /// <see cref="KscDelay.Unroutable"/> when no control path reaches
         /// home. <see cref="KscDelay.Instant"/> when the delay feature is off.
         ///
@@ -72,7 +72,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// How many seconds lie between the home command's ledger and a vessel, in
         /// either direction: what a currency award from the vessel waits before it is
         /// booked, and what a change to the ledger waits before the vessel learns it.
-        /// ONE definition for both legs of that round trip, so a transmission and the
+        /// One definition for both legs of that round trip, so a transmission and the
         /// new total coming back can never be timed by two different numbers.
         ///
         /// <para>The silence-declaration deadline for a vessel with no route home, and
@@ -82,7 +82,7 @@ namespace Gonogo.KSP.CurrencyDelay
             KscDelayPolicy.DelaySeconds(ForVesselId(vesselId, config), config);
 
         /// <summary>
-        /// The routed one-way light-time for a vessel named only by its id, found
+        /// The routed one-way signal delay for a vessel named only by its id, found
         /// among the vessels the game currently holds.
         ///
         /// <para>This is how an away currency event resolves an origin it was

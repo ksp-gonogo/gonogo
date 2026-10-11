@@ -14,7 +14,7 @@ namespace Gonogo.KSP.CommandCentres
 
     /// <summary>
     /// A concrete KSP-backed <see cref="ICommandCentre"/>. It exposes the KSP-free
-    /// identity view (id, name, kind, body) AND carries the CommNet routing data
+    /// identity view (id, name, kind, body) and carries the CommNet routing data
     /// (<see cref="Node"/> / <see cref="Position"/>) that the authority routeDelay
     /// downcasts to. Sources build these fresh each enumeration pass, so
     /// <see cref="IsActiveNow"/> returns the active state captured at enumeration.
@@ -60,7 +60,7 @@ namespace Gonogo.KSP.CommandCentres
         /// Body-fixed surface latitude in degrees, or null when this centre is not
         /// surface-anchored (a crewed vessel that is flying or in orbit has a
         /// sub-vessel ground point, which is not a place the centre occupies).
-        /// Decided by the SOURCE, which is the only layer that knows whether the
+        /// Decided by the source, which is the only layer that knows whether the
         /// centre is anchored; <see cref="SurfaceCoordinates"/> does the conversion.
         /// </summary>
         public double? Latitude { get; }

@@ -11,7 +11,7 @@ namespace Sitrep.Propagation.Visibility
     /// is the one case where the geometry closes without any ephemeris at all:
     /// both endpoints are already expressed relative to the body's centre, so the
     /// occluder sits at the origin and stays there. A link to a station on a
-    /// DIFFERENT body needs that body's position over time and is not what this
+    /// different body needs that body's position over time and is not what this
     /// type models; it would be a second <see cref="IVisibilityGeometry"/>.</para>
     ///
     /// <para><b>The occluding radius is an input, never derived from the body.</b>
@@ -32,7 +32,7 @@ namespace Sitrep.Propagation.Visibility
         private static readonly Vector3d BodyCentre = new Vector3d(0.0, 0.0, 0.0);
 
         /// <param name="vessel">
-        /// The craft, asked for in its OWN parent frame, which is what "a station on
+        /// The craft, asked for in its own parent frame, which is what "a station on
         /// the body it orbits" means. There is deliberately no frame parameter: any
         /// other frame would put the two endpoints in different places and the
         /// occluder somewhere other than the origin, which is a different geometry.

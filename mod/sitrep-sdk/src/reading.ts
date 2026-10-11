@@ -339,7 +339,7 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
  *
  * ## Signal delay
  *
- * Under a light-time delay every value is old. A value 4 s old under a 4 s
+ * Under a signal delay delay every value is old. A value 4 s old under a 4 s
  * delay is as current as it can be, and is `"observed"`, not held.
  *
  * ## Modelled values
@@ -419,7 +419,7 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
   | {
       /** Updates stopped arriving, so `value` is the last one received and `grade` says why. */
       state: "held";
-      /** The last REAL observation. Never a modelled value. */
+      /** The last real observation. Never a modelled value. */
       value: Payload;
       /** The UT that observation was made at. */
       asOfUt: Value<"ut">;
@@ -1174,7 +1174,7 @@ export function topicReading<Payload>(
  * One field's reading, itself navigable to the fields under it.
  *
  * The recursion is what makes `crew[kerbal].rules[index].value` reach a band:
- * each step composes the DOTTED path the model already keys its bands by, so
+ * each step composes the dotted path the model already keys its bands by, so
  * the leaf's `reckoning.band` is the entry the reckoner wrote at exactly that
  * string. Nothing parses a path and no consumer writes one.
  *
@@ -1182,12 +1182,12 @@ export function topicReading<Payload>(
  * property names, so `crew.Bill`, `crew["Bill"]` and `rules[0]` are one
  * mechanism rather than three.
  *
- * Cached by FULL path on the topic reading's own map, so two reads of one leaf
+ * Cached by full path on the topic reading's own map, so two reads of one leaf
  * are one projection and the reading a caller holds keeps its identity across
  * a render. The intermediate steps are cached too, which is what stops a deep
  * read re-walking its own prefix.
  *
- * A property already ON the projected reading wins, which is the currency
+ * A property already on the projected reading wins, which is the currency
  * itself: `.state`, `.value`, `.reckoning` answer about the field, never about
  * a payload member of the same name. That is the reserved-name collision, and
  * it is why the codegen check refuses those spellings.
@@ -1214,7 +1214,7 @@ function fieldReading(
  * The currency's own member names, which a path step may never be.
  *
  * `prop in target` is not enough: a reading's optional members are simply absent
- * in the states that do not carry them, so the guard has to be the NAME, not
+ * in the states that do not carry them, so the guard has to be the name, not
  * whether this state happens to carry it.
  *
  * `satisfies Record<ReservedReadingKey, true>` is what keeps this honest: a
@@ -1389,12 +1389,12 @@ export type ReckonerFor<Payload> = (
 ) => TopicModel<Payload> | undefined;
 
 /**
- * What one declared dependency resolves to when the STORE resolves it for a
+ * What one declared dependency resolves to when the store resolves it for a
  * reckoner.
  *
  * The notation is `Dep`'s, unchanged, because a reckoner's inputs are the same
  * kind of thing a processor's are and inventing a second spelling for them
- * would be two vocabularies to keep in step. What differs is the RESOLUTION: a
+ * would be two vocabularies to keep in step. What differs is the resolution: a
  * Topic id resolves to the `TimelinePoint`, not to the bare payload a processor
  * gets.
  *

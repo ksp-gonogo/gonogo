@@ -12,14 +12,14 @@ namespace Gonogo.KSP.Tests.Comms
     /// <para>The index exists so naming a node costs a dictionary probe rather
     /// than a walk over every vessel, which is what kept break-detection to the
     /// active vessel's route. What matters here is the identity rule: a node is
-    /// matched by BEING the same object. Two nodes that compare equal on their
+    /// matched by being the same object. Two nodes that compare equal on their
     /// fields are still different nodes, and a route solved over one of them
     /// must not be named after the other.</para>
     ///
     /// <para>The vessel-walking half is exercised through the degenerate shapes
     /// only, because building a real <c>Vessel</c> needs a running game. The
     /// identity cases go through <c>VesselNodeIndex.ForNodes</c> rather than a
-    /// dictionary built here, so they run against the index's OWN comparer: a
+    /// dictionary built here, so they run against the index's own comparer: a
     /// test that supplied its own would be asserting that its own helper
     /// distinguishes two references, which is true of any correct comparer and
     /// says nothing about the one production uses.</para>

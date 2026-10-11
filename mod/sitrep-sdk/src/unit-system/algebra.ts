@@ -15,18 +15,18 @@ import type { UnknownUnit } from "./value";
  *
  * This closes that, for everything the catalogue can name.
  *
- * ## The one thing it does NOT do
+ * ## The one thing it does not do
  *
- * Name an UNDECLARED composite. `rep.per(funds)` is `{rep:1, funds:-1}`, the
+ * Name an undeclared composite. `rep.per(funds)` is `{rep:1, funds:-1}`, the
  * runtime calls it `"rep/funds"`, and this type says `string`. Reproducing that
- * glyph needs type-level string SORTING (to canonicalise the numerator and
+ * glyph needs type-level string sorting (to canonicalise the numerator and
  * denominator ordering), which measured at roughly three times the cost of an
  * entire multiply-and-look-up, before parsing signed exponents and mapping
  * superscripts. For a string nobody type-checks against, that is a bad trade.
  *
  * The gap is exactly "this dimension has no declared unit". It is not a
  * special-case list, it cannot rot as the catalogue grows, and it never yields
- * a WRONG answer, only a less specific one identical to today's. That same
+ * a wrong answer, only a less specific one identical to today's. That same
  * measurement is why dimensions are object types here rather than canonical
  * string keys: the string representation would make sorting mandatory
  * everywhere instead of nowhere.
@@ -35,7 +35,7 @@ import type { UnknownUnit } from "./value";
  *
  * `Value<string>` is the status quo, and it is safe: `CombinableWith<string>`
  * collapses to `never` and falls back to `string`, so `plus` on a degraded value
- * accepts anything, exactly as before. An unknown unit is never made LESS safe
+ * accepts anything, exactly as before. An unknown unit is never made less safe
  * by this module and using one is never a compile error. That is the rule
  * `CombinableWith` already set, followed literally.
  */
@@ -57,7 +57,7 @@ type Bias = [-9, -8, -7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 /**
  * The valid indices of {@link Bias}, spelled out.
  *
- * **Do not replace this with `N extends keyof Bias`.** `keyof` on a TUPLE
+ * **Do not replace this with `N extends keyof Bias`.** `keyof` on a tuple
  * includes `number`, so `27 extends keyof Bias` is `true` and `Bias[27]`
  * quietly returns the whole `-9 | ... | 9` union instead of `never`. Overflow
  * then stops being detected and a nonsense exponent reads as "every exponent
@@ -172,7 +172,7 @@ export type Neg<Exponent extends number> = `${Exponent}` extends keyof Negate
  * `SameDimensionAs` already uses.
  *
  * It relies on how tsc relates two conditional types rather than on a
- * documented feature. That is a bet, but not a NEW bet: the SDK has made it
+ * documented feature. That is a bet, but not a new bet: the SDK has made it
  * since `CombinableWith` (née `Addend`) shipped.
  */
 type Equal<Left, Right> =
@@ -266,7 +266,7 @@ type Def<Unit extends StaticUnit> = (typeof UNIT_DEFINITIONS)[Unit];
  * The static table is consulted first, so an augmentation cannot change what a
  * first-party symbol resolves to, and neither can a runtime registration:
  * `resetUnitRegistry` seeds `UNIT_DEFINITIONS` first and `declaredUnitFor`
- * returns the FIRST ratio-1 match.
+ * returns the first ratio-1 match.
  */
 type ExtUnit = Exclude<DeclaredUnit, StaticUnit>;
 
@@ -307,17 +307,17 @@ type Res<Resource extends string> = Resource extends keyof ResourceNamespaces
 /**
  * The per-resource token grammar: `<Resource>:u`, `:u/s`, `:kg/u`, `:f/u`.
  *
- * The resource NAMES are discovered when the game loads and cannot be known to
- * the compiler, but the token GRAMMAR is fixed, and that is enough. Each
+ * The resource names are discovered when the game loads and cannot be known to
+ * the compiler, but the token grammar is fixed, and that is enough. Each
  * resource gets its own base dimension (`resFood`), which is what stops Food
  * being added to Oxygen while both still read `u` on screen.
  *
  * Two mechanisms carry this:
  *
  * - **Template-literal inference is anchored.** `` `${infer R}:u` `` requires
- *   the string to END in `:u`, so `"Food:u/s"` and `"Food:kg/u"` do not match
+ *   the string to end in `:u`, so `"Food:u/s"` and `"Food:kg/u"` do not match
  *   that arm. The four arms are unambiguous and order-independent.
- * - **A heterogeneous map must be ONE mapped type, not an intersection.**
+ * - **A heterogeneous map must be one mapped type, not an intersection.**
  *   `{ readonly [K in `res${R}` | "s"]: K extends "s" ? -1 : 1 }` has the same
  *   identity as a hand-written `{ readonly resFood: 1; readonly s: -1 }`. An
  *   intersection would not compare `Equal` and everything downstream would
@@ -356,7 +356,7 @@ type ResourceDim<Token> = Token extends `${infer Resource}:u`
  *
  * `UnknownUnit` is checked first, ahead of the three real lookups, and forced
  * to `never` on its own branch rather than left to fall out of them by
- * accident. Today it WOULD fall out the same way unassisted: `UnknownUnit` is
+ * accident. Today it would fall out the same way unassisted: `UnknownUnit` is
  * a branded, non-literal `string`, so it fails `extends StaticUnit` and
  * `extends ExtUnit` the same way any unrecognised token does, and it fails
  * `ResourceDim`'s template-literal patterns for the same reason (a non-literal
@@ -368,7 +368,7 @@ type ResourceDim<Token> = Token extends `${infer Resource}:u`
  * "narrow first": a future change to `ResourceDim`'s grammar or a new
  * `ExtUnit` shape could start matching a branded string without anyone
  * noticing, silently letting an unknown unit compose. `algebra.test-d.ts`
- * pins the OUTCOME (`Product`/`Quotient` on `UnknownUnit` degrade to
+ * pins the outcome (`Product`/`Quotient` on `UnknownUnit` degrade to
  * `string`), and that outcome would still catch such a regression even if
  * this branch is currently redundant with it.
  */
@@ -394,7 +394,7 @@ export type DimOf<Unit> = [Unit] extends [UnknownUnit]
  * Ratio-1 and not an alias: the same rule `declaredUnitFor` applies at runtime.
  *
  * `Def<Candidate>["ratio"] extends 1` works because `as const` gives a literal type to
- * a literal ratio, while a COMPUTED one (`1/3.6`, `Math.PI/180`, `1/21_600`)
+ * a literal ratio, while a computed one (`1/3.6`, `Math.PI/180`, `1/21_600`)
  * widens to `number`, which does not extend `1`. So the filter picks out
  * exactly the base units without anyone maintaining a list.
  */
@@ -427,7 +427,7 @@ type ResName<Dimension> =
  * A computed dimension back to a resource token.
  *
  * The round-trip `Equal` is the safety net rather than a formality: a
- * dimension mentioning TWO resources makes `ResName` a union, every arm fails,
+ * dimension mentioning two resources makes `ResName` a union, every arm fails,
  * and the result degrades to `string`. That is what stops
  * `Food:u × Oxygen:kg/u` inventing a token for something incoherent.
  */

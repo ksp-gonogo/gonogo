@@ -98,7 +98,7 @@ public class PartActionEntry
 ///
 /// <para>It is a stream rather than a one-shot query because the action set is
 /// its own read-back. Invoking "Extend Solar Panel" changes this list to
-/// "Retract Solar Panel" one light-time later, which is how a client confirms a
+/// "Retract Solar Panel" one signal delay later, which is how a client confirms a
 /// delayed command landed without optimistically changing its own UI.</para>
 /// <internal>
 /// Registered as a dynamic namespace by Gonogo.KSP.VesselUplink; the element

@@ -21,7 +21,7 @@ export interface PartActionsRead {
  * `BaseEvent`s only while its topic has a subscriber, so the id is required
  * and callers mount only while a part is hovered or open: an idle ShipMap
  * costs nothing. The list is live, so it is also the read-back for an invoke
- * ("Extend" becomes "Retract" a light-time later), and nothing mutates
+ * ("Extend" becomes "Retract" a signal delay later), and nothing mutates
  * optimistically.
  */
 export function usePartActions(flightId: number): PartActionsRead {

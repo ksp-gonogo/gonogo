@@ -7,7 +7,7 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>career.status</c> capture surface: added THIS session so a
+    /// The <c>career.status</c> capture surface: added this session so a
     /// live recording carries KSC/career state (funds/reputation/science,
     /// facility levels+costs, contracts, strategies, unlocked tech count)
     /// alongside <c>system.*</c>/<c>vessel.*</c>. Mirrors
@@ -20,7 +20,7 @@ namespace Gonogo.KSP
     /// only: see <c>KspHost.BuildCareer</c>'s doc comment).
     ///
     /// <para>Alongside the read capture this uplink also carries the
-    /// career-write COMMANDS (accept/decline/cancel contract, upgrade facility,
+    /// career-write commands (accept/decline/cancel contract, upgrade facility,
     /// unlock tech, activate/deactivate strategy, hire/fire crew):
     /// <see cref="CareerCommandProvider"/>'s KSP-free <c>Handle*</c> glue
     /// against the <see cref="ICareerActuator"/> this uplink is constructed

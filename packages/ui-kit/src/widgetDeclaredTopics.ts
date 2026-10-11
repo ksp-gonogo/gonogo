@@ -18,7 +18,7 @@ export interface WidgetTopicDeclaration {
   channelsFromConfig?: (config: never) => readonly string[];
   /** The fields the widget draws, when that is fewer than its Topics carry. */
   fields?: readonly string[];
-  /** The legacy flat keys the widget reads. */
+  /** The flat data-source keys the widget reads, as `source.key` strings. */
   dataRequirements?: readonly string[];
 }
 

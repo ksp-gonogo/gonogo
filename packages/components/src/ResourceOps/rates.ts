@@ -14,7 +14,7 @@ export function rateDecimals(rate: Quantityish, base: number): number {
 }
 
 /**
- * Net ElectricCharge draw across every RUNNING converter (inputs minus
+ * Net ElectricCharge draw across every running converter (inputs minus
  * outputs), the one cheap power aggregate the shared shape supports: drills
  * carry no EC field of their own. A positive number draws power; negative
  * means the fleet is a net generator (e.g. a running fuel cell).

@@ -5,18 +5,18 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * Raw wire topics are multi-field RECORDS
+ * Raw wire topics are multi-field records
  * (`"time.warp"` carries `{ warpRate, warpRateIndex, warpMode, paused }` as
- * ONE payload: confirmed against the real
+ * one payload: confirmed against the real
  * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json`), but
  * The retired flat key vocabulary mapped old per-field keys to
- * dotted SUBTOPIC strings (`"t.currentRate" -> "time.warp.warpRate"`) for
+ * dotted subtopic strings (`"t.currentRate" -> "time.warp.warpRate"`) for
  * nearly every raw channel (`vessel.flight.*`, `vessel.orbit.*`,
  * `vessel.control.*`, `time.warp.*`, ...).
  *
  * Without the resolution this file exercises, `TimelineStore` would only
- * expose `"<parent>.<field>"` subtopic reads for a REGISTERED DERIVED
- * channel (`resolveDerivedTopic`): nothing would ever resolve a RAW
+ * expose `"<parent>.<field>"` subtopic reads for a registered derived
+ * channel (`resolveDerivedTopic`): nothing would ever resolve a raw
  * multi-field topic's dotted subtopic, because nothing ever publishes to the
  * literal wire topic `"time.warp.warpRate"`. A mapped raw-field key would
  * read blank forever, since
@@ -25,8 +25,8 @@ import { ViewClock } from "./view-clock";
  * stream" routing would silently be a dead end for every raw-record mapping
  * in the whole migration table, not just `time.warp`.
  *
- * The fix: `TimelineStore` ALSO resolves a dotted topic (3+ dot-segments, no
- * derived-channel match) against the timeline of the LONGEST KNOWN Topic id
+ * The fix: `TimelineStore` also resolves a dotted topic (3+ dot-segments, no
+ * derived-channel match) against the timeline of the longest known Topic id
  * the key starts with, walking the remaining segments as a nested field path
  * into that record's payload. Exercised here with `time.warp` (WarpControl's
  * own channel) and a synthetic nested example mirroring

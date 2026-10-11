@@ -5,7 +5,7 @@ import { renderHook } from "../../testing";
 import { useCoverageMaskCache } from "./CoverageMaskContext";
 
 /**
- * `useCoverageMaskCache` was a host SHIM until 2026-08-19, so an Uplink's hook would
+ * `useCoverageMaskCache` was a host shim until 2026-08-19, so an Uplink's hook would
  * read the app's cache rather than a bundled copy of the context. The context lives
  * in this package now, so there is no second copy and the hook is the real one.
  *

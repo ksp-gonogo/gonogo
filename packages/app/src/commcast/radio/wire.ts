@@ -4,16 +4,16 @@ import type { RecipientId } from "../types";
 
 /**
  * Live push-to-talk radio: what one operator says, streamed as Opus chunks and
- * played at the far end one light-time later.
+ * played at the far end one signal delay later.
  *
- * It is not an audio MESSAGE. Nothing is recorded, nothing is stored, and there
+ * It is not an audio message. Nothing is recorded, nothing is stored, and there
  * is no transcript: chunks play as they arrive and a listener who was not there
  * missed it, the same way they would have on a radio. That is why these frames
  * never touch `CommcastLog`'s message ledger.
  *
  * The wire is the mod. Chunks go up in batches as `commcast.radio.transmit`
  * commands and come down on the binary lane as `commcast.radio`, addressed to
- * the group's members and delivered to each one light-time after they were
+ * the group's members and delivered to each one signal delay after they were
  * spoken. See `CommcastModLink`.
  */
 
@@ -24,7 +24,7 @@ import type { RecipientId } from "../types";
  * On every chunk rather than once ahead of them, so each chunk is placeable on
  * its own: a listener that starts receiving partway through a keying (a screen
  * that joined the mesh late, a vantage a path has just reached) decodes from
- * wherever the stream is when it gets there, one light-time later at its own
+ * wherever the stream is when it gets there, one signal delay later at its own
  * vantage, with nothing replayed and nothing asked for. The cost is the envelope
  * repeated fifty times a second, a few hundred bytes a chunk against a data
  * channel that carries megabytes.
@@ -54,15 +54,15 @@ export interface RadioTransmission {
   startedUt: number;
   /**
    * The longest separation from the transmitter to a member it has a path to,
-   * frozen ONCE at key-down, or `null` for NO PATH to any of them.
+   * frozen once at key-down, or `null` for "NO PATH" to any of them.
    *
-   * Frozen per TRANSMISSION rather than per chunk, and that is load-bearing
+   * Frozen per transmission rather than per chunk, and that is load-bearing
    * rather than an optimisation. A separation re-read every 20 ms would move
    * each chunk's release instant independently across the grid, so the playout
    * would jitter and, on a shrinking separation, reorder syllables inside a
    * word. `CommsMessage.separationSeconds` freezes at send for the same reason.
    *
-   * The RECEIVER still resolves its own separation from the published matrix
+   * The receiver still resolves its own separation from the published matrix
    * where it can and falls back to this.
    */
   separationSeconds: number | null;
@@ -73,7 +73,7 @@ interface RadioFrameBase {
   transmissionId: string;
   /**
    * On every frame, `end` included, because it is what a screen drops its own
-   * voice on when the mod hands it back. The STATION key rather than the
+   * voice on when the mod hands it back. The station key rather than the
    * vantage: a host and a station at one centre share a vantage and still have
    * to hear each other.
    */
@@ -99,7 +99,7 @@ export type RadioFrame =
        *
        * Per chunk rather than per keying, so a member added mid-transmission
        * is addressed from the first chunk spoken after the change reached the
-       * transmitter, and hears the stream from there, one light-time later.
+       * transmitter, and hears the stream from there, one signal delay later.
        */
       to: readonly RecipientId[];
       /** 0-based within the transmission, monotonic. */

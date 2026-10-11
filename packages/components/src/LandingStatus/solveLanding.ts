@@ -1,9 +1,9 @@
 /**
  * The full-vector suicide-burn solve, client-side from `vessel.flight`, `vessel.propulsion`, `vessel.orbit` and `system.bodies`.
  *
- * The burn must null the whole velocity VECTOR: a vacuum landing is mostly a horizontal problem, and a vertical-only solve under-states the burn by orders of magnitude, firing too late. The model decelerates the full surface speed over the terrain height at `aNet = aMax - g`; it has no drag, so the widget suppresses it on atmospheric bodies.
+ * The burn must null the whole velocity vector: a vacuum landing is mostly a horizontal problem, and a vertical-only solve under-states the burn by orders of magnitude, firing too late. The model decelerates the full surface speed over the terrain height at `aNet = aMax - g`; it has no drag, so the widget suppresses it on atmospheric bodies.
  *
- * With the active engine's exhaust velocity and burnout mass it is a rocket-equation burn whose deceleration rises as mass falls, capped at the stage's fuel, so NO LANDING VECTOR means no achievable burn lands safely. Without them it falls back to `constantDecelBurn`.
+ * With the active engine's exhaust velocity and burnout mass it is a rocket-equation burn whose deceleration rises as mass falls, capped at the stage's fuel, so "NO LANDING VECTOR" means no achievable burn lands safely. Without them it falls back to `constantDecelBurn`.
  *
  * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, and this solves the ignition point of a burn nobody has fired from measurements at the view time. `timeToImpact` and `suicideBurnCountdown` describe an event that has not happened, so they are stale exactly as far as their inputs are, which the inputs' own Readings already label. The outputs also sit on no channel at all, neither a wire Topic nor a derived channel, and `registerReckoner` takes a `TopicId`.
  */
@@ -14,11 +14,11 @@ export type LandingSolutionState =
   | "no-solution";
 
 export interface SuicideBurnInputs {
-  /** Height of the vessel's LOWEST point above terrain, metres (the burn datum). */
+  /** Height of the vessel's lowest point above terrain, metres (the burn datum). */
   heightFromTerrain: number | undefined;
   /** Altitude above sea level, metres: used only to evaluate local gravity. */
   altitudeAsl: number | undefined;
-  /** Vertical speed, m/s; NEGATIVE while descending (KSP sign convention). */
+  /** Vertical speed, m/s; negative while descending (KSP sign convention). */
   verticalSpeed: number | undefined;
   /** Surface speed magnitude (full velocity vector), m/s. */
   surfaceSpeed: number | undefined;
@@ -30,7 +30,7 @@ export interface SuicideBurnInputs {
   availableThrust: number | undefined;
   /** Total (wet) vessel mass, tonnes (`vessel.propulsion.totalMass`). */
   totalMass: number | undefined;
-  /** Effective exhaust velocity ve = Isp * g0, m/s, of the ACTIVE engines (not a whole-vessel average); with `burnoutMass` it enables the rocket-equation model. */
+  /** Effective exhaust velocity ve = Isp * g0, m/s, of the active engines (not a whole-vessel average); with `burnoutMass` it enables the rocket-equation model. */
   exhaustVelocity?: number | undefined;
   /** Vessel mass, tonnes, when the active stage's fuel runs out; fuel available now is `totalMass - burnoutMass`. */
   burnoutMass?: number | undefined;
@@ -48,7 +48,7 @@ export interface LandingSolution {
   timeToImpact: number | null;
   /** Impact speed if nothing is done, full surface speed plus the drop's energy, m/s. */
   speedAtImpact: number | null;
-  /** Best achievable touchdown speed if the burn starts NOW, m/s (0 when it fits). */
+  /** Best achievable touchdown speed if the burn starts now, m/s (0 when it fits). */
   bestSpeedAtImpact: number | null;
   /** Propellant dV the full-vector burn consumes (includes gravity loss), m/s. */
   burnDeltaV: number | null;
@@ -138,7 +138,7 @@ function bisect(f: (t: number) => number, lo: number, hi: number): number {
  *
  * With mass flow mdot = F / ve, the along-vector speed is
  *   s(t) = surf + g*t + ve*ln(1 - t/tau),   tau = m0 / mdot
- * s falls strictly while TWR > 1, so the null time is a bisection root and the distance is s's closed-form integral. The burn is capped at t_fuel = (m0 - mdry) / mdot; failing to null within that or the remaining height is a genuine NO LANDING VECTOR.
+ * s falls strictly while TWR > 1, so the null time is a bisection root and the distance is s's closed-form integral. The burn is capped at t_fuel = (m0 - mdry) / mdot; failing to null within that or the remaining height is a genuine "NO LANDING VECTOR".
  */
 function rocketEquationBurn(
   surf: number,

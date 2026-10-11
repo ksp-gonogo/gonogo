@@ -10,7 +10,7 @@ namespace Gonogo.KSP
     /// <c>null</c> when there is no such instant.
     ///
     /// <para><b>Why reflection.</b> <c>IDateTimeFormatter</c> declares the
-    /// LENGTH of a minute, hour, day and year and nothing about which day it
+    /// length of a minute, hour, day and year and nothing about which day it
     /// is. Implementations that model a real calendar (RSSTimeFormatter,
     /// Kronometer) build every string by adding the UT to a <c>DateTime</c>
     /// they hold privately, and that field is not on the interface. RP-1

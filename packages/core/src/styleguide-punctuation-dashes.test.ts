@@ -36,7 +36,7 @@ import {
  * are excluded by construction rather than by a list somebody has to remember.
  *
  * The em dash stays with its own gate rather than moving here, because that gate
- * is STRICTER: zero, with no debt list at all. A character held to zero in one
+ * is stricter: zero, with no debt list at all. A character held to zero in one
  * place and to a budget in another is a character with two rules.
  *
  * This file never spells a forbidden character literally, using
@@ -52,7 +52,7 @@ const EN_DASH = String.fromCodePoint(0x2013);
 describe("design-system: punctuation dashes", () => {
   /**
    * The instrument check, before any assertion that can pass by finding
-   * nothing, and the sanctioned site asserted in BOTH directions.
+   * nothing, and the sanctioned site asserted in both directions.
    *
    * The scan only ever reads files `git grep` reported, so a pattern that
    * stopped matching, a wrong cwd, or a listing that errored into an empty
@@ -115,7 +115,7 @@ describe("design-system: punctuation dashes", () => {
   });
 
   /**
-   * The matcher against literal strings, so the gate can be seen to FAIL
+   * The matcher against literal strings, so the gate can be seen to fail
    * without touching the filesystem. A ratchet whose only evidence is a green
    * run has never been shown to refuse anything.
    */
@@ -206,10 +206,10 @@ describe("design-system: punctuation dashes", () => {
     /**
      * The list as it stood at the ratchet base.
      *
-     * `ratchetBaseRef` THROWS when no base can be reached, deliberately:
+     * `ratchetBaseRef` throws when no base can be reached, deliberately:
      * catching that and returning `undefined` would make an unreachable base
      * read as "nothing to check", turning the whole shrink guard into a pass.
-     * Undefined here means only that the checkout IS the base, or that the list
+     * Undefined here means only that the checkout is the base, or that the list
      * did not exist there, which is true of the commit that seeds it.
      */
     function baseAllowlist():
@@ -226,9 +226,9 @@ describe("design-system: punctuation dashes", () => {
     }
 
     /**
-     * An EXISTING entry may only fall, and that half never bends. A NEW entry
+     * An existing entry may only fall, and that half never bends. A new entry
      * is allowed only when the repo-wide total did not rise, which is what a
-     * file MOVE looks like: the same dashes under a different path, one key
+     * file move looks like: the same dashes under a different path, one key
      * removed and one added, total unchanged. Without that the gate fails on
      * every rename and the only way past it is to delete the check.
      */

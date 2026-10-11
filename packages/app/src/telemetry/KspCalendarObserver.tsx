@@ -11,7 +11,7 @@ import { useEffect } from "react";
  * A day is 21,600 seconds on stock Kerbin time. It is 86,400 in three
  * situations the app cannot detect for itself:
  *
- * - `GameSettings.KERBIN_TIME` is a STOCK setting a player can turn off, at
+ * - `GameSettings.KERBIN_TIME` is a stock setting a player can turn off, at
  *   which point KSP's own UI reads in 24-hour days and 365-day years.
  * - RSS, or anything else on Kopernicus, replaces `KSPUtil.dateTimeFormatter`
  *   outright.

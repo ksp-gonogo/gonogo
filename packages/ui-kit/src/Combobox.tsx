@@ -25,8 +25,9 @@ export interface ComboboxOption {
 }
 
 /**
- * Case-insensitive substring match against an option's label (falling back
- * to its key): the default filter every combobox consumer starts from.
+ * Case-insensitive substring match against an option's label (falling back to
+ * its key). Useful as the default filter for a combobox that narrows its
+ * options as the operator types. Used by {@link filterComboboxOptions}.
  *
  * @category Form
  */
@@ -43,7 +44,9 @@ export function comboboxOptionMatches(
 }
 
 /**
- * Filters `options` against `query` using `matches`, by default a case-insensitive substring match on the label or key.
+ * The options that match `query`, using `matches`, by default a
+ * case-insensitive substring match on the label or key. Useful for narrowing a
+ * combobox list as the operator types. Used by {@link DataKeyPicker}.
  *
  * @category Form
  */
@@ -56,10 +59,11 @@ export function filterComboboxOptions<Option extends ComboboxOption>(
 }
 
 /**
- * Buckets `options` by `.group` (default bucket `otherLabel`), sorted by
- * group name: the grouped-listbox shape combobox consumers render from.
- * Ungrouped callers (every option has no `group`) collapse to a single
- * `otherLabel` bucket, which renders as one flat list.
+ * Buckets `options` by `.group` (default bucket `otherLabel`), sorted by group
+ * name: the grouped-listbox shape a combobox renders from. Useful for putting
+ * headings above related options. Used by {@link DataKeyPicker} and
+ * {@link ActionMenu}. Options with no `group` collapse to a single `otherLabel`
+ * bucket, which renders as one flat list.
  *
  * @category Form
  */
@@ -81,7 +85,9 @@ export function groupComboboxOptions<Option extends ComboboxOption>(
 }
 
 /**
- * Flattens grouped options back into render and navigation order: the order ArrowUp and ArrowDown walk, and what `activeIndex` indexes into.
+ * Flattens grouped options back into render and navigation order: the order
+ * ArrowUp and ArrowDown walk, and what `activeIndex` indexes into. Used by
+ * {@link DataKeyPicker}.
  *
  * @category Form
  */
@@ -92,9 +98,11 @@ export function flattenComboboxGroups<Option extends ComboboxOption>(
 }
 
 /**
- * Steps the active (highlighted) index by `delta` for one ArrowUp/ArrowDown
- * keypress, clamped to `[0, length - 1]`; never wraps, never goes negative.
- * Returns `-1` when there is nothing to select (`length === 0`).
+ * Steps the active (highlighted) index by `delta` for one ArrowUp or ArrowDown
+ * keypress, clamped to `[0, length - 1]`; it never wraps and never goes
+ * negative. Returns `-1` when there is nothing to select (`length === 0`).
+ * Useful for keyboard navigation of a combobox list. Used by
+ * {@link DataKeyPicker}.
  *
  * @category Form
  */
@@ -148,14 +156,15 @@ export interface ComboboxListboxProps<Option extends ComboboxOption> {
 }
 
 /**
- * The presentational half of the combobox pattern: a `role="listbox"`
- * dropdown of grouped, keyboard-navigable options. Owns no state:
- * `activeIndex`, `onHoverIndex` and `onSelectKey` are fully controlled by the
- * caller, who drives them with {@link filterComboboxOptions},
- * {@link groupComboboxOptions}, {@link flattenComboboxGroups} and
- * {@link moveComboboxActiveIndex}. The list is absolutely positioned, so put it
- * in a `position: relative` container beside the input. Pressing an option
- * does not take focus from the input.
+ * The listbox half of the combobox pattern: a `role="listbox"` dropdown of
+ * grouped, keyboard-navigable options. Useful for letting the operator pick one
+ * value from a long, searchable list. Used by {@link DataKeyPicker} and the
+ * vantage control. It owns no state: `activeIndex`, `onHoverIndex` and
+ * `onSelectKey` are fully controlled by the caller, who drives them with
+ * {@link filterComboboxOptions}, {@link groupComboboxOptions},
+ * {@link flattenComboboxGroups} and {@link moveComboboxActiveIndex}. The list
+ * is absolutely positioned, so put it in a `position: relative` container
+ * beside the input. Pressing an option does not take focus from the input.
  *
  * @example
  * ```tsx

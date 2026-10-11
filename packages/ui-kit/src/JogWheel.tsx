@@ -4,7 +4,7 @@ import styled from "styled-components";
 import { focusRing } from "./focusRing";
 
 /**
- * What displacement MEANS.
+ * What displacement means.
  *
  * - `offset`: where the handle sits is the value. Needs bounds
  * - `rate`: where the handle sits is the speed the value changes at, and it
@@ -77,7 +77,7 @@ export type JogWheelProps =
       /** The highest value, when the control has one. */
       max?: number;
       /**
-       * How many `step`s per second at FULL displacement. The travel between
+       * How many `step`s per second at full displacement. The travel between
        * centre and full is what gives the fine end of the range, so this sets
        * the coarse end.
        */
@@ -87,7 +87,7 @@ export type JogWheelProps =
 /** Pixels of pointer travel per `step` of value. */
 const SENSITIVITY_PX_PER_STEP = 4;
 
-/** Pointer travel from centre to FULL rate, in rate mode. */
+/** Pointer travel from centre to full rate, in rate mode. */
 const RATE_TRAVEL_PX = 80;
 
 /** How often a held rate control emits, in ms. */
@@ -98,8 +98,9 @@ const DEFAULT_STEPS_PER_SECOND = 30;
 
 /**
  * The smallest either side of the wheel's box can be, in CSS px: WCAG 2.2 SC
- * 2.5.8 (Target Size, Minimum) at AA. Drag range is unaffected by the box, since the wheel captures
- * the pointer.
+ * 2.5.8 (Target Size, Minimum) at AA. Useful for keeping the wheel large enough
+ * for the operator to grab. Drag range is unaffected by the box, since the
+ * wheel captures the pointer.
  *
  * @category Form
  */
@@ -115,9 +116,10 @@ const DEFAULT_LONG_PX = 56;
 const DEFAULT_SHORT_PX = JOG_WHEEL_MIN_TARGET_PX;
 
 /**
- * Pure clamp + quantise: move `value` by `deltaSteps` of `step` (fractional
- * deltaSteps welcome, for pointer drag), clamp to `[min,max]`, and snap to the
- * step grid.
+ * The value after moving `value` by `deltaSteps` of `step` (fractional
+ * `deltaSteps` are allowed, for a pointer drag), clamped to `[min,max]` and
+ * snapped to the step grid. Useful for turning the operator's drag or key press
+ * on a dialled number into the new number.
  *
  * The grid is anchored at `min`. With an infinite `min` (an unbounded control),
  * the value moves by exactly the delta asked for and snaps to nothing.
@@ -138,11 +140,15 @@ export function applyDelta(
 }
 
 /**
- * A fine-grain tape scrubber against a fixed centre caret, for dialling a
- * number by small increments by pointer drag along its axis or by keyboard
- * (arrow keys move one `step`, Home and End go to `min` and `max`). A
- * focusable `role="slider"`; nothing is emitted while `disabled`. Sized with
- * `width` and `height` in CSS px, as {@link Dial} and {@link Tape} are.
+ * A fine-grain tape scrubber against a fixed centre caret, showing the number
+ * being dialled. Useful for letting the operator tune a number by small
+ * increments, by pointer drag along its axis or by keyboard (arrow keys move
+ * one `step`, Home and End go to `min` and `max`). Used by {@link UnitInput}
+ * for a quantity that is tuned by feel.
+ *
+ * It is a focusable `role="slider"`; nothing is emitted while `disabled`. It is
+ * sized with `width` and `height` in CSS px, as {@link Dial} and {@link Tape}
+ * are.
  *
  * Two limits:
  *

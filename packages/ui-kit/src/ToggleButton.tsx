@@ -37,7 +37,8 @@ export interface ToggleButtonProps
  * A two-state toggle: a real `<button>` whose `aria-pressed` follows `pressed`,
  * for controls that switch between on and off (mode pickers, filter toggles,
  * rate pickers). It draws as a {@link Button}, filled in `tone` while pressed
- * and plain while not.
+ * and plain while not. Useful for showing the operator which of several peer
+ * options is on. Used by the station radio push-to-talk and mute controls.
  *
  * ToggleButton or {@link Switch}? They are different ARIA patterns:
  *

@@ -6,7 +6,7 @@ using System.Threading;
 namespace Sitrep.Core
 {
     /// <summary>
-    /// C# port of <c>mod/sitrep-server/src/clock.ts</c>. Semantics MUST stay
+    /// C# port of <c>mod/sitrep-server/src/clock.ts</c>. Semantics must stay
     /// byte-for-byte identical to the TS reference: conformance is asserted by
     /// <c>Sitrep.Core.Tests</c> against the shared golden fixtures in
     /// <c>mod/golden-fixtures/clock.json</c>, not by re-deriving semantics here.
@@ -32,14 +32,14 @@ namespace Sitrep.Core
         /// <summary>
         /// C#-ONLY addition (no TS reference), added for M5b's quicksave
         /// UT-rewind fix (see <see cref="Courier.ResetTimeline"/>). Force the
-        /// clock's current UT to <paramref name="ut"/> UNCONDITIONALLY --
+        /// clock's current UT to <paramref name="ut"/> Unconditionally --
         /// including backward -- and drop every pending scheduled callback
         /// without firing it. This is deliberately different from
         /// <see cref="Schedule"/>'s counterpart <c>AdvanceTo</c>: that method
         /// only ever moves forward and fires due callbacks along the way,
         /// because normal play never rewinds. <see cref="Reset"/> is for the
         /// one case that genuinely does: the caller has independently
-        /// decided the OLD timeline is abandoned (e.g. a quickload), not
+        /// decided the old timeline is abandoned (e.g. a quickload), not
         /// merely paused, and wants a clean slate at the new UT.
         /// </summary>
         void Reset(double ut);
@@ -99,7 +99,7 @@ namespace Sitrep.Core
         /// non-cancelled pending callbacks with <c>AtUt &lt;= ut</c>, in
         /// ascending AtUt order (ties broken by insertion order). Advancing to
         /// a UT strictly before the current UT is a no-op (time never
-        /// rewinds, nothing fires): advancing to the SAME UT is allowed and
+        /// rewinds, nothing fires): advancing to the same UT is allowed and
         /// still processes any callbacks due at that UT.
         ///
         /// This drains rather than snapshotting the due batch up front: a
@@ -179,7 +179,7 @@ namespace Sitrep.Core
 
         /// <summary>
         /// See <see cref="IClock.Reset"/>. Clears every pending callback
-        /// (WITHOUT firing them -- they belong to the abandoned timeline)
+        /// (without firing them -- they belong to the abandoned timeline)
         /// and jumps <see cref="_currentUt"/> straight to <paramref name="ut"/>,
         /// forward or backward.
         /// </summary>

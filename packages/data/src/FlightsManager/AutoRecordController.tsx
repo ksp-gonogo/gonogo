@@ -46,7 +46,7 @@ export interface AutoRecordControllerProps {
    * The current KSP scene, read once at the app layer (`useGameContext()`)
    * and passed down: same pattern as `missionHistoryEnabled`/
    * `recordAllTopics` (this package has no access to the app's own
-   * telemetry-routing hooks). A transition AWAY from `"Flight"` finishes
+   * telemetry-routing hooks). A transition away from `"Flight"` finishes
    * and saves any in-progress recording: `vessel.*` topics stop ticking
    * outside the flight scene, so without this the `FlightDetector` tick
    * below would never fire again and a recording would be silently
@@ -63,7 +63,7 @@ export interface AutoRecordControllerProps {
  *
  * **Boundary approach: mod-native, not a client heuristic:** delimits
  * recordings on the mod's own `flight.started`/`flight.ended` events. The mod
- * mints the flight id (`Vessel.id`) and does ALL boundary detection
+ * mints the flight id (`Vessel.id`) and does all boundary detection
  * server-side, revert included, so this controller is a thin, event-driven
  * mirror. A client-side guess off `vesselName` + `missionTime` + a
  * revert threshold can only approximate any of that:
@@ -72,15 +72,15 @@ export interface AutoRecordControllerProps {
  *   one for the new flight.
  * - `flight.ended` (recovered/crashed/reverted/destroyed: the reason
  *   itself isn't needed here, only "this flight is over") closes the
- *   session for that SAME flight id. Because `flight.ended` is `Delayed`
- *   (rides the light-time reveal clock, same class as `crash.lastCrash`),
+ *   session for that same flight id. Because `flight.ended` is `Delayed`
+ *   (rides the signal delay reveal clock, same class as `crash.lastCrash`),
  *   it arrives right after the last pre-crash frame the operator actually
  *   sees: so the recording captures the full flight up to the crash with
  *   no special-casing, and under a real signal delay the recorder closes
  *   exactly when the operator's own view of the flight ends, not when it
  *   happened in real time.
  *
- * **The mod DOES republish `flight.started`, so a re-announce is ignored
+ * **The mod does republish `flight.started`, so a re-announce is ignored
  * here.** KSP is normally already running when the browser connects, and a
  * publish for a topic nobody holds is dropped, so the host re-announces the
  * open flight to whoever subscribes later (`FlightLifecycleSampler`). On a
@@ -91,8 +91,8 @@ export interface AutoRecordControllerProps {
  * second mission row for what the mod considers logically one flight.
  *
  * A re-announce is told from a genuinely new flight by `(flightId, ut)`, not
- * by id alone: a revert republishes `flight.started` for the SAME vessel id
- * and that one IS a new flight, distinguished only by carrying the
+ * by id alone: a revert republishes `flight.started` for the same vessel id
+ * and that one is a new flight, distinguished only by carrying the
  * revert-target UT where a re-announce carries the original launch instant.
  */
 export function AutoRecordController({
@@ -114,7 +114,7 @@ export function AutoRecordController({
 
   /**
    * Synchronous stop (grabs whatever's buffered) + fire-and-forget async
-   * save. Deliberately NOT awaited by callers before `recorder.start()`ing
+   * save. Deliberately not awaited by callers before `recorder.start()`ing
    * a fresh session: `stop()` itself is synchronous, so there's no capture
    * gap between finishing one flight's recording and starting the next; only
    * the IndexedDB write trails behind.

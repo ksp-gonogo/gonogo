@@ -16,7 +16,7 @@ namespace Gonogo.KSP
     /// <c>ContractSystem</c>/<c>ScenarioUpgradeableFacilities</c>/<c>Funding</c>,
     /// each call confirmed against this KSP version's actual API shapes via
     /// decompile (see each method's own comment for the specific call). Every
-    /// entity is resolved by the SAME stable id the READ side
+    /// entity is resolved by the same stable id the read side
     /// (<see cref="KspHost"/>'s career capture) already emits, so a client acts
     /// on exactly what it read.
     ///
@@ -27,11 +27,11 @@ namespace Gonogo.KSP
     /// main-thread pump before it reaches here; no KSP/Unity API below is ever
     /// touched from the Courier thread.</para>
     ///
-    /// <para>These are SPEND actions. The two paid paths that KSP does NOT bundle
+    /// <para>These are spend actions. The two paid paths that KSP does not bundle
     /// into a single self-deducting call (tech unlock and facility upgrade)
     /// reproduce the stock spend sequence explicitly (check affordability, deduct
     /// the currency, then apply), returning before any spend on an unaffordable
-    /// request. The paths KSP DOES bundle, <c>Strategy.Activate</c>/
+    /// request. The paths KSP does bundle, <c>Strategy.Activate</c>/
     /// <c>Deactivate</c> and <c>Contract.Accept</c>/<c>Decline</c>/<c>Cancel</c>,
     /// are self-gating and self-deducting, so a <c>false</c> return from them
     /// means "not valid in the current state" with no partial spend, surfaced as
@@ -62,7 +62,7 @@ namespace Gonogo.KSP
         ///
         /// <para>The concurrent-strategy cap is not declared as a gate on this
         /// command: it was, and it was wrong on RP-1, which exempts Leaders from
-        /// that cap and spends it on program SLOTS, so a raw count of active
+        /// that cap and spends it on program slots, so a raw count of active
         /// strategies darkened a control the game would have allowed. The
         /// off-screen route asks it only on a career that has not patched
         /// activation, where the roster count is exactly the screen's.</para>
@@ -141,7 +141,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// The real <c>Strategies.Strategy</c> behind
         /// <see cref="IStrategyCommitTarget"/>. Four one-line members, so the
-        /// commitment ORDER is testable without one.
+        /// commitment order is testable without one.
         /// </summary>
         private sealed class LiveStrategy : IStrategyCommitTarget
         {
@@ -230,7 +230,7 @@ namespace Gonogo.KSP
         /// Reproduces the stock research spend, in <c>RDTech.ResearchTech</c>'s
         /// own order: state, affordability, science-cost limit, deduct, unlock.
         ///
-        /// <para>The node's science cost lives on the STATIC tech tree:
+        /// <para>The node's science cost lives on the static tech tree:
         /// <c>ResearchAndDevelopment.GetTechState</c> only returns a node once
         /// it's already been researched/started, so it can't price a
         /// not-yet-unlocked tech; the cost is read off
@@ -343,7 +343,7 @@ namespace Gonogo.KSP
         /// Offered) and applies its own funds advance, so a <c>false</c> return
         /// means the contract wasn't in an acceptable state.
         ///
-        /// <para>Mission Control's active-contract cap is checked HERE because
+        /// <para>Mission Control's active-contract cap is checked here because
         /// nothing else will. Stock enforces it only in
         /// <c>MissionControl.RefreshUIControls</c>, which greys its own Accept
         /// button; <c>Contract.Accept()</c> gates on state alone, so any caller
@@ -389,7 +389,7 @@ namespace Gonogo.KSP
         /// transform are the same two halves, so this asks rather than
         /// reimplements.</para>
         ///
-        /// <para>Fails OPEN when the <c>SpaceCenterBuilding</c> cannot be found:
+        /// <para>Fails open when the <c>SpaceCenterBuilding</c> cannot be found:
         /// a gate we cannot evaluate must not refuse something stock allows,
         /// the same direction as the contract cap below.</para>
         /// </summary>
@@ -456,7 +456,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Mission Control's cap on simultaneously accepted contracts, or null
-        /// when there is room (or nothing to read it from, which fails OPEN: a
+        /// when there is room (or nothing to read it from, which fails open: a
         /// gate we cannot evaluate must not refuse something stock allows).
         /// </summary>
         private static LimitBreach? ActiveContractCapBreach(ContractSystem system)
@@ -472,7 +472,7 @@ namespace Gonogo.KSP
                 gameVariables.GetActiveContractsLimit(norm));
         }
 
-        /// <summary>The contract's state as the GAME names it: <c>Contract.State</c>'s ten members are each <c>[Description]</c>-tagged.</summary>
+        /// <summary>The contract's state as the game names it: <c>Contract.State</c>'s ten members are each <c>[Description]</c>-tagged.</summary>
         private static string ContractStateName(Contract contract) =>
             $"the contract is {GameWords.Phrase(contract.ContractState)}";
 
@@ -484,7 +484,7 @@ namespace Gonogo.KSP
         /// <c>GetUpgradeCost()</c> (the cost to the next tier), check funds,
         /// deduct, then raise the level through <see cref="FacilityLiveness.Upgrade"/>,
         /// which fires the finishing GameEvent that <c>SetLevel</c> skips on an
-        /// inactive component. <c>SetLevel</c> does NOT deduct: the level increment
+        /// inactive component. <c>SetLevel</c> does not deduct: the level increment
         /// and the fund deduction are separate steps, so an unaffordable request
         /// returns before any spend.
         ///
@@ -702,7 +702,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Reproduces the stock Astronaut Complex hire. Resolves the applicant by
-        /// the SAME <c>ProtoCrewMember.name</c> the read side emits, against the
+        /// the same <c>ProtoCrewMember.name</c> the read side emits, against the
         /// live pool (<c>KerbalRoster.Applicants</c>); a name that no longer
         /// resolves (a stale pool: hired since, or KSP refreshed it) fails
         /// <see cref="CommandErrorCode.NotFound"/>. Guards the Astronaut Complex
@@ -718,7 +718,7 @@ namespace Gonogo.KSP
         /// and <c>onCrewHired</c> is
         /// <c>AddFunds(-GameVariables.Instance.GetRecruitHireCost(crewCount), CrewRecruited)</c>.
         /// Stock's own Astronaut Complex calls <c>HireApplicant</c> and nothing
-        /// else, for exactly this reason. The event fires BEFORE the applicant
+        /// else, for exactly this reason. The event fires before the applicant
         /// becomes crew, so the count it carries is the same pre-hire count the
         /// price below was quoted at, and a console hire that also debited was
         /// charged precisely double.</para>
@@ -788,14 +788,14 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Reproduces the stock Astronaut Complex fire (the inverse of <see cref="HireApplicant"/>).
-        /// Resolves the kerbal by the SAME <c>ProtoCrewMember.name</c> the read
+        /// Resolves the kerbal by the same <c>ProtoCrewMember.name</c> the read
         /// side emits, against the live hired-crew roster (<c>KerbalRoster.Crew</c>);
         /// a name that doesn't resolve there fails
         /// <see cref="CommandErrorCode.NotFound"/>. <c>KerbalRoster.SackAvailable</c>
         /// is itself self-gating (decompile-confirmed: it silently no-ops, logging
         /// an error, on anything other than an Available crew kerbal) rather than
         /// throwing or reporting failure, so the <c>rosterStatus</c> check happens
-        /// HERE first, before ever calling it, so an Assigned/Dead/Missing kerbal
+        /// here first, before ever calling it, so an Assigned/Dead/Missing kerbal
         /// comes back a typed <see cref="CommandErrorCode.WrongState"/> naming
         /// their standing, instead of a silent no-op. No funds change hands
         /// either way, this is a free, reversible action.

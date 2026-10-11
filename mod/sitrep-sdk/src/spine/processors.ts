@@ -110,7 +110,7 @@ export interface SubjectDep<
    * `Fixed` is the prefix of the model's own deps this selector reads, declared
    * so it destructures typed. Without it `resolved` is `readonly unknown[]` and
    * every selector opens with an assertion out of `unknown`, which is the thing
-   * `unknown-cast` exists to stop. Declared as a METHOD rather than a property
+   * `unknown-cast` exists to stop. Declared as a method rather than a property
    * so the bivariance lets a selector over a narrow tuple still satisfy the
    * `SubjectDep<unknown>` the `Dep` union carries.
    */

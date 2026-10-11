@@ -76,7 +76,7 @@ describe("LaunchDirector crew selection", () => {
     teardownMockDataSource(cmdFixture);
   });
 
-  /** Rendered TALL by default so the crew grid stands open; the fold's own tests pass a short `h`. */
+  /** Rendered tall by default so the crew grid stands open; the fold's own tests pass a short `h`. */
   function renderWidget(id = "ld", h = 18) {
     return render(
       <stream.Provider>

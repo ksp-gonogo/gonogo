@@ -12,13 +12,13 @@ import {
 } from "./binary-frame";
 
 /**
- * The client half of the binary lane, held against the SAME layout the C#
+ * The client half of the binary lane, held against the same layout the C#
  * writer produces. The conformance itself is asserted in
  * `mod/Sitrep.Core.Tests/BinaryFrameCodecTests.cs` (a round trip through the
  * real transport); what this file owns is the reading of a frame and, more
  * importantly, the refusal of one that is wrong.
  *
- * The frames here are BUILT BY HAND rather than by calling an encoder from this
+ * The frames here are built by hand rather than by calling an encoder from this
  * module, deliberately. There is no encoder here to call: the client never
  * writes this lane, so a test that round-tripped through a local encoder would
  * be checking this file against itself and would agree with a wrong layout
@@ -107,7 +107,7 @@ describe("decodeBinaryFrame", () => {
    * `Uint8Array`, never a bare `ArrayBuffer`, and asserted rather than assumed.
    * The PeerJS radio path carries a written-down scar from exactly this
    * substitution: a decoder takes either happily, so the defect is invisible
-   * until something INDEXES the bytes and every element reads `undefined`.
+   * until something indexes the bytes and every element reads `undefined`.
    */
   it("hands back indexable Uint8Arrays, not ArrayBuffers", () => {
     const result = decodeBinaryFrame(wellFormed(SEGMENTS));
@@ -120,7 +120,7 @@ describe("decodeBinaryFrame", () => {
   });
 
   /**
-   * PLANTED CONTROL. Every frame the protocol writes as text opens with `{`,
+   * Planted control. Every frame the protocol writes as text opens with `{`,
    * and the discriminator's whole claim is that none of them can be mistaken
    * for a binary one. Checked against realistic envelope JSON rather than a
    * bare brace.
@@ -153,8 +153,8 @@ describe("decodeBinaryFrame", () => {
   });
 
   /**
-   * PLANTED CONTROL, and the reason the lane byte exists. An unknown lane must
-   * be refused BY NAME and never fall through to a UTF-8 decoder: doing so
+   * Planted control, and the reason the lane byte exists. An unknown lane must
+   * be refused by name and never fall through to a UTF-8 decoder: doing so
    * turns compressed bytes into replacement characters that then fail JSON
    * parsing somewhere else, having discarded the one fact worth reporting.
    */
@@ -170,8 +170,8 @@ describe("decodeBinaryFrame", () => {
   });
 
   /**
-   * PLANTED CONTROL for absence discipline. The temptation this rules out is
-   * returning the segments that DID arrive whole, which hands a listener a
+   * Planted control for absence discipline. The temptation this rules out is
+   * returning the segments that did arrive whole, which hands a listener a
    * fragment of a transmission with nothing to say it is one.
    */
   it("treats a truncated frame as unread rather than partially delivered", () => {
@@ -197,7 +197,7 @@ describe("decodeBinaryFrame", () => {
   });
 
   /**
-   * Zero segments is LEGAL and means "this producer had nothing to say this
+   * Zero segments is legal and means "this producer had nothing to say this
    * tick". The pairing with the truncation test above is the real assertion:
    * same empty segment list, opposite verdict.
    */

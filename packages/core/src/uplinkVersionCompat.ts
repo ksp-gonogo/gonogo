@@ -28,9 +28,9 @@ export { EXTENSION_API_VERSION };
  * consumer) doesn't need to reach into the app package for it.
  *
  * Not identical to `UplinkVersionDescriptor`, and deliberately not merged
- * into it: this type is the sidecar manifest a single BUNDLE ships (`id` +
+ * into it: this type is the sidecar manifest a single bundle ships (`id` +
  * one version's worth of gate fields), while `UplinkVersionDescriptor` is one
- * entry in the Hub/registry INDEX's per-uplink `versions[]` list (no `id`,
+ * entry in the Hub/registry index's per-uplink `versions[]` list (no `id`,
  * that lives on the parent `UplinkDescriptor`: plus loader-only concerns
  * like `bundleUrl`/`expectedClientHash` this module never touches). The
  * loader (`packages/app/src/uplinks/loader.ts`) maps an
@@ -65,7 +65,7 @@ export interface GonogoUplinkManifest {
   contractMinor: number;
   integrity: string;
   /**
-   * What the Uplink is as a DISTRIBUTION, written by `uplink-tools` from the
+   * What the Uplink is as a distribution, written by `uplink-tools` from the
    * author's `uplink.json`.
    *
    * Optional and unchecked, like `description`: a manifest generated before these

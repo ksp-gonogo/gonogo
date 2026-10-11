@@ -212,7 +212,7 @@ export interface TinyEssential {
   /**
    * Whether the word is urgent now, so the kit interrupts to say it rather than
    * announcing it politely, once each time it becomes urgent or changes while
-   * urgent. For a state that must interrupt, as ABORT does, and nothing softer.
+   * urgent. For a state that must interrupt, as `ABORT` does, and nothing softer.
    * Set it on every render, `false` while the word is ordinary: a screen
    * reader interrupts reliably only when the place it speaks from was already
    * on the page before the urgent word arrived.
@@ -507,8 +507,8 @@ export type SlotId = keyof SlotRegistry;
 
 /**
  * An open record when the id has been erased to `string`, which is what a
- * REGISTRY READ holds: it fished the value out by a string key and knows
- * nothing about what was declared. `never` for an id that IS named and that
+ * registry read holds: it fished the value out by a string key and knows
+ * nothing about what was declared. `never` for an id that is named and that
  * nothing declares, so a typo describes no shape at all.
  */
 type ErasedOrNever<Slot extends string> = string extends Slot
@@ -657,7 +657,7 @@ export interface StatEntry {
    */
   value?: Value | Reading<Value> | null;
   /**
-   * The figure when it is NOT a quantity: an occupancy ("3 / 13"), a name, a
+   * The figure when it is not a quantity: an occupancy ("3 / 13"), a name, a
    * bare count of things that carry no unit. Ignored when {@link value} is
    * given, which is the one that gets unit rendering.
    */
@@ -848,7 +848,7 @@ export type AnyModSettingDep = {
 }[keyof ModSettingsRegistry & string];
 
 /**
- * The KEY the aggregation writes one dep's value under: a Topic id under
+ * The key the aggregation writes one dep's value under: a Topic id under
  * itself, a Processor under its owner-stamped id.
  */
 type DepKey<Dependency> = Dependency extends string
@@ -876,7 +876,7 @@ type DepKey<Dependency> = Dependency extends string
       : never;
 
 /**
- * The VALUE that arrives under that key.
+ * The value that arrives under that key.
  *
  * <para>A Topic arrives as its reading, so a contribution can tell a current
  * value from a held one and draw each as what it is. `"pending"` is no point
@@ -887,7 +887,7 @@ type DepKey<Dependency> = Dependency extends string
  * that wants a modelled figure depends on a processor with a `{ reading }`
  * dep, which is handed the whole reading.</para>
  *
- * <para>A PROCESSOR dep tracks the evaluator exactly: a processor whose own
+ * <para>A processor dep tracks the evaluator exactly: a processor whose own
  * deps include a reading returns a `Reading`, dated by those inputs, and that
  * is the value a contribution is handed.</para>
  */
@@ -1622,7 +1622,7 @@ export type Screen = "main" | "station" | "pilot";
  *
  * A seat is where the operator sits: at mission control, or aboard the craft as
  * the pilot ({@link Seat}). It is worked out from the screen ({@link seatOf}),
- * and every rule that cares about light-time is a rule about the seat, never
+ * and every rule that cares about signal delay is a rule about the seat, never
  * about the screen.
  *
  * The two meet in {@link ComponentDefinition.seats}, which says at which seats
@@ -1664,14 +1664,14 @@ export interface SettingsTabDefinition {
 }
 
 /**
- * `registerSetting` is the PREFERRED way an Uplink surfaces a setting: a
+ * `registerSetting` is the preferred way an Uplink surfaces a setting: a
  * declarative row the app renders and (for client-pref) persists, without a
  * bespoke tab. Reach for `registerSettingsTab` only when a setting's UI
  * genuinely can't be a row.
  *
  * Re-exported, never restated. The registry is `../spine/settings-registry`,
  * inside this package, so this leaf can name its declarations directly. A
- * hand-copied MIRROR gives two unions meaning the same thing, and they drift:
+ * hand-copied mirror gives two unions meaning the same thing, and they drift:
  * `readOnly`, `"number"` and `group` all had to be unpicked from one.
  */
 export type {
@@ -1999,7 +1999,7 @@ export interface HostIceServers {
  * `useUplinkRelay` and `useHostIceServers` give a widget, bound to that Uplink.
  *
  * `relay` reaches the Uplink's registered handle on the main screen, which is
- * the only thing a station talks to. `iceServers` carries the TURN credentials
+ * the only thing a station talks to. `iceServers` carries the turn credentials
  * the main screen broadcasts, for a media connection the Uplink opens from the
  * station itself.
  *
@@ -2008,7 +2008,7 @@ export interface HostIceServers {
 export interface StationBroker {
   /** Calls a method of the Uplink's registered handle on the main screen and resolves with what it returns. */
   relay: UplinkRelay;
-  /** The TURN and STUN servers the main screen is broadcasting, and a way to hear when they change. */
+  /** The turn and STUN servers the main screen is broadcasting, and a way to hear when they change. */
   iceServers: HostIceServers;
 }
 

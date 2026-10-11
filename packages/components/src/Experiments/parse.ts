@@ -71,7 +71,7 @@ export interface LabStatus {
   scienceRate: number | null;
   /** The value model its rate and data figures are in; `null` when the provider did not tag the lab. */
   valueModel: string | null;
-  /** Null when the provider could not read it; OFFLINE is a diagnosis, not a failed read. */
+  /** Null when the provider could not read it; offline is a diagnosis, not a failed read. */
   isOperational: boolean | null;
 }
 

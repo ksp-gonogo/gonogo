@@ -74,7 +74,7 @@ export interface AlarmHostOptions {
   tickIntervalMs?: number;
   storage?: Storage;
   /**
-   * One-way light time to the craft, seconds. Defaults to the live
+   * One-way signal delay to the craft, seconds. Defaults to the live
    * `comms.delay` reading; a test injects its own.
    */
   getOwltSeconds?: () => number;
@@ -85,7 +85,7 @@ export interface AlarmHostOptions {
  *
  * Read through `sampleActiveTopic` because this is a headless service with no
  * widget to hang a hook on, the same way it reads `vessel.control` to resolve
- * an action group. A null `oneWaySeconds` means NO PATH rather than a measured
+ * an action group. A null `oneWaySeconds` means "NO PATH" rather than a measured
  * zero, but for the one thing this feeds (how much room to leave at the end of
  * a warp) an unmeasurable link and a LAN link both come back to the operator's
  * own configured margin, so both collapse to 0 here.
@@ -116,7 +116,7 @@ type ActionGroupDispatch =
 
 /**
  * Why a toggle had nothing safe to invert, separating the two conditions a
- * bare payload cannot tell apart: a reading that is merely OLD, and one that
+ * bare payload cannot tell apart: a reading that is merely old, and one that
  * never came. Both end in the same refusal, and an operator chasing a group
  * that did not move needs to know which.
  */
@@ -136,7 +136,7 @@ function toggleRefusal(
 /**
  * Fire one action group, named by the id a save spells it with.
  *
- * Resolves the id against the LIVE registry, because the custom half of it is
+ * Resolves the id against the live registry, because the custom half of it is
  * whatever the elected backend reports: an id naming a group this vessel does
  * not have resolves to nothing and dispatches nothing, which is the honest
  * answer for a saved action whose group is gone.
@@ -147,13 +147,13 @@ function toggleRefusal(
  * epoch, so a bare payload cannot say whether the state it carries is the
  * vessel's now or the one a widget last saw before it unmounted. Only an
  * `observed` reading is inverted. `vessel.control` has no relative form to fall
- * back on (every actuation command in the contract is an ABSOLUTE set, which is
+ * back on (every actuation command in the contract is an absolute set, which is
  * the point of the toggle-to-absolute bridge existing at all), so a held
  * reading refuses, and the refusal reaches the alarm's own row.
  *
- * The group NAMES are taken off a held reading too, the same way
+ * The group names are taken off a held reading too, the same way
  * `useActionGroups` does: "AG1: Solar Panels" is still called that whatever the
- * link is doing. Only the VALUE decays.
+ * link is doing. Only the value decays.
  */
 function dispatchActionGroup(actionGroupId: string): ActionGroupDispatch {
   const reading = sampleActiveReading<VesselControl>("vessel.control");
@@ -391,7 +391,7 @@ export class AlarmHostService {
    *
    * `requestedBy` marks one an Uplink asked for, and makes the call idempotent
    * for that Uplink: `(uplinkId, key)` identifies one alarm, so a repeat
-   * request RETARGETS the existing row rather than adding a second. Without
+   * request retargets the existing row rather than adding a second. Without
    * that a widget whose button fires the request twice, or one re-issuing it
    * after a reconnect, would grow the operator a pile of near-identical rows
    * they never asked for and would have to delete one at a time.
@@ -614,7 +614,7 @@ export class AlarmHostService {
   /**
    * The simulation fired an alarm and has already stopped the warp.
    *
-   * Records the instant it reported on `eventUT`, the UT the thing HAPPENED,
+   * Records the instant it reported on `eventUT`, the UT the thing happened,
    * as opposed to the reveal UT that opens the banner window.
    *
    * Idempotent, because the notice is deliberately replayed to a client that
@@ -737,7 +737,7 @@ export class AlarmHostService {
    * Move an alarm to `nextState` and pay whatever the move owes. Returns
    * whether the state changed.
    *
-   * A fire is keyed on entering `firing` OR `fired` from a state that had not
+   * A fire is keyed on entering `firing` or `fired` from a state that had not
    * fired, so no route can leave an alarm fired without the operator having
    * been told. No warp command on the way: the simulation stopped the warp in
    * the frame the alarm fired.

@@ -6,7 +6,7 @@
  * living in a private package. It names nothing but React.
  *
  * `Seat` and its three helpers ride along for the same reason: a widget's
- * availability and a message's light-time are both questions about the seat
+ * availability and a message's signal delay are both questions about the seat
  * rather than the screen, and every app-side caller reaches them through here.
  *
  * Re-exported so this package's importers keep their import site.

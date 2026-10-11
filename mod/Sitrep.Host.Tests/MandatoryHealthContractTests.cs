@@ -6,11 +6,11 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The runtime witness that health is now MANDATORY. The
+    /// The runtime witness that health is now mandatory. The
     /// real enforcement is COMPILE-TIME, <c>Health()</c> is a required member of
-    /// <see cref="ISitrepUplink"/> with NO default, so an uplink that omits it does
+    /// <see cref="ISitrepUplink"/> with no default, so an uplink that omits it does
     /// not compile. A compile failure can't be a runtime test, so
-    /// these assert the contract SHAPE instead, catching a regression that would make
+    /// these assert the contract shape instead, catching a regression that would make
     /// health optional again (a re-added default, a moved method, a resurrected
     /// companion interface).
     /// </summary>

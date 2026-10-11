@@ -18,12 +18,12 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 /**
  * The page a scene is rendered in, built once per run.
  *
- * The browser entry is GENERATED rather than owned by each Uplink, and that is
+ * The browser entry is generated rather than owned by each Uplink, and that is
  * load-bearing rather than tidy. The sdk's author surface is host-injected shims,
  * so a widget's module-load `registerComponent` throws against an uninstalled
- * host; static ES imports are hoisted above every statement, so an entry that
+ * host; static es imports are hoisted above every statement, so an entry that
  * installs the host and then side-effect-imports the client is correct only by
- * import ORDER, which an import sorter is free to change. Generating the entry
+ * import order, which an import sorter is free to change. Generating the entry
  * moves that footgun out of every author's file into one place with no lines for
  * a sorter to move.
  */
@@ -95,29 +95,29 @@ function posix(path: string): string {
 /**
  * One copy of the kit in the page, pinned to the file a consumer would get.
  *
- * `render-probe` reaches the kit by its own package NAME so the built file stays
+ * `render-probe` reaches the kit by its own package name so the built file stays
  * a consumer of it, and this package's `tsconfig.json` maps that self-reference
  * back to `src/` for typechecking. esbuild honours the tsconfig nearest the
- * importing file, so bundling `dist/render-probe.js` pulled in the SOURCE kit
+ * importing file, so bundling `dist/render-probe.js` pulled in the source kit
  * while every other importer got `dist/`: two augment registries, `registerAugment`
  * writing to a Map `<AugmentSlot>` never reads, which is the exact failure this
  * harness's header says having one probe was meant to prevent. It cost nothing
  * while an augment was only ever mounted in a stand-in host built from the same
- * copy; a scene naming a REAL host in another package is the first thing that
+ * copy; a scene naming a real host in another package is the first thing that
  * puts the two halves on opposite sides.
  *
  * Pinned to `dist` rather than `src` because that is what a third-party author
  * resolves, and a harness that renders something nobody else can run is not the
  * harness.
  *
- * ## The two halves resolve from DIFFERENT places, and that is the whole care
+ * ## The two halves resolve from different places, and that is the whole care
  *
  * This used to be one loop over three siblings, correct only because all three
  * shipped from `@ksp-gonogo/ui-kit`. They no longer do:
  *
- *   - `render-probe` is a sibling of THIS file, in `@ksp-gonogo/uplink-tools`
+ *   - `render-probe` is a sibling of this file, in `@ksp-gonogo/uplink-tools`
  *   - the kit and its `/testing` subpath are a different package entirely, and
- *     must be the copy the AUTHOR installed, for the same reason `react` is
+ *     must be the copy the author installed, for the same reason `react` is
  *
  * Left as `join(HERE, ...)`, the kit's two entries would simply not be found,
  * `existsSync` would skip them, and the page would silently carry two kits.
@@ -166,11 +166,11 @@ function nearestPackageDir(dir: string, pkg: string): string | undefined {
 }
 
 /**
- * Everything else that must be ONE copy in the page, pinned to the Uplink's
+ * Everything else that must be one copy in the page, pinned to the Uplink's
  * own resolution of it.
  *
  * The kit was not the only package that can arrive twice, only the first one
- * noticed. A `--with` module lives OUTSIDE the Uplink's package, so esbuild
+ * noticed. A `--with` module lives outside the Uplink's package, so esbuild
  * resolves its imports from that module's own `node_modules` rather than the
  * Uplink's, and when the two are separate installs (a published Uplink beside a
  * checkout of this repo, which is the case `--with` exists for) every shared
@@ -179,34 +179,34 @@ function nearestPackageDir(dir: string, pkg: string): string | undefined {
  * React is the one that bites, and it bites in a way that reads as a bug in the
  * widget: an augment mounted inside a cross-package host threw "Cannot read
  * properties of null (reading 'useEffect')" from its first hook, because the
- * copy it called had no current dispatcher, the copy RENDERING it did. A
- * CONTRIBUTION scene survives this, which is why it went unnoticed: a
+ * copy it called had no current dispatcher, the copy rendering it did. A
+ * contribution scene survives this, which is why it went unnoticed: a
  * contribution is data its host draws, so no module from the Uplink ever
- * renders and no second React is ever entered. An augment supplies a COMPONENT,
+ * renders and no second React is ever entered. An augment supplies a component,
  * and is the first thing to run hooks from both sides at once.
  *
  * styled-components duplicates into two theme contexts and two stylesheets, so
  * one side of the page renders unthemed.
  *
- * The sdk is deliberately NOT on this list. Its registries live on `globalThis`
+ * The sdk is deliberately not on this list. Its registries live on `globalThis`
  * and are already shared, which is what makes a cross-package host resolvable
  * at all; its `createContext` spine is not, so a second copy would read no
  * telemetry. Pinning it needs a resolver that honours an `import`-only exports
  * map, which the one here is not, and nothing has yet been seen to break for
  * want of it. It belongs on this list the day something does.
  *
- * Pinned to the UPLINK's copy, for the same reason the kit is pinned to `dist`:
+ * Pinned to the uplink's copy, for the same reason the kit is pinned to `dist`:
  * an Uplink is what the render is of, so its resolution is the honest one. With
  * one install in play every entry resolves to what esbuild would have chosen
  * anyway and the whole map is inert.
  *
- * Each value is the package DIRECTORY, never the entry file, and both halves of
- * that were measured. esbuild substitutes an alias at the START of the import
+ * Each value is the package directory, never the entry file, and both halves of
+ * that were measured. esbuild substitutes an alias at the start of the import
  * path, so a file value turns `react-dom/test-utils` into
  * `.../react-dom/index.js/test-utils` and fails the build; and a file value
  * picked by a CJS resolver is the package's CJS half, which for
  * styled-components pulled in Node's `stream` and failed the build a second
- * way. A directory leaves the subpath and the export CONDITION to esbuild,
+ * way. A directory leaves the subpath and the export condition to esbuild,
  * which is the half of resolution that was never the problem.
  */
 export function oneCopyPerPage(dir: string): Record<string, string> {

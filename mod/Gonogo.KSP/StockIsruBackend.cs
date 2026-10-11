@@ -6,12 +6,12 @@ using Sitrep.Contract;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The always-present VANILLA ISRU backend: the structural counterpart to
+    /// The always-present vanilla ISRU backend: the structural counterpart to
     /// <see cref="StockActionGroupsBackend"/>, registered as the <c>"isru"</c>
     /// capability's <c>Vanilla</c> factory by
     /// <see cref="IsruCoreUplink.DeclareCapabilities"/>.
     ///
-    /// <para>This is a REAL reader: stock KSP models ISRU with two part modules
+    /// <para>This is a real reader: stock KSP models ISRU with two part modules
     /// and this walks both. An empty list means the active vessel carries no
     /// drills or converters, which is a fact about the vessel, not a gap in the
     /// backend.</para>

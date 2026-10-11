@@ -13,14 +13,14 @@
  * test. No augment is bound to its body, so the fix is visible as the whole
  * tab going blank rather than the old placeholder text.
  *
- * Deliberately NOT registered in `widgets.ts`, for the reason
+ * Deliberately not registered in `widgets.ts`, for the reason
  * `render-eligibility-unknown.ts` gives: that file is the visual gate's
  * input, and a scene added to it with no committed baseline fails the gate
- * as MISSING. This exists to be looked at by a person.
+ * as missing. This exists to be looked at by a person.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-admin-building-no-departments`.
  * Pass `--out <dir>` to write somewhere other than this checkout's
- * `local_docs`, which is how the BEFORE half is captured without the two
+ * `local_docs`, which is how the before half is captured without the two
  * runs overwriting each other.
  */
 import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";

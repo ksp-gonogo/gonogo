@@ -15,15 +15,15 @@ import type { RadioControl } from "./useRadio";
  * The push-to-talk key, at the top right of the widget's own bar, opposite the
  * heading that says which view the operator is in.
  *
- * **A LATCH, not hold-to-talk, and that is an accessibility decision rather
+ * **A latch, not hold-to-talk, and that is an accessibility decision rather
  * than a preference.** Press-and-hold on a real `<button>` has no keyboard
  * equivalent: `keydown` autorepeats, and a Space or Enter `keyup` is not
  * guaranteed to pair with the `keydown` that started it. A latching toggle is
  * operable identically by mouse, touch and keyboard, and `ToggleButton` carries
  * `aria-pressed` for it automatically. Hold-to-talk on pointer events may be
- * ADDED later; it must never become the only way to key the microphone.
+ * added later; it must never become the only way to key the microphone.
  *
- * **The label is FIXED, and the state is carried beside it.** A label that
+ * **The label is fixed, and the state is carried beside it.** A label that
  * changed per state would be two words of different width on the one control
  * an operator presses twice in a row: the second press would land where the
  * first one was and the button would no longer be there. The pressed state is
@@ -31,37 +31,37 @@ import type { RadioControl } from "./useRadio";
  * and the accessible name stays "Talk" through every state so a screen reader
  * is never told the control was renamed at the instant it changed.
  *
- * The state is announced once through a polite live region, and the input LEVEL
+ * The state is announced once through a polite live region, and the input level
  * deliberately is not: a meter updating at frame rate through `aria-live` floods
  * a screen reader with a reading nobody asked to hear continuously.
  */
-/** One captured chunk is 20 ms, so a light-time converts to that many samples. */
+/** One captured chunk is 20 ms, so a signal delay converts to that many samples. */
 const CHUNK_SECONDS = 0.02;
 
 /**
- * What the operator's voice IS on the rail's three axes.
+ * What the operator's voice is on the rail's three axes.
  *
- * One axis is declared and two are read: CONTINUITY is `continuous` because an
+ * One axis is declared and two are read: continuity is `continuous` because an
  * open microphone occupies a span of time rather than being an event, which is
- * a fact about this producer and nothing else can know it. DIRECTION and
- * DELIVERY come from `railTagsForTelemetry` itself: nothing is being asked of
+ * a fact about this producer and nothing else can know it. Direction and
+ * delivery come from `railTagsForTelemetry` itself: nothing is being asked of
  * anyone, and there is no reply channel for an ack to arrive on.
  *
- * It is a DECLARATION, not an override: the entry's properties decide its
+ * It is a declaration, not an override: the entry's properties decide its
  * mark, so the same declaration would draw the same picture if it arrived by
  * any other route.
  */
 const VOICE_RAIL_TAGS = railTagsForTelemetry("continuous");
 
 /**
- * What the ribbon's zone stands for, in captured chunks: the light-time to the
+ * What the ribbon's zone stands for, in captured chunks: the signal delay to the
  * far end, or {@link MIN_RIBBON_SPAN_SECONDS} of audio when that is shorter.
  * It decides what fraction of the zone the trace has filled.
  *
  * **Floored at five seconds, so the zone is always wide enough to hold a
  * wave.** A few hundred kilometres of low orbit is well under a millisecond,
  * which fits a twentieth of one 20 ms sample and draws a flat line. Above the
- * floor the number is the real light-time, fractional and never rounded, since
+ * floor the number is the real signal delay, fractional and never rounded, since
  * `RailCrossing` limits its turning points to the samples actually behind
  * them.
  *
@@ -91,7 +91,7 @@ export function RadioPtt({
   radio: RadioControl;
   /** Who the key is aimed at, for the crossing's accessible name. */
   targetName?: string;
-  /** One-way light-time to them, or null when there is none to draw. */
+  /** One-way signal delay to them, or null when there is none to draw. */
   separationSeconds?: number | null;
 }) {
   /*

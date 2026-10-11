@@ -20,7 +20,7 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// Notes that the craft still exists and is still measured at
-        /// <paramref name="ut"/>, so that its light-times are on file for the day
+        /// <paramref name="ut"/>, so that its signal delays are on file for the day
         /// it is not. A centre that has gained a route to the craft since the
         /// last note is sent the craft's last state again, from now.
         /// </summary>
@@ -28,7 +28,7 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// Records that the craft is gone as of <paramref name="ut"/>. It
-        /// reaches each centre at the light-time the craft was last measured at
+        /// reaches each centre at the signal delay the craft was last measured at
         /// while in contact, which is when its silence would. A craft that was
         /// out of contact when it went sends nothing: no centre can tell its
         /// loss from the blackout it was already in.
@@ -43,7 +43,7 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Records where an object was seen to be, on its own node. It reaches
         /// each centre named in <paramref name="lightSeconds"/> after that many
-        /// seconds, the straight-line light-time from the object, whatever its
+        /// seconds, the straight-line signal delay from the object, whatever its
         /// radio is doing, and no centre it does not name.
         /// </summary>
         void RecordCraftSighting(string vesselId, CraftSighting sighting, double ut, IReadOnlyDictionary<string, double> lightSeconds);

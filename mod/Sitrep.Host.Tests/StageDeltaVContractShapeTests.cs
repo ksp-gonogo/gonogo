@@ -16,16 +16,16 @@ namespace Sitrep.Host.Tests
     /// Locks the P1b slice 2 typing for the <c>dv.*</c> channels: proves the
     /// named <c>Sitrep.Contract</c> payload types (<see cref="StageDeltaVEntry"/>,
     /// <see cref="StageDeltaVSummary"/>) mirror: field name for field name,
-    /// camelCase wire key for camelCase wire key, type for type, the EXACT
+    /// camelCase wire key for camelCase wire key, type for type, the exact
     /// serialized shape <see cref="StageDeltaVViewProvider"/> already emits.
     /// This is a typing change only: the wire is written by <c>JsonWriter</c>
     /// walking the provider's dictionary/list tree, not by serializing these
     /// POCOs, so if the two shapes ever drift (a field renamed, removed, added,
     /// or retyped on either side) this test fails.
     ///
-    /// <para><c>dv.stages</c> is a BARE ARRAY of <see cref="StageDeltaVEntry"/>
+    /// <para><c>dv.stages</c> is a bare array of <see cref="StageDeltaVEntry"/>
     /// (tagged <c>isArray: true</c>), like the <c>science.*</c> channels;
-    /// <c>dv.summary</c> is a single WRAPPER OBJECT (tagged
+    /// <c>dv.summary</c> is a single wrapper object (tagged
     /// <c>IsArray = false</c>). Mirrors <c>PartsContractShapeTests</c>'
     /// PE-metadata topic reader for the same reason: these types also carry the
     /// compile-time-only <c>[TsInterface]</c> attribute, so any managed

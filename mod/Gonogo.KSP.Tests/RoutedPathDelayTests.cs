@@ -6,7 +6,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests
 {
     /// <summary>
-    /// The light-time half of a routed comms read: given hops somebody already
+    /// The signal delay half of a routed comms read: given hops somebody already
     /// walked, what does the delay come out as, and which absences stay absent.
     /// No KSP types here at all (see RoutedPathDelay's own doc comment), so this
     /// runs on every checkout.

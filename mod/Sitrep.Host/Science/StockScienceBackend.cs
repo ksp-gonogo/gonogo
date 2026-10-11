@@ -14,7 +14,7 @@ namespace Sitrep.Host.Science
     /// (<see cref="ScienceViewProvider"/> for the reads,
     /// <see cref="ScienceCommandProvider"/> plus the injected
     /// <see cref="IScienceActuator"/> for the commands). That is the whole
-    /// design: the election seam is indirection ONLY, so the vanilla wire is
+    /// design: the election seam is indirection only, so the vanilla wire is
     /// byte-identical to the pre-election wire by construction rather than by
     /// inspection. <c>Sitrep.Host.Tests.ScienceElectionWireTests</c> pins that
     /// as bytes through the real codec.</para>

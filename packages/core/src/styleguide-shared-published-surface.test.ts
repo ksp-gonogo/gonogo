@@ -4,14 +4,14 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Cross-package guard for the two PUBLISHED packages: a name exported by both
- * `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` must resolve to ONE
+ * Cross-package guard for the two published packages: a name exported by both
+ * `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` must resolve to one
  * declaration.
  *
  * The sibling `styleguide-duplicate-primitives.test.ts` gates the ui / ui-kit
  * pair, where the rule is simple because one package is private: ui-kit always
  * wins and the copy in `ui` becomes a re-export. This pair is different and
- * worse. BOTH are published, so a third-party Uplink can import either, and when
+ * worse. Both are published, so a third-party Uplink can import either, and when
  * the same name is declared in each there is no wrong import for the author to
  * make: both compile, both look right, and they mean different things.
  *
@@ -27,18 +27,18 @@ import { describe, expect, it } from "vitest";
  * mirrored `renderAlarm` returned `unknown` where the widget's returns
  * `ReactNode`.
  *
- * This gates the PROPERTY, not today's list. A re-export satisfies it, because a
+ * This gates the property, not today's list. A re-export satisfies it, because a
  * re-export is one declaration; two `export interface X` do not, whatever their
  * fields say today. Identical copies are the worst case, not the acceptable one:
  * they are what drift starts as.
  *
  * `KNOWN_DIVERGENCES` is a shrink-only debt list, the same device this repo uses
  * for the uplink-isolation boundary, not a blessing. Its entries are the pairs
- * where the sdk's declaration is a HOST SHIM and ui-kit's is the registry it
+ * where the sdk's declaration is a host shim and ui-kit's is the registry it
  * ultimately reaches, which is a genuine architectural question rather than a
  * copy to delete: the shim is what carries an Uplink's `declare module
  * "@ksp-gonogo/sitrep-sdk"` slot ids and what throws a named error when the
- * package was not marked external. A NEW duplicate fails outright.
+ * package was not marked external. A new duplicate fails outright.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -53,7 +53,7 @@ const DECLARED_RE =
 
 /**
  * Pairs still declared twice, each with the reason it is not simply a copy.
- * This list may only ever SHRINK. Removing an entry is the fix; adding one is
+ * This list may only ever shrink. Removing an entry is the fix; adding one is
  * not available, a new duplicate is a failure.
  */
 const KNOWN_DIVERGENCES: readonly string[] = [
@@ -100,7 +100,7 @@ function sourceFiles(dir: string): string[] {
   return out;
 }
 
-/** name -> repo-relative file that DECLARES it (a re-export is not a declaration). */
+/** name -> repo-relative file that declares it (a re-export is not a declaration). */
 function declarations(dir: string): Map<string, string> {
   const found = new Map<string, string>();
   for (const file of sourceFiles(dir)) {

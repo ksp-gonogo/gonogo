@@ -4,10 +4,10 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// A sample is stamped with each command centre's light-time as it stood
+    /// A sample is stamped with each command centre's signal delay as it stood
     /// when the sample left. A centre that did not exist then has no row in
     /// that stamp, and used to read the stamp's base, which is the home
-    /// centre's light-time: a crewed craft that became a centre a minute ago
+    /// centre's signal delay: a crewed craft that became a centre a minute ago
     /// could catch up on an hour of another craft's telemetry on home's clock.
     /// It was not listening when that light left, so it never arrives there.
     /// </summary>

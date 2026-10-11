@@ -10,7 +10,7 @@ namespace Sitrep.Host.Settings
             Reason = reason;
         }
 
-        /// <summary>Nothing has been committed yet, which is the state a store is in from boot until the first SAVE.</summary>
+        /// <summary>Nothing has been committed yet, which is the state a store is in from boot until the first save.</summary>
         public static readonly WriteOutcome NotAttempted = new WriteOutcome(false, string.Empty, null);
 
         public static WriteOutcome Written(string path) => new WriteOutcome(true, path ?? string.Empty, null);
@@ -46,7 +46,7 @@ namespace Sitrep.Host.Settings
 
         /// <summary>
         /// The document as it stands on the medium. An absent or unreadable
-        /// medium yields an EMPTY document rather than throwing, so a first run
+        /// medium yields an empty document rather than throwing, so a first run
         /// and a damaged file take the same path through the store.
         /// </summary>
         SettingsDocument Read();

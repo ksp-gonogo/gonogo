@@ -16,11 +16,11 @@
  * is sampled from a device, nothing is seeded from a clock, and the samples the
  * decoder regenerates are bit-for-bit the ones the clip describes.
  *
- * **The fake codec is PARAMETRIC, not raw PCM, and that is load-bearing.** Raw
+ * **The fake codec is parametric, not raw PCM, and that is load-bearing.** Raw
  * int16 at this grid is 1920 bytes per chunk, 96 kB/s, which would trip
  * `RADIO_BYTES_BUDGET` (40 kB/s) inside the first second and fail every test
  * that spoke for a second. Six bytes a chunk puts the harness at 300 B/s, an
- * order of magnitude UNDER the 4.3 kB/s the slice-0 probe measured for real
+ * order of magnitude under the 4.3 kB/s the slice-0 probe measured for real
  * Opus, so a budget breach in a test is always about the code and never about
  * the stand-in.
  */
@@ -165,7 +165,7 @@ export function readClipChunk(
 /**
  * The 960 samples one chunk carries.
  *
- * Phase is counted off the chunk's INDEX rather than restarted per chunk, so a
+ * Phase is counted off the chunk's index rather than restarted per chunk, so a
  * clip played whole is one continuous tone rather than a stack of clicks, and a
  * clip missing its third chunk is audibly missing it.
  */
@@ -277,7 +277,7 @@ export interface PlayedBlock {
  * Speakers that keep what they were given.
  *
  * Where the live sink writes into an `AudioWorklet` ring, this writes
- * into an array, so what a listener HEARD is a value a test can compare against
+ * into an array, so what a listener heard is a value a test can compare against
  * what was said.
  */
 export class RecordingRadioSink implements RadioAudioSink {
@@ -319,7 +319,7 @@ export class RecordingRadioSink implements RadioAudioSink {
  * The decode step for clip bytes, writing into whatever sink it is given.
  *
  * It regenerates the samples from the chunk's own parameters, so the audio a
- * listener gets is EXACTLY the audio the clip describes: a roundtrip can be
+ * listener gets is exactly the audio the clip describes: a roundtrip can be
  * asserted sample for sample rather than approximately, which no real codec
  * would allow and which is the whole reason the stand-in is parametric.
  */
@@ -358,7 +358,7 @@ export class ClipDecoder implements RadioDecoderLike {
  * which of them arrived or whether either survived intact. So the recording one
  * keeps a sink per stream, and what it proves is the property the mix depends
  * on and cannot itself demonstrate: that two simultaneous transmissions are
- * decoded SEPARATELY and each comes out whole. That the lanes are then summed
+ * decoded separately and each comes out whole. That the lanes are then summed
  * and limited is proved against the shipped worklet, in `mix.test.ts`.
  */
 export class RecordingRadioReceiver implements RadioReceiver {
@@ -380,9 +380,9 @@ export class RecordingRadioReceiver implements RadioReceiver {
    * Every block played on any lane, lane by lane in the order the streams were
    * opened.
    *
-   * The reading for SEQUENTIAL transmissions, which is what most of the harness
+   * The reading for sequential transmissions, which is what most of the harness
    * exercises: one keying at a time, so lane order is time order and this is
-   * simply what the operator heard. It is deliberately NOT a mix, and comparing
+   * simply what the operator heard. It is deliberately not a mix, and comparing
    * it against two overlapping clips would be comparing against something no
    * listener ever hears. For that, read the lanes separately.
    */
@@ -416,13 +416,13 @@ export interface ClipRadio {
   readonly backend: RadioBackend;
   readonly mic: ClipMic;
   /**
-   * Every listening OUTPUT built under this backend, newest last: one per
+   * Every listening output built under this backend, newest last: one per
    * session. A mount that rebuilds its session builds another, so the count is
    * itself a reading, and it is the one that says an injected backend landed.
    */
   readonly receivers: RecordingRadioReceiver[];
   /**
-   * Every decode STREAM, across every receiver: one per transmission heard.
+   * Every decode stream, across every receiver: one per transmission heard.
    *
    * A getter rather than a stored array, because streams are opened as
    * transmissions begin rather than when the session is built, and a caller

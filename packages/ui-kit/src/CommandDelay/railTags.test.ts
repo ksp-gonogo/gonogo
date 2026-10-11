@@ -17,7 +17,7 @@ import {
 } from "./railTags";
 
 /**
- * Each accessor reads ONE axis. Checked by holding one axis and sweeping the
+ * Each accessor reads one axis. Checked by holding one axis and sweeping the
  * other two: if the answer moves, something else is being read.
  */
 describe("each axis drives exactly one visual property", () => {
@@ -65,7 +65,7 @@ describe("the axis product", () => {
 });
 
 /**
- * The renderer table, asserted on the WHOLE gap: the unrepresented set is named
+ * The renderer table, asserted on the whole gap: the unrepresented set is named
  * exactly, so adding a renderer or an axis value fails here until the list is
  * updated deliberately.
  */

@@ -49,8 +49,8 @@ export interface ControlStreamOptions {
   /** How the raw value maps into the shared 0..1 band. Default "unit" (throttle); pass "signed" for -1..1 axes. */
   range?: ControlRange;
   /**
-   * Called once per ACTUAL dispatch (past the deadband, at most 10 Hz): the
-   * PerfBudget seam. `@ksp-gonogo/sitrep-client` deliberately does NOT depend
+   * Called once per actual dispatch (past the deadband, at most 10 Hz): the
+   * PerfBudget seam. `@ksp-gonogo/sitrep-client` deliberately does not depend
    * on `@ksp-gonogo/core` (that would be a cycle: core imports this package,
    * see `websocket-transport.ts`'s `onStreamFrame` for the same shape), so
    * the `PerfBudget` itself lives in the consuming layer (`ControlDelayStream`
@@ -73,7 +73,7 @@ export interface ControlStream {
   /** Current commanded value in the shared 0..1 band, or `null` while nothing has been commanded. */
   current: number | null;
   /**
-   * What this entry IS on the rail's three axes:
+   * What this entry is on the rail's three axes:
    * `railTagsForControlAxis(channel.writeCommand)`.
    *
    * Continuous because a held axis is a span, which is this hook's whole

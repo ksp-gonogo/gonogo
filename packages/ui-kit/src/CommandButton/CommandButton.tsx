@@ -21,23 +21,26 @@ import { Tooltip } from "../Tooltip";
 import { InFlightFace } from "./InFlightFace";
 
 /**
- * How long, in milliseconds, an armed {@link CommandButton} waits for its confirming press before it returns to rest.
+ * How long, in milliseconds, an armed {@link CommandButton} waits for its
+ * confirming press before it returns to rest. Used by {@link CommandButton} and
+ * {@link useCommandButton}.
  *
  * @category CommandButton
  */
 export const ARM_TIMEOUT_MS = 4000;
 
 /**
- * How long a refusal stays on the control before it returns to rest: long
- * enough to read, not forever, because the situation the game refused on can
- * change.
+ * How long, in milliseconds, a refusal stays on a command control before the
+ * control returns to rest. Used by {@link CommandButton} and
+ * {@link useCommandButton}.
  */
 export const REFUSAL_TIMEOUT_MS = 8000;
 
 /**
- * The outer backstop on a pending dispatch. `send()`'s promise is guaranteed
- * to settle; this is a belt for a handle from some other source that makes
- * no such guarantee, never the primary clear.
+ * The longest, in milliseconds, a command control stays pending when the handle
+ * it was given never settles. Used by {@link useCommandButton}. A `send()`
+ * promise from {@link useCommand} always settles, so this matters only for a
+ * handle from another source.
  */
 export const PENDING_BACKSTOP_MS = 30_000;
 
@@ -47,7 +50,7 @@ export const PENDING_BACKSTOP_MS = 30_000;
  * @category CommandButton
  */
 export interface CommandGateLike extends CommandRefusalLike {
-  /** The game EVALUATED this and said no. */
+  /** The game evaluated this and said no. */
   blocked: boolean;
   /**
    * The mod could not evaluate this command's gates (the checks it runs
@@ -108,8 +111,9 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
 }
 
 /**
- * The standing verdict a control sending `args` draws itself from: the
- * per-item one when the handle can say, else the command's own.
+ * The standing verdict a control sending `args` draws itself from: the per-item
+ * one when the handle can say, else the command's own. Used by
+ * {@link useCommandButton}.
  *
  * @category CommandButton
  */
@@ -238,7 +242,7 @@ export interface CommandButtonState {
   /**
    * The control was pressed. Advances the machine: arm, then dispatch; a press
    * while pending is ignored; a press while refused, lost or found clears that
-   * outcome; a press while BLOCKED dispatches nothing and shows the reason
+   * outcome; a press while blocked dispatches nothing and shows the reason
    * instead. `armable` says whether there is a confirm step, which only the
    * caller knows.
    */
@@ -560,7 +564,7 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
   /** The in-flight phase's accessible name, for a control whose resting name says more than `pendingLabel`. Defaults to `pendingLabel`. */
   pendingAriaLabel?: string;
   /**
-   * Whether this control's command is CURRENTLY IN EFFECT, for a control that
+   * Whether this control's command is currently in effect, for a control that
    * represents state as well as acting on it: a SAS toggle, an action group, an
    * activated strategy. Sets `aria-pressed` and the pressed fill, the same
    * state {@link Button} and {@link ToggleButton} call `pressed`. Leave it
@@ -615,11 +619,13 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
 /**
  * A button that dispatches a command and shows what became of it: at rest,
  * armed (with a `confirmLabel`), in flight, refused, lost (no reply came in
- * time), found (a lost command has since replied), or blocked. It is blocked
- * while the mod says in advance that the command would be refused, such as a
- * purchase the save cannot afford, and the button then says why. The panel's
- * delay rail shows that a command is in flight; this shows which control sent
- * it.
+ * time), found (a lost command has since replied), or blocked. Useful for
+ * letting the operator send a command and see which control sent it and how it
+ * ended. Used by the upgrade button of the space centre status widget and the
+ * rows of the admin building. A control is blocked while the mod says in
+ * advance that the command would be refused, such as a purchase the save cannot
+ * afford, and the button then says why. The panel's delay rail shows that a
+ * command is in flight; this shows which control sent it.
  *
  * Pending ends when the promise `send()` returned settles, whether or not any
  * telemetry changes as a result. Pending is per rendered control, not

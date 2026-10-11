@@ -213,12 +213,12 @@ function iceServersFor(
 
 /**
  * ICE configuration the main screen should use when constructing its
- * PeerJS Peer. The relay's TURN credentials live only in this process's
+ * PeerJS Peer. The relay's turn credentials live only in this process's
  * memory and rotate on every restart, so any client with stale creds
  * needs to re-fetch this endpoint to recover. Stations don't fetch
  * this themselves: they pair against the host's relay candidates over
  * the broker's signalling channel, which is sufficient for one-side
- * TURN to work.
+ * turn to work.
  */
 fastify.get("/ice-config", async (_req, reply) => {
   if (!coturnHandle) {

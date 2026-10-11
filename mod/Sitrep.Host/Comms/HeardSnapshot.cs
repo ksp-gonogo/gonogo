@@ -108,7 +108,7 @@ namespace Sitrep.Host.Comms
     /// with the game so that a load leaves each centre knowing exactly what it
     /// knew when the game was saved: no more, since what was still on its way
     /// then is on its way again from the load, and no less, or every centre
-    /// would be blind to a craft for one light-time after every load.
+    /// would be blind to a craft for one signal delay after every load.
     /// </summary>
     public sealed class HeardSnapshot
     {

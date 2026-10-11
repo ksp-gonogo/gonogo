@@ -12,7 +12,7 @@ namespace Sitrep.CaptureAnalysis.Tests;
 /// so that the answer is known before the analyser is asked for it.
 ///
 /// <para>The real fixtures can only ever demonstrate refusal, because neither of
-/// them carries what a verdict needs. Without a capture that DOES support one,
+/// them carries what a verdict needs. Without a capture that does support one,
 /// "always says cannot conclude" would pass every test in the suite while being
 /// completely useless, so this exists to close that hole from the other side.</para>
 /// </summary>
@@ -53,7 +53,7 @@ public static class SyntheticCapture
 
     /// <summary>
     /// Frames for one vessel over <paramref name="durationSeconds"/>, with the
-    /// comms path DIRECT exactly while <paramref name="truthRadiusMeters"/> says
+    /// comms path direct exactly while <paramref name="truthRadiusMeters"/> says
     /// the horizon is clear. Optionally declares that same radius on
     /// <c>comms.occlusion</c>, which is how a real capture would tell the analyser
     /// what to score against.

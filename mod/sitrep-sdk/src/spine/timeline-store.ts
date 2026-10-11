@@ -79,12 +79,12 @@ export interface FrameToken {
   readonly viewUt: number;
   /**
    * The same instant for a channel the mod declares `DelayRole.TrueNow`: the
-   * live estimate, with no light-time subtracted. Frozen at mint alongside
+   * live estimate, with no signal delay subtracted. Frozen at mint alongside
    * `viewUt` and for the same reason, so a frame that reads both kinds of topic
    * reads each of them at one instant rather than at whatever the clock had
    * reached by that particular read.
    *
-   * A whole light-time ahead of `viewUt` at a real delay and EQUAL to it at
+   * A whole signal delay ahead of `viewUt` at a real delay and equal to it at
    * zero, which is why nothing in the tree could see the difference until the
    * mod started classifying: with `delaySeconds()` at 0 the two edges are the
    * same number.
@@ -108,14 +108,14 @@ export interface FrameToken {
   /**
    * Whether `viewUt` sits at-or-before the `ViewClock`'s certainty horizon
    * as of the moment this token was minted. Computed once
-   * here: NOT recomputed against the live clock on each read, for the
+   * here: not recomputed against the live clock on each read, for the
    * same frame-coherence reason values are memoized per token: a mid-frame
    * `ingest` that nudges the horizon forward must not flip a read's
    * certainty mid-frame any more than it can flip its value. See
    * `TimelineStore.sampleCertainty`.
    */
   readonly certainty: Certainty;
-  /** {@link certainty} for {@link trueNowViewUt}, against the true-now horizon. Classifying a true-now read against the DELAYED horizon would report `"predicted"` for every one of them, the reading being a light-time past it by construction. */
+  /** {@link certainty} for {@link trueNowViewUt}, against the true-now horizon. Classifying a true-now read against the delayed horizon would report `"predicted"` for every one of them, the reading being a signal delay past it by construction. */
   readonly trueNowCertainty: Certainty;
 }
 
@@ -147,7 +147,7 @@ export interface TimelineStoreOptions {
   /** Options for the store's `HeartbeatTracker` (the keyframe-cadence heartbeat), per-topic keyframe intervals, staleness-margin tuning. */
   heartbeatOptions?: HeartbeatTrackerOptions;
   /**
-   * Dynamic-namespace prefixes (each ending in `.`) whose topics are WHOLE raw
+   * Dynamic-namespace prefixes (each ending in `.`) whose topics are whole raw
    * wire topics despite having 3+ dot-segments. A generated topic list cannot
    * stand in for this: these ids are computed at runtime (per body, per part,
    * per CPU) and so have no member in any list to match against, which is why
@@ -175,7 +175,7 @@ export interface TimelineStoreOptions {
    *
    * Injected rather than a client, for the same reason the processor evaluator
    * takes an injected subscribe: this store is mod-agnostic and holds no
-   * transport. Absent, a subject dep still RESOLVES against whatever is already
+   * transport. Absent, a subject dep still resolves against whatever is already
    * flowing and simply never holds anything up itself, which is the honest
    * degradation for a test double that wires no subscriber.
    */
@@ -212,7 +212,7 @@ function walkFieldPath(value: unknown, fieldPath: readonly string[]): unknown {
  * Which lane a derived channel is read in: the most conservative of its
  * declared inputs.
  *
- * A channel with NO declared inputs derives from constants and is as current as
+ * A channel with no declared inputs derives from constants and is as current as
  * the frame either way, so it takes the delayed lane with everything else
  * rather than being special-cased into the one that can run ahead.
  *
@@ -259,7 +259,7 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
  * becomes indistinguishable from a reading.
  */
 export interface ReckonedSample<Payload> {
-  /** The UT the model answered FOR. */
+  /** The UT the model answered for. */
   atUt: number;
   /**
    * The model's answer: a finite `number`, or a finite `Value` with its unit
@@ -272,7 +272,7 @@ export interface ReckonedSample<Payload> {
    * How well the model knew this instant, present only where the model offered
    * a band for the root path.
    *
-   * In the value's own unit BY CONSTRUCTION: {@link ReckonedBound} resolves to
+   * In the value's own unit by construction: {@link ReckonedBound} resolves to
    * the same quantity type `value` carries, so an end in another unit is a
    * compile error at the consumer and is dropped at the producer. It used to be
    * a pair of bare magnitudes resting on a sentence in {@link UncertaintyBand}'s
@@ -345,7 +345,7 @@ const GAP_MODEL_SAMPLES = 24;
 /**
  * The most instants one reckoned tail may be sampled at.
  *
- * A RESOLUTION cap, never a horizon: exceeding it widens the stride so the tail
+ * A resolution cap, never a horizon: exceeding it widens the stride so the tail
  * still reaches the view time, because shortening it instead would silently
  * draw a shorter horizon than the model actually claimed, which is the one
  * thing this cap must not be able to do.
@@ -386,7 +386,7 @@ export interface GameStatus {
  *
  * Matching the observed cadence rather than picking a number is what keeps the
  * modelled run drawn at the same fidelity as the measured run beside it, so the
- * eye reads the change in STROKE rather than a change in how blocky the line
+ * eye reads the change in stroke rather than a change in how blocky the line
  * is. With fewer than two observations in the window there is no cadence to
  * match and the whole tail is one stride.
  */
@@ -408,7 +408,7 @@ function reckonedTailStep(
 }
 
 /**
- * A model's answer as something a LINE can be drawn through, or nothing.
+ * A model's answer as something a line can be drawn through, or nothing.
  *
  * The finiteness test for a `Value` is the algebra's own `isFinite()` rather
  * than `Number.isFinite` over an unwrapped magnitude, so asking whether a
@@ -428,7 +428,7 @@ function plottableQuantity(raw: unknown): number | Value | undefined {
  * Whether a band is about the quantity the model just answered with, rather
  * than merely about some quantity.
  *
- * `bandIsWellFormed` asks whether the three ends agree with EACH OTHER, which a
+ * `bandIsWellFormed` asks whether the three ends agree with each other, which a
  * band in the wrong unit passes. This is the other half: the band's own `value`
  * is contractually the number `reckon` produced at that path, so where the
  * reckoned value is a quantity the two units have to be the same string.
@@ -455,11 +455,11 @@ function bandDescribes(
  * enough. That is why there is no separate "the window hit a gap" rejection:
  * truncating feeds the floor that already exists.
  *
- * Two things count as a break, and BOTH are positive claims. `meta.gapSinceUt`
+ * Two things count as a break, and both are positive claims. `meta.gapSinceUt`
  * is the producer saying data existed before this sample and is gone, set only
  * on the first sample after the break, so that sample is kept and everything
  * older is dropped. A tombstone (`payload === null`) is the value confirmed
- * ABSENT and later back, which is a change of regime and not a reading, so it
+ * absent and later back, which is a change of regime and not a reading, so it
  * goes too.
  *
  * Nothing here looks at the interval between samples, and nothing here may. The
@@ -493,7 +493,7 @@ interface ResolvedWindow<Payload> {
 
 /**
  * `points` reduced to at most `max`, keeping both ends and spreading the rest
- * evenly by INDEX.
+ * evenly by index.
  *
  * `maxSamples` is a cost cap, not a rejection, so a fuller window thins and the
  * model runs. Spreading by index rather than by UT is deliberate: an even
@@ -563,7 +563,7 @@ const RECKONED_TAIL_BUDGET = new PerfBudget({
  * Field names that carry a DEGREE-valued angle where wrapping is physically
  * meaningful: e.g. `longitude` 179 -> -179 is a
  * 2-degree hop across the antimeridian, not a ~358-degree hop the other way
- * around the planet. Interpolated the SHORT way around the wrap in
+ * around the planet. Interpolated the short way around the wrap in
  * `lerpFieldValue` below, instead of the naive straight-line lerp every
  * other numeric field gets. A small, explicit allowlist rather than a
  * heuristic (no name-sniffing for "looks like an angle"), extend this set
@@ -583,7 +583,7 @@ function normalizeDegrees(deg: number): number {
   return wrapped === -180 ? 180 : wrapped;
 }
 
-/** Interpolate a degree-valued angle the SHORT way around the wrap, at `t` in `[0, 1]`. */
+/** Interpolate a degree-valued angle the short way around the wrap, at `t` in `[0, 1]`. */
 function lerpAngleDegrees(before: number, after: number, t: number): number {
   const diff = normalizeDegrees(after - before);
   return normalizeDegrees(before + diff * t);
@@ -770,7 +770,7 @@ export class TimelineStore {
   /**
    * The subscribe seam {@link holdSubjectTopic} uses, late-bound.
    *
-   * A store is built BEFORE its client and outlives a client swap
+   * A store is built before its client and outlives a client swap
    * (`attachStore`/`subscribeStore` re-wire the same store to a new one), so a
    * subscribe captured at construction would be a dead client's after the first
    * swap. Set from the provider's effect and cleared on unmount, exactly as
@@ -833,8 +833,8 @@ export class TimelineStore {
 
   /**
    * Last `Reading` per topic, with the inputs it was built from, so a reading's
-   * identity tracks its DATA rather than the frame it was read in. Deliberately
-   * NOT the frame cache, which is keyed on a token that changes every ingest
+   * identity tracks its data rather than the frame it was read in. Deliberately
+   * not the frame cache, which is keyed on a token that changes every ingest
    * tick: see `sampleReading` for why that distinction is load-bearing.
    */
   /**
@@ -859,7 +859,7 @@ export class TimelineStore {
       unowned: boolean;
       /**
        * The decline that was on the reading, flattened to a comparable string.
-       * Its own input, because it is a function of OTHER topics' data.
+       * Its own input, because it is a function of other topics' data.
        */
       declineKey: string | undefined;
       reading: TopicReading<unknown>;
@@ -880,7 +880,7 @@ export class TimelineStore {
    * The topics whose input rules are being settled right now, so a cycle among
    * models cannot recurse forever.
    *
-   * Enforcing the rules means asking each declared input's OWN model how far it
+   * Enforcing the rules means asking each declared input's own model how far it
    * reaches and how well it knows its answer, which is another registered model
    * with its own declared inputs. Nothing forbids two owners registering models
    * that name each other's topics, and a cycle would otherwise be a stack
@@ -1027,7 +1027,7 @@ export class TimelineStore {
 
   /**
    * Append a delivered sample for `topic` and feed its timing into the
-   * shared `ViewClock`. Does NOT advance the frame, ingest and frame
+   * shared `ViewClock`. Does not advance the frame, ingest and frame
    * advance are independent (many samples can arrive within one frame; the
    * frame only advances on `beginFrame()`).
    *
@@ -1148,7 +1148,7 @@ export class TimelineStore {
    *
    * A mounted read samples every frame, so a live subject is touched every
    * frame and survives. One frame of grace rather than zero, because the sweep
-   * runs BEFORE this frame's reads: judging on the frame just begun would
+   * runs before this frame's reads: judging on the frame just begun would
    * release every entry before anything had a chance to touch it.
    */
   private releaseUntouchedSubjects(): void {
@@ -1197,7 +1197,7 @@ export class TimelineStore {
    * delay lane is read at sat at-or-before that lane's certainty horizon when
    * the token was minted, `"predicted"` past it.
    *
-   * Per topic because a frame has two view times, a light-time apart, and each
+   * Per topic because a frame has two view times, a signal delay apart, and each
    * is judged against its own horizon: a true-now channel can have reported up
    * to the instant it is read at while a delayed one has not. Rides alongside a
    * value/status read for the same topic and frame, never inside either
@@ -1226,9 +1226,9 @@ export class TimelineStore {
    * The raw wire topics that must actually be subscribed (via
    * `TelemetryClient.subscribe`) to keep `topic` resolvable, the
    * derived-input ref-counting mechanism. A derived channel's own
-   * topic (or one of its `"<topic>.<field>"` subtopics) is NEVER itself a
+   * topic (or one of its `"<topic>.<field>"` subtopics) is never itself a
    * subscribable wire topic; no server channel produces it, so a caller
-   * that naively subscribed to the derived topic NAME would never receive
+   * that naively subscribed to the derived topic name would never receive
    * any data and the channel would silently stay "not whole yet" forever.
    * This resolves `topic` down to the declared `inputs` it actually needs,
    * recursively (a derived channel's own `inputs` can themselves be derived,
@@ -1247,13 +1247,13 @@ export class TimelineStore {
   }
 
   /**
-   * The raw wire topics `topic`'s ELECTED reckoner needs subscribed before it
+   * The raw wire topics `topic`'s elected reckoner needs subscribed before it
    * will answer, on top of the ones {@link resolveSubscriptionTopics} already
    * names.
    *
    * A model declares its inputs and `registeredReckoning` refuses to run it
    * with one of them missing, which is the whole point of declaring them. But
-   * nothing was holding those inputs UP. A read subscribed the topic it was
+   * nothing was holding those inputs up. A read subscribed the topic it was
    * reading and a derived channel's `inputs`, and a raw topic's reckoner deps
    * are neither, so a lone plot of `vessel.flight.altitudeAsl` declined with
    * `input-absent` for ever and drew no tail, while the same plot beside a
@@ -1265,18 +1265,18 @@ export class TimelineStore {
    * through `getReckoner` rather than off any list here, so an Uplink-owned
    * model is served exactly as core's is.
    *
-   * ## Depth is ONE, and that is not an oversight
+   * ## Depth is one, and that is not an oversight
    *
    * A dep is resolved by `registeredReckoning` with a bare `sample()`, which
    * consults no model, so a dep's own reckoner never runs for it and that
    * reckoner's deps are never read. Walking further would subscribe topics
    * nothing was going to ask for, and a dep that is itself reckonable is
    * exactly where such a walk could go round in a circle. Each dep still passes
-   * through `resolveSubscriptionTopics`, so a DERIVED dep expands to its raw
+   * through `resolveSubscriptionTopics`, so a derived dep expands to its raw
    * inputs under that method's own cycle guard.
    *
    * A `ProcessorHandle` dep names no wire topic and is skipped: a processor is
-   * ref-count ACTIVATED rather than subscribed (`ProcessorRuntime.activate`),
+   * ref-count activated rather than subscribed (`ProcessorRuntime.activate`),
    * and subscribing its inputs without activating it leaves its value
    * `undefined` anyway. Nothing in the tree declares one on a reckoner today,
    * and the point layer has the same hole.
@@ -1327,7 +1327,7 @@ export class TimelineStore {
   }
 
   /**
-   * True when `topic` names a `"<parent>.<field>"` subtopic whose PARENT
+   * True when `topic` names a `"<parent>.<field>"` subtopic whose parent
    * resolved to a whole, non-tombstoned derived record (the derivation
    * genuinely ran) but `field` is not a key on the record it produced, a
    * structurally dead mapping (e.g. a stale migration-table entry pointing
@@ -1339,21 +1339,21 @@ export class TimelineStore {
    * `sample()` alone can't make this distinction: `sampleDerived`'s field
    * lookup collapses "unknown field name" and "not whole yet" onto the same
    * `undefined` return, deliberately (see its own doc comment). This is a
-   * SEPARATE diagnostic read for a caller (the `@ksp-gonogo/core` `useDataValue`
+   * separate diagnostic read for a caller (the `@ksp-gonogo/core` `useDataValue`
    * compatibility shim: belt-and-suspenders
    * fallback safety) that needs to tell "still loading, keep waiting" apart
    * from "this can never resolve, fall back to another source"; never
    * folded into `sample()`'s own return value.
    *
-   * This guard covers both DERIVED
-   * channel parents and RAW record field-subtopics (`resolveRawFieldSubtopic`,
+   * This guard covers both derived
+   * channel parents and raw record field-subtopics (`resolveRawFieldSubtopic`,
    * e.g. `"vessel.resources.resources.<name>.current"`). A raw fieldpath
    * that's wrong or has drifted would otherwise serve a permanent
    * `undefined` with no fallback (the FuelStatus-class
    * bug: `useTelemetry(vesselKey) ?? 0` turning a silent resolution
    * failure into an empty gauge). The second branch below applies the exact
    * same "whole-but-missing-field = unresolvable" check to a raw parent,
-   * walking the FULL fieldpath (which may be 1+ segments, unlike the
+   * walking the full fieldpath (which may be 1+ segments, unlike the
    * single-segment derived-channel case above) via the same walk
    * `sampleRawFieldSubtopic`/`sampleRange` use.
    */
@@ -1399,16 +1399,16 @@ export class TimelineStore {
   }
 
   /**
-   * `true` when `topic` names a registered DERIVED channel, its own topic
+   * `true` when `topic` names a registered derived channel, its own topic
    * or one of its `"<topic>.<field>"` subtopics (`resolveDerivedTopic`).
    * `false` for a raw topic, including a raw record field-subtopic
    * (`resolveRawFieldSubtopic`, e.g. `"vessel.orbit.sma"`), that string
-   * LOOKS derived-shaped (it has dots) but resolves to a real wire record's
+   * looks derived-shaped (it has dots) but resolves to a real wire record's
    * timeline, not a registered `derive()` function. What `sampleRange`
    * consults to decide "there's a stored history to range over" (a raw
    * topic always has one, a derived topic never does, it's a per-frame
    * computed value, see `sampleRange`'s own doc) versus `isUnresolvableField`
-   * above, which asks a narrower question (a specific FIELD NAME on an
+   * above, which asks a narrower question (a specific field name on an
    * otherwise-whole derived record) for a different caller.
    */
   isDerivedTopic(topic: string): boolean {
@@ -1424,7 +1424,7 @@ export class TimelineStore {
    * hold-last read.
    *
    * Returns `undefined`, not an empty array, when `topic` resolves to a
-   * registered DERIVED channel (`isDerivedTopic`): a derived value is
+   * registered derived channel (`isDerivedTopic`): a derived value is
    * computed fresh per frame from whatever its inputs currently hold
    * (`sampleDerived`), never stored as its own buffered history, so there is
    * structurally nothing to range over. This is the caller's "give up,
@@ -1433,13 +1433,13 @@ export class TimelineStore {
    * in on a later read as more samples arrive.
    *
    * For a literal raw topic, returns its `ClientTimeline.range` verbatim.
-   * For a raw record field-subtopic, reads the PARENT raw topic's range and
+   * For a raw record field-subtopic, reads the parent raw topic's range and
    * extracts `fieldPath` from each point's payload: skipping (never
    * fabricating a value for) a tombstoned parent point or one whose payload
    * doesn't have the field, the same two "nothing to serve" cases
    * `sampleRawFieldSubtopic` treats identically for a single read.
    *
-   * Bounded to the CURRENT epoch, exactly like `sample()`'s raw path, a
+   * Bounded to the current epoch, exactly like `sample()`'s raw path, a
    * timeline still sitting on a lower epoch (hasn't re-sampled since a
    * rewind) reads as empty rather than serving dead-epoch history into a
    * live series.
@@ -1492,7 +1492,7 @@ export class TimelineStore {
   }
 
   /**
-   * Windowed series for a DERIVED topic: the counterpart to `sampleRange`
+   * Windowed series for a derived topic: the counterpart to `sampleRange`
    * (which structurally can't serve one: a derived value is computed fresh
    * per frame, nothing is ever stored). Backs `@ksp-gonogo/data`'s
    * `useDataSeries` so a Graph-style widget plotting a registered
@@ -1504,11 +1504,11 @@ export class TimelineStore {
    * of instants the derived value could have changed too), a synthetic
    * `get` built by hold-last lookup over each raw input's own buffered range
    * (queried from `-Infinity` through `toUt`, so an input that last changed
-   * BEFORE `fromUt` still resolves correctly at the first in-window
+   * before `fromUt` still resolves correctly at the first in-window
    * instant; `ClientTimeline`'s own retention window bounds this, not an
    * unbounded scan).
    *
-   * Declared `inputs` are assumed RAW (not another derived topic), true of
+   * Declared `inputs` are assumed raw (not another derived topic), true of
    * every channel in `PRODUCTION_DERIVED_CHANNELS` today, even though `get`
    * itself resolves derived-on-derived inputs transparently at the live-frame
    * layer (`sample()`'s own doc comment). A derived-on-derived input here
@@ -1587,10 +1587,10 @@ export class TimelineStore {
   }
 
   /**
-   * The part of a series NOBODY MEASURED: what the topic's own forward model
+   * The part of a series nobody measured: what the topic's own forward model
    * says the quantity did between the last observation and `toUt`.
    *
-   * `sampleDerivedRange` above emits a point only where a declared INPUT
+   * `sampleDerivedRange` above emits a point only where a declared input
    * changed, which is exactly right for history and is why a chart of a
    * modelled quantity simply stopped at the last thing that arrived. During a
    * blackout no input changes, so the trace ended and said nothing about
@@ -1613,11 +1613,11 @@ export class TimelineStore {
    * caller that wants both halves joins them at the boundary that draws them,
    * and says which indices came from here.
    *
-   * ## The horizon is the MODEL's, and it is asked at every instant
+   * ## The horizon is the model's, and it is asked at every instant
    *
    * There is no cutoff here and no window constant, for the same reason
    * `Reading` carries no horizon field: a model withdraws by declining, and the
-   * absence of an answer IS the statement of trust. The difference a series
+   * absence of an answer is the statement of trust. The difference a series
    * makes is that the question gets asked once per instant instead of once per
    * frame, so a horizon inside the window is expressible at all. The walk stops
    * at the first instant the model declines: a model gets worse with
@@ -1627,13 +1627,13 @@ export class TimelineStore {
    * ## Only a continuous quantity gets a tail, and it keeps its unit
    *
    * A model that moves a flag, a mode name or a vector may be perfectly honest
-   * at a point and still have nothing a LINE can say: joining two states of an
+   * at a point and still have nothing a line can say: joining two states of an
    * enum draws a slope through values that do not exist. So a tail is emitted
    * only for a finite `number` or a finite `Value`, which excludes booleans,
    * strings, vectors and whole records by construction. A numeric enum would
    * pass this test and is the one shape to keep out of a plotted key by hand.
    *
-   * A `Value` comes back WRAPPED, because every `vessel.flight` field is one and
+   * A `Value` comes back wrapped, because every `vessel.flight` field is one and
    * a bare-number test would draw nothing for a carried altitude on every frame
    * of a descent. The magnitude is taken once, at the boundary
    * that plots it (`@ksp-gonogo/data`'s `useDataSeries`), not here, so nothing
@@ -1788,7 +1788,7 @@ export class TimelineStore {
    * `time.warp.observationQuantumUt` is how far apart the mod's samples of the
    * game were, read off the `time.warp` sample in force at the later point. A
    * gap wider than that is a quiet channel: the mod looked once a quantum and
-   * found nothing worth sending. So the unobserved span is the LAST quantum of
+   * found nothing worth sending. So the unobserved span is the last quantum of
    * the gap, or the whole gap where it is shorter, which at 1x is one second
    * and under high warp is one physics tick of thousands.
    *
@@ -1944,7 +1944,7 @@ export class TimelineStore {
    * The model is re-asked at every instant rather than resolved once and pulled
    * repeatedly, which is the only way its horizon is expressible at all:
    * `TopicModel` has no failure return by design, so a model withdraws by not
-   * being OFFERED, and offering is what the reckoner call is.
+   * being offered, and offering is what the reckoner call is.
    *
    * Root coverage is required for the same reason `readingFrom` requires it: a
    * model that moves one field of forty-seven has not answered for the value
@@ -2032,10 +2032,10 @@ export class TimelineStore {
    * {@link sample}, with the delay lane pinned rather than taken from the
    * topic's own declaration.
    *
-   * Only a DERIVED channel pins one, and only to its own lane: a channel whose
+   * Only a derived channel pins one, and only to its own lane: a channel whose
    * inputs are a mix reads all of them delayed, so its output is never stamped
    * more current than its most delayed input and never blends two instants a
-   * light-time apart into one value. See {@link sampleDerived}.
+   * signal delay apart into one value. See {@link sampleDerived}.
    */
   private sampleInLane<Payload>(
     topic: string,
@@ -2137,8 +2137,8 @@ export class TimelineStore {
    * Which lane `topic` is read in, for every shape of topic this store serves
    * rather than only the declared ones.
    *
-   * A DERIVED channel takes the most conservative of its inputs
-   * ({@link derivedLane}). A raw FIELD SUBTOPIC takes its parent record's lane,
+   * A derived channel takes the most conservative of its inputs
+   * ({@link derivedLane}). A raw field subtopic takes its parent record's lane,
    * because `time.warp.warpRate` is the same wire frame as `time.warp` and
    * reading the two at different instants would be the same record disagreeing
    * with itself. Anything else is its own declaration, and an undeclared
@@ -2210,8 +2210,8 @@ export class TimelineStore {
    * hold-last read (`at`) is what T2 consumers use; interpolation lands in
    * a later task").
    *
-   * Deliberately NOT what `sample()`/`get` use for raw reads: some raw
-   * topics (orbit ELEMENTS foremost) are a *cause* valid until superseded,
+   * Deliberately not what `sample()`/`get` use for raw reads: some raw
+   * topics (orbit elements foremost) are a *cause* valid until superseded,
    * not a measured quantity: interpolating between two elements samples
    * straddling a maneuver would blend through physically nonsensical
    * intermediate orbits. `sample()` stays hold-last for exactly that
@@ -2230,9 +2230,9 @@ export class TimelineStore {
    *
    * A derived topic already computed its own record at the frozen
    * `viewUt`: propagation (or the channel's own basis-appropriate
-   * handling) IS its past-horizon/interpolation story, so this falls
+   * handling) is its past-horizon/interpolation story, so this falls
    * through to the ordinary derived read (`sample`) rather than
-   * interpolating the OUTPUT record after the fact.
+   * interpolating the output record after the fact.
    */
   sampleInterpolated<Payload>(
     topic: string,
@@ -2275,16 +2275,16 @@ export class TimelineStore {
   /**
    * The parent record's model, scoped to one field subtopic.
    *
-   * A model is per TOPIC because physics needs siblings (Kepler wants eight
-   * elements at once, dead reckoning a position AND a velocity), and its
-   * expression is per FIELD because a payload is not one reckoning class:
+   * A model is per topic because physics needs siblings (Kepler wants eight
+   * elements at once, dead reckoning a position and a velocity), and its
+   * expression is per field because a payload is not one reckoning class:
    * `vessel.target` carries relative geometry that propagates beside identity
    * fields only a command changes beside metadata. Registration is therefore
    * keyed on the record, and a field read borrows the record's model and asks
    * whether it covers that path, which is the same parent-delegation
    * `sample()` and `sampleStatus()` already do for value and status.
    *
-   * The model is handed the PARENT's point, not the narrowed field point: a
+   * The model is handed the parent's point, not the narrowed field point: a
    * dead-reckoner given `{x, y, z}` alone cannot see the velocity it needs.
    * Only the result is narrowed.
    */
@@ -2349,7 +2349,7 @@ export class TimelineStore {
 
   /**
    * The decline for a declared input that did not arrive, named the way the
-   * CONTRACT names it.
+   * contract names it.
    *
    * A reckoner declares its inputs in `Dep` notation and the contract declares
    * them as `relativeVelocity` / `@vessel.orbit` / `@vessel.orbit#mu`. Where the
@@ -2366,7 +2366,7 @@ export class TimelineStore {
   }
 
   /**
-   * How one declared dep is NAMED to an operator: the contract's own spelling
+   * How one declared dep is named to an operator: the contract's own spelling
    * where the contract names the same Topic, and the `@topic` shape otherwise.
    *
    * Shared by both declines that name an input, because a reader who is told
@@ -2406,7 +2406,7 @@ export class TimelineStore {
    *
    * The notation is a Processor's `Dep`, unchanged, because a reckoner's inputs
    * are the same kind of thing and a second spelling would be two vocabularies
-   * to keep in step. The RESOLUTION differs in one place and deliberately: a
+   * to keep in step. The resolution differs in one place and deliberately: a
    * Topic id gives the `TimelinePoint`, not the bare payload a processor gets,
    * because a forward model withdraws on facts that live on the envelope
    * (`meta.quality` is what tells the conic the craft is under physics) and a
@@ -2438,20 +2438,20 @@ export class TimelineStore {
    * remaining ladder rungs (a derived channel's label, a field read borrowing
    * its record's model) still be tried.
    *
-   * ## A declared input that did not arrive declines BEFORE the model runs
+   * ## A declared input that did not arrive declines before the model runs
    *
    * That is the whole point of declaring them. A model that reached for whatever
    * it liked could not be told from one whose inputs never came: both answer
    * nothing, and a caller sees a silent absence on a value the contract promised
    * was carriable. So a `deps` entry resolving to nothing is a decline the store
-   * builds, naming the input the way the CONTRACT spells it where the contract
+   * builds, naming the input the way the contract spells it where the contract
    * names it at all, and the model is never asked a question it cannot answer.
    *
    * A `ReadingDep` never resolves to nothing (`sampleReading` always answers,
    * `pending` included), so declaring one is a way to say "hand me this Topic's
    * currency and let me judge it" rather than "refuse without it".
    *
-   * ## The window is resolved BEFORE the deps, and it is the other refusal
+   * ## The window is resolved before the deps, and it is the other refusal
    *
    * A `minSamples` the record cannot meet means the model has nothing to take a
    * trend from, so it is settled first and the deps are never read: there is no
@@ -2460,7 +2460,7 @@ export class TimelineStore {
    * window truncated at a gap simply arrives shorter, where the same floor
    * judges it.
    *
-   * A dep that opted into a window resolving to NO points is the same answer as
+   * A dep that opted into a window resolving to no points is the same answer as
    * an un-windowed dep resolving to `undefined`, and gets the same decline: the
    * input the contract named did not arrive.
    */
@@ -2610,7 +2610,7 @@ export class TimelineStore {
   /**
    * The opt-outs in force for the model this registration just returned:
    * whatever it declared registration-wide, plus whatever it declared for the
-   * BASIS this particular model was produced on.
+   * basis this particular model was produced on.
    *
    * A registration-wide opt-out still means every model it returns, which is
    * right where a registration really is one model. `perBasis` is what lets a
@@ -2658,20 +2658,20 @@ export class TimelineStore {
    * there rather than refusing every instant of it.
    *
    * This is the horizon rule, and it is spelled as a withdrawal because a
-   * horizon has no other spelling here: there is no horizon FIELD on a
+   * horizon has no other spelling here: there is no horizon field on a
    * `TopicModel` to clamp, and `Reading`'s own doc is explicit that a model
    * withdraws by not being offered on the next frame. So the composition rule
    * "no further than the shortest of my inputs" becomes "not offered on a frame
    * where an input has run out", which is the same statement made in the
    * vocabulary the type already has.
    *
-   * Only an input that HAS a model can have run out. An input nobody models is
+   * Only an input that has a model can have run out. An input nobody models is
    * held-last and makes no claim about how far it reaches, so declining on one
    * would refuse every model in the tree: `system.bodies` changes once a session
    * and is permanently held, and a hold-last is exactly the right reading of
    * it.
    *
-   * Asked AFTER the deps resolve, so an input that never arrived is reported as
+   * Asked after the deps resolve, so an input that never arrived is reported as
    * absent rather than as out of reach. The two are different facts and the
    * absent one is the more basic.
    */
@@ -2708,7 +2708,7 @@ export class TimelineStore {
    *
    * The bookkeeping is here rather than inlined at both call sites because
    * getting it wrong is invisible: an inner call that unmarked a topic its
-   * CALLER had marked would reopen the cycle the mark exists to close, and every
+   * caller had marked would reopen the cycle the mark exists to close, and every
    * test would still pass right up to the frame two models named each other.
    */
   private whileEnforcing<Result>(topic: string, walk: () => Result): Result {
@@ -2722,16 +2722,16 @@ export class TimelineStore {
   }
 
   /**
-   * One declared input's OWN registered model for this frame, resolved exactly
+   * One declared input's own registered model for this frame, resolved exactly
    * as a read of that topic would resolve it.
    *
-   * Resolved by TOPIC rather than off the dep the model was handed, which is
+   * Resolved by topic rather than off the dep the model was handed, which is
    * the whole reason the rules apply without an author writing anything. Only a
    * `ReadingDep` resolves to a `Reading` carrying currency and bands, every
    * shipped reckoner declares bare Topic ids, and reading enforcement off the
    * handed dep would have made both rules opt-in through a spelling choice.
    *
-   * At the input's OWN delay lane's view time, not the dependent's, moved by
+   * At the input's own delay lane's view time, not the dependent's, moved by
    * `shift` seconds. The input's uncertainty is the uncertainty of the value
    * that actually fed the model, and that value is the one its own frame
    * carries.
@@ -2763,7 +2763,7 @@ export class TimelineStore {
    * The model, with its bands held to what its inputs' own bands support.
    *
    * The band rule, and it wraps `bandAt` rather than running it, because a
-   * reckoning is a PULL: the store decides which arm to build without running
+   * reckoning is a pull: the store decides which arm to build without running
    * the model, and forcing every input's band on a frame nobody asked for one
    * would undo that. A model offering no band at all is handed back untouched,
    * which is the honest majority and costs nothing.
@@ -2771,8 +2771,8 @@ export class TimelineStore {
    * Two claims are policed and neither needs to know the model's mathematics: a
    * `bound` over a `sigma1` input (a capped error derived from an uncapped one)
    * and a zero-width band over an input with width (exactness derived from
-   * uncertainty). The first is DOWNGRADED, keeping the model's own numbers and
-   * softening only what they claim; the second is DROPPED, because widening it
+   * uncertainty). The first is downgraded, keeping the model's own numbers and
+   * softening only what they claim; the second is dropped, because widening it
    * would mean inventing a width, and `ReckonedBands` already says a fabricated
    * band is worse than none. See {@link ReckonerInputRule} for why widths are
    * deliberately not compared.
@@ -2825,7 +2825,7 @@ export class TimelineStore {
    *
    * Marked as under enforcement for the walk, like the horizon half, because
    * asking an input for its band runs that input's own floored model, which asks
-   * ITS inputs. Two models naming each other's topics would otherwise bounce
+   * its inputs. Two models naming each other's topics would otherwise bounce
    * between the two `bandAt` wrappers forever.
    */
   private inputBandFloor(
@@ -2864,7 +2864,7 @@ export class TimelineStore {
    *
    * No `input`: the topic being read is not one of the model's declared inputs,
    * and naming it there would put a topic id where every other decline puts the
-   * CONTRACT's spelling of a declared input. The note carries the numbers
+   * contract's spelling of a declared input. The note carries the numbers
    * instead, which is what an operator can act on.
    */
   private static tooLittleHistory(
@@ -2885,7 +2885,7 @@ export class TimelineStore {
    * memoised for the frame.
    *
    * Anchored on `anchor`, the newest point at-or-before the frame's view time,
-   * and NOT on the view time itself. A reckoner physically cannot see past its
+   * and not on the view time itself. A reckoner physically cannot see past its
    * confirmed edge, which is what makes reckoning honest, and a window measured
    * back from the view time would empty out during exactly the blackout a model
    * exists to carry a value across: the last minute of contact is the minute a
@@ -3015,7 +3015,7 @@ export class TimelineStore {
    * Why the declared model did not answer for `topic` this frame, or `undefined`
    * when the contract declares nothing about it.
    *
-   * Only asked when no model was on offer, which for a DECLARED topic is a
+   * Only asked when no model was on offer, which for a declared topic is a
    * specific refusal rather than the honest default it is elsewhere: the mark is
    * a promise that the wire carries the model's inputs, so if nothing answered,
    * either an input did not arrive, two owners are contesting the topic, or no
@@ -3051,11 +3051,11 @@ export class TimelineStore {
   }
 
   /**
-   * The topic's value AND its currency as one `TopicReading<Payload>`, at a frame token's
+   * The topic's value and its currency as one `TopicReading<Payload>`, at a frame token's
    * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
    *
-   * **Identity tracks the DATA, not the frame**, and that is load-bearing
+   * **Identity tracks the data, not the frame**, and that is load-bearing
    * rather than an optimisation. `useTelemetry` hands the result straight to
    * `useSyncExternalStore`, which compares snapshots with `Object.is`. The
    * per-frame `memoize` cache alone is not enough here: `beginFrame()` mints a
@@ -3066,7 +3066,7 @@ export class TimelineStore {
    * dependency arrays on every frame.
    *
    * `sample()` and `sampleStatus()` do not need this because a payload's
-   * identity is its own and a status is a string; a union is a WRAPPER, so it
+   * identity is its own and a status is a string; a union is a wrapper, so it
    * has to be told. The last reading per topic is therefore kept and returned
    * again while the sampled point's identity, the status and the epoch are all
    * unchanged. Frame memoization still sits on top, so repeat reads within one
@@ -3300,8 +3300,8 @@ export class TimelineStore {
    *    against yet (mirrors `HeartbeatTracker.isOverdue`'s own "no arrival
    *    is not overdue" precedent).
    * 2. A tombstone (`payload: null`) -> `"absent"`, unconditionally, a
-   *    confirmed subject-absence is a fact about the SUBJECT, never masked
-   *    by transport-down (a fact about the LINK). The two axes are
+   *    confirmed subject-absence is a fact about the subject, never masked
+   *    by transport-down (a fact about the link). The two axes are
    *    orthogonal: the client already confirmedly knows there
    *    is no value, and that doesn't stop being true just because the
    *    transport dropped a moment later.
@@ -3318,7 +3318,7 @@ export class TimelineStore {
    *    `validAt` age) decides live vs. held.
    *
    * `isOverdue` is keyed off `clock.certaintyHorizonUt()`, never the frame's
-   * SCET: overdue is a gap in CONFIRMED arrivals, and SCET runs ahead of
+   * SCET: overdue is a gap in confirmed arrivals, and SCET runs ahead of
    * anything confirmed on wall time alone. The horizon only advances when a
    * delivered sample, on any topic, confirms elapsed UT.
    */
@@ -3394,7 +3394,7 @@ export class TimelineStore {
   }
 
   /**
-   * Splits a dotted topic into the REAL raw wire topic and the remaining
+   * Splits a dotted topic into the real raw wire topic and the remaining
    * segments as a nested field path into that record's payload (see this
    * file's own doc comment on the `sample()` branch that calls this, and
    * `timeline-store-raw-fields.test.ts`). A 3-segment key
@@ -3402,17 +3402,17 @@ export class TimelineStore {
    * `"vessel.thermal.hottestPart.skinTemp"` yields a 2-element path, walked in
    * one nested lookup rather than a second round of topic resolution.
    *
-   * The split lands at the LONGEST KNOWN topic id the key starts with
+   * The split lands at the longest known topic id the key starts with
    * (`splitRawFieldSubtopic`), so a genuinely-3-segment topic is its own wire
    * topic and can carry a field path of its own:
    * `"alarm.scet.fired.firedAtUt"` is `alarm.scet.fired` plus `firedAtUt`,
    * where splitting after the second segment made it a `fired.firedAtUt` path
-   * into `alarm.scet`, which is an ARRAY and has no such field. `undefined`
-   * when the key IS a whole topic: fewer than 3 segments (`"vessel.orbit"`
+   * into `alarm.scet`, which is an array and has no such field. `undefined`
+   * when the key is a whole topic: fewer than 3 segments (`"vessel.orbit"`
    * itself is the raw topic), or a known topic id at full length; both are
    * left to the ordinary raw-literal path in `sample()`.
    *
-   * The dynamic-namespace prefixes are checked FIRST and are not subsumed by
+   * The dynamic-namespace prefixes are checked first and are not subsumed by
    * that lookup: a per-(body,type) or per-CPU topic is computed at runtime and
    * so has no member in any generated list to match against.
    *
@@ -3442,7 +3442,7 @@ export class TimelineStore {
    * Mirrors `sampleDerived`'s two "nothing" cases (never conflated):
    * no point on the parent at all yet -> `undefined` ("not whole
    * yet": the raw topic's own not-arrived-yet case, propagated as-is,
-   * intentionally NOT re-classified). A tombstoned parent (`payload: null`)
+   * intentionally not re-classified). A tombstoned parent (`payload: null`)
    * -> a real point with `payload: null` (a confirmed absence, the whole
    * record is gone, so every field of it is too). A field name not present
    * on an otherwise-whole, non-null record -> `undefined` (the phantom-
@@ -3453,9 +3453,9 @@ export class TimelineStore {
    * catch yet).
    *
    * Reuses the parent point's own `meta`/`validAt`/`epoch` verbatim, unlike
-   * a DERIVED channel (which fabricates its own `derivedMeta`), a raw field
+   * a derived channel (which fabricates its own `derivedMeta`), a raw field
    * subtopic isn't a new computation, it's the same measured/received record
-   * narrowed to one field, so its staleness/quality/provenance genuinely ARE
+   * narrowed to one field, so its staleness/quality/provenance genuinely are
    * the whole record's.
    */
   private sampleRawFieldSubtopic<Payload>(
@@ -3515,11 +3515,11 @@ export class TimelineStore {
 
   /**
    * Compute (or reuse the frame-memoized) value for a derived channel, the
-   * SAME `memoize` seam raw `sample()` reads use, keyed by the channel's own
+   * same `memoize` seam raw `sample()` reads use, keyed by the channel's own
    * topic so N field-subtopic reads (`system.state.bodyCount`, ...) in one
    * frame still call `derive` exactly
    * once (memoized to once per `(topic, frame)`). `get`
-   * (passed to `derive`) is `sample` bound to this SAME `token`, the
+   * (passed to `derive`) is `sample` bound to this same `token`, the
    * structural single-view-time invariant: there is no other way for
    * a `derive` implementation to read a UT. `epoch` is threaded in from the
    * caller (rather than re-read via `this.clock.getEpoch()`) so the value

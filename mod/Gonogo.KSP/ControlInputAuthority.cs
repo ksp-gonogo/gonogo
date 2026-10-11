@@ -6,7 +6,7 @@ namespace Gonogo.KSP
     /// Whether KSP will hand this craft the control input we are about to write.
     ///
     /// <para><b>The gap this closes.</b> <c>Vessel.FeedInputFeed()</c> runs
-    /// <c>OnFlyByWire(ctrlState)</c> FIRST, so the fly-by-wire override we attach
+    /// <c>OnFlyByWire(ctrlState)</c> first, so the fly-by-wire override we attach
     /// executes and writes every axis it holds. Only afterwards does it decide
     /// whether the parts ever see that state:
     /// <c>rootPart.propagateControlUpdate(ctrlState)</c> sits behind
@@ -18,8 +18,8 @@ namespace Gonogo.KSP
     /// <para><b>Why only the last of those four gates is asked here.</b>
     /// <c>packed</c>, <c>physicsHoldLock</c> and <c>!loaded</c> are moments, not
     /// states of the craft: they clear when warp ends or physics resume, and the
-    /// override is DESIGNED to survive them, since it re-applies from the held
-    /// axes on every frame. Under light-time delay that is not an edge case, it
+    /// override is designed to survive them, since it re-applies from the held
+    /// axes on every frame. Under signal delay delay that is not an edge case, it
     /// is the normal shape of a command that arrives while the craft is on rails.
     /// Refusing there would break the thing the override exists for.
     /// <c>isControllable</c> is different: it is

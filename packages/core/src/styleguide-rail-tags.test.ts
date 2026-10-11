@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * The delay rail's three axes must be DERIVED at every production site, never
+ * The delay rail's three axes must be derived at every production site, never
  * spelled out.
  *
  * There are exactly three derivations, all in `mod/sitrep-sdk/src/rail-tags.ts`:
@@ -41,7 +41,7 @@ import { describe, expect, it } from "vitest";
  *
  * - the derivations themselves. They are the one place an axis is decided, and
  *   each says why in prose next to the decision
- * - TESTS. A test asserting `{ direction: "telemetry", kind: "continuous",
+ * - Tests. A test asserting `{ direction: "telemetry", kind: "continuous",
  *   delivery: "fire-and-forget" }` is stating the expected answer independently
  *   of the code that produced it, which is the whole value of the assertion. A
  *   test that called the derivation to build its own expectation would agree
@@ -53,7 +53,7 @@ const SCAN_ROOTS = ["packages", "mod"];
 /**
  * A rail axis decided in place: `direction: "command"` / `direction: "telemetry"`.
  *
- * DIRECTION alone is the probe, not all three. It is the axis no producer has
+ * Direction alone is the probe, not all three. It is the axis no producer has
  * any business choosing (a command id is a command, a push is telemetry), so a
  * site spelling it has necessarily bypassed a derivation, and any hand-written
  * triple contains it. Matching on `kind` instead would catch nothing: the
@@ -63,7 +63,7 @@ const SCAN_ROOTS = ["packages", "mod"];
 const HAND_TAGGED_RE = /direction:\s*["'](?:command|telemetry)["']/;
 
 /**
- * The retired per-axis override type, in any spacing, in CODE.
+ * The retired per-axis override type, in any spacing, in code.
  *
  * The lookbehind excludes a backticked mention, which is prose. This repo
  * documents its retired APIs on purpose (the note in `CommandDelay.tsx` saying
@@ -86,7 +86,7 @@ const isTest = (rel: string): boolean =>
 
 /**
  * The scan must walk at least this many files to be believed. Without a floor
- * this file passes while seeing NOTHING: an enumeration that returns an empty
+ * this file passes while seeing nothing: an enumeration that returns an empty
  * list finds zero offenders, and zero offenders is exactly what success looks
  * like. Same reasoning, and the same number, as `styleguide-cleanup`.
  */

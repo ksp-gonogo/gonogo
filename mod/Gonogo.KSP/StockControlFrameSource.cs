@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The always-present VANILLA control-frame source: what frame the game's
+    /// The always-present vanilla control-frame source: what frame the game's
     /// navigation view is in when nothing else owns it.
     ///
     /// <para>Stock has exactly one kind of frame and it is a real one, not a

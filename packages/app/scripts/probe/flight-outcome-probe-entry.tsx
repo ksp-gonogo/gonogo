@@ -15,7 +15,7 @@ import { FlightOutcomeBanner } from "../../src/components/FlightOutcomeBanner";
  * `flight-outcome-probe.html`, and `scripts/render-flight-outcome.ts` drives it
  * through `window.__renderFlightOutcome`.
  *
- * The banner is the REAL one over a REAL stream fixture, publishing the wire
+ * The banner is the real one over a real stream fixture, publishing the wire
  * shape the mod publishes: bare numbers, which the SDK wraps into `Value`s on
  * decode exactly as it does in the app. That is the whole subject of these
  * shots, so nothing may be pre-wrapped on the way in.

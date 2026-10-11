@@ -18,9 +18,9 @@ export interface ModalChromeValue {
 }
 
 /**
- * The context each open modal dialog provides to its content, `null` outside
- * a modal. Content uses {@link useModalChrome} or {@link useModalSaveBar}
- * rather than reading it.
+ * The footer and unsaved-changes controls each open modal dialog provides to its
+ * content, `null` outside a modal. Content uses {@link useModalChrome} or
+ * {@link useModalSaveBar} rather than reading it.
  *
  * @intent Published so content that calls useModalChrome can be rendered under a stand-in modal in a test.
  * @category Modal
@@ -28,11 +28,12 @@ export interface ModalChromeValue {
 export const ModalChromeContext = createContext<ModalChromeValue | null>(null);
 
 /**
- * Shows `footer` as the enclosing modal's sticky footer, below the scrolling
+ * Shows `footer` to the operator as the enclosing modal's sticky footer, below the scrolling
  * body so it never scrolls out of view, and reports `dirty` so the modal asks
  * before discarding unsaved changes. The footer is cleared and the flag reset
  * on unmount. Does nothing outside a modal. For a plain Save button use
- * {@link useModalSaveBar}, which works out `dirty` for you.
+ * {@link useModalSaveBar}, which works out `dirty` for you. Used by
+ * {@link useModalSaveBar}.
  *
  * @category Modal
  */
@@ -85,8 +86,9 @@ export interface ModalSaveBarOptions<Draft> {
 /**
  * Puts a primary Save button (and any `extra` buttons) in the enclosing
  * modal's sticky footer, and marks the modal dirty so it asks before
- * discarding unsaved edits. Use it in a widget's config form in place of a
- * Save button at the bottom of the form.
+ * discarding unsaved edits. Useful for letting the operator save a widget's
+ * settings without scrolling to the bottom of its config form. Used by the
+ * config forms of the warp control, targeting and current orbit widgets.
  *
  * The form counts as dirty only when `value` differs, by {@link configEqual},
  * from both its value when the modal opened and `saved`. The hook renders

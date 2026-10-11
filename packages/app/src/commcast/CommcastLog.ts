@@ -22,7 +22,7 @@ const STORAGE_PREFIX = "gonogo.commcast.v4.";
 const MAX_MESSAGES = 500;
 
 /**
- * Transmissions per second from one screen. Commcast sends on COMMIT (one
+ * Transmissions per second from one screen. Commcast sends on commit (one
  * frame per message or per acknowledgement), never per keystroke: at
  * `PEER_BROADCAST_BYTES_BUDGET`'s 200 kB/s a burst at typing rates would be
  * visible, and a sustained rate above this means something is retransmitting
@@ -66,7 +66,7 @@ export interface CommcastLogOptions {
 }
 
 /**
- * What ONE vantage holds: the messages it sent and the messages that reached
+ * What one vantage holds: the messages it sent and the messages that reached
  * it. There is no canonical thread anywhere and no host copy of anyone else's
  * log.
  *
@@ -75,7 +75,7 @@ export interface CommcastLogOptions {
  * everything, including the cases where the point of the feature is that it
  * did not: a craft with no path home, a station that was away, a message that
  * simply never arrived. Here a message exists at a vantage because it reached
- * that vantage, so two logs legitimately hold different SETS.
+ * that vantage, so two logs legitimately hold different sets.
  *
  * The consequence the operator has to live with is that a message nobody
  * received is invisible to everyone except its author, who sees it
@@ -129,7 +129,7 @@ export class CommcastLog {
   /**
    * Put one live radio frame on the wire.
    *
-   * It STORES nothing, and that is the difference from every other method on
+   * It stores nothing, and that is the difference from every other method on
    * this class. Radio is live: there is no transcript, a listener who was away
    * missed it, and keeping a copy here would be the recorded-audio-message
    * feature arriving by the back door.
@@ -176,7 +176,7 @@ export class CommcastLog {
   /**
    * Say something to whoever `input.to` names.
    *
-   * A separation of `null` is NO PATH to that recipient: it is marked as
+   * A separation of `null` is "NO PATH" to that recipient: it is marked as
    * never having left, and the operator can resend when a path exists, rather
    * than watching a countdown for words the mod would address to nobody. The
    * message is transmitted once, when it can reach at least one recipient.
@@ -235,7 +235,7 @@ export class CommcastLog {
    * Transmit an already-sent message again to `recipients`, keeping its
    * identity.
    *
-   * ONE action, and it is a re-ask as much as a resend: the recipient dedupes
+   * One action, and it is a re-ask as much as a resend: the recipient dedupes
    * on the id, so either it already holds the message and acknowledges again,
    * which answers "did it arrive", or it does not and now does. A separate
    * query would cost the same two legs and buy nothing. (A later mode carrying
@@ -245,7 +245,7 @@ export class CommcastLog {
    * Only the named recipients' deliveries are re-stamped, each with its own
    * fresh separation and acknowledgement window; the id, the first `sentUt`
    * and any acknowledgement already received are not, so a late reply to the
-   * FIRST attempt still confirms its recipient and can never flip a confirmed
+   * first attempt still confirms its recipient and can never flip a confirmed
    * one back.
    */
   resend(
@@ -328,9 +328,9 @@ export class CommcastLog {
   /**
    * A message the mod delivered here.
    *
-   * Kept only if it NAMES this vantage, and deduped on the message id across
+   * Kept only if it names this vantage, and deduped on the message id across
    * everything this log already holds, which is what makes the resend
-   * idempotent: a resend whose original also arrived is ONE message here.
+   * idempotent: a resend whose original also arrived is one message here.
    * `false` says it was a duplicate or not addressed here. A duplicate of a
    * message already read is answered with its acknowledgement again, since a
    * resend exists because the first one never reached the author.
@@ -493,7 +493,7 @@ function longestOf(deliveries: readonly Delivery[]): number | null {
   return longest;
 }
 
-/** Drop-oldest at the cap, and COUNT it, so the log can say it forgot. */
+/** Drop-oldest at the cap, and count it, so the log can say it forgot. */
 function capped<Entry>(items: Entry[], onDrop: (n: number) => void): Entry[] {
   if (items.length <= MAX_MESSAGES) return items;
   onDrop(items.length - MAX_MESSAGES);

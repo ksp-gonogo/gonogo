@@ -16,7 +16,7 @@ import { NavballComponent } from "./index";
 /**
  * Characterises what Navball does with each absent read other than attitude
  * (covered in `reading.test.tsx`):
- *  - an unread SAS/RCS arm is labelled with its bare name, neither ON nor OFF
+ *  - an unread SAS/RCS arm is labelled with its bare name, neither on nor off
  *  - an unread throttle is the null glyph, never 0%, and refuses relative steps
  *  - a SAS/RCS toggle with no boolean read is refused rather than guessed
  *  - an unknown control level fails open: the surface stays live
@@ -33,7 +33,7 @@ const ATTITUDE = {
   rollRootFrame: 0,
 };
 
-/** `Sitrep.Contract.ControlState.None`: collapses to level 0, i.e. NOT controllable. */
+/** `Sitrep.Contract.ControlState.None`: collapses to level 0, i.e. Not controllable. */
 const CONTROL_STATE_NONE = 0;
 
 let fixture: StreamFixture;

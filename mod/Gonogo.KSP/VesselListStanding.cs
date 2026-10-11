@@ -6,7 +6,7 @@ namespace Gonogo.KSP
     /// <para>While a scene loads the game empties its vessel list and fills it
     /// again from the save, over several seconds. A list read in that gap says
     /// nothing exists, and taken at its word every craft would be recorded as
-    /// seen to go, each command centre learning of it one light-time later and
+    /// seen to go, each command centre learning of it one signal delay later and
     /// of its return a scene-load after that. Not being able to see is not
     /// seeing nothing, so nothing is read from the list until it stands.</para>
     ///

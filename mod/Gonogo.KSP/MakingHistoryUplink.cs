@@ -9,7 +9,7 @@ namespace Gonogo.KSP
     /// <summary>
     /// The bundled, DLC-gated Making History uplink: owns the
     /// <c>missions.active</c> channel, the running mission's name, phase,
-    /// objectives and score. Shipped IN the core mod DLL like
+    /// objectives and score. Shipped in the core mod DLL like
     /// <see cref="BreakingGroundUplink"/> (auto-discovered, not a separate
     /// installable package). Its health reads
     /// <c>ExpansionsLoader.IsExpansionInstalled("MakingHistory")</c> live, and

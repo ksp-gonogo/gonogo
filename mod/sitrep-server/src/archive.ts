@@ -1,6 +1,6 @@
 /**
  * Archive is the single per-vessel SCET-stamped history the Courier reads
- * through. There is ONE archive per vessel (per topic within it); each
+ * through. There is one archive per vessel (per topic within it); each
  * Vantage (observer) is a monotonic read-cursor into that archive at its own
  * delay offset. That split (one shared history, many independent cursors)
  * is what makes delay honest (every vantage sees its own light-lagged scene
@@ -57,7 +57,7 @@ export class Archive {
 
   /**
    * Read `topic` as of a scene instant the caller already knows exactly,
-   * WITHOUT reading `vantage`'s cursor. Returns the latest sample with
+   * without reading `vantage`'s cursor. Returns the latest sample with
    * validAt <= `sceneUt`, or undefined if nothing had been recorded by then.
    * The cursor is still moved forward to the scene, as the retention watermark
    * the C# port prunes to, but it no longer clamps the answer.

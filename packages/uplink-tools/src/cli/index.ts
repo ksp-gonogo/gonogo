@@ -136,7 +136,7 @@ async function compatVersions(clientDir: string): Promise<CompatVersions> {
  * Build the standalone ESM bundle the app `import()`s, plus the
  * `gonogo-uplink.json` sidecar beside it.
  *
- * The sidecar's NAME and LOCATION are not free: the loader derives its URL from
+ * The sidecar's name and location are not free: the loader derives its URL from
  * the bundle's own by stripping the last path segment and appending
  * `gonogo-uplink.json`, so it must sit next to the bundle under exactly that
  * name. Publishing several Uplinks into one flat directory therefore gives them

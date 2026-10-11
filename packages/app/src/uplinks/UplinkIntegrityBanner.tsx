@@ -61,7 +61,7 @@ function FailedUplink({
 /**
  * `role="status"` / `aria-live="polite"`, not `alert` / `assertive`.
  *
- * The repo reserves the assertive channel for events that must INTERRUPT, and
+ * The repo reserves the assertive channel for events that must interrupt, and
  * an integrity failure has already been acted on by the time this renders: the
  * loader refused before `import()`, so nothing from the bundle is running and
  * nothing gets worse in the next ten seconds. There is no in-flight action to
@@ -72,8 +72,8 @@ function FailedUplink({
  * main screen, so this region is populated at mount and a live region announces
  * nothing at mount either way: what carries it to a screen reader is the text
  * sitting at the top of the main landmark, and what carries it to everyone else
- * is the red block above the dashboard. Borrowing the ABORT channel would not
- * have made it louder, only made ABORT quieter.
+ * is the red block above the dashboard. Borrowing the `ABORT` channel would not
+ * have made it louder, only made `ABORT` quieter.
  */
 export function UplinkIntegrityBanner() {
   const outcomes = useSyncExternalStore(

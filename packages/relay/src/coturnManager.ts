@@ -6,7 +6,7 @@ import { randomBytes } from "node:crypto";
  * every startup and feeding coturn its discovered public IP. Bundling
  * coturn into the proxy container means:
  *
- *   - One container to run; users get TURN out of the box without
+ *   - One container to run; users get turn out of the box without
  *     wiring up an init script or shared volume.
  *   - The shared secret only ever lives in this process's memory; a
  *     restart rotates it automatically.
@@ -21,7 +21,7 @@ export interface CoturnOptions {
   /**
    * Local, bindable IP coturn should actually open relay sockets on, passed
    * as the `/private` half of coturn's `--external-ip=<public>/<private>`.
-   * Needed whenever `externalIp` is a NAT / published address that isn't a
+   * Needed whenever `externalIp` is a nat / published address that isn't a
    * local interface, the usual container case, without it coturn tries to
    * bind relay sockets on the non-local `externalIp`, fails `EADDRNOTAVAIL`,
    * and every allocation dies with `create_relay_ioa_sockets: no available
@@ -36,7 +36,7 @@ export interface CoturnOptions {
   minPort?: number;
   /**
    * Max relay port. Defaults to 49170: coturn allocates one relay port
-   * per active TURN session, so 11 ports comfortably covers ≤10
+   * per active turn session, so 11 ports comfortably covers ≤10
    * simultaneous TURN-using clients. Bumped down from the original
    * 49200 because Google Wi-Fi (and most consumer routers) require
    * one port-forward entry per port; the old range demanded 41

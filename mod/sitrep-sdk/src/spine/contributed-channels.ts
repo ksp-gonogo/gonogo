@@ -10,7 +10,7 @@ import type { DerivedChannelDefinition } from "./timeline-store";
  * `PRODUCTION_DERIVED_CHANNELS` is a hardcoded array in core, so until now the
  * only way to add a derived channel was to edit core. That is fine for the
  * eight channels core owns and wrong for everything else, because a derived
- * channel is the ONLY mechanism that can join two Topics, and the models that
+ * channel is the only mechanism that can join two Topics, and the models that
  * need to join two Topics are exactly the ones core must not own.
  *
  * A consumable projection is the case that surfaced it. Integrating a resource
@@ -24,7 +24,7 @@ import type { DerivedChannelDefinition } from "./timeline-store";
  * ## Ownership, and why it is a stamped field
  *
  * Same rule and same mechanics as `reckoners.ts`: keyed by (topic, owner), and
- * a topic two owners both claim is registered by NEITHER. A derived channel
+ * a topic two owners both claim is registered by neither. A derived channel
  * silently overwritten by import order is worse than an absent one, because a
  * widget goes on reading it and gets another Uplink's model of a quantity it
  * has never heard of.

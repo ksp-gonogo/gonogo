@@ -4,14 +4,14 @@ using Xunit;
 namespace Sitrep.Contract.TestSupport
 {
     /// <summary>
-    /// Conformance assertions an implementer runs against their OWN implementation
+    /// Conformance assertions an implementer runs against their own implementation
     /// of a seam.
     ///
     /// <para><b>Why a shipped assertion rather than a test in this repo.</b> A seam
     /// is a gate: something in core asks <c>x is ISomething</c> and behaves
     /// differently when it is. The behaviour behind that gate is normally proved by
     /// a test that hands the gate an implementation it wrote itself, which
-    /// establishes what happens AFTER the gate and nothing about whether anyone
+    /// establishes what happens after the gate and nothing about whether anyone
     /// else's implementation would get through it. Every such test passes over a
     /// seam nobody could correctly fill, and one did: <c>IIntegratedTrajectorySource</c>
     /// shipped with a declaration, one <c>is</c> check and no implementer, and the
@@ -21,13 +21,13 @@ namespace Sitrep.Contract.TestSupport
     /// <para>So the assertion has to be the same one on both sides. An outside
     /// author calls it on their implementation and learns whether they got it
     /// right; this repo calls it on its own and learns the same thing. It lives
-    /// here because <see cref="Sitrep.Contract.TestSupport"/> is SHIPPED, in the
+    /// here because <see cref="Sitrep.Contract.TestSupport"/> is shipped, in the
     /// net10.0 group of the <c>KspGonogo.Sitrep.Contract</c> NuGet package that
     /// an Uplink's test project references, so "an implementer can
     /// run it" is a fact about the package rather than a hope.</para>
     ///
     /// <para><b>It asserts the contract, never an implementation's choices.</b>
-    /// What a provider IS remains entirely the provider's business. What it owes
+    /// What a provider is remains entirely the provider's business. What it owes
     /// is what the interface's own doc comment promises, and nothing beyond.</para>
     /// </summary>
     public static class SeamConformance
@@ -39,7 +39,7 @@ namespace Sitrep.Contract.TestSupport
         ///
         /// <para>Call the <see cref="AssertProviderContract(ISitrepProvider, ProviderRegistration)"/>
         /// overload wherever the registration is in hand. The promise that the two
-        /// strings are the SAME string is the half of this contract that actually
+        /// strings are the same string is the half of this contract that actually
         /// breaks, and it cannot be checked from the instance alone.</para>
         /// </summary>
         /// <param name="provider">The implementation under test.</param>
@@ -74,7 +74,7 @@ namespace Sitrep.Contract.TestSupport
 
         /// <summary>
         /// As above, plus the promise that cannot be checked from the instance
-        /// alone: the id a provider REPORTS is the id it REGISTERS with the
+        /// alone: the id a provider reports is the id it registers with the
         /// <see cref="Kernel"/>.
         ///
         /// <para>Two strings mean one identity only if they are equal, and nothing

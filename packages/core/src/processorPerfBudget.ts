@@ -63,7 +63,7 @@ setProcessorNotificationRecorder(() => PROCESSOR_NOTIFY_BUDGET.record());
  * That is a deliberate break from the two above, and the reason is the one this
  * budget exists to serve. These two are wired core-side because `PerfBudget`
  * was core-side when they were written, and the cost of that is invisible from
- * here: the wiring runs in the app's test setup and in NO Uplink's, so all nine
+ * here: the wiring runs in the app's test setup and in no Uplink's, so all nine
  * Uplink suites call `PerfBudget.installTestGate()` and gate nothing about
  * processors. An Uplink author is the likeliest person to write the processor
  * that trips this, so a gate they cannot see is not a gate.

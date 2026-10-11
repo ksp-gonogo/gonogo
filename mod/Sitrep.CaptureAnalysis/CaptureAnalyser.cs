@@ -151,7 +151,7 @@ public static class CaptureAnalyser
 
     /// <summary>
     /// When <c>comms.path</c> is missing, <c>comms.link</c>'s bare connected flag
-    /// is the only remaining witness, and whether IT ever changed decides how bad
+    /// is the only remaining witness, and whether it ever changed decides how bad
     /// the gap is. A capture that stayed connected throughout did not merely fail
     /// to record the hops of an event, it contains no event: no amount of
     /// re-reading it will produce one.
@@ -190,7 +190,7 @@ public static class CaptureAnalyser
     }
 
     /// <summary>
-    /// A prediction is made against ONE ground station. If the capture terminated
+    /// A prediction is made against one ground station. If the capture terminated
     /// its paths at several, or at a node whose name says nothing about which it
     /// was, then the observed events do not all belong to the same geometry and
     /// scoring them against a single station's horizon would be comparing two

@@ -1,12 +1,12 @@
 /**
- * The landing-site hazard verdict: SAFE / MARGINAL / DIVERT, telemetry alerting and never GO/NO-GO. Worst band wins across three axes. It judges every descent by the speed it will touch down at, and knows nothing of what the craft is (an engine, a parachute, whether it floats) or of what the surface is made of:
+ * The landing-site hazard verdict: safe / marginal / divert, telemetry alerting and never GO/NO-GO. Worst band wins across three axes. It judges every descent by the speed it will touch down at, and knows nothing of what the craft is (an engine, a parachute, whether it floats) or of what the surface is made of:
  *
- * | axis              | SAFE | MARGINAL | DIVERT | anchor                       |
+ * | axis              | `SAFE` | marginal | `DIVERT` | anchor                       |
  * | slope (deg)       | <=5  | 5-15     | >15    | Apollo LM 12-degree limit    |
  * | roughness (sigma) | A/B  | C        | F      | shared roughness grade       |
  * | touchdown (m/s)   | <=2  | 2-6      | >6     | stock modal crashTolerance   |
  *
- * Slope and touchdown speed are per-instance tunable. A null verdict means no axis had data (unknown, not SAFE).
+ * Slope and touchdown speed are per-instance tunable. A null verdict means no axis had data (unknown, not `SAFE`).
  */
 
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
@@ -46,7 +46,7 @@ export interface HazardAxis {
 }
 
 export interface HazardResult {
-  /** null when no axis had data (unknown, NOT safe). Not `axes[0].band`, whose ordering is presentational. */
+  /** null when no axis had data (unknown, not safe). Not `axes[0].band`, whose ordering is presentational. */
   verdict: Hazard | null;
   /** Per-axis bands that contributed, worst first. */
   axes: HazardAxis[];

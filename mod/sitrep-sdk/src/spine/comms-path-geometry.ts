@@ -1,5 +1,5 @@
 /**
- * Where the craft's first-hop peer IS, at a view time.
+ * Where the craft's first-hop peer is, at a view time.
  *
  * ## The one leg worth propagating
  *
@@ -7,7 +7,7 @@
  * endpoints are. For every hop except the first that is enough: both ends are
  * ground stations or relays in known orbits, neither moving appreciably against
  * the other over a telemetry timescale, so the length the mod measured carries
- * forward unchanged. The FIRST hop is the one with the craft at one end, and the
+ * forward unchanged. The first hop is the one with the craft at one end, and the
  * craft is the thing that has moved since the light left. Re-measuring that leg
  * needs two positions at the view time: the craft's, which a client already
  * propagates, and its peer's, which is what this module answers.
@@ -15,10 +15,10 @@
  * ## Why a body-fixed latitude and longitude was not enough on its own
  *
  * A ground-station peer is the commonest case by a distance: one hop ending at a
- * station IS the whole delay. `commandCentre.roster` has always published that
+ * station is the whole delay. `commandCentre.roster` has always published that
  * station's latitude and longitude, and they are BODY-FIXED, so placing the
  * station in the frame a propagated craft arrives in needs the body's rotation
- * PHASE at the view time. Until `BodyEntry.initialRotation` the wire carried
+ * phase at the view time. Until `BodyEntry.initialRotation` the wire carried
  * only `rotationPeriod`, which fixes the rate and leaves the phase unknowable,
  * and a rate alone cannot place a point on a sphere. So the direct-link case
  * was not computable at all, and publishing the station's position per frame
@@ -81,7 +81,7 @@ export function bodyRotationAngleDegAt(
  * `latitudeDeg`/`longitudeDeg` are the wire's geographic pair; `altitudeMetres`
  * is height above the body's mean radius, and 0 is the right value for a ground
  * station, whose altitude the roster does not carry (KSC sits some tens of
- * metres up, a light-time well under a microsecond).
+ * metres up, a signal delay well under a microsecond).
  *
  * Null when the body carries no radius or no rotation phase. Returning the
  * body-fixed vector unturned would be a confidently wrong position where a

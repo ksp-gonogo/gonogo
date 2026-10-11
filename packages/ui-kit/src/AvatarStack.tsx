@@ -40,7 +40,8 @@ export interface AvatarStackProps {
 
 /**
  * Up to two letters standing for a name: the first letters of its first two
- * words, or the first two letters of a single word.
+ * words, or the first two letters of a single word. Useful for labelling a
+ * person where there is no room for the name. Used by {@link AvatarStack}.
  *
  * @category Badge
  */
@@ -57,9 +58,10 @@ export function initialsOf(name: string): string {
 const DEFAULT_MAX = 3;
 
 /**
- * A row of small round initials badges, overlapped, for showing who is
- * involved in something without room for their names. Each avatar's tooltip
- * and accessible name is the full name.
+ * A row of small round initials badges, overlapped. Useful for showing the
+ * operator who is involved in something without room for their names. Used by
+ * the radio indicator to show who is speaking. Each avatar's tooltip and
+ * accessible name is the full name.
  *
  * Its footprint is fixed by `max` and never by the number of items: with more
  * people than places, the last place becomes a "+k" count whose tooltip lists

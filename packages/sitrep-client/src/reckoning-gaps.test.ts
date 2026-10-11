@@ -22,10 +22,10 @@ import { ViewClock } from "./view-clock";
  *
  * Every case here reads a light-time from the craft. That is not incidental:
  * the received edge clamps to the newest delivered sample, and reckoning
- * MATTERS only where the frame's SCET runs ahead of the last thing that
+ * matters only where the frame's SCET runs ahead of the last thing that
  * arrived.
  *
- * It is now OFFERED more widely than that. Since reckonability became its own
+ * It is now offered more widely than that. Since reckonability became its own
  * discriminant, `readingFrom` consults the reckoner on a live reading too, so a
  * topic can read `observed` with `reckoning: "available"`. Nothing here exercises
  * that path: every case takes the transport down first, because the gaps this

@@ -22,12 +22,12 @@ namespace Sitrep.Host.IntegrationTests
     /// Sibling to <see cref="WireFixtureGeneratorTests"/>: same
     /// <see cref="ReplayKspHost"/> -&gt; <see cref="ChannelEngine"/> ->
     /// real <c>ClientWebSocket</c> pipeline, same raw-wire-frame capture
-    /// idiom, but replaying FOUR newly captured recordings that each carry
+    /// idiom, but replaying four newly captured recordings that each carry
     /// data the original 2026-07-07 reference session lacks (maneuver node
     /// ids, a live docking approach, populated career/facility/strategy
     /// state, and a real comms connected/disconnected/reconnected
-    /// transition) into their OWN per-domain fixtures. Deliberately a
-    /// SEPARATE file/class from <see cref="WireFixtureGeneratorTests"/> so
+    /// transition) into their own per-domain fixtures. Deliberately a
+    /// separate file/class from <see cref="WireFixtureGeneratorTests"/> so
     /// that class: and the existing
     /// <c>local_docs/telemetry-mod/recordings/reference-wire-fixture.json</c>
     /// it produces, which a parallel migration batch's TS tests already
@@ -178,25 +178,25 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REAL-SHAPE SYNTHETIC fixture for the M3b career-DETAIL widget
+        /// REAL-SHAPE synthetic fixture for the M3b career-DETAIL widget
         /// batch (ContractManager/Objectives/TechTree/SpaceCenterStatus/
         /// Strategies). <see cref="GeneratesCareerWireFixtureFromCareerRecording"/>
-        /// above replays the REAL <c>reference-career-2026-07-08.json</c>
+        /// above replays the real <c>reference-career-2026-07-08.json</c>
         /// capture, but that recording's own wire shows every facility's
         /// <c>currentTier</c>/<c>maxTier</c>/<c>upgradeCost</c> as null, and
         /// contracts/strategies.all/tech.nodes as all empty arrays (verified
         /// by inspecting the generated <c>reference-wire-fixture-career.json</c>
         /// directly). Blocking the five detail widgets' migration on a fresh
         /// Space Center capture would stall momentum, so this test instead
-        /// hand-authors a synthetic "career" RAW snapshot dict carrying the
-        /// EXTENDED shape (matching <c>Gonogo.KSP.KspHost.BuildCareer</c>'s
+        /// hand-authors a synthetic "career" raw snapshot dict carrying the
+        /// extended shape (matching <c>Gonogo.KSP.KspHost.BuildCareer</c>'s
         /// documented output: see <see cref="CareerViewProvider"/>'s own doc
         /// comment for the exact raw encoding) and replays it through the
-        /// REAL <see cref="CareerViewProvider.BuildCareer"/> mapper via the
+        /// real <see cref="CareerViewProvider.BuildCareer"/> mapper via the
         /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
-        /// fixture in this file uses. The resulting WIRE SHAPE is therefore
+        /// fixture in this file uses. The resulting wire shape is therefore
         /// the provider's genuine mapping output, not a hand-guessed shape,
-        /// only the underlying VALUES are synthetic/invented. Real-recording
+        /// only the underlying values are synthetic/invented. Real-recording
         /// validation is deferred to the user's next Space Center capture;
         /// see <c>.superpowers/sdd/m3-career-detail-report.md</c>.
         /// </summary>
@@ -287,7 +287,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="CareerUplink"/> keyframe window) so the fixture
         /// carries more than one captured frame, same shape every other
         /// generator in this file produces from a real multi-tick recording.
-        /// The raw "career" dict mirrors EXACTLY the shape
+        /// The raw "career" dict mirrors exactly the shape
         /// <see cref="CareerViewProvider"/>'s own doc comment documents
         /// <c>Gonogo.KSP.KspHost.BuildCareer</c> must populate at
         /// <c>Values["career"]</c>: see that class's doc comment for the
@@ -783,7 +783,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REAL-SHAPE SYNTHETIC fixture for the M3 science-domain finale
+        /// REAL-SHAPE synthetic fixture for the M3 science-domain finale
         /// (DeployedScience). Sibling to
         /// <see cref="GeneratesSyntheticCareerDetailWireFixtureFromHandAuthoredRealShapeSnapshot"/>
         /// above, same rationale, different domain: the deployed-science
@@ -793,16 +793,16 @@ namespace Sitrep.Host.IntegrationTests
         /// (the user hasn't re-captured with a Breaking Ground cluster
         /// standing). Rather than block the DeployedScience migration on
         /// that re-capture, this test hand-authors a synthetic "science"
-        /// RAW snapshot dict carrying a "deployed" sub-group that matches
+        /// raw snapshot dict carrying a "deployed" sub-group that matches
         /// <see cref="BreakingGroundViewProvider"/>'s own documented raw
-        /// encoding EXACTLY (see its doc comment / <c>Gonogo.KSP.KspHost.
+        /// encoding exactly (see its doc comment / <c>Gonogo.KSP.KspHost.
         /// BuildDeployedScience</c>'s doc comment for the authoritative
-        /// field list) and replays it through the REAL
+        /// field list) and replays it through the real
         /// <see cref="BreakingGroundViewProvider.BuildDeployed"/> mapper via the
         /// same <see cref="ReplayAndCaptureAsync"/> plumbing every other
-        /// fixture in this file uses. The resulting WIRE SHAPE is therefore
+        /// fixture in this file uses. The resulting wire shape is therefore
         /// the provider's genuine mapping output, not a hand-guessed shape,
-        /// only the underlying VALUES are synthetic/invented. Real-recording
+        /// only the underlying values are synthetic/invented. Real-recording
         /// validation is deferred to the user's next Space Center capture
         /// with a deployed Breaking Ground cluster in physics range; see
         /// <c>.superpowers/sdd/m3-deployedscience-report.md</c>.
@@ -894,8 +894,8 @@ namespace Sitrep.Host.IntegrationTests
         /// Two identical-content snapshot entries (T=0 and T=15) so the
         /// fixture carries more than one captured frame, same shape every
         /// other generator in this file produces. Three deployed
-        /// experiments across TWO non-active ground-cluster vessels: the
-        /// raw "science"/"deployed" list mirrors EXACTLY the shape
+        /// experiments across two non-active ground-cluster vessels: the
+        /// raw "science"/"deployed" list mirrors exactly the shape
         /// <see cref="BreakingGroundViewProvider"/>'s own doc comment documents
         /// <c>Gonogo.KSP.KspHost.BuildDeployedScience</c> must populate.
         /// </summary>
@@ -1183,7 +1183,7 @@ namespace Sitrep.Host.IntegrationTests
             return result;
         }
 
-        /// <summary>Parses every captured frame for <paramref name="topic"/> into its raw <c>StreamData</c>, INCLUDING null-payload (tombstone) frames, needed for the comms present/absent transition assertion, where a null payload is itself meaningful.</summary>
+        /// <summary>Parses every captured frame for <paramref name="topic"/> into its raw <c>StreamData</c>, including null-payload (tombstone) frames, needed for the comms present/absent transition assertion, where a null payload is itself meaningful.</summary>
         private static List<StreamData> ParseStreamFrames(IEnumerable<string> frames, string topic)
         {
             var result = new List<StreamData>();

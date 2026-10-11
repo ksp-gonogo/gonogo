@@ -4,7 +4,7 @@
  * content at an arbitrary git ref without pulling in vitest or the scanner.
  * Same split-module shape as `uplink-isolation.allowlist.ts`.
  *
- * THE RULE: a package's `typecheck` script must actually typecheck that
+ * The rule: a package's `typecheck` script must actually typecheck that
  * package's test files.
  *
  * Why it needs a gate at all: `packages/core/tsconfig.json` excluded
@@ -22,7 +22,7 @@
  * compiler itself which files a config resolves to rather than re-implementing
  * include/exclude glob semantics.
  *
- * Every entry below is DEBT and the list is SHRINK-ONLY. Fix one by giving the
+ * Every entry below is debt and the list is SHRINK-ONLY. Fix one by giving the
  * package a typecheck config that covers its tests (core's split into
  * `tsconfig.json` for everything plus `tsconfig.build.json` for emit is the
  * worked example), then delete the line. Never add one.

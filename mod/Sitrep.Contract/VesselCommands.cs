@@ -8,7 +8,7 @@ namespace Sitrep.Contract;
 /// Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off. Args shared by every plain on/off actuation command (<c>setSas</c>,
 /// <c>setRcs</c>, <c>setGear</c>, <c>setBrakes</c>, <c>setLights</c>,
 /// <c>setAbort</c>): an absolute state to apply, never a toggle. Under
-/// light-time delay a toggle that arrives after unknown intervening changes
+/// signal delay delay a toggle that arrives after unknown intervening changes
 /// would race them, so there are no toggle commands.
 /// </summary>
 /// <category>Command arguments</category>
@@ -240,7 +240,7 @@ public class SetTargetArgs
 /// <summary>
 /// <c>time.setWarpIndex</c>'s args: select a time-warp rate. This is a
 /// control of the simulation, not of a craft, so it is never delayed by
-/// light time.
+/// signal delay.
 /// </summary>
 /// <category>Command arguments</category>
 [SitrepContract]

@@ -6,7 +6,7 @@
  * Output: `<dir>/<NN>-<tag>-<sheet id>.png`, one per sheet in `SHEETS`.
  *
  * The tag and the output directory are arguments rather than constants
- * because the point of the script is a PAIR: the same sheets, the same
+ * because the point of the script is a pair: the same sheets, the same
  * viewport and the same scale factor, run once on each side of the token
  * move. A before taken any other way is a picture of something else.
  */

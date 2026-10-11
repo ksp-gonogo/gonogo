@@ -14,7 +14,7 @@ import { MutedIcon, SpeakerIcon, ToggleButton } from "@ksp-gonogo/ui-kit";
  * conversation: whether this operator is speaking on it and whether they are
  * hearing it.
  *
- * The LABEL stays "Mute <name>" in both states and `aria-pressed` carries which
+ * The label stays "Mute <name>" in both states and `aria-pressed` carries which
  * one it is in, the APG toggle-button pattern: a label that flipped to "Unmute"
  * would change what the control is called at the same instant it changed state,
  * and a screen reader would read the new name against the old expectation.

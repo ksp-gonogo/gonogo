@@ -19,7 +19,7 @@ export interface BodyStatesQuery {
    *
    * A refusal is an ordinary answer and does not throw. An install with no
    * elected provider, and a body the provider cannot reach from the requested
-   * centre, are both things a caller renders rather than catches. What DOES
+   * centre, are both things a caller renders rather than catches. What does
    * reject is a dispatch that never completed, because a message that never
    * left the browser is a network fact and not an answer about the solar
    * system.

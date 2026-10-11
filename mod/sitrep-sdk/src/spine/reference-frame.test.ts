@@ -87,7 +87,7 @@ function catalogue(specs: readonly BodySpec[]): CelestialFacts {
 /**
  * A star, one planet on a circular orbit, one moon about it, and two more
  * planets on either side of the first so the set-building rule has something to
- * stop at. Deliberately NOT in orbital order in the list, because the rule
+ * stop at. Deliberately not in orbital order in the list, because the rule
  * walks the catalogue's own order and a test that only ever sees a sorted one
  * cannot tell the two apart.
  */

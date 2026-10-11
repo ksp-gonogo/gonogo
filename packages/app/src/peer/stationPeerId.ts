@@ -12,7 +12,7 @@
  *   stall the broker imposes for ~60 s when the previous WS hasn't been
  *   reaped yet (e.g. tab refresh, force close).
  *
- * The two must stay SEPARATE. Making the broker peer id the persistent
+ * The two must stay separate. Making the broker peer id the persistent
  * identity means a hard refresh claims an id the broker has not reaped, which
  * it rejects with `unavailable-id`, and the slow retry loop then stalls the
  * station for 60–90 s.

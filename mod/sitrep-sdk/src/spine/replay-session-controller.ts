@@ -12,7 +12,7 @@ import { ViewClock } from "./view-clock";
  * (`now()` starts at 0): `ReplayTransport` computes every frame's fire time
  * relative to that anchor, so this is all it needs to honor the fixture's
  * own `deliveredAt` cadence at an adjustable playback speed. `rate` is
- * intentionally NOT mutable mid-flight: it is constructor-only, and changing
+ * intentionally not mutable mid-flight: it is constructor-only, and changing
  * it means rebuilding the session; see `ReplaySessionController.setRate`.
  */
 class ScaledRealTimeClock implements Pick<Clock, "now" | "schedule"> {
@@ -46,12 +46,12 @@ function isDataOrEventFrame(message: unknown): message is DataOrEventMessage {
 
 /**
  * Builds a synthetic fixture anchored at `targetDeliveredAt`: for every
- * topic, keeps only its LATEST frame at-or-before the target (a "keyframe
+ * topic, keeps only its latest frame at-or-before the target (a "keyframe
  * snapshot" of everything known as of that instant), plus
  * every frame strictly after the target unchanged. The snapshot frames'
  * `meta.deliveredAt` is rewritten to `targetDeliveredAt` (so they all
  * schedule at offset zero, arriving together, near-instantly, instead of
- * spread across however many real seconds separated their ORIGINAL arrival
+ * spread across however many real seconds separated their original arrival
  * times); `validAt` is left untouched, since that's what derived channels
  * (e.g. `system.state`) reason about, not scheduling.
  *
@@ -219,7 +219,7 @@ export class ReplaySessionController {
    * (Re)builds the whole session anchored at `anchorUt`: a fresh
    * `TimelineStore`/`ViewClock` primed with the keyframe snapshot as of
    * `anchorUt` (`buildSeekFixture`), plus, only when `playing`, everything
-   * after it, scheduled at `rate`x real time. When NOT playing, the session
+   * after it, scheduled at `rate`x real time. When not playing, the session
    * still gets built (so the view reflects the new position immediately)
    * but nothing beyond the snapshot is included, so no further frames ever
    * arrive until `play()`/`seekTo()` relaunches.

@@ -12,7 +12,7 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// The coverage gate for <see cref="SitrepControlChannelAttribute"/>: every
-    /// bidirectional control channel declares BOTH halves and both resolve. The
+    /// bidirectional control channel declares both halves and both resolve. The
     /// read half is the property the attribute sits on (its owning type must be a
     /// <see cref="SitrepTopicAttribute"/> payload); the write half is the
     /// attribute's required command + typed args + value field. A one-way axis
@@ -23,11 +23,11 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// `(TypeName, PropName, DeclaringTypeHasTopic)` for every property
         /// carrying a <see cref="SitrepControlChannelAttribute"/>, read straight
-        /// out of the assembly's METADATA rather than via reflection's attribute
+        /// out of the assembly's metadata rather than via reflection's attribute
         /// APIs.
         ///
-        /// <para><b>Why not plain reflection, for the PROPERTY.</b> Filtering a
-        /// member's custom attributes by type has to RESOLVE every attribute on
+        /// <para><b>Why not plain reflection, for the property.</b> Filtering a
+        /// member's custom attributes by type has to resolve every attribute on
         /// that member to compare it against the filter, so blindly walking
         /// <c>type.GetProperties()</c> across the whole assembly and calling
         /// <c>GetCustomAttribute&lt;SitrepControlChannelAttribute&gt;()</c> on each
@@ -38,7 +38,7 @@ namespace Sitrep.Core.Tests
         /// hazard for <see cref="SitrepUnitAttribute"/> and fixes it the same
         /// way).</para>
         ///
-        /// <para><b>Why not <c>Type.IsDefined</c>, for the declaring TYPE
+        /// <para><b>Why not <c>Type.IsDefined</c>, for the declaring type
         /// either.</b> It looks like the safe escape hatch (see
         /// <c>UnitCoverageTests.ContractTypes</c>, which uses it successfully for
         /// <see cref="SitrepContractAttribute"/>), but that success is
@@ -147,7 +147,7 @@ namespace Sitrep.Core.Tests
         /// <para>Every gate below is a <c>foreach</c> over
         /// <see cref="DeclaredChannels"/> that reports no violation when the list is
         /// empty. <see cref="ControlChannelPropertiesFromMetadata"/> matches the
-        /// attribute by its SIMPLE NAME as a string, so renaming
+        /// attribute by its simple name as a string, so renaming
         /// <c>SitrepControlChannelAttribute</c>, or any change to the
         /// <c>MetadataReader</c> walk, returns nothing and all of them pass having
         /// checked no channel at all.</para>
@@ -195,11 +195,11 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// A channel's value field must be a SCALAR: one number, one switch, or
+        /// A channel's value field must be a scalar: one number, one switch, or
         /// one enum member that the SDK handle can wrap into wire args on its
         /// own.
         ///
-        /// <para>This demanded a NUMBER while the only declared channels were
+        /// <para>This demanded a number while the only declared channels were
         /// the throttle and the six fly-by-wire axes, which was a fact about
         /// what had been declared rather than about what a control channel is.
         /// Half the controls an operator actually watches during a blackout are
@@ -208,7 +208,7 @@ namespace Sitrep.Core.Tests
         /// declared read-anchor at all.</para>
         ///
         /// <para>A string or a record still fails, and should: the handle wraps
-        /// ONE value into ONE args field, so anything needing structure is a
+        /// one value into one args field, so anything needing structure is a
         /// command a caller builds args for itself, not a channel.</para>
         /// </summary>
         [Fact]

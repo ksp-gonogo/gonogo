@@ -118,7 +118,7 @@ public sealed class MaxRangeReachModel : ICommsReachModel
     public double? MaxRangeMeters { get; }
 
     /// <summary>
-    /// A NaN or infinite maximum becomes ABSENT rather than a number, because
+    /// A NaN or infinite maximum becomes absent rather than a number, because
     /// both mean the rule failed to resolve and neither is a separation a
     /// comparison can use: an infinity would silently pass every distance and
     /// read as a measured "reaches everywhere". A negative maximum clamps to

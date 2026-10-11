@@ -17,8 +17,8 @@ import {
 /**
  * The Topics declared by hand in topics.ts (not reflected out of a `[SitrepTopic]`
  * contract type): the two ENGINE-AGGREGATED system channels. See the topics.ts header.
- * Everything else in `TOPIC_IDS` MUST come from the generated map. The bare-primitive
- * Uplink Topics are NO LONGER here: they moved out to their owning Uplink client packages
+ * Everything else in `TOPIC_IDS` must come from the generated map. The bare-primitive
+ * Uplink Topics are no longer here: they moved out to their owning Uplink client packages
  * (each registers its id at load via `registerBarePrimitiveTopic`), so they are not part of
  * the SDK's own `TOPIC_IDS`.
  */

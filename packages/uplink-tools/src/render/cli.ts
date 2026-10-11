@@ -45,7 +45,7 @@ import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./widgetRecord";
  * "Run `uplink-tools docs` and commit the result" would be wrong twice on a
  * developer's machine. It re-rasterises every picture
  * locally, and a picture rendered on the wrong OS is the same mistake as a
- * locally-rendered visual baseline. And `docs` empties the asset directory BEFORE
+ * locally-rendered visual baseline. And `docs` empties the asset directory before
  * it renders, so a run that throws part-way leaves the committed pictures deleted
  * and the shape record intact, which then reads as missing assets.
  *
@@ -477,7 +477,7 @@ async function writeProseOnly(pkg: UplinkPackage, args: Args): Promise<void> {
  * and `uplink-boundary` refused it, correctly: a shared tool naming an individual
  * Uplink's augment ids couples `ui-kit` to code it must not know about, which is
  * the same complaint this project has about allowlists generally. So the exemption lives
- * WITH the code it describes, and the reason sits where the person who would
+ * with the code it describes, and the reason sits where the person who would
  * change it will read it.</p>
  *
  * <p>Two kinds, because conflating them is how a debt list becomes an allowlist:</p>
@@ -486,7 +486,7 @@ async function writeProseOnly(pkg: UplinkPackage, args: Args): Promise<void> {
  *   has always let augments off, and its own test says why: an overlay augment draws
  *   in its host's projection, so a stand-in panel gives it nothing to draw against
  *   and demanding a fixture would be demanding a picture that cannot be honest.</li>
- *   <li><b>`sceneDebt`</b> is temporary and needs a SCENE. Entries here predate the
+ *   <li><b>`sceneDebt`</b> is temporary and needs a scene. Entries here predate the
  *   gate; the file is expected to shrink and a new entry means new code created the
  *   very problem the gate exists to stop.</li>
  * </ul>
@@ -515,7 +515,7 @@ async function readDocsExempt(dir: string): Promise<DocsExempt> {
  * Refuse to overwrite a `README.md` this command did not write.
  *
  * `docs` generates the README from the registrations, so replacing the one it
- * generated last time is the job. Replacing one a PERSON wrote is not, and a
+ * generated last time is the job. Replacing one a person wrote is not, and a
  * bare `writeFile` cannot tell the two apart: the first run in a package that
  * already had a hand-written readme destroyed it silently, and outside git there
  * was nothing to recover.
@@ -679,12 +679,12 @@ export async function compareAssetNames(
 /**
  * Whether the committed pictures are pictures of this code.
  *
- * The rest of `--check` compares the prose and the asset FILENAMES, and on a page
+ * The rest of `--check` compares the prose and the asset filenames, and on a page
  * whose content is almost entirely images that is a gate missing its subject:
  * Vehicle Assembly's page showed a layout the code had stopped producing for five
  * commits and every run agreed it was current.
  *
- * A missing record is REPORTED and not failed. The mechanism arrives after ten
+ * A missing record is reported and not failed. The mechanism arrives after ten
  * Uplinks have been generated without it, and failing all ten on the first run
  * would be a wall of red that says nothing about which of them a person just
  * broke. `scripts/uplink-shape-debt.mjs` holds that count and only lets it
@@ -732,11 +732,11 @@ function compareCommittedShapes(
  * and, read as a list, say nothing about which of the two happened.
  *
  * This is a statement about the findings rather than a diagnosis. It fires only
- * when EVERY recorded asset is stale and NOT ONE of them moved in its tree or its
+ * when every recorded asset is stale and not one of them moved in its tree or its
  * text, which no widget edit produces and no kit edit fails to.
  *
  * Exported so `render.test.ts` can show it firing and, more to the point,
- * NOT firing: a note that appears under every red is a note nobody reads.
+ * not firing: a note that appears under every red is a note nobody reads.
  */
 export function wholePageRestyle(
   verdict: ShapeVerdict,

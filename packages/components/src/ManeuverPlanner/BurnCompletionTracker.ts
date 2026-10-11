@@ -64,7 +64,7 @@ interface UseBurnCompletionTrackerResult {
 /**
  * Tracks nodes crossing below the completion threshold and removes each after
  * `COMPLETED_HOLD_MS` of wall-clock time. `removeNode` receives the node's
- * POSITION in the latest list, re-looked-up at fire time because KSP renumbers
+ * position in the latest list, re-looked-up at fire time because KSP renumbers
  * on every removal; mapping it to the stream guid, and catching the send's
  * rejection, is the caller's job.
  */

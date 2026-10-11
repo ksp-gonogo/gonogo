@@ -19,17 +19,17 @@ import { AlarmHostService } from "./AlarmHostService";
  *
  * ## What is real here and what is a stand-in
  *
- * Everything on the CLIENT side is the production code: the real
+ * Everything on the client side is the production code: the real
  * `AlarmHostService`, the real `ScetAlarmBridge`, the real `TelemetryClient`,
  * `ViewClock` and `TimelineStore`, intercepted only at the transport.
  *
- * The MOD is a stand-in, and deliberately a thin one: it records the arm
+ * The mod is a stand-in, and deliberately a thin one: it records the arm
  * commands the client sends and publishes the roster and the fire notice the
- * real uplink would. It is NOT a second copy of the firing rule. The rule
+ * real uplink would. It is not a second copy of the firing rule. The rule
  * (latched step-down, latched fire, the instant the notice carries, what a
  * rewind does to a latch) is pinned against the real implementation in
  * `mod/Sitrep.Host.Tests/ScetAlarmRosterTests.cs`; what these tests ask is what
- * the CLIENT does with the frames that come out of it.
+ * the client does with the frames that come out of it.
  *
  * ## The vantage claim, in two halves
  *
@@ -79,7 +79,7 @@ interface ArmedAlarm {
 
 /**
  * The Topics this stand-in will accept a threshold against, standing in for
- * `Sitrep.Host.Alarms.ScetThresholdSources`. Deliberately a SHORT list rather
+ * `Sitrep.Host.Alarms.ScetThresholdSources`. Deliberately a short list rather
  * than a copy of the real one: what is being exercised is what the client does
  * with a refusal, and a second full copy of the mod's table in a test fixture
  * is the thing the client is not allowed to keep either.
@@ -139,11 +139,11 @@ interface ModStandIn {
   /** This screen chooses the command centre it commands from. */
   selectVantage(centreId: string): void;
   /**
-   * Drive the TRUE value every armed threshold is compared against, which only
+   * Drive the true value every armed threshold is compared against, which only
    * the stand-in can see.
    *
    * One number for every threshold rather than one per Topic. What these tests
-   * ask is what the CLIENT does with the frames a match produces, and a fixture
+   * ask is what the client does with the frames a match produces, and a fixture
    * keyed by Topic would only be a second, poorer copy of the mod's field walk.
    */
   setReading(value: number): void;
@@ -157,9 +157,9 @@ interface ModStandIn {
   markUnreachable(id: string): void;
   /** The player switches to another craft, and the mod cancels every alarm still armed. */
   switchCraft(): void;
-  /** Tell the CLIENT an altitude, stamped now, so a test can show this side judges nothing off it. */
+  /** Tell the client an altitude, stamped now, so a test can show this side judges nothing off it. */
   showClientAltitude(altitudeAsl: number): void;
-  /** Tell the CLIENT one contract objective's state, stamped now, so a test can show this side judges nothing off it. */
+  /** Tell the client one contract objective's state, stamped now, so a test can show this side judges nothing off it. */
   showClientObjective(parameterTitle: string, stateOrdinal: number): void;
   /** Point the app-wide active-client seam back at this session's client. */
   attach(): void;
@@ -1729,14 +1729,14 @@ describe("SCET alarms", () => {
   });
 
   /**
-   * WHO stops the warp, and the answer is the mod's roster rather than the
+   * Who stops the warp, and the answer is the mod's roster rather than the
    * trigger's kind.
    *
    * The ruling is that the warp stops because the alarm came due on the back
    * end, never because the client saw a notice and sent a command back. So for
-   * an alarm the mod HOLDS this side issues none. But "the mod evaluates time
+   * an alarm the mod holds this side issues none. But "the mod evaluates time
    * and threshold" is not the same set as "the mod holds this alarm": a
-   * command-vantage TIME alarm is a kind the mod evaluates and is deliberately
+   * command-vantage time alarm is a kind the mod evaluates and is deliberately
    * never armed there, so a rule reading the kind would take its stop away and
    * give it nothing. The second case is the one that would have caught that.
    */
@@ -1901,7 +1901,7 @@ describe("SCET alarms", () => {
     });
 
     /**
-     * An arm that could not be BUILT never leaves, so there is no refusal to
+     * An arm that could not be built never leaves, so there is no refusal to
      * retry from and no roster change to clear the already-commanded set. Only
      * the reconcile can notice, and only if it does not record the attempt.
      */

@@ -6,7 +6,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.DevTools
 {
     /// <summary>
-    /// That <c>GonogoDevCurrency</c>'s trigger modes exercise the REAL production path,
+    /// That <c>GonogoDevCurrency</c>'s trigger modes exercise the real production path,
     /// pinned against the shipped source because not one line of a MonoBehaviour polling
     /// live balances runs outside a game.
     ///
@@ -20,7 +20,7 @@ namespace Gonogo.KSP.Tests.DevTools
     /// produced repeatedly: proving nothing while looking green.</para>
     ///
     /// <para><b>And the tool's own claims about the production code are pinned too.</b>
-    /// The addon's class doc tells an operator that funds can never carry a light-time
+    /// The addon's class doc tells an operator that funds can never carry a signal delay
     /// and that the away set is three reasons. Both are read off the interceptor today.
     /// Neither would stop reading true on its own if the interceptor changed, so the doc
     /// would quietly become a lie an operator plans a validation matrix around.</para>

@@ -7,14 +7,14 @@ namespace Gonogo.KSP
     /// What a command does when it is about to load a scene that re-reads the
     /// save from disk.
     ///
-    /// <para><b>Leaving flight is a RELOAD, not a move.</b> Nothing writes on
+    /// <para><b>Leaving flight is a reload, not a move.</b> Nothing writes on
     /// scene exit. <c>ScenarioRunner.OnGameSceneLoadRequested</c> destroys every
     /// live <c>ScenarioModule</c> without harvesting it, so funds, science and a
     /// career mod's construction queue go with it; then
     /// <c>SpaceTracking.Start</c> reads <c>persistent.sfs</c> and calls
     /// <c>Game.Load()</c>, which ends in <c>Planetarium.SetUniversalTime</c>.
     /// A bare <c>HighLogic.LoadScene</c> therefore does not merely lose the
-    /// delta since the last save, it REVERTS to that save: on the rig, 240,355
+    /// delta since the last save, it reverts to that save: on the rig, 240,355
     /// seconds of universal time, the funds earned since, and an emptied
     /// construction queue, twice.</para>
     ///
@@ -63,7 +63,7 @@ namespace Gonogo.KSP
         /// <param name="destinationRefusal">
         /// Why the game forbids the destination scene at all
         /// (<c>Parameters.Flight.CanLeaveToTrackingStation</c> and friends), or
-        /// null when it permits it. Asked FIRST: a destination the game forbids
+        /// null when it permits it. Asked first: a destination the game forbids
         /// is not worth writing a save for, and waiting out a flight arm to
         /// reach a scene that will never open is the wrong thing to tell an
         /// operator to do.

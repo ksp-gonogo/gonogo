@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Gonogo.KSP.CommandCentres
 {
     /// <summary>
-    /// Body-fixed surface coordinates for a command centre, in DEGREES, for
+    /// Body-fixed surface coordinates for a command centre, in degrees, for
     /// <c>CommandCentreEntry.Latitude</c>/<c>Longitude</c>.
     ///
     /// <para><b>Body-fixed, not inertial.</b> The roster declares where a centre
@@ -28,7 +28,7 @@ namespace Gonogo.KSP.CommandCentres
         /// The centre's body-fixed coordinates, or <c>false</c> when the body is
         /// unknown or the conversion does not produce two real numbers.
         ///
-        /// <para>Failing here is NOT the same statement as a moving vessel centre
+        /// <para>Failing here is not the same statement as a moving vessel centre
         /// having no surface position. A caller that is surface-anchored and gets
         /// <c>false</c> has an unknown body, which the entry already reports as a
         /// null <c>BodyIndex</c>, so the two nulls travel together and a null

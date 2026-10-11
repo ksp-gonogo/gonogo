@@ -7,23 +7,23 @@ namespace Sitrep.Host.Comms
     /// <summary>
     /// The comms backend election (comms-uplink-design.md §2), expressed
     /// entirely in terms of the existing <see cref="Kernel"/>, no new
-    /// contract mechanism (§2.3, §5). One EXCLUSIVE capability <c>"comms"</c>
+    /// contract mechanism (§2.3, §5). One exclusive capability <c>"comms"</c>
     /// whose active instance is an <see cref="ICommsBackend"/>:
     ///
     /// <list type="bullet">
     /// <item><b>CommNet is the capability's <c>Vanilla</c> factory</b>, the
     /// structural "comms is never unsatisfiable" guarantee (§2.2 recommends
     /// exactly this). It activates whenever no higher provider is registered.</item>
-    /// <item><b>RealAntennas registers as a provider</b>: but ONLY when the RA
+    /// <item><b>RealAntennas registers as a provider</b>: but only when the RA
     /// assembly is actually loaded (the reflection probe, §4.2). Registering the
-    /// provider IS the gate: an exclusive capability with one registered
+    /// provider is the gate: an exclusive capability with one registered
     /// provider selects that provider (Kernel.SelectExclusive: candidates.Count
     /// == 1 ⇒ that provider); with zero registered providers it falls back to
     /// Vanilla. So RA present ⇒ RA wins; RA absent ⇒ CommNet vanilla, no
     /// version-string gymnastics needed.</item>
     /// </list>
     ///
-    /// <para>Shared <c>comms.*</c> channels are declared and sourced ONCE by
+    /// <para>Shared <c>comms.*</c> channels are declared and sourced once by
     /// the core comms registration, which resolves the elected backend via
     /// <c>Kernel.Query&lt;ICommsBackend&gt;("comms")</c> at map time: neither
     /// CommNet nor RA declares those channels itself (§2.2, the
@@ -130,10 +130,10 @@ namespace Sitrep.Host.Comms
         /// <para>Never null and never throws, on the same terms as
         /// <see cref="OcclusionModel"/>. A missing kernel, an unresolved
         /// capability, or a backend whose declaration throws all yield
-        /// <see cref="CommsReachModels.Unknown"/>, whose maximum is ABSENT: a
+        /// <see cref="CommsReachModels.Unknown"/>, whose maximum is absent: a
         /// consumer then applies no reach term and predicts exactly what it
         /// could before, rather than being handed a guess. That is where this
-        /// differs from the occlusion fallback, which CAN be conservative and
+        /// differs from the occlusion fallback, which can be conservative and
         /// still useful; <see cref="CommsReachModels.Unknown"/> carries the
         /// argument. A consumer that cares whether it got a real answer compares
         /// <see cref="ICommsReachModel.ModelId"/> against
@@ -192,7 +192,7 @@ namespace Sitrep.Host.Comms
         /// none: the backend does not turn dishes, the node has none it would turn,
         /// or asking it threw.
         ///
-        /// <para>THREADING: main thread only, as every other backend read at this
+        /// <para>Threading: main thread only, as every other backend read at this
         /// seam; the model it returns is pure.</para>
         /// </summary>
         public static IRetargetModel? RetargetModel(Kernel? kernel, CommsNodeHandle? node, double ut)
@@ -242,7 +242,7 @@ namespace Sitrep.Host.Comms
         /// <see cref="ICommsPathStrength"/>, it has nothing for this pair, or
         /// asking it threw.
         ///
-        /// <para>THREADING: main thread only, as every other backend read at this
+        /// <para>Threading: main thread only, as every other backend read at this
         /// seam; the model it returns is pure.</para>
         /// </summary>
         public static IContactLinkStrength? LinkStrength(Kernel? kernel, CommsNodeHandle? from, CommsNodeHandle? to, double ut)

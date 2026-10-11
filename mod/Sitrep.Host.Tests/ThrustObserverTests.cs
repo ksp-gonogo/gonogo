@@ -34,7 +34,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The start instant is the start of the PERIOD, not of the last
+        /// The start instant is the start of the period, not of the last
         /// reading in it: a burn that has been running for a minute must not
         /// keep reporting that it started a second ago.
         /// </summary>
@@ -50,7 +50,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The reason the whole class exists: after a burn ends, EVERY
+        /// The reason the whole class exists: after a burn ends, every
         /// subsequent frame carries the same answer, so a consumer that
         /// subscribed late or lost the frames in between still learns that the
         /// engines ran and stopped.
@@ -162,9 +162,9 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Rewinding past a START instant re-establishes it at the tick actually
+        /// Rewinding past a start instant re-establishes it at the tick actually
         /// being observed rather than leaving the old one in the future. The
-        /// craft IS thrusting at the rewound tick, so "began at 80" is the true
+        /// craft is thrusting at the rewound tick, so "began at 80" is the true
         /// answer and "began at 100" is a claim about a moment that has not
         /// happened again yet.
         /// </summary>

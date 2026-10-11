@@ -5,7 +5,7 @@ using KSP.Localization;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// What the GAME calls one of its own enum members, craft or launch sites,
+    /// What the game calls one of its own enum members, craft or launch sites,
     /// for the words an operator reads.
     ///
     /// <para>Nothing here composes English. Many of KSP's state enums carry
@@ -60,7 +60,7 @@ namespace Gonogo.KSP
         /// those numbers by hand would put a confidently wrong sentence in front
         /// of an operator the first time KSP renumbers them.</para>
         ///
-        /// <para>So the member NAME is the source, mechanically de-underscored
+        /// <para>So the member name is the source, mechanically de-underscored
         /// and lower-cased. That is a rendering of the game's own token, not a
         /// table of our own words for its states.</para>
         /// </summary>
@@ -83,7 +83,7 @@ namespace Gonogo.KSP
         /// <see cref="Phrase"/>'s own comment names: KSP renumbers them, and a
         /// key that no longer resolves comes back as the key itself, which in
         /// front of an operator is worse than a plain sentence. So the result is
-        /// CHECKED, and the fallback is what a caller supplies for the case the
+        /// checked, and the fallback is what a caller supplies for the case the
         /// check catches. Use this only where the sentence exists nowhere but
         /// the table (a <c>void</c> method that posts a
         /// <c>ScreenMessage</c>), never where the game hands one back.</para>

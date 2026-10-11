@@ -277,7 +277,7 @@ export class StubTransport implements Transport {
    */
   /**
    * Test helper: answer a subscribe the way the mod does, with the `subscribed`
-   * ack `ProcessSubscribe` publishes on the reliable lane. NOT sending one is
+   * ack `ProcessSubscribe` publishes on the reliable lane. Not sending one is
    * the interesting case, since that silence is what makes a topic unowned.
    */
   ackSubscribe(topic: string): void {

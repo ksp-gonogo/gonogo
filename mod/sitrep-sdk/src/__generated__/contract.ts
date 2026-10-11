@@ -1124,7 +1124,7 @@ export interface CentreSeparationEntry
 *
 * Each command centre is sent its own. The pairs are between the centres on
 * the receiving centre's own `commandCentre.roster`, and each figure is the
-* light-time of the route that centre's own contact plan has open now, so a
+* signal delay of the route that centre's own contact plan has open now, so a
 * centre is quoted no separation from a vessel it has not heard is a command
 * centre, and a figure moves when the news that moves it has arrived. Every
 * ground station is the home centre's own antenna, so home is as far from a
@@ -1458,8 +1458,8 @@ export interface CommcastAuthor
 * named here or not.
 *
 * Never delayed on the way up. What is said crosses once, from the speaker to
-* each listener at that pair's light-time, and the mod times that crossing on
-* the way down; delaying the command as well would count the gap twice.
+* each listener at that pair's signal delay, and the mod times that crossing
+* on the way down; delaying the command as well would count the gap twice.
 *
 * @category Command arguments
 */
@@ -1550,7 +1550,7 @@ export interface CommcastSendReceipt
 }
 /**
 * `commcast.message.ack`'s args: tell a message's author it arrived. The
-* acknowledgement crosses back to the author at their pair's light-time, so
+* acknowledgement crosses back to the author at their pair's signal delay, so
 * the author learns it was read one crossing after it was.
 *
 * @category Command arguments
@@ -1595,7 +1595,7 @@ export interface CommcastRadioTransmitArgs
 }
 /**
 * One item of `commcast.traffic`: something said to a group this vantage
-* belongs to, delivered one light-time after it was said from where it was
+* belongs to, delivered one signal delay after it was said from where it was
 * said.
 *
 * **Addressed, never broadcast.** A connection receives only the items
@@ -1654,9 +1654,9 @@ export interface CommcastTraffic
 *
 * `commcast.radio` is carried in BinaryLane frames and is addressed exactly as
 * `CommcastTraffic` is: a connection hears only transmissions to groups its
-* vantage belongs to, one light-time after each batch was spoken. Every frame
-* carries this whole description, so a listener that starts hearing partway
-* through a keying places it from the first frame it gets.
+* vantage belongs to, one signal delay after each batch was spoken. Every
+* frame carries this whole description, so a listener that starts hearing
+* partway through a keying places it from the first frame it gets.
 *
 * @category Comms
 */
@@ -2167,13 +2167,13 @@ export enum CommsDelaySource {
 	* delay is switched off (the value is 0).
 	*/
 	None = 0,
-	/** A light-time computed over the route's hop geometry. */
+	/** A signal delay computed over the route's hop geometry. */
 	SignalDelay = 1,
 	/**
 	* Zero, because this save models no comms network at all: the stock CommNet
 	* difficulty option is off, so there are no ground stations, no relay graph
-	* and no path to measure a light-time over. Control reaches a craft directly,
-	* from anywhere, instantly.
+	* and no path to measure a signal delay over. Control reaches a craft
+	* directly, from anywhere, instantly.
 	*
 	* Not the same as a null `CommsDelay.oneWaySeconds`, which means there is a
 	* comms model and it can measure nothing right now: a blackout. A save with no
@@ -2196,7 +2196,7 @@ export enum CommsDelaySource {
 *   share the same `Source` and are told apart only by whether the value is
 *   null.
 * - a real number: `CommsDelay.source` is `CommsDelaySource.SignalDelay`, a
-*   light-time computed over the elected backend's hop geometry.
+*   signal delay computed over the elected backend's hop geometry.
 *
 * One zero names its own reason instead of sharing `CommsDelaySource.None`:
 * `CommsDelaySource.NoCommsModel`, which is what tells a client that a board
@@ -2205,9 +2205,9 @@ export enum CommsDelaySource {
 * here and `connected:false` on `CommsLink`, and this reports `0` and
 * `connected:true`.
 *
-* Each command centre is sent its own, and no other centre's. It is the
-* light-time of the active vessel's path that centre is sent on `comms.path`,
-* so the two always agree. Where the game routes the vessel's samples to the
+* Each command centre is sent its own, and no other centre's. It is the signal
+* delay of the active vessel's path that centre is sent on `comms.path`, so
+* the two always agree. Where the game routes the vessel's samples to the
 * centre (at home, the vessel's own path to the ground), that path is the
 * game's route and this is the delay the samples arrive by. Wherever the game
 * states no route, it is the path the centre's own plan has, worked out from
@@ -2220,9 +2220,9 @@ export enum CommsDelaySource {
 export interface CommsDelay
 {
 	/**
-	* The one-way light-time to the command centre, in seconds. Null when nothing
-	* is measurable, 0 for a measured or applied zero; this type's summary says
-	* which case is which.
+	* The one-way signal delay to the command centre, in seconds. Null when
+	* nothing is measurable, 0 for a measured or applied zero; this type's summary
+	* says which case is which.
 	*
 	* **Reckoning.** Between samples the value is carried forward by re-measuring
 	* only the route's first hop, the one with the craft on one end: `(route -
@@ -2256,18 +2256,18 @@ export interface CommsDelay
 * `CommsConnectivity`.
 *
 * **Delayed, and never frozen.** This channel is what reports a signal-loss
-* freeze, so it keeps arriving through one. It reports a disconnect one
-* light-time after it happens and goes on reporting `connected:false` through
-* the blackout, so a "no signal" indicator changes at the right delayed
-* instant. The `VesselComms` readings (signal strength, control state) are
-* delayed too, but do freeze: they hold their last value through the outage.
+* freeze, so it keeps arriving through one. It reports a disconnect one signal
+* delay after it happens and goes on reporting `connected:false` through the
+* blackout, so a "no signal" indicator changes at the right delayed instant.
+* The `VesselComms` readings (signal strength, control state) are delayed too,
+* but do freeze: they hold their last value through the outage.
 *
 * @category Comms
 */
 export interface CommsLink
 {
 	/**
-	* True while the active vessel has a control link home, as of one light-time
+	* True while the active vessel has a control link home, as of one signal delay
 	* ago; false through a blackout.
 	*/
 	connected: boolean;
@@ -2319,7 +2319,7 @@ export interface CommsCommandCentre
 * A prediction, and the receiving centre's own. Every craft is reckoned
 * forward from the last orbit that centre has heard it report, so the plan
 * holds nothing the centre could not know: a distant craft's burn moves the
-* plan one light-time after it happened, and a craft the centre has never
+* plan one signal delay after it happened, and a craft the centre has never
 * heard of is not in it. Two centres can hold different plans at the same
 * moment, and each session is sent only the plan of the centre it sits at.
 *
@@ -2524,7 +2524,7 @@ export enum JourneyEventKind {
 * A report made here, by this centre, says only what this centre could know.
 * It reports a command held while its own plan says the way is shut, and sent
 * on when its plan says the way is open, whatever the far end is doing; and it
-* reports a command that went unanswered only once twice the light time it
+* reports a command that went unanswered only once twice the signal delay it
 * expected has passed.
 *
 * Each session receives only its own vantage's events.
@@ -2593,7 +2593,7 @@ export interface CommsJourneyEvent
 * craft if it arrives there first. What it stopped arrives as journey reports.
 *
 * The reply says the cancel was sent, never that the command was stopped. A
-* command sent less than twice its light time ago may have been lost on the
+* command sent less than twice its signal delay ago may have been lost on the
 * way, in which case it is still this centre's, but the centre cannot know
 * that yet, so the cancel is sent after it all the same and the command is
 * reported cancelled here only once it is known to have come back.
@@ -2708,7 +2708,7 @@ export interface CommsOcclusionBody
 * applied to every celestial body the game knows about: each body's blocking
 * radius. Always present, and read from the comms mod in force.
 *
-* Not delayed by light time: it is not an observation of the vessel but the
+* Not delayed by signal delay: it is not an observation of the vessel but the
 * solar system's geometry and the rule the elected backend applies to it.
 *
 * Effectively static within a session: the body set does not change and the
@@ -3155,7 +3155,7 @@ export enum CrewStanding {
 *
 * Carried on `currency.<guid>.science` as a delayed, reliable, ordered event,
 * the same shape as `crash.lastCrash`: a one-shot record with its own `ut`,
-* replayed to a late subscriber. It reveals at the light-time from the
+* replayed to a late subscriber. It reveals at the signal delay from the
 * observer's vantage to that vessel, so a probe five light-minutes out reports
 * its transmit five minutes after the fact.
 *
@@ -3394,7 +3394,7 @@ export interface CommandResponse<Result>
 }
 /**
 * Sent the moment a command starts its delayed journey, carrying the one-way
-* light-time it will actually travel. It says the command is on its way and
+* signal delay it will actually travel. It says the command is on its way and
 * when to expect a reply, never that anything executed.
 *
 * A client cannot work this out for itself. The delay depends on the node the
@@ -3408,8 +3408,8 @@ export interface CommandResponse<Result>
 * that sent the request. Entries on `system.uplink.pending` carry an id Gonogo
 * assigns instead, since two clients can choose the same request id.
 *
-* Absent for a dispatch that never rides light-time (a `TrueNow` command, or a
-* live delay resolving to zero), because there is no flight to wait out.
+* Absent for a dispatch that never rides signal delay (a `TrueNow` command, or
+* a live delay resolving to zero), because there is no flight to wait out.
 * Absent also for a refusal, which sends an `ErrorMsg` instead. A client must
 * therefore treat "no acceptance yet" as ordinary rather than as an error.
 *
@@ -3422,7 +3422,7 @@ export interface CommandAccepted
 	/** The client's own id, echoed from its `command-request`. */
 	requestId: string;
 	/**
-	* One-way light-time from the sending vantage to the node this command is
+	* One-way signal delay from the sending vantage to the node this command is
 	* addressed to, as Gonogo knows it at dispatch. It is never re-sent: the
 	* sender may never learn of a route change after dispatch.
 	*
@@ -3574,7 +3574,7 @@ export interface Hello
 * any topic. Sent straight after `Hello` on every connection that has anything
 * to learn, and again at every change.
 *
-* It is not delayed by light time at any command centre: a load is a fact
+* It is not delayed by signal delay at any command centre: a load is a fact
 * about the game on the machine, not about anything in flight.
 *
 * While `GameState.state` is `"loading"` or `"no-game"`, nothing the stream
@@ -3736,14 +3736,13 @@ export interface EvaCrew
 	kerbals: EvaKerbal[];
 }
 /**
-* Per-vessel link facts on `fleet.<guid>.delay`: the one-way light-time to
+* Per-vessel link facts on `fleet.<guid>.delay`: the one-way signal delay to
 * that vessel and whether it is currently reachable. The same numbers the mod
 * uses to delay that vessel's channels, published for display. Not a control
 * input.
 *
-* Delayed like `fleet.<guid>.orbit`, so the value itself arrives one
-* light-time late, which is how old the space centre's knowledge of the link
-* is.
+* Delayed like `fleet.<guid>.orbit`, so the value itself arrives one signal
+* delay late, which is how old the space centre's knowledge of the link is.
 *
 * A vessel with no comms path carries a null `FleetVesselLink.oneWaySeconds`,
 * never a `0` that would read as a zero-delay link.
@@ -3753,7 +3752,7 @@ export interface EvaCrew
 export interface FleetVesselLink
 {
 	/**
-	* One-way light-time to this vessel, in seconds. Null when there is no comms
+	* One-way signal delay to this vessel, in seconds. Null when there is no comms
 	* path to it.
 	*/
 	oneWaySeconds?: Value<"s"> | null;
@@ -3768,7 +3767,7 @@ export interface FleetVesselLink
 * No modelling and no opinion about whether the vessel is lost: that judgement
 * is on `FleetVesselSilence`.
 *
-* Delayed like `FleetVesselLink`, so the value arrives one light-time late.
+* Delayed like `FleetVesselLink`, so the value arrives one signal delay late.
 * Unlike most delayed telemetry it keeps updating while the vessel is out of
 * contact, so the loss of contact itself reaches the client.
 *
@@ -3855,7 +3854,7 @@ export interface FleetVesselSilence
 * consumption on an unloaded vessel, so a rate or exhaustion time belongs to
 * whichever Uplink models the draw, contributed on top of this.
 *
-* Delayed like `fleet.<guid>.orbit`, so the reading arrives one light-time
+* Delayed like `fleet.<guid>.orbit`, so the reading arrives one signal delay
 * late. While the craft is out of contact the reading is held at its
 * last-known value.
 *
@@ -3932,9 +3931,9 @@ export interface FleetSilenceEntry
 * its topics statically, or a Processor) can fan out over entries that exist.
 *
 * Delayed as one payload on the stream's main delay, not on each vessel's own
-* light-time, as with `SystemVessels`. `FleetVesselSilence` on
+* signal delay, as with `SystemVessels`. `FleetVesselSilence` on
 * `silence.<guid>.state` stays authoritative for one vessel on that vessel's
-* own light-time; this is the fleet-wide index, and is not a substitute for
+* own signal delay; this is the fleet-wide index, and is not a substitute for
 * it.
 *
 * @category Solar system and fleet
@@ -4046,8 +4045,8 @@ export interface FlightStarted
 * The `flight.ended` Topic payload: a reliable, ordered, delayed event sent
 * once per flight when it stops being trackable: recovered, crashed, destroyed
 * or reverted. It shares the delay class of `crash.lastCrash` and
-* `recovery.lastSummary`, so an end that a rewind discards before its
-* light-time has elapsed is never revealed.
+* `recovery.lastSummary`, so an end that a rewind discards before its signal
+* delay has elapsed is never revealed.
 *
 * Debris, flags and vessels of unknown type never end a flight.
 *
@@ -5121,14 +5120,14 @@ export interface OrbitPatch
 * right-click Part Action Window, the remote-control equivalent of the player
 * clicking it in-game.
 *
-* It acts on a part aboard the craft, so it is delayed by light time
+* It acts on a part aboard the craft, so it is delayed by signal delay
 * (DelayRole.Delayed), like `vessel.control.*` and the robotics commands.
 *
 * It has no state field, unlike the other actuation commands (see
 * `ServoSetEnabledArgs`). KSP models these as buttons with no settable value,
 * and the button's own label is what changes ("Deploy" becomes "Retract").
 * Read the result back from `vessel.partActions.<flightId>`, which reports the
-* new set of buttons one light time later.
+* new set of buttons one signal delay later.
 *
 * @category Command arguments
 */
@@ -5230,8 +5229,8 @@ export interface PartActionEntry
 *
 * It is a stream rather than a one-shot query because the action set is its
 * own read-back. Invoking "Extend Solar Panel" changes this list to "Retract
-* Solar Panel" one light-time later, which is how a client confirms a delayed
-* command landed without optimistically changing its own UI.
+* Solar Panel" one signal delay later, which is how a client confirms a
+* delayed command landed without optimistically changing its own UI.
 *
 * @category Parts
 */
@@ -5388,7 +5387,7 @@ export interface ServoEntry
 *
 * Not the same as the Breaking Ground DLC-presence fact
 * (`deployed.available`): this reflects parts on this vessel, so it is delayed
-* by light time, whereas DLC presence is known on the ground at once.
+* by signal delay, whereas DLC presence is known on the ground at once.
 *
 * `RoboticsAvailability.available` is three-state. `null` means the craft
 * could not be surveyed: a recording that does not carry this field, or a live
@@ -5623,7 +5622,7 @@ export interface RecoveryRecent
 * the flags mean nothing. In flight both bools are always present: `false`
 * means that revert is not available right now.
 *
-* Not delayed by light time: it is a fact about the game, not vessel
+* Not delayed by signal delay: it is a fact about the game, not vessel
 * telemetry, and carries no per-payload `Meta` of its own (the envelope's
 * applies). Its delay role is DelayRole.TrueNow.
 *
@@ -5794,7 +5793,7 @@ export enum ScetAlarmConditionKind {
 	*
 	* Only the game can check this. A time alarm needs only a clock, which a
 	* client has; a threshold needs the craft's true state, which reaches the
-	* ground a light-time late and by then no longer says whether the craft is
+	* ground a signal delay late and by then no longer says whether the craft is
 	* above 100 km now.
 	*/
 	Threshold = 1,
@@ -5901,7 +5900,7 @@ export interface ScetAlarmCondition
 	* The instant the alarm is set for, as a universal time on the craft's clock
 	* rather than on the clock the command centre is reading.
 	*
-	* The difference between the two is the one-way light time, which changes as
+	* The difference between the two is the one-way signal delay, which changes as
 	* the craft moves. This field is the instant itself, compared against the
 	* game's own clock every tick, so it stays right however the distance changes
 	* between setting the alarm and its firing.
@@ -6033,7 +6032,7 @@ export interface ScetAlarmAction
 * roster is held in memory for the game session and is not written to the
 * save: when the session ends it is gone, and a client sets its alarms again.
 * It is a list of what somebody asked for, not a reading of any craft, so the
-* channel is not delayed by light time.
+* channel is not delayed by signal delay.
 *
 * @category Alarms
 * @categoryDescription Alarms
@@ -6077,7 +6076,7 @@ export interface ScetAlarm
 	*
 	* A vantage that is the subject reads the craft's true state, so the alarm
 	* comes due at the instant the condition is met. Any other vantage reads what
-	* that place has been told, which is a light-time old and different
+	* that place has been told, which is a signal delay old and different
 	* everywhere, so the same condition comes due there when the light carrying it
 	* lands. The vantage decides when, never whether.
 	*
@@ -6156,7 +6155,7 @@ export interface ScetAlarm
 * The notice that a SCET alarm has fired and the warp has been stopped.
 *
 * **Nothing about the craft.** It says which alarm fired and when. The stop is
-* immediate, because warp is; the telemetry is not, and stays a light-time
+* immediate, because warp is; the telemetry is not, and stays a signal delay
 * behind. Readings shown beside this notice may still show the craft as it was
 * minutes ago, so a widget should not treat the notice as a reading: what the
 * craft was doing at `ScetAlarmFired.firedAtUt` arrives with its telemetry.
@@ -6191,7 +6190,7 @@ export interface ScetAlarmFired
 	*
 	* Says nothing about how the craft responded to an action that was sent. That
 	* is a fact aboard the craft, and it reaches the ground the way every other
-	* one does, a light-time later in the craft's own telemetry: this notice
+	* one does, a signal delay later in the craft's own telemetry: this notice
 	* travels at once and must not carry it.
 	*/
 	actionsWithheld: boolean;
@@ -6200,10 +6199,10 @@ export interface ScetAlarmFired
 * `alarm.scet.arm`'s args: register an alarm with the game, or replace one
 * already registered under the same `ScetAlarmArmArgs.id`.
 *
-* Never delayed by light time: setting an alarm changes nothing aboard the
+* Never delayed by signal delay: setting an alarm changes nothing aboard the
 * craft, so like `time.setWarpIndex` it is a control on the game, not a signal
 * to a spacecraft. An alarm can therefore be set for an event less than one
-* light time away, and during a blackout.
+* signal delay away, and during a blackout.
 *
 * @category Command arguments
 */
@@ -6298,7 +6297,8 @@ export interface ExperimentActionArgs
 * `science.experiment.transmit` returns it: when the stream began at the craft
 * and how long the transmitter needs to send all of it. The result has left
 * the craft at `ScienceTransmission.startedAt` plus
-* `ScienceTransmission.streamSeconds`, and it lands one light-time after that.
+* `ScienceTransmission.streamSeconds`, and it lands one signal delay after
+* that.
 *
 * Absent from the reply when the backend cannot say, as a modelling mod that
 * drains results continuously cannot. A client then has nothing to draw the
@@ -6942,9 +6942,10 @@ export interface ArchiveEntry
 * row's own description, so a setting an Uplink adds needs no client code of
 * its own.
 *
-* It is never delayed by light time, the time a signal takes to cross between
-* a craft and the command centre (the screen an operator sends commands from):
-* a setting configures the system the operator is sitting at, not a craft.
+* It is never delayed by signal delay, the time a signal takes to cross
+* between a craft and the command centre (the screen an operator sends
+* commands from): a setting configures the system the operator is sitting at,
+* not a craft.
 *
 * This is where a client learns whether a save landed. The `settings.save`
 * command can time out and still land, so read the outcome here, never from
@@ -7084,7 +7085,7 @@ export interface SettingsDeclarationFailure
 /**
 * Apply the settings from one Save press together and write the settings file
 * once. Arguments to `settings.save`: one Save press, applied together and
-* written to the settings file once. Never delayed by light time.
+* written to the settings file once. Never delayed by signal delay.
 *
 * Safe to send again. A save sets each row to the value named, so repeating
 * one that already landed changes nothing. That matters because a save that
@@ -7927,10 +7928,10 @@ export interface OrbitEntry
 * and leaves when the light of its going has.
 *
 * **By radio: everything else.** A vessel's crew and its link are its own to
-* say, and arrive over its radio's route at that route's light-time. A vessel
-* that has been seen and not yet heard has no crew count and no link state,
-* which are absent and not zero. Where a vessel has a radio its location is as
-* fresh as the newer of the two.
+* say, and arrive over its radio's route at that route's signal delay. A
+* vessel that has been seen and not yet heard has no crew count and no link
+* state, which are absent and not zero. Where a vessel has a radio its
+* location is as fresh as the newer of the two.
 *
 * What can be tracked by sight is the game's own tracking station rule at the
 * station's current level. Where the game lets the station place no vessel at
@@ -8030,7 +8031,7 @@ export interface VesselRosterEntry
 	crewCapacity?: Value<"count"> | null;
 	/**
 	* Whether this vessel has a live control link home, as the receiving centre
-	* has heard it: an outage shows one of the centre's light-times after the
+	* has heard it: an outage shows one of the centre's signal delays after the
 	* vessel's last light, and its return when its light arrives again. Read for
 	* every roster vessel, loaded or not. This is stock CommNet's reading
 	* (`Vessel.connection.IsConnected`), not the active vessel's `comms.*`
@@ -8073,14 +8074,14 @@ export enum TargetKnowledge {
 	InRange = 0,
 	/**
 	* The other vessel's radio reaches the active vessel directly, so what is
-	* known of it is one light-time of that link old.
+	* known of it is one signal delay of that link old.
 	*/
 	DirectLink = 1,
 	/**
 	* The active vessel's command centre knows of the other vessel, by tracking it
 	* or by hearing from it, and has told the active vessel over its control
 	* route. What is known is as old as the centre's own knowledge plus that
-	* route's light-time.
+	* route's signal delay.
 	*/
 	CommandCentre = 2
 }
@@ -8159,24 +8160,24 @@ export interface TargetListEntry
 	* silence and not heard, so an age counted from it is shown as modelled.
 	*
 	* For a vessel known over a direct radio link (`TargetKnowledge.DirectLink`)
-	* that is up, it is now less that link's light-time.
+	* that is up, it is now less that link's signal delay.
 	*
 	* For a vessel known through the command centre
 	* (`TargetKnowledge.CommandCentre`), it is what the centre knew one
-	* control-route light-time ago, which is what the active vessel has been told.
-	* Where the centre then held the vessel's link as up, it is the latest moment
-	* a word could have left the vessel and, by the centre's own plan of the route
-	* at that moment, relays and waits for a window included, already have reached
-	* the centre. It is never later than the centre's moment less the time the
-	* vessel's last word was measured to take. Where the centre had planned no
-	* route for the vessel yet, the larger of that measured time and the plan's
-	* straight line stands in for the route.
+	* control-route signal delay ago, which is what the active vessel has been
+	* told. Where the centre then held the vessel's link as up, it is the latest
+	* moment a word could have left the vessel and, by the centre's own plan of
+	* the route at that moment, relays and waits for a window included, already
+	* have reached the centre. It is never later than the centre's moment less the
+	* time the vessel's last word was measured to take. Where the centre had
+	* planned no route for the vessel yet, the larger of that measured time and
+	* the plan's straight line stands in for the route.
 	*
 	* It does not claim the vessel is unchanged now, or that its link is up now:
 	* it is the centre's belief, as old as the control route is long, resting on
 	* the centre's plan and on the link as the centre last heard it. A word the
 	* plan has still on its way is not counted, so the figure can stand well short
-	* of the centre's moment less the light-time, and it is null until some word
+	* of the centre's moment less the signal delay, and it is null until some word
 	* sent after `TargetListEntry.asOfUt` would have arrived.
 	*
 	* It stops advancing once the link it rests on is held as down, or the control
@@ -8209,16 +8210,16 @@ export interface TargetListEntry
 *
 * A vessel is on the list once the active vessel has come to know of it, by
 * whichever of three ways tells it soonest: it is within physics range and
-* seen as it is; its radio reaches the active vessel directly, one light-time
-* of that link ago; or the active vessel's command centre knows of it and has
-* said so over the control route, that route's light-time ago. Each entry says
-* which (`TargetListEntry.source`) and how old (`TargetListEntry.asOfUt`). A
-* vessel with no route home and nothing in range keeps the list it last had:
-* entries age, none is added. A vessel the active vessel has been told is gone
-* leaves the list.
+* seen as it is; its radio reaches the active vessel directly, one signal
+* delay of that link ago; or the active vessel's command centre knows of it
+* and has said so over the control route, that route's signal delay ago. Each
+* entry says which (`TargetListEntry.source`) and how old
+* (`TargetListEntry.asOfUt`). A vessel with no route home and nothing in range
+* keeps the list it last had: entries age, none is added. A vessel the active
+* vessel has been told is gone leaves the list.
 *
 * Delayed like the rest of the active vessel's telemetry: a centre reads the
-* list one of its own light-times after the vessel held it.
+* list one of its own signal delays after the vessel held it.
 *
 * @category Orbits and trajectories
 */
@@ -8702,7 +8703,7 @@ export interface VesselAttitude
 * Switch SAS, RCS, landing gear, brakes, lights or the abort group on or off.
 * Args shared by every plain on/off actuation command (`setSas`, `setRcs`,
 * `setGear`, `setBrakes`, `setLights`, `setAbort`): an absolute state to
-* apply, never a toggle. Under light-time delay a toggle that arrives after
+* apply, never a toggle. Under signal delay delay a toggle that arrives after
 * unknown intervening changes would race them, so there are no toggle
 * commands.
 *
@@ -8878,7 +8879,7 @@ export interface SetTargetArgs
 }
 /**
 * `time.setWarpIndex`'s args: select a time-warp rate. This is a control of
-* the simulation, not of a craft, so it is never delayed by light time.
+* the simulation, not of a craft, so it is never delayed by signal delay.
 *
 * @category Command arguments
 */

@@ -6,10 +6,10 @@
  * the spend belongs to the Uplink's own body. The stock scene is the same
  * roster with no Uplink contributing, where the host's price must still show.
  *
- * Deliberately NOT registered in `widgets.ts`, for the reason
+ * Deliberately not registered in `widgets.ts`, for the reason
  * `render-eligibility-unknown.ts` gives: that file is the visual gate's
  * input, and a scene added to it with no committed baseline fails the gate
- * as MISSING. This exists to be looked at by a person.
+ * as missing. This exists to be looked at by a person.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-admin-building-own-actions`.
  * Pass `--out <dir>` to write somewhere other than this checkout's

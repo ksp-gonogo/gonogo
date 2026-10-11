@@ -64,7 +64,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The exact scenario named in the M2 task: 3 quickload rewinds must
-        /// produce 4 DISTINCT epochs across delivered samples (0, then 1/2/3
+        /// produce 4 distinct epochs across delivered samples (0, then 1/2/3
         /// after each reset) -- proving the counter genuinely increments per
         /// rewind rather than saturating or resetting itself.
         /// </summary>
@@ -103,11 +103,11 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// A sample recorded BEFORE a rewind, but only surfaced to a
-        /// LATE-JOINING catch-up subscriber AFTER the rewind, must still
+        /// A sample recorded before a rewind, but only surfaced to a
+        /// LATE-JOINING catch-up subscriber after the rewind, must still
         /// report the epoch it was actually recorded under (0), not
         /// whatever epoch is current at catch-up-serve time (1) -- proving
-        /// the epoch rides the ARCHIVED point (Archive.Record's epoch
+        /// the epoch rides the archived point (Archive.Record's epoch
         /// parameter), not just the live delivery path.
         /// </summary>
         [Fact]

@@ -44,7 +44,7 @@ function renderRoster(fixture: StreamFixture, size = { w: 8, h: 10 }) {
   return container;
 }
 
-/** One fully-populated craft, so a test can isolate ONE absent read. */
+/** One fully-populated craft, so a test can isolate one absent read. */
 const ONE_CRAFT = {
   vessels: [
     {

@@ -8,7 +8,7 @@
  *
  * Station-side scope: only the "SMA" panel title (static chrome) is
  * checked on the station: the readout comes from live Sitrep stream
- * data, and only the MAIN screen mounts `SitrepTelemetryProvider` today
+ * data, and only the main screen mounts `SitrepTelemetryProvider` today
  * (station stream forwarding over PeerJS is a documented pending gap, see
  * that provider's own doc comment). Checking the readout on the station
  * would fail for that reason, not a widget or harness bug.

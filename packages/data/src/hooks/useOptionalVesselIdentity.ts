@@ -8,7 +8,7 @@ import { useCallback, useSyncExternalStore } from "react";
 
 /**
  * `useStream("vessel.identity")`'s own read/subscribe logic (`use-stream.ts`),
- * rebuilt on the OPTIONAL client/store accessors instead of the throwing
+ * rebuilt on the optional client/store accessors instead of the throwing
  * `useTelemetryClient`/`useTelemetryStore`. Extracted out of
  * `AutoRecordController` (its original, still-primary consumer: see that
  * component's own doc comment for the full "why optional" rationale) so

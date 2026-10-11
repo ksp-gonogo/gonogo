@@ -4,7 +4,7 @@ using System.Reflection;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The parts of the Breaking Ground captures that can be decided WITHOUT a
+    /// The parts of the Breaking Ground captures that can be decided without a
     /// live <c>Vessel</c>, carved out of <see cref="KspHost"/> for the same
     /// reason <see cref="ServoCapture"/> was: the surrounding walks need a real
     /// vessel and a headless test can never enter them, while the decisions
@@ -17,9 +17,9 @@ namespace Gonogo.KSP
     /// definite <c>false</c> is what put "No robotic parts on this vessel" on a
     /// craft that has them and painted a powered base red.</para>
     ///
-    /// <para>Carries NO KSP or Unity type, deliberately, which is what lets the
+    /// <para>Carries no KSP or Unity type, deliberately, which is what lets the
     /// test project compile it unconditionally (the same reasoning as
-    /// <c>KscLightTimeMath.cs</c>). That is why a failed read is REPORTED to
+    /// <c>KscLightTimeMath.cs</c>). That is why a failed read is reported to
     /// the caller rather than logged here: <c>UnityEngine.Debug</c> would put
     /// this file behind the KspManaged gate, where a machine without the
     /// reference assemblies runs none of its tests and says nothing about
@@ -28,13 +28,13 @@ namespace Gonogo.KSP
     public static class BreakingGroundReads
     {
         /// <summary>
-        /// Reads a public instance FIELD or get-PROPERTY named
+        /// Reads a public instance field or get-PROPERTY named
         /// <paramref name="name"/> off <paramref name="instance"/>, reporting
-        /// whether the READ SUCCEEDED separately from what it read.
+        /// whether the read succeeded separately from what it read.
         ///
         /// <para>Returns false when the member is absent (renamed, obfuscated,
         /// a different KSP version) or when reading it threw, and true when the
-        /// member was read, INCLUDING when what it read was null. That is the
+        /// member was read, including when what it read was null. That is the
         /// whole distinction: <c>null</c> alone cannot tell "this experiment
         /// has no cluster" from "we could not ask", and a caller that treats
         /// the second as the first states a fact it does not have.</para>
@@ -89,10 +89,10 @@ namespace Gonogo.KSP
         /// <item>a servo found anywhere is a definite <c>true</c>, and outranks
         /// an unreadable neighbour: one proven robotic part is proof</item>
         /// <item>an unreadable part with no servo found is <c>null</c>, because
-        /// "no robotic parts" is a claim about EVERY part and one of them did
+        /// "no robotic parts" is a claim about every part and one of them did
         /// not answer</item>
         /// <item>a part list that could not be read at all is <c>null</c> for
-        /// the same reason, and is NOT the same as an empty one</item>
+        /// the same reason, and is not the same as an empty one</item>
         /// <item>every part read, none carrying a servo, is a definite
         /// <c>false</c>: the craft genuinely has none</item>
         /// </list>

@@ -29,7 +29,7 @@ import {
 import { getHostPeerId } from "./helpers";
 
 /**
- * The radio, driven from a STATION screen rather than from mission control.
+ * The radio, driven from a station screen rather than from mission control.
  *
  * **A station is a different machine from the host in every way that the radio
  * touches.** It mounts `/station`, not `/`; its identity is a `stationKey` in
@@ -41,7 +41,7 @@ import { getHostPeerId } from "./helpers";
  * hear, to draw its own voice on the rail or to mute a loop, and every suite in
  * the tree would have stayed green.
  *
- * The vantage is the one thing a station does NOT have of its own, and that is
+ * The vantage is the one thing a station does not have of its own, and that is
  * correct rather than a gap: it reads the host's relayed frames, so it observes
  * the host's vantage and the two are genuinely co-located. That is what makes
  * the last beat here possible at all, two operators at the same ground vantage
@@ -49,7 +49,7 @@ import { getHostPeerId } from "./helpers";
  *
  * ## The three screens
  *
- *   - the STATION at `ksc`, on `/station`, which does all the talking
+ *   - the station at `ksc`, on `/station`, which does all the talking
  *   - mission control at `ksc`, on `/`, hosting the peer link and speaking once at
  *     the end so the craft has two people on top of each other
  *   - a pilot 3 s away at `vessel:near`, on `/pilot`
@@ -57,12 +57,12 @@ import { getHostPeerId } from "./helpers";
  * ## What the film is asked to show, and where each of it is
  *
  *   - **talk**: the fixed-label key, latched from the station
- *   - **the delay**: the same utterance arriving one light-time later, audible
+ *   - **the delay**: the same utterance arriving one signal delay later, audible
  *   - **the transmission light**: dark while the words are crossing, with the
  *     station provably already mid-sentence. A lamp lit by a chunk's arrival
  *     would announce a speaker before their first word could have arrived
  *   - **mute**: muted mid-transmission, the audio stops; unmuted, it resumes
- *     where the audio has GOT TO. The chunk indices either side of the gap are
+ *     where the audio has got to. The chunk indices either side of the gap are
  *     the proof, and they are read off the decoder rather than off the widget
  *   - **the delay rail ribbon**: the operator's own voice drawn crossing the
  *     gap, with the clip's own amplitude envelope under it
@@ -72,11 +72,11 @@ import { getHostPeerId } from "./helpers";
  *
  * ## Paced, and readable off the picture
  *
- * The delay ARITHMETIC is untouched: three seconds is the claim and nothing
+ * The delay arithmetic is untouched: three seconds is the claim and nothing
  * here stretches it. What is paced is everything around it, and every pane
  * carries a caption strip, its own identity, and a stopwatch running off one
- * shared epoch. That last one is what lets a reviewer take the light-time off
- * the FILM rather than off this file: keyed at T+MM:SS on the left-hand pane,
+ * shared epoch. That last one is what lets a reviewer take the signal delay off
+ * the film rather than off this file: keyed at T+MM:SS on the left-hand pane,
  * heard three seconds later on the right-hand one, in the same picture.
  */
 

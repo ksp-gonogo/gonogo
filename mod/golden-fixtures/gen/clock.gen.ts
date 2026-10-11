@@ -5,7 +5,7 @@
  * Unlike the pure-function semver fixture (`{args, expected}`), `ManualClock`
  * is stateful: a fixture here is a **scripted scenario**, a sequence of
  * operations (`schedule` / `advanceTo` / `cancel`) run against a real
- * `ManualClock` instance, plus the OBSERVABLE OUTPUT that instance actually
+ * `ManualClock` instance, plus the observable output that instance actually
  * produced (the order callbacks fired in, and the final `now()`).
  *
  * Callbacks are represented by string ids instead of real closures so the
@@ -17,7 +17,7 @@
  * reference's `clock.schedule(3, () => { order.push("three"); clock.schedule(8,
  * () => order.push("eight")); })` pattern in `clock.test.ts`.
  *
- * The `expected` block is NEVER hand-authored: `runScenario` executes the ops
+ * The `expected` block is never hand-authored: `runScenario` executes the ops
  * against the real `ManualClock` and records what actually happened. Both the
  * TS reference (already covered by `clock.test.ts`) and the C# port
  * (`Sitrep.Core.Tests/ClockGoldenFixtureTests.cs`) are checked against this

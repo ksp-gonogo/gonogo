@@ -15,13 +15,13 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// Commcast through the real socket, at three command centres a light-time
+    /// Commcast through the real socket, at three command centres a signal delay
     /// apart: what each connection receives, and when, is what a third party with
     /// a WebSocket would see.
     ///
     /// <para>Separations: A to B 5 s, A to C 20 s, B to C 18 s, every pair routed
     /// unless a test says otherwise. UT advances only when a test ticks, so "not
-    /// yet" is asserted one tick short of the light-time and "now" on it.</para>
+    /// yet" is asserted one tick short of the signal delay and "now" on it.</para>
     /// </summary>
     public class CommcastEndToEndTests
     {
@@ -155,7 +155,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The operator's example: someone already in the group adds a centre part
         /// way through a keying. The newcomer hears the join and the stream one
-        /// light-time from the speaker, and the stream starts for it at the first
+        /// signal delay from the speaker, and the stream starts for it at the first
         /// batch spoken after the add, never earlier.
         /// </summary>
         [Fact]

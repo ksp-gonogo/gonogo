@@ -24,7 +24,7 @@ namespace Gonogo.DevTools
     }
 
     /// <summary>
-    /// The applied-once guard for a dev tool whose request is an ACTION (teleport a craft,
+    /// The applied-once guard for a dev tool whose request is an action (teleport a craft,
     /// award science, warp time) rather than standing state.
     ///
     /// <para>A request cfg outlives the process that applied it, and an id held only in
@@ -136,14 +136,14 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Records the id as applied, in memory and on disk, BEFORE the tool acts on it: a
+        /// Records the id as applied, in memory and on disk, before the tool acts on it: a
         /// request that throws half way must not be retried every poll, nor after a restart.
         /// A refused stale request is claimed the same way, so it is refused once rather
         /// than on every poll.
         /// </summary>
         /// <returns>
         /// The reason the stamp could not be written, or null. A failed stamp still leaves
-        /// the in-memory claim, so the cost is a repeat after the NEXT restart, not now.
+        /// the in-memory claim, so the cost is a repeat after the next restart, not now.
         /// </returns>
         internal string? Claim(string requestId)
         {

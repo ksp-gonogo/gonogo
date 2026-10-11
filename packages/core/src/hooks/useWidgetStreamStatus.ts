@@ -13,7 +13,7 @@ import {
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 /**
- * The grades a whole WIDGET can honestly be badged with, as opposed to the
+ * The grades a whole widget can honestly be badged with, as opposed to the
  * ones that belong to one channel.
  *
  * `Panel`'s own comment refuses a host-derived worst-of across a widget's
@@ -23,7 +23,7 @@ import { useCallback, useMemo, useSyncExternalStore } from "react";
  * One pill for five topics could not say which, so the pill would be a
  * lossy summary that reads as a fault when there is none.
  *
- * These two are not that. Both are stamped by the SUBJECT's blackout
+ * These two are not that. Both are stamped by the subject's blackout
  * authority, which is per craft and not per topic:
  * `ChannelEngine.SetSubjectConnected` marks the whole node down, and
  * `Courier.ReplayRecorded` stamps every sample of the reacquisition dump on
@@ -48,10 +48,10 @@ const WIDGET_WIDE_GRADES: ReadonlySet<StreamStatusValue> =
  * either, so `recorded` had exactly one render site in the tree: a feature the
  * whole recorder chain exists to surface, invisible in the product.
  *
- * Reads without SUBSCRIBING. A widget's own hooks subscribe to what it reads;
+ * Reads without subscribing. A widget's own hooks subscribe to what it reads;
  * this only asks the store what it already holds, once per frame. Subscribing
  * here would put real traffic on the wire for every topic a widget merely
- * DECLARES, and it would buy nothing: an unsubscribed topic reads `resyncing`,
+ * declares, and it would buy nothing: an unsubscribed topic reads `resyncing`,
  * which is not a blackout grade and contributes nothing.
  *
  * A widget's families of runtime-built Topics are not part of this: the store
@@ -97,7 +97,7 @@ export function useWidgetStreamStatus(
  *
  * A sibling of `AlarmStatusBridge` in every respect: rendered once per grid
  * item, inside that item's store, drawing nothing itself. It contributes under
- * its own id rather than Panel's `"stream"`, so a widget that DOES pass
+ * its own id rather than Panel's `"stream"`, so a widget that does pass
  * `panelStatus` (a sub-panel reading one specific topic) keeps its own reading
  * and the two merge worst-first, which is what the summary is for.
  */

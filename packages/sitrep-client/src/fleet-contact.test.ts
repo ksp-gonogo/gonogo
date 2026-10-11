@@ -40,7 +40,7 @@ describe("contactPhase", () => {
 
   /**
    * The distinction the whole wire contract is careful about. A missing
-   * prediction means one was WITHHELD, so the vessel is quiet with nothing
+   * prediction means one was withheld, so the vessel is quiet with nothing
    * having promised it would be back. Reading the absent number as an emergence
    * of "now" would report every such vessel as overdue the instant it went
    * quiet, which is the alarm-generator failure in client form.

@@ -84,7 +84,7 @@ export function useCommcastLog(): CommcastLog | null {
  *
  * `stationKey` rather than a peer id: a peer id is fresh on every page load, so
  * attributing a message to one means the author of something said an hour ago
- * stops being the same person after they refresh. `vantageId` is the OBSERVED
+ * stops being the same person after they refresh. `vantageId` is the observed
  * vantage, which on a station is its host's, correctly: a station reads the
  * host's relayed frames, so the two are genuinely co-located.
  */
@@ -112,7 +112,7 @@ export function useLocalParticipant(): {
  * The published vantage-to-vantage separations, as a lookup.
  *
  * `commandCentre.separation` carries the rows the mod already computes for its
- * own delay ledger, so this is the SERVER's number rather than a client
+ * own delay ledger, so this is the server's number rather than a client
  * derivation: the geometry is solved once, in the place that knows it. Sparse by
  * contract, because an unroutable pair has no separation to quote and a zero
  * would make an unreachable correspondent look merely distant.
@@ -149,7 +149,7 @@ export function useSeparationMatrix(): SeparationMatrix | undefined {
  * Who this screen can address.
  *
  * `commandCentre.roster` alone, and that is the whole answer rather than half
- * of it: the roster is the union of the ground stations AND the crewed control
+ * of it: the roster is the union of the ground stations and the crewed control
  * vessels (`Kind: "CrewedVessel"`, ids `"vessel:<guid>"`), so joining it with
  * `system.vessels` would add only craft with nobody aboard, which have nobody
  * to message. It is also the same vantage vocabulary `SetVantage` selects and

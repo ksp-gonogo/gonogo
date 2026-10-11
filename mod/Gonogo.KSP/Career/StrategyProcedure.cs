@@ -5,7 +5,7 @@ namespace Gonogo.KSP.Career
 {
     /// <summary>
     /// A strategy as the body of stock's <c>Strategy.Activate()</c> touches it,
-    /// one member per step, so the ORDER and the AMOUNTS can be entered by a test
+    /// one member per step, so the order and the amounts can be entered by a test
     /// without a live career.
     /// </summary>
     internal interface IStrategyProcedureTarget
@@ -51,11 +51,11 @@ namespace Gonogo.KSP.Career
     /// anywhere a callable step exists.</para>
     ///
     /// <para><b>The order is observable, so it is stock's exactly.</b>
-    /// <c>Register()</c> runs BEFORE the charges, and a registered
+    /// <c>Register()</c> runs before the charges, and a registered
     /// <c>CurrencyConverter</c> effect listens on
     /// <c>OnCurrencyModifierQuery</c>, which each of the three adders fires: a
     /// strategy whose effect covers <c>StrategySetup</c> hears its own setup
-    /// cost. <c>dateActivated</c> is written AFTER <c>Register()</c>, so an
+    /// cost. <c>dateActivated</c> is written after <c>Register()</c>, so an
     /// <c>OnRegister</c> reading <c>DateActivated</c> sees the previous value.
     /// <c>StrategyActivateBodyTests</c> pins the same sequence against the
     /// installed <c>Assembly-CSharp</c>, so a KSP build that changes it turns a
@@ -107,7 +107,7 @@ namespace Gonogo.KSP.Career
         /// and only arm 1 is left to ask.
         ///
         /// <para>A refusal is the game's, in its words, under the same code the
-        /// screen-open path gives it. Any OTHER unasked arm is
+        /// screen-open path gives it. Any other unasked arm is
         /// <see cref="CommandErrorCode.Unreadable"/>: a question nobody answered
         /// is neither a no nor a go-ahead, and treating it as either would let an
         /// unreachable method decide a spend.</para>

@@ -211,7 +211,7 @@ export function porkchopAxes(input: PorkchopBuildInput): PorkchopAxes | null {
 }
 
 /**
- * The porkchop grid for the origin to dest pair. A tight WINDOW around the
+ * The porkchop grid for the origin to dest pair. A tight window around the
  * optimum (departure `centerDep ± 0.4·T_Hohmann`, arrival centred on
  * `centerDep + T_Hohmann`), so time of flight stays in `[0.2, 1.8]·T_Hohmann`,
  * every cell solves, and the Δv field is a single bowl. Departures are never
@@ -285,7 +285,7 @@ function makeWindow(
 
 /**
  * The next `count` transfer windows, each a synodic period after the last.
- * Window TIMING comes from the phase solution, not the porkchop's global-min
+ * Window timing comes from the phase solution, not the porkchop's global-min
  * departure (which can land a synodic away); the Δv magnitude comes from the
  * porkchop optimum. Empty when no transfer solves.
  */
@@ -367,7 +367,7 @@ export interface ReachComputeInput {
 }
 
 /**
- * Every sibling destination with what it costs THIS craft and when it can go,
+ * Every sibling destination with what it costs this craft and when it can go,
  * cheapest first. Closed-form throughout, with no porkchop per destination. A
  * destination whose elements have not arrived keeps its row with null figures:
  * a missing row and an unaffordable one are not the same fact.

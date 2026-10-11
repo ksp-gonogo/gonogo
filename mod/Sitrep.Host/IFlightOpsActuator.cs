@@ -26,7 +26,7 @@ namespace Sitrep.Host
     /// (<c>ksp.*</c>): one method per command, taking already-parsed typed
     /// args and returning an already-typed <see cref="CommandResult"/>. The
     /// command-side twin of <see cref="IVesselActuator"/> for actions that are
-    /// NOT craft actuation but scene/player/game-level operations (revert,
+    /// not craft actuation but scene/player/game-level operations (revert,
     /// scene load, active-vessel switch, recovery). <see cref="FlightOpsCommandProvider"/>
     /// (KSP-free, this assembly) does the arg-parsing/result-shaping and never
     /// touches KSP; <c>Gonogo.KSP.KspFlightOpsActuator</c> is the real

@@ -5,7 +5,7 @@ import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
 
-/** ORBITING means the periapsis clears the atmosphere, whose height comes off the stream so a planet-pack body keeps its threshold. */
+/** Orbiting means the periapsis clears the atmosphere, whose height comes off the stream so a planet-pack body keeps its threshold. */
 
 const EARTH = {
   index: 1,

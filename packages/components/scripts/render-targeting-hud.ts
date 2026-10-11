@@ -1,8 +1,8 @@
 #!/usr/bin/env tsx
 /**
  * Renders Targeting's docking HUD to PNGs under
- * `local_docs/renders/targeting-hud/`, in both camera states: WITH a
- * `targeting.camera` backdrop and WITHOUT one.
+ * `local_docs/renders/targeting-hud/`, in both camera states: with a
+ * `targeting.camera` backdrop and without one.
  *
  * Two states because they are two different layout questions. Without a
  * backdrop the reticle frame is the only thing in the upper half, and the

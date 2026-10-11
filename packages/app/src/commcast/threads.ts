@@ -32,7 +32,7 @@ export interface CommcastThread {
 }
 
 /**
- * Who an entry is a conversation WITH, from this vantage, where the group's
+ * Who an entry is a conversation with, from this vantage, where the group's
  * own membership is not known here: whoever sent it, plus everyone else it was
  * addressed to.
  *
@@ -50,7 +50,7 @@ export function counterpartiesOf(
 }
 
 /**
- * Who a thing ARRIVING here is a conversation with: whoever sent it, plus
+ * Who a thing arriving here is a conversation with: whoever sent it, plus
  * everyone else it was addressed to, this vantage excluded.
  *
  * Split out of `counterpartiesOf` because the radio has the same question and
@@ -67,14 +67,14 @@ export function inboundCounterparties(
 /**
  * Every group thread this vantage holds, most recent activity first.
  *
- * Ranked by POSITION rather than by a UT, and the sequence it walks is the
+ * Ranked by position rather than by a UT, and the sequence it walks is the
  * feed's own: `log` is in the order things landed here and `outbound` is in
  * send order, so the last position a thread appears at is the last thing that
  * happened in it. A UT ordering would have to pick between the instant a
- * message was spoken and the instant it arrived, which differ by a light-time
+ * message was spoken and the instant it arrived, which differ by a signal delay
  * and disagree about which of two threads is newer.
  *
- * Words still crossing rank ABOVE everything settled. Something is happening
+ * Words still crossing rank above everything settled. Something is happening
  * in that conversation, which is what an operator scanning an inbox is looking
  * for.
  */
@@ -138,7 +138,7 @@ export function threadsOf(
  * The thread for `groupId`, or an empty one.
  *
  * The empty case is a group the operator has just opened and not yet spoken
- * in, or one this vantage has only HEARD on the radio, which has to render as
+ * in, or one this vantage has only heard on the radio, which has to render as
  * itself rather than as the inbox. `fallback` names its other members when the
  * group's own membership has not reached here.
  */

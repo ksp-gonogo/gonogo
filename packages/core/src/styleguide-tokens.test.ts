@@ -10,14 +10,14 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * line-height, z-index and motion values leaking back in now that the scales in
  * `packages/theme/src/tokens.css` exist.
  *
- * Why this file exists at all: font-size had tokens BEFORE the migration
+ * Why this file exists at all: font-size had tokens before the migration
  * and 413 of its 637 call sites ignored them, because nothing failed
  * when they did. Raw hex, by contrast, has held at (almost) zero for
  * months, because `styleguide.test.ts` fails the build the moment a new
  * one lands. A token set with no gate rots; these are the gates.
  *
  * Same ratchet shape as the hex guard, one `it` per family:
- *   - a NEW hardcoded value fails the build, naming file, line, property
+ *   - a new hardcoded value fails the build, naming file, line, property
  *     and value;
  *   - a documented per-file baseline covers what legitimately remains
  *     today, each entry of which is commented at its call site with why
@@ -33,10 +33,10 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * friends. For spacing, a job with no name gets one there. For the other
  * families, if no rung fits, the value is telling you something about the
  * design, not about the scale: say so in a comment at the call site and
- * raise the baseline, or add an EXCEPTIONS entry if the whole file is
+ * raise the baseline, or add an exceptions entry if the whole file is
  * off-ladder.
  *
- * What this scan deliberately does NOT flag:
+ * What this scan deliberately does not flag:
  *   - `0` and `0px`. There is no zero rung and there should not be one.
  *   - `rem` / `em` / `%` / `ch` / viewport and container units. These are
  *     relative by intent (the two `rem` clusters in the app are sized
@@ -111,7 +111,7 @@ function baselineKey(file: string): string {
 
 /**
  * Per-family baselines: what legitimately remains after the migration,
- * counted PER FILE rather than as one total. Every site counted here
+ * counted per file rather than as one total. Every site counted here
  * carries a comment at its call site explaining why it stayed literal;
  * the census behind those decisions is in the tokens.css ladder comments.
  *
@@ -120,7 +120,7 @@ function baselineKey(file: string): string {
  * wrong: it names whichever sites happen to sort last, so the author gets
  * pointed at innocent files while their own change goes unmentioned. A
  * per-file map names the file that actually moved. It also catches a case
- * a total silently misses: a literal MOVING from one file to another
+ * a total silently misses: a literal moving from one file to another
  * leaves the total unchanged.
  *
  * When you legitimately add one: put the reason in a comment at the call
@@ -214,7 +214,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui-kit/src/Readout.tsx": 1,
   },
   /**
-   * 22 across 16 files. Every one is LOCAL sibling ordering inside a
+   * 22 across 16 files. Every one is local sibling ordering inside a
    * component's own stacking context (the 0/1/2, 5/6 and 10/20 families),
    * which the ladder in tokens.css explicitly declines to absorb: pulling
    * them onto app-global rungs would collapse independent contexts into
@@ -283,7 +283,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * period is how the operator reads connection state. Folding those onto
    * a UI-transition scale would destroy the thing they encode.
    *
-   * A NEW literal here is almost certainly a UI transition that wants
+   * A new literal here is almost certainly a UI transition that wants
    * --duration-base and --ease-standard. If it genuinely is physical, say
    * what it is timed against at the call site and raise its entry.
    */
@@ -313,7 +313,7 @@ interface FamilySpec {
   /** Offending literals inside an already-var-stripped value. */
   hits: (value: string, property: string) => string[];
   /**
-   * Source text this family MUST find a hit in, one entry per SHAPE the app
+   * Source text this family must find a hit in, one entry per shape the app
    * writes the declaration in. A regex that stops matching reports zero
    * offenders and zero reads as a clean tree, so every run plants each of
    * these and fails as blind if the scan cannot see one.
@@ -774,9 +774,9 @@ describe("design-system: hardcoded design-token values", () => {
  * written finds nothing, reports nothing, and reads as a clean tree forever.
  * So every run plants one violation per
  * family through the same matcher and the same `hits` the scan uses, and fails
- * as BLIND rather than green when a plant comes back unseen.
+ * as `BLIND` rather than green when a plant comes back unseen.
  *
- * Per family and per SHAPE, because the two shapes the app writes travel
+ * Per family and per shape, because the two shapes the app writes travel
  * through different code and a css plant grades only one of them. See the
  * `plants` field for what a single css plant failed to notice.
  */

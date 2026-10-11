@@ -9,27 +9,27 @@ namespace Sitrep.Host
     /// <c>packages/sitrep-client/src/map-command.ts</c>'s
     /// <c>KNOWN_COMMAND_GAPS</c> comment: no read channel carried a per-node
     /// id, so <c>vessel.maneuver.update</c>/<c>.remove</c> only worked for
-    /// nodes created THROUGH the command path (tracked in the actuator's own
+    /// nodes created through the command path (tracked in the actuator's own
     /// throwaway <c>Dictionary&lt;string, ManeuverNode&gt;</c>), never a
     /// node the player placed by hand in the map view.
     ///
     /// <para>KSP's own <c>ManeuverNode</c> type has no id field at all
     /// (confirmed via decompile: see <c>Gonogo.KSP.KspHost.BuildManeuverNodes</c>'s
-    /// doc comment). <c>Gonogo.KSP.GonogoAddon</c> constructs exactly ONE
-    /// <c>ReferenceIdRegistry&lt;ManeuverNode&gt;</c> and hands the SAME
+    /// doc comment). <c>Gonogo.KSP.GonogoAddon</c> constructs exactly one
+    /// <c>ReferenceIdRegistry&lt;ManeuverNode&gt;</c> and hands the same
     /// instance to both <c>KspHost</c> (read side, stamps an <c>id</c> onto
     /// every <c>vessel.maneuver</c> node) and <c>KspVesselActuator</c> (write
     /// side: resolves <c>update</c>/<c>remove</c>'s <c>nodeId</c> argument
     /// back to a live node). Sharing one instance is what makes a node's id
-    /// the SAME whether it was player-placed or command-created, closing
+    /// the same whether it was player-placed or command-created, closing
     /// the round-trip gap, not just adding a cosmetic read-side id that
     /// still can't be sent back into a command.</para>
     ///
-    /// <para>Keyed by REFERENCE identity
+    /// <para>Keyed by reference identity
     /// (<see cref="ConditionalWeakTable{TKey, TValue}"/>), not a derived key
     /// like UT+ordinal: a node's UT changes when it's dragged/updated
     /// (<c>vessel.maneuver.update</c> exists precisely to do that), and its
-    /// ordinal position shifts whenever an EARLIER sibling is added or
+    /// ordinal position shifts whenever an earlier sibling is added or
     /// removed (the exact O-4 arg-order/index-shift footgun this whole
     /// capture-add exists to avoid reproducing), neither survives the edits
     /// this id exists to survive. <see cref="ConditionalWeakTable{TKey, TValue}"/>
@@ -37,7 +37,7 @@ namespace Sitrep.Host
     /// no manual eviction needed on <c>RemoveManeuverNode</c>/vessel
     /// switch/scene change/quickload.</para>
     ///
-    /// <para>Generic and KSP-free ON PURPOSE (BCL-only, this assembly's own
+    /// <para>Generic and KSP-free on purpose (BCL-only, this assembly's own
     /// invariant, see this project's csproj comment): the type parameter is
     /// only bound to the real KSP <c>ManeuverNode</c> type where
     /// <c>Gonogo.KSP</c> instantiates it, so this class itself is fully
@@ -48,7 +48,7 @@ namespace Sitrep.Host
         private readonly ConditionalWeakTable<T, string> _ids = new ConditionalWeakTable<T, string>();
 
         /// <summary>
-        /// Returns the SAME id for the SAME instance every time; assigns a
+        /// Returns the same id for the same instance every time; assigns a
         /// fresh one (a random GUID) the first time a given instance is
         /// seen. <see cref="ConditionalWeakTable{TKey,TValue}.GetValue"/>
         /// has existed since .NET Framework 4.0 / netstandard2.0 alike, so

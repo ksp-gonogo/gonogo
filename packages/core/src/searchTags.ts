@@ -4,14 +4,14 @@ import type { ComponentDefinition } from "./types";
 import type { UplinkClientHandle } from "./uplinkClients";
 
 /**
- * The distinct Uplink clients that AUGMENT or CONTRIBUTE-to this widget, deduped
- * by owner id. Reads the LIVE augment + contribution registries via the `owner`
+ * The distinct Uplink clients that augment or CONTRIBUTE-to this widget, deduped
+ * by owner id. Reads the live augment + contribution registries via the `owner`
  * `UplinkClientHandle` each registration stamps (`defineUplinkClient`), so a mod
  * whose client package was never bundled contributes nothing: only Uplinks
  * actually wired into this build appear.
  *
  * A widget is augmented through the slots it declares in `augmentSlots`, and
- * contributed-to through the slots it declares in `contributionSlots` AND
+ * contributed-to through the slots it declares in `contributionSlots` and
  * through its automatic `<id>.badges` slot, so
  * an Uplink that only drops a badge onto the widget still counts as provenance.
  */
@@ -43,11 +43,11 @@ function provenanceUplinks(def: ComponentDefinition): UplinkClientHandle[] {
  * own `tags`, plus mod tags derived purely from Uplink provenance, core
  * hardcodes no mod names:
  *
- *  - OWNED: `def.owner?.id`, the id of the `UplinkClientHandle` the Uplink
+ *  - Owned: `def.owner?.id`, the id of the `UplinkClientHandle` the Uplink
  *    stamped onto the widget via `defineUplinkClient`
- *  - AUGMENTED (`requires`): each live augment on `def.augmentSlots` that
+ *  - Augmented (`requires`): each live augment on `def.augmentSlots` that
  *    declares a `requires` Domain token contributes that token
- *  - AUGMENTED / CONTRIBUTED (owner): each Uplink that augments or
+ *  - Augmented / contributed (owner): each Uplink that augments or
  *    contributes to the widget (see {@link provenanceUplinks}) contributes
  *    its own client id, so the widget is findable by the mod's name even when
  *    the mod only extends it rather than owning it

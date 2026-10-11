@@ -243,7 +243,7 @@ public class CentreSeparationEntry
 ///
 /// <para>Each command centre is sent its own. The pairs are between the
 /// centres on the receiving centre's own <c>commandCentre.roster</c>, and each
-/// figure is the light-time of the route that centre's own contact plan has
+/// figure is the signal delay of the route that centre's own contact plan has
 /// open now, so a centre is quoted no separation from a vessel it has not
 /// heard is a command centre, and a figure moves when the news that moves it
 /// has arrived. Every ground station is the home centre's own antenna, so home

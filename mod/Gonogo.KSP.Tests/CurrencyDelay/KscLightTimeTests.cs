@@ -6,8 +6,8 @@ using Xunit;
 namespace Gonogo.KSP.Tests.CurrencyDelay
 {
     /// <summary>
-    /// The rule these pin: a currency event is delayed by exactly ONE number,
-    /// the one-way light-time of a live control path whose last hop is home.
+    /// The rule these pin: a currency event is delayed by exactly one number,
+    /// the one-way signal delay of a live control path whose last hop is home.
     ///
     /// <para>A straight-line chord from the craft to KSC divided by <c>c</c> is
     /// not an acceptable delay: it passes through whatever the craft is hiding
@@ -115,9 +115,9 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         /// just on the one path that happens to consult the flag.
         ///
         /// <para>The gate lived inside <c>Resolve</c>, and every Unroutable
-        /// literal elsewhere skipped it, so with signal delay switched OFF,
+        /// literal elsewhere skipped it, so with signal delay switched off,
         /// ordinary science still revealed a Kerbin day late. The off switch has
-        /// to be checked where the delay is CONSUMED, not only where it is
+        /// to be checked where the delay is consumed, not only where it is
         /// computed.</para>
         /// </summary>
         [Fact]

@@ -6,7 +6,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The <c>eva.crew</c> mapper. Its subject is the kerbals OUTSIDE a craft,
+    /// The <c>eva.crew</c> mapper. Its subject is the kerbals outside a craft,
     /// which is why it reads the snapshot root rather than the vessel group:
     /// while a kerbal is on EVA the vessel group is the craft they left, so a
     /// kerbal outside appears in no vessel group at all.

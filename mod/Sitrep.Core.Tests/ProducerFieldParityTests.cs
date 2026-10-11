@@ -28,14 +28,14 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>Why the two existing gates are blind to it.</b>
     /// <c>scripts/wire-payload-coverage.mjs</c> asks whether every type that
-    /// reaches the wire CAN be written; the type serialises fine here, the
+    /// reaches the wire can be written; the type serialises fine here, the
     /// producer just omits fields. <see cref="WirePayloadCoverageTests"/> asks the
-    /// same question by reflection over a DEFAULT instance, and excused the whole
+    /// same question by reflection over a default instance, and excused the whole
     /// hand-flattened half through a <c>FlattenedByProducer</c> allowlist whose
     /// entries were human claims about what a producer does. Reflection cannot
     /// grade a claim, and two of five past failures were sitting on that list
     /// wearing reasons that were simply false.
-    /// <see cref="JsonWriterFlattenerParityTests"/> asks THIS question, complete
+    /// <see cref="JsonWriterFlattenerParityTests"/> asks this question, complete
     /// parity, but only of <c>JsonWriter</c>'s own <c>Append&lt;Type&gt;</c>
     /// helpers, which is the other half of the contract.</para>
     ///
@@ -47,7 +47,7 @@ namespace Sitrep.Core.Tests
     /// mechanism, why it reads source rather than reflecting, and what it counts
     /// as a key.</para>
     ///
-    /// <para><b>Polarity: everything IN by default, and there is no allowlist.</b>
+    /// <para><b>Polarity: everything in by default, and there is no allowlist.</b>
     /// The universe is discovered from the contract assembly and the producers
     /// from the mod's sources. A producer that drops a field gets the missing
     /// line, not an entry.</para>
@@ -59,7 +59,7 @@ namespace Sitrep.Core.Tests
         /// minus the inbound-only command-argument types.
         ///
         /// <para>An args type travels client-to-server inside the command
-        /// envelope and is only ever DESERIALISED, so it has no producer and no
+        /// envelope and is only ever deserialised, so it has no producer and no
         /// wire shape to be missing fields from. Excluded by its
         /// <see cref="SitrepCommandAttribute"/> rather than by name, so the
         /// exclusion is a fact about the declaration and cannot widen to a
@@ -90,7 +90,7 @@ namespace Sitrep.Core.Tests
             new HashSet<string>(Producers.Value.Select(p => p.TypeName), StringComparer.Ordinal);
 
         /// <summary>
-        /// One case per PRODUCER, never one per type.
+        /// One case per producer, never one per type.
         ///
         /// <para>Grading the union of a type's producers is how this gate would
         /// have missed the bug it was built for.
@@ -201,7 +201,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Guards the discovery's SIZE, so a collapse that leaves the named pairs
+        /// Guards the discovery's size, so a collapse that leaves the named pairs
         /// above intact still fails. The floor is well under the real count (76
         /// types over 83 producer sites when this landed) because this asks "did
         /// discovery collapse", not "is the tree exactly this big".
@@ -220,9 +220,9 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The scan is regex over C#, and a regex that has stopped matching
         /// reports zero producers, which reads exactly like a tree with none.
-        /// Every arm is planted here and run through the REAL
+        /// Every arm is planted here and run through the real
         /// <see cref="ProducerFlattenScan.Scan"/>, so a pattern that has gone
-        /// quiet fails as BLIND rather than passing.
+        /// quiet fails as <c>BLIND</c> rather than passing.
         /// </summary>
         [Fact]
         public void TheScanCanSeeAPlantedProducerOfEveryShape()
@@ -378,7 +378,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// A helper that is the producer of a DIFFERENT contract type is where
+        /// A helper that is the producer of a different contract type is where
         /// the walk stops, in its own class or another. Folding its keys in would
         /// let a key it happens to share vouch for a field this producer never
         /// writes, and the type it stands for is left to its own site.
@@ -440,7 +440,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The reported blindness, end to end against the REAL contract types
+        /// The reported blindness, end to end against the real contract types
         /// and through the same grading the Theory uses: a <c>system.bodies</c>
         /// producer whose rows are written by a helper.
         ///
@@ -496,7 +496,7 @@ namespace Sitrep.Core.Tests
         /// Comments and verbatim strings are blanked before the structure is read,
         /// so a wire key quoted in a doc comment cannot vouch for a producer that
         /// does not write it. Same reasoning as the plant above: this is the half
-        /// of the reader that makes a false GREEN possible rather than a false
+        /// of the reader that makes a false green possible rather than a false
         /// red.
         /// </summary>
         [Fact]

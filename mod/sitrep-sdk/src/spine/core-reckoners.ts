@@ -44,7 +44,7 @@ import { CORE_RECKONER_OWNER, registerReckoner } from "./reckoners";
 import { knownCraftOrbits, knownCraftRangeAt } from "./target-range-reckoning";
 
 /**
- * Core's vanilla forward models, registered through the SAME seam an Uplink
+ * Core's vanilla forward models, registered through the same seam an Uplink
  * registers one through.
  *
  * This is the whole point of the file: core's models take no path a
@@ -67,7 +67,7 @@ import { knownCraftOrbits, knownCraftRangeAt } from "./target-range-reckoning";
 const POWERED_WINDOW = { spanUt: 10, maxSamples: 32 } as const;
 
 /**
- * How far a first-order advance of a RELATIVE position stays honest, in seconds.
+ * How far a first-order advance of a relative position stays honest, in seconds.
  *
  * Relative motion between an orbiting pair is curved, so a position carried by
  * its last observed velocity diverges as the square of the elapsed time. The
@@ -79,7 +79,7 @@ const POWERED_WINDOW = { spanUt: 10, maxSamples: 32 } as const;
  * bounds it. So the horizon stays at thirty seconds rather than stretching
  * toward where curvature alone would allow.
  *
- * It counts from the last observation, so the light-time spends it: under more
+ * It counts from the last observation, so the signal delay spends it: under more
  * than thirty seconds of delay a target or dock reading carries no modelled
  * mark, only its age. That is the intended reading of a pair this far away.
  *
@@ -95,12 +95,12 @@ const LINEAR_HORIZON_SECONDS = 30;
  * ## Declines on a current reading, unlike the conic
  *
  * `readingFrom` asks every reckoner on a live reading too, and for a conic that
- * is right: orbital elements are a CAUSE, true of a value that arrived on time
+ * is right: orbital elements are a cause, true of a value that arrived on time
  * as much as of one that stopped arriving. A first-order extrapolation is not a
- * cause. It integrates FROM the last observation, so on a live reading asked for
+ * cause. It integrates from the last observation, so on a live reading asked for
  * the instant it was received it has nothing to add, and would replace a
  * measured relative position with an arithmetic guess about the same instant.
- * Under signal delay a live reading is still a light-time behind SCET, and that
+ * Under signal delay a live reading is still a signal delay behind SCET, and that
  * gap it does carry. See {@link currentAtReckonTime}.
  */
 function elapsedOrDecline(
@@ -222,7 +222,7 @@ function registerTargetReckoner(): void {
  * `vessel.dock.relativePosition` and the `distance` that is its magnitude.
  *
  * The same one-payload dead reckoning as the target, and the distance is
- * recomputed from the ADVANCED vector rather than advanced on its own: a
+ * recomputed from the advanced vector rather than advanced on its own: a
  * separation carried by a closing rate is only a straight-line approximation of
  * a distance, and the vector is right there.
  */
@@ -307,7 +307,7 @@ function poweredFlightModel(
 }
 
 /**
- * `vessel.flight.altitudeAsl` and `.orbitalSpeed`, off the conic ABOVE the air
+ * `vessel.flight.altitudeAsl` and `.orbitalSpeed`, off the conic above the air
  * and off the observed descent rates below it.
  *
  * The declared inputs are `@vessel.orbit` (the elements and their epoch) and
@@ -319,13 +319,13 @@ function poweredFlightModel(
  *
  * `keplerAdmissibility` withdraws at the atmosphere interface, which left the
  * altitude unreckonable during exactly the descent that motivated reckoning it.
- * `withinAtmosphere` is the selector between the two, and it is asked FIRST:
+ * `withinAtmosphere` is the selector between the two, and it is asked first:
  * were the conic asked first, a craft under physics inside the air would be
  * refused on quality before the interface was ever consulted, and the operator
  * would hear "the craft is under physics" during a re-entry. Each branch then
  * declines in its own vocabulary, and neither is a fall-through from the other.
  *
- * The selector is handed the radius the conic SOLVES for at the view time, and
+ * The selector is handed the radius the conic solves for at the view time, and
  * that is what makes it judge the same instant the conic's own floor does. Given
  * only the observed altitude it answered about the last packet while the floor
  * answered about the read, so a craft observed two kilometres above the
@@ -336,11 +336,11 @@ function poweredFlightModel(
  *
  * ## The two branches move different field sets
  *
- * The conic advances both marked fields. The descent advances the ALTITUDE only
+ * The conic advances both marked fields. The descent advances the altitude only
  * and copies `orbitalSpeed` verbatim off the observation, because it has no
  * observed rate for a speed and will not invent one. One reading carries one
  * projection over every marked field of a topic, so the field has to be
- * present; `Reckoning.modelled` is what says it was not MOVED, and it names the
+ * present; `Reckoning.modelled` is what says it was not moved, and it names the
  * altitude alone on this branch. A consumer overlaying `reckoned.value` on
  * `value` (which is what `LandingStatus` does) therefore sees the last observed
  * orbital speed rather than a modelled one, which is the truth.
@@ -555,10 +555,10 @@ function registerFlightReckoner(): void {
 /**
  * A peer whose orbit nothing here can reach.
  *
- * `locateCommsPeer` joins a RELAY endpoint to `fleet.<guid>.orbit`, and a
+ * `locateCommsPeer` joins a relay endpoint to `fleet.<guid>.orbit`, and a
  * reckoner cannot subscribe to that: a per-vessel dynamic topic is not a name a
  * `deps` array declared once at module load can carry, and a declared input is
- * the only thing the store resolves. The relay branch is refused ABOVE this,
+ * the only thing the store resolves. The relay branch is refused above this,
  * naming that topic, so the callback is never consulted; it is here because
  * `locateCommsPeer` takes one and a lambda returning nothing says the true
  * thing about what this caller holds.
@@ -571,7 +571,7 @@ function registerFlightReckoner(): void {
  * vessel nobody knows about until `comms.path` arrives. The selector reads it
  * off the resolved `comms.path` point sitting at index 0 of this model's deps.
  *
- * A route straight home has no relay and yields NO subject, which resolves this
+ * A route straight home has no relay and yields no subject, which resolves this
  * dep to `undefined` rather than declining: the direct case is the common one
  * and it wants no fleet orbit at all.
  */
@@ -587,7 +587,7 @@ const RELAY_ORBIT: SubjectDep<
 };
 
 /**
- * `comms.delay.oneWaySeconds`, by re-measuring the FIRST hop of the observed
+ * `comms.delay.oneWaySeconds`, by re-measuring the first hop of the observed
  * route and carrying the rest of it forward unchanged.
  *
  * The arithmetic and the reasoning behind it are in `comms-delay-reckoning.ts`;
@@ -602,7 +602,7 @@ const RELAY_ORBIT: SubjectDep<
  * The model scales by the observed delay over the observed route, which is the
  * only way to recover the speed the mod divided by (`lightSpeedScale` is a
  * career setting and is not on the wire). A ratio of two quantities observed at
- * different instants would not be that speed, and the two points CAN carry
+ * different instants would not be that speed, and the two points can carry
  * different instants: both are published from one capture, but the engine
  * compares each payload by value and suppresses an identical rebuild, so either
  * can be gated out of a tick the other survives.
@@ -615,14 +615,14 @@ const RELAY_ORBIT: SubjectDep<
  * arrived on. Demanding one instant would refuse the model on exactly the ticks
  * the gate is working.
  *
- * ## A RELAY first hop is refused, and it is not a gap in this model
+ * ## A relay first hop is refused, and it is not a gap in this model
  *
  * A relay's elements ride `fleet.<guid>.orbit`, keyed by a guid that is not
  * known until the route arrives. A reckoner's inputs are declared once, at
  * registration, so there is no dep that names it, and the contract's
  * `[SitrepReckonable]` input grammar cannot name it either: an input is
  * `@<topicId>`, resolved against the declared topic set, and a per-vessel
- * dynamic topic is not in it. So the model the CONTRACT can declare is the
+ * dynamic topic is not in it. So the model the contract can declare is the
  * direct one, and this refuses the relayed route by naming the topic that would
  * have placed the peer. Serving it needs a decision above this file: the peer's
  * elements riding `comms.path` itself, or an input grammar with a per-subject
@@ -900,7 +900,7 @@ function registerScienceLabReckoner(): void {
  * `vessel.orbit.truth.position` and `.velocity`: the state vector the same conic
  * produces.
  *
- * `frameRotating` is a DECLARED input the model uses to decline, which is the
+ * `frameRotating` is a declared input the model uses to decline, which is the
  * shape the contract mark spells out: when the truth vectors sit in a frame
  * co-rotating with the body's spin they are not comparable to a fixed-frame
  * propagator's output at all, so the honest answer names the input that ruled
@@ -1004,11 +1004,11 @@ function registerOrbitTruthReckoner(): void {
  *
  * ## What it models, and what it deliberately does not
  *
- * A coast changes the craft's PHASE and nothing else: `sma`, `ecc`, `inc`,
+ * A coast changes the craft's phase and nothing else: `sma`, `ecc`, `inc`,
  * `lan`, `argPe` and `mu` are constants of the orbit, and the only thing that
  * moves is where on it the craft is. So this claims `meanAnomalyAtEpoch` and
  * `epoch`, and a consumer solving apsides or a countdown from the result gets
- * the orbit AT the instant it asked about rather than at the instant the
+ * the orbit at the instant it asked about rather than at the instant the
  * elements were published.
  *
  * ## The withdrawal is the point of it
@@ -1017,14 +1017,14 @@ function registerOrbitTruthReckoner(): void {
  * the branch that matters here is `meta.quality !== Quality.OnRails`: under
  * physics the elements are osculating, and they are a coast only while the
  * engines are cold, the craft is clear of the air and no command reaches it in
- * the gap. The quality lives on the POINT, so only a model can see it: a
+ * the gap. The quality lives on the point, so only a model can see it: a
  * `Reading` carries no meta and no consumer in this tree reads one. This is the
  * one home of the OnRails/Loaded split, and the propulsion and pending-uplink
  * Readings are deps so that a loaded coast can show its evidence.
  *
  * ## PropagationCertification (#282) is already answered, not skipped
  *
- * That enum lets a CALLER choose between answering anywhere and answering only
+ * That enum lets a caller choose between answering anywhere and answering only
  * across spans the provider vouches for. An operational prediction is the case
  * its own doc says wants `CertifiedOnly`, and `keplerAdmissibility` already
  * enforces exactly that: it declines `beyond-horizon` "past the reach the
@@ -1033,7 +1033,7 @@ function registerOrbitTruthReckoner(): void {
  * read a conic past the point anybody stands behind it, which is the one thing
  * this must not do.
  *
- * ## The roster is a READING, so its absence is not a decline
+ * ## The roster is a reading, so its absence is not a decline
  *
  * The roster only places the atmosphere floor, and `keplerAdmissibility` takes
  * an absent one as no floor to have crossed. A bare Topic dep would decline

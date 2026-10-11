@@ -23,21 +23,21 @@ namespace Sitrep.Core
     ///    <see cref="KeyframeFloorRealSec"/> of real time has passed since the
     ///    last keyframe, regardless of whether the value changed. A keyframe
     ///    held by the floor falls through to the gates below, so a moved
-    ///    value still goes out. Evaluated BEFORE the UT-cadence gate
+    ///    value still goes out. Evaluated before the UT-cadence gate
     ///    below and independent of it: a due keyframe is the correctness
     ///    baseline and must not be starved even when
     ///    <c>MinSampleIntervalUt &gt;= KeyframeIntervalUt</c>.
     /// 3. UT-cadence gate: skip if <c>ut - lastSampledUt &lt;
     ///    MinSampleIntervalUt</c>; the channel isn't even considered for a
-    ///    CHANGE emission this call. This is the INNER gate;
-    ///    <see cref="SubscriptionRegistry"/> is the OUTER one (zero
+    ///    change emission this call. This is the inner gate;
+    ///    <see cref="SubscriptionRegistry"/> is the outer one (zero
     ///    subscribers ⇒ the caller should never reach this method at all,
     ///    see that class's doc comment).
     /// 4. Deadband change-gate, itself capped by the max-rate clamp, emit
     ///    only if the value cleared the quantum (numeric) or is not-equal
-    ///    (discrete/structured) to the last emitted value, AND at least
-    ///    <c>MaxRateIntervalUt</c> has passed since the last CHANGE emission.
-    ///    "Not-equal" for a structured payload is a VALUE comparison
+    ///    (discrete/structured) to the last emitted value, and at least
+    ///    <c>MaxRateIntervalUt</c> has passed since the last change emission.
+    ///    "Not-equal" for a structured payload is a value comparison
     ///    (<see cref="StructuralEquality"/>), because a mapper builds its
     ///    payload tree from scratch every call and reference equality answered
     ///    "changed" every time; the compare is skipped adaptively on a value
@@ -52,9 +52,9 @@ namespace Sitrep.Core
     ///
     /// Every cadence is in UT, the <c>ut</c> the caller passes into each
     /// <see cref="Decide"/> call. The one wall-clock reading is the keyframe
-    /// floor's, through the injected real clock, and it can only HOLD a
+    /// floor's, through the injected real clock, and it can only hold a
     /// keyframe, never cause an emission: calling <see cref="Decide"/>
-    /// repeatedly at the SAME ut (e.g. a host that hasn't advanced the physics
+    /// repeatedly at the same ut (e.g. a host that hasn't advanced the physics
     /// clock yet) can never itself produce more than the UT gates allow.
     /// </summary>
     public sealed class ChannelEmitter
@@ -116,7 +116,7 @@ namespace Sitrep.Core
         /// resend per channel per tick is a flood no client reads. So the UT
         /// cadence is floored in real time. One second, because every declared
         /// <see cref="EmissionPolicy.KeyframeIntervalUt"/> is at least one UT
-        /// second and at 1x a UT second IS a real one, so the floor never binds
+        /// second and at 1x a UT second is a real one, so the floor never binds
         /// at 1x and binds only when UT runs ahead of the clock on the
         /// wall.</para>
         ///
@@ -125,7 +125,7 @@ namespace Sitrep.Core
         /// expected gap to <c>floor × warpRate</c>, or every quiet channel reads
         /// stale for the moment after each warp step-up.</para>
         ///
-        /// <para>Only the PERIODIC keyframe is floored. The forced one a new
+        /// <para>Only the periodic keyframe is floored. The forced one a new
         /// subscriber or a timeline reset asks for is not, and a change still
         /// goes out on its own policy.</para>
         /// </summary>
@@ -147,7 +147,7 @@ namespace Sitrep.Core
         /// </summary>
         /// <param name="repeatIsDataFor">
         /// Whether an identical value is itself news on this channel, so the
-        /// change-gate must compare structured payloads by REFERENCE rather
+        /// change-gate must compare structured payloads by reference rather
         /// than by value. True for an event lane (<c>Delivery.ReliableOrdered</c>,
         /// whose contract is that every sample is delivered and none is
         /// coalesced away): a terminal downlink carrying the same line twice
@@ -229,7 +229,7 @@ namespace Sitrep.Core
         /// Call when <see cref="SubscriptionRegistry.Subscribe"/> reports a
         /// genuine 0 -&gt; 1 transition for <paramref name="channelId"/>, the
         /// newly-joined subscriber gets an immediate unconditional keyframe
-        /// on the NEXT <see cref="Decide"/> call, rather than waiting out
+        /// on the next <see cref="Decide"/> call, rather than waiting out
         /// whatever fraction of <see cref="EmissionPolicy.KeyframeIntervalUt"/>
         /// remains. Cheap/idempotent to call on a channel that hasn't been
         /// seen by <see cref="Decide"/> yet: it's already force-keyframed by
@@ -281,7 +281,7 @@ namespace Sitrep.Core
         /// registered and never considered, and deliberately so: the caller is
         /// asking how many times Decide ran, and for both of those it is none.
         ///
-        /// <para>Unlike every other method here this one does NOT create
+        /// <para>Unlike every other method here this one does not create
         /// per-channel state, because the whole-roster reader
         /// (<c>ChannelEngine.ChannelsTopic</c>) asks about every declared
         /// channel on a cadence, and a read that materialised an entry per
@@ -334,7 +334,7 @@ namespace Sitrep.Core
         /// (bool, string, or a structured payload) is the
         /// "discrete/structured: emit on not-equal" half of the deadband spec,
         /// answered by <see cref="StructuralEquality"/> so that a payload tree
-        /// rebuilt from scratch each call compares by VALUE. Before that, this
+        /// rebuilt from scratch each call compares by value. Before that, this
         /// was <c>Equals</c>, which for the <c>Dictionary&lt;string, object?&gt;</c>
         /// every mapper returns is reference equality, so the gate answered
         /// "changed" for every structured payload it ever saw.
@@ -343,7 +343,7 @@ namespace Sitrep.Core
         /// reference comparison: see the constructor's <c>repeatIsDataFor</c>
         /// parameter.</para>
         ///
-        /// <para>The structural compare is ADAPTIVE, decided live per value
+        /// <para>The structural compare is adaptive, decided live per value
         /// rather than configured per channel: a value observed to change on
         /// essentially every consideration stops being compared, because there
         /// the compare buys nothing and the emit was always going to happen. A
@@ -352,7 +352,7 @@ namespace Sitrep.Core
         /// Numbers never take that path: their deadband compare is an unbox and
         /// a subtraction and cannot cost more than it saves.</para>
         ///
-        /// <para>Deliberately does NOT box into a
+        /// <para>Deliberately does not box into a
         /// <c>Dictionary&lt;string, object&gt;</c> or similar bag anywhere in
         /// this hot path, and <see cref="StructuralEquality"/> keeps typed fast
         /// paths for the same reason; the only per-call allocation is the

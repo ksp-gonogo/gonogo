@@ -25,7 +25,7 @@ function AltitudeReader() {
  * Stands in for the real app topology `ModalTelemetryBridge`'s own doc
  * comment describes: the app's own `TelemetryProvider` (here, a stand-in for
  * `SitrepTelemetryProvider`) and a modal's `ModalTelemetryBridge` are
- * SIBLINGS, not ancestor/descendant: a portal preserves the call site's
+ * siblings, not ancestor/descendant: a portal preserves the call site's
  * context, not the app provider's. `connected` toggles the app provider's
  * mount, standing in for the moment the Sitrep client actually connects.
  */
@@ -52,7 +52,7 @@ function Harness({
 
 /**
  * Regression guard for the first-run auto-open hang: the first-run host can
- * open its Settings modal BEFORE the app's `TelemetryProvider` has mounted
+ * open its Settings modal before the app's `TelemetryProvider` has mounted
  * (the client hasn't connected yet). A one-shot `getActiveTelemetryClient()`
  * read at `ModalTelemetryBridge`'s own render would capture `undefined` at
  * that moment and never re-render, leaving every telemetry read inside the

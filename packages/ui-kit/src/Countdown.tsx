@@ -16,10 +16,10 @@ import {
  */
 export interface CountdownProps {
   /**
-   * A DURATION in seconds: how long until, or how long since. A bare number is
+   * A duration in seconds: how long until, or how long since. A bare number is
    * accepted for client-computed durations.
    *
-   * NOT `Value<"ut">`: an instant is a type error here. Subtract the instant
+   * Not `Value<"ut">`: an instant is a type error here. Subtract the instant
    * the screen is showing, from `useViewUt`, to turn an instant into a
    * duration.
    */
@@ -31,7 +31,7 @@ export interface CountdownProps {
   clock?: boolean;
   /**
    * Count the last second in milliseconds rather than showing `0s`, for a cue
-   * the operator acts ON, where `0s` for a whole second reads as stopped. Off by
+   * the operator acts on, where `0s` for a whole second reads as stopped. Off by
    * default, where it would be false precision.
    */
   precise?: boolean;

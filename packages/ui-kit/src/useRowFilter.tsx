@@ -55,7 +55,9 @@ export interface UseRowFilterOptions {
 
 /**
  * The filter behind {@link FilterList}, for a host that renders its own rows,
- * such as a table that must keep its columns.
+ * such as a table that must keep its columns. Useful for letting the operator
+ * narrow a list by typing or by toggling terms. Used by the experiments and
+ * science data widgets.
  *
  * Selected toggle terms and the typed text all have to match: each is a
  * case-insensitive substring of the row's search text. Nothing selected and
@@ -179,7 +181,11 @@ export function useRowFilter({
 
 const CONTROLS = new WeakMap<RowFilter, ReactNode>();
 
-/** The control of a filter made by `useRowFilter`. Kit-internal: hosts place it through `FilterRegion` or `panelFilter`. */
+/**
+ * The control of a filter made by {@link useRowFilter}, which the operator
+ * types into or toggles. Used by {@link Panel} and {@link FilterRegion}, which
+ * place it.
+ */
 export function filterControlOf(filter: RowFilter): ReactNode {
   return CONTROLS.get(filter) ?? null;
 }
@@ -200,7 +206,8 @@ export interface FilterRegionProps {
 
 /**
  * A filtered list with its filter control above it: the way to place a
- * {@link useRowFilter} control inside a widget body. It does not filter the
+ * {@link useRowFilter} control inside a widget body. Useful for letting the
+ * operator narrow a list. Used by the science data widget's tabs. It does not filter the
  * children itself; filter them with the same `filter.matches`.
  *
  * @category FilterList

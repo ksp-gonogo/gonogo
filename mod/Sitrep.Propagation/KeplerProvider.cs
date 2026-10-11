@@ -22,11 +22,11 @@ namespace Sitrep.Propagation
     /// left it outside the seam entirely: the caller held a list of conics and a
     /// direction flag per link, so swapping the propagator swapped only part of the
     /// arithmetic. Under a provider that already knows where everything is, the walk
-    /// is REDUNDANT rather than broken, which is why it belongs to the one
+    /// is redundant rather than broken, which is why it belongs to the one
     /// implementation that has no other way to get there.</para>
     ///
     /// <para>Constructed without a system table it can still answer in a target's
-    /// OWN parent frame, which is what the overwhelming majority of callers want and
+    /// own parent frame, which is what the overwhelming majority of callers want and
     /// what the elements alone describe. Asked for any other frame it refuses.</para>
     /// </summary>
     public class KeplerProvider : IPropagationProvider
@@ -98,7 +98,7 @@ namespace Sitrep.Propagation
         /// <paramref name="centreIndex"/>, by summing each body's own conic along
         /// the path between them.
         ///
-        /// <para>A climb SUBTRACTS: the frame sits on the far side of the body being
+        /// <para>A climb subtracts: the frame sits on the far side of the body being
         /// climbed past, so its orbit is walked backwards. Getting that sign wrong is
         /// wrong by twice an orbital radius and still looks like a position.</para>
         /// </summary>
@@ -249,20 +249,20 @@ namespace Sitrep.Propagation
         /// turn.
         ///
         /// <para>The quantity scanned is <c>dr.dv</c>, not the separation itself.
-        /// They have the same zero, and the dot product's SIGN says which side of
+        /// They have the same zero, and the dot product's sign says which side of
         /// the minimum a sample is on, so a bracket is one sign change rather than
         /// three samples that happen to dip. Scanning the separation directly
         /// means recognising a minimum from its shape, which a coarse step reads
         /// wrong in both directions: it invents one on a flat stretch and steps
         /// over a sharp one.</para>
         ///
-        /// <para>The scan is LAZY, stopping at the first turn rather than
+        /// <para>The scan is lazy, stopping at the first turn rather than
         /// sampling the window. What it costs is therefore set by how soon the
         /// approach happens, not by how long a window the caller was willing to
         /// accept, which is what lets a caller ask about a week without paying for
         /// a week on every capture tick.</para>
         ///
-        /// <para>Step size comes from the FASTER of the two objects, because that
+        /// <para>Step size comes from the faster of the two objects, because that
         /// is what sets how quickly the separation can turn. Deriving it from the
         /// arguments rather than fixing it is what keeps this deterministic while
         /// still resolving a low orbit and a moon transfer with the same
@@ -435,7 +435,7 @@ namespace Sitrep.Propagation
         }
 
         /// <summary>
-        /// One conic, solved. PRIVATE, and that is the whole of what makes "orbits are
+        /// One conic, solved. Private, and that is the whole of what makes "orbits are
         /// conics is assumed in exactly one place" literally true rather than nearly true.
         ///
         /// <para>While it was public it was a door beside the seam: a caller could take a
@@ -449,7 +449,7 @@ namespace Sitrep.Propagation
         /// <see cref="CanPropagate"/>, which declines an unbound orbit first.</para>
         /// </summary>
         /// <summary>
-        /// The same two-body solve, from elements a CALLER holds rather than from
+        /// The same two-body solve, from elements a caller holds rather than from
         /// elements read out of the game.
         ///
         /// <para>Exposed because a command centre's archive stores elements, not

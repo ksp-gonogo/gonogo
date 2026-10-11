@@ -19,7 +19,7 @@ function bannerTone(noLandingVector: boolean, hazard: Hazard | null): Tone {
   return "neutral";
 }
 
-/** The site verdict; with NO LANDING VECTOR it reads ABORT, never DIVERT or a green SAFE. */
+/** The site verdict; with "NO LANDING VECTOR" it reads `ABORT`, never `DIVERT` or a green `SAFE`. */
 export function VerdictBanner({ model }: Model) {
   const { noLandingVector } = model;
   const hazard = model.hazardVerdict.verdict;

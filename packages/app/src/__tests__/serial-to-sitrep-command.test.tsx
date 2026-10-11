@@ -1,5 +1,5 @@
 /**
- * GOLDEN end-to-end test: a byte on the serial port triggers the ActionGroup's
+ * Golden end-to-end test: a byte on the serial port triggers the ActionGroup's
  * toggle action, which fires `useCommand` and dispatches straight through the
  * Sitrep `TelemetryClient` to the transport. No internal mocks for the serial
  * half: real WebSerialTransport (via MockWebSerial), real

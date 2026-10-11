@@ -50,8 +50,10 @@ export interface ActionMenuProps {
 }
 
 /**
- * A menu of actions to fire: the APG `menu` pattern
- * (https://www.w3.org/WAI/ARIA/apg/patterns/menu/).
+ * A menu of actions to fire, following the APG `menu` pattern
+ * (https://www.w3.org/WAI/ARIA/apg/patterns/menu/). Useful for offering the
+ * operator a short list of commands for one target. Used by the part action
+ * menu in the ship map.
  *
  * It differs from {@link ComboboxListbox}, a `listbox` for choosing a value:
  * this is a `menu` for invoking a command, so its items are real `<button>`s,

@@ -2,7 +2,7 @@
  * Widget DOM mirror: ThermalStatus. Asserts the panel title on host and
  * station, and the summary pill + hottest-part identity on the host.
  *
- * Unlike PowerSystems, ThermalStatus does NOT depend on `useTopology`,
+ * Unlike PowerSystems, ThermalStatus does not depend on `useTopology`,
  * it reads `vessel.thermal`'s aggregate fields directly. The fixture
  * (`sitrep-stream-server.mjs`) carries every field the widget subscribes
  * to:
@@ -20,7 +20,7 @@
  *
  * Station-side scope: only the "THERMAL" panel title (static chrome) is
  * checked on the station: the pill/hottest-part readouts come from live
- * Sitrep stream data, and only the MAIN screen mounts
+ * Sitrep stream data, and only the main screen mounts
  * `SitrepTelemetryProvider` today (station stream forwarding over PeerJS
  * is a documented pending gap, see that provider's own doc comment).
  * Checking the readouts on the station would fail for that reason, not a

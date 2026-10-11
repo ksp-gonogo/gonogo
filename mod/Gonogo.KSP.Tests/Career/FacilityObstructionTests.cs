@@ -11,7 +11,7 @@ namespace Gonogo.KSP.Tests.Career
     ///
     /// <para><c>KSCFacilityContextMenu</c>'s Upgrade arm is
     /// <c>if (WarnOfObstructingVessels(includeGrounds: true, onlyDestroyed: false)) break;</c>,
-    /// a hard block with no proceed option. The vessels are found by two PUBLIC
+    /// a hard block with no proceed option. The vessels are found by two public
     /// methods on <c>SpaceCenterBuilding</c>; what is exercised here is what
     /// their answer becomes.</para>
     /// </summary>

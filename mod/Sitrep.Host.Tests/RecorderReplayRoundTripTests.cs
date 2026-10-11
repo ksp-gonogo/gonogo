@@ -11,7 +11,7 @@ namespace Sitrep.Host.Tests
     /// Task 2's payoff test: a scripted fake <see cref="IKspHost"/> drives a
     /// <see cref="Recorder"/>, the resulting <see cref="RecordedSession"/> is
     /// written to a file and loaded back into a <see cref="ReplayKspHost"/>,
-    /// and the replay is asserted to reproduce the EXACT same
+    /// and the replay is asserted to reproduce the exact same
     /// <see cref="IKspHost.Sample"/> values and <see cref="IKspHost.Lifecycle"/>
     /// event sequence the original host produced: including a NaN value
     /// surviving the JSON round-trip. This is the exact record-once /
@@ -227,7 +227,7 @@ namespace Sitrep.Host.Tests
         /// Regression test for the real quit-time bug: a live KSP.log capture
         /// showed <c>Recorder.Save</c> throwing
         /// <c>JsonWriter.AppendValue: unsupported CLR value type
-        /// System.Double[]</c> and silently dropping the ENTIRE recording,
+        /// System.Double[]</c> and silently dropping the entire recording,
         /// because <see cref="Gonogo.KSP.KspHost"/>'s <c>BuildOrbit</c>/
         /// <c>BuildTarget</c> groups store ground-truth vectors
         /// (<c>truthPosition</c>/<c>truthVelocity</c>/<c>relativePosition</c>/
@@ -237,7 +237,7 @@ namespace Sitrep.Host.Tests
         /// dictionaries under "vessel" (identity/orbit/flight/resources),
         /// <c>double[]</c> vectors inside "orbit", a "bodies"
         /// <c>List&lt;object?&gt;</c> of dictionaries, a NaN buried in the
-        /// tree, plus a lifecycle event: and drives it through the EXACT
+        /// tree, plus a lifecycle event: and drives it through the exact
         /// path a real quit does: <see cref="Recorder.Save"/> to a real file
         /// on disk, then <see cref="RecordedSessionCodec.Parse"/> the bytes
         /// back. This is the test that would have caught the bug: every

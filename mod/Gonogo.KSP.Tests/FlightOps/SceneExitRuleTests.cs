@@ -45,7 +45,7 @@ namespace Gonogo.KSP.Tests.FlightOps
 
         /// <summary>
         /// The replication, at the decision. <c>NOT_IN_ATMOSPHERE</c> is the arm
-        /// that fires for any vessel KSP calls FLYING, which is the whole of a
+        /// that fires for any vessel KSP calls flying, which is the whole of a
         /// launch and the whole of a re-entry, and it is also exactly when the
         /// autosave has been skipped for as long as the arm has held. That is
         /// the 240,355-second case.
@@ -118,7 +118,7 @@ namespace Gonogo.KSP.Tests.FlightOps
         }
 
         /// <summary>
-        /// The two permission flags stock requires before it will even DRAW the
+        /// The two permission flags stock requires before it will even draw the
         /// Tracking Station button. Checked first: a destination the game
         /// forbids is not worth writing a save for.
         /// </summary>

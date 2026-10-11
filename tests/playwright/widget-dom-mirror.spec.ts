@@ -95,7 +95,7 @@ async function getHostPeerId(page: Page): Promise<string> {
 }
 
 /**
- * Read the rendered "Ap" value from the ORBIT panel. The panel doesn't
+ * Read the rendered "Ap" value from the orbit panel. The panel doesn't
  * have a structural test-id, so locate by the panel title text and walk
  * to the first value cell after the "Ap" label. waitForFunction polls
  * until the value parses as `<digits>.<digits> km` (matches

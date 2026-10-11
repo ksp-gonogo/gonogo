@@ -9,7 +9,7 @@ import type { InFlightCommandLike } from "./toInFlightListItems";
 export interface CommandOutcomes {
   /**
    * This handle's own dispatches that went past their reply with no answer
-   * (overdue or lost) and HAVE an in-flight row. They may still have run.
+   * (overdue or lost) and have an in-flight row. They may still have run.
    */
   unconfirmed: InFlightCommandLike[];
   /** True when any dispatch is unconfirmed, including a loss that never had a row. For a control's `data-unconfirmed` tint. */
@@ -17,7 +17,7 @@ export interface CommandOutcomes {
   /** True when a dispatch never left this machine, or the mod answered it with a fault. For a control's `data-failed` tint. */
   hasFailure: boolean;
   /**
-   * Clear an entry, the SAME dismiss the widget-top queue uses, so clearing on
+   * Clear an entry, the same dismiss the widget-top queue uses, so clearing on
    * the control clears it in the queue too.
    */
   dismiss: (id: string) => void;

@@ -15,7 +15,9 @@ import { registerBody } from "./bodies";
 /**
  * Registers every stock KSP body with {@link registerBody}, keyed by the name
  * the telemetry stream uses, so {@link getBody} finds a body by name.
- * `baseUrl` is where the body texture images are served from.
+ * `baseUrl` is where the body texture images are served from. Useful for
+ * giving every map and diagram the stock planets and moons to draw. Used by the
+ * app at startup.
  *
  * @category Solar system and fleet
  */

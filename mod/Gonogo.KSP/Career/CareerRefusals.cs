@@ -5,7 +5,7 @@ namespace Gonogo.KSP.Career
     /// <summary>
     /// The career limits KSP keeps, as the comparison a refusal carries.
     ///
-    /// <para>Carved out of <see cref="KspCareerActuator"/> so the RULE can be
+    /// <para>Carved out of <see cref="KspCareerActuator"/> so the rule can be
     /// entered by a test at all: the actuator's own bodies reach
     /// <c>Funding.Instance</c>, <c>ScenarioUpgradeableFacilities.Instance</c> and
     /// <c>ContractSystem.Instance</c>, every one a <c>MonoBehaviour</c> whose
@@ -109,7 +109,7 @@ namespace Gonogo.KSP.Career
         /// Mission Control's cap on simultaneously accepted contracts
         /// (<c>GameVariables.GetActiveContractsLimit</c>).
         ///
-        /// <para>Stock enforces this ONLY in <c>MissionControl.RefreshUIControls</c>,
+        /// <para>Stock enforces this only in <c>MissionControl.RefreshUIControls</c>,
         /// which greys its own Accept button. <c>Contract.Accept()</c> itself
         /// gates on state alone, so a caller that is not that UI walks straight
         /// past the cap. We are that caller, so we have to ask it ourselves.</para>

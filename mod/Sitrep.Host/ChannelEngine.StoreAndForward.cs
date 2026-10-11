@@ -117,7 +117,7 @@ namespace Sitrep.Host
             return string.IsNullOrEmpty(name) ? nodeId : name!;
         }
 
-        /// <summary>Each centre's plan as routes, with light times scaled as the game is set to delay them.</summary>
+        /// <summary>Each centre's plan as routes, with signal delays scaled as the game is set to delay them.</summary>
         private sealed class EngineSenderPlans : ISenderPlans
         {
             private readonly ChannelEngine _engine;
@@ -571,7 +571,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The light-time the sending centre's own plan gives a control-channel
+        /// The signal delay the sending centre's own plan gives a control-channel
         /// write that the plan lets through: the way to the craft open all the
         /// way, nothing waiting. Null for anything else, which is timed as it
         /// always was.

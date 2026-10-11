@@ -2,7 +2,7 @@
  * The worker-side mirror of `ViewClock`, self-clocked. Rather than latching a
  * single
  * `confirmedEdgeUt()` value pushed per tick, the worker holds the clock's
- * raw formula INPUTS (`ClockFormulaSnapshot`, posted at ~60Hz from the main
+ * raw formula inputs (`ClockFormulaSnapshot`, posted at ~60Hz from the main
  * thread) and evaluates `computeConfirmedEdgeUt`/`computeUtNowEstimate`
  * locally against its own `nowWall()`: the exact same pure functions
  * `ViewClock` itself calls (`@ksp-gonogo/sitrep-client`'s
@@ -10,7 +10,7 @@
  *
  * This preserves the "estimate only schedules; samples confirm" invariant
  * verbatim: the sample clamp inside the formula still comes from
- * `maxSampleUt`, a value ONLY `ViewClock.observeSample` (main-thread,
+ * `maxSampleUt`, a value only `ViewClock.observeSample` (main-thread,
  * telemetry-driven) ever advances: the worker cannot manufacture
  * confirmation, it can only evaluate the same clamped formula sooner or
  * more smoothly than a single latched value would allow (see the design
@@ -43,7 +43,7 @@ const COLD_SNAPSHOT: ClockFormulaSnapshot = {
 };
 
 export interface WorkerDelayClockOptions {
-  /** Wall-clock seconds, on the MAIN thread's basis; see `time-base.ts`. */
+  /** Wall-clock seconds, on the main thread's basis; see `time-base.ts`. */
   nowWall(): number;
   /** Poll interval (ms) driving `onFrame` subscribers: mirrors
    *  `ViewClock.onFrame`'s own `setTimeout(tick, 16)` SSR/non-rAF fallback

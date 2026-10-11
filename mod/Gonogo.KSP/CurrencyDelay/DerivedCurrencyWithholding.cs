@@ -40,7 +40,7 @@ namespace Gonogo.KSP.CurrencyDelay
         private static string _lastTeardownReason = "";
 
         /// <summary>
-        /// Points this at a kernel and SAYS SO, naming what caused it and how many
+        /// Points this at a kernel and says so, naming what caused it and how many
         /// arms are active at that moment.
         ///
         /// <para>The announcement is the point. A bind and a teardown that both say
@@ -74,9 +74,9 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Clears the pointer, LOUDLY. A warning rather than a note, because from
+        /// Clears the pointer, loudly. A warning rather than a note, because from
         /// here until something binds again nothing derived from a delayed currency
-        /// change is withheld, and a teardown with no BOUND line after it is exactly
+        /// change is withheld, and a teardown with no bound line after it is exactly
         /// the state that shipped: torn down 99 seconds into boot by a main-menu
         /// transition, under a comment asserting a re-Register that a once-per-process
         /// addon makes impossible.
@@ -157,10 +157,10 @@ namespace Gonogo.KSP.CurrencyDelay
         /// success is not a fail-soft, it is a silence.
         ///
         /// <para>Three outcomes, three levels, because they are three different
-        /// facts. NOTHING BOUND is a warning: the interceptor is neutralising, so a
+        /// facts. Nothing bound is a warning: the interceptor is neutralising, so a
         /// game is running, so the pointer should be there and something took it
-        /// away. NO ARMS is a note: on a stock install nothing derives anything and
-        /// that is simply the truth. REACHED is a note naming the arms, so a
+        /// away. No arms is a note: on a stock install nothing derives anything and
+        /// that is simply the truth. Reached is a note naming the arms, so a
         /// following report from one of them has something to attach to.</para>
         /// </summary>
         private static void AnnounceFanOut(
@@ -300,7 +300,7 @@ namespace Gonogo.KSP.CurrencyDelay
         public static Action<string> Report { get; set; } = _ => { };
 
         /// <summary>
-        /// Where the ROUTINE outcome goes, separately from <see cref="Report"/>: a
+        /// Where the routine outcome goes, separately from <see cref="Report"/>: a
         /// fan-out that reached its arms is not a warning, and a subsystem that
         /// only ever speaks up when something breaks cannot be told from one that
         /// is not running at all.

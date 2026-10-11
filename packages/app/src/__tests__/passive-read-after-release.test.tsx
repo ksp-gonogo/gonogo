@@ -13,7 +13,7 @@ import type { LinkClient } from "../test/peerFakes";
  *
  * Releasing a topic clears the client's sticky value and sends `unsubscribe`,
  * but nothing removes the topic's timeline from the store, and a store read is
- * hold-last. So the answer is the LAST payload, and it stays that way however
+ * hold-last. So the answer is the last payload, and it stays that way however
  * far the view time moves on: only an epoch change (a quickload) or a new store
  * clears it. A headless caller reading such a topic acts on a reading taken
  * whenever the holder unmounted.

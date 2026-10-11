@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     /// vessel selector; the science read side scopes to the active vessel the
     /// same way.
     /// The experiment is addressed by the part's <c>flightID.ToString()</c>,
-    /// the SAME opaque id <c>KspHost.BuildScienceInstruments</c> emits on the
+    /// the same opaque id <c>KspHost.BuildScienceInstruments</c> emits on the
     /// read side.
     ///
     /// <para>This is a KSP/Unity-touching class alongside <see cref="KspHost"/>
@@ -31,7 +31,7 @@ namespace Gonogo.KSP
     {
         /// <summary>
         /// Deploys (runs) the first experiment module on the addressed part
-        /// that is neither already <c>Deployed</c> nor <c>Inoperable</c> AND
+        /// that is neither already <c>Deployed</c> nor <c>Inoperable</c> and
         /// that the game would actually run.
         ///
         /// <para><b>Three refusals used to come back green.</b>
@@ -44,7 +44,7 @@ namespace Gonogo.KSP
         /// through <see cref="ExperimentDeployRule"/>, in stock's order.</para>
         ///
         /// <para>The walk continues past a refused module rather than stopping
-        /// at it. Refusing the WHOLE part because its first module is shielded,
+        /// at it. Refusing the whole part because its first module is shielded,
         /// when a second module on the same part would have run, was the same
         /// bug in the other direction: it returned Ok having deployed
         /// nothing.</para>

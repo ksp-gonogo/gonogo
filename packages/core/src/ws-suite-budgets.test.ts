@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
  * Every test there drives a real Fleck server and a real `ClientWebSocket` and
  * asserts delivery under a deadline. On a saturated box the process is
  * descheduled for seconds at a time, so the operation is correct and would
- * finish given CPU while the deadline expires anyway, and a DIFFERENT test
+ * finish given CPU while the deadline expires anyway, and a different test
  * trips each run. `TestBudgets` is the answer that was written for it: budgets
  * sized as load headroom rather than timing assertions, every one overridable
  * by environment variable so a slow runner can be given more without a
@@ -31,7 +31,7 @@ import { describe, expect, it } from "vitest";
  * it behind four retries.
  *
  * That is the failure this asks about, so it asks in two directions. A literal
- * budget is forbidden, AND the budgets must be REACHED: a suite that deleted
+ * budget is forbidden, and the budgets must be reached: a suite that deleted
  * its deadlines entirely would satisfy the first on its own.
  *
  * A literal is forbidden in both of the places a deadline is written: bound to
@@ -44,7 +44,7 @@ const SUITE = "mod/Sitrep.Host.IntegrationTests";
 
 /**
  * Which budget each known field means, used only to make the failure message
- * say what to write. It is NOT what the guard detects on: detection is every
+ * say what to write. It is not what the guard detects on: detection is every
  * `TimeSpan` field bound to a literal, so a field nobody thought of is caught
  * by the same rule as the six that exist.
  *
@@ -76,7 +76,7 @@ const INLINE_LITERAL =
   /TimeSpan\.From(?:Milliseconds|Seconds|Minutes|Hours|Ticks)\(\s*[\d_.]+\s*\)/;
 
 /**
- * Call shapes whose literal is an ABSENCE window rather than a deadline.
+ * Call shapes whose literal is an absence window rather than a deadline.
  *
  * Each asserts that nothing happens within the window. Starvation can only make
  * such a window see less, which weakens the assertion toward a pass and never

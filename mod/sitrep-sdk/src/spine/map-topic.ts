@@ -7,8 +7,8 @@
  * `unitsForTopic`/`shapesForTopic`, so a Topic an Uplink or a derived channel
  * registered at module load resolves alongside a first-party one.
  *
- * `mapTopic` vouches for a key in a DYNAMIC namespace, which no generated
- * metadata can enumerate. Every other key is deliberately NOT routed: mapping
+ * `mapTopic` vouches for a key in a dynamic namespace, which no generated
+ * metadata can enumerate. Every other key is deliberately not routed: mapping
  * one would point a read at a Topic nothing publishes.
  */
 
@@ -50,14 +50,14 @@ export function mapTopic(key: string): string | undefined {
  * path, returning whether every segment names a real field.
  *
  * A field is real when the topic (or the type reached so far) declares it with
- * a UNIT, or declares it as a nested contract TYPE, which is the two halves the
+ * a unit, or declares it as a nested contract type, which is the two halves the
  * unit-map codegen emits from one pass.
  *
- * A PLURAL shape (`*Type` for a dynamic-key map, `Type[]` for a list) ends the
+ * A plural shape (`*Type` for a dynamic-key map, `Type[]` for a list) ends the
  * walk rather than being descended into: what follows a map is a key the
  * contract never names (a facility id, a vessel id), and what follows a list is
  * a field of one element, so neither is something a sample of the parent Topic
- * can reach. The path AS FAR AS the collection is still a real field and still
+ * can reach. The path as far as the collection is still a real field and still
  * resolves.
  */
 function walksContractMetadata(topic: string, segments: string[]): boolean {

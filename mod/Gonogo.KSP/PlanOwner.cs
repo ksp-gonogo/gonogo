@@ -1,12 +1,12 @@
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// Who owns the flight plan, as far as the maneuver WRITE path needs to know.
+    /// Who owns the flight plan, as far as the maneuver write path needs to know.
     ///
     /// <para>Three states because there are three facts, and collapsing any pair
-    /// loses one. Deliberately NOT a provider id: <c>VesselManeuver.Planner</c>'s
+    /// loses one. Deliberately not a provider id: <c>VesselManeuver.Planner</c>'s
     /// own doc says "nothing outside the election may branch on the VALUE", so the
-    /// question the actuator asks is about AUTHORITY ("will a write into stock's
+    /// question the actuator asks is about authority ("will a write into stock's
     /// solver be seen") and the identity stays on the wire for a readout to name.
     /// The election site answers this, because that is the only place that already
     /// knows which instance is stock's own backend.</para>
@@ -47,7 +47,7 @@ namespace Gonogo.KSP
     /// <c>CommNetBackend</c> for exactly this reason. It is not a cosmetic split:
     /// the actuator's command bodies reference Unity types
     /// (<c>UnityEngine.PhysicsModule</c> among them) that the reference-assembly
-    /// set does not ship, so a headless test cannot ENTER those methods at all.
+    /// set does not ship, so a headless test cannot enter those methods at all.
     /// The rule can be exercised directly; that the three commands consult it is
     /// asserted structurally instead. See
     /// <c>Gonogo.KSP.Tests/Maneuver/ManeuverPlanOwnershipTests.cs</c>.</para>

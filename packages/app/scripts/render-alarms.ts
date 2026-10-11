@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Render the alarm surface through a real Chromium page, at two light-times.
+ * Render the alarm surface through a real Chromium page, at two signal delays.
  *
  * Run: `pnpm --filter @ksp-gonogo/app render-alarms`
  * Output: local_docs/renders/alarms/ (ALARMS_RENDER_OUT overrides, which is
@@ -26,7 +26,7 @@ const PROBE_ENTRY = join(PROBE_DIR, "alarms-probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "alarms-probe.html");
 
 /**
- * The theme package's SOURCE tokens.css. `global.css` only `@import`s it now,
+ * The theme package's source tokens.css. `global.css` only `@import`s it now,
  * so a driver pointing at that file finds no `:root` to extract and every
  * probe renders unthemed.
  */

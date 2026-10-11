@@ -6,7 +6,7 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// KSP-free mapping logic for the <c>vessel.parts</c> channel (P1b slice 2),
-    /// the active vessel's full part-tree topology. Kept SEPARATE from
+    /// the active vessel's full part-tree topology. Kept separate from
     /// <see cref="PartsViewProvider"/> (which owns the <c>parts.power</c>/
     /// <c>parts.robotics</c> raw dicts): this channel's domain is
     /// <c>vessel</c>, so it is subject-provenance-scoped exactly like
@@ -17,7 +17,7 @@ namespace Sitrep.Host
     ///
     /// <para><b>Raw snapshot encoding (<c>Gonogo.KSP.KspHost.BuildTopology</c>
     /// populates exactly this shape at <c>Values["vessel"]["topology"]</c>: a
-    /// LIST like <c>maneuverNodes</c>, entirely omitted when there's no active
+    /// list like <c>maneuverNodes</c>, entirely omitted when there's no active
     /// vessel):</b></para>
     /// <code>
     /// Values["vessel"]["topology"] = [

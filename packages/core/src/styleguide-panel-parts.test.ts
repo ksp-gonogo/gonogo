@@ -12,11 +12,11 @@ import { describe, expect, it } from "vitest";
  * a variant hand-composes from there and every part it reaches is the same
  * object the panel itself renders.
  *
- * ui-kit's barrel ALSO exported thirteen of those parts bare, under their
+ * ui-kit's barrel also exported thirteen of those parts bare, under their
  * declared names (`PanelBody`, `PanelContainer`, `PanelDelayRail`, ...), from
  * 2026-08-19 until this guard landed. Two problems, neither of them tidiness:
  *
- *   - ui-kit is the PUBLISHED package, so a bare part is public API to every
+ *   - ui-kit is the published package, so a bare part is public API to every
  *     Uplink. `PanelContainer` and `PanelBody` are plain `styled.div`, which
  *     means the bare export froze a DOM structure as a contract: the compound
  *     could not rearrange what it composes without breaking a consumer that
@@ -25,7 +25,7 @@ import { describe, expect, it } from "vitest";
  *     with the whole. The same merge that added these exports removed
  *     `PanelContainer`'s padding, and nothing connected the two.
  *
- * Removing capability is not the point; the ACCESS PATH is. A hand-composed
+ * Removing capability is not the point; the access path is. A hand-composed
  * panel still reaches every piece, through `Panel.X`.
  *
  * Sibling guard, same failure one level up: `styleguide-duplicate-primitives`
@@ -45,7 +45,7 @@ const PANEL_PART_NAME = /^Panel[A-Z]/;
 /**
  * The values on the compound object, read out of the `Object.assign(PanelRoot,
  * { ... })` literal. Handles both `Key: Value,` and the shorthand `Value,`, and
- * returns the VALUE side: that is the declared name a bare export would use.
+ * returns the value side: that is the declared name a bare export would use.
  */
 function compoundValues(panelSource: string): string[] {
   const open = panelSource.indexOf("Object.assign(PanelRoot, {");
@@ -63,7 +63,7 @@ function compoundValues(panelSource: string): string[] {
 }
 
 /**
- * The VALUE names an `export { ... }` list publishes, under the name a consumer
+ * The value names an `export { ... }` list publishes, under the name a consumer
  * imports (so `A as B` yields `B`). Type-only entries are dropped: a props type
  * is not a way to render a part.
  */

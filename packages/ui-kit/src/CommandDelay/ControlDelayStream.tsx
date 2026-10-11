@@ -54,7 +54,7 @@ export interface ControlStreamDatum {
   /** `null` while nothing has been commanded on the axis. */
   current: number | null;
   /**
-   * What this entry IS on the three axes, in full, and NOT optional. A control
+   * What this entry is on the three axes, in full, and not optional. A control
    * axis gets them from `railTagsForControlAxis(writeCommand)`. A
    * `fire-and-forget` entry gets the outgoing zone only, since nothing comes
    * back to draw.
@@ -75,7 +75,7 @@ export interface ControlStreamDatum {
 export interface ControlRibbonDatum {
   /** Identifies the ribbon. */
   id: string;
-  /** What the ribbon IS, in a sentence, e.g. "Your transmission crossing to Odyssey". */
+  /** What the ribbon is, in a sentence, e.g. "Your transmission crossing to Odyssey". */
   label: string;
   /** One-way delay seconds, read the same way a stream datum's is. */
   oneWaySeconds: number | null;
@@ -86,13 +86,13 @@ export interface ControlRibbonDatum {
    */
   amplitudes: readonly number[];
   /**
-   * How many samples span the trip to one light-time. Defaults to the whole
-   * array. FRACTIONAL below one and never floored: a low-orbit light-time can be
+   * How many samples span the signal delay. Defaults to the whole
+   * array. Fractional below one and never floored: a short signal delay can be
    * a fraction of a single sample.
    */
   spanSamples?: number;
   /**
-   * What this entry IS on the three axes, in full, and NOT optional. A
+   * What this entry is on the three axes, in full, and not optional. A
    * producer builds them with {@link railTagsForTelemetry}, passing its
    * sample kind.
    */
@@ -112,11 +112,11 @@ export type ControlDelayStreamVariant = "inline" | "rail" | "expanded";
  * @category CommandDelay
  */
 export interface ControlDelayStreamProps {
-  /** All of a widget's local control axes on ONE graph. */
+  /** All of a widget's local control axes on one graph. */
   streams: ControlStreamDatum[];
   /**
    * Continuous entries with no readback, drawn as ribbons in the outgoing zone
-   * of the SAME graph, with nothing past the first boundary.
+   * of the same graph, with nothing past the first boundary.
    */
   ribbons?: ControlRibbonDatum[];
   /** Accessible label for the graph. Defaults to "Controls in flight". */
@@ -170,7 +170,7 @@ const padXFor = (variant: ControlDelayStreamVariant): number =>
   variant === "inline" ? PAD_X : 0;
 
 /**
- * Where one light-time sits for a ribbon, in the graph's viewBox x units (100
+ * Where one signal delay sits for a ribbon, in the graph's viewBox x units (100
  * wide): the T divider, a third of the plot. It never moves with delivery;
  * delivery only decides whether anything is drawn past it.
  *
@@ -185,7 +185,7 @@ export function ribbonBoundaryX(
 }
 
 /**
- * An entry whose declared combination NOTHING draws: zero ink, an addressable
+ * An entry whose declared combination nothing draws: zero ink, an addressable
  * marker (`data-rail-unrepresented`), and one report per combination through
  * {@link reportUnrepresentedRail}. Reported in render, not an effect, because a
  * static render runs no effects; the reporter is idempotent.
@@ -208,7 +208,7 @@ function polyline(points: { x: number; y: number }[]): string {
 }
 
 /**
- * Clip the confirmed-echo line so it BEGINS exactly at the 2T divider: nothing
+ * Clip the confirmed-echo line so it begins exactly at the 2T divider: nothing
  * is confirmed before it arrives, so earlier samples drop and an interpolated
  * vertex lands on the divider.
  */
@@ -228,11 +228,11 @@ function clipToConfirmed(
 }
 
 /**
- * Clip a line so it ENDS exactly at the outgoing-stage boundary (`oneWay`, the
+ * Clip a line so it ends exactly at the outgoing-stage boundary (`oneWay`, the
  * same value the T divider is drawn from), the mirror of `clipToConfirmed`.
  *
- * What a `fire-and-forget` entry gets for its SOLID leg. An interpolated vertex
- * is placed on the boundary itself so the line's end lands ON the divider rather
+ * What a `fire-and-forget` entry gets for its solid leg. An interpolated vertex
+ * is placed on the boundary itself so the line's end lands on the divider rather
  * than short of or past it; what happens immediately past the divider is
  * {@link OUTGOING_TAIL}'s business, and it is not this line.
  */
@@ -261,7 +261,7 @@ function clipToOutgoing(
 
 /**
  * How far past the T divider a fire-and-forget leg trails off, as a fraction of
- * ONE light-time. A sample past the boundary has ARRIVED, so the trace fades
+ * one signal delay. A sample past the boundary has arrived, so the trace fades
  * rather than stopping dead; short enough to read as an ending, not a second
  * leg.
  */
@@ -300,9 +300,9 @@ function StreamPaths({
   span: number;
   index: number;
   padX: number;
-  /** The T stage boundary AGE, where a fire-and-forget entry's leg out ends. */
+  /** The T stage boundary age, where a fire-and-forget entry's leg out ends. */
   oneT: number;
-  /** The 2T stage boundary AGE, the same value the 2T divider is drawn from. */
+  /** The 2T stage boundary age, the same value the 2T divider is drawn from. */
   twoT: number;
 }) {
   const token = STREAM_TOKENS[index % STREAM_TOKENS.length];
@@ -479,12 +479,12 @@ function StreamPaths({
 }
 
 /**
- * The RIBBON mark: one continuous entry's amplitude history, lying along the
- * OUTGOING zone and fading there. Each axis lands on one property:
+ * The ribbon mark: one continuous entry's amplitude history, lying along the
+ * outgoing zone and fading there. Each axis lands on one property:
  *
- * - CONTINUITY puts it on this strip at all; a discrete datum draws nothing
- * - DELIVERY keeps it in the outgoing zone, ending at the T divider
- * - DIRECTION picks the tone and the fade direction: a command dissolves
+ * - Continuity puts it on this strip at all; a discrete datum draws nothing
+ * - Delivery keeps it in the outgoing zone, ending at the T divider
+ * - Direction picks the tone and the fade direction: a command dissolves
  *   toward the target, telemetry is clearest where it lands
  *
  * Drawn in the waveform's own 16-unit box and scaled into the plot band.
@@ -562,18 +562,23 @@ function RibbonMark({
 }
 
 /**
- * The continuous sibling of {@link InFlightList}: one three-zone sparkline for
- * all of a widget's control axes. Now on the left, age to the right; outgoing, echo
- * and confirmed zones split by dividers at T and 2T; a muted-to-clear
- * confidence ramp; deviation in the confirmed zone as the expected path dashed
- * plus the actual path in the warning token; zone and delay labels on hover.
- * Renders `null` when the one-way delay is zero or unknown, and draws no command
- * streams under {@link STREAM_MIN_DELAY_SECONDS}; a ribbon draws at any
- * positive delay. It reads nothing itself: everything comes in through props.
+ * A three-zone sparkline for all of a widget's control axes, the continuous
+ * sibling of {@link InFlightList}. Now is on the left and age to the right; the
+ * outgoing, echo and confirmed zones are split by dividers at T and 2T; a
+ * muted-to-clear confidence ramp; deviation in the confirmed zone is drawn as
+ * the expected path dashed plus the actual path in the warning token; zone and
+ * delay labels show on hover. Useful for showing the operator that a held
+ * control, such as a throttle or a voice transmission, takes effect after the
+ * one-way delay, and whether the vessel answered as expected. Used by the radio
+ * push-to-talk control. Renders `null` when the one-way delay is zero or
+ * unknown, and draws no command streams under {@link STREAM_MIN_DELAY_SECONDS};
+ * a ribbon draws at any positive delay. It reads nothing itself: everything
+ * comes in through props.
  *
  * A continuous entry with no readback (the operator's voice) is drawn as a
- * ribbon in the outgoing zone of the same graph. Delivery only decides whether anything is drawn past the first
- * boundary; it never moves a boundary or picks a different picture.
+ * ribbon in the outgoing zone of the same graph. Delivery only decides whether
+ * anything is drawn past the first boundary; it never moves a boundary or picks
+ * a different picture.
  *
  * @category CommandDelay
  */

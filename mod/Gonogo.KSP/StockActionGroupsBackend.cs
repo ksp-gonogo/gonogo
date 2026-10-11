@@ -4,15 +4,15 @@ using Sitrep.Contract;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The always-present VANILLA action-groups backend: the structural
+    /// The always-present vanilla action-groups backend: the structural
     /// counterpart to <see cref="CommNetBackend"/>, registered as the
     /// <c>"actionGroups"</c> capability's <c>Vanilla</c> factory by
     /// <see cref="VesselUplink.DeclareCapabilities"/>.
     ///
-    /// <para>Stock KSP's <c>KSPActionGroup</c> enum genuinely only HAS ten
+    /// <para>Stock KSP's <c>KSPActionGroup</c> enum genuinely only has ten
     /// customs (<c>Custom01..Custom10</c>), so enumerating exactly ten here is
-    /// correct: it is not a hardcoded LIMIT, it is this backend reporting the
-    /// truth about stock. The ten-ness now lives in ONE place (this backend)
+    /// correct: it is not a hardcoded limit, it is this backend reporting the
+    /// truth about stock. The ten-ness now lives in one place (this backend)
     /// instead of being spelled out at every layer, and an AGX backend elected
     /// over this one simply reports a different, longer, player-named list
     /// through the same interface. Nothing downstream (contract, channel,

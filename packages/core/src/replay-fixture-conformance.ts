@@ -13,7 +13,7 @@ import ts from "typescript";
  * `Value<"m/s">` in the generated contract but crosses the wire as a bare
  * number: the SDK wraps units on ingest. So a walker that compared runtime
  * types against declared types would report the entire contract as violated.
- * The defect this exists for was a set of misspelled NAMES, and names are what
+ * The defect this exists for was a set of misspelled names, and names are what
  * the wire and the contract genuinely share.
  */
 

@@ -6,9 +6,9 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation.Tests
 {
     /// <summary>
-    /// <see cref="OrbitElements"/> takes every angle in RADIANS, and KSP's
+    /// <see cref="OrbitElements"/> takes every angle in radians, and KSP's
     /// <c>Orbit</c> reports inclination, LAN and argument of periapsis in
-    /// DEGREES while reporting mean anomaly at epoch in radians. Handing KSP's
+    /// degrees while reporting mean anomaly at epoch in radians. Handing KSP's
     /// numbers straight across compiles, runs, and produces a confidently wrong
     /// position, the orbit is rotated by whatever the degree values happen to
     /// be, so a craft can come out on the wrong side of its star.

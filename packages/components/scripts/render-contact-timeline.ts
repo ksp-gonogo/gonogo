@@ -4,7 +4,7 @@
  * declared lost, as an mp4.
  *
  * The states are cheap to screenshot one at a time but the thing worth seeing
- * is the TRANSITION: a countdown running down to nothing, the marker turning
+ * is the transition: a countdown running down to nothing, the marker turning
  * amber as it passes its predicted reacquisition, and the name being struck
  * through when the deadline expires. A still cannot show that the amber state
  * is reached by waiting rather than by an event.
@@ -13,11 +13,11 @@
  * into a temp dir under `src/` (the harness resolves `fixturesPath` relative to
  * it), render each through the existing playwright harness, stitch with ffmpeg.
  *
- * Most frames hold ONE contact row and only advance the view clock, because
+ * Most frames hold one contact row and only advance the view clock, because
  * that is exactly how the real thing behaves: `contactPhase` compares now
  * against the predicted UT, so expected becomes overdue with no new data
  * arriving at all. Only the final segment swaps in a row the tracker has moved
- * to `Lost`, which IS a wire change.
+ * to `Lost`, which is a wire change.
  *
  * Output: `local_docs/renders/system-view-contact-timeline.mp4`
  * Run via `pnpm --filter @ksp-gonogo/components render-contact-timeline`.

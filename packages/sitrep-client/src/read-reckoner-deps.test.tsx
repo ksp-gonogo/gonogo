@@ -13,7 +13,7 @@ import { useStream } from "./use-stream";
 import { ViewClock } from "./view-clock";
 
 /**
- * What a POINT read holds up, as against what it reads.
+ * What a point read holds up, as against what it reads.
  *
  * The series half of this was fixed first (`useDataSeries`, and the store's
  * `reckonerDepTopics` under it). Every point read had the same hole and for the
@@ -24,7 +24,7 @@ import { ViewClock } from "./view-clock";
  * declares `vessel.orbit` and `system.bodies`, and a widget reading an altitude
  * has no reason to know that.
  *
- * The assertions are on the TRANSPORT rather than on a rendered value: a
+ * The assertions are on the transport rather than on a rendered value: a
  * subscription is the thing that was missing, `StubTransport.emit` is
  * subscription-gated, and asking the transport says "this read reaches the
  * channel" rather than "this read happened to render something this frame".
@@ -151,7 +151,7 @@ describe("a point read holds up its reckoner's declared inputs", () => {
    * cannot hold up: its topic is a function of data that arrives after the read
    * mounts, so the read's set was resolved before the topic existed. The store
    * resolves the subject and therefore the store holds it up, and this asserts
-   * that reaches the WIRE rather than stopping at the store.
+   * that reaches the wire rather than stopping at the store.
    *
    * Written against the transport for the reason this whole file is: the store
    * half of this passes with the provider unwired, because a test that ingests

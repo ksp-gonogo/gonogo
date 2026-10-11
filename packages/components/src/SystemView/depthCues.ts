@@ -2,7 +2,7 @@ import type { Vec3Tuple } from "@ksp-gonogo/sitrep-client";
 
 /** How far a drawn thing leaves the projection's reference plane, read as colour. Depth is not inclination: a body at its ascending node has none. */
 
-/** Depth in SCREEN pixels at which the cue reads full strength, so a tilt reads only once it is actually visible at the current zoom. */
+/** Depth in screen pixels at which the cue reads full strength, so a tilt reads only once it is actually visible at the current zoom. */
 const DEPTH_FULL_SCALE_PX = 40;
 
 /** Above the reference plane. */
@@ -31,7 +31,7 @@ export interface DepthGradientAxis {
   /** Gradient end: where it is highest above it. */
   x2: number;
   y2: number;
-  /** Half the depth spread along the curve in PLOT units; the caller multiplies by zoom, which keeps placement memoisable across a wheel gesture. */
+  /** Half the depth spread along the curve in plot units; the caller multiplies by zoom, which keeps placement memoisable across a wheel gesture. */
   depthUnits: number;
 }
 

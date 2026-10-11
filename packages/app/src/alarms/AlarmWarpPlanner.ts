@@ -1,8 +1,8 @@
 import type { Alarm } from "./types";
 
 /**
- * A one-way light time to be subtracted: a non-finite or negative reading
- * is no light time rather than a negative one, which would push a SCET instant
+ * A one-way signal delay to be subtracted: a non-finite or negative reading
+ * is no signal delay rather than a negative one, which would push a SCET instant
  * further away instead of closer.
  */
 function safeOwltSeconds(seconds: number): number {
@@ -14,7 +14,7 @@ function safeOwltSeconds(seconds: number): number {
  * (`findClosestPendingTrackableAlarm`, `findEligiblePendingAlarm`).
  *
  * Only a time alarm is a target. Every other kind is judged by the simulation
- * against readings this screen holds a light-time late, and the simulation
+ * against readings this screen holds a signal delay late, and the simulation
  * stops the warp itself when one comes due, so a ladder planned toward one
  * from here would be a second authority arriving late.
  *
@@ -26,10 +26,10 @@ export class AlarmWarpPlanner {
     private readonly getAlarms: () => readonly Alarm[],
     private readonly getObservedUT: () => number | null,
     /**
-     * One-way light time to the craft, seconds, or 0 where there is none.
+     * One-way signal delay to the craft, seconds, or 0 where there is none.
      *
      * A time alarm's instant is the game's own universal time while every
-     * countdown planned here is on the view clock, so the two are a light-time
+     * countdown planned here is on the view clock, so the two are a signal delay
      * apart and a warp-to ladder that did not close the gap would plan against
      * an instant that is not the one the mod will stop it at. Defaulted so a
      * caller with no vantage of its own needs no argument.

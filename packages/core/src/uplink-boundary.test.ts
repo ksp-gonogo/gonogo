@@ -32,7 +32,7 @@ import {
  * of per-count, because a boundary violation is "this specific file
  * imports/references a mod it doesn't own", not a fungible occurrence.
  *
- * Full catalogue, categorisation (HARD / gray / test / comment-only), and the
+ * Full catalogue, categorisation (hard / gray / test / comment-only), and the
  * reasoning behind every entry: the sibling `uplink-boundary.allowlist.ts`
  * module, which carries one comment per entry, and whose header explains
  * permanent vs shrink-only domainDebt.
@@ -43,15 +43,15 @@ import {
  *      directory.
  *   2. Every file found is checked against
  *      `[...ALLOWLIST[token].permanent, ...ALLOWLIST[token].domainDebt]`.
- *   3. A file found but NOT allowlisted = a NEW violation -> fail, named.
- *   4. An allowlist entry that no longer matches any found file = STALE
+ *   3. A file found but not allowlisted = a new violation -> fail, named.
+ *   4. An allowlist entry that no longer matches any found file = stale
  *      -> fail, named. This is what makes it a ratchet: fixing a
  *      violation (moving code into the owning Uplink, or dropping the
  *      reference) makes its allowlist line stale, and the test forces
  *      you to delete that line in the same commit.
  *
- * IMPORTANT: this is a content scan, not an import scan: `findViolations`
- * regex-tests each file's raw text, so a string LITERAL (e.g. a `layerId`
+ * Important: this is a content scan, not an import scan: `findViolations`
+ * regex-tests each file's raw text, so a string literal (e.g. a `layerId`
  * hardcoded as `"scansat:AltimetryHiRes"` in a shared-package fixture) is
  * caught by the exact same pattern that catches a real `import`. Don't
  * assume this ratchet is import-only, genericise example mod-name
@@ -293,9 +293,9 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
 /**
  * Every `ownedDirs` path is a directory git still tracks something under.
  *
- * <p><b>What a stale one does.</b> `ownedDirs` EXCLUDES files beneath it from
+ * <p><b>What a stale one does.</b> `ownedDirs` excludes files beneath it from
  * being reported as boundary violations. A path that no longer exists matches
- * no file, so the exclusion is a no-op and the scan is STRICTER rather than
+ * no file, so the exclusion is a no-op and the scan is stricter rather than
  * broken. That is why seven departures left one behind without anything going
  * red, and why this is a hazard rather than a defect: if a directory with one
  * of those names ever reappears, the block silently starts excusing it, and
@@ -308,7 +308,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
  *
  * <p>Emptying the list is the sanctioned end state, not a deletion: `ModOwnership`
  * says "EMPTY means the mod owns nothing here any more", and a block with no
- * owned directories is the STRICTEST setting, still guarding the departed mod's
+ * owned directories is the strictest setting, still guarding the departed mod's
  * name against reappearing unallowlisted.</p>
  */
 describe("MOD_OWNERSHIP owns directories that still exist", () => {
@@ -372,12 +372,12 @@ describe("MOD_OWNERSHIP owns directories that still exist", () => {
 });
 
 /**
- * Source with comments removed and STRING LITERALS KEPT.
+ * Source with comments removed and string literals kept.
  *
  * Strings must survive: a module specifier is one, so
  * `export * from "./schemas/some-mod"` is exactly the coupling this exists to
  * catch, and so is user-facing JSX copy that names a mod to the operator. (The sibling stripper in `styleguide-earth-day.test.ts` blanks
- * strings as well, correctly for ITS question: a number inside a string is not
+ * strings as well, correctly for its question: a number inside a string is not
  * arithmetic.)
  *
  * Three routes: CSS to its own walker (a stylesheet has no line comment and
@@ -432,7 +432,7 @@ function stripCommentsKeepingStrings(source: string, path: string): string {
  * The CSS sibling, because a stylesheet is not TypeScript and must not be
  * stripped as if it were.
  *
- * CSS has exactly one comment form, the slash-star block, and NO line comment:
+ * CSS has exactly one comment form, the slash-star block, and no line comment:
  * `//` is ordinary text there, and it really does occur, inside a
  * `url(http://...)`. The approximate stripper below would read that as the start
  * of a line comment and blank the rest of the line, which is a gate quietly
@@ -442,7 +442,7 @@ function stripCommentsKeepingStrings(source: string, path: string): string {
  * file, and one more: a `content` declaration holding a slash-star would
  * otherwise open a comment that never closes and swallow the rest of the file.
  *
- * What "survives the strip" MEANS for CSS: everything that is not prose. A
+ * What "survives the strip" means for CSS: everything that is not prose. A
  * custom-property name, a selector, a class, an `@import` specifier and a
  * `url()` target are all real coupling of a shared stylesheet to one Uplink's
  * widget, and are exactly what should have to be declared rather than excused.
@@ -643,7 +643,7 @@ function isUnderOwnedDir(relPath: string, ownedDirs: string[]): boolean {
 interface ScannedFile {
   rel: string;
   raw: string;
-  /** Comment-stripped source, parsed on FIRST demand and reused after. */
+  /** Comment-stripped source, parsed on first demand and reused after. */
   stripped?: string;
 }
 
@@ -654,7 +654,7 @@ interface ScannedFile {
  * walks: each `it` re-walked every scan root and re-read every file, so the
  * suite did ~13x the necessary I/O and the whole describe block sat close to the
  * 30s timeout. It went over once the sdk gained the spine directory, and a
- * timeout here is a bad failure to have: the test's real job is to NAME
+ * timeout here is a bad failure to have: the test's real job is to name
  * offending files, and a timeout names nothing while looking exactly like a
  * boundary breach in CI.
  *
@@ -753,10 +753,10 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
     }, 30_000);
 
     /**
-     * Closes the hole the allowlist has always had: an entry excuses the FILE,
+     * Closes the hole the allowlist has always had: an entry excuses the file,
      * not the line that earned it.
      *
-     * <p>Almost every entry in `.permanent` was earned by a COMMENT naming a
+     * <p>Almost every entry in `.permanent` was earned by a comment naming a
      * mod, which `codeOnly` deliberately counts as a real reference for a mod
      * that is still installed. But the exemption it buys is whole-file and
      * never expires, so real coupling added to that file later, an import of
@@ -765,22 +765,22 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
      * excused.</p>
      *
      * <p>So each allowlisted file is re-tested with comments stripped, and the
-     * set that STILL matches is declared. A file that starts matching without
+     * set that still matches is declared. A file that starts matching without
      * its comments has acquired something that is not prose, and that is the
      * event worth failing on.</p>
      *
      * <p><b>Surviving the strip is not the same as being code.</b> The declared
-     * set is mostly the mod name as DATA: install-profile ids, fixture keys,
+     * set is mostly the mod name as data: install-profile ids, fixture keys,
      * and assertions like CrewStatus's "never subscribes to kerbalism.crew",
-     * where the name IS the subject and a string is the honest way to say it.
+     * where the name is the subject and a string is the honest way to say it.
      * Measured when this was written: no file under `packages/` imports an
      * Uplink package or reads a mod topic in code, so the list starts as data
      * only. It is shrink-only for the same reason the debt list is, and the
-     * point is that anything JOINING it has to be looked at.</p>
+     * point is that anything joining it has to be looked at.</p>
      *
      * <p>Checked by planting one: a `useTelemetry("kerbalism.power")` added to
      * `styleguide-magnitude-canonical.test.ts`, whose entry was earned by a
-     * comment, fails THIS check while the boundary test above stays green. That
+     * comment, fails this check while the boundary test above stays green. That
      * is the coverage being added, stated as the thing it catches rather than
      * as an intention.</p>
      */
@@ -1002,7 +1002,7 @@ async function loadAllowlistAt(
 }
 
 /**
- * What the scan reached at the BASE ref: how deep into a package it walked, and
+ * What the scan reached at the base ref: how deep into a package it walked, and
  * which file kinds it picked up. Both dimensions are read off the base's copy of
  * the data module, which is why both constants live there.
  */
@@ -1025,7 +1025,7 @@ interface BaseScan {
  * split itself.
  */
 /**
- * Could the scan at the BASE ref have reached this path at all?
+ * Could the scan at the base ref have reached this path at all?
  *
  * An entry for a file no walk visited is not a violation someone introduced, it
  * is one the gate could never have reported. Grading it as growth is what makes
@@ -1035,7 +1035,7 @@ interface BaseScan {
  * again.
  *
  * There are two independent ways for the base's walk to have missed a path, and
- * a miss on EITHER is a reseed: the directory was out of scope, or the file kind
+ * a miss on either is a reseed: the directory was out of scope, or the file kind
  * was not scanned.
  */
 function reachableAtBase(base: BaseScan, path: string): boolean {
@@ -1068,7 +1068,7 @@ function reachableAtBaseScope(
  *
  * A list needs no interpretation, unlike `PACKAGE_SCAN_SCOPE`'s opaque marker:
  * the base states outright which extensions it reached, so there is no
- * unrecognised-value case to be conservative about. Only ABSENCE has to be
+ * unrecognised-value case to be conservative about. Only absence has to be
  * guessed at, and an allowlist with no list predates the constant, which is the
  * `ts`/`tsx`/`cs` era.
  *
@@ -1111,7 +1111,7 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
    * A seam that excuses growth is the most dangerous thing in this file, so it
    * is graded from both sides: what it must let through, and what it must not.
    * The `packages/<pkg>/src` case is the one that matters, because that is
-   * every path the old walk COULD see, and excusing one of those would turn
+   * every path the old walk could see, and excusing one of those would turn
    * the shrink gates off for the whole of `src` in a single edit.
    */
   it("excuses only a path the base's walk could not reach", () => {
@@ -1218,7 +1218,7 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
 
   /**
    * The list records what the walk picks up, and nothing made the two agree.
-   * Asking the WALK, rather than re-deriving the regex, is the point: a
+   * Asking the walk, rather than re-deriving the regex, is the point: a
    * constant that named `.css` while no `.css` file was ever visited would
    * excuse every stylesheet forever for a reason that is not true.
    */
@@ -1371,25 +1371,25 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
 });
 
 /**
- * The set of APP-SIDE FILES allowed to name a mod at all, which may only shrink.
+ * The set of APP-SIDE files allowed to name a mod at all, which may only shrink.
  *
- * WHY THIS EXISTS, and why it is a set of FILES rather than a count. The
+ * Why this exists, and why it is a set of files rather than a count. The
  * `permanent` bucket is unconstrained by design and holds 376 entries: a
  * generated wire type has to name the mod it carries, a ratchet inventory has to
  * name its subjects, and both legitimately grow with every new Topic and every
  * new Uplink. Counting them would fail on ordinary work.
  *
- * What must NOT grow is the list of app-side production files that know a
+ * What must not grow is the list of app-side production files that know a
  * specific mod exists. `packages/` is core, the app, ui-kit and the relay: none
  * of them should learn that SCANsat or Principia is a thing, because that
  * knowledge belongs in the Uplink. Twenty such files are excused today and each
  * one is a small piece of the boundary that has not been drawn yet.
  *
- * Freezing the SET rather than the COUNT is what makes this livable:
+ * Freezing the set rather than the count is what makes this livable:
  * `packages/app/src/main.tsx` bundles every first-party Uplink, so it gains a
  * line whenever an Uplink lands. That is the mechanism by which an Uplink
  * registers at all and there is nothing to fix. It is already in the set, so
- * its twelfth import is free; what fails is a TWENTY-FIRST FILE joining.
+ * its twelfth import is free; what fails is a TWENTY-FIRST file joining.
  *
  * Generated code, ratchet inventories and tests are out of scope: the first two
  * name mods as their job, and a test naming one is already policed by the

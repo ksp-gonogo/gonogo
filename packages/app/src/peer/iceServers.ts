@@ -3,17 +3,17 @@ import { logger } from "@ksp-gonogo/logger";
 /**
  * ICE server configuration for the host's PeerJS Peer.
  *
- * The gonogo relay hosts a coturn TURN server bundled in its container,
+ * The gonogo relay hosts a coturn turn server bundled in its container,
  * with a per-restart-rotated secret minted in-memory. The host (main
  * screen) fetches `/ice-config` once on boot to learn the credentials
  * and the public IP coturn is advertising.
  *
  * Stations don't fetch this themselves: their host's relay candidates
  * propagate via the broker's signalling channel, which is enough for
- * one-side TURN to bridge any difficult network. We deliberately
+ * one-side turn to bridge any difficult network. We deliberately
  * construct station Peers with no `iceServers` config so a stale or
  * absent local default can't sabotage that path: a default of
- * `turn:localhost:3478` means the phone ITSELF when read on a phone, which
+ * `turn:localhost:3478` means the phone itself when read on a phone, which
  * costs four useless STUN/TURN timeouts per attempt.
  */
 

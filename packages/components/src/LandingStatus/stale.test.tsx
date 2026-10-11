@@ -9,7 +9,7 @@ import { LandingStatusComponent } from "./index";
 /**
  * What LandingStatus does when the telemetry the burn solve rests on is held.
  *
- * A DESCRIPTION renders from the best value available and says it is dated; an INSTRUCTION never renders from a reckoned state, since a countdown recomputed from old readings still looks live and names the wrong instant. Each case also proves the board is not the reassuring "No landing in progress" state, which would be a calm board during an untracked descent.
+ * A description renders from the best value available and says it is dated; an instruction never renders from a reckoned state, since a countdown recomputed from old readings still looks live and names the wrong instant. Each case also proves the board is not the reassuring "No landing in progress" state, which would be a calm board during an untracked descent.
  */
 
 const MUN = { index: 3, name: "Mun", radius: 200_000, mu: 6.5138398e10 };

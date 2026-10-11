@@ -388,7 +388,7 @@ export type {
  * and decides for itself. What remains answers questions that have one answer.
  *
  * `observedValue` is one of those and not a return of the verdict accessor: it names
- * an ARM rather than a policy, and a widget that wants the last-known figure still
+ * an arm rather than a policy, and a widget that wants the last-known figure still
  * branches on `held` itself and captions it.
  */
 export {

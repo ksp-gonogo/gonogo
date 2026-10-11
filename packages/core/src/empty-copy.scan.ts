@@ -155,7 +155,7 @@ export function scanEmptyCopy(
   return { read, hits };
 }
 
-/** The gate's verdict, or `null` when it passes; a scan that read nothing fails as BLIND. */
+/** The gate's verdict, or `null` when it passes; a scan that read nothing fails as `BLIND`. */
 export function emptyCopyVerdict(scan: EmptyCopyScan): string | null {
   if (scan.read.length === 0) {
     return "BLIND: the empty-copy scan read no files, so a clean result means nothing";

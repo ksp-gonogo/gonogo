@@ -21,7 +21,7 @@ import { HEALTH_STATE_NAMES } from "./uplink-health";
 /**
  * An ordinal→name table has to cover its enum, entry for entry.
  *
- * The wire carries a C# enum as its ORDINAL, and these tables are what turns
+ * The wire carries a C# enum as its ordinal, and these tables are what turns
  * one back into a name. A table shorter than its enum does not throw and does
  * not warn: the ordinal indexes off the end, the lookup yields `undefined`, and
  * every consumer reads that as "nothing arrived". It fails in the direction
@@ -34,7 +34,7 @@ import { HEALTH_STATE_NAMES } from "./uplink-health";
  * The tables are now derived from the generated enums rather than transcribed
  * beside them, which is what actually removes the drift. This file is the check
  * on that: it fails if any table is rebuilt by hand, and it covers the two
- * tables that CANNOT be derived, because they carry their own casing, plus
+ * tables that cannot be derived, because they carry their own casing, plus
  * `CONTROL_STATE_LEVEL`, which is a hand-written verdict per ordinal.
  */
 
@@ -201,7 +201,7 @@ describe("enum name tables cover their enums", () => {
 
   /**
    * `PartCategories.none` is `-1`, and a table built by the ordinal-walking
-   * `namesOf` would resolve every member EXCEPT it, silently. Pinned because it
+   * `namesOf` would resolve every member except it, silently. Pinned because it
    * is the reason these tables are maps at all.
    */
   it("resolves the negative member of a sparse KSP enum", () => {

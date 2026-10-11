@@ -7,15 +7,15 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KspCalendarObserver } from "./KspCalendarObserver";
 
 /**
- * What `KspCalendarObserver` DOES today when `time.calendar` reads `undefined`,
+ * What `KspCalendarObserver` does today when `time.calendar` reads `undefined`,
  * recorded before `useTelemetry` starts returning a `Reading`.
  *
  * The observer has no render output, so its whole observable behaviour is a
- * WRITE it either performs or skips, guarded by one four-way absence gate:
+ * write it either performs or skips, guarded by one four-way absence gate:
  * `day === undefined || year === undefined || hour === undefined || minute ===
  * undefined`. Two undefined-meanings meet in it, and the sibling
  * `KspCalendarObserver.test.tsx` cannot separate them because it asserts the
- * stock fallback value, which is also what a stock WRITE would leave behind:
+ * stock fallback value, which is also what a stock write would leave behind:
  *
  * - undefined at the topic level (nothing arrived, or a tombstone) means
  *   "change nothing", which after a calendar has been adopted means "keep it",
@@ -23,7 +23,7 @@ import { KspCalendarObserver } from "./KspCalendarObserver";
  * - undefined at the field level means "apply none of the four", deliberately,
  *   because a half-applied calendar renders dates neither calendar explains
  *
- * These tests seed a SENTINEL calendar before mounting, so a skipped write is
+ * These tests seed a sentinel calendar before mounting, so a skipped write is
  * distinguishable from a write of the stock numbers.
  */
 
@@ -52,7 +52,7 @@ function payloadKeys(payload: unknown): string[] {
 
 /**
  * One calendar field's magnitude as the probe prints it, and `undefined` when
- * the payload did not carry it: reporting which fields ARRIVED is the whole
+ * the payload did not carry it: reporting which fields arrived is the whole
  * subject of this characterisation.
  */
 function fieldMagnitude(payload: unknown, field: string): number | undefined {

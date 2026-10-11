@@ -7,12 +7,12 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Fixture for <see cref="BlackoutRecorderTests"/>: two Delayed channels
-    /// that differ ONLY in <see cref="ChannelDeclaration.Recordable"/>, plus the
+    /// that differ only in <see cref="ChannelDeclaration.Recordable"/>, plus the
     /// freeze-exempt connectivity MetaTopic so the disconnect edge can escape
     /// the outage.
     ///
     /// <para>Registers <c>comms.delay</c> through
-    /// <see cref="IUplinkHost.SetSignalDelaySource"/> ONLY, never additionally as
+    /// <see cref="IUplinkHost.SetSignalDelaySource"/> only, never additionally as
     /// a pull-style channel source: the double-registration quirk
     /// <see cref="ConnectivityHorizonTestUplink"/>'s doc comment describes at
     /// length would run CaptureSignalDelay twice per tick and clobber the
@@ -26,10 +26,10 @@ namespace Sitrep.Host.IntegrationTests
 
         public const string Id = "blackout-recorder-test";
 
-        /// <summary>Delayed and RECORDABLE (the default): stands in for vessel.* telemetry.</summary>
+        /// <summary>Delayed and recordable (the default): stands in for vessel.* telemetry.</summary>
         public const string OnboardTopic = "recorder.onboard";
 
-        /// <summary>Delayed and NOT recordable: stands in for time.warp, a session fact that rides the vessel snapshot.</summary>
+        /// <summary>Delayed and not recordable: stands in for time.warp, a session fact that rides the vessel snapshot.</summary>
         public const string SessionTopic = "recorder.session";
 
         public const string LinkTopic = ChannelEngine.ConnectivityMetaTopic;

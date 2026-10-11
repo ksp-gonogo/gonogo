@@ -152,7 +152,7 @@ describe("the relay tap", () => {
  * station's PeerJS leg.
  *
  * `SITREP_PEER_RELAY_BUDGET` deliberately cannot see that axis: it records once
- * per frame tapped off the host, not per recipient. The axis IS counted, by
+ * per frame tapped off the host, not per recipient. The axis is counted, by
  * `PeerHostService.broadcast`, which is the path a relayed frame takes. Pinned
  * because routing sitrep frames around `broadcast` would leave the axis station
  * demand controls with no instrument on it.

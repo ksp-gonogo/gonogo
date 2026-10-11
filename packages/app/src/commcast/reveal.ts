@@ -3,7 +3,7 @@
  * reached this one.
  *
  * The crossing itself is the mod's: everything said goes up as a command and
- * comes down addressed, one light-time from where it was said, so nothing here
+ * comes down addressed, one signal delay from where it was said, so nothing here
  * holds anything back. What is left is the author's own arithmetic, from the
  * published separation matrix: how long their words take to reach the group,
  * when an answer could soonest be back, and when an unanswered message stops
@@ -26,7 +26,7 @@ import type {
  * `seat` is the coarse axis and is always known. `vantageId` is the fine one:
  * `useObservedVantage()`, the centre the frames in front of this operator were
  * actually delayed from. It is `undefined` before the first frame lands, and a
- * station reports its HOST's vantage, which is right: a station reads the
+ * station reports its host's vantage, which is right: a station reads the
  * host's relayed frames verbatim, so the two are genuinely co-located.
  */
 export interface Vantage {
@@ -38,7 +38,7 @@ export interface Vantage {
  * How far apart two vantages are, and how well that is known.
  *
  * The seat axis alone answers this for pilot-versus-ground and gets two
- * command centres at DIFFERENT vantages wrong, because they share the seat
+ * command centres at different vantages wrong, because they share the seat
  * `mission-control` and would read each other instantly however far apart they
  * are. The vantage id is what separates those two cases, so the rule keys on
  * it and the seat rule falls out as the case where both ends share a vantage.
@@ -52,7 +52,7 @@ export type Separation =
   | { kind: "no-path" }
   /**
    * A pair the published matrix has not reached and no fallback covers. The
-   * message is still SENT rather than refused, and the UI says the separation
+   * message is still sent rather than refused, and the UI says the separation
    * is unpublished instead of implying a measured zero.
    */
   | { kind: "unmeasured" };
@@ -70,7 +70,7 @@ export type SeparationMatrix = ReadonlyMap<string, ReadonlyMap<string, number>>;
  *   1. one vantage is no distance from itself, whatever else is true. This
  *      covers a host and its stations (a station relays the host's frames, so
  *      it reads at the host's vantage) and two operators at one centre
- *   2. the published pair matrix, which is the SERVER's number: the geometry is
+ *   2. the published pair matrix, which is the server's number: the geometry is
  *      solved once, where it is known
  *   3. `fallbackSeconds`, the caller's own best figure for this pair. At send
  *      that is `comms.delay`, the craft-to-ground path, which is the headline
@@ -112,7 +112,7 @@ export function separationBetween(
  *
  * The one place the four separation kinds collapse to a number, so a caller
  * cannot quietly read `unmeasured` as a measured zero in one place and as a
- * refusal in another. `null` is NO PATH and only that, which is what makes a
+ * refusal in another. `null` is "NO PATH" and only that, which is what makes a
  * cut a value rather than a special case.
  */
 export function transitSecondsOf(sep: Separation): number | null {
@@ -276,12 +276,12 @@ export function deliveryAckUtFor(
  *   - `due`          the reply instant has come and nothing is back yet
  *   - `overdue`      past `replyUt + LOSS_MARGIN` with no acknowledgement
  *   - `lost`         the path was not up across the window, so nothing crossed
- *   - `confirmed`    an acknowledgement has arrived HERE
+ *   - `confirmed`    an acknowledgement has arrived here
  *
  * `confirmed` is the one name that is not `classifyRetained`'s, because that
  * function has no such arm: a command's queue entry simply disappears. A
  * message does not disappear, it is a thing somebody said, so the arrival has
- * to be a state it can be IN.
+ * to be a state it can be in.
  */
 export type SentPhase =
   | "in-transit"
@@ -302,7 +302,7 @@ export function legOf(phase: SentPhase): "outbound" | "return" | null {
  * One recipient's standing at the author as of `utNow`.
  *
  * The gate on `confirmed` is that recipient's own acknowledgement having
- * REACHED here, never one merely recorded and never anybody else's, which is
+ * reached here, never one merely recorded and never anybody else's, which is
  * why the group's first answer cannot speak for the rest.
  */
 export function deliveryPhaseFor(
@@ -353,7 +353,7 @@ export function messageStatusFor(
  * The terminal widget's rule, and the reason the queue never grows without bound:
  * a line leaves the strip when its journey ends, either because it echoed or
  * because the wait ran out. `overdue` and `lost` therefore never render as a
- * queue row; they render as an UNCONFIRMED message in the log, which is a
+ * queue row; they render as an unconfirmed message in the log, which is a
  * state rather than a failure, with one resend attached.
  */
 export function isSettled(phase: SentPhase): boolean {
@@ -373,7 +373,7 @@ export function isSettled(phase: SentPhase): boolean {
  *
  *   - an acknowledgement reaches them. The words are on screen because
  *     somebody heard them, not because the author typed them
- *   - the wait runs out at `overdueUt`, and they land UNCONFIRMED. An author
+ *   - the wait runs out at `overdueUt`, and they land unconfirmed. An author
  *     never loses what they said, and unconfirmed is a state the message is
  *     in, not an error about it
  *

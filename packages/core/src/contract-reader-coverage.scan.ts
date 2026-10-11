@@ -7,24 +7,24 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
 
 /**
  * The scan behind `styleguide-contract-reader-coverage.test.ts`: does any
- * PRODUCTION client read this contract field or send this contract command.
+ * production client read this contract field or send this contract command.
  *
  * gonogo Saga task 727. Core integrated the n-body arc and published it as
  * `vessel.orbit.Arc`, plus a `vessel.trajectory.forVantage` command; neither
  * had a production reader, only tests and an sdk hook. The existing ratchets
  * (`declaration-reachability`, uplink isolation, payload test coverage,
  * read-without-subscribe) never asked this question: `declaration-reachability`
- * grades an UPLINK's own declared topics/commands by whether the bare TOPIC id
+ * grades an uplink's own declared topics/commands by whether the bare topic id
  * is mentioned anywhere, which is exactly the blind spot named above, since
  * `vessel.orbit` is read everywhere and a topic-level check cannot see that one
- * FIELD of it never was.
+ * field of it never was.
  *
- * WHAT COUNTS AS A READER, per field:
+ * What counts as A reader, per field:
  *
  *  1. A `registerComponent(...)` widget whose `channels`/`optionalChannels`
  *     name the field's Topic and whose `fields` (or the legacy flat
  *     `dataRequirements`) names the field. A widget that declares no `fields`
- *     is NOT credited with every field of its Topics: alarm attribution may
+ *     is not credited with every field of its Topics: alarm attribution may
  *     treat such a widget as drawing everything it mounts on
  *     (`widgetDrawnFields`), but a mount is not a read, and crediting it hid
  *     `comms.delay`, `comms.link` and about 16 other payloads' `meta.source`,
@@ -36,7 +36,7 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     with no `registerComponent` in sight, and a gate that only understood
  *     widgets would manufacture debt for every one of them. This signal is
  *     Every segment need not be named: a field under a collection is read
- *     off an ELEMENT (`base.powerAvailable` for `deployed.bases.powerAvailable`,
+ *     off an element (`base.powerAvailable` for `deployed.bases.powerAvailable`,
  *     or a destructured `{ powerAvailable }`), so a nested path is also
  *     credited when its leaf is read as a member access or destructured
  *     binding, in a file that mounts the Topic or a sibling of one, provided no
@@ -45,7 +45,7 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     This signal is coarser (file-level co-occurrence, not a proven data-flow edge) and
  *     exists to avoid exactly that false debt; it can OVER-credit a field that
  *     merely shares a leaf name with something else the file touches, which is
- *     an acceptable failure direction for a signal that only ever CLEARS debt,
+ *     an acceptable failure direction for a signal that only ever clears debt,
  *     never a substitute for signal 1.
  *  3. A production C# file under `mod/` (see `scanCsharpReaders`). The mod
  *     reads contract fields too, and a TypeScript-only scan reported them
@@ -67,7 +67,7 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  *     observer) that reads a payload it is handed and whose leaves are too
  *     generic to credit by name alone.
  *
- * WHAT COUNTS AS A COMMAND READER: a production file naming the command id as
+ * What counts as A command reader: a production file naming the command id as
  * a string literal, anywhere. `useCommand(id)` is the common shape, but a
  * command also dispatches through a `handle.send(...)` off a `useCommand`
  * result bound elsewhere, a local `send(id, args)` wrapper, or a bare
@@ -78,22 +78,22 @@ import { modTsRoots, SCANNED_PACKAGE_ROOTS } from "./unknown-cast.scan";
  * that a plain literal match is trustworthy, the same trust
  * `declaration-reachability.ts` already places in it.
  *
- * THE CORPUS is `packages/*` plus every `mod/*\/client` (and `mod/sitrep-*`)
+ * The corpus is `packages/*` plus every `mod/*\/client` (and `mod/sitrep-*`)
  * root with its own `tsconfig.json`, the same roots `unknown-cast.scan`
  * already discovers, minus `__generated__` directories, `dist`, and test
  * files. A bundled Uplink (today, only `GonogoBreakingGroundUplink`) is
  * therefore covered directly; the other Uplinks live in the separate
- * `gonogo-uplinks` repository and are NOT in this corpus at all: a field read
+ * `gonogo-uplinks` repository and are not in this corpus at all: a field read
  * only there cannot be seen from here, which is why the debt list carries an
  * `Uplink-read: <name>` reason for those, checked from the other side by
  * `gonogo-uplinks/tooling/verify-contract-reader-debt.mjs`.
  *
- * WHY THE AST AND NOT A REGEX. A field's leaf name is a common enough word
+ * Why the AST and not A regex. A field's leaf name is a common enough word
  * (`state`, `type`, `id`) that a textual match with no structure would flag
  * every file that happens to use the word for something else. Parsing lets the
  * scan ask for an actual `Identifier`/`PropertyAssignment`/`CallExpression`
  * shape, and `registerComponent`'s own `channels`/`fields` arrays are read as
- * literal string ARRAYS rather than assumed from their text.
+ * literal string arrays rather than assumed from their text.
  */
 
 const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
@@ -405,7 +405,7 @@ function findWidgetDeclarations(
  * (`CommcastModLink`), and a bare `this.dispatchCommand(id, args)` on a
  * service class with no hook at all (`GoNoGoHostService`). A command id is
  * namespaced and specific enough (`"vessel.control.setThrottle"`, never a bare
- * word) that a plain STRING LITERAL match carries the same confidence
+ * word) that a plain string literal match carries the same confidence
  * `declaration-reachability.ts` already trusted it with, so this reads
  * command ids the same way it reads field leaves: from the string-literal set,
  * not from one recognised call shape.
@@ -478,7 +478,7 @@ const EXPORTED_CONST_STRING_RE =
  * manufactures debt for a field a real subscriber already destructures.
  *
  * A textual regex rather than an AST walk per file, because this runs once
- * over the WHOLE corpus (every file, not just the ones already worth parsing)
+ * over the whole corpus (every file, not just the ones already worth parsing)
  * and only ever feeds a lookup table that the AST-based signals below still
  * gate the real verdict on; a false alias here only widens which files get a
  * full parse; it does not itself mark anything read.

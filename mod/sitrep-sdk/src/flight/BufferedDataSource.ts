@@ -207,8 +207,8 @@ export class BufferedDataSource extends DataSourceWrapper {
   >();
 
   /**
-   * Trust gate state. Tracks TWO independent signals, telemetry is
-   * trusted only when BOTH are good:
+   * Trust gate state. Tracks two independent signals, telemetry is
+   * trusted only when both are good:
    *
    * 1. **The telemetry antenna** via `p.paused`. `0` = active + powered;
    *    `1` = game paused (frozen values still real). Anything else
@@ -222,7 +222,7 @@ export class BufferedDataSource extends DataSourceWrapper {
    *
    * Each signal has its own "ever confirmed good?" guard so cold-start
    * `false` / non-zero values don't freeze widgets the moment a station
-   * connects. The combined gate activates when EITHER signal has been
+   * connects. The combined gate activates when either signal has been
    * confirmed good and is now bad.
    *
    * Defaults are `true` so sources that aren't signal-affected aren't held
@@ -259,7 +259,7 @@ export class BufferedDataSource extends DataSourceWrapper {
   }
 
   /**
-   * Sets up the wrapper's subscriptions to the wrapped source. Does NOT
+   * Sets up the wrapper's subscriptions to the wrapped source. Does not
    * call `source.connect()`: the wrapped source's connection lifecycle
    * belongs to whoever registered it. Typically both sources are
    * registered independently and the caller's "connect all registered
@@ -297,7 +297,7 @@ export class BufferedDataSource extends DataSourceWrapper {
   }
 
   /**
-   * Tears down the wrapper's subscriptions. The wrapped source is NOT
+   * Tears down the wrapper's subscriptions. The wrapped source is not
    * disconnected here: same reasoning as `connect`.
    */
   disconnect(): void {
@@ -485,7 +485,7 @@ export class BufferedDataSource extends DataSourceWrapper {
    * isn't comm-affected).
    *
    * If no flight is established yet (the wrapped source's warmup hasn't
-   * completed), the sample is fanned out live but NOT persisted, same shape
+   * completed), the sample is fanned out live but not persisted, same shape
    * as pre-flight samples from the wrapped source.
    */
   appendExternalSample(key: string, value: unknown): void {

@@ -343,7 +343,7 @@ describe("LaunchDirectorComponent", () => {
     );
   });
 
-  /** An unseen facility name is dispatched as the editor its ORDINAL names: ordinal 2 is the SPH whatever KSP calls it. */
+  /** An unseen facility name is dispatched as the editor its ordinal names: ordinal 2 is the SPH whatever KSP calls it. */
   it("dispatches the editor the ORDINAL names, not the unrecognised facility label", async () => {
     const user = userEvent.setup();
     renderWidget();

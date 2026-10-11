@@ -46,7 +46,7 @@ export interface ProviderRegistration<Capability = unknown> {
   /** Task 5: version gating. */
   versions?: ProviderVersions;
   /**
-   * Whether this provider can serve the capability on THIS install, asked at
+   * Whether this provider can serve the capability on this install, asked at
    * resolve time before any winner is picked.
    *
    * <p>A provider that answers false withdraws: it is not a candidate, so for
@@ -65,10 +65,10 @@ export interface ProviderContext {
   /** Resolve another (already-active) capability's single active instance. */
   query<Capability>(capability: CapabilityId): Capability;
   /**
-   * The capability's VANILLA instance, whether or not the vanilla won the
+   * The capability's vanilla instance, whether or not the vanilla won the
    * election, and including the election this factory is being run for.
    *
-   * `query` cannot serve this: it answers with whatever is ACTIVE, so a provider
+   * `query` cannot serve this: it answers with whatever is active, so a provider
    * that has just won a capability asking for that capability gets either
    * nothing (its own capability's instances are not published until its factory
    * returns) or, later, itself. There was no way at all to reach the

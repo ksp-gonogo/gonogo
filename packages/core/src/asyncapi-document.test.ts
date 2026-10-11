@@ -25,7 +25,7 @@ import { beforeAll, describe, expect, it } from "vitest";
  *
  * The validator can be blind. A parser that silently accepted anything would
  * report zero errors on a broken document and read exactly like a clean pass, so
- * a violation is PLANTED and the parser has to see it before any verdict here
+ * a violation is planted and the parser has to see it before any verdict here
  * counts.
  *
  * The counts must come from the source, not from the generator. Asking the
@@ -153,7 +153,7 @@ describe("asyncapi.yaml", () => {
   let yaml: string;
 
   /**
-   * Generated ONCE for the whole file. A full run parses the contract, scans the
+   * Generated once for the whole file. A full run parses the contract, scans the
    * C# declaration sites and serialises 20,000 lines of YAML, so calling it per
    * test cost four times what it needed to and put the hook over its default
    * 10s timeout whenever the scan suite's other 36 files were competing for the
@@ -439,11 +439,11 @@ describe("asyncapi.yaml", () => {
     /**
      * The gate that keeps maintainer rationale off the published surface.
      *
-     * Every assertion here is about the DETECTOR rather than about the contract's
+     * Every assertion here is about the detector rather than about the contract's
      * current state, because the contract's state is a ratchet that moves every
      * time somebody converts a block, and a test asserting today's number would
      * fail on the next conversion. What must not move is the gate's ability to
-     * SEE: a pattern that matches nothing reports zero markers, zero reads as a
+     * see: a pattern that matches nothing reports zero markers, zero reads as a
      * clean contract, and the build goes green over prose nobody wanted shipped.
      */
     let hygiene: {

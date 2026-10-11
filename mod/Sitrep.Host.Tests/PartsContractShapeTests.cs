@@ -16,7 +16,7 @@ namespace Sitrep.Host.Tests
     /// Locks the P0.5 typing change for <c>parts.power</c>: proves the named
     /// <c>Sitrep.Contract</c> payload type (<see cref="PartsPower"/>) mirrors:
     /// field name for field name, camelCase wire key for camelCase wire key,
-    /// type for type, the EXACT serialized shape <see cref="PartsViewProvider"/>
+    /// type for type, the exact serialized shape <see cref="PartsViewProvider"/>
     /// already emits. This is a typing change only: the wire is written by
     /// <c>JsonWriter</c> walking the provider's dictionary, not by serializing
     /// these POCOs, so if the two shapes ever drift (a field renamed, removed,

@@ -20,7 +20,7 @@
  * Output: `docs/assets/navball-attitude-sweep.gif`
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-navball-gif`.
- * Requires ImageMagick (`convert`) on PATH.
+ * Requires ImageMagick (`convert`) on path.
  */
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readdir, rm, writeFile } from "node:fs/promises";

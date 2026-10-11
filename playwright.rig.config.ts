@@ -1,19 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Rig sessions: the app driven against a REAL running game, not a fixture.
+ * Rig sessions: the app driven against a real running game, not a fixture.
  *
  * A separate project from `playwright.config.ts` because the two want opposite
  * settings. The e2e suite boots its own deterministic stack and keeps a trace
  * only when something fails; a rig session points at a live Deck whose state
- * nobody controls, and the run that SUCCEEDS is usually the one worth watching
+ * nobody controls, and the run that succeeds is usually the one worth watching
  * back. So tracing is unconditional here.
  *
  * <p>Nothing in this project runs in CI: it needs a rig. `pnpm rig` is the only
  * way in, and it takes the host from `RIG_HOST` so the address is stated once
  * rather than baked into every spec.</p>
  *
- * <p>Traces land in `local_docs/traces/`, which is gitignored, and are PRUNED on
+ * <p>Traces land in `local_docs/traces/`, which is gitignored, and are pruned on
  * every run by `tests/rig/prune-traces.ts`. An always-on trace of a
  * multi-minute session is tens of megabytes; without the prune the directory is
  * a slow leak nobody notices until a disk fills.</p>

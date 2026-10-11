@@ -6,19 +6,19 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// THE MIDDLEMAN CASE. A relay satellite carrying the craft's signal goes
+    /// The middleman case. A relay satellite carrying the craft's signal goes
     /// offline while an alternative route home still exists, so the craft stays
-    /// CONNECTED and only the light-time changes. Whatever had already left the
-    /// craft is in flight and must keep arriving on ITS OWN timing, one sample
+    /// connected and only the signal delay changes. Whatever had already left the
+    /// craft is in flight and must keep arriving on its own timing, one sample
     /// at a time, at the delay it was sent under; the new route governs only
     /// what is sent after the switch.
     ///
     /// <para>This is the case the reveal gate cannot cover, because the reveal
-    /// gate refuses samples recorded while DISCONNECTED and a reroute never
+    /// gate refuses samples recorded while disconnected and a reroute never
     /// disconnects. It is also the case the delivery-time ledger re-read gets
     /// wrong in both directions: a shorter new path drags the vantage cursor
-    /// forward and SKIPS the tail, and a longer one freezes the cursor and
-    /// replays one sample as DUPLICATE FRAMES while the tail is lost for
+    /// forward and skips the tail, and a longer one freezes the cursor and
+    /// replays one sample as duplicate frames while the tail is lost for
     /// good.</para>
     /// </summary>
     public class CourierRerouteStampTests
@@ -76,7 +76,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// REROUTE ONTO A SHORTER PATH (4 s → 1 s). The four samples still in
+        /// Reroute onto A shorter path (4 s → 1 s). The four samples still in
         /// flight (UT 2, 3, 4, 5) must land at UT 6, 7, 8, 9, each once, at the
         /// delay they were sent under, while post-switch samples ride the new 1 s
         /// path and overtake them. Re-reading the ledger at fire time instead
@@ -107,11 +107,11 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// REROUTE ONTO A LONGER PATH (4 s → 8 s), the worse direction. The four
+        /// Reroute onto A longer path (4 s → 8 s), the worse direction. The four
         /// in-flight samples must still land at UT 6, 7, 8, 9, then the stream
         /// goes genuinely quiet for the four seconds it takes the first
         /// post-switch sample to cross the longer path. Re-reading the ledger
-        /// instead freezes the cursor and puts FOUR DUPLICATE FRAMES of the UT 1
+        /// instead freezes the cursor and puts four duplicate frames of the UT 1
         /// sample on the wire while UT 2..5 are lost permanently.
         /// </summary>
         [Fact]

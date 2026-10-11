@@ -1,5 +1,5 @@
 /**
- * What a delay-rail entry IS, on three axes, read off the contract instead of
+ * What a delay-rail entry is, on three axes, read off the contract instead of
  * assumed.
  *
  * The rail draws several kinds of thing crossing the same gap, and for a long
@@ -18,7 +18,7 @@
  * | telemetry | continuous | fire-and-forget  | radio voice                     |
  * | telemetry | event      | fire-and-forget  | a science result sent home      |
  *
- * The axes are orthogonal, and each drives exactly ONE visual property in the
+ * The axes are orthogonal, and each drives exactly one visual property in the
  * kit that draws them (`@ksp-gonogo/ui-kit`'s `railTags.ts`, where the accessors
  * and the renderer table live). Which combinations have a renderer is a
  * question for that file, not this one: an entry can be perfectly well declared
@@ -27,20 +27,20 @@
  *
  * **Where each axis comes from, and why it is not a list in this package:**
  *
- * - DIRECTION is the caller's own question, and it is not a judgement call: a
+ * - Direction is the caller's own question, and it is not a judgement call: a
  *   declared command id is a command, and anything else on the rail is
  *   telemetry. The two namespaces are disjoint (asserted in
  *   `rail-tags.test.ts`), and a producer always knows which it holds, so the
  *   axis is set by which derivation you reach for rather than by a lookup that
  *   could go either way
- * - DELIVERY comes off the generated rail table's `replies`, which codegen
+ * - Delivery comes off the generated rail table's `replies`, which codegen
  *   fills in from whether the command replies. Telemetry has no reply channel
  *   at all, so nothing replies to a push
- * - KIND is the same sample kind a channel declares, and a property of the
- *   PRODUCER: each of the three derivations below reads it from what the
+ * - Kind is the same sample kind a channel declares, and a property of the
+ *   producer: each of the three derivations below reads it from what the
  *   producer is doing rather than from a declaration. One dispatch of a command
  *   is an event, always: what is continuous is
- *   the AXIS a widget holds, which is {@link railTagsForControlAxis}, or the
+ *   the axis a widget holds, which is {@link railTagsForControlAxis}, or the
  *   stream a producer is pushing, which is {@link railTagsForTelemetry}. The
  *   command's own id cannot say which, because the same id is both depending on
  *   whether the operator pressed it or is holding it
@@ -133,7 +133,7 @@ export interface CommandRail {
  * One instance per combination, frozen, handed back to every caller that asks
  * for it.
  *
- * INTERNED rather than minted per call, and that is not a micro-optimisation.
+ * Interned rather than minted per call, and that is not a micro-optimisation.
  * These triples end up as fields on values that are compared by shallow
  * equality: a command handle is a fresh object literal on most renders, and the
  * delay rail's store only notifies its subscribers when a registered handle

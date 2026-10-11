@@ -10,28 +10,28 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// THE MIDDLEMAN CASE, over the raw wire. A relay satellite carrying the
+    /// The middleman case, over the raw wire. A relay satellite carrying the
     /// craft's signal goes offline while an alternative route home still
-    /// exists: the craft never disconnects, and only the light-time changes.
+    /// exists: the craft never disconnects, and only the signal delay changes.
     /// Whatever had already left the craft is in flight and must keep arriving
-    /// on ITS OWN timing, at the delay it was sent under, one sample at a time.
+    /// on its own timing, at the delay it was sent under, one sample at a time.
     ///
     /// <para>This is the half of the operator's model the reveal gate cannot
     /// reach. <see cref="RevealGateTests.InFlightTailKeepsArrivingSampleBySampleAfterTheLinkCuts"/>
-    /// covers the ENDPOINT case, where the loss takes the whole link and the
+    /// covers the endpoint case, where the loss takes the whole link and the
     /// gate withholds everything recorded after the cut. That gate is keyed on
     /// disconnection (<c>RefreshLedgerDelays</c> writes only
     /// <c>if (!SubjectConnected(...))</c>, and <c>RevealDelayFor</c> returns 0
-    /// for a CONNECTED Delayed topic, leaving the whole light-time to the
+    /// for a connected Delayed topic, leaving the whole signal delay to the
     /// Courier), so a reroute never engages it.
     ///
-    /// <para>WHAT THIS DOES NOT COVER, stated so nothing reads it as more than
-    /// it is: the samples that had NOT yet crossed the dead relay when it died
+    /// <para>What this does not cover, stated so nothing reads it as more than
+    /// it is: the samples that had not yet crossed the dead relay when it died
     /// are still delivered here, at their full original delay. Deciding that
-    /// they can never arrive needs to know WHERE along the path each sample had
-    /// got to, which is per-hop POSITION, and nothing in the stack carries it.
-    /// A per-sample delay fixes WHEN a sample arrives; a per-sample position is
-    /// what would decide WHETHER it arrives at all.</para>
+    /// they can never arrive needs to know where along the path each sample had
+    /// got to, which is per-hop position, and nothing in the stack carries it.
+    /// A per-sample delay fixes when a sample arrives; a per-sample position is
+    /// what would decide whether it arrives at all.</para>
     /// </summary>
     public class MiddlemanRerouteTests
     {
@@ -43,12 +43,12 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// Five samples over a 4 s path, then at UT 6 the relay dies and the
         /// craft reroutes onto a path of <paramref name="newDelay"/> seconds
-        /// while staying CONNECTED throughout. Returns, per tick from UT 6 to
+        /// while staying connected throughout. Returns, per tick from UT 6 to
         /// <paramref name="throughUt"/>, the ValidAts that landed on that tick.
         /// </summary>
         /// <param name="breakOut">
-        /// How far out along the old route, in light-seconds, the relay STOPPED
-        /// CARRYING, raising the drop event. Null for the plain reroute, where
+        /// How far out along the old route, in light-seconds, the relay stopped
+        /// carrying, raising the drop event. Null for the plain reroute, where
         /// the relay went offline but is still repeating and nothing in flight
         /// is retired.
         /// </param>
@@ -110,7 +110,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REROUTE ONTO A LONGER PATH (4 s → 8 s), the worse direction and the
+        /// Reroute onto A longer path (4 s → 8 s), the worse direction and the
         /// one that put duplicate frames on the wire. The four samples still
         /// crossing the old path land at UT 6, 7, 8, 9, once each, in order.
         /// Then the stream is genuinely quiet for the four seconds the first
@@ -119,7 +119,7 @@ namespace Sitrep.Host.IntegrationTests
         ///
         /// <para>Re-reading the ledger at fire time instead froze the vantage
         /// cursor at the last pre-reroute scene and re-resolved all four
-        /// scheduled deliveries to the SAME sample: four identical frames on
+        /// scheduled deliveries to the same sample: four identical frames on
         /// the wire, with UT 3, 4 and 5 lost for good.</para>
         /// </summary>
         [Fact]
@@ -148,12 +148,12 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// THE RELAY DIES AND A ROUTE SURVIVES, which is the case between this
+        /// The relay dies and A route survives, which is the case between this
         /// suite's two halves. The tests above have the relay go offline while
         /// still repeating, so nothing in flight is retired;
         /// <c>MiddlemanDestructionTests</c> has it stop carrying with no route
         /// left, so the craft disconnects and the stream never comes back. Here
-        /// it stops carrying two light-seconds out at UT 6 AND another path home
+        /// it stops carrying two light-seconds out at UT 6 and another path home
         /// exists, so the craft stays connected and the stream has somewhere to
         /// re-establish itself.
         ///
@@ -163,7 +163,7 @@ namespace Sitrep.Host.IntegrationTests
         /// transmitting into a path that stops carrying half way along, and the
         /// samples stamped UT 6 and UT 7 are lost alongside the tail that was
         /// short of the relay. At UT 8 it finds out, re-targets, and the sample
-        /// it sends then lands at the NEW route's delay.</para>
+        /// it sends then lands at the new route's delay.</para>
         ///
         /// <para>The instant of recovery is the assertion worth having. A model
         /// that let the craft re-target at UT 6 would put the UT 6 sample on the
@@ -197,7 +197,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// REROUTE ONTO A SHORTER PATH (4 s → 1 s). The tail sent under the old
+        /// Reroute onto A shorter path (4 s → 1 s). The tail sent under the old
         /// path keeps arriving from where it had got to: the first thing to land
         /// after the reroute is the sample stamped UT 2, the oldest still in
         /// flight. Re-reading the ledger at fire time instead dragged the
@@ -206,14 +206,14 @@ namespace Sitrep.Host.IntegrationTests
         /// delivered at all.
         ///
         /// <para>Only the UT 6 arrival is pinned frame-for-frame, deliberately.
-        /// A shorter route means post-reroute samples OVERTAKE the tail, so two
+        /// A shorter route means post-reroute samples overtake the tail, so two
         /// frames on this topic can fall in one tick, and
         /// <c>Outbox.PublishTelemetry</c> coalesces a LossyLatest topic per
         /// flush: which of an overtaking pair reaches the socket is a race with
         /// the flush loop, not a property of the delay model. Measured across
         /// runs of this fixture, the UT 7 and UT 9 ticks each went both ways.
         /// What is pinned instead holds regardless: nothing arrives before its
-        /// own light-time could carry it, and no sample is delivered twice.</para>
+        /// own signal delay could carry it, and no sample is delivered twice.</para>
         /// </summary>
         [Fact]
         public async Task AShorterRerouteResumesTheTailFromWhereItHadGotTo()
@@ -233,12 +233,12 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// THE LATE SUBSCRIBER, which is the case neither reroute suite could
+        /// The late subscriber, which is the case neither reroute suite could
         /// reach. Every other test here and in
-        /// <c>Sitrep.Core.Tests.CourierRerouteStampTests</c> subscribes BEFORE
+        /// <c>Sitrep.Core.Tests.CourierRerouteStampTests</c> subscribes before
         /// the first sample is recorded, so all their deliveries are scheduled
         /// by <c>Courier.Record</c> and the catch-up backlog in
-        /// <c>SubscribeStream</c> is empty every time they run. Here a SECOND
+        /// <c>SubscribeStream</c> is empty every time they run. Here a second
         /// client joins after the reroute, with the whole old-path tail still
         /// crossing, which is what a station opening mid-flight does.
         ///
@@ -249,7 +249,7 @@ namespace Sitrep.Host.IntegrationTests
         ///
         /// <para>The late client is owed what the established one is owed: the
         /// sample stamped UT 2 as its catch-up (2 + 4 is the newest arrival
-        /// that has happened), then UT 3, 4 and 5 on the OLD path's timing.
+        /// that has happened), then UT 3, 4 and 5 on the old path's timing.
         /// Timing that backlog against the ledger's current 8 s instead pushes
         /// the whole tail four seconds late and leaves the catch-up empty, so a
         /// station joining a rerouted craft sees a dead channel and then

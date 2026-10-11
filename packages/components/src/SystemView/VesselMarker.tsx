@@ -6,7 +6,7 @@ import { DepthRing } from "./diagramMarks";
 import { InteractiveMarker } from "./SystemEntitiesLayer";
 
 /**
- * How a craft's position on the diagram is KNOWN, which is not the same as
+ * How a craft's position on the diagram is known, which is not the same as
  * where it is.
  *
  * - `observed`: contact right now, so the marker is a measurement
@@ -79,7 +79,7 @@ export interface VesselMarkerPlacement {
 /**
  * Where a vessel marker renders, and whether it needs a leader line back to its true position.
  *
- * A crowded marker is pushed out along its own direction from `anchor`, the DRAWN position of the body it orbits, not the origin (in a pulsating frame the origin is the pair's mass centre). A vessel exactly on the anchor falls back to up-and-right.
+ * A crowded marker is pushed out along its own direction from `anchor`, the drawn position of the body it orbits, not the origin (in a pulsating frame the origin is the pair's mass centre). A vessel exactly on the anchor falls back to up-and-right.
  */
 export function resolveVesselMarkerPlacement(
   pos: { x: number; y: number },

@@ -6,7 +6,7 @@
  * (routed-screen) harnesses. `MissionBanner` is app chrome
  * (`packages/app/src/components/MissionBanner.tsx`), imported directly by
  * relative path: esbuild resolves its own `@ksp-gonogo/*` imports from
- * wherever THAT file lives, so this crosses the package boundary safely
+ * wherever that file lives, so this crosses the package boundary safely
  * without adding a components→app dependency.
  *
  * Exposes `window.__renderVantage(payload)`: builds a fresh

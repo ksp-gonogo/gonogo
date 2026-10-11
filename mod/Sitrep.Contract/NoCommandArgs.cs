@@ -20,7 +20,7 @@ namespace Sitrep.Contract;
 /// <para>Each of the six is tagged onto this class with
 /// <see cref="SitrepCommandAttribute"/>, so a command with no arguments is still
 /// enumerable and still names its result. The handlers bind <c>TArgs</c> as
-/// <c>object?</c> and ignore what arrives, so this type describes the ABSENCE
+/// <c>object?</c> and ignore what arrives, so this type describes the absence
 /// rather than a wire shape: it generates as an empty interface, which is what
 /// makes <c>send()</c>'s argument optional for these and required for the
 /// rest.</para>

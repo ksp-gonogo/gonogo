@@ -46,7 +46,7 @@ export const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
 };
 
 /**
- * `SpaceCenterFacility` ORDINAL to this widget's short {@link FacilityKey}. The
+ * `SpaceCenterFacility` ordinal to this widget's short {@link FacilityKey}. The
  * enum side comes from {@link KspSpaceCenterFacility}, so a renamed or added
  * member is a compile-time gap here rather than a facility that silently stops
  * being displayed.
@@ -90,7 +90,7 @@ export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
  * `career.facilities` into this widget's short-code vocabulary. A facility is
- * carried only once BOTH tiers read as numbers: a building that answered nothing
+ * carried only once both tiers read as numbers: a building that answered nothing
  * is not a building at tier 0.
  */
 export function parseFacilityLevels(

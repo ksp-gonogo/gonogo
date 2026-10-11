@@ -41,7 +41,7 @@ import { tsconfigsRunBy } from "./typecheckScriptConfigs";
  * The exclusion was one line and nothing said it was there, which is the whole
  * point: a comment cannot fix an invisible gap, only a check that fails can.
  *
- * WHY IT ASKS THE COMPILER. The gate does not read `include`/`exclude` and
+ * Why it asks the compiler. The gate does not read `include`/`exclude` and
  * decide for itself what they mean. It hands the config to TypeScript's own
  * config parser and reads back the resolved file list, so a package that
  * arrives at the exclusion some other way (a narrowed `include`, an inherited
@@ -153,7 +153,7 @@ function discoverPackages(): WorkspacePackage[] {
 /**
  * The tsconfig paths a package's `typecheck` script actually runs.
  *
- * A package is covered if ANY config in its typecheck run pulls the tests in,
+ * A package is covered if any config in its typecheck run pulls the tests in,
  * so every config named by the script counts. The parsing itself lives in
  * `typecheckScriptConfigs.ts`, shared with the entry-point coverage gate.
  */
@@ -345,10 +345,10 @@ describe("typecheck coverage: every package typechecks its own test files", () =
      * The debt list as it stood at the ratchet base, with the ref it came from
      * so a failure can quote it.
      *
-     * `ratchetBaseRef` THROWS when no base can be reached. This used to catch
+     * `ratchetBaseRef` throws when no base can be reached. This used to catch
      * that and return `undefined`, and the caller below reads `undefined` as
      * "nothing to grade", so an unreachable base made the check pass without
-     * running. Undefined now means only that the checkout IS the base or that
+     * running. Undefined now means only that the checkout is the base or that
      * the list did not exist there, and `ratchet-base-ref.test.ts` grades the
      * second case.
      */

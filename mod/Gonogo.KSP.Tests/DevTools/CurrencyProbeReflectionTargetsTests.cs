@@ -8,7 +8,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.DevTools
 {
     /// <summary>
-    /// Every production member <c>GonogoDevCurrency</c>'s ROUTE probe reaches by
+    /// Every production member <c>GonogoDevCurrency</c>'s route probe reaches by
     /// reflection, checked here so a rename cannot quietly turn the probe's answers
     /// into "(unreadable)".
     ///
@@ -24,7 +24,7 @@ namespace Gonogo.KSP.Tests.DevTools
     /// <para>The types that compile headlessly are reflected over for real. The two
     /// that cannot be (<c>KscLightTime</c> needs a live <c>Vessel</c>,
     /// <c>CommsCoreUplink</c> is only compiled under the KspManaged gate) are checked
-    /// against their shipped SOURCE, the same discipline
+    /// against their shipped source, the same discipline
     /// <c>AwayScienceArmIsWiredTests</c> uses for the interceptor.</para>
     /// </summary>
     public class CurrencyProbeReflectionTargetsTests

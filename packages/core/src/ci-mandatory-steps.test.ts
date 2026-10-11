@@ -21,20 +21,20 @@ import { describe, expect, it } from "vitest";
  * `pull_request: branches: [main]`, so the step never ran on the merge gate,
  * which is the one path where a silently-dropped test suite decides whether
  * code lands. The step it guards exists precisely because a missing checkout
- * removes the KSP-linked sources at BUILD time and the job then passes having
+ * removes the KSP-linked sources at build time and the job then passes having
  * run none of them.
  *
  * ## Why an evaluator rather than a text assertion
  *
- * Asserting that the `if:` line CONTAINS `github.event_name` would pass on a
+ * Asserting that the `if:` line contains `github.event_name` would pass on a
  * condition that mentions it and still cannot match. The question is what the
- * expression ANSWERS for a given event, so this evaluates it: a small reader
+ * expression answers for a given event, so this evaluates it: a small reader
  * for the subset of GitHub's expression syntax the condition uses (`==`, `&&`,
  * `||`, parentheses, single-quoted strings, and context lookups), run against
  * four event shapes built to match what GitHub actually sends.
  *
  * If a future condition needs syntax this does not implement, the evaluator
- * THROWS on the unknown token rather than guessing, so the test fails loudly
+ * throws on the unknown token rather than guessing, so the test fails loudly
  * instead of quietly answering `false` for everything.
  */
 
@@ -52,7 +52,7 @@ const CI_YML = join(ROOT, ".github/workflows/ci.yml");
 
 /**
  * The step this file is about, matched on the `- name:` line. Named rather
- * than indexed so the test survives steps moving around it, and so a RENAME
+ * than indexed so the test survives steps moving around it, and so a rename
  * fails here (where the reason is legible) rather than silently checking
  * nothing.
  */
@@ -229,7 +229,7 @@ function pushTo(branch: string): Ctx {
 }
 
 /**
- * A `pull_request` event. `ref` is the MERGE ref, never the base branch, which
+ * A `pull_request` event. `ref` is the merge ref, never the base branch, which
  * is the whole point of this file; `base_ref` carries the bare base branch
  * name; `head.repo.full_name` is what separates a fork from a same-repo PR and
  * therefore what separates "has the secret" from "cannot".

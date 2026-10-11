@@ -155,7 +155,8 @@ type Currency = TopicCurrency<unknown, { readonly status: "none" }>;
 /**
  * A Topic's reading as a contribution receives it: with its forward model
  * removed, and the previous object kept while the state, value, instant and
- * grade are unchanged.
+ * grade are unchanged. Used by {@link ContributionsProvider} when it hands
+ * readings to contributions.
  *
  * A modelled reading is a new object on every frame the view time moves, so
  * handing one over whole would re-run every contribution reading a modelled
@@ -440,7 +441,9 @@ function reportContributionThrew(id: string, err: unknown): void {
 
 /**
  * Runs the registered contributions for the tree below it and stores their
- * entries for {@link useContributions} to read. Inside a widget it serves the
+ * entries for {@link useContributions} to read. Useful for showing the operator
+ * what Uplinks add to a widget or to the screen header. Used by the dashboard
+ * grid and the screen header badges. Inside a widget it serves the
  * widget's declared `contributionSlots` plus the component segments
  * (`badges`, `filters`, `meters`) completed to `${componentId}.<segment>`.
  * `slots` names the full slot ids to serve instead, for a surface that is not

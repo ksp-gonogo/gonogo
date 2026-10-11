@@ -139,7 +139,7 @@ function px(value: string): number {
  * `fullTitle`, when given, is measured in place of whatever text is currently
  * live in `titleRef`. `Panel.Title` runs its own, separate fit (`useFittedTitle`)
  * and may already be showing a compacted form; measuring that would ask
- * whether the SHORT form fits rather than whether the aside must give way for
+ * whether the short form fits rather than whether the aside must give way for
  * the full one, and a title that had already shortened would then report
  * itself small enough that the aside never collapsed, locking the short form
  * in for good.

@@ -35,14 +35,14 @@ export interface CommcastEntry {
  * What one vantage can currently see.
  *
  * Two lists, and the split is the terminal widget's in line mode: what is in the
- * BUFFER, and what is still in the uplink queue. There is deliberately no
+ * buffer, and what is still in the uplink queue. There is deliberately no
  * third list of messages on their way here. A message crossing toward this
- * screen is simply ABSENT until it lands, the way a terminal frame is, and
+ * screen is simply absent until it lands, the way a terminal frame is, and
  * announcing "somebody is saying something you cannot hear yet" would be the
  * faster-than-light channel the whole design avoids.
  */
 export interface CommcastFeed {
-  /** In the order it landed HERE. Never reordered. */
+  /** In the order it landed here. Never reordered. */
   log: readonly CommcastEntry[];
   /** This screen's own words, still on their round trip, in send order. */
   outbound: readonly OutboundMessage[];
@@ -62,14 +62,14 @@ const EMPTY_FEED: CommcastFeed = { log: [], outbound: [], groups: new Map() };
  * `utNowEstimate()`, so a warp, a quickload or a revert moves every pending
  * entry with the clock.
  *
- * Release ORDER is why the buffer earns its place over a sort. Sorting the
+ * Release order is why the buffer earns its place over a sort. Sorting the
  * whole log by reveal instant retroactively inserts: a straggler that reaches
  * this screen now, carrying a reveal instant in the past, would land above
- * messages the operator has already read. The buffer appends in RELEASE order,
+ * messages the operator has already read. The buffer appends in release order,
  * so a backlog replays in its own historical order and a straggler lands at the
  * end, where it honestly arrived.
  *
- * This screen's OWN words go through the same buffer on a different instant:
+ * This screen's own words go through the same buffer on a different instant:
  * not when they were spoken, but when they settled (`sentArrivalUtFor`). That
  * is what makes an author's own line and the reply answering it land together,
  * the way the terminal widget's own line-mode echo and its output do.
@@ -111,14 +111,14 @@ export function useCommcastFeed(
    *
    * Load-bearing, and it is what a bare `pinned.current = new Map()` in the
    * rebuild effect gets wrong. Effects run in declaration order, so on the
-   * commit that rebuilds the buffer the PUSH effect below still closes over the
+   * commit that rebuilds the buffer the push effect below still closes over the
    * previous, now-disposed buffer while the map has already been cleared: it
    * re-pins every message and pushes it into a buffer that silently ignores
    * pushes, and the next commit sees a full map and pushes nothing. The
    * messages are then pinned to a buffer that will never release them and
    * disappear from the log entirely.
    *
-   * Clearing the map HERE, against the buffer the push actually holds, makes
+   * Clearing the map here, against the buffer the push actually holds, makes
    * that impossible: a stale pass leaves the pins alone and does nothing, and
    * the pass that has the new buffer is the one that re-pins.
    *

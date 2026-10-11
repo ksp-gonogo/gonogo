@@ -5,25 +5,25 @@ using Xunit;
 namespace Gonogo.KSP.Tests.Maneuver
 {
     /// <summary>
-    /// The maneuver WRITE path respects the same election the read path does.
+    /// The maneuver write path respects the same election the read path does.
     ///
     /// <para>The read side has always known the plan might not be ours
-    /// (<c>KspHost.BuildManeuverNodes</c>: "Whatever the ELECTED provider
+    /// (<c>KspHost.BuildManeuverNodes</c>: "Whatever the elected provider
     /// answered, never <c>patchedConicSolver</c> directly"). The write side did not
-    /// check at all, so under a foreign plan owner it produced a GHOST NODE: we
+    /// check at all, so under a foreign plan owner it produced a ghost node: we
     /// mutate stock's solver, the owning planner never reads it, and the operator
     /// sees a maneuver node that does precisely nothing.</para>
     ///
     /// <para>This file exists because a doc comment cannot establish that a branch
-    /// is CORRECT, only that it should not be deleted. Nothing on a stock install
+    /// is correct, only that it should not be deleted. Nothing on a stock install
     /// has ever executed the refusal, since the maneuver-plan election has exactly
     /// one member, so "correct in advance" needed evidence.</para>
     ///
-    /// <para><b>Why the three commands are asserted STRUCTURALLY rather than by
+    /// <para><b>Why the three commands are asserted structurally rather than by
     /// calling them.</b> Their bodies reference Unity types that the
     /// reference-assembly set does not ship (`UnityEngine.PhysicsModule`), so a
     /// headless test cannot enter the methods at all: it fails on assembly load
-    /// before reaching any guard. So the RULE is exercised directly and the WIRING
+    /// before reaching any guard. So the rule is exercised directly and the wiring
     /// is checked against the source. Stated plainly because a structural check is
     /// weaker than a behavioural one and a reader should know which they have.</para>
     /// </summary>

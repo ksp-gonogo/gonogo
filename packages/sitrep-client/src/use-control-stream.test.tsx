@@ -217,7 +217,7 @@ describe("useControlStream", () => {
 });
 
 /**
- * `comms.delay` reports the active craft's path HOME, whoever is asking, and
+ * `comms.delay` reports the active craft's path home, whoever is asking, and
  * this hook reads it straight off the topic rather than through the view
  * clock. So a pilot at the craft's own vantage, whose commands execute with no
  * light-time at all, would still be drawn seconds of in-transit flight on a

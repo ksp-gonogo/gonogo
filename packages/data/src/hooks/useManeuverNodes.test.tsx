@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { useManeuverNodes } from "./useManeuverNodes";
 
 /**
- * A node as the mod SENDS it, quantities still bare numbers: `emit` wraps them
+ * A node as the mod sends it, quantities still bare numbers: `emit` wraps them
  * on the way in, so the modelled `ManeuverNode` is the shape that comes out the
  * far end, not the one handed to the transport.
  */

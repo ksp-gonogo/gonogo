@@ -9,7 +9,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The occlusion model as a DECLARED property of the elected comms backend.
+    /// The occlusion model as a declared property of the elected comms backend.
     ///
     /// <para>The thing under test is a disagreement. Stock CommNet shrinks a
     /// body before testing a radio path against it (0.9x airless, 0.75x with an
@@ -20,7 +20,7 @@ namespace Sitrep.Host.Tests
     /// stock's declaration below the bare radius and prove a consumer reads
     /// whichever model won the election without knowing who won.</para>
     ///
-    /// <para>Stock's declaration is the REAL one: this project compiles
+    /// <para>Stock's declaration is the real one: this project compiles
     /// <c>CommNetOcclusion</c> straight out of its backend (see the .csproj), so
     /// a change to it shows up here rather than in a re-stated constant that
     /// could drift. The competing bare-radius model is planted from the
@@ -200,7 +200,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// The whole point of the seam: the SAME consumer call yields different
+        /// The whole point of the seam: the same consumer call yields different
         /// geometry purely because a different provider won, with no branch on
         /// which mod is installed anywhere in the call.
         /// </summary>

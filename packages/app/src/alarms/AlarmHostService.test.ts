@@ -18,7 +18,7 @@ import { AlarmHostService } from "./AlarmHostService";
 interface FakeTelemetry {
   set(key: string, v: unknown): void;
   /**
-   * Publish a WHOLE Topic record, the only shape the wire has.
+   * Publish a whole Topic record, the only shape the wire has.
    *
    * `set` addresses a field subtopic directly, which no server ever does: it
    * lands a bare literal on a timeline nothing publishes to, so a quantity
@@ -28,14 +28,14 @@ interface FakeTelemetry {
    */
   publishTopic(topic: string, record: unknown): void;
   /**
-   * Make the game OBEY `time.setWarpIndex`: the observed rate and index become
+   * Make the game obey `time.setWarpIndex`: the observed rate and index become
    * what was commanded, as a real session's do.
    *
    * Off by default, because a fixture that starts answering a question every
    * existing case ignored would change what those cases assert.
    *
    * It is what gives the controller's reading-ORDER logic anything to be about.
-   * `WarpControl` records the index it saw AT dispatch, and treats a later
+   * `WarpControl` records the index it saw at dispatch, and treats a later
    * reading equal to it as the game not having responded yet. With the game
    * never responding, every reading equals that one for ever, so a stop the
    * controller did not ask for is indistinguishable from a command that has not
@@ -73,7 +73,7 @@ function formatCommand(command: string, args: unknown): string {
  * `contracts.active`/command dispatch (`dispatchActiveCommand`) all ride
  * this same store/client.
  *
- * `set(key, value)` keeps the SAME call shape every test in this file
+ * `set(key, value)` keeps the same call shape every test in this file
  * already uses: `t.universalTime` still registers the fake view clock,
  * `t.currentRateIndex`/`t.currentRate` merge into a running `WarpState` and
  * re-publish the whole `time.warp` record (the wire shape `getWarpState`
@@ -423,7 +423,7 @@ describe("AlarmHostService", () => {
 
   /**
    * The local half of the warp-intent fix: this is what the screen's own warp
-   * control reaches through `WarpIntentProvider`, and it must quiet THIS
+   * control reaches through `WarpIntentProvider`, and it must quiet this
    * observer.
    */
   it("suppresses its own flag when the screen announces its own warp intent", async () => {
@@ -741,12 +741,12 @@ describe("AlarmHostService", () => {
     });
 
     /**
-     * The hand-back, which #39 turned from an edge case into the NORMAL end of
+     * The hand-back, which #39 turned from an edge case into the normal end of
      * every warp-to session: the mod stops the warp in the frame it decides to,
      * and this side's job is to stop driving rather than argue.
      *
      * Two things are asserted and the second is the point. The session ends,
-     * AND no warp command is issued on the way out: the game is already at zero,
+     * and no warp command is issued on the way out: the game is already at zero,
      * so a command from here would be a second authority for one piece of state
      * and would arrive after the fact.
      *
@@ -1134,7 +1134,7 @@ describe("AlarmHostService", () => {
 
   /**
    * Every route by which an alarm comes to have fired owes the operator the same
-   * consequences. The failure this guards against is SILENCE: an alarm whose
+   * consequences. The failure this guards against is silence: an alarm whose
    * state says it fired while nothing told anyone.
    */
   describe("a fire is a fact, whatever route delivers it", () => {

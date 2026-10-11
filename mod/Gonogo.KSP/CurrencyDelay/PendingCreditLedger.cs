@@ -36,7 +36,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>
         /// Removes and returns every row whose RevealUt has passed, in the
         /// order they were enqueued. Time-warp can jump UT past several
-        /// reveals in a single check, so this always matures ALL eligible
+        /// reveals in a single check, so this always matures all eligible
         /// rows in one call rather than just the earliest one.
         /// </summary>
         public List<PendingCreditRow> PopMatured(double nowUt)

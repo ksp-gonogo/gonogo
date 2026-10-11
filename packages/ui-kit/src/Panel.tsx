@@ -61,9 +61,12 @@ interface PanelContextValue {
 const PanelCtx = createContext<PanelContextValue | null>(null);
 
 /**
- * Links a panel's parts: `Panel.Body` registers the element that scrolls and
- * `Panel.Glow` draws its edge glow from it, whatever their nesting order. A
- * hand-composed panel mounts it around both.
+ * The link between a panel's scrolling body and its edge glow: `Panel.Body`
+ * registers the element that scrolls and `Panel.Glow` draws from it, whatever
+ * their nesting order. Useful for a widget that builds its own panel from
+ * `Panel` parts and still wants the operator to see which edge has more to
+ * scroll to. Used by {@link Panel}; a hand-composed panel mounts it around both
+ * parts.
  */
 export function PanelContextProvider({ children }: { children?: ReactNode }) {
   const [scroller, setScroller] = useState<HTMLElement | null>(null);
@@ -75,10 +78,12 @@ export function PanelContextProvider({ children }: { children?: ReactNode }) {
 }
 
 /**
- * The per-panel providers a `Panel` mounts. A hand-composed panel can mount
- * them too. The delay-rail store is not here: a widget's
- * commands register above the `<Panel>` it returns, so that store is provided
- * above the widget.
+ * The per-panel providers a {@link Panel} mounts around its parts. Useful for
+ * a widget that composes its own panel from `Panel` parts and needs the same
+ * providers. Used by {@link Panel}.
+ *
+ * The delay-rail store is not here: a widget's commands register above the
+ * `<Panel>` it returns, so that store is provided above the widget.
  */
 export function PanelProviders({ children }: { children?: ReactNode }) {
   return <PanelContextProvider>{children}</PanelContextProvider>;
@@ -156,7 +161,12 @@ export interface PanelTitleProps
   compact?: string | readonly string[];
 }
 
-/** A panel's title, in the longest form that fits. */
+/**
+ * A panel's title, drawn in the longest of its forms that fits the tile. When a
+ * shorter form shows, the full title stays the accessible name and the hover
+ * text. Useful for keeping the operator's heading for a widget readable at every
+ * tile size. Used by {@link Panel} as `Panel.Title`.
+ */
 export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
   function PanelTitle({ compact, children, ...rest }, forwarded) {
     const own = useRef<HTMLHeadingElement | null>(null);
@@ -353,7 +363,10 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
 `;
 
 /**
- * Title and an optional right-hand aside on one row.
+ * The row at the top of a panel: its title and an optional right-hand aside.
+ * Useful for keeping a widget's controls and badges beside its title in a wide
+ * tile and its status in view in a narrow one. Used by {@link Panel} as
+ * `Panel.Header`.
  *
  * When the title and aside no longer fit side by side, the aside collapses to
  * the panel's per-severity status dots (worst first) plus a chevron, and the
@@ -457,7 +470,9 @@ export function PanelHeader({
 
 /**
  * A full-width row of controls under the header, pinned like the header and
- * outside the scrolling body.
+ * outside the scrolling body. Useful for keeping layer pickers or series
+ * toggles in reach of the operator while the body scrolls. Used as
+ * `Panel.Toolbar` on {@link Panel}.
  *
  * `panelAside` is the small slot beside the title (a chip, a badge, one
  * select); a toolbar is for controls that are a row in their own right, such as
@@ -554,8 +569,10 @@ const PanelBody__Box = styled.div<{
 const LONE_FRAME_BREAKPOINT = "25rem";
 
 /**
- * The content box, the inset, and the scrolling. Registers itself with the
- * panel context so `Panel.Glow` can observe it without reaching into the tree.
+ * The inset, scrolling content box of a panel. Useful for holding a widget's
+ * rows and sections so the operator can scroll them under the pinned header.
+ * Used by {@link Panel} as `Panel.Body`, which registers it with the panel
+ * context so `Panel.Glow` can observe it without reaching into the tree.
  */
 export function PanelBody({
   children,
@@ -777,7 +794,8 @@ function contentExtent(content: HTMLElement): number {
 /**
  * Whether content of `content` height, centred in a box `box` tall, stays
  * inside it. The box already runs from the header's foot to the clip edge, so
- * there is no room past either end to overflow into.
+ * there is no room past either end to overflow into. Useful for deciding when
+ * centred content must scroll instead. Used by the panel body in {@link Panel}.
  */
 export function contentFits(content: number, box: number): boolean {
   return content <= box;
@@ -862,8 +880,10 @@ const ScrollOverflowGlow = styled.div<{
  * A scrolling region with a glow at the top and bottom edges while there is
  * content to scroll to. A panel body already scrolls and glows; use this for a
  * second scrolling region inside a widget (a sidebar list, a terminal log).
- * Its native scrollbar is hidden, and it takes keyboard focus when its content
- * overflows so it can be scrolled from the keyboard.
+ * Useful for showing the operator that a list continues past its edge. Used by
+ * the target picker's list. Its native scrollbar is hidden, and it takes
+ * keyboard focus when its content overflows so it can be scrolled from the
+ * keyboard.
  *
  * The ref is forwarded to the inner scroll element; `className` and other
  * `div` attributes go to the outer root. A `styled(ScrollArea)` can reach the
@@ -1023,11 +1043,11 @@ interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
 }
 
 /**
- * The grid that holds `Panel.Body` and `Panel.Sidebar`.
- *
- * The axis is measured on this box, whose size does not change when the grid
- * flips axes; measuring the body instead would oscillate. A container query
- * would impose size containment on a box that must hand its height down.
+ * The grid that holds `Panel.Body` and `Panel.Sidebar`, placing the sidebar
+ * beside the body in a wide tile and below it in a tall one. Useful for
+ * showing the operator a detail pane next to the drawing it annotates without
+ * the drawing resizing when the layout flips. Used by {@link Panel}, which
+ * places the body and the sidebar in it.
  */
 export function PanelSplit({
   side = "end",
@@ -1037,6 +1057,11 @@ export function PanelSplit({
   ...rest
 }: PanelSplitProps) {
   // Seeded square, so an unmeasured panel gets the side-by-side arrangement.
+  /*
+   * The axis is measured on this box, whose size does not change when the grid
+   * flips axes; measuring the body instead would oscillate. A container query
+   * would impose size containment on a box that must hand its height down.
+   */
   const { ref, size: measured } = useElementSize<HTMLDivElement>({
     w: 1,
     h: 1,
@@ -1093,7 +1118,9 @@ const PanelSidebar__Box = styled.div`
 
 /**
  * Secondary content beside or below the body: an almanac for the diagram, a
- * legend for the plot, a detail pane for the selected row.
+ * legend for the plot, a detail pane for the selected row. Useful for giving
+ * the operator context beside a drawing without covering it. Used as
+ * `Panel.Sidebar` on {@link Panel}.
  *
  * It has its own {@link ScrollArea} and sits outside `Panel.Body`, so
  * scrolling it does not scroll the drawing it annotates. It is padded like the
@@ -1138,9 +1165,12 @@ const PanelGlow__Root = styled.div`
 `;
 
 /**
- * Owns the overflow glow and nothing else. It does not scroll; it decorates
- * whatever does, found through the panel context, so it can wrap the body or
- * sit beside it.
+ * The glow at the top and bottom edge of a panel body that has more to scroll
+ * to. Useful for telling the operator that content continues past an edge.
+ * Used by {@link Panel} as `Panel.Glow`.
+ *
+ * It does not scroll: it decorates whatever does, found through the panel
+ * context, so it can wrap the body or sit beside it.
  */
 export function PanelGlow({
   children,
@@ -1299,7 +1329,7 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   hoverTitle?: boolean;
   /**
-   * A pinned strip at the very bottom of the panel, OUTSIDE the scrolling
+   * A pinned strip at the very bottom of the panel, outside the scrolling
    * body: the one readout an operator must never have to scroll for (a power
    * meter, a mission clock). It has its own top border and stays put while the
    * body scrolls. Keep it to a single row; anything taller belongs in the body
@@ -1368,7 +1398,10 @@ function mergeBadges(
 
 /**
  * The standard augment segments {@link Panel} mounts for every widget:
- * `sections` and `actions`. An Uplink binds `"<widget-id>.sections"` or
+ * `sections` and `actions`. Useful for an Uplink author checking which segment
+ * names every widget carries. Used by the render probe that `uplink-tools`
+ * runs, to avoid binding a standard slot a second time on a stand-in host. An
+ * Uplink binds `"<widget-id>.sections"` or
  * `"<widget-id>.actions"` with `registerAugment` for any widget, whether or
  * not the widget declares slots of its own. Neither passes props (see
  * {@link AugmentSegmentRegistry}). Where each renders is under Standard slots
@@ -1381,9 +1414,12 @@ export const FRAMEWORK_AUGMENT_SEGMENTS = ["sections", "actions"] as const;
 const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 
 /**
- * Renders every augment bound to the current widget's standard
+ * Every augment bound to the current widget's standard
  * `${componentId}.sections` slot, in priority order, skipping any whose
- * `requires` Domain is not present. The augments get no props.
+ * `requires` Domain is not present. The augments get no props. Useful for
+ * placing the sections an Uplink adds to a widget somewhere the operator
+ * expects them, such as inside a tab. Used by the map view and the space centre
+ * status widget.
  *
  * {@link Panel} already mounts this at the end of its body, so a widget
  * renders it itself only to place the sections somewhere else (inside a tab,
@@ -1476,8 +1512,9 @@ const PanelSummaryBadge__Pulse = styled.span<{ $pulse: number }>`
 
 /**
  * The strip pinned to the bottom of a panel, which `panelFooter` renders
- * into. It never scrolls or shrinks, and shares the body's side padding so its
- * content lines up with the rows above it.
+ * into. Useful for keeping a total or summary in view under a scrolling body.
+ * Used as `Panel.Footer` on {@link Panel}. It never scrolls or shrinks, and
+ * shares the body's side padding so its content lines up with the rows above it.
  */
 export const PanelFooter = styled.div`
   flex-shrink: 0;
@@ -1676,7 +1713,7 @@ const PanelHoverAside = styled.div`
 /**
  * `useId()`'s output is not scoped to the component that calls it: React
  * allocates from one sequence across the whole render, so a call added here
- * unconditionally shifts every OTHER widget's own `useId()`-derived strings
+ * unconditionally shifts every other widget's own `useId()`-derived strings
  * downstream of it (Navball's SVG clip path is one, generated deep inside a
  * widget that never sets `hoverTitle` at all). Two component identities,
  * chosen by the stable `hoverTitle` prop before either renders, keep the
@@ -2049,8 +2086,12 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  * sidebar, trend strip and footer. Give it content through `sections`: each
  * entry is normally a {@link Section}, and the panel flows them down one
  * column in a portrait tile and across two or three in a landscape one. A
- * `Section fill` takes the height left over. The panel also reserves a strip above the
- * header for the delay rail, which shows this widget's commands in flight.
+ * `Section fill` takes the height left over. The panel also reserves a strip
+ * above the header for the delay rail, which shows this widget's commands in
+ * flight.
+ *
+ * Useful for giving the operator the same title, status and scrolling
+ * behaviour on every widget. Used by the widgets of the built-in library.
  *
  * The header aside holds, in order, `panelAside`, the `actions` augments,
  * the badges (the widget's own `panelBadges`, then contributed ones), and a

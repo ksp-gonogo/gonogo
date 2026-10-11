@@ -21,7 +21,7 @@ export interface MissionHistorySettings {
 /**
  * Reactive read of all three mission-history settings, with the two
  * sub-toggles pre-combined against the master switch: callers never need
- * to re-derive the `historyEnabled && subToggle` AND themselves (mirrors
+ * to re-derive the `historyEnabled && subToggle` and themselves (mirrors
  * `useStationWakeLock`'s own `active && enabled` combination pattern).
  */
 export function useMissionHistorySettings(): MissionHistorySettings {

@@ -15,9 +15,9 @@
  * stops there. A controlled comparison rather than two drawings of two
  * datasets.
  *
- * Deliberately NOT registered in `widgets.ts`: that file is the visual gate's
+ * Deliberately not registered in `widgets.ts`: that file is the visual gate's
  * input, and a scene added to it with no committed baseline fails the gate as
- * MISSING.
+ * missing.
  * These exist to be looked at by a person.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-reckoned-tail`. Pass
@@ -66,7 +66,7 @@ const CONFIGS: WidgetRenderConfig[] = [
  * `packages/components` bundles from source, but everything it imports resolves
  * through a built `dist`, and esbuild bundles whatever is there without a word.
  * `render-chart-provenance.ts` learned this the expensive way: its first run
- * produced an entirely plausible picture of the PREVIOUS chart's rules, and it
+ * produced an entirely plausible picture of the previous chart's rules, and it
  * was caught by someone knowing which run should be dashed rather than by
  * anything in the tooling. A render that predates the change it is offered as
  * evidence of is the failure a picture is least able to show you, and it is

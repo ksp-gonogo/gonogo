@@ -16,7 +16,7 @@ namespace Gonogo.KSP
     /// route was ever named. One scan up front makes every name in the pass
     /// free.</para>
     ///
-    /// <para>Deliberately a SNAPSHOT rather than a long-lived cache. A cache
+    /// <para>Deliberately a snapshot rather than a long-lived cache. A cache
     /// would have to be invalidated on every vessel appearing, being destroyed
     /// or being recycled, and getting that wrong hands out a stale id, which
     /// names a break against the wrong node, in a system whose whole failure
@@ -57,7 +57,7 @@ namespace Gonogo.KSP
         /// An index over nodes already paired with their owning vessel's id.
         /// The vessel walk in <see cref="From"/> is the only production caller;
         /// this exists so the identity rule can be exercised without a running
-        /// game, and it deliberately builds through the SAME comparer, since a
+        /// game, and it deliberately builds through the same comparer, since a
         /// test supplying its own would be checking itself rather than this.
         /// </summary>
         internal static VesselNodeIndex ForNodes(params (CommNode Node, string Id)[] entries)
@@ -84,7 +84,7 @@ namespace Gonogo.KSP
         /// produces: a null list, a null vessel, a vessel with no connection,
         /// and a connection with no node all contribute nothing rather than
         /// throwing. A vessel whose node is already indexed does not displace
-        /// the first: two vessels reporting the SAME node object is not a state
+        /// the first: two vessels reporting the same node object is not a state
         /// this can resolve, and keeping the first is at least stable within
         /// the pass.</para>
         /// </summary>

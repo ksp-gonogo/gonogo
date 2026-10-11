@@ -6,7 +6,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// Reading a threshold against what ONE VANTAGE HAS BEEN TOLD.
+    /// Reading a threshold against what one vantage has been told.
     ///
     /// <para>The archive and the delay ledger are stubbed to a delegate, which
     /// is the whole seam: everything asserted here is about what the reader does

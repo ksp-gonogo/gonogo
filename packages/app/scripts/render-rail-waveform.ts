@@ -8,14 +8,14 @@
  *
  * The ribbon draws only while an operator holds the Talk key in a radio session
  * with a peer, so it has never appeared in a render, a baseline or a doc. This
- * is the instrument for it. It is a MARK inside `ControlDelayStream` now, drawn
+ * is the instrument for it. It is a mark inside `ControlDelayStream` now, drawn
  * in the outgoing zone of the one rail, so the extent below is measured against
  * the T divider rather than against the widget's far edge. Each scene is shot collapsed (`variant="rail"`, the
  * 16 px band) and pinned open (`variant="expanded"`), because they are the same
  * geometry at two heights.
  *
  * **The scenes come in two families, and the split is the subject.** The trace
- * draws each sample at its own AGE, so how far it reaches measures how much of
+ * draws each sample at its own age, so how far it reaches measures how much of
  * the gap the transmitter can still account for, and that depends on two
  * things: how long the operator has been keyed, and how long a ring the
  * transmitter kept. So `01`-`09` hold the key down for 160 chunks (3.2 s) at
@@ -51,7 +51,7 @@ const PROBE_DIR = resolve(HERE, "probe");
 const PROBE_ENTRY = join(PROBE_DIR, "rail-waveform-probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "rail-waveform-probe.html");
 
-/** The theme package's SOURCE tokens.css; `global.css` only `@import`s it. */
+/** The theme package's source tokens.css; `global.css` only `@import`s it. */
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 const OUT_DIR =
@@ -71,7 +71,7 @@ const FULL_RING_CHUNKS = 160;
 
 /**
  * Chunks to hold the key down for so that a gap of `seconds` is full end to
- * end: one chunk per 20 ms of light-time. This is where the second family of
+ * end: one chunk per 20 ms of signal delay. This is where the second family of
  * scenes gets its length, and it is the operator's own case, "I have been
  * talking across this gap for a while", which no scene could photograph
  * usefully while the ring stopped at 2.56 s.
@@ -91,7 +91,7 @@ interface Scene {
 }
 
 /**
- * Whether a ribbon is drawn at this separation: any positive light-time. A
+ * Whether a ribbon is drawn at this separation: any positive signal delay. A
  * blank shot at a positive separation is the failure this harness exists to
  * catch, not a prediction.
  */

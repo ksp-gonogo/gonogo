@@ -35,7 +35,8 @@ const BESIDE_ASPECT = 2.5;
 const BESIDE_MIN_WIDTH = 420;
 
 /**
- * Where the kit puts a graph's notice, decided from measured space.
+ * Where the kit puts a graph's notice, decided from measured space. Used by the
+ * graph widget.
  *
  * An empty plot with room takes it over its middle, since nothing is underneath
  * to cover. Otherwise it goes beside a wide, short graph, where a row below
@@ -109,9 +110,11 @@ const PLACEMENT_STYLES = {
 } as const;
 
 /**
- * Faint degraded-state pill for a graph widget ("no reference data",
- * "unknown body"). `pointer-events: none`, so it never intercepts the graph's
- * clicks. `role="status"` by default; override via `role`.
+ * A faint degraded-state pill for a graph widget ("no reference data", "unknown
+ * body"). Useful for telling the operator why a graph is incomplete without
+ * hiding the plot. Used by the graph widget. It sets `pointer-events: none`, so
+ * it never intercepts the graph's clicks, and `role="status"` by default;
+ * override via `role`.
  *
  * @example Over a graph in a `Fill`
  * ```tsx

@@ -13,14 +13,14 @@ namespace Gonogo.KSP
     /// <c>spaceCenter.crewRoster</c>, <c>spaceCenter.savedShips</c>,
     /// <c>spaceCenter.partsAvailable</c>, <c>spaceCenter.pois</c>) and wires
     /// <see cref="SpaceCenterViewProvider"/>'s builders as their channel
-    /// sources. A NEW file rather than an addition to <see cref="SystemUplink"/>,
+    /// sources. A new file rather than an addition to <see cref="SystemUplink"/>,
     /// so it doesn't thrash any existing uplink's ChannelDeclaration list.
     ///
     /// No <see cref="ISnapshotSampler"/> is registered: <c>KspHost.Sample</c>
     /// already populates the raw <c>"scene"</c> and <c>"spaceCenter"</c> snapshot
     /// keys (see its own doc comments), so the providers have their data,
     /// <see cref="IUplinkHost.AddSampler"/> is for a future uplink whose data
-    /// ISN'T already on the snapshot.
+    /// isn't already on the snapshot.
     ///
     /// <para>Every channel but the scene is
     /// <see cref="ChannelDeclaration.HeldAtHome"/>: the launch sites and their pads,
@@ -122,12 +122,12 @@ namespace Gonogo.KSP
         /// Declares the exclusive <c>"crewStanding"</c> capability: what this
         /// install makes of a kerbal whose roster status alone is not the answer.
         ///
-        /// <para>Declared HERE, in the pre-Register capability pass: a provider
+        /// <para>Declared here, in the pre-Register capability pass: a provider
         /// uplink's <c>RegisterProvider</c> throws if the capability does not
         /// exist yet, and assembly-scan discovery fixes no order between
         /// uplinks.</para>
         ///
-        /// <para>Owned by THIS uplink because it owns
+        /// <para>Owned by this uplink because it owns
         /// <c>spaceCenter.crewRoster</c>, whose entries carry the elected
         /// backend's answer. That is the shared-namespace-single-declaration
         /// rule: a provider adds an interpretation, never a channel of its

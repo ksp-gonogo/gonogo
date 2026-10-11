@@ -52,7 +52,7 @@ function DisputedClaim({
  *
  * A field nothing declared renders nothing at all: the block exists to carry
  * readings, and there is no reading in an empty author. The name appears here
- * ONLY when the bundle declared it, because that is the case where the caller's
+ * only when the bundle declared it, because that is the case where the caller's
  * own heading is showing the mod-reported id instead and the declared name has
  * nowhere else to go.
  *

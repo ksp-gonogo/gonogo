@@ -5,12 +5,12 @@ using Sitrep.Contract;
 namespace Sitrep.Host
 {
     /// <summary>
-    /// The mod's ONLY window into the running game. Implemented in-game by
+    /// The mod's only window into the running game. Implemented in-game by
     /// <c>Gonogo.KSP</c>'s <c>KspHost</c> (Task 4: wraps
     /// <c>FlightGlobals</c>/<c>CelestialBody</c>/<c>GameEvents</c>), or
     /// headlessly by Task 2's <c>ReplayKspHost</c> (replaying a recorded
     /// <see cref="RecordedSession"/>). Every member returns primitives/POCOs
-    /// only: a KSP/Unity reference type must NEVER escape through this
+    /// only: a KSP/Unity reference type must never escape through this
     /// interface. That boundary is what keeps Sitrep.Host (and everything it
     /// feeds: the recorder, the System-View provider, and their tests)
     /// headless-testable without the game running.

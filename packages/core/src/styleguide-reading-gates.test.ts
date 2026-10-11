@@ -9,18 +9,18 @@ import { READING_GATE_DEBT } from "./styleguide-reading-gates.allowlist";
  * A `Reading` used as a truthiness or nullish gate, which is a gate that no
  * longer gates.
  *
- * ## The failure this exists for, which the compiler does NOT catch
+ * ## The failure this exists for, which the compiler does not catch
  *
- * `useTelemetry` returns a `Reading`, so it is an object and it is ALWAYS
+ * `useTelemetry` returns a `Reading`, so it is an object and it is always
  * truthy and never nullish. Every gate written against the old bare-payload
  * shape therefore stops working, silently, while remaining perfectly legal
  * TypeScript:
  *
  *   const available = useTelemetry("robotics.available");
- *   if (available === undefined) return null;   // never fires: FAILS OPEN
+ *   if (available === undefined) return null;   // never fires: fails open
  *
  *   const orbit = useTelemetry("vessel.orbit");
- *   if (!orbit) return EMPTY;                   // never fires: FAILS OPEN
+ *   if (!orbit) return empty;                   // never fires: fails open
  *
  *   const parts = useTelemetry("vessel.parts");
  *   (parts ?? []).filter(...)                   // never takes the fallback
@@ -34,18 +34,18 @@ import { READING_GATE_DEBT } from "./styleguide-reading-gates.allowlist";
  *
  * ## What it cannot catch, said plainly
  *
- * This is a TEXT SCAN over a regex, not type analysis, so it is approximate in
+ * This is a text scan over a regex, not type analysis, so it is approximate in
  * both directions and the blind spots are the point of naming them:
  *
- * - it only follows a variable assigned DIRECTLY from a one-line
+ * - it only follows a variable assigned directly from a one-line
  *   `const x = useTelemetry(...)`. A reading passed to a function, stored on an
  *   object, destructured, or assigned across two lines is invisible to it
  * - it cannot tell a reading-valued variable from one that was narrowed first,
- *   so a legitimate `if (!value)` AFTER a `state` branch reads as a violation
+ *   so a legitimate `if (!value)` after a `state` branch reads as a violation
  *   and needs an allowlist line
  * - it says nothing about the far larger class of sites that reach `.value`
  *   without branching at all, because a text scan cannot see whether a
- *   discriminant was written. That is what the type system DOES catch, which is
+ *   discriminant was written. That is what the type system does catch, which is
  *   why this file is scoped to the part it does not
  *
  * An approximate guard that names its own blind spots is worth having; the

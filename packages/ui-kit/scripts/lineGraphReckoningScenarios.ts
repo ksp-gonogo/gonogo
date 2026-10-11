@@ -1,5 +1,5 @@
 /**
- * The series the LineGraph reckoning sheet draws, as DATA, so the before and after
+ * The series the LineGraph reckoning sheet draws, as data, so the before and after
  * renders differ only in what `<LineGraph>` does with them.
  */
 export interface ReckoningCase {

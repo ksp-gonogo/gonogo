@@ -21,8 +21,8 @@ import { ViewClock } from "./view-clock";
 /**
  * A fully manual, injected `requestAnimationFrame`/`cancelAnimationFrame`
  * pair, queued callbacks only ever run when the test calls `flush()`
- * itself. Deliberately NOT real rAF (unavailable synchronously anyway) and
- * NOT jsdom's own rAF polyfill (a real `setTimeout(~16ms)` under the hood,
+ * itself. Deliberately not real rAF (unavailable synchronously anyway) and
+ * not jsdom's own rAF polyfill (a real `setTimeout(~16ms)` under the hood,
  * which would make "did it coalesce" a real-timing race). This is the
  * "fake/injected scheduler" the coalescing tests below are built on, so
  * "did `beginFrame` fire" is asserted deterministically, never by racing a
@@ -40,7 +40,7 @@ function installFakeRaf() {
     pending.delete(handle);
   });
   return {
-    /** Run every callback currently queued (a snapshot, callbacks queued DURING flush are not re-flushed). */
+    /** Run every callback currently queued (a snapshot, callbacks queued during flush are not re-flushed). */
     flush(): void {
       const callbacks = [...pending.values()];
       pending.clear();
@@ -55,7 +55,7 @@ function installFakeRaf() {
 /**
  * `TelemetryProvider` must coalesce `beginFrame()` to animation-frame
  * cadence, not call it once per `stream-data` message, a burst of N
- * messages arriving in the same tick must only mint ONE `FrameToken`,
+ * messages arriving in the same tick must only mint one `FrameToken`,
  * matching `beginFrame`'s own doc ("call once per animation frame / read
  * cycle... never once per read"). Calling `store.beginFrame()`
  * synchronously from `client.subscribeStore`'s callback instead would let a
@@ -153,7 +153,7 @@ describe("TelemetryProvider coalesces beginFrame() to (at most) once per animati
  * the provider's `useMemo` omitted `client` from its dependency array, an
  * auto-built store would survive a client swap (e.g. a reconnect that hands
  * the provider a fresh `TelemetryClient`), continuing to serve topics from
- * the OLD client forever and never picking up the new one.
+ * the old client forever and never picking up the new one.
  */
 describe("TelemetryProvider rebuilds its auto-built store when `client` changes", () => {
   it("builds a new store attached to the new client, and detaches the old client from the old store", () => {

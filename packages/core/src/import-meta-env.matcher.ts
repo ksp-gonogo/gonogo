@@ -58,7 +58,7 @@ const PATTERNS: Array<{
  * quote-aware, comment-aware single pass over the byte stream does that.
  *
  * One string is kept rather than blanked: one immediately after a `[`, since
- * that is a computed member access, and `import.meta["env"]` IS the code this
+ * that is a computed member access, and `import.meta["env"]` is the code this
  * scan exists to catch, not prose about it. Stripping it along with every
  * other string would make the bracket spelling undetectable anywhere, not
  * just inside this file.

@@ -6,19 +6,19 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// THE MIDDLEMAN CASE, SEEN BY A VANTAGE THAT WAS NOT WATCHING YET.
+    /// The middleman case, seen by A vantage that was not watching yet.
     ///
     /// <para><see cref="CourierRerouteStampTests"/> pins the tail for a subscriber
     /// that was already attached when the samples were recorded, so its
     /// deliveries were scheduled by <see cref="Courier.Record"/> and carry the
     /// record-time delay in their closures. Both it and
-    /// <c>MiddlemanRerouteTests</c> subscribe BEFORE the first Record, which
+    /// <c>MiddlemanRerouteTests</c> subscribe before the first Record, which
     /// leaves the catch-up backlog in <see cref="Courier.SubscribeStream"/>
     /// permanently empty: the one path neither of them reaches.</para>
     ///
-    /// <para>Every test here subscribes AFTER the reroute, with a full backlog
+    /// <para>Every test here subscribes after the reroute, with a full backlog
     /// waiting, which is the whole point of the file. What the vantage is owed is
-    /// fixed by the geometry the samples were SENT under, not by whatever the
+    /// fixed by the geometry the samples were sent under, not by whatever the
     /// route became while nobody was listening.</para>
     /// </summary>
     public class CourierLateSubscribeRerouteStampTests
@@ -39,7 +39,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// Five samples sent under a 4 s path (UT 1..5), the middleman dies at
         /// UT 6 and the craft reroutes onto <paramref name="newDelay"/> while
-        /// staying connected, and only THEN does the vantage subscribe. By that
+        /// staying connected, and only then does the vantage subscribe. By that
         /// instant the UT 1 and UT 2 samples have landed (1 + 4, 2 + 4) and UT
         /// 3, 4, 5 are still crossing the old path.
         /// </summary>
@@ -68,8 +68,8 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// REROUTE ONTO A SHORTER PATH (4 s to 1 s), then subscribe. The backlog
-        /// re-read against the CURRENT 1 s path makes every one of the five
+        /// Reroute onto A shorter path (4 s to 1 s), then subscribe. The backlog
+        /// re-read against the current 1 s path makes every one of the five
         /// samples look long since arrived, so the tail is dropped outright and
         /// the catch-up hands over the UT 5 sample three seconds before its light
         /// could possibly have got there: a future leak.
@@ -93,7 +93,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// REROUTE ONTO A LONGER PATH (4 s to 8 s), then subscribe. The backlog
+        /// Reroute onto A longer path (4 s to 8 s), then subscribe. The backlog
         /// re-read against the current 8 s path pushes the whole tail four
         /// seconds into the future and leaves the catch-up with nothing at all,
         /// so a vantage that should already hold the UT 2 sample is shown an
@@ -117,10 +117,10 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The stamp is PER VANTAGE, not one number per sample. Two command
+        /// The stamp is per vantage, not one number per sample. Two command
         /// centres hold their own explicit (vantage, node) rows; only one of them
         /// reroutes. A single scalar stamped per sample would hand the untouched
-        /// vantage the other one's light-time, which the two-vantage golden
+        /// vantage the other one's signal delay, which the two-vantage golden
         /// fixture already says is wrong for the live path.
         /// </summary>
         [Fact]

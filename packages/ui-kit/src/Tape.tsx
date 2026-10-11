@@ -145,7 +145,9 @@ function exactMarks(
 
 /**
  * A vertical linear scale with a moving pointer, the altimeter or airspeed
- * strip instrument. A ruler of values with a pointer at the current `value`,
+ * strip instrument. Useful for showing the operator how far a vessel is along
+ * a range, such as altitude above the ground. Used by the landing status
+ * altitude rail. A ruler of values with a pointer at the current `value`,
  * marked `zones` (e.g. an ignition band), point `markers` (e.g. a gear-deploy
  * altitude) and an optional `groundLine`.
  *

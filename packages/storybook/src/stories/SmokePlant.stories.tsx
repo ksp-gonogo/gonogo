@@ -20,7 +20,7 @@ import { WidgetScene, type WidgetSceneProps } from "../WidgetScene";
  * story that draws nothing or only its own title's name, words drawn in a
  * browser's default button colour on the dark panel, and words dimmed by
  * opacity.
- * `scripts/smoke.ts` fails as BLIND if any is reported clean. The one story
+ * `scripts/smoke.ts` fails as `BLIND` if any is reported clean. The one story
  * that must come back clean, dimmed words inside an inert region, holds the
  * exemption for inactive content to that and no wider.
  */

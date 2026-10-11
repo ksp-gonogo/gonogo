@@ -19,7 +19,9 @@ export interface InFlightFaceProps {
 /**
  * What a command control draws while its dispatch is in flight: a spinner
  * alone, centred over its resting label held invisible, so the control does not
- * change width. The wording belongs on the control's accessible name and title.
+ * change width. Useful for showing the operator that a command is on its way.
+ * Used by {@link CommandButton}. The wording belongs on the control's
+ * accessible name and title.
  *
  * @category CommandButton
  */

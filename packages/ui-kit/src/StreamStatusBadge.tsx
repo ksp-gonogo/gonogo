@@ -17,7 +17,8 @@ export interface StreamStatusBadgeProps {
 /**
  * A small `sm` {@link Badge} for a stream status: the status's word, as
  * {@link formatStreamStatus} writes it, in its severity, or nothing while the
- * status is `live`. It sits inside a polite live region that stays
+ * status is `live`. Useful for telling the operator that a figure comes from a
+ * recording or from before a blackout. It sits inside a polite live region that stays
  * mounted while empty, so the first change away from `live` is announced.
  *
  * The dashboard sets `recorded` and `last-before-blackout` itself from a

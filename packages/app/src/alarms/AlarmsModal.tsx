@@ -69,10 +69,10 @@ export interface AlarmDraftPrefill {
  * Control is a read-only indicator), since offering them would be a no-op the
  * operator could not tell from a working choice.
  *
- * The filter asks whether the group has a COMMAND, because a command is the
+ * The filter asks whether the group has a command, because a command is the
  * thing that has to exist for the pick to do anything.
  *
- * A HOOK rather than a module-scope constant: the action-group registry derives
+ * A hook rather than a module-scope constant: the action-group registry derives
  * its custom half from live telemetry (`useActionGroups`), so the list cannot
  * be computed at module load. Under a future AGX backend this is what makes the
  * player's own named groups appear in the alarm picker for free.
@@ -207,12 +207,12 @@ export function AlarmsModal({
   const [renameDraft, setRenameDraft] = useState("");
 
   /**
-   * Whether the two clocks currently read alike, which is a HINT and nothing
+   * Whether the two clocks currently read alike, which is a hint and nothing
    * more.
    *
-   * `useTimeContexts` drops both qualifiers under a second of light time,
+   * `useTimeContexts` drops both qualifiers under a second of signal delay,
    * because a label on an instant nobody can tell apart teaches nothing. That
-   * is a statement about what is on screen NOW. An alarm is armed for the
+   * is a statement about what is on screen now. An alarm is armed for the
    * future: a craft two light-seconds out today may be an hour out when the
    * alarm comes due, and the operator setting it up is the only one who knows
    * which clock they meant. So the reading is reported beside the radio and
@@ -246,7 +246,7 @@ export function AlarmsModal({
    * The catalogue entry's own Topic and path, which every entry enumerated from
    * the contract carries. A key a live `DataSource` supplied from its own
    * `schema()` has neither, and nothing can be resolved for it, so no alarm can
-   * be set on it: the simulation judges every alarm. Checked at PRESS rather
+   * be set on it: the simulation judges every alarm. Checked at press rather
    * than by hiding the row, so the operator still sees a key they can read on a
    * graph and learns only that an alarm cannot use it.
    *
@@ -1210,7 +1210,7 @@ interface OnFireEditorProps {
  * in the parts tree's `actionBindings[].groups` (`Custom01`, `SAS`, `Brakes`).
  * Returns null for a group with no KSP equivalent.
  *
- * Keyed off the GROUP rather than off a name for it. A custom answers by its
+ * Keyed off the group rather than off a name for it. A custom answers by its
  * own index, which is what KSP numbers them by, and a stock singleton by its
  * name: the same split `actionGroupIdOf` makes, for the same reason.
  */

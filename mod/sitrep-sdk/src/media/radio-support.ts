@@ -10,7 +10,7 @@
  * constructors `undefined` while webkit exposes them and fails later, at
  * `getUserMedia`.
  *
- * `radioSupportStatus()` therefore asks about the context FIRST and names
+ * `radioSupportStatus()` therefore asks about the context first and names
  * an insecure origin as its own outcome, so a caller can say "this page is
  * not a secure origin" rather than the falsehood "your browser has no
  * codec". That distinction is operator-facing: a station opened at

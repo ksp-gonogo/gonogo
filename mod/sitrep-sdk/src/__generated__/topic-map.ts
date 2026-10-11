@@ -134,7 +134,7 @@ export interface GeneratedTopicPayloadMap {
   "commandCentre.separation": CommandCentreSeparation;
   /** One command centre that was on `commandCentre.roster` earlier in this session and is not now, in the `commandCentre.unreachable` channel: a ground station whose node went away, a crewed vessel that lost its crew or was destroyed or recovered. */
   "commandCentre.unreachable": UnreachableCentreEntry[];
-  /** One item of `commcast.traffic`: something said to a group this vantage belongs to, delivered one light-time after it was said from where it was said. */
+  /** One item of `commcast.traffic`: something said to a group this vantage belongs to, delivered one signal delay after it was said from where it was said. */
   "commcast.traffic": CommcastTraffic;
   /** One row of `commcast.transmissions`: a radio transmission this vantage can detect. */
   "commcast.transmissions": CommcastTransmissionRow;

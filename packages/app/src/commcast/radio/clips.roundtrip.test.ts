@@ -6,7 +6,7 @@
  * transmitter chunking a real utterance, those exact bytes reaching the far end
  * over the wire, and the audio a listener actually got compared against the
  * audio that was spoken. That is what a deterministic clip buys, and it is the
- * only way to assert delivery as an EQUALITY rather than as a count of frames.
+ * only way to assert delivery as an equality rather than as a count of frames.
  *
  * Everything here is arithmetic on two clocks the test moves itself: a UT clock
  * both ends read, and a wall clock the pacer is ticked against. No timers, no
@@ -78,7 +78,7 @@ function deliver(
 /**
  * A craft talking to the ground, with the wire between them and nothing else.
  *
- * The two ends share ONE ut clock, which is what a pair of screens in one solar
+ * The two ends share one ut clock, which is what a pair of screens in one solar
  * system have: the light-time is not a disagreement about the time, it is how
  * long the words take to cross it.
  */
@@ -153,7 +153,7 @@ function crossing(
      * Pump on the 20 ms wall grid while the listener's own clock advances
      * `rate` UT seconds per wall second, and say where it got to.
      *
-     * That ratio is what a CHANGING separation does to a stream at the listener,
+     * That ratio is what a changing separation does to a stream at the listener,
      * and it is the only thing it does: words spoken on a 20 ms grid cross a gap
      * that is shrinking and become audible closer together than they were
      * spoken, or further apart if it is growing. Above 1 is closing, below 1 is
@@ -377,7 +377,7 @@ describe("two keyings a conversational gap apart", () => {
 /**
  * Two vantages keying at the same moment, into one listener.
  *
- * A second TRANSMITTER rather than a second keying on the first, because a
+ * A second transmitter rather than a second keying on the first, because a
  * transmitter is exclusive by design: one operator cannot talk twice at once,
  * and what is under test is two operators. They are at different distances, so
  * the listener is holding two crossings at once as well, which is the case a

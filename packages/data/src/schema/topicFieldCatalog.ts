@@ -80,7 +80,7 @@ export function humaniseFieldPath(path: string): string {
  * Whether a read of `<topic>.<fieldPath>` lands back on `topic`.
  *
  * Asked of the store's own split rather than of the key's shape: a raw field
- * subtopic resolves at the longest KNOWN Topic id the key starts with, so
+ * subtopic resolves at the longest known Topic id the key starts with, so
  * `alarm.scet.fired.firedAtUt` reads off `alarm.scet.fired` while
  * `vessel.orbit.truth.position.x` reads off `vessel.orbit.truth` and not off
  * `vessel.orbit`, whose entry would be the one offering it. Offering a key
@@ -193,7 +193,7 @@ function builtFor(
  * channel, keyed by the path a read actually samples.
  *
  * Read from the contract's own generated unit and shape metadata plus the SDK's
- * runtime registry, so a field appears here because it EXISTS rather than
+ * runtime registry, so a field appears here because it exists rather than
  * because somebody listed it. Which of these a picker offers is decided by the
  * field's kind, never by a list of Topics: see {@link isNumericField} and
  * {@link isPrintableField}.
@@ -220,9 +220,9 @@ export function getTopicFieldCatalog(
  * Whether a catalogue entry is a number: something a threshold, a graph axis or
  * any other ordering comparison can be built on.
  *
- * Reads the field's KIND, which the contract's unit token decides. A name, a
+ * Reads the field's kind, which the contract's unit token decides. A name, a
  * flag, an enum ordinal and a whole collection are all real values an operator
- * may want to READ, and none of them can be ordered, so none belongs in a
+ * may want to read, and none of them can be ordered, so none belongs in a
  * picker that exists to choose a comparison subject.
  *
  * An entry with no `kind` at all comes from a live `DataSource`'s own
@@ -283,12 +283,12 @@ export function withEnumName(
  *
  * A Topic lands here for one of two reasons: nothing has annotated its fields
  * (a bare primitive channel, or an Uplink Topic whose client package has not
- * loaded), or every field it declares would be read off some OTHER Topic
+ * loaded), or every field it declares would be read off some other Topic
  * (`readLandsOnTopic`). Pinned
  * by a test, so a Topic that arrives unannotated is a failure rather than a
  * silent absence from every picker in the app.
  *
- * Never a COMMAND: see the filter in `buildTopicFieldCatalog`.
+ * Never a command: see the filter in `buildTopicFieldCatalog`.
  */
 export function getUndescribedTopics(
   registered: readonly string[] = getRuntimeRegisteredTopicIds(),

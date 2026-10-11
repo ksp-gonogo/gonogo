@@ -6,22 +6,22 @@ import { describe, expect, it } from "vitest";
 
 /**
  * An Uplink reaches the augment registry through `@ksp-gonogo/sitrep-sdk`, for
- * READING as well as writing. Never through `@ksp-gonogo/ui-kit`.
+ * reading as well as writing. Never through `@ksp-gonogo/ui-kit`.
  *
  * Both packages are published, so both imports resolve and neither looks wrong.
  * They are not equivalent, for two reasons that survive and one that no longer
  * does.
  *
- * TYPES. An Uplink writes `declare module "@ksp-gonogo/sitrep-sdk"` to add its
+ * Types. An Uplink writes `declare module "@ksp-gonogo/sitrep-sdk"` to add its
  * slot ids, so `AugmentSlot` taken off ui-kit is typed against ui-kit's
  * `SlotRegistry`, which that declaration never merged into.
  *
- * FAILURE MODE. With no host installed the sdk's shims throw a named error that
+ * Failure mode. With no host installed the sdk's shims throw a named error that
  * says the package is not external and names the fix (`getHost()` in
  * `mod/sitrep-sdk/src/api/host.ts`); ui-kit's carry on silently. A mis-bundled
  * Uplink should fail loud at first registration.
  *
- * WHAT NO LONGER APPLIES: the second-copy trap. ui-kit's registry state was a
+ * What no longer applies: the second-copy trap. ui-kit's registry state was a
  * module-static `Map` until 2026-09-01, so an Uplink that inlined ui-kit instead
  * of marking it external registered into its own copy and its augments silently
  * never appeared. `packages/ui-kit/src/augments.ts` now keeps that state in one
@@ -29,7 +29,7 @@ import { describe, expect, it } from "vitest";
  * module instance to prove two copies converge. This guard is not what stops
  * that any more; the two reasons above are why it stays.
  *
- * This is a GUARD rather than a narrowing of ui-kit's barrel, and that was
+ * This is a guard rather than a narrowing of ui-kit's barrel, and that was
  * checked rather than assumed. `packages/core/src/augments.ts` re-exports the
  * whole augment surface from ui-kit, both to build the host and so that a
  * `declare module "@ksp-gonogo/core"` augmentation of `SlotRegistry` still merges
@@ -41,7 +41,7 @@ import { describe, expect, it } from "vitest";
  * `clearAugments` gained host members: before that, two Uplink tests had no way to
  * observe what their own `registerAugment` call did except ui-kit's copy, and it
  * worked purely because the shim resolved through the host into core, whose augment
- * registry IS ui-kit's. That convergence was real, undocumented, and would have
+ * registry is ui-kit's. That convergence was real, undocumented, and would have
  * broken silently the first time anything got its own copy.
  */
 
@@ -90,12 +90,12 @@ function uplinkClientSources(): string[] {
 }
 
 /**
- * The ONE legitimate holder of both ends: a file that installs the test host.
+ * The one legitimate holder of both ends: a file that installs the test host.
  *
  * `installRealTestHost` builds a whole `GonogoHost`, and the four augment members
  * are the ones `@ksp-gonogo/sitrep-sdk` cannot implement, because the registry and
  * `<AugmentSlot>` are ui-kit's and ui-kit imports the sdk. So the caller supplies
- * them, and a setup file naming them is not bypassing the host, it is CONSTRUCTING
+ * them, and a setup file naming them is not bypassing the host, it is constructing
  * it: the very indirection this rule protects is what the import feeds.
  *
  * Conditioned on the call rather than on a path allowlist, which is what makes it

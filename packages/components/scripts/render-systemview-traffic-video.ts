@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Records SystemView's command-traffic decoration as mp4 video,
- * via a REAL live clock and Playwright's `recordVideo` context option:
+ * via a real live clock and Playwright's `recordVideo` context option:
  * unlike the deterministic PNG/visual-gate path, animation actually runs
  * here (see `scripts/probe/capture-entry.tsx`'s own doc comment).
  *
@@ -9,14 +9,14 @@
  * speeds:
  * - `traffic`: warpRate=1 (real time), so a `system.uplink.pending` entry's
  *   real one-way-delay leg animates smoothly over several real seconds.
- *   Also fires a mid-capture click to select a SEPARATE vessel, showing the
+ *   Also fires a mid-capture click to select a separate vessel, showing the
  *   coloured CommNet path decoration appear alongside the pulsing traffic,
- *   then a SECOND click on the same ring to toggle the selection back off
+ *   then a second click on the same ring to toggle the selection back off
  *   before the recording continues: round 2 left the selection standing for
  *   the rest of the clip, so v-other's ring stayed accent-green (the
  *   "selected" semantic) for most of the video with nothing left selected
  *   to explain it. The deselect is a second `clickRingTop`, not
- *   `page.keyboard.press("Escape")` (index.tsx's OTHER deselect path,
+ *   `page.keyboard.press("Escape")` (index.tsx's other deselect path,
  *   equally valid interactively): headless Chromium was observed to update
  *   the DOM correctly on the Escape path (`aria-pressed` flips, the
  *   `stroke` attribute reads back faint) but never actually repaint the
@@ -26,8 +26,8 @@
  *   Also withholds `vessel.orbit`
  *   for this capture specifically (`sceneEmits()` still carries it for
  *   `orbits`, below, which needs it): a real `vessel.orbit` makes
- *   SystemDiagram draw the ACTIVE vessel's own dedicated ring AND its live
- *   predicted-trajectory patch, both ALSO solid accent-green
+ *   SystemDiagram draw the active vessel's own dedicated ring and its live
+ *   predicted-trajectory patch, both also solid accent-green
  *   (`VesselOrbitPath`/`PredictedPatchArc` in `SystemDiagram.tsx`) and both
  *   unrelated to selection, a separate always-on "this is my ship" signal
  *   that happens to share the same colour token. That's legitimate
@@ -37,8 +37,8 @@
  *   the click) reads as unexplained noise here. `deriveTraffic`'s routing
  *   still keys off `identity.vesselId` alone, so v-active stays the real
  *   traffic destination with no orbit on the wire; `index.tsx`'s
- *   contributed-ring suppression (round-4 fix) now keys off BOTH
- *   `identity.vesselId` AND `vessel.orbit`, so withholding the latter no
+ *   contributed-ring suppression (round-4 fix) now keys off both
+ *   `identity.vesselId` and `vessel.orbit`, so withholding the latter no
  *   longer leaves v-active markerless, it falls through to the same faint
  *   `orbit-path` ring `system-view-vessel-orbits` already draws for
  *   v-relay/v-other (`system.vessels`' own per-vessel `orbit` field, never
@@ -48,14 +48,14 @@
  * - `orbits`: warpRate elevated (~400x), so vessels visibly sweep along
  *   their faint orbits over a short capture; traffic wouldn't read as
  *   anything but a flicker at this speed, so this capture skips it. This is
- *   the one capture that DOES want the active vessel's own dedicated ring
+ *   the one capture that does want the active vessel's own dedicated ring
  *   and marker tracking live, so it keeps the full `sceneEmits()`.
  *
  * Output: `local_docs/inbox/systemview-traffic/*.mp4` (+ a couple of PNG
  * stills), also copied to `local_docs/inbox/systemview-contributions/`.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-systemview-traffic-video`.
- * Requires ffmpeg on PATH (webm -> mp4; the Claude app cannot render webm).
+ * Requires ffmpeg on path (webm -> mp4; the Claude app cannot render webm).
  */
 import { execFile } from "node:child_process";
 import { copyFile, mkdir, readdir, rm } from "node:fs/promises";
@@ -256,16 +256,16 @@ function sceneEmits(): Array<{ topic: string; value: unknown }> {
 
 /**
  * The `traffic` capture's own scene: everything `sceneEmits()` carries
- * EXCEPT `vessel.orbit`, so SystemDiagram never draws the active vessel's
+ * except `vessel.orbit`, so SystemDiagram never draws the active vessel's
  * own dedicated ring/live-trajectory patch (both solid accent-green,
  * unrelated to selection, see this file's own doc comment). `v-active`
- * still carries a full orbit on its ROSTER entry (`system.vessels`, above),
+ * still carries a full orbit on its roster entry (`system.vessels`, above),
  * so the traffic route's own endpoint still resolves a real position for
- * the connection-line to join, AND (round-4 fix) picks up the same faint
+ * the connection-line to join, and (round-4 fix) picks up the same faint
  * `orbit-path` ring/dot `system-view-vessel-orbits` draws for every other
  * roster vessel, since the active-vessel suppression in `index.tsx` no
  * longer fires without a real `vessel.orbit` sample. v-active just doesn't
- * get its own EXTRA dedicated bright ring on top of that.
+ * get its own extra dedicated bright ring on top of that.
  */
 function sceneEmitsForTraffic(): Array<{ topic: string; value: unknown }> {
   return sceneEmits().filter((e) => e.topic !== "vessel.orbit");
@@ -326,12 +326,12 @@ async function evalUtNow(page: Page): Promise<number> {
 
 /**
  * Selects a vessel's `orbit-path` ring the way an operator actually can: a
- * plain `page.click()` targets the shape's BOUNDING-BOX CENTRE, which for a
+ * plain `page.click()` targets the shape's BOUNDING-BOX centre, which for a
  * hollow, `fill:none` ellipse is empty space, not the stroked path itself
  * (the same reason a real mouse click there would miss too).
  *
  * Reads the ring's own `data-ring` ellipse geometry (`cx`/`cy`/`ry`, in the
- * `<g>`'s LOCAL, pre-rotation coordinate space) directly off the DOM and
+ * `<g>`'s local, pre-rotation coordinate space) directly off the DOM and
  * maps its topmost point to screen coordinates via `getScreenCTM()`, rather
  * than reading the `<g>`'s `getBoundingClientRect()`/Playwright
  * `boundingBox()` and clicking a fixed pixel offset from its edge: that
@@ -340,7 +340,7 @@ async function evalUtNow(page: Page): Promise<number> {
  * (Chromium version/rotation-dependent), so a fixed offset that happened to
  * land inside the 14px hit-target stroke for one ring radius silently
  * missed it for another. `getScreenCTM` sidesteps the ambiguity entirely: it
- * gives the EXACT screen point for a known SVG-space coordinate, independent
+ * gives the exact screen point for a known SVG-space coordinate, independent
  * of how any particular browser reports bounding boxes for stroked,
  * possibly-rotated shapes.
  */

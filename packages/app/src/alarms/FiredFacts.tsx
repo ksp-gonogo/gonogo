@@ -12,7 +12,7 @@ export interface FiredFactsProps {
   alarm: Alarm;
   /** The game's reported warp rate now. */
   warpRate: number;
-  /** One-way light time behind this screen's readings, seconds. */
+  /** One-way signal delay behind this screen's readings, seconds. */
   owltSeconds: number;
   /** Whether the link to the craft currently has no path at all. */
   noPath: boolean;
@@ -26,7 +26,7 @@ export interface FiredFactsProps {
  * What the banner states about a fired alarm, beside its name: the instant it
  * fired at the vantage it was read at, that the warp is stopped, and, for an
  * alarm read aboard the craft, how far this screen's readings trail that
- * instant. An alarm read aboard fires a light-time before the readings beside
+ * instant. An alarm read aboard fires a signal delay before the readings beside
  * it can show why, so the gap is said out loud rather than left to look like a
  * disagreement.
  */

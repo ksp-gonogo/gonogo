@@ -19,8 +19,8 @@ import { VISIBLE_GAP_SECONDS } from "./view-clock";
  */
 /**
  * Producer-side, and it stays here for a reason worth stating: a reckoner receives a
- * `TimelinePoint`, which is the store's own type. So a third-party Uplink can USE a
- * reading completely and cannot yet PROVIDE a model for one. That is a real gap in
+ * `TimelinePoint`, which is the store's own type. So a third-party Uplink can use a
+ * reading completely and cannot yet provide a model for one. That is a real gap in
  * the devkit rather than an accident of where this line sits.
  */
 

@@ -15,7 +15,7 @@ namespace Gonogo.KSP.CommandCentres
     /// testability (run at the full-sln fold; this worktree has no KSP refs).
     ///
     /// <para>A control source is not automatically a centre: it must also be
-    /// REACHABLE, see <see cref="CommandCentreReach"/>. Nothing stops a config
+    /// reachable, see <see cref="CommandCentreReach"/>. Nothing stops a config
     /// patch making a part a control point without also giving it an antenna, and
     /// the flag alone then put a node with no possible link on the operator's
     /// vantage list. A crewed craft that carries no antenna is excluded for
@@ -94,7 +94,7 @@ namespace Gonogo.KSP.CommandCentres
         /// <summary>
         /// The parts the antenna walk should look at, or null when the craft's parts
         /// cannot be read at all. Mirrors what <c>CommNetVessel.UpdateComm</c> itself
-        /// walks: the live parts while loaded, and each proto part's PREFAB while on
+        /// walks: the live parts while loaded, and each proto part's prefab while on
         /// rails, which is where an unloaded craft's modules are declared.
         /// </summary>
         private static IEnumerable<Part>? AntennaCandidateParts(Vessel vessel)
@@ -127,7 +127,7 @@ namespace Gonogo.KSP.CommandCentres
         /// so the question holds across networks; see <see cref="CommandCentreReach"/>.
         ///
         /// <para>Presence, not <c>CanComm()</c>: a retracted or unpowered dish is a
-        /// craft that cannot be reached RIGHT NOW, which the roster has no business
+        /// craft that cannot be reached right now, which the roster has no business
         /// reacting to. What is being asked is whether it can ever be reached.</para>
         /// </summary>
         private static bool CarriesCommAntenna(Part part)
@@ -152,7 +152,7 @@ namespace Gonogo.KSP.CommandCentres
         /// <summary>
         /// Whether the craft is resting on its body, which is the only state where a
         /// crewed centre has a surface position rather than a groundtrack point.
-        /// PRELAUNCH counts: a craft on the pad is as anchored as the pad is.
+        /// Prelaunch counts: a craft on the pad is as anchored as the pad is.
         /// </summary>
         private static bool IsOnSurface(Vessel vessel) =>
             vessel.situation == Vessel.Situations.LANDED

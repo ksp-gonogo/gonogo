@@ -6,14 +6,14 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// THE MIDDLEMAN DESTRUCTION. <c>CourierRerouteStampTests</c> covers a relay
+    /// The middleman destruction. <c>CourierRerouteStampTests</c> covers a relay
     /// dying while another route home still exists, so the craft stays connected
-    /// and only the light-time changes. Destruction may leave no onward route at
+    /// and only the signal delay changes. Destruction may leave no onward route at
     /// all, and every reroute test has a new path for the tail to resume onto.
     ///
     /// <para>A destroyed vessel is the edge case of a reroute where the new path
     /// does not exist, and the delay-value channel cannot express it: it can say
-    /// "further away" and "nearer" and has no honest value for GONE. Hence the
+    /// "further away" and "nearer" and has no honest value for gone. Hence the
     /// drop event (<see cref="INetwork.DropPath"/>), which is what these tests
     /// pin. It is internal to the delay machinery and reaches no wire.</para>
     ///
@@ -50,12 +50,12 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// THE OPERATOR'S SCENARIO, exactly. A sample is sent on an 8 second
+        /// The operator's scenario, exactly. A sample is sent on an 8 second
         /// delay through a relay that is 4 seconds out. At UT 2 the relay dies.
         /// The sample is 2 seconds along the leg toward it and has not reached
         /// it; nothing will retransmit it, and it is lost.
         ///
-        /// <para>Lost KNOWABLY at UT 2, which is the half worth having. The
+        /// <para>Lost knowably at UT 2, which is the half worth having. The
         /// wavefront's fate is decided by the death, not by the deadline: the
         /// ledger answers before the clock has moved at all, six seconds before
         /// the sample was ever due.</para>
@@ -89,9 +89,9 @@ namespace Sitrep.Core.Tests
         /// timing, unaffected; the three still short of it never arrive at all.
         ///
         /// <para>This is the distinction a per-sample delay could not draw. A
-        /// stamp fixes WHEN a sample arrives, and every one of these five carries
+        /// stamp fixes when a sample arrives, and every one of these five carries
         /// the same 8 s stamp; where the break sat along the route is what
-        /// decides WHETHER it arrives.</para>
+        /// decides whether it arrives.</para>
         /// </summary>
         [Fact]
         public void ATailIsSplitByWhereItHadGotToWhenTheRelayDied()
@@ -121,7 +121,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// A break that CLOSES catches only what would have reached it while it
+        /// A break that closes catches only what would have reached it while it
         /// was open. An occultation is the ordinary case and it is not a death:
         /// a wavefront that gets to the blocked point after the rock has moved on
         /// crosses it and lands.
@@ -154,7 +154,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// THE BLIND WINDOW. A relay four light-seconds out dies at UT 6. The
+        /// The blind window. A relay four light-seconds out dies at UT 6. The
         /// craft cannot know: word of the death has to travel back down the same
         /// four seconds of route, so it goes on transmitting into a path that
         /// stops carrying part-way along until UT 10, and every sample it sends
@@ -193,7 +193,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// A break the craft cannot yet be routing through is not recorded. At
         /// UT 6 a relay four seconds out dies; at UT 8 another relay, further
-        /// out, stops carrying on the route the GRAPH now holds. The craft is
+        /// out, stops carrying on the route the graph now holds. The craft is
         /// still blind to the first break until UT 10 and has not moved onto
         /// that route at all.
         ///
@@ -219,7 +219,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// A break opening after the craft has re-targeted is an ordinary second
-        /// break and IS recorded: the craft is feeding the route it describes.
+        /// break and is recorded: the craft is feeding the route it describes.
         /// The pair with the test above is the whole rule, since a blind window
         /// is a statement about one route rather than a quiet period during
         /// which nothing can be recorded.

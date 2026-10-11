@@ -9,7 +9,7 @@ namespace Sitrep.Contract
     /// <para>A command centre's strength models arrive inside the craft states it
     /// hears. A save keeps what each centre has heard, so the models it holds go
     /// with it, or every centre would know less after a load than before it until
-    /// each craft was heard from again, one light-time later.</para>
+    /// each craft was heard from again, one signal delay later.</para>
     /// </summary>
     /// <category>Comms models</category>
     public interface IPersistableLinkStrength : IContactLinkStrength

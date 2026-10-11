@@ -14,7 +14,7 @@ import {
 } from "./kepler-reckoning";
 
 /**
- * Where the conic stops being a description of what happens, along an ARC.
+ * Where the conic stops being a description of what happens, along an arc.
  *
  * `kepler-withdrawal-reasons.test.ts` names the reason each withdrawal carries
  * off a craft that is already wherever it is. These cases carry one set of
@@ -52,7 +52,7 @@ const ENTRY_ARC: ConicOrbitInput = {
   horizon: ANALYTIC,
 };
 
-/** Periapsis 500 km, which is 100 km INSIDE Kerbin. The conic aims at rock. */
+/** Periapsis 500 km, which is 100 km inside Kerbin. The conic aims at rock. */
 const IMPACT_ARC: ConicOrbitInput = {
   ...ENTRY_ARC,
   sma: value("m", 650_000),

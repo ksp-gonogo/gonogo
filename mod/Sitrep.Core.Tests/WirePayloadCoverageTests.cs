@@ -8,34 +8,34 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// GENERAL guard against the "subscribed but no stream-data" bug class: a
-    /// payload type published to the wire as a RAW POCO with no
+    /// General guard against the "subscribed but no stream-data" bug class: a
+    /// payload type published to the wire as a raw POCO with no
     /// <see cref="JsonWriter.AppendValue"/> case compiles fine but throws
     /// <c>NotSupportedException</c> at the wire boundary at runtime, and the
     /// frame is silently dropped, the client sees only "subscribed".
     ///
     /// <para>This enumerates every <see cref="SitrepContractAttribute"/>-marked
     /// concrete class in the contract assembly and asserts each serializes
-    /// through the REAL stream-data wire path (<see cref="EnvelopeCodec.WriteStreamData"/>
+    /// through the real stream-data wire path (<see cref="EnvelopeCodec.WriteStreamData"/>
     /// → <see cref="JsonWriter"/>) without hitting the switch's default-throw.
-    /// A "forgot a JsonWriter case" is therefore a RED test, not a silent live
+    /// A "forgot a JsonWriter case" is therefore a red test, not a silent live
     /// frame-drop.</para>
     ///
-    /// <para>Polarity: types are IN by default, and a type is out only when
+    /// <para>Polarity: types are in by default, and a type is out only when
     /// <see cref="Excused"/> says so. Two of that method's three answers are
-    /// DERIVED rather than claimed: a <see cref="SitrepCommandAttribute"/> on the
+    /// derived rather than claimed: a <see cref="SitrepCommandAttribute"/> on the
     /// declaration means the type is a command's arguments and travels inbound
     /// only, and <see cref="ProducerFieldParityTests"/> finds the method that
     /// hand-flattens a type to a <c>Dictionary&lt;string, object?&gt;</c> and
     /// holds it to every field of that type. The third is the residual
     /// <see cref="FlattenedByProducer"/> list, which is what neither reading can
-    /// reach yet; see its own comment. Any NEW raw-published payload type is
+    /// reach yet; see its own comment. Any new raw-published payload type is
     /// caught automatically: nothing excuses it, so a missing case fails here.</para>
     /// </summary>
     public class WirePayloadCoverageTests
     {
         /// <summary>
-        /// What is left of the hand-written exclusion list, and it is a RESIDUE
+        /// What is left of the hand-written exclusion list, and it is a residue
         /// rather than the mechanism: <see cref="Excused"/> now derives most
         /// entries automatically instead of taking them on claim.
         ///
@@ -49,7 +49,7 @@ namespace Sitrep.Core.Tests
         /// same reading of the same source.</para>
         ///
         /// <para>What survives is the two shapes that reading cannot reach, and
-        /// they are grouped by which. NOTHING here is a licence: the goal is
+        /// they are grouped by which. Nothing here is a licence: the goal is
         /// still an empty list, and the way to shrink it further is to make the
         /// scan able to name these producers, never to add to it.</para>
         /// </summary>
@@ -201,7 +201,7 @@ namespace Sitrep.Core.Tests
         /// for a fully covered one. <c>CommsPayloadsAreCovered_NotAllowlisted</c> is a
         /// real control for the seven comms types and leaves the rest of the ~200-type
         /// surface, and the <c>FlattenedByProducer</c> allowlist that forces a decision
-        /// on each NEW type, resting on this discovery holding.</para>
+        /// on each new type, resting on this discovery holding.</para>
         /// </summary>
         [Fact]
         public void DiscoveryReachesTheContractPayloadTypes()
@@ -257,9 +257,9 @@ namespace Sitrep.Core.Tests
         /// back through <see cref="JsonWriter.AppendValue"/> inside
         /// <c>CommandResult&lt;T&gt;.Payload</c>, not flattened. An allowlist entry
         /// is a human claim, and the sweep above cannot grade one; these two are
-        /// asserted NOT allowlisted so a false claim cannot come back.</para>
+        /// asserted not allowlisted so a false claim cannot come back.</para>
         ///
-        /// <para>The roster is exercised POPULATED, which is the whole reason this
+        /// <para>The roster is exercised populated, which is the whole reason this
         /// exists: an empty <c>List&lt;CommandCentreEntry&gt;</c> serializes to
         /// <c>[]</c> without the element type ever reaching the payload switch, so
         /// every headless rig and every save without real command centres in it

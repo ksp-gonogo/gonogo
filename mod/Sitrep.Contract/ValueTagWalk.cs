@@ -34,7 +34,7 @@ namespace Sitrep.Contract
         /// <summary>The type that declares <see cref="Property"/>, which own-payload inputs resolve against.</summary>
         public Type Holder { get; }
 
-        /// <summary>The element type of every LIST crossed on the way, outermost first. A dictionary is not one: its key is the entry's identity.</summary>
+        /// <summary>The element type of every list crossed on the way, outermost first. A dictionary is not one: its key is the entry's identity.</summary>
         public IReadOnlyList<Type> Lists { get; }
     }
 
@@ -185,7 +185,7 @@ namespace Sitrep.Contract
         /// One declared input split into the Topic it names and the path inside it.
         /// A bare path is on the object holding the value, so it has no topic;
         /// <c>@topic</c> is another Topic's whole payload; <c>@topic#path</c> has
-        /// both. Splitting on the FIRST <c>#</c> keeps <c>vessel.orbit</c> and
+        /// both. Splitting on the first <c>#</c> keeps <c>vessel.orbit</c> and
         /// <c>vessel.orbit.truth</c> apart.
         /// </summary>
         internal static (string Topic, string Path) SplitInput(string input)

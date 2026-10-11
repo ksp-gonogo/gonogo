@@ -27,7 +27,7 @@ namespace Gonogo.KSP
     /// ModifyDirection</c>, hinge <c>targetAngle -&gt; ModifyTargetAngle</c>).
     /// A bare <c>module.rpmLimit = value</c> sets the backing field but never
     /// fires that callback, so a running servo silently ignores it.
-    /// <c>BaseField.SetValue(value, host)</c> assigns the field AND invokes
+    /// <c>BaseField.SetValue(value, host)</c> assigns the field and invokes
     /// <c>OnValueModified</c>, so the change actually takes effect, confirmed
     /// against this KSP version's decompiled <c>BaseField.SetValue</c>. The
     /// four lock/motor operations (<c>EngageServoLock</c>/<c>DisengageServoLock</c>/

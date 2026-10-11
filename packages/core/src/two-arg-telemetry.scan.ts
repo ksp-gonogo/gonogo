@@ -154,7 +154,7 @@ export function scanTwoArgTelemetry(
 /**
  * The gate's verdict on one scan, or `null` when it passes.
  *
- * A scan that read nothing fails as BLIND rather than passing: a listing that
+ * A scan that read nothing fails as `BLIND` rather than passing: a listing that
  * errored into an empty string, a wrong cwd or a pathspec that stopped
  * matching would otherwise look exactly like a clean tree.
  */

@@ -4,7 +4,7 @@
  * this file's content at an arbitrary git ref without pulling in vitest or the
  * scan machinery. Same split-module shape as `uplink-isolation.allowlist.ts`.
  *
- * The SHAPE this grades, and why a banner has two spellings, is stated in
+ * The shape this grades, and why a banner has two spellings, is stated in
  * `banner-comments.matcher.ts`. Read that first; the numbers below are only
  * meaningful against a stated matcher, which is what `MATCHER_REVISION` exists
  * to pin.
@@ -20,15 +20,15 @@
  *
  * Every number below is a measurement, and a measurement means nothing without
  * the instrument that took it. Widening the matcher is therefore the one change
- * that legitimately RAISES a shrink-only number, and a bare shrink-only check
+ * that legitimately raises a shrink-only number, and a bare shrink-only check
  * cannot tell that from somebody laundering banners they just wrote. So the
  * revision is the declaration: bump it in the same commit as the matcher change
  * and the ratchet re-seeds, leave it alone and every number is shrink-only as
  * before.
  *
  * It is not an escape hatch, because a bump is not taken on trust. The ratchet
- * loads `banner-comments.matcher.ts` AS IT STOOD at the base revision, runs that
- * older matcher over the CURRENT tree, and requires the older numbers to still
+ * loads `banner-comments.matcher.ts` as it stood at the base revision, runs that
+ * older matcher over the current tree, and requires the older numbers to still
  * hold. A reseed therefore proves that everything newly counted is something the
  * old matcher could not see, not something a contributor added. It also requires
  * the matcher source to have actually changed, so the revision cannot be bumped
@@ -57,7 +57,7 @@ export const BANNER_COMMENT_DEBT: Record<string, number> = {};
 
 /**
  * What the scan expects to see when it is working. A floor, not an equality:
- * the point is to fail LOUDLY when the enumeration breaks, and a broken
+ * the point is to fail loudly when the enumeration breaks, and a broken
  * enumeration produces a small number, never a large one.
  *
  * A scan that walks zero files finds zero banners and passes every assertion in

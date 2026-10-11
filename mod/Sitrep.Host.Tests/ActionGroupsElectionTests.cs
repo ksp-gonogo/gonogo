@@ -6,7 +6,7 @@ using Xunit;
 namespace Sitrep.Host.Tests
 {
     /// <summary>
-    /// The action-groups election driven through the REAL <see cref="ChannelEngine"/>
+    /// The action-groups election driven through the real <see cref="ChannelEngine"/>
     /// and its two-pass uplink discovery, the twin of
     /// <see cref="CommsElectionTests"/> for the capability comms' shape was copied
     /// into.
@@ -35,7 +35,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// An uplink that OWNS the capability, declaring it in the capability pass
+        /// An uplink that owns the capability, declaring it in the capability pass
         /// (<see cref="IUplinkCapabilityDeclarer"/>): the shape <c>VesselUplink</c> uses.
         /// </summary>
         private sealed class CapabilityOwningUplink : ISitrepUplink, IUplinkCapabilityDeclarer
@@ -96,7 +96,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The adversarial ordering the two-pass registration exists for: the
-        /// provider uplink is discovered BEFORE the capability owner.
+        /// provider uplink is discovered before the capability owner.
         /// <c>RegisterDiscoveredUplinks</c> declares every capability first, so the
         /// provider still wins whatever order the assembly scan hands them over in.
         ///

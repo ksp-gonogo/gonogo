@@ -10,14 +10,14 @@ namespace Sitrep.Host
     ///
     /// <para><b>Why the producer owns this.</b> It predates the emitter's own
     /// value comparison: <c>Sitrep.Core.ChannelEmitter</c>'s gate used to compare
-    /// a freshly-built <c>Dictionary&lt;string, object?&gt;</c> by REFERENCE, so a
+    /// a freshly-built <c>Dictionary&lt;string, object?&gt;</c> by reference, so a
     /// per-tick rebuild of an identical payload read as changed every tick, and a
     /// channel whose whole justification is "the action set only moves on
     /// deploy/stage/dock" emitted at sample cadence for as long as an operator
     /// kept a part open. The emitter would now catch that on its own.
     ///
     /// This still earns its place ahead of it, for two reasons the emitter cannot
-    /// cover: it filters a BATCH down to the sub-topics worth publishing at all,
+    /// cover: it filters a batch down to the sub-topics worth publishing at all,
     /// before any of them reach the engine, and its per-sub-topic pruning is what
     /// makes a re-open republish (see below). A cheap string signature, computed
     /// once where the batch is built, is also the right instrument here.
@@ -45,7 +45,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Filters <paramref name="publications"/> down to the ones worth putting on
-        /// the wire, and prunes every remembered sub-topic NOT in this batch (see
+        /// the wire, and prunes every remembered sub-topic not in this batch (see
         /// the class doc). Records each returned publication's signature as the new
         /// last-published state, so calling this twice with unchanged input yields
         /// the batch once and then nothing.

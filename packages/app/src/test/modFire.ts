@@ -3,7 +3,7 @@
  *
  * Publishing it on the stream is how any alarm fires, whatever its kind: the
  * simulation judges every alarm and this side only hears the verdict. A test
- * about what a fire DOES uses this and names no trigger kind.
+ * about what a fire does uses this and names no trigger kind.
  */
 export function modFireNotice(
   id: string,

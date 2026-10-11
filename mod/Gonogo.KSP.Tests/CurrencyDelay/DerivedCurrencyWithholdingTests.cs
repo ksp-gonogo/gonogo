@@ -7,7 +7,7 @@ using Xunit;
 namespace Gonogo.KSP.Tests.CurrencyDelay
 {
     /// <summary>
-    /// The core's fan-out to the arms that keep a DERIVED currency withheld.
+    /// The core's fan-out to the arms that keep a derived currency withheld.
     ///
     /// <para>The defect this closes is not one mod's: it is the shape of every
     /// quantity a mod computes from a currency change. The core neutralises the
@@ -158,7 +158,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// A neutralise with NO KERNEL BOUND is not a quiet no-op, it is the leak
+        /// A neutralise with no kernel bound is not a quiet no-op, it is the leak
         /// wide open, and it must say so. The science was withheld correctly, the
         /// derived confidence moved anyway, and the whole fan-out was unreachable with
         /// nothing said either way, so a working install and a dead one read
@@ -200,7 +200,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// And a fan-out that reached its arms NAMES them, so a report from one of
+        /// And a fan-out that reached its arms names them, so a report from one of
         /// them afterwards has something to attach to, and so "reached and withheld"
         /// can be told from "never asked".
         /// </summary>
@@ -219,7 +219,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// The arm ids the startup line reports are the ACTIVE ones, so a line that
+        /// The arm ids the startup line reports are the active ones, so a line that
         /// names <c>planted</c> is evidence the arm registered and a line that names none
         /// is evidence it did not. Absent that, both were the same silence.
         /// </summary>
@@ -272,7 +272,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         }
 
         /// <summary>
-        /// A teardown is a WARNING, not a note, and it names the bind it undid. From
+        /// A teardown is a warning, not a note, and it names the bind it undid. From
         /// there until something binds again nothing is withheld, so a teardown with
         /// no bind after it is the state that shipped rather than a tidy shutdown.
         /// </summary>

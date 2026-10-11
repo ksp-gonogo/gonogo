@@ -14,14 +14,14 @@ import { describe, expect, it } from "vitest";
 import { useTopology } from "./useTopology";
 
 /**
- * Characterisation of what `useTopology` DOES when its one telemetry read
+ * Characterisation of what `useTopology` does when its one telemetry read
  * (`useTelemetry("vessel.parts")`) carries no payload, ahead of that read
  * becoming a `Reading` union.
  *
  * The whole hook is one absence gate: `wire ? derive(wire) : undefined`
  * (useTopology.ts:22). Every distinct upstream condition below funnels
  * through it and comes out the same `undefined`, so these tests exist to
- * record WHICH conditions are currently conflated, and by what.
+ * record which conditions are currently conflated, and by what.
  */
 
 /** Same pinned-clock fixture pattern as the sibling `useTopology.test.tsx`. */

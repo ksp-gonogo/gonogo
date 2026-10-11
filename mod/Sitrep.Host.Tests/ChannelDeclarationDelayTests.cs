@@ -13,7 +13,7 @@ namespace Sitrep.Host.Tests
     ///
     /// 1. The default is <see cref="DelayRole.Delayed"/> (matching
     ///    <see cref="CommandDeclaration.Delay"/>'s own default-true
-    ///    precedent): every EXISTING call site that never sets this
+    ///    precedent): every existing call site that never sets this
     ///    property keeps compiling and defaulting the same way.
     /// 2. Both enum values round-trip through the property untouched, the
     ///    trivial "this is a real settable property, not a typo" smoke test

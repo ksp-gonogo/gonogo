@@ -35,7 +35,7 @@ namespace Sitrep.Propagation.Visibility
         /// <param name="surfaceNormalAtReferenceUt">Outward unit normal at the station, in the body-centred inertial frame, at <paramref name="referenceUt"/>. Normalised on construction; need not arrive normalised.</param>
         /// <param name="referenceUt">The UT at which <paramref name="surfaceNormalAtReferenceUt"/> was observed.</param>
         /// <param name="rotationPeriodSeconds">The body's sidereal rotation period, read live from the body.</param>
-        /// <param name="bodyRadiusMeters">The body's mean radius. This is the SHAPE radius, which is not necessarily the occluding radius a comms backend applies.</param>
+        /// <param name="bodyRadiusMeters">The body's mean radius. This is the shape radius, which is not necessarily the occluding radius a comms backend applies.</param>
         /// <param name="altitudeMeters">Station altitude above that radius.</param>
         public RotatingGroundStation(
             Vector3d surfaceNormalAtReferenceUt,
@@ -69,7 +69,7 @@ namespace Sitrep.Propagation.Visibility
         /// Build a station from body-fixed geodetic coordinates, given the body's
         /// prime-meridian orientation at <paramref name="referenceUt"/>.
         ///
-        /// <para><paramref name="longitudeDegAtReferenceUt"/> is the INERTIAL
+        /// <para><paramref name="longitudeDegAtReferenceUt"/> is the inertial
         /// longitude at the reference UT, i.e. the body-fixed longitude already
         /// added to however far the body had spun by then. Callers holding a plain
         /// body-fixed longitude plus a rotation angle add the two before calling.

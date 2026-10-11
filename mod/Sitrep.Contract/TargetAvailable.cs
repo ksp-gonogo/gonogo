@@ -19,14 +19,14 @@ public enum TargetKnowledge
     /// <summary>The other vessel is within physics range of the active vessel, which sees it as it is.</summary>
     InRange,
 
-    /// <summary>The other vessel's radio reaches the active vessel directly, so what is known of it is one light-time of that link old.</summary>
+    /// <summary>The other vessel's radio reaches the active vessel directly, so what is known of it is one signal delay of that link old.</summary>
     DirectLink,
 
     /// <summary>
     /// The active vessel's command centre knows of the other vessel, by
     /// tracking it or by hearing from it, and has told the active vessel over
     /// its control route. What is known is as old as the centre's own
-    /// knowledge plus that route's light-time.
+    /// knowledge plus that route's signal delay.
     /// </summary>
     CommandCentre,
 }
@@ -122,11 +122,11 @@ public class TargetListEntry
     ///
     /// <para>For a vessel known over a direct radio link
     /// (<see cref="TargetKnowledge.DirectLink"/>) that is up, it is now less
-    /// that link's light-time.</para>
+    /// that link's signal delay.</para>
     ///
     /// <para>For a vessel known through the command centre
     /// (<see cref="TargetKnowledge.CommandCentre"/>), it is what the centre
-    /// knew one control-route light-time ago, which is what the active vessel
+    /// knew one control-route signal delay ago, which is what the active vessel
     /// has been told. Where the centre then held the vessel's link as up, it
     /// is the latest moment a word could have left the vessel and, by the
     /// centre's own plan of the route at that moment, relays and waits for a
@@ -140,7 +140,7 @@ public class TargetListEntry
     /// is up now: it is the centre's belief, as old as the control route is
     /// long, resting on the centre's plan and on the link as the centre last
     /// heard it. A word the plan has still on its way is not counted, so the
-    /// figure can stand well short of the centre's moment less the light-time,
+    /// figure can stand well short of the centre's moment less the signal delay,
     /// and it is null until some word sent after <see cref="AsOfUt"/> would
     /// have arrived.</para>
     ///
@@ -180,21 +180,21 @@ public class TargetListEntry
 /// <para>A vessel is on the list once the active vessel has come to know of
 /// it, by whichever of three ways tells it soonest: it is within physics range
 /// and seen as it is; its radio reaches the active vessel directly, one
-/// light-time of that link ago; or the active vessel's command centre knows of
-/// it and has said so over the control route, that route's light-time ago.
+/// signal delay of that link ago; or the active vessel's command centre knows of
+/// it and has said so over the control route, that route's signal delay ago.
 /// Each entry says which (<see cref="TargetListEntry.Source"/>) and how old
 /// (<see cref="TargetListEntry.AsOfUt"/>). A vessel with no route home and
 /// nothing in range keeps the list it last had: entries age, none is added.
 /// A vessel the active vessel has been told is gone leaves the list.</para>
 ///
 /// <para>Delayed like the rest of the active vessel's telemetry: a centre
-/// reads the list one of its own light-times after the vessel held it.</para>
+/// reads the list one of its own signal delays after the vessel held it.</para>
 /// <internal>
 /// Assembled by Sitrep.Host.Comms.ContactPlanSource from CraftKnowledge. The
 /// game's own list (every vessel, as it stands this instant) is read only for
 /// which vessels are in range, for parts and bodies, and for which entry is
 /// the current target. Published whole, it would name every vessel in the
-/// game to every centre at the active vessel's light-time. The command centre
+/// game to every centre at the active vessel's signal delay. The command centre
 /// is taken to be the home centre.
 /// </internal>
 /// </summary>

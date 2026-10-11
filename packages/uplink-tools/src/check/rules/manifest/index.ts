@@ -54,7 +54,7 @@ function installedPackageDir(fromDir: string, pkg: string): string | undefined {
  * sdk's emitted `dist/compat-versions.js` exactly as `bundle` reads them: the
  * author's own install first, then the one beside this package.
  *
- * The file is an ES module and a rule answers synchronously, so it is imported
+ * The file is an es module and a rule answers synchronously, so it is imported
  * by a child process that prints the three values.
  */
 export function installedCompat(clientDir: string): CompatVersions {

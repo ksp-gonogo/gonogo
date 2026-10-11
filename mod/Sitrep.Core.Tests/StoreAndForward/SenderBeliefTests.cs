@@ -201,7 +201,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
         /// <summary>
         /// The link is up when the centre sends and gone when the light lands. The
-        /// centre gives up at twice the light time, which is the soonest an answer
+        /// centre gives up at twice the signal delay, which is the soonest an answer
         /// could have been back.
         /// </summary>
         [Fact]

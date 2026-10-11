@@ -5,15 +5,15 @@
  * Run: `pnpm --filter @ksp-gonogo/components render-altitude-band -- --out <dir> --tag <before|after>`
  * Output: `<dir>/<NN>-<tag>-<sheet id>.png`, one per sheet in `SHEETS`.
  *
- * The tag and the directory are arguments because the point is a PAIR: the same
+ * The tag and the directory are arguments because the point is a pair: the same
  * sheets, viewport and scale factor, run once on each side of the change. The
- * BEFORE half is taken by restoring `mod/sitrep-sdk/src/spine/`'s pre-change
+ * before half is taken by restoring `mod/sitrep-sdk/src/spine/`'s pre-change
  * sources and rebuilding that package, the way `render-atmospheric-handover.ts`
  * describes; the widget code is identical either way and only the band differs.
  *
- * Deliberately NOT registered in `widgets.ts`, the reason
+ * Deliberately not registered in `widgets.ts`, the reason
  * `render-reckoned-tail.ts` gives: that file is the visual gate's input and a
- * scene added to it with no committed baseline fails the gate as MISSING.
+ * scene added to it with no committed baseline fails the gate as missing.
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";

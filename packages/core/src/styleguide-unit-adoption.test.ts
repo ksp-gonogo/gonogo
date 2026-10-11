@@ -20,7 +20,7 @@ import { describe, expect, it } from "vitest";
  * ladder rung changes. Eleven widgets each grew their own ladder that way
  * once, and three Uplinks did it again afterwards.
  *
- * ## The scan lives in the KIT, not here
+ * ## The scan lives in the kit, not here
  *
  * This file used to carry its own regex, its own CSS-length filter and its own
  * baseline bookkeeping. It now calls `@ksp-gonogo/ui-kit/guards`, and the
@@ -30,7 +30,7 @@ import { describe, expect, it } from "vitest";
  * That is not hypothetical here. `ATTACHED_SYMBOLS` was duplicated between
  * `<Unit>` and `writeQuantity` and they disagreed, so the same angle read
  * `8.0°` in a readout and `8.0 °` in the SVG label beside it. A second copy of
- * THIS rule would drift the same way, and worse: an Uplink author outside this
+ * this rule would drift the same way, and worse: an Uplink author outside this
  * repo cannot run a private test, so they would be held to whatever their own
  * copy happened to say.
  *
@@ -84,7 +84,7 @@ function sourceRoots(): string[] {
  * name. Eleven private ladders went with them, and then eight more sites
  * across three Uplinks.
  *
- * Keyed on the path RELATIVE to its source root, which is what the guard
+ * Keyed on the path relative to its source root, which is what the guard
  * reports, so an entry reads `Foo/index.tsx` rather than the whole path.
  *
  * A new entry here is a regression, not a backlog item. Convert the site.

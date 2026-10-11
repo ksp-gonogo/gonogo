@@ -17,7 +17,7 @@ import type { RadioLight } from "./RadioSession";
  * monitor rather than the open thread, so a voice can arrive on a conversation
  * the operator is not looking at, and without a light naming it they would hear
  * a stranger with no way to tell which of their correspondences it came from.
- * That is why this is drawn in the bar of EVERY view rather than inside a
+ * That is why this is drawn in the bar of every view rather than inside a
  * conversation: an off-screen transmission is the case it is for.
  *
  * It is read off the audio (`RadioReception.live`), not off the envelope, so it
@@ -50,7 +50,7 @@ export function RadioIndicator({
    *
    * The name is a control rather than a caption because the mute lives beside
    * the key, inside a conversation, and radio leaves no transcript: a
-   * correspondent this vantage has only ever HEARD has no inbox row to open,
+   * correspondent this vantage has only ever heard has no inbox row to open,
    * so without this the one loop an operator most wants to tune out is the one
    * they cannot reach. It opens the existing thread view and adds no surface.
    */

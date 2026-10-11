@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Gonogo.KSP.CommandCentres
 {
     /// <summary>
-    /// Whether a candidate command centre is REACHABLE, which is a different
+    /// Whether a candidate command centre is reachable, which is a different
     /// question from whether commands may terminate there.
     ///
     /// <para><b>The defect this exists to close.</b> <c>CommNode.isControlSource</c>
@@ -12,19 +12,19 @@ namespace Gonogo.KSP.CommandCentres
     /// whether anything can arrive. Stock <c>CommNetwork.SetNodeConnection</c>
     /// disconnects any pair where either endpoint's
     /// <c>antennaRelay.power + antennaTransmit.power</c> is zero, and it does so
-    /// BEFORE distance or occlusion are consulted, so a node with no antenna forms
+    /// before distance or occlusion are consulted, so a node with no antenna forms
     /// no link with anything at any distance, including the ship one metre away.
     /// Offering such a node as a vantage offers an operator a seat CommNet can
     /// never route to.</para>
     ///
     /// <para><b>The sum, never one half.</b> Stock's own gate adds the two powers,
-    /// and it has to: <c>CommNetVessel.UpdateComm</c> MOVES a vessel's transmit
+    /// and it has to: <c>CommNetVessel.UpdateComm</c> moves a vessel's transmit
     /// power into the relay slot and zeroes transmit whenever transmit is the
     /// larger, so a healthy relay-capable craft sits at
     /// <c>antennaTransmit.power == 0</c> and a test on either half alone would
     /// reject it.</para>
     ///
-    /// <para><b>Why the antenna PARTS are asked as well.</b> The two power fields
+    /// <para><b>Why the antenna parts are asked as well.</b> The two power fields
     /// belong to stock's range model, and a mod that replaces the range model is
     /// free to stop maintaining them. RealAntennas does exactly that: its
     /// <c>RACommNetVessel.UpdateComm</c> zeroes both and never writes them again,
@@ -40,7 +40,7 @@ namespace Gonogo.KSP.CommandCentres
     /// is linked right now. A centre behind a planet, out of range, or with its
     /// antenna retracted is unreachable this second and still a place an operator
     /// may sit and queue commands from; dropping it would make the roster flicker
-    /// with the geometry. What is excluded is the node that can NEVER form a link,
+    /// with the geometry. What is excluded is the node that can never form a link,
     /// which is the defect.</para>
     ///
     /// <para>Generic over the part type so the rule compiles and is exercised on
@@ -55,7 +55,7 @@ namespace Gonogo.KSP.CommandCentres
         /// <param name="parts">
         /// The craft's parts, or null when they cannot be read (a vessel on rails
         /// with no ProtoVessel). Null, and an empty sequence, are both answered
-        /// REACHABLE: "we could not look" and "we looked and found nothing" are
+        /// reachable: "we could not look" and "we looked and found nothing" are
         /// different facts, and only the second is grounds for withdrawing a centre
         /// the operator can see.
         /// </param>

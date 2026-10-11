@@ -21,7 +21,7 @@ import {
  * an unbound trajectory: there is no apoapsis to propagate to and no node to
  * burn at. Every fixture below except `ESCAPING` is a closed orbit, so a null
  * from one of these is the function under test being wrong, and the tests that
- * DO expect null (`plane-change presets return null rather than a fabricated
+ * do expect null (`plane-change presets return null rather than a fabricated
  * normal burn`) assert it directly instead of coming through here.
  *
  * Throwing rather than asserting non-null with `!` so the failure names the

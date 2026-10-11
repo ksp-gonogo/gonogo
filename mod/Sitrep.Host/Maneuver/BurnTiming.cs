@@ -6,7 +6,7 @@ namespace Sitrep.Host.Maneuver
     /// <summary>
     /// Turns a plan's delta-v figures into the two instants a finite burn
     /// actually has. Pure and KSP-free, so the decision is testable: only the
-    /// EXTRACTION of the stage numbers belongs in <c>Gonogo.KSP</c>.
+    /// extraction of the stage numbers belongs in <c>Gonogo.KSP</c>.
     ///
     /// <para><b>Why not simply halve the burn time.</b> Every KSP tool splits a
     /// burn evenly about its node, which asserts constant mass. A craft gets
@@ -30,7 +30,7 @@ namespace Sitrep.Host.Maneuver
             /// <summary>Vacuum delta-v the stage can deliver, m/s.</summary>
             public double DeltaV { get; set; }
 
-            /// <summary>Full-throttle burn time for the WHOLE stage, seconds.</summary>
+            /// <summary>Full-throttle burn time for the whole stage, seconds.</summary>
             public double BurnTime { get; set; }
 
             /// <summary>Mass at stage ignition, tonnes.</summary>
@@ -63,7 +63,7 @@ namespace Sitrep.Host.Maneuver
         /// <para>Null is a real answer: no stage data at all (an unloaded craft,
         /// which stock does not compute delta-v for) and a burn beyond the
         /// remaining budget both produce it, and substituting the time to burn
-        /// what the craft DOES have would report an unflyable burn as flyable.
+        /// what the craft does have would report an unflyable burn as flyable.
         /// An unaffordable burn does not invalidate the ones before it.</para>
         /// </summary>
         public static IReadOnlyList<BurnWindow?> WindowsFor(

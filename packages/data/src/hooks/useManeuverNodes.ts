@@ -12,7 +12,7 @@ import { useMemo } from "react";
  * One planned maneuver node, with its burn as the three positional slots the
  * node editor works in, the basis that names them, and a cached magnitude.
  *
- * `id` is the node's OWN id, the one the update and remove commands address,
+ * `id` is the node's own id, the one the update and remove commands address,
  * rather than its position in this list. A position stops being valid the
  * moment a node ahead of it is deleted, and recovering the real id from one
  * means reading the plan a second time to correlate them.
@@ -22,7 +22,7 @@ export interface ParsedManeuverNode {
   /** The burn instant, UT seconds. */
   UT: number;
   /**
-   * The burn's three components in slot order, m/s. WHICH components those are
+   * The burn's three components in slot order, m/s. Which components those are
    * is {@link frame}'s to say, and the field-name convention actively misleads:
    * under the Frenet basis slot 0 is the tangent and slot 2 is the binormal.
    */
@@ -42,7 +42,7 @@ export interface ParsedManeuverNode {
   /** The burn's size, m/s. */
   deltaVMagnitude: number;
   /**
-   * Engine light and cutoff for a FINITE burn, or null when nothing models a
+   * Engine light and cutoff for a finite burn, or null when nothing models a
    * duration. Never substituted from `UT`, so "no duration modelled" stays
    * distinguishable from an instantaneous burn.
    */

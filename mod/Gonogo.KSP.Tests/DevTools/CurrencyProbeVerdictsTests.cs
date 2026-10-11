@@ -11,7 +11,7 @@ namespace Gonogo.KSP.Tests.DevTools
     /// crew death, none of them undoable, so it has to be testable without needing a
     /// craft to lose in order to test it.</para>
     ///
-    /// <para>Every case here is chosen so a WRONG answer is a different string, not a
+    /// <para>Every case here is chosen so a wrong answer is a different string, not a
     /// missing one: a verdict that read the same whether the subsystem worked or not
     /// would be worth nothing.</para>
     /// </summary>

@@ -12,13 +12,13 @@ namespace Sitrep.Host
     /// results on the snapshot.
     ///
     /// <para>The model treats the descent as a force balance: at terminal
-    /// velocity aerodynamic drag equals weight. From the CURRENT measured drag
+    /// velocity aerodynamic drag equals weight. From the current measured drag
     /// force <c>D</c> at the current speed (an instantaneous read, no
     /// simulation) it derives the effective drag area and projects the terminal
     /// velocity to any air density. It assumes the current configuration holds
     /// (attitude, no pending parachute): accurate near terminal on final
     /// descent (where it matters), least accurate through high-mach transients
-    /// (where there is time). It is NOT a drag simulation.</para>
+    /// (where there is time). It is not a drag simulation.</para>
     /// </summary>
     public static class LandingModel
     {
@@ -168,20 +168,20 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The whole atmospheric field set for <c>vessel.landing</c>, or NULL
+        /// The whole atmospheric field set for <c>vessel.landing</c>, or null
         /// when it cannot be answered at all.
         ///
         /// <para>Every field here derives from the vessel's parts (the measured
         /// drag force, and the parachute state read off the same walk), so a
         /// <paramref name="dragForce"/> of null, meaning the parts could not be
-        /// read, makes ALL of them unknowable together. Publishing any of them
+        /// read, makes all of them unknowable together. Publishing any of them
         /// from a zero produces a plausible terminal velocity, a plausible time
         /// to impact, a descent regime classified from a zero drag-to-weight
         /// ratio, and "no parachutes", in the one place a reader is deciding
         /// whether a landing survives. Null drag is not a craft that cannot slow
         /// down, it is a craft we could not look at.</para>
         ///
-        /// <para>This lives HERE, on the pure side, rather than as a guard in the
+        /// <para>This lives here, on the pure side, rather than as a guard in the
         /// KSP capture, because it is a decision rather than a read: the capture
         /// had every number crossing this seam already and kept only the
         /// question of whether to publish them, which is the one that was wrong

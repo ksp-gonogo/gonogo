@@ -112,7 +112,7 @@ function dependedPackages(clientDir: string): string[] {
 }
 
 /**
- * The module entry points those packages export, read off the INSTALLED
+ * The module entry points those packages export, read off the installed
  * manifests. A package depended on and not installed stops the run: skipping
  * it would leave the total reading as complete.
  */

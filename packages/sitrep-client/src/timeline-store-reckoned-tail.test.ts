@@ -53,7 +53,7 @@ function disconnectedStore(nowSeconds: number): TimelineStore {
 }
 
 /**
- * What an Uplink registers for a RAW topic reaches a plotted tail as well as the
+ * What an Uplink registers for a raw topic reaches a plotted tail as well as the
  * point layer, so an author's model that draws a propagated marker also carries
  * a plot of the same quantity to the view time.
  */

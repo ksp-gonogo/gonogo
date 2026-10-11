@@ -12,7 +12,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// 400 km lunar orbit, loaded, with a confirmed one-hop link to an Earth
     /// station, transmitted 25 science at UT 2,821.880 and the ledger held it to
     /// UT 24,421.880. The difference is 21,600.000 to the millisecond, which is
-    /// not a light-time at any scale: it is the silence-declaration deadline, the
+    /// not a signal delay at any scale: it is the silence-declaration deadline, the
     /// number an event gets when nothing could be found to measure. At the rig's
     /// 0.1 light-speed scale the Earth-Moon hop is worth about 13 seconds.</para>
     ///
@@ -28,12 +28,12 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// <see cref="CurrencyDelaySettlePumpIsWiredTests"/> sets out at length:
     /// <c>StockCurrencyInterceptor</c> needs a live scene and is not compiled
     /// into this project at all, so a text scan is the only instrument that can
-    /// see it. The half that CAN be entered headlessly is exercised for real in
+    /// see it. The half that can be entered headlessly is exercised for real in
     /// <see cref="LiveOriginDelayTests"/>; between the two, the walk is measured
     /// and the fact that this arm reaches it is checked.</para>
     ///
-    /// <para>The DELAY half of the arm's wiring, in other words.
-    /// <see cref="AwayScienceArmIsWiredTests"/> is the AMOUNT half, and the two
+    /// <para>The delay half of the arm's wiring, in other words.
+    /// <see cref="AwayScienceArmIsWiredTests"/> is the amount half, and the two
     /// defects are independent: an arm can be told the right number and hold it
     /// for six hours, or be told zero and hold nothing at all.</para>
     /// </summary>

@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests
     /// Unit tests for <see cref="VesselCommandProvider"/>'s <c>Handle*</c>
     /// glue against a <see cref="FakeVesselActuator"/>: proves typed args
     /// reach the correct actuator method with the correct values (never
-    /// scrambled), that every boolean command is an ABSOLUTE set (not a
+    /// scrambled), that every boolean command is an absolute set (not a
     /// toggle: see <see cref="SetEnabledArgs"/>'s doc comment), that
     /// args-level range validation happens before the actuator is ever
     /// called, and that the maneuver-node radial/normal/prograde frame is
@@ -147,8 +147,8 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// Same split as
         /// <see cref="HandleSetWarpIndexRejectsNegativeIndicesBeforeEverCallingTheActuator"/>:
-        /// only the unambiguously-invalid case is rejected HERE. A non-positive
-        /// group is nonsense under EVERY backend, so it never reaches the
+        /// only the unambiguously-invalid case is rejected here. A non-positive
+        /// group is nonsense under every backend, so it never reaches the
         /// actuator.
         /// </summary>
         [Theory]
@@ -167,10 +167,10 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// This provider used to hardcode <c>group > 10 => Range</c>. It must
-        /// NOT any more: the elected action-groups backend owns the upper bound
+        /// not any more: the elected action-groups backend owns the upper bound
         /// (stock stops at 10, but Action Groups Extended legitimately goes to
         /// 250), and this KSP-free provider cannot see which backend won. So
-        /// group 11 is DELEGATED, not pre-rejected, under stock the actuator's
+        /// group 11 is delegated, not pre-rejected, under stock the actuator's
         /// backend still fails it cleanly with Range (see
         /// <c>StockActionGroupsBackend.SetGroup</c>), but that verdict is the
         /// backend's to give, not this file's to assume.
@@ -194,7 +194,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The load-bearing arg-order test: named radial/normal/prograde
-        /// fields must reach the actuator's matching NAMED parameters
+        /// fields must reach the actuator's matching named parameters
         /// unscrambled: O-4's whole point. Using three distinct values (not
         /// e.g. all 1.0) means any accidental swap between prograde/normal/
         /// radialOut would fail this assertion.
@@ -525,7 +525,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Out-of-range axis readings are CLAMPED to −1..1 (not rejected), an
+        /// Out-of-range axis readings are clamped to −1..1 (not rejected), an
         /// over-range hardware stick is a routine quirk, not an error, unlike
         /// throttle which rejects out-of-range with
         /// <see cref="CommandErrorCode.Range"/>.

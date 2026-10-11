@@ -25,7 +25,7 @@ import type { JSX, ReactNode } from "react";
  * Original notes follow.
  *
  * A stream test-adapter, minimal version: a migrated widget's test needs
- * to genuinely run OFF THE STREAM (a real `TelemetryProvider` + a real
+ * to genuinely run off the stream (a real `TelemetryProvider` + a real
  * `TelemetryClient`/`TimelineStore` pipeline), not the legacy
  * `MockDataSource` registry. Built for the WarpControl pilot; scoped to
  * what it needs, a fuller bulk-fixture-converter is later work once more
@@ -45,9 +45,9 @@ import type { JSX, ReactNode } from "react";
  *   now-exported `createFakeWallClock`) for a test that needs to advance it
  *   explicitly.
  * - **`delaySeconds`**: every dual-run/stream
- *   test up to this point hardcoded `delaySeconds: () => 0`, the ONE
+ *   test up to this point hardcoded `delaySeconds: () => 0`, the one
  *   knob the whole streaming pipeline exists for was untested. A caller
- *   that supplies a nonzero `delaySeconds` MUST leave `pinnedUt` unset:
+ *   that supplies a nonzero `delaySeconds` must leave `pinnedUt` unset:
  *   `ViewClock.viewUt()`'s `scrubTo` target wins outright over the
  *   confirmed-edge/delay computation (see that method's own doc comment),
  *   so a pinned clock makes `delaySeconds` a no-op. Drive time with

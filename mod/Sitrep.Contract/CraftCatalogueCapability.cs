@@ -121,7 +121,7 @@ namespace Sitrep.Contract
         /// <c>ShipConstruct</c>, which the consumer is expected to hand to its
         /// own mod by reflection without naming the type.
         ///
-        /// <para>It owns live Unity objects and MUST be given back to
+        /// <para>It owns live Unity objects and must be given back to
         /// <see cref="ICraftCatalogue.Release"/>, whether the consumer used it or
         /// refused part-way.</para>
         /// </summary>

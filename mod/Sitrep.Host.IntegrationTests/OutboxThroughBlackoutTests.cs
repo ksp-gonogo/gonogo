@@ -50,7 +50,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The active craft's light-time drops from forty seconds to none while
+        /// The active craft's signal delay drops from forty seconds to none while
         /// its link stays up, as a switch to a craft close by does. Telemetry
         /// already on its way still takes its forty seconds. The outbox is not
         /// telemetry and does not wait behind it.
@@ -116,7 +116,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The same blackout, and the report of it. A centre notices the silence
-        /// when the last light it was owed fails to come, one light-time after
+        /// when the last light it was owed fails to come, one signal delay after
         /// the link went: the outage report is the centre's own observation, not
         /// light the break could catch. On the rig no centre was told of a
         /// five-hundred-second outage until it was over.

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { clearAugments, getAugments, registerAugment } from "./augments";
 
 /**
- * Two loaded copies of this module must share ONE augment registry, because an
+ * Two loaded copies of this module must share one augment registry, because an
  * Uplink that inlines ui-kit registers into its own copy while the dashboard
  * reads the app's. A distinct import query makes Vite instantiate the file a
  * second time, which is the same divergence a duplicated package produces.

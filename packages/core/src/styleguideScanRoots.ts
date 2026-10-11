@@ -13,7 +13,7 @@
  * `mod/*\/client/src` is resolved by directory listing rather than
  * enumerated, so a new uplink package is covered the day it lands. The
  * `packages/*` side stays an explicit list because some of those roots
- * must never be scanned (see below) and silently opting a new package IN
+ * must never be scanned (see below) and silently opting a new package in
  * is the safer default only for the mod tree, where every client package
  * is a dashboard widget bundle by construction.
  */

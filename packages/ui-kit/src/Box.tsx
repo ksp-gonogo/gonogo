@@ -56,8 +56,9 @@ const SURFACE_VAR: Record<BoxSurface, string> = {
 
 /**
  * A `div` that paints a surface: background tier, padding, a subtle border and
- * a corner radius, each optional. With no props it is a plain `div`. Use it for
- * a well or an inset block; use {@link Card} for a titled item in a list.
+ * a corner radius, each optional. With no props it is a plain `div`. Useful for
+ * a well or an inset block; use {@link Card} for a titled item in a list. Used
+ * by the component overlay and the pushed dashboard overlay.
  *
  * @category Layout
  */

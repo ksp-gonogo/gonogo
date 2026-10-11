@@ -12,8 +12,8 @@ namespace Gonogo.KSP
     /// as <see cref="KspRoboticsActuator"/> does, then walks or invokes
     /// <see cref="BaseEvent"/>s.
     ///
-    /// <para><b>The PAW is the UNION of two event lists.</b> A part's buttons come
-    /// from <c>part.Events</c> AND from every <c>part.Modules[i].Events</c>, and
+    /// <para><b>The PAW is the union of two event lists.</b> A part's buttons come
+    /// from <c>part.Events</c> and from every <c>part.Modules[i].Events</c>, and
     /// the module half is where nearly everything interesting lives (solar
     /// deploy, antenna extend, scanner start, science run) because those are all
     /// <c>PartModule</c>s. Walking only <c>part.Events</c> would produce a
@@ -24,7 +24,7 @@ namespace Gonogo.KSP
     /// aggregation still yields the full set. See that method's doc comment.</para>
     ///
     /// <para><b>Filter: <c>guiActive</c> only.</b> That is "this button is in the
-    /// flight PAW at all". The enabled flag (<c>active</c>) is CARRIED rather than
+    /// flight PAW at all". The enabled flag (<c>active</c>) is carried rather than
     /// filtered on, because KSP itself greys an inert button out rather than
     /// removing it: see <see cref="PartActionEntry.Active"/>. Editor-only events
     /// (<c>guiActiveEditor</c>) never qualify, this is a flight surface.</para>
@@ -181,7 +181,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Finds one event by <c>BaseEvent.name</c> across the same union
         /// <see cref="List"/> reports, so anything a client was told about is
-        /// invokable. Deliberately does NOT filter on <c>guiActive</c>: an event
+        /// invokable. Deliberately does not filter on <c>guiActive</c>: an event
         /// that has since left the window is reported as
         /// <see cref="CommandErrorCode.ModeUnavailable"/> by the caller, which is
         /// more useful than the NotFound-shaped answer a filtered lookup would

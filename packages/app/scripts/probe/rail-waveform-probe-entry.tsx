@@ -61,7 +61,7 @@ export interface RailWaveformProbePayload {
    * it dropped, which is the whole subject.
    */
   chunkCount: number;
-  /** One-way light-time to the far end, exactly as `RadioPtt` is handed it. */
+  /** One-way signal delay to the far end, exactly as `RadioPtt` is handed it. */
   separationSeconds: number;
   panelTitle: string;
   pxW: number;
@@ -72,7 +72,7 @@ export interface RailWaveformProbePayload {
 export interface RailWaveformProbeReading {
   /** Samples the transmitter retained, i.e. how long `amplitudeHistoryFor` made the ring. */
   sampleCount: number;
-  /** Chunks the transmitter reports having SENT, uncapped. */
+  /** Chunks the transmitter reports having sent, uncapped. */
   emittedSamples: number;
   spanSamples: number;
   /**
@@ -88,20 +88,20 @@ export interface RailWaveformProbeReading {
   maxAmplitude: number;
   distinctAmplitudes: number;
   /**
-   * How high the DRAWN turning points reached, as a fraction of full scale, and
+   * How high the drawn turning points reached, as a fraction of full scale, and
    * how many distinct heights are among them.
    *
    * Separate from the fixture's own spread on purpose. A stretched trace reads
-   * ~49 turning points out of a 128-sample ring, so it DECIMATES, and a fixture
+   * ~49 turning points out of a 128-sample ring, so it decimates, and a fixture
    * with plenty of spread could in principle be sampled at one phase of its own
    * period and come out flat. The question "can a sentence still be told from
    * an open dead key" is a question about the path, so it is asked of the path.
    *
    * **The range and the count, not a single spread figure.** A spread alone is
-   * blind exactly where the resolution cap bites: below a chunk of light-time
+   * blind exactly where the resolution cap bites: below a chunk of signal delay
    * the trace is three points at one amplitude, and a chevron of voice and a
    * flat dead key both have a spread of zero. What separates them there is the
-   * HEIGHT, so the height is reported.
+   * height, so the height is reported.
    */
   drawnPeakMin: number;
   drawnPeakMax: number;
@@ -115,7 +115,7 @@ export interface RailWaveformProbeReading {
   railMinDelaySeconds: number;
   /**
    * The outgoing zone's width in viewBox units, i.e. what `extentFraction` is a
-   * fraction OF. Reported so the driver can turn the fraction into pixels
+   * fraction of. Reported so the driver can turn the fraction into pixels
    * without knowing where the T divider sits: the trace lives in the outgoing
    * third now, so a fraction against the widget's full width would overstate
    * every scene by three.

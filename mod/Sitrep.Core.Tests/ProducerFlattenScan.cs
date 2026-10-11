@@ -104,9 +104,9 @@ namespace Sitrep.Core.Tests
     /// <c>Dictionary&lt;string, object?&gt;</c> and that names a contract type in
     /// one of two ways:</para>
     /// <list type="number">
-    /// <item>it RECEIVES one: <c>ToWire(VesselOrbit orbit)</c>,
+    /// <item>it receives one: <c>ToWire(VesselOrbit orbit)</c>,
     /// <c>BuildManeuverNodes(IList&lt;ManeuverNode&gt; plan)</c>. The strongest
-    /// evidence there is, and it is read off the FIRST parameter only, the same
+    /// evidence there is, and it is read off the first parameter only, the same
     /// convention <c>scripts/wire-payload-coverage.mjs</c> uses.</item>
     /// <item>it sits in a WIRE-PRODUCING class and names one:
     /// <c>CareerViewProvider.BuildBalances</c> (owner prefix + method stem),
@@ -118,7 +118,7 @@ namespace Sitrep.Core.Tests
     /// decoration. Without it <c>Gonogo.KSP.KspHost.BuildBodyEntry</c> and
     /// <c>BuildVesselRosterEntry</c> are read as producers for
     /// <c>BodyEntry</c>/<c>VesselRosterEntry</c>, and they are not: they build the
-    /// INTERNAL capture snapshot, whose key set deliberately differs from the wire
+    /// internal capture snapshot, whose key set deliberately differs from the wire
     /// (a body's atmosphere is flat there and nested on the wire, a roster
     /// vessel's orbit likewise), and <c>SystemViewProvider</c> is what turns one
     /// into the other. Measured: both produced a confident, wrong failure before
@@ -127,10 +127,10 @@ namespace Sitrep.Core.Tests
     /// <para><b>Keys are every string literal in the body, deliberately.</b> Not
     /// the literals in write position. A producer legitimately spells a key
     /// somewhere other than a <c>["k"] =</c>:
-    /// a key can be passed as an ARGUMENT to a helper that writes it, or to a
+    /// a key can be passed as an argument to a helper that writes it, or to a
     /// sibling method that writes a nested dictionary. Reading write position
     /// only once reported eleven omissions in one producer, all false. So the question
-    /// this asks is the weaker and answerable one: does the producer MENTION the
+    /// this asks is the weaker and answerable one: does the producer mention the
     /// field at all. A field whose name appears nowhere in the method that stands
     /// for its type cannot be on the wire, which is exactly the bug class, and a
     /// generous reading is the right direction to be wrong in when there is no
@@ -171,7 +171,7 @@ namespace Sitrep.Core.Tests
         private static readonly Regex StringLiteral = new(@"""([^""\\\n]*)""", RegexOptions.Compiled);
 
         /// <summary>
-        /// Class-name suffixes that mark a class as a producer of WIRE
+        /// Class-name suffixes that mark a class as a producer of wire
         /// dictionaries rather than of the internal capture snapshot. Stripping
         /// one yields the prefix half of the composed subject:
         /// <c>CareerViewProvider</c> -> <c>Career</c>, so <c>BuildBalances</c>
@@ -304,7 +304,7 @@ namespace Sitrep.Core.Tests
         ///
         /// <para>A reached method that is itself a producer of
         /// <paramref name="subject"/> is walked like any other helper. One that
-        /// is a producer of some OTHER contract type only is where the walk
+        /// is a producer of some other contract type only is where the walk
         /// stops: its literals are not added and its callees are not followed,
         /// and its types are returned as delegated. That method is graded at its
         /// own site, and folding its keys in here would let a key it happens to
@@ -312,13 +312,13 @@ namespace Sitrep.Core.Tests
         /// Overloads cannot be told apart by text, so a call reaches every
         /// sibling of that name and each one is judged on its own.</para>
         ///
-        /// <para>A call qualified by ANOTHER class is not followed, but when it
+        /// <para>A call qualified by another class is not followed, but when it
         /// lands on a producer its types are delegated all the same: a reply
         /// flattener that hands a nested payload to another class's
         /// <c>ToWire</c> leaves that payload to be graded where it is
         /// written.</para>
         ///
-        /// <para>A producer the CLASS name speaks for (<c>FleetVesselResourcesBuilder.Build</c>)
+        /// <para>A producer the class name speaks for (<c>FleetVesselResourcesBuilder.Build</c>)
         /// starts from every method of its class rather than from its own calls.
         /// Such a class exists to flatten that one type, and its callers drive
         /// the parts: <c>FleetChannels</c> calls <c>Add</c> once per tank to
@@ -525,17 +525,17 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The contract types <paramref name="method"/> stands for.
         ///
-        /// <para>A contract type in the FIRST parameter settles it, and the
+        /// <para>A contract type in the first parameter settles it, and the
         /// name-derived rules are then not consulted at all. Both halves of that
-        /// matter. A method handed the type IS its flattener, so nothing weaker
+        /// matter. A method handed the type is its flattener, so nothing weaker
         /// should be able to add a second subject to it; and without the
         /// cut-off, every one of <c>VesselPartsViewProvider</c>'s eight
-        /// <c>ToWire</c> overloads ALSO claims <c>VesselParts</c> through the
+        /// <c>ToWire</c> overloads also claims <c>VesselParts</c> through the
         /// owner prefix, so seven producers of other types end up graded against
         /// a type they merely nest inside.</para>
         ///
         /// <para>The first parameter and no other. A second contract-typed
-        /// parameter is something the method READS (a <c>PayloadMeta</c> to
+        /// parameter is something the method reads (a <c>PayloadMeta</c> to
         /// stamp, a config to consult), and grading against it would fail a
         /// producer for not re-emitting a value it was merely handed. Same
         /// convention <c>scripts/wire-payload-coverage.mjs</c> uses.</para>
@@ -638,7 +638,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// <paramref name="text"/> with comments (and optionally string and char
-        /// literals) blanked to spaces, LENGTH PRESERVED so an offset means the
+        /// literals) blanked to spaces, length preserved so an offset means the
         /// same thing in both variants. The structure variant is what brace
         /// matching and the declaration regex read; the code variant keeps the
         /// literals a producer's keys are.

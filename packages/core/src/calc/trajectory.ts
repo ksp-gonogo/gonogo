@@ -25,7 +25,7 @@ import { PerfBudget } from "../perf/PerfBudget";
  * true thing to write about such an implementation and is not a warning anybody
  * can act on.
  *
- * <b>It REFUSES `ecc >= 1`</b> rather than answering with a confident number.
+ * <b>It refuses `ecc >= 1`</b> rather than answering with a confident number.
  * Both patch-based callers already filter unbound trajectories; `maneuver.ts`'s
  * `stateAtUT` does not.
  *

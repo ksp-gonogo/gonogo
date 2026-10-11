@@ -64,8 +64,8 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// MAIN THREAD: every live link the game's network holds right now between
-        /// the craft and ground stations a plan can name, with its light time as
+        /// Main thread: every live link the game's network holds right now between
+        /// the craft and ground stations a plan can name, with its signal delay as
         /// the game is set to delay it. A network node is a map of its own live
         /// links, so this is a walk of those maps, not a route solve.
         ///
@@ -256,7 +256,7 @@ namespace Gonogo.KSP
         private static readonly List<Vessel> NoVessels = new List<Vessel>();
 
         /// <summary>
-        /// MAIN THREAD: the straight-line light-time from every object the game
+        /// Main thread: the straight-line signal delay from every object the game
         /// knows the orbit of to every command centre, or null when the
         /// tracking station cannot place a vessel at all.
         ///
@@ -268,7 +268,7 @@ namespace Gonogo.KSP
         /// nothing, as it is drawn with no orbit in the game.</para>
         ///
         /// <para>The home centre sees through every ground station, so its
-        /// light-time is the shortest of theirs.</para>
+        /// signal delay is the shortest of theirs.</para>
         /// </summary>
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? SightOf(
             List<Vessel> vessels, IReadOnlyList<ICommandCentre> centres, List<CommandCentreEntry> roster)
@@ -367,7 +367,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// MAIN THREAD: what the elected comms backend says of the active craft's
+        /// Main thread: what the elected comms backend says of the active craft's
         /// link now, and the hops it says so over. Null with no active craft, no
         /// backend, or a backend read that threw, which is tried again on the
         /// next look.

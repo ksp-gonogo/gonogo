@@ -9,7 +9,7 @@
  * path they were given, and a pruned worktree takes its own local_docs with
  * it).
  *
- * Every scene publishes the WIRE shape: bare numbers, wrapped into `Value`s by
+ * Every scene publishes the wire shape: bare numbers, wrapped into `Value`s by
  * the SDK on decode. That is the whole subject here. The banner read those
  * wrapped objects with `typeof v === "number"` and substituted zero for every
  * quantity, so a recovery that paid 1,035 funds announced a total loss and a
@@ -28,7 +28,7 @@ const PROBE_ENTRY = join(PROBE_DIR, "flight-outcome-probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "flight-outcome-probe.html");
 
 /**
- * The theme package's SOURCE tokens.css. `global.css` only `@import`s it, so a
+ * The theme package's source tokens.css. `global.css` only `@import`s it, so a
  * driver pointing at that file finds no `:root` and every probe renders
  * unthemed.
  */
@@ -103,7 +103,7 @@ const RECOVERY = {
   ],
 };
 
-/** A crash AFTER that recovery. */
+/** A crash after that recovery. */
 const CRASH = {
   ut: 1_004_200,
   vesselName: "Ares IV",

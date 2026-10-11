@@ -62,10 +62,12 @@ export interface DataKeyPickerProps {
 const RETIRED_MESSAGE = "is no longer available";
 
 /**
- * A searchable picker over a list of keys: a combobox input that filters as
- * the operator types, with the options grouped under their `group` headings
- * and each option's unit drawn beside it. Enter with nothing highlighted picks
- * the first match; Escape or a click outside closes the list.
+ * A searchable picker over a list of keys: a combobox input that filters as the
+ * operator types, with the options grouped under their `group` headings and
+ * each option's unit drawn beside it. Useful for letting the operator choose
+ * one data key from a long list. Used by the app's data key pickers. Enter with
+ * nothing highlighted picks the first match; Escape or a click outside closes
+ * the list.
  *
  * A saved `value` that is not among a non-empty `keys` is flagged in place
  * ("This value is no longer available. Pick another.") rather than shown as a

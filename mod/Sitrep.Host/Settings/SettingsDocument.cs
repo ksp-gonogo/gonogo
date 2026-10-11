@@ -28,7 +28,7 @@ namespace Sitrep.Host.Settings
     /// One block of the settings document: an ordered list of name-to-text rows
     /// and an ordered list of child blocks.
     ///
-    /// <para>Deliberately NOT a <c>ConfigNode</c>. This assembly carries no KSP
+    /// <para>Deliberately not a <c>ConfigNode</c>. This assembly carries no KSP
     /// reference, so the document, the coercion over it and the change
     /// notification are exercised on every checkout; the single translation to
     /// KSP's on-disk format lives in the backing store that owns the file.</para>
@@ -37,7 +37,7 @@ namespace Sitrep.Host.Settings
     /// updates it in place rather than moving it to the end, so a document that
     /// came off disk and went back unchanged keeps the operator's layout.</para>
     ///
-    /// <para>A repeated name resolves to the FIRST occurrence, matching what
+    /// <para>A repeated name resolves to the first occurrence, matching what
     /// KSP's own parser does with a duplicate node, and every occurrence is
     /// kept. A repeated value name is how the format spells a list, and a
     /// repeated block is someone's data; a document that dropped either would
@@ -306,7 +306,7 @@ namespace Sitrep.Host.Settings
         }
 
         /// <summary>
-        /// A name that would not survive the round trip. An EMPTY name does
+        /// A name that would not survive the round trip. An empty name does
         /// survive it (a hand-typed <c>= 5</c> reads and writes back as itself),
         /// so it is refused where a name is chosen but never here, where one
         /// stray line in the file would otherwise block every later save.

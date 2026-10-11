@@ -11,12 +11,12 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// Every ordinary channel records under the engine's single node and describes the
-    /// ACTIVE craft, so a pilot pinned to that craft reads it at zero, any other centre at
-    /// its own route to the craft, and a centre with no route at the ground's light-time.
+    /// active craft, so a pilot pinned to that craft reads it at zero, any other centre at
+    /// its own route to the craft, and a centre with no route at the ground's signal delay.
     ///
     /// <para>The rows are written by <see cref="AuthorityMatrixPass.PopulateActiveVessel"/>
     /// through <see cref="ChannelEngine.SetActiveVesselDelays"/>, and the ground's
-    /// light-time arrives the production way, through the signal-delay source on a
+    /// signal delay arrives the production way, through the signal-delay source on a
     /// tick.</para>
     /// </summary>
     public class ActiveVesselLedgerDelayTests
@@ -32,7 +32,7 @@ namespace Sitrep.Host.IntegrationTests
         private const string OtherGround = "ground:Goldstone";
         private const string Unroutable = "ground:Dark";
 
-        /// <summary>The active craft's light-time home, which the whole-network default carries.</summary>
+        /// <summary>The active craft's signal delay home, which the whole-network default carries.</summary>
         private const double ActiveVesselDelay = 240.0;
 
         private static readonly ICommandCentre[] Centres =
@@ -75,7 +75,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The zero belongs to the active craft's own centre. Every other vantage keeps a
-        /// number of its own, and the pilot's rows against OTHER subjects are untouched.
+        /// number of its own, and the pilot's rows against other subjects are untouched.
         /// </summary>
         [Fact]
         public void EveryOtherCentreReadsTheActiveCraftAtItsOwnRoute()
@@ -113,7 +113,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Switching craft moves the zero with it. The pilot of the craft left behind has
-        /// no route to the new one here, so it reads the ground's light-time rather than
+        /// no route to the new one here, so it reads the ground's signal delay rather than
         /// keeping the zero it held a pass ago.
         /// </summary>
         [Fact]
@@ -149,7 +149,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The operator's case end to end: a readout recorded on the active craft is on the
         /// pilot's screen the moment it is recorded, while the home centre still waits the
-        /// craft's light-time for it.
+        /// craft's signal delay for it.
         /// </summary>
         [Fact]
         public async Task ThePilotSeesTheActiveCraftsReadoutAsItIsRecorded()

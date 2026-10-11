@@ -10,8 +10,8 @@
  * Every scene here is a state somebody has to make a call about, and most are
  * two-pane because the widget's entire subject is that two vantages disagree.
  * A single-pane shot of a delayed log looks exactly like an undelayed one: you
- * cannot see what the other end is NOT showing, and under this model you also
- * cannot see that the other end does not HAVE it.
+ * cannot see what the other end is not showing, and under this model you also
+ * cannot see that the other end does not have it.
  */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -26,7 +26,7 @@ const PROBE_ENTRY = join(PROBE_DIR, "commcast-probe-entry.tsx");
 const PROBE_HTML = join(PROBE_DIR, "commcast-probe.html");
 
 /**
- * The theme package's SOURCE tokens.css. `global.css` only `@import`s it, so a
+ * The theme package's source tokens.css. `global.css` only `@import`s it, so a
  * driver pointing at that file finds no `:root` and every probe renders
  * unthemed. Same file the settings driver reads, for the same reason.
  */
@@ -44,7 +44,7 @@ const WOOMERA = "ground:woomera";
 /**
  * A recovery ship a few hundred kilometres out, on a terrestrial link. Under a
  * second away, which is the whole reason it exists here: it is the only
- * correspondent whose delay gets the standing BADGE rather than the countdown
+ * correspondent whose delay gets the standing badge rather than the countdown
  * strip, and the two readings are never drawn together.
  */
 const RECOVERY = "ground:recovery";

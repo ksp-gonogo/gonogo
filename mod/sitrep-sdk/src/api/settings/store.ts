@@ -2,7 +2,7 @@
  * Shared, dependency-free key/value settings for the whole app.
  *
  * Owned by this package, the leaf everything else depends on, so every package
- * AND every Uplink reads the SAME authoritative value: `gameHost` is the one host
+ * and every Uplink reads the same authoritative value: `gameHost` is the one host
  * the mod runs on, and two answers to that question is not a degraded experience,
  * it is an Uplink dialling nothing. `setSetting` and `subscribeSetting` were
  * already published as host shims for exactly that reason; `resetSettingsForTests`
@@ -19,7 +19,7 @@
  *   KSP_HOST so changing that env + restarting takes effect on next load,
  *   never stuck behind a stale saved value.
  *
- * The build-time default is NOT a layer here, a typed accessor (e.g.
+ * The build-time default is not a layer here, a typed accessor (e.g.
  * `getGameHost`) supplies it at the call site, so this store needs no per-key
  * defaults registry and stays fully generic.
  *
@@ -39,7 +39,7 @@ interface SettingsBlob {
  * The single global slot the two IN-MEMORY layers live in, keyed by a string so
  * two different builds of this package still find the same state.
  *
- * The SAVED layer needs no such treatment: `localStorage` is already one shared
+ * The saved layer needs no such treatment: `localStorage` is already one shared
  * object, so a second bundle reads the same blob. The seed layer and the
  * subscriber sets are plain memory, and a second copy of those is precisely the
  * `gameHost` split this store exists to prevent: an Uplink seeded through its own
@@ -117,8 +117,9 @@ function notify(key: string): void {
  * runs on, whose key is {@link GAME_HOST_KEY}: the one saved in this browser,
  * or else the value seeded at startup, or `undefined` when there is neither. A
  * default is the caller's to supply. Values are strings, and it can be called
- * outside React. For a setting of your own, drawn in a component, use
- * {@link useSetting}.
+ * outside React. Useful for finding which machine to connect to. Used by the
+ * app when it opens the telemetry stream. For a setting of your own, drawn in
+ * a component, use {@link useSetting}.
  *
  * @category Settings
  */
@@ -130,7 +131,9 @@ export function getSetting(key: string): string | undefined {
 
 /**
  * Saves a value for one of the app's own shared settings in this browser. It
- * takes precedence over a seeded value from then on. See {@link getSetting}.
+ * takes precedence over a seeded value from then on. Useful for remembering
+ * the host the operator typed in Settings. Used by the app when it saves the
+ * telemetry stream connection. See {@link getSetting}.
  *
  * @category Settings
  */
@@ -145,7 +148,7 @@ export function setSetting(key: string, value: string): void {
  * Sets a value used for this page load only, while nothing is saved for the
  * setting. Never saved. The app seeds the game's host this way at startup,
  * from the `KSP_HOST` address the deployment was configured with, so a fresh
- * browser starts pointed at the right machine.
+ * browser starts pointed at the right machine. Used by the app at startup.
  *
  * @category Settings
  */
@@ -156,7 +159,8 @@ export function seedSetting(key: string, value: string): void {
 
 /**
  * Calls `cb` whenever the setting is saved or seeded. Returns the function that
- * stops it.
+ * stops it. Useful for reconnecting when the operator changes the host. Used by
+ * the app's telemetry stream connection.
  *
  * @category Settings
  */

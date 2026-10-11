@@ -9,7 +9,7 @@
  * source in the harness), so this is a dedicated probe (`crew-avatar-probe/`),
  * same esbuild -> injected HTML -> playwright pipeline as
  * `render-crew-status-panel-badge.ts`, that registers a plain-initials
- * STUB avatar augment before mounting the real `CrewStatusComponent`
+ * stub avatar augment before mounting the real `CrewStatusComponent`
  * (`crew-avatar-probe-entry.tsx`'s own doc comment). Replays
  * `probe/planted-crew.json` (shared with the panel-badge render), whose
  * planted Uplink contributions give every row survival meters and a critical

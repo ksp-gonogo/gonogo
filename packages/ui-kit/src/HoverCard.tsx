@@ -30,7 +30,9 @@ const CLOSE_DELAY_MS = 120;
 /**
  * A card of facts about a trigger, shown while the trigger is hovered or
  * focused and gone when neither is, drawn over the page in a {@link Floating}
- * so no panel clips it. The trigger renders as an unstyled `button`. Escape
+ * so no panel clips it. Useful for giving the operator detail on an item
+ * without leaving the list. Used by the fleet roster's signal cell and the
+ * commcast message rows. The trigger renders as an unstyled `button`. Escape
  * dismisses the card; the pointer can move onto the card without closing it.
  * The card is the trigger's description, so a screen reader hears it on focus.
  *

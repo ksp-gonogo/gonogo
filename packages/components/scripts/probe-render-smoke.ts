@@ -1,5 +1,5 @@
 /**
- * Probe-harness smoke check: does the probe bundle still LOAD in a browser?
+ * Probe-harness smoke check: does the probe bundle still load in a browser?
  *
  * Builds each probe page with the render harness's own esbuild config, opens it
  * in Chromium, and asserts the page installs the `window` global its driver
@@ -17,7 +17,7 @@
  * gate whose failure mode is indistinguishable from its normal state is not
  * instrumenting anything.
  *
- * So this check is a DIFFERENT KIND, deliberately placed in the `test` job
+ * So this check is a different kind, deliberately placed in the `test` job
  * which is expected green: the same reasoning as the un-fed snapshot gate
  * beside it in CI. It answers "can the harness render at all", a question
  * `visual` cannot ask, and it fails on any future module-load error whatever
@@ -44,7 +44,7 @@ interface PageFailure {
 /**
  * Below this, the harness is not being smoke-tested, it is being iterated over.
  *
- * This check is the compensating RED for the permanently-red `visual` job, so a
+ * This check is the compensating red for the permanently-red `visual` job, so a
  * version of it that reports success having loaded no page is worth less than
  * nothing. An empty `PROBE_PAGES` runs the loop zero times, collects no failure
  * and exits 0, which is exactly how a dead render harness would present.

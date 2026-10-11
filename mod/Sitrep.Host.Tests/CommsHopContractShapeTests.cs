@@ -10,7 +10,7 @@ namespace Sitrep.Host.Tests
     /// The anti-pattern ratchet for <see cref="CommsHop"/>, the same guard
     /// <see cref="IsruContractShapeTests"/> and
     /// <see cref="ScienceProviderExtensionRatchetTests"/> hold for their own elected payloads: a
-    /// NEW provider-specific per-hop field lands in the extension bag, not as
+    /// new provider-specific per-hop field lands in the extension bag, not as
     /// another hand-listed member on the shared hop.
     ///
     /// <para><see cref="CommsHop"/> is the one comms shape both backends (vanilla
@@ -24,7 +24,7 @@ namespace Sitrep.Host.Tests
     /// goes in <c>Extensions["&lt;providerId&gt;"]</c> or the provider's own
     /// channel.</para>
     ///
-    /// <para>The set is exact rather than a max count, so a RENAME fails too.
+    /// <para>The set is exact rather than a max count, so a rename fails too.
     /// Removals are gated by <see cref="ContractShapeGateTests"/>.</para>
     /// </summary>
     public class CommsHopContractShapeTests

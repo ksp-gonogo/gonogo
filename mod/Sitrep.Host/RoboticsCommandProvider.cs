@@ -14,7 +14,7 @@ namespace Sitrep.Host
     /// No KSP/Unity type appears here.
     ///
     /// <para><b>Two-tier validation</b>, matching every other command provider:
-    /// a check that needs only the args themselves happens HERE (an empty
+    /// a check that needs only the args themselves happens here (an empty
     /// <c>partId</c> can never resolve a live part, so it fails fast with
     /// <see cref="CommandErrorCode.NotFound"/>; the contract-known scalar
     /// bounds (torque 0–100, brake 0–200) are rejected with

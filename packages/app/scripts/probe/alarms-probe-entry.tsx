@@ -16,8 +16,8 @@ import type { Alarm, AlarmSnapshot } from "../../src/alarms/types";
  * `alarms-probe.html`, and `scripts/render-alarms.ts` drives it through
  * `window.__renderAlarms`, screenshotting `#root`.
  *
- * The one thing worth looking at here is what the surface says under SIGNAL
- * DELAY, which is a question about pixels rather than about state: the same
+ * The one thing worth looking at here is what the surface says under signal
+ * delay, which is a question about pixels rather than about state: the same
  * modal with the same alarms renders a bare time on a LAN session and a
  * qualified one at four light-minutes, and the only way to judge whether that
  * qualifier reads as information or as noise is to see it.
@@ -75,7 +75,7 @@ const SUBSCRIBED = [
  * Two alarms that put both clocks in one list: a time alarm, whose UT is a
  * view-clock instant because that is when the operator will be told, and a
  * fired SCET threshold, whose `eventUT` is the craft's own clock and so sits
- * one light-time before the moment it was revealed.
+ * one signal delay before the moment it was revealed.
  */
 function alarms(): Alarm[] {
   return [
@@ -122,7 +122,7 @@ function snapshot(): AlarmSnapshot {
 
 /** What one shot asks for. */
 interface Scene {
-  /** One-way light time in force, seconds. 0 is the LAN session. */
+  /** One-way signal delay in force, seconds. 0 is the LAN session. */
   delaySeconds: number;
   pxW: number;
   pxH: number;

@@ -14,19 +14,19 @@ import type { AlarmSnapshot } from "./types";
 import { DEFAULT_WARP_SAFETY_MARGIN_SECONDS } from "./types";
 
 /**
- * Characterisation of what `AlarmsModal` DOES today when its telemetry reads
+ * Characterisation of what `AlarmsModal` does today when its telemetry reads
  * come back `undefined`, and where it does or does not distinguish `undefined`
  * from `null`.
  *
  * Three absence gates live in this file, each with a different meaning assigned
  * to the same `undefined`:
  *  - `useTelemetry("vessel.parts")` → `if (!parts?.parts) return null`, which
- *    means "no bindings known", and renders the action-group option with NO
+ *    means "no bindings known", and renders the action-group option with no
  *    caption at all rather than a placeholder
  *  - `useOrbitSolve()` → `solve?.timeToAp ?? undefined`, then `typeof timeToAp
  *    === "number"`, which means "this preset is not offerable", and removes the
- *    whole Recommended DISCLOSURE, not just the button
- *  - `snapshot.ut === null`, which means "cannot schedule yet" and is the ONE
+ *    whole Recommended disclosure, not just the button
+ *  - `snapshot.ut === null`, which means "cannot schedule yet" and is the one
  *    absence this modal narrates to the operator in words. Note the UT arrives
  *    on the `useSnapshot` prop rather than through a telemetry read here; it is
  *    pinned because it is the modal's own absence gate and the widest visible
@@ -78,7 +78,7 @@ function modalWithUt(ut: number | null = SNAPSHOT_UT) {
 
 /**
  * The ten stock custom groups, as the mod sends them. Emitted wherever a test
- * needs AG1 to EXIST as an option: the registry's custom half is telemetry
+ * needs AG1 to exist as an option: the registry's custom half is telemetry
  * derived, so without this there is no `AG1` row for a caption to be missing
  * from and the caption assertions would pass on an empty list.
  */

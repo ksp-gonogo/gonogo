@@ -20,7 +20,7 @@ import {
 } from "./projection";
 
 /**
- * Where the BODIES are drawn under each frame: every case ends at a child body's own `cx`/`cy`, since reframing only the craft's curve would leave two frames in one picture.
+ * Where the bodies are drawn under each frame: every case ends at a child body's own `cx`/`cy`, since reframing only the craft's curve would leave two frames in one picture.
  *
  * One mount per case: `setupStreamFixture` clears the module-global processor runtime, so two fixtures in one body would both show the last system emitted. Each case asserts an absolute geometric invariant instead of a difference.
  */

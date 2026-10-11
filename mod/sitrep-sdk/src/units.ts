@@ -68,7 +68,7 @@ const NO_STATICS: readonly string[] = Object.freeze([]);
 const NO_ENUMS: EnumsByField = Object.freeze({});
 
 /**
- * Whether a shape-map entry holds MANY of its element type: a leading `*` for
+ * Whether a shape-map entry holds many of its element type: a leading `*` for
  * a string-keyed dictionary, a trailing `[]` for a list.
  *
  * Plurality decides whether a dotted path under the field can be sampled. What
@@ -90,7 +90,7 @@ export function shapeTypeName(entry: string): string {
 }
 
 /**
- * Hand-declared Topics whose payload IS a reflected contract type.
+ * Hand-declared Topics whose payload is a reflected contract type.
  *
  * The generated maps are keyed by `[SitrepTopic]`, so an ENGINE-declared
  * channel gets no entry even when its payload is a real contract shape:
@@ -110,7 +110,7 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
   });
 
 /**
- * Runtime registry of Topic-scoped unit/shape maps for RELOCATED Uplink
+ * Runtime registry of Topic-scoped unit/shape maps for relocated Uplink
  * payload types. `GENERATED_TOPIC_UNITS`/
  * `GENERATED_TOPIC_SHAPES` only know about payload types still reflected out
  * of `Sitrep.Contract`; once a type's Topic moves to its owning Uplink's own
@@ -119,7 +119,7 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
  * into `Value`s. Mirrors `registerBarePrimitiveTopic`'s self-registration
  * idiom (see `topics.ts`) for the numeric half of the same problem: each
  * relocated Uplink's own client package calls `registerTopicUnits` at module
- * load (fed from ITS OWN generated `units.ts`), alongside its
+ * load (fed from its own generated `units.ts`), alongside its
  * `registerBarePrimitiveTopic`/`declare module TopicPayloadMap` augmentation.
  */
 const registeredTopicUnits = new Map<string, UnitsByField>();
@@ -163,14 +163,14 @@ export function registerTopicUnits(
  * The TYPE-keyed half of the same registry, and it is not optional the moment a
  * relocated payload has any nesting.
  *
- * `registerTopicUnits` above covers a Topic's OWN fields, which is the whole of
- * the problem for a FLAT relocated type and none of it for a nested one:
+ * `registerTopicUnits` above covers a Topic's own fields, which is the whole of
+ * the problem for a flat relocated type and none of it for a nested one:
  * `wrapTopicPayload` reads `shapesForTopic` to learn that a field holds
  * another shape, then recurses through `wrapTypePayload`, which resolves that
- * shape BY NAME through `unitsForType`/`shapesForType`. Those read the
+ * shape by name through `unitsForType`/`shapesForType`. Those read the
  * type-keyed generated maps, so a relocated nested type is unreachable from the
  * topic registration alone and its quantities arrive bare while the generated
- * TYPE still says `Value<"m">`.
+ * type still says `Value<"m">`.
  *
  * `scansat.scanningVessels` is the case that forced it (the fourth relocation,
  * the first with nesting): its `sensors` field holds `ScanSensorEntry[]`, whose
@@ -248,13 +248,13 @@ export function registerEnumMembers(
  * the bag. Neither registry above can express that, and not for want of trying:
  *
  *   • `registerTopicUnits` is dead on arrival for an elected capability's Topic.
- *     `unitsForTopic`/`shapesForTopic` return the GENERATED entry FIRST and only
+ *     `unitsForTopic`/`shapesForTopic` return the generated entry first and only
  *     fall back to the registered one, so a provider registering against
  *     `isru.drills` (a core-generated Topic) is silently ignored. Were the
  *     precedence the other way round it would be worse: the maps are whole-Topic,
  *     so last-write-wins between two installed providers would clobber core's own
  *     units for that Topic.
- *   • `registerTypeUnits` resolves BY TYPE NAME, and nothing in the payload names
+ *   • `registerTypeUnits` resolves by type name, and nothing in the payload names
  *     the provider's type. The bag's values are opaque by construction.
  *
  * So the routing is its own small registry, keyed by (owner, provider id) where
@@ -262,7 +262,7 @@ export function registerEnumMembers(
  * shape). Two providers extending the same payload write two entries and never
  * collide, which is exactly the property the bag exists for.
  *
- * GENERAL: `owner` is any Topic or type carrying a `[ProviderExtensionBag]`
+ * General: `owner` is any Topic or type carrying a `[ProviderExtensionBag]`
  * property, so every elected capability's providers register their namespaces
  * the same way with no further core change.
  */

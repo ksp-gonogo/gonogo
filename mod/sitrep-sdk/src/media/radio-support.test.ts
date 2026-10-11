@@ -7,7 +7,7 @@ import {
 
 /**
  * These tests stand the four WebCodecs constructors up as stubs, because
- * the point under test is the ORDER of the two questions, not the codec.
+ * the point under test is the order of the two questions, not the codec.
  * The live codec is proved cross-engine in
  * `tests/playwright/radio-capability.spec.ts`; what cannot be proved there
  * is that a secure context with no codec and an insecure context with a

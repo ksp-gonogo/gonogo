@@ -11,8 +11,8 @@ namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
     /// A report of the active craft's link reaches each command centre one of
-    /// that centre's own light-times after the instant it describes. It used
-    /// to be held for the home centre's light-time and then shown to every
+    /// that centre's own signal delays after the instant it describes. It used
+    /// to be held for the home centre's signal delay and then shown to every
     /// centre at once, so a centre beside the craft learned of an outage late
     /// and one further out than home learned of it early.
     /// </summary>
@@ -131,7 +131,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The same on the wire: two sockets seated at two centres, one beside
         /// the craft and one further out than home, each sent the outage one of
-        /// its own light-times after it began.
+        /// its own signal delays after it began.
         /// </summary>
         [Fact]
         public async Task TwoSeatedClientsAreEachSentTheOutageAtTheirOwnCentresLightTime()

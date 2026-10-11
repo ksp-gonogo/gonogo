@@ -2,7 +2,7 @@
  * Standalone probe for the Panel delay rail (`Panel.Delay` / PanelDelayRail).
  *
  * The dashboard's own visual-gate probe wraps a widget only in
- * AlarmsLauncherProvider + DashboardItemContext, with NO DelayRailProvider, so
+ * AlarmsLauncherProvider + DashboardItemContext, with no DelayRailProvider, so
  * the delay rail never draws in CI. This probe
  * closes that gap: it mounts a real `<DelayRailProvider>` above a `<Panel>`
  * whose body contributes a hand-built `CommandDelayHandle` through

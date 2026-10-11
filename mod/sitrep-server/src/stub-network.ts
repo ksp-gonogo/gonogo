@@ -6,7 +6,7 @@
  * relays: that's M3b.
  */
 export interface Network {
-  /** One-way light-time seconds from `vantage` to `node`. */
+  /** One-way signal delay seconds from `vantage` to `node`. */
   delayTo(vantage: string, node: string): number;
   /** Whether `node` is currently reachable from `vantage`. */
   reachable(vantage: string, node: string): boolean;
@@ -69,7 +69,7 @@ export class StubNetwork implements Network {
         : seconds;
   }
 
-  /** Set the one-way delay for a NODE, applied for that node from any vantage without a per-(vantage, node) `setDelay` override. The per-vessel downlink primitive (Plan 2): each vessel node carries its own routed light-time for the single KSC observer. NaN / infinite / negative clamp to 0 (matching `setDefaultDelay`). Plan 3 layers per-(vantage, node) overrides on top. */
+  /** Set the one-way delay for a node, applied for that node from any vantage without a per-(vantage, node) `setDelay` override. The per-vessel downlink primitive (Plan 2): each vessel node carries its own routed signal delay for the single KSC observer. NaN / infinite / negative clamp to 0 (matching `setDefaultDelay`). Plan 3 layers per-(vantage, node) overrides on top. */
   setNodeDelay(node: string, seconds: number): void {
     this.nodeDelays.set(
       node,

@@ -11,7 +11,7 @@
  * knows how to regenerate with dotnet and node, and these are the only generated
  * files whose input is an esbuild bundle.
  *
- * It re-runs the bake COMMAND rather than calling the bundler in-process, which
+ * It re-runs the bake command rather than calling the bundler in-process, which
  * buys two things: the file under `packages/app/` that the bundler lives in sits
  * outside the app's `rootDir` and cannot be imported from `src`, and the command
  * named in the failure message below is then the command this test proved works.

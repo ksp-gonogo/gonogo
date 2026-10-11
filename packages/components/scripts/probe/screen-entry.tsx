@@ -7,7 +7,7 @@
  *
  * Unlike the widget probe, a screen owns the whole viewport (its own
  * `min-height: 100vh`, safe-area insets, and `@media` breakpoints), so the
- * driver resizes the PAGE viewport per breakpoint rather than sizing `#root`.
+ * driver resizes the page viewport per breakpoint rather than sizing `#root`.
  * That is what makes the screen's `@media (max-width: 480px)` /
  * `(pointer: coarse)` rules actually engage under Playwright.
  *

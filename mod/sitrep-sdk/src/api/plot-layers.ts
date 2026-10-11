@@ -1,7 +1,7 @@
 /**
- * The PLOT LAYER vocabulary: everything a plot may draw inside its own frame.
+ * The plot layer vocabulary: everything a plot may draw inside its own frame.
  *
- * This is the CONTENTS of a `PlotEntry` (see `./plots.ts`), reachable only by
+ * This is the contents of a `PlotEntry` (see `./plots.ts`), reachable only by
  * the contributor who owns the plot. It was briefly a framework-universal
  * segment, `${componentId}.plot-layers`, completed for every widget in the app
  * so that anyone could draw into anyone's chart. That was the wrong altitude
@@ -13,19 +13,19 @@
  *
  * Two rules hold the whole design up:
  *
- * 1. **A layer is stated in the plot's own DATA SPACE, never in pixels.** An
+ * 1. **A layer is stated in the plot's own data space, never in pixels.** An
  *    author writes metres and metres per second against the `PlotFrame` their
  *    own plot declared; the renderer owns every scale, the clip and the paint
  *    order. That is what lets one vocabulary serve a velocity-height plot, a
  *    pressure-altitude plot and a wall-clock trace, and it is what lets an
  *    arranger resize a plot without any mark on it moving relative to another.
- * 2. **A layer names a TONE, never a colour.** The same split
+ * 2. **A layer names a tone, never a colour.** The same split
  *    `SystemEntityStyle` already draws for `system-view.entities`: an author
  *    says how alarming a thing is and the renderer resolves the token, so a
  *    palette change cannot leave a plot's marks behind. The two exceptions are
  *    `PlotFieldLayer.tint` and `PlotWaterLayer.tint`, for the reason ShipMap's
  *    resource meters carry a fill colour: a body's own sky or sea is an
- *    IDENTITY colour, not a status.
+ *    identity colour, not a status.
  *
  * Absence is drawn as absence by construction: a layer that is not contributed
  * draws nothing and, because `description` is the only route into the plot's

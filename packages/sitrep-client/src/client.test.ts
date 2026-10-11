@@ -507,7 +507,7 @@ describe("TelemetryClient delayed command lifecycle (eta + loss)", () => {
 });
 
 /**
- * The channel a transport reports SOMEONE ELSE'S loss on.
+ * The channel a transport reports someone else's loss on.
  *
  * `PeerTransport` is the case: a station's command is dispatched to the mod by
  * the host, so the host's loss timer is the only one timing that leg. Relayed as
@@ -652,7 +652,7 @@ describe("TelemetryClient: a loss relayed by the transport", () => {
 });
 
 /**
- * A command the mod REFUSED is not a command that worked. The mod answers a
+ * A command the mod refused is not a command that worked. The mod answers a
  * well-formed refusal on the normal `command-response` channel, carrying a
  * typed `CommandResult.errorCode`; the `"error"` message type is reserved for
  * a different class entirely (handler exception, unserializable result). So

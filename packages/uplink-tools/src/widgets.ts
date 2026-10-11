@@ -1,11 +1,11 @@
 /**
- * The app's own widgets, registered, for ONE purpose: drawing an Uplink's docs
+ * The app's own widgets, registered, for one purpose: drawing an Uplink's docs
  * page.
  *
  * ## Why this is a package of its own, and why it must stay one
  *
  * An Uplink's docs page shows its widgets, and some of those widgets are an
- * AUGMENT or a CONTRIBUTION into a widget that ships with the app. To draw one
+ * augment or a contribution into a widget that ships with the app. To draw one
  * honestly you need the host widget around it, so producing the docs page for
  * each Uplink, showing its widgets and where any extensions sit, is a
  * reasonable use, as long as it stays under its own specific named export:
@@ -18,7 +18,7 @@
  * in a comment nobody reads, and it makes the intent enforceable in a way a
  * `ui-kit` subpath could not be:
  *
- *   - `@ksp-gonogo/ui-kit` is a RUNTIME dependency of an Uplink. This is a
+ *   - `@ksp-gonogo/ui-kit` is a runtime dependency of an Uplink. This is a
  *     **devDependency**, named in `gonogo.renderWith` and imported by nothing.
  *     An Uplink that reaches for a widget in here has to move it to
  *     `dependencies` first, which is a visible act
@@ -51,7 +51,7 @@
  * the real widget. That is the whole of
  * `HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"]`.
  *
- * Every OTHER contribution slot is drawn by the host widget's own body, and a
+ * Every other contribution slot is drawn by the host widget's own body, and a
  * stand-in's body is `() => null`. `admin-building.screens`,
  * `space-center-status.facilities` and `astronaut-complex.readouts` are each a
  * `useContributions(...)` inside the widget. Standing in for those produces a

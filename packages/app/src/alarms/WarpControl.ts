@@ -8,7 +8,7 @@ import type { WarpRateTable } from "./WarpRateTable";
  * The fastest rate to run at when there is no arrival time to plan against:
  * an alarm that is eligible but already inside its warp stop.
  *
- * A RATE, not a warp index: an index is only ever shorthand for "100x on
+ * A rate, not a warp index: an index is only ever shorthand for "100x on
  * stock's ladder", and an install that republishes the ladder makes the
  * shorthand a different number (rung 4 is 10000x on the deck's RSS/RO table).
  * Naming the rate says the same thing on every install.
@@ -21,7 +21,7 @@ export interface WarpControlContext {
   /**
    * What the install's warp rungs actually run at, so the ladder plans against
    * this game rather than stock's table. Read through the context for the same
-   * reason the clock and the light-time are: the controller holds no telemetry
+   * reason the clock and the signal delay are: the controller holds no telemetry
    * reach of its own.
    */
   getRateTable(): WarpRateTable;
@@ -29,7 +29,7 @@ export interface WarpControlContext {
    *  observer suppress the unscheduled-warp detector for this change. */
   registerOwnWarpIntent(): void;
   /**
-   * One-way light time to the craft, seconds, or 0 where there is none.
+   * One-way signal delay to the craft, seconds, or 0 where there is none.
    *
    * Injected rather than read here so the controller stays a plain class with
    * no telemetry reach of its own, the same way it takes its clock.
@@ -99,11 +99,11 @@ export class WarpControl {
   }
 
   /**
-   * The light-time, when it is the thing actually deciding the ladder, and
+   * The signal delay, when it is the thing actually deciding the ladder, and
    * `undefined` when the operator's own setting still is.
    *
    * Only the overriding case, because the banner's job is to explain a control
-   * that is not in force: reporting the light-time while the setting is larger
+   * that is not in force: reporting the signal delay while the setting is larger
    * would put a number on screen that changes nothing.
    */
   getOverridingOwltSeconds(): number | undefined {
@@ -122,12 +122,12 @@ export class WarpControl {
 
   /**
    * End the session because the game's warp was stopped by something else, and
-   * issue NO warp command on the way out.
+   * issue no warp command on the way out.
    *
    * The twin of the unrequested-stop branch in `reconcile`, for the case where
-   * the controller is TOLD rather than left to observe it. A SCET alarm firing
+   * the controller is told rather than left to observe it. A SCET alarm firing
    * on the mod is exactly that: the warp is already at zero, and the reading
-   * that proves it is one light-time away, so a session left running would keep
+   * that proves it is one signal delay away, so a session left running would keep
    * claiming on screen to be warping towards something for the whole of it.
    *
    * Not `cancel`, deliberately. Cancelling commands warp to zero, and a second
@@ -211,7 +211,7 @@ export class WarpControl {
   }
 
   /**
-   * Whether the observed warp index is still the one from BEFORE the last
+   * Whether the observed warp index is still the one from before the last
    * command this controller sent.
    *
    * True only while the reading is unchanged since the dispatch and has not
@@ -240,12 +240,12 @@ export class WarpControl {
    *
    * The setting is a REAL-TIME buffer and knows nothing about delay, so on a
    * craft four minutes away a 10-second margin let the ladder run until the
-   * alarm was ten seconds off on the VIEW clock, by which time the craft had
-   * been past the event for most of a light-time. A warp window cannot be
+   * alarm was ten seconds off on the view clock, by which time the craft had
+   * been past the event for most of a signal delay. A warp window cannot be
    * aborted from inside, so the pessimistic side is the only safe side and the
-   * light-time is the size of the pessimism.
+   * signal delay is the size of the pessimism.
    *
-   * `max` rather than a sum: the margin and the light-time are two answers to
+   * `max` rather than a sum: the margin and the signal delay are two answers to
    * the same question (how much room to leave), not two costs to add up, and a
    * LAN session keeps exactly the behaviour it had.
    */
@@ -259,7 +259,7 @@ export class WarpControl {
    * The rung to ask for, from the rate the margin allows and what the install
    * says its rungs run at.
    *
-   * The ceiling is expressed as a RATE the whole way down. Picking a rung by
+   * The ceiling is expressed as a rate the whole way down. Picking a rung by
    * looking a rate up in a table this client wrote down itself is the defect
    * being fixed: the table belongs to the install, and only the install (or the
    * game's own behaviour, watched) can say what a rung means.

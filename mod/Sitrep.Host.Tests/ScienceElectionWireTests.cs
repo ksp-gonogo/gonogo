@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The correctness criterion for making <c>science</c> a Kernel-elected
-    /// capability, stated as BYTES: with no provider registered, the elected
+    /// capability, stated as bytes: with no provider registered, the elected
     /// vanilla backend puts on the wire exactly what the direct
     /// <see cref="ScienceViewProvider"/> wiring put there before the election
     /// existed. The election is indirection only, so nothing a client already
@@ -21,7 +21,7 @@ namespace Sitrep.Host.Tests
     /// the provider-extension bag's own wire test used to prove that mechanism.</para>
     ///
     /// <para>Two assertions per claim, deliberately. The elected-vs-direct
-    /// comparison would still pass if BOTH sides had drifted together, so one
+    /// comparison would still pass if both sides had drifted together, so one
     /// frame is also pinned against a literal written out in full.</para>
     /// </summary>
     public class ScienceElectionWireTests
@@ -138,7 +138,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// The elected backend with no provider registered: stock, resolved
-        /// through the REAL <see cref="Kernel"/> rather than constructed
+        /// through the real <see cref="Kernel"/> rather than constructed
         /// directly, so this exercises the vanilla factory the election actually
         /// installs.
         /// </summary>
@@ -154,7 +154,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// Every one of the five channels, byte for byte: what the elected
-        /// vanilla backend produces IS what the pre-election channel source
+        /// vanilla backend produces is what the pre-election channel source
         /// (<see cref="ScienceViewProvider"/> called directly) produced.
         /// </summary>
         [Fact]
@@ -214,7 +214,7 @@ namespace Sitrep.Host.Tests
         /// <summary>
         /// The null contract survives the election, which is load-bearing rather
         /// than cosmetic: a channel whose mapper has never returned a non-null
-        /// value is never "born" and emits NOTHING (see
+        /// value is never "born" and emits nothing (see
         /// <c>ChannelEngine</c>'s <c>_born</c> doc comment). A backend that
         /// returned an empty list for "no lab onboard" would turn that silence
         /// into a stream of empty frames.

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// Builds the <c>fleet.&lt;guid&gt;.contact</c> wire dict: the CORE
+    /// Builds the <c>fleet.&lt;guid&gt;.contact</c> wire dict: the core
     /// connected/lastContactUt facts, published by
     /// <see cref="FleetChannels"/>. Same self-flattening producer pattern as
     /// <see cref="FleetVesselLinkBuilder"/>: camelCase keys match

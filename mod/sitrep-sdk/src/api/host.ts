@@ -171,7 +171,9 @@ export interface GonogoHost {
 }
 
 /**
- * The `globalThis` key the app installs its {@link GonogoHost} under.
+ * The `globalThis` key the app installs its {@link GonogoHost} under. Useful
+ * for a test that checks whether a host is installed. Used by the app when it
+ * starts.
  *
  * @category Host and runtime
  */
@@ -182,9 +184,9 @@ declare global {
 }
 
 /**
- * Resolve the injected host, or throw a named, actionable error. The message
- * names the package and states the fix (mark the specifier `external`) so a
- * mis-bundled Uplink fails loud at first registration rather than vanishing.
+ * Returns the installed {@link GonogoHost}. Throws an error naming the package
+ * and the fix (mark the specifier `external` so it resolves to the host) when
+ * none is installed. Used by every sdk function that needs the app.
  */
 export function getHost(): GonogoHost {
   const host = globalThis[GONOGO_HOST_KEY];
@@ -212,9 +214,9 @@ export function hasHost(): boolean {
 }
 
 /**
- * Internal: install / clear the host. Public installation is the app's job (at
- * boot) and tests' job (via the `/testing` subpath), this is the shared plumbing
- * both use. Not part of the author-facing barrel.
+ * Installs the {@link GonogoHost}, or clears it when passed `undefined`. Not
+ * part of the author-facing barrel: the app installs the host when it starts,
+ * and a test installs one through `@ksp-gonogo/sitrep-sdk/testing`.
  */
 export function __setGonogoHost(host: GonogoHost | undefined): void {
   globalThis[GONOGO_HOST_KEY] = host;

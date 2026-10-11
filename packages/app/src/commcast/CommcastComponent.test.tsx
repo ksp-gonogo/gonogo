@@ -1,9 +1,9 @@
 /**
- * The widget renders, and the delayed states are visible ON SCREEN.
+ * The widget renders, and the delayed states are visible on screen.
  *
  * The arrival rules are unit-tested where they live and the grouping in
  * `threads.test.ts`; what only a render shows is that a message still crossing
- * to this vantage leaks NOTHING, that the operator's own words are held out of
+ * to this vantage leaks nothing, that the operator's own words are held out of
  * the log until they are answered, that an unanswered one comes back
  * unconfirmed with something to do about it, and that the send control keeps
  * one size however far away the recipient is. All of those are things a correct
@@ -71,7 +71,7 @@ function renderWidget(log: CommcastLog) {
 }
 
 /**
- * The same widget over the REAL spine, for the two tests that need a roster and
+ * The same widget over the real spine, for the two tests that need a roster and
  * a published separation.
  *
  * A bare `StubTransport` cannot serve either: `useTelemetry` reads the delayed
@@ -85,7 +85,7 @@ function renderOnStream(
   roster: readonly unknown[],
   /**
    * Separations to publish, one-way seconds. Defaults to the headline pair,
-   * four light-minutes to the craft; a test about a NEAR correspondent passes
+   * four light-minutes to the craft; a test about a near correspondent passes
    * its own, because which of the two delay readings the widget draws is
    * decided off this number.
    */

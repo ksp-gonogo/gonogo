@@ -8,7 +8,7 @@ import {
 } from "./published-entry-points";
 
 /**
- * The scan behind `published-review-aid.test.ts`: a REVIEW AID, not a check.
+ * The scan behind `published-review-aid.test.ts`: a review aid, not a check.
  *
  * It lists the doc comments, widget descriptions and Uplink pages that a
  * reviewer should read again, each with the reason it was picked: a word a

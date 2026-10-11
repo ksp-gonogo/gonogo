@@ -12,7 +12,7 @@ namespace Sitrep.Core
     ///
     /// <para>Ordering matters and is not enforceable here: the hops' seconds
     /// must sum to the same one-way total passed to <c>SetVesselDelay</c> for
-    /// the identical route, and this call must come AFTER it for the same
+    /// the identical route, and this call must come after it for the same
     /// vessel, because a bare scalar write retires any journey the node
     /// already had.</para>
     /// </summary>

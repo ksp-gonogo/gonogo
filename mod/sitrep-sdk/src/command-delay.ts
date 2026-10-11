@@ -358,7 +358,7 @@ export function classifyRetained(args: {
   return base;
 }
 
-/** Ordinal used only to detect a BACKWARD phase move (a transient judder), never to sort. */
+/** Ordinal used only to detect a backward phase move (a transient judder), never to sort. */
 const PHASE_ORDER: Record<PredictedPhase, number> = {
   "in-transit": 0,
   "awaiting-reply": 1,

@@ -18,22 +18,22 @@ export interface BlockAnatomyProps {
   /** Tag for `title`. Defaults to `div`; pass a heading where the outline wants one. */
   titleAs?: StaticElement;
   /**
-   * Drawn BEFORE the title, on the title's own line: a marker, a rank pip, an
+   * Drawn before the title, on the title's own line: a marker, a rank pip, an
    * index. Not a status, which reads after the thing it is a status of.
    */
   titleLeft?: ReactNode;
   /**
-   * Drawn AFTER the title and pushed to the end of its line: the badges that
+   * Drawn after the title and pushed to the end of its line: the badges that
    * say how its subject is doing. Wraps under the title rather than squeezing
    * it. Distinct from `right`, which sits beside (or below) the whole body.
    */
   titleRight?: ReactNode;
   /**
    * Content beside the title and body, on the left. Reflows to a full-width row
-   * ABOVE the title when there is no room for both.
+   * above the title when there is no room for both.
    */
   left?: ReactNode;
-  /** Content beside the title and body, on the right. Reflows BELOW the body when narrow. */
+  /** Content beside the title and body, on the right. Reflows below the body when narrow. */
   right?: ReactNode;
   /** Content across the top, above the title. It stays there at every width. */
   top?: ReactNode;
@@ -115,7 +115,7 @@ function Block__TitleRow({ left, right, children }: BlockTitleRowProps) {
 }
 
 /**
- * The row the side asides sit in. The wrap IS the collapse: a `left` aside with
+ * The row the side asides sit in. The wrap is the collapse: a `left` aside with
  * nowhere to go lands above the body, a `right` aside below it. Nothing is ever
  * hidden, unlike `Panel`'s aside.
  */
@@ -158,7 +158,11 @@ const Block__Footer = styled.div`
   flex-wrap: wrap;
 `;
 
-/** The arrangement with no surface. `Card` and `Notice` extend it; outside this package the door is `Block`. */
+/**
+ * The unstyled root of the {@link Block} arrangement, which {@link Card} and
+ * {@link Notice} extend to add their own surfaces. Use {@link Block} from
+ * outside this package.
+ */
 export const Block__Root = styled.div`
   display: flex;
   flex-direction: column;
@@ -169,9 +173,11 @@ export const Block__Root = styled.div`
 `;
 
 /**
- * Renders the anatomy inside whichever root it is handed. The title row and
- * children are direct children of the root while there is no side aside, so a caller may restyle
- * the root's flex direction.
+ * The title row, body, asides and footer of a {@link Block}, rendered inside
+ * whichever root it is handed. Used by {@link Block}, {@link Card} and
+ * {@link Notice}, each with its own root. While there is no side aside, the
+ * title row and children are direct children of the root, so a caller may
+ * restyle the root's flex direction.
  */
 export function renderBlockAnatomy(
   Root: ElementType,
@@ -220,7 +226,11 @@ export function renderBlockAnatomy(
   );
 }
 
-/** The parts, hung off every surface that composes them: `Card.Title === Block.Title`. */
+/**
+ * The named parts of a record layout (title, title row, body, aside, footer),
+ * attached to every surface that composes them so that `Card.Title ===
+ * Block.Title`. Used by {@link Block} and {@link Card}.
+ */
 export const BLOCK_PARTS = {
   Title: Block__Title,
   TitleRow: Block__TitleRow,
@@ -235,8 +245,10 @@ function BlockRoot({ ...props }: BlockProps): ReactNode {
 
 /**
  * The arrangement of a record with no surface: a name sized as a heading, a
- * body under it, asides on any of four sides, and a footer. {@link Card} is the
- * same arrangement on a sunken surface.
+ * body under it, asides on any of four sides, and a footer. Useful for laying
+ * out one item of a list, such as a strategy or a contract, so every record in
+ * a widget has the same type and spacing. Used by the admin building widget's
+ * strategy cards. {@link Card} is the same arrangement on a sunken surface.
  *
  * `titleRight` is not `right`: `titleRight` holds badges on the name's line and
  * wraps under the name when narrow, while `right` sits beside the whole body

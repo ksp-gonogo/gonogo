@@ -25,7 +25,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Backs <see cref="RecordedEntry.Seq"/> - one shared counter across
-        /// BOTH snapshots and events, incremented once per entry appended,
+        /// both snapshots and events, incremented once per entry appended,
         /// so it reflects true capture order regardless of kind.
         /// </summary>
         private long _nextSeq;
@@ -34,7 +34,7 @@ namespace Sitrep.Host
         /// Small additive counters for <c>GonogoAddon</c>'s per-flush log
         /// line ("N snapshots, M events") - tracked alongside
         /// <see cref="Session"/> rather than counted by kind on every flush,
-        /// and deliberately NOT part of the record format itself.
+        /// and deliberately not part of the record format itself.
         /// </summary>
         private int _snapshotCount;
         private int _eventCount;
@@ -94,11 +94,11 @@ namespace Sitrep.Host
         /// snapshot entry stamped at <paramref name="ut"/>, without calling
         /// <see cref="IKspHost.Sample"/> itself. This is the Track C fix:
         /// the recorder is a dev-capture tool and must record every
-        /// UT-cadence tick UNCONDITIONALLY, regardless of whether any client
+        /// UT-cadence tick unconditionally, regardless of whether any client
         /// is subscribed to the live stream, subscription-gating applies
         /// only to that stream (see <c>Gonogo.KSP.GonogoBodiesServer</c>),
         /// never to this method. The caller (<c>GonogoAddon.FixedUpdate</c>)
-        /// samples the host exactly ONCE per cadence tick and hands the same
+        /// samples the host exactly once per cadence tick and hands the same
         /// snapshot to both this method and the emit path, rather than each
         /// side calling <see cref="IKspHost.Sample"/>/<see cref="IKspHost.NowUt"/>
         /// separately.

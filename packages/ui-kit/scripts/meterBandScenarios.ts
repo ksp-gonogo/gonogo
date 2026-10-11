@@ -1,5 +1,5 @@
 /**
- * The meters the band sheets are drawn from, as DATA.
+ * The meters the band sheets are drawn from, as data.
  *
  * Separate from the entry that renders them so the before/after pair differs
  * only in what is handed to `<Meter>`: the sheets, their order and their
@@ -31,7 +31,7 @@ export interface MeterCase {
   stale?: boolean;
   /**
    * A stale reading that names no grade, which is a real shape off the wire:
-   * a figure can stop being current without anything saying HOW. It is here
+   * a figure can stop being current without anything saying how. It is here
    * because staleness alone is what dims the fill, and a sheet where every
    * stale row carries a grade cannot show that.
    */

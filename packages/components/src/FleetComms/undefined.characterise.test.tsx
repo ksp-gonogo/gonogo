@@ -17,8 +17,8 @@ import { __resetFleetCommsTogglesForTests } from "./toggles";
 
 /**
  * What FleetComms's link badge does when `comms.link` is absent for any of its
- * three causes (never landed, a tombstone, `connected` omitted): never LINK or
- * NO LINK. One not yet heard from is awaited; the other two are the honest
+ * three causes (never landed, a tombstone, `connected` omitted): never link or
+ * "NO LINK". One not yet heard from is awaited; the other two are the honest
  * unknown.
  */
 

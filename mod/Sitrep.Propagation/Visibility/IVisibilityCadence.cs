@@ -29,7 +29,7 @@ namespace Sitrep.Propagation.Visibility
         /// <para>Null is a real answer. The orbital half of this comes from the
         /// elected propagation provider, and a provider whose trajectories are not
         /// periodic declines to give one; the rotational half survives regardless,
-        /// because a body's spin is not orbital mechanics. So null means BOTH terms
+        /// because a body's spin is not orbital mechanics. So null means both terms
         /// were unavailable, which leaves nothing to size a step against. A caller
         /// must then withhold rather than substitute, since a step chosen against a
         /// number nobody supplied publishes a detection guarantee the sweep cannot

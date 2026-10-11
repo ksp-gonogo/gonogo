@@ -1,7 +1,7 @@
 /**
  * The one place a `fleet.` payload's quantity is unwrapped.
  *
- * Whether a quantity arrives wrapped depends on the TOPIC, not on the type:
+ * Whether a quantity arrives wrapped depends on the topic, not on the type:
  * `wrapTopicPayload` keys on the exact topic string, so a static topic like
  * `fleet.silence` delivers `Value<...>` while its per-guid sibling
  * `fleet.<guid>.resources` delivers a bare number, for the same field of the

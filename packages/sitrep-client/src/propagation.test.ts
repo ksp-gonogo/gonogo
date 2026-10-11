@@ -5,11 +5,11 @@ import { describe, expect, it } from "vitest";
 import { type OrbitElements, solve } from "./kepler";
 
 /**
- * Cross-language conformance test: asserts this TS `solve()` matches EVERY
+ * Cross-language conformance test: asserts this TS `solve()` matches every
  * case in `mod/golden-fixtures/propagation.json` -- the same fixture file
  * `Sitrep.Propagation.Tests` asserts `KeplerProvider` against. Both
  * languages conforming to one shared fixture set is how we prove the C#
- * server and the TS SDK derive positions IDENTICALLY (spec-streaming-delay-model.md
+ * server and the TS SDK derive positions identically (spec-streaming-delay-model.md
  * §4/§5's derived-channel requirement).
  *
  * Per-case `tolerance` in the fixture distinguishes:

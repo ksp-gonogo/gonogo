@@ -17,7 +17,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * The deliverable of the reckoning work: what the built-in does IS what a
+ * The deliverable of the reckoning work: what the built-in does is what a
  * third-party Uplink can do.
  *
  * Core registers the conic for `vessel.flight` through the reckoner registry.
@@ -25,20 +25,20 @@ import { ViewClock } from "./view-clock";
  * same conic through the root barrel, so nothing about the built-in model
  * should be out of an author's reach.
  *
- * This asserts that the only way that means anything: by REGISTERING THE SAME
- * MODEL A SECOND TIME through the surface an author has, and comparing the
+ * This asserts that the only way that means anything: by registering the same
+ * model A second time through the surface an author has, and comparing the
  * numbers. Two registrations for one topic resolve by clobbering, so the two
  * are swept in turn, each on a fresh store over the same scene.
  *
  * ## What "the surface an author has" means here, precisely
  *
  * The probe below imports `defineUplinkClient`, `buildElements`, `solve`,
- * `keplerAdmissibility` and `value` from `@ksp-gonogo/sitrep-sdk`, the ROOT
+ * `keplerAdmissibility` and `value` from `@ksp-gonogo/sitrep-sdk`, the root
  * barrel, which is the whole of what an Uplink may import. It
  * registers through the client handle, so its model is owner-stamped the way an
  * Uplink's is. Nothing it does reaches `/spine`.
  *
- * The HARNESS (the store, the view clock, the stub meta) imports
+ * The harness (the store, the view clock, the stub meta) imports
  * whatever it likes: driving a `TimelineStore` by hand is a test's job, not an
  * author's.
  *
@@ -48,7 +48,7 @@ import { ViewClock } from "./view-clock";
  * horizon is where every disagreement between two copies of a model will be. So
  * the sweep walks the conic's own withdrawals: the SOI transition the elements
  * carry, and the atmosphere interface this eccentric orbit's periapsis passes
- * through. At each instant the two must AGREE ABOUT WITHDRAWING, not merely
+ * through. At each instant the two must agree about withdrawing, not merely
  * agree about numbers while both are answering.
  */
 
@@ -112,7 +112,7 @@ function point<Payload>(
 }
 
 /**
- * EXACTLY what an Uplink author would write, in the shape H.5 of the plan
+ * Exactly what an Uplink author would write, in the shape H.5 of the plan
  * spells out: declared inputs in `Dep` notation, the repo's own conic rather
  * than a vendored one, and a decline that names the input responsible.
  */

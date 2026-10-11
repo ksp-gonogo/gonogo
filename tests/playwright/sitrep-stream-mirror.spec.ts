@@ -17,7 +17,7 @@
  *      consumer). There is no replacement; this test reads rendered DOM
  *      text instead, same as every other widget-DOM-mirror spec.
  *
- * What this test still proves: a REAL `WebSocketTransport` decoding REAL
+ * What this test still proves: a real `WebSocketTransport` decoding real
  * wire frames across the shapes the wire protocol carries, string + array
  * (`vessel.crew.{count,crew[].name}`) and boolean
  * (`vessel.comms.connected`): reaching a real `TimelineStore` and
@@ -28,8 +28,8 @@
  * to end, the same guarantee the old test gave for the legacy wire
  * format.
  *
- * What it does NOT (yet) prove: station-side mirroring of that data. Only
- * the MAIN screen mounts `SitrepTelemetryProvider`: station stream
+ * What it does not (yet) prove: station-side mirroring of that data. Only
+ * the main screen mounts `SitrepTelemetryProvider`: station stream
  * forwarding over PeerJS is a documented pending gap (see that provider's
  * own doc comment, "a later task"). The station half of this test still
  * boots a real peer connection and confirms the station's dashboard mounts,

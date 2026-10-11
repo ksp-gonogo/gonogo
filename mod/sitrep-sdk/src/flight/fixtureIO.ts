@@ -44,7 +44,7 @@ export interface FlightFixture {
   readonly schema: ReadonlyArray<DataKey>;
   /**
    * Per-key sample timeline. Tuples are `[t, v]` with `t` in unix ms.
-   * Tuples MUST be sorted ascending by `t` per key.
+   * Tuples must be sorted ascending by `t` per key.
    */
   readonly samples: Readonly<
     Record<string, ReadonlyArray<readonly [number, unknown]>>

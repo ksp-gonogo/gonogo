@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { GAME_MODE_ORDINAL } from "./useGameContext";
 
 /**
- * `career.mode.mode` is a `Sitrep.Contract.GameMode` ORDINAL on the wire, and
+ * `career.mode.mode` is a `Sitrep.Contract.GameMode` ordinal on the wire, and
  * `GAME_MODE_ORDINAL` is the table that turns it back into a mode string.
  *
  * A table shorter than its enum does not throw: the ordinal indexes off the

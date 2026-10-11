@@ -19,11 +19,12 @@ export interface ContainerBreakProps extends HTMLAttributes<HTMLDivElement> {
 
 /**
  * A `div` that switches between two sets of inline styles at a container-query
- * breakpoint, which a React `style` prop cannot express on its own. The
- * nearest ancestor with `container-type: inline-size` (a plain
- * `<div style={{ containerType: "inline-size" }}>` is enough) decides which
- * side of `at` this element is on. Both style sets are ordinary React
- * `CSSProperties`.
+ * breakpoint, which a React `style` prop cannot express on its own. Useful for
+ * a widget whose layout changes with the width of its panel. Used by the
+ * maneuver planner's preview. The nearest ancestor with `container-type:
+ * inline-size` (a plain `<div style={{ containerType: "inline-size" }}>` is
+ * enough) decides which side of `at` this element is on. Both style sets are
+ * ordinary React `CSSProperties`.
  *
  * @example
  * ```tsx

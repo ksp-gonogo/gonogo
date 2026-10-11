@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
  * that with nothing to say so: the check would still pass on a machine that has
  * Playwright, which is every machine anyone develops on.
  *
- * Asserted on the SOURCE import graph rather than on `dist/`, deliberately. A
+ * Asserted on the source import graph rather than on `dist/`, deliberately. A
  * test that reads a build artifact has to decide what to do when there is no
  * build, and both answers are bad: skipping is a silent pass, and failing makes
  * `pnpm test` depend on `pnpm build`. The source graph is always there.
@@ -40,7 +40,7 @@ const IMPORT_RE =
   /(?:^|[\n;])[ \t]*(?:import|export)[ \t]+(?!type[ \t])[^"';]*["']([^"']+)["']|(?:^|[\n;])[ \t]*import[ \t]*["']([^"']+)["']/g;
 
 /**
- * A DYNAMIC `import("x")` anywhere in an expression, which the statement form
+ * A dynamic `import("x")` anywhere in an expression, which the statement form
  * above cannot see: it anchors to the start of a line or statement, and a lazy
  * import lives inside a function body after an `=` or an `await`.
  *
@@ -74,7 +74,7 @@ function resolveLocal(fromFile: string, specifier: string): string | undefined {
   return undefined;
 }
 
-/** Every module reachable from `entry` through RELATIVE imports, plus the bare
+/** Every module reachable from `entry` through relative imports, plus the bare
  *  specifiers those modules name. */
 function walk(entry: string): { files: string[]; bare: Set<string> } {
   const seen = new Set<string>();

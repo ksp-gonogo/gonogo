@@ -53,11 +53,11 @@ namespace Sitrep.Propagation
         /// split at their common ancestor.
         ///
         /// <para><paramref name="climb"/> is the bodies strictly below the ancestor
-        /// on the FROM branch, nearest <paramref name="fromIndex"/> first. Walking
-        /// past one of these SUBTRACTS its own orbit, because the frame sits on the
+        /// on the from branch, nearest <paramref name="fromIndex"/> first. Walking
+        /// past one of these subtracts its own orbit, because the frame sits on the
         /// far side of it. <paramref name="descend"/> is the bodies strictly below
-        /// the ancestor on the TO branch, nearest the ancestor first, each of which
-        /// ADDS its own orbit.</para>
+        /// the ancestor on the to branch, nearest the ancestor first, each of which
+        /// adds its own orbit.</para>
         ///
         /// <para>Both lists empty means the two are the same body. False means there
         /// is no path at all: different systems, or a malformed hierarchy.</para>

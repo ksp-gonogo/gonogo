@@ -63,10 +63,10 @@ registerProcessor("radio-capture", RadioCaptureProcessor);
 `;
 
 /**
- * Playout: one queue PER TRANSMISSION, drained together and summed, silence
+ * Playout: one queue per transmission, drained together and summed, silence
  * from whichever of them has run dry.
  *
- * A queue is what makes playback run at NATURAL rate whatever cadence the
+ * A queue is what makes playback run at natural rate whatever cadence the
  * releases arrive in, which is the property the delay pipeline needs at the
  * end of it: `PresentationPacer` spaces the releases and this absorbs whatever
  * spacing error is left, without ever playing faster to catch up.
@@ -292,7 +292,7 @@ export const startWebAudioCapture: StartRadioCapture = async (
 };
 
 /**
- * Speakers, through an `AudioWorklet` ring: ONE output for this screen, with a
+ * Speakers, through an `AudioWorklet` ring: one output for this screen, with a
  * lane on it for every transmission.
  *
  * One `AudioContext` rather than one per talker, and that is not only thrift.
@@ -301,7 +301,7 @@ export const startWebAudioCapture: StartRadioCapture = async (
  * may hold, so a busy band would eventually fail to open one at all. Summing
  * inside a single graph is exact and unbounded.
  *
- * The context is created on construction and RESUMED on every write, because a
+ * The context is created on construction and resumed on every write, because a
  * browser starts one suspended until the page has seen a user gesture. A
  * listener who has not clicked anything hears nothing and is told nothing,
  * which is a genuine gap rather than a designed silence; the first interaction
@@ -312,7 +312,7 @@ export class WebAudioRadioReceiver implements RadioReceiver {
   /**
    * The playout node, or `null` where there will not be one.
    *
-   * It SETTLES rather than rejects, and that is the whole of why it is written
+   * It settles rather than rejects, and that is the whole of why it is written
    * this way. Building the node is two turns behind the constructor (the
    * worklet module has to load first), and a sink closed inside that window
    * constructs an `AudioWorkletNode` against a closed context, which throws.

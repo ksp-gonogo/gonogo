@@ -11,7 +11,7 @@ import {
  *
  * ## Why the opt-outs need a file of their own
  *
- * The rules are a DEFAULT: a model gets a reach no further than its inputs and a
+ * The rules are a default: a model gets a reach no further than its inputs and a
  * band no wider than its inputs warrant without its author writing anything. So
  * the exceptions are the only part anyone has to read, and an exception written
  * inside a model file is read once, by the person who wrote it. Here they are a
@@ -21,7 +21,7 @@ import {
  *
  * ## Why the second case is here at all
  *
- * Both rules are structurally enforced and, on this tree, INERT. Core's four
+ * Both rules are structurally enforced and, on this tree, inert. Core's four
  * models declare `vessel.orbit`, `system.bodies` or nothing, and nobody models
  * those; every Uplink-owned model declares an unmodelled topic or no deps at
  * all. A rule with nothing to bite on reports clean forever and reads as working, which is

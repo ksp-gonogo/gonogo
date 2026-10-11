@@ -31,7 +31,7 @@ import {
  * `commcast-probe.html`, and `scripts/render-commcast.ts` drives it through
  * `window.__renderCommcast`, screenshotting `#root`.
  *
- * Two panes over TWO LOGS is the whole reason this exists. Commcast has no
+ * Two panes over two logs is the whole reason this exists. Commcast has no
  * canonical thread: a vantage owns what reached it, so a scene mounts one log
  * per pane and seeds each with what that vantage actually holds. The two panes
  * then disagree on screen the way the two operators would, including about
@@ -69,11 +69,11 @@ export interface Held {
   /** Relative to `VIEW_UT`. Defaults to `sentAt`, differs after a resend. */
   lastSentAt?: number;
   attempts?: number;
-  /** The author-to-recipient separation frozen at send. `null` is NO PATH. */
+  /** The author-to-recipient separation frozen at send. `null` is "NO PATH". */
   separationSeconds: number | null;
   /** Per-recipient separations when they differ; a recipient not named takes `separationSeconds`. */
   separations?: Record<string, number | null>;
-  /** Acknowledgements this log has RECEIVED, each at the recipient's own UT. */
+  /** Acknowledgements this log has received, each at the recipient's own UT. */
   acks?: { from: string; stationKey: string; at: number }[];
   /** Set on an outbound message that was never transmitted. */
   neverLeft?: boolean;
@@ -94,9 +94,9 @@ export interface Pane {
   vantage?: string;
   /** What this screen posts (and is captioned) as. */
   name: string;
-  /** What this vantage has SENT. Drawn as settled log rows or queue entries. */
+  /** What this vantage has sent. Drawn as settled log rows or queue entries. */
   sent?: Held[];
-  /** What has already ARRIVED here. */
+  /** What has already arrived here. */
   received?: Held[];
   /** Addressed here and still crossing. Shown nowhere, which is the point. */
   crossing?: Held[];
@@ -136,7 +136,7 @@ export interface Pane {
  * Force the radio's capability verdict for a scene.
  *
  * The two refusals are the states an operator is likeliest to meet and the
- * hardest to photograph, because a machine that CAN run the radio never shows
+ * hardest to photograph, because a machine that can run the radio never shows
  * either. They are also deliberately distinct: an insecure origin is something
  * the operator can act on (reach the page over https, or through localhost), a
  * missing codec is not, and the dev server binds the LAN so a station opened at
@@ -167,7 +167,7 @@ export interface Scene {
   /** For the settle report, so an unsettled render names itself. */
   name: string;
   /**
-   * Publish `comms.link` as CONFIRMED disconnected, so the log terminates with
+   * Publish `comms.link` as confirmed disconnected, so the log terminates with
    * its no-signal marker. Distinct from a message in transit: it says there
    * may be words this vantage has not heard, not that one specific utterance
    * is on its way.
@@ -177,12 +177,12 @@ export interface Scene {
    * Text the scene is not settled until it renders, or several such.
    *
    * A list rather than one string because a scene can be about two things at
-   * once: the no-path radio shot is only itself if the bar says NO PATH AND the
+   * once: the no-path radio shot is only itself if the bar says "NO PATH" and the
    * key is still down, and a shot that lost either of them would go to a
    * reviewer reading as a design decision.
    *
    * A keyed radio is waited on through the announcement it makes rather than
-   * through the key's own word, because the key's word is FIXED: it reads
+   * through the key's own word, because the key's word is fixed: it reads
    * "Talk" latched or not, on purpose, so it cannot be what tells the two
    * states apart. `RadioPtt`'s polite region carries "Transmitting", and
    * `textContent` reaches a visually hidden node.
@@ -296,11 +296,11 @@ function toMessage(held: Held): CommsMessage {
 }
 
 /**
- * The MOUNT's text, never the document's.
+ * The mount's text, never the document's.
  *
  * The probe page carries the whole bundle in an inline script, and a script
  * element's text is part of `document.body.textContent`, so a predicate looking
- * for a widget's own copy found it in the component's SOURCE and waited for a
+ * for a widget's own copy found it in the component's source and waited for a
  * condition that could never come true. Seven megabytes of body text against a
  * few hundred bytes of rendered widget is not a subtle margin.
  */
@@ -321,7 +321,7 @@ function paneEl(index: number): Element | null {
  * would click a dead control and then wait for a picker that never opened.
  *
  * `selector` narrows it to a kind of control. Every list row is a toggle and
- * so carries `aria-pressed`, which is what separates a correspondent's ROW
+ * so carries `aria-pressed`, which is what separates a correspondent's row
  * from the station-name editor that may be showing the same words up in the
  * panel header.
  */
@@ -364,7 +364,7 @@ async function clickWhenReady(
  * Walks one pane to the view its scene is about.
  *
  * The widget opens on the inbox, so every scene photographing a conversation
- * or the picker is a couple of real clicks in. What it does NOT do is fail
+ * or the picker is a couple of real clicks in. What it does not do is fail
  * silently: a scene whose row never appeared reports it, because a screenshot
  * of an inbox where a conversation was expected reads as a design claim.
  */
@@ -454,13 +454,13 @@ async function settle(predicate: () => boolean): Promise<boolean> {
 }
 
 /**
- * One pane: a real widget over its own stream session AND its own log.
+ * One pane: a real widget over its own stream session and its own log.
  *
  * Each pane builds its own `TelemetryClient`, because the observed vantage is
  * a property of the session rather than of the tree, and two panes sharing one
  * client would be two operators who cannot help but agree. Each also builds its
  * own log, for the stronger version of the same reason: under this model the
- * two vantages hold different message SETS, and a shared log would be the
+ * two vantages hold different message sets, and a shared log would be the
  * central store the design rejects.
  */
 function paneTree(pane: Pane, index: number) {
@@ -767,7 +767,7 @@ function noDeadComposer(): boolean {
  * does before the first mount. The retries stay because they are cheap and they
  * do sometimes win.
  *
- * What it does NOT do is fall silent when every attempt loses. A render that
+ * What it does not do is fall silent when every attempt loses. A render that
  * reaches a reviewer showing an unsettled log reads as a design claim, so the
  * last word is a warning naming the scene.
  */

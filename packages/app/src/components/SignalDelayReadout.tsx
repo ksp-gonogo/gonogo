@@ -91,7 +91,7 @@ function deriveSignalDelay({
  * the dashboard header.
  *
  * Which centre depends on the seat. A command-centre screen shows its own, the
- * one named beside it, whose light-time its view clock runs on. A pilot is
+ * one named beside it, whose signal delay its view clock runs on. A pilot is
  * aboard the craft, so the distance that matters is to the centre mission
  * control is standing at: how long the pilot's words take to reach the ground,
  * and the ground's to reach them.
@@ -124,8 +124,8 @@ function OwnCraftAwareSignalDelay() {
 /**
  * A command-centre screen's own delay, keyed on the centre the picker shows.
  * Whatever number it prints is the view clock's, which reads the same row, so
- * the header can never quote a light-time the clock is not running on; the
- * list decides only whether that light-time is this centre's own or home's.
+ * the header can never quote a signal delay the clock is not running on; the
+ * list decides only whether that signal delay is this centre's own or home's.
  */
 function CentreSignalDelayValue({
   ownCraftVantage,

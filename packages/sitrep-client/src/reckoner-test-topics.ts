@@ -10,17 +10,17 @@
  * the signature had in production.
  *
  * Now the topic is `TopicId` and the payload falls out of it, so these get
- * declared instead of assumed. They go through `declare module`, the SAME
+ * declared instead of assumed. They go through `declare module`, the same
  * mechanism a bundled Uplink's own `topics.ts` uses for the Topics only that
  * Uplink can source, which makes this file a second proof that an outside
  * author can register a model for a Topic the SDK has never heard of.
  *
- * TYPE only, with no `registerBarePrimitiveTopic` call: the augmentation is
+ * Type only, with no `registerBarePrimitiveTopic` call: the augmentation is
  * erased at runtime and the store is keyed by plain strings, so nothing here
  * puts a fake Topic into `getAllKnownTopicIds()` where another suite could
  * enumerate it.
  *
- * `test.altitude` is the one whose payload is a QUANTITY rather than a bare
+ * `test.altitude` is the one whose payload is a quantity rather than a bare
  * magnitude, which is what the band suites need to ask whether an end arrives
  * in the same unit as the value it describes. A bare-magnitude topic cannot
  * pose that question at all.
@@ -46,7 +46,7 @@ export interface TestContact {
 }
 
 /**
- * Two fields where one name is a STRING prefix of the other, which is the trap
+ * Two fields where one name is a string prefix of the other, which is the trap
  * segment-wise path matching exists to avoid.
  */
 export interface TestPrefixed {

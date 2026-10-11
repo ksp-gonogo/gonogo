@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  * it is fixing: a `cleanup()` in a test's own `afterEach` unmounts the tree
  * before the buggy async work can warn, so a real teardown race reads as a pass.
  *
- * Note what this does NOT ban, because the two get confused. Clearing SHARED
+ * Note what this does not ban, because the two get confused. Clearing shared
  * state in an `afterEach` is a separate question with a genuinely mixed answer
  * (measured across 13 files: 4 clears were pure harm, 2 were load-bearing).
  * This bans only the RTL `cleanup` import.
@@ -36,7 +36,7 @@ const CLEANUP_IMPORT_RE =
  * The scan must walk at least this many files to be believed. 2,077 tracked
  * `.ts`/`.tsx` files under the scan roots when this landed.
  *
- * Without a floor this whole file passes while seeing NOTHING: an enumeration
+ * Without a floor this whole file passes while seeing nothing: an enumeration
  * that returns an empty list finds zero offenders, and zero offenders is
  * exactly what success looks like. A renamed directory, a changed `git
  * ls-files` invocation or a cwd that is not the repo root would each do it, and

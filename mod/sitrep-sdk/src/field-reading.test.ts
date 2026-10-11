@@ -135,7 +135,7 @@ describe("a field reading reaches through the payload", () => {
   /**
    * The currency wins over a payload member of the same name. Asserted so the
    * precedence is a decision on the record rather than proxy trivia: `.state`
-   * on a field reading is ALWAYS the reading's own.
+   * on a field reading is always the reading's own.
    */
   it("answers with the currency, not a payload field of the same name", () => {
     const rule = firstRule(crewReading());

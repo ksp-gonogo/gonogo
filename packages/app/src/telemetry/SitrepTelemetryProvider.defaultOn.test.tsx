@@ -16,9 +16,9 @@ import { resetSitrepRuntimeForTests } from "./sitrepRuntime";
 
 /**
  * Proves there is no play-blocking gap left: with the `VITE_SITREP_STREAM`
- * gate removed, the stream must connect with ZERO configuration, no
+ * gate removed, the stream must connect with zero configuration, no
  * `enabled` prop, no `host`/`port`
- * prop, no env var. This test passes none of those and asserts a REAL
+ * prop, no env var. This test passes none of those and asserts a real
  * `WebSocketTransport` opens a socket to the build-time default
  * (`localhost:8090`), observed over MSW's `ws` interceptor exactly like
  * `sitrep-stream-wire.test.tsx` does for the explicit-`enabled` case.

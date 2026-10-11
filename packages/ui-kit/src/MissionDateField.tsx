@@ -35,7 +35,7 @@ export interface MissionDateFieldProps {
   /**
    * The coarse steps offered, in seconds, smallest first. Rendered as a minus
    * button and a plus button per entry. Defaults to a minute, ten minutes, an
-   * hour and a day of the LIVE calendar.
+   * hour and a day of the live calendar.
    *
    * An empty list removes the row entirely, for a caller with another nudge
    * control beside this one.
@@ -62,8 +62,10 @@ export interface MissionDateParts {
 }
 
 /**
- * Splits a UT (seconds since the game's epoch) into calendar components, with years and days ONE-BASED to match
- * every other date this kit renders: UT zero is Year 1 Day 1, not Year 0 Day 0.
+ * The calendar components of a UT (seconds since the game's epoch). Years and
+ * days are one-based, as in every other date this kit renders: UT zero is Year
+ * 1 Day 1. Useful for showing the operator a UT as year, day, hour, minute and
+ * second.
  *
  * A non-finite or negative UT gives the epoch. Check for an absent instant
  * before calling this rather than showing it as the epoch.
@@ -98,7 +100,9 @@ const EPOCH_PARTS: MissionDateParts = {
 };
 
 /**
- * Recombines calendar components into a UT.
+ * The UT (seconds since the game's epoch) of a set of calendar components.
+ * Useful for turning the year, day, hour, minute and second the operator typed
+ * into an instant.
  *
  * Does not clamp an out-of-range component: an hour of 30 rolls into the next
  * day, so the operator never does the carry.
@@ -126,8 +130,9 @@ function stepLabel(seconds: number): string {
 
 /**
  * A universal time entered as a calendar instant: year, day, hour, minute,
- * second, each its own field, plus coarse steps. The fields are for an instant
- * you know; the steps are the tuning loop for one you are looking for.
+ * second, each its own field, plus coarse steps. Useful for letting the operator
+ * type an instant they know, or step to one they are looking for. Used by the
+ * warp control to warp to a chosen time.
  *
  * Calendar lengths come from the running game's calendar, so day 300 means
  * what the game's own clock calls day 300. Edits round to the second, so the

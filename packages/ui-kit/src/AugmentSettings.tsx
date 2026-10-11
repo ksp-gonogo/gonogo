@@ -33,10 +33,12 @@ const AugmentSettingsContext =
   createContext<AugmentSettingsContextValue | null>(null);
 
 /**
- * Publishes a widget instance's augment settings, stored in its config under
- * `augmentSettings[<augmentId>]`, to the augments rendered inside it. The
- * dashboard mounts one for every widget; outside the dashboard there is none,
- * and {@link useAugmentSettings} reads empty values.
+ * The augment settings of a widget instance, stored in its config under
+ * `augmentSettings[<augmentId>]`, published to the augments rendered inside it.
+ * Useful for letting an augment read what the operator chose for it on this
+ * widget. Used by the dashboard, which mounts one around every widget. Outside
+ * the dashboard there is none, and {@link useAugmentSettings} reads empty
+ * values.
  *
  * @category Extensions
  */
@@ -58,9 +60,10 @@ export function AugmentSettingsProvider({
 
 /**
  * One augment's own settings for the widget instance it is rendered in, plus a
- * writer scoped to that augment. Pass the `id` the augment was registered
- * with. A field nothing has saved is missing from `values`, so fall back to
- * the field's declared `default`.
+ * writer scoped to that augment. Useful for an augment that lets the operator
+ * tune it per widget. Pass the `id` the augment was registered with. A field
+ * nothing has saved is missing from `values`, so fall back to the field's
+ * declared `default`.
  *
  * Outside an {@link AugmentSettingsProvider} the values read empty and `set`
  * does nothing, the same as an operator having saved nothing.

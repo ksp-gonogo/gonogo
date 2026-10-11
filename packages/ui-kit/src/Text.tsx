@@ -65,11 +65,15 @@ const LEVEL_COLOR: Record<TextLevel, string> = {
 
 /**
  * Inline style declarations that recede every neutral word inside a box to the
- * faint text level, which still meets WCAG AA contrast on a panel. It sets `color` and the
- * neutral, primary, muted and dim text variables to that faint colour, so
- * nested kit text recedes with it. Use it to quiet a block of words; opacity would drop them below contrast, so keep
- * opacity for marks that carry no text. A word in a tone keeps its tone. The
+ * faint text level, which still meets WCAG AA contrast on a panel. Useful for
+ * quieting a block of words the operator should not act on, such as a figure
+ * with no vessel behind it. Used by the landing status solution readouts. The
  * same declarations as {@link faintText}, for a `style` prop.
+ *
+ * It sets `color` and the neutral, primary, muted and dim text variables to
+ * that faint colour, so nested kit text recedes with it. A word in a tone keeps
+ * its tone. Keep opacity for marks that carry no text, since it drops words
+ * below contrast.
  *
  * @category Typography
  */
@@ -83,7 +87,8 @@ export const FAINT_TEXT_STYLE: Readonly<Record<string, string>> = {
 
 /**
  * The same declarations as {@link FAINT_TEXT_STYLE}, written as
- * `property: value;` lines for a styled-components rule.
+ * `property: value;` lines for a styled-components rule. Useful for quieting a
+ * block of words in a styled rule. Used by the tech tree's styles.
  *
  * @category Typography
  */
@@ -118,7 +123,9 @@ const SIZE_STYLES = {
 } as const;
 
 /**
- * An inline `span` with a tone, level, size and weight. Digits are always
+ * An inline `span` with a tone, level, size and weight. Useful for colouring
+ * and sizing the words around a figure so the operator can tell a label from a
+ * value. Used by the landing status altitude rail. Digits are always
  * tabular (`font-variant-numeric: tabular-nums`), so a changing number does
  * not jitter. It renders whatever it is given, with no magnitude, unit or
  * formatting of its own.

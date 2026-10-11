@@ -7,7 +7,7 @@ import { commandDelayed } from "@ksp-gonogo/sitrep-sdk/spine";
 import { describe, expect, it } from "vitest";
 
 /**
- * Whether a command rides signal delay is declared ONCE, and both halves read
+ * Whether a command rides signal delay is declared once, and both halves read
  * that one declaration.
  *
  * The declaration lives on each command's `[SitrepCommand(Delay = ...)]` in
@@ -25,12 +25,12 @@ import { describe, expect, it } from "vitest";
  * and fails on a diff, so a map here cannot be stale with respect to the
  * attribute the host reads.
  *
- * KNOWN REACH: half 2 reads
+ * Known reach: half 2 reads
  * `new CommandDeclaration { ... }` initializers, which is every restatement the
  * tree has ever contained and how a manifest is written. What it cannot
  * see is a disposition assigned to an already-built declaration
  * (`decl.Delay = ...` on a line of its own), because `Delay =` outside an
- * initializer is what a CHANNEL correctly writes and nothing textual tells the
+ * initializer is what a channel correctly writes and nothing textual tells the
  * two apart. No source does that today for a command; the one post-construction
  * assignment in the tree is `VesselUplink`'s, onto a channel.
  */
@@ -41,7 +41,7 @@ const SCAN_ROOTS = ["mod"];
  * A delay disposition written on a `CommandDeclaration`: the property, and the
  * `delayed:` argument a private factory used to take.
  *
- * It has to be read INSIDE a `new CommandDeclaration { ... }` and cannot be a
+ * It has to be read inside a `new CommandDeclaration { ... }` and cannot be a
  * bare token match any more, because a command and a channel now spell the
  * answer the same way. That is the point of the consolidation and it costs this
  * gate its cheapest instrument: `Delay = DelayRole.Delayed` is the correct thing
@@ -59,9 +59,9 @@ const LINE_COMMENT_RE = /\/\/.*$/gm;
  * What the probe is entitled to read: executable C#, with the comments and the
  * contract attribute taken out.
  *
- * Both removals are load-bearing and neither is a loophole. The ATTRIBUTE is
+ * Both removals are load-bearing and neither is a loophole. The attribute is
  * where the value is supposed to be, so matching it would make the single source
- * of truth its own violation. COMMENTS are where this tree records what a rule
+ * of truth its own violation. Comments are where this tree records what a rule
  * used to be, at length and on purpose, and a gate that made the old spelling
  * unquotable would delete the history explaining why it changed.
  */

@@ -39,7 +39,7 @@ export interface ConfigField {
  * to resolve its read dynamically off this registry, which no typed Topic read
  * can express. The widget reads the canonical `vessel.control` /
  * `vessel.structure` topics directly and resolves each group's value from the
- * payload, so the registry only has to describe WHICH group an entry is, not
+ * payload, so the registry only has to describe which group an entry is, not
  * how to read it.
  */
 export interface ActionGroup {
@@ -49,11 +49,11 @@ export interface ActionGroup {
   toggle: string | null;
   description: string;
   /**
-   * CUSTOM groups only: the backend's own 1-based group index, the same number
+   * Custom groups only: the backend's own 1-based group index, the same number
    * `vessel.control.setActionGroup` takes, and the key by which the widget
    * finds this group in `vessel.control.actionGroups`. Absent for the stock
    * singletons, which are read from their own typed `vessel.control` fields.
-   * Two AGX groups may legitimately share a NAME, so this (never the name) is
+   * Two AGX groups may legitimately share a name, so this (never the name) is
    * the identity.
    */
   index?: number;
@@ -225,12 +225,12 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   mobileHeight?: number;
   dataRequirements?: string[];
   /**
-   * Topics this widget REQUIRES.
+   * Topics this widget requires.
    *
-   * It does NOT mean the widget waits for them. Nothing withholds a widget
+   * It does not mean the widget waits for them. Nothing withholds a widget
    * until its Topics are live: the orchestrator wraps every one in
    * `RequiresGuard`, which resolves these ids to an owning Uplink and gates on
-   * that Uplink's HEALTH, so a healthy Uplink that has published nothing on the
+   * that Uplink's health, so a healthy Uplink that has published nothing on the
    * topic leaves the widget mounted at full size reading `pending`. A required
    * Topic's payload is therefore reached through the same written branch as any
    * other, and this field is a declaration of what the widget consumes, not a
@@ -245,7 +245,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   channels?: readonly WidgetChannelId[];
   /**
-   * Topics this widget OPTIONALLY consumes.
+   * Topics this widget optionally consumes.
    * May be absent at runtime, so every Value read from one is `| undefined`
    * through the manifest hook: a widget therefore cannot hard-depend
    * on an optional Topic, statically. Typed as `readonly WidgetChannelId[]`.
@@ -253,7 +253,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   optionalChannels?: readonly WidgetChannelId[];
   /**
-   * Families of Topics this widget REQUIRES whose ids are built at runtime,
+   * Families of Topics this widget requires whose ids are built at runtime,
    * written as the docs write them (`fleet.<vessel>.contact`). Claimed and
    * health-checked like `channels` through the literal prefix before the first
    * placeholder; a family that starts with a placeholder has no prefix and is
@@ -290,7 +290,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   commands?: readonly CommandId[];
   /**
-   * What this widget DRAWS, when that is narrower than what it mounts on.
+   * What this widget draws, when that is narrower than what it mounts on.
    *
    * `channels` answers "what must be live for me to render"; this answers "which
    * numbers do I actually put on screen", and they are different questions. A
@@ -301,11 +301,11 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * widgets declaring field paths would falsely claim a field another
    * widget draws.
    *
-   * OPTIONAL, and absent means "I draw everything I mount on", which is the
+   * Optional, and absent means "I draw everything I mount on", which is the
    * honest reading for a widget that renders a whole payload. A bare channel is
    * a legal entry and means the same thing for that one channel.
    *
-   * Read by alarm attribution and trajectory currency. NEVER by mounting: a
+   * Read by alarm attribution and trajectory currency. Never by mounting: a
    * narrower draw list must not be able to stop a widget rendering, or the two
    * questions collapse back into one.
    */
@@ -339,14 +339,14 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   requires?: readonly ComponentRequirement[];
   /**
-   * Which seats this widget may be placed at. OMIT for the derived default:
-   * available everywhere unless the widget declares a topic in a GROUND domain
+   * Which seats this widget may be placed at. Omit for the derived default:
+   * available everywhere unless the widget declares a topic in a ground domain
    * (`spaceCenter.*`, `career.*`, `recovery.*`, and `commandCentre.*` other
    * than its roster and separation), because a topic's domain already says
    * where the thing it describes physically lives and a pilot four
    * light-minutes out cannot act on the VAB.
    *
-   * That default fails CLOSED for known ground domains and OPEN for every
+   * That default fails closed for known ground domains and open for every
    * other, including every domain an Uplink invents. Declare this only to
    * overrule it: `["pilot"]` is the case no derivation can ever infer, because
    * no topic says "aboard only".
@@ -365,7 +365,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    */
   augmentSlots?: readonly SlotId[];
   /**
-   * Addressable CONTRIBUTION slots this widget owns, the pure-data sibling of
+   * Addressable contribution slots this widget owns, the pure-data sibling of
    * `augmentSlots`. Declared once so
    * `useContributions([...] as const)` (overload B) types its keyed result
    * off this widget's own list. A slot id is one kind or the other, never
@@ -374,10 +374,10 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   contributionSlots?: readonly ContributionSlotId[];
   /**
    * Replacement escape hatch: declares that this
-   * widget REPLACES the widget with the given id, the registry suppresses the
+   * widget replaces the widget with the given id, the registry suppresses the
    * original and renders this one instead. This is the "throw the whole widget
    * away and render mine" case, distinct from (composable) augments. One active
-   * replacement wins; TWO widgets replacing the same target is a surfaced
+   * replacement wins; two widgets replacing the same target is a surfaced
    * conflict ({@link getReplacementConflicts}), never silently merged.
    */
   replaces?: string;
@@ -401,7 +401,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
  * unmet.
  *
  * - `flight`: `kc.scene === "Flight"`. Most vessel-data widgets.
- * - `career`: `career.mode` ∈ {CAREER, SCIENCE}. Funds / contracts /
+ * - `career`: `career.mode` ∈ {career, science}. Funds / contracts /
  *   tech-tree widgets where sandbox mode has nothing meaningful to show.
  *
  * Add new requirement names here when a widget needs a different gate;

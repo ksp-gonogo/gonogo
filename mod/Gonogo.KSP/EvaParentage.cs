@@ -13,10 +13,10 @@ namespace Gonogo.KSP
     /// <para>KSP makes the EVA kerbal the active vessel the moment they egress, and
     /// stock stores no back-reference from the kerbal to the craft they left. The
     /// kerbal's part inherits the parent's <c>missionID</c>/<c>launchID</c>, but
-    /// those identify a LAUNCH, not a vessel, and are shared by anything that ever
+    /// those identify a launch, not a vessel, and are shared by anything that ever
     /// undocked from it. The only carrier of the relation is
     /// <c>GameEvents.onCrewOnEva</c>, which hands over both parts at the instant of
-    /// egress, so the relation has to be RECORDED there and dropped again on
+    /// egress, so the relation has to be recorded there and dropped again on
     /// <c>onCrewBoardVessel</c>. That is what this book holds.</para>
     ///
     /// <para>The relation lives for the duration of one EVA and no longer. Outside

@@ -18,11 +18,11 @@ import { describe, expect, it } from "vitest";
  * quietly stops seeing an Uplink". Every walker then skips it, and a walk over
  * one fewer Uplink looks exactly like a walk that passed. Every list this
  * repo has lost track of failed that way: the `mod` job's test-project array
- * (four suites, four weeks, 35 tests gated by nothing), the old codegen PATHS
+ * (four suites, four weeks, 35 tests gated by nothing), the old codegen paths
  * array, the isolation ratchet's `client/src`-only walk, ci.yml's `required=()`
  * DLL subset, and `publish-mods.yml`'s matrix, which still names four of eleven.
  *
- * ## Measured against DIFFERENT sources, deliberately
+ * ## Measured against different sources, deliberately
  *
  * The script discovers by walking `mod/`. A test that also walked `mod/` would
  * ask the same question of the same source and would agree with a broken walk,
@@ -60,7 +60,7 @@ type Leg = {
 };
 
 /**
- * Run the discovery, keeping a non-zero exit as DATA rather than letting it
+ * Run the discovery, keeping a non-zero exit as data rather than letting it
  * throw at module scope. Thrown here it becomes a vitest collection error
  * reporting "no tests", which is a failure whose message says nothing about the
  * matrix; the first test below can then explain what actually happened.
@@ -242,7 +242,7 @@ describe("the Uplink discovery covers every Uplink", () => {
      *
      * Planted inside the walk fixture rather than in `mod/`, for two reasons.
      * Nothing else walks that directory, so a crash between plant and cleanup
-     * cannot reach another gate. And the script already asserts EXACTLY ONE leg
+     * cannot reach another gate. And the script already asserts exactly one leg
      * over the fixture, so a discovery that counted the phantom refuses to emit
      * a matrix at all: the assertion is the script's own exit status, not a
      * second opinion written here.

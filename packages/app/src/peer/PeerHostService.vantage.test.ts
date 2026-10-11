@@ -2,7 +2,7 @@
  * A connection reads from the vantage it asked for, and from the upstream
  * session that belongs to that vantage.
  *
- * The mod keeps the chosen vantage per CLIENT SESSION and applies each
+ * The mod keeps the chosen vantage per client session and applies each
  * subscriber's delay from it, so two peers observing from two places need two
  * sessions: there is no way to re-derive one stream's delay from the other's,
  * because a frame does not carry the delay it travelled under. The host
@@ -321,9 +321,9 @@ describe("a connection's upstream vantage", () => {
 });
 
 /**
- * Where a peer's COMMAND is addressed from.
+ * Where a peer's command is addressed from.
  *
- * A peer observing from its own vantage still dispatches through the HOST's
+ * A peer observing from its own vantage still dispatches through the host's
  * client. Without the connection's own vantage in the priority order, an
  * empty per-call vantage would fall through to the host's session and
  * address the command from the ground. Its telemetry comes from a session at

@@ -13,7 +13,7 @@ namespace Sitrep.Host.Alarms
     {
         /// <summary>
         /// True when at least one alarm reached its step-down instant or its
-        /// firing instant on this evaluation. The caller stops the warp ONCE per
+        /// firing instant on this evaluation. The caller stops the warp once per
         /// tick however many alarms asked, which is why this is a flag and not a
         /// count: two alarms coming due together are one stop.
         /// </summary>
@@ -24,7 +24,7 @@ namespace Sitrep.Host.Alarms
 
         /// <summary>
         /// Whether <see cref="ScetAlarmRoster.Snapshot"/> would now differ from
-        /// the last one published. Covers what this evaluation decided AND any
+        /// the last one published. Covers what this evaluation decided and any
         /// arm or disarm that landed off-tick since the last one, which is the
         /// only way a tick can learn about a command handler's work.
         /// </summary>
@@ -62,7 +62,7 @@ namespace Sitrep.Host.Alarms
     /// One tick in progress, between <see cref="ScetAlarmRoster.BeginTick"/> and
     /// <see cref="ScetAlarmRoster.EndTick"/>.
     ///
-    /// <para>It exists because a tick is evaluated in more than one PASS, on more
+    /// <para>It exists because a tick is evaluated in more than one pass, on more
     /// than one thread: the entries read off the simulation's own state are
     /// evaluated on the Unity main thread, the rest off the archive on the
     /// Courier. What is genuinely once-per-tick, the rewind clear and the
@@ -75,7 +75,7 @@ namespace Sitrep.Host.Alarms
 
         /// <summary>
         /// Whether a pass may read anything at all. A non-finite clock and a
-        /// rewind both END the tick where they are found: there is nothing to
+        /// rewind both end the tick where they are found: there is nothing to
         /// evaluate against a clock that is not a number, and everything held
         /// across a rewind was armed in a timeline that no longer exists.
         /// </summary>
@@ -106,21 +106,21 @@ namespace Sitrep.Host.Alarms
     /// told what the craft's instruments say, and answers what should happen, so
     /// the whole arm can be exercised headlessly.
     ///
-    /// <para>A SCET alarm is evaluated against the game's OWN clock and the
+    /// <para>A SCET alarm is evaluated against the game's own clock and the
     /// game's own state, upstream of the reveal gate, which is the entire point
-    /// of it. A client cannot do either for itself. For a TIME condition it
-    /// holds the clock but not the geometry: the light time moves continuously,
+    /// of it. A client cannot do either for itself. For a time condition it
+    /// holds the clock but not the geometry: the signal delay moves continuously,
     /// so subtracting it once at the moment the operator clicks is right for
     /// that instant and wrong by however much the geometry drifted by the time
-    /// the alarm was due. For a THRESHOLD it does not hold the number at all,
-    /// only a copy of it one light-time old, which is not an answer to "is it
+    /// the alarm was due. For a threshold it does not hold the number at all,
+    /// only a copy of it one signal delay old, which is not an answer to "is it
     /// above 100 km now".</para>
     ///
     /// <para>Two instants per alarm either way, mirroring what the client's own
     /// alarm state machine does on its own clock. A time alarm stops the warp at
     /// <c>ut - leadSeconds</c> and fires at <c>ut</c>; a threshold stops it on
     /// the first reading that matches and fires once the condition has held for
-    /// its sustain window. Both stops are LATCHED rather than level-tested, so
+    /// its sustain window. Both stops are latched rather than level-tested, so
     /// one warp step that jumps clean over both instants does both, once, on the
     /// tick it lands, and a condition that keeps holding cannot command the warp
     /// down again on every tick after.</para>
@@ -149,7 +149,7 @@ namespace Sitrep.Host.Alarms
 
             /// <summary>
             /// Threshold only: the universal time the condition most recently
-            /// STARTED holding, or null while it does not hold. The sustain
+            /// started holding, or null while it does not hold. The sustain
             /// window is measured from here, so a condition that lapses and
             /// comes back starts its window again rather than banking the time
             /// it was false for.
@@ -166,13 +166,13 @@ namespace Sitrep.Host.Alarms
         /// Whether an <see cref="Arm"/> or a <see cref="Disarm"/> has moved the
         /// roster since the last <see cref="Evaluate"/> reported on it.
         ///
-        /// <para>Those two are the only mutations that arrive from OUTSIDE a
+        /// <para>Those two are the only mutations that arrive from outside a
         /// tick: they come off a command handler, and the tick that follows has
         /// no other way to know anything happened. Everything else that changes
         /// the roster (a fire, a rewind, an alarm going unreachable) is decided
         /// inside <see cref="Evaluate"/> and says so on the tick it decides.
         /// Without this an operator's arm reached the host and stayed invisible
-        /// until some LATER alarm fired and republished the roster on its
+        /// until some later alarm fired and republished the roster on its
         /// way.</para>
         /// </summary>
         private bool _pendingChange;
@@ -239,7 +239,7 @@ namespace Sitrep.Host.Alarms
             && !string.Equals(subject, FlownCraft, StringComparison.Ordinal);
 
         /// <summary>
-        /// Register an alarm, or REPLACE the one already held under the same id.
+        /// Register an alarm, or replace the one already held under the same id.
         ///
         /// <para>Replace rather than reject, so a client re-arming after a
         /// reconnect is idempotent and cannot leave a duplicate row. A replaced
@@ -333,7 +333,7 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// Advance to <paramref name="nowUt"/> and say what is due, reading EVERY
+        /// Advance to <paramref name="nowUt"/> and say what is due, reading every
         /// threshold condition through the one reader <paramref name="state"/>.
         ///
         /// <para>The whole-roster form of <see cref="BeginTick"/>,
@@ -358,7 +358,7 @@ namespace Sitrep.Host.Alarms
         /// off-tick change flag is reported exactly once, on whichever tick comes
         /// first, including one that cannot evaluate at all, or a clock that went
         /// briefly non-finite would eat the operator's arm. And a clock that has
-        /// gone BACKWARDS is a quickload or a revert: everything held was armed
+        /// gone backwards is a quickload or a revert: everything held was armed
         /// in the timeline that was abandoned, so the roster clears itself rather
         /// than carrying a latch across, and the empty roster it then publishes
         /// is what tells a client to re-arm.</para>
@@ -392,7 +392,7 @@ namespace Sitrep.Host.Alarms
         /// <para>Callable more than once per tick, and meant to be: an entry read
         /// off the simulation's own state must be evaluated on the Unity main
         /// thread and one read off the archive on the Courier, so the tick is
-        /// split by WHERE each alarm reads rather than by holding a roster
+        /// split by where each alarm reads rather than by holding a roster
         /// each. Every pass in a tick shares one <see cref="ScetAlarmTickState"/>
         /// and therefore one universal time, which is why a time condition comes
         /// due on the same tick at every vantage.</para>
@@ -475,7 +475,7 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// One threshold against one reading of the craft's TRUE state, taken
+        /// One threshold against one reading of the craft's true state, taken
         /// upstream of the reveal gate.
         ///
         /// <para>Two instants again, as the time arm has: the warp stops on the
@@ -597,7 +597,7 @@ namespace Sitrep.Host.Alarms
         /// <summary>
         /// Latch one alarm and queue its notice.
         ///
-        /// <para>The instant recorded is the one the clock ACTUALLY reached, not
+        /// <para>The instant recorded is the one the clock actually reached, not
         /// the one the operator asked for. Under a coarse warp step a tick can
         /// land well past either kind of condition, and the difference is a fact
         /// about the simulation's own granularity rather than anything observed

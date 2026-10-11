@@ -828,12 +828,12 @@ public static class RtConfig
     }
 
     /// <summary>
-    /// Tokens that declare a property has no physical dimension AND is not a
+    /// Tokens that declare a property has no physical dimension and is not a
     /// number you would ever scale, add or compare. They stay bare on the wire
     /// type: <c>Value</c> carries a magnitude, and a vessel name, a flag or a
     /// flightID has none. <see cref="Units.Count"/>, <see cref="Units.Ratio"/>,
     /// <see cref="Units.Percent"/> and <see cref="Units.Dimensionless"/> are
-    /// deliberately NOT here: each is a real number with a real presentation
+    /// deliberately not here: each is a real number with a real presentation
     /// rule (integral, x100 with a %, bare to two decimals), and that rule is
     /// exactly what the unit system exists to hold in one place.
     /// </summary>
@@ -848,7 +848,7 @@ public static class RtConfig
 
     /// <summary> Retypes each quantity-bearing property from a bare
     /// <c>number</c> to <c>Value&lt;"&lt;token&gt;"&gt;</c>, so the declared
-    /// unit is carried by the generated TYPE rather than only by the <see
+    /// unit is carried by the generated type rather than only by the <see
     /// cref="EmitUnitMap"/> lookup.
     ///
     /// <para>Reinforced.Typings has no notion of a generic type argument built
@@ -857,10 +857,10 @@ public static class RtConfig
     /// overload is the whole mechanism.</para>
     ///
     /// <para>Three shapes, one rule. A scalar becomes <c>Value&lt;U&gt;</c>. A
-    /// SEQUENCE of same-unit readings takes the unit inside the array, since a
+    /// sequence of same-unit readings takes the unit inside the array, since a
     /// terrain profile is a list of distances rather than one distance. A
     /// <see cref="Vec3"/> becomes <c>Vec3Of&lt;U&gt;</c>, carrying the unit down
-    /// to its x/y/z leaves: the unit is declared per USE SITE because one
+    /// to its x/y/z leaves: the unit is declared per use site because one
     /// canonical Vec3 shape is reused at sites carrying three different units,
     /// which is the same reason <see cref="EmitUnitMap"/> propagates onto dotted
     /// leaf keys.</para>
@@ -872,7 +872,7 @@ public static class RtConfig
     ///
     /// <para><b>The same pass also widens a nullable value type to
     /// <c>T | null</c></b>, since both rules address the same question (what does
-    /// the emitted TYPE have to say about this wire value) and both want the one
+    /// the emitted type have to say about this wire value) and both want the one
     /// <c>Type(string)</c> call per property: two passes would fight over it,
     /// last writer winning. A quantity that is also nullable composes, giving
     /// <c>Value&lt;U&gt; | null</c>. See <see cref="NullUnionApplies"/> for the
@@ -882,8 +882,8 @@ public static class RtConfig
     /// <param name="exportedTypes">The types this pass retypes, from any assembly.</param>
     /// <param name="valueImportFrom">
     /// Where the emitted file should import <c>Value</c>/<c>Vec3Of</c> from.
-    /// Defaults to the first party's own layout. An UPLINK passes the path
-    /// that reaches the SDK from ITS generated file.
+    /// Defaults to the first party's own layout. An uplink passes the path
+    /// that reaches the SDK from its generated file.
     /// </param>
     /// <remarks>
     /// <para><b>Public, and reusable against any assembly's types.</b> An
@@ -1046,7 +1046,7 @@ public static class RtConfig
     /// <c>T | undefined</c> makes the correct guard (<c>=== null</c>) a compile
     /// error while the substitution (<c>?? false</c>) compiles clean.</para>
     ///
-    /// <para>A nullable REFERENCE type is the same question with the same
+    /// <para>A nullable reference type is the same question with the same
     /// answer. <c>JsonWriter</c> never consults a C# nullable annotation, so a
     /// <c>string?</c>, a <c>T[]?</c> or a POCO reaches a client as
     /// <c>"key":null</c> exactly as a <c>double?</c> does, and a generated type
@@ -1055,7 +1055,7 @@ public static class RtConfig
     ///
     /// <para><see cref="SitrepOmittedWhenNullAttribute"/> opts a property back
     /// out, for the few whose key a flattener leaves out entirely. The marker is
-    /// the ONLY thing that excludes one: nothing about a property's type says
+    /// the only thing that excludes one: nothing about a property's type says
     /// whether its flattener writes the key.</para>
     /// </summary>
     private static bool NullUnionApplies(PropertyInfo prop)
@@ -1070,7 +1070,7 @@ public static class RtConfig
     }
 
     /// <summary>
-    /// True when a property is declared as a nullable REFERENCE type
+    /// True when a property is declared as a nullable reference type
     /// (<c>string?</c> rather than <c>string</c>) under <c>#nullable enable</c>.
     ///
     /// <para>Read out of the compiler's own metadata rather than from
@@ -1127,7 +1127,7 @@ public static class RtConfig
     private const byte NullableAnnotated = 2;
 
     /// <summary>
-    /// The flag describing the OUTERMOST type of a <c>NullableAttribute</c>'s
+    /// The flag describing the outermost type of a <c>NullableAttribute</c>'s
     /// subject. The attribute takes either a single byte or, for a generic or
     /// array type whose arguments carry their own annotations, the flattened
     /// array of them with the outermost first.
@@ -1150,7 +1150,7 @@ public static class RtConfig
     ///
     /// <para>Reinforced.Typings resolves the type itself and offers no way to
     /// ask what it decided, so this mirrors the cases a nullable property can
-    /// actually be in these contracts and THROWS on anything else. An
+    /// actually be in these contracts and throws on anything else. An
     /// unmirrored case would otherwise emit a type that does not compile, or
     /// worse, one that does and is wrong.</para>
     /// </summary>
@@ -1191,12 +1191,12 @@ public static class RtConfig
     }
 
     /// <summary>
-    /// The TypeScript rtcli emits for a REFERENCE type, resolved recursively so
+    /// The TypeScript rtcli emits for a reference type, resolved recursively so
     /// an element or a map value is spelled the same way the property is.
     ///
     /// <para>A type declared in the assembly being exported is emitted into the
     /// same file under its own name, so the name resolves. One declared
-    /// ELSEWHERE is not, and naming it would emit an identifier the generated
+    /// elsewhere is not, and naming it would emit an identifier the generated
     /// file never declares, which is the same rule the enum case above follows
     /// and the same reason it falls back.</para>
     /// </summary>
@@ -1252,7 +1252,7 @@ public static class RtConfig
     }
 
     /// <summary>
-    /// The spelling for a type reached THROUGH a sequence or a map, where the
+    /// The spelling for a type reached through a sequence or a map, where the
     /// value-type cases have no <c>Nullable&lt;T&gt;</c> wrapper to look
     /// through and so cannot go via <see cref="BareTsType"/>.
     /// </summary>
@@ -1294,7 +1294,7 @@ public static class RtConfig
     ///
     /// <para>Public and assembly-agnostic for the same reason <see
     /// cref="ApplyUnitValueTypes"/> is: an Uplink that puts a bag on a payload
-    /// of its OWN calls this from its own <c>Configure</c> with its own types
+    /// of its own calls this from its own <c>Configure</c> with its own types
     /// and its own import path, and gets the identical emission.</para>
     /// </summary>
     /// <param name="builder">The Reinforced.Typings configuration being built.</param>
@@ -1302,7 +1302,7 @@ public static class RtConfig
     /// <param name="extensionsImportFrom">
     /// Where the emitted file should import <c>ProviderExtensions</c> from.
     /// Defaults to the first party's own layout; an Uplink passes the path that
-    /// reaches the SDK from ITS generated file.
+    /// reaches the SDK from its generated file.
     /// </param>
     public static void ApplyProviderExtensionTypes(
         ConfigurationBuilder builder,
@@ -1397,7 +1397,7 @@ public static class RtConfig
     };
 
     /// <summary>
-    /// CORE's excused reserved-name collisions, as <c>"&lt;topic&gt;.&lt;field&gt;"</c>. SHRINK-ONLY: a new one
+    /// Core's excused reserved-name collisions, as <c>"&lt;topic&gt;.&lt;field&gt;"</c>. SHRINK-ONLY: a new one
     /// fails codegen, and an entry that has stopped colliding fails codegen too,
     /// so the list cannot outlive what it excuses.
     ///
@@ -1406,7 +1406,7 @@ public static class RtConfig
     /// one costs a Major and a frozen shape. An entry is listed rather than
     /// quietly tolerated so the bill is visible.</para>
     ///
-    /// <para>An UPLINK slice's own collisions are not listed here. It passes
+    /// <para>An uplink slice's own collisions are not listed here. It passes
     /// them to <see cref="EmitTopicMap"/> from its own <c>Configure</c>, so the
     /// excuse sits beside the field it excuses and core's contract does not
     /// learn the topic ids of slices it must not know about.</para>
@@ -1424,7 +1424,7 @@ public static class RtConfig
     /// <c>TopicCurrency&lt;P&gt; &amp; TopicFields&lt;P&gt;</c>, so a field named
     /// <c>state</c> lands on the same property as the currency's own discriminant
     /// and the intersection collapses to <c>never</c>. The SDK dodges that with
-    /// <c>Exclude&lt;keyof P, ReservedReadingKey&gt;</c>, which is SILENT: the
+    /// <c>Exclude&lt;keyof P, ReservedReadingKey&gt;</c>, which is silent: the
     /// field is simply not on the field-property surface, with no field reading
     /// and no explanation for the author who went looking for one. Here the
     /// collision has a name, a file and a line, at the moment someone writes it.
@@ -1436,7 +1436,7 @@ public static class RtConfig
     /// element field named <c>state</c> is as unreachable as a top-level one.
     /// </para>
     ///
-    /// <para>Scoped to ONE assembly, like everything else reflective here, so
+    /// <para>Scoped to one assembly, like everything else reflective here, so
     /// each slice's codegen leg checks its own topics. That is also why the
     /// shrink half only judges a debt entry whose topic this assembly declares:
     /// core's run cannot see an Uplink's topic and must not read its own
@@ -1524,7 +1524,7 @@ public static class RtConfig
     /// Which assembly to reflect over. Defaults to this one (first-party
     /// core). An Uplink's own <c>Configure</c> passes
     /// its own contract assembly and gets its own topic map, written into
-    /// ITS OWN generated directory, never into <c>sitrep-sdk</c>: same
+    /// its own generated directory, never into <c>sitrep-sdk</c>: same
     /// per-assembly opt-in <see cref="ApplyUnitValueTypes"/> already
     /// established.
     /// </param>
@@ -1660,11 +1660,11 @@ public static class RtConfig
     /// changes nothing else, hence the same one-character transform here).
     ///
     /// <para>Two views come out of the one scan. <c>GENERATED_TYPE_UNITS</c> is
-    /// keyed by interface name and covers NESTED payload shapes too (e.g.
+    /// keyed by interface name and covers nested payload shapes too (e.g.
     /// <see cref="ThermalHottestPart"/>), which no Topic names directly.
     /// <c>GENERATED_TOPIC_UNITS</c> is the ergonomic view for a widget, which
     /// holds a Topic id rather than a type name; for an <c>IsArray</c> Topic the
-    /// entry describes the ELEMENT's fields, since that is what a consumer
+    /// entry describes the element's fields, since that is what a consumer
     /// indexes into.</para>
     ///
     /// <para>The <c>SitrepUnit</c> union is emitted from the whole
@@ -1679,7 +1679,7 @@ public static class RtConfig
     /// <see cref="EmitTopicMap"/>'s matching parameter: an Uplink's own
     /// <c>Configure</c> passes its own contract assembly.
     /// <see cref="UnitDescriptor.Collect"/> already scopes catalog
-    /// VALIDATION to the first-party assembly regardless of this argument
+    /// validation to the first-party assembly regardless of this argument
     /// (an Uplink's token is never checked against <see cref="Units"/>, it
     /// cannot add to a const-string class compiled into this one), so
     /// passing <c>validateVocabulary: true</c> unconditionally below is safe
@@ -2042,12 +2042,12 @@ public static class RtConfig
     /// (<c>GeneratedControlChannel</c> + <c>GENERATED_CONTROL_CHANNELS</c> +
     /// <c>GeneratedControlChannelId</c>) consumed by
     /// <c>mod/sitrep-sdk/src/control-channels.ts</c>. Each <see
-    /// cref="SitrepControlChannelAttribute"/>-tagged READ property contributes
+    /// cref="SitrepControlChannelAttribute"/>-tagged read property contributes
     /// one row: the owning type's <see cref="SitrepTopicAttribute"/> is the
     /// read topic (throws if the owning type has none, enforcing that the read
     /// half is a real Topic field), the camelCased property name is the read
     /// field, and the attribute carries the paired write command + its args
-    /// type + the camelCased value field. Read and write stay TWO wire keys;
+    /// type + the camelCased value field. Read and write stay two wire keys;
     /// the SDK wraps them into one handle.
     /// </summary>
     private static void EmitChannelMap(string outPath)
@@ -2381,8 +2381,8 @@ public static class RtConfig
     /// tagged type's generated interface name is the args, and the attribute's
     /// <c>Payload</c>/<c>Result</c> decide the reply.
     ///
-    /// <para>Deliberately NOT a list of every command on the wire, for the same
-    /// reason the topic map is not: a DYNAMIC command (an Uplink's per-subject
+    /// <para>Deliberately not a list of every command on the wire, for the same
+    /// reason the topic map is not: a dynamic command (an Uplink's per-subject
     /// namespace) materialises at runtime and no tagged type exists for
     /// reflection to find. What is here is every command a client can name
     /// before the game is running.</para>
@@ -2391,7 +2391,7 @@ public static class RtConfig
     /// <param name="assembly">
     /// Which assembly to reflect over. Defaults to this one (first-party core);
     /// an Uplink's own <c>Configure</c> passes its own contract assembly and
-    /// gets its own map, written into ITS OWN generated directory. Same
+    /// gets its own map, written into its own generated directory. Same
     /// per-assembly opt-in as <see cref="EmitTopicMap"/>.
     /// </param>
     /// <param name="resultImportFrom">
@@ -2738,7 +2738,7 @@ public static class RtConfig
 
     /// <summary>
     /// The TypeScript name for a declared reply type: a scalar's primitive, or a
-    /// contract type's own generated interface. Anything else THROWS rather than
+    /// contract type's own generated interface. Anything else throws rather than
     /// emitting a name that resolves to nothing, because a generated map naming
     /// a type no barrel exports typechecks nowhere and fails at the import.
     /// </summary>

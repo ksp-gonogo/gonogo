@@ -54,10 +54,12 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 /**
  * The kit's button: one family whose `variant` says how prominent it is and
- * whose `tone` says what its action does. Write the label in sentence case;
- * uppercase belongs to headings and state tokens. It takes no alignment of its
- * own: where it sits in a row is the caller's layout. The ref reaches the
- * `button` element.
+ * whose `tone` says what its action does. Useful for any action the operator
+ * takes on this screen, such as saving a form or dismissing a banner. Used by
+ * the source offline banner and the command block. Write the label in sentence
+ * case; uppercase belongs to headings and state tokens. It takes no alignment
+ * of its own: where it sits in a row is the caller's layout. The ref reaches
+ * the `button` element.
  *
  * Its content is a centred flex row, so an icon beside the word centres on it
  * rather than sitting on the text baseline.
@@ -109,7 +111,10 @@ function pressedTone(tone: ButtonTone): Exclude<ButtonTone, "neutral"> {
   return tone === "neutral" ? "go" : tone;
 }
 
-/** Filled in a tone's status colour under its own text: a primary button, and every pressed one. */
+/**
+ * A button filled in a tone's status colour under its own text. Used by the
+ * primary variant and by every pressed button.
+ */
 export const filledLook = (tone: ButtonTone) => css`
   background: ${TONE_STATUS[tone]};
   border-color: ${TONE_STATUS[tone]};
@@ -194,9 +199,9 @@ const SIZE_LOOK = {
 } as const;
 
 /**
- * The button's body, shared by every kit control that is a button:
- * `ToggleButton` and `CommandButton` draw with it and add only their own
- * behaviour's states.
+ * The styled `button` body that every kit control drawn as a button shares.
+ * Used by {@link ToggleButton} and {@link CommandButton}, which add only the
+ * states of their own behaviour.
  */
 export const Button__Body = styled.button<{
   $variant: ButtonVariant;
@@ -258,11 +263,13 @@ export const Button__Body = styled.button<{
 
 /**
  * A subtle, underlined link-style `button` for a tertiary action inside copy
- * (such as "Clear all" in a list row). It renders a native `button` and takes
- * every prop that element does. For a paired Cancel and Confirm row, use a
- * ghost {@link Button} beside a primary one. For words that are themselves the
- * control and should keep the surrounding text's colour and type, use a
- * {@link Button} with `variant="text"` instead.
+ * (such as "Clear all" in a list row). Useful for an action that should read as
+ * part of the sentence around it. Used by the maneuver node list and the ship
+ * diagram. It renders a native `button` and takes every prop that element does.
+ * For a paired Cancel and Confirm row, use a ghost {@link Button} beside a
+ * primary one. For words that are themselves the control and should keep the
+ * surrounding text's colour and type, use a {@link Button} with
+ * `variant="text"` instead.
  *
  * @category Button
  */
@@ -334,10 +341,13 @@ export interface IconButtonProps
 }
 
 /**
- * An icon-only `button` with no chrome, just the glyph. Give it an
- * `aria-label`, since the icon inside is decorative. As a toggle, with
- * `pressed`, it sets `aria-pressed` and takes the filled pressed look while
- * pressed. The ref reaches the `button` element. Under a coarse pointer it grows to a 44px touch target.
+ * An icon-only `button` with no chrome, just the glyph. Useful for compact
+ * controls whose meaning an icon carries, such as closing a panel. Used by the
+ * maneuver node rows and the connection settings. Give it an `aria-label`,
+ * since the icon inside is decorative. As a toggle, with `pressed`, it sets
+ * `aria-pressed` and takes the filled pressed look while pressed. The ref
+ * reaches the `button` element. Under a coarse pointer it grows to a 44px touch
+ * target.
  *
  * @example
  * ```tsx

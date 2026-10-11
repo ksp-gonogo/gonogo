@@ -33,7 +33,7 @@ namespace Sitrep.Host
     /// arbitrary typed POCO (like <see cref="VesselIdentity"/>) falls through
     /// to its "unsupported CLR value type" throw, which
     /// <c>ChannelEngine</c>'s delivery-time guard would treat as a genuinely
-    /// poisoned payload and fail-soft the WHOLE uplink (see
+    /// poisoned payload and fail-soft the whole uplink (see
     /// <c>Sitrep.Host.IntegrationTests.ChannelEngineTests.
     /// GenuinelyUnserializablePayloadFailsSoftTheOwningUplinkInsteadOfRecurringSilently</c>,
     /// which deliberately pins that behavior for a genuinely-unrecognized
@@ -67,7 +67,7 @@ namespace Sitrep.Host
         public const string TargetTopic = "vessel.target";
         public const string CrewTopic = "vessel.crew";
 
-        /// <summary>Stock cargo carried by the vessel's PARTS: the supply aboard, distinct from what each kerbal is holding on <see cref="CrewTopic"/>.</summary>
+        /// <summary>Stock cargo carried by the vessel's parts: the supply aboard, distinct from what each kerbal is holding on <see cref="CrewTopic"/>.</summary>
         public const string InventoryTopic = "vessel.inventory";
         public const string StructureTopic = "vessel.structure";
         public const string WarpTopic = "time.warp";
@@ -81,7 +81,7 @@ namespace Sitrep.Host
         /// The <c>eva.crew</c> channel: every kerbal currently outside a craft,
         /// and the state of the suit they are outside in.
         ///
-        /// <para>Read from the SNAPSHOT ROOT rather than the vessel group, and
+        /// <para>Read from the snapshot root rather than the vessel group, and
         /// that is the whole reason it is not part of <c>vessel.crew</c>: while
         /// a kerbal is on EVA the vessel group is still the craft they left
         /// (<c>Gonogo.KSP.ActiveVesselScope</c> reports the parent), so a kerbal
@@ -202,7 +202,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The typed-mapping half of <see cref="BuildOrbit"/>, factored out
-        /// so <see cref="BuildTarget"/> can reuse the EXACT same elements
+        /// so <see cref="BuildTarget"/> can reuse the exact same elements
         /// mapping for a target's orbit (<c>VesselTarget.Orbit</c> reuses
         /// <see cref="VesselOrbit"/> itself -- see that field's doc comment
         /// on why that reuse is load-bearing, not incidental). Returns
@@ -334,11 +334,11 @@ namespace Sitrep.Host
         /// <para>A delegate over a plain contract type rather than the provider
         /// itself, so this class never links the propagation assembly and nothing
         /// here can branch on which provider won. The composition that produces it,
-        /// the TYPE check for the shape and the provider's own answer for the reach,
+        /// the type check for the shape and the provider's own answer for the reach,
         /// lives at the election site, which is the only place entitled to recognise
         /// its own registrations.</para>
         ///
-        /// <para>It takes the TARGET and not just a period, because the reach is a
+        /// <para>It takes the target and not just a period, because the reach is a
         /// local property of the craft: the same save at the same instant has
         /// horizons differing by orders of magnitude between craft, so anything
         /// answering from the cycle alone is answering a question it cannot see.</para>
@@ -361,10 +361,10 @@ namespace Sitrep.Host
         /// rather than defaulted, because <c>Unspecified</c> is what a producer that
         /// forgot would send and that has to stay distinguishable.</para>
         ///
-        /// <para><b>A resolver that FAULTS or answers null is a different install and
+        /// <para><b>A resolver that faults or answers null is a different install and
         /// gets a different answer</b>, and the two used to share the arm above. The
         /// no-resolver case can fairly claim stock physics because nothing was there
-        /// to say otherwise. This case HAS a backend, installed unconditionally at
+        /// to say otherwise. This case has a backend, installed unconditionally at
         /// Register, and it broke: answering <c>Analytic</c> there is a positive claim
         /// that the save runs two-body physics, made on the strength of an exception,
         /// and every consumer deciding whether a conic is the right renderer would
@@ -1256,7 +1256,7 @@ namespace Sitrep.Host
         /// Every kerbal currently outside a craft, from the snapshot's root
         /// <c>evaCrew</c> list.
         ///
-        /// <para>An EMPTY list is a real answer and is published as one: nobody
+        /// <para>An empty list is a real answer and is published as one: nobody
         /// is outside. Null is returned only when the capture produced no list
         /// at all, which is a recording made before this channel existed rather
         /// than a crew that went missing.</para>
@@ -1395,7 +1395,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The <c>time.warp</c> channel -- GLOBAL game state, decoupled from
+        /// The <c>time.warp</c> channel -- global game state, decoupled from
         /// active-vessel presence (fold-in fix, M1 Task 3 review): the only
         /// gate is whether <c>snapshot.Values["time"]</c> itself is present,
         /// so this emits at the Space Center / tracking station / any scene
@@ -1498,7 +1498,7 @@ namespace Sitrep.Host
         /// <summary>
         /// The active vessel's subject id (KSP's <c>Vessel.id</c> GUID, as a
         /// string) if a vessel + its identity group are both present this
-        /// tick -- shared by every <c>Build*</c> guard above AND
+        /// tick -- shared by every <c>Build*</c> guard above and
         /// <see cref="VesselEpochSampler"/> (so "what counts as the current
         /// subject" lives in exactly one place).
         /// </summary>
@@ -2020,7 +2020,7 @@ namespace Sitrep.Host
         };
 
         /// <summary>
-        /// Fix C: the PAYLOAD's own nested "meta" key carries only what a
+        /// Fix C: the payload's own nested "meta" key carries only what a
         /// payload mapper actually produces -- <c>source</c>/<c>quality</c>
         /// -- never a fabricated duplicate of the envelope's real
         /// <c>seq</c>/<c>deliveredAt</c>/<c>vantage</c>/<c>validAt</c> (those
@@ -2051,11 +2051,11 @@ namespace Sitrep.Host
 
         /// <summary>
         /// <see cref="Quality.Loaded"/> exactly when KSP is simulating the craft: loaded
-        /// AND unpacked, which is when its orbit driver tracks the rigidbody and the
+        /// and unpacked, which is when its orbit driver tracks the rigidbody and the
         /// elements are osculating rather than a coast. Everything else is
         /// <see cref="Quality.OnRails"/>.
         ///
-        /// <para>That includes a craft that is loaded but packed and LANDED, whose orbit
+        /// <para>That includes a craft that is loaded but packed and landed, whose orbit
         /// driver is idle: its elements are not a coast either, but the enum has two
         /// members and a third state gets a deliberate new member or none, not a
         /// stretched meaning of one of these.</para>
@@ -2121,7 +2121,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Resolves a body NAME (KspHost's raw vessel.orbit.referenceBody /
+        /// Resolves a body name (KspHost's raw vessel.orbit.referenceBody /
         /// identity.parentBody / encounter.body all carry names, not indices)
         /// to its stable <c>system.bodies</c> index, by scanning
         /// <c>snapshot.Values["bodies"]</c> -- the same raw list
@@ -2162,7 +2162,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Null for an ABSENT frame, which is a node off a recording captured
+        /// Null for an absent frame, which is a node off a recording captured
         /// before the field existed, and <see cref="ManeuverFrame.Unknown"/>
         /// for a present but unrecognised one. Those are different facts:
         /// absent means nobody said, unknown means somebody said something we
@@ -2257,7 +2257,7 @@ namespace Sitrep.Host
 
         /// <summary>
         /// See <see cref="TargetKind"/>'s doc comment: <c>type</c> is a
-        /// <see cref="VesselType"/>-shaped string when the target IS a
+        /// <see cref="VesselType"/>-shaped string when the target is a
         /// vessel, the literal <c>"CelestialBody"</c> for a body target, or
         /// an arbitrary CLR type name for anything else (docking port,
         /// waypoint, ...) -- collapsed to the three cases a consumer needs.

@@ -14,7 +14,7 @@ import { exitStatus } from "./ratchetBaseRef";
  * The first one guards `flight` and then reads `.magnitude` off whatever
  * `surfaceSpeed` happens to be. TypeScript is satisfied, because the contract
  * types `surfaceSpeed` as present on a `VesselFlight`. The wire disagrees: a
- * Topic sends a SUBSET of its fields routinely, which is why the decode-time
+ * Topic sends a subset of its fields routinely, which is why the decode-time
  * wrap has an explicit `if (!(field in target)) continue` rather than minting
  * the absent ones. So `flight` arrives, `surfaceSpeed` does not, and the
  * widget throws inside render.
@@ -39,14 +39,14 @@ import { exitStatus } from "./ratchetBaseRef";
 const HALF_GUARDED = String.raw`\?\.[A-Za-z_$][A-Za-z0-9_$]*\.magnitude`;
 
 /**
- * The SAFE spelling, `?.foo?.magnitude`, which differs from the violation by one
+ * The `SAFE` spelling, `?.foo?.magnitude`, which differs from the violation by one
  * character and exercises the same `\?\.`, the same character classes and the
  * same `\.magnitude`.
  *
  * Zero is this check's pass condition, so zero is also what a pattern the local
  * grep does not accept produces, and the two are indistinguishable from the
  * outside. A `\b` that POSIX ERE does not support matched nothing on macOS for
- * weeks elsewhere in this tree. Running a needle KNOWN to be present through the
+ * weeks elsewhere in this tree. Running a needle known to be present through the
  * same pipeline is what separates "looked and found nothing" from "did not
  * look".
  */

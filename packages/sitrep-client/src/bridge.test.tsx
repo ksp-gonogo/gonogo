@@ -12,7 +12,7 @@ import { useStream } from "./use-stream";
  * `TimelineStore`, at the `@ksp-gonogo/sitrep-client` layer: given only a
  * `client`, the provider auto-builds a store, registers the production derived
  * channels on it, and feeds it from the client's wire, so a derived subtopic
- * such as `dv.currentStageResource.<name>` resolves through the SAME provider
+ * such as `dv.currentStageResource.<name>` resolves through the same provider
  * a raw-topic `useStream` call works through.
  *
  * `dv.currentStageResource` is the production channel with two inputs, so it

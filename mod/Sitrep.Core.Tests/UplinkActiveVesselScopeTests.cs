@@ -25,7 +25,7 @@ namespace Sitrep.Core.Tests
     /// <see cref="Sitrep.Contract.ActiveVesselQuery"/>). This gate says the
     /// direct read is gone; the capability's own tests say the route works.</para>
     ///
-    /// <para><b>Why it is asserted over SOURCE.</b> Every one of these reads sits
+    /// <para><b>Why it is asserted over source.</b> Every one of these reads sits
     /// in an Uplink's KSP-touching half, which cannot be loaded in a headless
     /// build at all: no project in this repo may reference every Uplink, and one
     /// loading them out of <c>bin/</c> is green whenever they have not been
@@ -34,8 +34,8 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>Shrink-only, and strictly.</b> <see cref="Debt"/> names the files
     /// that still read KSP directly and how many times, each with its reason. An
-    /// entry leaves only by the reads leaving. A NEW read fails, and so does a
-    /// STALE entry: a file listed here that has been fixed fails just as loudly,
+    /// entry leaves only by the reads leaving. A new read fails, and so does a
+    /// stale entry: a file listed here that has been fixed fails just as loudly,
     /// because a debt list nobody prunes stops describing anything.</para>
     ///
     /// <para><b>And it plants its own violation.</b> A scan that has stopped
@@ -101,7 +101,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// A walk that finds nothing reports a clean repo. So the walk is pinned
-        /// two ways: it must have read source from EVERY Uplink the discovery
+        /// two ways: it must have read source from every Uplink the discovery
         /// found, and over the planted Uplink it must read the fixture's own
         /// files under the keys the debt list is written in, either of which
         /// fails before the counting tests above can pass on an empty set.
@@ -215,7 +215,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Reads on CODE lines only. A line whose first non-space characters are
+        /// Reads on code lines only. A line whose first non-space characters are
         /// <c>//</c> or <c>///</c> is prose about KSP, and these files are full
         /// of it by design: explaining which property the capability replaced is
         /// the point of the comment.

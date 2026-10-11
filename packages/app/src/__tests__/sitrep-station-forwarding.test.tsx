@@ -11,9 +11,9 @@
  * of a recorded fixture: the gitignored `reference-wire-fixture.json` isn't
  * available in CI, so this keeps the test self-contained and deterministic).
  *
- * This does NOT render the full `MainScreen`/`StationScreen` screen
+ * This does not render the full `MainScreen`/`StationScreen` screen
  * components: those are covered by `tsc --noEmit` on the real wiring edits
- * in those files. This test proves the forwarding PLUMBING those screens
+ * in those files. This test proves the forwarding plumbing those screens
  * mount: a host-side `TelemetryClient` -> `SitrepPeerRelay` ->
  * `PeerHostService` -> (fake PeerJS) -> `PeerClientService` -> `PeerTransport`
  * -> a station-side `TelemetryClient`/`TimelineStore`.
@@ -197,7 +197,7 @@ import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
  * difference matters: this file has failed on CI at 1855ms against `waitFor`'s
  * 1s budget, and stopping the loops does not make that assertion deterministic,
  * it only stops three screens burning the runner's time while it waits. A frame
- * pump driven from inside every `waitFor` was written first and then DELETED,
+ * pump driven from inside every `waitFor` was written first and then deleted,
  * because with it replaced by a no-op all fourteen tests still passed: the frame
  * that carries a relayed value is scheduled by the ingest, so driving the clock
  * cannot be what delivers it. A helper whose removal changes nothing is not
@@ -346,16 +346,16 @@ async function waitForHostPeerId(peerHost: PeerHostService): Promise<void> {
 }
 
 /**
- * Connects a bare `PeerClientService` WITHOUT mounting `StationApp`'s
+ * Connects a bare `PeerClientService` without mounting `StationApp`'s
  * `TelemetryProvider`: used by the command-RPC test below, which builds
  * its own standalone `PeerTransport`/`TelemetryClient` pair instead. Two
- * `TelemetryProvider`s mounted in the SAME test process (host's + a
+ * `TelemetryProvider`s mounted in the same test process (host's + a
  * station's) share the sitrep-client package's one module-level
  * `activeTelemetryClient` slot; the later mount's effect clobbers the
  * earlier one. In production this can't happen (host and station are
  * separate browser contexts), but in-process it means
  * `PeerHostService.handleSitrepCommand`'s `getActiveTelemetryClient()` would
- * resolve to whichever `TelemetryProvider` mounted LAST: the station's, not
+ * resolve to whichever `TelemetryProvider` mounted last: the station's, not
  * the host's: turning a dispatched command into an infinite request/reply
  * loop (the "host" dispatches back through the station's own transport,
  * which sends it to the host again, forever). Keeping the command-RPC
@@ -980,7 +980,7 @@ describe("an Uplink's own methods, called from a station", () => {
 });
 
 /**
- * TURN credentials for an Uplink opening a media connection from a station. A
+ * Turn credentials for an Uplink opening a media connection from a station. A
  * station cannot fetch its own: the relay that issues them is reachable from
  * the main screen, and the loopback address the main screen uses resolves on a
  * station to the station itself. So the host broadcasts them, and this is the

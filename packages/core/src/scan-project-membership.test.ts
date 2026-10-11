@@ -16,7 +16,7 @@ import {
  * `packages/core` runs two projects. `test` is keyed on core's own sources like
  * any other package; `test:scans` carries a cache key over the whole tree,
  * because the ratchets in it read files turbo's per-package cache cannot see. A
- * cross-package ratchet that lands in `test` therefore replays a cached PASS
+ * cross-package ratchet that lands in `test` therefore replays a cached pass
  * after a change to the very files it exists to inspect, and the run is green
  * for the same reason it would be green on a clean tree.
  *
@@ -115,7 +115,7 @@ describe("scans-project membership", () => {
 
   /**
    * The second direction, asked in a different shape on purpose. `REACHES_OUT`
-   * asks HOW a file finds the repo root; this asks WHAT paths it names. A
+   * asks how a file finds the repo root; this asks what paths it names. A
    * renamed root helper breaks the first and not the second, which is exactly
    * the drift that put nineteen ratchets in the wrong project.
    */

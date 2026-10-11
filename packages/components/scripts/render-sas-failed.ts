@@ -4,7 +4,7 @@
  * `data-unconfirmed` styling convention. Renders the exact primitive Navball
  * emits (ui-kit `ToggleButton`) in three states, so the operator can review the
  * tint in context without the full delay pipeline: a normal grid, the same grid
- * with one active mode, and the grid with an UNCONFIRMED mode (warning-tone
+ * with one active mode, and the grid with an unconfirmed mode (warning-tone
  * `data-unconfirmed` tint, its accessible name switched to "activate to dismiss").
  * Same esbuild -> injected HTML -> playwright pipeline as render-delay-rail.ts.
  * Output → local_docs/renders/delay-ux-v3/.

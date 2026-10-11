@@ -33,13 +33,13 @@ export type ResourceAmountMap = Record<string, Value<"units">>;
  * when no stage matches, or the matching stage carries none). `dv.stages`
  * already carries a per-STAGE resource breakdown
  * (`Gonogo.KSP.KspHost.BuildStageResources`); this derivation exists purely to
- * pick out the ONE entry the legacy `r.resourceCurrent[X]`/
+ * pick out the one entry the legacy `r.resourceCurrent[X]`/
  * `r.resourceCurrentMax[X]` pair meant ("the currently active stage"), since a
  * raw-field-subtopic string can't express a dynamic array lookup keyed by
  * another topic's live value: the lookup has to happen here, in a real
  * `derive()` function, not as a static field path in `map-topic.ts`.
  *
- * `undefined` while `dv.stages` OR `vessel.structure` hasn't arrived
+ * `undefined` while `dv.stages` or `vessel.structure` hasn't arrived
  * (propagated from whichever input isn't whole yet); `null` when either is a
  * confirmed tombstone. Never throws.
  */
@@ -93,7 +93,7 @@ export function deriveCurrentStageResourceCurrent(
 }
 
 /**
- * `dv.currentStageResourceMax` derivation: the MAX amount per resource name
+ * `dv.currentStageResourceMax` derivation: the max amount per resource name
  * for the active stage, behind the legacy `r.resourceCurrentMax[X]`.
  * Same omission discipline as {@link deriveCurrentStageResourceCurrent}.
  */

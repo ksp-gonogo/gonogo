@@ -14,7 +14,7 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// Engine-level tests for <see cref="ChannelEngine"/> that go BEYOND the
+    /// Engine-level tests for <see cref="ChannelEngine"/> that go beyond the
     /// single <c>system.bodies</c> topic <see cref="ReplayToWebSocketEndToEndTests"/>
     /// exercises: proving the multi-topic/multi-command generalization
     /// itself (not just that the retrofitted <c>system.bodies</c> channel
@@ -33,7 +33,7 @@ namespace Sitrep.Host.IntegrationTests
         /// ReliableOrdered, with an event-driven <see cref="IChannelPublisher"/>
         /// (not a tick-mapped source) carrying a cursor-relative diff stream,
         /// periodic self-contained FULL-REPAINT frames, interleaved with
-        /// incremental DIFF frames that only make sense applied on top of the
+        /// incremental diff frames that only make sense applied on top of the
         /// most recent repaint.
         ///
         /// <para>The generic "latest archived sample" catch-up
@@ -42,14 +42,14 @@ namespace Sitrep.Host.IntegrationTests
         /// "diff": if the latest matured sample happens to be a bare diff
         /// (the realistic case: diffs accumulate continuously while someone's
         /// watching, keyframes are only periodic), a late/returning subscriber
-        /// catches up on a positional diff with NO baseline to apply it to,
+        /// catches up on a positional diff with no baseline to apply it to,
         /// which is as corrupting as a black screen.</para>
         ///
-        /// <para>This test proves BOTH halves: (1) the reveal gate's baseline
+        /// <para>This test proves both halves: (1) the reveal gate's baseline
         /// wait-for-the-first-ever-reseed behavior is genuine and untouched by
-        /// the fix (a fresh topic's FIRST subscriber legitimately has nothing
+        /// the fix (a fresh topic's first subscriber legitimately has nothing
         /// to catch up on: there is no time machine for content that was
-        /// never captured), and (2) a LATE/RETURNING subscriber joining AFTER
+        /// never captured), and (2) a LATE/RETURNING subscriber joining after
         /// history already exists must get the sticky, already-REVEALED
         /// full-repaint keyframe: never a bare trailing diff, and never
         /// forced to wait out another full delay window for its own redundant
@@ -246,7 +246,7 @@ namespace Sitrep.Host.IntegrationTests
         /// subscribing to a 4-SEGMENT per-(body,type) dynamic topic
         /// (<c>prefix + "Kerbin.1"</c>, the shape
         /// <c>ScanChannels.BodyTypeSubTopic</c> emits) must open the
-        /// subscription-gated sampler (capture runs) AND receive the keyframe
+        /// subscription-gated sampler (capture runs) and receive the keyframe
         /// the uplink publishes to that exact topic, exactly as the
         /// dot-free body-level sub-topic already does in
         /// <see cref="DynamicNamespaceSubTopicsGetIndependentKeyframeAndLossySemantics"/>.
@@ -290,8 +290,8 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Regression for the SCANsat "coverage never surfaces" root cause: a
-        /// sampled source whose capture THROWS on an early tick (Planetarium not
-        /// ready) must NOT be permanently disabled, it must re-run once the
+        /// sampled source whose capture throws on an early tick (Planetarium not
+        /// ready) must not be permanently disabled, it must re-run once the
         /// capture stops throwing. Before the fix, ProcessTick's capture-exception
         /// branch called FailSoftSampledSource → `source.Disabled = true` +
         /// MarkUplinkUnavailable, permanently, so the sampler never ran again even
@@ -405,11 +405,11 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// Structural proof:
         /// <see cref="IDynamicChannelSource.OnSubscribed"/> fires once per
-        /// INDIVIDUAL session subscribe under the namespace's prefix, not
+        /// individual session subscribe under the namespace's prefix, not
         /// once per aggregate 0-&gt;1 subscriber-count transition. Two
-        /// separate client sessions subscribing to the SAME already-
+        /// separate client sessions subscribing to the same already-
         /// subscribed sub-topic must both be reported, a main-thread poll
-        /// of a subscriber COUNT sampled once per tick can miss the second
+        /// of a subscriber count sampled once per tick can miss the second
         /// one if a net-zero flip (unsubscribe+resubscribe) happens between
         /// samples; this push-based seam cannot, because it is driven
         /// directly off <c>ChannelEngine.ProcessSubscribe</c>, which runs
@@ -455,20 +455,20 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Proves the <see cref="Delivery"/> split: a <c>reliable-ordered</c>
-        /// channel's outbox lane is an unbounded FIFO queue that is NEVER
-        /// overwritten, so every emitted sample WILL eventually reach the
+        /// channel's outbox lane is an unbounded FIFO queue that is never
+        /// overwritten, so every emitted sample will eventually reach the
         /// wire regardless of how the independent outbox pump thread happens
         /// to interleave with the rapid-fire producer below (a genuine
         /// two-thread race: see <see cref="DrainToLatestStreamDataAsync"/>'s
         /// doc comment for the same race acknowledged elsewhere in this
         /// project), that guarantee is what this test asserts on, not
         /// "coalescing didn't happen this run" (which would be flaky). The
-        /// SAME rapid-fire ticks drive a <c>lossy-latest</c> channel too:
-        /// its outbox lane CAN coalesce multiple pending writes down to
+        /// same rapid-fire ticks drive a <c>lossy-latest</c> channel too:
+        /// its outbox lane can coalesce multiple pending writes down to
         /// fewer frames, so this test only asserts the two structurally
-        /// guaranteed facts about it: it never receives MORE frames than the
+        /// guaranteed facts about it: it never receives more frames than the
         /// reliable channel (both are Decide-gated identically, so at most
-        /// one emission per tick either way), and the LAST value observed
+        /// one emission per tick either way), and the last value observed
         /// is always the final tick's value.
         /// </summary>
         [Fact]
@@ -577,11 +577,11 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// M1 Task 3: proves the REAL <see cref="VesselCommandProvider"/>
-        /// handlers + the REAL per-command delay dispositions (not a synthetic
+        /// M1 Task 3: proves the real <see cref="VesselCommandProvider"/>
+        /// handlers + the real per-command delay dispositions (not a synthetic
         /// stand-in) actually dispatch through <see cref="ChannelEngine"/>:
         /// actuation (<c>vessel.control.setSas</c>) rides
-        /// the Courier's light-time delay; a meta-game control
+        /// the Courier's signal delay delay; a meta-game control
         /// (<c>time.setPaused</c>) resolves immediately.
         ///
         /// <para>The test uplink declares neither, deliberately. The
@@ -708,7 +708,7 @@ namespace Sitrep.Host.IntegrationTests
         /// = <c>GonogoAddon.FixedUpdate</c> in production): proven by the
         /// handler recording its own thread id and this test asserting it
         /// equals the pump thread's id and differs from the dispatching thread.
-        /// Mirrors F1's main-vs-Courier seam test, on the WRITE path.
+        /// Mirrors F1's main-vs-Courier seam test, on the write path.
         /// </summary>
         [Fact]
         public void CommandHandlerRunsOnTheMainThreadPumpNotTheCourierThread()
@@ -757,7 +757,7 @@ namespace Sitrep.Host.IntegrationTests
         /// A declared gate's evaluator runs on the main-thread pump too, not on
         /// the Courier thread that dispatched.
         ///
-        /// <para>An evaluator reads LIVE game state, which is the same
+        /// <para>An evaluator reads live game state, which is the same
         /// constraint the handler is under, and it runs one layer earlier. Off
         /// the main thread a gate touching Unity raises a cross-thread
         /// exception, the engine catches it as Unknown, and Unknown refuses: the
@@ -808,7 +808,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The same seam again, one layer FURTHER out: publishing every gated
+        /// The same seam again, one layer further out: publishing every gated
         /// command's standing verdict to <c>system.uplink.gates</c> must
         /// evaluate on the main-thread pump, never on the Courier thread that
         /// samples the channel.
@@ -817,7 +817,7 @@ namespace Sitrep.Host.IntegrationTests
         /// on the Courier thread; a gate evaluator reads live KSP state; a Unity
         /// read off the main thread raises a cross-thread exception that
         /// <c>EvaluateGatesHere</c> catches as <c>Unknown</c>, and Unknown
-        /// REFUSES. Doing the reads in the mapper would therefore publish every
+        /// refuses. Doing the reads in the mapper would therefore publish every
         /// gated control as permanently unavailable, with a reason that reads
         /// exactly like the game's own, which is the worst possible direction to
         /// fail in. The same bug has already been shipped and fixed once on the
@@ -828,7 +828,7 @@ namespace Sitrep.Host.IntegrationTests
         /// the channel with no pump running at all, and the evaluator must not
         /// have run. Second: once a pump thread calls
         /// <see cref="ChannelEngine.SampleCommandGates"/>, the evaluator runs on
-        /// THAT thread and not the Courier's, proven by thread ids the Courier
+        /// that thread and not the Courier's, proven by thread ids the Courier
         /// recorded for itself through an ordinary channel mapper on the same
         /// engine.</para>
         /// </summary>
@@ -893,7 +893,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The channel carries, per gated command, whether it passes and if not
         /// why: the verdict's typed <see cref="CommandErrorCode"/> and the
-        /// game's own words, not a bare boolean. An UNGATED command is absent
+        /// game's own words, not a bare boolean. An ungated command is absent
         /// rather than present-and-passing, because "nothing to say" and "fine"
         /// are different answers and a control should not be drawn from the
         /// wrong one.
@@ -940,20 +940,20 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A gate whose AUTHORITY was not there to ask arrives on the wire as
+        /// A gate whose authority was not there to ask arrives on the wire as
         /// something a client can tell apart from a gate that evaluated and said
         /// no. Same channel, same shape, different <see cref="GateOutcome"/>.
         ///
         /// <para>Load-bearing rather than pedantic. A career save that is still
         /// loading has no <c>ScenarioUpgradeableFacilities.Instance</c> yet, so
-        /// every facility gate answers Unknown until it does. Unknown REFUSES at
+        /// every facility gate answers Unknown until it does. Unknown refuses at
         /// dispatch, on purpose, so a consumer that collapsed the two would black
         /// those controls out and explain it as a fact about a building rather
         /// than about a scene. The wire has always carried the distinction; this
         /// pins it, because the same class of bug has already been shipped twice
         /// in this feature: a cross-thread exception caught as Unknown, refusing
         /// two commands permanently while looking deliberate, and the facility
-        /// gates answering Unknown in a SANDBOX save, where the scenario is
+        /// gates answering Unknown in a sandbox save, where the scenario is
         /// absent because there are no tiers and the honest answer was max.</para>
         /// </summary>
         [Fact]
@@ -992,7 +992,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The sampler's cadence is its OWN, not the caller's: <c>GonogoAddon</c>
+        /// The sampler's cadence is its own, not the caller's: <c>GonogoAddon</c>
         /// calls it once per frame and must not thereby re-read live game state
         /// on the main thread once per frame. Two calls back to back produce one
         /// evaluation.
@@ -1021,7 +1021,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// F2 Part 1: the flag genuinely GATES the marshaling. Without it (the
+        /// F2 Part 1: the flag genuinely gates the marshaling. Without it (the
         /// default), a command resolves even though
         /// <see cref="ChannelEngine.RunPendingCommands"/> is never called,
         /// proof the handler ran inline on the Courier thread, exactly the
@@ -1049,10 +1049,10 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// F2-fix (CRITICAL, pause backstop): with the main-thread seam on but
-        /// NO pump ever draining <see cref="ChannelEngine.RunPendingCommands"/>
+        /// F2-fix (critical, pause backstop): with the main-thread seam on but
+        /// no pump ever draining <see cref="ChannelEngine.RunPendingCommands"/>
         /// (the exact shape of a game paused long enough that even Update stops,
-        /// or a scene-load stall), an instant command must NOT block the Courier
+        /// or a scene-load stall), an instant command must not block the Courier
         /// thread indefinitely: the bounded wait expires and the command
         /// answers with <see cref="FaultCode.MainThreadTimeout"/> instead of
         /// parking the single-drain Courier forever. Uses a
@@ -1098,7 +1098,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// F3 (F2-fix residual): once a command's bounded wait has timed out and
         /// reported <see cref="FaultCode.MainThreadTimeout"/> to the caller, a pump
-        /// that resumes LATER must DROP the abandoned job, it must NOT run the
+        /// that resumes later must drop the abandoned job, it must not run the
         /// handler. Otherwise the side effect (staging, a maneuver node) applies
         /// seconds after the caller was already told it failed. Proven by a
         /// handler that records whether it ran: after the timeout resolves, a
@@ -1144,7 +1144,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The other half of the rule above: a handler the pump has ALREADY
+        /// The other half of the rule above: a handler the pump has already
         /// started when the bounded wait runs out is not reported as
         /// <see cref="FaultCode.MainThreadTimeout"/>, because it is running and
         /// its side effect will land. The waiter waits it out and returns its
@@ -1207,7 +1207,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// F2-fix (Fix #2, shutdown gate): a shutdown with multiple instant
-        /// commands in flight against a main-thread seam whose pump is NOT
+        /// commands in flight against a main-thread seam whose pump is not
         /// running must complete promptly and never leave the Courier thread
         /// parked. Once <see cref="ChannelEngine.Stop"/> raises the shutdown
         /// gate, any command the Courier dequeues after the single-pass flush
@@ -1255,10 +1255,10 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// F2 Part 2: with the F2 classification, a vessel.maneuver.* command
         /// (reclassified delayed:true: a maneuver node is craft-side state) now
-        /// rides the Courier's light-time delay and does NOT execute until the
-        /// clock advances past t0 + uplink light-time, while a time.* command
+        /// rides the Courier's signal delay delay and does not execute until the
+        /// clock advances past t0 + uplink signal delay, while a time.* command
         /// (delayed:false sim-meta) bypasses the delay and executes immediately.
-        /// Exercised THROUGH the main-thread seam (executeCommandsOnMainThread:
+        /// Exercised through the main-thread seam (executeCommandsOnMainThread:
         /// true) so it proves the delay model and the main-thread execution
         /// path compose correctly.
         /// </summary>
@@ -1365,13 +1365,13 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The same probe, one layer earlier: a GATE EVALUATOR reads live game
+        /// The same probe, one layer earlier: a gate evaluator reads live game
         /// state, so it is under the same Unity main-thread constraint the
-        /// handler is, and it runs BEFORE the handler.
+        /// handler is, and it runs before the handler.
         ///
         /// <para>Off the main thread a gate reading <c>FlightGlobals</c> or
         /// <c>PSystemSetup</c> raises Unity's cross-thread exception, which the
-        /// engine catches as <c>Unknown</c>, and Unknown REFUSES. So the failure
+        /// engine catches as <c>Unknown</c>, and Unknown refuses. So the failure
         /// mode is a command refused for ever, looking deliberate. That is worth
         /// a thread-identity assertion of its own rather than inheriting the
         /// handler's.</para>
@@ -1424,14 +1424,14 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The probe for the <c>system.uplink.gates</c> tests: one GATED command
+        /// The probe for the <c>system.uplink.gates</c> tests: one gated command
         /// whose evaluator records the thread it ran on and how often, one
-        /// UNGATED command beside it, and an ordinary channel whose mapper
+        /// ungated command beside it, and an ordinary channel whose mapper
         /// records the thread the Courier samples on.
         ///
         /// <para>The mapper is what makes the thread assertion an identity
         /// rather than a guess about names: it is a perfectly normal channel
-        /// source on the same engine, so the id it records IS the Courier
+        /// source on the same engine, so the id it records is the Courier
         /// thread's, and the gate evaluator's must differ from it.</para>
         /// </summary>
         private sealed class GateSampleProbeUplink : ISitrepUplink
@@ -1454,9 +1454,9 @@ namespace Sitrep.Host.IntegrationTests
             private readonly HashSet<int> _gateThreadIds = new HashSet<int>();
 
             /// <summary>
-            /// EVERY thread the evaluator has ever run on, not only the last.
+            /// Every thread the evaluator has ever run on, not only the last.
             ///
-            /// <para>The set exists because the last-one-wins field CANNOT SEE
+            /// <para>The set exists because the last-one-wins field cannot see
             /// the failure this probe is for, which was measured rather than
             /// assumed: with the evaluation planted back into the channel mapper,
             /// an honest pump sample afterwards overwrites
@@ -1549,7 +1549,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Uplink whose single delayed:false command records how many times its
-        /// handler actually RAN: the probe for
+        /// handler actually ran: the probe for
         /// <see cref="AbandonedCommandIsDroppedByThePumpAndItsHandlerNeverRunsLate"/>.
         /// </summary>
         private sealed class SlowHandlerProbeUplink : ISitrepUplink
@@ -1621,9 +1621,9 @@ namespace Sitrep.Host.IntegrationTests
         /// would throw <c>InvalidCastException</c> straight out of
         /// <see cref="ChannelEngine.AddCommandHandler{TArgs,TResult}"/>'s
         /// <c>(TArgs)args!</c> cast, on the Courier thread, with nothing
-        /// catching it: killing the thread and wedging the ENTIRE engine
+        /// catching it: killing the thread and wedging the entire engine
         /// (every subscriber, every channel, every command) permanently.
-        /// Dispatched here via the REAL socket path (a raw wire
+        /// Dispatched here via the real socket path (a raw wire
         /// <c>CommandRequest</c>, the same shape <c>OnMessageReceived</c>
         /// parses in production) rather than the internal
         /// <see cref="ChannelEngine.DispatchCommand"/> entry point, so this
@@ -1683,8 +1683,8 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// IMPORTANT-B: the SAME refusal as the test above, but
-        /// with a genuinely STRUCTURED (JSON-object) wire arg, the shape
+        /// IMPORTANT-B: the same refusal as the test above, but
+        /// with a genuinely structured (JSON-object) wire arg, the shape
         /// <c>EnvelopeCodec</c> parses a command's args into by default
         /// (double/string/bool/<c>Dictionary&lt;string, object?&gt;</c>, see
         /// its own doc comment), mismatched against a handler declared for
@@ -1723,12 +1723,12 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// IMPORTANT-A (task-review): availability was TRACKED but never
-        /// CONSULTED: a throwing <see cref="ISitrepUplink.Register"/>
+        /// IMPORTANT-A (task-review): availability was tracked but never
+        /// consulted: a throwing <see cref="ISitrepUplink.Register"/>
         /// flipped <see cref="ChannelEngine.AvailabilityOf"/> but every
         /// channel that uplink had already registered (before the throw)
-        /// stayed live forever. Here the uplink registers TWO channels
-        /// successfully, then throws: proving NEITHER channel ever emits
+        /// stayed live forever. Here the uplink registers two channels
+        /// successfully, then throws: proving neither channel ever emits
         /// afterward (checked via <see cref="ChannelEngine.ChannelCounters"/>'s
         /// <c>Considered</c>, since "nothing arrived on the wire" alone
         /// doesn't distinguish this from nobody subscribing either way,
@@ -1788,7 +1788,7 @@ namespace Sitrep.Host.IntegrationTests
         /// just because a topic has no pull-style
         /// <c>AddChannelSource</c> mapper registered: a
         /// <see cref="IUplinkHost.Publisher"/>-only (event-driven) channel
-        /// is DECLARED (in the manifest) and must still be subscribable, or
+        /// is declared (in the manifest) and must still be subscribable, or
         /// <see cref="IChannelPublisher.Publish"/> for it would be
         /// permanently a no-op (nobody could ever be "subscribed" to receive
         /// it).
@@ -1828,16 +1828,16 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// <c>_emitter.Decide</c> is
-        /// called OUTSIDE the try/catch that already guards <c>map()</c> in
+        /// called outside the try/catch that already guards <c>map()</c> in
         /// <see cref="ChannelEngine.ProcessTick"/> -- but <c>Decide</c> itself
         /// runs uplink-authored code for a structured payload (the deadband
         /// falls back to <c>Equals</c> on an event lane, and to the payload's
         /// own leaves through <c>StructuralEquality</c> everywhere else -- see
         /// <c>ChannelEmitter.HasChangedBeyondQuantum</c>). A throwing
         /// <c>Equals</c> must not escape the channel loop and skip
-        /// <c>_clock.AdvanceTo</c> for the WHOLE tick -- not just this
+        /// <c>_clock.AdvanceTo</c> for the whole tick -- not just this
         /// channel -- which is why a totally unrelated, healthy channel
-        /// (owned by a DIFFERENT uplink, so a per-uplink
+        /// (owned by a different uplink, so a per-uplink
         /// fail-soft can't mask the bug) is asserted on here: it
         /// keeps arriving promptly, tick after tick, while the throwing
         /// channel's own topic goes permanently silent and its uplink
@@ -1939,7 +1939,7 @@ namespace Sitrep.Host.IntegrationTests
         /// A payload that is genuinely unserializable (an arbitrary CLR
         /// object, not a recognized numeric/string/dictionary/enumerable
         /// shape) must fail-soft the
-        /// OWNING uplink on the first failed delivery rather than
+        /// owning uplink on the first failed delivery rather than
         /// recurring silently forever. Proven via <c>ChannelCounters</c>'s
         /// <c>Considered</c>: pinned at 1 (the availability gate
         /// stops the channel from even being considered again) rather than
@@ -1987,11 +1987,11 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A throw during <c>Courier.SubscribeStream</c>'s SYNCHRONOUS
+        /// A throw during <c>Courier.SubscribeStream</c>'s synchronous
         /// catch-up delivery (a second subscriber joining after a poison
         /// sample is already archived) must not unwind after
         /// <c>_subscriptions.Subscribe</c> + the Courier's own subscriber-set
-        /// add but BEFORE <c>session.Unsubscribers[topic]</c> is set and
+        /// add but before <c>session.Unsubscribers[topic]</c> is set and
         /// before the ack is sent -- that shape would leave an orphaned
         /// subscriber (no ack, no bookkeeping to clean it up later). Proven end-to-end: the second
         /// client's ack must still arrive, the shared subscription count
@@ -2037,10 +2037,10 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// C2-4: <c>WriteCommandResponse</c> serializes the handler's result
-        /// OUTSIDE <c>InvokeCommandHandler</c>'s guard (in the
+        /// outside <c>InvokeCommandHandler</c>'s guard (in the
         /// <c>OnMessageReceived</c> callback), so a handler that returns an
         /// unserializable result used to throw silently -- the client never
-        /// receives ANY response (not even an error) and the failure is
+        /// receives any response (not even an error) and the failure is
         /// unattributed. Post-fix: the client gets an explicit
         /// <see cref="ErrorMsg"/> naming the command instead of silence, and
         /// that command alone is refused from then on.
@@ -2080,9 +2080,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <c>ut</c> with no sanity check against the clock's current
         /// position. An uplink that captures "now" (via
         /// <c>IUplinkHost.NowUt()</c>) and only gets around to
-        /// <c>Publish</c>ing it AFTER a quickload rewound the clock backward
+        /// <c>Publish</c>ing it after a quickload rewound the clock backward
         /// hands the engine a ghost timestamp from the abandoned timeline --
-        /// numerically AHEAD of the rewound clock, so it can never be caught
+        /// numerically ahead of the rewound clock, so it can never be caught
         /// by <c>Courier.ResetTimeline</c>'s one-time retroactive prune
         /// (which only ever runs at the moment of the rewind, strictly
         /// before this late Publish call). Proven by clamping: the
@@ -2140,7 +2140,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <see cref="Availability.Unavailable"/>, or the same throwing
         /// sampler gets re-invoked, and re-logged, every single tick forever.
         /// Proves both halves: the owning uplink goes
-        /// Unavailable after the first throw, AND the sampler is skipped
+        /// Unavailable after the first throw, and the sampler is skipped
         /// (not re-invoked) on the very next tick.
         /// </summary>
         [Fact]
@@ -2225,13 +2225,13 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// M1 vessel-uplink foundation: proves <c>IUplinkHost.
         /// ForceKeyframe</c> actually reaches <c>ChannelEmitter</c> and makes
-        /// the NEXT <c>Decide</c> call unconditional, even for a value that
+        /// the next <c>Decide</c> call unconditional, even for a value that
         /// would otherwise be suppressed by the deadband/rate-clamp gates --
         /// the mechanism <c>Sitrep.Host.VesselEpochSampler</c> relies on to
         /// turn a vessel-guid change into a clean epoch boundary.
         /// <c>VesselEpochSampler</c> itself is unit-tested against a fake
         /// <c>IUplinkHost</c> in <c>Sitrep.Host.Tests</c> (no real engine
-        /// needed there); THIS test is the complementary proof that the
+        /// needed there); this test is the complementary proof that the
         /// engine-level plumbing behind <c>ForceKeyframe</c> is real.
         /// </summary>
         [Fact]
@@ -2281,11 +2281,11 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A structured payload that serializes FINE (it's a
+        /// A structured payload that serializes fine (it's a
         /// <c>Dictionary&lt;string, object?&gt;</c> subclass, so
         /// <c>JsonWriter.AppendValue</c> writes it as a plain JSON object --
         /// empty, here, since no entries are ever added) but whose
-        /// <c>Equals</c> throws. Deliberately NOT an unserializable shape:
+        /// <c>Equals</c> throws. Deliberately not an unserializable shape:
         /// this isolates the C2-1 bug (a throw from
         /// <c>ChannelEmitter.Decide</c>'s deadband Equals fallback) from the
         /// separate C2-2 bug (a throw from delivery-time serialization) --
@@ -2579,13 +2579,13 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// A command that takes a typed args record requires
         /// <see cref="ChannelEngine.BindCommandArgs"/>: <c>EnvelopeCodec</c>
-        /// deserializes a command's args to a GENERIC shape
+        /// deserializes a command's args to a generic shape
         /// (<c>Dictionary&lt;string, object?&gt;</c> / <c>double</c> / <c>bool</c>
         /// / <c>string</c>), so a naive <c>(TArgs)args!</c> cast throws
         /// <c>InvalidCastException</c> ("Specified cast is not valid"), which
         /// <see cref="ChannelEngine.InvokeCommandHandler"/> fail-softs to a null
         /// command-response: <c>setSas {enabled:true}</c> etc. would silently do
-        /// nothing. This drives the FULL production path (raw wire
+        /// nothing. This drives the full production path (raw wire
         /// <c>CommandRequest</c> → <c>OnMessageReceived</c> → <c>EnvelopeCodec</c>
         /// → dispatch → <see cref="ChannelEngine.BindCommandArgs"/> → typed
         /// handler) for one representative arg shape of every kind and asserts
@@ -2684,9 +2684,9 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A probe uplink registering one delayed:false command per arg SHAPE
+        /// A probe uplink registering one delayed:false command per arg shape
         /// (bool / double / enum / int+bool / multi-double / nullable union /
-        /// null) against the REAL <c>Sitrep.Contract</c> arg record types, each
+        /// null) against the real <c>Sitrep.Contract</c> arg record types, each
         /// handler recording the typed values it received, the fixture for
         /// <see cref="WireCommandRequestsBindGenericArgsToTypedRecordsAndReachHandlers"/>.
         /// </summary>
@@ -3089,7 +3089,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A KSP-free stand-in for <c>Gonogo.KSP.VesselUplink</c>'s
-        /// COMMAND half only (no channels, this test only exercises
+        /// command half only (no channels, this test only exercises
         /// command dispatch), the exact same manifest declarations and the
         /// exact same <see cref="VesselCommandProvider"/> handler wiring
         /// production uses, so this test proves the real taxonomy, not a
@@ -3253,16 +3253,16 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The AbsenceIsData opt-in (bug fix: mod never emitted the
         /// null-payload frame for a topic absent from its very first tick,
-        /// so the client's "no point at all yet" -> resyncing -> SYNCING
+        /// so the client's "no point at all yet" -> resyncing -> syncing
         /// mapping applied forever to topics like vessel.target/dock/crew
-        /// that are LEGITIMATELY empty at birth, no target selected, not
+        /// that are legitimately empty at birth, no target selected, not
         /// docked, no crew). A channel that declares
         /// <see cref="ChannelDeclaration.AbsenceIsData"/> = true must emit a
         /// confirmed-empty tombstone on the very first tick even though it
         /// has never been "born" (never had a non-null value), unlike
         /// <see cref="ChannelThatHasNeverEmittedProducesNoTombstoneForANullMapperResult"/>,
         /// where the same never-born null-from-birth shape correctly stays
-        /// silent because that topic does NOT opt in.
+        /// silent because that topic does not opt in.
         /// </summary>
         [Fact]
         public async Task BornAbsentTopicThatOptsIntoAbsenceIsDataEmitsATombstoneFromTheVeryFirstTick()
@@ -3535,28 +3535,28 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A loyal, CONTINUOUSLY
-        /// CONNECTED subscriber must also get corrected, not just a late
+        /// A loyal, continuously
+        /// connected subscriber must also get corrected, not just a late
         /// catch-up subscriber. The earlier fix (see
         /// <see cref="RewindRecomputesBirthFromTheArchiveTailSoAStaleValueGetsCorrectedByATombstoneInsteadOfGhostingForever"/>)
         /// defined "born" as "the archive's surviving tail is a NON-NULL
         /// value" (<c>Archive.HasNonNullTail</c>). That
         /// definition still ghosts this scenario: a real value gets
         /// recorded, then the channel goes absent (a tombstone is recorded),
-        /// but that tombstone's OWN wire delivery is still in flight (a
+        /// but that tombstone's own wire delivery is still in flight (a
         /// non-zero network delay) when a quickload rewinds to a UT at/after
-        /// the tombstone's own ValidAt -- the tombstone SURVIVES
+        /// the tombstone's own ValidAt -- the tombstone survives
         /// <c>Archive.ResetTimeline</c>'s prune, but <c>Courier.ResetTimeline</c>
         /// drops the still-scheduled delivery outright (see its own doc
-        /// comment), so this continuously-connected subscriber was NEVER
+        /// comment), so this continuously-connected subscriber was never
         /// actually told of the absence on the wire. Under the
-        /// non-null-tail definition, the surviving tail IS a tombstone (null
-        /// Value), so the topic gets recomputed as UNBORN -- the null mapper
+        /// non-null-tail definition, the surviving tail is a tombstone (null
+        /// Value), so the topic gets recomputed as unborn -- the null mapper
         /// result on every subsequent tick keeps hitting the birth-gate skip
         /// forever, and the subscriber's last wire frame stays the stale
         /// real value, served as Fresh, permanently.
         ///
-        /// <c>Archive.HasAnyTail</c>: born iff the tail is ANY
+        /// <c>Archive.HasAnyTail</c>: born iff the tail is any
         /// surviving sample, value or tombstone. A born-but-tombstoned topic
         /// hits <c>Decide</c> (not the birth-gate skip) on the very next
         /// mapper-null tick; the rewind's own <c>ChannelEmitter.Reset</c>
@@ -3623,8 +3623,8 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// A channel goes born + archived with a real value, its subscriber
         /// unsubscribes (so the mapper genuinely stops being sampled), a
-        /// quickload rewind lands AT OR AFTER that real value's UT (so it
-        /// SURVIVES <c>Archive.ResetTimeline</c>'s prune), a NEW subscriber's
+        /// quickload rewind lands at or after that real value's UT (so it
+        /// survives <c>Archive.ResetTimeline</c>'s prune), a new subscriber's
         /// catch-up then serves that stale real value, and the mapper
         /// returns null on every tick from there on (a genuine, permanent
         /// absence post-rewind).
@@ -3705,11 +3705,11 @@ namespace Sitrep.Host.IntegrationTests
         /// (see <see cref="Sitrep.Host.Tests.VesselEpochSamplerTests.
         /// SwitchingToADifferentVesselAlsoResetsChannelBirthForEveryVesselTopic"/>
         /// for the isolated sampler-only unit test of the same fix). Uses
-        /// the REAL <see cref="TestVesselUplink"/> (production manifest +
-        /// mappers) and the REAL <see cref="VesselEpochSampler"/> -- not a
+        /// the real <see cref="TestVesselUplink"/> (production manifest +
+        /// mappers) and the real <see cref="VesselEpochSampler"/> -- not a
         /// synthetic stand-in -- since the risk is specifically about how
         /// those two integrate: a vessel switch that force-keyframes every
-        /// vessel.* topic must ALSO reset per-topic birth, or the forced
+        /// vessel.* topic must also reset per-topic birth, or the forced
         /// (unconditional) next Decide call for a topic the new vessel never
         /// populated emits a spurious tombstone the instant the switch
         /// happens.
@@ -3775,15 +3775,15 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// Re-verification Edge 6: <see cref="VesselEpochSampler"/> was not
         /// rewind-aware: <c>ChannelEngine.ProcessTick</c> runs the rewind's
-        /// archive-birth recompute FIRST, then every registered sampler
-        /// (including <see cref="VesselEpochSampler"/>), THEN the channel
-        /// loop, all within the SAME tick. On a quickload to a save whose
+        /// archive-birth recompute first, then every registered sampler
+        /// (including <see cref="VesselEpochSampler"/>), then the channel
+        /// loop, all within the same tick. On a quickload to a save whose
         /// active vessel differs from whatever vessel was active
         /// immediately pre-load (a completely ordinary thing to have
         /// happened -- the player switched vessels one or more times after
         /// the save was taken, then quickloaded back to it), the sampler's
         /// plain non-null-to-different-non-null guid check mis-detects this
-        /// as a GENUINE subject switch and calls
+        /// as a genuine subject switch and calls
         /// <c>IUplinkHost.ResetChannelBirth</c> for every <c>vessel.*</c>
         /// topic -- undoing the archive recompute's correct result (the
         /// target topic's surviving tail is the real "Mun" value, so it was
@@ -3792,13 +3792,13 @@ namespace Sitrep.Host.IntegrationTests
         /// null-mapper-for-the-now-targetless-vessel result hits the
         /// birth-gate skip instead of flowing into <c>Decide</c> -- no
         /// corrective tombstone is ever emitted, and the stale "Mun" target
-        /// (recorded under the OLD vessel, before the rewind) keeps being
+        /// (recorded under the old vessel, before the rewind) keeps being
         /// served to a late catch-up as Fresh forever.
         ///
         /// The fix: <see cref="VesselEpochSampler"/> tracks the last
-        /// snapshot UT it saw. A BACKWARD Ut (this same tick's rewind) is
+        /// snapshot UT it saw. A backward Ut (this same tick's rewind) is
         /// treated as a cold start -- it resynchronizes <c>_lastVesselId</c>
-        /// to the snapshot's current vessel WITHOUT calling
+        /// to the snapshot's current vessel without calling
         /// <c>ForceKeyframe</c>/<c>ResetChannelBirth</c>, so the archive
         /// recompute's correct born=true stands. The channel loop's
         /// null-mapper result then flows into <c>Decide</c> as usual --
@@ -3903,16 +3903,16 @@ namespace Sitrep.Host.IntegrationTests
         /// as <see cref="RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth"/>,
         /// closing the one gap that test leaves open: that test's own rewind
         /// tick always carries an identifiable vessel in its snapshot, but a
-        /// REAL quickload's rewound Ut becomes visible in the loading scene
-        /// BEFORE any vessel does, <c>KspHost.Sample</c> omits the
+        /// real quickload's rewound Ut becomes visible in the loading scene
+        /// before any vessel does, <c>KspHost.Sample</c> omits the
         /// "vessel" group entirely until <c>FlightGlobals.ready</c>.
         ///
         /// <para>Without resynchronizing unconditionally,
         /// <see cref="VesselEpochSampler"/> would only resync
-        /// <c>_lastVesselId</c> on a rewind tick when THAT tick's own
+        /// <c>_lastVesselId</c> on a rewind tick when that tick's own
         /// snapshot has a vessel (<c>if (currentId != null)</c>), so a
         /// stale pre-load vessel id would survive the rewind tick untouched.
-        /// When the loaded save's DIFFERENT vessel then appears on a LATER
+        /// When the loaded save's different vessel then appears on a later
         /// forward tick (FlightGlobals going ready one or more ticks after
         /// the rewind), the sampler's plain guid comparison would mis-read it
         /// as a genuine switch and call <c>ResetChannelBirth</c>: undoing the
@@ -3923,7 +3923,7 @@ namespace Sitrep.Host.IntegrationTests
         /// late subscriber joins afterwards: exactly when it would otherwise
         /// be served the stale pre-rewind target as Fresh, forever.</para>
         ///
-        /// <para>The fix: clear <c>_lastVesselId</c> to null UNCONDITIONALLY on a
+        /// <para>The fix: clear <c>_lastVesselId</c> to null unconditionally on a
         /// rewind tick (even when that tick's own snapshot has no vessel)
         /// so the later, different vessel is a cold start (no prior subject
         /// to switch away from), never a spurious switch.</para>
@@ -4016,11 +4016,11 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The wire <c>CommandResponse</c>'s <c>Meta.TimelineEpoch</c> must be
         /// stamped correctly: <c>ProcessDispatchCommand</c>'s delayed path
-        /// throws away the Courier's own response <c>Meta</c> (which DOES
+        /// throws away the Courier's own response <c>Meta</c> (which does
         /// carry the correct epoch: see <c>Courier.CommandResponseFor</c>) by
         /// forwarding only <c>response.Result</c>, so a hand-rolled response
         /// in <c>ChannelEngine.OnMessageReceived</c> could leave it at the
-        /// wire default, 0. Dispatches a DELAYED command AFTER a
+        /// wire default, 0. Dispatches a delayed command after a
         /// rewind (so the current epoch is 1, not 0) via the real socket
         /// path (not the internal <see cref="ChannelEngine.DispatchCommand"/>
         /// entry point) so this proves the epoch is stamped correctly from
@@ -4094,10 +4094,10 @@ namespace Sitrep.Host.IntegrationTests
         /// <c>BroadcastTimelineReset</c> sends nor the subscribe-ack
         /// <see cref="EventMsg"/> <c>ProcessSubscribe</c> sends may leave
         /// <c>Meta.TimelineEpoch</c> unstamped: a rewind must announce the
-        /// CURRENT epoch, not always 0, and a subscribe ack must reflect the
+        /// current epoch, not always 0, and a subscribe ack must reflect the
         /// current epoch too. Drives
-        /// TWO rewinds and asserts the reset events carry 1 then 2, then
-        /// subscribes a NEW client and asserts its ack carries 2.
+        /// two rewinds and asserts the reset events carry 1 then 2, then
+        /// subscribes a new client and asserts its ack carries 2.
         /// </summary>
         [Fact]
         public async Task TimelineResetEventsAndSubscribeAckCarryTheCurrentTimelineEpoch()
@@ -4143,7 +4143,7 @@ namespace Sitrep.Host.IntegrationTests
         /// these epoch-focused tests aren't coupled to that uplink's
         /// unrelated <c>system.bodies</c>/rewind-stall scenarios) plus two
         /// commands for the epoch-on-command-response proof: a
-        /// delayed one (rides the Courier's light-time round trip) and a
+        /// delayed one (rides the Courier's signal delay round trip) and a
         /// non-delayed one (used purely as an ordering barrier -- see
         /// <see cref="DelayedCommandResponseAfterARewindCarriesTheCurrentTimelineEpochNotZero"/>'s
         /// doc comment).
@@ -4194,7 +4194,7 @@ namespace Sitrep.Host.IntegrationTests
         /// The mod-side half of Uplink health self-reporting: the built-in
         /// <c>system.uplinks</c> channel (declared directly by
         /// <see cref="ChannelEngine"/>, not any uplink's <see cref="UplinkManifest"/>;
-        /// see <c>ChannelEngine.UplinksTopic</c>'s doc comment) mixes THREE
+        /// see <c>ChannelEngine.UplinksTopic</c>'s doc comment) mixes three
         /// registered uplinks to exercise every health-resolution path
         /// <c>BuildSystemUplinksPayload</c>/<c>BuildUplinkHealthPayload</c>
         /// cover:
@@ -4303,7 +4303,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// Phase 1 of the uplink-health render-gating design: each roster entry
         /// carries <c>ownedPrefixes</c> so the client can resolve a widget's
-        /// declared channels to an OWNING uplink via longest-prefix match,
+        /// declared channels to an owning uplink via longest-prefix match,
         /// without re-deriving a client-side TOPIC_OWNER map. Proves both
         /// sources this list is built from: a plain statically-declared channel
         /// (<see cref="StaticChannelOwnerTestUplink"/>, sourced from
@@ -4356,10 +4356,10 @@ namespace Sitrep.Host.IntegrationTests
         /// A contract-MAJOR refusal has to reach the operator, and until this test
         /// existed it reached nobody: <c>PassesContractMajorCheck</c> wrote the
         /// reason into <c>_availability</c> and never registered the uplink, and
-        /// <c>BuildSystemUplinksPayload</c> walks only REGISTERED uplinks, so nine
+        /// <c>BuildSystemUplinksPayload</c> walks only registered uplinks, so nine
         /// stale Uplinks on the Deck were absent from the roster rather than
         /// present-and-refused. The roster now carries the refused uplink with
-        /// <c>available: false</c>, the reason, and BOTH version numbers: the one it
+        /// <c>available: false</c>, the reason, and both version numbers: the one it
         /// declared (<c>contractMajor</c>/<c>contractMinor</c>) and the one this core
         /// speaks (<c>coreContractMajor</c>/<c>coreContractMinor</c> on the payload
         /// root). Everything in the refused entry comes from the
@@ -4441,7 +4441,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A stale-binary stand-in for the refusal path: its manifest deliberately
-        /// THROWS, standing for the real hazard that the refusal exists to avoid,
+        /// throws, standing for the real hazard that the refusal exists to avoid,
         /// an uplink compiled against another Major whose contract shapes this core
         /// cannot safely touch. A roster entry that can only be built by reading it
         /// would not survive the very mismatch it reports.
@@ -4532,7 +4532,7 @@ namespace Sitrep.Host.IntegrationTests
             }
 
             /// <summary>
-            /// Facts as well as a detail line: an uplink saying WHICH thing it
+            /// Facts as well as a detail line: an uplink saying which thing it
             /// depends on, not only that something is wrong with it.
             ///
             /// <para>The null value is deliberate. An uplink that knows a fact
@@ -4592,7 +4592,7 @@ namespace Sitrep.Host.IntegrationTests
         /// A minimal stand-in for <c>kos.terminal.&lt;coreId&gt;</c>
         /// (<c>Gonogo.KosUplink.KosTerminalManager</c>): Delayed + ReliableOrdered,
         /// published event-driven via <see cref="IChannelPublisher"/> (never
-        /// tick-mapped), carrying payloads that are EITHER a self-contained
+        /// tick-mapped), carrying payloads that are either a self-contained
         /// full repaint or a cursor-relative diff, exactly like the real
         /// <c>KosTerminalFrame</c>'s <c>FullRepaint</c> flag.
         /// <see cref="ChannelDeclaration.IsKeyframe"/> is wired to that flag,

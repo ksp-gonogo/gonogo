@@ -1,13 +1,13 @@
 /**
- * What a trajectory IS, as a drawable answer, decided from what the elected
+ * What a trajectory is, as a drawable answer, decided from what the elected
  * propagation provider said rather than from the elements alone.
  *
  * ## Why this is not a widget's decision
  *
  * `vessel.orbit` carries orbital elements and, riding with them, a
  * `PropagationHorizon` whose two halves answer two different questions: `kind`
- * answers REACH (how far may these be extrapolated) and `trajectoryKind`
- * answers SHAPE (is a conic the right renderer at all). Neither implies the
+ * answers reach (how far may these be extrapolated) and `trajectoryKind`
+ * answers shape (is a conic the right renderer at all). Neither implies the
  * other, which is the whole reason both are on the wire: an integrating
  * provider in a low-perturbation regime honestly reports an unbounded horizon,
  * and a client reasoning "unbounded, therefore analytic, therefore an ellipse
@@ -159,7 +159,7 @@ export type TrajectoryWithheldReason =
    * bodies the catalogue carries: a body it has not sent yet, a rotating frame
    * asked for on the root star, or a pair whose separation is degenerate.
    *
-   * Distinct from every reason above because the propagation is FINE. Drawing
+   * Distinct from every reason above because the propagation is fine. Drawing
    * the curve in whatever frame it arrived in would answer a question nobody
    * asked, and in a rotating frame the difference is the whole shape of the
    * path rather than an offset.
@@ -179,7 +179,7 @@ export type TrajectoryWithheldReason =
 export type OrbitTrajectory =
   | {
       /**
-       * A closed-form conic. Draw one from the elements: they ARE the curve,
+       * A closed-form conic. Draw one from the elements: they are the curve,
        * for as long as the horizon allows.
        */
       shape: "conic";
@@ -242,7 +242,7 @@ export interface OrbitTrajectoryInput {
   /** Points along a sampled arc. Default 128, the same density the orbit patches use. */
   samples?: number;
   /**
-   * The frame the CALLER wants the curve in, and the catalogue to build it
+   * The frame the caller wants the curve in, and the catalogue to build it
    * from. Absent leaves the curve in whatever frame it was computed in, which
    * is what every caller did before read frames existed.
    *
@@ -362,7 +362,7 @@ function wantsReframing(
  *
  * The two steps are separate on purpose. First the points are lifted out of
  * the body-centred inertial frame they were sampled in and into the system: the
- * centre body's own position at each point's OWN instant is added.
+ * centre body's own position at each point's own instant is added.
  * Only then does the frame transform run. A curve lifted at one instant and
  * transformed at another is a curve that never existed.
  *

@@ -1,7 +1,7 @@
 import type { Meta, StreamBinary } from "./__generated__/contract";
 
 /**
- * The BINARY LANE, read side: how a frame carrying opaque bytes is told apart
+ * The binary lane, read side: how a frame carrying opaque bytes is told apart
  * from the JSON every other frame on this socket is, and taken apart.
  *
  * The C# writer is `Sitrep.Contract.Serialization.BinaryFrameCodec`, and
@@ -19,7 +19,7 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
  * **This module is the whole dependency.** A third party can decode the lane
  * with the four lines the layout above describes and no gonogo package at all,
  * which is the point: tuning in must not require an SDK. This exists so
- * consumers that DO have the SDK are not each writing their own, and so the two
+ * consumers that do have the SDK are not each writing their own, and so the two
  * ends of the format have exactly one place to drift apart at.
  */
 

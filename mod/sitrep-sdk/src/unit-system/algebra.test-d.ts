@@ -50,7 +50,7 @@ export const _underflow: Expect<Add<-9, -9>, never> = "OK";
 export const _outOfDomain: Expect<Add<12, 1>, never> = "OK";
 
 /**
- * THE trap, pinned.
+ * The trap, pinned.
  *
  * `keyof` on a tuple includes `number`, so an implementation written as
  * `N extends keyof Bias ? Bias[N] : never` makes `Add<number, 1>` return the
@@ -95,7 +95,7 @@ export const _dimensionless: Expect<Quotient<"m", "m">, "1"> = "OK";
 /**
  * The alias tiebreak, from both directions.
  *
- * `N·m` and `J` share a dimension; a COMPUTED value must render as `J`,
+ * `N·m` and `J` share a dimension; a computed value must render as `J`,
  * because that is what `declaredUnitFor` returns at runtime. Same for `W` over
  * `J/s`. `alias-flags.test.ts` asserts the runtime half of this agreement.
  */
@@ -217,7 +217,7 @@ export const _unionArg: Expect<typeof widened, Value<string>> = "OK";
 /* ── Whole-catalogue guard ────────────────────────────────────────────────── */
 
 /**
- * Every canonical (ratio-1, non-alias) unit must round-trip to EXACTLY itself.
+ * Every canonical (ratio-1, non-alias) unit must round-trip to exactly itself.
  *
  * This is the assertion that catches a silent break. A wrong `Norm`, a widened
  * `Slot`, a missing `readonly`: all of them make the whole feature degrade with

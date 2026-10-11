@@ -178,7 +178,7 @@ namespace Sitrep.Propagation.Contacts
 
         /// <param name="separationMeters">
         /// The pair's separation at each grid point from <paramref name="fromUt"/>,
-        /// <paramref name="stepSeconds"/> apart, which is what a light time is read
+        /// <paramref name="stepSeconds"/> apart, which is what a signal delay is read
         /// from. Empty for a pair planned without it.
         /// </param>
         public PairPlan(

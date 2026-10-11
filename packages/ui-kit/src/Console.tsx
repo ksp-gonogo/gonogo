@@ -35,7 +35,7 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
   delayReading?: Reading<Value<"s">> | null;
   /**
    * Whether anything this console sends can sit in a queue. A read-only viewer
-   * passes `false` and gets NEITHER reading at a long delay.
+   * passes `false` and gets neither reading at a long delay.
    */
   canQueue?: boolean;
   /**

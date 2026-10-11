@@ -14,7 +14,7 @@ namespace Gonogo.DevTools
     /// (<c>PluginData/currency-request.cfg</c>, next to this assembly) and, on a
     /// new request, awards funds / science / reputation under a caller-chosen
     /// <c>TransactionReasons</c>, optionally attributed to a named vessel so the
-    /// award travels the currency-delay subsystem's AWAY path instead of landing
+    /// award travels the currency-delay subsystem's away path instead of landing
     /// at KSC. It then samples every balance on a timer and writes the whole
     /// series into the result cfg, so a single request measures whether a credit
     /// lands immediately, at reveal, or twice.
@@ -37,7 +37,7 @@ namespace Gonogo.DevTools
     /// <para><b>Attribution: two kinds of mode.</b>
     /// <c>Gonogo.KSP.CurrencyDelay.StockCurrencyInterceptor</c> only delays a change
     /// whose <c>TransactionReasons</c> is ScienceTransmission, VesselRecovery or
-    /// VesselLoss AND for which a vessel was resolved from a separate KSP event.</para>
+    /// VesselLoss and for which a vessel was resolved from a separate KSP event.</para>
     ///
     /// <para>The <b>award modes</b> (<c>none</c>, <c>lab</c>) credit the currency
     /// themselves. Of the three vessel-bearing events, only
@@ -58,7 +58,7 @@ namespace Gonogo.DevTools
     /// three is irreversible, so each is gated by
     /// <see cref="CurrencyProbeVerdicts.RefuseTrigger"/>.</para>
     ///
-    /// <para><b>A funds light-time cannot be validated by any of this, because there is
+    /// <para><b>A funds signal delay cannot be validated by any of this, because there is
     /// not one.</b> <c>OnFundsChanged</c> gates away purely on a recovery correlation and
     /// then passes <c>KscDelay.Instant</c> unconditionally, so funds has exactly one away
     /// trigger and that trigger is defined to be instant. <c>recover</c> validates the
@@ -67,7 +67,7 @@ namespace Gonogo.DevTools
     /// Reputation is the currency with a genuinely delayable away path, and
     /// <c>destroy</c> is its only trigger.</para>
     ///
-    /// <para>Request format (mirrors <see cref="GonogoDevTeleport"/>'s TELEPORT node):
+    /// <para>Request format (mirrors <see cref="GonogoDevTeleport"/>'s teleport node):
     /// <code>
     /// CURRENCY
     /// {
@@ -91,10 +91,10 @@ namespace Gonogo.DevTools
     /// interceptor's away set is ScienceTransmission, VesselRecovery and VesselLoss, and
     /// everything else reveals instantly.</para>
     ///
-    /// <para>The result cfg carries one SAMPLE node per reading, labelled
+    /// <para>The result cfg carries one sample node per reading, labelled
     /// <c>before</c>, <c>after</c>, then <c>watch</c>. Each carries all three balances
-    /// with a per-currency MOVEMENT verdict beside them (WITHHELD / LANDED / LANDED AND
-    /// STILL PENDING / no movement), because a raw balance column cannot tell a withheld
+    /// with a per-currency movement verdict beside them (withheld / landed / landed and
+    /// still pending / no movement), because a raw balance column cannot tell a withheld
     /// credit from an award that never happened, and cannot tell a credit that landed
     /// from one that landed and is queued to land again.</para>
     ///
@@ -115,19 +115,19 @@ namespace Gonogo.DevTools
     /// not engage from a delay that engaged and revealed instantly, and both look
     /// like "the science landed at once". A neutralised award shows shadowScience below the
     /// live balance and a non-zero pendingRows; an award the interceptor classed
-    /// HOME shows shadowScience tracking the live balance and pendingRows at
+    /// home shows shadowScience tracking the live balance and pendingRows at
     /// zero.</para>
     ///
-    /// <para><b>And every sample reports the ROUTE DECISION and its inputs</b>, in
-    /// the ROUTE node: what the currency arm's own read of
+    /// <para><b>And every sample reports the route decision and its inputs</b>, in
+    /// the route node: what the currency arm's own read of
     /// <c>vessel.connection.ControlPath</c> actually saw (hop count, how many hops
     /// touch a home node, total path length), what
     /// <c>KscLightTime.ForVessel</c> made of it, what
     /// <c>KscDelayPolicy.DelaySeconds</c> would therefore add, and - when the answer
-    /// is Unroutable - WHICH of those tests failed. An
+    /// is Unroutable - Which of those tests failed. An
     /// <c>Unroutable</c> with no reason behind it is indistinguishable from broken
-    /// arithmetic, and the two want opposite fixes. Every figure in it is READ, not
-    /// inferred, and the derived reading beside it (the CLASSIFICATION on each ledger
+    /// arithmetic, and the two want opposite fixes. Every figure in it is read, not
+    /// inferred, and the derived reading beside it (the classification on each ledger
     /// row, from the row's own reveal offset) is labelled as derived precisely so a
     /// disagreement between the two is visible rather than smoothed over.</para>
     ///
@@ -137,7 +137,7 @@ namespace Gonogo.DevTools
     ///
     /// <c>once: false</c> re-instantiates this every time the flight scene
     /// loads. <see cref="DevRequestLedger"/> applies a request once across scene
-    /// reloads AND restarts, so a request cfg left on disk does not silently re-award
+    /// reloads and restarts, so a request cfg left on disk does not silently re-award
     /// on the next KSP start, and refuses one written before the running session.
     /// </summary>
     [KSPAddon(KSPAddon.Startup.Flight, once: false)]
@@ -145,7 +145,7 @@ namespace Gonogo.DevTools
     {
         private const string LogPrefix = "[GonogoDevCurrency] ";
 
-        /// <summary>The force-comms request cfg, read here for REPORTING only. The
+        /// <summary>The force-comms request cfg, read here for reporting only. The
         /// override itself is applied by <c>Gonogo.KSP.DevCommsOverride</c>, which
         /// polls this same file independently (see that class); this addon is a third
         /// reader of it, so the result file can say what mode was in force while the
@@ -156,7 +156,7 @@ namespace Gonogo.DevTools
         private const double DefaultWatchSeconds = 0.0;
         private const double DefaultWatchIntervalSeconds = 5.0;
 
-        /// <summary>An hour of samples is long enough for any light-time inside
+        /// <summary>An hour of samples is long enough for any signal delay inside
         /// the Kerbol/Sol system and for the unroutable case's silence
         /// declaration to be visibly pending, and short enough that the result
         /// file stays readable.</summary>
@@ -197,7 +197,7 @@ namespace Gonogo.DevTools
             public double AwardUt;
 
             /// <summary>
-            /// Every ledger row that existed BEFORE the award, by reference.
+            /// Every ledger row that existed before the award, by reference.
             ///
             /// <para>This is what makes the run's own row nameable. The ledger persists
             /// across saves and every previous run's rows are still in it, so
@@ -305,7 +305,7 @@ namespace Gonogo.DevTools
             /// currencies that had none.</summary>
             public Correlations Correlations { get; }
 
-            /// <summary>EVERY row in the ledger, not the first one. See
+            /// <summary>Every row in the ledger, not the first one. See
             /// <see cref="WatchState.PreAwardRows"/> for why one was never enough.</summary>
             public List<LedgerRowReading> Rows { get; }
 
@@ -390,9 +390,9 @@ namespace Gonogo.DevTools
         /// currency from <c>onVesselRecoveryProcessing</c>, the same event the
         /// interceptor pushes its recovery vessel from, so whether the away path
         /// engages depends on GameEvents dispatch order. If stock runs first, the
-        /// change is classed HOME and lands instantly, which is indistinguishable
+        /// change is classed home and lands instantly, which is indistinguishable
         /// from the recovery arms' by-design instant reveal unless these counters are
-        /// read: a vessel HELD with no row made says the push landed and nothing
+        /// read: a vessel <c>HELD</c> with no row made says the push landed and nothing
         /// claimed it, and a vessel never held says the push came too late.</para>
         /// </summary>
         private readonly struct Correlations
@@ -422,7 +422,7 @@ namespace Gonogo.DevTools
 
             /// <summary>VesselLoss reputation changes waiting for a destruction to
             /// explain them. Non-zero with no death push is the crew-died-but-the-craft-
-            /// survived case, which settles HOME and lands the penalty instantly.</summary>
+            /// survived case, which settles home and lands the penalty instantly.</summary>
             public int ReputationDefersPending { get; }
 
             public static Correlations Unreadable =>
@@ -432,7 +432,7 @@ namespace Gonogo.DevTools
         /// <summary>
         /// One row of the pending-credit ledger as the probe reads it, with the two
         /// figures a reader actually needs beside the raw ones: how far the reveal
-        /// still is from NOW, and whether this run created it.
+        /// still is from now, and whether this run created it.
         /// </summary>
         private readonly struct LedgerRowReading
         {
@@ -455,8 +455,8 @@ namespace Gonogo.DevTools
             public double RevealUt { get; }
             public double RevealInSeconds { get; }
 
-            /// <summary>DERIVED from the reveal offset, never read off the row: the row
-            /// does not record which branch produced it. Reported beside the ROUTE
+            /// <summary>Derived from the reveal offset, never read off the row: the row
+            /// does not record which branch produced it. Reported beside the route
             /// node's directly-observed answer so the two can disagree in public.</summary>
             public string Classification { get; }
 
@@ -467,9 +467,9 @@ namespace Gonogo.DevTools
         /// The route decision the currency arm makes, with every input it made it
         /// from.
         ///
-        /// <para>Two independent readings sit side by side here on purpose. The RAW
+        /// <para>Two independent readings sit side by side here on purpose. The raw
         /// half walks <c>vessel.connection.ControlPath</c> directly, in this assembly,
-        /// with no production code involved; the PRODUCTION half invokes
+        /// with no production code involved; the production half invokes
         /// <c>KscLightTime.ForVessel</c> by reflection and reports what the subsystem
         /// itself concluded. A probe that only asked the code under test what it
         /// thought would agree with itself in every world, including a broken one.
@@ -484,10 +484,10 @@ namespace Gonogo.DevTools
             public bool Loaded;
             public bool ConnectionPresent;
 
-            /// <summary>What the LIVE CommNet connection says, before any dev override.</summary>
+            /// <summary>What the live CommNet connection says, before any dev override.</summary>
             public bool RawConnected;
 
-            /// <summary>A null ControlPath is an ABSENT path; an empty one is a path
+            /// <summary>A null ControlPath is an absent path; an empty one is a path
             /// with nothing on it. The two are different claims and are reported
             /// separately, exactly as FleetCommsReader's own comment insists.</summary>
             public bool ControlPathPresent;
@@ -508,9 +508,9 @@ namespace Gonogo.DevTools
             public double NearestHomeMeters = double.NaN;
 
             /// <summary>Straight-line seconds to the nearest home node at the config's
-            /// scaled c. NOT what the subsystem uses, and deliberately so - the
+            /// scaled c. Not what the subsystem uses, and deliberately so - the
             /// straight-line arm was deleted because a chord through a planet is not a
-            /// signal path. It is here as a SCALE CHECK: if a routed answer is orders
+            /// signal path. It is here as a scale check: if a routed answer is orders
             /// off this, the arithmetic is wrong rather than the routing.</summary>
             public double StraightLineSeconds = double.NaN;
 
@@ -530,7 +530,7 @@ namespace Gonogo.DevTools
             public string OverrideMode = "";
             public string OverrideReach = "";
 
-            /// <summary>Whether the route read produced a light-time at all, which is
+            /// <summary>Whether the route read produced a signal delay at all, which is
             /// the observation <see cref="CurrencyProbeVerdicts.JudgeOverrideReach"/>
             /// weighs against the override.</summary>
             public bool FoundAPath;
@@ -541,7 +541,7 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// The signal-delay config the currency arm actually reads, which is the
-        /// EFFECTIVE one: a delay modifier of zero cuts the delay, and a run where
+        /// effective one: a delay modifier of zero cuts the delay, and a run where
         /// every credit landed instantly for that reason looks exactly like a
         /// subsystem that never engaged. The authored flag is reported beside it so
         /// the cut is visible rather than inferred.
@@ -979,7 +979,7 @@ namespace Gonogo.DevTools
         /// <para><b>So is the unmatchable <c>container</c>, and that list missed
         /// the subscriber it mattered for.</b> <c>ModuleScienceLab.OnAwake</c>
         /// subscribes to this event and <c>OnDestroy</c> unsubscribes, so every
-        /// lab PART PREFAB in the game is a permanent subscriber with no vessel
+        /// lab part prefab in the game is a permanent subscriber with no vessel
         /// and no crew behind it. Its handler opens with
         /// <c>if (data.container != part.flightID) return;</c>, a prefab's
         /// flightID is 0, and <c>ScienceData</c>'s container defaults to 0 - so a
@@ -992,7 +992,7 @@ namespace Gonogo.DevTools
         ///
         /// <para>It also stops something worse than a log full of NREs. Past
         /// <c>updateModuleUI</c>, the same handler calls
-        /// <c>AddScience(storedScience, ScienceTransmission)</c>: a REAL loaded
+        /// <c>AddScience(storedScience, ScienceTransmission)</c>: a real loaded
         /// lab whose flightID this marker happened to name would empty its whole
         /// stored science into the balance mid-measurement, under the very reason
         /// the tool is measuring.</para>
@@ -1104,7 +1104,7 @@ namespace Gonogo.DevTools
         /// <summary>
         /// <c>Vessel.Die()</c>, which fires <c>onVesselWillDestroy</c> itself at the very
         /// start of its own teardown, while the vessel is still intact - which is exactly
-        /// the moment the interceptor captures its light-time. Its <c>MurderCrew()</c>
+        /// the moment the interceptor captures its signal delay. Its <c>MurderCrew()</c>
         /// then kills every crew member, each firing <c>onCrewKilled</c> and so one
         /// <c>VesselLoss</c> reputation penalty.
         /// </summary>
@@ -1118,14 +1118,14 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// <c>ProtoCrewMember.Die()</c> on ONE crew member, leaving the vessel alive.
+        /// <c>ProtoCrewMember.Die()</c> on one crew member, leaving the vessel alive.
         ///
         /// <para><b>This mode exists to show a gap, not to pass.</b>
         /// <c>Reputation.OnCrewKilled</c> is the only site in the stock assembly that
         /// uses <c>TransactionReasons.VesselLoss</c>, and it fires off
         /// <c>GameEvents.onCrewKilled</c>, whose only producer is
         /// <c>ProtoCrewMember.Die()</c>. So a crew death is the whole cause of that
-        /// penalty - and a crew death does NOT require the vessel to die.
+        /// penalty - and a crew death does not require the vessel to die.
         /// <c>Part.Die()</c> kills the crew in its own part while the rest of the stack
         /// flies on, which is what an overheat, a structural failure or a collision that
         /// takes the pod off a surviving craft all do, and life support, G-force and
@@ -1133,7 +1133,7 @@ namespace Gonogo.DevTools
         ///
         /// <para>In every one of those <c>onVesselWillDestroy</c> never fires, so the
         /// interceptor has nothing to correlate the penalty against, defers it, and
-        /// settles it HOME once the attribution window passes. The reputation hit lands
+        /// settles it home once the attribution window passes. The reputation hit lands
         /// immediately, however far out of contact the kerbal died. This mode reproduces
         /// that against the real path.</para>
         /// </summary>
@@ -1225,7 +1225,7 @@ namespace Gonogo.DevTools
         /// Matches <c>origin</c> against every vessel KSP knows about, by id
         /// first (a GUID is unambiguous) then by name. <c>active</c> names the
         /// active vessel; an empty or <c>home</c> value means no origin at all: the award is made at home, away from any craft.
-        /// Unloaded vessels are included: the interceptor resolves light-time
+        /// Unloaded vessels are included: the interceptor resolves signal delay
         /// from a live <c>Vessel</c> object, which an unloaded craft still has.
         /// </summary>
         private static Vessel? ResolveVessel(string? origin)
@@ -1287,7 +1287,7 @@ namespace Gonogo.DevTools
         /// never as "measured nothing pending".</para>
         ///
         /// <para><b>One instance is assumed and no longer taken on trust.</b> All the
-        /// figures below come off ONE scenario object, so a second live one makes them a
+        /// figures below come off one scenario object, so a second live one makes them a
         /// reading of whichever happened to come first, indistinguishable from a subsystem
         /// that did nothing. The count is reported and a count other than 1 is a fault.
         /// <c>Resources.FindObjectsOfTypeAll</c>, not <c>FindObjectOfType</c>, because the
@@ -1429,7 +1429,7 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Whether a ledger row was created by THIS run's award, by reference against
+        /// Whether a ledger row was created by this run's award, by reference against
         /// the pre-award snapshot. Before the snapshot exists (the "before" sample
         /// itself), nothing is new, which is the honest answer at that moment.
         /// </summary>
@@ -1534,12 +1534,12 @@ namespace Gonogo.DevTools
         private const double SpeedOfLightMetersPerSecond = 299792458.0;
 
         /// <summary>
-        /// The ROUTE node: what the currency arm's route read saw, what it concluded,
+        /// The route node: what the currency arm's route read saw, what it concluded,
         /// and where the two came apart.
         ///
-        /// <para><b>Two readings, taken independently.</b> The RAW half walks
+        /// <para><b>Two readings, taken independently.</b> The raw half walks
         /// <c>vessel.connection.ControlPath</c> here, in this assembly, using nothing
-        /// of the production code; the PRODUCTION half invokes
+        /// of the production code; the production half invokes
         /// <c>KscLightTime.ForVessel</c> and <c>KscDelayPolicy.DelaySeconds</c> by
         /// reflection and reports their answers verbatim. Asking only the code under
         /// test what it thinks would produce a probe that agrees with itself in a
@@ -1549,7 +1549,7 @@ namespace Gonogo.DevTools
         /// distance and a Routed production answer whose seconds match
         /// totalPathMeters / (c * scale) is a working subsystem. hops = 0 with the
         /// production answer Unroutable is a craft genuinely out of contact and a
-        /// CORRECT refusal, not a defect. hops &gt; 0 with an Unroutable production
+        /// correct refusal, not a defect. hops &gt; 0 with an Unroutable production
         /// answer is the route read broken. A Routed answer whose seconds do not
         /// follow from the distance is the arithmetic broken.</para>
         /// </summary>
@@ -1666,7 +1666,7 @@ namespace Gonogo.DevTools
         /// <summary>
         /// How many home nodes the scene holds and how far the nearest is, straight
         /// line. Zero home nodes is a different failure from a craft that cannot reach
-        /// one, and the distance is the SCALE CHECK a routed light-time is sanity-read
+        /// one, and the distance is the scale check a routed signal delay is sanity-read
         /// against. Reads <c>CommNetHome</c>'s protected <c>comm</c> field the same
         /// way the production command-centre source does.
         /// </summary>
@@ -1718,10 +1718,10 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// What the PRODUCTION route read concluded: <c>KscLightTime.ForVessel</c>'s
+        /// What the production route read concluded: <c>KscLightTime.ForVessel</c>'s
         /// <c>KscDelay</c> and the seconds <c>KscDelayPolicy</c> would add for it.
         ///
-        /// <para><c>KscDelay.Seconds</c> THROWS for an unroutable delay by design, so
+        /// <para><c>KscDelay.Seconds</c> throws for an unroutable delay by design, so
         /// <c>IsUnroutable</c> is asked first and the seconds are reported as an
         /// explicit absence rather than a zero - which is the whole reason that type
         /// exists.</para>
@@ -1797,7 +1797,7 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// The signal-delay config the currency arm actually consults, which is
-        /// <c>CommsCoreUplink.SignalDelayConfig</c> (EFFECTIVE, after every delay
+        /// <c>CommsCoreUplink.SignalDelayConfig</c> (effective, after every delay
         /// modifier), plus the authored flag beside it so a cut is visible.
         /// </summary>
         private static DelayConfigReadout ReadDelayConfig(out object? configObject)
@@ -1839,7 +1839,7 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// The force-comms mode currently on disk, reported so a run says what fixture
-        /// it was taken under. This is a THIRD independent read of that file (the
+        /// it was taken under. This is a third independent read of that file (the
         /// GonogoDevForceComms acknowledger and Gonogo.KSP's DevCommsOverride are the
         /// other two); nothing is handed over between them.
         /// </summary>
@@ -2017,7 +2017,7 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// The TRIGGER node, present only in a trigger mode. The forecast is written
+        /// The trigger node, present only in a trigger mode. The forecast is written
         /// down first and separately from the outcome, because "the run produced no
         /// reputation change" and "this craft had no crew, so there was never a
         /// reputation change to produce" are opposite readings that used to arrive as
@@ -2144,7 +2144,7 @@ namespace Gonogo.DevTools
         /// <summary>
         /// Which currencies are withheld at this sample: this run put a row in the
         /// ledger for them and the balance has not moved. An unreadable balance is left
-        /// OUT rather than assumed either way, because naming a currency this probe
+        /// out rather than assumed either way, because naming a currency this probe
         /// could not measure would assert the thing it is meant to test.
         /// </summary>
         private static string WithheldCurrencies(Balances now, Balances? baseline, DelaySubsystem delay)

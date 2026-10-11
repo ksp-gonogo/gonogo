@@ -28,28 +28,28 @@ import {
  * dead transport's spellings; the moment that leniency went, eleven readouts
  * turned into em-dashes and the e2e went red on all three engines.
  *
- * The failure was invisible BY CONSTRUCTION. A widget reading a field the
+ * The failure was invisible by construction. A widget reading a field the
  * fixture never sent gets `NaN`, and `NaN` renders as an em-dash, which is
  * exactly what "no data yet" looks like. The blank absorbed both "correctly
  * withheld" and "your fixture is misspelled", so nothing downstream could tell
- * the two apart. The only place they ARE distinguishable is beside the
+ * the two apart. The only place they are distinguishable is beside the
  * contract, which is where this check sits.
  *
  * ## Which direction is fatal
  *
- * A field the fixture sends that the contract does not declare is FATAL. There
+ * A field the fixture sends that the contract does not declare is fatal. There
  * is no legitimate case: the field cannot reach a real client because the mod
  * cannot produce it, so the fixture is describing a wire that does not exist.
  * A topic id the contract does not declare is fatal for the same reason.
  *
- * A field the contract REQUIRES that the fixture omits is fatal too. The mod
+ * A field the contract requires that the fixture omits is fatal too. The mod
  * sends every required field on every sample, so its absence is again a wire
  * that does not exist, and it is the more dangerous direction: whatever reads
  * that field sees it missing only here, and a reckoner that needs it refuses,
  * which surfaces as an unrelated-looking widget or e2e failure a long way from
  * the fixture. The refusal names where each missing field is read.
  *
- * An OPTIONAL field is never reported, and absence stays available as a
+ * An optional field is never reported, and absence stays available as a
  * scenario: leave the whole topic out, publish it as a literal `null` the way
  * `vessel.target` is, or send `null` for a field the contract types as
  * nullable, which is what the mod itself sends.

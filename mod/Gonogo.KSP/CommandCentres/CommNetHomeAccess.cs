@@ -8,7 +8,7 @@ namespace Gonogo.KSP.CommandCentres
     /// Reads the <see cref="CommNetHome"/> members a command-centre source needs
     /// that stock keeps protected: the node's <c>comm</c> (<see cref="CommNode"/>), the
     /// <c>body</c> it sits on, and the body-fixed <c>lat</c>/<c>lon</c> the node's
-    /// position is built from. All are protected instance FIELDS with no public
+    /// position is built from. All are protected instance fields with no public
     /// accessor of any kind, so reflection is the only route that does not require
     /// publicising the KSP assembly. The <see cref="FieldInfo"/> handles are resolved
     /// once and cached; a moved or renamed field degrades to null rather than throwing,

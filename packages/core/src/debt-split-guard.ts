@@ -10,13 +10,13 @@ import {
  * Guards a per-file debt list against a split that lowers the count and fixes
  * nothing.
  *
- * A scan that counts per FILE can read lower after a widget is cut into several
+ * A scan that counts per file can read lower after a widget is cut into several
  * files: the debt is spread thinner, or it lands in a file the scan does not
  * reach, or the split severs a provenance chain the scan followed inside one
  * file. The per-file entry then drops and the next commit tightens it, which is
  * exactly what a real fix looks like.
  *
- * So the unit of account here is the WIDGET, not the file: the directory that
+ * So the unit of account here is the widget, not the file: the directory that
  * owns the file. A unit's total may fall, but not in a commit that also added a
  * file to that unit. Splitting and fixing are two commits.
  */

@@ -7,17 +7,17 @@ namespace Sitrep.Host.Propagation
 {
     /// <summary>
     /// The propagation election, expressed entirely in terms of the existing
-    /// <see cref="Kernel"/>. ONE EXCLUSIVE capability <c>"propagation"</c> whose
+    /// <see cref="Kernel"/>. One exclusive capability <c>"propagation"</c> whose
     /// active instance is an <see cref="IPropagationProvider"/>:
     ///
     /// <list type="bullet">
     /// <item><b><see cref="KeplerProvider"/> is the capability's Vanilla
     /// factory</b>: the structural "propagation is never unsatisfiable" guarantee.
-    /// Stock KSP physics IS two-body, so the vanilla is not a null object here, it
+    /// Stock KSP physics is two-body, so the vanilla is not a null object here, it
     /// is the correct answer for an unmodified game.</item>
     /// <item><b>A provider registers itself</b> from its own uplink's Register,
     /// through the kernel's generic <c>RegisterProvider</c>, and only when its own
-    /// probe confirms the physics it models is actually loaded. Registering IS the
+    /// probe confirms the physics it models is actually loaded. Registering is the
     /// gate.</item>
     /// </list>
     ///
@@ -116,7 +116,7 @@ namespace Sitrep.Host.Propagation
             kernel == null ? null : Elected(kernel) as ISecularPropagation;
 
         /// <summary>
-        /// Whether the elected provider's trajectories are INTEGRATED, which is what
+        /// Whether the elected provider's trajectories are integrated, which is what
         /// decides whether a craft's published elements are the path it flies or
         /// merely the conic tangent to it.
         ///
@@ -142,11 +142,11 @@ namespace Sitrep.Host.Propagation
             kernel != null && Elected(kernel) is IIntegratedTrajectorySource;
 
         /// <summary>
-        /// The horizon and shape a craft's published elements carry: what KIND of
+        /// The horizon and shape a craft's published elements carry: what kind of
         /// answer they are, and how far they reach.
         ///
         /// <para><b>The two halves come from different places on purpose.</b> The
-        /// shape is an IDENTITY question, and identity is this site's to answer:
+        /// shape is an identity question, and identity is this site's to answer:
         /// whether an install's trajectories are integrated is a property of which
         /// provider won. The reach is not. It is a local property of one craft at one
         /// instant, differing by orders of magnitude between craft in the same save,
@@ -208,18 +208,18 @@ namespace Sitrep.Host.Propagation
         }
 
         /// <summary>
-        /// The horizon and shape a BODY's published elements carry.
+        /// The horizon and shape a body's published elements carry.
         ///
-        /// <para>The two halves split the same way they do for a craft: the SHAPE is
+        /// <para>The two halves split the same way they do for a craft: the shape is
         /// this site's, because whether an install integrates is a property of which
-        /// provider won, and the REACH is the provider's, because only whoever models
+        /// provider won, and the reach is the provider's, because only whoever models
         /// the forces can say how far a body's osculating conic stays close to the
         /// ephemeris it osculates.</para>
         ///
         /// <para><b>Asked through <see cref="IBodyEphemerisHorizon"/> rather than
         /// through <see cref="IPropagationProvider.CanPropagate"/>, and the difference
         /// is load-bearing.</b> That member is what the acceleration walk behind any
-        /// bound uses to PLACE each perturbing body, so a provider answering it with a
+        /// bound uses to place each perturbing body, so a provider answering it with a
         /// body bound would be refusing the walk its own answer is made of. The
         /// existing pass-through there stays exactly as it is.</para>
         ///

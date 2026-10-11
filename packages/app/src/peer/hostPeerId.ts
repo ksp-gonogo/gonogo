@@ -8,9 +8,9 @@
  * to it directly: no directory peer, no resolve hop. That keeps both ends
  * browsers, which is what makes mDNS host candidates resolve natively on the
  * LAN; a Node-wrtc directory peer in the middle can neither do that nor run
- * TURN on a macOS host.
+ * turn on a macOS host.
  *
- * The prefix is REQUIRED: bare share codes would collide with other gonogo
+ * The prefix is required: bare share codes would collide with other gonogo
  * users on the shared broker key "gonogo". The operator never sees the
  * prefix: they share the code itself; the prefix is an implementation
  * detail of both ends.

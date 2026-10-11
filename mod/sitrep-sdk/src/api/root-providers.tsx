@@ -65,8 +65,9 @@ function publish(): void {
 
 /**
  * Adds a {@link RootProviderDefinition}, replacing any registered under the
- * same id. An Uplink registers through its handle's `registerRootProvider`
- * instead, which prefixes the id.
+ * same id. Useful for state that every widget of an Uplink shares on a screen.
+ * An Uplink registers through its handle's `registerRootProvider` instead,
+ * which prefixes the id.
  *
  * @category Registering
  */
@@ -77,7 +78,7 @@ export function registerRootProvider(def: RootProviderDefinition): void {
 
 /**
  * Every registered root provider, in registration order, which is the order
- * they mount in, outermost first.
+ * they mount in, outermost first. Used by {@link RootProviders}.
  *
  * @category Registering
  */
@@ -105,6 +106,8 @@ function subscribe(listener: () => void): () => void {
 
 /**
  * Mounts every registered root provider around `children`, for one screen.
+ * Useful for giving an Uplink's widgets their shared state on the screen the
+ * operator is using. Used by the main screen and the station screen.
  *
  * A provider registered after this has mounted, as an Uplink loaded at runtime
  * registers one, is mounted when it arrives. Each change to the set remounts

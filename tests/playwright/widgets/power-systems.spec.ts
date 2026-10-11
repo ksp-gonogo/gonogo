@@ -1,14 +1,14 @@
 /**
- * Widget DOM mirror: PowerSystems. Asserts the REAL rendered topology
+ * Widget DOM mirror: PowerSystems. Asserts the real rendered topology
  * (per-part Producers/Consumers rows, NET/PROD/CONS/STORED totals) on the
  * host, and that the panel chrome mirrors on the station.
  *
- * Runs against the TOPOLOGY fixture variant (`sitrep-stream-server-
- * topology.mjs`, a SEPARATE server/port from the shared snapshot; see
+ * Runs against the topology fixture variant (`sitrep-stream-server-
+ * topology.mjs`, a separate server/port from the shared snapshot; see
  * `bootstrapPair`'s `sitrepPort` option), which carries `vessel.parts` on
  * top of the shared snapshot. The shared, deliberately-topology-less
- * fixture (`sitrep-stream-server.mjs`) is UNTOUCHED, no other spec's
- * "topology absent" assertion (nor this widget's OWN unit-test coverage of
+ * fixture (`sitrep-stream-server.mjs`) is untouched, no other spec's
+ * "topology absent" assertion (nor this widget's own unit-test coverage of
  * that branch) is affected.
  *
  * Fixture craft (topology server): the same "Mun Tester" Kerbin-orbiting
@@ -16,7 +16,7 @@
  * battery (EC storage, no flow) + two OX-4W solar panels (+4.20/s each) +
  * an HG-5 antenna (-0.17/s). So for the default ElectricCharge focus:
  *   PROD = +8.40   CONS = -0.17   NET = +8.23/s
- *   STORED = pod 48.802128027849/50 + battery 400/400 = 449 / 450
+ *   stored = pod 48.802128027849/50 + battery 400/400 = 449 / 450
  * (formatUnits rounds to whole units above 100).
  *
  * Widget sized 8×12 (PowerSystems' own defaultSize) so the full
@@ -24,9 +24,9 @@
  * footprint is too short (`showFullList` needs rows >= 8).
  *
  * Station-side scope: only the "POWER SYSTEMS" panel title (static chrome,
- * rendered in EVERY branch of the widget including the pre-topology one) is
+ * rendered in every branch of the widget including the pre-topology one) is
  * checked on the station: real values come from live Sitrep stream data,
- * and only the MAIN screen mounts `SitrepTelemetryProvider` today (station
+ * and only the main screen mounts `SitrepTelemetryProvider` today (station
  * stream forwarding over PeerJS is a documented pending gap). Same pattern
  * as crew-status.spec.ts.
  */

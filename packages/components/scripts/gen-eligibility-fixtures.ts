@@ -4,8 +4,8 @@
  * `AdminBuilding/__render_unknown__` fixtures derived from it.
  *
  * Generated rather than hand-authored because the case being rendered is a
- * SCALE case: `3e0a841fa` was found on a career whose Administration Building
- * carried about ninety strategies, where the whole roster read LOCKED while
+ * scale case: `3e0a841fa` was found on a career whose Administration Building
+ * carried about ninety strategies, where the whole roster read locked while
  * every card under that heading said the state was unknown. A hand-typed
  * roster of four cannot show a heading that is wrong about ninety rows, so the
  * roster here is synthesised at that size from invented names, and each
@@ -34,7 +34,7 @@ const UNANSWERED_REASON =
   "unknown: this career's strategy limits could not be read";
 
 /**
- * What the model USED to publish on every row whenever that screen was shut,
+ * What the model used to publish on every row whenever that screen was shut,
  * kept so the before-and-after pair can be rendered from one generator. Nothing
  * emits this any more.
  */
@@ -97,7 +97,7 @@ const EFFECT = (line: string) =>
   `<b><color=#feb200>Effects: </color></b>\n<b><color=#BEC2AE>* ${line}</color></b>\n`;
 
 /**
- * The roster, by department. Every subject is a row, so the counts here ARE
+ * The roster, by department. Every subject is a row, so the counts here are
  * the fixture: 31 programmes plus 60 leads across six more departments, the
  * size of Administration Building that `3e0a841fa` was found on.
  */
@@ -398,16 +398,16 @@ const legacyUnanswered = (row: Row): Row => ({
 /**
  * What the career model can say about a row with the screen shut.
  *
- * The source roster stands for the Administration Building OPEN, so its
+ * The source roster stands for the Administration Building open, so its
  * verdicts are the game's own, which is what makes it the honest basis for
  * this scene. Off-screen the model puts the same arms one at a time and
  * reaches two of the three answers:
  *
  * - a refusal from arms 2-9 survives verbatim, because stock returns on its
- *   FIRST refusal, so an arm that fires off-screen would have fired on it
+ *   first refusal, so an arm that fires off-screen would have fired on it
  * - everything else stops short of a verdict. Arm 1 is the concurrent-strategy
  *   cap, it compares a counter that only exists while that screen is up, and a
- *   pass is owed to every arm, so a row nothing refused is UNANSWERED, not a
+ *   pass is owed to every arm, so a row nothing refused is unanswered, not a
  *   yes, and a row the cap itself refused never gets that far
  *
  * The cap refusals are therefore rewritten rather than kept: they are the one

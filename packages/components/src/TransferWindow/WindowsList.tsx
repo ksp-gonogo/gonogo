@@ -39,7 +39,7 @@ export function WindowsList({
   orbitMarking: ReckoningMarking | null;
   /** The window Δv rests on the two bodies' orbits alone, so it is exact where they are and as old as the catalogue where they are not. */
   ephemerisFigure: EphemerisFigure;
-  /** The destination select, on this section's heading line: it scopes THIS list. */
+  /** The destination select, on this section's heading line: it scopes this list. */
   destPicker: ReactNode;
   createAlarm: ((w: TransferWindowEntry) => void) | null;
 }) {

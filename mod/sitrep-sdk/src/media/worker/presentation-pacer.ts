@@ -1,13 +1,13 @@
 /**
- * The presentation pacer: the ACTUAL jank fix (cross-browser video-delay design, 2026-07-16, finding F3 + "Paced release"). Moving the
- * frame-delay pipeline into a Worker does NOT by itself fix the reported
+ * The presentation pacer: the actual jank fix (cross-browser video-delay design, 2026-07-16, finding F3 + "Paced release"). Moving the
+ * frame-delay pipeline into a Worker does not by itself fix the reported
  * stutter: `ViewClock.confirmedEdgeUt()` is sample-clamped
  * (`min(utNowEstimate() - delaySeconds, maxSampleUt + slackSeconds)`, with
  * `slackSeconds` defaulting to 0), so in the sample-limited regime the edge
- * steps at TELEMETRY sample cadence (~10Hz), not video frame cadence
+ * steps at telemetry sample cadence (~10Hz), not video frame cadence
  * (~30fps). `DelayedPlayoutBuffer.onRelease` fires for every queued frame
  * whose `ut` is now at-or-before the edge, in one synchronous pass, so an
- * edge step releases a BURST of several video frames at once, then nothing
+ * edge step releases a burst of several video frames at once, then nothing
  * for ~100ms. That burst-then-silence pattern, not main-thread contention,
  * is the stutter.
  *
@@ -15,7 +15,7 @@
  * sink write (wired in via `runFrameDelayPipeline`'s optional `pacing`
  * option: see `frame-delay.ts`). It re-times a burst of already-CONFIRMED
  * frames so they present spaced by their own UT deltas, instead of all at
- * once. This can only ever ADD latency, never remove it, every frame
+ * once. This can only ever add latency, never remove it, every frame
  * handed to `submit()` already passed `DelayedPlayoutBuffer`'s
  * `confirmedEdgeUt()` gate, so pacing never reveals a frame the clock
  * hasn't confirmed yet (the "estimate only schedules; samples confirm"
@@ -31,25 +31,25 @@
  * implementation without either owning a scheduling mechanism themselves.
  *
  * **A UT-second delta is not a wall-second delay, and the difference is the
- * RATE.** Spacing frames by their own UT deltas re-imposes the SOURCE's grid on
+ * rate.** Spacing frames by their own UT deltas re-imposes the source's grid on
  * the presentation, whatever cadence the frames actually reached this pacer at,
  * which is wrong the moment the two differ. A transmitter and a listener whose
- * separation is CHANGING are exactly that case: chunks stamped 20 ms apart do
+ * separation is changing are exactly that case: chunks stamped 20 ms apart do
  * not become audible 20 ms apart, they bunch up while the separation closes and
  * spread while it opens, and a pacer that re-spaces them onto the 20 ms grid
  * erases that. Left alone it does not distort anything audibly, it accrues:
  * the queue grows, or the anchor drifts until the backlog check snaps and drops
  * audio, over a long transmission rather than at any one instant.
  *
- * So the caller may hand `submit()` the wall instant a frame ARRIVED, and the
+ * So the caller may hand `submit()` the wall instant a frame arrived, and the
  * pacer measures wall-seconds-per-UT-second across the arrivals it has seen and
  * scales its spacing by it, which is what an RTP receiver's playout clock does
  * with the sender's timestamps. Passing no arrival instant leaves the rate at
  * 1:1 and the behaviour exactly as it was.
  *
- * The measurement is a LONG baseline (first arrival to latest) rather than a
+ * The measurement is a long baseline (first arrival to latest) rather than a
  * gap between consecutive arrivals, because `DelayedPlayoutBuffer` releases in
- * BURSTS: several frames share one arrival instant, so a short window reads a
+ * bursts: several frames share one arrival instant, so a short window reads a
  * rate near zero. It is also clamped to a narrow band around 1:1, which is what
  * keeps the warp promise: real doppler in this game is parts per hundred
  * thousand, so the band never fights a true separation rate, while the slowest
@@ -124,7 +124,7 @@ const DEFAULT_MAX_RATE_DEPARTURE = 0.2;
  */
 export class PresentationPacer<Frame> {
   private queue: PacedFrame<Frame>[] = [];
-  /** The (ut, wall) pair the NEXT queued frame's due time is computed
+  /** The (ut, wall) pair the next queued frame's due time is computed
    *  relative to: either the last frame this pacer actually presented, or
    *  `null` before the first one ever (in which case the next frame is due
    *  immediately, at whatever `nowWall` the next `tick()` supplies). */
@@ -132,8 +132,8 @@ export class PresentationPacer<Frame> {
   /**
    * The two ends of the arrival baseline the playout rate is measured over.
    *
-   * The anchor settles on the first arrival INSTANT and stays there, so the
-   * estimate spans this pacer's whole life. That suits a pacer whose life IS one
+   * The anchor settles on the first arrival instant and stays there, so the
+   * estimate spans this pacer's whole life. That suits a pacer whose life is one
    * transmission, which is how the radio builds them; one kept alive
    * indefinitely would want a sliding window and does not have one, which is the
    * other half of why arrival instants are opt-in per `submit()`.

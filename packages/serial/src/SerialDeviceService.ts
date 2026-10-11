@@ -120,8 +120,8 @@ export class SerialDeviceService {
   private managed = new Map<string, ManagedDevice>();
   /**
    * When true, the InputDispatcher skips dispatch on incoming events. Used
-   * by the input-mapping UI's "press to bind" mode so the OLD binding for
-   * a button doesn't fire while the user is trying to capture a NEW one.
+   * by the input-mapping UI's "press to bind" mode so the old binding for
+   * a button doesn't fire while the user is trying to capture a new one.
    * onInput listeners still receive events: only the dispatcher path is
    * gated.
    */
@@ -185,9 +185,9 @@ export class SerialDeviceService {
    * declare, so an operator is never asked to create one: a widget's action
    * can be bound to a key on a screen that has never opened the Devices menu.
    *
-   * The TYPE is overwritten from the constant rather than left alone if
+   * The type is overwritten from the constant rather than left alone if
    * present, because it is code-defined: a copy persisted by an older build
-   * would otherwise shadow the key table forever. The INSTANCE is only
+   * would otherwise shadow the key table forever. The instance is only
    * created when absent, so a rename survives.
    *
    * Connecting here (rather than waiting for `autoReconnect`) is what makes a
@@ -802,7 +802,7 @@ export class SerialDeviceService {
    * Release ports + detach navigator listeners. Used by the screen
    * lifecycle effect cleanup.
    *
-   * Deliberately preserves the `managed` map AND the input/status/schema
+   * Deliberately preserves the `managed` map and the input/status/schema
    * forwards subscribed during register(). React StrictMode dev's
    * cleanup→setup cycle would otherwise:
    *   - clear managed (causing in-flight capturePortInfo callbacks to run

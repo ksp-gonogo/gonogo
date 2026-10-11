@@ -12,7 +12,9 @@ const GHOST_OPACITY = 0.45;
 
 /**
  * The mark as an SVG shape centred on a point: a square for held, a triangle
- * pointing up for modelled.
+ * pointing up for modelled. Useful for showing the operator that a plotted
+ * point is the last observation or a model's estimate. Used by
+ * {@link PlotCrosshair}.
  *
  * @category Unit
  */
@@ -79,7 +81,9 @@ export interface PaintReckoningMarkOptions {
 
 /**
  * Paints the mark on a canvas, centred on a point in canvas pixels: a square for
- * held, a triangle pointing up for modelled, in the hue the spec names.
+ * held, a triangle pointing up for modelled, in the hue the spec names. Useful
+ * for showing the operator that a canvas point is the last observation or a
+ * model's estimate.
  *
  * @intent The single-mark canvas face for a third-party canvas that draws one
  * held or modelled point; {@link paintReckonedPosition} composes it for a pair.
@@ -128,7 +132,8 @@ export interface ReckonedPosition {
  * Paints a reckoned position: the held mark at the last observation, and the
  * modelled mark where the model puts the craft now. With both, the held mark
  * is drawn faint, so the pair reads as "was here, modelled to be there", joined
- * by a faint dashed track.
+ * by a faint dashed track. Useful for showing the operator both where a vessel
+ * was last observed and where the model puts it now.
  *
  * @category Unit
  */

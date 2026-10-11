@@ -15,14 +15,14 @@ import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 /**
  * The component / data-source / theme registry: the extension model's front door.
  * A package registers at module load and the dashboard renders whatever is
- * registered, so this Map IS the plugin system.
+ * registered, so this Map is the plugin system.
  *
  * It lives here rather than in `@ksp-gonogo/core` because every Uplink writes to
  * it and 18 Uplink test files call `clearRegistry` between cases. Registration
  * was already published as a host shim; nothing else was, so an Uplink could add
  * a widget and had no supported way to reset or read the registry it added to.
  *
- * The ORCHESTRATION reads (`getResolvedComponents`, `getReplacementConflicts`,
+ * The orchestration reads (`getResolvedComponents`, `getReplacementConflicts`,
  * `getThemes`, ...) are deliberately not on the author barrel: see
  * `../registry/index.ts` for where they surface and why.
  */
@@ -31,7 +31,7 @@ import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
  * The single global slot the registry lives in, keyed by a string rather than a
  * symbol so two different builds of this package still find the same Maps.
  *
- * This one matters more than the others: a second copy of THIS registry is the
+ * This one matters more than the others: a second copy of this registry is the
  * project's single scariest failure mode, a widget registering into a Map the
  * dashboard never reads, with no error anywhere. That is the whole reason the
  * author surface was shims to begin with.
@@ -76,7 +76,7 @@ function registry(): Registry {
 // component.
 //
 /**
- * Whether a repeat registration under one id is the SAME registration arriving
+ * Whether a repeat registration under one id is the same registration arriving
  * twice (benign) or two packages fighting for the id (a hard error).
  *
  * Reference equality was the whole test until 2026-08-19, and it was sound while
@@ -84,15 +84,15 @@ function registry(): Registry {
  * module graph, so a re-import handed back the identical object.
  *
  * It stops being sound the moment the registry is a `globalThis` slot, which is
- * the entire point of that slot: two BUNDLES now find one registry, and a module
+ * the entire point of that slot: two bundles now find one registry, and a module
  * evaluated in each produces two distinct objects describing one widget. Reference
  * equality cannot tell that apart from a genuine collision, and the throw would
  * land on the benign case.
  *
- * So the test is the DECLARED IDENTITY instead. Two packages fighting for an id
+ * So the test is the declared identity instead. Two packages fighting for an id
  * are two different widgets with two different names, which is also why the error
  * message quotes both names: it is the field that distinguishes them. Two
- * genuinely different widgets sharing an id AND a name would slip through, which
+ * genuinely different widgets sharing an id and a name would slip through, which
  * is a far narrower hole than throwing on every duplicated bundle.
  */
 function isSameRegistration(
@@ -103,7 +103,9 @@ function isSameRegistration(
 }
 
 /**
- * Adds a widget to the dashboard's catalogue. Call it once, at module load.
+ * Adds a widget to the dashboard's catalogue, the list the operator picks from
+ * when adding a widget to a screen. Call it once, at module load. Used by each
+ * widget package when it loads, the built-in widget library included.
  *
  * Widget ids share one namespace across every package, and registering a
  * widget under an id already taken throws when its `name` differs from the one
@@ -171,7 +173,8 @@ export function registerComponent<Config = Record<string, unknown>>(
 
 /**
  * Adds a data source to Settings, Data Sources, replacing any registered under
- * the same id.
+ * the same id. Useful for giving the operator a connection they can configure
+ * and see the status of. Used by the app for its telemetry stream connection.
  *
  * @category Registering
  */
@@ -192,7 +195,8 @@ export function unregisterDataSource(id: string): void {
 
 /**
  * Adds a theme the operator can switch to. Theme ids are unique, and registering
- * a second theme under an id already taken throws.
+ * a second theme under an id already taken throws. Used by the app's default
+ * dark theme.
  *
  * @category Registering
  */
@@ -216,7 +220,8 @@ export function getComponents(): AnyDef[] {
 }
 
 /**
- * The widget registered under `id`, or `undefined`.
+ * The widget registered under `id`, or `undefined`. Useful for drawing a widget
+ * from the id saved in a screen's layout. Used by the widget renderer.
  *
  * @category Registering
  */
@@ -239,10 +244,10 @@ export interface ReplacementConflict {
 
 /**
  * Every replacement conflict currently in the registry: targets with two or more
- * registered replacers. Empty when replacement is unambiguous. The host uses this
- * to prompt the user to choose; {@link getResolvedComponents} leaves a conflicted
- * target's original in place and hides the competing replacers until one is
- * chosen, so nothing is silently merged.
+ * registered replacers. Empty when replacement is unambiguous. Useful for
+ * prompting the operator to choose between competing replacers;
+ * {@link getResolvedComponents} keeps a conflicted target's original and hides
+ * the competing replacers until one is chosen.
  */
 export function getReplacementConflicts(): ReplacementConflict[] {
   const replacersByTarget = new Map<string, string[]>();
@@ -266,7 +271,7 @@ export function getReplacementConflicts(): ReplacementConflict[] {
  *   replacer takes its place
  * - A target with two or more replacers is a conflict ({@link
  *   getReplacementConflicts}): the original is kept, and every competing
- *   replacer is withheld until the user resolves it. Replacers are never
+ *   replacer is withheld until the operator resolves it. Replacers are never
  *   merged
  * - A replacer whose target is not registered renders as an ordinary component
  *
@@ -300,7 +305,9 @@ export function getResolvedComponents(): AnyDef[] {
 }
 
 /**
- * Every registered data source.
+ * Every registered data source. Useful for listing the connections the operator
+ * can configure. Used by the service that shares the data sources with
+ * connected stations.
  *
  * @category Registering
  */
@@ -309,7 +316,9 @@ export function getDataSources(): AnySource[] {
 }
 
 /**
- * The data source registered under `id`, or `undefined`.
+ * The data source registered under `id`, or `undefined`. Useful for reading a
+ * connection's configuration or status. Used by the Sitrep connection page in
+ * Settings.
  *
  * @category Registering
  */

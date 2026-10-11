@@ -17,7 +17,7 @@ namespace Sitrep.Core
     /// <summary>
     /// Runs a command that has arrived.
     ///
-    /// <para><paramref name="vantage"/> is the command centre it was sent FROM, and
+    /// <para><paramref name="vantage"/> is the command centre it was sent from, and
     /// it is carried through because some commands cannot be answered without it: a
     /// question like "where does this craft go" has a different correct answer at
     /// each vantage, since each has been told different things. Dropping it here
@@ -28,8 +28,8 @@ namespace Sitrep.Core
 
     /// <summary>
     /// C# port of <c>mod/sitrep-server/src/courier.ts</c>'s <c>Courier</c>:
-    /// the reference delay engine for both TELEMETRY (streams) and COMMANDS
-    /// (round-trip request/response). Semantics MUST stay byte-for-byte
+    /// the reference delay engine for both telemetry (streams) and commands
+    /// (round-trip request/response). Semantics must stay byte-for-byte
     /// identical to the TS reference: conformance is asserted by
     /// <c>Sitrep.Core.Tests</c> against the shared golden fixtures in
     /// <c>mod/golden-fixtures/courier.json</c>, not by re-deriving semantics
@@ -250,7 +250,7 @@ namespace Sitrep.Core
         /// to infer loss via ETA timeout rather than an explicit error
         /// response.
         ///
-        /// <para>Reachability is asked ONCE, here, and never again, so a command
+        /// <para>Reachability is asked once, here, and never again, so a command
         /// dispatched into a route that dies mid-flight still executes on the
         /// craft and still confirms. <see cref="INetwork.DropPath"/> is what
         /// could answer that, and the telemetry lanes consult it; this one does
@@ -368,22 +368,22 @@ namespace Sitrep.Core
         /// <summary>
         /// C#-ONLY addition (no TS reference), for the M5b quicksave
         /// UT-rewind fix: call this when the caller's own tick UT goes
-        /// BACKWARD (an F9 quickload) rather than merely pausing or
+        /// backward (an F9 quickload) rather than merely pausing or
         /// time-warping. See <c>Gonogo.KSP.GonogoBodiesServer.CourierLoop</c>
         /// (paired 1:1 with <c>Sitrep.Host.IntegrationTests.ReplayBodiesServer.CourierLoop</c>)
         /// for the call site that detects the backward tick and invokes this
         /// before recording at the new UT.
         ///
-        /// Drops every in-flight COMMAND (<see cref="_pendingCommands"/>)
+        /// Drops every in-flight command (<see cref="_pendingCommands"/>)
         /// and resets <see cref="_clock"/> to <paramref name="ut"/> via
         /// <see cref="IClock.Reset"/> -- which also drops every scheduled
-        /// STREAM delivery, since <see cref="Record"/> and
+        /// stream delivery, since <see cref="Record"/> and
         /// <see cref="SubscribeStream"/> both schedule deliveries on that
         /// same Clock's pending-callback list. Both are abandoned
         /// pre-quickload-timeline state that must never fire. What a load's
         /// save held goes back afterwards, through <see cref="RestoreCommands"/>.
         ///
-        /// Deliberately does NOT touch <see cref="_subscribers"/>: the WS
+        /// Deliberately does not touch <see cref="_subscribers"/>: the WS
         /// clients are still connected and still want their stream: only the
         /// in-flight deliveries scheduled against the old timeline are
         /// abandoned, not the subscriptions themselves. The caller is
@@ -391,10 +391,10 @@ namespace Sitrep.Core
         /// <see cref="Record"/> at the new UT so the stream resumes there
         /// for every surviving subscriber.
         ///
-        /// ALSO resets every node's <see cref="Archive"/> (see
+        /// Also resets every node's <see cref="Archive"/> (see
         /// <see cref="Archive.ResetTimeline"/>): dropping this method's own
         /// pending callbacks is not enough on its own: the archive's
-        /// per-(topic, vantage) cursor is a SEPARATE piece of state that
+        /// per-(topic, vantage) cursor is a separate piece of state that
         /// survives a bare <see cref="IClock.Reset"/>, and its monotonic
         /// "never rewinds" clamp (valid only within one timeline) would
         /// otherwise keep pinning every post-reset read to the abandoned
@@ -497,7 +497,7 @@ namespace Sitrep.Core
         /// whole-subject twin of <see cref="MarkLinkDown"/>. Idempotent (a later
         /// call overwrites the recorded since-UT).
         ///
-        /// <para>A blackout is a fact about the SUBJECT, not about one observer's
+        /// <para>A blackout is a fact about the subject, not about one observer's
         /// choice of vantage, and the caller that knows about it
         /// (<c>Sitrep.Host.ChannelEngine</c>'s reveal gate) is keyed by node with
         /// no vantage in hand. So the mark is held against the node rather than
@@ -525,13 +525,13 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Deliver a span of samples the SUBJECT recorded while out of contact,
+        /// Deliver a span of samples the subject recorded while out of contact,
         /// as one dump transmitted from <paramref name="dumpedAtUt"/>: the
         /// reacquisition instant, in the subject's own UT.
         ///
         /// <para>Each subscriber's copy is scheduled at
         /// <c>dumpedAtUt + DelayTo(vantage, node)</c>, so the dump arrives at the
-        /// light-time of the REACQUISITION geometry rather than the geometry at
+        /// signal delay of the reacquisition geometry rather than the geometry at
         /// loss of signal. That is the whole point of routing it through here:
         /// the two differ by however far the craft moved during the outage, and
         /// the recording did not travel until the link came back.</para>
@@ -543,7 +543,7 @@ namespace Sitrep.Core
         /// <c>ViewClock</c>'s UT-to-wall anchor, and a dump stamped with
         /// <c>validAt + delay</c> would walk both of those backwards.</para>
         ///
-        /// <para>The samples are archived at ARRIVAL, inside the scheduled
+        /// <para>The samples are archived at arrival, inside the scheduled
         /// callback, never at schedule time. Archiving on the way in would let a
         /// vantage that subscribes during the flight time read a blackout sample
         /// through <see cref="Archive.ReadAtVantage"/> before the dump carrying it
@@ -556,7 +556,7 @@ namespace Sitrep.Core
         /// would coalesce the whole dump to its newest sample, which is precisely
         /// the outage window being deleted again one layer down.</para>
         ///
-        /// <para><paramref name="gapSinceUt"/> rides the FIRST sample of the dump
+        /// <para><paramref name="gapSinceUt"/> rides the first sample of the dump
         /// (see <see cref="Meta.GapSinceUt"/>): non-null when the recording
         /// overran its storage bound and its oldest span is missing.</para>
         /// </summary>
@@ -646,9 +646,9 @@ namespace Sitrep.Core
         /// <see cref="Staleness.Recorded"/> with <paramref name="arrivedAtUt"/> as
         /// the instant each arrived.
         ///
-        /// <para>The light time and any waiting at a relay are already in
+        /// <para>The signal delay and any waiting at a relay are already in
         /// <paramref name="arrivedAtUt"/>, so no ledger delay is added here. The
-        /// samples are archived once, at arrival, under a stamp that says when THIS
+        /// samples are archived once, at arrival, under a stamp that says when this
         /// centre received them and no other has: the archive is one per craft and
         /// every centre reads it, so a sample that reached home an hour before it
         /// reaches a distant centre must not be served to that centre first (see
@@ -713,7 +713,7 @@ namespace Sitrep.Core
         /// every current subscriber.
         ///
         /// <para><paramref name="delivery"/> selects the scheduled-delivery
-        /// LANE (a C#-ONLY addition, no TS reference, same class of
+        /// lane (a C#-ONLY addition, no TS reference, same class of
         /// extension as <see cref="ResetTimeline"/>/<see cref="Archive.Snapshot"/>).
         /// <see cref="Delivery.LossyLatest"/> (the default, and every existing
         /// call site incl. the golden-fixture conformance tests) keeps the
@@ -723,18 +723,18 @@ namespace Sitrep.Core
         /// correct coalescing for a state topic (the scene is this sample's own
         /// ValidAt, from the delay stamped into the closure here, so several
         /// samples sharing a ValidAt still collapse to the latest). <see cref="Delivery.ReliableOrdered"/>
-        /// instead FORWARDS the exact sample captured at schedule time,
+        /// instead forwards the exact sample captured at schedule time,
         /// exactly once, in record order: the right semantics for a
-        /// cursor-relative ORDERED DIFF stream (the kOS terminal), where two
+        /// cursor-relative ordered diff stream (the kOS terminal), where two
         /// frames sharing a <c>ValidAt</c> must both be delivered rather than
         /// the earlier one being coalesced away by the state re-read. Delay,
         /// scheduling (<c>fireUt = validAt + delay</c>), and the rewind/
         /// quickload drop semantics are identical across both lanes, only
-        /// WHAT the scheduled callback delivers differs.</para>
+        /// what the scheduled callback delivers differs.</para>
         ///
         /// <para><paramref name="isKeyframe"/>: a C#-ONLY addition, no TS
         /// reference (same class as <paramref name="delivery"/> above),
-        /// flags THIS sample as a self-contained sticky catch-up baseline for
+        /// flags this sample as a self-contained sticky catch-up baseline for
         /// <paramref name="topic"/> (see <see cref="_stickyKeyframes"/> and
         /// <see cref="ChannelDeclaration.IsKeyframe"/>). Defaults to
         /// <c>false</c>: every existing call site is unaffected, and the
@@ -857,7 +857,7 @@ namespace Sitrep.Core
         /// subscribed under.
         ///
         /// <para>The shape of something one party says to others: it crosses from
-        /// where it was said to each listener at that pair's light-time, and a
+        /// where it was said to each listener at that pair's signal delay, and a
         /// vantage outside the audience is never delivered it on any path. Each
         /// sample is forwarded once, in record order, as the
         /// <see cref="Delivery.ReliableOrdered"/> lane does. A subscriber that
@@ -879,7 +879,7 @@ namespace Sitrep.Core
         /// As <see cref="RecordAddressed(string, string, object?, double, string, IEnumerable{string})"/>,
         /// for a sample whose journey to each listener the caller already knows:
         /// it arrives at each vantage <paramref name="stamp"/> says, after
-        /// <paramref name="validAtUt"/>, rather than at the ledger's light-time
+        /// <paramref name="validAtUt"/>, rather than at the ledger's signal delay
         /// from a node.
         ///
         /// <para>For something that is not said across a distance at the moment
@@ -1123,7 +1123,7 @@ namespace Sitrep.Core
         /// Deliver to <paramref name="subscriber"/> as of
         /// <paramref name="fireUt"/>: the UT this delivery was scheduled to
         /// fire at (or <c>clock.Now()</c> for a synchronous catch-up).
-        /// Callers MUST pass the delivery's own scheduled fire-UT rather than
+        /// Callers must pass the delivery's own scheduled fire-UT rather than
         /// re-reading <c>clock.Now()</c>: <see cref="ManualClock.AdvanceTo"/>
         /// sets <c>Now</c> to the target UT before draining callbacks, so
         /// several deliveries firing within one AdvanceTo() call would
@@ -1132,9 +1132,9 @@ namespace Sitrep.Core
         /// dropping earlier ones.
         ///
         /// <para><paramref name="stampedDelaySeconds"/> is the delay this
-        /// delivery was SCHEDULED under, captured at
+        /// delivery was scheduled under, captured at
         /// <see cref="Record"/>/<see cref="SubscribeStream"/> time and carried
-        /// here in the closure. A scheduled delivery MUST pass it. The archive
+        /// here in the closure. A scheduled delivery must pass it. The archive
         /// then resolves at <c>fireUt - stamp</c>, which is exactly the
         /// sample's own ValidAt, so what lands is what was sent, whatever the
         /// route has done since.</para>
@@ -1142,7 +1142,7 @@ namespace Sitrep.Core
         /// <para><c>null</c> means "there is no journey to stamp", and nothing
         /// in <see cref="Courier"/> passes it any more: the subscribe-time
         /// catch-up used to, back when it asked the ledger "what is now minus
-        /// the CURRENT delay". It now picks the sample with the newest ARRIVAL
+        /// the CURRENT delay". It now picks the sample with the newest arrival
         /// off the per-sample stamps and passes <c>now - that sample's ValidAt</c>,
         /// so it lands on this same stamped lane. The parameter stays nullable
         /// for the ledger-and-cursor read itself, which is what
@@ -1154,7 +1154,7 @@ namespace Sitrep.Core
         /// A relay going offline while the craft reroutes breaks that
         /// assumption without ever disconnecting the craft, so the reveal gate
         /// never sees it: the tail already in flight was re-resolved against
-        /// the new route's light-time and came out skipped (shorter route) or
+        /// the new route's signal delay and came out skipped (shorter route) or
         /// replayed as duplicate frames with the tail lost (longer route). See
         /// <see cref="Archive.ReadAtInstant"/>.</para>
         ///
@@ -1162,7 +1162,7 @@ namespace Sitrep.Core
         /// declined here rather than cancelled at the clock. This lane re-reads
         /// the archive at fire time anyway, so the delivery that cannot happen
         /// simply does not, which needs no cancellation plumbing and no second
-        /// index of scheduled callbacks. The read runs FIRST and is allowed to
+        /// index of scheduled callbacks. The read runs first and is allowed to
         /// move the vantage cursor: a sample that never arrived must not be
         /// served later as a catch-up either.</para>
         /// </summary>
@@ -1220,10 +1220,10 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Deliver the SPECIFIC <paramref name="forwarded"/> sample captured
+        /// Deliver the specific <paramref name="forwarded"/> sample captured
         /// when this delivery was scheduled, the <see cref="Delivery.ReliableOrdered"/>
         /// lane (see <see cref="Record"/>). Unlike <see cref="Deliver"/> this
-        /// does NOT re-read the archive at fire time, so a burst of frames
+        /// does not re-read the archive at fire time, so a burst of frames
         /// sharing a <c>ValidAt</c> each forwards its own value in record order
         /// instead of every scheduled read resolving the coalesced latest.
         /// Never a catch-up (the synchronous catch-up + in-flight reschedule in
@@ -1357,13 +1357,13 @@ namespace Sitrep.Core
         /// marked down -> Fresh (the served sample
         /// is, by construction of <see cref="Archive.ReadAtVantage"/>, always
         /// the freshest available as of this vantage's scene, an old
-        /// <c>validAt</c> on a change-gated channel is FRESH, never inferred
+        /// <c>validAt</c> on a change-gated channel is fresh, never inferred
         /// stale from age alone, per the design doc §4.1). A link marked
         /// down -&gt; the served sample predates or coincides with the known
         /// blackout start (<c>ValidAt &lt;= sinceUt</c>): <see cref="Staleness.LastBeforeBlackout"/>,
         /// honestly "the last thing that got out before the blackout".
         /// The defensive fallback (link down but the served sample's
-        /// <c>ValidAt</c> is somehow AFTER the known blackout start, should
+        /// <c>ValidAt</c> is somehow after the known blackout start, should
         /// not happen if the link genuinely dropped every delivery, but
         /// costs nothing to guard) is <see cref="Staleness.Held"/>.
         /// </summary>
@@ -1552,7 +1552,7 @@ namespace Sitrep.Core
         /// <paramref name="topic"/> on <paramref name="node"/>, as something a
         /// propagation can be seeded from.
         ///
-        /// <para>Here rather than on the archive because the DELAY is the Courier's:
+        /// <para>Here rather than on the archive because the delay is the Courier's:
         /// the archive can read at a vantage given a delay, and only this knows what
         /// that delay is. Splitting the two across a caller is how a read ends up
         /// using a delay nobody checked.</para>
@@ -1581,7 +1581,7 @@ namespace Sitrep.Core
         /// was recorded, or null if nothing has reached it.
         ///
         /// <para>Here rather than on the archive for the same reason
-        /// <see cref="ObserveAtVantage"/> is: the DELAY is the Courier's, and a
+        /// <see cref="ObserveAtVantage"/> is: the delay is the Courier's, and a
         /// caller that looked the archive up itself would be picking its own.
         /// The difference from that method is only that nothing is converted, so
         /// a reader interested in an arbitrary field of an arbitrary Topic can
@@ -1589,7 +1589,7 @@ namespace Sitrep.Core
         /// this answers "what does it currently say there", which is the whole
         /// of what a threshold armed at a vantage compares.</para>
         ///
-        /// <para><b>This MOVES that vantage's cursor, and retention prunes to
+        /// <para><b>This moves that vantage's cursor, and retention prunes to
         /// the oldest cursor on a topic</b> (see
         /// <see cref="Archive.PruneToVantageCursors"/>). Deliberate, and the
         /// alternative is worse: <see cref="Archive.ReadAtInstant"/> moves the
@@ -1600,7 +1600,7 @@ namespace Sitrep.Core
         /// <c>nowUt</c>, so the window retained tracks the delay rather than the
         /// session; and that a vantage some client is already streaming at
         /// shares the very same (topic, vantage) cursor, so reading there pins
-        /// nothing new at all. What it does NOT bound is a cursor left behind
+        /// nothing new at all. What it does not bound is a cursor left behind
         /// after the last reader of a (topic, vantage) pair goes away: that one
         /// freezes and holds that topic's history from its instant until
         /// <see cref="ResetTimeline"/> clears every cursor on a quickload.</para>
@@ -1629,7 +1629,7 @@ namespace Sitrep.Core
         }
 
         /// <summary>
-        /// Whether <paramref name="node"/>'s archive currently has ANY
+        /// Whether <paramref name="node"/>'s archive currently has any
         /// surviving tail sample (value or tombstone) for
         /// <paramref name="topic"/>: see <see cref="Archive.HasAnyTail"/>.
         /// Deliberately reads <see cref="_archives"/> directly (rather than

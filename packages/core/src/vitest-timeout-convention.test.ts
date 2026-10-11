@@ -7,21 +7,21 @@ import { describe, expect, it } from "vitest";
 /**
  * Every jsdom vitest project must set an explicit `testTimeout` of at least 30s.
  *
- * Vitest's 5s default is a HANG detector, and `turbo test` turns it into a speed
+ * Vitest's 5s default is a hang detector, and `turbo test` turns it into a speed
  * limit. The root `test` script fans ~22 suites out at turbo's default
  * concurrency of 10, each vitest pool sizing its worker count off the machine's
  * cpu count, against a 4-vCPU CI runner. Every test is dilated by an order of
- * magnitude, so what trips first is whichever test is SLOWEST, not whichever is
+ * magnitude, so what trips first is whichever test is slowest, not whichever is
  * wrong: measured on `components`, the same suite ran 59s alone and 188s beside
  * the others.
  *
  * That is not a hypothetical. `test` was red on staging for seven consecutive
- * runs in August 2026 and the timing-out test was DIFFERENT nearly every run
+ * runs in August 2026 and the timing-out test was different nearly every run
  * (`ManeuverPlanner` armed triggers, a `ThermalStatus` characterisation, an
  * `AtmosphereProfile` snapshot, an Uplink's axe assertion), which is the
  * signature of a budget being missed rather than a defect being found. Worse, a
  * timed-out test does not stop: its in-flight `userEvent` work keeps running into
- * the tests after it, so ONE timeout reported ten failures, nine of them
+ * the tests after it, so one timeout reported ten failures, nine of them
  * describing a widget that rendered nothing. Two investigations chased the widget
  * and the build before anyone read the first failure.
  *

@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Crew
 {
     /// <summary>
-    /// The crew-standing election. ONE EXCLUSIVE capability
+    /// The crew-standing election. One exclusive capability
     /// <c>"crewStanding"</c> whose active instance is an
     /// <see cref="ICrewStandingBackend"/>.
     ///
@@ -13,8 +13,8 @@ namespace Sitrep.Host.Crew
     /// real reader: KSP's roster status, applicant-hood and stand-down flag
     /// mapped onto the contract's vocabulary. Every install has it.</item>
     /// <item><b>A mod that knows better registers as a provider</b> from its
-    /// own uplink's Register, ONLY when its presence probe confirms the mod is
-    /// loaded: registering IS the gate.</item>
+    /// own uplink's Register, only when its presence probe confirms the mod is
+    /// loaded: registering is the gate.</item>
     /// </list>
     ///
     /// <para><b>Why elect rather than let a client join two channels.</b> A
@@ -33,7 +33,7 @@ namespace Sitrep.Host.Crew
     {
         /// <summary>
         /// The exclusive capability id every crew-standing backend competes for,
-        /// aliased from the CONTRACT's own declaration rather than spelled again
+        /// aliased from the contract's own declaration rather than spelled again
         /// here: an Uplink cannot reference this assembly, and an id both halves
         /// must spell identically belongs where both halves can reach it. See
         /// <see cref="CrewStandingCapability"/>.

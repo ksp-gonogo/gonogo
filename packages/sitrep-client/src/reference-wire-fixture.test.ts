@@ -19,7 +19,7 @@ import { ViewClock } from "./view-clock";
 /**
  * End-to-end SDK validation, TS half: the counterpart to
  * `mod/Sitrep.Host.IntegrationTests/WireFixtureGeneratorTests.cs`. That test
- * replays the REAL reference recording through
+ * replays the real reference recording through
  * `ReplayKspHost -> ChannelEngine` (both extensions registered, zero network
  * delay) and captures every raw wire frame for six real channels
  * (`vessel.orbit`, `vessel.flight`, `system.bodies`, `time.warp`,
@@ -27,8 +27,8 @@ import { ViewClock } from "./view-clock";
  * `local_docs/telemetry-mod/recordings/reference-wire-fixture.json`:
  * gitignored/local-only, regenerated on demand (`dotnet test
  * --filter WireFixtureGeneratorTests` in `mod/`), never present in CI. This
- * file loads that fixture and replays it through a REAL `TelemetryClient` /
- * `TimelineStore`, proving the FULL SDK: orbit element decoding, epoch/ghost
+ * file loads that fixture and replays it through a real `TelemetryClient` /
+ * `TimelineStore`, proving the full SDK: orbit element decoding, epoch/ghost
  * handling, staleness/certainty, the `ViewClock` estimator: against genuine
  * engine output rather than a hand-built fixture (`recording -> C# engine ->
  * wire -> TS SDK` end to end).
@@ -47,7 +47,7 @@ interface WireFixture {
   subscribedTopics: string[];
   frameCount: number;
   epochsSeen: number[];
-  /** Each element is the EXACT raw wire text of one captured frame; see the C# generator's own doc comment. */
+  /** Each element is the exact raw wire text of one captured frame; see the C# generator's own doc comment. */
   frames: string[];
 }
 
@@ -75,7 +75,7 @@ function fakeWall(start = 0) {
  * live WebSocket carrying the captured wire fixture, in fixture (arrival)
  * order. Both `TelemetryClient` (constructor-registered) and this test's own
  * `onMessage` listener (registered separately) observe every delivered
- * message off the SAME transport, so the frames genuinely flow through
+ * message off the same transport, so the frames genuinely flow through
  * `TelemetryClient` on their way to the `TimelineStore` ingestion this test
  * drives: not a bypass of it.
  */

@@ -75,7 +75,7 @@ export interface PanelStatusStore {
   getBreakdown(): readonly StatusBreakdownEntry[];
 }
 
-/** The worst contribution's OWN label, tie-broken by insertion order (the
+/** The worst contribution's own label, tie-broken by insertion order (the
  * earliest contribution at the worst rank wins, so the winning label cannot
  * flicker between two equal-severity contributors frame to frame). */
 function summarise(
@@ -171,16 +171,18 @@ export function createPanelStatusStore(): PanelStatusStore {
   };
 }
 
-/** Shared, stable empty breakdown for the no-store hook fallback (same identity
- * an empty store returns), so `useSyncExternalStore` has a referentially stable
- * snapshot with no provider in the tree. */
+/**
+ * The empty status breakdown, the same object every time. Used by the panel
+ * status hooks when no provider is mounted.
+ */
 export const NO_STATUS_BREAKDOWN = EMPTY_BREAKDOWN;
 
 const StatusPanelStore = createPanelStore(createPanelStatusStore);
 
 /**
  * Creates one {@link PanelStatusStore} and provides it for as long as it is
- * mounted, so the widget body and the tile's chrome share it. The dashboard
+ * mounted, so the widget body and the tile's chrome share it. Useful for
+ * showing the operator a tile's worst status in its header. The dashboard
  * mounts one per tile, so a widget does not mount this itself; it is for a
  * test or a harness that renders a {@link Panel} outside the dashboard.
  *
@@ -190,6 +192,8 @@ export const PanelStatusStoreProvider = StatusPanelStore.Provider;
 
 /**
  * The nearest {@link PanelStatusStore}, or `null` outside a dashboard tile.
+ * Useful for reading the states a tile reports. Used by the panel status
+ * hooks.
  * {@link Badge}'s `report` and {@link Panel} read it for you, so a widget
  * rarely calls this directly.
  *

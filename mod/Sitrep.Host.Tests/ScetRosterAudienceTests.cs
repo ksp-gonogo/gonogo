@@ -5,7 +5,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// When the SCET alarm roster goes on the wire, and in particular that an
-    /// EMPTY roster does.
+    /// empty roster does.
     /// </summary>
     public class ScetRosterAudienceTests
     {
@@ -61,7 +61,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// A change that happens while nobody is watching is not banked: the
-        /// publish that follows the next subscribe carries the CURRENT roster,
+        /// publish that follows the next subscribe carries the current roster,
         /// so there is nothing a dropped change could have cost.
         /// </summary>
         [Fact]

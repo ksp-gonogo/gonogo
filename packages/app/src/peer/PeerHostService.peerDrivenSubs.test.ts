@@ -156,7 +156,7 @@ const SOURCE = "demand-source";
 const DEMAND_KEY = "demand.only.key";
 
 /**
- * A source whose `schema()` deliberately does NOT list `DEMAND_KEY`, which is
+ * A source whose `schema()` deliberately does not list `DEMAND_KEY`, which is
  * what makes a station's request for it demand-driven rather than something the
  * broadcast wrapper already covers.
  */

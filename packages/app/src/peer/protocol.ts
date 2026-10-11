@@ -417,7 +417,7 @@ export type PeerMessage =
     }
   | {
       /**
-       * Carries a REFUSAL as well as a success, in the mod's own shape
+       * Carries a refusal as well as a success, in the mod's own shape
        * (`CommandResult` with `success: false`): the mod refuses on its response
        * channel, so the host does too, and the station's `TelemetryClient`
        * reaches `refused` down the same branch the host's did. Sent as an error
@@ -432,7 +432,7 @@ export type PeerMessage =
     }
   | {
       /**
-       * The host could not GET an answer: no live client, the dispatch machinery
+       * The host could not get an answer: no live client, the dispatch machinery
        * broke, the host's own transport gave up. Never a refusal, which is an
        * answer and travels above.
        */
@@ -475,7 +475,7 @@ export type PeerMessage =
     };
 
 /**
- * A frame off a peer data channel AS a protocol message, and `null` for
+ * A frame off a peer data channel as a protocol message, and `null` for
  * anything that does not carry a `type` to dispatch on.
  *
  * PeerJS hands `data` through as `unknown`: the channel is a pipe and the

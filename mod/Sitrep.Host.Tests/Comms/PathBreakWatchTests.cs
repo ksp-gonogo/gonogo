@@ -6,10 +6,10 @@ using Xunit;
 namespace Sitrep.Host.Tests.Comms
 {
     /// <summary>
-    /// The producer of the DROP EVENT: what turns a route change into a
+    /// The producer of the drop event: what turns a route change into a
     /// statement the delay ledger can act on.
     ///
-    /// <para>The case that matters most here is the one that must NOT fire. A
+    /// <para>The case that matters most here is the one that must not fire. A
     /// reroute and a destruction are the same diff over
     /// <see cref="CommsPath"/>, and treating every departed hop as a break would
     /// delete the in-flight tail on every ordinary route change, which is the
@@ -76,7 +76,7 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// THE CASE THAT MUST NOT FIRE. The same route change, but every relay
+        /// The case that must not fire. The same route change, but every relay
         /// that left is still alive and still carrying: KSP re-solves the
         /// cheapest path every tick, and a relay coming over the horizon changes
         /// the route without anything dying. The tail crossing the old route
@@ -126,7 +126,7 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// When several hops stop carrying at once, the DEEPEST is the break.
+        /// When several hops stop carrying at once, the deepest is the break.
         /// Light reaching the far one had to cross the near one first, so a
         /// sample survives exactly when it is past the furthest of them, and one
         /// drop at that position is the whole partition.
@@ -145,7 +145,7 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// The break's position is a light-time, so it carries the same
+        /// The break's position is a signal delay, so it carries the same
         /// light-speed scale the delay does. A route measured against one scale
         /// and a break against another would partition the tail at a point the
         /// samples were never timed to.
@@ -190,8 +190,8 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// THE WARP DOMAIN. A tick that advanced UT by more than the whole
-        /// route's light-time raises nothing: the death instant, the ledger
+        /// The warp domain. A tick that advanced UT by more than the whole
+        /// route's signal delay raises nothing: the death instant, the ledger
         /// write and every delivery share that one quantum, so there is no
         /// ordering between sent, crossed and broke left to read. Deliver,
         /// because we do not know it did not cross.
@@ -207,7 +207,7 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         /// <summary>
-        /// The same break is raised ONCE. A craft that stays dark for a thousand
+        /// The same break is raised once. A craft that stays dark for a thousand
         /// ticks would otherwise re-arm the same drop on every one of them, and
         /// each raise dooms a fresh span of whatever it has sent since.
         /// </summary>

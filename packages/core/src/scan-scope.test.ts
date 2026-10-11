@@ -53,7 +53,7 @@ describe("which scope a run is in", () => {
 
 describe("the changed set", () => {
   /**
-   * A throwaway repo with `base` as the branch point and HEAD one commit on,
+   * A throwaway repo with `base` as the branch point and head one commit on,
    * handed to `use` and removed in the same test rather than in a hook: an
    * `afterAll` that deletes a git directory is the classic cleanup-hook timeout
    * on this machine. An empty template keeps `.git` to a handful of files.

@@ -2,7 +2,7 @@
 /**
  * Golden-fixture generator for `mod/sitrep-kernel/src/version.ts`.
  *
- * Imports the REAL TS reference functions, runs them over a fixed set of
+ * Imports the real TS reference functions, runs them over a fixed set of
  * input cases, and writes the TS-computed results (never hand-authored) to
  * `mod/golden-fixtures/version.json`. Both the TS reference and the C# port
  * (`Sitrep.Core.Tests`) are checked against this same file: it is the

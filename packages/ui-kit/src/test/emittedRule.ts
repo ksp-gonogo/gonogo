@@ -5,7 +5,7 @@
  * jsdom cannot resolve a declaration whose value is a `var()`, and does not lay
  * an absolutely-positioned box out at all, so `getComputedStyle(el).border`,
  * `.top` and `.paddingTop` all answer with the initial value whatever the
- * stylesheet says. Every assertion in this package about WHICH EDGE something
+ * stylesheet says. Every assertion in this package about which edge something
  * is pinned to, or which token an inset reads, has to go through the emitted
  * rule instead.
  *

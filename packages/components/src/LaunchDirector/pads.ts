@@ -61,7 +61,7 @@ export function parseLaunchSites(raw: unknown): LaunchSiteEntry[] | null {
 }
 
 /**
- * The pads, with the ones holding a REPORTED vessel first, stable otherwise.
+ * The pads, with the ones holding a reported vessel first, stable otherwise.
  * An unreported pad keeps its place, so silence never outranks the stock pad
  * that answers.
  */

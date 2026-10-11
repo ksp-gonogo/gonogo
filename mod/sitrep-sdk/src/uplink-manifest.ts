@@ -305,7 +305,7 @@ export interface UplinkManifestInputs {
  * `version.generated.ts`.
  *
  * The generated constant is the right source everywhere else and is the wrong
- * one here: this module is resolved as SOURCE inside the workspace, where Node
+ * one here: this module is resolved as source inside the workspace, where Node
  * strips the types but does not redirect a `./x.js` specifier to `./x.ts`, so
  * importing it made every `uplink-tools docs` run fail with a module that
  * cannot be found. The package root is one level up from both `src/` and

@@ -436,7 +436,7 @@ describe("useContributions segment mode", () => {
   });
 
   /**
-   * An UNDOTTED slot id is not automatically a segment, and this is the case
+   * An undotted slot id is not automatically a segment, and this is the case
    * that says so. `plots` is one slot for the whole app: a contributor names it
    * and nothing else, and a widget hosting it declares it. While completion was
    * decided by "does the name contain a dot", the widget's read was silently

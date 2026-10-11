@@ -50,7 +50,7 @@ const PEER_UNAVAILABLE_PREFIX = "Could not connect to peer ";
  * The distinction is the whole diagnosis on the connect screen. Both ends
  * meet by name on a PeerJS broker that lives on the internet, so a station
  * on an offline LAN, a guest network with no outbound, or a captive portal
- * fails here and NOT at the host, and the advice ("check the code, check
+ * fails here and not at the host, and the advice ("check the code, check
  * the main screen") for the other case is wrong for this one.
  */
 const BROKER_ERROR_TYPES = new Set([
@@ -610,7 +610,7 @@ export class PeerClientService {
   /**
    * Ask the host to relay a single call through to whatever handle an
    * Uplink registered for `uplinkId` (via `registerUplinkHandle` on the
-   * host: see `@ksp-gonogo/core`). ONE generic send serves every Uplink
+   * host: see `@ksp-gonogo/core`). One generic send serves every Uplink
    * rather than a hardcoded method each; each Uplink's own client code owns
    * the shape of `method`/`args`/the resolved result.
    */
@@ -654,7 +654,7 @@ export class PeerClientService {
    * the connection dropping mid-request: same shape as `sendUplinkRelay`.
    *
    * 30s default timeout: a bundle download can be materially larger than a
-   * single RPC round-trip (the host fetches the WHOLE file before
+   * single RPC round-trip (the host fetches the whole file before
    * replying), so this gets a longer budget than `sendUplinkRelay`'s 15s.
    */
   sendBundleFetch(
@@ -732,7 +732,7 @@ export class PeerClientService {
 
   /**
    * Forward a `TelemetryClient.dispatch()` command-request to the host over
-   * PeerJS. `requestId` is the STATION's own `TelemetryClient`-minted id
+   * PeerJS. `requestId` is the station's own `TelemetryClient`-minted id
    * (the `cN` counter): reused as-is for the PeerJS correlation key rather
    * than minting a second one; see protocol.ts's `sitrep-command-request`
    * doc comment for why that's safe (the host always replies per-connection,
@@ -1216,12 +1216,12 @@ export class PeerClientService {
     }
   }
 
-  /** Latest relay TURN creds the host has broadcast (empty until one arrives). */
+  /** Latest relay turn creds the host has broadcast (empty until one arrives). */
   getRelayIceServers(): RTCIceServer[] {
     return this.relayIceServers;
   }
 
-  /** Notified whenever the host broadcasts a fresh set of relay TURN creds. */
+  /** Notified whenever the host broadcasts a fresh set of relay turn creds. */
   onRelayIceServersChange(cb: (servers: RTCIceServer[]) => void): () => void {
     return this.events.on("relayIceServers", cb);
   }
@@ -1236,7 +1236,7 @@ export class PeerClientService {
 
   /**
    * Synchronous snapshot of the current connection status, for a caller
-   * constructed AFTER the last `connStatus` transition (e.g. `PeerTransport`,
+   * constructed after the last `connStatus` transition (e.g. `PeerTransport`,
    * built once `StationScreen` has already reached its `connected` branch)
    * and that therefore can't rely on `onConnectionStatus` alone to learn the
    * current state.
@@ -1256,7 +1256,7 @@ export class PeerClientService {
    * Notified when the host's session token changes, i.e. the host process
    * restarted between two connections. Used to clear station-local state
    * that would otherwise re-broadcast stale values on reconnect (e.g. a
-   * GO vote that the operator left set before refreshing the main screen).
+   * `GO` vote that the operator left set before refreshing the main screen).
    * Does not fire on the first hello of a session, only when the token
    * actually changes.
    */

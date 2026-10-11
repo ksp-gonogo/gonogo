@@ -9,7 +9,7 @@ namespace Sitrep.Host
     /// this assembly) does the arg-parsing/result-shaping; it never touches
     /// KSP itself, only this interface. <c>Gonogo.KSP.KspVesselActuator</c> is
     /// the real implementation (Vessel.ActionGroups/FlightGlobals/TimeWarp/
-    /// the maneuver solver: see its own doc comment); a FAKE implementation
+    /// the maneuver solver: see its own doc comment); a fake implementation
     /// (<c>Sitrep.Host.Tests.FakeVesselActuator</c>) is what
     /// <see cref="VesselCommandProvider"/>'s unit tests exercise instead:
     /// exactly the same KSP-free/real-impl split
@@ -73,7 +73,7 @@ namespace Sitrep.Host
         /// <summary>
         /// <paramref name="lat"/>/<paramref name="lon"/> are required when
         /// <paramref name="kind"/> is <see cref="TargetKind.Position"/>, a
-        /// client-picked surface fix on the CURRENT active-vessel body (see
+        /// client-picked surface fix on the current active-vessel body (see
         /// <see cref="SetTargetArgs.Latitude"/>/<see cref="SetTargetArgs.Longitude"/>),
         /// unused for the <see cref="TargetKind.Vessel"/>/<see cref="TargetKind.Body"/>
         /// cases.

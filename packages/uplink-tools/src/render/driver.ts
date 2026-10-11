@@ -55,14 +55,14 @@ export type Engine = "chromium" | "firefox" | "webkit";
 /**
  * playwright, imported when an engine is actually launched.
  *
- * It is an OPTIONAL peer of this package and this module's own header promises
+ * It is an optional peer of this package and this module's own header promises
  * that "a missing one fails with a named message rather than a resolution error".
  * That promise was false while the import sat at module scope: Node threw
  * ERR_MODULE_NOT_FOUND out of `dist/render.js` before a line of ours ran, which
  * is what an author copying the template met when they ran `npm run docs`, naming
  * a package they had never heard of and a file inside somebody else's dist.
  *
- * Only the VALUES move. `Page` and `Locator` stay type-only imports, which erase,
+ * Only the values move. `Page` and `Locator` stay type-only imports, which erase,
  * so the signatures throughout this file keep their real types.
  */
 export async function engine(name: Engine) {
@@ -153,7 +153,7 @@ export interface RenderOptions {
   frames: boolean;
   /** Which Uplink to draw, when the client registers more than one. */
   uplinkId?: string;
-  /** Extra modules bundled into the page ON TOP of the package's own
+  /** Extra modules bundled into the page on top of the package's own
    *  `gonogo.renderWith`, so a one-off run can name a host the package does not
    *  declare. See `ScenePayload.host`. */
   withModules?: readonly string[];
@@ -183,7 +183,7 @@ export interface RenderedAsset {
   file: string;
   /** A still picture or a motion one. */
   kind: "still" | "motion";
-  /** What this render IS, comparable across machines. See `./shape`. */
+  /** What this render is, comparable across machines. See `./shape`. */
   shape: AssetShape;
 }
 
@@ -455,7 +455,7 @@ async function renderOneScene(
  * doc comment for the defect, which is that a transition still running at read
  * time puts a stopwatch inside the hash.
  *
- * Then it reads TWICE and requires the two to agree, which is the part that
+ * Then it reads twice and requires the two to agree, which is the part that
  * makes this checkable rather than hopeful. Settling covers the cause we found;
  * a second reading covers the ones we have not, because anything still moving
  * for any other reason (an animation with no end that touches an admissible
@@ -513,7 +513,7 @@ async function captureShape(tab: Page): Promise<ShapeCapture> {
  * author, at the moment they are looking at the widget, which of their own
  * sizes is unreadable.
  *
- * Taken BEFORE `growToFullContent`, which lifts the vertical crop so the
+ * Taken before `growToFullContent`, which lifts the vertical crop so the
  * picture shows the whole widget: an audit after that has measured a tile
  * nobody runs.
  */
@@ -568,7 +568,7 @@ function readScene(tab: Page): Promise<SceneReport> {
 }
 
 /**
- * Every string `_scene.paints` names is on screen and READABLE.
+ * Every string `_scene.paints` names is on screen and readable.
  *
  * Measured through the real layout, which is the whole point: a jsdom suite
  * computes none, so text squeezed to zero width by a neighbour that wrapped
@@ -576,7 +576,7 @@ function readScene(tab: Page): Promise<SceneReport> {
  *
  * Two ways a label loses. Zero width is the one that motivated the check: a
  * launch complex's own name rendered at nothing beside a detail sentence that
- * took the whole row. CLIPPING is the other, and it is the one a bounding box
+ * took the whole row. Clipping is the other, and it is the one a bounding box
  * alone cannot see, because `text-overflow: ellipsis` leaves a box of perfectly
  * respectable size showing "V...". Both are the same failure to a reader, so both
  * fail here.
@@ -651,7 +651,7 @@ async function assertEveryPaintVisible(
 /**
  * `_scene.before`, through real input events.
  *
- * A press goes through the accessible NAME rather than a selector, because that
+ * A press goes through the accessible name rather than a selector, because that
  * is the handle an operator has and a class name is not: a control renamed out
  * from under a scene should fail here rather than quietly photograph the state
  * before the press.
@@ -707,7 +707,7 @@ async function performActs(
 /**
  * The control an accessible name reaches, or null when nothing does.
  *
- * <p>A tab is tried after a button because a tab IS a press an operator makes
+ * <p>A tab is tried after a button because a tab is a press an operator makes
  * and `role="tab"` is not `role="button"`. Without it every augment hosted
  * inside a tabbed widget was unreachable: the host renders its first tab, the
  * scene can never open the one the augment is in, and the only fixture that
@@ -726,7 +726,7 @@ async function pressable(tab: Page, name: string): Promise<Locator | null> {
  * Put the pointer somewhere the widget is not.
  *
  * Past the tile's own bottom-right corner rather than at negative coordinates:
- * the browser clamps those back into the viewport, whose origin is INSIDE the
+ * the browser clamps those back into the viewport, whose origin is inside the
  * tile, so a hover-gated control asked to rest was hovered instead and both
  * halves of a resting/hovered pair came out identical.
  */
@@ -785,7 +785,7 @@ async function shoot(tab: Page, path: string): Promise<Buffer> {
 /**
  * Make the viewport tall enough to hold the whole widget in one go.
  *
- * An element screenshot taller than the viewport is captured by SCROLLING and
+ * An element screenshot taller than the viewport is captured by scrolling and
  * stitching, and scrolling the page also scrolls anything under it that still
  * has an overflow of its own. A `Panel` whose body did not quite grow to fit
  * therefore scrolled between two captures and the stitched image showed the
@@ -807,9 +807,9 @@ async function fitViewportToRoot(tab: Page): Promise<void> {
 const VIEWPORT_MARGIN_PX = 64;
 
 /**
- * Grow `#root` so the image shows the WHOLE widget, then let it settle.
+ * Grow `#root` so the image shows the whole widget, then let it settle.
  *
- * The mount already laid out at the real tile WIDTH, so responsive breakpoints
+ * The mount already laid out at the real tile width, so responsive breakpoints
  * stay honest; only the vertical crop is lifted. See `growRootToContent` for
  * which overflow counts.
  *
@@ -836,7 +836,7 @@ async function growToFullContent(tab: Page): Promise<void> {
  * renders of nothing, and a textual detector found one and missed the other,
  * because one empty state is a sentence and the other is punctuation.
  *
- * So the comparison is between the SAME scene fed and starved. If they match, the
+ * So the comparison is between the same scene fed and starved. If they match, the
  * render does not depend on the fixture, whatever the scenario is called. The only
  * escape is `_scene.expectsEmpty`, which takes a written reason, and which still
  * has to render something.
@@ -939,7 +939,7 @@ function guestLedger(inventory: UplinkInventory): GuestLedger {
  * render because that has to be the last mount: everything after it reads the
  * page as it was left.
  *
- * <p>The fed state is mounted once more as a CONTROL. Two renders of one state
+ * <p>The fed state is mounted once more as a control. Two renders of one state
  * that differ would make every comparison read as a change, so the check
  * proves it can see "the same" before it trusts "different".</p>
  */
@@ -1164,12 +1164,12 @@ function assertEveryEmitLanded(scene: Scene, report: UnreadTopics): void {
 }
 
 /**
- * A motion scene, frame by frame off the PINNED clock.
+ * A motion scene, frame by frame off the pinned clock.
  *
  * That is the whole difference between this and a screen recording: the clock is
  * an input, so the same fixture produces the same frames on any machine. A still
  * already answers "what does this look like"; motion earns its place only where
- * the thing the widget exists to show IS a change.
+ * the thing the widget exists to show is a change.
  */
 async function captureMotion(
   tab: Page,
@@ -1275,7 +1275,7 @@ function assertMotionMoved(scene: Scene, frames: readonly Buffer[]): void {
 /**
  * A picture stretched past 4:1 either way is impractical in a README: too
  * wide to read without a horizontal scroll, or too tall to see in one
- * screenful. A WARNING rather than a failure, since a genuinely thin strip (an
+ * screenful. A warning rather than a failure, since a genuinely thin strip (an
  * action-group row) or a genuinely tall one (a terminal) is still a real,
  * honest shape for that widget, just one worth a human glancing at before it
  * ships.

@@ -15,7 +15,7 @@ export const DEFAULT_KEYFRAME_INTERVAL_UT = 30;
  * learn its cadence (finding B item 2). A small rolling window rather than
  * an all-time average: a channel's real cadence can be assumed roughly
  * stationary over this many arrivals, and a small window lets a genuine
- * cadence CHANGE (not just a one-off blackout) actually take effect instead
+ * cadence change (not just a one-off blackout) actually take effect instead
  * of being diluted forever by history from before the change.
  */
 const LEARN_WINDOW = 5;
@@ -47,7 +47,7 @@ export interface HeartbeatTrackerOptions {
   marginMultiplier?: number;
   /** Extra flat UT-seconds of jitter allowance, added to the base margin regardless of confidence. Default 0. */
   jitterAllowanceUt?: number;
-  /** Multiplier applied to the WHOLE margin when `ViewClock.confidence()` is not `"locked"`, a degraded estimate widens the staleness window rather than false-flagging. Default 3. */
+  /** Multiplier applied to the whole margin when `ViewClock.confidence()` is not `"locked"`, a degraded estimate widens the staleness window rather than false-flagging. Default 3. */
   degradedMarginMultiplier?: number;
 }
 
@@ -90,7 +90,7 @@ export class HeartbeatTracker {
 
   /**
    * Record a confirmed arrival for `topic` at `deliveredAt` (UT). Call this
-   * for EVERY ingested sample on the topic, keyframe or change-emission
+   * for every ingested sample on the topic, keyframe or change-emission
    * alike, both count: a change emission also confirms the link is alive,
    * exactly like a keyframe would. Out-of-order arrivals never move the
    * tracked heartbeat backwards, and: since they're not a genuine forward
@@ -105,7 +105,7 @@ export class HeartbeatTracker {
   }
 
   /**
-   * Drop every tracked heartbeat AND every learned cadence. Call on an epoch
+   * Drop every tracked heartbeat and every learned cadence. Call on an epoch
    * bump (quickload rewind) so pre-reset heartbeat/cadence history can't
    * leak a wrong-epoch expectation into the resynchronizing period that
    * follows (mirrors `ClientTimeline`'s own per-epoch point drop, applied to
@@ -122,11 +122,11 @@ export class HeartbeatTracker {
    * authoritative:
    * 1. An explicit per-topic `keyframeIntervalUt` override: a caller that
    *    declared one always wins, learned or not.
-   * 2. The LEARNED interval (`medianOf` of `recentGapsUt`), once at least
+   * 2. The learned interval (`medianOf` of `recentGapsUt`), once at least
    *    `MIN_GAPS_TO_LEARN` genuine forward gaps have been observed for this
    *    topic: different channels keyframe at different cadences, and this
    *    is what replaces a one-size-fits-all default with the channel's own
-   *    OBSERVED cadence, without needing a server handshake.
+   *    observed cadence, without needing a server handshake.
    * 3. The configured/default fallback, for a topic with too little history
    *    to trust yet (cold start, or right after a `reset()`).
    */
@@ -183,10 +183,10 @@ export class HeartbeatTracker {
 
   /**
    * Has `topic` missed its expected next heartbeat as of `viewUt`? A topic
-   * with no recorded arrival at all is NOT reported overdue here, that's
+   * with no recorded arrival at all is not reported overdue here, that's
    * the `"resyncing"` case (no point at all), handled one layer up in
    * `TimelineStore.sampleStatus`; a heartbeat miss is specifically about a
-   * topic we HAVE heard from before going quiet.
+   * topic we have heard from before going quiet.
    *
    * `floorGapUt` is the least UT the mod leaves between two keyframes at the
    * current warp: its real-time keyframe floor times the warp rate. The

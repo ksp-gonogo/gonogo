@@ -37,7 +37,10 @@ interface LocalStorageStoreOptions<Stored> {
 }
 
 /**
- * A small typed wrapper around `localStorage`. Resilient to:
+ * A typed wrapper around one `localStorage` key that holds a JSON value, with
+ * defaults for when nothing valid is stored. Useful for keeping something the
+ * operator has set, such as a list of saved items, in the browser between
+ * visits. Survives:
  *   - missing key  → defaults
  *   - JSON parse error → defaults (and onCorruption called)
  *   - localStorage throwing on get/set (e.g. private mode quota) → swallowed

@@ -17,7 +17,7 @@ export type CrewReading = "available" | "unavailable" | "unread";
 export const CREW_GRID_MIN_ROWS = 14;
 
 /**
- * Availability and its reason read together. Unavailable with an EMPTY reason
+ * Availability and its reason read together. Unavailable with an empty reason
  * is the third state: `CrewStanding.Unknown` carries no reason on purpose, so
  * that is how "nothing could say" arrives.
  */

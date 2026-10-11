@@ -62,10 +62,11 @@ const ALIGN_ITEMS: Record<ClusterAlign, string> = {
 };
 
 /**
- * A horizontal flex row. By default its children are vertically centred and
- * spread to both edges (`space-between`), and it carries `min-width: 0` so a
- * truncating child truncates instead of overflowing. Children stay on one
- * line unless `wrap` is set.
+ * A horizontal flex row. Useful for laying out controls or readouts side by
+ * side. Used by the settings panels. By default its children are vertically
+ * centred and spread to both edges (`space-between`), and it carries
+ * `min-width: 0` so a truncating child truncates instead of overflowing.
+ * Children stay on one line unless `wrap` is set.
  *
  * @category Layout
  */

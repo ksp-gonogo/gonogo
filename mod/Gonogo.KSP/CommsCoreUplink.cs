@@ -12,11 +12,11 @@ using Sitrep.Host.Settings;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The bundled CORE comms registration (comms-uplink-design.md §2.2, §6):
-    /// it OWNS the exclusive <c>"comms"</c> capability (registering
+    /// The bundled core comms registration (comms-uplink-design.md §2.2, §6):
+    /// it owns the exclusive <c>"comms"</c> capability (registering
     /// <see cref="CommNetBackend"/> as the always-present vanilla factory),
     /// declares the shared always-present link channels and the core
-    /// <c>comms.delay</c> channel ONCE, and sources them from
+    /// <c>comms.delay</c> channel once, and sources them from
     /// whichever backend the election picked: resolved at capture time via
     /// <c>host.Kernel.Query&lt;ICommsBackend&gt;("comms")</c>. Neither CommNet
     /// nor RealAntennas declares these channels itself; that is the
@@ -27,15 +27,15 @@ namespace Gonogo.KSP
     /// backend's solved path is every hop's state at this instant, so each
     /// command centre is sent the path its own contact plan has instead
     /// (<see cref="CentrePath"/>). The solved path is still read here, for the
-    /// light-time the delay ledger is written from.</para>
+    /// signal delay the delay ledger is written from.</para>
     ///
     /// <para>The elected backend reads live KSP, so every read happens in the
     /// capture-on-main sampler (<see cref="CaptureOnMain"/>): the same F1 seam
     /// GonogoScansatUplink uses. The Courier-side handle
     /// (<see cref="HandleOnCourier"/>) only publishes the plain captured
-    /// payloads. <c>comms.delay</c> is computed by the CORE
+    /// payloads. <c>comms.delay</c> is computed by the core
     /// <see cref="SignalDelay"/> math from the captured hop geometry, gonogo's
-    /// own light-time computation, not a backend accessor (§3.1).</para>
+    /// own signal delay computation, not a backend accessor (§3.1).</para>
     ///
     /// <para><b>Health:</b> implements <see cref="ISitrepUplink.Health"/>:
     /// the second real implementation after
@@ -56,7 +56,7 @@ namespace Gonogo.KSP
         public const string DelayTopic = "comms.delay";
 
         /// <summary>
-        /// The elected backend's DECLARED occlusion geometry, resolved per body
+        /// The elected backend's declared occlusion geometry, resolved per body
         /// (see <see cref="Sitrep.Contract.CommsOcclusion"/>). Sourced the same
         /// way as every other shared channel here: from whichever backend the
         /// election picked, so a consumer asking "what radius of this body
@@ -66,23 +66,23 @@ namespace Gonogo.KSP
         public const string OcclusionTopic = "comms.occlusion";
 
         /// <summary>
-        /// The elected backend's DECLARED grading of the active vessel's link:
+        /// The elected backend's declared grading of the active vessel's link:
         /// one 0..1 rating with the rule that produced it named alongside (see
         /// <see cref="Sitrep.Contract.CommsDegrade"/>). Sourced the same way as
         /// every other shared channel here.
         ///
         /// <para>It exists so a consumer choosing a quality (a video feed's
         /// bitrate, a voice channel's noise) has one number that means the same
-        /// KIND of thing on every install. <c>comms.signal</c> cannot
+        /// kind of thing on every install. <c>comms.signal</c> cannot
         /// serve: it carries KSP's signal strength under stock and a rate-ladder
         /// position under RealAntennas, so the <c>1 - strength</c> a
         /// consumer would otherwise write is a different curve per save with
         /// nothing on the wire saying so.</para>
         ///
-        /// <para>DELAYED, because it is an
-        /// observation of the CRAFT's link rather than a fact the command centre
+        /// <para>Delayed, because it is an
+        /// observation of the craft's link rather than a fact the command centre
         /// knows independently: a degradation should reach the operator one
-        /// light-time after it happened, alongside the telemetry that suffered
+        /// signal delay after it happened, alongside the telemetry that suffered
         /// it. Freeze-gated on the ordinary terms; the disconnect edge reaches a
         /// client on <see cref="LinkTopic"/>, which is exempt from that freeze
         /// precisely so it can report it.</para>
@@ -96,13 +96,13 @@ namespace Gonogo.KSP
         /// which this literal must match, and <see cref="Sitrep.Contract.CommsLink"/>).
         /// It carries the same link up/down the <c>comms.connectivity</c>
         /// observation channel does, but Delayed + freeze-exempt so the
-        /// DISCONNECT EDGE escapes the reveal-gate freeze and reaches the client
-        /// (revealed at the last-known light-time horizon), where a plain
+        /// disconnect edge escapes the reveal-gate freeze and reaches the client
+        /// (revealed at the last-known signal delay horizon), where a plain
         /// Delayed channel would freeze at last-known and the client's
-        /// "NO SIGNAL" could never fire. Sourced from the SAME
+        /// "NO SIGNAL" could never fire. Sourced from the same
         /// <see cref="CaptureOnMain"/> connectivity read that drives the freeze
         /// gate, so the client-visible link state and the gate can never
-        /// disagree. This is the connectivity channel clients SHOULD read
+        /// disagree. This is the connectivity channel clients should read
         /// (via the <c>comm.connected</c> mapped key / <c>comms.link.connected</c>).
         /// </summary>
         public const string LinkTopic = "comms.link";
@@ -114,7 +114,7 @@ namespace Gonogo.KSP
         /// topics. Comms-owned for the same reason those are: it is a model's
         /// reckoning, not a fact stock KSP hands you.
         ///
-        /// <para>A STATIC topic on the main node, unlike its per-vessel siblings,
+        /// <para>A static topic on the main node, unlike its per-vessel siblings,
         /// which is the entire point of it: a consumer that has to work the fleet
         /// out for itself cannot name a per-guid topic. See
         /// <see cref="Sitrep.Contract.FleetSilence"/>'s own doc comment for what
@@ -313,10 +313,10 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// The signal-delay config in force, so every delay reader (the reveal
-        /// gate, comms.delay, fleet light-time, the command-centre pass and the
+        /// gate, comms.delay, fleet signal delay, the command-centre pass and the
         /// currency deadline) uses one answer.
         ///
-        /// <para>EFFECTIVE, not authored: every delay modifier in force is
+        /// <para>Effective, not authored: every delay modifier in force is
         /// folded in, the settings' own switch and light-speed scale among
         /// them, and a save that models no comms network at all cuts delay
         /// outright. Deriving both here is what makes every one of those
@@ -324,7 +324,7 @@ namespace Gonogo.KSP
         /// whose money still arrives late. See <see cref="DelayModifiers"/> and
         /// <see cref="CommsModelPolicy"/>.</para>
         ///
-        /// <para>The no-comms-model cut is applied SECOND so it carries its
+        /// <para>The no-comms-model cut is applied second so it carries its
         /// reason whatever the modifiers say (see
         /// <see cref="SignalDelayConfig.CutForNoCommsModel"/>).</para>
         /// </summary>
@@ -379,7 +379,7 @@ namespace Gonogo.KSP
         /// A report of the active craft's link itself: whether the radio is
         /// answering, how strong it is, what it may command. A centre learns
         /// whether a radio answers only when its signal arrives, so these are
-        /// DELAYED on the craft's node, and the engine exempts them from the
+        /// delayed on the craft's node, and the engine exempts them from the
         /// freeze by topic, as it does <c>comms.link</c>, because they are how
         /// the blackout is reported.
         /// </summary>
@@ -442,11 +442,11 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Two-pass fix (see <see cref="IUplinkCapabilityDeclarer"/>): the
-        /// exclusive <c>"comms"</c> capability is declared HERE, in the pre-
-        /// Register discovery pass, NOT in <see cref="Register"/>. That
-        /// guarantees the capability exists before ANY uplink's
+        /// exclusive <c>"comms"</c> capability is declared here, in the pre-
+        /// Register discovery pass, not in <see cref="Register"/>. That
+        /// guarantees the capability exists before any uplink's
         /// <see cref="Register"/> runs, so RealAntennas' provider registration
-        /// (a SEPARATE uplink, in its own <see cref="Register"/>) can never race
+        /// (a separate uplink, in its own <see cref="Register"/>) can never race
         /// ahead of this declaration and throw, regardless of assembly-scan
         /// discovery order. CommNet is the capability's always-present vanilla
         /// fallback; the engine calls <c>Kernel.Resolve()</c> once every uplink
@@ -552,7 +552,7 @@ namespace Gonogo.KSP
         /// <see cref="CaptureOnMain"/>/<see cref="ComputeDelayOnMain"/> run.
         /// Returns null pre-election (no backend), which the gate treats as "no
         /// authority yet" and leaves the last-known state untouched (default
-        /// CONNECTED): never worse than today's LAN behaviour.
+        /// connected): never worse than today's LAN behaviour.
         /// </summary>
         internal bool? ComputeConnectedOnMain(KspSnapshot? snapshot)
         {
@@ -602,7 +602,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// MAIN-THREAD delay computation for the engine's reveal gate (see
         /// <see cref="IUplinkHost.SetSignalDelaySource"/>): the same elected-
-        /// backend resolution + core <see cref="SignalDelay"/> light-time math
+        /// backend resolution + core <see cref="SignalDelay"/> signal delay math
         /// <see cref="CaptureOnMain"/> performs for the <c>comms.delay</c>
         /// channel, factored out so the gate and the channel share one
         /// computation. Returns null pre-election (no backend), which the gate
@@ -654,7 +654,7 @@ namespace Gonogo.KSP
         /// MAIN-THREAD break observation for the delay ledger (see
         /// <see cref="IUplinkHost.SetPathBreakSource"/>): the elected backend's
         /// route for each watched craft, put to <see cref="PathBreakWatchers"/>
-        /// so the per-hop light-times that <see cref="SignalDelay.Compute"/> sums
+        /// so the per-hop signal delays that <see cref="SignalDelay.Compute"/> sums
         /// away are seen by something before they are lost.
         ///
         /// <para>The craft on screen is always watched. Every other craft is
@@ -823,7 +823,7 @@ namespace Gonogo.KSP
         /// MAIN-THREAD: the elected backend's declared occlusion model applied to
         /// the snapshot's body list. Rebuilding is cheap (a couple of dozen small
         /// objects), so it happens every tick and the result is compared to the
-        /// last one; an unchanged declaration keeps the PREVIOUS instance, which
+        /// last one; an unchanged declaration keeps the previous instance, which
         /// is what makes the emitter's change-gate suppress it. See
         /// <see cref="_lastOcclusion"/>.
         /// </summary>
@@ -831,13 +831,13 @@ namespace Gonogo.KSP
         /// MAIN-THREAD: the elected backend's grading of the live link, as the
         /// payload its channel carries.
         ///
-        /// <para>Guarded on its OWN, rather than under the whole capture's
+        /// <para>Guarded on its own, rather than under the whole capture's
         /// try/catch, because the two failures deserve different outcomes. The
         /// capture-wide guard drops the entire tick, which is right for a read
         /// that says whether there is a link at all; a grading that throws should
         /// cost the grading and nothing else, and dropping connectivity, path and
         /// delay because a third-party backend's quality rule failed would let an
-        /// optional readout freeze the board. It comes back UNRATED, which is the
+        /// optional readout freeze the board. It comes back unrated, which is the
         /// contract's own way of saying nobody graded this.</para>
         /// </summary>
         /// <summary>
@@ -900,7 +900,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The MANDATORY healthcheck (see <see cref="ISitrepUplink.Health"/>):
+        /// The mandatory healthcheck (see <see cref="ISitrepUplink.Health"/>):
         /// polled on the Courier thread every <c>system.uplinks</c> sample.
         /// Reuses <see cref="CommsElection.Elected"/>, the exact same pure
         /// <see cref="Kernel"/> lookup <see cref="ComputeConnectedOnMain"/> and

@@ -6,7 +6,7 @@ using Sitrep.Host;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The <c>parts.power</c> capture surface: added THIS session so a live
+    /// The <c>parts.power</c> capture surface: added this session so a live
     /// recording carries power production (solar/battery/fuel-cell/
     /// alternator) alongside <c>career.*</c>/<c>science.*</c>. Mirrors
     /// <see cref="CareerUplink"/>'s retrofit shape; the actual mapping

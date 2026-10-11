@@ -6,7 +6,7 @@
  * Output: `<dir>/<tag>.png`, the one sheet.
  *
  * The tag and the output directory are arguments rather than constants because
- * the point of the script is a PAIR: the same sheets, the same viewport and the
+ * the point of the script is a pair: the same sheets, the same viewport and the
  * same scale factor, run once on each side of a change to `LineGraph`. A before
  * taken any other way is a picture of something else.
  */

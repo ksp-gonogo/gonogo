@@ -18,7 +18,7 @@ namespace Sitrep.Host.Tests
     /// <c>Sitrep.Contract</c> payload types (<see cref="ServoEntry"/>,
     /// <see cref="RoboticsAvailability"/>, <see cref="DeployedEntry"/>) mirror,
     /// field name for field name, camelCase wire key for camelCase wire key,
-    /// type for type, the EXACT serialized shape
+    /// type for type, the exact serialized shape
     /// <see cref="BreakingGroundViewProvider"/> already emits. This is a
     /// typing change only: the wire is written by <c>JsonWriter</c> walking
     /// the provider's dictionary, not by serializing these POCOs, so if the
@@ -28,7 +28,7 @@ namespace Sitrep.Host.Tests
     /// <para>Split out of <c>PartsContractShapeTests</c> (<see cref="ServoEntry"/>/
     /// <see cref="RoboticsAvailability"/>) and <c>ScienceContractShapeTests</c>
     /// (<see cref="DeployedEntry"/>) alongside the Breaking Ground uplink
-    /// extraction: all three are BARE ARRAYS (or, for
+    /// extraction: all three are bare arrays (or, for
     /// <see cref="RoboticsAvailability"/>, a single wrapper object), tagged
     /// via <c>[SitrepTopic]</c> as documented on each type.</para>
     /// </summary>

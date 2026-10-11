@@ -1,14 +1,14 @@
 /**
- * Widget DOM mirror: FuelStatus. Asserts the REAL ΔV totals, resource
+ * Widget DOM mirror: FuelStatus. Asserts the real ΔV totals, resource
  * bars, and per-stage stack on the host, and that the panel chrome mirrors
  * on the station.
  *
- * Runs against the TOPOLOGY fixture variant (`sitrep-stream-server-
- * topology.mjs`, a SEPARATE server/port from the shared snapshot; see
+ * Runs against the topology fixture variant (`sitrep-stream-server-
+ * topology.mjs`, a separate server/port from the shared snapshot; see
  * `bootstrapPair`'s `sitrepPort` option), which carries `dv.stages` /
  * `dv.summary` / `vessel.structure` on top of the shared snapshot. The
  * shared, deliberately dv-less fixture (`sitrep-stream-server.mjs`) is
- * UNTOUCHED: no other spec is affected.
+ * untouched: no other spec is affected.
  *
  * Fixture craft (topology server): the same "Mun Tester" vessel, currently
  * on its single propulsive stage (stage 1 of 2, stage 0 is the final
@@ -23,11 +23,11 @@
  *
  * Widget stays at 8×14 (its own defaultSize, same footprint the old
  * title-only spec already used): wide/tall enough for the totals row,
- * resource list, AND stage stack to all render.
+ * resource list, and stage stack to all render.
  *
  * Station-side scope: only the "FUEL · ΔV" panel title (static chrome) is
  * checked on the station: real values come from live Sitrep stream data,
- * and only the MAIN screen mounts `SitrepTelemetryProvider` today (station
+ * and only the main screen mounts `SitrepTelemetryProvider` today (station
  * stream forwarding over PeerJS is a documented pending gap). Same pattern
  * as crew-status.spec.ts.
  */

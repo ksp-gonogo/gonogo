@@ -15,9 +15,9 @@ import { type ConicOrbitInput, keplerAdmissibility } from "./kepler-reckoning";
  * The four conditions `keplerAdmissibility` shipped with all ask where the
  * elements stop describing the craft: off rails, past the patch, past the
  * producer's reach, into the air. None of them asks whether a two-body advance
- * describes it in the FIRST place, which under an n-body backend it does not:
+ * describes it in the first place, which under an n-body backend it does not:
  * whichever provider wins the `propagation` capability stamps every element set
- * it publishes with what KIND of answer it is, and an integrating one publishes
+ * it publishes with what kind of answer it is, and an integrating one publishes
  * an osculating snapshot rather than a path. Advancing one is not a degraded
  * conic, it is a different physics.
  *
@@ -31,8 +31,8 @@ import { type ConicOrbitInput, keplerAdmissibility } from "./kepler-reckoning";
  * wrote down the rule these pin: a consumer "deciding whether a conic is the
  * right renderer must read [Unspecified] as 'unknown' rather than 'conic'".
  *
- * The gate asks only about an UNBOUNDED reach, and the last two cases below are
- * why. An `Until` bound is a MEASUREMENT taken from the integrating provider
+ * The gate asks only about an unbounded reach, and the last two cases below are
+ * why. An `Until` bound is a measurement taken from the integrating provider
  * itself (`IntegratedHorizon.UntilUt` bisects its `CanPropagate`), so inside one
  * the provider has vouched for a two-body extrapolation per craft and the reach
  * gate enforces it. What nobody vouches for is a conic carried forever on

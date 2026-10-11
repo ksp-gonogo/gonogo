@@ -525,7 +525,7 @@ describe("useCommand inFlight", () => {
 /**
  * The comms-loss drop, exactly as the engine performs it: a command dispatched
  * while the subject's link is down is dropped at `ChannelEngine`'s
- * `if (!SubjectConnected(NodeId))` gate, which sits BEFORE the pending-uplink
+ * `if (!SubjectConnected(NodeId))` gate, which sits before the pending-uplink
  * bookkeeping and before `Courier.DispatchCommand`. So no queue entry is ever
  * minted, no `command-response` and no `error` frame ever comes back, and the
  * only thing that ever settles the dispatch is the client's own loss timer.
@@ -756,7 +756,7 @@ describe("useCommand founds", () => {
 
 /**
  * The third way a dispatch ends without an answer, and the only one that is
- * GOOD news.
+ * good news.
  *
  * A command pressed while the link is down is held by the transport for the
  * next open. If the link comes back it goes, late (that is the `founds` story
@@ -1599,7 +1599,7 @@ describe("useCommand gate", () => {
    * A press with nothing mounted must not resolve `send()` with `undefined`:
    * that would make every control that awaits it settle back at rest and
    * render exactly as it does for a command that worked. Nothing was
-   * dispatched, so nothing decided: that is a LOSS, which is what the
+   * dispatched, so nothing decided: that is a loss, which is what the
    * controls are already built to draw.
    */
   it("rejects a dispatch made with no provider mounted rather than resolving it", async () => {
@@ -1617,7 +1617,7 @@ describe("useCommand gate", () => {
 });
 
 /**
- * `comms.delay.oneWaySeconds` carries a null that is NOT a zero: the contract
+ * `comms.delay.oneWaySeconds` carries a null that is not a zero: the contract
  * (`Sitrep.Contract/Comms.cs:CommsDelay`) splits "no measurable path home" from
  * "the delay feature is off and the craft is connected" by that value alone,
  * and `delay-authority.ts` names zero the one direction the read must never

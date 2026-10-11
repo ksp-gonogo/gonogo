@@ -11,7 +11,7 @@ namespace Gonogo.DevTools
     /// Space Center from the main menu, so a headless automated test run can
     /// reach a live game scene without a human clicking "Resume Saved Game".
     ///
-    /// This is <b>NOT</b> production behaviour and MUST never affect a normal
+    /// This is <b>not</b> production behaviour and must never affect a normal
     /// player install. It is gated entirely on a config file
     /// (<c>PluginData/dev-autoload.cfg</c>, next to this assembly) that is
     /// <b>never shipped</b> in any CKAN/SpaceDock/GameData release - the test
@@ -19,9 +19,9 @@ namespace Gonogo.DevTools
     /// production default) this addon does nothing at all.
     ///
     /// Hard safety rule: the save named "Unnamed" (KSP's default sandbox scratch
-    /// save) is off limits and can NEVER be auto-loaded, regardless of config.
+    /// save) is off limits and can never be auto-loaded, regardless of config.
     ///
-    /// An optional <c>file=&lt;name&gt;</c> line picks WHICH .sfs inside the save
+    /// An optional <c>file=&lt;name&gt;</c> line picks which .sfs inside the save
     /// folder to load; absent, it is <c>persistent</c>, which is what this addon
     /// always loaded before. A quicksave is just another .sfs beside the
     /// autosave, so a cfg of
@@ -33,15 +33,15 @@ namespace Gonogo.DevTools
     /// loads <c>saves/mod testing/quicksave #3.sfs</c>. The value is
     /// everything after the first <c>=</c>, so a name with spaces needs no
     /// quoting; it must still name a sibling file (no separators, no <c>..</c>).
-    /// The post-load re-persist writes back to that SAME file, so loading a
+    /// The post-load re-persist writes back to that same file, so loading a
     /// quicksave never clobbers the save's <c>persistent.sfs</c>.
     ///
     /// A further optional cfg line, <c>newsandbox</c>, covers the case where the
     /// requested save doesn't exist on disk yet (e.g. the first capture run on a
-    /// fresh install, with no pre-built save): instead of aborting, a brand-new SANDBOX
+    /// fresh install, with no pre-built save): instead of aborting, a brand-new sandbox
     /// game is created under that save name (via <c>GamePersistence.CreateNewGame</c>,
     /// same call the stock "Start New Game" flow uses) and loaded straight to the
-    /// SPACE CENTER, never FLIGHT - a fresh sandbox has no protoVessels to
+    /// space center, never flight - a fresh sandbox has no protoVessels to
     /// restore into flight. Absent -> unchanged behaviour: a missing save aborts.
     ///
     /// Every decision point below logs with a <c>[GonogoDevAutoLoad]</c> prefix
@@ -59,9 +59,9 @@ namespace Gonogo.DevTools
     /// prior silent failure - polling for up to <see cref="CfgPollTimeoutSeconds"/>
     /// closes that window while still logging loudly if the file never shows up.
     ///
-    /// <para><b>RECOMMENDED WORKFLOW (also the crash-safe one):</b> launch KSP
-    /// with NO <c>dev-autoload.cfg</c> present, wait for the main menu to
-    /// visibly come up, THEN write the cfg over SSH. Do NOT stage the cfg
+    /// <para><b>recommended workflow (also the crash-safe one):</b> launch KSP
+    /// with no <c>dev-autoload.cfg</c> present, wait for the main menu to
+    /// visibly come up, then write the cfg over SSH. Do not stage the cfg
     /// before/during launch - see <see cref="MenuSettleDelaySeconds"/>'s doc
     /// comment for why an already-present cfg races MainMenu's own
     /// not-yet-finished setup, which crashes the game outright rather than
@@ -95,10 +95,10 @@ namespace Gonogo.DevTools
         private const float CfgPollTimeoutSeconds = 20f;
 
         /// <summary>
-        /// CRASH FIX: MainMenu is not done initialising the instant this
+        /// Crash fix: MainMenu is not done initialising the instant this
         /// MonoBehaviour's <see cref="Start"/> fires: its own UI/dialog
         /// setup continues over the following seconds. If the request cfg is
-        /// ALREADY sitting on disk at that instant (staged over SSH before
+        /// already sitting on disk at that instant (staged over SSH before
         /// KSP was even launched, or left over from a prior run that never
         /// got cleaned up), then <see cref="CfgPollIntervalSeconds"/>'s poll
         /// loop does not wait at all: it never waits when the file already
@@ -107,12 +107,12 @@ namespace Gonogo.DevTools
         /// MainMenu's own unfinished setup, and that crashes KSP outright
         /// rather than failing to load.
         ///
-        /// This unconditional delay runs EVERY time, before anything else in
+        /// This unconditional delay runs every time, before anything else in
         /// <see cref="AutoLoadRoutine"/>: including before the cfg-presence
         /// poll: regardless of whether the request file is already present.
-        /// It is what makes the addon safe against a pre-staged request AND
-        /// is what the intended workflow relies on: launch KSP with NO
-        /// request file present, wait for MainMenu to visibly come up, THEN
+        /// It is what makes the addon safe against a pre-staged request and
+        /// is what the intended workflow relies on: launch KSP with no
+        /// request file present, wait for MainMenu to visibly come up, then
         /// write <c>dev-autoload.cfg</c> over SSH. This addon has already
         /// been polling since boot, so it picks the fresh file up within
         /// <see cref="CfgPollIntervalSeconds"/> of the write: but even a
@@ -122,10 +122,10 @@ namespace Gonogo.DevTools
         private const float MenuSettleDelaySeconds = 3f;
 
         /// <summary>
-        /// Poll cadence/timeout for confirming the target scene (FLIGHT or
-        /// SPACE CENTER) has actually finished loading after <see cref="LoadSave"/>
+        /// Poll cadence/timeout for confirming the target scene (flight or
+        /// space center) has actually finished loading after <see cref="LoadSave"/>
         /// triggers it. <c>HighLogic.LoadScene</c>/<c>FlightDriver.StartAndFocusVessel</c>
-        /// only queue the transition - Unity's scene load, and for FLIGHT
+        /// only queue the transition - Unity's scene load, and for flight
         /// specifically FlightDriver's own internal vessel-restore coroutine,
         /// both run asynchronously over the following frames. See the doc
         /// comment on <see cref="WaitUntilFlightReady"/> for why a queued
@@ -427,7 +427,7 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// Waits for the scene <see cref="LoadSave"/> just triggered to
-        /// actually finish loading, dispatching to the FLIGHT- or SPACE
+        /// actually finish loading, dispatching to the FLIGHT- or space
         /// CENTER-specific wait depending on which path <see cref="LoadSave"/>
         /// actually took (its <c>enteredFlight</c> out-param, not the
         /// requested <c>restoreFlight</c> cfg flag - a save with zero
@@ -447,7 +447,7 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Confirms the FLIGHT scene triggered by <c>FlightDriver.StartAndFocusVessel</c>
+        /// Confirms the flight scene triggered by <c>FlightDriver.StartAndFocusVessel</c>
         /// has actually finished restoring a vessel, rather than assuming it
         /// the instant the call returned.
         ///
@@ -506,7 +506,7 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Confirms the SPACE CENTER scene triggered (indirectly, via
+        /// Confirms the space center scene triggered (indirectly, via
         /// <c>Game.Start()</c>) by the non-restoreFlight path has actually
         /// finished loading. Lighter-weight than <see cref="WaitUntilFlightReady"/>
         /// since Space Center doesn't restore a vessel, but still avoids
@@ -544,16 +544,16 @@ namespace Gonogo.DevTools
         ///   HighLogic.SaveFolder = save;
         ///   HighLogic.CurrentGame.Start();
         /// </code>
-        /// The critical fix over the first attempt: the loaded game MUST be
+        /// The critical fix over the first attempt: the loaded game must be
         /// assigned to <c>HighLogic.CurrentGame</c> before <c>Start()</c> is
         /// called - <c>Game.Start()</c> dereferences it internally, which is
         /// why an earlier direct <c>game.Start()</c> threw a NullReference.
         ///
         /// Kept as a plain (non-coroutine) method so the whole sequence is
-        /// covered by a single try/catch: any exception is logged WITH its
+        /// covered by a single try/catch: any exception is logged with its
         /// stack trace and swallowed so nothing ever throws out of the addon.
         ///
-        /// Only QUEUES the scene transition (via <c>FlightDriver.StartAndFocusVessel</c>
+        /// Only queues the scene transition (via <c>FlightDriver.StartAndFocusVessel</c>
         /// or <c>Game.Start()</c>, both of which just call <c>HighLogic.LoadScene</c>
         /// under the hood, decompiled) - it does not wait for the new scene
         /// to actually finish loading. The caller is responsible for that;
@@ -563,7 +563,7 @@ namespace Gonogo.DevTools
         /// transition was triggered (bad/incompatible save, exception) - the
         /// caller should not wait for scene readiness in that case, there is
         /// nothing to wait for. On <c>true</c>, <paramref name="enteredFlight"/>
-        /// reports which scene was ACTUALLY queued, which is not always what
+        /// reports which scene was actually queued, which is not always what
         /// was requested: a save with zero protoVessels falls back to Space
         /// Center even when <paramref name="restoreFlight"/> was true.
         /// </summary>
@@ -651,13 +651,13 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
-        /// Creates a brand-new SANDBOX game and queues a load straight to the
-        /// SPACE CENTER, for the case where the requested save name doesn't
+        /// Creates a brand-new sandbox game and queues a load straight to the
+        /// space center, for the case where the requested save name doesn't
         /// exist on disk yet (gated on the <c>newsandbox</c> cfg line - see
         /// <see cref="AutoLoadRoutine"/>). Verified against the decompiled
         /// <c>GamePersistence.CreateNewGame</c>: it builds the save directory,
         /// constructs the <c>Game</c> object (mode/parameters/scenario modules)
-        /// and persists it to disk, but does NOT assign
+        /// and persists it to disk, but does not assign
         /// <c>HighLogic.CurrentGame</c> or call <c>Start()</c> - same as
         /// <c>LoadGameCfg</c> in <see cref="LoadSave"/>, both are on the caller.
         ///
@@ -668,7 +668,7 @@ namespace Gonogo.DevTools
         /// same set a player gets from "Start New Game" without touching the
         /// difficulty screen.
         ///
-        /// Always targets SPACE CENTER, never FLIGHT - a freshly created
+        /// Always targets space center, never flight - a freshly created
         /// sandbox has no protoVessels to restore into flight, so
         /// <paramref name="enteredFlight"/> is always <c>false</c> on success.
         /// </summary>

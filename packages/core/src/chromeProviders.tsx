@@ -10,7 +10,7 @@ import type { ComponentType, ReactNode } from "react";
 export interface ChromeProviderDefinition<Provided = unknown> {
   /** Stable id. */
   id: string;
-  /** Called during the NORMAL render tree, i.e. wherever the value this
+  /** Called during the normal render tree, i.e. wherever the value this
    *  provider re-supplies is already ambiently available (e.g. inside
    *  MainScreen's <CpuRegistryProvider> subtree). Must be an actual hook
    *  call site: see useChromeWrap's safety note below. */

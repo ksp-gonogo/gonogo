@@ -8,7 +8,7 @@ namespace Gonogo.KSP
     /// <see cref="CommNetBackend.ReachModel"/> hands back.
     ///
     /// <para>Stock gates a link on antenna power against a range curve, and it
-    /// does so over up to THREE power pairings rather than one. Read off the
+    /// does so over up to three power pairings rather than one. Read off the
     /// shipped <c>Assembly-CSharp</c>, <c>CommNetwork.SetNodeConnection</c>
     /// requires each end to have some non-zero power at all, then asks
     /// <c>IRangeModel.InRange</c> three times: relay-to-relay, then, only if
@@ -24,7 +24,7 @@ namespace Gonogo.KSP
     /// largest of three ranges for a pair stock refuses outright.</para>
     ///
     /// <para><b><c>distanceOffset</c> is charged against the maximum.</b> Stock
-    /// adds both nodes' offsets to the separation BEFORE the range test
+    /// adds both nodes' offsets to the separation before the range test
     /// (<c>num2 = sqrt(d^2) + a.distanceOffset + b.distanceOffset</c>), so a
     /// pair with offsets reaches that much less far in the separation a
     /// predictor measures. Subtracting them here keeps this model in the
@@ -53,7 +53,7 @@ namespace Gonogo.KSP
         /// between reporting the rule and reporting a guess at it.</para>
         ///
         /// <para>A pair stock would refuse outright, one end with no power at
-        /// all or two transmit-only ends, yields a maximum of ZERO rather than
+        /// all or two transmit-only ends, yields a maximum of zero rather than
         /// an absent one: nothing reaches is an answer, and it must not be
         /// readable as "no rule declared".</para>
         /// </summary>

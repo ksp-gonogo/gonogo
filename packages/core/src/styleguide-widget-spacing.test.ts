@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 /**
  * Design-system bans on how spacing is written, across every file git tracks.
  *
- * The SEMANTIC SPACING block in `packages/theme/src/tokens.css` names every
+ * The semantic spacing block in `packages/theme/src/tokens.css` names every
  * job a space does over a ladder of raw rungs, and the rest of the repo reads
  * the names. Three spellings route around that and each is banned outright:
  *
@@ -271,7 +271,7 @@ describe("design-system: spacing is written as a job, everywhere", () => {
 
 /**
  * A scan that has stopped matching reports zero and zero reads as a clean tree,
- * so every run plants each spelling and fails as BLIND rather than green. The
+ * so every run plants each spelling and fails as `BLIND` rather than green. The
  * other half is the one a matcher usually gets wrong: a pattern loose enough to
  * find every offence also finds things that are not offences, and a gate that
  * fires on `justify="between"` gets loosened until it fires on nothing.

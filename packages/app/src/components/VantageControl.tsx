@@ -42,7 +42,7 @@ interface ActiveCentre {
 }
 
 /**
- * Which active roster entry is the HOME command centre, the one holding the
+ * Which active roster entry is the home command centre, the one holding the
  * career ledger, read off the flag the mod publishes. Never inferred from an id
  * or a position in the list. A ground station standing in for a home the mod
  * could not identify carries the same flag, and `HomeFallbackNotice` is what
@@ -83,13 +83,13 @@ export function useActiveCentres(): {
  * so two stations at two vantages would need two differently-delayed streams
  * down one socket: per-station vantage is not implementable without a wire
  * change, quite apart from being unwanted. But a station operator reading
- * delayed data still has to know WHICH centre it is delayed from or they cannot
+ * delayed data still has to know which centre it is delayed from or they cannot
  * interpret any of it, so the answer stays on screen; only the lever goes.
  *
- * A PILOT reads it too, for a different reason. `PilotVantage` pins that seat
+ * A pilot reads it too, for a different reason. `PilotVantage` pins that seat
  * to the craft the human is aboard, so the lever would be a control that
  * fights its own binding: pick anything else and the next frame puts it back.
- * The seat is defined by where the operator IS, and that is not theirs to
+ * The seat is defined by where the operator is, and that is not theirs to
  * choose. Nothing is lost that the mod would have allowed either, since a
  * craft the pin cannot reach is one `set-vantage` refuses anyway.
  */
@@ -148,7 +148,7 @@ function HomeBadge() {
 }
 
 /**
- * The main screen's chooser: each active centre's own light-time
+ * The main screen's chooser: each active centre's own signal delay
  * defines the delay on every downlink and command, so switching one re-points
  * the whole view (via `client.setVantage`, which re-subscribes every active
  * topic at the new vantage's offset).

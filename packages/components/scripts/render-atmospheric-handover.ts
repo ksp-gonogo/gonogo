@@ -16,19 +16,19 @@
  *
  * So the attribution is pinned by `handover-basis.test.tsx`, which asks the
  * real store which basis carried each fixture, and what these PNGs are for is
- * the OPERATOR'S view of the same seven frames: whether the board keeps
+ * the operator's view of the same seven frames: whether the board keeps
  * describing a descent across a boundary that used to be a hole, and what it
  * does at the two frames where the model withdraws.
  *
- * Run the BEFORE half by checking out `cb5c1329a^`'s sdk sources, rebuilding
+ * Run the before half by checking out `cb5c1329a^`'s sdk sources, rebuilding
  * `@ksp-gonogo/sitrep-sdk`, and passing `--out` so the two sets do not
  * overwrite each other. That is the only comparison that makes the handover
  * visible, since the widget draws the same board either way and only the
  * numbers differ.
  *
- * Deliberately NOT registered in `widgets.ts`, the reason
+ * Deliberately not registered in `widgets.ts`, the reason
  * `render-reckoned-tail.ts` gives: that file is the visual gate's input and a
- * scene with no committed baseline fails it as MISSING.
+ * scene with no committed baseline fails it as missing.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-atmospheric-handover`.
  */
@@ -58,7 +58,7 @@ const CONFIGS: WidgetRenderConfig[] = [
  * through a built `dist`, and esbuild bundles whatever is there without a word.
  * The model here lives in `mod/sitrep-sdk/src/spine/atmospheric-reckoning.ts`,
  * so a stale sdk `dist` would produce seven entirely plausible pictures of the
- * PREVIOUS reckoner. Copied from `render-reckoned-tail.ts`, which learned it the
+ * previous reckoner. Copied from `render-reckoned-tail.ts`, which learned it the
  * expensive way.
  */
 const GUARDED_PACKAGES = [

@@ -45,7 +45,7 @@ export interface PageCheckResult {
 }
 
 /**
- * Everything the manifest carries EXCEPT the one field that is a fact about a
+ * Everything the manifest carries except the one field that is a fact about a
  * release artifact rather than about the page.
  *
  * `integrity` is the sha256 of the file the author distributes, stamped at

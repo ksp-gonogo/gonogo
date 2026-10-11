@@ -16,7 +16,7 @@ export interface StatusIndicatorProps
   children: ReactNode;
   /**
    * When true, the indicator becomes a screen-reader live region.
-   * Use for state that updates dynamically and the user benefits from
+   * Use for state that updates dynamically and the operator benefits from
    * being told (connection going from probing to ok or fail). Default
    * false to keep it out of the accessibility tree for purely decorative
    * uses.
@@ -26,7 +26,7 @@ export interface StatusIndicatorProps
    * Pulse the dot to signal an active, changing state (a live or connecting
    * data source, for example). `"slow"` (2s) reads as steady-live, `"fast"` (1s) as
    * working/reconnecting. Omit for a static dot. Guarded by
-   * `prefers-reduced-motion` (the dot holds still when the user opts out).
+   * `prefers-reduced-motion` (the dot holds still when reduced motion is requested).
    */
   pulse?: "slow" | "fast";
 }
@@ -36,7 +36,8 @@ export interface StatusIndicatorProps
  * the right, bordered in the tone's colour and one control high. Use it where
  * a sentence describes a state (connection status, a data source's health) and
  * the dot tells the operator at a glance whether to worry. For a compact
- * uppercase pill use {@link Badge} instead.
+ * uppercase pill use {@link Badge} instead. Used by the first-run readiness
+ * step and the station link control.
  *
  * @example
  * ```tsx

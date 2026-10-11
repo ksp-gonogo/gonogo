@@ -105,7 +105,7 @@ function memoryStorage(): Storage {
 }
 
 /**
- * Rendered trees, tracked so afterEach can unmount them BEFORE it clears the
+ * Rendered trees, tracked so afterEach can unmount them before it clears the
  * stores they read through useSyncExternalStore: a clear that notifies a
  * still-mounted tree is a state update outside act() (CLAUDE.md -> Testing
  * Philosophy), and RTL auto-cleanup runs after this file's afterEach.
@@ -161,8 +161,8 @@ function makeSitrepStub(
 }
 
 /**
- * An arbitrary OTHER registered `DataSource`: proves the Connection tab
- * does NOT fall back to an "Other Connections" list of every registered
+ * An arbitrary other registered `DataSource`: proves the Connection tab
+ * does not fall back to an "Other Connections" list of every registered
  * source.
  */
 function makeOtherSourceStub(id: string, name: string): DataSource {

@@ -118,7 +118,9 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 /**
- * Opens and closes modal dialogs. `open(content, options)` pushes a dialog
+ * The functions to open and close modal dialogs, for showing the operator a
+ * form or a detail view over the dashboard. Used by the settings button and
+ * the alarms button. `open(content, options)` pushes a dialog
  * showing `content` and returns its id; `options` takes a `title`, an
  * `aria-label` for a dialog with no visible title, and a CSS `width` for the
  * dialog's max-width (560px by default). `close(id)` removes that dialog.

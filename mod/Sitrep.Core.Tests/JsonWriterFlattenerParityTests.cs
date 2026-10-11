@@ -12,8 +12,8 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// The POCO-to-wire PARITY gate for every contract type that is published
-    /// RAW: a property declared on the type but never written by that type's
+    /// The POCO-to-wire parity gate for every contract type that is published
+    /// raw: a property declared on the type but never written by that type's
     /// hand-written <c>JsonWriter.Append&lt;Type&gt;</c> flattener reaches the
     /// generated TS SDK (which is produced from the C# shape) and never reaches
     /// the wire. A widget then codes against a field that is permanently
@@ -27,7 +27,7 @@ namespace Sitrep.Core.Tests
     /// perfectly working flattener that is missing its newest field.</para>
     ///
     /// <para>It also does not overlap the producer-side parity gates, which
-    /// cover the OTHER half of the contract, the types whose producer
+    /// cover the other half of the contract, the types whose producer
     /// hand-flattens them to a <c>Dictionary&lt;string, object?&gt;</c> before
     /// Publish (so JsonWriter only ever sees the dictionary):
     /// <c>Sitrep.Host.Tests.VesselViewProviderTests.ToWireIncludesAKeyForEveryPublicReadablePropertyOfThePoco</c>
@@ -37,10 +37,10 @@ namespace Sitrep.Core.Tests
     /// halves of "declared in the contract, absent from the wire" are now
     /// covered.</para>
     ///
-    /// <para><b>Polarity: everything IN by default.</b> The universe is
+    /// <para><b>Polarity: everything in by default.</b> The universe is
     /// discovered, not listed: every <see cref="SitrepContractAttribute"/> type
     /// in the contract assembly that survives the real wire path without
-    /// throwing IS a raw-published type, which is exactly the set with a
+    /// throwing is a raw-published type, which is exactly the set with a
     /// hand-written flattener. Add a new <c>Append&lt;Type&gt;</c> and its type
     /// enrols itself here; add a field to an existing one and forget the
     /// flattener line and this goes red. Nothing has to be remembered.</para>
@@ -54,13 +54,13 @@ namespace Sitrep.Core.Tests
     public class JsonWriterFlattenerParityTests
     {
         /// <summary>
-        /// Properties that are DELIBERATELY absent from the wire, as
+        /// Properties that are deliberately absent from the wire, as
         /// <c>"TypeName.PropertyName"</c>. Same polarity and same rule as
         /// <see cref="WirePayloadCoverageTests"/>'s <c>FlattenedByProducer</c>:
         /// everything is in by default and every exclusion carries its reason
         /// here, in one line, so an entry can be argued with later.
         ///
-        /// <para>An entry is NOT a licence to leave a field off the wire. It
+        /// <para>An entry is not a licence to leave a field off the wire. It
         /// records a field that is knowingly declared ahead of its producer, or
         /// one whose absence is itself pinned as bytes elsewhere. A genuine
         /// omission gets the missing flattener line, not an entry.</para>
@@ -186,7 +186,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Runs the payload through the REAL wire path
+        /// Runs the payload through the real wire path
         /// (<see cref="EnvelopeCodec.WriteStreamData"/> →
         /// <c>JsonWriter</c>) and hands back the parsed <c>payload</c> object's
         /// keys. Deliberately the real codec rather than reflection into

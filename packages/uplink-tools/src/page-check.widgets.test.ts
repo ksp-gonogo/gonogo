@@ -14,7 +14,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { loadHostWidgets } from "./page-check";
 
 /**
- * `loadHostWidgets` is the THIRD consumer of `gonogo.renderWith`, and the only
+ * `loadHostWidgets` is the third consumer of `gonogo.renderWith`, and the only
  * one that has to turn a value back into a file itself: the render path hands
  * the list to esbuild and `--with` goes through the same resolver, but a test
  * suite has no bundler.
@@ -26,7 +26,7 @@ import { loadHostWidgets } from "./page-check";
  * coverage: the specifier was tested through `resolveUplinkPackage` and
  * `generateEntry`, and never through here.
  *
- * So both shapes are exercised through THIS function, and the specifier case
+ * So both shapes are exercised through this function, and the specifier case
  * plants a real installed package rather than mocking resolution.
  */
 const scratch: string[] = [];

@@ -12,7 +12,7 @@
  *
  * Exposes `window.__renderAlarms(payload)`: builds a fresh
  * `TelemetryProvider`/`StubTransport` pair per call so no state leaks between
- * shots, mounts the modal at a light-time where the two clocks genuinely
+ * shots, mounts the modal at a signal delay where the two clocks genuinely
  * differ, and selects the requested trigger kind before the driver
  * screenshots.
  */
@@ -33,7 +33,7 @@ import type { AlarmSnapshot } from "../../../app/src/alarms/types";
 export interface AlarmsProbePayload {
   /** Which trigger kind the draft form is on. Defaults to the modal's own default, `time`. */
   kind?: "time" | "threshold";
-  /** One-way light time the view clock is offset by, seconds. */
+  /** One-way signal delay the view clock is offset by, seconds. */
   owltSeconds?: number;
 }
 

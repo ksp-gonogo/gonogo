@@ -95,22 +95,22 @@ export function kspYearDays(): number {
 }
 
 /**
- * The unit symbols whose size the RUNNING GAME decides, and how to read each
+ * The unit symbols whose size the running game decides, and how to read each
  * one off the calendar.
  *
  * Everything else in the catalogue is a physical constant and is left alone.
  * The line is game time against measured time, and two neighbours show why it
  * matters:
  *
- * - **`km/h` is NOT here**, though it has an hour in it. It is an SI-adjacent
+ * - **`km/h` is not here**, though it has an hour in it. It is an SI-adjacent
  *   speed and its hour is 3,600 real seconds whatever the game is doing. Only
- *   `h` as a DURATION follows the game.
- * - **The `irl:` family is NOT here.** Those already carry a separate
+ *   `h` as a duration follows the game.
+ * - **The `irl:` family is not here.** Those already carry a separate
  *   dimension precisely so wall-clock time cannot be confused with game time;
  *   a staleness badge is measured by the clock on the desk.
  *
  * `science/day` is the one that hides, because the day sits in the
- * DENOMINATOR: its baked ratio reads 1/21,600 rather than 21,600, so it does
+ * denominator: its baked ratio reads 1/21,600 rather than 21,600, so it does
  * not look like a day at a glance.
  */
 const CALENDAR_RATIO: Record<string, (calendar: KspCalendar) => number> = {

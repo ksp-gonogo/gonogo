@@ -105,8 +105,8 @@ export function useLandingModel(): LandingModel {
   /**
    * Describe from the best value available; instruct only from a current one.
    *
-   * - a DESCRIPTION (altitude, velocity, delta-v) renders from a modelled or last-known value, labelled as such
-   * - an INSTRUCTION (the burn instant, the ignition countdown) never renders from a reckoned state: the operator acts on it at a named moment
+   * - a description (altitude, velocity, delta-v) renders from a modelled or last-known value, labelled as such
+   * - an instruction (the burn instant, the ignition countdown) never renders from a reckoned state: the operator acts on it at a named moment
    *
    * Losing contact mid-descent is the expected case, so the board is never blanked.
    */
@@ -152,7 +152,7 @@ export function useLandingModel(): LandingModel {
 
   const isDated = (r: { state: ReadingState }): boolean => r.state === "held";
   /**
-   * The gate on the INSTRUCTION half: no input the burn solve rests on may be dated.
+   * The gate on the instruction half: no input the burn solve rests on may be dated.
    * A never-arrived input does not refuse, since `solveSuicideBurn` already answers "not-descending" when it lacks data.
    */
   const mayInstruct = ![

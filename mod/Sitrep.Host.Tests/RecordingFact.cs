@@ -11,9 +11,9 @@ namespace Sitrep.Host.Tests
     /// gitignored local-only assets, so they are absent in CI and on any machine
     /// that has not captured one, and the test cannot run.
     ///
-    /// <para>It resolves the recording at DISCOVERY time and sets
+    /// <para>It resolves the recording at discovery time and sets
     /// <see cref="FactAttribute.Skip"/> when the file is not there, so the test
-    /// is reported as SKIPPED with the reason attached. A green that is
+    /// is reported as skipped with the reason attached. A green that is
     /// indistinguishable from a green that ran is the failure mode; xunit
     /// already has a state for "did not run" and this uses it.</para>
     ///
@@ -52,7 +52,7 @@ namespace Sitrep.Host.Tests
         public string RecordingPath { get; }
 
         /// <summary>
-        /// The recording directory, derived from the calling SOURCE file rather
+        /// The recording directory, derived from the calling source file rather
         /// than the working directory: a test binary runs out of
         /// <c>bin/Debug/net10.0</c> and every project that uses this sits two
         /// levels below the repo root (<c>mod/&lt;Project&gt;/</c>).

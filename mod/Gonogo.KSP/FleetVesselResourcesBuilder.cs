@@ -9,7 +9,7 @@ namespace Gonogo.KSP
     /// <para>Same self-flattening producer pattern as its siblings: camelCase
     /// keys match <see cref="Sitrep.Contract.FleetVesselResources"/> and
     /// <see cref="Sitrep.Contract.ResourceAmount"/>, the TS codegen mirror. The
-    /// per-resource shape is the ACTIVE vessel's, unchanged, so a client reads
+    /// per-resource shape is the active vessel's, unchanged, so a client reads
     /// one craft's tanks the same way whether or not it is the one being
     /// flown.</para>
     ///

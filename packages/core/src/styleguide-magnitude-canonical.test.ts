@@ -8,7 +8,7 @@ import { exitStatus } from "./ratchetBaseRef";
  * One implementation of "take a quantity's magnitude", and this is what keeps
  * it at one.
  *
- * `styleguide-magnitude-budget.test.ts` next door COUNTS unwraps. It cannot
+ * `styleguide-magnitude-budget.test.ts` next door counts unwraps. It cannot
  * read what an unwrap answers, and that is the gap this exists to close. The
  * Kerbalism Uplink carried its own `mag()` beside its own `Quantityish`, and
  * the copy differed from the canonical pair in exactly one respect: it
@@ -16,22 +16,22 @@ import { exitStatus } from "./ratchetBaseRef";
  * optional so anything satisfied it. The budget was green throughout, because
  * the copy spent exactly one `.magnitude` and forty-one call sites spent none.
  *
- * What forty-one call sites got instead was a LIFE SUPPORT panel where a
+ * What forty-one call sites got instead was a life support panel where a
  * habitat payload that never arrived rendered as "not pressurised", a
  * spaceweather frame with no dose rate rendered as "0.000 rad/h", and an
  * unreported comfort factor rendered as a warning-toned empty bar. Every one
  * of those is a reading an operator would act on, and none of them was a
  * reading at all.
  *
- * A count could never have seen that. What CAN see it is the shape the second
+ * A count could never have seen that. What can see it is the shape the second
  * copy took, which is the shape every second copy takes: it declared the
  * canonical names again, locally. So that is what this checks, and the fix it
  * asks for is always the same one line: import from `@ksp-gonogo/ui-kit`.
  *
- * A file that wants a NARROWER type may still alias one (`LandingStatus`
+ * A file that wants a narrower type may still alias one (`LandingStatus`
  * parameterises `Quantityish` by unit so a speed cannot be passed to a length
  * readout). Aliasing a type is not reimplementing the unwrap, and only the
- * FUNCTIONS are held to one declaration here.
+ * functions are held to one declaration here.
  */
 
 /** The one file allowed to declare them. */
@@ -41,7 +41,7 @@ const CANONICAL = "mod/sitrep-sdk/src/magnitude.ts";
  * One file, and it is a deliberate hold rather than a layering problem now.
  *
  * The canonical pair lives in `mod/sitrep-sdk/src/magnitude.ts`, so every sdk
- * file can converge on it. `orbit-trajectory.ts` does not, because its local copy is the only one whose absence answer is THROW,
+ * file can converge on it. `orbit-trajectory.ts` does not, because its local copy is the only one whose absence answer is throw,
  * and nobody has established what a thrown `TypeError` inside that derive
  * actually does to a render. This project prefers loud to silent, so the throw
  * may well be correct as it stands, and swapping it for a NaN on the way past
@@ -62,7 +62,7 @@ const HELD = new Set(["mod/sitrep-sdk/src/spine/orbit-trajectory.ts"]);
 const RESERVED = ["magnitudeOf", "magnitudeOr", "mag"];
 
 /**
- * A DECLARATION of one of those names, not a call or an import: `function
+ * A declaration of one of those names, not a call or an import: `function
  * magnitudeOf(`, `const mag = (`, `let magnitudeOr = function`. Written as one
  * alternation so a single `git grep` covers both forms.
  *
@@ -74,13 +74,13 @@ const DECLARATION = String.raw`(^|[^A-Za-z0-9_$])(function|const|let|var)[ \t]+(
 
 /**
  * The same property access the budget counts, and the reason this check needs
- * it: `mag` is also the ordinary name for a VECTOR magnitude, and four files
+ * it: `mag` is also the ordinary name for a vector magnitude, and four files
  * declare one over `Math.hypot` or `Math.abs` with no wire quantity in sight.
  * A name alone cannot tell those from a second unwrap. A file that reads
  * `.magnitude` somewhere can, which makes the pair of signals the test: the
  * name says what the helper is for, the access says it is about a quantity.
  *
- * The `]` comes FIRST inside the bracket expression because POSIX has no
+ * The `]` comes first inside the bracket expression because POSIX has no
  * escaping in there, the same trap the budget's own regex documents.
  */
 const PROPERTY_ACCESS = String.raw`[]A-Za-z0-9_$)?]\.magnitude`;
@@ -124,7 +124,7 @@ function fileOf(line: string): string | undefined {
 }
 
 /**
- * Files that both declare a reserved name AND unwrap a magnitude, with the
+ * Files that both declare a reserved name and unwrap a magnitude, with the
  * declaration lines for the failure message. Either signal alone is noise; the
  * pair is a second implementation.
  */

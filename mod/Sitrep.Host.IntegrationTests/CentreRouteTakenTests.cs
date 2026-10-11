@@ -13,7 +13,7 @@ namespace Sitrep.Host.IntegrationTests
     /// and comms.delay describe that route, the one the delay ledger times the
     /// samples by, even where the centre's own plan has a different and
     /// shorter path: a backend picks its route by its own measure, such as
-    /// link strength or data rate, not by light-time.
+    /// link strength or data rate, not by signal delay.
     /// </summary>
     public class CentreRouteTakenTests
     {

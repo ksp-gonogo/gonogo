@@ -17,10 +17,10 @@ namespace Sitrep.Host.Tests
     /// Locks the P0.5 typing change for <c>career.status</c>: proves the named
     /// <see cref="CareerStatus"/> contract tree (and every nested type) mirrors,
     /// field name for field name, camelCase wire key for camelCase wire key,
-    /// type for type: the EXACT serialized shape
+    /// type for type: the exact serialized shape
     /// <see cref="CareerViewProvider"/> already emits. This is a typing change
     /// only: the wire is written by <c>JsonWriter</c> walking the provider's
-    /// dictionary, NOT by serializing these POCOs, so if the two shapes ever
+    /// dictionary, not by serializing these POCOs, so if the two shapes ever
     /// drift (a field renamed, removed, added, re-cased, or retyped on either
     /// side) this test fails, the guarantee that the contract type a widget
     /// codes against is byte-identical to the wire.
@@ -35,7 +35,7 @@ namespace Sitrep.Host.Tests
     /// <para><b>Reflection discipline:</b> every wire type also carries the
     /// compile-time-only <c>[TsInterface]</c> attribute, whose declaring
     /// assembly (<c>Reinforced.Typings</c>) is never deployed at runtime. Any
-    /// <c>GetCustomAttribute*</c> call on such a type eagerly resolves ALL its
+    /// <c>GetCustomAttribute*</c> call on such a type eagerly resolves all its
     /// attribute records and throws <c>FileNotFoundException</c>: the same
     /// trap <see cref="ContractShapeGateTests"/> documents. So this test never
     /// reflects attributes on a contract type: nested-object detection uses
@@ -64,7 +64,7 @@ namespace Sitrep.Host.Tests
 
 
         /// <summary>
-        /// A contract OBJECT type must match a <c>Dictionary&lt;string, object?&gt;</c>:
+        /// A contract object type must match a <c>Dictionary&lt;string, object?&gt;</c>:
         /// the emitted key set equals the type's camelCase'd public-property
         /// set (no extra, no missing), and each emitted value mirrors the
         /// corresponding property's type.

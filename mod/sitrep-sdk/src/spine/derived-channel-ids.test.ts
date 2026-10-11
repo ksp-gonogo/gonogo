@@ -14,7 +14,7 @@ import { PRODUCTION_DERIVED_CHANNELS } from "./context";
  * so every literal is erased before a type could read it. Nothing about a
  * hand-written union fails on its own when the array moves.
  *
- * So it is checked BOTH ways. A channel registered but unlisted would be a
+ * So it is checked both ways. A channel registered but unlisted would be a
  * channel no widget can declare, which reads as "that widget cannot be
  * migrated" rather than as a missing entry. A channel listed but unregistered
  * would typecheck in a `channels` array and then resolve to nothing at runtime,

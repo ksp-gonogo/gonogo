@@ -1,7 +1,7 @@
 /**
  * Widget DOM mirror: TargetPicker. Asserts the panel title mirrors across
  * host and station, and (on the host, which mounts the stream provider) the
- * available-target LIST renders from the fixture's `target.available` entries
+ * available-target list renders from the fixture's `target.available` entries
  * while the selected-target summary stays on its no-target branch.
  *
  * Fixture snapshot (`sitrep-stream-server.mjs`):
@@ -11,17 +11,17 @@
  * So on the host the widget renders:
  *   - a collapsible "Bodies (2)" category section (TargetPicker uses
  *     disclosure `<button aria-expanded>` sections + a "Suggested" section,
- *     NOT a tablist: there is no `role="tab"` and no "Current" tab anywhere
+ *     not a tablist: there is no `role="tab"` and no "Current" tab anywhere
  *     in the component; the pre-2026-07-26 assertions asserted a tab UI that
  *     never existed, which is why this test was `fixme`),
  *   - the Mun / Minmus rows (each also mirrored into "Suggested"), and
  *   - "No target set in KSP." for the selected-target summary, because
- *     `vessel.target` is null (adding the LIST does not select a target,
+ *     `vessel.target` is null (adding the list does not select a target,
  *     the two are separate Topics, so Targeting's no-target branch is
  *     untouched).
  *
  * Station-side scope: only the "TARGET PICKER" title (static chrome) is
- * checked on the station: the list is live Sitrep data and only the MAIN
+ * checked on the station: the list is live Sitrep data and only the main
  * screen mounts `SitrepTelemetryProvider` today (station stream forwarding
  * over PeerJS is a documented pending gap). On the station the widget sits on
  * "Waiting for target list...", by design, not a bug.

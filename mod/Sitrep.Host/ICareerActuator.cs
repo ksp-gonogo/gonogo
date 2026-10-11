@@ -13,10 +13,10 @@ namespace Sitrep.Host
     /// this interface. <c>Gonogo.KSP.KspCareerActuator</c> is the real
     /// implementation (StrategySystem / ResearchAndDevelopment / ContractSystem
     /// / ScenarioUpgradeableFacilities / Funding: see its own doc comment); a
-    /// FAKE implementation (<c>Sitrep.Host.Tests.FakeCareerActuator</c>) is what
+    /// fake implementation (<c>Sitrep.Host.Tests.FakeCareerActuator</c>) is what
     /// <see cref="CareerCommandProvider"/>'s unit tests exercise instead.
     ///
-    /// <para>These are SPEND actions (funds/science) resolved by id against live
+    /// <para>These are spend actions (funds/science) resolved by id against live
     /// KSC systems. Every method returns a typed failure rather than throwing
     /// when the referenced entity doesn't resolve
     /// (<see cref="CommandErrorCode.NotFound"/>), the action isn't valid in the

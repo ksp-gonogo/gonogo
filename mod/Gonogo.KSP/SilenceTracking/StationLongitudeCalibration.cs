@@ -4,7 +4,7 @@ namespace Gonogo.KSP.SilenceTracking
 {
     /// <summary>
     /// The offset, in degrees, between KSP's <c>rotationAngle</c> reference and
-    /// the propagation frame's zero longitude, MEASURED per body rather than
+    /// the propagation frame's zero longitude, measured per body rather than
     /// asserted.
     ///
     /// <para><b>Why measured.</b> A station's inertial longitude ought to be

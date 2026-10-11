@@ -5,13 +5,13 @@ import { changedFiles, scanScopeMode } from "../scan-scope.mjs";
  *
  * In the full run (CI, and any run without `GONOGO_SCANS=changed`) that is every
  * file the scan enumerates. In the changed run it is only the files this branch
- * touched, and the rule for a scan using it is fixed: ENUMERATE the whole tree
+ * touched, and the rule for a scan using it is fixed: enumerate the whole tree
  * exactly as before and keep every floor on the enumeration, then read and
  * assert on the covered files only. The floor still proves the scan looked in
  * the right place; the reads it skips are what the changed run saves, because
  * opening a file is the dominant cost of a scan on the fleet's machine.
  *
- * A floor that counts what the scan FOUND (files carrying a stack, callers of a
+ * A floor that counts what the scan found (files carrying a stack, callers of a
  * seam) cannot hold over a subset, so it applies in the full run only, and the
  * scan says so in its census line rather than passing quietly.
  */
@@ -55,7 +55,7 @@ export function scanScope(): ScanScope {
  *
  * Every root in the full run. In the changed run, the roots holding a changed
  * file, or every root when the workspace's shared TypeScript or dependency
- * config changed. A root that only CONSUMES a changed package is not rebuilt:
+ * config changed. A root that only consumes a changed package is not rebuilt:
  * it sees that package through its built `dist`, so the ripple of a type change
  * reaches it only after a build, and the full run in CI is what grades it.
  */

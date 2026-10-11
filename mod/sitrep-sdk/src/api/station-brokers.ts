@@ -27,14 +27,16 @@ function slot(): Slot {
 }
 
 /**
- * Ask to be handed a {@link StationBroker} whenever this screen is a station.
+ * Ask to be handed a {@link StationBroker} whenever this screen is a station,
+ * so an Uplink's object can reach the main screen through the station's own
+ * connection to it.
  *
  * For an Uplink whose client keeps a long-lived object outside React, such as a
  * media connection, and so cannot use `useUplinkRelay` or `useHostIceServers`.
  * `attach` is never called on the main screen, and is called on a station
  * whether the Uplink registered before the station screen came up or after.
  * It receives a {@link StationBroker}: `relay` calls a method of the Uplink's
- * registered handle on the main screen, and `iceServers` gives the TURN and
+ * registered handle on the main screen, and `iceServers` gives the turn and
  * STUN servers for a connection the station opens itself. The broker can
  * arrive before the link to the main screen does, and `relay` rejects until it
  * is up, so a caller retries rather than giving up.
@@ -84,8 +86,9 @@ export function clearStationBrokers(): void {
 
 /**
  * Hand every registration, present and future, to `watcher`, until the
- * returned function is called. The station screen's half of
- * `registerStationBroker`; an Uplink never calls it.
+ * returned function is called. Used by the station screen, which hands each
+ * registration a broker bound to the main screen. An Uplink never calls it;
+ * it registers with `registerStationBroker`.
  */
 export function watchStationBrokers(watcher: StationBrokerWatcher): () => void {
   const { attaches, watchers } = slot();

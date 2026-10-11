@@ -12,7 +12,7 @@ namespace Sitrep.Core.Tests
 {
     /// <summary>
     /// C#-side tests for <see cref="ManualClock.Reset"/> /
-    /// <see cref="Courier.ResetTimeline"/> -- capabilities with NO TS
+    /// <see cref="Courier.ResetTimeline"/> -- capabilities with no TS
     /// reference, added for the M5b final-review fix (a live quickload's
     /// backward UT tick used to wedge the courier on the abandoned
     /// pre-quickload timeline; see the doc comments on those two methods,
@@ -91,14 +91,14 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// CRITICAL-1 (concurrency red-team + task-review, probe-verified):
         /// <see cref="ResetTimelineDropsAbandonedStreamDeliveryButKeepsSubscriptionAlive"/>
-        /// above passes even pre-fix because its rewind happens BEFORE the
+        /// above passes even pre-fix because its rewind happens before the
         /// vantage's cursor is ever pushed past the rewind target (its
         /// delivery only ever reached scene 0): see that test's own
-        /// wording. This test ticks PAST a HIGH peak first (delay=0, the
+        /// wording. This test ticks past a high peak first (delay=0, the
         /// production shape), so <see cref="Archive.ReadAtVantage"/>'s
         /// monotonic "never rewinds" cursor clamp is genuinely engaged
         /// before the rewind, reproducing the real defect: a live
-        /// quickload's timeline-reset used to clear ONLY
+        /// quickload's timeline-reset used to clear only
         /// <see cref="Courier"/>'s own pending-command/clock state, never
         /// the per-node <see cref="Archive"/>: so the archive's samples
         /// above the new UT, and every (topic, vantage) cursor's clamped
@@ -108,12 +108,12 @@ namespace Sitrep.Core.Tests
         /// <list type="number">
         /// <item><description>An ALREADY-SUBSCRIBED vantage
         /// ("KSC") whose cursor was pinned to the peak keeps re-delivering
-        /// the STALE peak sample after the rewind instead of the genuinely
+        /// the stale peak sample after the rewind instead of the genuinely
         /// new one, because <c>Math.Max(rawScene, lastScene)</c> clamps
         /// every post-reset scene straight back up to the old peak.</description></item>
-        /// <item><description>A subscriber joining AFTER the rewind
+        /// <item><description>A subscriber joining after the rewind
         /// ("MissionControl") gets the abandoned pre-rewind timeline
-        /// REPLAYED to it later, because <see cref="Courier.SubscribeStream"/>'s
+        /// replayed to it later, because <see cref="Courier.SubscribeStream"/>'s
         /// "still in flight" reschedule loop walks whatever the archive
         /// happens to contain at subscribe time, which, unpruned, still
         /// includes samples from a timeline that no longer exists.</description></item>

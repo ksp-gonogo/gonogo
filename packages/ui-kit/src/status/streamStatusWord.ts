@@ -5,7 +5,7 @@ import type { HeldGrade, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
  *
  * Loading and no game say the game itself is the reason, which no craft or link can answer for. Blackout and recorded keep words of their own because they ask something
  * different of the operator: a blackout is waited out, and a recorded value is
- * exact for the instant it names. Only a Topic that simply went quiet is HELD.
+ * exact for the instant it names. Only a Topic that simply went quiet is `HELD`.
  */
 const HELD_GRADE_WORD: Readonly<Record<HeldGrade, string>> = {
   held: "HELD",
@@ -30,16 +30,16 @@ const STREAM_STATUS_WORD: Readonly<Record<StreamStatusValue, string | null>> = {
  * The short uppercase word a badge or caption prints for a `StreamStatusValue`,
  * or `null` for `"live"`, which shows nothing:
  *
- * - `"held"`: HELD
- * - `"disconnected"`: OFFLINE
- * - `"last-before-blackout"`: BLACKOUT, the last value sent before a known
+ * - `"held"`: `HELD`
+ * - `"disconnected"`: offline
+ * - `"last-before-blackout"`: blackout, the last value sent before a known
  *   loss of signal (a blackout is a stretch when the craft's signal cannot
  *   reach the command centre)
- * - `"recorded"`: RECORDED
- * - `"loading"`: LOADING
- * - `"no-game"`: NO GAME
- * - `"resyncing"`: SYNCING
- * - `"absent"`: NO DATA
+ * - `"recorded"`: recorded
+ * - `"loading"`: loading
+ * - `"no-game"`: no game
+ * - `"resyncing"`: syncing
+ * - `"absent"`: "NO DATA"
  *
  * @category Badge
  */
@@ -49,7 +49,7 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
 
 /**
  * The word for a held reading's grade, the same word {@link formatStreamStatus}
- * gives the status of that name, or HELD when no grade is given, as for a
+ * gives the status of that name, or `HELD` when no grade is given, as for a
  * value combined from several readings.
  *
  * @category Badge

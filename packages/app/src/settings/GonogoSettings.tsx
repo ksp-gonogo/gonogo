@@ -31,11 +31,11 @@ type Draft = Record<string, string>;
 
 /**
  * One owner's rows of `settings.gonogo`, the mod's own or one Uplink's, changed
- * by one SAVE press through `settings.save`.
+ * by one save press through `settings.save`.
  *
  * The rows are drawn from the payload's own descriptions, so a setting an
  * Uplink adds appears with no code of its own. An edit is held until
- * SAVE and sent as one press, which the mod applies all or nothing; what it
+ * save and sent as one press, which the mod applies all or nothing; what it
  * then publishes is the only authority for what was saved, because a save can
  * time out and still land.
  *
@@ -288,7 +288,7 @@ function GonogoSettingRow({
 
 /**
  * Whether the mod would take `text` for a row of this kind: the same test it
- * applies on save, so SAVE is offered only for a press it would accept. A kind
+ * applies on save, so save is offered only for a press it would accept. A kind
  * newer than this screen knows is held to nothing here, and the mod still
  * refuses a value it cannot use.
  */

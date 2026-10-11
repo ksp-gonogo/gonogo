@@ -13,11 +13,11 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// A break belongs to the craft whose route it was on, over the raw wire.
     ///
-    /// <para>Two subjects stream at the same four-second light-time, the active
+    /// <para>Two subjects stream at the same four-second signal delay, the active
     /// craft on <see cref="ConnectivityHorizonTestUplink.DelayedTopic"/> and a
     /// fleet vessel on its own orbit topic, and then stop sending, so all that
     /// is left is the tail already in flight. At UT 6 a relay two light-seconds
-    /// out stops carrying on ONE of the two routes. That route loses the one
+    /// out stops carrying on one of the two routes. That route loses the one
     /// sample short of the relay; the other route's tail lands in full. Each
     /// case is the other's control: the same fixture and the same instant, with
     /// only the named node changed.</para>
@@ -32,11 +32,11 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly string FleetTopic = ChannelEngine.FleetNodePrefix + Vessel + ".orbit";
 
         /// <summary>
-        /// Both subjects at a four-second light-time. Each sends a sample per
+        /// Both subjects at a four-second signal delay. Each sends a sample per
         /// tick while <paramref name="sending"/> and nothing after, so nothing
         /// new joins the tail: the active craft holds its last reading, which
         /// the change gate does not resend, and the fleet vessel's roster stops
-        /// arriving, leaving its light-time and link at their last values.
+        /// arriving, leaving its signal delay and link at their last values.
         /// </summary>
         private static KspSnapshot Tick(double ut, bool sending, double? breakOut = null, string? breakNode = null)
         {

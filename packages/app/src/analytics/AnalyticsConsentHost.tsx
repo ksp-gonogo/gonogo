@@ -14,7 +14,7 @@ import { createBrowserConsentController } from "./axiomTransportFactory";
  *     every connected/joining station.
  *  3. Renders the blocking boot modal while consent is unanswered.
  *
- * The host's relay POST + heartbeat re-assert (item 5) lives in
+ * The host's relay post + heartbeat re-assert (item 5) lives in
  * PeerHostService, driven by the same `setAnalyticsConsent` call.
  */
 export function AnalyticsConsentHost({

@@ -20,16 +20,16 @@ import {
  * `keplerAdmissibility` withdraws at the atmosphere interface, and it is right
  * to: below it a two-body coast is not a worse estimate but a different
  * trajectory. What that left was a hole exactly where an operator leans
- * hardest, because the descent a reckoned altitude is FOR happens entirely
+ * hardest, because the descent a reckoned altitude is for happens entirely
  * inside the hole. So this module carries the value across the same gap on the
  * only evidence that survives an unknown aero model.
  *
- * ## It integrates the OBSERVED deceleration, and models no drag at all
+ * ## It integrates the observed deceleration, and models no drag at all
  *
  * There is no drag model here, no ballistic coefficient and no capability probe
- * for FAR, and there must not be: the wire already carries the OUTCOME of
+ * for FAR, and there must not be: the wire already carries the outcome of
  * whatever aerodynamics are installed. `verticalSpeed` is a measurement, so its
- * rate of change over the last few seconds of contact IS the vertical
+ * rate of change over the last few seconds of contact is the vertical
  * acceleration the craft actually experienced, gravity and drag and lift and
  * thrust included, in the exact frame `verticalSpeed` is expressed in. A model
  * that instead predicted drag would be a second opinion about a number the game
@@ -40,7 +40,7 @@ import {
  * taken from the record rather than from a companion field the contract would
  * have had to publish.
  *
- * `VesselFlight.AltitudeAsl` DECLARES this model, beside the conic and with its
+ * `VesselFlight.AltitudeAsl` declares this model, beside the conic and with its
  * own inputs (`verticalSpeed`, `gForce`, `@system.bodies`), which is what makes
  * it a promise to anyone holding the stream rather than a thing our client
  * happens to do. Every withdrawal below that blames an input therefore names it
@@ -48,26 +48,26 @@ import {
  *
  * ## Where the two models meet
  *
- * One named predicate, {@link withinAtmosphere}, asked over the SPAN the reading
+ * One named predicate, {@link withinAtmosphere}, asked over the span the reading
  * covers rather than over one end of it. Inside the air this model owns the
  * frame and the conic is not asked; outside it the conic owns the frame and this
  * stands down.
  *
  * The span matters because the two ends are judged by different arithmetic. The
  * observation is an altitude and is compared against {@link atmosphereDepthOf};
- * the view time is a radius the conic has SOLVED for and is compared against
+ * the view time is a radius the conic has solved for and is compared against
  * `entryInterfaceRadius`, which is the conic's own floor and not a second
  * reading of the same boundary. Asking only the observation is what left a band
  * `|verticalSpeed| x gap` wide in which the selector sent the frame to the conic
  * and the conic then withdrew on a floor the selector had never consulted, which
  * is every reentry at the moment the interface is crossed.
  *
- * Each branch then owns its OWN declines. That is the reason the selector is a
+ * Each branch then owns its own declines. That is the reason the selector is a
  * predicate rather than a fall-through from one model's refusal: a descent past
  * this model's horizon would otherwise be reported to the operator as the
  * conic's "the craft is under physics", which is true and is not the reason.
  *
- * There is deliberately no `meta.quality` condition, which is the conic's FIRST
+ * There is deliberately no `meta.quality` condition, which is the conic's first
  * withdrawal. A craft under physics is one the conic cannot advance and one this
  * model reads perfectly well, because an observed rate does not care how the
  * game is stepping the craft. The two withdraw on opposite facts, which is why
@@ -81,11 +81,11 @@ import {
  * Half `core-reckoners.ts`'s `LINEAR_HORIZON_SECONDS`, and for a reason rather
  * than for symmetry: a relative position carried by a relative velocity is only
  * bending under gravity, where a descent rate is being changed by a force that
- * GROWS with the air it is falling into. Fifteen is the round number inside
+ * grows with the air it is falling into. Fifteen is the round number inside
  * that, chosen rather than measured, and it is one constant here so that
  * widening it is a decision somebody takes rather than a number that drifts.
  *
- * It is a CEILING, not the horizon: see {@link horizonSecondsFor}.
+ * It is a ceiling, not the horizon: see {@link horizonSecondsFor}.
  */
 const ATMOS_HORIZON_SECONDS = 15;
 
@@ -93,7 +93,7 @@ const ATMOS_HORIZON_SECONDS = 15;
  * How far outside what the craft can be feeling a fitted slope may fall before
  * it stops being an acceleration at all.
  *
- * The envelope is a bound on the PHYSICS, so the slack absorbs the fit rather
+ * The envelope is a bound on the physics, so the slack absorbs the fit rather
  * than the aero: a least-squares slope over a handful of change-gated samples
  * has its own error, and a bound with no room in it would decline on that
  * instead of on the thing it is looking for.
@@ -116,7 +116,7 @@ const MIN_HISTORY_SAMPLES = 2;
  * produced them, and eight ulps is room for the handful of roundings between a
  * sample and its predicted value: the two means, the slope, and the product.
  *
- * It is a claim about the MACHINE and not a floor under how small an error may
+ * It is a claim about the machine and not a floor under how small an error may
  * be. Measured over 33768 perfectly-fitting windows, across UT epochs from 0 to
  * 9e7, accelerations from -0.5 to -25.5 m/s² and windows of three to eight
  * samples, the worst residue was 0.73 of these units and the faintest genuine

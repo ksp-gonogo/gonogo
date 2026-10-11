@@ -1,11 +1,11 @@
 /**
- * Topic ids the app subscribes to on a widget's behalf, keyed by the hook or
- * component that does it. A widget that sends a command with `useCommand`, or
- * is mounted by the dashboard, does not declare them: a widget's `channels`
- * leave them out, and its generated page never lists them. Some are registered
- * at runtime rather than listed in the contract, so the ids are plain strings.
- * The keys other than `useCommand` name parts of the app that an Uplink does
- * not call.
+ * The Topic ids the app reads on a widget's behalf, keyed by the hook or
+ * component that reads them. Useful for knowing which Topics a widget does not
+ * need to list in its `channels`: one that sends a command with `useCommand`
+ * or is mounted by the dashboard leaves these out, and its generated page never
+ * lists them. Some are registered at runtime rather than listed in the
+ * contract, so the ids are plain strings. The keys other than `useCommand` name
+ * parts of the app that an Uplink does not call.
  *
  * @category Reading telemetry
  */

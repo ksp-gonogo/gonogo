@@ -11,7 +11,7 @@ namespace Sitrep.Core.Tests
     /// Conformance test for the C# <c>StubNetwork</c> port against the
     /// TS-computed golden fixtures in
     /// <c>mod/golden-fixtures/stub-network.json</c>. The fixture is generated
-    /// by running the REAL TS <c>StubNetwork</c> in
+    /// by running the real TS <c>StubNetwork</c> in
     /// <c>mod/sitrep-server/src/stub-network.ts</c> over a set of scripted
     /// scenarios (`pnpm --filter @ksp-gonogo/sitrep-server gen:golden-fixtures`),
     /// this test never hand-authors expected values, it only replays each
@@ -47,7 +47,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The fixture still carries its scenarios, so a green Theory means something.
-        /// A Theory over a SHRUNKEN <see cref="Scenarios"/> simply runs fewer cases and reports the
+        /// A Theory over a shrunken <see cref="Scenarios"/> simply runs fewer cases and reports the
         /// same success as one that checked the lot, so the count is what the parity claim rests on.
         /// </summary>
         [Fact]

@@ -8,7 +8,7 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * What a reckoner can SEE of its own topic, and of its inputs.
+ * What a reckoner can see of its own topic, and of its inputs.
  *
  * A reckoner used to be handed exactly one point, and that narrowing is why so
  * little was reckonable: a model that wants a trend could not take one, so every

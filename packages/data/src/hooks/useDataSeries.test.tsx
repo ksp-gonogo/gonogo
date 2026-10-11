@@ -18,7 +18,7 @@ import { useDataSeries } from "./useDataSeries";
  * `useDataSeries` builds its `SeriesRange` off the `TimelineStore`: straight
  * off `sampleRange` for a raw topic, or off `sampleDerivedRange` (a replay of
  * the channel's own `derive()` across its raw inputs' buffered ranges) for a
- * DERIVED one.
+ * derived one.
  */
 
 function Probe({ dataKey, windowSec }: { dataKey: string; windowSec: number }) {
@@ -141,7 +141,7 @@ describe("useDataSeries: a field path streams from the ClientTimeline", () => {
   });
 
   /**
-   * A blackout hole reaches the chart as an INDEX, not as an absence to be
+   * A blackout hole reaches the chart as an index, not as an absence to be
    * inferred.
    *
    * `Meta.gapSinceUt` says "there is no data between that UT and this sample's
@@ -325,7 +325,7 @@ describe("useDataSeries: a DERIVED field path streams a REAL series computed fro
    * `TimelineStore.sampleRange` still returns `undefined` for a derived
    * topic (by design: nothing is ever stored for one), but
    * `sampleDerivedRange` replays the channel's `derive` at every UT either
-   * raw input changed within the window, off `sampleRange` reads of THOSE raw
+   * raw input changed within the window, off `sampleRange` reads of those raw
    * topics' own buffered ranges.
    *
    * The two inputs change at different instants, and a staging event changes

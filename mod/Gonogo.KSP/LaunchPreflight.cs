@@ -13,7 +13,7 @@ namespace Gonogo.KSP
     /// the game's sentence, and that is all it supplies: it does not carry a
     /// machine-readable reason, and the numbers it was built with are gone by
     /// the time it says no. So the code and the breach are paired with the test
-    /// where it is CONSTRUCTED, which is the one place both are in scope.</para>
+    /// where it is constructed, which is the one place both are in scope.</para>
     /// </summary>
     internal sealed class LaunchCheck
     {
@@ -48,7 +48,7 @@ namespace Gonogo.KSP
     ///
     /// <para><b>What runs where.</b> The two tests that need no craft
     /// (<c>LaunchSiteClear</c> and <c>FacilityOperational</c> at the launch site)
-    /// are DECLARED requirements on <c>ksp.launch</c> (see
+    /// are declared requirements on <c>ksp.launch</c> (see
     /// <c>GateDeclarations</c>), evaluated by the engine before this handler is
     /// entered, so an occupied pad darkens the control instead of failing the
     /// press. They are not repeated here. Everything below needs the craft, and
@@ -72,12 +72,12 @@ namespace Gonogo.KSP
         /// The first of KSP's launch tests to say no, as the refusal to return,
         /// or null when every one of them passed.
         ///
-        /// <para>Order is stock's, and the FIRST failure is the one reported: a
+        /// <para>Order is stock's, and the first failure is the one reported: a
         /// craft that is both too heavy and unaffordable gets told what stock
         /// would have told it, rather than whichever refusal happened to be
         /// checked last.</para>
         ///
-        /// <para>A test whose own body throws REFUSES. Every implementation
+        /// <para>A test whose own body throws refuses. Every implementation
         /// reaches live scene state, and an unreadable gate is not a passed one;
         /// treating it as a pass is how a gate fails open, and this one guards a
         /// spend.</para>
@@ -112,7 +112,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// The craft-dependent half of stock's launch check set, for one launch.
         ///
-        /// <para><paramref name="editorFacility"/> is where the craft was BUILT,
+        /// <para><paramref name="editorFacility"/> is where the craft was built,
         /// which is the tier the part-count limit is read at.
         /// <paramref name="site"/> is where it is going, which is the tier the
         /// mass and size limits are read at, and those two only exist for the
@@ -120,7 +120,7 @@ namespace Gonogo.KSP
         /// <c>if (launchSiteName == "LaunchPad")</c>.</para>
         ///
         /// <para>Each check is built through <see cref="Add"/> because several
-        /// of these CONSTRUCTORS do live reads of their own
+        /// of these constructors do live reads of their own
         /// (<c>FacilityOperational</c> resolves through <c>PSystemSetup</c>,
         /// <c>ExperimentalPartsAvailable</c> walks the manifest against
         /// <c>ResearchAndDevelopment</c>). A constructor that throws must lose
@@ -315,7 +315,7 @@ namespace Gonogo.KSP
             };
         }
 
-        /// <summary>The facility as the GAME names it, through <c>Localizer</c>.</summary>
+        /// <summary>The facility as the game names it, through <c>Localizer</c>.</summary>
         private static string FacilityGateName(SpaceCenterFacility facility)
         {
             try

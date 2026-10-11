@@ -21,7 +21,7 @@ namespace Sitrep.Core.Tests
     /// Each vector's <c>json</c> string is parsed with the matching
     /// <c>EnvelopeCodec.Parse*</c> method and re-serialized with the
     /// matching <c>Write*</c> method; asserting the result is
-    /// BYTE-FOR-BYTE IDENTICAL to the original proves two things at once:
+    /// BYTE-FOR-BYTE identical to the original proves two things at once:
     /// the C# reader correctly interprets what TS wrote, and the C# writer
     /// produces the exact same on-wire shape TS does for the same message
     /// (field order, optional-field omission, and NaN/Infinity sentinel
@@ -50,7 +50,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// The fixture still carries its vectors, so a green Theory means something.
         ///
-        /// <para>A Theory over a SHRUNKEN <see cref="Vectors"/> simply runs fewer cases
+        /// <para>A Theory over a shrunken <see cref="Vectors"/> simply runs fewer cases
         /// and reports the same success as one that checked every byte. Measured: 13
         /// vectors cut to 3 still passes every case it runs. Nothing else here counts
         /// them, so a generator regression that drops a whole family goes unremarked

@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     /// against the module's <c>availableShielded</c>,
     /// <c>ScienceUtil.RequiredUsageInternalAvailable</c> (a public static that
     /// fills in its own reason string), and <c>cooldownTimer</c>. Carved out
-    /// here so the ORDER and the codes can be entered by a test; the facts
+    /// here so the order and the codes can be entered by a test; the facts
     /// themselves are read off the live module by the actuator.</para>
     /// </summary>
     internal static class ExperimentDeployRule

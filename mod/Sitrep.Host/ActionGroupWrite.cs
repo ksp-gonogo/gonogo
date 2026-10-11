@@ -14,7 +14,7 @@ namespace Sitrep.Host
     {
         /// <summary>
         /// Refusal for turning SAS on when the craft has no source for it, or null
-        /// when the write may go ahead. Turning it OFF is never refused.
+        /// when the write may go ahead. Turning it off is never refused.
         /// <c>canEngage</c> is stock's <c>VesselAutopilot.CanEngageSAS()</c>: a Pilot
         /// aboard, or a probe core whose SAS tier allows it. An Engineer or Scientist
         /// in a pod with a reaction wheel does not qualify.

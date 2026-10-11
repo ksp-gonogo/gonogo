@@ -50,7 +50,7 @@ namespace Sitrep.Host.Tests
 
         /// <summary>
         /// And it answers what the attribute says, rather than a default that
-        /// happens to match. Asserted over the WHOLE set rather than a sample:
+        /// happens to match. Asserted over the whole set rather than a sample:
         /// the defect being guarded against is one command drifting, and a
         /// sample is exactly what misses that.
         /// </summary>

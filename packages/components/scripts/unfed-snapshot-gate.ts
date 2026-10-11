@@ -2,7 +2,7 @@
  * Un-fed snapshot gate: fails when a DOM snapshot test passes with every
  * fixture emit suppressed, stream and legacy data-source alike.
  *
- * A fixture-fed snapshot test that still passes when the fixture feeds it NOTHING is
+ * A fixture-fed snapshot test that still passes when the fixture feeds it nothing is
  * capturing a render that contains none of that data, whatever its scenario is
  * called. Within the fixture-fed set (see `isFixtureFed`, which is what earns the
  * word) that is exact rather than heuristic: no copy to pattern-match, and nothing
@@ -16,7 +16,7 @@
  *    string "ATMOSPHERE PROFILE Waiting for body telemetry..."
  *  - `SpaceCenterStatus`: 48 more, every facility level an em dash
  *
- * Both had a settle-check that waited for a stream-status badge to CLEAR. The badge
+ * Both had a settle-check that waited for a stream-status badge to clear. The badge
  * is the dashboard's, derived by the host from `dataRequirements`, so under a bare
  * widget harness it never renders at all and the wait is satisfied on the first
  * paint, before any emit. The flaw was diagnosed in a comment in
@@ -45,7 +45,7 @@ import { KNOWN_UNFED } from "./unfed-snapshot-debt";
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
- * Scenarios whose snapshot SHOULD be an empty render, with the reason. Keyed
+ * Scenarios whose snapshot should be an empty render, with the reason. Keyed
  * `<widget dir>/<scenario>`, matched against the snapshot test's own name.
  *
  * A name alone is not enough: `no-contracts` is obvious today and will be argued
@@ -53,7 +53,7 @@ const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
  * entry is asserting "this widget genuinely has nothing to draw in this scenario",
  * which is a claim someone can check.
  *
- * To ratchet DOWN: when a scenario stops being an empty-state scenario, delete its
+ * To ratchet down: when a scenario stops being an empty-state scenario, delete its
  * line and the gate holds it to a fed render from then on.
  */
 const EMPTY_BY_DESIGN: Record<string, string> = {
@@ -104,7 +104,7 @@ function keyFor(file: string, fullName: string): string | undefined {
  * Snapshot specs the gate can speak about: the ones whose data reaches the
  * widget through a path the mute actually covers.
  *
- * That is `setupStreamFixture` (a hand-rolled stream) OR `snapshotWidgetMode` /
+ * That is `setupStreamFixture` (a hand-rolled stream) or `snapshotWidgetMode` /
  * `renderWidgetMode` (the shared DOM harness, whose `MockDataSource` seeding
  * and legacy-key reshapes are both muted alongside the stream). A spec matching
  * none of the three feeds its subject some other way, so starving proves
@@ -118,7 +118,7 @@ function keyFor(file: string, fullName: string): string | undefined {
  * the suite's 1052 snapshot assertions, on the reasoning that "several widgets
  * render real content with no stream at all, because their content does not
  * come from the stream: `KeplerPeriod` plots a curve from a static body table,
- * `ActionGroup` renders from its own config". Starved of BOTH halves, 88 of
+ * `ActionGroup` renders from its own config". Starved of both halves, 88 of
  * those 220 still passed, and `KeplerPeriod`'s 48 committed baselines turned
  * out to be one byte-identical blank panel repeated across six scenarios and
  * eight sizes. The exemption was reasoning about what the widgets would draw

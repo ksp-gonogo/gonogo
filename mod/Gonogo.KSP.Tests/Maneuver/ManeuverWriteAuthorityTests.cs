@@ -161,7 +161,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         }
 
         /// <summary>
-        /// And it is asked AFTER the vessel arm. With no flight at all there is
+        /// And it is asked after the vessel arm. With no flight at all there is
         /// nothing to be outside of, so "no vessel" stays the answer.
         /// </summary>
         [Fact]

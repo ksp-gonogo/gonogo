@@ -2,7 +2,7 @@ export type { AstronautComplexCrewContext } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * The `astronaut-complex.crew-badge` slot: the top-right corner of a kerbal's
- * card, a mark read WITH the name while scanning, where the crew slot is a
+ * card, a mark read with the name while scanning, where the crew slot is a
  * block read once settled on a kerbal. Stock puts nothing here: it is for a
  * state an Uplink holds about a kerbal that KSP's roster does not. Same props
  * as the crew slot.
@@ -10,9 +10,9 @@ export type { AstronautComplexCrewContext } from "@ksp-gonogo/sitrep-sdk";
 export const ASTRONAUT_COMPLEX_CREW_BADGE_SLOT = "astronaut-complex.crew-badge";
 
 /**
- * The `astronaut-complex.tab` slot: a whole TAB beside Applicants and Active,
+ * The `astronaut-complex.tab` slot: a whole tab beside Applicants and Active,
  * absent until an Uplink claims it. Generic on purpose: stock has no concept
- * of what the tab is FOR, so nothing here names one. The augment that binds it
+ * of what the tab is for, so nothing here names one. The augment that binds it
  * supplies its own `label` (`AugmentDefinition.label`), which becomes the
  * tab's label, and its own content, which becomes the tab's panel; the host
  * draws neither.

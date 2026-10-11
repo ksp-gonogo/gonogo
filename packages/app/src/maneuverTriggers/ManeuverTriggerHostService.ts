@@ -55,7 +55,7 @@ import type { PeerHostService } from "../peer/PeerHostService";
  * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()` accessors
  * (`@ksp-gonogo/sitrep-client`): the same `TimelineStore` a mounted widget's
  * `useTelemetry` would read. An armed
- * TRIGGER's own `dataKey` is operator-picked but never arbitrary: the widget's
+ * trigger's own `dataKey` is operator-picked but never arbitrary: the widget's
  * `DataKeyPicker` only offers `@ksp-gonogo/data`'s `useNumericFields`, so the threshold read
  * (`getValue`) and the maneuver-node fire (`dispatchActiveCommand`) both ride
  * the stream, the same way `LocalManeuverTriggerService` does.
@@ -82,7 +82,7 @@ function asFrozenPlanInputs(inputs: unknown): FrozenPlanInputs {
  * is the exception: the instant stays a `Value<"ut">` all the way to the burn.
  *
  * That the element maths is unit-blind is not a hole the unit system should paper
- * over: the values going IN are checked, the burn coming OUT is re-declared,
+ * over: the values going in are checked, the burn coming out is re-declared,
  * and in between is maths that reasons about dimensions the registry has no
  * names for.
  *

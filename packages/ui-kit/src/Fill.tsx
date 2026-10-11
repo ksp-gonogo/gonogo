@@ -19,11 +19,11 @@ export interface FillProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 /**
- * An overlay anchor that fills its parent: a `position: relative` flex column
- * that occupies exactly the space its parent gives it, so an absolutely
- * positioned overlay (e.g. a corner notice pill over a graph) has something to
- * sit on. It draws nothing itself. Full width and height by default; `grow`
- * for a slot nested in another flex column.
+ * A `position: relative` flex column that occupies exactly the space its parent
+ * gives it, and draws nothing itself. Useful as the anchor for an overlay, such
+ * as a corner notice pill over a graph, so the operator sees it on top of the
+ * chart. Used by the atmosphere profile widget. Full width and height by
+ * default; `grow` for a slot nested in another flex column.
  *
  * @category Layout
  */

@@ -4,8 +4,8 @@ namespace Sitrep.Core
 {
     /// <summary>
     /// Tracks which channels currently have at least one subscriber. This is
-    /// the OUTER gate in the streaming-slice-1 sampling pipeline,
-    /// <see cref="ChannelEmitter"/> is the INNER one. A channel with zero
+    /// the outer gate in the streaming-slice-1 sampling pipeline,
+    /// <see cref="ChannelEmitter"/> is the inner one. A channel with zero
     /// subscribers must never be sampled or have <see cref="ChannelEmitter.Decide"/>
     /// called for it at all: the intended call-site shape (future Track C,
     /// <c>Gonogo.KSP.GonogoBodiesServer</c>'s UT-cadence sampling loop) is
@@ -23,8 +23,8 @@ namespace Sitrep.Core
     /// }
     /// </code>
     ///
-    /// i.e. this registry decides WHETHER a channel is looked at all;
-    /// <see cref="ChannelEmitter"/> decides, for a channel that IS looked at,
+    /// i.e. this registry decides whether a channel is looked at all;
+    /// <see cref="ChannelEmitter"/> decides, for a channel that is looked at,
     /// whether that particular sample is worth emitting. Deliberately
     /// separate from <see cref="ChannelEmitter"/> itself (rather than one
     /// class owning both gates) so a caller that already has its own

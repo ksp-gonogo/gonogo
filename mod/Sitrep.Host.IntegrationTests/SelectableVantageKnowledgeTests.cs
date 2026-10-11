@@ -13,7 +13,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para><see cref="ChannelEngine.IsVantageSelectable"/> answers null for the
     /// second, and an alarm's arm refuses each with its own message. The
-    /// distinction only means anything if the NULL genuinely comes off the engine
+    /// distinction only means anything if the null genuinely comes off the engine
     /// in the state that produces it, so these tests take it from a real engine
     /// rather than from a caller's own <c>null</c>: a rule exercised only against
     /// a hand-made value proves the rule and nothing about the instrument feeding
@@ -51,7 +51,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// Once a capture has run, the same two questions get real answers, and
-        /// the one that is not a place answers FALSE rather than null. That is
+        /// the one that is not a place answers false rather than null. That is
         /// what makes the earlier null a statement about the engine's knowledge
         /// rather than about this id.
         /// </summary>

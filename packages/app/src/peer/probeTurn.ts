@@ -6,13 +6,13 @@ import { logger } from "@ksp-gonogo/logger";
  * The user's most painful failure mode is "TURN looks configured but
  * isn't actually reachable from the public internet", usually a
  * missing port-forward on the home router. The proxy can't tell on its
- * own (it's *inside* the NAT). The browser is on the outside relative
+ * own (it's *inside* the nat). The browser is on the outside relative
  * to the relay's container, so it's the right place to check.
  *
  * Method: construct an `RTCPeerConnection` configured with the relay's
  * iceServers, kick off candidate gathering, and watch for a `relay`
  * candidate within a short timeout. Reaching one proves the browser
- * could allocate against TURN end-to-end. Timing out without one means
+ * could allocate against turn end-to-end. Timing out without one means
  * either coturn isn't reachable, the credentials are wrong, or the
  * external-ip coturn is advertising isn't routable from us.
  *

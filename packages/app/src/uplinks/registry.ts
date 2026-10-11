@@ -30,11 +30,11 @@ export interface UplinkVersionDescriptor {
   version: string;
   /** Advisory app-version floor (design §6.3.2): warned on, not gated. */
   minAppVersion: string;
-  /** GATE: the @ksp-gonogo extension-API surface the client was built against. */
+  /** Gate: the @ksp-gonogo extension-API surface the client was built against. */
   apiVersion: string;
-  /** GATE: mirrors the C# ContractVersion.Major stamp. */
+  /** Gate: mirrors the C# ContractVersion.Major stamp. */
   contractMajor: number;
-  /** GATE: mirrors the C# ContractVersion.Minor stamp (additive contract growth). */
+  /** Gate: mirrors the C# ContractVersion.Minor stamp (additive contract growth). */
   contractMinor: number;
   /** Where the client bundle is fetched from (opaque to the loader). */
   bundleUrl: string;
@@ -48,7 +48,7 @@ export interface UplinkVersionDescriptor {
   expectedClientHash?: string | null;
 }
 
-/** One Uplink's registry entry: id MUST match the mod's `[SitrepUplink("id")]`. */
+/** One Uplink's registry entry: id must match the mod's `[SitrepUplink("id")]`. */
 export interface UplinkDescriptor {
   id: string;
   name: string;

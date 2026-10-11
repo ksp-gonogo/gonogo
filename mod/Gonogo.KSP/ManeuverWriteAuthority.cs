@@ -43,24 +43,24 @@ namespace Gonogo.KSP
         /// allows it.
         ///
         /// <para><paramref name="reportingTheCraftAKerbalLeft"/> is
-        /// <c>ActiveVesselScope.SubstitutedForEva</c>, and it is asked SECOND
+        /// <c>ActiveVesselScope.SubstitutedForEva</c>, and it is asked second
         /// rather than folded into the solver arm: with a kerbal outside there
         /// is a vessel, it can hold a plan, and the reason it is not holding a
         /// live one is the EVA rather than a facility tier.</para>
         ///
         /// <para><paramref name="flightPlanningUnlocked"/> is Mission Control's
-        /// switch and is only asked of a write that PLANS. Removing a node is
+        /// switch and is only asked of a write that plans. Removing a node is
         /// the undo, never a capability a player buys, and refusing one because
         /// the building it was planned from has since been downgraded would
         /// strand a node with no way to clear it.</para>
         ///
         /// <para>Every flag is read by the caller off the game, and a facility
-        /// tier that is ABSENT rather than unread reads as its ceiling:
+        /// tier that is absent rather than unread reads as its ceiling:
         /// <c>ScenarioUpgradeableFacilities</c> is a career/mission scenario
         /// (<c>KSPScenario((ScenarioCreationOptions)1056, ...)</c>) and is simply
         /// not in a sandbox save, where there are no facility tiers to be short
         /// of. That is not this rule being lenient, it is what the save means,
-        /// and the facility GATES answer the same way off the same shared
+        /// and the facility gates answer the same way off the same shared
         /// reading (<c>FacilityGateHelp.ReadFacilityTiers</c>) so a control and
         /// the dispatch behind it cannot disagree.</para>
         /// </summary>

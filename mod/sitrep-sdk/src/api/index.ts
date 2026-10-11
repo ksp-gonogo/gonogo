@@ -274,8 +274,10 @@ export type {
 } from "./types";
 
 /**
- * The setting that holds the address of the machine running KSP, which every
- * Uplink connects to. Read it with {@link getGameHost}.
+ * The key of the setting that holds the address of the machine running KSP,
+ * which every Uplink connects to. Useful for saving or watching the address the
+ * operator entered in Settings. Read it with {@link getGameHost}. Used by the
+ * app's telemetry connection to follow changes to the address.
  *
  * @category Host and runtime
  */
@@ -340,15 +342,15 @@ export {
  */
 
 /**
- * Every augment registered to `slot`, in render order. For tests, to check
- * what an Uplink registered with {@link registerAugment}.
+ * Every augment registered to `slot`, in render order. Useful for checking in a
+ * test what an Uplink registered with {@link registerAugment}.
  *
  * @category Extensions
  */
 export const getAugmentsForSlot = (slot: string) =>
   getHost().getAugmentsForSlot(slot);
 /**
- * Empty the augment registry. For tests; a running app never calls it.
+ * Removes every registered augment, so a test starts with none.
  *
  * @category Extensions
  */
@@ -356,9 +358,10 @@ export const clearAugments = (): void => {
   getHost().clearAugments();
 };
 /**
- * Renders a component inside another widget's slot. Call it once, when the
- * module loads. Several augments may fill one slot, and all of them render,
- * ordered by `priority`.
+ * Adds a component that draws inside a slot another widget opens. Useful for
+ * showing the operator extra information from your Uplink inside a widget you
+ * do not own. Call it once, when the module loads. Several augments may fill
+ * one slot, and all of them render, ordered by `priority`.
  *
  * `component` is checked against the props the slot passes, so an augment of a
  * misspelled slot does not typecheck.
@@ -452,7 +455,9 @@ export {
 } from "./uplink-handles";
 
 /**
- * Declares an Uplink client and returns its handle. Call it once per client.
+ * Declares an Uplink client and returns its handle, which names the Uplink in
+ * the add-widget picker and in the alarms and registrations it makes. Call it
+ * once per client.
  *
  * Pass the handle as `owner` to every `registerComponent` and
  * {@link registerAugment} call the client makes, and register contributions
@@ -467,8 +472,9 @@ export const defineUplinkClient = (
 ): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
 /**
- * Adds a custom tab to the app's Settings. Prefer `registerSetting`, which the
- * app renders for you.
+ * Adds a custom tab to the app's Settings, drawn by your own component. Useful
+ * for giving the operator a settings page that rows cannot describe. Prefer
+ * `registerSetting`, which the app renders for you.
  *
  * @category Settings
  */
@@ -477,7 +483,8 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
 
 /**
  * Adds a setting the app draws in its Settings, in place of a whole custom tab
- * ({@link registerSettingsTab}). A client setting is saved in the browser; a
+ * ({@link registerSettingsTab}). Useful for letting the operator change or
+ * read one value of your Uplink. A client setting is saved in the browser; a
  * setting the mod publishes on a Topic is shown and cannot be changed here. A
  * row is `boolean`, `text` or `number`, can be `readOnly`, and can be filed in a
  * named `group` within its category. See {@link SettingDefinition}.
@@ -512,16 +519,18 @@ export function registerSetting(
 }
 
 /**
- * Whether a registered row is one the operator can change. The renderer's own
- * rule, exported so an Uplink asking the same question of its own definitions
- * gets the same answer: a `stream-backed` row is read-only whether or not it
- * said so.
+ * Whether a registered row is one the operator cannot change (`isReadOnlySetting`),
+ * and the type of a row's value (`settingTypeOf`). A `stream-backed` row is
+ * read-only whether or not it said so. Useful for showing the operator a
+ * control only when the row can be changed. Used by the app's settings rows.
  */
 export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
 
 /**
  * Subscribes to a Topic and returns its latest {@link TopicReading}: the
- * payload together with how current it is.
+ * payload together with how current it is. Useful for showing the operator
+ * what a vessel or the game is doing and whether that is current. Used by the
+ * space centre status widget.
  *
  * The payload as a whole, `reading.value`, is only there when `state` is
  * `"observed"`, or `"held"` for a held value, so check `state` before reading
@@ -586,10 +595,10 @@ export function useTelemetry<Topic extends TopicId>(
 }
 
 /**
- * Returns the instant the screen is showing, as a UT. Under signal delay, or
- * while a recording is scrubbed, this is not the game's present. Subtract it
- * from an absolute UT to get a duration to show, such as the time to an
- * event.
+ * Returns the instant the screen is showing, as a UT. Useful for showing the
+ * operator a countdown or an age, by subtracting it from an absolute UT such as
+ * the time to an event. Used by the GO/NO-GO panel. Under signal delay, or
+ * while a recording is scrubbed, this is not the game's present.
  *
  * `undefined` when no telemetry stream is mounted. It never falls back to the
  * browser's clock.
@@ -634,8 +643,11 @@ export function useViewUt(): Value<"ut"> | undefined {
 }
 
 /**
- * Returns a handle for sending one command: `send` takes the command's
- * arguments and resolves with its reply. See {@link UseCommandResult}.
+ * Returns a handle for sending one command from the command centre to the
+ * game: `send` takes the command's arguments and resolves with its reply. See
+ * {@link UseCommandResult}. Useful for letting the operator act on a vessel or
+ * the space centre. Used by the space centre status widget to upgrade a
+ * facility.
  *
  * `send` resolves only when the command has run. When the game refuses it,
  * `send` rejects with an error carrying a `CommandErrorCode`; when no reply
@@ -689,7 +701,8 @@ export function useCommand<Command extends CommandId>(
 ): UseCommandResult<CommandArgs<Command>, CommandReply<Command>>;
 /**
  * Returns a handle for a command whose id is not in {@link CommandArgsMap},
- * such as one whose id is built at runtime. Name the argument and reply types
+ * such as one whose id is built at runtime. Useful for sending a command the
+ * operator picks while the screen runs. Name the argument and reply types
  * yourself, or the arguments are `unknown` and the reply is
  * {@link AnyCommandReply}.
  *
@@ -720,7 +733,9 @@ export function useCommand(
 }
 
 /**
- * Sends the commands the callback makes as one group. Every `send` on a
+ * Sends the commands the callback makes as one group. Useful for letting the
+ * operator fire several controls together, such as staging and switching on
+ * SAS at once. Every `send` on a
  * `useCommand` handle made while the callback runs is held back, and when it
  * returns they go to the game as a single message: one place in the craft's
  * command order, delivered whole or not at all, refused whole if any one of them
@@ -759,12 +774,13 @@ export function sendTogether(build: () => void): CommandGroupHandle {
 }
 
 /**
- * Calls one of an Uplink's own methods from a widget, on any screen.
+ * Calls one of an Uplink's own methods from a widget, on any screen. Useful for
+ * a widget on a station that needs something only the main screen holds, such
+ * as a video connection to answer or an inventory to fetch.
  *
  * It is for calls an Uplink's client makes to an object of its own on the main
- * screen: a WebRTC offer to answer, an inventory to fetch, anything whose shape
- * only that Uplink knows. A Topic carries what the game is doing and a command
- * changes it; this is neither. Register an object under the Uplink's id with
+ * screen, whose shape only that Uplink knows. A Topic carries what the game is
+ * doing and a command changes it; this is neither. Register an object under the Uplink's id with
  * {@link registerUplinkHandle}, give it a `relay(method, args)` function that
  * answers each call, then call it from any widget with this: the function this
  * returns takes the same `method` and `args` and resolves with what `relay`
@@ -819,11 +835,12 @@ export function useUplinkRelay(uplinkId: string) {
 }
 
 /**
- * The ICE servers the main screen hands out, for an Uplink opening a media
- * connection from a station.
+ * The ICE servers the main screen hands out to its stations, for an Uplink
+ * opening a media connection from a station. Useful for showing the operator a
+ * video feed on a station.
  *
- * ICE servers are the STUN and TURN servers a WebRTC connection uses to find a
- * path between two browsers; TURN ones carry short-lived credentials from the
+ * ICE servers are the STUN and turn servers a WebRTC connection uses to find a
+ * path between two browsers; turn ones carry short-lived credentials from the
  * relay the Gonogo deployment runs. A station cannot reach the relay that
  * issues them, so the main screen broadcasts them and this reads them. Empty on
  * the main screen itself, which reaches the relay directly.
@@ -862,8 +879,9 @@ export function useHostIceServers() {
 
 /**
  * Returns every command travelling to `topic`, whichever command centre sent
- * it, and the state of the link. A handle from {@link useCommand} lists only
- * the commands that handle sent.
+ * it, and the state of the connection to the vessel. Useful for showing the
+ * operator everything waiting to reach one control. A handle from
+ * {@link useCommand} lists only the commands that handle sent.
  *
  * @category Commands
  */
@@ -873,13 +891,13 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
 
 /**
  * Reads a Topic by a string id and returns its {@link TopicReading}, in the
- * same states as {@link useTelemetry}.
+ * same states as {@link useTelemetry}. Useful for showing the operator a Topic
+ * that has no {@link TopicId}: a derived channel such as `"system.state"`, an
+ * Uplink's own Topic, or a Topic whose id is built at runtime such as
+ * `vessel.partActions.<flightId>`. Used by the space centre status widget.
  *
- * Use it for a Topic that has no {@link TopicId}: a derived channel such as
- * `"system.state"`, an Uplink's own Topic, or a Topic whose id is built at
- * runtime such as `vessel.partActions.<flightId>`. `Payload` is whatever you
- * pass and nothing checks it, so prefer {@link useTelemetry} wherever the
- * Topic has a `TopicId`.
+ * `Payload` is whatever you pass and nothing checks it, so prefer
+ * {@link useTelemetry} wherever the Topic has a `TopicId`.
  *
  * @category Reading telemetry
  */
@@ -888,7 +906,9 @@ export function useStream<Payload>(topic: string): TopicReading<Payload> {
 }
 
 /**
- * Reads the settings of one Uplink's mod, as that mod reports them. Change a
+ * Reads the settings of one Uplink's mod, as that mod reports them. Useful for
+ * showing the operator the values the game's mod is running with. Used by the
+ * mod settings section of the settings modal. Change a
  * writable setting with the `settings.mod.write` command (listed in
  * {@link CommandArgsMap}), then read the change here rather than from the
  * command's reply.
@@ -904,7 +924,8 @@ export function useModSettings(
 }
 
 /**
- * A contribution dependency on one setting of an Uplink's host mod. Both names
+ * A contribution dependency on one setting of an Uplink's host mod. Useful for
+ * making a contribution recompute when the operator changes that setting. Both names
  * are checked against `ModSettingsRegistry`, so an Uplink or a setting nobody
  * declared does not compile, and `compute` receives the value under
  * `settings.<uplink>.<key>` as the type the registry declares. Until an Uplink
@@ -934,7 +955,8 @@ export function modSettingDep<
 
 /**
  * Returns a processor's value for the current frame, and re-renders when it
- * changes. Pass the handle that {@link UplinkClientHandle.registerProcessor}
+ * changes. Useful for showing the operator a figure derived from several
+ * Topics, such as a vessel's delta-v budget. Used by the maneuver planner. Pass the handle that {@link UplinkClientHandle.registerProcessor}
  * returned, or a handle the SDK publishes such as {@link CELESTIAL_FACTS}; the
  * result is typed from the handle. A frame is one batch of new samples
  * published by the app's telemetry store; the processor runs once per frame
@@ -963,9 +985,9 @@ export function useProcessor<Result, Carried extends boolean>(handle: {
 }
 
 /**
- * Returns the view clock every widget on the screen renders against, for code
- * that needs the clock itself rather than the current time: to run on each
- * frame, or to read the latest instant that may be shown. For the current
+ * Returns the view clock every widget on the screen renders against. Useful for
+ * code that needs the clock itself: to run on each frame, or to read the latest
+ * instant that may be shown, as a delayed video player does. For the current
  * time, use {@link useViewUt}.
  *
  * Throws when no telemetry stream is mounted; {@link useViewClockOptional}
@@ -986,7 +1008,9 @@ export function useViewClock(): DelayClockLike {
 
 /**
  * Connects a widget's declared actions to handlers, so an input the operator
- * has bound, such as a key or a joystick button, fires them. Keys are the
+ * has bound, such as a key or a joystick button, fires them. Useful for
+ * letting the operator drive a widget without the mouse. Used by the target
+ * picker. Keys are the
  * action ids from {@link ComponentDefinition.actions}, which the widget must
  * declare when it registers, or no operator can bind them. An operator binds
  * an input to an action on the widget's Inputs tab, in its settings. What a
@@ -1058,9 +1082,10 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
 /**
  * Every registered data source with its connection status, re-rendering when
  * a status changes. Each element is `{ id, name, status }`, with `status` a
- * {@link DataSourceStatus}.
+ * {@link DataSourceStatus}. Useful for showing the operator a connection banner
+ * or a diagnostics panel. Used by the Settings connection rows.
  *
- * For a connection banner or a diagnostics panel. It says nothing about the
+ * It says nothing about the
  * game's telemetry stream, which is not a registered source: a widget reads
  * how current its own data is from the {@link Reading} {@link useTelemetry}
  * returns.
@@ -1073,10 +1098,12 @@ export function useDataSources(): DataSourceState[] {
 
 /**
  * Returns the latest value received on `topic`, without the signal delay and
- * without a state: `undefined` until something arrives.
+ * without a state: `undefined` until something arrives. Useful for showing the
+ * operator a value about the command centre itself, such as the one-way delay
+ * to a vessel. Used by the signal delay readout.
  *
  * Only for values about the command centre itself, such as when a command was
- * sent or the state of a link. A value about a craft must be read with
+ * sent or the state of the connection to a vessel. A value about a craft must be read with
  * {@link useTelemetry} or {@link useStream}, which hold it back by the signal
  * delay.
  *
@@ -1090,8 +1117,9 @@ export function useLatestValue<Payload = unknown>(
 
 /**
  * Calls `handler` once for each event delivered on `topic`, such as a crash.
- * For a Topic that carries events rather than a value that changes; a value is
- * read with {@link useStream}.
+ * Useful for telling the operator when something happens, on a Topic that
+ * carries events rather than a value that changes. Used by the radio
+ * transmission detector. A value is read with {@link useStream}.
  *
  * @category Reading telemetry
  */
@@ -1103,8 +1131,9 @@ export function useStreamEvent<Payload = unknown>(
 }
 
 /**
- * Returns a function that subscribes to Topics from code, for Topics you only
- * know after some setup finishes, or whose number changes at runtime. See
+ * Returns a function that subscribes to Topics from code. Useful for showing
+ * the operator Topics you only know after some setup finishes, or whose number
+ * changes at runtime. See
  * {@link LateTelemetrySubscribe}. The function is the same on every render.
  *
  * @category Reading telemetry
@@ -1115,8 +1144,10 @@ export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
 
 /**
  * Returns the instant the screen is showing, in UT seconds as a plain number,
- * and re-renders on each frame. `undefined` when no telemetry stream is
- * mounted. {@link useViewUt} returns the same instant as a `Value<"ut">`.
+ * and re-renders on each frame. Useful for stamping or ageing events on the
+ * view time. Used by the radio transmission detector. `undefined` when no
+ * telemetry stream is mounted. {@link useViewUt} returns the same instant as a
+ * `Value<"ut">`.
  *
  * @category Delay and vantage
  */
@@ -1126,9 +1157,10 @@ export function useUtNow(): number | undefined {
 
 /**
  * Returns the store that holds the received history of every Topic, or
- * `undefined` when no telemetry stream is mounted. Its one use for an Uplink is
- * to test whether a stream is mounted, which is whether this is `undefined`:
- * the store's type is not published, which is why the return is `unknown`.
+ * `undefined` when no telemetry stream is mounted. Useful for deciding whether
+ * to show the operator telemetry at all: an Uplink's one use is to test
+ * whether a stream is mounted, which is whether this is `undefined`. The
+ * store's type is not published, so the return is `unknown`.
  * Read a Topic with {@link useTelemetry} or {@link useStream}.
  *
  * @category Reading telemetry
@@ -1139,7 +1171,8 @@ export function useTelemetryStoreOptional(): unknown {
 
 /**
  * Returns the same clock as {@link useViewClock}, or `undefined` when no
- * telemetry stream is mounted.
+ * telemetry stream is mounted. Useful for a component that also renders with
+ * no stream, such as a mission banner.
  *
  * @category Delay and vantage
  */
@@ -1149,8 +1182,9 @@ export function useViewClockOptional(): DelayClockLike | undefined {
 
 /**
  * Returns the {@link TelemetryClient} of the most recently mounted telemetry
- * stream, or `undefined` when none is mounted. For code outside a React
- * component; a component uses {@link useTelemetryClientOptional}.
+ * stream, or `undefined` when none is mounted. Useful for code outside a React
+ * component that needs to reach the stream; a component uses
+ * {@link useTelemetryClientOptional}.
  *
  * @category Reading telemetry
  */
@@ -1160,7 +1194,8 @@ export function getActiveTelemetryClient(): TelemetryClient | undefined {
 
 /**
  * Returns the {@link TelemetryClient} of the telemetry stream this component
- * is mounted under, or `undefined` when there is none.
+ * is mounted under, or `undefined` when there is none. Useful for a component
+ * that reaches the stream directly and must still render without one.
  *
  * @category Reading telemetry
  */
@@ -1170,7 +1205,8 @@ export function useTelemetryClientOptional(): TelemetryClient | undefined {
 
 /**
  * Returns whether the screen is playing back a recorded flight rather than
- * showing the live game.
+ * showing the live game. Useful for telling the operator that what they see is
+ * a recording, or for hiding controls that act on the live game.
  *
  * @category Delay and vantage
  */
@@ -1179,8 +1215,9 @@ export function useReplaySessionActive(): boolean {
 }
 
 /**
- * The address of the machine running KSP, which every Uplink connects to: the
- * address saved in Settings, or else the host the app was deployed with
+ * The address of the machine running KSP, which every Uplink connects to.
+ * Useful for opening a connection to a service on that machine. Used by the
+ * app's telemetry connection. It is the address saved in Settings, or else the host the app was deployed with
  * (the `KSP_HOST` setting of the deployment), or else the build's
  * `VITE_SITREP_HOST` build variable, or else `localhost`. It carries no port;
  * each service adds its own.
@@ -1206,7 +1243,8 @@ export function getGameHost(): string {
 
 /**
  * Every contribution that wins a slot: the highest priority band present, in
- * registration order.
+ * registration order. Useful for drawing what Uplinks have handed a widget in
+ * its slot.
  *
  * @category Extensions
  */
@@ -1216,7 +1254,8 @@ export function getContributionsForSlot(slot: string): AnyContribution[] {
 
 /**
  * Calls `cb` whenever a contribution is registered or removed. Returns the
- * function that stops it.
+ * function that stops it. Useful for redrawing a slot when its contributions
+ * change.
  *
  * @category Extensions
  */
@@ -1225,7 +1264,7 @@ export function onContributionsChange(cb: () => void): () => void {
 }
 
 /**
- * Empty the contribution registry. For tests; a running app never calls it.
+ * Removes every registered contribution, so a test starts with none.
  *
  * @category Extensions
  */
@@ -1243,8 +1282,9 @@ export function clearContributions(): void {
 export { logger } from "./logger";
 
 /**
- * Renders every augment registered to the slot `name`, where a widget that
- * owns the slot places it. An Uplink that only fills another widget's slot
+ * Draws every augment registered to the slot `name`, where the widget that
+ * owns the slot places it. Useful for letting other Uplinks add to your
+ * widget. An Uplink that only fills another widget's slot
  * never renders this: it calls {@link registerAugment}.
  *
  * `props` is checked against the slot's {@link SlotProps}. An augment whose
@@ -1279,7 +1319,9 @@ export function AugmentSlot<Slot extends string>(props: {
 
 /**
  * Creates a performance budget: a count of events, such as samples, over a
- * rolling window, that logs a warning when it goes over `threshold`. Call
+ * rolling window, that logs a warning when it goes over `threshold`. Useful for
+ * catching a runaway loop or a duplicated subscription that would slow the
+ * operator's dashboard. Call
  * `record()` on the handle for each event. In the running app that warning is
  * all it does. In a test run that has called `installTestGate()` on
  * {@link PerfBudget}, a test that pushes a budget over its threshold fails.
@@ -1365,9 +1407,9 @@ export {
   registerRevealedEventSource,
 } from "./event-reveal";
 /**
- * A small typed wrapper around `localStorage`. Stateless (no module-global
- * registry): a byte-for-byte port of `@ksp-gonogo/data`'s implementation,
- * not a re-export. See `./localStorageStore.ts`'s module header for why.
+ * A small typed wrapper around `localStorage`, for keeping a client's own
+ * values in the browser. Useful for remembering what the operator chose on this
+ * screen. Used by the app's alarm and mission profile services.
  */
 export { LocalStorageStore } from "./localStorageStore";
 export {

@@ -4,8 +4,8 @@ using Xunit;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// The stamp is a SNAPSHOT of the ledger, so the two must agree at the
-    /// instant it is taken. If they can drift, a sample records a light-time
+    /// The stamp is a snapshot of the ledger, so the two must agree at the
+    /// instant it is taken. If they can drift, a sample records a signal delay
     /// nothing else in the engine believes, and every delivery timed off it is
     /// wrong in a way no delay test would notice.
     /// </summary>
@@ -46,7 +46,7 @@ namespace Sitrep.Core.Tests
         /// A stamp is handed out by reference while the ledger holds still, and
         /// a fresh one the moment it moves. Every recorded sample asks for one,
         /// so an allocation per record would be the cost the sharing exists to
-        /// avoid, and a STALE one after a reroute would reintroduce the defect
+        /// avoid, and a stale one after a reroute would reintroduce the defect
         /// the stamp was added to fix.
         /// </summary>
         [Fact]

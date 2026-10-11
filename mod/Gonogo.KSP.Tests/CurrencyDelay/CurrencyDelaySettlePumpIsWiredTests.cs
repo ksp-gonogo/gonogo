@@ -8,7 +8,7 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     /// scenario's per-frame tick, and from nowhere else.
     ///
     /// <para><b>The defect this sits in.</b> A science or reputation change under
-    /// a vessel-bearing reason that never gets a vessel is DEFERRED, and Deferred
+    /// a vessel-bearing reason that never gets a vessel is deferred, and Deferred
     /// is the one outcome that deliberately leaves the shadow behind. Settling it
     /// is what catches the shadow back up. It shipped reachable only from inside
     /// the next <c>On*Changed</c> of the same currency, so a change nothing ever

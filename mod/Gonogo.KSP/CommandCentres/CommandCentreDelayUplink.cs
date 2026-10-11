@@ -19,11 +19,11 @@ namespace Gonogo.KSP.CommandCentres
     /// publishes <c>commandCentre.roster</c> (Plan 3). Owns the command-centre
     /// sources + registry; the same registry instance is registered on the
     /// ChannelEngine (by the addon) so set-vantage validation and this delay pass
-    /// see the SAME centres.
+    /// see the same centres.
     ///
-    /// <para>Two sampled sources, deliberately: the matrix pass writes ENGINE
-    /// STATE that command dispatch and currency spends read, so it runs
-    /// UNGATED; the roster is an ordinary published channel and stays
+    /// <para>Two sampled sources, deliberately: the matrix pass writes engine
+    /// state that command dispatch and currency spends read, so it runs
+    /// ungated; the roster is an ordinary published channel and stays
     /// subscription-gated. See <see cref="Register"/>.</para>
     /// </summary>
     public sealed class CommandCentreDelayUplink : ISitrepUplink
@@ -35,7 +35,7 @@ namespace Gonogo.KSP.CommandCentres
         public const string ActiveVesselDelayTopic = "commandCentre.activeVesselDelay";
 
         /// <summary>
-        /// Soft cap on graph SOLVES per pass. Every row but home's and every
+        /// Soft cap on graph solves per pass. Every row but home's and every
         /// centre-to-centre row runs a Dijkstra over the whole node list, in the
         /// elected backend's own router, unlike the home rows, which only read a
         /// path the game has already solved. The count is centres x
@@ -98,7 +98,7 @@ namespace Gonogo.KSP.CommandCentres
         };
 
         /// <summary>
-        /// Registers the delay matrix pass, UNGATED. Its output is not a topic:
+        /// Registers the delay matrix pass, ungated. Its output is not a topic:
         /// it is the (vantage, node) delay ledger the engine consults when it
         /// schedules a command, and centre-to-centre rows price currency
         /// spends. Riding it on a topic-prefix gate, as it used to, made every
@@ -116,7 +116,7 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>
         /// MAIN-THREAD capture: enumerate the active centres and compute a delay
-        /// row for each against every fleet subject AND against every other
+        /// row for each against every fleet subject and against every other
         /// centre. Both subject namespaces are captured here because both are KSP
         /// reads (a graph solve), and KSP reads only happen on this thread.
         /// </summary>
@@ -294,15 +294,15 @@ namespace Gonogo.KSP.CommandCentres
                 ? VesselViewProvider.TryGetActiveVesselId(snapshot)
                 : ActiveVesselScope.Current?.id.ToString();
 
-        /// <summary>MAIN THREAD: every active centre as a roster entry, home marked. What the contact plan source makes each centre's own roster from.</summary>
+        /// <summary>Main thread: every active centre as a roster entry, home marked. What the contact plan source makes each centre's own roster from.</summary>
         internal List<CommandCentreEntry> RosterNow() => ToRoster(_registry.EnumerateActive(), _home());
 
         /// <summary>
         /// One-way seconds from a centre to a subject vessel. The home command, as the
-        /// elected claimant names it, reuses the subject's OWN routed light-time via
+        /// elected claimant names it, reuses the subject's own routed signal delay via
         /// <see cref="FleetCommsReader.ReadVessel"/>, so the explicit (home, fleet.&lt;guid&gt;)
         /// row equals Plan 2's node-default (home parity, T13): the vessel's solved path
-        /// home IS the path to that centre, and re-solving it here could only introduce a
+        /// home is the path to that centre, and re-solving it here could only introduce a
         /// discrepancy. Any other centre, and every centre when no home is identified,
         /// solves the graph between its own node and the subject's.
         ///
@@ -476,7 +476,7 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>
         /// One-way seconds between two command centres, over the route the
-        /// ELECTED BACKEND finds between their nodes. A centre with no node
+        /// elected backend finds between their nodes. A centre with no node
         /// cannot be routed to or from at all, which is the same "unroutable" the
         /// roster already publishes for it.
         /// </summary>

@@ -114,14 +114,14 @@ namespace Sitrep.Contract
         public string Frame { get; }
 
         /// <summary>
-        /// The <see cref="Frames"/> token this value is in INSTEAD when
+        /// The <see cref="Frames"/> token this value is in instead when
         /// <see cref="SelectedBy"/> is true. Declared with
         /// <see cref="SelectedBy"/> or not at all.
         /// </summary>
         public string? WhenSet { get; set; }
 
         /// <summary>
-        /// The camelCased name of a <c>bool</c> property on the SAME payload that
+        /// The camelCased name of a <c>bool</c> property on the same payload that
         /// says which of <see cref="Frame"/> and <see cref="WhenSet"/> applies to
         /// this tick's value.
         ///

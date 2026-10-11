@@ -12,14 +12,14 @@ import { solveKepler as coreSolveKepler } from "./calc/trajectory";
  * What any solver of Kepler's equation must satisfy, applied to every
  * implementation in the repo that has one.
  *
- * Written BEFORE increment 6 consolidates the client-side implementations, and that
+ * Written before increment 6 consolidates the client-side implementations, and that
  * is the whole reason it exists: the finding that one of them returns non-solutions
  * from e = 0.994 upward lived in a report and in a probe that was deleted. The
  * finding is durable, the instrument that found it was not, and after a
  * consolidation the only way to know the survivor is the right one is to have had
  * the check in the repo beforehand.
  *
- * The primary check is the RESIDUAL, `|E - e sin(E) - M|`. It is self-validating in
+ * The primary check is the residual, `|E - e sin(E) - M|`. It is self-validating in
  * a way a golden fixture is not: a fixture can be satisfied by capturing a wrong
  * implementation's output and calling it expected, which is exactly how a wrong
  * solver survives, whereas a residual can only be satisfied by actually solving the
@@ -58,7 +58,7 @@ interface Grid {
   publishedTriples: PublishedTriple[];
 }
 
-/** Published values are stored in the units they were PRINTED in, so no transcription happens in the fixture. */
+/** Published values are stored in the units they were printed in, so no transcription happens in the fixture. */
 function toRadians(value: number, units: "degrees" | "radians"): number {
   return units === "degrees" ? (value * Math.PI) / 180 : value;
 }
@@ -98,7 +98,7 @@ function residual(E: number, e: number, M: number): number {
 }
 
 /**
- * How far E is allowed to move for a round trip, DERIVED rather than picked. The map
+ * How far E is allowed to move for a round trip, derived rather than picked. The map
  * M -> E is stiff near periapsis of a very eccentric orbit (`dE/dM = 1 / (1 - e cos
  * E)`, which is 1e5 at e = 0.99999), so a fixed tolerance in E would either be too
  * loose everywhere or fail on conditioning alone where the suite matters most.
@@ -110,14 +110,14 @@ function allowedEccentricAnomalyError(E: number, e: number): number {
 
 /**
  * The fraction of the ellipse's area swept from periapsis out to eccentric anomaly
- * E, by the radius vector from the OCCUPIED FOCUS, integrated numerically.
+ * E, by the radius vector from the occupied focus, integrated numerically.
  *
  * This is the check of a different kind. The residual cannot tell a correct equation
  * from a consistently-wrong one, and the brief's remedy for that was two or three
  * externally-published triples; I could not source any I would stand behind (see
  * `publishedTriplesNote` in the fixture). This closes the same gap without needing a
  * trusted number, by deriving the relationship from somewhere else entirely: Kepler's
- * SECOND law says the radius sweeps equal areas in equal times, so the swept fraction
+ * second law says the radius sweeps equal areas in equal times, so the swept fraction
  * must equal M / 2pi by definition of the mean anomaly. Nothing here uses Kepler's
  * equation, only the ellipse's own parametrisation `(a(cos E - e), b sin E)` and
  * Simpson's rule, so a misstated equation (a sign flip, a `tan` for a `sin`) fails
@@ -147,7 +147,7 @@ function sweptAreaFraction(E: number, e: number, intervals: number): number {
 /**
  * The implementations this suite can actually reach, and the ones it cannot.
  *
- * There is now ONE Newton iteration on this equation in the repo, in
+ * There is now one Newton iteration on this equation in the repo, in
  * `sitrep-sdk/src/spine/kepler.ts`. The entries below are the public names that reach
  * it; each is pinned separately so that giving any of them an implementation of its
  * own again is caught here rather than discovered later.

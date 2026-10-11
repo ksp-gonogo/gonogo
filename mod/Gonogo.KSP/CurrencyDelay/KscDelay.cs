@@ -9,7 +9,7 @@ namespace Gonogo.KSP.CurrencyDelay
         Instant,
         /// <summary>A live CommNet control path whose last hop is home. The one and only way a delay gets measured.</summary>
         Routed,
-        /// <summary>No route home. NOT a delay of any length, an absence of one.</summary>
+        /// <summary>No route home. Not a delay of any length, an absence of one.</summary>
         Unroutable,
     }
 
@@ -22,8 +22,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <see cref="KscDelayKind.Unroutable"/> case first, before reading the
     /// seconds.</para>
     ///
-    /// <para>The rule it enforces: a currency event is delayed by exactly ONE
-    /// number, the one-way light-time of a live control path whose last hop is
+    /// <para>The rule it enforces: a currency event is delayed by exactly one
+    /// number, the one-way signal delay of a live control path whose last hop is
     /// home. There is no second way to compute a delay, and specifically no
     /// straight-line distance fallback, a chord through the planet a craft is
     /// hiding behind is not a signal path.</para>
@@ -44,7 +44,7 @@ namespace Gonogo.KSP.CurrencyDelay
         public KscDelayKind Kind { get; }
 
         /// <summary>
-        /// A measured one-way light-time. Rejects a negative or non-finite
+        /// A measured one-way signal delay. Rejects a negative or non-finite
         /// value rather than carrying it into the ledger, where it would
         /// reveal in the past.
         /// </summary>
@@ -63,7 +63,7 @@ namespace Gonogo.KSP.CurrencyDelay
 
         /// <summary>
         /// The seconds to add to the event UT, for the two kinds that have
-        /// one. THROWS for <see cref="KscDelayKind.Unroutable"/>: there is no
+        /// one. Throws for <see cref="KscDelayKind.Unroutable"/>: there is no
         /// number to give, and returning zero is the defect this type exists to
         /// prevent. Call sites must branch on <see cref="IsUnroutable"/> and
         /// queue the event Blocked instead.

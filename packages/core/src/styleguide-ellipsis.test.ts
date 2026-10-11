@@ -52,7 +52,7 @@ const ELLIPSIS = "\u2026";
  * Its presence is structural rather than maintained: the string is its own
  * only occurrence, so it cannot be deleted while the const still compiles, and
  * editing the value edits the thing being searched for. What the control
- * therefore tests is the SCAN, not the needle, which is the half that breaks.
+ * therefore tests is the scan, not the needle, which is the half that breaks.
  */
 const SCAN_CONTROL = "ellipsis-scan-control-4f7a2c";
 

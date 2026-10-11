@@ -5,7 +5,7 @@ import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SceneChangeBanner } from "./SceneChangeBanner";
 
 /**
- * What `SceneChangeBanner` DOES today when `spaceCenter.scene` reads
+ * What `SceneChangeBanner` does today when `spaceCenter.scene` reads
  * `undefined`, recorded before `useTelemetry` starts returning a `Reading`.
  *
  * Two absence gates decide everything here, and they are chained:
@@ -17,7 +17,7 @@ import { SceneChangeBanner } from "./SceneChangeBanner";
  * scene remembered.
  *
  * Consequence worth naming: the banner is announce-on-edge, so "skip" is not
- * neutral. A gap in the stream is silently absorbed, and the NEXT scene to
+ * neutral. A gap in the stream is silently absorbed, and the next scene to
  * arrive is compared against the scene from before the gap. That is the
  * behaviour the migration reassigns, and it is recorded here rather than judged.
  */
@@ -27,7 +27,7 @@ const STORAGE_KEY = "gonogo.scene-banner.lastSeen";
 /**
  * The raw read, so a test about which absence it got records which one.
  *
- * The distinction lives in the reading's ARM: `pending` for nothing-yet and
+ * The distinction lives in the reading's arm: `pending` for nothing-yet and
  * `absent` for a confirmed tombstone.
  */
 function SceneProbe() {
@@ -146,7 +146,7 @@ describe("SceneChangeBanner: what undefined means for spaceCenter.scene today", 
    * Recorded prior behaviour: "treats a whole-topic tombstone the same as pending".
    * It genuinely did, because both reached the widget as a falsy read. They are now
    * different arms, `absent` and `pending`, and the probe below shows the widget
-   * being TOLD which one it has. What the banner does with them is unchanged and
+   * being told which one it has. What the banner does with them is unchanged and
    * deliberately so: neither is a scene, so neither is a transition to announce.
    */
   it("is told a tombstone apart from pending, and still banners across the gap", () => {

@@ -107,7 +107,7 @@ export class Kernel {
   private readonly activeInstances = new Map<CapabilityId, unknown[]>();
   /**
    * Vanilla instances built during the current resolution, one per capability.
-   * Shared between `ctx.vanilla()` and the fallback path so a capability has ONE
+   * Shared between `ctx.vanilla()` and the fallback path so a capability has one
    * vanilla rather than one on the wire and a second some provider is quietly
    * consulting.
    */
@@ -209,7 +209,7 @@ export class Kernel {
    * An ambiguous exclusive election is reported as one "ambiguous" notice per
    * tied provider, and any other selection failure (a provider's own
    * `canServe` throwing, say) as one "selection-failed" notice. Either way the
-   * capability is left UNRESOLVED: no instance, and no vanilla either, since
+   * capability is left unresolved: no instance, and no vanilla either, since
    * falling back would be the kernel quietly picking a winner, which is what
    * the ambiguity rule refuses to do.
    *
@@ -287,18 +287,18 @@ export class Kernel {
   }
 
   /**
-   * Ability-to-serve pass: runs BEFORE exclusive selection, so a provider that
-   * cannot serve the capability on this install is not a CANDIDATE and the
+   * Ability-to-serve pass: runs before exclusive selection, so a provider that
+   * cannot serve the capability on this install is not a candidate and the
    * runner-up wins the election outright.
    *
    * <p>This is deliberately not the same thing as declining from the factory.
    * A factory decline happens after the winner is already chosen, so for an
-   * exclusive capability it falls through to VANILLA and the runner-up never
+   * exclusive capability it falls through to vanilla and the runner-up never
    * gets a look in. That is the wrong answer when another provider could have
    * served: the capability ends up unserved because the provider that could
    * not do it got there first. Withdrawing here means priority order stops
    * mattering, which is the point, since a provider that models nothing should
-   * lose to one that models something at ANY relative priority.</p>
+   * lose to one that models something at any relative priority.</p>
    *
    * <p>Evaluated at resolve time, never at registration: a mod registers
    * during game load, when its own settings may not be parsed yet, so a
@@ -327,7 +327,7 @@ export class Kernel {
   }
 
   /**
-   * Version-gate pass (Task 5): runs BEFORE exclusive/shared selection, so
+   * Version-gate pass (Task 5): runs before exclusive/shared selection, so
    * ambiguity (Task 4) is computed only over providers compatible with the
    * running kernel/mod version. A provider whose `versions.minKernelVersion`
    * exceeds `opts.kernelVersion`, or whose `versions.targetModVersionRange`
@@ -484,7 +484,7 @@ export class Kernel {
    * Empty `providers` (from either exclusive or shared selection) falls
    * back to the capability's vanilla factory.
    *
-   * A factory that THROWS does not take the capability, or the rest of the
+   * A factory that throws does not take the capability, or the rest of the
    * resolution, down with it. Winning an election is not the same as being
    * able to run: a provider compiled against an older contract fails its
    * vtable setup at instantiation, long after selection has already declared

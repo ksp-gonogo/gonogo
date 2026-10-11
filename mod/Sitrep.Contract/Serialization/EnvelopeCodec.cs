@@ -19,7 +19,7 @@ namespace Sitrep.Contract.Serialization
     /// TypeScript SDK serializes for the same message.</para>
     ///
     /// <para>Optional properties (TS <c>foo?: T</c>, C# <c>string?</c> or
-    /// <c>double?</c>) are OMITTED from the object when null, matching
+    /// <c>double?</c>) are omitted from the object when null, matching
     /// <c>JSON.stringify</c>'s treatment of <c>undefined</c>, and are never
     /// written as an explicit <c>null</c>. The always-present generic
     /// <c>Payload</c>, <c>Args</c> and <c>Result</c> fields are the opposite: a

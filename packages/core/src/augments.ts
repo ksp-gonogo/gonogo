@@ -41,8 +41,8 @@ export {
 } from "@ksp-gonogo/ui-kit";
 
 /**
- * A widget's ENTIRE settings surface for one slot: augment settings blocks
- * followed by contribution settings blocks. The two are ONE merged section
+ * A widget's entire settings surface for one slot: augment settings blocks
+ * followed by contribution settings blocks. The two are one merged section
  * per widget, not two.
  * Both halves already share `NamespacedAugmentSettings`'s shape, so the
  * result renders straight through `AugmentSettingsPanel` unchanged.

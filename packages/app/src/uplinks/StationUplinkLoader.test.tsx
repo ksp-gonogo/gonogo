@@ -18,7 +18,7 @@
  *
  * The whole point of D6/#6 is that a station never fetches a bundle
  * directly: `stubFetch` below throws on any URL that isn't the registry
- * index, so an accidental direct-fetch regression fails LOUDLY (the loader
+ * index, so an accidental direct-fetch regression fails loudly (the loader
  * catches the throw and quarantines "load failed", which the assertions
  * below would catch as a wrong status) rather than silently passing.
  */
@@ -84,7 +84,7 @@ function registryWith(integrity: string): RegistryIndex {
   };
 }
 
-/** Tracks any fetch NOT for the registry index, must stay empty throughout. */
+/** Tracks any fetch not for the registry index, must stay empty throughout. */
 function stubFetch(index: RegistryIndex): string[] {
   const directBundleFetches: string[] = [];
   vi.stubGlobal(

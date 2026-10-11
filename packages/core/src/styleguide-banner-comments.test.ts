@@ -32,20 +32,20 @@ import {
  * Banner-comment ratchet. CLAUDE.md has always said "no banner comments above an
  * obvious call" and nothing enforced it, so the population grew for months.
  *
- * The DEFINITION lives in `banner-comments.matcher.ts` and the numbers live in
+ * The definition lives in `banner-comments.matcher.ts` and the numbers live in
  * `banner-comments.allowlist.ts`. This file is the grading, and nothing else.
  *
- * THREE NUMBERS, AND THEY DISAGREE ON PURPOSE. A loose scan for "a comment line
+ * Three numbers, and they disagree on purpose. A loose scan for "a comment line
  * that is a run of rule characters" finds 664 lines across 161 files. A whole
  * tree review reported that count as the banner population and it is not: most
  * of those lines are a bare wrap with no title, which labels nothing, and the
  * rest bracket a prose paragraph. This ratchet counts 423 banners across 93
- * files. Between the two sat the count this gate could actually SEE before
+ * files. Between the two sat the count this gate could actually see before
  * 2026-09-02, which was 238, because the matcher knew only the one-line
  * spelling. Re-running the loose regex and finding ~670 is not evidence that
- * this ratchet is broken; running it and finding a number BELOW 423 is.
+ * this ratchet is broken; running it and finding a number below 423 is.
  *
- * The rule this enforces is about DECORATION, not about section structure.
+ * The rule this enforces is about decoration, not about section structure.
  *
  * The tree reached zero banners on 2026-09-30 (Saga 697): `BANNER_COMMENT_DEBT`
  * is empty and the `SECTIONED_CEILINGS`/`SCHEME_MIN` exemption for long
@@ -101,7 +101,7 @@ describe("banner comments", () => {
    * `banners`) cannot survive a real count of zero: a floor above zero fails a
    * clean tree, and a floor of zero cannot distinguish "found nothing" from
    * "looked at nothing." So the instrument check for the matcher's ability to
-   * SEE a banner is a planted violation instead, the same shape
+   * see a banner is a planted violation instead, the same shape
    * `styleguide-magnitude-budget.test.ts` uses once its own ratchet reached
    * zero.
    *
@@ -137,7 +137,7 @@ describe("banner comments", () => {
    * something that matches nothing, and the debt assertions then read as a repo
    * that cleaned itself overnight.
    *
-   * EVERY SPELLING IS PLANTED HERE, and that is the point rather than
+   * Every spelling is planted here, and that is the point rather than
    * thoroughness for its own sake. This gate has now been blind twice, and both
    * times the proof-it-fires test planted only the spelling its author already
    * had in mind: an ASCII one-line banner, while 134 files wrote box-drawing
@@ -334,10 +334,10 @@ describe("banner comments", () => {
      * The list as it stood at the ratchet base, with the ref it came from so a
      * failure can quote it.
      *
-     * `ratchetBaseRef` THROWS when no base can be reached. This used to catch
+     * `ratchetBaseRef` throws when no base can be reached. This used to catch
      * that and return `undefined`, which every caller below treats as "nothing
      * to check", so an unreachable base turned the whole shrink check into a
-     * pass. Undefined now means only that the checkout IS the base or that the
+     * pass. Undefined now means only that the checkout is the base or that the
      * list did not exist there, and `ratchet-base-ref.test.ts` grades the
      * second case.
      */
@@ -395,7 +395,7 @@ describe("banner comments", () => {
      * the numbers alone cannot show the difference between "the gate learned to
      * see a spelling" and "somebody wrote more banners". So the claim is checked
      * rather than believed, in the only way that actually settles it: run the
-     * OLD matcher over the CURRENT tree. If the old matcher still measures what
+     * old matcher over the current tree. If the old matcher still measures what
      * the old numbers say, every newly counted banner is one it could not see,
      * and none of them is new code.
      */

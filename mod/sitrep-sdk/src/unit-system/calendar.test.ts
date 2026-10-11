@@ -7,8 +7,8 @@ import { value } from "./value";
  *
  * The display half of this shipped first and looked complete: `formatDuration`
  * and `<Unit>` followed the calendar the game reported. But `Value` resolved
- * its ratios out of the baked catalogue, so a duration that was FORMATTED read
- * one way and the same duration COMPUTED read another, and nothing said so.
+ * its ratios out of the baked catalogue, so a duration that was formatted read
+ * one way and the same duration computed read another, and nothing said so.
  * These tests are the arithmetic half.
  */
 

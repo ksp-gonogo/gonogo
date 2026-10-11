@@ -9,7 +9,7 @@ namespace Sitrep.Core
     /// writer had for the hop's two endpoints.
     ///
     /// <para>C#-ONLY, no TS reference (see <see cref="INetwork.JourneyTo"/>). This is
-    /// the TIMED form of <see cref="Sitrep.Contract.CommsRouteHop"/>: a backend supplies
+    /// the timed form of <see cref="Sitrep.Contract.CommsRouteHop"/>: a backend supplies
     /// the geometry, the host derives <see cref="Seconds"/> from it. The two stay
     /// separate types because a backend must not be able to supply a time of its own,
     /// which the host would then have no way to reconcile against its own arithmetic.
@@ -32,13 +32,13 @@ namespace Sitrep.Core
             ToHandle = toHandle;
         }
 
-        /// <summary>This hop's own one-way light-time, in seconds.</summary>
+        /// <summary>This hop's own one-way signal delay, in seconds.</summary>
         public double Seconds { get; }
 
         /// <summary>Straight-line distance between the hop's two endpoints, or 0 when no geometry was given.</summary>
         public double DistanceMeters { get; }
 
-        /// <summary>True when EITHER endpoint is a ground station.</summary>
+        /// <summary>True when either endpoint is a ground station.</summary>
         public bool TouchesHome { get; }
 
         /// <summary>This hop's origin endpoint's node, or null when the writer had none to give.</summary>

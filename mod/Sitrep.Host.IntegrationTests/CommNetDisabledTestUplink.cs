@@ -9,13 +9,13 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// <c>Gonogo.KSP.CommsCoreUplink</c>'s registration shape, KSP-free: the
     /// exclusive <c>"comms"</c> capability, a <c>comms.delay</c> declared
-    /// true-now HERE so a test can read it on the emitting tick (production
+    /// true-now here so a test can read it on the emitting tick (production
     /// declares that readout Delayed), the
     /// freeze-exempt <c>comms.link</c> MetaTopic, one ordinary Delayed
     /// telemetry channel, and the two subscription-independent server-side
     /// seams (<see cref="IUplinkHost.SetSignalDelaySource"/> /
     /// <see cref="IUplinkHost.SetConnectivitySource"/>) sourced from the
-    /// ELECTED backend rather than from the snapshot.
+    /// elected backend rather than from the snapshot.
     ///
     /// <para>The backend is <see cref="DeadGraphBackend"/>: what stock reports
     /// once <c>CommNetScenario</c> has destroyed itself. Whether this save

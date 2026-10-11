@@ -128,7 +128,7 @@ describe("TrajectoryCurrencyBridge: the horizon, against the instant on screen",
    * Both directions in one test on purpose. Asserting only the interesting
    * state would pass for a bridge that contributes that state unconditionally,
    * and asserting only the quiet state would pass for one that contributes
-   * nothing at all. Requiring the summary to CHANGE, twice, is what rules both
+   * nothing at all. Requiring the summary to change, twice, is what rules both
    * out. Two `LandingStatus` tests in this repo passed vacuously in exactly the
    * first way.
    */

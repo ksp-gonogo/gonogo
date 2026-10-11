@@ -13,6 +13,8 @@ const NONE: InlineOverflow = { left: false, right: false };
 /**
  * Which inline edges of a horizontal scroller have content beyond them, kept
  * current across scrolling and across the scroller or its children resizing.
+ * Useful for telling the operator that a strip of tabs or columns continues
+ * past an edge. Used by {@link Tabs} and {@link DataTable}.
  */
 export function useInlineOverflow(el: HTMLElement | null): InlineOverflow {
   const [overflow, setOverflow] = useState(NONE);
@@ -52,7 +54,8 @@ export function useInlineOverflow(el: HTMLElement | null): InlineOverflow {
 
 /**
  * The glow over a horizontal scroller's edge that says more content lies that
- * way. At least the panel gutter wide, so a strip reaching the panel's edge
+ * way. Useful for telling the operator that a strip of tabs or columns
+ * continues past an edge. Used by {@link Tabs} and {@link DataTable}. At least the panel gutter wide, so a strip reaching the panel's edge
  * fades out across the gutter instead of stopping hard at the padding. Render
  * it after the scroller: it paints over it by document order.
  */

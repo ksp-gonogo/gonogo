@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { contactPhase, type FleetVesselSilence } from "./fleet-contact";
 
 /**
- * `silence.<guid>.state` carries `Sitrep.Host.Comms.SilenceState` as its NAME,
+ * `silence.<guid>.state` carries `Sitrep.Host.Comms.SilenceState` as its name,
  * not its ordinal, so there is no number to branch on instead. The branch
  * must not silently absorb a member it does not recognize into the Silent
  * treatment: the phase drives FleetRoster's badge, `lost` is
@@ -56,7 +56,7 @@ const CLIENT_STATES: ReadonlyArray<FleetVesselSilence["state"]> = [
 
 /**
  * A silence block naming a state this client has never heard of, which is what
- * a mod AHEAD of it reports and the only way such a value reaches the phase.
+ * a mod ahead of it reports and the only way such a value reaches the phase.
  */
 function asReportedSilence(silence: {
   state: string;

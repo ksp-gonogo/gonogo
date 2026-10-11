@@ -4,12 +4,12 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation
 {
     /// <summary>
-    /// How far a two-body extrapolation of an INTEGRATED trajectory stays
-    /// trustworthy, TAKEN FROM THE PROVIDER rather than guessed on its behalf.
+    /// How far a two-body extrapolation of an integrated trajectory stays
+    /// trustworthy, taken from the provider rather than guessed on its behalf.
     ///
     /// <para><b>Why this cannot be a constant.</b> The error is dominated by
     /// along-track drift and the perturbation driving it scales as
-    /// <c>2 (mu_perturber / mu_primary) (r / d)^3</c>, so the horizon is a LOCAL
+    /// <c>2 (mu_perturber / mu_primary) (r / d)^3</c>, so the horizon is a local
     /// property of one craft at one instant. Measured against a live save on the rig,
     /// nine craft in one save at one instant wanted horizons from 0.05 to 0.28 of
     /// their own orbital cycle, and nothing about a craft's period predicts where in
@@ -19,7 +19,7 @@ namespace Sitrep.Propagation
     /// not fly.</para>
     ///
     /// <para><b>So the fraction is gone and the question is asked instead.</b>
-    /// <see cref="IPropagationProvider.CanPropagate"/> already takes a WINDOW and
+    /// <see cref="IPropagationProvider.CanPropagate"/> already takes a window and
     /// already means "will I answer honestly across this", which is the horizon
     /// stated as a predicate. Whoever integrates knows their own force model and can
     /// answer it per craft; this inverts the predicate to recover the instant. No
@@ -32,7 +32,7 @@ namespace Sitrep.Propagation
         /// Bisection steps used to recover the instant from the predicate.
         ///
         /// <para>Eighteen halvings of a window <see cref="SearchCycles"/> cycles wide
-        /// resolve the answer to a sixty-five-thousandth of ONE characteristic cycle,
+        /// resolve the answer to a sixty-five-thousandth of one characteristic cycle,
         /// which is well under a second on any orbit anyone flies and far finer than
         /// the bound itself is knowable. It was sixteen while the window was a single
         /// cycle: widening the window without widening this would have coarsened every
@@ -48,7 +48,7 @@ namespace Sitrep.Propagation
         /// it.</b> The argument for it was that a provider answers from the geometry
         /// it can see at the sample instant, so a window long enough for the craft to
         /// have been everywhere in its orbit is one that sample no longer describes.
-        /// That is a claim about how a bound is COMPUTED, and the only integrating
+        /// That is a claim about how a bound is computed, and the only integrating
         /// provider in this repo stopped computing it that way: it carries the craft's
         /// own conic and every perturber forward and integrates the departure at each
         /// instant, so the geometry it describes is the geometry throughout. Capping
@@ -67,7 +67,7 @@ namespace Sitrep.Propagation
         /// The last UT the provider will vouch for <paramref name="target"/> from
         /// <paramref name="sampleUt"/>, or <c>null</c> when it vouches for nothing.
         ///
-        /// <para>Null means the caller must NOT publish
+        /// <para>Null means the caller must not publish
         /// <see cref="Sitrep.Contract.PropagationHorizonKind.Until"/> with a
         /// fabricated number. A provider that cannot bound itself has to say so some
         /// other way; inventing a bound is the failure this whole seam exists to

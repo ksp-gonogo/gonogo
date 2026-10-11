@@ -8,7 +8,7 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// The delay-modifier fold every delay reader's config goes through: what a
-    /// factor does to a light-time, how several compose, and what is refused.
+    /// factor does to a signal delay, how several compose, and what is refused.
     /// </summary>
     public class DelayModifiersTests
     {
@@ -56,7 +56,7 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Zero is a switch, not a very short light-time: delay reads as off,
+        /// Zero is a switch, not a very short signal delay: delay reads as off,
         /// the same zero an operator's own switch gives, and nothing else held
         /// can bring it back.
         /// </summary>

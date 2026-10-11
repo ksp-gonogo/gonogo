@@ -3,9 +3,9 @@ using System;
 namespace Sitrep.Contract
 {
     /// <summary>
-    /// Tags a command's ARGS class with the command id (or ids) it is the args
+    /// Tags a command's args class with the command id (or ids) it is the args
     /// for, so every command can be enumerated and typed in the TypeScript SDK:
-    /// its args type, what it returns, and whether it rides the light-time
+    /// its args type, what it returns, and whether it rides the signal delay
     /// delay. It is metadata only and does not touch the wire.
     ///
     /// <para>Apply it once per command when one args class serves several:
@@ -24,7 +24,7 @@ namespace Sitrep.Contract
     /// <see cref="BodyStatesReply"/>), and names that type exactly. Setting
     /// both is an error that stops the build.</para>
     ///
-    /// <para>A command with NO arguments still needs somewhere to carry its tag:
+    /// <para>A command with no arguments still needs somewhere to carry its tag:
     /// <see cref="NoCommandArgs"/> for core, and a marker class of its own in an
     /// Uplink's slice.</para>
     /// <internal>
@@ -72,7 +72,7 @@ namespace Sitrep.Contract
         public string Summary { get; set; }
 
         /// <summary>
-        /// Whether this command rides the light-time delay. Default
+        /// Whether this command rides the signal delay delay. Default
         /// <see cref="DelayRole.Delayed"/>: an order to a craft crosses the gap
         /// like any other signal, and only a fact with no analogue in flight is
         /// <see cref="DelayRole.TrueNow"/>.
@@ -96,7 +96,7 @@ namespace Sitrep.Contract
         /// <para>Three kinds of command are <see cref="DelayRole.TrueNow"/>. A
         /// command that changes the scene (launch, recover, revert, switch
         /// vessel, the tracking station) changes it for every command centre at
-        /// once, so there is no light time for it to cross. A game control (warp,
+        /// once, so there is no signal delay for it to cross. A game control (warp,
         /// pause) is not a signal to a craft. A display choice (which frame a
         /// readout is in, which command centre a trajectory is drawn for) sends
         /// nothing anywhere. Everything else is delayed, career and construction
@@ -111,7 +111,7 @@ namespace Sitrep.Contract
         /// maneuver node scheduled for an instant already gone.
         ///
         /// <para>A client refuses to send such a command when the send time plus
-        /// the one-way light time reaches or passes that instant, so it never
+        /// the one-way signal delay reaches or passes that instant, so it never
         /// leaves the ground to arrive too late. That is the only check: any time
         /// the craft needs to act on it after arrival is the operator's call.
         /// Null for every command without such an instant.</para>

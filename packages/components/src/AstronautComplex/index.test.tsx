@@ -579,7 +579,7 @@ describe("AstronautComplexComponent", () => {
     }
   });
 
-  /** Decisions read the STANDING, never a `situation` spelling this build has not seen; tab labels come from the standing too. */
+  /** Decisions read the standing, never a `situation` spelling this build has not seen; tab labels come from the standing too. */
   it("takes the Fire control, the tab label and the critical badge from the standing, not the situation name", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -788,7 +788,7 @@ describe("AstronautComplexComponent", () => {
     );
   });
 
-  /** A kerbal standing down gets their own tab, is not offered for a flight, and IS still fireable. */
+  /** A kerbal standing down gets their own tab, is not offered for a flight, and is still fireable. */
   it("gives a kerbal standing down their own tab and no flight, but still lets them be fired", async () => {
     const user = userEvent.setup();
     renderWidget();
@@ -982,7 +982,7 @@ describe("AstronautComplexComponent", () => {
     expect(await screen.findByRole("tab", { name: "Notes" })).toBeVisible();
   });
 
-  /** The tab is a whole TAB beside Applicants and Active, not nested under either, labelled by whatever claims it. */
+  /** The tab is a whole tab beside Applicants and Active, not nested under either, labelled by whatever claims it. */
   it("grows a tab an Uplink fills, labelled by the augment, beside Applicants and Active", async () => {
     registerAugment({
       id: "test-augment-tab",
@@ -1078,7 +1078,7 @@ describe("AstronautComplexComponent", () => {
     expect(strip.children).toHaveLength(3);
   });
 
-  /** A contributed figure is a SIBLING cell in the host's own strip, drawn with the host's own `Stat` and `Unit`. */
+  /** A contributed figure is a sibling cell in the host's own strip, drawn with the host's own `Stat` and `Unit`. */
   it("takes further core stats from an Uplink, in the same row and the same treatment", async () => {
     registerContribution({
       id: "test-crew-in-training",
@@ -1157,7 +1157,7 @@ describe("AstronautComplexComponent", () => {
     ).toBeInTheDocument();
   });
 
-  /** The corner mark is read WITH the name while scanning a roster, for states KSP's own roster does not carry. */
+  /** The corner mark is read with the name while scanning a roster, for states KSP's own roster does not carry. */
   it("renders a bound corner augment in the identity line, beside the sack control", async () => {
     registerAugment<"astronaut-complex.crew-badge">({
       id: "test-crew-corner",

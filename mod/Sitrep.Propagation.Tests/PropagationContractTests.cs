@@ -6,10 +6,10 @@ using Sitrep.Contract;
 namespace Sitrep.Propagation.Tests
 {
     /// <summary>
-    /// The provider contract that is keyed on an IDENTITY plus a FRAME rather than
+    /// The provider contract that is keyed on an identity plus a frame rather than
     /// on a set of elements. The distinction is the whole point: elements describe a
     /// conic, so a provider handed only elements can answer only in conics, however
-    /// it is implemented. A target names WHAT to propagate and carries the conic
+    /// it is implemented. A target names what to propagate and carries the conic
     /// merely as the payload the two-body vanilla happens to need.
     ///
     /// <para>The three members beyond <c>Solve</c> exist because the codebase was

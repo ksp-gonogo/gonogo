@@ -6,7 +6,7 @@ namespace Sitrep.Host.Isru
     /// <summary>
     /// The ISRU-backend election, expressed entirely in terms of the existing
     /// <see cref="Kernel"/>: the same shape as
-    /// <see cref="Science.ScienceElection"/>. ONE EXCLUSIVE capability
+    /// <see cref="Science.ScienceElection"/>. One exclusive capability
     /// <c>"isru"</c> whose active instance is an <see cref="IIsruBackend"/>:
     ///
     /// <list type="bullet">
@@ -15,12 +15,12 @@ namespace Sitrep.Host.Isru
     /// fallback. It activates whenever no modelling mod
     /// registered a provider, which is every stock install.</item>
     /// <item><b>A modelling mod registers as a provider</b> from its own uplink's
-    /// Register (host.Kernel.RegisterProvider), ONLY when its reflection probe
-    /// confirms the mod is loaded: registering IS the gate. A provider registers
+    /// Register (host.Kernel.RegisterProvider), only when its reflection probe
+    /// confirms the mod is loaded: registering is the gate. A provider registers
     /// above vanilla, so it wins when installed; absent, stock wins.</item>
     /// </list>
     ///
-    /// <para>The vanilla factory is passed IN rather than constructed here,
+    /// <para>The vanilla factory is passed in rather than constructed here,
     /// exactly as <see cref="ActionGroups.ActionGroupsElection"/> does, because
     /// reading <c>ModuleResourceHarvester</c>/<c>ModuleResourceConverter</c> needs
     /// KSP and this assembly stays KSP-free (a test can then elect a fake vanilla
@@ -35,7 +35,7 @@ namespace Sitrep.Host.Isru
     /// can query (<c>resolutionNotices</c>) to learn which backend actually
     /// answered.</para>
     ///
-    /// <para>The two <c>isru.*</c> channels are declared and sourced ONCE by
+    /// <para>The two <c>isru.*</c> channels are declared and sourced once by
     /// <c>Gonogo.KSP.IsruCoreUplink</c>, which resolves the elected backend via
     /// <c>Kernel.Query&lt;IIsruBackend&gt;("isru")</c> at capture time: no provider
     /// declares those channels itself (the same

@@ -12,7 +12,7 @@ namespace Gonogo.KSP.Tests.Comms
     /// <para><see cref="DelayModifiers"/> is unit-tested in
     /// <c>Sitrep.Host.Tests</c>, which proves the fold and nothing about
     /// whether the accessor folds through it. If it did not, every reader would
-    /// go on applying the full light-time under a modifier of zero.</para>
+    /// go on applying the full signal delay under a modifier of zero.</para>
     /// </summary>
     [Collection(CommsCoreUplinkStatics.Name)]
     public class DelayModifierWiringTests

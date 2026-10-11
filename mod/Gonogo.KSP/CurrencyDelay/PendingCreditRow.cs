@@ -13,7 +13,7 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <summary>
     /// A single delayed-currency credit awaiting its reveal-UT.
     ///
-    /// BaseAmount is the BASE requested amount, pre-clamp (e.g. the value
+    /// BaseAmount is the base requested amount, pre-clamp (e.g. the value
     /// read off <c>OnCurrencyModifierQuery.input</c>), never the clamped or
     /// curve-normalised delta that actually landed at earn-time. Replaying
     /// the base at reveal lets the game re-apply the clamp and (for

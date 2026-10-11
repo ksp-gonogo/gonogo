@@ -10,7 +10,7 @@ import {
  * The accessor over the generated reckonability rows, at the one place the rows
  * stopped being one-per-value.
  *
- * `generated-reckonability.test.ts` owns whether CODEGEN emitted the right text.
+ * `generated-reckonability.test.ts` owns whether codegen emitted the right text.
  * This owns what the accessor answers, which is a different question and became
  * a real one the moment a value could carry two models: every function here used
  * to be able to assume one row per (topic, field).
@@ -73,7 +73,7 @@ describe("a value served by several models", () => {
 });
 
 /**
- * The shape of the DECLARED graph, asked before anything walks it.
+ * The shape of the declared graph, asked before anything walks it.
  *
  * A reckonable value names inputs, and an input can itself be a reckonable
  * value, so the rows describe a directed graph over `(topic, field)` nodes. A
@@ -95,7 +95,7 @@ function declaredNodes(): Set<string> {
 }
 
 /**
- * The edges: one per declared input that is ITSELF a declared value.
+ * The edges: one per declared input that is itself a declared value.
  *
  * An input is resolved to a node the way a consumer would resolve it: a path on
  * the value's own payload (`topic: ""`) names a sibling field of the same

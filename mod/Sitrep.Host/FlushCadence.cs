@@ -2,7 +2,7 @@ namespace Sitrep.Host
 {
     /// <summary>
     /// Pure wall-clock cadence gate for <c>GonogoAddon.FixedUpdate</c>'s
-    /// periodic recording flush: decides whether enough REAL (not in-game)
+    /// periodic recording flush: decides whether enough real (not in-game)
     /// time has passed since the last flush to justify writing the session
     /// file again.
     ///

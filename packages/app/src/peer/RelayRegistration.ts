@@ -37,8 +37,8 @@ export class RelayRegistration {
   constructor(private readonly deps: RelayRegistrationDeps) {}
 
   /**
-   * POST the current `{ shareCode, peerId }` to the relay's host registry.
-   * DIAGNOSTICS ONLY under the stable-host-id model: discovery does not
+   * Post the current `{ shareCode, peerId }` to the relay's host registry.
+   * Diagnostics only under the stable-host-id model: discovery does not
    * depend on this (stations derive the broker id from the share code).
    * Best-effort: any failure (relay down, timeout, non-2xx) is logged at
    * debug and swallowed. No-op until the Peer has an id.
@@ -83,11 +83,11 @@ export class RelayRegistration {
   }
 
   /**
-   * POST the current consent to the relay's `/analytics-config` broker.
+   * Post the current consent to the relay's `/analytics-config` broker.
    * Best-effort: relay down / non-2xx is logged at debug and swallowed,
-   * exactly like the host-registry POST. The heartbeat re-asserts this so
+   * exactly like the host-registry post. The heartbeat re-asserts this so
    * a relay restart re-learns the real value (the relay defaults to
-   * disabled until first POST).
+   * disabled until first post).
    */
   async postAnalyticsConfig(): Promise<void> {
     const url = `${relayBaseUrl()}/analytics-config`;

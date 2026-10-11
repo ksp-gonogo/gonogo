@@ -15,11 +15,11 @@ import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
 /**
- * A model is per TOPIC and its expression is per FIELD, and those are two
+ * A model is per topic and its expression is per field, and those are two
  * different granularities on purpose.
  *
  * The model has to be per topic because physics needs siblings: Kepler wants
- * eight elements at once, dead reckoning wants a position AND a velocity, rate
+ * eight elements at once, dead reckoning wants a position and a velocity, rate
  * integration wants an amount, a capacity and a rate. `VesselOrbit` carries all
  * eight of Kepler's inputs including `mu`, whose doc says why in terms
  * ("self-sufficient propagation, no separate body lookup required"), so the
@@ -29,7 +29,7 @@ import { ViewClock } from "./view-clock";
  * class. `vessel.target` flattens to forty-seven paths: relative geometry that
  * propagates, identity fields only a command changes, two absolute UTs, and
  * metadata. A widget reading the relative position should get a model; a widget
- * reading the vessel's NAME should get a stale observation; and both should
+ * reading the vessel's name should get a stale observation; and both should
  * happen in one frame off one model.
  *
  * ## The topics here are test-owned, and the prose above is about the real ones

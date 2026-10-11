@@ -1,5 +1,5 @@
 /**
- * The panel-header aside, in BOTH of its states.
+ * The panel-header aside, in both of its states.
  *
  * This surface is a `<details>` (`PanelAsideExpand` in ui-kit's Panel.tsx) that
  * measures whether the title and the aside fit the header row side by side and
@@ -10,11 +10,11 @@
  * state.
  *
  * That gap let a real defect ship for eight days: the `<details>` was rendered
- * WITHOUT `open` in the inline state and its content pulled back into view by
+ * without `open` in the inline state and its content pulled back into view by
  * CSS alone, so the markup told every structural consumer (a screen reader,
  * Playwright's webkit visibility check) that painted badges were collapsed. Two
  * engines disagreed about the same pixels because two engines asked the question
- * differently. These assertions are about the state the DOM CLAIMS, so they hold
+ * differently. These assertions are about the state the DOM claims, so they hold
  * in every engine.
  *
  * The behaviour is generic `PanelHeader`; the widgets are chosen for their

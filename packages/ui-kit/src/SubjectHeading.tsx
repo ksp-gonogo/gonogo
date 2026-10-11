@@ -11,7 +11,7 @@ export interface SubjectHeadingProps {
   /** What the line is about: a program's title, a course's name, a vessel. */
   children: ReactNode;
   /**
-   * That subject's state, as a `Badge` or a short run of them. Drawn AFTER the
+   * That subject's state, as a `Badge` or a short run of them. Drawn after the
    * subject and pushed to the end of the line; absent when there is no state
    * worth showing, which leaves the subject alone on the line rather than
    * beside a gap.
@@ -29,8 +29,10 @@ export interface SubjectHeadingProps {
 
 /**
  * A subject and its state on one line, subject first and the state pushed to
- * the end. The order is fixed, so the state always reads after the thing it
- * describes, to an eye and to a screen reader.
+ * the end. Useful for showing the operator a node or vessel name with its
+ * status badge. Used by the tech tree's detail panel. The order is fixed, so
+ * the state always reads after the thing it describes, to an eye and to a
+ * screen reader.
  *
  * The line wraps: a long subject drops its badge onto a second line rather
  * than squeezing the name.

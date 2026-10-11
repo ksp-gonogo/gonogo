@@ -7,7 +7,7 @@ using Xunit.Abstractions;
 namespace Sitrep.Core.Tests
 {
     /// <summary>
-    /// What an Uplink DECLARES and what it REGISTERS have to agree, on every
+    /// What an Uplink declares and what it registers have to agree, on every
     /// Uplink rather than on the ones somebody remembered.
     ///
     /// <para><b>What a bad registration hides.</b> <c>AddCommandHandler</c> throws
@@ -21,7 +21,7 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>Both directions, because only one of them is loud.</b> A
     /// registration with no declaration throws, which is how the outage announced
-    /// itself. A DECLARATION with no registration announces nothing: the manifest
+    /// itself. A declaration with no registration announces nothing: the manifest
     /// advertises the command, the client builds a control for it, and the press is
     /// refused by the engine as unhandled. A declared channel nothing publishes to
     /// is quieter again, because the subscribe is accepted and the reading simply
@@ -58,15 +58,15 @@ namespace Sitrep.Core.Tests
     ///
     /// <para><b>The same blindness has a shape worth naming, because it lands on
     /// the publish half.</b> An Uplink whose fail-soft inert path registers a
-    /// channel source for the SAME topic it publishes when live gives that topic
+    /// channel source for the same topic it publishes when live gives that topic
     /// two publish sites on mutually exclusive branches, and either one satisfies
     /// the walk alone. Delete the live publisher, leave the inert one, and the
     /// walk stays green while the topic reaches no subscriber on any install where
-    /// the Uplink IS available. One topic in this repo has that shape, out of
+    /// the Uplink is available. One topic in this repo has that shape, out of
     /// forty-seven; it is common in the repo the departed Uplinks live in, where
     /// five of six do, so the note travels with the vendored copy of this file.
     /// Telling the branches apart needs control flow a text walk does not have, so
-    /// read the publish half as a floor against a topic nothing publishes AT ALL
+    /// read the publish half as a floor against a topic nothing publishes at all
     /// rather than as a guarantee the live path publishes it.</para>
     /// </summary>
     public class UplinkWiringCoverageTests
@@ -144,7 +144,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The channel half of the same direction, and the quietest of the four.
-        /// A subscribe to a declared topic nothing publishes to is ACCEPTED, so
+        /// A subscribe to a declared topic nothing publishes to is accepted, so
         /// there is no refusal to notice; the reading simply never arrives and the
         /// widget holds an empty one for the life of the session.
         /// </summary>
@@ -166,7 +166,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// The walk has to find its subjects or it reports a clean repo while
-        /// proving nothing, and it has to find the REGISTRATIONS specifically: the
+        /// proving nothing, and it has to find the registrations specifically: the
         /// Uplinks are discovered by <see cref="UplinkProjects"/>, which
         /// <see cref="UplinkArmingCoverageTests.ScanFindsEveryUplinkProject"/>
         /// already holds to <c>Gonogo.sln</c> and to its plant, but an extractor that
@@ -216,7 +216,7 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// Every name the walk reads has to resolve to the string it carries.
         ///
-        /// <para>The comparison is by VALUE, so a name the walk cannot resolve is
+        /// <para>The comparison is by value, so a name the walk cannot resolve is
         /// not reported as a violation: it drops out of both sides and the pair it
         /// belonged to is silently not checked. That is the same hole this file
         /// exists to close, one level down, so it is asserted rather than
@@ -271,12 +271,12 @@ namespace Sitrep.Core.Tests
         /// guard that cannot fail is what this file replaces, so shipping a second
         /// one would be worse than shipping nothing: the walk is made to see a
         /// violation that is known to be there, by rewriting one side of one real
-        /// pairing in a real Uplink's source IN MEMORY and requiring that the walk
+        /// pairing in a real Uplink's source in memory and requiring that the walk
         /// then names exactly that command or topic.
         ///
         /// <para><b>Per Uplink, not once.</b> The first version planted in the
         /// ordinally-first Uplink that had anything to plant in, which proves the
-        /// walk can see ONE shape. The shapes differ: RP-1 writes two command names
+        /// walk can see one shape. The shapes differ: RP-1 writes two command names
         /// inside a <c>foreach</c> over an array literal, several Uplinks declare
         /// through a private helper method, two keep their whole registration body
         /// in a <c>.Ksp.cs</c> half no test project compiles, and a topic is

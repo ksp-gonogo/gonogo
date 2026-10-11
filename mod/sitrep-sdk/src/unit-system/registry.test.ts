@@ -33,7 +33,7 @@ declare module "./declarations" {
 }
 
 /**
- * `registerUnit` as a SECOND, separately compiled Uplink reaches it.
+ * `registerUnit` as a second, separately compiled Uplink reaches it.
  *
  * Two bundles never share a program, so each one's declaration type-checks on its
  * own and they can still disagree at runtime. The policy below is about that case,

@@ -9,7 +9,7 @@ using UnityEngine;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// The SCET alarm arm: alarms an operator sets against the craft's OWN
+    /// The SCET alarm arm: alarms an operator sets against the craft's own
     /// clock, evaluated here rather than on the client, and stopping the game's
     /// warp when they come due.
     ///
@@ -28,18 +28,18 @@ namespace Gonogo.KSP
     /// inert with it, and that uplink's manifest is already the largest in the
     /// tree.</para>
     ///
-    /// <para>The evaluation runs in an UNGATED sampled source. It must: the
+    /// <para>The evaluation runs in an ungated sampled source. It must: the
     /// gated overload skips the capture entirely on a tick where nothing is
     /// subscribed, and this capture's whole effect is stopping the warp, not its
     /// return value. A SCET alarm that only worked while somebody was watching
     /// its roster would be exactly the feature it is not. The same argument is
-    /// why a THRESHOLD's reading is taken here, off the snapshot, rather than
+    /// why a threshold's reading is taken here, off the snapshot, rather than
     /// tapped off the values the channel loop emits: that loop skips any Topic
     /// nothing is subscribed to, so a threshold read through it would fire or
     /// not depending on which widgets the operator happened to have open.</para>
     ///
-    /// <para>An AUDIENCE threshold cannot read the snapshot, because the whole
-    /// question is what one place has been TOLD, and that lives in the archive.
+    /// <para>An audience threshold cannot read the snapshot, because the whole
+    /// question is what one place has been told, and that lives in the archive.
     /// It meets the same hole one layer down, since the archive records only
     /// what something is subscribed to. So every armed threshold's Topic is
     /// held on the record by a standing subscription of its own
@@ -50,9 +50,9 @@ namespace Gonogo.KSP
     /// alarm at its subject's own vantage is judged against the simulation,
     /// through <see cref="SnapshotScetStateReader"/> on this tick's snapshot, and
     /// its stop is universal. An alarm at a command centre is judged against what
-    /// THAT PLACE HAS BEEN TOLD, through <see cref="RevealedScetStateReader"/>
+    /// that place has been told, through <see cref="RevealedScetStateReader"/>
     /// over the Courier's archive, and its verdict stops nothing. The only
-    /// difference between the two is where the reading comes FROM, which is why
+    /// difference between the two is where the reading comes from, which is why
     /// one <see cref="ScetAlarmRoster"/> holds both: everything an alarm latches
     /// is already per-entry, and the two things that are genuinely per-tick, the
     /// rewind clear and the off-tick change flag, happen once in
@@ -83,7 +83,7 @@ namespace Gonogo.KSP
         public const string DisarmCommand = "alarm.scet.disarm";
 
         /// <summary>
-        /// Soft cap on warp STOPS, which is the thing worth budgeting rather
+        /// Soft cap on warp stops, which is the thing worth budgeting rather
         /// than the evaluation rate: evaluating costs a comparison per armed
         /// alarm, and commanding the game's warp to zero costs a scene-affecting
         /// call. A condition that chattered would issue one every tick. The
@@ -118,7 +118,7 @@ namespace Gonogo.KSP
         /// by assembly-scan discovery and constructed by the engine, so nothing
         /// outside holds the instance to configure. The read itself goes through
         /// <c>ChannelEngine.ReadTopicAtVantage</c>, which is COURIER-THREAD
-        /// ONLY, which is why the audience evaluation lives in the handle and
+        /// only, which is why the audience evaluation lives in the handle and
         /// not in the capture.</para>
         /// </summary>
         private static Func<string, string, double, object?>? _revealedRead;
@@ -234,7 +234,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// When the roster goes on the wire. Its whole job is that a client
-        /// subscribing to an EMPTY roster is told it is empty, rather than left
+        /// subscribing to an empty roster is told it is empty, rather than left
         /// on "subscribed" with nothing to reconcile against, which is what
         /// stopped a cold client arming anything at all.
         /// </summary>
@@ -345,7 +345,7 @@ namespace Gonogo.KSP
         /// Declares <c>scetThresholdSources</c>, the seam an installed mod adds
         /// its own threshold Topics through.
         ///
-        /// <para>Owned by THIS uplink because it owns the arm that refuses a
+        /// <para>Owned by this uplink because it owns the arm that refuses a
         /// Topic and the capture that reads one. Declared rather than left to
         /// whoever registers first: a provider's <c>RegisterProvider</c> throws
         /// against a capability that does not exist yet, and assembly-scan
@@ -601,13 +601,13 @@ namespace Gonogo.KSP
         /// snapshot, and a snapshot is a main-thread thing.</para>
         ///
         /// <para><b>Every alarm stops the warp, wherever it is read.</b> The
-        /// vantage decides WHEN, never WHETHER: an alarm at a command centre
+        /// vantage decides when, never whether: an alarm at a command centre
         /// comes due when that place learns of the match, and the game halts on
         /// that tick. The reading stays where it was, so nothing about the craft
         /// travels early; what crosses is a stop, and a stop is not a
         /// reading.</para>
         ///
-        /// <para>The stop this pass decides is issued from HERE rather than
+        /// <para>The stop this pass decides is issued from here rather than
         /// handed to the next capture, through
         /// <see cref="StopWarpFromHandle"/>. A capture away is one snapshot
         /// cadence, and under warp that is thousands of seconds of the very
@@ -701,7 +701,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Run the onboard actions this tick's fires queued, on the main thread.
         /// A craft that refuses one is logged here and shows in its own telemetry
-        /// a light-time later; the notice says only whether the actions were
+        /// a signal delay later; the notice says only whether the actions were
         /// withheld for want of the right craft.
         /// </summary>
         private void RunActions(List<ScetAlarmActionsDue> actionsDue)
@@ -767,9 +767,9 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Stop the warp for an alarm the HANDLE decided, from the Courier.
+        /// Stop the warp for an alarm the handle decided, from the Courier.
         ///
-        /// <para>Marshalled and WAITED ON rather than left for the next capture.
+        /// <para>Marshalled and waited on rather than left for the next capture.
         /// <c>TimeWarp.SetRate</c> is legal only on the Unity main thread, and
         /// deferring to the next capture would cost one snapshot cadence, which
         /// under warp is thousands of seconds of game time: the precision the
@@ -834,7 +834,7 @@ namespace Gonogo.KSP
 
             /// <summary>
             /// Whether the capture already commanded the stop for its own pass.
-            /// The tick carries ONE flag for every pass, so without this the
+            /// The tick carries one flag for every pass, so without this the
             /// handle cannot tell an alarm it decided itself from one the capture
             /// has already acted on, and one alarm would stop the warp twice.
             /// </summary>

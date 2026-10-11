@@ -85,7 +85,7 @@ namespace Sitrep.Host
         /// vessel (no <c>"parts"</c> key at all). Unlike
         /// <see cref="BuildRobotics"/>, this keys off the presence of the
         /// <c>"parts"</c> group itself (which <c>Gonogo.KSP.KspHost.BuildParts</c>
-        /// only populates when there IS an active vessel), NOT the
+        /// only populates when there is an active vessel), not the
         /// <c>"robotics"</c> sub-key: a vessel with no robotic parts must
         /// still report <c>available: false</c>, and only an omitted parts
         /// key (no vessel) collapses to <c>null</c>. That is the empty-vs-no-
@@ -139,7 +139,7 @@ namespace Sitrep.Host
         /// <c>BuildList</c> (kept as a separate copy here rather than shared:
         /// the two providers are deliberately independent now that they
         /// belong to different Uplinks). Returns <c>null</c> (never an empty
-        /// list) whenever the snapshot has no <c>"science"</c> key at all, OR
+        /// list) whenever the snapshot has no <c>"science"</c> key at all, or
         /// the <c>"deployed"</c> sub-group key is itself absent.
         /// </summary>
         public static object? BuildDeployed(KspSnapshot? snapshot)

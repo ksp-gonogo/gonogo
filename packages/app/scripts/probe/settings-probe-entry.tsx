@@ -34,7 +34,7 @@ import {
  * into `settings-probe.html`, and `scripts/render-settings.ts` drives it
  * through `window.__renderSettings`, screenshotting `#root`.
  *
- * The modal is the REAL one, reading the REAL registry over a REAL
+ * The modal is the real one, reading the real registry over a real
  * `TelemetryProvider`. Nothing is stubbed at the component boundary, so a row
  * that would render its null placeholder in the app renders it here: the whole
  * point of a render is to see the state a reviewer would actually meet.

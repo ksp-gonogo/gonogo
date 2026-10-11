@@ -6,7 +6,7 @@ namespace Sitrep.Propagation.Tests.Visibility
     /// <summary>
     /// A margin function chosen by the test rather than derived from an orbit,
     /// so the crossings are known in closed form. It is the only way to test the
-    /// SEARCH without the answer depending on the propagator that the search is
+    /// search without the answer depending on the propagator that the search is
     /// supposed to be tested independently of.
     /// </summary>
     internal sealed class AnalyticGeometry : IVisibilityGeometry

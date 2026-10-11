@@ -9,15 +9,15 @@ namespace Gonogo.KSP.CurrencyDelay
     /// <para><b>Why this exists rather than call sites doing the arithmetic.</b>
     /// Consulting the feature's off switch, <c>SignalDelayConfig.Enabled</c>,
     /// only inside <c>KscLightTimeMath.Resolve</c> - i.e. only where a delay is
-    /// COMPUTED - would miss every code path that produces a
+    /// computed - would miss every code path that produces a
     /// <see cref="KscDelay.Unroutable"/> literal instead of calling Resolve, and
     /// there are several: a null vessel, a throwing route read, a vessel absent
     /// from <c>FlightGlobals</c>, and the ordinary science path, whose origin is
     /// a ProtoVessel and so never has a live vessel to resolve. With signal
-    /// delay switched OFF, all of them would still withhold the credit for a
+    /// delay switched off, all of them would still withhold the credit for a
     /// full Kerbin day.</para>
     ///
-    /// <para>The gate is where a delay is CONSUMED instead. A player who turned
+    /// <para>The gate is where a delay is consumed instead. A player who turned
     /// the feature off gets stock behaviour, whatever the routing did or did not
     /// find.</para>
     /// </summary>
@@ -35,7 +35,7 @@ namespace Gonogo.KSP.CurrencyDelay
         /// and the literal was habit, so the constant wins and the doc is
         /// corrected, not the other way round.</para>
         ///
-        /// <para>It stays a stock CONSTANT rather than a live read of the
+        /// <para>It stays a stock constant rather than a live read of the
         /// homeworld's rotation, which is what a real-scale install would want.
         /// A shorter deadline is a more forgiving policy, not a wrong
         /// measurement; <c>SilenceDeclarationSeconds</c> is already an authored

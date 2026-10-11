@@ -77,7 +77,7 @@ export interface AudioInputState {
   /** The live stream, null whenever no capture is running. */
   stream: MediaStream | null;
   /**
-   * The last attempt that did not work. Set alongside `ready` when a SWITCH
+   * The last attempt that did not work. Set alongside `ready` when a switch
    * failed and the previous capture is still open, which is the one case where
    * a failure is not the whole state.
    */

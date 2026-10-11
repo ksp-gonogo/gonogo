@@ -14,7 +14,7 @@ import {
 } from "./partialDispatch";
 import { isSequence, type PlanResult } from "./planning";
 
-/** The one-way light time a sent node crosses, and the reading it arrived in; `null` seconds where there is none to state. */
+/** The one-way signal delay a sent node crosses, and the reading it arrived in; `null` seconds where there is none to state. */
 export interface SendDelay {
   oneWaySeconds: number | null;
   reading: Reading<Value<"s">> | null;

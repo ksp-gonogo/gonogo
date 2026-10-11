@@ -1,5 +1,5 @@
 /**
- * The vanilla fallback for the `comms` capability: the SAME
+ * The vanilla fallback for the `comms` capability: the same
  * `CommsCapability` shape as the real courier-backed provider
  * (`courier-provider.ts`), wired for immediate (zero-delay) delivery.
  *

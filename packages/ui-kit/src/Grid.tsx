@@ -60,7 +60,8 @@ const ALIGN_ITEMS: Record<GridAlign, string> = {
 /**
  * A CSS grid, either with a fixed column template (`cols`) or with as many
  * equal columns of at least `minColWidth` as fit. With neither it is a single
- * column.
+ * column. Useful for laying out cards or readouts that should reflow with the
+ * width of the panel. Used by the comm signal and docking HUD widgets.
  *
  * @category Layout
  */

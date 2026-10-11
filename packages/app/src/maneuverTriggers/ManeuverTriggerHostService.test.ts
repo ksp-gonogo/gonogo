@@ -39,7 +39,7 @@ function memoryStorage(): Storage {
  * registered as the accessors' source via `setActiveTimelineStoreForTests`.
  * No React/`TelemetryProvider` needed: this is a plain-class unit test.
  *
- * ALSO the trigger `dataKey` read's stream leg now (`getValue`) and the
+ * Also the trigger `dataKey` read's stream leg now (`getValue`) and the
  * maneuver-node fire's command-dispatch leg (`dispatchActiveCommand`):
  * `setActiveTelemetryClientForTests` registers the same client a mounted
  * `TelemetryProvider` would, so
@@ -110,7 +110,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
 /**
  * An Earth-sized body under a name no stock table carries, which is what a
  * planet pack hands over: the same index the orbit already references,
- * reported with its own radius. A planner that resolves the radius by NAME against the bundled
+ * reported with its own radius. A planner that resolves the radius by name against the bundled
  * stock bodies finds nothing here and silently plans no transfer at all.
  */
 function seedRenamedBodyOrbit(pinnedUt = 1_000_000) {

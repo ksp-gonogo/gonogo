@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { scanScope } from "./scanScope";
 
 /**
- * What a live read has to hold up on the wire is decided in ONE place.
+ * What a live read has to hold up on the wire is decided in one place.
  *
  * A read needs two sets of topics subscribed: the ones that feed it
  * (`resolveSubscriptionTopics`) and the ones its elected reckoner declared
@@ -21,12 +21,12 @@ import { scanScope } from "./scanScope";
  * So `subscribeTopicRead` is the seam, and the rule is: a file that resolves a
  * read's topics does not also subscribe them. Resolving is still perfectly
  * legitimate on its own: the field catalogue asks which Topic a read would
- * land on, and subscribes nothing. It is the PAIR that
+ * land on, and subscribes nothing. It is the pair that
  * is the seam's job.
  *
  * ## Known reach
  *
- * The instrument is PROXIMITY, not dataflow: a subscribe within a few lines of
+ * The instrument is proximity, not dataflow: a subscribe within a few lines of
  * a resolve. File-level co-occurrence is too blunt, because a file can resolve
  * for a diagnostic far from where it subscribes something that is not a wire
  * topic, and nothing textual tells that subscribe from a wire one. What

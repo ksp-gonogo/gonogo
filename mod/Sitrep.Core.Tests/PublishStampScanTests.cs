@@ -12,9 +12,9 @@ namespace Sitrep.Core.Tests
     /// one.
     ///
     /// <para><b>Why a bad stamp goes unnoticed.</b> The engine's only sanity
-    /// check on a caller-supplied stamp is a FORWARD clamp (see
+    /// check on a caller-supplied stamp is a forward clamp (see
     /// <c>ChannelEngine.ProcessPublish</c>): a stamp ahead of the clock is
-    /// pulled back to now, but a stamp far BEHIND it, which a small count
+    /// pulled back to now, but a stamp far behind it, which a small count
     /// always is, is recorded exactly as given, with no test, log line or
     /// clamp catching it.</para>
     ///
@@ -23,7 +23,7 @@ namespace Sitrep.Core.Tests
     /// nothing else; seventy-seven other call sites have the same argument in
     /// the same position and were equally unchecked. This reads the stamp
     /// expression at every one of them and asks the one question the type system
-    /// cannot: does this expression NAME a time. Both are worth having, and
+    /// cannot: does this expression name a time. Both are worth having, and
     /// <c>Gonogo.KSP.Tests.CommandCentres.CommandCentreRosterStampTests</c> is
     /// the behavioural half.</para>
     /// </summary>
@@ -104,7 +104,7 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The check can SEE a bad stamp, planted in every shape the real defect
+        /// The check can see a bad stamp, planted in every shape the real defect
         /// could take. Without this the test would report a clean tree just as
         /// happily if <see cref="NamesATime"/> said yes to everything, which is
         /// the failure mode a scan is most prone to and least able to announce.
@@ -151,7 +151,7 @@ namespace Sitrep.Core.Tests
         /// <c>observation.SampledAtUt</c>, <c>host.NowUt()</c>,
         /// <c>nowUt.Value</c>).
         ///
-        /// <para>A numeric literal is NOT one, standing alone or behind a
+        /// <para>A numeric literal is not one, standing alone or behind a
         /// <c>??</c>: a site with nothing to report reads the game clock and
         /// publishes nothing when it has none, so there is no honest use of a
         /// constant left to allow for.</para>
@@ -226,7 +226,7 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// Every production <c>.Publish(</c> call site under <c>mod/</c>, with
-        /// its LAST argument. Last rather than second because the engine's own
+        /// its last argument. Last rather than second because the engine's own
         /// publisher forwards through a three-argument overload, and the stamp
         /// is the trailing parameter of both.
         /// </summary>

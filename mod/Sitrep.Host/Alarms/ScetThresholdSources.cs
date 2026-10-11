@@ -15,7 +15,7 @@ namespace Sitrep.Host.Alarms
     /// skips any Topic nothing is currently subscribed to
     /// (<c>ChannelEngine.ProcessTick</c>), so a threshold on an unwatched Topic
     /// would silently never fire. That is the same subscription-starvation the
-    /// alarm arm's capture is registered UNGATED to avoid, and routing the
+    /// alarm arm's capture is registered ungated to avoid, and routing the
     /// reading through a gated path would reintroduce it one layer down.</para>
     ///
     /// <para><b>Membership rule.</b> A Topic belongs here when its wire payload
@@ -36,7 +36,7 @@ namespace Sitrep.Host.Alarms
     /// <see cref="IScetThresholdSources"/> provider against the
     /// <c>scetThresholdSources</c> capability, which is declared in
     /// <c>Sitrep.Contract</c> because that is the only assembly an Uplink may
-    /// reference. Contributed entries are asked AFTER this table, so core's own
+    /// reference. Contributed entries are asked after this table, so core's own
     /// reading of a core Topic cannot be displaced. They are builders handed over
     /// at registration and called on demand, never values scraped off the channel
     /// loop, so they keep the property the paragraph above is about.</para>
@@ -205,7 +205,7 @@ namespace Sitrep.Host.Alarms
     }
 
     /// <summary>
-    /// Reads a threshold's value out of ONE tick's snapshot.
+    /// Reads a threshold's value out of one tick's snapshot.
     ///
     /// <para>Short-lived on purpose: one of these is built per capture and
     /// thrown away, because the payloads it caches are answers about an instant
@@ -292,7 +292,7 @@ namespace Sitrep.Host.Alarms
         /// as opposed to merely not being the one the player is flying.
         ///
         /// <para>Answered off the full known-vessel roster the host samples every
-        /// tick. An ABSENT roster answers no: the difference between "destroyed"
+        /// tick. An absent roster answers no: the difference between "destroyed"
         /// and "the scene has not loaded yet" is exactly what would be guessed
         /// at, and calling an alarm dead because the main menu is up is the one
         /// wrong answer that cannot be taken back.</para>

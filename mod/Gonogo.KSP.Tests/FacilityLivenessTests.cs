@@ -33,7 +33,7 @@ namespace Gonogo.KSP.Tests
 
         /// <summary>
         /// The shape that makes the skipped event possible at all: the opening
-        /// event and the tier change come BEFORE the guard, the finishing event
+        /// event and the tier change come before the guard, the finishing event
         /// only through the coroutine after it.
         /// </summary>
         [Fact]

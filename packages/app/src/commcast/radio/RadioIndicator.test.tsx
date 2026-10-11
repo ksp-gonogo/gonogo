@@ -3,7 +3,7 @@
  *
  * What only a render can show: that a light is drawn whether or not anybody is
  * talking, so the operator learns where to look before they need it; that it
- * names the CONVERSATION rather than the speaker's address; that a muted loop
+ * names the conversation rather than the speaker's address; that a muted loop
  * is still shown to be busy and is marked as unheard; and that the whole thing
  * is one polite live region rather than one per lamp.
  */

@@ -19,10 +19,11 @@ const MARK_SIZE = RECKONING_MARK.held.domSize;
 const MODELLED_MARK_SIZE = RECKONING_MARK.modelled.domSize;
 
 /**
- * The room a host holds at the end of its figure for the square and the gap
- * before it, so a held figure keeps its mark inside its own box whatever clips
- * or wraps around it. It is a generated box with no content: it adds nothing
- * to the host's accessible name and nothing to the clipboard.
+ * The room a host holds at the end of its figure for the held square and the
+ * gap before it. Useful for keeping a held figure's mark inside its own box
+ * whatever clips or wraps around it. Used by `reservesMark`. It is a generated
+ * box with no content: it adds nothing to the host's accessible name and
+ * nothing to the clipboard.
  */
 export const reservesHeldMark = css`
   &::after {
@@ -32,7 +33,10 @@ export const reservesHeldMark = css`
   }
 `;
 
-/** {@link reservesHeldMark} for the modelled mark's slightly larger box. */
+/**
+ * The room a host holds at the end of its figure for the modelled mark, whose
+ * box is slightly larger than the held square's. Used by `reservesMark`.
+ */
 export const reservesModelledTriangle = css`
   &::after {
     content: "";
@@ -52,7 +56,11 @@ function reservesHollow(kind: MarkKind) {
   `;
 }
 
-/** The room to reserve for a kind of mark, hollow where the figure is `elsewhere`. A current figure that is not `elsewhere` carries no mark and reserves nothing. */
+/**
+ * The room to reserve for a kind of mark, hollow where the figure is
+ * `elsewhere`. A current figure that is not `elsewhere` carries no mark and
+ * reserves nothing. Used by {@link Unit}.
+ */
 export function reservesMark(kind: MarkKind, elsewhere = false) {
   if (elsewhere) return reservesHollow(kind);
   if (kind === "current") return null;
@@ -60,14 +68,15 @@ export function reservesMark(kind: MarkKind, elsewhere = false) {
 }
 
 /**
- * The square itself. Absolutely positioned in the room its host reserves at the
- * end of the figure (see {@link reservesHeldMark}), at superscript height, so
+ * The square that marks a figure as held. It is absolutely positioned in the
+ * room its host reserves at the end of the figure, at superscript height, so
  * the square is inside the host's box and the line never grows. Sized in `em`
- * with a minimum size in pixels, so it stays a square in small text.
+ * with a minimum size in pixels, so it stays a square in small text. Used by
+ * {@link ReckoningMark}.
  *
- * It needs a positioned container that reserves that room: use
- * {@link HeldHost}, or give a container of your own `position: relative`,
- * `nowrap` and `reservesHeldMark`.
+ * It needs a positioned container that reserves that room: use `HeldHost`, or
+ * give a container of your own `position: relative`, `nowrap` and
+ * `reservesHeldMark`.
  *
  * @category Unit
  */
@@ -81,8 +90,9 @@ export const HeldMark = styled.span`
 `;
 
 /**
- * The modelled mark: a triangle, point up, in the modelled hue, hung off its
- * host exactly as {@link HeldMark} is.
+ * The mark for a figure a model carried forward: a triangle, point up, in the
+ * modelled hue, hung off its host exactly as `HeldMark` is. Used by
+ * {@link ReckoningMark}.
  *
  * @category Unit
  */
@@ -142,12 +152,13 @@ const HOLLOW = {
 
 /**
  * The DOM mark for a kind, silent to a screen reader: the caption beside it is
- * what is spoken.
+ * what is spoken. Useful for showing the operator that a figure is held or
+ * modelled. Used by {@link Unit} and {@link HeldFigure}.
  *
  * `elsewhere` draws the kind's hollow form, for a figure that is of something
  * other than what its label names: a ring for a current figure, the square or
- * the triangle emptied for a held or modelled one. A current figure that is
- * not `elsewhere` has no mark, and this draws nothing.
+ * the triangle emptied for a held or modelled one. A current figure that is not
+ * `elsewhere` has no mark, and this draws nothing.
  *
  * @category Unit
  */
@@ -176,9 +187,10 @@ export function ReckoningMark({
 
 /**
  * Something for the mark to hang off, for a component that renders bare text
- * and so has no box of its own.
+ * and so has no box of its own. Used by {@link HeldFigure} and by the meter's
+ * value pair.
  *
- * `nowrap`, since a phrase broken across two lines has two right edges.
+ * It is `nowrap`, since a phrase broken across two lines has two right edges.
  *
  * @category Unit
  */
@@ -210,7 +222,9 @@ export interface HeldFigureProps extends HTMLAttributes<HTMLSpanElement> {
 /**
  * A figure marked held or modelled, or as being of something other than its
  * label names: the mark for its `kind` (hollow where `elsewhere`), the caption
- * spoken after the figure, and the same caption in the kit's hover tip.
+ * spoken after the figure, and the same caption in the kit's hover tip. Useful
+ * for showing the operator that a figure is held. Used by the comm
+ * signal view and the target picker rows.
  *
  * @category Unit
  */

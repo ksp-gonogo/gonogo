@@ -23,7 +23,7 @@ import { ViewClock } from "./view-clock";
  * DelayAuthority tests (SDK legibility layer). Enforcement is
  * server-side (the mod's reveal gate already withheld samples); these tests
  * cover only the client's job: read `comms.delay` and size the
- * predicted-present horizon so the delay becomes LEGIBLE, never earlier.
+ * predicted-present horizon so the delay becomes legible, never earlier.
  */
 describe("DelayAuthority", () => {
   it("holds the latest comms.delay oneWaySeconds", () => {
@@ -44,8 +44,8 @@ describe("DelayAuthority", () => {
   });
 
   /**
-   * `CommsDelaySource.None` covers TWO opposite states and the contract
-   * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`) tells them apart by the VALUE,
+   * `CommsDelaySource.None` covers two opposite states and the contract
+   * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`) tells them apart by the value,
    * not by the source: a 0 is "delay switched off, vessel connected", a null
    * is "no measurable path home". Reading the source alone collapsed the
    * second onto the first.
@@ -284,7 +284,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
    * Losing the path does not stop `observeSample`: `comms.link` is
    * freeze-EXEMPT (see `CommsLink`'s contract doc) and the TrueNow channels
    * never stopped, so samples keep arriving through a blackout and keep pushing
-   * `maxSampleUt` forward. The sample clamp therefore does NOT hold the
+   * `maxSampleUt` forward. The sample clamp therefore does not hold the
    * horizon back; the delay term is the only thing that does. Collapse the
    * delay to 0 and `confirmedEdgeUt()` snaps a full light-time forward at the
    * instant the craft becomes unreachable, which is the one direction it must
@@ -387,7 +387,7 @@ describe("DelayAuthority → dead-reckon at one view UT (single-view-time)", () 
    * Under delay the frame's SCET is the craft's present, ahead of the confirmed
    * edge. The store holds the vessel's last confirmed elements; a reader
    * dead-reckons by solving them at that SCET, and a deterministic object (a
-   * body) solved at the SAME SCET agrees on the instant. Here the delay
+   * body) solved at the same SCET agrees on the instant. Here the delay
    * authority sets the light-time each sample is delivered across.
    */
   it("puts the frame's SCET at the craft's present, where the held orbit and a deterministic solve share one instant", () => {

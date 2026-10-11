@@ -36,7 +36,7 @@ function defaultReload(): void {
 }
 
 /**
- * Whether this outcome has an override route at all: an overridable finding AND
+ * Whether this outcome has an override route at all: an overridable finding and
  * a resolved version, since the version is half of what binds a grant to one
  * build. Exported so the banner and the Settings list partition on the same
  * question rather than each deciding it.

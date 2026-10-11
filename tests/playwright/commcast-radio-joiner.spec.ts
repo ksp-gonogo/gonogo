@@ -28,16 +28,16 @@ import { getHostPeerId } from "./helpers";
  *
  * Mission control keys to a group with both craft in it and keeps talking. The
  * far craft, nine seconds out, opens partway through, never having received
- * the change that opened the group. Everything spoken more than a light-time
+ * the change that opened the group. Everything spoken more than a signal delay
  * before it opened has already landed there and is missed; from the chunk
- * spoken one light-time before it opened, it must place and decode every one,
+ * spoken one signal delay before it opened, it must place and decode every one,
  * each nine seconds after it was spoken.
  */
 
 /** Thirty seconds of talking: long enough to open a whole screen partway through. */
 const CHUNKS = 1_500;
 
-/** How far into the keying the far craft starts opening: past its light-time, so the start of the keying has already landed without it. */
+/** How far into the keying the far craft starts opening: past its signal delay, so the start of the keying has already landed without it. */
 const JOIN_AFTER_MS = 13_000;
 
 test.use({ video: "off", trace: "off" });

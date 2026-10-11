@@ -8,16 +8,16 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The source-attributed currency-event producer: hooks the KSP events that
-    /// credit or debit a currency BECAUSE OF A SPECIFIC VESSEL, and publishes each
+    /// credit or debit a currency because of A specific vessel, and publishes each
     /// one on <c>currency.&lt;vesselGuid&gt;.&lt;currency&gt;</c> so it is revealed at
-    /// that vessel's own light-time to the observer.
+    /// that vessel's own signal delay to the observer.
     ///
     /// <para><b>Why this exists.</b> A career currency total reveals at home instantly
     /// (<c>career.status</c> is held at the home command, where the game gates a
     /// spend) while the vessel telemetry that would confirm the underlying event is
     /// Delayed. An operator at home watching the total could therefore infer a distant event a full
-    /// return light-time before the model says they can know it. These events close
-    /// that gap by carrying each delta on its SOURCE vessel's clock, additively:
+    /// return signal delay before the model says they can know it. These events close
+    /// that gap by carrying each delta on its source vessel's clock, additively:
     /// nothing about <c>career.status.balances</c> changes.</para>
     ///
     /// <para><b>How the reveal is routed.</b> <c>ChannelEngine.NodeForTopic</c> maps a
@@ -29,12 +29,12 @@ namespace Gonogo.KSP
     /// existing publisher -> change-gate -> reveal gate -> Courier -> reliable
     /// outbox -> WS spine exactly as <see cref="CrashUplink"/> does.</para>
     ///
-    /// <para><b>Scope, deliberately narrow.</b> Only deltas with ONE cleanly
+    /// <para><b>Scope, deliberately narrow.</b> Only deltas with one cleanly
     /// resolvable source vessel are attributed. Contract completion/failure rewards
-    /// are NOT: a contract's parameters may name zero, one, or an arbitrary changing
+    /// are not: a contract's parameters may name zero, one, or an arbitrary changing
     /// set of vessels, so there is no honest single source to delay against. Ground
     /// actions (facility upgrade, tech unlock, strategy, recruit, admin-building
-    /// conversion) are NOT: no vessel is involved by construction. Recovery is
+    /// conversion) are not: no vessel is involved by construction. Recovery is
     /// attributable but a recovered vessel is home, so its delay is ~0 and there is
     /// nothing to gain. All of those stay on the existing instant path.</para>
     /// </summary>
@@ -92,7 +92,7 @@ namespace Gonogo.KSP
         /// Declares the exclusive <c>"delayedScience"</c> capability with
         /// <see cref="CurrencyDelay.DelayedScienceSinkBackend"/> as its always-present Vanilla
         /// factory, so any Uplink observing a third-party mod's own science crediting can hand
-        /// increments to the currency-delay subsystem through <c>host.Kernel</c>. Declared HERE, in
+        /// increments to the currency-delay subsystem through <c>host.Kernel</c>. Declared here, in
         /// the pre-Register pass, for the same reason comms and action groups are: it guarantees the
         /// capability exists before any Uplink's <c>Register</c> runs, whatever order the assembly
         /// scan discovers them in.
@@ -193,7 +193,7 @@ namespace Gonogo.KSP
         ///
         /// <para>The interceptor lives on a <c>ScenarioModule</c>, which has no host
         /// and so no kernel of its own; this is the half of the subsystem holding
-        /// one. The POINTER is bound rather than the arm list, because
+        /// one. The pointer is bound rather than the arm list, because
         /// <c>ResolveCapabilities</c> runs after the last uplink's <c>Register</c>
         /// and a list captured at that point would be empty for the whole
         /// session.</para>
@@ -201,7 +201,7 @@ namespace Gonogo.KSP
         /// <para>Its own method because it has to be callable again: see
         /// <see cref="OnSceneLoadRequested"/>.</para>
         ///
-        /// <para>The sinks go in BEFORE the bind, or the bind's own announcement is
+        /// <para>The sinks go in before the bind, or the bind's own announcement is
         /// the one line that lands in the no-op default and says nothing.</para>
         /// </summary>
         private void BindWithholding(string reason)
@@ -242,10 +242,10 @@ namespace Gonogo.KSP
         ///
         /// <para>There is no re-<c>Register</c>: the
         /// host addon is <c>KSPAddon(Instantly, once)</c>, so <c>Register</c> runs
-        /// once for the whole process, and it runs during LOADING. KSP fires
+        /// once for the whole process, and it runs during loading. KSP fires
         /// <c>onGameSceneLoadRequested(MAINMENU)</c> out of
-        /// <c>HighLogic.SetLoadSceneEventsAndFlags</c> on the LOADING -> MAINMENU
-        /// transition that follows, so the stand-down was reached at BOOT, before the
+        /// <c>HighLogic.SetLoadSceneEventsAndFlags</c> on the loading -> MAINMENU
+        /// transition that follows, so the stand-down was reached at boot, before the
         /// player had loaded anything, and nothing ever undid it.</para>
         ///
         /// <para>Both halves are idempotent, so an extra scene change costs nothing.
@@ -363,7 +363,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// MAIN-THREAD reputation-change handler. <c>GameEvents.OnReputationChanged</c>
-        /// carries the new TOTAL and a <c>TransactionReasons</c>, so the delta is derived
+        /// carries the new total and a <c>TransactionReasons</c>, so the delta is derived
         /// against the last seen total and only a <c>VesselLoss</c> reason is attributed.
         /// Every other reason (contract reward/penalty, strategy, recruit, admin
         /// conversion) is left entirely alone on the instant path.
@@ -413,7 +413,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// MAIN-THREAD crew-death handler. <c>ProtoCrewMember.Die</c> fires this with a
-        /// NULL <c>EventReport.origin</c> (decompile-confirmed), so the vessel is resolved
+        /// null <c>EventReport.origin</c> (decompile-confirmed), so the vessel is resolved
         /// from the report's part when one is present, else the vessel a destruction
         /// detector armed in this frame, else the active vessel. With none of those the
         /// death is dropped rather than blamed on a guess.
@@ -502,7 +502,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// MAIN-THREAD per-tick drain: publishes one reputation-loss event per vessel for
         /// any loss whose frame is over, so every death and every VesselLoss delta from a
-        /// single occurrence is folded into ONE event carrying the whole crew list and the
+        /// single occurrence is folded into one event carrying the whole crew list and the
         /// whole delta. Returns null: nothing is published on the tick path itself.
         ///
         /// <para>A loss with a zero delta is dropped rather than published: an uncrewed
@@ -565,12 +565,12 @@ namespace Gonogo.KSP
             public double Ut;
             public double RepDelta;
             public List<string> CrewLost = new List<string>();
-            /// <summary>Held to read the light-time at publish time; may be torn down by then, which ArmSourceNode tolerates.</summary>
+            /// <summary>Held to read the signal delay at publish time; may be torn down by then, which ArmSourceNode tolerates.</summary>
             public Vessel? Vessel;
         }
 
         /// <summary>
-        /// MAIN-THREAD: make sure the ledger knows this vessel's light-time before its
+        /// MAIN-THREAD: make sure the ledger knows this vessel's signal delay before its
         /// event is recorded, so the reveal delay is the source's own rather than the
         /// whole-network default.
         ///
@@ -579,7 +579,7 @@ namespace Gonogo.KSP
         /// prefix and can be idle when a client subscribes only a <c>currency.</c>
         /// topic. Arming it here makes the event self-contained.</para>
         ///
-        /// <para>Sets the DELAY only, never a <c>false</c> connectivity. A vessel whose
+        /// <para>Sets the delay only, never a <c>false</c> connectivity. A vessel whose
         /// link is down freezes its Delayed topics at a <c>+Inf</c> reveal horizon, so
         /// pushing a negative connectivity reading here could strand an event forever;
         /// light already in transit does arrive, and whether the link is up is the

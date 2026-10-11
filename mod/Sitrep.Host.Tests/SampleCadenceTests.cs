@@ -7,10 +7,10 @@ namespace Sitrep.Host.Tests
 {
     /// <summary>
     /// Track-C quickload fix: proves <see cref="SampleCadence.ShouldSample"/>
-    /// forces an immediate resample on a BACKWARD UT jump (F9 quickload)
+    /// forces an immediate resample on a backward UT jump (F9 quickload)
     /// instead of the old forward-only <c>ut - lastSampledUt &lt; interval</c>
     /// gate, which goes strongly negative on a rewind and never trips -
-    /// stalling <c>GonogoAddon.FixedUpdate</c> (and with it the recorder AND
+    /// stalling <c>GonogoAddon.FixedUpdate</c> (and with it the recorder and
     /// the live stream) across exactly the event most worth capturing.
     /// </summary>
     public class SampleCadenceTests

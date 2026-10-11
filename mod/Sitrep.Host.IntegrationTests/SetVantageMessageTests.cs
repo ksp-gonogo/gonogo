@@ -84,7 +84,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// The two tests above only prove the WIRE reaction (silence on accept,
+        /// The two tests above only prove the wire reaction (silence on accept,
         /// an <see cref="ErrorMsg"/> on reject): neither looks at
         /// <c>ClientSession.ChosenVantage</c> itself, so a `HandleSetVantage`
         /// that validated correctly but forgot the actual assignment (or
@@ -137,7 +137,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The per-command override is client-supplied and must answer to the same
         /// rule the set-vantage message does. The assertion is on the vantage the
-        /// HANDLER was given, not on the wire reaction, because that argument is what
+        /// handler was given, not on the wire reaction, because that argument is what
         /// a vantage-aware handler records as having asked for something
         /// (<c>ScetAlarm.ArmedBy</c>): a check that let the dispatch through and only
         /// corrected the response would still write the client's invention down.
@@ -175,7 +175,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The check must not cost the two overrides that are legitimate: an active
         /// centre, and <c>"meta"</c>, which is a delay exemption rather than a place
-        /// and so is NOT an enumerated command centre. A validator copied verbatim
+        /// and so is not an enumerated command centre. A validator copied verbatim
         /// from the set-vantage path would refuse every program-meta command.
         /// </summary>
         [Fact]

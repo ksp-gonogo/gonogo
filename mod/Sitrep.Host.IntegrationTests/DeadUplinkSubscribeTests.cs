@@ -15,7 +15,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para>The <c>vessel</c> uplink died on a single <c>AddChannelSource</c>
     /// call for a topic its Manifest had never declared. A Manifest is recorded
-    /// BEFORE <c>Register</c> runs, so all twenty <c>vessel.*</c> topics stayed
+    /// before <c>Register</c> runs, so all twenty <c>vessel.*</c> topics stayed
     /// declared, kept acking subscribes, and delivered nothing ever again. On the
     /// wire that is indistinguishable from a channel that has simply not produced
     /// a value yet, so the app sat on "SYNCING" and the fault read as a
@@ -29,7 +29,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The failure mode itself, end to end: an uplink whose <c>Register</c>
-        /// wires a source for an undeclared topic takes its OWN, properly
+        /// wires a source for an undeclared topic takes its own, properly
         /// declared channels down with it, and a client subscribing to one of
         /// them is acked and then starved indefinitely.
         ///
@@ -75,13 +75,13 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The general property the suite never asserted, and the reason it
         /// stayed green through a live outage of every Delayed topic on the
-        /// stream: an ORDINARY Delayed channel (no freeze exemption, no dynamic
-        /// namespace, the shape every <c>vessel.*</c> topic has) on a CONNECTED
+        /// stream: an ordinary Delayed channel (no freeze exemption, no dynamic
+        /// namespace, the shape every <c>vessel.*</c> topic has) on a connected
         /// subject reaches a subscribed client, at live-game magnitudes: UT in
-        /// the hundred-thousands, a sub-second light-time, a ~1 s cadence.
+        /// the hundred-thousands, a sub-second signal delay, a ~1 s cadence.
         ///
         /// <para>Every existing reveal-gate test drives the disconnect path or
-        /// asserts reveal TIMING at toy UTs. None of them pinned plain
+        /// asserts reveal timing at toy UTs. None of them pinned plain
         /// "connected and delayed still arrives", so no test could tell the
         /// difference between a working delay model and a dead one. The TrueNow
         /// half is asserted alongside because TrueNow-alive/Delayed-dead was the
@@ -124,7 +124,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The other half of the same diagnosis problem, and the one an Uplink
-        /// author hits first: subscribing to a topic NO uplink declares used to
+        /// author hits first: subscribing to a topic no uplink declares used to
         /// be answered with nothing at all. A mistyped topic, an Uplink the
         /// assembly scan refused, and a topic that exists but has not published
         /// yet all produced the identical null result, so the first-run check
@@ -166,7 +166,7 @@ namespace Sitrep.Host.IntegrationTests
         private static KspSnapshot Snapshot(double ut) =>
             new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["declared"] = ut } };
 
-        /// <summary>An ordinary healthy uplink whose id IS its topic prefix, which is what the error message keys on.</summary>
+        /// <summary>An ordinary healthy uplink whose id is its topic prefix, which is what the error message keys on.</summary>
         private sealed class PrefixedTestUplink : ISitrepUplink
         {
             public const string DeclaredTopic = "prefixed.status";

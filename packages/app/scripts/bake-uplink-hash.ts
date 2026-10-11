@@ -5,7 +5,7 @@
  *
  * ## Why this lives in the app rather than in `mod/`
  *
- * The hash has to be of the bundle that SHIPS, and the bundle that ships is the
+ * The hash has to be of the bundle that ships, and the bundle that ships is the
  * one the app's build writes into `public/uplinks/`. So this builds it with the
  * app's own bundler (`uplink-bundle.ts`, the same function `vite.config.ts`
  * calls) rather than a second one of its own. A release that hashed a
@@ -15,12 +15,12 @@
  *
  * ## Order, which is not the caller's to remember
  *
- * The bundle must exist and be hashed BEFORE the DLL compiles, or the DLL
+ * The bundle must exist and be hashed before the DLL compiles, or the DLL
  * vouches for bytes that are not the ones shipped. `_build-uplink-mod.yml` runs
  * this immediately before `dotnet build` for that reason, and asserts the result
  * with `scripts/client-hash-armed.mjs --require <id>`.
  *
- * ## The generated value IS committed, and that is a commitment
+ * ## The generated value is committed, and that is a commitment
  *
  * A committed hash is stale the moment the client source moves, and a stale hash
  * is not a stale artifact: it is a loader refusal for every operator running

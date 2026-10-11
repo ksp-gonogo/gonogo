@@ -13,7 +13,7 @@ import {
 
 /**
  * The station-to-host data channel's delivery guarantee, asserted on what the
- * INSTALLED PeerJS hands to WebRTC rather than on the options we pass it.
+ * installed PeerJS hands to WebRTC rather than on the options we pass it.
  *
  * Nothing in this repo is faked. The broker is an MSW `ws` link that answers
  * PeerJS's handshake with `OPEN`, and `RTCPeerConnection` (absent from jsdom)

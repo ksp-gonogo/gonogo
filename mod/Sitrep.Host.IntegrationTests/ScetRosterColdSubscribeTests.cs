@@ -9,10 +9,10 @@ using static Sitrep.Host.IntegrationTests.WsTestHarness;
 namespace Sitrep.Host.IntegrationTests
 {
     /// <summary>
-    /// A roster channel has to be able to say it is EMPTY, and the client that
+    /// A roster channel has to be able to say it is empty, and the client that
     /// needs to hear it is the one that has never heard anything.
     ///
-    /// <para><b>A roster channel that publishes only on CHANGE can never say
+    /// <para><b>A roster channel that publishes only on change can never say
     /// "empty."</b> Subscribing to
     /// <c>alarm.scet</c> returned the subscribed event and then nothing at all,
     /// well past the
@@ -24,14 +24,14 @@ namespace Sitrep.Host.IntegrationTests
     /// <para><b>Why the keyframe cadence could not save it.</b> A keyframe is
     /// decided inside the emitter, and the emitter is only consulted when
     /// something is published. A publisher-backed channel that publishes only on
-    /// CHANGE therefore has no cadence at all until its first change: there is
+    /// change therefore has no cadence at all until its first change: there is
     /// nothing for keyframe-on-subscribe or the Courier's catch-up to replay,
     /// because nothing was ever recorded. The first case below pins that, because
     /// it is the half that reads like it should have worked.</para>
     ///
     /// <para><b>Two ticks per publish, throughout.</b> A sampled source's handle
     /// runs on the Courier after the tick's reveal flush, so the frame it
-    /// publishes reaches the wire on the NEXT clock advance. That is the harness,
+    /// publishes reaches the wire on the next clock advance. That is the harness,
     /// not the feature: a test that ticks once and waits sees silence for a
     /// perfectly healthy channel.</para>
     /// </summary>
@@ -42,7 +42,7 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The mechanism, against the real engine: a publish made while nothing
-        /// is subscribed is DROPPED, not held, so a later subscriber is not
+        /// is subscribed is dropped, not held, so a later subscriber is not
         /// caught up to it. A "publish the empty roster once at registration" fix
         /// lands entirely inside this hole, which is why the uplink asks whether
         /// anyone is listening instead of counting its own publishes.
