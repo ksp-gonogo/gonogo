@@ -655,6 +655,7 @@ function SystemViewComponent({
                     <SystemDiagram
                       bodies={bodies}
                       poses={poses}
+                      bucketUt={utBucket ?? undefined}
                       parentName={parentName}
                       highlightNames={vesselBody ? [vesselBody] : []}
                       targetName={

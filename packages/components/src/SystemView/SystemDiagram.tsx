@@ -16,6 +16,7 @@ import {
   nameMatches,
   organise,
   placeBodies,
+  placeBodyRings,
   placeVesselPoint,
   placeVesselRing,
   type VesselOrbit,
@@ -90,6 +91,8 @@ export interface SystemDiagramProps {
     ut: number;
     offsetAt: (bodyName: string, ut: number) => PatchPoint | null;
   } | null;
+  /** The instant a body's open arc is read from, held by the host to one real second so a ring is not re-placed on every frame; absent reads each pose's own instant. */
+  bucketUt?: number;
   /** The frame the whole picture is drawn in. `null` means the catalogue refused the requested frame, so the diagram draws parent-centred inertial and the caller names that frame. */
   projection?: ResolvedProjection | null;
   width: number;
@@ -125,6 +128,7 @@ export function SystemDiagram({
   vesselSelected = false,
   onVesselActivate,
   predicted,
+  bucketUt,
   projection = null,
   width,
   height,
@@ -153,9 +157,30 @@ export function SystemDiagram({
   );
 
   // Memoised on the projection and not on zoom: this re-renders every frame, and a wheel gesture must not replace thousands of placements.
+  // Rings are paths and move only when the arc's read instant is allowed to, which is the UT bucket and never the frame; the points ride each pose.
+  const ringUt = bucketUt ?? poses?.ut;
+  const bodyRings = useMemo(
+    () =>
+      placeBodyRings({
+        parent,
+        children,
+        placement,
+        plotScale,
+        viewUt: ringUt ?? 0,
+      }),
+    [parent, children, placement, plotScale, ringUt],
+  );
   const placedBodies = useMemo(
-    () => placeBodies({ parent, children, poses, placement, plotScale }),
-    [parent, children, poses, placement, plotScale],
+    () =>
+      placeBodies({
+        parent,
+        children,
+        poses,
+        placement,
+        plotScale,
+        rings: bodyRings,
+      }),
+    [parent, children, poses, placement, plotScale, bodyRings],
   );
   const vesselHere =
     vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;

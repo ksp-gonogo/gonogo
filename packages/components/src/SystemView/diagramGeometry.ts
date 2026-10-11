@@ -184,6 +184,29 @@ function ringEndOf(
   };
 }
 
+/**
+ * Each drawn child's ring, in `children` order.
+ *
+ * A ring is a path, not a place: it depends on the catalogue, the projection and, for an integrated body's open arc, the instant the arc is read from. It does not move with each frame's pose, so a caller holds it across them and asks again only when `viewUt` is allowed to have moved.
+ */
+export function placeBodyRings({
+  parent,
+  children,
+  placement,
+  plotScale,
+  viewUt,
+}: {
+  parent: CelestialBody | null;
+  children: readonly CelestialBody[];
+  placement: Placement;
+  plotScale: number;
+  viewUt: number;
+}): PlacedRing[] {
+  return children.map((c) =>
+    placedBodyRing(placement, plotScale, c, parent, viewUt),
+  );
+}
+
 /** The frame body and every drawn child with its ring: independent of the vessel, so a vessel tick does not re-place them. */
 export function placeBodies({
   parent: parentBody,
@@ -191,16 +214,25 @@ export function placeBodies({
   poses,
   placement,
   plotScale,
+  rings = placeBodyRings({
+    parent: parentBody,
+    children,
+    placement,
+    plotScale,
+    viewUt: poses?.ut ?? 0,
+  }),
 }: {
   parent: CelestialBody | null;
   children: readonly CelestialBody[];
   poses: SystemPoses | undefined;
   placement: Placement;
   plotScale: number;
+  /** Rings placed earlier, which a caller that re-places on every pose passes so only the points move. */
+  rings?: readonly PlacedRing[];
 }): { parent: PlacedPoint; bodies: PlacedBody[] } {
   return {
     parent: placedPointOf(placement, plotScale, [0, 0, 0]),
-    bodies: children.map((c) => {
+    bodies: children.map((c, i) => {
       const sma = c.semiMajorAxis ?? 0;
       const ecc = c.eccentricity ?? 0;
       const lan = c.lan ?? 0;
@@ -220,7 +252,7 @@ export function placeBodies({
             poses?.poseByIndex[c.index]?.trueAnomaly ?? 0,
           ),
         ),
-        ...placedBodyRing(placement, plotScale, c, parentBody, poses?.ut ?? 0),
+        ...rings[i],
       };
     }),
   };
