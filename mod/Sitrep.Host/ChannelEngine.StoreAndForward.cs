@@ -301,6 +301,7 @@ namespace Sitrep.Host
             CreateDelivery();
             _channelDeclarations[JourneyTopic] = new ChannelDeclaration
             {
+                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = JourneyTopic,
                 Delivery = Delivery.LossyLatest,

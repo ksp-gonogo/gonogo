@@ -3450,3 +3450,61 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     2: "Unknown",
   },
 };
+
+/**
+ * The value tags this contract declares, registered by its client under its
+ * own id: `topics` holds each value's declared sample kind and entry key by
+ * Topic and path (`*` crosses a list or dictionary), and `reckonable` every
+ * value a declared model carries forward, with the inputs it needs.
+ */
+export const GENERATED_CONTRACT_TAGS = {
+  topics: {
+    "comms.path": {
+      "hops.*.distanceMeters": { kind: "continuous" },
+      "hops.*.strength": { kind: "continuous" },
+    },
+    "eva.crew": {
+      "kerbals.*.propellantAmount": { kind: "continuous" },
+    },
+    "science.lab": {
+      "*.dataStorage": { kind: "discrete" },
+    },
+    "vessel.orbit": {
+      "epoch": { kind: "continuous" },
+    },
+    "vessel.parts": {
+      "parts.*.currentTemp": { kind: "continuous" },
+      "parts.*.resources": { kind: "continuous" },
+      "parts.*.skinTemp": { kind: "continuous" },
+    },
+    "vessel.propulsion": {
+      "dryMass": { kind: "discrete" },
+    },
+    "vessel.target": {
+      "orbit.epoch": { kind: "continuous" },
+    },
+  },
+  reckonable: [
+    { topic: "comms.delay", field: "oneWaySeconds", basis: "kepler-propagation", inputs: [ { topic: "", path: "source" }, { topic: "comms.path", path: "" }, { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" }, { topic: "commandCentre.roster", path: "" } ] },
+    { topic: "target.available", field: "entries", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.dock", field: "distance", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativePosition" }, { topic: "", path: "relativeVelocity" } ] },
+    { topic: "vessel.dock", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
+    { topic: "vessel.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.flight", field: "altitudeAsl", basis: "powered-integration", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.flight", field: "altitudeAsl", basis: "rate-integration", inputs: [ { topic: "", path: "verticalSpeed" }, { topic: "", path: "gForce" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.flight", field: "orbitalSpeed", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" } ] },
+    { topic: "vessel.flight", field: "orbitalSpeed", basis: "powered-integration", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "argPe", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "ecc", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "epoch", basis: "kepler-propagation", inputs: [ { topic: "", path: "sma" }, { topic: "", path: "mu" }, { topic: "", path: "horizon" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "epoch", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "inc", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "lan", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "meanAnomalyAtEpoch", basis: "kepler-propagation", inputs: [ { topic: "", path: "sma" }, { topic: "", path: "mu" }, { topic: "", path: "horizon" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "meanAnomalyAtEpoch", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit", field: "sma", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
+    { topic: "vessel.orbit.truth", field: "position", basis: "kepler-propagation", inputs: [ { topic: "", path: "velocity" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
+    { topic: "vessel.orbit.truth", field: "velocity", basis: "kepler-propagation", inputs: [ { topic: "", path: "position" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
+    { topic: "vessel.target", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
+  ],
+} as const;

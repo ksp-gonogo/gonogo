@@ -140,14 +140,14 @@ namespace Sitrep.Host.IntegrationTests
                 Channels = new List<ChannelDeclaration>
                 {
                     new ChannelDeclaration
-                    {
+                    { Kind = SampleKind.Continuous,
                         Topic = ChannelEngine.CommsDelayTopic,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                         Delay = DelayRole.TrueNow,
                     },
                     new ChannelDeclaration
-                    {
+                    { Kind = SampleKind.Continuous,
                         // Delayed LossyLatest state snapshot.
                         Topic = StateTopic,
                         Delay = DelayRole.Delayed,
@@ -155,7 +155,7 @@ namespace Sitrep.Host.IntegrationTests
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     },
                     new ChannelDeclaration
-                    {
+                    { Kind = SampleKind.Continuous,
                         // Delayed ReliableOrdered diff stream with a keyframe, same
                         // shape as kos.terminal.<coreId>.
                         Topic = TermTopic,

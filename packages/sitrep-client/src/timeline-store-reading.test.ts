@@ -1,4 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import {
   clearReckoners,
@@ -220,6 +221,7 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
      * silent drop the decline exists to end, wearing the decline's own clothes.
      */
     clearReckoners();
+    declareTestReckonable("system.bodies", "some-uplink");
     registerReckoner("system.bodies", "some-uplink", {
       deps: [],
       reckon: () => ({ declined: { reason: "model-inapplicable" as const } }),

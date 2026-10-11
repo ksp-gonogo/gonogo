@@ -739,7 +739,7 @@ namespace Sitrep.Host.IntegrationTests
                 Channels = new List<ChannelDeclaration>
                 {
                     new ChannelDeclaration
-                    {
+                    { Kind = SampleKind.Continuous,
                         Topic = VesselViewProvider.ControlTopic,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

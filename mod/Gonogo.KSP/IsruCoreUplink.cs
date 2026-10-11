@@ -46,6 +46,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration Delayed(string topic, string module) => new ChannelDeclaration
         {
+            Kind = SampleKind.Continuous,
             Requires = new[] { CareerGates.PartModuleResearched(module) },
             Topic = topic,
             Delivery = Delivery.LossyLatest,

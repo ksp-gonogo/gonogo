@@ -366,6 +366,7 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration TrueNow(string topic) => new ChannelDeclaration
         {
+            Kind = SampleKind.Discrete,
             Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
@@ -384,6 +385,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static ChannelDeclaration LinkReport(string topic) => new ChannelDeclaration
         {
+            Kind = SampleKind.Discrete,
             Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
@@ -419,6 +421,7 @@ namespace Gonogo.KSP
                 // Delay disposition.
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = LinkTopic,
                     Delivery = Delivery.LossyLatest,
@@ -427,6 +430,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = FleetSilenceTopic,
                     Delivery = Delivery.LossyLatest,

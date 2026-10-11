@@ -1,4 +1,5 @@
 import type { GonogoUplinkManifest } from "@ksp-gonogo/core";
+import { registerReckoner } from "@ksp-gonogo/sitrep-sdk/spine";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConsentInfo } from "./consent";
 import type { HostCompat } from "./hostCompat";
@@ -175,6 +176,28 @@ describe("loadEnabledUplinks", () => {
       "/uplinks/scansat.client.js",
     );
     expect(getUplinkOutcomes()[0].status).toBe("loaded");
+  });
+
+  it("quarantines an Uplink whose client registers a model on a value it never marked, and says why", async () => {
+    /*
+     * The refusal is thrown while the bundle's module loads, which is where every
+     * registration runs: it has to cost that one Uplink, never the dashboard.
+     */
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => {
+      registerReckoner("vessel.resources", "scansat", {
+        deps: [],
+        reckon: () => ({ declined: { reason: "model-inapplicable" } }),
+      });
+    });
+    const outcomes = await loadEnabledUplinks(
+      ctx({ index: indexWith(goodHash), importBundle }),
+    );
+    expect(outcomes[0].status).toBe("quarantined");
+    expect(outcomes[0].reason).toMatch(
+      /load failed: .*vessel\.resources.*"scansat".*SitrepReckonableOn/s,
+    );
   });
 
   it("calls fetchBytes with (bundleUrl, expectedHash): the D6 seam a peer-backed fetchBytes needs", async () => {

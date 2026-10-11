@@ -347,6 +347,7 @@ public class LabEntry
     /// <summary>The lab's data capacity in mits (KSP's
     /// <c>ModuleScienceLab.dataStorage</c>).</summary>
     [SitrepUnit(Units.Mits)]
+    [SitrepSampleKind(SampleKind.Discrete)]
     public double? DataStorage { get; set; }
 
     /// <summary>Science the lab has generated and is holding, not yet

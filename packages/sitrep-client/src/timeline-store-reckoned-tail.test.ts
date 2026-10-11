@@ -1,3 +1,4 @@
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import "./reckoner-test-topics";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReckonerDefinition } from "./reading";
@@ -59,6 +60,7 @@ function disconnectedStore(nowSeconds: number): TimelineStore {
 describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
   it("carries a raw topic forward on the model its owner registered", () => {
     const store = disconnectedStore(50);
+    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -93,6 +95,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
         };
       },
     };
+    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", reckoner);
     ingestPoint(store, "test.temperature", 10, 5);
     ingestPoint(store, "test.temperature", 20, 5);
@@ -111,6 +114,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
   it("draws up to the boundary when the first stride already overshoots the model's reach", () => {
     const store = disconnectedStore(100);
     const HORIZON = 4;
+    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point, _deps, { reckonUt: at }) => {
@@ -136,6 +140,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
 
   it("draws nothing for a model that declines outright", () => {
     const store = disconnectedStore(50);
+    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: () => ({ declined: { reason: "model-inapplicable" } }),
@@ -160,6 +165,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
 
   it("declines a field a line cannot honestly draw, and the whole record too", () => {
     const store = disconnectedStore(50);
+    declareTestReckonable("test.contact", "test");
     registerReckoner("test.contact", "test", {
       deps: [],
       reckon: (point) => ({
@@ -197,6 +203,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
 
   it("keeps its answer stable within one frame and walks again across frames", () => {
     const store = disconnectedStore(50);
+    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -219,6 +226,7 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
 
   it("draws nothing while the topic is live, where there is no silence", () => {
     const store = disconnectedStore(50);
+    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({

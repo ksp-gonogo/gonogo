@@ -1,5 +1,6 @@
 import { registerReckoner } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -534,6 +535,7 @@ describe("Graph: the region behind a modelled trace", () => {
 
   /** A drift model on the semi-major axis that admits it gets vaguer. */
   function registerDriftingSma(banded: boolean): void {
+    declareTestReckonable("vessel.orbit", "test");
     registerReckoner("vessel.orbit", "test", {
       deps: [],
       reckon: (point) => {

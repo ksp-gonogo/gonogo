@@ -41,31 +41,37 @@ namespace Sitrep.Contract.TestSupport
         /// </summary>
         public sealed class ReckonableMark
         {
-            internal ReckonableMark(Type declaringType, PropertyInfo property, SitrepReckonableAttribute declaration)
+            internal ReckonableMark(
+                Type declaringType,
+                PropertyInfo property,
+                SitrepReckonableAttribute declaration,
+                string topic,
+                string field,
+                IReadOnlyList<Type> lists)
             {
                 DeclaringType = declaringType;
                 Property = property;
                 Declaration = declaration;
-                var topic = declaringType.GetCustomAttribute<SitrepTopicAttribute>(false);
-                Topic = topic?.TopicId ?? "";
-                IsArrayTopic = topic?.IsArray ?? false;
-                Field = CamelCase(property.Name);
+                Topic = topic;
+                Field = field;
+                Lists = lists;
             }
 
+            /// <summary>The type holding the marked property, which a bare input names a path on.</summary>
             public Type DeclaringType { get; }
 
             public PropertyInfo Property { get; }
 
             public SitrepReckonableAttribute Declaration { get; }
 
-            /// <summary>The declaring type's Topic id, or <c>""</c> when it carries no <c>[SitrepTopic]</c>.</summary>
+            /// <summary>The Topic the value is published on, or <c>""</c> when no <c>[SitrepTopic]</c> payload reaches it.</summary>
             public string Topic { get; }
 
-            /// <summary>Whether that Topic's payload is a bare JSON array of the declaring type.</summary>
-            public bool IsArrayTopic { get; }
-
-            /// <summary>The property name as the wire spells it.</summary>
+            /// <summary>The value's path from the payload root as the wire spells it, <c>*</c> for each list or dictionary crossed.</summary>
             public string Field { get; }
+
+            /// <summary>The element type of every list the value sits in, outermost first, each of which must name its entry key.</summary>
+            public IReadOnlyList<Type> Lists { get; }
 
             /// <summary>What a failure message and a sort order both want: <c>Type.Property</c>.</summary>
             public string Where => DeclaringType.Name + "." + Property.Name;
@@ -97,20 +103,35 @@ namespace Sitrep.Contract.TestSupport
         /// </summary>
         public static IReadOnlyList<ReckonableMark> Marks(IEnumerable<Type> candidateTypes)
         {
+            var types = candidateTypes.Where(t => t.IsClass && !t.IsAbstract).ToList();
             var marks = new List<ReckonableMark>();
+            var reached = new HashSet<PropertyInfo>();
 
-            foreach (var type in candidateTypes)
+            foreach (var value in ValueTagWalk.Walk(types).Where(ValueTagWalk.ClaimsItsTopic))
             {
-                if (!type.IsClass || type.IsAbstract)
+                foreach (var declaration in value.Property.GetCustomAttributes<SitrepReckonableAttribute>(false))
                 {
-                    continue;
+                    marks.Add(new ReckonableMark(value.Holder, value.Property, declaration, value.Topic, value.Path, value.Lists));
+                    reached.Add(value.Property);
                 }
+            }
 
+            /*
+             * A mark no Topic reaches is still a mark someone wrote, and the gate
+             * reports it rather than letting the walk lose it.
+             */
+            foreach (var type in types)
+            {
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {
+                    if (reached.Contains(prop))
+                    {
+                        continue;
+                    }
+
                     foreach (var declaration in prop.GetCustomAttributes<SitrepReckonableAttribute>(false))
                     {
-                        marks.Add(new ReckonableMark(type, prop, declaration));
+                        marks.Add(new ReckonableMark(type, prop, declaration, "", CamelCase(prop.Name), new Type[0]));
                     }
                 }
             }
@@ -211,18 +232,19 @@ namespace Sitrep.Contract.TestSupport
         {
             if (mark.Topic.Length == 0)
             {
-                yield return "the declaring type carries no [SitrepTopic], so there is no Topic for the "
-                    + "generated projection to key the field under. Reckonability is declared on a "
-                    + "published value, and a type nothing publishes has none.";
+                yield return "no [SitrepTopic] payload reaches the declaring type, so there is no Topic to "
+                    + "key the value under. Reckonability is declared on a published value, and a type "
+                    + "nothing publishes has none.";
                 yield break;
             }
 
-            if (mark.IsArrayTopic)
+            foreach (var list in mark.Lists)
             {
-                yield return "'" + mark.Topic + "' is an array Topic. Its projection would be an array of "
-                    + "anonymous values with the identity fields picked away, which cannot be joined back "
-                    + "to the element it came from. Carrying identity into the projection is a design "
-                    + "decision on its own, not a mark to add here.";
+                var problem = EntryKeyProblem(list);
+                if (problem is not null)
+                {
+                    yield return problem;
+                }
             }
 
             if (mark.Declaration.Basis == ReckoningBases.Combination)
@@ -261,6 +283,197 @@ namespace Sitrep.Contract.TestSupport
             }
         }
 
+        /// <summary>
+        /// Why a list's entries cannot be followed across samples, or null when its
+        /// element names exactly one scalar <c>[SitrepEntryKey]</c> that is not
+        /// itself carried forward.
+        /// </summary>
+        internal static string? EntryKeyProblem(Type element)
+        {
+            var keys = element.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(p => p.IsDefined(typeof(SitrepEntryKeyAttribute), false))
+                .ToList();
+            if (keys.Count == 0)
+            {
+                return "it sits in a list of " + element.Name + ", which names no [SitrepEntryKey]. A list "
+                    + "reorders and changes length between samples, so a model that moved an entry by its "
+                    + "position would move a different entry the moment the list changed. Mark the field "
+                    + "that identifies an entry.";
+            }
+
+            if (keys.Count > 1)
+            {
+                return element.Name + " names " + keys.Count + " entry keys ("
+                    + string.Join(", ", keys.Select(k => k.Name)) + "). An entry has one identity.";
+            }
+
+            var key = keys[0];
+            var type = Nullable.GetUnderlyingType(key.PropertyType) ?? key.PropertyType;
+            if (type != typeof(string) && type != typeof(int) && type != typeof(long) && type != typeof(uint) && type != typeof(ulong))
+            {
+                return element.Name + "." + key.Name + " is its entry key and is a " + type.Name
+                    + ". A key is compared for equality across samples, so it is a string or an integer.";
+            }
+
+            if (key.IsDefined(typeof(SitrepReckonableAttribute), false))
+            {
+                return element.Name + "." + key.Name + " is its entry key and is also carried forward by a "
+                    + "model. An identity that a model moves is not an identity.";
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Every unresolved <see cref="SitrepReckonableOnAttribute"/> in
+        /// <paramref name="assembly"/>, as "<c>topic field -&gt; what is wrong</c>"
+        /// strings. The same rules as a property mark, resolved against the payload
+        /// of the Topic the mark names.
+        /// </summary>
+        public static IReadOnlyList<string> ProblemsOn(
+            Assembly assembly,
+            IReadOnlyDictionary<string, Type> topicPayloads,
+            IReadOnlyCollection<string> knownBases)
+        {
+            var problems = new List<string>();
+            foreach (var on in assembly.GetCustomAttributes<SitrepReckonableOnAttribute>())
+            {
+                var where = on.Topic + " " + on.Field + " [" + on.Basis + "]";
+                if (!topicPayloads.TryGetValue(on.Topic ?? "", out var payload))
+                {
+                    problems.Add(where + " -> names topic '" + on.Topic + "', which no [SitrepTopic] type publishes.");
+                    continue;
+                }
+
+                if (payload.Assembly == assembly)
+                {
+                    problems.Add(where + " -> '" + on.Topic + "' is this contract's own Topic. Mark the "
+                        + "property with [SitrepReckonable], where the value is declared.");
+                    continue;
+                }
+
+                var resolved = ResolveField(payload, on.Field ?? "", out var holder, out var property, out var lists);
+                if (resolved is not null)
+                {
+                    problems.Add(where + " -> " + resolved);
+                    continue;
+                }
+
+                var mark = new ReckonableMark(
+                    holder!, property!, new SitrepReckonableAttribute(on.Basis, on.Inputs), on.Topic!, on.Field!, lists!);
+                foreach (var problem in ProblemsWith(mark, topicPayloads, knownBases))
+                {
+                    problems.Add(where + " -> " + problem);
+                }
+            }
+
+            return problems;
+        }
+
+        /// <summary>
+        /// Walks a mark's field path from a Topic payload, <c>*</c> crossing a list or
+        /// dictionary, and returns why it does not name a published value, or null.
+        /// </summary>
+        private static string? ResolveField(
+            Type payload,
+            string field,
+            out Type? holder,
+            out PropertyInfo? property,
+            out IReadOnlyList<Type>? lists)
+        {
+            holder = null;
+            property = null;
+            lists = null;
+            var crossed = new List<Type>();
+            var segments = field.Split('.');
+            var index = 0;
+            var current = payload;
+            if (payload.GetCustomAttribute<SitrepTopicAttribute>(false)?.IsArray == true)
+            {
+                if (segments.Length == 0 || segments[0] != "*")
+                {
+                    return "the Topic is an array, so the path starts with '*' for its entries.";
+                }
+
+                crossed.Add(payload);
+                index = 1;
+            }
+
+            for (; index < segments.Length; index++)
+            {
+                var segment = segments[index];
+                var match = current.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .FirstOrDefault(p => string.Equals(CamelCase(p.Name), segment, StringComparison.Ordinal));
+                if (match is null)
+                {
+                    return "'" + segment + "' is not a published property of " + current.Name + ".";
+                }
+
+                if (index == segments.Length - 1)
+                {
+                    holder = current;
+                    property = match;
+                    lists = crossed;
+                    return null;
+                }
+
+                var element = ElementOf(match.PropertyType, out var isList);
+                if (element is not null && isList)
+                {
+                    crossed.Add(element);
+                }
+
+                if (element is not null)
+                {
+                    if (index + 1 >= segments.Length || segments[index + 1] != "*")
+                    {
+                        return "'" + segment + "' holds many " + element.Name + ", so the next segment is '*'.";
+                    }
+
+                    index++;
+                    current = element;
+                    continue;
+                }
+
+                current = Nullable.GetUnderlyingType(match.PropertyType) ?? match.PropertyType;
+            }
+
+            return "the path is empty.";
+        }
+
+        /// <summary>The element of a list or the value of a string-keyed dictionary, or null for anything else.</summary>
+        private static Type? ElementOf(Type type, out bool isList)
+        {
+            isList = false;
+            if (type == typeof(string))
+            {
+                return null;
+            }
+
+            if (type.IsGenericType)
+            {
+                var args = type.GetGenericArguments();
+                if (args.Length == 2 && args[0] == typeof(string) && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+                {
+                    return args[1];
+                }
+
+                if (args.Length == 1 && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+                {
+                    isList = true;
+                    return args[0];
+                }
+            }
+
+            if (type.IsArray)
+            {
+                isList = true;
+                return type.GetElementType();
+            }
+
+            return null;
+        }
+
         private static string? ProblemWithInput(
             ReckonableMark mark,
             string input,
@@ -273,7 +486,7 @@ namespace Sitrep.Contract.TestSupport
 
             if (input[0] != TopicPrefix)
             {
-                if (string.Equals(input, mark.Field, StringComparison.Ordinal))
+                if (string.Equals(input, CamelCase(mark.Property.Name), StringComparison.Ordinal))
                 {
                     return "input '" + input + "' is the marked value itself. Every model is anchored on the "
                         + "value it advances, so that anchor is implicit and must not be listed.";

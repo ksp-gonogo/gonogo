@@ -704,7 +704,7 @@ describe("an entry nothing can draw", () => {
   // Telemetry has no reply channel, so no producer can make this one.
   const UNDRAWN: RailTags = {
     direction: "telemetry",
-    continuity: "continuous",
+    kind: "continuous",
     delivery: "acked",
   };
 

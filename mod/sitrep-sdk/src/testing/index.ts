@@ -72,6 +72,8 @@ export {
 } from "../spine";
 export { consoleLogger } from "./console-logger";
 export { createTestTelemetryClient } from "./create-test-telemetry-client";
+// A mark for a Topic only a test knows, so a model can be registered on it.
+export { declareTestReckonable } from "./declare-test-reckonable";
 export { createFakeWallClock, type FakeWallClock } from "./fake-wall-clock";
 // The act-warning gate's post-body wait, inert unless the gate sets its variable.
 export {

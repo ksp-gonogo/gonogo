@@ -461,8 +461,9 @@ namespace Sitrep.Host.Comms
         /// path its own plan has and no other's. Never aboard anything, so there
         /// is nothing to replay on reacquisition.
         /// </summary>
-        private static ChannelDeclaration PathChannel(string topic) => new ChannelDeclaration
+        private static ChannelDeclaration PathChannel(string topic, SampleKind kind) => new ChannelDeclaration
         {
+            Kind = kind,
             Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
@@ -477,8 +478,9 @@ namespace Sitrep.Host.Comms
         /// Addressed: each centre is sent figures for its own roster, from its
         /// own plan. Never aboard anything, so nothing to replay.
         /// </summary>
-        private static ChannelDeclaration RosterFigureChannel(string topic) => new ChannelDeclaration
+        private static ChannelDeclaration RosterFigureChannel(string topic, SampleKind kind) => new ChannelDeclaration
         {
+            Kind = kind,
             Requires = Requirement.None,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
@@ -491,14 +493,15 @@ namespace Sitrep.Host.Comms
         /// <summary>The channels, for the manifest of the Uplink that registers this.</summary>
         public static List<ChannelDeclaration> Channels() => new List<ChannelDeclaration>
         {
-            PathChannel(PathTopic),
-            PathChannel(NetworkTopic),
-            PathChannel(CommandCentreTopic),
-            PathChannel(DelayTopic),
-            PathChannel(SignalTopic),
-            PathChannel(DegradeTopic),
+            PathChannel(PathTopic, SampleKind.Discrete),
+            PathChannel(NetworkTopic, SampleKind.Discrete),
+            PathChannel(CommandCentreTopic, SampleKind.Discrete),
+            PathChannel(DelayTopic, SampleKind.Continuous),
+            PathChannel(SignalTopic, SampleKind.Continuous),
+            PathChannel(DegradeTopic, SampleKind.Continuous),
             new ChannelDeclaration
             {
+                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = RosterTopic,
                 Delivery = Delivery.LossyLatest,
@@ -510,6 +513,7 @@ namespace Sitrep.Host.Comms
             },
             new ChannelDeclaration
             {
+                Kind = SampleKind.Continuous,
                 Requires = Requirement.None,
                 Topic = TargetsTopic,
                 Delivery = Delivery.LossyLatest,
@@ -521,11 +525,12 @@ namespace Sitrep.Host.Comms
                 Recordable = false,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             },
-            RosterFigureChannel(UnreachableTopic),
-            RosterFigureChannel(SeparationTopic),
-            RosterFigureChannel(ActiveVesselDelayTopic),
+            RosterFigureChannel(UnreachableTopic, SampleKind.Discrete),
+            RosterFigureChannel(SeparationTopic, SampleKind.Continuous),
+            RosterFigureChannel(ActiveVesselDelayTopic, SampleKind.Continuous),
             new ChannelDeclaration
             {
+                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = VesselsTopic,
                 Delivery = Delivery.LossyLatest,
@@ -537,6 +542,7 @@ namespace Sitrep.Host.Comms
             },
             new ChannelDeclaration
             {
+                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = ContactsTopic,
                 Delivery = Delivery.LossyLatest,
@@ -549,6 +555,7 @@ namespace Sitrep.Host.Comms
             },
             new ChannelDeclaration
             {
+                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = RouteTopic,
                 Delivery = Delivery.LossyLatest,

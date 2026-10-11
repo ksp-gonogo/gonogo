@@ -1,4 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TestTarget } from "./reckoner-test-topics";
 import {
@@ -33,6 +34,7 @@ function point(validAt: number, payload: number): TimelinePoint<number> {
 /** A model that climbs one unit per UT second from its observation, so its answer names the instant it was asked for. */
 function registerRamp() {
   const asked: number[] = [];
+  declareTestReckonable(TOPIC, "test");
   registerReckoner(TOPIC, "test", {
     deps: [],
     reckon(observed, _resolved, frame) {
@@ -182,6 +184,7 @@ describe("a reading under signal delay", () => {
 
 describe("a field's reckoning", () => {
   it("names the instant its modelled value is for", () => {
+    declareTestReckonable("test.target", "test");
     registerReckoner("test.target", "test", {
       deps: [],
       reckon(observed) {

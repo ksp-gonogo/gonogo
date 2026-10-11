@@ -7,6 +7,12 @@ const src = readFileSync(
   "utf8",
 );
 
+/** The rows themselves travel with every other value tag, in units.ts. */
+const rows = readFileSync(
+  fileURLToPath(new URL("./__generated__/units.ts", import.meta.url)),
+  "utf8",
+);
+
 /**
  * Asserted against the generated TEXT rather than the imported const, the same
  * way generated-control-channels.ts is: a stale artifact and a correct one
@@ -15,20 +21,20 @@ const src = readFileSync(
  */
 describe("generated reckonability.ts", () => {
   it("declares the dead-reckoned relative position with the velocity that moves it", () => {
-    expect(src).toMatch(
+    expect(rows).toMatch(
       /\{ topic: "vessel\.target", field: "relativePosition", basis: "linear-dead-reckoning", inputs: \[ \{ topic: "", path: "relativeVelocity" \} \] \}/,
     );
   });
 
   it("splits a cross-topic input into its topic and its path", () => {
     // @vessel.orbit is a whole payload, @vessel.orbit#mu is one field of it, and the two halves are what a consumer resolves without parsing.
-    expect(src).toMatch(/\{ topic: "vessel\.orbit", path: "" \}/);
-    expect(src).toMatch(/\{ topic: "vessel\.orbit", path: "mu" \}/);
+    expect(rows).toMatch(/\{ topic: "vessel\.orbit", path: "" \}/);
+    expect(rows).toMatch(/\{ topic: "vessel\.orbit", path: "mu" \}/);
   });
 
   it("exports both views and the basis vocabulary", () => {
     expect(src).toMatch(/export type GeneratedReckoningBasis/);
-    expect(src).toMatch(/export const GENERATED_RECKONABLE_VALUES/);
+    expect(rows).toMatch(/export const GENERATED_CONTRACT_TAGS/);
     expect(src).toMatch(/export const GENERATED_RECKONABLE_FIELDS/);
   });
 
@@ -49,10 +55,10 @@ describe("generated reckonability.ts", () => {
      * rate and the sensed deceleration. A single row with a SET of bases could
      * not say that, which is why the attribute is AllowMultiple instead.
      */
-    expect(src).toMatch(
+    expect(rows).toMatch(
       /\{ topic: "vessel\.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: \[ \{ topic: "vessel\.orbit", path: "" \}, \{ topic: "system\.bodies", path: "" \} \] \}/,
     );
-    expect(src).toMatch(
+    expect(rows).toMatch(
       /\{ topic: "vessel\.flight", field: "altitudeAsl", basis: "rate-integration", inputs: \[ \{ topic: "", path: "verticalSpeed" \}, \{ topic: "", path: "gForce" \}, \{ topic: "system\.bodies", path: "" \} \] \}/,
     );
   });

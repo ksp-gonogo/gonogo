@@ -170,7 +170,7 @@ namespace Sitrep.Host.IntegrationTests
             };
 
             private static ChannelDeclaration Channel(string topic) => new ChannelDeclaration
-            {
+            { Kind = SampleKind.Continuous,
                 Topic = topic,
                 Delivery = Delivery.ReliableOrdered,
                 Delay = DelayRole.Delayed,

@@ -4,6 +4,13 @@ using System.Linq;
 using Sitrep.Contract.TestSupport;
 using Xunit;
 
+[assembly: Sitrep.Contract.SitrepReckonableOn(
+    "vessel.resources", "resources.*.current", Sitrep.Contract.ReckoningBases.RateIntegration, "@fake.rates#rate")]
+[assembly: Sitrep.Contract.SitrepReckonableOn(
+    "vessel.resources", "resources.*.nope", Sitrep.Contract.ReckoningBases.RateIntegration, "@fake.rates#rate")]
+[assembly: Sitrep.Contract.SitrepReckonableOn(
+    "fake.rates", "rate", Sitrep.Contract.ReckoningBases.RateIntegration, "rate")]
+
 namespace Sitrep.Contract.Tests
 {
     /// <summary>
@@ -284,7 +291,14 @@ namespace Sitrep.Contract.Tests
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.SelfReferentialInput), "implicit", payloads, bases);
             AssertOneProblemMentioning(
-                typeof(ReckonabilityFakes.ArrayTopicMark), "array Topic", payloads, bases);
+                typeof(ReckonabilityFakes.ArrayTopicMark), "[SitrepEntryKey]", payloads, bases);
+            Assert.Empty(ProblemsFor(typeof(ReckonabilityFakes.KeyedArrayTopicMark), payloads, bases));
+            Assert.Empty(ProblemsFor(typeof(ReckonabilityFakes.NestedKeyedLists), payloads, bases));
+            Assert.Empty(ProblemsFor(typeof(ReckonabilityFakes.DictionaryCrossed), payloads, bases));
+            AssertOneProblemMentioning(
+                typeof(ReckonabilityFakes.NestedUnkeyedList), "[SitrepEntryKey]", payloads, bases);
+            AssertOneProblemMentioning(
+                typeof(ReckonabilityFakes.TwoKeys), "2 entry keys", payloads, bases);
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.UntopickedMark), "no [SitrepTopic]", payloads, bases);
             AssertOneProblemMentioning(
@@ -302,6 +316,61 @@ namespace Sitrep.Contract.Tests
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.DuplicateBasis), "the same basis is declared 2 times",
                 payloads, bases);
+        }
+
+        /// <summary>
+        /// A mark nested two lists deep is found where the wire puts it, under the
+        /// path a client reads, with every list it crosses.
+        /// </summary>
+        [Fact]
+        public void ANestedMarkIsFoundAtItsWirePath()
+        {
+            var mark = Assert.Single(ReckonabilityAssertion.Marks(new[] { typeof(ReckonabilityFakes.NestedKeyedLists) }));
+            Assert.Equal("fake.nested-keyed", mark.Topic);
+            Assert.Equal("*.rules.*.level", mark.Field);
+            Assert.Equal(
+                new[] { typeof(ReckonabilityFakes.NestedKeyedLists), typeof(ReckonabilityFakes.KeyedRule) },
+                mark.Lists);
+        }
+
+        /// <summary>
+        /// A mark on a Topic payload's own property speaks for that Topic only. The
+        /// craft's orbit is carried forward by its own engines; the same shape
+        /// published as a target's orbit is another craft under other forces.
+        /// </summary>
+        [Fact]
+        public void ATopicsOwnMarkDoesNotFollowItsShapeIntoAnotherTopic()
+        {
+            var marks = ReckonabilityAssertion.Marks(ContractTypes());
+            Assert.Contains(marks, m => m.Topic == "vessel.orbit" && m.Field == "sma");
+            Assert.DoesNotContain(marks, m => m.Topic == "vessel.target" && m.Field.StartsWith("orbit.", StringComparison.Ordinal));
+        }
+
+        /// <summary>
+        /// An assembly-level mark on another owner's Topic is held to the same
+        /// rules as a property mark. The three planted on this test assembly are a
+        /// clean one, a path the payload does not publish, and one naming a Topic
+        /// this assembly owns.
+        /// </summary>
+        [Fact]
+        public void AnAssemblyMarkOnAnotherOwnersTopicIsGated()
+        {
+            var payloads = new Dictionary<string, Type>(
+                (Dictionary<string, Type>)ReckonabilityAssertion.TopicPayloads(ContractTypes()), StringComparer.Ordinal);
+            foreach (var pair in ReckonabilityAssertion.TopicPayloads(FakeTypes()))
+            {
+                payloads[pair.Key] = pair.Value;
+            }
+
+            var problems = ReckonabilityAssertion.ProblemsOn(
+                typeof(ReckonabilityGateTests).Assembly, payloads, ReckonabilityAssertion.KnownBases());
+
+            Assert.Equal(2, problems.Count);
+            Assert.Contains(problems, p => p.Contains("resources.*.nope", StringComparison.Ordinal)
+                && p.Contains("'nope' is not a published property", StringComparison.Ordinal));
+            Assert.Contains(problems, p => p.StartsWith("fake.rates", StringComparison.Ordinal)
+                && p.Contains("this contract's own Topic", StringComparison.Ordinal));
+            Assert.DoesNotContain(problems, p => p.Contains("resources.*.current", StringComparison.Ordinal));
         }
 
         private static IReadOnlyList<string> ProblemsFor(

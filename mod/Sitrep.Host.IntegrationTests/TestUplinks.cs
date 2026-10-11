@@ -45,13 +45,13 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = SystemViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = RawTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -204,7 +204,7 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         private static ChannelDeclaration Channel(string topic) => new ChannelDeclaration
-        {
+        { Kind = SampleKind.Continuous,
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -239,13 +239,13 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = CareerViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = CareerViewProvider.FacilitiesTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -305,13 +305,13 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ScienceViewProvider.ExperimentsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ScienceViewProvider.LabTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -355,7 +355,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = PartsViewProvider.PowerTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -399,19 +399,19 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = BreakingGroundViewProvider.RoboticsTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = BreakingGroundViewProvider.RoboticsAvailableTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = BreakingGroundViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -461,21 +461,21 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = TrueNowTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -602,7 +602,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = DelayTopic,
                     Delivery = Delivery.LossyLatest,
                     // Delayed and non-recordable, matching production
@@ -759,14 +759,14 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -874,14 +874,14 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = TrueNowTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -963,28 +963,28 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = TrueNowTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = LinkTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -1125,14 +1125,14 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = LinkTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -1319,7 +1319,7 @@ namespace Sitrep.Host.IntegrationTests
         public void Register(IUplinkHost host)
         {
             _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
-            {
+            { Kind = SampleKind.Continuous,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 Delay = DelayRole.Delayed,
@@ -1370,7 +1370,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = Topic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -1422,14 +1422,14 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -1573,14 +1573,14 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.TrueNow,
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ReliableTopic,
                     // Delayed + ReliableOrdered, same as crash.lastCrash /
                     // recovery.lastSummary: the shape under test.
@@ -1654,7 +1654,7 @@ namespace Sitrep.Host.IntegrationTests
         public void Register(IUplinkHost host)
         {
             _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
-            {
+            { Kind = SampleKind.Continuous,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 Delay = DelayRole.Delayed,
@@ -1703,7 +1703,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = Topic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -1759,7 +1759,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -1772,7 +1772,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             host.AddChannelSource(ChannelEngine.CommsDelayTopic, MapDelay);
             _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
-            {
+            { Kind = SampleKind.Continuous,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 Delay = DelayRole.Delayed,
@@ -1851,7 +1851,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             _host = host;
             _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
-            {
+            { Kind = SampleKind.Continuous,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 Delay = DelayRole.Delayed,

@@ -30,6 +30,7 @@ namespace GonogoProbeUplink
             {
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Continuous,
                     Topic = ClockTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,

@@ -6,12 +6,14 @@
  * the mod declares. This file is the other half: one accessor per axis, and a
  * TABLE saying which combination each renderer draws.
  *
- * | direction | continuity | delivery         | a real example                  | drawn by           |
+ * | direction | kind       | delivery         | a real example                  | drawn by           |
  * |-----------|------------|------------------|---------------------------------|--------------------|
- * | command   | discrete   | acked            | staging, an action group        | `in-flight-row`    |
+ * | command   | event      | acked            | staging, an action group        | `in-flight-row`    |
+ * | command   | discrete   | acked            | a mode held until changed       | `in-flight-row`    |
  * | command   | continuous | acked            | fly-by-wire, ack = the readback | `continuous-strip` |
  * | telemetry | continuous | fire-and-forget  | radio voice                     | `continuous-strip` |
- * | telemetry | discrete   | fire-and-forget  | a science result sent home      | `in-flight-row`    |
+ * | telemetry | event      | fire-and-forget  | a science result sent home      | `in-flight-row`    |
+ * | telemetry | discrete   | fire-and-forget  | a state reported as it changes  | `in-flight-row`    |
  *
  * The table names a RENDERER (a component). WHICH MARK it draws follows from
  * the data: both continuous rows share one strip, lines for a value against a
@@ -25,23 +27,22 @@
  */
 
 import type {
-  RailContinuity,
   RailDelivery,
   RailDirection,
   RailTags,
+  SampleKind,
 } from "@ksp-gonogo/sitrep-sdk";
 import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
 
 export type {
-  RailContinuity,
   RailDelivery,
   RailDirection,
   RailTags,
 } from "@ksp-gonogo/sitrep-sdk";
 
-/** The CONTINUITY axis, and only it: a point travelling, or a span lying along. */
+/** The KIND axis, and only it: a span lying along the rail for a continuous entry, a point travelling it for a discrete one or an event. */
 export function railMark(tags: RailTags): "dot" | "ribbon" {
-  return tags.continuity === "continuous" ? "ribbon" : "dot";
+  return tags.kind === "continuous" ? "ribbon" : "dot";
 }
 
 /** The DELIVERY axis, and only it: whether anything is drawn coming back. */
@@ -66,26 +67,26 @@ export function railToneToken(tags: RailTags): string {
 
 /** Every value of each axis, in the order the table above reads. */
 const DIRECTIONS: readonly RailDirection[] = ["command", "telemetry"];
-const CONTINUITIES: readonly RailContinuity[] = ["discrete", "continuous"];
+const KINDS: readonly SampleKind[] = ["event", "discrete", "continuous"];
 const DELIVERIES: readonly RailDelivery[] = ["acked", "fire-and-forget"];
 
 /** One combination, spelled as the table's key; a template-literal type, so the table cannot hold a typo. */
-export type RailTagKey = `${RailDirection}/${RailContinuity}/${RailDelivery}`;
+export type RailTagKey = `${RailDirection}/${SampleKind}/${RailDelivery}`;
 
 /**
- * A handle's three rail axes as one `direction/continuity/delivery` string, e.g. `command/discrete/acked`.
+ * A handle's three rail axes as one `direction/kind/delivery` string, e.g. `command/event/acked`.
  *
  * @intent Published so a representation of the rail of a third party can key its entries by the same tag combination the kit does.
  * @category CommandDelay
  */
 export function railTagKey(tags: RailTags): RailTagKey {
-  return `${tags.direction}/${tags.continuity}/${tags.delivery}`;
+  return `${tags.direction}/${tags.kind}/${tags.delivery}`;
 }
 
 /**
  * What actually draws an entry. Two components, and there are only two:
  *
- * - `in-flight-row`: a row in `InFlightList`, the discrete queue
+ * - `in-flight-row`: a row in `InFlightList`, the queue of points crossing the delay
  * - `continuous-strip`: `ControlDelayStream`, the three-zone graph, whichever
  *   mark the entry's data calls for inside it
  */
@@ -93,9 +94,11 @@ export type RailRenderer = "in-flight-row" | "continuous-strip";
 
 /** Which renderer draws which combination. `Partial`: an absent combination has NO renderer, never a fallback. */
 const RAIL_RENDERERS: Partial<Record<RailTagKey, RailRenderer>> = {
+  "command/event/acked": "in-flight-row",
   "command/discrete/acked": "in-flight-row",
   "command/continuous/acked": "continuous-strip",
   "telemetry/continuous/fire-and-forget": "continuous-strip",
+  "telemetry/event/fire-and-forget": "in-flight-row",
   "telemetry/discrete/fire-and-forget": "in-flight-row",
 };
 
@@ -108,13 +111,13 @@ export function railRendererFor(tags: RailTags): RailRenderer | null {
   return RAIL_RENDERERS[railTagKey(tags)] ?? null;
 }
 
-/** Every combination of the three axes: the whole product, eight of them. */
+/** Every combination of the three axes: the whole product, twelve of them. */
 export function allRailTags(): RailTags[] {
   const out: RailTags[] = [];
   for (const direction of DIRECTIONS)
-    for (const continuity of CONTINUITIES)
+    for (const kind of KINDS)
       for (const delivery of DELIVERIES)
-        out.push({ direction, continuity, delivery });
+        out.push({ direction, kind, delivery });
   return out;
 }
 

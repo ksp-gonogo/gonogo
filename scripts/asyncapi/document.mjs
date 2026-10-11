@@ -111,6 +111,13 @@ is absent means the declaration did not state it.
   light-time clock, so the value is what the vantage KNEW rather than what is
   true now. \`true-now\` bypasses it, and is for a ground-side fact with no
   analogue in flight, such as whether the SCANsat assembly is installed at all
+- \`x-sitrep-sample-kind\`, on a telemetry channel: how its samples relate in
+  time. \`continuous\` moves between samples, so a reader may draw a line,
+  interpolate and carry it forward with a declared model. \`discrete\` stands
+  until the next sample changes it, so a reader draws a step and never
+  interpolates. \`event\` is one occurrence per sample, so a reader draws points
+  and never a line or a step. A value inside the payload may declare its own
+  kind, which the generated SDK carries per field
 - \`x-sitrep-held-at-home\`, on a \`delayed\` telemetry channel: \`true\` means the
   value is held at the home command (the career ledger, the space centre's
   records) rather than aboard a craft. Each vantage receives a change after its
@@ -328,6 +335,7 @@ function dispositionExtensions(disposition) {
   const out = {};
   if (disposition.delivery) out["x-sitrep-delivery"] = disposition.delivery;
   if (disposition.delay) out["x-sitrep-delay-role"] = disposition.delay;
+  if (disposition.kind) out["x-sitrep-sample-kind"] = disposition.kind;
   if (disposition.keyframeIntervalUt !== undefined) {
     out["x-sitrep-keyframe-interval-ut"] = disposition.keyframeIntervalUt;
   }

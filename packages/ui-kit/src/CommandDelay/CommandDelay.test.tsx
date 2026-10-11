@@ -82,7 +82,7 @@ describe("CommandDelay", () => {
           oneWaySeconds: 4,
         },
       ],
-      tags: railTagsForTelemetry("discrete"),
+      tags: railTagsForTelemetry("event"),
       effectiveDelaySeconds: 4,
     };
     const { container } = render(
@@ -200,7 +200,7 @@ describe("a handle nothing can draw", () => {
       inFlight: IN_FLIGHT,
       tags: {
         direction: "telemetry",
-        continuity: "discrete",
+        kind: "event",
         delivery: "acked",
       },
       effectiveDelaySeconds: 6,
@@ -211,7 +211,7 @@ describe("a handle nothing can draw", () => {
       container
         .querySelector("[data-rail-unrepresented]")
         ?.getAttribute("data-rail-unrepresented"),
-    ).toBe("telemetry/discrete/acked");
+    ).toBe("telemetry/event/acked");
     // It carries rows on purpose, so a fallback would have had something to draw.
     expect(screen.queryByRole("list")).toBeNull();
     expect(errors.mock.calls[0][0]).toContain("A downlink nothing answers");

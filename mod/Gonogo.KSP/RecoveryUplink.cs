@@ -66,8 +66,9 @@ namespace Gonogo.KSP
         private IChannelPublisher? _hasRecent;
         private bool _subscribed;
 
-        private static ChannelDeclaration Channel(string topic, Delivery delivery) => new ChannelDeclaration
+        private static ChannelDeclaration Channel(string topic, Delivery delivery, SampleKind kind) => new ChannelDeclaration
         {
+            Kind = kind,
             Requires = Requirement.None,
             Topic = topic,
             // A recovery is a flight-ending event at the vessel, so it is
@@ -88,8 +89,8 @@ namespace Gonogo.KSP
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                Channel(RecoveryTopics.LastSummaryTopic, Delivery.ReliableOrdered),
-                Channel(RecoveryTopics.HasRecentTopic, Delivery.ReliableOrdered),
+                Channel(RecoveryTopics.LastSummaryTopic, Delivery.ReliableOrdered, SampleKind.Event),
+                Channel(RecoveryTopics.HasRecentTopic, Delivery.ReliableOrdered, SampleKind.Discrete),
             },
         };
 

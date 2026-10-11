@@ -26,6 +26,7 @@ import type {
 import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { CommandGroupHandle } from "../spine/command-group";
+import type { UplinkClientConfig } from "../spine/uplink-clients";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import { getHost } from "./host";
@@ -259,6 +260,7 @@ export type {
   TinyEssentialTone,
   TinyGauge,
   TinyMode,
+  UplinkClientConfig,
   UplinkClientHandle,
   UplinkClientIdentity,
   UplinkRelay,
@@ -460,13 +462,9 @@ export {
  *
  * @category Registering
  */
-export const defineUplinkClient = (cfg: {
-  id: string;
-  version: string;
-  name: string;
-  /** What the Uplink does, in one or two sentences. See {@link UplinkClientHandle.description}. */
-  description: string;
-}): UplinkClientHandle => getHost().defineUplinkClient(cfg);
+export const defineUplinkClient = (
+  cfg: UplinkClientConfig,
+): UplinkClientHandle => getHost().defineUplinkClient(cfg);
 
 /**
  * Adds a custom tab to the app's Settings. Prefer `registerSetting`, which the

@@ -12,7 +12,6 @@
     ".:KSP_ROSTER_STATUS_NAMES",
     ".:getAllKnownCommandIds",
     ".:isDerivedChannelId",
-    ".:isReckonableTopic",
     ".:isWidgetChannelId"
   ],
   "@ksp-gonogo/ui-kit": [
