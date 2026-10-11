@@ -97,4 +97,20 @@ describe("RotorTachometer: a rotor list that has stopped arriving", () => {
     expect(visibleText(container)).not.toContain("Waiting for the");
     expect(visibleText(container)).not.toContain("No rotors");
   });
+
+  it("marks the cap and says the flags behind the toggles are held", async () => {
+    const { fixture, container } = mountWithRotor("rt-stale-flags");
+    await waitFor(() => expect(visibleText(container)).toContain("130"));
+    // The control: current readings carry no panel badge.
+    expect(screen.queryByText("OFFLINE")).toBeNull();
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+    });
+
+    await waitFor(() => expect(screen.getByText("OFFLINE")).toBeTruthy());
+    // The cap is a figure of its own, marked where it is drawn.
+    const cap = screen.getByText("200").closest("[data-held]");
+    expect(cap).not.toBeNull();
+  });
 });

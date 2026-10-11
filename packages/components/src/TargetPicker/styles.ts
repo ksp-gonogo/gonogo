@@ -75,14 +75,15 @@ export const SuggestedHeading = styled.div`
 
 export const SectionHeaderRow = styled.div`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--gap-related);
 `;
 
 /** The collapsible section's heading, which shares `SuggestedHeading`'s type so the two start on one left edge. */
 export const SectionHeading = styled.div`
-  flex: 1;
-  min-width: 0;
+  /* Never shrinks below its own words: a trailing control drops to the next line instead of cutting the heading. */
+  flex: 1 0 auto;
   padding: var(--inset-list-heading);
   font-size: var(--font-size-compact);
   letter-spacing: 0.1em;

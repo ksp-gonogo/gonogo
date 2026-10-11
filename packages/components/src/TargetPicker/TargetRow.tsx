@@ -6,6 +6,7 @@ import {
   NULL_DISPLAY,
   Row,
   Spinner,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { entrySubtitle } from "./entries";
@@ -38,7 +39,9 @@ export function TargetRow({
       onClick={() => onPick(entry)}
     >
       <RowMain>
-        <EntryName>{entry.name}</EntryName>
+        <Tooltip text={entry.name} announce={false}>
+          <EntryName>{entry.name}</EntryName>
+        </Tooltip>
         {subtitle && <RowSubtitle>{subtitle}</RowSubtitle>}
       </RowMain>
       <RowDistance>

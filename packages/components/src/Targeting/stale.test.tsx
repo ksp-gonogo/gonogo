@@ -101,7 +101,9 @@ describe("Targeting: the dock channel alone stops being current", () => {
     await waitFor(() =>
       expect(screen.getByText(/Alignment reckoned/)).toBeTruthy(),
     );
-    expect(visibleText()).toContain("linear-dead-reckoning");
+    expect(visibleText()).toContain(
+      "carried forward at the last observed velocity",
+    );
     // The basis is named; time is left to Unit.
     expect(visibleText()).not.toMatch(/last seen|\bago\b/i);
     // A modelled reticle is not a withheld one: two opposite captions on one instrument is worse than either.

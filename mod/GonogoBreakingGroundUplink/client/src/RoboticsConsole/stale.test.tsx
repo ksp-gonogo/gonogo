@@ -109,4 +109,22 @@ describe("RoboticsConsole: a servo list that has stopped arriving", () => {
     expect(visibleText(container)).not.toContain("Waiting for the");
     expect(visibleText(container)).not.toContain("No robotic parts");
   });
+
+  it("says the flags and the target stepper's figure are held, since they are plain text", async () => {
+    const { fixture, container } = mountWithHinge("rc-stale-badge");
+    await waitFor(() => expect(visibleText(container)).toContain("22°"));
+    expect(visibleText(container)).not.toContain("OFFLINE");
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    await waitFor(() => expect(visibleText(container)).toContain("OFFLINE"));
+    // The stepper's target is a figure of its own, marked where it is drawn.
+    const stepper = Array.from(
+      container.querySelectorAll("[data-figure]"),
+    ).find((el) => el.closest("[data-held]") && el.textContent?.includes("60"));
+    expect(stepper).toBeDefined();
+  });
 });
