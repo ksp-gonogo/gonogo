@@ -492,9 +492,9 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * instead, as a {@link SettingsModel} row.
  */
 export function registerSetting<
-  SettingKind extends SettingType = "boolean",
+  ValueType extends SettingType = "boolean",
   Topic extends TopicId = TopicId,
->(def: SettingDefinitionOf<SettingKind, Topic>): void;
+>(def: SettingDefinitionOf<ValueType, Topic>): void;
 /**
  * This overload takes a row from a list, for a client that keeps its rows in an
  * array and registers them in a loop. Rows of different types in

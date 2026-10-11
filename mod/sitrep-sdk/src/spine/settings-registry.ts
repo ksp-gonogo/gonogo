@@ -127,14 +127,14 @@ export interface SettingDefinitionBase {
  *
  * @category Settings
  */
-export interface ClientPrefSettingOf<SettingKind extends SettingType>
+export interface ClientPrefSettingOf<ValueType extends SettingType>
   extends SettingDefinitionBase {
   /** Where the value is kept: `"client-pref"`, this browser. The default, so it may be left out. */
   backing?: "client-pref";
   /** The kind of value: `"boolean"` (the default when left out), `"text"` or `"number"`. Sets the control drawn. */
-  type?: SettingKind;
+  type?: ValueType;
   /** The value the row holds until the operator changes it. */
-  defaultValue: SettingValueByType[SettingKind];
+  defaultValue: SettingValueByType[ValueType];
 }
 
 /**
@@ -148,13 +148,13 @@ export interface ClientPrefSettingOf<SettingKind extends SettingType>
  * @category Settings
  */
 export interface StreamBackedSettingOf<
-  SettingKind extends SettingType,
+  ValueType extends SettingType,
   Topic extends TopicId = TopicId,
 > extends SettingDefinitionBase {
   /** Where the value comes from: `"stream-backed"`, a Topic. */
   backing: "stream-backed";
   /** The kind of value: `"boolean"` (the default when left out), `"text"` or `"number"`. Sets how the value is drawn. */
-  type?: SettingKind;
+  type?: ValueType;
   /** The Topic id whose payload carries this row's value. */
   topic: Topic;
   /**
@@ -164,7 +164,7 @@ export interface StreamBackedSettingOf<
    */
   select: (
     payload: TopicPayloadMap[Topic],
-  ) => SettingValueByType[SettingKind] | null | undefined;
+  ) => SettingValueByType[ValueType] | null | undefined;
   readOnly?: true;
 }
 
@@ -177,18 +177,18 @@ export interface StreamBackedSettingOf<
  *
  * @category Settings
  */
-export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
+export interface StoredStreamBackedSettingOf<ValueType extends SettingType>
   extends SettingDefinitionBase {
   /** Always `"stream-backed"`: the value is read from a Topic rather than stored. */
   backing: "stream-backed";
   /** The kind of value the row holds. */
-  type?: SettingKind;
+  type?: ValueType;
   /** The id of the Topic the value is read from. */
   topic: string;
   /** Picks the row's value out of the Topic's payload. */
   select: (
     payload: unknown,
-  ) => SettingValueByType[SettingKind] | null | undefined;
+  ) => SettingValueByType[ValueType] | null | undefined;
   readOnly?: true;
 }
 
@@ -203,11 +203,9 @@ export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
  * @category Settings
  */
 export type SettingDefinitionOf<
-  SettingKind extends SettingType,
+  ValueType extends SettingType,
   Topic extends TopicId = TopicId,
-> =
-  | ClientPrefSettingOf<SettingKind>
-  | StreamBackedSettingOf<SettingKind, Topic>;
+> = ClientPrefSettingOf<ValueType> | StreamBackedSettingOf<ValueType, Topic>;
 
 /**
  * A setting stored in this browser, of any value type.
@@ -261,14 +259,14 @@ export function settingTypeOf(def: SettingDefinition): SettingType {
 const registry = new Map<string, SettingDefinition>();
 
 /**
- * The authoring overload: `SettingKind` is pinned by `type` (absent means `"boolean"`),
+ * The authoring overload: `ValueType` is pinned by `type` (absent means `"boolean"`),
  * which is what makes `defaultValue` and `select` agree with each other and
  * with the row's declared type.
  */
 export function registerSetting<
-  SettingKind extends SettingType = "boolean",
+  ValueType extends SettingType = "boolean",
   Topic extends TopicId = TopicId,
->(def: SettingDefinitionOf<SettingKind, Topic>): void;
+>(def: SettingDefinitionOf<ValueType, Topic>): void;
 /**
  * The forwarding overload: a host relaying an already-typed definition it did
  * not author (`GonogoHost.registerSetting`) has no `type` literal left to infer

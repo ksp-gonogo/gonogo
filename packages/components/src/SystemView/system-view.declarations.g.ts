@@ -4,6 +4,7 @@ export default {
     "comms.network",
     "system.frame",
     "system.uplink.pending",
+    "system.vessels",
     "vessel.identity",
     "vessel.orbit",
     "vessel.target",

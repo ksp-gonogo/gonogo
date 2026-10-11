@@ -820,6 +820,52 @@ export function createScanner(
     return name && ts.isIdentifier(name) ? name.text : undefined;
   };
 
+  let contributionDeps: Map<string, string[]> | undefined;
+  /**
+   * The Topic ids each contribution slot's own contributions depend on, from the
+   * literal `contributes` and `deps` of every `registerContribution` call in the
+   * client's program. A component that renders a slot reads what its
+   * contributions read on its behalf.
+   */
+  const depsOfSlot = (slot: string): readonly string[] => {
+    if (!contributionDeps) {
+      contributionDeps = new Map();
+      for (const file of program.getSourceFiles()) {
+        if (file.isDeclarationFile || inNodeModules(file.fileName)) continue;
+        const find = (node: TS.Node): void => {
+          if (
+            ts.isCallExpression(node) &&
+            calleeName(node) === "registerContribution" &&
+            node.arguments[0] &&
+            ts.isObjectLiteralExpression(strip(node.arguments[0]))
+          ) {
+            const def = strip(node.arguments[0]) as TS.ObjectLiteralExpression;
+            const slotExpr = propertyOf(def, "contributes");
+            const depsExpr = propertyOf(def, "deps");
+            const list = depsExpr && strip(depsExpr);
+            if (
+              slotExpr &&
+              ts.isStringLiteralLike(strip(slotExpr)) &&
+              list &&
+              ts.isArrayLiteralExpression(list)
+            ) {
+              const name = (strip(slotExpr) as TS.StringLiteralLike).text;
+              const ids = contributionDeps?.get(name) ?? [];
+              for (const element of list.elements) {
+                const dep = strip(element);
+                if (ts.isStringLiteralLike(dep)) ids.push(dep.text);
+              }
+              contributionDeps?.set(name, ids);
+            }
+          }
+          ts.forEachChild(node, find);
+        };
+        find(file);
+      }
+    }
+    return contributionDeps.get(slot) ?? [];
+  };
+
   const walk = (sink: Sink, root: TS.Node, direct = false) => {
     const visited = new Set<TS.Node>();
     const enter = (decl: TS.Node | undefined) => {
@@ -881,6 +927,16 @@ export function createScanner(
       ) {
         recordOpaque(sink, node, name);
         return;
+      }
+      if (name === "useContributions" && node.arguments[0]) {
+        const slot = strip(node.arguments[0]);
+        if (ts.isStringLiteralLike(slot)) {
+          for (const id of depsOfSlot(slot.text)) {
+            if (!isSuppressed(id)) {
+              sink.reads.push({ ...whereOf(node, name), id });
+            }
+          }
+        }
       }
       callInto(node, node.expression);
     };

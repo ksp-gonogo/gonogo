@@ -186,6 +186,40 @@ export const el = Child;`,
   });
 });
 
+describe("contribution slots", () => {
+  const slotFiles = {
+    "slots.ts": `export function useContributions(slot: string): unknown[] { return []; }
+export function registerContribution(def: object): void {}`,
+    "contribution.ts": `import { registerContribution } from "./slots";
+registerContribution({ id: "c", contributes: "w.slot", deps: ["held.one", "held.two"] });
+registerContribution({ id: "d", contributes: "other.slot", deps: ["elsewhere"] });`,
+  };
+
+  it("reads what the contributions to a rendered slot depend on", () => {
+    const { w } = only({
+      ...slotFiles,
+      "w.tsx": widget(
+        `useContributions("w.slot");`,
+        `import { useContributions } from "./slots";
+import "./contribution";`,
+      ),
+    });
+    expect(ids(w.reads)).toEqual(["held.one", "held.two"]);
+  });
+
+  it("reads nothing for a slot no contribution targets", () => {
+    const { w } = only({
+      ...slotFiles,
+      "w.tsx": widget(
+        `useContributions("empty.slot");`,
+        `import { useContributions } from "./slots";
+import "./contribution";`,
+      ),
+    });
+    expect(ids(w.reads)).toEqual([]);
+  });
+});
+
 describe("registration", () => {
   it("reads the hand-written required lists", () => {
     const { w } = only({

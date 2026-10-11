@@ -8135,6 +8135,18 @@
         "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
       },
       {
+        "key": "sitrep-sdk . ClientPrefSettingOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk . ClientPrefSettingOf#defaultValue",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk . ClientPrefSettingOf#type?",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
         "key": "sitrep-sdk . ComponentBehavior",
         "note": "the inert behaviors field and its one value are removed"
       },
@@ -8259,6 +8271,10 @@
         "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
       {
+        "key": "sitrep-sdk . SettingDefinitionOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
         "key": "sitrep-sdk . SettingsService#subscribe",
         "note": "subscribe takes its callback type inline, so the unexported Listener alias is gone"
       },
@@ -8355,6 +8371,18 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk . StreamBackedSettingOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk . StreamBackedSettingOf#select",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk . StreamBackedSettingOf#type?",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
         "key": "sitrep-sdk . StreamStatusValue",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
@@ -8421,6 +8449,10 @@
       {
         "key": "sitrep-sdk . registerErrorCodes",
         "note": "an Uplink's error code table is typed as refusals only"
+      },
+      {
+        "key": "sitrep-sdk . registerSetting",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
         "key": "sitrep-sdk . useDataSources",
@@ -8907,6 +8939,18 @@
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
       {
+        "key": "sitrep-sdk ./spine ClientPrefSettingOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine ClientPrefSettingOf#defaultValue",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine ClientPrefSettingOf#type?",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
         "key": "sitrep-sdk ./spine DataSourceState#status",
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
@@ -8963,12 +9007,40 @@
         "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
       },
       {
+        "key": "sitrep-sdk ./spine SettingDefinitionOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
         "key": "sitrep-sdk ./spine StateVector#position",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
         "key": "sitrep-sdk ./spine StateVector#velocity",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine StoredStreamBackedSettingOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine StoredStreamBackedSettingOf#select",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine StoredStreamBackedSettingOf#type?",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamBackedSettingOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamBackedSettingOf#select",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamBackedSettingOf#type?",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
         "key": "sitrep-sdk ./spine StreamStatusValue",
@@ -9077,6 +9149,10 @@
       {
         "key": "sitrep-sdk ./spine railTagsForTelemetry",
         "note": "Takes a SampleKind: pass event for a single result, continuous for a stream"
+      },
+      {
+        "key": "sitrep-sdk ./spine registerSetting",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
         "key": "sitrep-sdk ./spine rotateInertialToPerifocal",
@@ -9255,6 +9331,18 @@
         "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
       },
       {
+        "key": "sitrep-sdk ./testing ~ClientPrefSettingOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ClientPrefSettingOf#defaultValue",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ClientPrefSettingOf#type?",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ContributionDep",
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
@@ -9393,6 +9481,18 @@
       {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
         "note": "A stat figure may be a whole Reading, drawn held while it is held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StoredStreamBackedSettingOf",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StoredStreamBackedSettingOf#select",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StoredStreamBackedSettingOf#type?",
+        "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
         "key": "sitrep-sdk ./testing ~StrategiesScreenBodyContext",
