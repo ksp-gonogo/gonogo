@@ -101,7 +101,7 @@ export interface CommsDelayObservation {
  *
  * `hops` is the route as `comms.path` carried it and `observed` the light-time
  * `comms.delay` reported for that route. The two ride one capture and are
- * change-gated independently, so the CURRENT value of each is what to pair: a
+ * change-gated independently, so the current value of each is what to pair: a
  * tick that carried neither is a tick on which neither moved.
  *
  * ## Only a measured delay can be carried forward
@@ -109,7 +109,7 @@ export interface CommsDelayObservation {
  * Two of the three `CommsDelaySource` members are a zero that means something
  * other than "no distance": delay is switched off, or the save models no comms
  * network at all. Each is a statement about the
- * OPERATOR'S CONFIGURATION rather than about geometry, and none of them stops
+ * operator's configuration rather than about geometry, and none of them stops
  * being true as the craft moves. Deriving a growing light-time from one would
  * put a delay on a board the player has deliberately switched off, which is a
  * worse answer than no reckoning at all.

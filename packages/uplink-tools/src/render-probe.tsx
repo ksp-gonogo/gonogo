@@ -711,7 +711,7 @@ export function readInventory(uplinkId?: string): UplinkInventory {
  * session.
  *
  * The constraint that makes it safe: `beforeScene` is told whether the scene is
- * STARVED, and a setup that feeds data must honour it. The driver renders every
+ * starved, and a setup that feeds data must honour it. The driver renders every
  * scene twice and fails when the fed and starved renders match, so a setup hook
  * that feeds regardless would defeat the one check that catches a picture of
  * nothing.

@@ -402,7 +402,7 @@ export function systemInstantAt(
  * reaches a frame's angular velocity only through the component of the
  * acceleration orthogonal to the pair's orbit plane, and there it is some eight
  * orders of magnitude below the angular velocity itself. The bodies this
- * KEEPS are the ones that matter: for the Earth-Moon pair the Sun's pull is
+ * keeps are the ones that matter: for the Earth-Moon pair the Sun's pull is
  * four orders of magnitude larger than the Earth's own bulge.
  *
  * `exclude` drops a body from the sum, which is how a body's own acceleration
@@ -430,7 +430,7 @@ export function pointMassAccelerationAt(
  * The two sides of a rotating frame, as the sets they really are.
  *
  * A pulsating frame turns about two mass centres, and the sides are subtrees
- * rather than bodies: the primary side is the parent's system UP TO the
+ * rather than bodies: the primary side is the parent's system up to the
  * selected body, so a Sun-Earth frame's primary side is the Sun with Mercury and
  * Venus, and everything orbiting further out is excluded. Replicated rather than
  * simplified because a plausible-looking pair is a different frame from the one

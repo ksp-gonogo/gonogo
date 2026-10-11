@@ -8,7 +8,7 @@ import { logger } from "../api/logger";
  * Sibling of `installUnownedTopicWarning`, for the silence that one cannot
  * see. That diagnostic fires when a subscribe is never acked, which is what an
  * undeclared topic looks like. This one is the opposite shape and reads
- * identically to an author: the topic IS declared, the subscribe IS acked, and
+ * identically to an author: the topic is declared, the subscribe is acked, and
  * nothing ever arrives, because every delivery dies at the wire boundary. The
  * commonest cause by far is publishing a plain CLR type the wire codec cannot
  * write, which no amount of staring at the widget will reveal.
@@ -36,7 +36,7 @@ export function channelErrorMessage(
 }
 
 /**
- * Reported at the point the client would otherwise DISCARD the frame: an error
+ * Reported at the point the client would otherwise discard the frame: an error
  * carrying a topic and no requestId is not a reply to any command, so the
  * command correlator drops it and there is nothing else downstream to notice.
  */

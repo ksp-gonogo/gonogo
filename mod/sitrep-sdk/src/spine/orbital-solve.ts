@@ -13,42 +13,50 @@ import {
 } from "./kepler-reckoning";
 
 /**
- * The orbital solve, as a pure function of an orbit and the instant you are
- * asking about.
+ * An orbit solved at one instant: its period, the craft's anomaly, and the
+ * apsides with the times to them, computed from the orbit's elements, the
+ * instant asked about and the reference body's radius. Used for the craft's
+ * orbit (`vessel.orbit`) and its target's (`vessel.target.orbit`) alike.
  *
- * ## Why this is a function and not a hook
- *
- * The same mathematics is wanted for TWO orbits: the craft's
- * (`vessel.orbit`) and its target's (`vessel.target.orbit`, "the SAME
- * `VesselOrbit` shape as the self vessel, propagated to the same frozen
- * `viewUt`"). A solve bound to one topic needs a second copy of itself for the
- * other, and two copies of the arithmetic are two chances for the craft's
- * period and its target's to be computed differently.
- *
- * So the unit is `(orbit, viewUt, referenceBodyRadius)`. A hook that reads a
- * topic is a thin wrapper over this; it is never where the arithmetic lives.
- *
- * ## Why the body RADIUS is a parameter rather than a lookup
- *
- * Two of these fields are altitudes, which is a radius minus the reference
- * body's. Resolving that means walking `system.bodies`, and the walk carries a
- * three-way discipline (absent vs not-yet-resolvable vs confirmed tombstone)
- * that belongs to the caller's channel, not to the mathematics. Taking the
- * resolved radius keeps this pure and still lets the discipline through: pass
- * `undefined` for "cannot resolve yet" and `null` for a confirmed absence, and
- * the two altitude fields answer the same way.
- *
- * ## Hyperbolic orbits
- *
- * Real, on a fast escape or flyby under warp, and the elliptical-only solver
- * cannot take them. `trySolve`/`trySolveAnomalies` degrade to `null` rather
- * than throwing, so every field derived from them degrades in step and never
- * to a bogus number. `apoapsisRadius` needs its own check on top of that:
- * `sma·(1+ecc)` is still FINITE when `sma < 0`, just meaningless, so a finite
- * guard cannot catch it. Periapsis stays valid either way, `sma·(1-ecc)` being
- * a positive radius for both signs.
+ * Pass `undefined` for a body radius that cannot be resolved yet and `null`
+ * for a confirmed absence, and the two altitude fields answer the same way. On
+ * a hyperbolic orbit a field with no value is `null`, never a wrong number:
+ * there is no apoapsis, and periapsis stays valid.
  */
 export interface OrbitalSolve {
+  /*
+   * Why this is a function and not a hook
+   *
+   * The same mathematics is wanted for two orbits: the craft's
+   * (`vessel.orbit`) and its target's (`vessel.target.orbit`, "the same
+   * `VesselOrbit` shape as the self vessel, propagated to the same frozen
+   * `viewUt`"). A solve bound to one topic needs a second copy of itself for the
+   * other, and two copies of the arithmetic are two chances for the craft's
+   * period and its target's to be computed differently.
+   *
+   * So the unit is `(orbit, viewUt, referenceBodyRadius)`. A hook that reads a
+   * topic is a thin wrapper over this; it is never where the arithmetic lives.
+   *
+   * Why the body radius is a parameter rather than a lookup
+   *
+   * Two of these fields are altitudes, which is a radius minus the reference
+   * body's. Resolving that means walking `system.bodies`, and the walk carries a
+   * three-way discipline (absent vs not-yet-resolvable vs confirmed tombstone)
+   * that belongs to the caller's channel, not to the mathematics. Taking the
+   * resolved radius keeps this pure and still lets the discipline through: pass
+   * `undefined` for "cannot resolve yet" and `null` for a confirmed absence, and
+   * the two altitude fields answer the same way.
+   *
+   * Hyperbolic orbits
+   *
+   * Real, on a fast escape or flyby under warp, and the elliptical-only solver
+   * cannot take them. `trySolve`/`trySolveAnomalies` degrade to `null` rather
+   * than throwing, so every field derived from them degrades in step and never
+   * to a bogus number. `apoapsisRadius` needs its own check on top of that:
+   * `sma·(1+ecc)` is still finite when `sma < 0`, just meaningless, so a finite
+   * guard cannot catch it. Periapsis stays valid either way, `sma·(1-ecc)` being
+   * a positive radius for both signs.
+   */
   /** Seconds, `2π/n`. */
   period: number | null;
   /** Degrees in `[0, 360)`, the widget-facing convention. */
@@ -247,44 +255,22 @@ export type SelfOrbitElements = WireOrbitElements &
   };
 
 /**
- * The SELF vessel's solve, or `null` where a caller is not entitled to one.
+ * The active vessel's orbital solve at `viewUt`, or `null` where the caller is
+ * not entitled to one. Used by the orbit hook and by plain-class callers, so
+ * both agree on when an apoapsis exists.
  *
- * `elements` are whatever the caller's own reading is carrying, and `observed`
- * and `held` both carry them: `sma`, `ecc` and the rest are constants of the
- * orbit rather than figures that go out of date, so a model that moves the
- * phase makes the whole thing current again. That branch is written at each
- * read, where a reading has to be narrowed anyway.
+ * `elements` are whatever the caller's reading carries, `observed` or `held`.
+ * `reckoning` is that reading's whole reckoning: where its model is available
+ * the orbit is advanced to `viewUt`. `null` with no elements or no `viewUt`.
  *
- * The MODEL's refusal is the part that lives here, because a second copy of it
- * is how a hook and a plain class come to disagree about when an apoapsis
- * exists. {@link solveOrbit} advances a coast, and the reckoner is what knows
- * whether these elements describe one: it withdraws under physics, past an SOI
- * transition, below the atmosphere interface, past the reach the propagation
- * provider stated, and where no provider vouched for them being a conic at all.
- * The whole reckoning is taken rather than a boolean, so the condition is
- * written once in the place that documents it.
- *
- * `viewUt` is the instant asked about, the frame's SCET, and its absence is the
- * third `null`: with no frame there is nothing to solve FOR.
- *
- * ## Under physics, a current reading is answered in full
- *
- * The under-physics refusal is a refusal to ADVANCE: osculating elements are
- * not a coast a conic can carry to the view time. None of what is drawn needs
- * that. The apsides, their altitudes and the period are algebra on the elements
- * as they stand, and the craft's anomaly and radius at the elements' own epoch
- * are where it was when they were taken, so those are solved at that epoch.
- *
- * The countdowns are properties of that same instantaneous orbit, and KSP
- * computes them every frame whatever is pushing the craft. They come from the
- * sample's own `timeToAp` and `timeToPe`, less the time elapsed from
- * `observedAtUt` to `viewUt`; see {@link countdownAt}. A sample that carries
- * neither leaves both, and the next apsis, `null`.
- *
- * `observedAtUt` is present only for a CURRENT reading, and is when it was
- * observed. A held reading answers nothing under physics: under thrust the
- * elements are not constants of the orbit, so old ones say nothing about the
- * one the craft is on. That is where the refusal still bites.
+ * Under physics the model declines to advance the orbit. A current reading,
+ * which passes `observedAtUt` (the instant it was observed), is still answered
+ * in full: the apsides, their altitudes and the period from the elements as
+ * they stand, the craft's anomaly and radius at the elements' own epoch, and
+ * the countdowns from the sample's `timeToAp` and `timeToPe` less the time
+ * elapsed since `observedAtUt` (see {@link countdownAt}). A sample that
+ * carries neither leaves both, and the next apsis, `null`. A held reading
+ * answers `null` under physics.
  */
 export function solveSelfOrbit(
   elements: SelfOrbitElements | undefined,
@@ -295,6 +281,44 @@ export function solveSelfOrbit(
   viewUt: Value<"ut"> | undefined,
   observedAtUt?: Value<"ut">,
 ): OrbitalSolve | null {
+  /*
+   * `elements` are whatever the caller's own reading is carrying, and `observed`
+   * and `held` both carry them: `sma`, `ecc` and the rest are constants of the
+   * orbit rather than figures that go out of date, so a model that moves the
+   * phase makes the whole thing current again. That branch is written at each
+   * read, where a reading has to be narrowed anyway.
+   *
+   * The model's refusal is the part that lives here, because a second copy of it
+   * is how a hook and a plain class come to disagree about when an apoapsis
+   * exists. `solveOrbit` advances a coast, and the reckoner is what knows
+   * whether these elements describe one: it withdraws under physics, past an SOI
+   * transition, below the atmosphere interface, past the reach the propagation
+   * provider stated, and where no provider vouched for them being a conic at all.
+   * The whole reckoning is taken rather than a boolean, so the condition is
+   * written once in the place that documents it.
+   *
+   * `viewUt` is the instant asked about, the frame's SCET, and its absence is the
+   * third `null`: with no frame there is nothing to solve for.
+   *
+   * Under physics, a current reading is answered in full
+   *
+   * The under-physics refusal is a refusal to advance: osculating elements are
+   * not a coast a conic can carry to the view time. None of what is drawn needs
+   * that. The apsides, their altitudes and the period are algebra on the elements
+   * as they stand, and the craft's anomaly and radius at the elements' own epoch
+   * are where it was when they were taken, so those are solved at that epoch.
+   *
+   * The countdowns are properties of that same instantaneous orbit, and KSP
+   * computes them every frame whatever is pushing the craft. They come from the
+   * sample's own `timeToAp` and `timeToPe`, less the time elapsed from
+   * `observedAtUt` to `viewUt`; see `countdownAt`. A sample that carries
+   * neither leaves both, and the next apsis, `null`.
+   *
+   * `observedAtUt` is present only for a current reading, and is when it was
+   * observed. A held reading answers nothing under physics: under thrust the
+   * elements are not constants of the orbit, so old ones say nothing about the
+   * one the craft is on. That is where the refusal still bites.
+   */
   if (elements === undefined || viewUt === undefined) return null;
   const radius = bodyRadiusOf(bodies, elements.referenceBodyIndex);
   if (reckoning.status === "available") {
@@ -356,7 +380,7 @@ function declinedUnderPhysics(
  * else.
  *
  * `radius` is `Quantityish` rather than a number because the same field has two
- * shapes in this tree. The store WRAPS every declared quantity on decode, so a
+ * shapes in this tree. The store wraps every declared quantity on decode, so a
  * topic read hands back a `Value<"m">`; the client-side `SystemBodiesPayload`
  * the derived channel is typed against declares a plain `number`. Accepting
  * both is honest about that, and `magnitudeOf` is the one place that decides
@@ -370,7 +394,7 @@ export interface BodyRadiusTable {
  * The mean radius of the body at `index`, with the three-way discipline every
  * `system.bodies` lookup in this tree follows.
  *
- * - `undefined` where it cannot be resolved YET: no index to resolve, the
+ * - `undefined` where it cannot be resolved yet: no index to resolve, the
  *   channel has not arrived, or it has arrived and this body (or its radius
  *   specifically) is not in it. None of those is a confirmed absence
  * - `null` only when the channel itself is a confirmed tombstone
@@ -378,7 +402,7 @@ export interface BodyRadiusTable {
  * Pure, and deliberately takes the payload rather than reading the topic:
  * {@link solveOrbit} wants it for an altitude, and the caller is the only one
  * that knows which of the two absences it is looking at. Indexed by
- * `SystemBodyPayload.index`, the STABLE id, never array position.
+ * `SystemBodyPayload.index`, the stable id, never array position.
  */
 export function bodyRadiusOf(
   bodies: BodyRadiusTable | null | undefined,

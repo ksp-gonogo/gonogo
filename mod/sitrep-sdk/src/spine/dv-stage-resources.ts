@@ -23,7 +23,7 @@ interface VesselStructureWirePayload {
   currentStage?: number | null;
 }
 
-/** A resource-name-keyed map of a single amount (current OR max). */
+/** A resource-name-keyed map of a single amount (current or max). */
 export type ResourceAmountMap = Record<string, Value<"units">>;
 
 /**
@@ -71,7 +71,7 @@ function currentStageResources(
 }
 
 /**
- * `dv.currentStageResource` derivation: the CURRENT amount per resource name
+ * `dv.currentStageResource` derivation: the current amount per resource name
  * for the active stage, behind the legacy `r.resourceCurrent[X]`.
  * Entries whose `current` isn't a finite number are omitted (same
  * "absent, not fabricated" discipline every other raw-dict reader in this

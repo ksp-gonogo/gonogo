@@ -52,33 +52,36 @@ export interface HeartbeatTrackerOptions {
 }
 
 /**
- * Client-side `Held` inference: the keyframe cadence
- * IS the heartbeat. Tracks, per topic, the UT at which the last sample
- * actually ARRIVED (`meta.deliveredAt`: the post-delay, vantage-read UT,
- * per the design's own definition: "`meta.deliveredAt` is the UT it arrived
- * at the vantage") and reports a topic overdue once the current view UT
- * passes `lastHeartbeatUt + keyframeInterval + margin`.
+ * Infers, per Topic, when a channel has gone quiet. It records the UT at which
+ * each sample arrived (`meta.deliveredAt`) and reports a Topic overdue once
+ * the view UT passes `lastHeartbeatUt + keyframeInterval + margin`. Used by
+ * the timeline store to mark a reading held.
  *
- * **Deliberately never reads `validAt` anywhere in this file, it isn't even
- * a parameter of `noteArrival`.** That's the structural version of the
- * central warning: an old `validAt` on a change-gated channel is
- * normal... staleness comes from missed heartbeat keyframes... never from
- * `now - validAt`. A channel whose VALUE hasn't changed
- * for a long time (a frozen/old `validAt`) but whose keyframes keep arriving
- * on schedule (a fresh `deliveredAt` every interval, a keyframe
- * unconditionally re-announces even an unchanged value) never gets flagged
- * here; only an actual gap in ARRIVALS does. See `timeline-store.test.ts`'s
- * "the trap" describe block for the end-to-end proof.
- *
- * `deliveredAt` is used as the sole heartbeat signal rather than a
- * `lastPoint.validAt + interval + delaySeconds` sketch, because
- * `deliveredAt` for a given sample already IS its post-delay
- * arrival UT: re-adding a separately-modeled `delaySeconds` on top would
- * double-count it, and anchoring on the actually-OBSERVED arrival is more
- * robust to delay CHANGES mid-flight than re-deriving delay from a separate
- * authority every time.
+ * Only a gap in arrivals counts. `validAt` is never read: a channel whose
+ * value has not changed for a long time, but whose keyframes keep arriving on
+ * schedule, is not overdue.
  */
 export class HeartbeatTracker {
+  /*
+   * **Deliberately never reads `validAt` anywhere in this file, it isn't even
+   * a parameter of `noteArrival`.** That's the structural version of the
+   * central warning: an old `validAt` on a change-gated channel is
+   * normal... staleness comes from missed heartbeat keyframes... never from
+   * `now - validAt`. A channel whose value hasn't changed
+   * for a long time (a frozen/old `validAt`) but whose keyframes keep arriving
+   * on schedule (a fresh `deliveredAt` every interval, a keyframe
+   * unconditionally re-announces even an unchanged value) never gets flagged
+   * here; only an actual gap in arrivals does. See `timeline-store.test.ts`'s
+   * "the trap" describe block for the end-to-end proof.
+   *
+   * `deliveredAt` is used as the sole heartbeat signal rather than a
+   * `lastPoint.validAt + interval + delaySeconds` sketch, because
+   * `deliveredAt` for a given sample already is its post-delay
+   * arrival UT: re-adding a separately-modeled `delaySeconds` on top would
+   * double-count it, and anchoring on the actually-observed arrival is more
+   * robust to delay changes mid-flight than re-deriving delay from a separate
+   * authority every time.
+   */
   private readonly lastHeartbeatUt = new Map<string, number>();
   /** Rolling window of recent inter-arrival gaps (UT seconds) per topic, the raw material `intervalFor` learns a per-channel cadence from. Capped at `LEARN_WINDOW`, oldest dropped first. */
   private readonly recentGapsUt = new Map<string, number[]>();

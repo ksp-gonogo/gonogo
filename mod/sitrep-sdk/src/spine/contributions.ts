@@ -66,7 +66,7 @@ export function onContributionsChange(cb: () => void): () => void {
 
 /**
  * Register a contribution. An id collision throws
- * synchronously AT this call site (no accumulate-then-flush frame), unless
+ * synchronously at this call site (no accumulate-then-flush frame), unless
  * the exact same def is re-registering (a benign idempotent re-import).
  */
 export function registerContribution<
@@ -110,41 +110,42 @@ export function registerContribution<
 
 /**
  * The band a contribution registers at when it says nothing, and the reason it
- * is 1 rather than 0: 0 is left free BELOW every ordinary contributor, for a
+ * is 1 rather than 0: 0 is left free below every ordinary contributor, for a
  * host widget filling its own slot with the answer it can read itself. See
  * {@link getContributionsForSlot}.
  */
 export const DEFAULT_CONTRIBUTION_PRIORITY = 1;
 
 /**
- * Every contribution that WINS the slot: the highest priority band present, in
- * registration order.
+ * Every contribution that wins the slot: those in the highest priority band
+ * present, in registration order. Used by a widget to fill one of its slots.
  *
- * Equal priority is not a tie to break. Everyone in the winning band renders,
- * which is what lets two mutually-unaware mods both put their vessels on one
- * diagram; only a STRICTLY higher band displaces. Nothing sets a priority unless
- * it means to, so the ordinary case is one band holding every contributor,
- * exactly as before.
+ * Contributions of equal priority all render, and only a strictly higher band
+ * displaces a lower one. A host widget that fills its own slot contributes at
+ * one below {@link DEFAULT_CONTRIBUTION_PRIORITY}, so a contribution that can
+ * answer where the host cannot replaces the host's rows. A contribution meant
+ * to render alongside the host's rows takes the host's band explicitly.
  *
- * What the band buys is a host widget filling its OWN slot. It contributes
- * what it can read at one below {@link DEFAULT_CONTRIBUTION_PRIORITY}, so a
- * career overhaul that can answer where the host cannot displaces it instead of
- * appearing beside it as a second copy of the same list. It is the contribution
- * twin of `AugmentDefinition.suppressesVanillaBase`, and it is declared by the
- * contributor rather than by the host for the same reason: the host cannot know
- * which of its guests supersedes it.
- *
- * A contribution that means to render ALONGSIDE the host's own rows says so
- * by taking the host's band explicitly.
- *
- * Self-contributing has a cost, and it is worth knowing before choosing it: a
- * widget that reads its own data this way no longer renders anything without a
- * `WidgetMetaContext` and a `ContributionsProvider` above it, and it fails by
- * drawing an empty widget rather than by raising. See `useContributions`
- * (`@ksp-gonogo/ui-kit`) for what that costs a test, and `clearContributions`
- * below for the other half of it.
+ * A widget that reads its own data this way renders nothing without a
+ * `WidgetMetaContext` and a `ContributionsProvider` above it, and it draws an
+ * empty widget without raising. See `useContributions` (`@ksp-gonogo/ui-kit`)
+ * for what that costs a test, and `clearContributions` below.
  */
 export function getContributionsForSlot(slot: string): AnyContribution[] {
+  /*
+   * Equal priority is not a tie to break. Everyone in the winning band renders,
+   * which is what lets two mutually-unaware mods both put their vessels on one
+   * diagram; only a strictly higher band displaces. Nothing sets a priority unless
+   * it means to, so the ordinary case is one band holding every contributor.
+   *
+   * What the band buys is a host widget filling its own slot. It contributes
+   * what it can read at one below `DEFAULT_CONTRIBUTION_PRIORITY`, so a
+   * career overhaul that can answer where the host cannot displaces it instead of
+   * appearing beside it as a second copy of the same list. It is the contribution
+   * twin of `AugmentDefinition.suppressesVanillaBase`, and it is declared by the
+   * contributor rather than by the host for the same reason: the host cannot know
+   * which of its guests supersedes it.
+   */
   const inSlot = Array.from(state().entries.values()).filter(
     (entry) => entry.def.contributes === slot,
   );
@@ -187,7 +188,7 @@ export function getContributionSettings(
 /**
  * For use in tests only, resets the contribution registry to empty.
  *
- * **It empties the registry, which includes the contributions a HOST widget
+ * **It empties the registry, which includes the contributions a host widget
  * makes to its own slot.** Those register as a module side effect, at import,
  * and nothing re-runs an import. So a test file that clears between cases leaves
  * every case after the first rendering a host with none of its own data, which

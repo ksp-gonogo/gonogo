@@ -276,14 +276,14 @@ const TRAJECTORY_TRANSFORM_BUDGET = new PerfBudget({
 });
 
 /**
- * The provider's answer to "what is this trajectory", in a form that can be
- * drawn.
+ * The trajectory the propagation provider vouches for, in a form that can be
+ * drawn. Used by the orbit diagram.
  *
  * The window put to `canPropagate` is the view instant on both ends, matching
- * the gate's other callers: the horizon is an absolute UT bound, so "can these
- * elements answer for the moment I am looking at" is the whole question, and
- * building one from `elements.epoch` would ask a different question in the same
- * units (`epoch` is the mean-anomaly reference, not when the sample was taken).
+ * the gate's other callers. The horizon is an absolute UT bound, so the check
+ * is whether these elements can answer for the view instant. `elements.epoch`
+ * is the mean-anomaly reference and is never when the sample was taken, so it
+ * is not used to build the window.
  */
 export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
   const { orbit, viewUt } = input;
@@ -443,7 +443,7 @@ function reframeArc(
 /**
  * The `TrajectoryFrame` kind a read-frame choice draws in.
  *
- * Exported because a widget that does its OWN framing still has to caption the
+ * Exported because a widget that does its own framing still has to caption the
  * frame it drew in, and building the same switch beside the caption is how two
  * mappings of one enum drift apart.
  */
@@ -591,7 +591,7 @@ export function frameCoordinatesArePulsating(
 }
 
 /**
- * The frame a widget actually DREW in, which is not always a field on the
+ * The frame a widget actually drew in, which is not always a field on the
  * answer.
  *
  * A conic answer carries no frame because it carries no points: the caller

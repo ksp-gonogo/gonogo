@@ -5,7 +5,7 @@
  * this so they stay instant regardless of the operator's selected command
  * centre. Kept in sync with the C# `MetaVantage` constant.
  *
- * The same id comes back DOWN the wire on `meta.vantage`: instant-class topics
+ * The same id comes back down the wire on `meta.vantage`: instant-class topics
  * are routed onto it at subscribe time, so a frame stamped with it is telling
  * you the topic is exempt from the delay, not where the session is observing
  * from. `TelemetryClient.observedVantage` reads it for exactly that reason,

@@ -563,7 +563,7 @@ function RibbonMark({
 
 /**
  * The continuous sibling of {@link InFlightList}: one three-zone sparkline for
- * ALL of a widget's control axes. Now on the left, age to the right; outgoing, echo
+ * all of a widget's control axes. Now on the left, age to the right; outgoing, echo
  * and confirmed zones split by dividers at T and 2T; a muted-to-clear
  * confidence ramp; deviation in the confirmed zone as the expected path dashed
  * plus the actual path in the warning token; zone and delay labels on hover.

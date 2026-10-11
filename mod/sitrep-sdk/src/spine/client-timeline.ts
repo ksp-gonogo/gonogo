@@ -50,7 +50,7 @@ const DEFAULT_MAX_POINTS = 1500;
  * can arrive out of order, per-topic delays differ once comms modelling
  * lands, and the server's `Archive.Record` makes the same allowance).
  *
- * Bounded by POINT COUNT so a long-running client doesn't grow this
+ * Bounded by point count so a long-running client doesn't grow this
  * unboundedly, dropping the oldest and reporting the edge it dropped through:
  * see `ClientTimelineOptions.maxPoints` and `droppedThroughUt`. A UT window is
  * available on top (`retentionSeconds`) and nothing sets it; that option's own
@@ -60,10 +60,10 @@ const DEFAULT_MAX_POINTS = 1500;
  * quickload rewind is detected per-topic from the incoming sample's own
  * `epoch` field (no separate reset message needed at this layer),
  *
- * - a sample from a LOWER epoch than the timeline currently holds is a
+ * - a sample from a lower epoch than the timeline currently holds is a
  *   stale straggler (e.g. queued behind the rewind) and is discarded on
  *   arrival;
- * - a sample from a HIGHER epoch is a rewind: every existing point is
+ * - a sample from a higher epoch is a rewind: every existing point is
  *   dropped atomically and the timeline adopts the new epoch before the
  *   incoming point is appended. This is the client analog of the server's
  *   `Archive.ResetTimeline`: get it wrong and stale pre-rewind data can be

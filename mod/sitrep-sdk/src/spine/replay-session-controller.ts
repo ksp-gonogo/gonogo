@@ -127,7 +127,7 @@ type Listener = () => void;
 /**
  * Owns exactly one in-progress mission replay session, driven by a
  * `ReplayTransport`. Builds a fresh `TelemetryClient` +
- * `TimelineStore` (registering the SAME production derived channels the
+ * `TimelineStore` (registering the same production derived channels the
  * live stream does) from a mission's `ReplayFixture`, and renders through
  * the ordinary `TelemetryProvider` surface (`ReplaySessionProvider`): a
  * replayed widget is the exact same component reading the exact same

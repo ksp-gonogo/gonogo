@@ -47,9 +47,9 @@ export interface ProcessorHandle<
 /**
  * Whether a dep list makes its processor's result datable.
  *
- * Wrapped in a tuple so a union of deps does not distribute: the question is
- * about the list as a whole, and a distributed `extends never` would decide it
- * once per member.
+ * Wrapped in a tuple so a union of deps does not distribute: the answer is a
+ * property of the list as a whole, and a distributed `extends never` would
+ * decide it once per member.
  *
  * @category Processors
  */
@@ -123,7 +123,7 @@ export interface SubjectDep<
  * A processor dependency: a raw Topic id, a Topic's reading, another
  * processor's handle, or a per-subject topic resolved at reckon time.
  *
- * The last is a RECKONER's to declare. It is in this union rather than in a
+ * The last is a reckoner's to declare. It is in this union rather than in a
  * second one because a reckoner's inputs are the same kind of thing a
  * processor's are, and the alternative is two vocabularies to keep in step (see
  * `ResolvedReckonerDep`, which says the same about resolution). A processor
@@ -211,7 +211,7 @@ const processors = new Map<string, AnyProcessorDefinition>();
  * (same owner-stamp convention as registerContribution) and returns an opaque
  * handle other processors and contributions depend on. Re-registering the
  * exact same definition (same compute reference) is a no-op so a module can be
- * imported twice; a DIFFERENT definition under an already-used id throws.
+ * imported twice; a different definition under an already-used id throws.
  */
 export function defineProcessor<
   const Deps extends readonly Dep[],

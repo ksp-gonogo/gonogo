@@ -489,10 +489,10 @@ summary has three parts, in this order:
 /**
  * The one-way delay between the active command centre and the vessel or device
  * a control sends to, as a small chip ("one-way ~4.2 s"). The figure is the
- * one its caller passes in `oneWaySeconds`. Useful for showing the user the
- * expected time for a command to reach the target. Used alongside
- * time-sensitive controls like {@link Console} to help the user understand
- * when a command is likely to happen.
+ * one its caller passes in `oneWaySeconds`. Useful for showing the operator
+ * the expected time for a command to reach the target. Used alongside
+ * time-sensitive controls like {@link Console} to help the operator
+ * understand when a command is likely to happen.
  */
 ```
 
@@ -501,7 +501,8 @@ summary has three parts, in this order:
    "the gap" or "the link". The sentence must be true for every caller: a
    component that draws what it is given says so
 2. **What it is for**, from the side of the person at the screen ("Useful for
-   showing the user...")
+   showing the operator..."). That person is "the operator", the mission-control
+   role, never "the user"
 3. **Where it is used**, naming a real consumer ("Used by {@link InFlightList}",
    "Used alongside controls like {@link Console}"). A published symbol goes in
    code form, a private widget in plain words (`published-doc-reachability`
@@ -522,9 +523,12 @@ And the voice:
   where Y is a mistake a caller can make with this export
 - **No narrating what anyone is thinking** ("the operator's question is...",
   "what an author wants here is...")
-- **No design rationale and no history.** Why it was built this way, what it
-  replaced and which defect shaped it belong in a test or nowhere. A rule the
-  caller must follow stays, stated as the rule
+- **No design rationale and no history.** Why it was built this way moves to a
+  plain `/* */` comment inside the body (the function's, the class's, the
+  interface's, the array's), where a maintainer reads it and no hover or
+  reference page does. What it replaced and which defect shaped it belong in a
+  test or nowhere. A rule the caller must follow stays in the doc comment,
+  stated as the rule
 - **Formatting detail goes on the prop that controls it**, or nowhere: decimal
   places, padding and rounding are not part of what a thing is
 - **Keep every fact a caller needs**: a null rule, a unit, a vocabulary, an

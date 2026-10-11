@@ -20,7 +20,7 @@ import type { FormatsFor } from "./units";
 const INSTANT_WHEEL_PX = 112;
 
 /**
- * Bounds for a POSITION slider, refused on a point-like unit: an instant can be
+ * Bounds for a position slider, refused on a point-like unit: an instant can be
  * years out, and no range wide enough to reach it leaves useful precision. Use
  * {@link RateControl} for instants.
  *
@@ -31,7 +31,7 @@ export type SlidableRange<Unit extends string> = Unit extends PointUnit
   : { min: number; max: number; step?: number };
 
 /**
- * A RATE wheel beside the field, on any unit. The handle's displacement is the
+ * A rate wheel beside the field, on any unit. The handle's displacement is the
  * speed the value changes at, and it springs back to centre on release, so it
  * needs no bounds.
  *

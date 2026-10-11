@@ -12,7 +12,7 @@ import type { Clock } from "./clock";
  * the real file and pass it straight in; extra fields (`generatedAtUtc`,
  * `recordingFile`, `frameCount`, `epochsSeen`, ...) are simply ignored.
  *
- * `frames` are each the EXACT raw wire text of one captured frame (a
+ * `frames` are each the exact raw wire text of one captured frame (a
  * `JSON.stringify`'d `ServerMessage`: `stream-data` or `event`), same
  * convention as the C# generator and
  * `reference-wire-fixture.test.ts`'s own driver loop.
@@ -59,7 +59,7 @@ function isDataOrEventFrame(
 /**
  * A `Transport` that replays a captured wire recording (the
  * `reference-wire-fixture.json` shape) into a `TelemetryClient`, honoring
- * each frame's own `meta.deliveredAt` cadence under an INJECTED clock. This is
+ * each frame's own `meta.deliveredAt` cadence under an injected clock. This is
  * the no-KSP iteration engine: it lets the whole dashboard run off a recording
  * headlessly, with no KSP restarts and no deployed mod.
  *

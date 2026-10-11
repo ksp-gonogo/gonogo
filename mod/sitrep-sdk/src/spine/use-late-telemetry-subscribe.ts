@@ -28,29 +28,20 @@ export interface LateTelemetrySubscribe {
 }
 
 /**
- * A narrow, lifecycle-managed escape hatch for subscribing to telemetry
- * topics that are only known after some async setup resolves, in a count
- * decided at runtime, rather than a fixed set a component can declare
- * up front. `useTelemetry`/`useStream` are declarative: every call site
- * names its topic(s) unconditionally on every render, which cannot express
- * "subscribe to N topics once an async cache acquire settles for each one".
- * This hook is the deliberately small seam for that case: it hands back one
- * stable `subscribe` function instead of the whole `TelemetryClient`, so an
- * author gets exactly "subscribe a callback to a topic, get an unsubscribe
- * back" and nothing more.
+ * Returns one stable `subscribe(topic, callback)` function, for subscribing
+ * to Topics that are known only after some async setup resolves, in a number
+ * decided at runtime. Useful where `useTelemetry` and `useStream` cannot
+ * serve, since each of their call sites names its Topic on every render.
  *
  * `subscribe` reads through the nearest `TelemetryProvider`'s
- * `TelemetryClient` (`TelemetryClient.subscribe`), the same client
- * `useTelemetry`'s canonical read and `useStreamEvent` use: sticky last
- * value replayed synchronously on subscribe, every later arrival delivered
- * as it lands, no delay gating or per-frame coalescing (a `TimelineStore`
- * frame sample would introduce both, which is wrong for state that is not
- * delayed craft telemetry).
+ * `TelemetryClient`: the last value is replayed synchronously on subscribe
+ * and every later arrival is delivered as it lands, with no delay gating and
+ * no per-frame coalescing.
  *
  * The returned function:
  * - is stable across renders (safe to put in a `useCallback`/`useEffect`
  *   dependency array, or to close over once and call later),
- * - resolves the CURRENT client at CALL time, not the one seen at the
+ * - resolves the current client at call time, not the one seen at the
  *   render that produced it, so it keeps working when called from inside
  *   an async `.then()` well after this hook's own render,
  * - can be called any number of times, including zero,
@@ -58,13 +49,11 @@ export interface LateTelemetrySubscribe {
  *   after this hook's owner has already unmounted, is a no-op.
  *
  * Every subscription still open when the calling component unmounts is
- * torn down automatically (tracked in a ref, swept in one cleanup effect):
- * a caller only needs to call the returned `Unsubscribe` early, for a
- * subscription it wants to end before unmount, never on unmount itself.
+ * torn down automatically. Call the returned `Unsubscribe` only to end a
+ * subscription before unmount.
  *
- * Degrades to a no-op subscribe (no throw, no-op returned `Unsubscribe`)
- * when no `TelemetryProvider` is mounted at call time, matching every other
- * `*Optional`-shaped hook in this package.
+ * With no `TelemetryProvider` mounted at call time it is a no-op that
+ * returns a no-op `Unsubscribe`, and it does not throw.
  */
 export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
   // gonogo:reads none

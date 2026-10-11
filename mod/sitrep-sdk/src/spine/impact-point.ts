@@ -69,7 +69,7 @@ export interface ImpactPoint {
 }
 
 /**
- * Walks the patch chain forward from `ref.ut` and returns the LAST sample
+ * Walks the patch chain forward from `ref.ut` and returns the last sample
  * before altitude drops below `MIN_IMPACT_ALT_M`: the predicted surface
  * impact point. `null` when the walk never dips below the surface within
  * `horizonSec`, never a fabricated `(0,0)`. Bound `horizonSec`/`stepSec`

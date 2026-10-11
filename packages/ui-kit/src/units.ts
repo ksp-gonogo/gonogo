@@ -51,7 +51,7 @@ export type LadderOfSymbol<Unit extends string> = Unit extends DeclaredUnit
   : never;
 
 /**
- * Every symbol of kind `Kind` that exists only as a conversion TARGET (`°C`),
+ * Every symbol of kind `Kind` that exists only as a conversion target (`°C`),
  * which the declarations do not name but a conversion still reaches. A pair whose source is itself undeclared is skipped, or `°C→K`
  * would make every kind accept `K`.
  *
@@ -84,7 +84,7 @@ export type FormatsFor<Unit extends string> = string extends Unit
   : FormatsForKind<KindOfSymbol<Unit>>;
 
 /**
- * {@link FormatsFor}, asked of the KIND rather than of one of its units, for a
+ * {@link FormatsFor}, asked of the kind rather than of one of its units, for a
  * pin addressed to a whole group that has no single unit to check against.
  *
  * @category Unit
@@ -92,7 +92,7 @@ export type FormatsFor<Unit extends string> = string extends Unit
 export type FormatsForKind<Kind> = SymbolsOfKind<Kind>;
 
 /**
- * Every unit a value in `Unit` may be SHOWN as, which is every unit of its kind
+ * Every unit a value in `Unit` may be shown as, which is every unit of its kind
  * plus the presentation-only ones the conversion table reaches.
  *
  * Wider than {@link FormatsFor} by exactly the symbols that are not on the
@@ -106,7 +106,7 @@ export type PresentableAs<Unit extends string> = string extends Unit
   : PresentableAsKind<KindOfSymbol<Unit>>;
 
 /**
- * {@link PresentableAs}, asked of the KIND. See {@link FormatsForKind}.
+ * {@link PresentableAs}, asked of the kind. See {@link FormatsForKind}.
  *
  * @category Unit
  */
@@ -210,7 +210,7 @@ export type KnownQuantityKind =
   | "n/a";
 
 /**
- * A quantity kind, OPEN to kinds this package has never heard of.
+ * A quantity kind, open to kinds this package has never heard of.
  *
  * The `string & {}` member lets a third-party Uplink introduce its own dimension
  * while the known kinds still autocomplete.
@@ -328,7 +328,7 @@ export type LadderName = {
 }[DeclaredUnit];
 
 /**
- * What a pin may be addressed to: one GROUP, named the way the group is formed.
+ * What a pin may be addressed to: one group, named the way the group is formed.
  *
  * A unit on a ladder is named by the ladder, because every unit of it settles
  * together and `m`, `km` and `Mm` are one thing to pin. Everything else is named
@@ -702,7 +702,7 @@ export const ATTACHED_SYMBOLS: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * A quantity as it is WRITTEN: the value and the unit's symbol, `250.0 km`.
+ * A quantity as it is written: the value and the unit's symbol, `250.0 km`.
  *
  * For visible text that cannot take a node: an SVG `<text>`, a canvas label, a
  * chart annotation measured before it is drawn. Anywhere a node fits, use
@@ -1187,7 +1187,7 @@ export interface QuantityScale {
 /**
  * Build a {@link QuantityScale} whose rung is taken from `reference`.
  *
- * `reference` is the value that DEFINES the scale rather than a value on it:
+ * `reference` is the value that defines the scale rather than a value on it:
  * the top of an altimeter strip, an axis maximum. `opts.format` pins the rung
  * outright.
  *

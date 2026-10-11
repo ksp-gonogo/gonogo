@@ -28,12 +28,12 @@ export function deriveEscapeVelocity(
 }
 
 /**
- * Orbital period, seconds, from the semi-major axis and the PARENT body's μ:
+ * Orbital period, seconds, from the semi-major axis and the parent body's μ:
  * `T = 2π · √(a³ / μ_parent)`. `null` for a missing/non-positive input.
  *
  * Deliberately not taken off the wire, unlike mass / surface gravity / hill
  * sphere: KSP's own `Orbit.period` is `2π/meanMotion` over
- * `meanMotion = √(μ/|a|³)` (decompiled), so this IS the game's expression
+ * `meanMotion = √(μ/|a|³)` (decompiled), so this is the game's expression
  * rather than a reconstruction of it.
  */
 export function derivePeriod(
@@ -47,7 +47,7 @@ export function derivePeriod(
 }
 
 /**
- * True anomaly, DEGREES in `[0, 360)`, at universal time `ut`, reconstructed
+ * True anomaly, degrees in `[0, 360)`, at universal time `ut`, reconstructed
  * from the mean anomaly at epoch via the shared Kepler solver (never a second
  * reimplementation of Kepler's equation). Returns `null` for a
  * parabolic/hyperbolic orbit (the solver's `ecc ∈ [0, 1)` domain), a missing

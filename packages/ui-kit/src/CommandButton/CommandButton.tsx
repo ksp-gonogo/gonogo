@@ -59,7 +59,7 @@ export interface CommandGateLike extends CommandRefusalLike {
 }
 
 /**
- * What a command reply is known to be BEFORE you know which command produced
+ * What a command reply is known to be before you know which command produced
  * it: the result envelope, carrying the command's own value on `payload`. The
  * default {@link CommandButtonHandle} reply, so a reader cannot treat the
  * envelope as the payload; `payload` stays `unknown` until narrowed.
@@ -135,7 +135,7 @@ export function standingGate<Args>(
  * - `found`: this control lost a command, and that command has since replied.
  *   Not a confirmation: the operator may already have re-sent it
  * - `blocked`: the game will refuse this, and said so before anyone pressed.
- *   The control is dark but NOT `disabled`: it carries `aria-disabled`, stays
+ *   The control is dark but not `disabled`: it carries `aria-disabled`, stays
  *   focusable, and responds to a press by showing why. A gate verdict is
  *   advice, sampled and possibly a beat behind, and the dispatch is evaluated
  *   again by the game anyway
@@ -622,7 +622,7 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
  * it.
  *
  * Pending ends when the promise `send()` returned settles, whether or not any
- * telemetry changes as a result. Pending is per RENDERED CONTROL, not
+ * telemetry changes as a result. Pending is per rendered control, not
  * per handle, so one handle serving a list gives each row its own pending
  * state. Outcomes are announced through a polite live region.
  *

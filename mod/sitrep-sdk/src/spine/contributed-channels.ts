@@ -38,7 +38,7 @@ const contributed = new Map<
  * Contribute `owner`'s derived channel. Prefer the bound
  * `defineUplinkClient(...).registerDerivedChannel`, which supplies the owner.
  *
- * Takes effect for stores built AFTER this call, which is the ordinary case:
+ * Takes effect for stores built after this call, which is the ordinary case:
  * an Uplink client's module graph is imported before a provider mounts. A
  * store already built is not retrofitted, because a channel appearing
  * mid-session would change what a topic means underneath a mounted widget.

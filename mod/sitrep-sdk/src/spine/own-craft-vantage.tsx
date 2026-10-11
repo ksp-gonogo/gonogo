@@ -48,11 +48,11 @@ function subjectOf(reading: TopicReading<VesselOrbit>): string | undefined {
 }
 
 /**
- * Whether THIS session's selected vantage is the craft its own telemetry is
+ * Whether this session's selected vantage is the craft its own telemetry is
  * about: true for a pilot strapped into the active craft, false for a ground
  * operator whatever centre they picked.
  *
- * Gated on the SELECTED vantage, never the observed one. Observed lags a whole
+ * Gated on the selected vantage, never the observed one. Observed lags a whole
  * light-time behind the request that moved it, so a clock keyed on it would
  * stay ground-delayed for exactly as long as the delay it is meant to remove,
  * and `PilotVantage` (which sets the vantage) keys on selected for the same
@@ -64,7 +64,7 @@ function subjectOf(reading: TopicReading<VesselOrbit>): string | undefined {
  * outright once the delay exceeds the timeline's retention.
  *
  * Screen-independent on purpose. The mod's zero row is written for whichever
- * centre IS the active craft (`AuthorityMatrixPass.PopulateActiveVessel`), not
+ * centre is the active craft (`AuthorityMatrixPass.PopulateActiveVessel`), not
  * for a route, so a main-screen operator who selects the active craft's own
  * vantage is reading live frames too and must be told so.
  */
@@ -80,45 +80,50 @@ export function useOwnCraftVantage(): boolean {
 
 /**
  * Keeps the auto-built clock's `DelayAuthority` told whether this session is
- * watching the craft it is standing on, which is the one case the mod streams
- * at no delay (see `DelayAuthority.setOwnCraftVantage`).
+ * watching the craft it is aboard, the one case the mod streams at no delay
+ * (see `DelayAuthority.setOwnCraftVantage`). Draws nothing. Rendered only
+ * alongside an auto-built authority: a caller who supplies its own `store`
+ * owns its clock's delay wiring.
  *
- * A component rather than a hook call in the provider body because
- * `useOwnCraftVantage` reads `vessel.orbit`, and every stream read re-renders
- * its caller on EVERY frame the store mints. In the provider body
- * that would re-render the whole application tree at frame rate; here it
- * re-renders one leaf that draws nothing. Rendered only alongside an
- * auto-built authority: a caller who supplied their own `store` owns its
- * clock's delay wiring whole, the same exemption the `comms.delay`
- * subscription effect above makes.
- *
- * Written from an effect rather than during render so the render stays pure
- * and a StrictMode double-render cannot write twice. The frame of lag that
- * costs is immaterial: the value changes when an operator picks a vantage,
- * not per frame, and the clock re-reads `delaySeconds()` on every one.
- *
- * Split in two so that reading (and so subscribing) `vessel.orbit` happens
- * ONLY once a vantage has been chosen.
- * A session that has chosen none sits wherever the mod put it, which is never
- * the craft's own centre, so the answer is already false and the subject is
- * not worth a subscription. Reading it unconditionally is not a free
- * convenience: it puts `vessel.orbit` on the wire for every session, and the
- * host relay is contractually meant to pull a topic because a screen asked for
- * it and for no other reason (`SitrepPeerRelay.test.tsx` pins exactly that,
- * and caught this).
- *
- * The deferral costs nothing where it matters. `PilotVantage` reads
- * `vessel.orbit` itself before it ever calls `setVantage`, so on a pilot's
- * screen the subject is already subscribed and already known at the instant
- * the vantage changes. Anywhere else the gate simply stays false for the frame
- * or two the first orbit sample takes, which errs towards the wire's own
- * delay: the safe direction, since a wrongly-zero clock is the failure.
+ * `vessel.orbit` is read, and so subscribed, only once a vantage has been
+ * chosen.
  */
 export function OwnCraftDelayGate({
   authority,
 }: {
   authority: DelayAuthority;
 }) {
+  /*
+   * A component rather than a hook call in the provider body because
+   * `useOwnCraftVantage` reads `vessel.orbit`, and every stream read re-renders
+   * its caller on every frame the store mints. In the provider body
+   * that would re-render the whole application tree at frame rate; here it
+   * re-renders one leaf that draws nothing. Rendered only alongside an
+   * auto-built authority: a caller who supplied their own `store` owns its
+   * clock's delay wiring whole, the same exemption the `comms.delay`
+   * subscription effect above makes.
+   *
+   * Written from an effect rather than during render so the render stays pure
+   * and a StrictMode double-render cannot write twice. The frame of lag that
+   * costs is immaterial: the value changes when an operator picks a vantage,
+   * not per frame, and the clock re-reads `delaySeconds()` on every one.
+   *
+   * Split in two so that reading (and so subscribing) `vessel.orbit` happens
+   * only once a vantage has been chosen.
+   * A session that has chosen none sits wherever the mod put it, which is never
+   * the craft's own centre, so the answer is already false and the subject is
+   * not worth a subscription. Reading it unconditionally is not a free
+   * convenience: it puts `vessel.orbit` on the wire for every session, and the
+   * host relay is contractually meant to pull a topic because a screen asked for
+   * it and for no other reason (`SitrepPeerRelay.test.tsx` pins exactly that).
+   *
+   * The deferral costs nothing where it matters. `PilotVantage` reads
+   * `vessel.orbit` itself before it ever calls `setVantage`, so on a pilot's
+   * screen the subject is already subscribed and already known at the instant
+   * the vantage changes. Anywhere else the gate simply stays false for the frame
+   * or two the first orbit sample takes, which errs towards the wire's own
+   * delay: the safe direction, since a wrongly-zero clock is the failure.
+   */
   const selectedVantage = useSelectedVantage();
   return selectedVantage === undefined ? (
     <OwnCraftDelayIdle authority={authority} />

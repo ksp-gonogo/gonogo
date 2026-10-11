@@ -28,7 +28,7 @@ export interface UseRouteCommandsResult {
  * memory can't see. Queue-only, no memory of its own: an entry that ages
  * out of `system.uplink.pending` simply stops appearing here (a caller that
  * needs failure detection after age-out wants `useCommand`'s `inFlight`
- * instead, for its OWN dispatches).
+ * instead, for its own dispatches).
  *
  * Reads `system.uplink.pending` (real-time command-centre bookkeeping) and
  * `comms.delay` (a Delayed readout, read off the wire rather than through the

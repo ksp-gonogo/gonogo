@@ -51,7 +51,7 @@ export function createDelayRailStore(): DelayRailStore {
 const DelayPanelStore = createPanelStore(createDelayRailStore);
 
 /**
- * Carries only the store HANDLE, never the live registrations. `null` outside
+ * Carries only the store handle, never the live registrations. `null` outside
  * a `Panel`, where `useRailEntry` and `useActiveHandles` degrade to no-ops.
  * Exported raw for a caller that owns the store's lifetime.
  *

@@ -7,8 +7,8 @@ import { createContext, useContext } from "react";
  * `"station"` is fed by a main screen over a peer connection, and `"pilot"`
  * reads the stream directly aboard the craft and hosts nothing. Useful for a
  * component that draws a different UI on each screen. Used by GO/NO-GO
- * voting. It says nothing about the user's role, and `Seat` says where they
- * sit.
+ * voting. It says nothing about the operator's role, and `Seat` says where
+ * they sit.
  */
 export type Screen = "main" | "station" | "pilot";
 

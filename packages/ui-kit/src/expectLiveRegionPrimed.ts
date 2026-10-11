@@ -9,7 +9,7 @@ const LIVE_REGION =
  * first message, and that the same element is still there holding the message
  * afterwards.
  *
- * Assistive tech announces a CHANGE to a region it already knows. A region
+ * Assistive tech announces a change to a region it already knows. A region
  * inserted together with its words is often never announced, and a test that
  * only looks at the final DOM cannot see that: the words are there either way.
  * Call this with `container` rendered in the state that has nothing to say, and

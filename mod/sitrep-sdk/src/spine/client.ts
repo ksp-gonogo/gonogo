@@ -17,23 +17,17 @@ import { META_VANTAGE } from "./vantage";
 type Callback = (value: unknown) => void;
 type StoreListener = () => void;
 
-/**
- * Grace period (UT seconds) added on top of the predicted `etaConfirm` before
- * silence is inferred as loss. Sized to absorb small scheduling jitter around the
- * predicted round trip, not to model any additional delay itself: the prediction
- * already IS the round trip.
- *
+/*
  * **Shared with `classifyRetained`'s `overdueMarginSeconds`, deliberately.** Two
  * layers judge the same silence about the same command, so they judge it on ONE
  * number. Two (2s here, 3s there) is how a command ends up `lost` to an awaiting
  * caller while the queue still calls it merely late.
  *
- * They still differ in PURPOSE, which is why both exist and neither is redundant:
+ * They still differ in purpose, which is why both exist and neither is redundant:
  *
- * - here, the client settles the dispatch PROMISE. That is a liveness guarantee: an
+ * - here, the client settles the dispatch promise. That is a liveness guarantee: an
  *   `await` must end, or a caller that loops over dispatches stalls for ever
- *   (`ManeuverPlanner.dispatchPlanBurns` abandoning burns 2..n was exactly this)
- * - in `classifyRetained`, the hook DIAGNOSES the silence, distinguishing `lost`
+ * - in `classifyRetained`, the hook diagnoses the silence, distinguishing `lost`
  *   (the path was down) from `overdue` (the path was up and nothing acked). It knows
  *   things the client does not: queue presence and `comms.link` history
  *
@@ -41,6 +35,13 @@ type StoreListener = () => void;
  * Do not "unify" them further by deleting one; the promise needs settling whether or
  * not anything is rendering, and the diagnosis needs inputs the client has no
  * business subscribing to.
+ */
+/**
+ * The grace period, in UT seconds, added to a command's predicted `etaConfirm`
+ * before silence is read as loss. It absorbs scheduling jitter around the
+ * predicted round trip and models no delay of its own. `classifyRetained`'s
+ * `overdueMarginSeconds` is the same number, so the client and the queue judge
+ * one silence alike.
  */
 export const LOSS_MARGIN = 3;
 

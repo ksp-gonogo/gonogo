@@ -53,33 +53,36 @@ export function setProcessorNotificationRecorder(fn: () => void): void {
 }
 
 /**
- * The third budget, and the only one that can see the notify guard failing.
- *
- * The other two measure work: evaluations, and the wakeups those evaluations
- * cost. Neither can say whether a wakeup was EARNED, so a guard that has
- * quietly stopped recognising the results it is handed reads off both of them
- * as a busy dashboard and nothing anywhere disagrees. That is not a
- * hypothetical: this guard shipped twice in a state where it could never once
- * fire, and both times it was found by someone reading the code rather than by
- * anything measuring it. See `Comparison`.
- *
- * It is defined HERE rather than core-side through a recorder seam like its two
- * siblings, and the difference matters. Those two predate `PerfBudget` moving
- * into this package, and their core-side home means they are wired in the app's
- * test setup and in NO Uplink's: every Uplink suite calls
- * `PerfBudget.installTestGate()` and would still have run blind to this one,
- * which is exactly the author most likely to write the processor that trips it.
- *
- * The threshold is ZERO, which makes it a gate rather than a soft cap: the test
- * gate fails any test in which a processor returns a result the guard cannot
- * read. That is the intended strictness. A processor result is data (it is
- * rendered, and it crosses PeerJS to a station screen), so a `Map`, a `Date`, a
- * class hiding its state behind methods, or a closure in the payload is a
- * defect in the processor, not a number to raise this to. A test that plants
- * one on purpose resets this budget at the end, the documented pattern for
- * every deliberate breach.
+ * Counts processor results the notify guard cannot compare, such as a `Map`, a
+ * `Date`, a class hiding its state behind methods, or a closure in the
+ * payload. The threshold is zero, so the test gate fails any test in which a
+ * processor returns one. A test that plants one on purpose resets this budget
+ * at the end.
  */
 export const PROCESSOR_UNCOMPARABLE_BUDGET = new PerfBudget({
+  /*
+   * The third budget, and the only one that can see the notify guard failing.
+   *
+   * The other two measure work: evaluations, and the wakeups those evaluations
+   * cost. Neither can say whether a wakeup was earned, so a guard that has
+   * quietly stopped recognising the results it is handed reads off both of them
+   * as a busy dashboard and nothing anywhere disagrees. See `Comparison`.
+   *
+   * It is defined here rather than core-side through a recorder seam like its two
+   * siblings, and the difference matters. Their core-side home means they are
+   * wired in the app's test setup and in no Uplink's. Every Uplink suite calls
+   * `PerfBudget.installTestGate()`, and an Uplink author is the one most likely
+   * to write the processor that trips this budget, so it has to be visible there.
+   *
+   * The threshold is zero, which makes it a gate rather than a soft cap: the test
+   * gate fails any test in which a processor returns a result the guard cannot
+   * read. That is the intended strictness. A processor result is data (it is
+   * rendered, and it crosses PeerJS to a station screen), so a `Map`, a `Date`, a
+   * class hiding its state behind methods, or a closure in the payload is a
+   * defect in the processor, not a number to raise this to. A test that plants
+   * one on purpose resets this budget at the end, the documented pattern for
+   * every deliberate breach.
+   */
   name: "Processor uncomparable results/sec",
   threshold: 0,
   windowMs: 1000,
@@ -438,7 +441,7 @@ type TopicSubscriber = (topic: string) => () => void;
  * One per store, reached through `processorRuntimeFor`, so two providers on one
  * page each evaluate against their own data and unmounting one leaves the other
  * evaluating. Definitions stay page-wide (`processors.ts`): what a processor
- * computes is the same everywhere, only what it computes FROM differs.
+ * computes is the same everywhere, only what it computes from differs.
  */
 export class ProcessorRuntime {
   private readonly entries = new Map<string, ProcessorRuntimeEntry>();

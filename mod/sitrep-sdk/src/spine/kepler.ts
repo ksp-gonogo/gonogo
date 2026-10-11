@@ -58,7 +58,7 @@ export interface PropagationHorizonLike {
 }
 
 /**
- * Mirrors the contract enum by VALUE rather than importing it, because this
+ * Mirrors the contract enum by value rather than importing it, because this
  * module is the propagator's twin and deliberately depends on nothing generated.
  */
 export const PropagationHorizonKindLike = {
@@ -69,7 +69,7 @@ export const PropagationHorizonKindLike = {
 export type PropagationHorizonKindLike =
   (typeof PropagationHorizonKindLike)[keyof typeof PropagationHorizonKindLike];
 
-/** Mirrors the contract enum by VALUE, for the same reason as the horizon kind above. */
+/** Mirrors the contract enum by value, for the same reason as the horizon kind above. */
 export const TrajectoryKindLike = {
   Unspecified: 0,
   Analytic: 1,
@@ -99,7 +99,7 @@ export type PropagationRefusal =
  * The horizon's bound as a plain UT, or `undefined` when it names none.
  *
  * Exported so a caller that needs the number for something other than the gate
- * reads it HERE rather than unwrapping the wire's magnitude a second time. The
+ * reads it here rather than unwrapping the wire's magnitude a second time. The
  * one-copy rule is the same one `solveEccentricAnomaly`'s own doc argues for,
  * and for the same reason: a second copy is free to disagree.
  */
@@ -424,7 +424,7 @@ export function solve(orbit: OrbitElements, ut: number): StateVector {
  * Starts from a high-eccentricity guess where it needs one, so it converges
  * just after periapsis on a near-parabolic orbit too.
  *
- * **Exported as ARITHMETIC, not as propagation.** It takes a mean anomaly
+ * **Exported as arithmetic, not as propagation.** It takes a mean anomaly
  * and an eccentricity and returns an angle: no elements, no frame, no time, so
  * it cannot say "where is this craft" and is not a way around the propagation
  * seam. That question goes through a provider, and on the C# side the
@@ -536,7 +536,7 @@ export function rotatePerifocalToInertial(
  *
  * Exported because an integrated path arrives in the inertial frame and the
  * body-centric diagrams draw in the perifocal one, so somewhere the two have to
- * meet. Doing it HERE keeps the rotation matrix in the one file that owns it:
+ * meet. Doing it here keeps the rotation matrix in the one file that owns it:
  * a second copy of those nine terms elsewhere is free to disagree with this one
  * about a sign, and the symptom would be a curve that looks plausible and is
  * mirrored.

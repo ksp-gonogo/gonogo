@@ -129,46 +129,23 @@ function reckonedValue<Payload>(
 }
 
 /**
- * Build a reading from what the store already knows: the sampled point (or its
- * absence), the status `TimelineStore.sampleStatus` derived for the same frame,
- * and optionally a reckoner to ask for a forward model. Pure, so the hook stays
- * thin and this is what gets tested.
+ * Builds a reading from what the store already knows: the sampled point (or
+ * its absence), the status `TimelineStore.sampleStatus` derived for the same
+ * frame, and optionally a reckoner to ask for a forward model. Pure. Used by
+ * the timeline store and the provider's non-hook reads.
  *
- * With no reckoner, one that declines, or one whose coverage does not reach the
- * payload root, the reading is `reckoning: { status: "none" }` whatever its `state`. That is
- * deliberately the default: absence of a model is a real statement ("nothing
- * trustworthy can be said"), so nothing here invents one, and a model that moves
- * one field of forty-seven has not modelled the payload a whole-topic read asks
- * for.
+ * With no reckoner, one that declines, or one whose coverage does not reach
+ * the payload root, the reading is `reckoning: { status: "none" }` whatever
+ * its `state`.
  *
- * `at` names both instants and is required rather than optional: every
- * reckoning is a function of them, and a default would let a caller build a
- * reading whose modelled value silently answered for the wrong moment. The
- * observation itself is `point`, already sampled at the received edge.
- *
- * `unowned` is the mod's verdict that nothing will ever publish this topic. It
- * only ever redirects the empty case, and it needs no guard against the OTHER
- * thing an empty case can mean: `status` is `"resyncing"` both for a cold topic
- * and for one whose points a rewind dropped, but the verdict already tells them
- * apart. A topic that has ever published was necessarily acked when it was
- * subscribed, and an ack settles ownership for the life of the connection, so a
- * mid-resync topic can never be carrying an `unowned` verdict. Earning the
- * verdict positively is `TopicOwnershipTracker`'s job; this function trusts it.
- *
- * `owner` is which registered owner's model this is, stamped onto the reckoning
- * so a caller can tell core's vanilla from an Uplink's without reading the
- * numbers and guessing. It defaults to `"core"` because every model that
- * reaches here without one is core's own: a derived channel's label, or a field
- * read borrowing its record's.
- *
- * `declined` is the caller's answer for a topic whose CONTRACT declares a value
- * reckonable, and it turns the value-bearing `"none"` arms into
- * `ReckonableReading`'s. It is the caller's rather than this function's because
- * the reason is a fact about the TOPIC (which published inputs the mark named,
- * which of them failed to arrive) and this function has never been told which
- * topic it is building for. Omit it and the reading is exactly what it always
- * was: an undeclared topic has nothing to explain, because nothing promised it a
- * model.
+ * - `at` names both instants and is required
+ * - `unowned` is the mod's verdict that nothing will ever publish this Topic,
+ *   and applies only to the empty case
+ * - `owner` is which registered owner's model this is, stamped onto the
+ *   reckoning. It defaults to `"core"`
+ * - `declined` is the caller's answer for a Topic whose contract declares a
+ *   value reckonable. It turns the value-bearing `"none"` arms into
+ *   `ReckonableReading`'s
  */
 export function readingFrom<Payload>(
   point: TimelinePoint<Payload> | undefined,
@@ -197,6 +174,43 @@ export function readingFrom<Payload>(
   declined?: ReckoningDecline,
   owner = "core",
 ): TopicReading<Payload> | ReckonableReading<Payload, keyof Payload> {
+  /*
+   * With no reckoner, one that declines, or one whose coverage does not reach the
+   * payload root, the reading is `reckoning: { status: "none" }` whatever its `state`. That is
+   * deliberately the default: absence of a model is a real statement ("nothing
+   * trustworthy can be said"), so nothing here invents one, and a model that moves
+   * one field of forty-seven has not modelled the payload a whole-topic read asks
+   * for.
+   *
+   * `at` names both instants and is required rather than optional: every
+   * reckoning is a function of them, and a default would let a caller build a
+   * reading whose modelled value silently answered for the wrong moment. The
+   * observation itself is `point`, already sampled at the received edge.
+   *
+   * `unowned` is the mod's verdict that nothing will ever publish this topic. It
+   * only ever redirects the empty case, and it needs no guard against the other
+   * thing an empty case can mean: `status` is `"resyncing"` both for a cold topic
+   * and for one whose points a rewind dropped, but the verdict already tells them
+   * apart. A topic that has ever published was necessarily acked when it was
+   * subscribed, and an ack settles ownership for the life of the connection, so a
+   * mid-resync topic can never be carrying an `unowned` verdict. Earning the
+   * verdict positively is `TopicOwnershipTracker`'s job; this function trusts it.
+   *
+   * `owner` is which registered owner's model this is, stamped onto the reckoning
+   * so a caller can tell core's vanilla from an Uplink's without reading the
+   * numbers and guessing. It defaults to `"core"` because every model that
+   * reaches here without one is core's own: a derived channel's label, or a field
+   * read borrowing its record's.
+   *
+   * `declined` is the caller's answer for a topic whose contract declares a value
+   * reckonable, and it turns the value-bearing `"none"` arms into
+   * `ReckonableReading`'s. It is the caller's rather than this function's because
+   * the reason is a fact about the topic (which published inputs the mark named,
+   * which of them failed to arrive) and this function has never been told which
+   * topic it is building for. Omit it and the reading is exactly what it always
+   * was: an undeclared topic has nothing to explain, because nothing promised it a
+   * model.
+   */
   if (!point || status === "resyncing") {
     return topicReading(
       unowned

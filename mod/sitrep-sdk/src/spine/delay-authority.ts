@@ -3,11 +3,11 @@ import { isValue } from "../unit-system/value";
 import { ROUTE_TOPIC, readRouteDelays } from "./comms-route";
 
 /**
- * The `comms.delay` channel topic: the CORE `SignalDelay` capability's
+ * The `comms.delay` channel topic: the core `SignalDelay` capability's
  * output (`mod/Gonogo.KSP/CommsCoreUplink.cs:DelayTopic`,
  * `mod/Sitrep.Host/ChannelEngine.cs:CommsDelayTopic`). A `Delayed` channel:
  * what defines the delay is the mod's ledger, written by the capture pass, and
- * this is the READOUT published from the same numbers, so it travels home at
+ * this is the readout published from the same numbers, so it travels home at
  * the speed everything else does. Read it as an observation of the link, not as
  * the link's current state.
  */
@@ -117,37 +117,43 @@ export function readOneWaySeconds(payload: unknown): number | null {
 }
 
 /**
- * The client-side delay authority. Holds the delay this session's frames are
- * timed by and exposes it as a `delaySeconds()` accessor wired into the ONE
- * `ViewClock` (`ViewClockOptions.delaySeconds`).
+ * The client-side delay authority: holds the one-way delay this session's
+ * frames are timed by and exposes it as `delaySeconds()`, which the one
+ * `ViewClock` reads (`ViewClockOptions.delaySeconds`).
  *
- * The number is the mod's ledger lookup, restated: the session's own centre's
- * row on `commandCentre.activeVesselDelay` where it has one, and otherwise
+ * The delay is the session's own centre's row on
+ * `commandCentre.activeVesselDelay` where it has one, and otherwise
  * `comms.delay`, the whole-network delay every centre without a row is timed
  * by. So a session at a forward centre runs its clock on that centre's own
- * light-time, and one at home runs it on home's.
+ * delay, and one at home on home's.
  *
- * **This is legibility, NOT enforcement.** The mod's reveal gate
- * (`ChannelEngine`) has already withheld each channel's samples
- * until `UT <= now - delay`, so the raw timeline the client receives is
- * already delayed: for the SDK, a curl script, or a station relay alike.
- * This value does not re-gate anything; it only sizes the SDK's
- * PREDICT-FORWARD horizon: how far `utNowEstimate()` leads `confirmedEdgeUt()`
- * so a delayed vessel can be dead-reckoned to the predicted present and the
- * certainty-horizon snap is drawn in the right place. Because
- * media (kerbcast `DelayedPlayoutBuffer`) reads the same clock, aligning this
- * one value aligns telemetry and video for free.
- *
- * There is no loop here, though it takes a moment to see why. `comms.delay` is
- * itself `Delayed`, so the reading arrives one light-time after the delay it
- * reports took that value. What decides when it arrives is the SERVER's ledger,
- * not this clock, and `attach` below subscribes to the raw stream rather than
- * to a view-time-gated reading, so nothing the view clock computes feeds back
- * into what the view clock is computed from. The consequence is only that the
- * horizon is sized from the last delay the operator could have known, which is
- * the same standard every other readout on this wire is held to.
+ * It enforces nothing: the mod has already withheld each channel's samples
+ * until `UT <= now - delay`. The value only sizes how far `utNowEstimate()`
+ * leads `confirmedEdgeUt()`. Media reads the same clock, so telemetry and
+ * video stay aligned.
  */
 export class DelayAuthority {
+  /*
+   * **This is legibility, not enforcement.** The mod's reveal gate
+   * (`ChannelEngine`) has already withheld each channel's samples
+   * until `UT <= now - delay`, so the raw timeline the client receives is
+   * already delayed: for the SDK, a curl script, or a station relay alike.
+   * This value does not re-gate anything; it only sizes the SDK's
+   * predict-forward horizon: how far `utNowEstimate()` leads `confirmedEdgeUt()`
+   * so a delayed vessel can be dead-reckoned to the predicted present and the
+   * certainty-horizon snap is drawn in the right place. Because
+   * media (kerbcast `DelayedPlayoutBuffer`) reads the same clock, aligning this
+   * one value aligns telemetry and video for free.
+   *
+   * There is no loop here, though it takes a moment to see why. `comms.delay` is
+   * itself `Delayed`, so the reading arrives one light-time after the delay it
+   * reports took that value. What decides when it arrives is the server's ledger,
+   * not this clock, and `attach` below subscribes to the raw stream rather than
+   * to a view-time-gated reading, so nothing the view clock computes feeds back
+   * into what the view clock is computed from. The consequence is only that the
+   * horizon is sized from the last delay the operator could have known, which is
+   * the same standard every other readout on this wire is held to.
+   */
   private oneWaySeconds = 0;
   private ownCraftVantage = false;
   private centreDelays: ReadonlyMap<string, number> = new Map();

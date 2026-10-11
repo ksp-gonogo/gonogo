@@ -9,30 +9,13 @@ export interface OrbitSample {
 }
 
 /**
- * Where the craft HAS BEEN, from the samples that were true at the time.
+ * Where the craft has been, as points solved from the orbit samples received
+ * for each instant. It is a record of what was reported, never the current
+ * elements run backwards. Used by the orbit diagram to draw the trail behind
+ * the craft, which it draws differently from the predicted arc ahead.
  *
- * **Observed, not propagated backwards.** Each point is solved from the
- * elements that arrived for that instant, so the trail is a record of what was
- * reported rather than a model of what must have happened. Running the current
- * elements backwards would be a different claim and a wrong one under an n-body
- * force model, where the path does not retrace: the craft's real past is only
- * recoverable from what was measured, and that is exactly what the store
- * holds.
- *
- * This is why the forward arc and the trail must be drawn differently. One
- * is a prediction and one is a record, and a single unbroken curve through the
- * craft would assert the same confidence in both.
- *
- * **Expressed in `frame`'s perifocal frame, and that argument is required
- * for a reason.** Each point is SOLVED from its own sample, which is what
- * makes the trail a record, and a solve hands back a body-centred inertial
- * position. The arc it is drawn beside is in the perifocal frame of the elements
- * the diagram was drawn from, so a trail left inertial is a curve of the right
- * shape and the right size sitting rotated away from the path the craft is on by
- * that orbit's own three angles, and out of its plane entirely once the orbit is
- * tilted. Nothing about it looks wrong. Defaulting the frame would let the next
- * caller inherit that silently, so there is no default: naming the elements the
- * points are to be read against is part of asking for them.
+ * The points are expressed in the perifocal frame of `frame`, the elements the
+ * diagram was drawn from. `frame` is required and has no default.
  */
 export function pastTrack(
   samples: readonly OrbitSample[],
@@ -47,6 +30,30 @@ export function pastTrack(
     centreBodyIndex?: number;
   },
 ): TrajectoryPoint[] {
+  /*
+   * **Observed, not propagated backwards.** Each point is solved from the
+   * elements that arrived for that instant, so the trail is a record of what was
+   * reported rather than a model of what must have happened. Running the current
+   * elements backwards would be a different claim and a wrong one under an n-body
+   * force model, where the path does not retrace: the craft's real past is only
+   * recoverable from what was measured, and that is exactly what the store
+   * holds.
+   *
+   * This is why the forward arc and the trail must be drawn differently. One
+   * is a prediction and one is a record, and a single unbroken curve through the
+   * craft would assert the same confidence in both.
+   *
+   * **Expressed in `frame`'s perifocal frame, and that argument is required
+   * for a reason.** Each point is solved from its own sample, which is what
+   * makes the trail a record, and a solve hands back a body-centred inertial
+   * position. The arc it is drawn beside is in the perifocal frame of the elements
+   * the diagram was drawn from, so a trail left inertial is a curve of the right
+   * shape and the right size sitting rotated away from the path the craft is on by
+   * that orbit's own three angles, and out of its plane entirely once the orbit is
+   * tilted. Nothing about it looks wrong. Defaulting the frame would let the next
+   * caller inherit that silently, so there is no default: naming the elements the
+   * points are to be read against is part of asking for them.
+   */
   const into = buildElements(options.frame);
   const points: TrajectoryPoint[] = [];
   for (const sample of samples) {

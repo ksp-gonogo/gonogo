@@ -56,32 +56,15 @@ const reckoners = new Map<string, Map<string, AnyReckonerDefinition>>();
 export const CORE_RECKONER_OWNER = CORE_CONTRACT_OWNER;
 
 /**
- * Register `owner`'s forward model for `topic`.
+ * Registers `owner`'s forward model for `topic`. `owner` names the Uplink that
+ * owns the model and is required. An Uplink client calls its handle's bound
+ * `registerReckoner`, which supplies it.
  *
- * `owner` is a required argument rather than a convention because ownership has
- * to be readable by something other than a person: the boundary ratchet and any
- * health surface both want to know which Uplink is modelling what. An Uplink
- * client should call its handle's bound `registerReckoner` instead of naming
- * itself here.
- *
- * ## The topic is the typed union, so the payload type falls out of it
- *
- * `topic` was a bare `string`, and it cost twice. A name with a typo was not a
- * compile error at all: it registered a model under a topic nothing would ever
- * read, and the only symptom was a value that stayed unreckoned forever. And
- * `T` could not be inferred from it, so every author annotated the payload by
- * hand and the annotation was free to disagree with the topic it was registered
- * against.
- *
- * Taking `TopicId` and resolving `TopicPayload<Topic>` fixes both at once,
- * through the map `useTelemetry` and `Dep` already resolve through. `Deps` and
- * `Projection` were already inferable and are simply left to infer: a definition that
- * annotates neither is the shorter one AND the one that cannot drift.
- *
- * An Uplink-owned Topic reaches the union the same way it reaches
- * `useTelemetry`: the Uplink's client augments `TopicPayloadMap` through
- * `declare module "@ksp-gonogo/sitrep-sdk"`, and any program that statically
- * imports that module can register a model for it.
+ * `topic` is a `TopicId`, and the payload type is resolved from it
+ * (`TopicPayload<Topic>`). `Deps` and `Projection` are inferred, so a
+ * definition annotates neither. An Uplink-owned Topic is in the union once the
+ * Uplink's client augments `TopicPayloadMap` in a
+ * `declare module "@ksp-gonogo/sitrep-sdk"` block.
  */
 export function registerReckoner<
   const Topic extends TopicId,
@@ -93,6 +76,13 @@ export function registerReckoner<
   owner: string,
   reckoner: ReckonerDefinition<TopicPayload<Topic>, Projection, Deps, Windows>,
 ): void {
+  /*
+   * `owner` is a required argument rather than a convention because ownership has
+   * to be readable by something other than a person: the boundary ratchet and any
+   * health surface both want to know which Uplink is modelling what. An Uplink
+   * client should call its handle's bound `registerReckoner` instead of naming
+   * itself here.
+   */
   /*
    * A model with no mark behind it is served when it answers and invisible when
    * it refuses: a decline is explained from the marks, so without one a refusal
@@ -253,9 +243,9 @@ export interface ElectedReckoner {
  * ## The election, and why a contest does not withhold everything
  *
  * Two Uplinks claiming one topic should be served by neither. That stops
- * holding once CORE ships a vanilla: withholding then serves nothing while a
+ * holding once core ships a vanilla: withholding then serves nothing while a
  * working model sits registered, which is a silent outage rather than a
- * withheld opinion, and on a value the CONTRACT declares reckonable the type
+ * withheld opinion, and on a value the contract declares reckonable the type
  * has already promised a model is on offer.
  *
  * So the ladder is: the sole non-core owner (an Uplink that owns the physics
@@ -282,7 +272,7 @@ export function getReckoner(topic: string): ElectedReckoner | undefined {
   return core ? { owner: CORE_RECKONER_OWNER, definition: core } : undefined;
 }
 
-/** A topic two or more NON-CORE owners have both registered a model for. */
+/** A topic two or more non-core owners have both registered a model for. */
 export interface ReckonerConflict {
   topic: string;
   /**

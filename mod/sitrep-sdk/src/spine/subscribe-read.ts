@@ -1,40 +1,15 @@
 import type { TimelineStore } from "./timeline-store";
 
 /**
- * What a live read of `topic` must hold up on the wire, subscribed for as long
- * as the read is mounted. THE seam: every read path in the tree comes through
- * here rather than resolving its own topic list, so the answer is written down
- * once and an eighth read path cannot be written without it.
+ * Subscribes everything a live read of `topic` needs on the wire, and returns
+ * the function that releases it. Two sets are held: the Topics that feed the
+ * read (itself for a raw Topic, the parent record for a field subtopic, a
+ * derived channel's inputs resolved recursively), and the Topics the read's
+ * elected reckoner declared as deps. Used by every read path, point and series
+ * alike, such as `useTelemetry` and `useStream`.
  *
- * Two things have to be up, and only one of them was:
- *
- * - the topics that FEED the read (`resolveSubscriptionTopics`): itself for a
- *   raw topic, the parent record for a raw field subtopic, a derived channel's
- *   declared `inputs` resolved recursively. Every read path already did this
- *   one, seven separate times.
- * - the topics the read's elected RECKONER declared (`reckonerDepTopics`).
- *   Nothing held these up. `registeredReckoning` declines outright with one
- *   declared dep missing, which is the whole point of declaring them, so a lone
- *   widget reading `vessel.flight.altitudeAsl` got `input-absent` for ever
- *   while the same widget beside one reading `vessel.orbit` reckoned fine.
- *   Whether a model runs is not supposed to be a fact about the rest of the
- *   dashboard.
- *
- * The dep half was fixed for the SERIES path first, inline. The point path had
- * the same hole in seven separate places, which is why this is a function and
- * not a seventh copy: seven call sites each remembering the rule is how an
- * eighth gets written without it. Every read path in the tree, point and series
- * alike, comes through here, and a repo scan holds it that way.
- *
- * The set resolves at SUBSCRIBE time, so a reckoner registered after a read
- * mounts is not picked up until the subscription rebuilds. That is
- * `resolveSubscriptionTopics`' existing behaviour and this changes nothing
- * about it.
- *
- * No `PerfBudget`. A subscribe CALL is bounded by mount events rather than by
- * frames, and `client.subscribe` is ref-counted, so N widgets sharing a topic
- * share one wire subscription and the dep half adds at most the deps of the
- * topics already being read. Both still hold with this seam in place.
+ * The set resolves when the read subscribes, so a reckoner registered after a
+ * read mounts is not picked up until the subscription rebuilds.
  */
 export function subscribeTopicRead(
   client: ReadTopicSubscriber,
@@ -42,6 +17,28 @@ export function subscribeTopicRead(
   topic: string,
   subscriberLabel?: string,
 ): () => void {
+  /*
+   * Two things have to be up:
+   *
+   * - the topics that feed the read (`resolveSubscriptionTopics`): itself for a
+   *   raw topic, the parent record for a raw field subtopic, a derived channel's
+   *   declared `inputs` resolved recursively
+   * - the topics the read's elected reckoner declared (`reckonerDepTopics`).
+   *   `registeredReckoning` declines outright with one declared dep missing, so
+   *   without them a lone widget reading `vessel.flight.altitudeAsl` gets
+   *   `input-absent` for ever while the same widget beside one reading
+   *   `vessel.orbit` reckons fine. Whether a model runs must not depend on the
+   *   rest of the dashboard
+   *
+   * Every read path in the tree, point and series alike, comes through here,
+   * and a repo scan holds it that way: call sites that each resolve their own
+   * topic list are how one gets written without the reckoner half.
+   *
+   * No `PerfBudget`. A subscribe call is bounded by mount events rather than by
+   * frames, and `client.subscribe` is ref-counted, so N widgets sharing a topic
+   * share one wire subscription and the dep half adds at most the deps of the
+   * topics already being read.
+   */
   /*
    * Deduplicated because a reckoner dep is very often also an input of the
    * topic being read (a model may declare the very topic it reckons, or an

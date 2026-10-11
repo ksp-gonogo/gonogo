@@ -76,7 +76,7 @@ export function bodyRotationAngleDegAt(
 }
 
 /**
- * A body-fixed surface point as a BODY-CENTRED inertial position at `ut`.
+ * A body-fixed surface point as a body-centred inertial position at `ut`.
  *
  * `latitudeDeg`/`longitudeDeg` are the wire's geographic pair; `altitudeMetres`
  * is height above the body's mean radius, and 0 is the right value for a ground
@@ -142,7 +142,7 @@ export interface CommsPeerEndpoint {
  *
  * `hops` is ordered craft-to-centre (`CommsBackendBase.Path` preserves the
  * backend's own order onto `from`/`to`), so the craft is `hops[0].from` and its
- * peer is `hops[0].to`. The LAST hop's far end is the command centre, which on a
+ * peer is `hops[0].to`. The last hop's far end is the command centre, which on a
  * multi-hop path is a different node entirely.
  */
 export function firstHopPeer(
@@ -156,7 +156,7 @@ export function firstHopPeer(
 /**
  * Locate a hop endpoint against the two channels that can say where it is.
  *
- * A ground-station endpoint joins to `commandCentre.roster` BY DISPLAY NAME,
+ * A ground-station endpoint joins to `commandCentre.roster` by display name,
  * because the two id spaces differ: a hop carries the station's own name
  * (`CommNetBackend.NodeId`) where a roster entry carries `"ground:<name>"`.
  * Two stations sharing a name collapse to one hop id, so this join cannot tell
@@ -196,7 +196,7 @@ export function locateCommsPeer(
 }
 
 /**
- * A located peer's ROOT-CENTRED position at `ut`.
+ * A located peer's root-centred position at `ut`.
  *
  * Root-centred rather than body-centred so a station on one body and a craft
  * about another subtract directly. `system` is the whole catalogue solved at the

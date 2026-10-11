@@ -1,28 +1,25 @@
 /**
- * Structural clock seam for `TelemetryClient`'s client-side loss inference
- * (Task 8 / D3). The client never computes network delay itself, it only
- * schedules a callback at a UT a `Transport` predicted via
- * `predictConfirmEta()`: but it still needs a `Clock` to do the scheduling.
+ * The clock `TelemetryClient` schedules its loss inference on, in UT seconds
+ * (KSP's universal time).
  *
- * Deliberately NOT imported from `@ksp-gonogo/sitrep-server`: sitrep-client
- * must never take a dependency (runtime or type-only) on the mod's delay
- * engine. This interface's shape mirrors sitrep-server's own `Clock`
- * exactly, so its `ManualClock` structurally satisfies this interface in
- * tests without either package importing the other.
- *
- * Time is measured in UT seconds (KSP's universal time), matching the
- * courier/transport layer's convention: `RealTimeClock` below just backs
- * that same contract for production use.
- *
- * IMPORTANT: whatever `Clock` is injected into `TelemetryClient` MUST share
- * the same time domain as the transport's `predictConfirmEta()` (i.e. the
- * same UT clock the server/courier advances). If the two disagree, e.g. a
- * wall-clock-epoch `now()` paired with a process-relative `etaConfirm`, the
- * `etaConfirm - now()` delta driving loss inference is meaningless: it can
- * clamp to zero (false near-instant "lost") or never fire (loss never
- * inferred). This isn't enforced at runtime; get it right by construction.
+ * The `Clock` injected into `TelemetryClient` must share the time domain of
+ * the transport's `predictConfirmEta()`. If the two disagree, such as a
+ * wall-clock `now()` paired with a process-relative `etaConfirm`, loss is
+ * inferred at once or never. Nothing checks this at runtime.
  */
 export interface Clock {
+  /*
+   * Structural clock seam for `TelemetryClient`'s client-side loss inference.
+   * The client never computes network delay itself, it only
+   * schedules a callback at a UT a `Transport` predicted via
+   * `predictConfirmEta()`: but it still needs a `Clock` to do the scheduling.
+   *
+   * Deliberately not imported from `@ksp-gonogo/sitrep-server`: sitrep-client
+   * must never take a dependency (runtime or type-only) on the mod's delay
+   * engine. This interface's shape mirrors sitrep-server's own `Clock`
+   * exactly, so its `ManualClock` structurally satisfies this interface in
+   * tests without either package importing the other.
+   */
   /** Current UT, in seconds. */
   now(): number;
   /**
@@ -36,7 +33,7 @@ export interface Clock {
 /**
  * Default `Clock`. `TelemetryClient` falls back to this when no `Clock` is
  * injected: i.e. every real, non-test transport. Backed by
- * `performance.now() / 1000`: process-relative seconds, NOT wall-clock epoch
+ * `performance.now() / 1000`: process-relative seconds, not wall-clock epoch
  * time: this must match sitrep-server's `RealClock`, since that's the same
  * UT domain the courier/transport layer predicts `etaConfirm` in. Tests that
  * need deterministic timing inject their own `Clock` instead (or a

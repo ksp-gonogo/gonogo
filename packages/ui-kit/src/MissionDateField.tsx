@@ -125,7 +125,7 @@ function stepLabel(seconds: number): string {
 }
 
 /**
- * A universal time ENTERED as a calendar instant: year, day, hour, minute,
+ * A universal time entered as a calendar instant: year, day, hour, minute,
  * second, each its own field, plus coarse steps. The fields are for an instant
  * you know; the steps are the tuning loop for one you are looking for.
  *

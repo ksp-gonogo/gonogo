@@ -186,7 +186,7 @@ export function patchArc(
  * short of its horizon is the consumer's to say.
  *
  * Body-fixed longitude is calibrated against the observed ground position: the
- * inertial longitude the craft has at `ref.ut` IS `ref.lon`, and the surface
+ * inertial longitude the craft has at `ref.ut` is `ref.lon`, and the surface
  * turns under it at the sidereal rate from there. The calibrating patch is the
  * one of `calibrationPatches` around `bodyId` that holds `ref.ut`, or the first
  * around it; a future chain that does not contain `ref.ut` (a node's post-burn

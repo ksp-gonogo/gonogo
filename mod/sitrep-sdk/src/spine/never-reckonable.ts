@@ -1,77 +1,79 @@
 /**
- * Topics that do not carry a forward model, declared so the type system can drop
- * the modelled members from a read of them.
+ * The Topics that can never carry a forward model, such as `vessel.attitude`
+ * and `vessel.control`. A read of one is typed `UnmodelledReading`, which has
+ * no `reckoning: "available"` member, so a caller cannot write a branch for a
+ * reckoning that cannot occur. Used by `useTelemetry` to narrow its return
+ * type.
  *
- * **Two different reasons live in this one list, and they are kept in separate
- * named groups because they want opposite responses later.** "No model can
- * exist" is permanent and closed. "A model could exist and we are not paying for
- * it every frame" is an engineering decision and an invitation: make the model
- * cheaper and it moves out. Conflating them would lose that difference, and the
- * second group would rot into looking like the first.
- *
- * ## Why declaring this is sound when declaring the positive is not
- *
- * A static "this IS propagatable" is a lie waiting to happen at TOPIC level: an
- * orbit is propagatable except during a burn or past an unmodelled SOI change,
- * so whether a model can answer is a fact about the current MOMENT and no
- * attribute can express it. A reading's `reckoning` is therefore still decided
- * per frame, by whether a model is on offer.
- *
- * What the contract CAN declare, and now does, is the other half of that
- * sentence: `[SitrepReckonable]` marks one VALUE with the model that carries it
- * and the published inputs that model needs, which is a statement about the WIRE
- * rather than about any frame. The two answer different questions and neither
- * replaces the other: the mark says a consumer holding only the stream could
- * advance this value, and the per-frame `reckoning` says whether anything
- * actually did. A marked value that cannot be answered this frame says so, and
- * names the input that stopped it (`ReckoningDecline`).
- *
- * The negative is the other way round. "This can never be reckoned" is a
- * permanent fact about the QUANTITY: an attitude has no model and never will, an
- * accident report is immutable, a discrete state the vessel changes on its own
- * has nothing to model. Declaring that costs nothing in honesty and buys a
- * caller the knowledge that a branch they might write can never be taken.
- *
- * Command-echo topics belong here too, which is a consistency check rather than
- * a special case: a commanded state is not a forward model of anything and
- * belongs on its own channel, composed beside a reading rather than inside it,
- * so as far as `Reading` is concerned `vessel.control` has no model.
- *
- * ## Why a list here rather than a registry, and why it cannot rot
- *
- * A list that merely RECORDS the default has no source construct to scan for,
- * so it rots without ever failing. This one is not that, because **it has the
- * compiler as a consumer**: a wrong entry surfaces the moment someone writes a
- * `reckoning.status === "available"` branch that then refuses to compile.
- *
- * A list nothing reads rots. A list the type checker reads cannot.
- *
- * What is NOT checked, deliberately, is the other direction. Nothing asserts
- * that every Topic appears here or is deliberately absent, and a total
- * classification would be the wrong guarantee to want: absence means "no model
- * has been written yet", which is the honest default and the state most topics
- * are permanently in. `never-reckonable.test.ts` therefore checks only that
- * every entry names a real Topic, that no entry also has a registered model,
- * that there are no duplicates, and that the runtime predicate agrees with the
- * list. Do not read "classified" into it: a topic missing from this list is not
- * an omission to be caught.
- *
- * ## Adding to it
- *
- * Add a topic here only when no model could ever exist for it, and say why in
- * the comment beside it. If the answer is "no model YET", leave it out: the
- * absence of a registered reckoner already reads `reckoning: { status: "none" }`, which is
- * the honest default, and putting it here would forbid the model someone is
- * about to write.
- *
- * The list still earns its place beside the positive declaration, because the
- * two do not partition anything between them: most Topics are in NEITHER, which
- * is the honest default of "no model has been written yet". What the list adds
- * is the permanent negative, and it is the only one of the three states the
- * compiler can act on by DROPPING members. A topic in both is a contradiction,
- * and `never-reckonable.test.ts` fails on it.
+ * A Topic missing from this list is not classified by it: absence means no
+ * model has been written yet. Add a Topic only when no model could ever exist
+ * for it, and say why in the comment beside the entry. A Topic that is both
+ * listed here and marked reckonable in the contract is a contradiction, and
+ * `never-reckonable.test.ts` fails on it.
  */
 export const NEVER_RECKONABLE = [
+  /*
+   * **Two different reasons live in this one list, and they are kept in separate
+   * named groups because they want opposite responses later.** "No model can
+   * exist" is permanent and closed. "A model could exist and we are not paying for
+   * it every frame" is an engineering decision and an invitation: make the model
+   * cheaper and it moves out. Conflating them would lose that difference, and the
+   * second group would rot into looking like the first.
+   *
+   * Why declaring this is sound when declaring the positive is not
+   *
+   * A static "this IS propagatable" is a lie waiting to happen at topic level: an
+   * orbit is propagatable except during a burn or past an unmodelled SOI change,
+   * so whether a model can answer is a fact about the current moment and no
+   * attribute can express it. A reading's `reckoning` is therefore still decided
+   * per frame, by whether a model is on offer.
+   *
+   * What the contract can declare is the other half of that
+   * sentence: `[SitrepReckonable]` marks one value with the model that carries it
+   * and the published inputs that model needs, which is a statement about the wire
+   * rather than about any frame. The two answer different questions and neither
+   * replaces the other: the mark says a consumer holding only the stream could
+   * advance this value, and the per-frame `reckoning` says whether anything
+   * actually did. A marked value that cannot be answered this frame says so, and
+   * names the input that stopped it (`ReckoningDecline`).
+   *
+   * The negative is the other way round. "This can never be reckoned" is a
+   * permanent fact about the quantity: an attitude has no model and never will, an
+   * accident report is immutable, a discrete state the vessel changes on its own
+   * has nothing to model. Declaring that costs nothing in honesty and buys a
+   * caller the knowledge that a branch they might write can never be taken.
+   *
+   * Command-echo topics belong here too, which is a consistency check rather than
+   * a special case: a commanded state is not a forward model of anything and
+   * belongs on its own channel, composed beside a reading rather than inside it,
+   * so as far as `Reading` is concerned `vessel.control` has no model.
+   *
+   * Why a list here rather than a registry, and why it cannot rot
+   *
+   * A list that merely records the default has no source construct to scan for,
+   * so it rots without ever failing. This one is not that, because **it has the
+   * compiler as a consumer**: a wrong entry surfaces the moment someone writes a
+   * `reckoning.status === "available"` branch that then refuses to compile.
+   *
+   * A list nothing reads rots. A list the type checker reads cannot.
+   *
+   * What is not checked, deliberately, is the other direction. Nothing asserts
+   * that every Topic appears here or is deliberately absent, and a total
+   * classification would be the wrong guarantee to want: absence means "no model
+   * has been written yet", which is the honest default and the state most topics
+   * are permanently in. `never-reckonable.test.ts` therefore checks only that
+   * every entry names a real Topic, that no entry also has a registered model,
+   * that there are no duplicates, and that the runtime predicate agrees with the
+   * list. Do not read "classified" into it: a topic missing from this list is not
+   * an omission to be caught.
+   *
+   * The list still earns its place beside the positive declaration, because the
+   * two do not partition anything between them: most Topics are in neither, which
+   * is the honest default of "no model has been written yet". What the list adds
+   * is the permanent negative, and it is the only one of the three states the
+   * compiler can act on by dropping members. A topic in both is a contradiction,
+   * and `never-reckonable.test.ts` fails on it.
+   */
   // ── Unmodellable: no model can exist, permanently ──────────────────────────
 
   // -- Attitude, and anything an autopilot moves on its own. `Navball` reached

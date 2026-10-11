@@ -467,12 +467,12 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  * `viewUt` is an observation, not a driver (the scrub/mode setters are what
  * "drive" the clock, and those stay out of this Pick), it belongs here for the
  * same reason `activeViewClock` below is deliberately typed on it: it is the
- * quantity `onFrame` hands its callback, and the ONLY one that honours a scrub
+ * quantity `onFrame` hands its callback, and the only one that honours a scrub
  * target, so anything mirroring `useViewUt`'s contract has to read it rather
  * than `confirmedEdgeUt`.
  *
  * `utNowEstimate` is an observation on the same footing, and it is here for a
- * consumer `confirmedEdgeUt` cannot serve: a human message carries a SEND UT
+ * consumer `confirmedEdgeUt` cannot serve: a human message carries a send UT
  * minted at the sender's present, so the recipient reveals it against their own
  * present rather than their delayed certainty horizon. Gating that on
  * `confirmedEdgeUt` would hold it for `sentUt + 2 x delay`, a round trip for a
@@ -622,33 +622,25 @@ function useFrameInstant(
 }
 
 /**
- * The current REAL-time "vessel now" (UT seconds) as a reactive value,
- * `ViewClock.utNowEstimate()`, NOT the delay-gated `confirmedEdgeUt()`
- * `useViewUt` tracks. Every other live countdown in the app is rightly
- * delay-consistent (it's timing DELAYED craft telemetry, so it must lag by
- * the one-way light-time same as the data it's counting against), but a
- * few channels are command-centre real-time bookkeeping instead of delayed
- * craft telemetry (e.g. `system.uplink.pending`'s dispatch/prediction
- * timestamps, stamped in real UT the instant a command leaves the ground
- * station). Timing THOSE against `useViewUt` makes them appear, and clear,
- * one whole one-way-delay late; this hook is the fix: it reads the same
- * `ViewClock` instance's `utNowEstimate()` (the undelayed UT(wall) fit)
- * instead, so a real-time bookkeeping value renders in step with the real
- * event, not the delayed view.
+ * The current undelayed UT in seconds, as a reactive value:
+ * `ViewClock.utNowEstimate()`, where `useViewUt` follows the delayed view
+ * time. Used for values stamped in the command centre's own present, such as
+ * the dispatch and prediction timestamps on `system.uplink.pending`. Timing
+ * those against `useViewUt` shows them, and clears them, one one-way delay
+ * late.
  *
- * Modeled directly on `useViewUt`: same `onFrame` subscription, same
- * seed-then-subscribe shape: except the per-frame callback recomputes
- * `clock.utNowEstimate()` itself rather than using the `viewUt` argument
- * `onFrame` hands it (that argument IS `clock.viewUt()`, the delayed/
- * scrubbable value `useViewUt` wants: not what this hook needs).
- *
- * `undefined` when no `TelemetryProvider` is mounted. Unlike `useViewUt`,
- * this is NOT gated on "before the first confirmed sample", `utNowEstimate()`
- * has a well-defined value (0, or the last observed sample UT) from the
- * moment a clock exists, since real-time bookkeeping has no "confirmed vs.
- * predicted" distinction to wait out.
+ * `undefined` when no `TelemetryProvider` is mounted. It has a value from the
+ * moment a clock exists (0, or the last observed sample UT), with no wait for
+ * a first confirmed sample.
  */
 export function useUtNow(): number | undefined {
+  /*
+   * Modeled directly on `useViewUt`: same `onFrame` subscription, same
+   * seed-then-subscribe shape: except the per-frame callback recomputes
+   * `clock.utNowEstimate()` itself rather than using the `viewUt` argument
+   * `onFrame` hands it (that argument is `clock.viewUt()`, the delayed/
+   * scrubbable value `useViewUt` wants: not what this hook needs).
+   */
   // gonogo:reads none
   const store = useTelemetryStoreOptional();
   const clock = store?.clock;
@@ -864,22 +856,22 @@ function notifyActiveTelemetryClientListeners(): void {
  * the same frame, just polled on demand instead of reactively. Returns
  * `undefined` when no provider has ever mounted, or before any point has
  * landed for `topic`: the same "not synced yet" contract `useStream`
- * returns before its first frame. Does NOT itself ensure `topic` is
+ * returns before its first frame. Does not itself ensure `topic` is
  * subscribed on the wire (unlike `useStream`'s `subscribe`, which ref-counts
  * a `client.subscribe` for the resolved raw inputs), a plain-class caller
- * relies on some OTHER live subscriber (typically a mounted widget reading
+ * relies on some other live subscriber (typically a mounted widget reading
  * the same topic) already keeping the data flowing, exactly like
  * `getViewUt()` relies on the provider's own `ViewClock` ticking regardless
  * of subscribers.
  *
  * Exported (beyond the fixed `getVesselOrbit`/`getVesselTarget`/
  * `getVesselIdentity` wrappers below, each just this function bound to one
- * Topic) for plain-class callers that need an ARBITRARY topic decided at call
+ * Topic) for plain-class callers that need an arbitrary topic decided at call
  * time, the same "dynamic topic" shape `useTelemetry`'s own doc comment
  * documents for the hook case.
  *
- * Answers a DISPLAY value, and a hold-last one: this cannot say how old it is,
- * or whether anything is still feeding the topic. Anything ACTING on the
+ * Answers a display value, and a hold-last one: this cannot say how old it is,
+ * or whether anything is still feeding the topic. Anything acting on the
  * answer rather than drawing it wants {@link sampleActiveReading} instead.
  */
 export function sampleActiveTopic<Payload>(topic: string): Payload | undefined {
@@ -907,7 +899,7 @@ const NO_PROVIDER_READING = topicReading<never>({
  * `TopicReading` a widget's `useTelemetry(topic)` would get on the same frame
  * rather than the bare payload.
  *
- * A bare payload is a DISPLAY value. The store is hold-last by design, and a
+ * A bare payload is a display value. The store is hold-last by design, and a
  * timeline is never dropped when its last subscriber lets go, so
  * `sampleActiveTopic` answers a released topic's final payload for as long as
  * the epoch stands. That is the right answer for a readout under a staleness
@@ -963,9 +955,9 @@ export function getVesselIdentity(): VesselIdentity | undefined {
 
 /**
  * Non-React equivalent of `useTelemetry("system.bodies")`: the body tree, by
- * STABLE index.
+ * stable index.
  *
- * Wanted by anything turning an orbital radius into an ALTITUDE, which needs
+ * Wanted by anything turning an orbital radius into an altitude, which needs
  * the reference body's own radius, and by the body-name display maps.
  */
 export function getSystemBodies(): SystemBodies | undefined {
@@ -979,7 +971,7 @@ export function getSystemBodies(): SystemBodies | undefined {
  *
  * The other non-hook accessors here hand back a payload, which carries no
  * model, and the model's refusal is the whole of when these figures may be
- * drawn. This samples the READING instead and applies the same rule a hook
+ * drawn. This samples the reading instead and applies the same rule a hook
  * would, so a maneuver plan and the panel drawing the orbit it plans against
  * cannot disagree about whether there is an orbit to plan against.
  */
@@ -1004,12 +996,12 @@ export function getOrbitSolve(): OrbitalSolve | null {
 }
 
 /**
- * Non-hook, Value-restricted read of an OPERATOR-PICKED key, for a plain-class
+ * Non-hook, Value-restricted read of an operator-picked key, for a plain-class
  * caller (alarm/maneuver-trigger threshold evaluation) whose key is not one of
  * a fixed set decided at call time. `key` is a field path or a dynamic-namespace
  * key, resolved through `resolveValueTopic`, and the resulting Topic is sampled
  * off the active `TimelineStore`. Answers a
- * MAGNITUDE: the one type every threshold comparison needs, taken off the
+ * magnitude: the one type every threshold comparison needs, taken off the
  * `Value` a unit-carrying field arrives as, so a non-numeric or not-yet-arrived
  * read is a plain `undefined`.
  *
@@ -1089,7 +1081,7 @@ export function subscribeActiveTelemetryClient(
  * Reactive equivalent of `getActiveTelemetryClient()`: re-renders the
  * calling component whenever the active `TelemetryProvider` mounts,
  * unmounts, or swaps its `client`. Use this (instead of the plain getter)
- * from any component that might render BEFORE a `TelemetryProvider` mounts,
+ * from any component that might render before a `TelemetryProvider` mounts,
  * the plain getter reads once and never updates, so a component like
  * `ModalTelemetryBridge` that opens during the app's connect-in-progress
  * window would otherwise be stuck rendering its children with no telemetry
@@ -1104,7 +1096,7 @@ export function useActiveTelemetryClient(): TelemetryClient | undefined {
 
 /**
  * The mod's refusal of a command that was routed: its code and message, as
- * the mod wrote them. Useful for telling the user why a command did not take
+ * the mod wrote them. Useful for telling the operator why a command did not take
  * effect. Used by `dispatchActiveCommandTopic`, which resolves `settled` with
  * it.
  *
@@ -1256,7 +1248,7 @@ export function setActiveTelemetryClientForTests(
  * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`) whenever the active `TelemetryProvider` ingests a new
  * frame, the same "vessel/orbit data changed" signal a widget's
  * `useTelemetry` re-render would ride. Unlike `getViewUt()`/the sample
- * accessors above (pure point-in-time reads), this one DOES need a live
+ * accessors above (pure point-in-time reads), this one does need a live
  * subscription: a plain class has no render loop to poll on.
  *
  * The subscription is against whichever store is active at each frame rather
@@ -1292,7 +1284,7 @@ export function onActiveTimelineFrame(cb: () => void): () => void {
  * before one mounts it subscribes when one does, and it follows a provider
  * that unmounts and remounts.
  *
- * A hold makes the topic ARRIVE; it says nothing about how current the next
+ * A hold makes the topic arrive; it says nothing about how current the next
  * read is. Until the first frame lands after subscribing, a sample still
  * answers the previous holder's point, so a caller deciding anything reads
  * through `sampleActiveReading` and branches on `state`.

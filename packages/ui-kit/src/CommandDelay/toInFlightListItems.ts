@@ -76,7 +76,7 @@ function oneWayOf(item: InFlightCommandLike): number | null {
 /**
  * Maps a handle's in-flight commands (`useCommand().inFlight`) to
  * {@link InFlightListItem}s for {@link InFlightList}. While `in-transit` a row
- * counts down to the command REACHING the craft; after that, to the
+ * counts down to the command reaching the craft; after that, to the
  * acknowledgement coming back. `label` falls back to the command id.
  *
  * @category CommandDelay

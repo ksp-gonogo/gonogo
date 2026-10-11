@@ -148,7 +148,7 @@ export function isKnownFieldPath(path: string): boolean {
 
 /**
  * The Topic a picked key reads from. A key in a dynamic namespace is vouched
- * for by {@link mapTopic}; a field path IS the path it reads, so it needs no
+ * for by {@link mapTopic}; a field path is the path it reads, so it needs no
  * translation and only needs vouching for: the picker offers paths the contract
  * declares, and a path it does not declare resolves to nothing rather than to a
  * subscription no channel serves.

@@ -30,7 +30,7 @@ export interface DivergingBarProps<Unit extends string = string> {
 }
 
 /**
- * A small bar centred on zero, for a signed quantity whose DIRECTION matters
+ * A small bar centred on zero, for a signed quantity whose direction matters
  * as much as its size (a ledger term that produces or consumes). Decorative
  * and `aria-hidden`: pair it with the number, which carries the reading.
  *

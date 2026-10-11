@@ -31,7 +31,7 @@ export type ProcessorResult<
  * nothing to date it by.
  *
  * Which of the two is decided by the dep list and read off the handle, so a
- * processor that gains or loses a reading dep changes its consumers' TYPES
+ * processor that gains or loses a reading dep changes its consumers' types
  * rather than changing what they receive behind their backs.
  */
 export function useProcessor<Result, Carried extends boolean>(

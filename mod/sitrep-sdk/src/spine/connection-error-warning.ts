@@ -2,7 +2,7 @@ import { hasHost } from "../api/host";
 import { logger } from "../api/logger";
 
 /**
- * The mod refused something about the CONNECTION itself: not a reply to any
+ * The mod refused something about the connection itself: not a reply to any
  * command, and not about any one channel.
  *
  * Third sibling of `warnChannelError` and `installUnownedTopicWarning`, for the
@@ -13,7 +13,7 @@ import { logger } from "../api/logger";
  * sentence that explains the fault and the author never saw it.
  *
  * Two live producers today, both of them useful and both of them otherwise
- * invisible: `binaryFrameNotAccepted` (a binary-lane frame sent UP the
+ * invisible: `binaryFrameNotAccepted` (a binary-lane frame sent up the
  * socket, which nothing accepts) and the `unknownVantage` refusal of a
  * `set-vantage`, whose envelope carries no requestId to correlate by.
  */
@@ -28,7 +28,7 @@ export function connectionErrorMessage(code: string, message: string): string {
 }
 
 /**
- * Reported at the point the client would otherwise DISCARD the frame: an error
+ * Reported at the point the client would otherwise discard the frame: an error
  * carrying neither a requestId nor a topic correlates to nothing, so the
  * command correlator drops it and there is nothing else downstream to notice.
  *

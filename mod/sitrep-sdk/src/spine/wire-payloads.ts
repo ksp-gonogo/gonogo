@@ -26,11 +26,11 @@ export interface Vec3 {
  * record is `null` when there's no upcoming SOI transition on the current
  * trajectory (the common case): never a sentinel.
  *
- * `transitionType` is the raw `Sitrep.Contract.TransitionType` enum ORDINAL on
+ * `transitionType` is the raw `Sitrep.Contract.TransitionType` enum ordinal on
  * the wire (Initial 0 / Final 1 / Encounter 2 / Escape 3 / Maneuver 4 /
  * Collision 5 / Unknown 6: VesselEnums.cs); `transitionUt` is the UT-seconds
  * of the transition; `bodyIndex` is the `system.bodies` index of the body
- * being transitioned INTO (`null` if it couldn't be resolved).
+ * being transitioned into (`null` if it couldn't be resolved).
  */
 export interface OrbitEncounterPayload {
   transitionType: number;
@@ -135,9 +135,9 @@ export interface VesselIdentityPayload {
 }
 
 /**
- * One NAMED custom action group: mirrors
+ * One named custom action group: mirrors
  * `mod/Sitrep.Contract/VesselControl.cs`'s `ActionGroupState`. Identity travels
- * WITH the entry (`index`), so never infer it from array position: position
+ * with the entry (`index`), so never infer it from array position: position
  * cannot carry a name. Whichever backend the mod elected supplies both, stock
  * reports ten `AG{n}`; Action Groups Extended reports up to 250 player-named
  * groups.
@@ -160,9 +160,9 @@ export interface ActionGroupStatePayload {
 /**
  * A subset of the `vessel.control` channel payload (mirrors
  * `mod/Sitrep.Contract/VesselControl.cs`). `sasMode` is the raw
- * `Sitrep.Contract.SasMode` enum ORDINAL on the wire (`VesselViewProvider`
+ * `Sitrep.Contract.SasMode` enum ordinal on the wire (`VesselViewProvider`
  * serializes `(int)control.SasMode`), individually nullable: `null` is a
- * normal "this input isn't available this tick" per the C# class doc, NOT a
+ * normal "this input isn't available this tick" per the C# class doc, not a
  * sentinel.
  */
 export interface VesselControlPayload {
@@ -178,11 +178,11 @@ export interface VesselControlPayload {
 
 /**
  * A subset of the `vessel.propulsion` channel payload (mirrors
- * `mod/Sitrep.Contract/VesselPropulsion.cs`). `totalMass`/`dryMass` in TONNES;
+ * `mod/Sitrep.Contract/VesselPropulsion.cs`). `totalMass`/`dryMass` in tonnes;
  * `currentThrust`/`availableThrust` in kN: dimensionally consistent for TWR
  * (`currentThrust / (totalMass · g)` = kN/(t·m/s²), dimensionless). The
  * contract's own doc comment names TWR as an SDK-side derivation ("*Derived,
- * SDK-side, NOT streamed here:* TWR").
+ * SDK-side, not streamed here:* TWR").
  */
 export interface VesselPropulsionPayload {
   totalMass: number;
@@ -194,7 +194,7 @@ export interface VesselPropulsionPayload {
 /**
  * A subset of the `vessel.comms` channel payload (mirrors
  * `mod/Sitrep.Contract/VesselComms.cs`). `controlState` is the raw
- * `Sitrep.Contract.ControlState` enum ORDINAL on the wire
+ * `Sitrep.Contract.ControlState` enum ordinal on the wire
  * (`(int)comms.ControlState` in `VesselViewProvider`): the host serializes the
  * integer, same as every other contract enum, so nothing here should read it
  * as a name. The whole channel is absent when `vessel.connection` is null.

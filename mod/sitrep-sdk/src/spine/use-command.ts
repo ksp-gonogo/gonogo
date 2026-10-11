@@ -415,12 +415,12 @@ function resolveTracked(
 }
 
 /**
- * The handle for a NAMED command, with both its argument type and its reply
+ * The handle for a named command, with both its argument type and its reply
  * type resolved out of the generated command map.
  *
  * What to write on a prop, a field, or a helper that passes a dispatch handle
  * around. `useCommand("...")` already returns this; the alias exists because the
- * place a handle LOSES its type is the annotation it travels through, and
+ * place a handle loses its type is the annotation it travels through, and
  * `UseCommandResult` bare is one keystroke from that annotation. It takes a
  * union of command ids as readily as one id, so a family of writes that answer
  * alike can be declared once:
@@ -444,7 +444,7 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
 /**
  * Fires `command` against the `TelemetryClient` from the nearest
  * `TelemetryProvider` and reactively reflects its lifecycle
- * (`idle -> in-flight -> confirmed|failed`), plus this hook's OWN set of
+ * (`idle -> in-flight -> confirmed|failed`), plus this hook's own set of
  * in-flight dispatches (`inFlight`), the delayed-command-ux primitive: a
  * command widget gets delay state for free from the same hook it already
  * calls to dispatch, no separate opt-in.
@@ -452,7 +452,7 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
  * The active `requestId` is held in React state so `send` can be called
  * more than once; `status` is read via `useSyncExternalStore` over
  * `client.subscribeStore`, so any status transition for the in-flight
- * request re-renders the caller. `inFlight` is a SEPARATE accumulating set
+ * request re-renders the caller. `inFlight` is a separate accumulating set
  * (not just the latest `requestId`): see `UseCommandResult.inFlight`'s doc.
  *
  * The two overloads are the typing seam. A known `CommandId` resolves its args

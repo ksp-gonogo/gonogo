@@ -66,7 +66,7 @@ function waveformSteps(
 }
 
 /**
- * Turn a newest-last amplitude ring into an open waveform TRACE crossing the
+ * Turn a newest-last amplitude ring into an open waveform trace crossing the
  * band's centre, each turning point's height a sample's amplitude, at a fixed
  * pitch so the period stays visible. Silence is a flat line down the middle:
  * the key is open and nobody is speaking.

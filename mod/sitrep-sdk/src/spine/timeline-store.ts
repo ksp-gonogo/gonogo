@@ -248,7 +248,7 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
 }
 
 /**
- * One instant a model answered for, and what answered. NEVER an observation:
+ * One instant a model answered for, and what answered. Never an observation:
  * see `TimelineStore.sampleReckonedTail`, which is the only thing that mints
  * one and hands it straight to the boundary that draws it.
  *
@@ -637,12 +637,12 @@ function lerpFieldValue(
  * `[0, 1]`: the confirmed-range interpolation primitive.
  * Numeric payloads lerp directly. A plain (non-array, non-null) object
  * lerps field-by-field via `lerpFieldValue`: a genuinely continuous numeric
- * field lerps straight-line, an ANGULAR field (`ANGULAR_DEGREE_FIELD_NAMES`)
+ * field lerps straight-line, an angular field (`ANGULAR_DEGREE_FIELD_NAMES`)
  * wraps the short way instead of blending through the far side of the
  * wrap, a field `holds` names (one whose kind is not continuous) stays at
  * `before` rather than fractionalizing, a non-numeric field that is
- * IDENTICAL on both sides passes through unchanged (e.g. an unchanged
- * string/enum field), and a non-numeric field that actually DIFFERS makes
+ * identical on both sides passes through unchanged (e.g. an unchanged
+ * string/enum field), and a non-numeric field that actually differs makes
  * the whole interpolation refuse (`undefined`): there is no honest halfway
  * point between two different strings, and a caller asking for a lerp
  * should never get a silently-wrong blended object back. Anything else

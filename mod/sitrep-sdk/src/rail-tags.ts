@@ -66,7 +66,7 @@ export type RailDirection = "command" | "telemetry";
 /**
  * Whether anything replies to an entry on the delay rail. An `"acked"` entry is
  * drawn with a return leg for its reply; a `"fire-and-forget"` one gets no
- * reply and ends when it reaches the far end. Commands are always `"acked"`;
+ * reply and ends when it arrives. Commands are always `"acked"`;
  * `"fire-and-forget"` is what telemetry coming back from a craft is.
  *
  * @category Commands

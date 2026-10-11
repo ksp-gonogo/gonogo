@@ -20,10 +20,10 @@ export interface SignalDelayBadgeProps {
 /**
  * The one-way delay between the active command centre and the vessel or device
  * a control sends to, as a small chip ("one-way ~4.2 s"). The figure is the
- * one its caller passes in `oneWaySeconds`. Useful for showing the user the
- * expected time for a command to reach the target. Used alongside
- * time-sensitive controls like {@link Console} to help the user understand
- * when a command is likely to happen.
+ * one its caller passes in `oneWaySeconds`. Useful for showing the operator
+ * the expected time for a command to reach the target. Used alongside
+ * time-sensitive controls like {@link Console} to help the operator
+ * understand when a command is likely to happen.
  *
  * @category CommandDelay
  */

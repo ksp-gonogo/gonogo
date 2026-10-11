@@ -32,7 +32,7 @@ export interface StreamRecorderOptions {
  *
  * **Subscription-scoped by default**: with `recordAllTopics` off, `start()`
  * registers no subscriptions of its own: it only records whatever
- * `stream-data`/`event` frames already flow because something ELSE (a
+ * `stream-data`/`event` frames already flow because something else (a
  * mounted widget, another recorder) is subscribed. A recording therefore
  * holds exactly the topics the dashboard had open; replaying a widget that
  * was never mounted while recording shows nothing. That's the accepted,
