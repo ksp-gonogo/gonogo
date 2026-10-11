@@ -15,6 +15,9 @@ footer = ""
 [git]
 conventional_commits = true
 filter_unconventional = false
+commit_preprocessors = [
+  { pattern = "<what was wrong for the add-on author> no longer happens when <situation>", replace = "a new Uplink's docs script stamps its bundle hash, and new says to rename the placeholder widget" },
+]
 commit_parsers = [
   { message = "^feat",     group = "Features" },
   { message = "^fix",      group = "Bug Fixes" },
