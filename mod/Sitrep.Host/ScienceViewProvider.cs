@@ -188,6 +188,7 @@ namespace Sitrep.Host
 
         private static LabEntry BuildLabEntry(IDictionary<string, object?> raw) => new LabEntry
         {
+            PartId = SnapshotDict.GetString(raw, "partId"),
             PartName = SnapshotDict.GetString(raw, "partName"),
             DataStored = SnapshotDict.GetDouble(raw, "dataStored"),
             DataStorage = SnapshotDict.GetDouble(raw, "dataStorage"),

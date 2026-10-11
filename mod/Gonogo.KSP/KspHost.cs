@@ -5417,6 +5417,7 @@ namespace Gonogo.KSP
                     }
 
                     var partName = part.partInfo != null ? part.partInfo.title : part.name;
+                    var partId = part.flightID != 0 ? part.flightID.ToString() : null;
 
                     double? rate = null;
                     try
@@ -5451,6 +5452,7 @@ namespace Gonogo.KSP
                     list ??= new List<object?>();
                     list.Add(new Dictionary<string, object?>
                     {
+                        ["partId"] = partId,
                         ["partName"] = partName,
                         ["dataStored"] = (double)lab.dataStored,
                         ["dataStorage"] = (double)lab.dataStorage,

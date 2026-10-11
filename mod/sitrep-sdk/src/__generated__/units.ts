@@ -811,6 +811,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     dataStorage: "Mit",
     dataStored: "Mit",
     isOperational: "flag",
+    partId: "id",
     partName: "text",
     processingData: "flag",
     scienceRate: "science/day",
@@ -1978,6 +1979,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     dataStorage: "Mit",
     dataStored: "Mit",
     isOperational: "flag",
+    partId: "id",
     partName: "text",
     processingData: "flag",
     scienceRate: "science/day",
@@ -3468,6 +3470,7 @@ export const GENERATED_CONTRACT_TAGS = {
     },
     "science.lab": {
       "*.dataStorage": { kind: "discrete" },
+      "*.partId": { entryKey: true },
     },
     "vessel.orbit": {
       "epoch": { kind: "continuous" },
@@ -3486,6 +3489,7 @@ export const GENERATED_CONTRACT_TAGS = {
   },
   reckonable: [
     { topic: "comms.delay", field: "oneWaySeconds", basis: "kepler-propagation", inputs: [ { topic: "", path: "source" }, { topic: "comms.path", path: "" }, { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" }, { topic: "commandCentre.roster", path: "" } ] },
+    { topic: "science.lab", field: "*.storedScience", basis: "rate-integration", inputs: [ { topic: "", path: "scienceRate" } ] },
     { topic: "target.available", field: "entries", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
     { topic: "vessel.dock", field: "distance", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativePosition" }, { topic: "", path: "relativeVelocity" } ] },
     { topic: "vessel.dock", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },

@@ -74,6 +74,7 @@ namespace Sitrep.Host.Tests
 
         private static readonly string[] FrozenLabMembers =
         {
+            nameof(LabEntry.PartId),
             nameof(LabEntry.PartName),
             nameof(LabEntry.DataStored),
             nameof(LabEntry.DataStorage),

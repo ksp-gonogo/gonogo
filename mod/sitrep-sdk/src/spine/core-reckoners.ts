@@ -824,6 +824,79 @@ function registerTargetRosterReckoner(): void {
 }
 
 /**
+ * `science.lab[i].storedScience` for each lab that is converting data right
+ * now, grown at that lab's own `scienceRate` for the time since the sample.
+ *
+ * ## The claim is one lab at a time
+ *
+ * A lab that is not processing, is not operational, has no scientist or
+ * reports no rate holds exactly the science it was observed holding, so it is
+ * left unclaimed rather than declined: only the labs this places read as
+ * modelled, and the rest of the list is the observation carried along. A lab is
+ * followed by its `partId`, never by its position, because the list reorders
+ * as parts come and go.
+ *
+ * ## What it assumes
+ *
+ * The rate is the one KSP computed at the stored data it had then, and
+ * converting drains that data, so a constant rate slightly overshoots over a
+ * long gap. The model is first order and declines when no lab qualifies.
+ */
+function registerScienceLabReckoner(): void {
+  registerReckoner("science.lab", CORE_RECKONER_OWNER, {
+    deps: [],
+    reckon(point) {
+      const labs = point.payload;
+      if (labs == null || labs.length === 0) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            note: "there is no lab to carry forward",
+          },
+        };
+      }
+      const running = new Set<number>();
+      labs.forEach((lab, index) => {
+        if (
+          lab.partId != null &&
+          lab.processingData === true &&
+          lab.isOperational === true &&
+          lab.scientistCount?.isPositive() === true &&
+          lab.scienceRate?.isFinite() === true &&
+          lab.storedScience?.isFinite() === true
+        ) {
+          running.add(index);
+        }
+      });
+      if (running.size === 0) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            note: "no lab is converting data, so every stored figure is exact as observed",
+          },
+        };
+      }
+      return {
+        modelled: movedFields(
+          "rate-integration",
+          ...[...running].map((index) => `${index}.storedScience`),
+        ),
+        reckon: (at) =>
+          labs.map((lab, index) => {
+            if (!running.has(index) || !lab.scienceRate || !lab.storedScience) {
+              return lab;
+            }
+            const gained = lab.scienceRate
+              .times(value("s", Math.max(0, at - point.validAt)))
+              .in("science");
+            return { ...lab, storedScience: lab.storedScience.plus(gained) };
+          }),
+      };
+    },
+  });
+}
+
+/**
  * `vessel.orbit.truth.position` and `.velocity`: the state vector the same conic
  * produces.
  *
@@ -1110,6 +1183,7 @@ export function registerCoreReckoners(): void {
   registerOrbitTruthReckoner();
   registerCommsDelayReckoner();
   registerTargetRosterReckoner();
+  registerScienceLabReckoner();
 }
 
 registerCoreReckoners();

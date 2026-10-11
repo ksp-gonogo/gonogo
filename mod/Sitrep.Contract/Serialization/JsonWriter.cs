@@ -829,6 +829,10 @@ namespace Sitrep.Contract.Serialization
         private static void AppendLabEntry(StringBuilder sb, Sitrep.Contract.LabEntry e)
         {
             sb.Append('{');
+            AppendString(sb, "partId");
+            sb.Append(':');
+            AppendNullableString(sb, e.PartId);
+            sb.Append(',');
             AppendString(sb, "partName");
             sb.Append(':');
             AppendNullableString(sb, e.PartName);

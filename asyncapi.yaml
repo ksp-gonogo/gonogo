@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 37.0.0
+  version: 37.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -15201,6 +15201,15 @@ components:
         no lab. Every field is nullable, and is `null` whenever the raw value is
         absent or non-finite.
       properties:
+        partId:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The part's KSP `flightID` as a string: the stable join key for this lab, and
+            what tells one lab from another across samples. `null` when the part has no
+            flight id yet (KSP's unset value, 0).
         partName:
           type:
             - string
@@ -15230,7 +15239,9 @@ components:
           x-sitrep-unit: science
           description: |-
             Science the lab has generated and is holding, not yet transmitted (KSP's
-            `ModuleScienceLab.storedScience`).
+            `ModuleScienceLab.storedScience`). While the lab is processing it grows at
+            `LabEntry.scienceRate`, so a model carries it forward from there; a lab that
+            is not processing holds it exactly as observed.
         processingData:
           type:
             - boolean

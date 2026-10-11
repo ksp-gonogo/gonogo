@@ -332,6 +332,14 @@ public class InstrumentEntry
 #endif
 public class LabEntry
 {
+    /// <summary>The part's KSP <c>flightID</c> as a string: the stable join
+    /// key for this lab, and what tells one lab from another across samples.
+    /// <c>null</c> when the part has no flight id yet (KSP's unset value,
+    /// 0).</summary>
+    [SitrepUnit(Units.Id)]
+    [SitrepEntryKey]
+    public string? PartId { get; set; }
+
     /// <summary>Display title of the lab part (the part's
     /// <c>partInfo.title</c>, or its internal name when that is
     /// missing).</summary>
@@ -351,8 +359,12 @@ public class LabEntry
     public double? DataStorage { get; set; }
 
     /// <summary>Science the lab has generated and is holding, not yet
-    /// transmitted (KSP's <c>ModuleScienceLab.storedScience</c>).</summary>
+    /// transmitted (KSP's <c>ModuleScienceLab.storedScience</c>). While the lab
+    /// is processing it grows at <see cref="ScienceRate"/>, so a model carries
+    /// it forward from there; a lab that is not processing holds it exactly as
+    /// observed.</summary>
     [SitrepUnit(Units.Science)]
+    [SitrepReckonable(ReckoningBases.RateIntegration, "scienceRate")]
     public double? StoredScience { get; set; }
 
     /// <summary>Whether the lab is currently processing data (KSP's

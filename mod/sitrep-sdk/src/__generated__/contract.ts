@@ -6535,6 +6535,12 @@ export interface InstrumentEntry
 export interface LabEntry
 {
 	/**
+	* The part's KSP `flightID` as a string: the stable join key for this lab, and
+	* what tells one lab from another across samples. `null` when the part has no
+	* flight id yet (KSP's unset value, 0).
+	*/
+	partId?: string | null;
+	/**
 	* Display title of the lab part (the part's `partInfo.title`, or its internal
 	* name when that is missing).
 	*/
@@ -6548,7 +6554,9 @@ export interface LabEntry
 	dataStorage?: Value<"Mit"> | null;
 	/**
 	* Science the lab has generated and is holding, not yet transmitted (KSP's
-	* `ModuleScienceLab.storedScience`).
+	* `ModuleScienceLab.storedScience`). While the lab is processing it grows at
+	* `LabEntry.scienceRate`, so a model carries it forward from there; a lab that
+	* is not processing holds it exactly as observed.
 	*/
 	storedScience?: Value<"science"> | null;
 	/**

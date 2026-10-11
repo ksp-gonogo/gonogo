@@ -156,8 +156,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.terrainElevationUnderVessel":
     "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
-  "field:vessel.target.partId":
-    "kept: identifies the targeted docking port for API consumers; no widget addresses a port by id",
 };
 
 /**
