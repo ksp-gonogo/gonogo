@@ -315,6 +315,22 @@ export async function renderWidgets(
      * deleting, the rest of its widget's.
      */
     fixture?: string;
+    /**
+     * Write the PNG for each render. Off for the gates, which judge the laid
+     * out DOM and discard the pictures: a retina screenshot of every
+     * (fixture x mode) is the largest single cost of a pass that reads none of
+     * them. Every detector runs before the shot, so nothing it measures moves.
+     */
+    capture?: boolean;
+    /**
+     * Pages rendering at once in the one browser. A render spends most of its
+     * time in fixed settle waits and frame polls, so several pages overlap that
+     * idle time almost for free. Each page is set up and proven on its own, and
+     * each config is rendered whole by exactly one of them. Findings are sorted
+     * before they are reported so the order does not depend on who finished
+     * first.
+     */
+    concurrency?: number;
   } = {},
 ): Promise<void> {
   if (configs.length === 0) {
@@ -346,74 +362,93 @@ export async function renderWidgets(
       // captured at an arbitrary opacity phase and the visual gate flakes.
       reducedMotion: "reduce",
     });
-    const page = await context.newPage();
     const pageErrors: string[] = [];
     const findings = noFindings();
-    page.on("pageerror", (err) => {
-      console.error("  [page error]", err.message);
-      pageErrors.push(err.message);
-    });
-    page.on("console", (msg) => {
-      if (msg.type() === "error") {
-        console.error("  [console error]", msg.text());
-        if (msg.text().startsWith("[resize-observer-loop]")) {
-          pageErrors.push(msg.text());
-        }
-      }
-    });
 
-    await installFixedClock(page);
-    // The browser reports a ResizeObserver loop to `window.onerror` only, which Playwright does not surface as a page error.
-    await page.addInitScript(() => {
-      window.addEventListener("error", (e) => {
-        if (e.message.startsWith("ResizeObserver loop")) {
-          console.error(`[resize-observer-loop] ${e.message}`);
+    const openPage = async () => {
+      const page = await context.newPage();
+      page.on("pageerror", (err) => {
+        console.error("  [page error]", err.message);
+        pageErrors.push(err.message);
+      });
+      page.on("console", (msg) => {
+        if (msg.type() === "error") {
+          console.error("  [console error]", msg.text());
+          if (msg.text().startsWith("[resize-observer-loop]")) {
+            pageErrors.push(msg.text());
+          }
         }
       });
-    });
-    await page.goto(pathToFileURL(probeHtmlOut).toString(), {
-      waitUntil: "domcontentloaded",
-    });
-    await page.waitForFunction(
-      () => typeof window.__renderProbe === "function",
-      undefined,
-      { timeout: 10_000 },
-    );
 
-    await proveOverlapDetectorWorks(page);
-    await proveClipDetectorWorks(page);
-    await proveTinyFitAuditWorks(page);
-    await proveA11yDetectorWorks(page);
-
-    /*
-     * CSS.getPlatformFontsForNode is a DevTools Protocol call, so the
-     * font-fallback check runs under chromium only. firefox/webkit renders
-     * (cross-browser review shots) still get every other check.
-     */
-    const cdp =
-      engine === "chromium" ? await context.newCDPSession(page) : undefined;
-    if (cdp) {
-      await cdp.send("DOM.enable");
-      await cdp.send("CSS.enable");
-      await proveFontDetectorWorks(page, cdp);
-    }
-
-    for (const config of configs) {
-      // A config can force full-content capture for itself (e.g. LandingStatus,
-      // whose composed instrument scrolls in a real cell) even when the caller
-      // renders fixed-tile by default (the visual gate).
-      await renderOneWidget(
-        page,
-        config,
-        outSuffix,
-        outBase,
-        config.fullContent ?? fullContent,
-        findings,
-        opts.profile,
-        opts.fixture,
-        opts.gridCell ?? false,
-        cdp,
+      await installFixedClock(page);
+      // The browser reports a ResizeObserver loop to `window.onerror` only, which Playwright does not surface as a page error.
+      await page.addInitScript(() => {
+        window.addEventListener("error", (e) => {
+          if (e.message.startsWith("ResizeObserver loop")) {
+            console.error(`[resize-observer-loop] ${e.message}`);
+          }
+        });
+      });
+      await page.goto(pathToFileURL(probeHtmlOut).toString(), {
+        waitUntil: "domcontentloaded",
+      });
+      await page.waitForFunction(
+        () => typeof window.__renderProbe === "function",
+        undefined,
+        { timeout: 10_000 },
       );
+
+      await proveOverlapDetectorWorks(page);
+      await proveClipDetectorWorks(page);
+      await proveTinyFitAuditWorks(page);
+      await proveA11yDetectorWorks(page);
+
+      /*
+       * CSS.getPlatformFontsForNode is a DevTools Protocol call, so the
+       * font-fallback check runs under chromium only. firefox/webkit renders
+       * (cross-browser review shots) still get every other check.
+       */
+      const cdp =
+        engine === "chromium" ? await context.newCDPSession(page) : undefined;
+      if (cdp) {
+        await cdp.send("DOM.enable");
+        await cdp.send("CSS.enable");
+        await proveFontDetectorWorks(page, cdp);
+      }
+      return { page, cdp };
+    };
+
+    const queue = [...configs];
+    const workers = Math.max(
+      1,
+      Math.min(opts.concurrency ?? 1, configs.length),
+    );
+    await Promise.all(
+      Array.from({ length: workers }, async () => {
+        const { page, cdp } = await openPage();
+        for (let config = queue.shift(); config; config = queue.shift()) {
+          // A config can force full-content capture for itself (e.g. LandingStatus,
+          // whose composed instrument scrolls in a real cell) even when the caller
+          // renders fixed-tile by default (the visual gate).
+          await renderOneWidget(
+            page,
+            config,
+            outSuffix,
+            outBase,
+            config.fullContent ?? fullContent,
+            findings,
+            opts.profile,
+            opts.fixture,
+            opts.gridCell ?? false,
+            cdp,
+            opts.capture ?? true,
+          );
+        }
+      }),
+    );
+    if (workers > 1) {
+      for (const list of Object.values(findings)) list.sort();
+      pageErrors.sort();
     }
 
     // Before the gates, because a gate's verdict only covers what rendered: a clean overlap report over 16 of 42 widgets is not a clean tree.
@@ -1995,18 +2030,22 @@ async function renderOneWidget(
   gridCell = false,
   /** Chromium-only CDP session for the font-fallback gate; see `renderWidgets`. */
   cdp?: CDPSession,
+  /** Write each render's PNG; see `renderWidgets`' `capture`. */
+  capture = true,
 ): Promise<void> {
   const fixturesDir = resolve(COMPONENTS_SRC, config.fixturesPath);
   const outDir = resolve(outBase, config.outPath);
 
-  await mkdir(outDir, { recursive: true });
-  await cleanArtifacts(
-    outDir,
-    ARTIFACT_EXTS,
-    (name) =>
-      artifactMatchesSuffix(name, outSuffix) &&
-      (onlyFixture === undefined || name.startsWith(`${onlyFixture}--`)),
-  );
+  if (capture) {
+    await mkdir(outDir, { recursive: true });
+    await cleanArtifacts(
+      outDir,
+      ARTIFACT_EXTS,
+      (name) =>
+        artifactMatchesSuffix(name, outSuffix) &&
+        (onlyFixture === undefined || name.startsWith(`${onlyFixture}--`)),
+    );
+  }
 
   const fixtures = (await sceneFixtures(config)).filter(
     (f) => onlyFixture === undefined || f.name === onlyFixture,
@@ -2284,11 +2323,17 @@ async function renderOneWidget(
       // animations:"disabled" cancels any still-running CSS animation to its
       // initial state and fast-forwards finite transitions, so the capture is
       // deterministic even for anything not covered by reducedMotion.
-      await root.screenshot({ path: outPath, animations: "disabled" });
+      if (capture) {
+        await root.screenshot({ path: outPath, animations: "disabled" });
+      }
       count++;
     }
   }
-  console.log(`Rendered ${count} widget shots → ${outDir}`);
+  console.log(
+    capture
+      ? `Rendered ${count} widget shots → ${outDir}`
+      : `Rendered ${count} widget states`,
+  );
 }
 
 export interface PreparePageOpts {

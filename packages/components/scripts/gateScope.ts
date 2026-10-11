@@ -1,5 +1,5 @@
 /**
- * Which render configs a widget-surveying gate (`overlap-gate`, `font-gate`)
+ * Which render configs a widget-surveying gate (`render-gate`)
  * runs over, and whether the set it was left with is one it may report on.
  *
  * Whole, a gate must see at least `minWidgets` configs: below that it iterates

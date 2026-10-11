@@ -107,8 +107,7 @@ describe("the unit-test and act-warnings legs cover every package once", () => {
   });
 
   it.each([
-    "overlap-gate",
-    "font-gate",
+    "render-gate",
   ])("runs every %s shard the matrix names, each as its own i/n of the same n", (gate) => {
     const ci = readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8");
     const start = ci.indexOf(`\n  ${gate}:\n`);

@@ -387,17 +387,18 @@ jobs:
         if: matrix.leg == 'rest'
         run: pnpm fixture-gated-report
 
-  # Stacked-overlap gate plus the two lighter checks that share its render
-  # harness and its chromium install: the probe smoke check and the aspect
-  # gate. Split from `font-gate` below so the two heaviest render passes run
-  # concurrently instead of one after the other in the same job.
-  overlap-gate:
-    name: overlap-gate (${{ matrix.shard }}/2)
+  # Render gate (stacked overlap, font fallback, clipping, min-fit, axe) plus
+  # the two lighter checks that share its harness and its chromium install: the
+  # probe smoke check and the aspect gate. One pass answers every detector, so
+  # the widget set is dealt across four shards of one job rather than rendered
+  # once per finding.
+  render-gate:
+    name: render-gate (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -453,7 +454,7 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
-      # Sharded by widget (`--shard i/2` partitions the render configs, each in
+      # Sharded by widget (`--shard i/4` partitions the render configs, each in
       # exactly one shard, the floor checked on the whole set). Every shard
       # re-runs the detectors' own plants inside its render, so each stays
       # able to fail as BLIND. The smoke check and the aspect gate are not
@@ -496,7 +497,7 @@ jobs:
       # the fixture's real figures, which the minsize gate's empty renders cannot
       # see overflow. A planted tiny widget must fit empty and fail fed at 2x3,
       # or the run fails as blind.
-      - run: pnpm --filter @ksp-gonogo/components overlap-gate --shard ${{ matrix.shard }}/2
+      - run: pnpm --filter @ksp-gonogo/components render-gate --shard ${{ matrix.shard }}/4
 
       # Checkered-flag aspect gate: a checkerboard of square cells painted into
       # a FramedDisplay with object-fit cover, at landscape, portrait and square
@@ -509,64 +510,6 @@ jobs:
       # installs.
       - if: matrix.shard == 1
         run: pnpm --filter @ksp-gonogo/components aspect-gate
-
-  # Font-fallback gate, its own job so it runs concurrently with overlap-gate
-  # above instead of after it: the two are independent findings over the same
-  # render pass and used to run one after the other in the same job for no
-  # dependency reason.
-  font-gate:
-    name: font-gate (${{ matrix.shard }}/2)
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.ref || github.sha }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-      - uses: pnpm/action-setup@v6
-        with:
-          run_install: false
-
-      - name: Get pnpm store path
-        id: pnpm-cache
-        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v5
-        with:
-          path: ${{ steps.pnpm-cache.outputs.store }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
-      - name: Turbo cache
-        uses: actions/cache@v5
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: ${{ runner.os }}-turbo-
-
-      - name: pnpm install
-        run: pnpm install --frozen-lockfile
-
-      - name: Build render dependencies
-        run: pnpm --filter "@ksp-gonogo/components..." build
-
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps chromium
-
-      # Does any widget draw a glyph in something other than JetBrains Mono?
-      # The detector lives in the harness and runs on every chromium render;
-      # this step is what makes a finding blocking. Chromium only, same
-      # MIN_WIDGETS refusal as the overlap gate, and the detector plants a
-      # deliberately wrong font-family on every run and throws if it does not
-      # catch it.
-      - run: pnpm --filter @ksp-gonogo/components font-gate --shard ${{ matrix.shard }}/2
 
   # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
   # declares and fails when its title ellipsises, its content is clipped with
