@@ -1102,7 +1102,7 @@ declare module "./types" {
     /** The standard body segment of the Fuel & ΔV widget: content of your own after everything the widget draws. Passes no props. */
     "fuel-status.sections": Record<string, never>;
 
-    /** The standard body segment of the Power Systems widget: content of your own after everything the widget draws. Passes no props; read the resource in focus with `useWidgetScope("power-systems")`. */
+    /** The standard body segment of the Power Systems widget: content of your own after everything the widget draws. Passes no props; read the resource in focus with `useWidgetScope`, passing the widget id `"power-systems"`. */
     "power-systems.sections": Record<string, never>;
 
     /**

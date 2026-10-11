@@ -520,9 +520,8 @@ export function serialiseUplinkManifest(manifest: UplinkManifest): string {
  * @category Manifest
  */
 export const NO_BUNDLE_INTEGRITY_WARNING =
-  "no bundle was named, so gonogo-uplink.json carries an EMPTY integrity and " +
-  "the app will quarantine this Uplink with an integrity mismatch. That is " +
-  "correct for a working copy: regenerate with `--bundle <the file you " +
-  "distribute>` when you cut a release. It is deliberately NOT defaulted to " +
-  "dist/, which holds a compiler output rather than the bundle a consumer " +
-  "fetches.";
+  "no bundle was named, so gonogo-uplink.json carries an empty integrity. " +
+  "That is expected for a working copy. The app refuses an Uplink whose " +
+  "manifest has none, so publish the gonogo-uplink.json that `release` writes " +
+  "beside the bundle, or pass `--bundle <the file you distribute>` to stamp " +
+  "this one.";

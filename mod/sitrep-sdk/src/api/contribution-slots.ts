@@ -141,7 +141,7 @@ export interface CommSignalHopRateEntry {
   fromNodeId: string;
   /** The hop's receiving node id, exactly as `comms.path` names it. */
   toNodeId: string;
-  /** The hop's forward data rate in bits per second. */
+  /** The hop's data rate from its sending node to its receiving node, in bits per second. */
   bitsPerSec: number;
   /**
    * The reading the rate was read from, or just its grade: the reading of the
@@ -712,7 +712,9 @@ declare module "./types" {
     };
     /**
      * The data rate of each hop on the comms route CommNet Signal draws, for a
-     * comms mod that models bitrate. Each rate is shown beside its hop, and
+     * comms mod that models bitrate. No built-in Topic carries a hop's rate, so
+     * the contribution reads it from a Topic your own mod publishes. Each rate
+     * is shown beside its hop, and
      * the slowest hop is marked. The route, and so the rates, appear only
      * when the widget is large enough to draw the full path. Returns
      * {@link CommSignalHopRateEntry} entries.

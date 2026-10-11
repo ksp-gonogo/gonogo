@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "A craft in flight at 1x that has lost its signal with a return predicted fifteen minutes out, and a trajectory that enters the Mun's sphere of influence in about an hour, for the warp-to event targets.",
+    "shows": "A craft in flight at 1x that has lost its signal with a return predicted fifteen minutes out, and a trajectory that enters the Mun's sphere of influence in about an hour, so both warp-to actions have a target: the signal return and the Mun encounter.",
     "scenario": "signal-lost-soi-ahead",
     "notes": "vessel.identity names the craft; fleet.silence marks it Silent with a predicted reacquisition; vessel.orbit carries a two-patch chain whose first patch ends in an Encounter."
   },

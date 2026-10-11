@@ -152,7 +152,8 @@ export interface PlotEntry {
    * The axes the plot is drawn against. Supply one to draw a plot of your own.
    * Leave it out to add layers to the plot of this subject that another
    * contribution draws; when nothing draws that plot, your layers are not
-   * shown.
+   * shown and nothing reports it, so supply a `frame` unless you know another
+   * contribution draws the subject.
    */
   frame?: PlotFrame;
   /**

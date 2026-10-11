@@ -26,6 +26,7 @@ const topics = defineTopicManifest({
     "vessel.orbit.mu",
     "vessel.orbit.referenceBodyIndex",
     "vessel.identity.parentBodyIndex",
+    "system.bodies",
   ],
 });
 

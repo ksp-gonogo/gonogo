@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "Contract parameters in every state: met, not yet met and failed, with titles long enough to wrap at the smallest size.",
+    "shows": "Contract parameters in each state a contract gives them: met, not yet met and failed, with titles long enough to wrap at the smallest size.",
     "scenario": "mixed-states",
     "notes": "Complete reads reached and Failed reads failed. The wire carries no optional flag on a parameter."
   },

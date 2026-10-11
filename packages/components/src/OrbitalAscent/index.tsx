@@ -44,6 +44,7 @@ const topics = defineTopicManifest({
     "vessel.flight.orbitalSpeed",
     "vessel.flight.verticalSpeed",
     "vessel.identity.parentBodyIndex",
+    "system.bodies",
   ],
 });
 

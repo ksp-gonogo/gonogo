@@ -318,7 +318,7 @@ registerComponent<NavballConfig>({
   id: "navball",
   name: "Navball",
   description:
-    "Your vessel's heading, pitch and roll, with controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the tile's Inputs tab to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
+    "Your vessel's heading, pitch and roll, measured at the root part (or at the centre of mass when the tile's settings ask for it), with controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the tile's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
   // 4x5 is where the stacked readout stops clipping vertically.
