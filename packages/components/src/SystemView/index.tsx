@@ -37,6 +37,7 @@ import { useEncounterIn } from "../shared/useEncounterIn";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
 import type { SystemViewConfig } from "./config";
+import { nameMatches } from "./diagramGeometry";
 import { encounterDirectionOf } from "./encounter";
 import { frameCaption, resolveFrame } from "./frame";
 import { overlayGeometry, viewedGeometry } from "./overlayGeometry";
@@ -133,6 +134,9 @@ function conicElementsOf(orbit: VesselOrbit) {
 }
 
 const NO_PATCHES: readonly TrajectoryPatch[] = [];
+
+/** The craft orbits the frame body itself, so its orbit is drawn about the origin. */
+const VESSEL_AT_FRAME_BODY: readonly [number, number, number] = [0, 0, 0];
 
 function SystemViewComponent({
   config,
@@ -348,6 +352,15 @@ function SystemViewComponent({
         : null,
     [orbitPatches, utBucket, offsetAt],
   );
+  // The craft orbits the frame body, or another body the catalogue can place against it at this instant; a body with no place leaves the craft off the picture rather than guessed at.
+  const vesselParentName = vesselOrbit?.parentName ?? null;
+  const vesselOrigin = useMemo<readonly [number, number, number] | null>(() => {
+    if (vesselParentName === null || parentName === null) return null;
+    if (nameMatches(vesselParentName, parentName)) return VESSEL_AT_FRAME_BODY;
+    if (utBucket == null) return null;
+    const offset = offsetAt(vesselParentName, utBucket);
+    return offset === null ? null : [offset.x, offset.y, offset.z];
+  }, [vesselParentName, parentName, utBucket, offsetAt]);
 
   // Only the drawn children subscribe to phase angles, so the subscription count tracks what is on screen.
   const children = useMemo(() => {
@@ -673,6 +686,7 @@ function SystemViewComponent({
                         typeof targetName === "string" ? targetName : null
                       }
                       vessel={vesselOrbit}
+                      vesselOrigin={vesselOrigin}
                       vesselTrajectory={vesselTrajectory}
                       vesselPlotState={drawnPlotState}
                       target={drawnTarget}

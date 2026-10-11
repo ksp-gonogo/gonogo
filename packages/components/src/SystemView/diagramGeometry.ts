@@ -53,6 +53,16 @@ export interface PlacedRing {
   ringEnd: PlacedRingEnd | null;
 }
 
+/** A position in metres, parent-centred inertial axes. */
+type Metres = readonly [number, number, number];
+
+const ORIGIN: Metres = [0, 0, 0];
+
+/** `point` moved by `origin`: where an orbit about another body sits against the frame body. */
+function shifted(point: Metres, origin: Metres): [number, number, number] {
+  return [point[0] + origin[0], point[1] + origin[1], point[2] + origin[2]];
+}
+
 const NO_RING: PlacedRing = { ring: null, ringDepth: null, ringEnd: null };
 
 export interface PlacedDiagram {
@@ -119,10 +129,11 @@ function placedRingOf(
   lan: number,
   argPe: number,
   inclination: number,
+  origin: Metres = ORIGIN,
 ): PlacedRing {
   if (!(sma > 0)) return NO_RING;
   const points = orbitRingOf(sma, ecc, lan, argPe, inclination).map((p) =>
-    placement.place(p),
+    placement.place(shifted(p, origin)),
   );
   return {
     ring: closedPath(points, plotScale),
@@ -258,11 +269,12 @@ export function placeBodies({
   };
 }
 
-/** The vessel's ring, which depends on its elements and not on where it is along them. */
+/** The vessel's ring, which depends on its elements and not on where it is along them. `origin` is where the body it orbits sits against the frame body, in metres. */
 export function placeVesselRing(
   vessel: Pick<VesselOrbit, "sma" | "ecc" | "lan" | "argPe" | "inclination">,
   placement: Placement,
   plotScale: number,
+  origin: Metres = ORIGIN,
 ): PlacedRing {
   return placedRingOf(
     placement,
@@ -272,6 +284,7 @@ export function placeVesselRing(
     vessel.lan,
     vessel.argPe,
     vessel.inclination,
+    origin,
   );
 }
 
@@ -280,17 +293,21 @@ export function placeVesselPoint(
   vessel: VesselOrbit,
   placement: Placement,
   plotScale: number,
+  origin: Metres = ORIGIN,
 ): PlacedPoint {
   return placedPointOf(
     placement,
     plotScale,
-    orbitPointAt(
-      vessel.sma,
-      vessel.ecc,
-      vessel.lan,
-      vessel.argPe,
-      vessel.inclination,
-      vessel.trueAnomaly,
+    shifted(
+      orbitPointAt(
+        vessel.sma,
+        vessel.ecc,
+        vessel.lan,
+        vessel.argPe,
+        vessel.inclination,
+        vessel.trueAnomaly,
+      ),
+      origin,
     ),
   );
 }

@@ -95,6 +95,7 @@ export function VesselOrbitPath({
   gradId,
   hasGradient,
   zoom,
+  origin = [0, 0, 0],
   subject = "vessel",
 }: Readonly<{
   /** Whose curve this is; the target's is drawn in its own colour and keyed apart. */
@@ -106,6 +107,8 @@ export function VesselOrbitPath({
   gradId: string;
   hasGradient: boolean;
   zoom: number;
+  /** Where the body the arc is about sits against the frame body, metres. */
+  origin?: readonly [number, number, number];
 }>) {
   // The placed arc is held on the answer's identity, so a render carrying the same held trajectory re-places nothing.
   const arcPath = useMemo(() => {
@@ -113,10 +116,12 @@ export function VesselOrbitPath({
     const metres = arcMetres(trajectory);
     if (metres === null) return null;
     return openPath(
-      metres.map((p) => placement.place(p)),
+      metres.map((p) =>
+        placement.place([p[0] + origin[0], p[1] + origin[1], p[2] + origin[2]]),
+      ),
       plotScale,
     );
-  }, [trajectory, placement, plotScale]);
+  }, [trajectory, placement, plotScale, origin]);
   if (trajectory === null || trajectory.shape === "withheld") return null;
   // Screen-constant stroke and dashes.
   const strokeW = ACTIVE_VESSEL_ORBIT_STROKE_WIDTH / zoom;

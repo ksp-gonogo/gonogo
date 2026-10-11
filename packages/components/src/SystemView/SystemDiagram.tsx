@@ -79,6 +79,10 @@ export interface SystemDiagramProps {
   vesselSelected?: boolean;
   /** Fires when the vessel marker is pressed. Absent leaves the marker inert. */
   onVesselActivate?: () => void;
+  /**
+   * Where the body the craft orbits sits against the frame body, in metres, or `null` when the model has no place for it at this instant. Absent means the craft is drawn only when it orbits the frame body itself.
+   */
+  vesselOrigin?: readonly [number, number, number] | null;
   /** The target's own conic, drawn as far as its provider's horizon allows, with its encounter or escape marked where it falls. */
   target?: {
     conic: TargetConic;
@@ -100,6 +104,8 @@ export interface SystemDiagramProps {
   /** The diagram's pan and zoom, owned by the host so the layers over the diagram can follow it. */
   view: PanZoom;
 }
+
+const ZERO_METRES: readonly [number, number, number] = [0, 0, 0];
 
 /** Body orbit rings stay visibly thicker than both vessel ring classes; every stroke is divided by zoom to stay screen-constant. */
 const BODY_ORBIT_STROKE_WIDTH = 2;
@@ -127,6 +133,7 @@ export function SystemDiagram({
   onBodyActivate,
   vesselSelected = false,
   onVesselActivate,
+  vesselOrigin,
   predicted,
   bucketUt,
   projection = null,
@@ -182,8 +189,13 @@ export function SystemDiagram({
       }),
     [parent, children, poses, placement, plotScale, bodyRings],
   );
-  const vesselHere =
-    vessel && nameMatches(vessel.parentName, parentName) ? vessel : null;
+  const origin: readonly [number, number, number] | null =
+    vesselOrigin !== undefined
+      ? vesselOrigin
+      : vessel && nameMatches(vessel.parentName, parentName)
+        ? ZERO_METRES
+        : null;
+  const vesselHere = vessel && origin !== null ? vessel : null;
   const vSma = vesselHere?.sma;
   const vEcc = vesselHere?.ecc;
   const vLan = vesselHere?.lan;
@@ -208,8 +220,9 @@ export function SystemDiagram({
             },
             placement,
             plotScale,
+            origin ?? ZERO_METRES,
           ),
-    [vSma, vEcc, vLan, vArgPe, vInc, placement, plotScale],
+    [vSma, vEcc, vLan, vArgPe, vInc, placement, plotScale, origin],
   );
   const vTrueAnomaly = vesselHere?.trueAnomaly;
   const vesselPoint = useMemo(
@@ -234,8 +247,10 @@ export function SystemDiagram({
             },
             placement,
             plotScale,
+            origin ?? ZERO_METRES,
           ),
     [
+      origin,
       vesselRing,
       vSma,
       vEcc,
@@ -336,7 +351,7 @@ export function SystemDiagram({
   const vbStr = `${-halfW + pan.x} ${-halfH + pan.y} ${halfW * 2} ${halfH * 2}`;
 
   const highlightSet = new Set(highlightNames ?? []);
-  const showVessel = vessel && nameMatches(vessel.parentName, parentName);
+  const showVessel = vesselHere !== null;
 
   return (
     <div
@@ -430,6 +445,7 @@ export function SystemDiagram({
             gradId={`${tiltGradId}-vessel`}
             hasGradient={placed.vessel?.ringDepth != null}
             zoom={zoom}
+            origin={origin ?? ZERO_METRES}
           />
         )}
 

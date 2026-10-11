@@ -1170,6 +1170,14 @@ const WIDGETS: WidgetRenderConfig[] = [
           projection: "system-view.parent-direction.1",
         },
       },
+      // A craft about Kerbin in a frame centred on the star: the craft is drawn where Kerbin is, not left off the picture.
+      {
+        name: "craft-in-star-frame-10x12",
+        w: 10,
+        h: 12,
+        forFixtures: ["kerbin-orbit-no-target"],
+        config: { frame: "Kerbol" },
+      },
       // The aspect extremes at this widget's minSize, where the shared 5x18 and 18x5 fall below it.
       { name: "portrait-6x18", w: 6, h: 18 },
       { name: "landscape-18x8", w: 18, h: 8 },
