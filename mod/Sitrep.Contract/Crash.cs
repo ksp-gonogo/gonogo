@@ -6,11 +6,10 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The payload for the <c>crash.lastCrash</c> channel: a single "last
-/// notable crash" record for the current save, delivered on the
-/// <see cref="Delivery.ReliableOrdered"/> event lane, so a late subscriber
-/// receives the most recent record. Every field is captured from the
-/// crashed vessel at the moment of the crash.
+/// The last notable crash of the current save. A subscriber that joins late
+/// still receives the most recent record, since it is delivered as an ordered,
+/// reliable event (<see cref="Delivery.ReliableOrdered"/>). Every field is
+/// captured from the crashed vessel at the moment of the crash.
 /// <internal>
 /// Typing-only: Gonogo.KSP.CrashUplink flattens the live crash into a
 /// dictionary via Sitrep.Host.Crash.CrashPayload.Build, so JsonWriter never

@@ -61,6 +61,27 @@ export function useSettingsService(): SettingsService {
  * Needs a `SettingsProvider` above it and throws without one. The dashboard
  * mounts one; a test mounts its own.
  *
+ * @example Registering a setting and reading it in a widget
+ * ```tsx
+ * import { registerSetting, useSetting } from "@ksp-gonogo/sitrep-sdk";
+ * import { Text } from "@ksp-gonogo/ui-kit";
+ *
+ * // At load: the row Settings draws, saved in this browser under its id.
+ * registerSetting({
+ *   id: "habitat-show-crew-days",
+ *   label: "Show crew days",
+ *   description: "Draws the days of supplies left beside the crew count.",
+ *   category: "Habitat",
+ *   defaultValue: true,
+ * });
+ *
+ * function CrewDays() {
+ *   // The default comes from the row above, so it is stated once.
+ *   const [show] = useSetting<boolean>("habitat-show-crew-days");
+ *   return show ? <Text>12 days</Text> : null;
+ * }
+ * ```
+ *
  * @category Settings
  */
 export function useSetting<SettingValue>(

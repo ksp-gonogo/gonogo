@@ -702,7 +702,7 @@ public static class RtConfig
                 .Append(")[keyof typeof ").Append(holder.Name).Append("];\n\n");
         }
 
-        sb.Append("/**\n * Every code declared here, with the sentence an operator reads for it.\n *\n * @category ").Append(ErrorCodeCategory).Append("\n */\n");
+        sb.Append("/**\n * Every code in this table, the refusals and the faults together as one flat list, each with the sentence an operator reads for it.\n *\n * @category ").Append(ErrorCodeCategory).Append("\n */\n");
         sb.Append("export const ").Append(tableName).Append(": readonly ErrorCodeDeclaration[] = [\n");
         foreach (var row in rows) sb.Append(row);
         sb.Append("];\n");
@@ -2432,7 +2432,7 @@ public static class RtConfig
                  */
                 if (documented)
                 {
-                    var description = FirstSentence(docs, type);
+                    var description = string.IsNullOrWhiteSpace(attr.Summary) ? FirstSentence(docs, type) : attr.Summary;
                     if (description == null) undescribed.Add(attr.CommandId);
                     else descriptions[attr.CommandId] = description;
                 }

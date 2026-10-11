@@ -16,12 +16,12 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setSas")]
-[SitrepCommand("vessel.control.setRcs")]
-[SitrepCommand("vessel.control.setGear")]
-[SitrepCommand("vessel.control.setBrakes")]
-[SitrepCommand("vessel.control.setLights")]
-[SitrepCommand("vessel.control.setAbort")]
+[SitrepCommand("vessel.control.setSas", Summary = "Turn SAS on or off.")]
+[SitrepCommand("vessel.control.setRcs", Summary = "Turn RCS on or off.")]
+[SitrepCommand("vessel.control.setGear", Summary = "Raise or lower the landing gear.")]
+[SitrepCommand("vessel.control.setBrakes", Summary = "Set the brakes on or off.")]
+[SitrepCommand("vessel.control.setLights", Summary = "Turn the lights on or off.")]
+[SitrepCommand("vessel.control.setAbort", Summary = "Set or clear the abort action group.")]
 public class SetEnabledArgs
 {
     /// <summary><c>true</c> to switch the system on (or fire abort), <c>false</c> to switch it off.</summary>

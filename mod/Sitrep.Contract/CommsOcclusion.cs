@@ -203,9 +203,9 @@ public class CommsOcclusionBody
 }
 
 /// <summary>
-/// The <c>comms.occlusion</c> payload: always present, sourced from the elected
-/// comms backend. The declared occlusion model, named, with its rule already
-/// applied to every celestial body the game knows about.
+/// The model of which bodies block a radio path, named, with its rule already
+/// applied to every celestial body the game knows about: each body's blocking
+/// radius. Always present, and read from the comms mod in force.
 ///
 /// <para>Not delayed by light time: it is not an observation of the vessel
 /// but the solar system's geometry and the rule the elected backend applies to

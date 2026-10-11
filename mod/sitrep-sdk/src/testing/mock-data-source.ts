@@ -29,6 +29,24 @@ export interface MockDataSourceOptions {
  * A {@link DataSource} held in memory, for tests. `emit(key, value)` sends a
  * value to every subscriber of the key.
  *
+ * Give two mocks different `id`s: the default is `"mock"`, so two defaults are
+ * the same id.
+ *
+ * @example Driving a subscriber from a test
+ * ```ts
+ * import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
+ *
+ * const source = new MockDataSource({
+ *   id: "weather",
+ *   keys: [{ key: "wind", description: "Wind speed" }],
+ * });
+ * const seen: unknown[] = [];
+ * const stop = source.subscribe("wind", (value) => seen.push(value));
+ * source.emit("wind", 12);
+ * stop();
+ * // seen is [12]
+ * ```
+ *
  * @category Test doubles
  */
 export class MockDataSource implements DataSource {

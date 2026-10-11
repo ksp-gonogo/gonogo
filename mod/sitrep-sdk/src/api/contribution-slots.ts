@@ -125,7 +125,8 @@ export type ShipMapPartMetaEntry = {
 
 /**
  * The bitrate of one hop on the comms route, contributed to
- * `comm-signal.hop-rates`.
+ * `comm-signal.hop-rates`. A hop is one link between two neighbouring nodes of
+ * the route, such as a vessel and the relay it talks to.
  *
  * CommNet Signal joins each entry onto the hop of the `comms.path` route with the
  * same `fromNodeId` and `toNodeId`, shows the rate beside it, and marks the
@@ -142,9 +143,10 @@ export interface CommSignalHopRateEntry {
   /** The hop's forward data rate in bits per second. */
   bitsPerSec: number;
   /**
-   * The reading the rate was read from, or just its grade. Only a held reading
-   * changes anything, so it can be passed unconditionally; while it is held
-   * the rate is drawn with the held mark.
+   * The reading the rate was read from, or just its grade: the reading of the
+   * Topic your own mod publishes the rate on, as the contribution's `compute`
+   * received it. Only a held reading changes anything, so it can be passed
+   * unconditionally; while it is held the rate is drawn with the held mark.
    */
   held?: HeldGrade | Reading<unknown>;
 }
@@ -717,8 +719,10 @@ declare module "./types" {
      *
      * The widget fills this slot itself, at priority 0, from `career.status`,
      * which KSP can report only in the Space Center scene. A contribution at
-     * the default priority replaces the widget's own entries, so a career mod
-     * that keeps its own tier table can report tiers in every scene.
+     * the default priority, `1`, replaces the widget's own entries, so a career
+     * mod that keeps its own tier table can report tiers in every scene. The
+     * buildings are KSP's nine; a contribution reports tiers for those and
+     * cannot add a building of its own.
      */
     "space-center-status.facilities": {
       entry: SpaceCenterFacilityEntry;

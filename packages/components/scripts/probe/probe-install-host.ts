@@ -38,6 +38,7 @@ import {
   useStreamEvent,
   useTelemetryClientOptional,
   useUtNow,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -71,4 +72,5 @@ installTestHost({
     typeof installTestHost
   >[0]["useTelemetryClientOptional"],
   useUtNow,
+  useViewUt: () => useViewUt(),
 });

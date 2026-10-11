@@ -108,7 +108,8 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
  * @categoryDescription Binary lane
  * The stream's binary frames, which carry bulk payloads as raw bytes beside
  * the JSON text frames everything else arrives in: how to tell a binary frame from a text one and read its header and
- * body. Only a client that handles the socket itself meets these.
+ * body. Only code that reads the socket itself meets these: a widget that
+ * reads Topics with `useTelemetry` or `useStream` can skip this page.
  *
  * @concept Binary lane
  * The binary lane is how the stream carries a payload that is opaque bytes,

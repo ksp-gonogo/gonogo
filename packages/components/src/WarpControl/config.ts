@@ -46,7 +46,7 @@ export const warpActions = [
   },
   {
     id: "warp-to-soi",
-    label: "Warp to SOI change",
+    label: "Warp to sphere of influence change",
     accepts: ["button"],
     description:
       "Set an alarm for the craft's next sphere-of-influence change.",

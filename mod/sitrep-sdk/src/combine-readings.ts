@@ -88,7 +88,7 @@ export interface CarriedCurrency {
   readonly state: ReadingState;
   /** When the observation behind it was made, where it has one. */
   readonly instant: Value<"ut"> | undefined;
-  /** Why the input is held where it is; present only when `state` is `"held"`. */
+  /** Why the input is held where it is: a {@link HeldGrade}, present only when `state` is `"held"`. */
   readonly grade?: HeldGrade | undefined;
 }
 

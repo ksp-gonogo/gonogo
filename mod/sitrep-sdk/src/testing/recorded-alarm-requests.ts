@@ -18,6 +18,19 @@ const recorded: RecordedAlarmRequest[] = [];
 /**
  * Every alarm requested since the last clear, in the order they were asked for.
  *
+ * @example
+ * ```ts
+ * import { clearRequestedAlarms, getRequestedAlarms } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { afterEach, expect, it } from "vitest";
+ *
+ * afterEach(clearRequestedAlarms);
+ *
+ * it("asks for one alarm", () => {
+ *   // ...render the widget and press its button, then:
+ *   expect(getRequestedAlarms()).toHaveLength(1);
+ * });
+ * ```
+ *
  * @category Test doubles
  */
 export function getRequestedAlarms(): readonly RecordedAlarmRequest[] {

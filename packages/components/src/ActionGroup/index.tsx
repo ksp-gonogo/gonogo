@@ -74,7 +74,7 @@ registerComponent<ActionGroupConfig>({
   id: "action-group",
   name: "Action Group",
   description:
-    "Toggle a KSP action group or system (SAS, RCS, gear, brakes, lights, AG1-AG10).",
+    "Toggle one KSP action group or system: SAS, RCS, gear, brakes, lights, abort, precision control, stage or a custom group (AG1 to AG10). A tile controls one group, chosen in its settings.",
   tags: ["control", "telemetry"],
   defaultSize: { w: 6, h: 6 },
   minSize: { w: 5, h: 4 },

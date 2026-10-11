@@ -2,31 +2,16 @@
  * The specifiers an Uplink client bundle leaves unresolved at build time, because
  * the app's import map resolves them at load.
  *
- * ## Why this is PUBLISHED, and why that is the whole point
- *
  * A runtime-loaded Uplink is built with these marked `external`, so its bare
  * `import { registerComponent } from "@ksp-gonogo/sitrep-sdk"` survives into the
- * bundle and resolves, through the `<script type="importmap">` the app bakes into
- * `index.html`, to the app's own singleton instances. Bundle one of them instead
- * and the Uplink gets a second copy of a registry the dashboard never reads.
+ * bundle and resolves, through the import map the app writes into its page, to
+ * the app's own singleton instances. Bundle one of them instead and the Uplink
+ * gets a second copy of a registry the dashboard never reads.
  *
- * The list lived only in `packages/app/src/uplinks/externals/entries.ts`, which is
- * private and unpublished, so an author outside this repo could not build a
- * loadable bundle without hand-copying it. A hand copy of a list whose failure
- * mode is a MISSING entry agrees with the original by omission: the copy compiles,
- * the isolation ratchet passes, the build succeeds, and it throws at
- * `import(bundleUrl)`. That is exactly how `/spine` shipped unresolvable.
- *
- * So it lives here, where it ships, and the app imports it rather than declaring
- * its own.
- *
- * ## A subpath needs its own entry
- *
- * An import map matches a key without a trailing slash EXACTLY, so
- * `@ksp-gonogo/sitrep-sdk` resolves nothing for `@ksp-gonogo/sitrep-sdk/spine`.
- * esbuild makes this invisible before load: it externalises a subpath of an
- * externalised package NAME, so a missing entry survives the build with no
- * warning.
+ * An import map matches a specifier exactly, so `@ksp-gonogo/sitrep-sdk`
+ * resolves nothing for `@ksp-gonogo/sitrep-sdk/media`: every subpath has its own
+ * entry. A missing entry builds without a warning and throws when the app loads
+ * the bundle.
  */
 
 /**
@@ -37,6 +22,12 @@
  * other registries, so whatever it registers lands in a copy the dashboard
  * never reads.
  * A subpath, such as `@ksp-gonogo/sitrep-sdk/media`, is its own entry.
+ *
+ * Being listed here is not permission to import: an Uplink's client imports
+ * only `@ksp-gonogo/sitrep-sdk` (its root and the `frames`, `media` and
+ * `testing` subpaths) and `@ksp-gonogo/ui-kit`, with React and styled-components.
+ * The other `@ksp-gonogo` packages named here belong to the app, which resolves
+ * them for its own code.
  *
  * @category Bundling
  */
@@ -68,8 +59,9 @@ export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
   UPLINK_EXTERNAL_ENTRIES.map(([specifier]) => specifier);
 
 /**
- * Specifiers a bundler must also leave out of an Uplink's bundle, which the
- * app reaches only through another specifier and loads no file for:
+ * Specifiers a bundler must also leave out of an Uplink's bundle, although the
+ * app serves no file of its own for them: it provides each through another
+ * entry, so a bundle that imports them still resolves. They are
  * `react-dom/client` and `react/jsx-dev-runtime`.
  *
  * @category Bundling
@@ -80,18 +72,18 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
 ];
 
 /**
- * Everything an Uplink's bundler marks `external`: both lists together, and
- * the one to use.
- * [`uplink-tools bundle`](https://ksp-gonogo.github.io/uplink-dev-docs/reference/tools/command-line)
- * passes it for you. A build of your own
- * imports it from this package's `uplink-externals` subpath and passes it as
- * the bundler's list of externals: with esbuild,
+ * Everything an Uplink's bundler marks `external`: {@link UPLINK_EXTERNAL_SPECIFIERS}
+ * and {@link UPLINK_EXTERNAL_NO_CHUNK} together, and the one to use.
+ * [`uplink-tools bundle`](/reference/tools/command-line#bundle) passes it for
+ * you. A build of your own imports it from this package's `uplink-externals`
+ * subpath and passes it as the bundler's list of externals: with esbuild,
  * `external: [...UPLINK_BUNDLE_EXTERNALS]`.
  *
  * @category Bundling
  * @categoryDescription Bundling
- * The package names an Uplink's client bundle leaves unresolved for the app to
- * supply at load, which its build marks external.
+ * Use these to configure your bundler's `external` option. They are the package
+ * names an Uplink's client bundle leaves unresolved, for the app to supply when
+ * it loads the bundle.
  */
 export const UPLINK_BUNDLE_EXTERNALS: readonly string[] = [
   ...UPLINK_EXTERNAL_SPECIFIERS,

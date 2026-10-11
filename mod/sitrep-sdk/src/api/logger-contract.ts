@@ -6,7 +6,7 @@
 export interface LogContext {
   /** The id of the command or request the entry is about, so its entries can be found together. */
   requestId?: string;
-  /** Who the entry is about, where that means something. */
+  /** An id for the person the entry concerns, as a string; leave it out when there is no one. */
   userId?: string;
   /** Which part of the code wrote the entry, such as an Uplink's id. */
   service?: string;
@@ -15,18 +15,19 @@ export interface LogContext {
 
 /**
  * A logger whose entries carry a tag, returned by `tag` on a {@link Logger}.
- * Its `debug` and `info` entries reach the console only while the tag is
- * switched on, which an operator does in the browser with
+ * Its `debug` entries reach the console only while the tag is switched on,
+ * which an operator does in the browser with
  * `localStorage.LOG_TAGS = "peer,camera"` (or `"*"` for every tag) and a
- * reload. Its `warn` and `error` entries always print. Use a tag for tracing
- * too chatty to print by default.
+ * reload. Its `info`, `warn` and `error` entries always print. Every entry,
+ * tagged or not, is kept in the log buffer and sent on either way. Use a tag
+ * for tracing too chatty to print by default.
  *
  * @category Logging and performance
  */
 export interface TaggedLogger {
   /** Detail for someone tracing a problem. Printed only while the tag is on. */
   debug(message: string, context?: LogContext): void;
-  /** Something that happened and is worth a line. Printed only while the tag is on. */
+  /** Something that happened and is worth a line. Always printed. */
   info(message: string, context?: LogContext): void;
   /** Something wrong that the code carried on past. Always printed. */
   warn(message: string, context?: LogContext): void;

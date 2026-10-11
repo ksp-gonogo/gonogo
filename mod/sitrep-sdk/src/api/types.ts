@@ -42,18 +42,19 @@ import type { Value } from "../value";
 import type { Tone } from "./tone";
 
 /**
- * A data key a widget lists in {@link ComponentDefinition.dataRequirements},
- * in the older flat-key form that names one value per key, such as
- * `"v.altitude"`. A widget that reads Topics lists them in `channels` instead.
+ * A data key a widget lists in {@link ComponentDefinition.dataRequirements}:
+ * one flat key per value, such as `"v.altitude"`, rather than a Topic id. A
+ * widget that reads Topics lists them in `channels` instead, which is what an
+ * Uplink widget does.
  *
  * @category Registering
  */
 export type DataRequirement = string;
 
 /**
- * A behaviour a widget opts into. `"gonogo-participant"` is the only one and
- * has no effect: the GO/NO-GO poll is a vote the operators take, and nothing a
- * widget does feeds it.
+ * A behaviour flag a widget may list in {@link ComponentDefinition.behaviors}.
+ * The one value, `"gonogo-participant"`, changes nothing: the GO/NO-GO poll is
+ * a vote the operators take, and no widget feeds it. Leave `behaviors` out.
  *
  * @category Registering
  */
@@ -139,6 +140,11 @@ export interface ActionDefinition {
 
 /**
  * Typed handler map for {@link useActionInput}, keyed by each action's `id`.
+ * A handler receives the {@link ActionInputPayload}. What it returns is typed
+ * `unknown` because it is written back to the device that fired it, and the
+ * device decides what it can show: for the built-in text display, a flat object
+ * of keys to values such as `{ ALT: "12.4 km" }`. Return nothing for a device
+ * with no display.
  *
  * @category Actions
  */
@@ -178,7 +184,9 @@ export interface ConfigComponentProps<Config = Record<string, unknown>> {
 }
 
 /**
- * How a {@link TinyEssential}'s figure is marked where its Reading cannot say.
+ * The small mark drawn beside a {@link TinyEssential}'s figure to say what the
+ * figure is, for a figure whose `Reading` cannot say it: held, modelled, or of
+ * something other than its label.
  *
  * @category Registering
  */
@@ -338,7 +346,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   name: string;
   /** What the widget shows, in a sentence or two, for the widget picker. */
   description: string;
-  /** Free-form tags for the widget picker, such as `"telemetry"` or `"control"`. The picker styles the ones it knows. */
+  /** Free-form tags the widget picker filters by, such as `"telemetry"` or `"control"`. Any string is accepted, and widgets that share a tag are listed together. */
   tags: string[];
   /** The widget itself. */
   component: ComponentType<ComponentProps<Config>>;
@@ -363,7 +371,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   mobileWidth?: "full" | "half";
   /** On a phone, the widget's height in pixels. Defaults to the height of its `defaultSize`. */
   mobileHeight?: number;
-  /** Data keys the widget depends on, in the older flat-key form that names one value per key, such as `"v.altitude"`. A widget that reads Topics lists them in `channels` instead. */
+  /** Flat data keys the widget depends on, one per value, such as `"v.altitude"`. An Uplink widget lists the Topics it reads in `channels` instead. */
   dataRequirements?: DataRequirement[];
   /**
    * Topics the widget needs. Listing one does not subscribe to it:
@@ -379,11 +387,13 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   optionalChannels?: readonly WidgetChannelId[];
   /**
    * Families of Topics the widget needs whose ids are built at runtime, such as
-   * `"fleet.<vessel>.contact"`. They are claimed and health-checked like
-   * `channels`, by the literal prefix before the first placeholder (a family
-   * that starts with a placeholder has none, so it is neither claimed nor
-   * health-checked). A family with no members yet is not a failure. They do not
-   * feed the blackout badge, because blackout is per craft.
+   * `"fleet.<vessel>.contact"`. They are treated like `channels`: the
+   * dashboard draws the serving Uplink's reason in place of the widget while
+   * that Uplink is degraded or unavailable. The Uplink is found by the literal
+   * prefix before the first placeholder, so a family that starts with a
+   * placeholder is never matched to one. A family with no members yet is not a
+   * failure. They do not count toward the widget's signal-loss badge, because
+   * signal loss is a property of one craft and a family spans several.
    */
   channelFamilies?: readonly ChannelFamily[];
   /**
@@ -395,8 +405,10 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   /**
    * Topics the widget reads that depend on how the tile is set up, such as the
    * series a graph plots, as concrete Topic ids. They count as optional
-   * channels: claimed with the lock scope, counted for the "No telemetry host"
-   * placeholder, shown on the blackout badge and matched by alarms, but an
+   * channels: a Topic the save has not unlocked replaces the widget with a lock
+   * notice (see ui-kit's `LockScope`), the dashboard counts them when it decides
+   * whether the widget has anything to show while no game is connected, they are
+   * shown on the widget's signal-loss badge, and alarms can match them. An
    * unhealthy Uplink serving one never replaces the widget.
    */
   channelsFromConfig?: (config: Config) => readonly string[];
@@ -406,10 +418,10 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * a maneuver node, setting a warp rate, accepting a contract). List every one
    * a control of the widget can send, not only the ones a default tile shows.
    *
-   * It is documentation and a checked promise: the widget's reference page
-   * lists these as what its controls do, and the repository's tests fail when a
-   * widget sends a command it does not list or lists one it never sends. It
-   * does not lock or replace the widget the way a required channel does.
+   * It is documentation: the widget's generated page lists these as what its
+   * controls do. Nothing checks it at run time, so leaving a command out does
+   * not stop the widget sending it, and listing one does not lock or replace
+   * the widget the way a required channel does.
    */
   commands?: readonly CommandId[];
   /**
@@ -434,8 +446,9 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * from the widget's `channels`: a widget is available everywhere unless it
    * lists a Topic about something on the ground (`spaceCenter.*`, `career.*`,
    * `recovery.*`, and `commandCentre.*` other than the command centre roster
-   * and separation), which keeps it at mission control. A Topic in any other
-   * Domain, including one an Uplink adds, is available aboard.
+   * and separation), which keeps it at the `"mission-control"` seat. A Topic in
+   * any other Domain, including one an Uplink adds, is available aboard, at the
+   * `"pilot"` seat. See {@link Seat}.
    *
    * Set it only to change that: `["mission-control"]` for a widget that should
    * stay off the pilot seat, `["pilot"]` for one that only makes sense aboard,
@@ -472,7 +485,11 @@ export interface ThemeDefinition {
   id: string;
   /** The theme's name in the theme picker. */
   name: string;
-  /** The theme's tokens: a `UiKitTheme`, the type `@ksp-gonogo/ui-kit` exports. */
+  /**
+   * The theme's tokens: a `UiKitTheme`, the type `@ksp-gonogo/ui-kit` exports.
+   * Typed `unknown` here because this package does not depend on ui-kit, so the
+   * compiler does not check the shape: type your own value as `UiKitTheme`.
+   */
   theme: unknown;
 }
 
@@ -523,7 +540,8 @@ export type SlotProps<Slot extends string> = Slot extends keyof SlotRegistry
  * What each widget is focused on, keyed by widget id: the resource a picker
  * has selected, the body a map is showing. An augment of that widget reads it
  * with `useWidgetScope` from `@ksp-gonogo/ui-kit`, which is how an augment in
- * a slot that passes no props, such as `sections`, follows the widget.
+ * a slot that passes no props, such as a widget's standard `sections` slot,
+ * follows the widget.
  *
  * A widget publishes its scope with `WidgetScopeProvider` from
  * `@ksp-gonogo/ui-kit`, and declares its shape here by declaration merging,

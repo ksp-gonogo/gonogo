@@ -1,7 +1,11 @@
 /**
  * Adds the browser APIs jsdom lacks and widgets call when they mount, so a
- * widget renders in a jsdom test. Safe to call more than once. Call it from a
- * test setup file.
+ * widget renders in a jsdom test: a `ResizeObserver` that does nothing, a
+ * canvas `getContext` that returns `null` (so a widget takes its no-canvas
+ * path), a `HTMLMediaElement.play` that resolves, a `matchMedia` that never
+ * matches, a `WebSocket` that connects to nothing, and a `fetch` that answers
+ * the app's `/ice-config` request with a 503 and passes everything else
+ * through. Safe to call more than once. Call it from a test setup file.
  *
  * @category Rendering
  */

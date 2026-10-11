@@ -222,8 +222,8 @@ channels:
     description: |-
       Carries an array of `ScetAlarm`.
 
-      One SCET alarm as the simulation host holds it: the `alarm.scet` channel is
-      a bare array of these.
+      One SCET alarm as the game holds it: the `alarm.scet` Topic is a bare array
+      of these.
 
       The roster exists so an operator can see which alarms are still set after a
       reconnect, and so a client can remove an entry it no longer remembers. The
@@ -249,13 +249,13 @@ channels:
 
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
-      `alarm.scet.arm`'s args: register an alarm with the simulation host, or
-      replace one already registered under the same `ScetAlarmArmArgs.id`.
+      `alarm.scet.arm`'s args: register an alarm with the game, or replace one
+      already registered under the same `ScetAlarmArmArgs.id`.
 
       Never delayed by light time: setting an alarm changes nothing aboard the
-      craft, so like `time.setWarpIndex` it is a control on the simulation, not a
-      signal to a spacecraft. An alarm can therefore be set for an event less than
-      one light time away, and during a blackout.
+      craft, so like `time.setWarpIndex` it is a control on the game, not a signal
+      to a spacecraft. An alarm can therefore be set for an event less than one
+      light time away, and during a blackout.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delayed: false
@@ -293,11 +293,10 @@ channels:
       The notice that a SCET alarm has fired and the warp has been stopped.
 
       **Nothing about the craft.** It says which alarm fired and when. The stop is
-      universal, because warp is; the telemetry is not, and stays a light-time
-      behind. So an operator can be told their alarm went off while every reading
-      beside it still shows the craft as it was minutes ago, and this payload
-      carries nothing that would close that gap early. Whatever the craft was
-      doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
+      immediate, because warp is; the telemetry is not, and stays a light-time
+      behind. Readings shown beside this notice may still show the craft as it was
+      minutes ago, so a widget should not treat the notice as a reading: what the
+      craft was doing at `ScetAlarmFired.firedAtUt` arrives with its telemetry.
 
       The other fields say where it was learned and whether its actions were
       withheld for want of the right craft; neither is a reading of the craft.
@@ -324,13 +323,12 @@ channels:
       One Topic a SCET threshold alarm may be armed against: a row of the
       `alarm.scet.topics` channel.
 
-      The channel is the whole table of what the simulation host can read for a
-      threshold, so a picker offers exactly those Topics, and `alarm.scet.arm`
-      naming any other is refused. Any listed Topic is usable at any vantage.
+      The channel is the whole table of what the game can read for a threshold, so
+      a picker offers exactly those Topics, and `alarm.scet.arm` naming any other
+      is refused. Any listed Topic is usable at any vantage.
 
-      Offering a Topic here promises that the host reads it whether or not any
-      widget is showing it. A Topic the table does not list is not addressable
-      even when it is on the wire.
+      A Topic the table does not list is not addressable even when it is on the
+      wire.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
@@ -953,9 +951,9 @@ channels:
     description: |-
       Carries a `CommsConnectivity`.
 
-      The `comms.connectivity` payload: always present, sourced from the elected
-      comms backend. Ground-side truth about whether the active vessel has a
-      control link home right now. All three fields describe the same tick.
+      Whether the active vessel has a control link home right now, and the degree
+      of control it has. Always present, and read from the comms mod in force:
+      ground-side truth, with all three fields describing the same tick.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -1005,9 +1003,9 @@ channels:
     description: |-
       Carries a `CommsControl`.
 
-      The `comms.control` payload: always present, sourced from the elected comms
-      backend. What the active vessel can be commanded to do right now, which is a
-      different question from whether it is connected.
+      What the active vessel can be commanded to do right now, which is a
+      different question from whether it is connected. Always present, and read
+      from the comms mod in force.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -1194,9 +1192,9 @@ channels:
     description: |-
       Carries a `CommsOcclusion`.
 
-      The `comms.occlusion` payload: always present, sourced from the elected
-      comms backend. The declared occlusion model, named, with its rule already
-      applied to every celestial body the game knows about.
+      The model of which bodies block a radio path, named, with its rule already
+      applied to every celestial body the game knows about: each body's blocking
+      radius. Always present, and read from the comms mod in force.
 
       Not delayed by light time: it is not an observation of the vessel but the
       solar system's geometry and the rule the elected backend applies to it.
@@ -1349,10 +1347,10 @@ channels:
     description: |-
       Carries a `CrashReport`.
 
-      The payload for the `crash.lastCrash` channel: a single "last notable crash"
-      record for the current save, delivered on the Delivery.ReliableOrdered event
-      lane, so a late subscriber receives the most recent record. Every field is
-      captured from the crashed vessel at the moment of the crash.
+      The last notable crash of the current save. A subscriber that joins late
+      still receives the most recent record, since it is delivered as an ordered,
+      reliable event (Delivery.ReliableOrdered). Every field is captured from the
+      crashed vessel at the moment of the crash.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
@@ -1398,11 +1396,11 @@ channels:
     description: |-
       Carries an array of `StageDeltaVEntry`.
 
-      One ΔV-producing stage of the active vessel, from KSP's stock `VesselDeltaV`
-      stage simulation: the same numbers the in-game ΔV app shows, with
-      atmosphere, ISP, crossfeed and staging all handled by the game. Only the
-      stages that actually produce ΔV appear, the same set the in-game app lists
-      rather than the raw stage list, so stage numbers can be sparse.
+      One ΔV-producing stage of the active vessel, from the game's own stage
+      simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP,
+      crossfeed and staging all handled by the game. Only the stages that actually
+      produce ΔV appear, the same set the in-game app lists rather than the raw
+      stage list, so stage numbers can be sparse.
 
       The `dv.stages` payload is a plain array of these, or `null`, never a
       wrapper object. The whole array is `null` when the stock simulation is not
@@ -1509,12 +1507,12 @@ channels:
     description: |-
       Carries a `FlightCurrent`.
 
-      The `flight.current` Topic payload: a UT-indexed value, delivered
-      latest-wins and delayed like every `vessel.*` channel. It says which flight
-      is active and what phase it is in, for the vessel gonogo is reporting as
-      active. That is the vessel the game is flying, with one exception: a kerbal
-      on EVA does not become the subject of this reading, the craft they stepped
-      out of stays it for as long as that craft is in the world.
+      Which flight is active and what phase it is in, for the vessel gonogo is
+      reporting as active. Only the newest value matters, and it is delayed by the
+      link's signal delay like every `vessel.*` Topic. That is the vessel the game
+      is flying, with one exception: a kerbal on EVA does not become the subject
+      of this reading, the craft they stepped out of stays it for as long as that
+      craft is in the world.
 
       Nothing is published while there is no active vessel; the last value is
       held.
@@ -2375,7 +2373,8 @@ channels:
 
       One entry in the `science.instruments` Topic payload: a single
       `ModuleScienceExperiment` on the active vessel, as an inventory and status
-      row keyed by `InstrumentEntry.partId` (the part's KSP `flightID`).
+      row keyed by `InstrumentEntry.partId` (the part's flight id, a number the
+      game assigns each part of a flight, written as a string).
 
       Distinct from `ExperimentEntry`: `science.experiments` walks the same
       modules but yields one row per stored result (a module with no data produces
@@ -2882,11 +2881,12 @@ channels:
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
       Cancels a held or travelling command: its lane number alone, or it and every
-      later number this centre had sent on the lane when it was pressed. A command
-      this centre is still holding stops at once; for one it has sent, a cancel
-      goes to the craft, stopping the command wherever it is held and refusing it
-      at the craft if it arrives there first. What it stopped arrives as journey
-      reports.
+      later number this centre had sent on the lane when it was pressed. A lane is
+      the ordered run of delayed commands one centre sends to one craft, and a
+      lane number is a command's place in it. A command this centre is still
+      holding stops at once; for one it has sent, a cancel goes to the craft,
+      stopping the command wherever it is held and refusing it at the craft if it
+      arrives there first. What it stopped arrives as journey reports.
 
       The reply says the cancel was sent, never that the command was stopped. A
       command sent less than twice its light time ago may have been lost on the
@@ -3844,8 +3844,9 @@ channels:
     description: |-
       Carries a `VesselResources`.
 
-      The `vessel.resources` Topic payload: a keyframed map, keyed by resource
-      name. No value is ever a sentinel such as `-1`.
+      What the active vessel carries, keyed by resource name, each with its
+      current amount and capacity. Every message holds the whole map. No value is
+      ever a sentinel such as `-1`.
 
       Only these stock resources are reported: `LiquidFuel`, `Oxidizer`,
       `SolidFuel`, `MonoPropellant`, `ElectricCharge`, `XenonGas`, `Ore` and
@@ -10483,12 +10484,12 @@ components:
         - const: planNotOwned
           title: PlanNotOwned
           description: |-
-            The maneuver plan is owned by a planner other than stock's
-            `patchedConicSolver`, so a node written there would never be used.
+            The maneuver plan is owned by a trajectory planner other than the game's
+            own, such as a mod that plans its own burns, so a node written there would
+            never be flown.
 
-            A node written while another planner owns the plan would show on the board
-            and never be flown, so the command is refused and nothing is written. The
-            owning planner is on the wire as `VesselManeuver.Planner`.
+            The command is refused and nothing is written. The owning planner is on the
+            wire as `VesselManeuver.Planner`.
           x-sitrep-sentence: another planner owns the flight plan
         - const: limitReached
           title: LimitReached
@@ -10567,11 +10568,11 @@ components:
             game's reason is on `CommandResult.detail`.
 
             Also returned by the SCET alarm command for a vantage it cannot check
-            because no command centre is known to the simulation yet: the main menu, and
-            the ticks before the first capture. The same command refuses a vantage that
-            is known and inactive with `CommandErrorCode.Range` instead, because that
-            one does not resolve by waiting. Any other command naming an inactive
-            vantage fails with the `unknownVantage` fault.
+            because the game has not yet reported any command centre: at the main menu,
+            and in the first moments after a save loads. The same command refuses a
+            vantage that is known and inactive with `CommandErrorCode.Range` instead,
+            because that one does not resolve by waiting. Any other command naming an
+            inactive vantage fails with the `unknownVantage` fault.
 
             Distinct from `CommandErrorCode.WrongState`, which is about the entity and
             does not resolve by waiting.
@@ -10625,10 +10626,8 @@ components:
             The command consumes a countable ITEM and there are not enough of them
             aboard.
 
-            The provider decides by its own charge, which it should also state wherever
-            it shows the cost, so the cost shown and the cost taken agree. The item is
-            the provider's to name: this code says only that there were too few, never
-            which item.
+            The command's handler decides how many are needed. This code says only that
+            there were too few, never which item.
 
             Separate from `CommandErrorCode.InsufficientFunds` and
             `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.
@@ -10639,35 +10638,30 @@ components:
         - const: unreadable
           title: Unreadable
           description: |-
-            The provider was asked and could not read the state it needed. Nothing about
-            the craft, the save or the moment was established, so the one fact this
-            refusal carries is that the question went unresolved.
+            The command's handler could not read the state it needed, so the question
+            went unanswered. Nothing about the craft, the save or the moment was
+            established, and the refusal is no judgement about the command.
 
-            Not `CommandErrorCode.CapabilityMismatch`, which is an established fact
-            about the craft (a genuine omni antenna asked to aim). Not
-            `CommandErrorCode.NotFound`, which says the craft carries nothing this
-            command could act on. Not `CommandErrorCode.NotClearToProceed`, which
-            resolves by waiting; this does not, and a retry is a second attempt at the
-            same question.
+            Unlike `CommandErrorCode.CapabilityMismatch`, this says nothing about what
+            the craft can do. Waiting does not by itself make it succeed, but sending
+            the command again asks the question afresh, and that is the only sound next
+            move.
 
-            `CommandResult.detail` names what could not be read when the producer had a
-            name for it, and never says what the result would have been. Nothing was
-            learned about the vehicle, so offering the command again is the only sound
-            next move.
+            `CommandResult.detail` names what could not be read when the handler had a
+            name for it.
           x-sitrep-sentence: the game would not answer
         - const: outOfReach
           title: OutOfReach
           description: |-
-            The command acts at a PLACE, and the command centre it was sent from has no
-            authority there: a launch from a pad in another planet's system.
+            The command acts at a place, and the command centre it was sent from is not
+            in that place's planetary system, so it has no authority there: a launch
+            from a pad in another planet's system.
 
-            Authority, never delay. The command itself is still instant; what this
-            refuses is the sender, not the moment, so no amount of waiting makes it
+            This refuses the sender, not the moment, so no amount of waiting makes it
             succeed. Sending from a centre in the place's own system does.
 
             `CommandResult.detail` names the centre and the place, and the system each
-            is in, so an operator learns which seat to move to rather than seeing a
-            control that simply does nothing.
+            is in, so an operator learns which centre to send from.
 
             Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
             carry the command. A centre may be perfectly linked to the place and still
@@ -11309,9 +11303,9 @@ components:
     CommsConnectivity:
       type: object
       description: |-
-        The `comms.connectivity` payload: always present, sourced from the elected
-        comms backend. Ground-side truth about whether the active vessel has a
-        control link home right now. All three fields describe the same tick.
+        Whether the active vessel has a control link home right now, and the degree
+        of control it has. Always present, and read from the comms mod in force:
+        ground-side truth, with all three fields describing the same tick.
       required:
         - connected
         - controlSource
@@ -11458,9 +11452,9 @@ components:
     CommsControl:
       type: object
       description: |-
-        The `comms.control` payload: always present, sourced from the elected comms
-        backend. What the active vessel can be commanded to do right now, which is a
-        different question from whether it is connected.
+        What the active vessel can be commanded to do right now, which is a
+        different question from whether it is connected. Always present, and read
+        from the comms mod in force.
       required:
         - level
       properties:
@@ -12041,9 +12035,9 @@ components:
     CommsOcclusion:
       type: object
       description: |-
-        The `comms.occlusion` payload: always present, sourced from the elected
-        comms backend. The declared occlusion model, named, with its rule already
-        applied to every celestial body the game knows about.
+        The model of which bodies block a radio path, named, with its rule already
+        applied to every celestial body the game knows about: each body's blocking
+        radius. Always present, and read from the comms mod in force.
 
         Not delayed by light time: it is not an observation of the vessel but the
         solar system's geometry and the rule the elected backend applies to it.
@@ -12751,10 +12745,10 @@ components:
     CrashReport:
       type: object
       description: |-
-        The payload for the `crash.lastCrash` channel: a single "last notable crash"
-        record for the current save, delivered on the Delivery.ReliableOrdered event
-        lane, so a late subscriber receives the most recent record. Every field is
-        captured from the crashed vessel at the moment of the crash.
+        The last notable crash of the current save. A subscriber that joins late
+        still receives the most recent record, since it is delivered as an ordered,
+        reliable event (Delivery.ReliableOrdered). Every field is captured from the
+        crashed vessel at the moment of the crash.
       required:
         - vesselId
         - eventKind
@@ -14008,9 +14002,15 @@ components:
         judgement a client makes: a `RefusalCode` says the game said no, this says
         the machinery did not get that far, and a retry may work.
 
-        Closed, and declared only here. An Uplink never declares a fault: a handler
-        that throws already becomes `FaultCode.CommandUnavailable`, and
-        `CommandFaultException` is how a handler raises one of these deliberately.
+        Closed, and declared only here: the error codes an Uplink adds are refusals,
+        refinements of a `CommandErrorCode` root, never faults. A handler that
+        throws becomes `FaultCode.CommandUnavailable`, and one that throws a
+        `CommandFaultException` raises a specific fault and leaves its command
+        available.
+
+        A command that was sent and never answered is neither a refusal nor one of
+        these: its `send` rejects with the client's own `E_LOST` marker, which the
+        SDK's `classifyCommandRejection` reports as `lost`.
       oneOf:
         - const: invalidEnvelope
           title: InvalidEnvelope
@@ -14263,12 +14263,12 @@ components:
     FlightCurrent:
       type: object
       description: |-
-        The `flight.current` Topic payload: a UT-indexed value, delivered
-        latest-wins and delayed like every `vessel.*` channel. It says which flight
-        is active and what phase it is in, for the vessel gonogo is reporting as
-        active. That is the vessel the game is flying, with one exception: a kerbal
-        on EVA does not become the subject of this reading, the craft they stepped
-        out of stays it for as long as that craft is in the world.
+        Which flight is active and what phase it is in, for the vessel gonogo is
+        reporting as active. Only the newest value matters, and it is delayed by the
+        link's signal delay like every `vessel.*` Topic. That is the vessel the game
+        is flying, with one exception: a kerbal on EVA does not become the subject
+        of this reading, the craft they stepped out of stays it for as long as that
+        craft is in the world.
 
         Nothing is published while there is no active vessel; the last value is
         held.
@@ -14592,7 +14592,8 @@ components:
       description: |-
         One entry in the `science.instruments` Topic payload: a single
         `ModuleScienceExperiment` on the active vessel, as an inventory and status
-        row keyed by `InstrumentEntry.partId` (the part's KSP `flightID`).
+        row keyed by `InstrumentEntry.partId` (the part's flight id, a number the
+        game assigns each part of a flight, written as a string).
 
         Distinct from `ExperimentEntry`: `science.experiments` walks the same
         modules but yields one row per stored result (a module with no data produces
@@ -15531,10 +15532,10 @@ components:
     LockedValue:
       type: object
       description: |-
-        A field a SitrepRequiresAttribute gates, in place of its value while the
-        save has not unlocked what it needs: the unlocks it is missing, so a reader
-        can say why it has nothing to show rather than drawing an empty value as if
-        there were none.
+        What a field arrives as, in place of its value, while the save has not
+        unlocked what it needs: the unlocks it is missing, so a reader can say why
+        it has nothing to show rather than drawing an empty value as if there were
+        none. A mod marks such a field with SitrepRequiresAttribute.
       required:
         - locked
       properties:
@@ -17373,13 +17374,12 @@ components:
         One Topic a SCET threshold alarm may be armed against: a row of the
         `alarm.scet.topics` channel.
 
-        The channel is the whole table of what the simulation host can read for a
-        threshold, so a picker offers exactly those Topics, and `alarm.scet.arm`
-        naming any other is refused. Any listed Topic is usable at any vantage.
+        The channel is the whole table of what the game can read for a threshold, so
+        a picker offers exactly those Topics, and `alarm.scet.arm` naming any other
+        is refused. Any listed Topic is usable at any vantage.
 
-        Offering a Topic here promises that the host reads it whether or not any
-        widget is showing it. A Topic the table does not list is not addressable
-        even when it is on the wire.
+        A Topic the table does not list is not addressable even when it is on the
+        wire.
       required:
         - topic
       properties:
@@ -17390,8 +17390,8 @@ components:
     ScetAlarm:
       type: object
       description: |-
-        One SCET alarm as the simulation host holds it: the `alarm.scet` channel is
-        a bare array of these.
+        One SCET alarm as the game holds it: the `alarm.scet` Topic is a bare array
+        of these.
 
         The roster exists so an operator can see which alarms are still set after a
         reconnect, and so a client can remove an entry it no longer remembers. The
@@ -17454,28 +17454,28 @@ components:
             nothing else. An operator at one centre may ask when another centre will
             know, which where the command entered cannot express.
 
-            A place, never a connection. Two operators sharing a command centre share
-            its knowledge and its result, and a browser reconnecting is the same place
-            it was before, so the simulation never learns that clients exist.
+            A vantage is a place, not a connection: two operators sharing a command
+            centre share its knowledge and its result.
+
+            This empty-means-subject default belongs to the `alarm.scet.arm` command. A
+            request made through the SDK's `useAlarmRequest` that names no vantage is
+            judged on the command centre's, as the SDK's `UplinkAlarmVantage` describes.
         subject:
           type: string
           x-sitrep-unit: id
           description: |-
             What the condition is about: `"vessel:<guid>"` for a craft, or `"game"` for
-            something the whole simulation shares. The same vocabulary `meta.source`
-            uses.
+            something the whole game shares. The same vocabulary `meta.source` uses.
 
             A time condition is always `"game"`: universal time is the game's, and a
             clock has no craft to belong to. A threshold names the craft, and this is
-            what stops it silently re-aiming when the player switches vessels: the
-            simulation compares this against the `meta.source` stamped on the payload it
-            read, and a reading about somebody else's craft is ignored.
+            what stops it silently re-aiming when the player switches vessels: the game
+            compares this against the `meta.source` stamped on the payload it read, and
+            a reading about somebody else's craft is ignored.
 
             A threshold on something the save owns rather than a craft is `"game"` too,
-            and `career.status` is the one core publishes: there is one career, and no
-            vessel switch can change which one is being read, so there is nothing for a
-            third token to tell apart. That is the rule for a contributed Topic as well,
-            not a special case for this one.
+            such as `career.status`, and so is one on a Topic an Uplink contributes
+            about the save.
         condition:
           description: |-
             What the alarm watches for, as it was set, or `null` when
@@ -17536,12 +17536,11 @@ components:
         One thing the craft does in the frame its alarm fires, as a flight computer
         would: evaluated aboard, fired aboard, acted aboard.
 
-        Held only by an alarm read at its own subject's vantage. An alarm judged
-        against what a command centre has been told comes due a light-time after the
-        craft passed the condition, and acting on the craft in that same frame would
-        carry the ground's decision to the craft faster than light, so
-        `alarm.scet.arm` refuses such an alarm. A ground-side alarm's action travels
-        as an ordinary command instead.
+        Held only by an alarm read at its own subject's vantage. `alarm.scet.arm`
+        refuses actions on an alarm judged against what a command centre has been
+        told, since acting on the craft in that frame would carry the ground's
+        decision to it faster than light. A ground-side alarm's action travels as an
+        ordinary command instead.
 
         Every kind but `ScetAlarmActionKind.Stage` toggles, against the state the
         craft reports at the moment of the fire, which is what pressing the group's
@@ -17602,13 +17601,13 @@ components:
     ScetAlarmArmArgs:
       type: object
       description: |-
-        `alarm.scet.arm`'s args: register an alarm with the simulation host, or
-        replace one already registered under the same `ScetAlarmArmArgs.id`.
+        `alarm.scet.arm`'s args: register an alarm with the game, or replace one
+        already registered under the same `ScetAlarmArmArgs.id`.
 
         Never delayed by light time: setting an alarm changes nothing aboard the
-        craft, so like `time.setWarpIndex` it is a control on the simulation, not a
-        signal to a spacecraft. An alarm can therefore be set for an event less than
-        one light time away, and during a blackout.
+        craft, so like `time.setWarpIndex` it is a control on the game, not a signal
+        to a spacecraft. An alarm can therefore be set for an event less than one
+        light time away, and during a blackout.
       required:
         - id
         - name
@@ -17664,12 +17663,13 @@ components:
       description: |-
         What a SCET alarm watches for, on the craft's own clock.
 
-        A discriminated shape: `ScetAlarmCondition.kind` says which of the fields
-        below carry meaning. For `ScetAlarmConditionKind.Time` that is
-        `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
-        `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
-        `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
-        `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`; for
+        Every field is always present, and `ScetAlarmCondition.kind` says which of
+        them carry meaning; the rest sit at their defaults and are ignored. For
+        `ScetAlarmConditionKind.Time` that is `ScetAlarmCondition.ut` and
+        `ScetAlarmCondition.leadSeconds`; for `ScetAlarmConditionKind.Threshold` it
+        is `ScetAlarmCondition.topic`, `ScetAlarmCondition.fieldPath`,
+        `ScetAlarmCondition.op`, `ScetAlarmCondition.threshold` and
+        `ScetAlarmCondition.sustainSeconds`; for
         `ScetAlarmConditionKind.ContractParameter` it is
         `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
         `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
@@ -17700,12 +17700,10 @@ components:
             The instant the alarm is set for, as a universal time on the craft's clock
             rather than on the clock the command centre is reading.
 
-            The difference between the two is the one-way light time, and it moves
-            continuously as the craft does. A client that subtracts it once, at the
-            moment the operator clicks, is right only for that instant; this field is
-            the instant itself, compared against the game's own clock every tick, so the
-            result stays right however the geometry changes between setting the alarm
-            and its firing.
+            The difference between the two is the one-way light time, which changes as
+            the craft moves. This field is the instant itself, compared against the
+            game's own clock every tick, so it stays right however the distance changes
+            between setting the alarm and its firing.
         leadSeconds:
           type: number
           x-sitrep-unit: s
@@ -17714,9 +17712,7 @@ components:
             operator has real time in hand before the instant they set the alarm for.
             Zero stops the warp at the instant itself.
 
-            The stop and the notice are two separate moments: warp halts at `Ut -
-            LeadSeconds`, and the alarm fires at `Ut`, which arrives in real time
-            because the warp is already stopped.
+            Warp halts at `Ut - LeadSeconds`, and the alarm fires at `Ut`.
         topic:
           type: string
           x-sitrep-unit: id
@@ -17749,8 +17745,8 @@ components:
             `ScetAlarmCondition.fieldPath` is published in.
 
             It has no unit of its own: the same field is metres for one alarm and
-            kilonewtons for the next. To render it, look up the unit of the addressed
-            field.
+            kilonewtons for the next. To render it, read the unit of the field the alarm
+            addresses with the SDK's `unitOf(topic, fieldPath)`.
         sustainSeconds:
           type: number
           x-sitrep-unit: s
@@ -17759,14 +17755,8 @@ components:
             seconds, before the alarm fires. Zero fires on the first reading that
             matches.
 
-            **Warp is stopped at the first match, not at the fire.** A sustain window is
-            a span of the craft's time, and under warp one tick covers thousands of
-            seconds of it, so a window measured across warped ticks would be satisfied
-            by two samples and mean nothing. Stopping first is what gives the window
-            real ticks to be measured over. The cost is that a condition that matches
-            once and then stops matching has still stopped the warp; that is the
-            fail-safe side to err on, because the operator keeps their game and loses
-            only the time they were skipping.
+            **Warp is stopped at the first match, not at the fire.** A condition that
+            matches once and then stops matching has therefore still stopped the warp.
         contractId:
           type: string
           x-sitrep-unit: id
@@ -17789,9 +17779,10 @@ components:
       description: |-
         Which kind of condition a SCET alarm watches for.
 
-        Every alarm has a vantage, so a kind says only what is watched. A threshold
-        follows a dotted path to a number; a contract parameter, which sits in a
-        list no path can index, finds its contract and objective by id and title.
+        Every alarm has a vantage (see `ScetAlarm.vantage`), so a kind says only
+        what is watched. A threshold follows a dotted path to a number; a contract
+        parameter, which sits in a list no path can index, finds its contract and
+        objective by id and title.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -17801,10 +17792,10 @@ components:
           title: Threshold
           description: |-
             A value aboard the craft crossing a number the operator chose, compared
-            against the reading the simulation actually holds rather than against the
-            one the command centre has been told.
+            against the reading the game actually holds rather than against the one the
+            command centre has been told.
 
-            Only the simulation can check this. A time alarm needs only a clock, which a
+            Only the game can check this. A time alarm needs only a clock, which a
             client has; a threshold needs the craft's true state, which reaches the
             ground a light-time late and by then no longer says whether the craft is
             above 100 km now.
@@ -17841,11 +17832,10 @@ components:
         The notice that a SCET alarm has fired and the warp has been stopped.
 
         **Nothing about the craft.** It says which alarm fired and when. The stop is
-        universal, because warp is; the telemetry is not, and stays a light-time
-        behind. So an operator can be told their alarm went off while every reading
-        beside it still shows the craft as it was minutes ago, and this payload
-        carries nothing that would close that gap early. Whatever the craft was
-        doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
+        immediate, because warp is; the telemetry is not, and stays a light-time
+        behind. Readings shown beside this notice may still show the craft as it was
+        minutes ago, so a widget should not treat the notice as a reading: what the
+        craft was doing at `ScetAlarmFired.firedAtUt` arrives with its telemetry.
 
         The other fields say where it was learned and whether its actions were
         withheld for want of the right craft; neither is a reading of the craft.
@@ -17893,8 +17883,8 @@ components:
       description: |-
         Where a SCET alarm has got to.
 
-        A latch, not a level: `ScetAlarmState.Fired` is reached once and stays, so a
-        condition that keeps holding cannot stop the warp again on the next tick.
+        `ScetAlarmState.Fired` is reached once and stays: an alarm whose condition
+        keeps holding does not stop the warp again.
       x-sitrep-enum-kind: ordinal
       oneOf:
         - const: 0
@@ -17910,8 +17900,7 @@ components:
             come due.
 
             Only a threshold reaches this: a time condition has no subject to lose,
-            because universal time belongs to the game. The simulation knows the craft
-            is gone before the command centre does, so show such a row as dead rather
+            because universal time belongs to the game. Show such a row as dead rather
             than as pending.
         - const: 3
           title: Cancelled
@@ -17947,11 +17936,10 @@ components:
           description: |-
             Reading equals the threshold exactly.
 
-            Offered for parity with the client's list, and a knife edge on anything
-            continuous: the reading is a sample, and under warp the samples are
-            thousands of game-seconds apart, so a craft can pass straight through the
-            value without one landing on it. An inequality is almost always the
-            condition an operator actually means.
+            Rarely what is wanted on a continuous value: readings are samples, and under
+            warp they are thousands of game-seconds apart, so a craft can pass straight
+            through the value without one landing on it. An inequality is almost always
+            the condition an operator means.
         - const: 5
           title: NotEqual
           description: |-
@@ -19070,11 +19058,11 @@ components:
     StageDeltaVEntry:
       type: object
       description: |-
-        One ΔV-producing stage of the active vessel, from KSP's stock `VesselDeltaV`
-        stage simulation: the same numbers the in-game ΔV app shows, with
-        atmosphere, ISP, crossfeed and staging all handled by the game. Only the
-        stages that actually produce ΔV appear, the same set the in-game app lists
-        rather than the raw stage list, so stage numbers can be sparse.
+        One ΔV-producing stage of the active vessel, from the game's own stage
+        simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP,
+        crossfeed and staging all handled by the game. Only the stages that actually
+        produce ΔV appear, the same set the in-game app lists rather than the raw
+        stage list, so stage numbers can be sparse.
 
         The `dv.stages` payload is a plain array of these, or `null`, never a
         wrapper object. The whole array is `null` when the stock simulation is not
@@ -20107,11 +20095,12 @@ components:
       type: object
       description: |-
         Cancels a held or travelling command: its lane number alone, or it and every
-        later number this centre had sent on the lane when it was pressed. A command
-        this centre is still holding stops at once; for one it has sent, a cancel
-        goes to the craft, stopping the command wherever it is held and refusing it
-        at the craft if it arrives there first. What it stopped arrives as journey
-        reports.
+        later number this centre had sent on the lane when it was pressed. A lane is
+        the ordered run of delayed commands one centre sends to one craft, and a
+        lane number is a command's place in it. A command this centre is still
+        holding stops at once; for one it has sent, a cancel goes to the craft,
+        stopping the command wherever it is held and refusing it at the craft if it
+        arrives there first. What it stopped arrives as journey reports.
 
         The reply says the cancel was sent, never that the command was stopped. A
         command sent less than twice its light time ago may have been lost on the
@@ -21621,8 +21610,9 @@ components:
     VesselResources:
       type: object
       description: |-
-        The `vessel.resources` Topic payload: a keyframed map, keyed by resource
-        name. No value is ever a sentinel such as `-1`.
+        What the active vessel carries, keyed by resource name, each with its
+        current amount and capacity. Every message holds the whole map. No value is
+        ever a sentinel such as `-1`.
 
         Only these stock resources are reported: `LiquidFuel`, `Oxidizer`,
         `SolidFuel`, `MonoPropellant`, `ElectricCharge`, `XenonGas`, `Ore` and

@@ -88,7 +88,11 @@ export function widgetFactsOf(
       label: flatKeys ? "Reads, as flat keys" : "Reads",
       items: codes(reads),
     },
-    { id: "drawsOnly", label: "Draws only", items: codes(record.fields) },
+    {
+      id: "drawsOnly",
+      label: "Draws only these fields",
+      items: codes(record.fields),
+    },
     {
       id: "alsoReads",
       label: "Also reads, if published",
@@ -101,7 +105,12 @@ export function widgetFactsOf(
       id: "readsFromSettings",
       label: "Reads from settings",
       items: record.readsFromConfig
-        ? [{ prose: "the Topics chosen in the tile's settings" }]
+        ? [
+            {
+              prose:
+                "the Topics chosen in the tile's settings, each as a Topic id or a field path such as `vessel.flight.altitudeAsl`",
+            },
+          ]
         : [],
     },
     { id: "sends", label: "Sends", items: codes(record.commands) },

@@ -80,9 +80,9 @@ public class UnlockTechArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("career.contract.accept")]
-[SitrepCommand("career.contract.decline")]
-[SitrepCommand("career.contract.cancel")]
+[SitrepCommand("career.contract.accept", Summary = "Accept an offered contract.")]
+[SitrepCommand("career.contract.decline", Summary = "Decline an offered contract.")]
+[SitrepCommand("career.contract.cancel", Summary = "Cancel an active contract.")]
 public class ContractActionArgs
 {
     /// <summary>The contract to act on: its KSP <c>ContractID</c> as a string, as <c>career.status</c>'s <c>contracts[].id</c> carries it.</summary>

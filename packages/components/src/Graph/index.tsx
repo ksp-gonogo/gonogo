@@ -30,7 +30,7 @@ registerComponent<GraphConfig>({
   id: "graph",
   name: "Graph",
   description:
-    "Line chart of one or more live telemetry series over time. Which series it plots, and over how long a window, are set in the tile's settings.",
+    "Line chart of one or more live telemetry series over time. The tile's settings choose the series, each a field path such as `vessel.flight.altitudeAsl` drawn as a line or a band against the primary or secondary axis, and the number of seconds of history to keep (`windowSec`).",
   tags: ["telemetry", "graph"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },

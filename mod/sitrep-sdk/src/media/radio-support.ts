@@ -13,18 +13,15 @@
  * `radioSupportStatus()` therefore asks about the context FIRST and names
  * an insecure origin as its own outcome, so a caller can say "this page is
  * not a secure origin" rather than the falsehood "your browser has no
- * codec". That distinction is operator-facing: the dev server binds the LAN
- * (`packages/app/vite.config.ts`, `server: { host: true }`), so a station
- * opened at `http://<lan-ip>:5173` lands in exactly this state every time.
- * Production over https, and `localhost` dev, are both secure and fine.
- *
- * `tests/playwright/radio-capability.spec.ts` is the cross-engine ratchet
- * over the same facts, including a live encode/decode round trip.
+ * codec". That distinction is operator-facing: a station opened at
+ * `http://<lan-ip>:5173` lands in exactly this state, while https and
+ * `localhost` are both secure and fine.
  */
 
 /**
- * The WebCodecs constructors the radio needs: `AudioEncoder`, `AudioDecoder`,
- * `AudioData` and `EncodedAudioChunk`. {@link radioSupportStatus} checks for
+ * The [WebCodecs](https://developer.mozilla.org/docs/Web/API/WebCodecs_API)
+ * constructors the radio needs: `AudioEncoder`, `AudioDecoder`, `AudioData` and
+ * `EncodedAudioChunk`. {@link radioSupportStatus} checks for
  * them.
  *
  * @category Radio
@@ -70,7 +67,8 @@ export const RADIO_DECODER_CONFIG = {
 } as const;
 
 /** Samples per encoded chunk at {@link RADIO_ENCODER_CONFIG}'s sample
- *  rate: 20 ms, as Opus and the radio's wire frames both use.
+ *  rate: 960, which is 20 ms. Every Opus packet the radio sends and receives
+ *  holds this many samples.
  *
  * @category Radio
  */
@@ -84,7 +82,9 @@ export const RADIO_CHUNK_FRAMES = 960;
 export type RadioUnsupportedReason = "insecure-context" | "no-codec";
 
 /**
- * Whether this browser can carry radio audio, and why not when it cannot.
+ * What {@link radioSupportStatus} returns: `{ supported: true }`, or
+ * `supported: false` with the `reason` and the WebCodecs constructors that were
+ * missing.
  *
  * @category Radio
  */
@@ -135,9 +135,18 @@ export function radioSupportStatus(): RadioSupport {
  * @category Radio
  * @categoryDescription Radio
  * Whether this browser can carry live push-to-talk radio, and the audio
- * settings the radio encodes and decodes with. The audio itself is sent with
- * the `commcast.radio.transmit` command and heard on the `commcast.radio`
- * Topic, as binary frames.
+ * settings the radio encodes and decodes with. This package does not send or
+ * play audio itself: it tells a client whether it may and what to encode with.
+ *
+ * To speak, encode microphone audio as Opus packets of 20 ms with
+ * {@link RADIO_ENCODER_CONFIG} and send about 200 ms of them at a time with the
+ * `commcast.radio.transmit` command, whose arguments are
+ * {@link CommcastRadioTransmitArgs}. To listen, read the `commcast.radio`
+ * Topic. It is not a typed Topic, so it has no `TopicId` and is not in the
+ * Topics list: it arrives as binary frames, read with
+ * {@link decodeBinaryFrame}, and the first segment of each is a
+ * {@link CommcastRadioBatch} describing who is speaking, followed by the Opus
+ * packets to decode with {@link RADIO_DECODER_CONFIG}.
  */
 export function isRadioSupported(): boolean {
   return radioSupportStatus().supported;

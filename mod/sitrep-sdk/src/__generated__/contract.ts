@@ -1307,12 +1307,12 @@ export interface ChannelGate
 	verdict: GateVerdict;
 }
 /**
-* A field a SitrepRequiresAttribute gates, in place of its value while the
-* save has not unlocked what it needs: the unlocks it is missing, so a reader
-* can say why it has nothing to show rather than drawing an empty value as if
-* there were none.
+* What a field arrives as, in place of its value, while the save has not
+* unlocked what it needs: the unlocks it is missing, so a reader can say why
+* it has nothing to show rather than drawing an empty value as if there were
+* none. A mod marks such a field with SitrepRequiresAttribute.
 *
-* @category System diagnostics
+* @category Readings
 */
 export interface LockedValue
 {
@@ -1322,7 +1322,7 @@ export interface LockedValue
 /**
 * Which kind of unlock a `MissingUnlock` names.
 *
-* @category System diagnostics
+* @category Readings
 */
 export enum UnlockKind {
 	/** A tech node in the save's research tree. */
@@ -1335,7 +1335,7 @@ export enum UnlockKind {
 * can say "Missing tech: Flight Control" or "Mission Control, needs Building
 * level 2" without mapping an id to English.
 *
-* @category System diagnostics
+* @category Readings
 */
 export interface MissingUnlock
 {
@@ -1761,9 +1761,9 @@ export enum CommsControlSource {
 	Unknown = 3
 }
 /**
-* The `comms.connectivity` payload: always present, sourced from the elected
-* comms backend. Ground-side truth about whether the active vessel has a
-* control link home right now. All three fields describe the same tick.
+* Whether the active vessel has a control link home right now, and the degree
+* of control it has. Always present, and read from the comms mod in force:
+* ground-side truth, with all three fields describing the same tick.
 *
 * @category Comms
 * @categoryDescription Comms
@@ -1935,9 +1935,9 @@ export enum CommsControlStateKind {
 	Unknown = 3
 }
 /**
-* The `comms.control` payload: always present, sourced from the elected comms
-* backend. What the active vessel can be commanded to do right now, which is a
-* different question from whether it is connected.
+* What the active vessel can be commanded to do right now, which is a
+* different question from whether it is connected. Always present, and read
+* from the comms mod in force.
 *
 * @category Comms
 */
@@ -2577,11 +2577,12 @@ export interface CommsJourneyEvent
 }
 /**
 * Cancels a held or travelling command: its lane number alone, or it and every
-* later number this centre had sent on the lane when it was pressed. A command
-* this centre is still holding stops at once; for one it has sent, a cancel
-* goes to the craft, stopping the command wherever it is held and refusing it
-* at the craft if it arrives there first. What it stopped arrives as journey
-* reports.
+* later number this centre had sent on the lane when it was pressed. A lane is
+* the ordered run of delayed commands one centre sends to one craft, and a
+* lane number is a command's place in it. A command this centre is still
+* holding stops at once; for one it has sent, a cancel goes to the craft,
+* stopping the command wherever it is held and refusing it at the craft if it
+* arrives there first. What it stopped arrives as journey reports.
 *
 * The reply says the cancel was sent, never that the command was stopped. A
 * command sent less than twice its light time ago may have been lost on the
@@ -2695,9 +2696,9 @@ export interface CommsOcclusionBody
 	occludingRadiusMeters: Value<"m">;
 }
 /**
-* The `comms.occlusion` payload: always present, sourced from the elected
-* comms backend. The declared occlusion model, named, with its rule already
-* applied to every celestial body the game knows about.
+* The model of which bodies block a radio path, named, with its rule already
+* applied to every celestial body the game knows about: each body's blocking
+* radius. Always present, and read from the comms mod in force.
 *
 * Not delayed by light time: it is not an observation of the vessel but the
 * solar system's geometry and the rule the elected backend applies to it.
@@ -2938,10 +2939,10 @@ export interface SetControlFrameArgs
 	targetFrameSelected?: boolean;
 }
 /**
-* The payload for the `crash.lastCrash` channel: a single "last notable crash"
-* record for the current save, delivered on the Delivery.ReliableOrdered event
-* lane, so a late subscriber receives the most recent record. Every field is
-* captured from the crashed vessel at the moment of the crash.
+* The last notable crash of the current save. A subscriber that joins late
+* still receives the most recent record, since it is delivered as an ordered,
+* reliable event (Delivery.ReliableOrdered). Every field is captured from the
+* crashed vessel at the moment of the crash.
 *
 * @category Flights
 */
@@ -3964,12 +3965,12 @@ export enum FlightEndReason {
 	Destroyed = 3
 }
 /**
-* The `flight.current` Topic payload: a UT-indexed value, delivered
-* latest-wins and delayed like every `vessel.*` channel. It says which flight
-* is active and what phase it is in, for the vessel gonogo is reporting as
-* active. That is the vessel the game is flying, with one exception: a kerbal
-* on EVA does not become the subject of this reading, the craft they stepped
-* out of stays it for as long as that craft is in the world.
+* Which flight is active and what phase it is in, for the vessel gonogo is
+* reporting as active. Only the newest value matters, and it is delayed by the
+* link's signal delay like every `vessel.*` Topic. That is the vessel the game
+* is flying, with one exception: a kerbal on EVA does not become the subject
+* of this reading, the craft they stepped out of stays it for as long as that
+* craft is in the world.
 *
 * Nothing is published while there is no active vessel; the last value is
 * held.
@@ -5768,9 +5769,10 @@ export interface RotorReverseArgs
 /**
 * Which kind of condition a SCET alarm watches for.
 *
-* Every alarm has a vantage, so a kind says only what is watched. A threshold
-* follows a dotted path to a number; a contract parameter, which sits in a
-* list no path can index, finds its contract and objective by id and title.
+* Every alarm has a vantage (see `ScetAlarm.vantage`), so a kind says only
+* what is watched. A threshold follows a dotted path to a number; a contract
+* parameter, which sits in a list no path can index, finds its contract and
+* objective by id and title.
 *
 * @category Alarms
 */
@@ -5779,10 +5781,10 @@ export enum ScetAlarmConditionKind {
 	Time = 0,
 	/**
 	* A value aboard the craft crossing a number the operator chose, compared
-	* against the reading the simulation actually holds rather than against the
-	* one the command centre has been told.
+	* against the reading the game actually holds rather than against the one the
+	* command centre has been told.
 	*
-	* Only the simulation can check this. A time alarm needs only a clock, which a
+	* Only the game can check this. A time alarm needs only a clock, which a
 	* client has; a threshold needs the craft's true state, which reaches the
 	* ground a light-time late and by then no longer says whether the craft is
 	* above 100 km now.
@@ -5821,11 +5823,10 @@ export enum ScetAlarmThresholdOp {
 	/**
 	* Reading equals the threshold exactly.
 	*
-	* Offered for parity with the client's list, and a knife edge on anything
-	* continuous: the reading is a sample, and under warp the samples are
-	* thousands of game-seconds apart, so a craft can pass straight through the
-	* value without one landing on it. An inequality is almost always the
-	* condition an operator actually means.
+	* Rarely what is wanted on a continuous value: readings are samples, and under
+	* warp they are thousands of game-seconds apart, so a craft can pass straight
+	* through the value without one landing on it. An inequality is almost always
+	* the condition an operator means.
 	*/
 	Equal = 4,
 	/**
@@ -5838,8 +5839,8 @@ export enum ScetAlarmThresholdOp {
 /**
 * Where a SCET alarm has got to.
 *
-* A latch, not a level: `ScetAlarmState.Fired` is reached once and stays, so a
-* condition that keeps holding cannot stop the warp again on the next tick.
+* `ScetAlarmState.Fired` is reached once and stays: an alarm whose condition
+* keeps holding does not stop the warp again.
 *
 * @category Alarms
 */
@@ -5853,8 +5854,7 @@ export enum ScetAlarmState {
 	* come due.
 	*
 	* Only a threshold reaches this: a time condition has no subject to lose,
-	* because universal time belongs to the game. The simulation knows the craft
-	* is gone before the command centre does, so show such a row as dead rather
+	* because universal time belongs to the game. Show such a row as dead rather
 	* than as pending.
 	*/
 	Unreachable = 2,
@@ -5869,12 +5869,13 @@ export enum ScetAlarmState {
 /**
 * What a SCET alarm watches for, on the craft's own clock.
 *
-* A discriminated shape: `ScetAlarmCondition.kind` says which of the fields
-* below carry meaning. For `ScetAlarmConditionKind.Time` that is
-* `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
-* `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
-* `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
-* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`; for
+* Every field is always present, and `ScetAlarmCondition.kind` says which of
+* them carry meaning; the rest sit at their defaults and are ignored. For
+* `ScetAlarmConditionKind.Time` that is `ScetAlarmCondition.ut` and
+* `ScetAlarmCondition.leadSeconds`; for `ScetAlarmConditionKind.Threshold` it
+* is `ScetAlarmCondition.topic`, `ScetAlarmCondition.fieldPath`,
+* `ScetAlarmCondition.op`, `ScetAlarmCondition.threshold` and
+* `ScetAlarmCondition.sustainSeconds`; for
 * `ScetAlarmConditionKind.ContractParameter` it is
 * `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
 * `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
@@ -5892,12 +5893,10 @@ export interface ScetAlarmCondition
 	* The instant the alarm is set for, as a universal time on the craft's clock
 	* rather than on the clock the command centre is reading.
 	*
-	* The difference between the two is the one-way light time, and it moves
-	* continuously as the craft does. A client that subtracts it once, at the
-	* moment the operator clicks, is right only for that instant; this field is
-	* the instant itself, compared against the game's own clock every tick, so the
-	* result stays right however the geometry changes between setting the alarm
-	* and its firing.
+	* The difference between the two is the one-way light time, which changes as
+	* the craft moves. This field is the instant itself, compared against the
+	* game's own clock every tick, so it stays right however the distance changes
+	* between setting the alarm and its firing.
 	*/
 	ut: Value<"ut">;
 	/**
@@ -5905,9 +5904,7 @@ export interface ScetAlarmCondition
 	* operator has real time in hand before the instant they set the alarm for.
 	* Zero stops the warp at the instant itself.
 	*
-	* The stop and the notice are two separate moments: warp halts at `Ut -
-	* LeadSeconds`, and the alarm fires at `Ut`, which arrives in real time
-	* because the warp is already stopped.
+	* Warp halts at `Ut - LeadSeconds`, and the alarm fires at `Ut`.
 	*/
 	leadSeconds: Value<"s">;
 	/**
@@ -5935,8 +5932,8 @@ export interface ScetAlarmCondition
 	* `ScetAlarmCondition.fieldPath` is published in.
 	*
 	* It has no unit of its own: the same field is metres for one alarm and
-	* kilonewtons for the next. To render it, look up the unit of the addressed
-	* field.
+	* kilonewtons for the next. To render it, read the unit of the field the alarm
+	* addresses with the SDK's `unitOf(topic, fieldPath)`.
 	*/
 	threshold: number;
 	/**
@@ -5944,14 +5941,8 @@ export interface ScetAlarmCondition
 	* seconds, before the alarm fires. Zero fires on the first reading that
 	* matches.
 	*
-	* **Warp is stopped at the first match, not at the fire.** A sustain window is
-	* a span of the craft's time, and under warp one tick covers thousands of
-	* seconds of it, so a window measured across warped ticks would be satisfied
-	* by two samples and mean nothing. Stopping first is what gives the window
-	* real ticks to be measured over. The cost is that a condition that matches
-	* once and then stops matching has still stopped the warp; that is the
-	* fail-safe side to err on, because the operator keeps their game and loses
-	* only the time they were skipping.
+	* **Warp is stopped at the first match, not at the fire.** A condition that
+	* matches once and then stops matching has therefore still stopped the warp.
 	*/
 	sustainSeconds: Value<"s">;
 	/**
@@ -6000,12 +5991,11 @@ export enum ScetAlarmActionKind {
 * One thing the craft does in the frame its alarm fires, as a flight computer
 * would: evaluated aboard, fired aboard, acted aboard.
 *
-* Held only by an alarm read at its own subject's vantage. An alarm judged
-* against what a command centre has been told comes due a light-time after the
-* craft passed the condition, and acting on the craft in that same frame would
-* carry the ground's decision to the craft faster than light, so
-* `alarm.scet.arm` refuses such an alarm. A ground-side alarm's action travels
-* as an ordinary command instead.
+* Held only by an alarm read at its own subject's vantage. `alarm.scet.arm`
+* refuses actions on an alarm judged against what a command centre has been
+* told, since acting on the craft in that frame would carry the ground's
+* decision to it faster than light. A ground-side alarm's action travels as an
+* ordinary command instead.
 *
 * Every kind but `ScetAlarmActionKind.Stage` toggles, against the state the
 * craft reports at the moment of the fire, which is what pressing the group's
@@ -6027,8 +6017,8 @@ export interface ScetAlarmAction
 	group: number;
 }
 /**
-* One SCET alarm as the simulation host holds it: the `alarm.scet` channel is
-* a bare array of these.
+* One SCET alarm as the game holds it: the `alarm.scet` Topic is a bare array
+* of these.
 *
 * The roster exists so an operator can see which alarms are still set after a
 * reconnect, and so a client can remove an entry it no longer remembers. The
@@ -6040,10 +6030,12 @@ export interface ScetAlarmAction
 * @category Alarms
 * @categoryDescription Alarms
 * Alarms that stop time warp when a time arrives or a value crosses a
-* threshold. The simulation host judges the ones set on the craft's own clock:
-* what each watches for, what the craft does when it fires, how far it has
-* got, and which Topics a threshold may be set against. Read here to arm, list
-* or react to an alarm.
+* threshold. A SCET alarm (spacecraft event time) is judged by the game on the
+* craft's own clock, not on the time a command centre reads after signal
+* delay. A widget asks for one with `useAlarmRequest` and the `Uplink*` types;
+* the `Scet*` types here are what the game holds and publishes once it is set:
+* what each alarm watches for, what the craft does when it fires, how far it
+* has got, and which Topics a threshold may be set against.
 */
 export interface ScetAlarm
 {
@@ -6085,27 +6077,27 @@ export interface ScetAlarm
 	* nothing else. An operator at one centre may ask when another centre will
 	* know, which where the command entered cannot express.
 	*
-	* A place, never a connection. Two operators sharing a command centre share
-	* its knowledge and its result, and a browser reconnecting is the same place
-	* it was before, so the simulation never learns that clients exist.
+	* A vantage is a place, not a connection: two operators sharing a command
+	* centre share its knowledge and its result.
+	*
+	* This empty-means-subject default belongs to the `alarm.scet.arm` command. A
+	* request made through the SDK's `useAlarmRequest` that names no vantage is
+	* judged on the command centre's, as the SDK's `UplinkAlarmVantage` describes.
 	*/
 	vantage: string;
 	/**
 	* What the condition is about: `"vessel:<guid>"` for a craft, or `"game"` for
-	* something the whole simulation shares. The same vocabulary `meta.source`
-	* uses.
+	* something the whole game shares. The same vocabulary `meta.source` uses.
 	*
 	* A time condition is always `"game"`: universal time is the game's, and a
 	* clock has no craft to belong to. A threshold names the craft, and this is
-	* what stops it silently re-aiming when the player switches vessels: the
-	* simulation compares this against the `meta.source` stamped on the payload it
-	* read, and a reading about somebody else's craft is ignored.
+	* what stops it silently re-aiming when the player switches vessels: the game
+	* compares this against the `meta.source` stamped on the payload it read, and
+	* a reading about somebody else's craft is ignored.
 	*
 	* A threshold on something the save owns rather than a craft is `"game"` too,
-	* and `career.status` is the one core publishes: there is one career, and no
-	* vessel switch can change which one is being read, so there is nothing for a
-	* third token to tell apart. That is the rule for a contributed Topic as well,
-	* not a special case for this one.
+	* such as `career.status`, and so is one on a Topic an Uplink contributes
+	* about the save.
 	*/
 	subject: string;
 	/**
@@ -6156,11 +6148,10 @@ export interface ScetAlarm
 * The notice that a SCET alarm has fired and the warp has been stopped.
 *
 * **Nothing about the craft.** It says which alarm fired and when. The stop is
-* universal, because warp is; the telemetry is not, and stays a light-time
-* behind. So an operator can be told their alarm went off while every reading
-* beside it still shows the craft as it was minutes ago, and this payload
-* carries nothing that would close that gap early. Whatever the craft was
-* doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
+* immediate, because warp is; the telemetry is not, and stays a light-time
+* behind. Readings shown beside this notice may still show the craft as it was
+* minutes ago, so a widget should not treat the notice as a reading: what the
+* craft was doing at `ScetAlarmFired.firedAtUt` arrives with its telemetry.
 *
 * The other fields say where it was learned and whether its actions were
 * withheld for want of the right craft; neither is a reading of the craft.
@@ -6198,13 +6189,13 @@ export interface ScetAlarmFired
 	actionsWithheld: boolean;
 }
 /**
-* `alarm.scet.arm`'s args: register an alarm with the simulation host, or
-* replace one already registered under the same `ScetAlarmArmArgs.id`.
+* `alarm.scet.arm`'s args: register an alarm with the game, or replace one
+* already registered under the same `ScetAlarmArmArgs.id`.
 *
 * Never delayed by light time: setting an alarm changes nothing aboard the
-* craft, so like `time.setWarpIndex` it is a control on the simulation, not a
-* signal to a spacecraft. An alarm can therefore be set for an event less than
-* one light time away, and during a blackout.
+* craft, so like `time.setWarpIndex` it is a control on the game, not a signal
+* to a spacecraft. An alarm can therefore be set for an event less than one
+* light time away, and during a blackout.
 *
 * @category Command arguments
 */
@@ -6260,13 +6251,12 @@ export interface ScetAlarmDisarmArgs
 * One Topic a SCET threshold alarm may be armed against: a row of the
 * `alarm.scet.topics` channel.
 *
-* The channel is the whole table of what the simulation host can read for a
-* threshold, so a picker offers exactly those Topics, and `alarm.scet.arm`
-* naming any other is refused. Any listed Topic is usable at any vantage.
+* The channel is the whole table of what the game can read for a threshold, so
+* a picker offers exactly those Topics, and `alarm.scet.arm` naming any other
+* is refused. Any listed Topic is usable at any vantage.
 *
-* Offering a Topic here promises that the host reads it whether or not any
-* widget is showing it. A Topic the table does not list is not addressable
-* even when it is on the wire.
+* A Topic the table does not list is not addressable even when it is on the
+* wire.
 *
 * @category Alarms
 */
@@ -6446,7 +6436,8 @@ export interface ExperimentEntry
 /**
 * One entry in the `science.instruments` Topic payload: a single
 * `ModuleScienceExperiment` on the active vessel, as an inventory and status
-* row keyed by `InstrumentEntry.partId` (the part's KSP `flightID`).
+* row keyed by `InstrumentEntry.partId` (the part's flight id, a number the
+* game assigns each part of a flight, written as a string).
 *
 * Distinct from `ExperimentEntry`: `science.experiments` walks the same
 * modules but yields one row per stored result (a module with no data produces
@@ -7566,11 +7557,11 @@ export interface SpaceCenterPoiEntry
 	contractDateDeadline?: Value<"ut"> | null;
 }
 /**
-* One ΔV-producing stage of the active vessel, from KSP's stock `VesselDeltaV`
-* stage simulation: the same numbers the in-game ΔV app shows, with
-* atmosphere, ISP, crossfeed and staging all handled by the game. Only the
-* stages that actually produce ΔV appear, the same set the in-game app lists
-* rather than the raw stage list, so stage numbers can be sparse.
+* One ΔV-producing stage of the active vessel, from the game's own stage
+* simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP,
+* crossfeed and staging all handled by the game. Only the stages that actually
+* produce ΔV appear, the same set the in-game app lists rather than the raw
+* stage list, so stage numbers can be sparse.
 *
 * The `dv.stages` payload is a plain array of these, or `null`, never a
 * wrapper object. The whole array is `null` when the stock simulation is not
@@ -10759,8 +10750,9 @@ export interface ResourceAmount
 	active: boolean;
 }
 /**
-* The `vessel.resources` Topic payload: a keyframed map, keyed by resource
-* name. No value is ever a sentinel such as `-1`.
+* What the active vessel carries, keyed by resource name, each with its
+* current amount and capacity. Every message holds the whole map. No value is
+* ever a sentinel such as `-1`.
 *
 * Only these stock resources are reported: `LiquidFuel`, `Oxidizer`,
 * `SolidFuel`, `MonoPropellant`, `ElectricCharge`, `XenonGas`, `Ore` and

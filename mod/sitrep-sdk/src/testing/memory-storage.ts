@@ -3,6 +3,15 @@
  * It behaves as the browser's does: `length` and `key()` reflect what it holds,
  * in the order the keys were first set.
  *
+ * @example Giving a `SettingsService` storage of its own
+ * ```ts
+ * import { SettingsService } from "@ksp-gonogo/sitrep-sdk";
+ * import { memoryStorage } from "@ksp-gonogo/sitrep-sdk/testing";
+ *
+ * const settings = new SettingsService(memoryStorage());
+ * settings.set("units", "metric");
+ * ```
+ *
  * @category Test doubles
  */
 export function memoryStorage(): Storage {

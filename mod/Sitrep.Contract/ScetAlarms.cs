@@ -8,7 +8,8 @@ namespace Sitrep.Contract;
 /// <summary>
 /// Which kind of condition a SCET alarm watches for.
 ///
-/// <para>Every alarm has a vantage, so a kind says only what is watched. A
+/// <para>Every alarm has a vantage (see <see cref="ScetAlarm.Vantage"/>), so a
+/// kind says only what is watched. A
 /// threshold follows a dotted path to a number; a contract parameter, which
 /// sits in a list no path can index, finds its contract and objective by
 /// id and title.</para>
@@ -25,13 +26,13 @@ public enum ScetAlarmConditionKind
 
     /// <summary>
     /// A value aboard the craft crossing a number the operator chose, compared
-    /// against the reading the simulation actually holds rather than against the
-    /// one the command centre has been told.
+    /// against the reading the game actually holds rather than against the one
+    /// the command centre has been told.
     ///
-    /// <para>Only the simulation can check this. A time alarm needs only a
-    /// clock, which a client has; a threshold needs the craft's true state,
-    /// which reaches the ground a light-time late and by then no longer says
-    /// whether the craft is above 100 km now.</para>
+    /// <para>Only the game can check this. A time alarm needs only a clock,
+    /// which a client has; a threshold needs the craft's true state, which
+    /// reaches the ground a light-time late and by then no longer says whether
+    /// the craft is above 100 km now.</para>
     /// </summary>
     Threshold,
 
@@ -77,11 +78,10 @@ public enum ScetAlarmThresholdOp
     /// <summary>
     /// Reading equals the threshold exactly.
     ///
-    /// <para>Offered for parity with the client's list, and a knife edge on
-    /// anything continuous: the reading is a sample, and under warp the samples
-    /// are thousands of game-seconds apart, so a craft can pass straight through
-    /// the value without one landing on it. An inequality is almost always the
-    /// condition an operator actually means.</para>
+    /// <para>Rarely what is wanted on a continuous value: readings are
+    /// samples, and under warp they are thousands of game-seconds apart, so a
+    /// craft can pass straight through the value without one landing on it. An
+    /// inequality is almost always the condition an operator means.</para>
     /// </summary>
     Equal,
 
@@ -92,9 +92,8 @@ public enum ScetAlarmThresholdOp
 /// <summary>
 /// Where a SCET alarm has got to.
 ///
-/// <para>A latch, not a level: <see cref="Fired"/> is reached once and stays,
-/// so a condition that keeps holding cannot stop the warp again on the next
-/// tick.</para>
+/// <para><see cref="Fired"/> is reached once and stays: an alarm whose
+/// condition keeps holding does not stop the warp again.</para>
 /// </summary>
 /// <category>Alarms</category>
 #if SITREP_CODEGEN
@@ -114,8 +113,7 @@ public enum ScetAlarmState
     /// come due.
     ///
     /// <para>Only a threshold reaches this: a time condition has no subject to
-    /// lose, because universal time belongs to the game. The simulation knows
-    /// the craft is gone before the command centre does, so show such a row as
+    /// lose, because universal time belongs to the game. Show such a row as
     /// dead rather than as pending.</para>
     /// </summary>
     Unreachable,
@@ -132,8 +130,8 @@ public enum ScetAlarmState
 /// <summary>
 /// What a SCET alarm watches for, on the craft's own clock.
 ///
-/// <para>A discriminated shape: <see cref="Kind"/> says which of the fields
-/// below carry meaning. For <see cref="ScetAlarmConditionKind.Time"/> that is
+/// <para>Every field is always present, and <see cref="Kind"/> says which of
+/// them carry meaning; the rest sit at their defaults and are ignored. For <see cref="ScetAlarmConditionKind.Time"/> that is
 /// <see cref="Ut"/> and <see cref="LeadSeconds"/>; for
 /// <see cref="ScetAlarmConditionKind.Threshold"/> it is <see cref="Topic"/>,
 /// <see cref="FieldPath"/>, <see cref="Op"/>, <see cref="Threshold"/> and
@@ -160,12 +158,10 @@ public class ScetAlarmCondition
     /// The instant the alarm is set for, as a universal time on the craft's
     /// clock rather than on the clock the command centre is reading.
     ///
-    /// <para>The difference between the two is the one-way light time, and it
-    /// moves continuously as the craft does. A client that subtracts it once,
-    /// at the moment the operator clicks, is right only for that instant; this
-    /// field is the instant itself, compared against the game's own clock every
-    /// tick, so the result stays right however the geometry changes between
-    /// setting the alarm and its firing.</para>
+    /// <para>The difference between the two is the one-way light time, which
+    /// changes as the craft moves. This field is the instant itself, compared
+    /// against the game's own clock every tick, so it stays right however the
+    /// distance changes between setting the alarm and its firing.</para>
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double Ut { get; set; }
@@ -175,9 +171,8 @@ public class ScetAlarmCondition
     /// operator has real time in hand before the instant they set the alarm for.
     /// Zero stops the warp at the instant itself.
     ///
-    /// <para>The stop and the notice are two separate moments: warp halts at
-    /// <c>Ut - LeadSeconds</c>, and the alarm fires at <c>Ut</c>, which arrives
-    /// in real time because the warp is already stopped.</para>
+    /// <para>Warp halts at <c>Ut - LeadSeconds</c>, and the alarm fires at
+    /// <c>Ut</c>.</para>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double LeadSeconds { get; set; }
@@ -215,8 +210,8 @@ public class ScetAlarmCondition
     /// <see cref="FieldPath"/> is published in.
     ///
     /// <para>It has no unit of its own: the same field is metres for one alarm
-    /// and kilonewtons for the next. To render it, look up the unit of the
-    /// addressed field.</para>
+    /// and kilonewtons for the next. To render it, read the unit of the field
+    /// the alarm addresses with the SDK's <c>unitOf(topic, fieldPath)</c>.</para>
     /// </summary>
     [SitrepUnit(Units.NotApplicable)]
     public double Threshold { get; set; }
@@ -227,13 +222,13 @@ public class ScetAlarmCondition
     /// matches.
     ///
     /// <para><b>Warp is stopped at the first match, not at the fire.</b> A
-    /// sustain window is a span of the craft's time, and under warp one tick
-    /// covers thousands of seconds of it, so a window measured across warped
-    /// ticks would be satisfied by two samples and mean nothing. Stopping first
-    /// is what gives the window real ticks to be measured over. The cost is that
-    /// a condition that matches once and then stops matching has still stopped
-    /// the warp; that is the fail-safe side to err on, because the operator
-    /// keeps their game and loses only the time they were skipping.</para>
+    /// condition that matches once and then stops matching has therefore still
+    /// stopped the warp.
+    /// <internal>A sustain window is a span of the craft's time, and under warp
+    /// one tick covers thousands of seconds of it, so a window measured across
+    /// warped ticks would be satisfied by two samples. Stopping first gives the
+    /// window real ticks to be measured over, and is the fail-safe side to err
+    /// on.</internal></para>
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double SustainSeconds { get; set; }
@@ -303,12 +298,11 @@ public enum ScetAlarmActionKind
 /// One thing the craft does in the frame its alarm fires, as a flight computer
 /// would: evaluated aboard, fired aboard, acted aboard.
 ///
-/// <para>Held only by an alarm read at its own subject's vantage. An alarm
-/// judged against what a command centre has been told comes due a light-time
-/// after the craft passed the condition, and acting on the craft in that same
-/// frame would carry the ground's decision to the craft faster than light, so
-/// <c>alarm.scet.arm</c> refuses such an alarm. A ground-side alarm's action
-/// travels as an ordinary command instead.</para>
+/// <para>Held only by an alarm read at its own subject's vantage.
+/// <c>alarm.scet.arm</c> refuses actions on an alarm judged against what a
+/// command centre has been told, since acting on the craft in that frame would
+/// carry the ground's decision to it faster than light. A ground-side alarm's
+/// action travels as an ordinary command instead.</para>
 ///
 /// <para>Every kind but <see cref="ScetAlarmActionKind.Stage"/> toggles,
 /// against the state the craft reports at the moment of the fire, which is
@@ -338,8 +332,8 @@ public class ScetAlarmAction
 }
 
 /// <summary>
-/// One SCET alarm as the simulation host holds it: the <c>alarm.scet</c>
-/// channel is a bare array of these.
+/// One SCET alarm as the game holds it: the <c>alarm.scet</c> Topic is a bare
+/// array of these.
 ///
 /// <para>The roster exists so an operator can see which alarms are still set
 /// after a reconnect, and so a client can remove an entry it no longer
@@ -358,10 +352,12 @@ public class ScetAlarmAction
 /// <category>Alarms</category>
 /// <categoryDescription>
 /// Alarms that stop time warp when a time arrives or a value crosses a threshold.
-/// The simulation host judges the ones set on the craft's own clock: what each
-/// watches for, what the craft does when it fires, how far it has got, and which
-/// Topics a threshold may be set against. Read here to arm, list or react to an
-/// alarm.
+/// A SCET alarm (spacecraft event time) is judged by the game on the craft's own
+/// clock, not on the time a command centre reads after signal delay. A widget
+/// asks for one with <c>useAlarmRequest</c> and the <c>Uplink*</c> types; the
+/// <c>Scet*</c> types here are what the game holds and publishes once it is set:
+/// what each alarm watches for, what the craft does when it fires, how far it
+/// has got, and which Topics a threshold may be set against.
 /// </categoryDescription>
 [SitrepContract]
 [SitrepTopic("alarm.scet", isArray: true)]
@@ -426,10 +422,13 @@ public class ScetAlarm
     /// when another centre will know, which where the command entered cannot
     /// express.</para>
     ///
-    /// <para>A place, never a connection. Two operators sharing a command
-    /// centre share its knowledge and its result, and a browser reconnecting is
-    /// the same place it was before, so the simulation never learns that
-    /// clients exist.</para>
+    /// <para>A vantage is a place, not a connection: two operators sharing a
+    /// command centre share its knowledge and its result.</para>
+    ///
+    /// <para>This empty-means-subject default belongs to the
+    /// <c>alarm.scet.arm</c> command. A request made through the SDK's
+    /// <c>useAlarmRequest</c> that names no vantage is judged on the command
+    /// centre's, as the SDK's <c>UplinkAlarmVantage</c> describes.</para>
     /// <internal>
     /// Taken from the command's ARGUMENTS rather than resolved from where the
     /// command entered, which is the opposite of <see cref="ArmedBy"/>.
@@ -442,22 +441,19 @@ public class ScetAlarm
 
     /// <summary>
     /// What the condition is about: <c>"vessel:&lt;guid&gt;"</c> for a craft, or
-    /// <c>"game"</c> for something the whole simulation shares. The same
+    /// <c>"game"</c> for something the whole game shares. The same
     /// vocabulary <c>meta.source</c> uses.
     ///
     /// <para>A time condition is always <c>"game"</c>: universal time is the
     /// game's, and a clock has no craft to belong to. A threshold names the
     /// craft, and this is what stops it silently re-aiming when the player
-    /// switches vessels: the simulation compares this against the
+    /// switches vessels: the game compares this against the
     /// <c>meta.source</c> stamped on the payload it read, and a reading about
     /// somebody else's craft is ignored.</para>
     ///
     /// <para>A threshold on something the save owns rather than a craft is
-    /// <c>"game"</c> too, and <c>career.status</c> is the one core publishes:
-    /// there is one career, and no vessel switch can change which one is being
-    /// read, so there is nothing for a third token to tell apart. That is the
-    /// rule for a contributed Topic as well, not a special case for this
-    /// one.</para>
+    /// <c>"game"</c> too, such as <c>career.status</c>, and so is one on a Topic
+    /// an Uplink contributes about the save.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Subject { get; set; } = "game";
@@ -521,11 +517,11 @@ public class ScetAlarm
 /// The notice that a SCET alarm has fired and the warp has been stopped.
 ///
 /// <para><b>Nothing about the craft.</b> It says which alarm fired and when.
-/// The stop is universal, because warp is; the telemetry is not, and
-/// stays a light-time behind. So an operator can be told their alarm went off
-/// while every reading beside it still shows the craft as it was minutes ago,
-/// and this payload carries nothing that would close that gap early. Whatever
-/// the craft was doing at <see cref="FiredAtUt"/> arrives when it arrives.</para>
+/// The stop is immediate, because warp is; the telemetry is not, and stays a
+/// light-time behind. Readings shown beside this notice may still show the
+/// craft as it was minutes ago, so a widget should not treat the notice as a
+/// reading: what the craft was doing at <see cref="FiredAtUt"/> arrives with
+/// its telemetry.</para>
 ///
 /// <para>The other fields say where it was learned and whether its actions
 /// were withheld for want of the right craft; neither is a reading of the
@@ -586,12 +582,12 @@ public class ScetAlarmFired
 }
 
 /// <summary>
-/// <c>alarm.scet.arm</c>'s args: register an alarm with the simulation host, or
-/// replace one already registered under the same <see cref="Id"/>.
+/// <c>alarm.scet.arm</c>'s args: register an alarm with the game, or replace
+/// one already registered under the same <see cref="Id"/>.
 ///
 /// <para>Never delayed by light time: setting an alarm changes nothing aboard
-/// the craft, so like <c>time.setWarpIndex</c> it is a control on the
-/// simulation, not a signal to a spacecraft. An alarm can therefore be set for
+/// the craft, so like <c>time.setWarpIndex</c> it is a control on
+/// the game, not a signal to a spacecraft. An alarm can therefore be set for
 /// an event less than one light time away, and during a blackout.</para>
 /// </summary>
 /// <category>Command arguments</category>
@@ -671,14 +667,13 @@ public class ScetAlarmDisarmArgs
 /// One Topic a SCET threshold alarm may be armed against: a row of the
 /// <c>alarm.scet.topics</c> channel.
 ///
-/// <para>The channel is the whole table of what the simulation host can read for a
+/// <para>The channel is the whole table of what the game can read for a
 /// threshold, so a picker offers exactly those Topics, and
 /// <c>alarm.scet.arm</c> naming any other is refused. Any listed Topic is
 /// usable at any vantage.</para>
 ///
-/// <para>Offering a Topic here promises that the host reads it whether or not
-/// any widget is showing it. A Topic the table does not list is not addressable
-/// even when it is on the wire.</para>
+/// <para>A Topic the table does not list is not addressable even when it is on
+/// the wire.</para>
 /// <internal>
 /// Backed by Sitrep.Host.Alarms.ScetThresholdSources, which is hand-written
 /// rather than a tap on the channel loop because that loop skips a Topic nothing

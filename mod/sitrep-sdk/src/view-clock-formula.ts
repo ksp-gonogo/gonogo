@@ -51,7 +51,9 @@ export interface ClockFormulaSnapshot extends ClockFormulaInputs {
 /**
  * Returns the estimated UT at the craft now: the anchor UT carried forward at
  * `warpRate` for the wall-clock time since the anchor. Before any anchor it
- * returns `maxSampleUt`, or 0 before any sample.
+ * returns `maxSampleUt`, and 0 while `maxSampleUt` is still
+ * `Number.NEGATIVE_INFINITY` (no sample received), so the result is always a
+ * finite number.
  *
  * @category Delay and vantage
  */

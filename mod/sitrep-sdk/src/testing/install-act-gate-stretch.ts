@@ -23,6 +23,8 @@ const FRAME_MS = 1000 / 60;
  * while the variable is unset, and throws when it is set to anything but a
  * positive whole number.
  *
+ * You need it only if a test run prints act warnings that land after a test
+ * returns and a widget under test keeps updating (a timer, a socket reply).
  * Call it last in a vitest setup file, after Testing Library is imported, and
  * await it.
  *

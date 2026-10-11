@@ -114,7 +114,7 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
-  /** One SCET alarm as the simulation host holds it: the `alarm.scet` channel is a bare array of these. */
+  /** One SCET alarm as the game holds it: the `alarm.scet` Topic is a bare array of these. */
   "alarm.scet": ScetAlarm[];
   /** The notice that a SCET alarm has fired and the warp has been stopped. */
   "alarm.scet.fired": ScetAlarmFired;
@@ -140,11 +140,11 @@ export interface GeneratedTopicPayloadMap {
   "commcast.transmissions": CommcastTransmissionRow;
   /** The `comms.commandCentre` payload: which command centre the active vessel's path ends at, as the receiving command centre believes it to stand now, so a client can show its own stats against the right name instead of assuming KSC. */
   "comms.commandCentre": CommsCommandCentre;
-  /** The `comms.connectivity` payload: always present, sourced from the elected comms backend. */
+  /** Whether the active vessel has a control link home right now, and the degree of control it has. */
   "comms.connectivity": CommsConnectivity;
   /** One command centre's contact plan: for each pair of nodes that could hold a link (a ground station and a craft, or two craft), the windows over the coming hours when that centre predicts nothing blocks it and it is within reach. */
   "comms.contacts": CommsContacts;
-  /** The `comms.control` payload: always present, sourced from the elected comms backend. */
+  /** What the active vessel can be commanded to do right now, which is a different question from whether it is connected. */
   "comms.control": CommsControl;
   /** The `comms.degrade` payload: how degraded the active vessel's link home is right now, on one fixed scale, as the comms backend in force grades it. */
   "comms.degrade": CommsDegrade;
@@ -156,7 +156,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.link": CommsLink;
   /** The `comms.network` payload: the nodes and edges of the active vessel's path as the receiving command centre believes it to stand now, which is `comms.path` in graph form with each node named. */
   "comms.network": CommsNetwork;
-  /** The `comms.occlusion` payload: always present, sourced from the elected comms backend. */
+  /** The model of which bodies block a radio path, named, with its rule already applied to every celestial body the game knows about: each body's blocking radius. */
   "comms.occlusion": CommsOcclusion;
   /** The `comms.path` payload: the route the active vessel's samples take to the receiving command centre. */
   "comms.path": CommsPath;
@@ -166,11 +166,11 @@ export interface GeneratedTopicPayloadMap {
   "comms.signal": CommsSignal;
   /** The payload for the `crash.hasRecent` channel: one flag saying a notable crash is on record for the current save, published beside `CrashReport` on `crash.lastCrash`. */
   "crash.hasRecent": CrashRecent;
-  /** The payload for the `crash.lastCrash` channel: a single "last notable crash" record for the current save, delivered on the `Delivery.ReliableOrdered` event lane, so a late subscriber receives the most recent record. */
+  /** The last notable crash of the current save. */
   "crash.lastCrash": CrashReport;
   /** One entry in the `deployed.bases` Topic payload: a Breaking Ground deployed-science experiment (`ModuleGroundExperiment`). */
   "deployed.bases": DeployedEntry[];
-  /** One ΔV-producing stage of the active vessel, from KSP's stock `VesselDeltaV` stage simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP, crossfeed and staging all handled by the game. */
+  /** One ΔV-producing stage of the active vessel, from the game's own stage simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP, crossfeed and staging all handled by the game. */
   "dv.stages": StageDeltaVEntry[];
   /** The `dv.summary` Topic payload: the whole-vessel ΔV rollup KSP's stock `VesselDeltaV` exposes alongside the per-stage `StageDeltaVEntry` list: the ΔV-producing stage count plus the vacuum, sea-level and current totals and total burn time. */
   "dv.summary": StageDeltaVSummary;
@@ -178,7 +178,7 @@ export interface GeneratedTopicPayloadMap {
   "eva.crew": EvaCrew;
   /** The fleet-wide silence roster on `fleet.silence`: every vessel still in the game that the tracker holds a reckoning for, in one payload. */
   "fleet.silence": FleetSilence;
-  /** The `flight.current` Topic payload: a UT-indexed value, delivered latest-wins and delayed like every `vessel.*` channel. */
+  /** Which flight is active and what phase it is in, for the vessel gonogo is reporting as active. */
   "flight.current": FlightCurrent;
   /** The `flight.ended` Topic payload: a reliable, ordered, delayed event sent once per flight when it stops being trackable: recovered, crashed, destroyed or reverted. */
   "flight.ended": FlightEnded;
@@ -212,7 +212,7 @@ export interface GeneratedTopicPayloadMap {
   "science.experimentBreakdown": ExperimentBreakdownEntry[];
   /** One entry in the `science.experiments` Topic payload: a single stored science result on the active vessel, held either by the science module that collected it or by a container part. */
   "science.experiments": ExperimentEntry[];
-  /** One entry in the `science.instruments` Topic payload: a single `ModuleScienceExperiment` on the active vessel, as an inventory and status row keyed by `InstrumentEntry.partId` (the part's KSP `flightID`). */
+  /** One entry in the `science.instruments` Topic payload: a single `ModuleScienceExperiment` on the active vessel, as an inventory and status row keyed by `InstrumentEntry.partId` (the part's flight id, a number the game assigns each part of a flight, written as a string). */
   "science.instruments": InstrumentEntry[];
   /** One entry in the `science.lab` Topic payload: a Mobile Processing Lab (KSP's `ModuleScienceLab`) on the active vessel. */
   "science.lab": LabEntry[];
@@ -276,7 +276,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.physics.mode": VesselPhysicsMode;
   /** The `vessel.propulsion` Topic payload: the active vessel's mass and thrust, the inputs to thrust-to-weight and burn-time figures. */
   "vessel.propulsion": VesselPropulsion;
-  /** The `vessel.resources` Topic payload: a keyframed map, keyed by resource name. */
+  /** What the active vessel carries, keyed by resource name, each with its current amount and capacity. */
   "vessel.resources": VesselResources;
   /** The `vessel.structure` Topic payload: the active vessel's stage and part counts. */
   "vessel.structure": VesselStructure;

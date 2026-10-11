@@ -43,8 +43,9 @@ public class ResourceAmount
 }
 
 /// <summary>
-/// The <c>vessel.resources</c> Topic payload: a keyframed map, keyed by
-/// resource name. No value is ever a sentinel such as <c>-1</c>.
+/// What the active vessel carries, keyed by resource name, each with its
+/// current amount and capacity. Every message holds the whole map. No value is
+/// ever a sentinel such as <c>-1</c>.
 ///
 /// <para>Only these stock resources are reported: <c>LiquidFuel</c>,
 /// <c>Oxidizer</c>, <c>SolidFuel</c>, <c>MonoPropellant</c>,

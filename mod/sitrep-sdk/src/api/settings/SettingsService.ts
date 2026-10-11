@@ -48,6 +48,7 @@ export class SettingsService {
   private dirty = false;
   private beforeUnloadHandler: (() => void) | null = null;
 
+  /** @param storage - Where the settings are saved: the browser's `localStorage`, or any `Storage`, such as an in-memory one in a test. */
   constructor(storage: Storage = globalThis.localStorage) {
     this.storage = storage;
     this.load();
@@ -89,10 +90,10 @@ export class SettingsService {
   }
 
   /**
-   * Force any pending debounced write to localStorage immediately. Tests
-   * call this between `set()` and constructing a second instance from
-   * the same storage; the beforeunload handler also calls it on tab
-   * close so users don't lose recent edits.
+   * Writes any pending change to storage now, instead of waiting for the short
+   * delay that batches writes. A page unloading does this itself; call it from
+   * a test between `set()` and constructing a second instance on the same
+   * storage.
    */
   flush(): void {
     if (this.saveTimer !== null) {
@@ -102,9 +103,7 @@ export class SettingsService {
     if (this.dirty) this.save();
   }
 
-  /** Detach the beforeunload listener. Call before discarding the
-   *  service: primarily relevant in tests that mount/unmount many
-   *  instances. */
+  /** Writes any pending change and stops listening for the page unloading. Call it before discarding a service, such as at the end of a test that creates many. */
   dispose(): void {
     this.flush();
     if (this.beforeUnloadHandler && typeof window !== "undefined") {

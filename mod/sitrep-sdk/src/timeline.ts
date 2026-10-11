@@ -56,6 +56,34 @@ export type DerivedGet = <Payload = unknown>(
  * store, the app's record of every Topic's samples over game time, so a
  * widget reads it like any other Topic.
  *
+ * @example A channel that says whether the craft is descending
+ * ```ts
+ * import {
+ *   defineUplinkClient,
+ *   type TopicPayload,
+ * } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * const DESCENT = defineUplinkClient({
+ *   id: "descent",
+ *   version: "1.0.0",
+ *   name: "Descent",
+ *   description: "Derives descent facts from the craft's flight state.",
+ * });
+ *
+ * DESCENT.registerDerivedChannel<{ descending: boolean }>({
+ *   topic: "descent.state",
+ *   inputs: ["vessel.flight"],
+ *   derive: (get) => {
+ *     const flight = get<TopicPayload<"vessel.flight">>("vessel.flight");
+ *     // Not arrived yet: say nothing, so readers show "waiting".
+ *     if (flight === undefined) return undefined;
+ *     // The game confirmed there is no flight data.
+ *     if (flight.payload === null) return null;
+ *     return { descending: flight.payload.verticalSpeed.isNegative() };
+ *   },
+ * });
+ * ```
+ *
  * @category Processors
  */
 export interface DerivedChannelDefinition<Payload> {

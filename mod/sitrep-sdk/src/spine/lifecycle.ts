@@ -2,17 +2,13 @@ import type { LimitBreach } from "../__generated__/contract";
 import type { CommandErrorCode } from "../__generated__/error-codes";
 
 /**
- * Everything a refusal needs to be SAID, beyond the typed reason itself.
+ * Everything a refusal needs to be said to the operator, beyond the typed
+ * reason itself.
  *
- * The reason alone reads "ModeUnavailable", which names neither the command nor
- * a single number. `command`/`args`/`label` are what the client dispatched,
- * kept client-side (the reply carries a `requestId` and no command name,
- * deliberately); `breach` is the comparison the mod attached when the refusal
- * had one.
- *
- * The code picks the sentence and the breach fills it in. Neither is much use
- * alone: a code cannot say "16 of 16", and a pair of numbers does not say which
- * sentence they belong in.
+ * `command`, `args` and `label` are what this client dispatched, and `breach`
+ * is the comparison the mod attached when the refusal had one. The code picks
+ * the sentence and the breach fills it in: a code cannot say "16 of 16", and a
+ * pair of numbers does not say which sentence they belong in.
  *
  * @category Commands
  */
@@ -26,13 +22,10 @@ export interface CommandRefusalDetail {
   /** The limit and the actual behind the refusal, when there is one. */
   breach?: LimitBreach;
   /**
-   * The refusal in the GAME's own words, when the game had any to give: the
-   * member of `ClearToSaveStatus`, a strategy's own `CanBeActivated` reason, a
-   * pre-flight test's warning title, a state member's `[Description]` name.
-   *
-   * Quoted rather than inferred, so no client keeps an English table of KSP's
-   * vocabulary that is wrong in every other language. `errorCode` stays the
-   * machine-readable half; this is never parsed.
+   * The refusal in the game's own words, when the game gave any, such as the
+   * reason a strategy cannot be activated or the title of a failed pre-flight
+   * check. Show it as it is: `errorCode` is the machine-readable half, and this
+   * text is not for parsing.
    */
   detail?: string;
   /**
@@ -53,24 +46,20 @@ export interface CommandRefusalDetail {
  * @category Commands
  */
 export interface CommandRefusal extends CommandRefusalDetail {
+  /** The dispatch's request id, which `dismiss` takes. */
   id: string;
+  /** Why the game refused it: the root code. A more specific `reason` is on the detail. */
   errorCode: CommandErrorCode;
 }
 
 /**
- * One dispatch nothing ever replied to, as a widget surface renders it.
+ * One dispatch nothing replied to, as a widget surface renders it.
  *
- * Separate from {@link CommandRefusal} because the two say opposite things. A
- * refusal is the game's verdict and carries a typed reason; a loss carries no
- * reason at all, because nothing was decided and the command may well have
- * executed. What the operator is owed here is the identity of the command that
- * went quiet, and nothing that reads as a judgement.
- *
- * It exists because a loss can have NO queue entry to render. The engine drops
- * a command for an unreachable subject before it mints a `PendingUplink`
- * (`ChannelEngine`'s `if (!SubjectConnected(NodeId))` gate), so the whole delay
- * UI, derived from that queue, had nothing to draw for the command's entire
- * life while the button settled as though it had worked.
+ * A refusal is the game's verdict and carries a typed reason; a loss carries no
+ * reason, because nothing was decided and the command may well have run. It
+ * names the command that went quiet and makes no claim about what happened. A
+ * loss can have no entry on the delay rail, for instance a command sent to a
+ * craft with no connection, so this is where such a command is shown.
  *
  * The `id` is the dispatch's own `requestId`, so one `dismiss(id)` clears a
  * loss, a refusal and a dead in-flight command alike.
@@ -78,6 +67,7 @@ export interface CommandRefusal extends CommandRefusalDetail {
  * @category Commands
  */
 export interface CommandLoss {
+  /** The dispatch's request id, which `dismiss` takes. */
   id: string;
   /** The command id that was dispatched, e.g. `vessel.control.setSas`. */
   command: string;
@@ -90,15 +80,11 @@ export interface CommandLoss {
 /**
  * One dispatch that never left this machine, as a widget surface renders it.
  *
- * A {@link CommandLoss} whose doubt has been RESOLVED, and resolved the other
- * way from a {@link CommandFound}: the transport held it for a link that never
- * came back and has now stopped retrying, so it reached no wire, no mod and no
- * game. Nothing ran.
- *
- * That is a stronger claim than `lost` and it is the useful one. `lost` earns
- * its caution, "may have run", from a command that may be sitting
- * in a queue on the far side; this one is sitting in a queue on THIS side, so
- * re-sending it cannot double anything and the operator can act on that.
+ * A {@link CommandLoss} that has turned out the other way from a
+ * {@link CommandFound}: the connection held the command for a link that never
+ * came back and has stopped retrying, so it reached no mod and no game and
+ * nothing ran. A command that is `lost` may have run; this one did not, so
+ * sending it again cannot do it twice.
  *
  * It carries everything the loss did, so a surface drawing the loss can draw
  * this in its place, plus the transport's own reason.
@@ -116,8 +102,7 @@ export interface CommandUndelivered extends CommandLoss {
  * input was dropped where it would have waited, or a game load undid it.
  *
  * Not a refusal, which is the game's verdict on the command itself, and not a
- * loss, which carries no news at all. The mod said what became of it, and
- * `code` says which of those it was.
+ * loss, where nothing came back. `code` says what became of it.
  *
  * @category Commands
  */
@@ -137,33 +122,25 @@ export interface CommandFailure extends CommandLoss {
  * looking for the command's identity again, plus the one thing the loss never
  * had: what the reply actually said.
  *
- * `lost` means WE DO NOT KNOW, never IT DID NOT HAPPEN, and this is the case
- * that proves it. Nothing here prevents or undoes the execution; the command ran
- * (or was refused, or broke) exactly as it would have done had the reply arrived
- * on time, and the only thing that was ever wrong was our silence about it.
+ * `lost` means the outcome was not known, not that the command did not happen.
+ * The command ran, was refused or broke exactly as it would have had the reply
+ * arrived on time; `outcome` says which.
  *
  * @category Commands
  */
 export type CommandFound = CommandLoss & CommandFoundOutcome;
 
 /**
- * What a late reply turned out to say, and why the three are kept apart.
+ * What a late reply turned out to say. The three outcomes call for different
+ * responses:
  *
- * They send the operator in opposite directions, which is the whole reason
- * `found` is not one flat phase:
- *
- * - `ran`: the command executed. An operator who re-sent it after being told it
- *   was lost has now executed it twice, and this is the only place that fact
- *   exists
+ * - `ran`: the command executed. An operator who sent it again after being told
+ *   it was lost has now executed it twice
  * - `refused`: the command arrived and the game said no. A re-send is refused
  *   again for the same reason until the world changes, so the reason is the
  *   actionable half and it is carried here in full
  * - `errored`: the command arrived and the machinery broke on the far side. It
- *   reached the game, which is the found part, and a retry may genuinely work,
- *   which is what separates it from a refusal
- *
- * Folding these together would repeat the mistake `CommandStatus` already
- * refused to make when it kept `refused` out of `failed`.
+ *   reached the game, and a retry may work, which separates it from a refusal
  *
  * @category Commands
  */
@@ -191,7 +168,8 @@ export type CommandFoundOutcome =
  * - `undelivered`: it never left this machine, because the link did not come
  *   back. It did not run, so it is safe to send again
  *
- * A lost command can still become `found`; every other phase after
+ * A `lost` command can still become `found` (its reply arrived late) or
+ * `undelivered` (the connection gave up on it); every other phase after
  * `in-flight` is final.
  *
  * @category Commands

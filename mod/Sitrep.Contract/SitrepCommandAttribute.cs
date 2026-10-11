@@ -64,6 +64,14 @@ namespace Sitrep.Contract
         public Type Result { get; set; }
 
         /// <summary>
+        /// One sentence saying what this command does, for the reference page
+        /// row of a command that shares its args class with others. Without it
+        /// the row reads the args class's first sentence, which is the same for
+        /// every command that class serves.
+        /// </summary>
+        public string Summary { get; set; }
+
+        /// <summary>
         /// Whether this command rides the light-time delay. Default
         /// <see cref="DelayRole.Delayed"/>: an order to a craft crosses the gap
         /// like any other signal, and only a fact with no analogue in flight is

@@ -26,6 +26,9 @@ export function isLocked(value: unknown): value is LockedValue {
  * nothing to work with. To show the field, use {@link isLocked} instead, so
  * the operator sees why it is empty.
  *
+ * @typeParam Value - The type of the field itself. It is a type parameter of
+ * this function, not the SDK's `Value` quantity type.
+ *
  * @category Readings
  */
 export function unlessLocked<Value>(value: Value | LockedValue): Value | null {

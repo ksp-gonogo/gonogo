@@ -113,7 +113,7 @@ export interface SettingDefinitionBase {
   readOnly?: boolean;
   /**
    * The id of a boolean setting this one is nested under. Settings indents
-   * the row, and disables it and shows it off while the parent is `false`.
+   * the row, and disables it while the parent is `false`.
    * That is all it does: {@link useSetting} still returns the row's own
    * value, so code that should obey the parent reads both and combines them.
    */

@@ -216,8 +216,8 @@ public class ExperimentEntry
 /// <summary>
 /// One entry in the <c>science.instruments</c> Topic payload: a single
 /// <c>ModuleScienceExperiment</c> on the active vessel, as an inventory and
-/// status row keyed by <see cref="PartId"/> (the part's KSP
-/// <c>flightID</c>).
+/// status row keyed by <see cref="PartId"/> (the part's flight id, a number the
+/// game assigns each part of a flight, written as a string).
 ///
 /// <para>Distinct from <see cref="ExperimentEntry"/>:
 /// <c>science.experiments</c> walks the same modules but yields one row per

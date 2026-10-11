@@ -57,7 +57,7 @@
     <Title>Gonogo Uplink contract</Title>
     <Authors>ksp-gonogo</Authors>
     <Company>ksp-gonogo</Company>
-    <Description>The C# Uplink surface for Gonogo, a mission-control dashboard for Kerbal Space Program: the attributes, descriptors and payload types a KSP mod implements to publish telemetry to a Gonogo host, and the contract version stamp the host loads it against. The TypeScript half of the same contract is @ksp-gonogo/sitrep-sdk.</Description>
+    <Description>The C# Uplink surface for Gonogo, a mission-control dashboard for Kerbal Space Program: the attributes, descriptors and payload types a KSP mod implements to publish telemetry to a Gonogo host, and the contract version stamp the host loads it against. Its C# namespace is `Sitrep.Contract`. The TypeScript half of the same contract is the npm package `@ksp-gonogo/sitrep-sdk`.</Description>
     <PackageTags>ksp;kerbal-space-program;gonogo;sitrep;telemetry;uplink;modding</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>

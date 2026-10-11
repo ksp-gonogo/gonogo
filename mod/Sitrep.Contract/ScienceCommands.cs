@@ -18,8 +18,8 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("science.experiment.deploy")]
-[SitrepCommand("science.experiment.transmit", Payload = typeof(ScienceTransmission))]
+[SitrepCommand("science.experiment.deploy", Summary = "Deploy a science experiment on a part.")]
+[SitrepCommand("science.experiment.transmit", Payload = typeof(ScienceTransmission), Summary = "Transmit a science experiment's data home.")]
 public class ExperimentActionArgs
 {
     /// <summary>

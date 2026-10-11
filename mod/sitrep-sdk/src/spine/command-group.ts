@@ -53,7 +53,13 @@ export interface CommandGroupHandle {
   readonly status: CommandGroupPhase;
   /** Every member's reply, in order. Rejects with the first member's rejection. */
   readonly result: Promise<AnyCommandReply[]>;
-  /** Stops the whole group while it is held or travelling, from the command centre that sent it. */
+  /**
+   * Stops the whole group while it is held or travelling, from the command
+   * centre that sent it. It resolves with what the cancel did at the sending
+   * centre, not what happened at the craft: `throughSeq` is the last lane
+   * number the cancel covers, `expiresAtUt` when it expires, and `refusal` a
+   * reason when it was refused.
+   */
   cancel(): Promise<UplinkActionOutcome>;
 }
 

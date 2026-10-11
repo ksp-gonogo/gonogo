@@ -55,9 +55,9 @@ public enum CommsControlSource
 }
 
 /// <summary>
-/// The <c>comms.connectivity</c> payload: always present, sourced from the
-/// elected comms backend. Ground-side truth about whether the active vessel
-/// has a control link home right now. All three fields describe the same tick.
+/// Whether the active vessel has a control link home right now, and the degree
+/// of control it has. Always present, and read from the comms mod in force:
+/// ground-side truth, with all three fields describing the same tick.
 /// </summary>
 /// <category>Comms</category>
 /// <categoryDescription>
@@ -273,9 +273,9 @@ public enum CommsControlStateKind
 }
 
 /// <summary>
-/// The <c>comms.control</c> payload: always present, sourced from the elected
-/// comms backend. What the active vessel can be commanded to do right now,
-/// which is a different question from whether it is connected.
+/// What the active vessel can be commanded to do right now, which is a
+/// different question from whether it is connected. Always present, and read
+/// from the comms mod in force.
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]

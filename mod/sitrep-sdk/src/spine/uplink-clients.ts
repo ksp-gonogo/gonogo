@@ -82,10 +82,14 @@ export interface UplinkClientHandle {
   registerRootProvider(def: RootProviderDefinition): void;
 
   /**
-   * Gives an alarm's `event` trigger this Uplink's events to watch for. The source is
-   * asked for its events with the UT the operator is viewing, which lags the
-   * game under signal delay; return only the events that have happened by
-   * then.
+   * Gives an alarm's `event` trigger this Uplink's events to watch for. This
+   * is the handle's form of {@link registerRevealedEventSource}: it takes the
+   * same {@link RevealedEventSourceDefinition}, with the id prefixed by the
+   * Uplink's id. Call this one from an Uplink's client.
+   *
+   * The source is asked for its events at the universal time (UT, the game
+   * clock in seconds) the operator is viewing. That time lags the game under
+   * signal delay, so return only the events that have happened by then.
    */
   registerRevealedEventSource(def: RevealedEventSourceDefinition): void;
 
@@ -99,7 +103,8 @@ export interface UplinkClientHandle {
     const Deps extends readonly ContributionDep[] = readonly [],
   >(def: Omit<ContributionDefinition<Slot, Deps>, "owner">): void;
   /**
-   * Registers a Processor, a value computed from Topics once per frame and
+   * Registers a Processor, a value computed from Topics once per frame (each
+   * time the dashboard's telemetry store publishes a new set of values) and
    * shared by every reader. Returns the handle to read it by, with
    * {@link useProcessor} or as one of a contribution's `deps`.
    */
@@ -142,7 +147,8 @@ export interface UplinkClientHandle {
   ): void;
   /**
    * Adds a derived channel: a Topic whose value is computed from other Topics
-   * in the app rather than sent by the mod.
+   * in the app rather than sent by the mod. See {@link DerivedChannelDefinition}
+   * for how its `derive` reads the inputs.
    *
    * An Uplink cannot replace a Topic Gonogo already derives, and when two
    * Uplinks derive the same Topic, neither is used.
@@ -181,10 +187,12 @@ export interface UplinkClientConfig {
   /** What the Uplink does, in one or two sentences. See {@link UplinkClientHandle.description}. */
   description: string;
   /**
-   * The value tags this Uplink's contract declares: `GENERATED_CONTRACT_TAGS`
-   * from its generated `units.ts`. Registered under the client's id before the
-   * handle is returned, so the handle's `registerReckoner` finds the marks that
-   * let it model a value.
+   * The value tags this Uplink's contract declares: how a value relates in
+   * time, whether it identifies a list entry, and which values a forward model
+   * carries on. `uplink-tools codegen` writes them as `GENERATED_CONTRACT_TAGS`
+   * in `client/src/__generated__/units.ts`; pass that table here. They are
+   * registered under the client's id before the handle is returned, so the
+   * handle's `registerReckoner` finds the marks that let it model a value.
    */
   tags?: ContractTagTable;
 }

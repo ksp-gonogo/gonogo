@@ -136,7 +136,9 @@ public class CommsJourneyEvent
 
 /// <summary>
 /// Cancels a held or travelling command: its lane number alone, or it and every
-/// later number this centre had sent on the lane when it was pressed. A command
+/// later number this centre had sent on the lane when it was pressed. A lane is
+/// the ordered run of delayed commands one centre sends to one craft, and a
+/// lane number is a command's place in it. A command
 /// this centre is still holding stops at once; for one it has sent, a cancel
 /// goes to the craft, stopping the command wherever it is held and refusing it
 /// at the craft if it arrives there first. What it stopped arrives as journey

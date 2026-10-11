@@ -6,7 +6,8 @@
  * commands of its own and ships widgets for the app. This package holds the
  * typed contract for every Topic and command, generated from the mod's C#, and
  * the calls a client makes with it: `defineUplinkClient`, `registerComponent`,
- * `useTelemetry`, `useCommand` and the unit model.
+ * `useTelemetry`, `useCommand` and the quantity types that carry a value with
+ * its unit (`Value`).
  *
  * @packageDocumentation
  */

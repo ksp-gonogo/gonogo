@@ -78,12 +78,8 @@ interface RawSystemUplinksPayload {
  * its integer ordinal rather than its name, so the wire value resolves here by
  * a plain array index.
  *
- * The one ordinal→name table in this package still written out by hand: its
- * literal tuple type is what gives {@link UplinkHealthStateName} a closed
- * union for callers to key a `Record` on, which deriving it would lose. That
- * also makes it the one table a C# member can be appended to without,
- * so `enum-name-tables.test.ts` reads the declaration out of the contract
- * source and fails when the two drift.
+ * Its literal tuple type gives {@link UplinkHealthStateName} a closed union,
+ * which you can key a `Record` on.
  */
 export const HEALTH_STATE_NAMES = [
   "healthy",

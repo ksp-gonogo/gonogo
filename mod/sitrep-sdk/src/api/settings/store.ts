@@ -114,10 +114,11 @@ function notify(key: string): void {
 
 /**
  * The value of one of the app's own shared settings, such as the host the game
- * runs on: the one saved in this browser, or else the value seeded at startup,
- * or `undefined` when there is neither. A default is the caller's to supply.
- * Values are strings, and it can be called outside React. For a setting of
- * your own, drawn in a component, use {@link useSetting}.
+ * runs on, whose key is {@link GAME_HOST_KEY}: the one saved in this browser,
+ * or else the value seeded at startup, or `undefined` when there is neither. A
+ * default is the caller's to supply. Values are strings, and it can be called
+ * outside React. For a setting of your own, drawn in a component, use
+ * {@link useSetting}.
  *
  * @category Settings
  */
@@ -142,9 +143,9 @@ export function setSetting(key: string, value: string): void {
 
 /**
  * Sets a value used for this page load only, while nothing is saved for the
- * setting. Never saved. The app seeds the game's host this way at startup
- * from the `KSP_HOST` it was deployed with, so a fresh browser starts pointed
- * at the right machine.
+ * setting. Never saved. The app seeds the game's host this way at startup,
+ * from the `KSP_HOST` address the deployment was configured with, so a fresh
+ * browser starts pointed at the right machine.
  *
  * @category Settings
  */

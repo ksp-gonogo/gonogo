@@ -46,13 +46,13 @@ import { recordAlarmRequest } from "./recorded-alarm-requests";
  */
 export interface UiKitHostPieces {
   // Typed `never` so ui-kit's slot-generic functions are assignable without a cast at each call site; the casts happen in installRealTestHost.
-  /** ui-kit's `AugmentSlot`. */
+  /** ui-kit's `AugmentSlot` component, which a widget draws where an Uplink's augments appear. Typed loosely so it is assignable as it is. */
   AugmentSlot: ComponentType<never>;
-  /** ui-kit's `clearAugments`. */
+  /** ui-kit's `clearAugments`, which removes every registered augment. */
   clearAugments: () => void;
-  /** ui-kit's `getAugmentsForSlot`. */
+  /** ui-kit's `getAugmentsForSlot`, which lists the augments registered for a slot id. */
   getAugmentsForSlot: (slot: string) => unknown[];
-  /** ui-kit's `registerAugment`. */
+  /** ui-kit's `registerAugment`, which attaches an augment to a slot. Typed loosely so it is assignable as it is. */
   registerAugment: (def: never) => void;
 }
 
@@ -64,6 +64,10 @@ export interface UiKitHostPieces {
  * Call it once, in the test setup file. It returns a function that removes the
  * host again, which most suites never need: the host keeps no state of its
  * own, so there is nothing to clear between tests.
+ *
+ * Install `@testing-library/react`, `jsdom` and `vitest` as dev dependencies,
+ * set `environment: "jsdom"` in the vitest config, and name the setup file
+ * below in its `setupFiles`.
  *
  * @example The setup file a client's `vitest.config.ts` names in `setupFiles`
  * ```ts

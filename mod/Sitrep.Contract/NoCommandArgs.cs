@@ -39,12 +39,12 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.stage", Payload = typeof(int))]
-[SitrepCommand("vessel.target.clear")]
-[SitrepCommand("ksp.recover", Delay = DelayRole.TrueNow)]
-[SitrepCommand("ksp.revertToLaunch", Delay = DelayRole.TrueNow)]
-[SitrepCommand("ksp.toTrackingStation", Delay = DelayRole.TrueNow)]
-[SitrepCommand("ksp.toSpaceCenter", Delay = DelayRole.TrueNow)]
+[SitrepCommand("vessel.control.stage", Payload = typeof(int), Summary = "Activate the next stage.")]
+[SitrepCommand("vessel.target.clear", Summary = "Clear the active vessel's target.")]
+[SitrepCommand("ksp.recover", Delay = DelayRole.TrueNow, Summary = "Recover the active vessel.")]
+[SitrepCommand("ksp.revertToLaunch", Delay = DelayRole.TrueNow, Summary = "Revert the flight to its launch.")]
+[SitrepCommand("ksp.toTrackingStation", Delay = DelayRole.TrueNow, Summary = "Leave the flight for the Tracking Station.")]
+[SitrepCommand("ksp.toSpaceCenter", Delay = DelayRole.TrueNow, Summary = "Leave the flight for the Space Center.")]
 public class NoCommandArgs
 {
 }

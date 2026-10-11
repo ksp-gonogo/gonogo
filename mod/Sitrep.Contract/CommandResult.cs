@@ -31,13 +31,14 @@ public static class CommandErrorCode
     public static readonly RefusalCode NotFound = RefusalCode.DeclareRoot("notFound", "nothing here answers to that");
 
     /// <summary>
-    /// The maneuver plan is owned by a planner other than stock's
-    /// <c>patchedConicSolver</c>, so a node written there would never be used.
+    /// The maneuver plan is owned by a trajectory planner other than the game's
+    /// own, such as a mod that plans its own burns, so a node written there
+    /// would never be flown.
     ///
-    /// <para>A node written while another planner owns the plan would show on
-    /// the board and never be flown, so the command is refused and nothing is
-    /// written. The owning planner is on the wire as
-    /// <c>VesselManeuver.Planner</c>.</para>
+    /// <para>The command is refused and nothing is written. The owning planner
+    /// is on the wire as <c>VesselManeuver.Planner</c>.
+    /// <internal>The game's own planner is stock's
+    /// <c>patchedConicSolver</c>.</internal></para>
     /// </summary>
     public static readonly RefusalCode PlanNotOwned = RefusalCode.DeclareRoot("planNotOwned", "another planner owns the flight plan");
 
@@ -140,9 +141,10 @@ public static class CommandErrorCode
     /// the <c>GameParameters</c> flags for leaving to the space center and to
     /// the tracking station.</internal></para>
     ///
-    /// <para>Also returned by the SCET alarm command for a vantage it cannot check because no
-    /// command centre is known to the simulation yet: the main menu, and the
-    /// ticks before the first capture. The same command refuses a vantage that
+    /// <para>Also returned by the SCET alarm command for a vantage it cannot
+    /// check because the game has not yet reported any command centre: at the
+    /// main menu, and in the first moments after a save loads. The same command
+    /// refuses a vantage that
     /// is known and inactive with <see cref="Range"/> instead, because that one
     /// does not resolve by waiting. Any other command naming an inactive
     /// vantage fails with the <c>unknownVantage</c> fault.</para>
@@ -230,10 +232,10 @@ public static class CommandErrorCode
     /// The command consumes a countable ITEM and there are not enough of them
     /// aboard.
     ///
-    /// <para>The provider decides by its own charge, which it should also state
-    /// wherever it shows the cost, so the cost shown and the cost taken agree.
-    /// The item is the provider's to name: this code says only that there were
-    /// too few, never which item.</para>
+    /// <para>The command's handler decides how many are needed. This code says
+    /// only that there were too few, never which item.
+    /// <internal>A handler should state its own charge wherever it shows the
+    /// cost, so the cost shown and the cost taken agree.</internal></para>
     ///
     /// <para>Separate from <see cref="InsufficientFunds"/> and
     /// <see cref="InsufficientScience"/>: a physical item cannot be bought.</para>
@@ -244,21 +246,17 @@ public static class CommandErrorCode
     public static readonly RefusalCode InsufficientResource = RefusalCode.DeclareRoot("insufficientResource", "there are not enough of what it uses aboard");
 
     /// <summary>
-    /// The provider was asked and could not read the state it needed. Nothing
-    /// about the craft, the save or the moment was established, so the one fact
-    /// this refusal carries is that the question went unresolved.
+    /// The command's handler could not read the state it needed, so the
+    /// question went unanswered. Nothing about the craft, the save or the moment
+    /// was established, and the refusal is no judgement about the command.
     ///
-    /// <para>Not <see cref="CapabilityMismatch"/>, which is an established fact
-    /// about the craft (a genuine omni antenna asked to aim). Not
-    /// <see cref="NotFound"/>, which says the craft carries nothing this command
-    /// could act on. Not <see cref="NotClearToProceed"/>, which resolves by
-    /// waiting; this does not, and a retry is a second attempt at the same
-    /// question.</para>
+    /// <para>Unlike <see cref="CapabilityMismatch"/>, this says nothing about
+    /// what the craft can do. Waiting does not by itself make it succeed, but
+    /// sending the command again asks the question afresh, and that is the only
+    /// sound next move.</para>
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names what could not be read
-    /// when the producer had a name for it, and never says what the result would
-    /// have been. Nothing was learned about the vehicle, so offering the command
-    /// again is the only sound next move.
+    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names what could
+    /// not be read when the handler had a name for it.
     /// <internal>
     /// In practice a reflection read whose member does not resolve on the loaded
     /// assembly, or resolves and throws: the fail-soft posture every Uplink
@@ -268,16 +266,17 @@ public static class CommandErrorCode
     public static readonly RefusalCode Unreadable = RefusalCode.DeclareRoot("unreadable", "the game would not answer");
 
     /// <summary>
-    /// The command acts at a PLACE, and the command centre it was sent from has
-    /// no authority there: a launch from a pad in another planet's system.
+    /// The command acts at a place, and the command centre it was sent from is
+    /// not in that place's planetary system, so it has no authority there: a
+    /// launch from a pad in another planet's system.
     ///
-    /// <para>Authority, never delay. The command itself is still instant; what
-    /// this refuses is the sender, not the moment, so no amount of waiting makes
-    /// it succeed. Sending from a centre in the place's own system does.</para>
+    /// <para>This refuses the sender, not the moment, so no amount of waiting
+    /// makes it succeed. Sending from a centre in the place's own system
+    /// does.</para>
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names the centre and the place,
-    /// and the system each is in, so an operator learns which seat to move to
-    /// rather than seeing a control that simply does nothing.</para>
+    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names the centre
+    /// and the place, and the system each is in, so an operator learns which
+    /// centre to send from.</para>
     ///
     /// <para>Distinct from <see cref="NoConnection"/>, which is a link that
     /// cannot carry the command. A centre may be perfectly linked to the place

@@ -14,7 +14,16 @@ export interface FakeWallClock {
  * A {@link FakeWallClock} that reads `start` seconds, 0 when omitted, until it
  * is advanced. Pass its `now` wherever a clock takes `nowWall`, the real time
  * in seconds: the view clock's options and a media pipeline's
- * `tickPacing(nowWall)` take one.
+ * `tickPacing(nowWall)` (see {@link FrameDelayPipeline}) take one.
+ *
+ * @example
+ * ```ts
+ * import { createFakeWallClock } from "@ksp-gonogo/sitrep-sdk/testing";
+ *
+ * const clock = createFakeWallClock(100);
+ * clock.advanceBy(2.5);
+ * clock.now(); // 102.5
+ * ```
  *
  * @category Test doubles
  * @categoryDescription Test doubles

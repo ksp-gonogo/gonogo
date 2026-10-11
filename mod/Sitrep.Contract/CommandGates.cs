@@ -163,12 +163,13 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// A field a <see cref="SitrepRequiresAttribute"/> gates, in place of its
-    /// value while the save has not unlocked what it needs: the unlocks it is
-    /// missing, so a reader can say why it has nothing to show rather than
-    /// drawing an empty value as if there were none.
+    /// What a field arrives as, in place of its value, while the save has not
+    /// unlocked what it needs: the unlocks it is missing, so a reader can say
+    /// why it has nothing to show rather than drawing an empty value as if there
+    /// were none. A mod marks such a field with
+    /// <see cref="SitrepRequiresAttribute"/>.
     /// </summary>
-    /// <category>System diagnostics</category>
+    /// <category>Readings</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]
@@ -180,7 +181,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>Which kind of unlock a <see cref="MissingUnlock"/> names.</summary>
-    /// <category>System diagnostics</category>
+    /// <category>Readings</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsEnum]
@@ -198,7 +199,7 @@ namespace Sitrep.Contract
     /// client can say "Missing tech: Flight Control" or "Mission Control,
     /// needs Building level 2" without mapping an id to English.
     /// </summary>
-    /// <category>System diagnostics</category>
+    /// <category>Readings</category>
     [SitrepContract]
 #if SITREP_CODEGEN
     [TsInterface]

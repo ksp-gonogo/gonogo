@@ -29,7 +29,7 @@ export function describeErrorCode(
 /**
  * Makes an Uplink's generated error-code table describable, so its refinements
  * read with their meaning as well as their sentence. A core id is never
- * replaced.
+ * replaced. An Uplink's table holds refusals only: faults are declared by core.
  *
  * @category Error codes
  */

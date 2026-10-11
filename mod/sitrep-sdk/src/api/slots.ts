@@ -92,11 +92,11 @@ export interface TargetingHudContext {
   reportPictureAspect: (aspect: number | null) => void;
   /** True while the two ports are within docking-alignment tolerance. */
   aligned: boolean;
-  /** Horizontal docking alignment angle in degrees, before any limit is applied. `undefined` while the angle is not reported. */
+  /** Horizontal docking alignment angle in degrees (plain degrees, like `ay`), before any limit is applied. `undefined` while the angle is not reported. */
   ax: number | undefined;
   /** Vertical docking alignment angle in degrees, before any limit is applied. Positive is nose up. `undefined` while the angle is not reported. */
   ay: number | undefined;
-  /** Distance to the target port in metres. `undefined` until the position is reported. */
+  /** Distance to the target port in metres, as a plain number so a drawing needs no unit conversion. `undefined` until the position is reported. */
   distance: number | undefined;
   /**
    * The reading `aligned`, `ax`, `ay`, `reticleOffset` and `distance` were drawn from, or just its grade. Only a held reading
@@ -107,7 +107,7 @@ export interface TargetingHudContext {
   held: HeldGrade | Reading<unknown> | undefined;
   /**
    * The camera the operator chose for the video backdrop in the widget's
-   * settings, as a part flight id. `null` or `undefined` when none is chosen,
+   * settings, as the flight id KSP gives that part of the craft. `null` or `undefined` when none is chosen,
    * so the augment picks its own. The widget passes it through unread.
    */
   cameraFlightId: number | null | undefined;
@@ -324,7 +324,7 @@ export interface CrewAvatarContext {
 export interface AstronautComplexCrewContext {
   /** The kerbal's name, as KSP's crew roster writes it. Join your own crew data on it. */
   kerbalName: string;
-  /** The kerbal's standing, a `CrewStanding` value. `CrewStanding.Applicant` for an applicant. `null` when the roster did not report one. */
+  /** The kerbal's standing, as the number of a `CrewStanding` member: compare it with `CrewStanding.Available` and the rest. `CrewStanding.Applicant` for an applicant. `null` when the roster did not report one. */
   standing: number | null;
   /** True for a candidate in the Applicants list, false for a kerbal already on the roster. */
   isApplicant: boolean;
@@ -429,7 +429,7 @@ export interface ObjectiveSlotSection {
  * @category Widget slots
  */
 export interface ObjectiveSourceContext {
-  /** The component to render your objectives through. */
+  /** The component to render your objectives through. It takes an {@link ObjectiveSlotSection}: the `items` to draw and an optional `renderAlarm`. */
   Section: import("react").ComponentType<ObjectiveSlotSection>;
 }
 
@@ -474,7 +474,9 @@ export interface ActionGroupSlotContext {
   /**
    * The group's name: one of the stock names such as `"SAS"` or `"Gear"`, or
    * for a custom group the name the mod reports for it, `"AG1"` to `"AG10"`
-   * when it reports none. Two custom groups can share a name.
+   * when it reports none. Two custom groups can share a name, and a name the
+   * mod reports is the operator's to change, so match a stock name or key a
+   * custom group on something you know about the craft.
    */
   groupId: ActionGroupSlotId;
   /** The label the widget shows: the operator's own label when set, otherwise the group's name. */

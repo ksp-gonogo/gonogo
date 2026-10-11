@@ -31,6 +31,9 @@ function handles(): Map<string, unknown> {
  * for the Uplink's own server, say. The object can be anything; whoever reads
  * it knows its shape. A second call for the same id replaces the first.
  *
+ * For {@link useUplinkRelay} to reach the object, it needs a
+ * `relay(method, args)` function that returns a promise.
+ *
  * @category Registering
  */
 export function registerUplinkHandle<Handle>(

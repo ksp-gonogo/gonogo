@@ -67,10 +67,10 @@ public class ServoSetExtensionArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("robotics.servo.setMotor")]
-[SitrepCommand("robotics.servo.setLock")]
-[SitrepCommand("robotics.rotor.setMotor")]
-[SitrepCommand("robotics.rotor.setLock")]
+[SitrepCommand("robotics.servo.setMotor", Summary = "Switch a servo's motor on or off.")]
+[SitrepCommand("robotics.servo.setLock", Summary = "Lock or unlock a servo.")]
+[SitrepCommand("robotics.rotor.setMotor", Summary = "Switch a rotor's motor on or off.")]
+[SitrepCommand("robotics.rotor.setLock", Summary = "Lock or unlock a rotor.")]
 public class ServoSetEnabledArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>

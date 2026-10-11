@@ -315,7 +315,7 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
  *
  * | `state` | Meaning | Carries |
  * | --- | --- | --- |
- * | `"pending"` | Nothing has arrived yet: a Topic just subscribed, or a resync after a rewind | nothing |
+ * | `"pending"` | Nothing has arrived yet: a Topic just subscribed, or is refilling after the game clock went backwards (a revert or a loaded save) | nothing |
  * | `"unowned"` | Nothing will ever publish this Topic: no installed Uplink declares it | nothing |
  * | `"absent"` | The game confirmed there is no value, such as no target set | `atUt` |
  * | `"observed"` | The newest value that could have reached us | `value`, `atUt` |
@@ -335,8 +335,13 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
  * Separately from `state`, `reckoning` says whether a forward model can say
  * what the value is now (see {@link TopicReckoning}). It is usually
  * `{ status: "none" }`. When it is `"available"`, `reckoning.value` is the
- * model's value for this frame, and a band, where the model gives one, says how
- * far it would defend it. A missing band does not mean the value is well known.
+ * model's payload for this frame, `reckoning.modelled` lists the paths inside it
+ * the model moved, and a band, where the model gives one, says how far it would
+ * defend a path. A missing band does not mean the value is well known.
+ *
+ * A field of the payload read as its own {@link Reading}
+ * (`reading.altitudeAsl`) has the narrower {@link Reckoning}, where
+ * `reckoning.modelled` is that one field's modelled value.
  *
  * ## Fields
  *
@@ -370,7 +375,7 @@ export type TopicReading<Payload> = TopicCurrency<
  */
 export type TopicCurrency<Payload, ReckoningShape = unknown> =
   | {
-      /** Nothing has arrived yet: the Topic was just subscribed, or is resyncing after a rewind. */
+      /** Nothing has arrived yet: the Topic was just subscribed, or is refilling after the game clock went backwards (a revert or a loaded save). */
       state: "pending";
       reckoning: { readonly status: "none" };
     }
@@ -476,6 +481,11 @@ export type ReservedReadingKey =
  * when it is `"declined"`. `band` is optional even then: most models cannot
  * bound their own error.
  *
+ * This is the reckoning of one field, as on a {@link Reading} or a
+ * {@link FieldReading}. A whole Topic's reckoning is a {@link TopicReckoning},
+ * which holds the modelled payload in `value` and lists the moved paths in
+ * `modelled`.
+ *
  * @typeParam Payload - The type of the value modelled.
  *
  * @category Reading telemetry
@@ -517,7 +527,7 @@ export interface Reading<Payload> {
   readonly atUt?: Value<"ut">;
   /** When a held value was observed. */
   readonly asOfUt?: Value<"ut">;
-  /** Why a held value stopped updating. */
+  /** Why a held value stopped updating: one of the {@link HeldGrade} values. */
   readonly grade?: HeldGrade;
   /** What a forward model says the value is now. */
   readonly reckoning: Reckoning<Payload>;

@@ -50,6 +50,9 @@ function registry(): EventRevealRegistry {
  * Adds a source of events that are revealed after the signal delay, replacing
  * any registered under the same id.
  *
+ * An Uplink's client registers through {@link UplinkClientHandle.registerRevealedEventSource}
+ * instead, which prefixes the id with the Uplink's id.
+ *
  * @category Delay and vantage
  */
 export function registerRevealedEventSource(

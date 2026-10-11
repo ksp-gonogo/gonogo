@@ -42,10 +42,9 @@ public enum FlightEndReason
 }
 
 /// <summary>
-/// The <c>flight.current</c> Topic payload: a UT-indexed value, delivered
-/// latest-wins and delayed like every <c>vessel.*</c> channel. It says which
-/// flight is active and what phase it is in, for the vessel gonogo is
-/// reporting as active. That is the vessel the game is flying, with one
+/// Which flight is active and what phase it is in, for the vessel gonogo is
+/// reporting as active. Only the newest value matters, and it is delayed by the
+/// link's signal delay like every <c>vessel.*</c> Topic. That is the vessel the game is flying, with one
 /// exception: a kerbal on EVA does not become the subject of this reading,
 /// the craft they stepped out of stays it for as long as that craft is in the
 /// world.

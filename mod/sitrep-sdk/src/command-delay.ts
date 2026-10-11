@@ -68,13 +68,13 @@ export interface PendingEntry {
    * throttle. Absent otherwise, and absent rather than zero when unknown.
    */
   commandedValue?: number;
-  /** For a command held at a relay until a link opens, when it is predicted to reach the craft; absent or null otherwise. */
+  /** For a command held at a relay (a node on the route that stores it until a link opens), when it is predicted to reach the craft; absent or null otherwise. */
   predictedArrivalUt?: Value<"ut"> | null;
   /** For a held command, when its reply is predicted back, waits included; absent or null otherwise. */
   predictedReplyUt?: Value<"ut"> | null;
   /** For a held command, when it is deleted wherever it is if it has not run; absent or null otherwise. */
   expiresAtUt?: Value<"ut"> | null;
-  /** For a held command, its lane number; absent or null for a command on no lane. */
+  /** For a held command, its lane number: its place in the run of delayed commands this centre sends to the craft. Absent or null for a command on no lane. */
   laneSeq?: Value<"count"> | null;
   /**
    * The request ids of the commands the entry stands for. A group sent with

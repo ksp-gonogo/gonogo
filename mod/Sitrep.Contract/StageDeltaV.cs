@@ -6,9 +6,9 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One ΔV-producing stage of the active vessel, from KSP's stock
-/// <c>VesselDeltaV</c> stage simulation: the same numbers the in-game ΔV app
-/// shows, with atmosphere, ISP, crossfeed and staging all handled by the game.
+/// One ΔV-producing stage of the active vessel, from the game's own stage
+/// simulation: the same numbers the in-game ΔV app shows, with atmosphere,
+/// ISP, crossfeed and staging all handled by the game.
 /// Only the stages that actually produce ΔV appear, the same set the in-game app
 /// lists rather than the raw stage list, so stage numbers can be sparse.
 ///

@@ -36,6 +36,19 @@ function withTheme(Extra?: Wrapper): Wrapper {
  * `@testing-library/react` and `styled-components` installed, and a DOM test
  * environment such as jsdom.
  *
+ * @example
+ * ```tsx
+ * import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { expect, it } from "vitest";
+ *
+ * const Label = () => <p>Altitude</p>;
+ *
+ * it("labels the figure", () => {
+ *   const { getByText } = render(<Label />);
+ *   expect(getByText("Altitude")).toBeTruthy();
+ * });
+ * ```
+ *
  * @category Rendering
  * @categoryDescription Rendering
  * Rendering a widget or a hook in a test with the theme and DOM stubs it needs,

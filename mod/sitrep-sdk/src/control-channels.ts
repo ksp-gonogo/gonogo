@@ -61,6 +61,9 @@ const BY_ID: ReadonlyMap<string, GeneratedControlChannel> = new Map(
 
 /**
  * Returns the control channel with this id, or `undefined` when there is none.
+ * A control channel is a control such as the throttle or SAS that is set with
+ * a command and read back from a Topic field; the handle holds both halves.
+ * {@link controlChannelIds} lists the ids.
  *
  * @category Commands
  */
@@ -83,7 +86,8 @@ export function getControlChannel(
 }
 
 /**
- * Returns the id of every control channel.
+ * Returns the id of every control channel, such as `"vessel.control.throttle"`
+ * or `"vessel.control.yaw"`.
  *
  * @category Commands
  */

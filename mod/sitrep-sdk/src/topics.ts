@@ -63,69 +63,61 @@ import {
 } from "./runtime-topic-registry";
 
 /**
- * `system.uplinks`: the engine-aggregated Uplink roster/health channel.
- * `ChannelEngine` declares it directly (not any one Uplink's contract) and
- * builds it as a dictionary in `BuildSystemUplinksPayload`, so it carries no
- * `[SitrepTopic]` payload TYPE to reflect and is hand-declared here, mirroring
- * the exact serialized wire shape. `health.state` is the integer ordinal of
- * `UplinkHealthState` (0 Healthy / 1 Degraded / 2 Unavailable); the client
- * decodes it in `uplink-health.ts`.
+ * `system.uplinks`: every Uplink the mod knows of, with its availability and
+ * health. The mod builds it itself rather than any one Uplink's contract
+ * declaring it, so its shape is written out here.
  */
 export interface SystemUplinksTopicPayloadMap {
   /** Every Uplink the mod knows of, with its version, availability and health, and the contract version the mod itself speaks. */
   "system.uplinks": {
     uplinks: Array<{
+      /** The Uplink's id, as its mod declares it with `[SitrepUplink]`. */
       id: string;
+      /** The Uplink's version. */
       version: string;
+      /** Whether the Uplink is loaded and serving its Topics. `false` for one the mod refused, with the refusal in `reason`. */
       available: boolean;
+      /** Why the Uplink is not available, as a sentence, or `null` when it is. */
       reason: string | null;
       /**
-       * H_mod: the client-bundle sha256 the running mod vouches for. `null` for
-       * a mod-only Uplink (no client half) or an older mod that predates the
-       * two-pass hash bake. Hand-declared here (not codegen) because
-       * `system.uplinks` is engine-built, not a `[SitrepTopic]` reflected
-       * payload.
+       * The SHA-256 of the client bundle the running mod vouches for, which the
+       * app compares with the bundle it loads. `null` for a mod-only Uplink
+       * (no client half) or a mod build that predates the field.
        */
       expectedClientHash: string | null;
       /**
-       * Where the Uplink's CLIENT bundle lives (D5), its distributable `url`
-       * plus an optional `devPath` (a localhost dev-server URL or local build
-       * dir for a third-party dev loop). `null` for a mod-only Uplink with no
-       * client half. Hand-declared here (not codegen) for the same reason as
-       * the rest of this shape: `system.uplinks` is engine-built, not a
-       * `[SitrepTopic]` reflected payload. The bundle's integrity hash is NOT
-       * repeated here; it stays on `expectedClientHash` (the loader's three-way
-       * check reads it there).
+       * Where the Uplink's client bundle lives: its distributable `url`, and
+       * for a development loop a `devPath`, a localhost dev-server URL or a
+       * local build directory. `null` for a mod-only Uplink with no client
+       * half. The bundle's hash is not repeated here; read it from
+       * `expectedClientHash`.
        */
       clientSource: { url: string; devPath: string | null } | null;
       /**
-       * Provenance the mod declares, for the consent dialog: an operator being
-       * asked to execute a bundle from a URL they did not choose is told who
-       * wrote it and where to look. `null` when the Uplink does not say, which
-       * includes every mod built before the fields existed.
+       * Provenance the mod declares, shown when an operator is asked to run a
+       * client bundle from a URL they did not choose: the Uplink's `name`, its
+       * `author` and its source `repo`. `null` where the Uplink does not say.
        */
       name: string | null;
       author: string | null;
       repo: string | null;
       /**
-       * The contract version this Uplink declared it was built against, read off
-       * its `[SitrepUplink]` attribute. An Uplink REFUSED for a contract-major
-       * mismatch rides the roster too, as a present-and-refused entry with
-       * `available: false` and the refusal as its `reason`; these two fields are
-       * what let a client say which version it wanted against `coreContractMajor`
-       * below. `null` for an Uplink registered outside discovery, absent on a mod
-       * build predating the fields.
+       * The contract version this Uplink declared it was built against, read
+       * from its `[SitrepUplink]` attribute. An Uplink refused for a major
+       * version mismatch is listed too, with `available: false` and the
+       * refusal as its `reason`; these two fields say which version it wanted,
+       * to compare with `coreContractMajor`. `null` for an Uplink registered
+       * outside discovery, and absent on a mod build that predates them.
        */
       contractMajor?: number | null;
       contractMinor?: number | null;
       /**
-       * `state` is the integer ordinal of `UplinkHealthState`; `detail` the
-       * Uplink's own sentence about it. `facts` is the identity of whatever the
-       * Uplink depends on, labelled by the Uplink and read by nothing: a client
-       * lists the rows without knowing what any of them mean, which is what
-       * lets an Uplink publish its dependency's build and hash without a topic
-       * or a payload type of its own. Present and empty for an Uplink with
-       * nothing to add.
+       * How well the Uplink is working: `state` is the ordinal of
+       * `UplinkHealthState` (0 healthy, 1 degraded, 2 unavailable) and
+       * `detail` the Uplink's own sentence about it. `facts` are labelled
+       * rows the Uplink publishes about whatever it depends on, such as the
+       * build of a mod it wraps. A client lists them without knowing what any
+       * means. Empty for an Uplink with nothing to add.
        */
       health: {
         state: number;
@@ -140,28 +132,27 @@ export interface SystemUplinksTopicPayloadMap {
       modSettings?: boolean;
     }>;
     /**
-     * The contract version the running mod speaks. Stated once rather than per
-     * entry, because it is a fact about the core. Absent on a mod build
-     * predating the fields.
+     * The contract version the running mod speaks, stated once because it is a
+     * fact about the mod and not about any Uplink. Absent on a mod build that
+     * predates the fields.
      */
     coreContractMajor?: number | null;
     coreContractMinor?: number | null;
     /**
      * The release the running mod was built as: a tag such as `v1.4.0`, or a
      * candidate label such as `rc-abc1234`. `null` for a build that records
-     * none, which is every local build, and absent on a mod predating the field.
+     * none, which is every local build, and absent on a mod that predates the
+     * field.
      */
     coreVersion?: string | null;
     /**
-     * Every registered channel's delay role, core and Uplink alike, each list
-     * sorted. `trueNow` and `heldAtHome` name static topics; `trueNowPrefixes`
-     * names the dynamic namespaces declared TrueNow, whose materialized topics
-     * are not listed on their own. `addressed` names the topics whose samples
-     * are each sent to a named audience and reach each listener after their own
-     * journey, so they arrive already delayed; it is absent on a mod build
-     * predating contract 28.6. A topic covered by none of them is delayed.
-     * The client reads every lane from this, see `readDeclaredDelayRoles`.
-     * Absent on a mod build predating contract 16.13.
+     * How every registered Topic is delayed, core and Uplink alike, each list
+     * sorted. `trueNow` and `heldAtHome` name Topics; `trueNowPrefixes` names
+     * namespaces whose Topics are all true now and are not listed one by one.
+     * `addressed` names Topics whose samples are each sent to a named audience
+     * and arrive already delayed by their own journey. A Topic in none of the
+     * lists is delayed by the link's signal delay. Absent on a mod build that
+     * predates the field.
      */
     delayRoles?: {
       trueNow: string[];
@@ -170,9 +161,10 @@ export interface SystemUplinksTopicPayloadMap {
       addressed?: string[];
     };
     /**
-     * Every registered channel's sample kind, by topic and, for a dynamic
-     * namespace, by prefix: how a reader may draw between its samples. See
-     * `readDeclaredSampleKinds`.
+     * How a reader may draw between each Topic's samples, by Topic and, for a
+     * namespace whose Topics are built at runtime, by prefix: `continuous`
+     * moves between samples and can be drawn as a line, `discrete` stands until
+     * the next and is a step, `event` is one occurrence per sample.
      */
     sampleKinds?: {
       topics: Record<string, SampleKind>;
@@ -313,15 +305,18 @@ export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
 
 /**
  * A Topic is one named stream of values from the mod, such as `vessel.orbit`,
- * read by its id with {@link useTelemetry}. This is every Topic id the SDK
- * itself declares, as an array, and {@link TopicPayloadMap} maps each id to the
- * type of its payload.
+ * read by its id with {@link useTelemetry}. `TOPIC_IDS` is the array of every
+ * Topic id the SDK itself declares, and {@link TopicPayloadMap} maps each id to
+ * the type of its payload.
  *
- * Topics an Uplink adds at load are not in it; {@link getAllKnownTopicIds}
- * and {@link isTopicId} include them. Topics whose id is built at runtime,
- * such as one per celestial body or an Uplink's own `settings.<uplink id>`,
- * are in neither. Nor are the derived channels in {@link DERIVED_CHANNEL_IDS},
- * such as `system.uplinkHealth`, which the app works out from Topics.
+ * Topics an Uplink adds at load are not in `TOPIC_IDS`;
+ * {@link getAllKnownTopicIds} and {@link isTopicId} include them. Topics whose
+ * id is built at runtime, such as one per celestial body,
+ * `vessel.partActions.<flightId>` or an Uplink's own `settings.<uplink id>`, are
+ * in neither, and are read with {@link useStream}. Nor are the derived channels
+ * in {@link DERIVED_CHANNEL_IDS}, such as `system.uplinkHealth`, which the app
+ * works out from Topics, or the binary Topic `commcast.radio`, which carries
+ * audio rather than a typed payload.
  *
  * @category Reading telemetry
  */
@@ -353,9 +348,10 @@ const barePrimitiveTopicIds = new Set<string>();
  * the Uplink's client package loads, beside its augmentation of
  * {@link TopicPayloadMap}. Registering an id twice does nothing.
  *
- * Despite its name it takes a Topic of any payload shape, not only one whose
- * payload is a bare boolean or number. A Topic with numeric fields also needs
- * {@link registerTopicUnits}.
+ * Register every Topic your Uplink adds through this function, whatever its
+ * payload: the name is narrower than what it accepts, which is a Topic of any
+ * payload shape and not only one whose payload is a bare boolean or number. A
+ * Topic with numeric fields also needs {@link registerTopicUnits}.
  *
  * @category Reading telemetry
  */

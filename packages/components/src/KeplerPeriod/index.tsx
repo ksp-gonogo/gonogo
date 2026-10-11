@@ -174,7 +174,7 @@ registerComponent<KeplerPeriodConfig>({
   id: "kepler-period",
   name: "Kepler Period",
   description:
-    "Orbital period against orbit size (semi-major axis), with your current orbit marked. Useful for setting up resonant orbits, such as for satellite constellations or a rescue rendezvous.",
+    "Orbital period against orbit size (semi-major axis), with your current orbit marked. The curve is worked out from the body's gravitational parameter (`mu`). Useful for setting up resonant orbits, where one craft's period is a whole-number ratio of another's, such as for satellite constellations or a rescue rendezvous.",
   tags: ["telemetry", "graph", "orbit"],
   defaultSize: { w: 10, h: 8 },
   minSize: { w: 5, h: 4 },

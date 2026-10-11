@@ -530,8 +530,9 @@ export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
  * can be passed to a kit component such as `Unit` without a check: it carries
  * its own state, and the component shows how current it is.
  *
- * For a Topic whose contract declares a forward model, such as
- * `vessel.flight`, it returns a {@link ReckonableReading}.
+ * For a Topic that has a forward model, a calculation that carries its value
+ * on past the last sample (see {@link TopicReckoning}), such as `vessel.flight`,
+ * it returns a {@link ReckonableReading}.
  *
  * A Topic with no `TopicId`, a per-subject namespace such as
  * `vessel.partActions.<flightId>`, is read with `useStream` instead.
@@ -617,6 +618,12 @@ export function useTelemetry<Topic extends TopicId>(
  *   one delay later, and its effect is seen one more delay after that.
  *   {@link DelayMode} says how a command sent now would travel, and
  *   {@link useCommand} reports where it has got to
+ * - a command can wait on the way: when no link to the craft is open, a node
+ *   on the route (a relay) holds the command until one opens, and a held
+ *   command keeps its place. A lane is the ordered run of delayed commands
+ *   one centre sends to one craft, and a lane number is a command's place in
+ *   it: commands run at the craft in lane order, so a cancel or a send again
+ *   names a command by its lane number
  *
  * A widget takes times from the view clock ({@link useViewUt},
  * {@link useViewClock}), never from the browser's clock, and works out a
@@ -631,19 +638,25 @@ export function useViewUt(): Value<"ut"> | undefined {
  * arguments and resolves with its reply. See {@link UseCommandResult}.
  *
  * `send` resolves only when the command has run. When the game refuses it,
- * `send` rejects with an error carrying a `CommandErrorCode`, which
- * {@link classifyCommandRejection} reads for you to branch on; when no reply
- * arrives in time, it rejects too. Both are also recorded on the handle, in
- * `refusals` and `losses`, so a `send` you do not await loses nothing.
+ * `send` rejects with an error carrying a `CommandErrorCode`; when no reply
+ * arrives in time, it rejects with the `E_LOST` code ({@link COMMAND_LOST});
+ * when something breaks on the way, it rejects with a `FaultCode`.
+ * {@link classifyCommandRejection} sorts any of them for you to branch on.
+ * Refusals and losses are also recorded on the handle, in `refusals` and
+ * `losses`, so a `send` you do not await loses nothing.
  *
- * Every command except those about the game clock travels at the signal
- * delay of the command centre it is sent from, so a sent command has not yet
- * happened. Pass the handle to `<CommandDelay>` to show its delay and what
+ * A command travels at the signal delay of the command centre it is sent from,
+ * so a sent command has not yet happened, unless it arrives at once: a command
+ * whose {@link CommandRail} says `delayed` is `false` (the game clock, scene
+ * changes, alarms and the like), or any command sent from the `"meta"`
+ * vantage. Pass the handle to `<CommandDelay>` to show its delay and what
  * became of it.
  *
- * The dashboard mounts what tracks commands in flight, and so do the test
- * render helpers. A component rendered outside both, as in a test that renders
- * it bare, throws on `send` in a development build.
+ * Each handle joins the delay rail the dashboard mounts around a widget, and
+ * the test render helpers mount one too. Rendered outside any rail, as in a
+ * test that renders a component bare, `send` throws in a development build;
+ * pass `rail: false` in {@link UseCommandOptions} to keep a handle off the
+ * rail.
  *
  * Every command id is listed in {@link COMMAND_IDS}.
  *
@@ -665,7 +678,10 @@ export function useViewUt(): Value<"ut"> | undefined {
  * @categoryDescription Commands
  * Sending commands to the game: the command ids with their typed arguments and
  * replies, the hook a widget sends through, how a refusal is classified, and
- * the rail a command travels on to reach the craft.
+ * the delay rail. The delay rail is the row of commands on their way to a
+ * craft, and replies or transmissions on their way back, that
+ * `<CommandDelay>` draws; a command is `acked` when a reply comes back for it
+ * and `fire-and-forget` when none does.
  */
 export function useCommand<Command extends CommandId>(
   command: Command,
@@ -677,12 +693,15 @@ export function useCommand<Command extends CommandId>(
  * yourself, or the arguments are `unknown` and the reply is
  * {@link AnyCommandReply}.
  *
- * An Uplink's own commands do not need this form: augment
- * {@link CommandArgsMap} and {@link CommandReplyMap} from its client package,
- * call {@link registerUplinkCommand}, and use the first form.
+ * An Uplink's own commands do not need this form: add them to
+ * {@link CommandArgsMap} and {@link CommandReplyMap} with a TypeScript
+ * `declare module` merge in its client package, call
+ * {@link registerUplinkCommand}, and use the first form.
  *
  * @example
  * ```ts
+ * import { useCommand } from "@ksp-gonogo/sitrep-sdk";
+ *
  * function useProbeReset(probeId: string) {
  *   return useCommand<{ hard: boolean }>(`myuplink.probe.${probeId}.reset`);
  * }
@@ -711,7 +730,8 @@ export function useCommand(
  *
  * The callback must be synchronous and cannot nest: an `await` inside it would
  * let a send from somewhere else fall into the group. All the commands must go to
- * the same craft, from the same command centre, and none can be instant.
+ * the same craft, from the same command centre, and none can be one that arrives
+ * at once (see {@link useCommand}).
  * Breaking those rules throws, and nothing is sent.
  *
  * The game cannot take an action back. If a command in a group fails after the
@@ -743,8 +763,11 @@ export function sendTogether(build: () => void): CommandGroupHandle {
  * It is for calls an Uplink's client makes to an object of its own on the main
  * screen: a WebRTC offer to answer, an inventory to fetch, anything whose shape
  * only that Uplink knows. A Topic carries what the game is doing and a command
- * changes it; this is neither. Register the object with
- * {@link registerUplinkHandle}, then call it from any widget with this.
+ * changes it; this is neither. Register an object under the Uplink's id with
+ * {@link registerUplinkHandle}, give it a `relay(method, args)` function that
+ * answers each call, then call it from any widget with this: the function this
+ * returns takes the same `method` and `args` and resolves with what `relay`
+ * returns.
  *
  * On the main screen the call reaches the object directly. On a station it is
  * passed on through the main screen, and the Uplink's code is the same either
@@ -753,10 +776,18 @@ export function sendTogether(build: () => void): CommandGroupHandle {
  * The returned function stays the same while the route does, so it is safe in
  * a dependency array. It rejects, rather than hanging, when there is no route.
  *
- * @example Calling a method of the object the Uplink stored with `registerUplinkHandle("myuplink", ...)`
+ * @example Calling the `relay` function of the object the Uplink stored with `registerUplinkHandle("myuplink", ...)`
  * ```tsx
- * import { useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
+ * import { registerUplinkHandle, useUplinkRelay } from "@ksp-gonogo/sitrep-sdk";
  * import { useEffect, useState } from "react";
+ *
+ * // At the Uplink's load, on the main screen: the object that answers calls.
+ * registerUplinkHandle("myuplink", {
+ *   relay: async (method: string, args: unknown) => {
+ *     if (method === "listCameras") return [(args as { vesselId: string }).vesselId];
+ *     throw new Error(`unknown method ${method}`);
+ *   },
+ * });
  *
  * function CameraCount(props: { vesselId: string }) {
  *   const relay = useUplinkRelay("myuplink");
@@ -790,25 +821,36 @@ export function useUplinkRelay(uplinkId: string) {
  * The ICE servers the main screen hands out, for an Uplink opening a media
  * connection from a station.
  *
- * A station cannot reach the relay that issues TURN credentials, so the main
- * screen broadcasts them and this reads them. Empty on the main screen itself,
- * which reaches the relay directly.
+ * ICE servers are the STUN and TURN servers a WebRTC connection uses to find a
+ * path between two browsers; TURN ones carry short-lived credentials from the
+ * relay the Gonogo deployment runs. A station cannot reach the relay that
+ * issues them, so the main screen broadcasts them and this reads them. Empty on
+ * the main screen itself, which reaches the relay directly.
  *
  * ```ts
- * const ice = useHostIceServers();
- * useEffect(() => {
- *   const pc = new RTCPeerConnection({ iceServers: ice.current() });
- *   const stop = ice.onChange((iceServers) => pc.setConfiguration({ iceServers }));
- *   return () => {
- *     stop();
- *     pc.close();
- *   };
- * }, [ice]);
+ * import { useHostIceServers } from "@ksp-gonogo/sitrep-sdk";
+ * import { useEffect } from "react";
+ *
+ * function useConnection() {
+ *   const ice = useHostIceServers();
+ *   useEffect(() => {
+ *     const pc = new RTCPeerConnection({ iceServers: ice.current() });
+ *     const stop = ice.onChange((iceServers) =>
+ *       pc.setConfiguration({ iceServers }),
+ *     );
+ *     return () => {
+ *       stop();
+ *       pc.close();
+ *     };
+ *   }, [ice]);
+ * }
  * ```
  *
  * Open the connection in an effect, as above, so it is made once and not on
  * every render. Credentials rotate, so a long-lived connection watches
- * `onChange` rather than reading `current()` once.
+ * `onChange` rather than reading `current()` once. The returned object does not
+ * change when credentials rotate, which is why it is safe as the effect's
+ * dependency: read `current()` for the latest servers.
  *
  * @category Host and runtime
  */
@@ -846,8 +888,9 @@ export function useStream<Payload>(topic: string): TopicReading<Payload> {
 
 /**
  * Reads the settings of one Uplink's mod, as that mod reports them. Change a
- * writable setting with the `settings.mod.write` command, then read the
- * change here rather than from the command's reply.
+ * writable setting with the `settings.mod.write` command (listed in
+ * {@link CommandArgsMap}), then read the change here rather than from the
+ * command's reply.
  *
  * @param uplinkId - The Uplink whose settings to read.
  *
@@ -892,9 +935,10 @@ export function modSettingDep<
  * Returns a processor's value for the current frame, and re-renders when it
  * changes. Pass the handle that {@link UplinkClientHandle.registerProcessor}
  * returned, or a handle the SDK publishes such as {@link CELESTIAL_FACTS}; the
- * result is typed from the handle. The processor runs once per frame however
- * many widgets read it. Returns `undefined` with no telemetry stream mounted,
- * or before the first frame.
+ * result is typed from the handle. A frame is one batch of new samples
+ * published by the app's telemetry store; the processor runs once per frame
+ * however many widgets read it. Returns `undefined` with no telemetry stream
+ * mounted, or before the first frame.
  *
  * A processor with a reading among its dependencies returns a
  * `Reading<Result>`, dated by its inputs. One that depends only on Topic ids
@@ -924,8 +968,8 @@ export function useProcessor<Result, Carried extends boolean>(handle: {
  * time, use {@link useViewUt}.
  *
  * Throws when no telemetry stream is mounted; {@link useViewClockOptional}
- * returns `undefined` instead. The return is typed `unknown`: narrow it to the
- * shape you use, such as {@link DelayClockLike}.
+ * returns `undefined` instead. The return is typed `unknown`; what it offers
+ * is described by {@link DelayClockLike}, so assign it to that type.
  *
  * @category Delay and vantage
  * @categoryDescription Delay and vantage
@@ -957,11 +1001,19 @@ export function useViewClock(): unknown {
  * ```tsx
  * import {
  *   type ActionDefinition,
+ *   defineUplinkClient,
  *   registerComponent,
  *   useActionInput,
  * } from "@ksp-gonogo/sitrep-sdk";
  * import { Text } from "@ksp-gonogo/ui-kit";
  * import { useState } from "react";
+ *
+ * const MY_UPLINK = defineUplinkClient({
+ *   id: "my-uplink",
+ *   version: "1.0.0",
+ *   name: "My Uplink",
+ *   description: "Switches for my mod's lights.",
+ * });
  *
  * const actions = [
  *   { id: "toggle", label: "Toggle", accepts: ["button"] },
@@ -970,8 +1022,12 @@ export function useViewClock(): unknown {
  * function LightSwitch() {
  *   const [on, setOn] = useState(false);
  *   useActionInput<typeof actions>({
- *     toggle: () => {
+ *     toggle: ({ value }) => {
+ *       // A button fires twice, `true` on press and `false` on release.
+ *       // Act on the press only, or one tap toggles twice.
+ *       if (value !== true) return;
  *       setOn(!on);
+ *       // The state the light is going to, for a device with a display.
  *       return { LIGHT: on ? "OFF" : "ON" };
  *     },
  *   });
@@ -979,12 +1035,13 @@ export function useViewClock(): unknown {
  * }
  *
  * registerComponent({
- *   id: "light-switch",
+ *   id: "my-uplink-light-switch",
  *   name: "Light Switch",
  *   description: "A light an operator switches with a bound button.",
- *   tags: ["controls"],
+ *   tags: ["control"],
  *   component: LightSwitch,
  *   actions,
+ *   owner: MY_UPLINK,
  * });
  * ```
  *
@@ -1067,11 +1124,10 @@ export function useUtNow(): number | undefined {
 
 /**
  * Returns the store that holds the received history of every Topic, or
- * `undefined` when no telemetry stream is mounted. It is here for ui-kit's own
- * components, and the store's type is not published, which is why the return
- * is `unknown`. An Uplink reads a Topic with {@link useTelemetry} or
- * {@link useStream}, and tests for a mounted stream by whether this is
- * `undefined`.
+ * `undefined` when no telemetry stream is mounted. Its one use for an Uplink is
+ * to test whether a stream is mounted, which is whether this is `undefined`:
+ * the store's type is not published, which is why the return is `unknown`.
+ * Read a Topic with {@link useTelemetry} or {@link useStream}.
  *
  * @category Reading telemetry
  */
@@ -1123,7 +1179,9 @@ export function useReplaySessionActive(): boolean {
 /**
  * The address of the machine running KSP, which every Uplink connects to: the
  * address saved in Settings, or else the host the app was deployed with
- * (`KSP_HOST`), or else the build's `VITE_SITREP_HOST`, or else `localhost`. It carries no port; each service adds its own.
+ * (the `KSP_HOST` setting of the deployment), or else the build's
+ * `VITE_SITREP_HOST` build variable, or else `localhost`. It carries no port;
+ * each service adds its own.
  *
  * @category Host and runtime
  */

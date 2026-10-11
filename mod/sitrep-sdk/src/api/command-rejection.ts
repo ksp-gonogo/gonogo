@@ -27,8 +27,9 @@ export const COMMAND_LOST = "E_LOST";
  *   reason
  * - `lost`: no reply arrived in time. The command may still have run, so
  *   sending it again may run it twice
- * - `failed`: something broke on the way, named by `code`, such as the link
- *   dropping or the mod's handler throwing. Sending it again may work
+ * - `failed`: something broke on the way, such as the link dropping or the
+ *   mod's handler throwing. `code` names it: a {@link FaultCode}, or any
+ *   string for an id this SDK does not know. Sending it again may work
  *
  * @category Commands
  */
@@ -66,6 +67,11 @@ export type CommandRejection =
  *
  * @example
  * ```ts
+ * import {
+ *   classifyCommandRejection,
+ *   type UseCommandResultFor,
+ * } from "@ksp-gonogo/sitrep-sdk";
+ *
  * async function fullThrottle(
  *   setThrottle: UseCommandResultFor<"vessel.control.setThrottle">,
  * ) {

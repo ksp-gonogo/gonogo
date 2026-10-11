@@ -27,7 +27,8 @@ import type { UplinkClientHandle } from "./types";
 /**
  * Which clock a threshold alarm is judged on:
  *
- * - `"command"`, the default: what the command centre this screen commands
+ * - `"command"`, the default when a threshold names no vantage: what the
+ *   command centre this screen commands
  *   from has been told. A craft's value reaches it one signal delay late, so
  *   the alarm stops time warp when the centre learns of the condition
  * - `"scet"`: the craft's own clock. The alarm stops time warp when the
@@ -130,6 +131,9 @@ export interface UplinkAlarmRequest {
  *
  * @example
  * ```tsx
+ * import { defineUplinkClient, useAlarmRequest } from "@ksp-gonogo/sitrep-sdk";
+ * import { Button } from "@ksp-gonogo/ui-kit";
+ *
  * const MY_UPLINK = defineUplinkClient({
  *   id: "myuplink",
  *   version: "1.0.0",
@@ -137,13 +141,15 @@ export interface UplinkAlarmRequest {
  *   description: "Reminds the operator when a facility upgrade finishes.",
  * });
  *
+ * // finishesAtUt is a UT your widget already knows, such as one read from a Topic.
  * function RemindMe({ facility, finishesAtUt }: { facility: string; finishesAtUt: number }) {
  *   const requestAlarm = useAlarmRequest(MY_UPLINK);
  *   const remind = () =>
  *     requestAlarm({
  *       key: `facility-upgrade:${facility}`,
  *       name: `${facility} upgrade complete`,
- *       trigger: { kind: "time", ut: finishesAtUt },
+ *       // Drop out of warp 60 s before the instant.
+ *       trigger: { kind: "time", ut: finishesAtUt, leadSeconds: 60 },
  *     });
  *   return <Button onClick={remind}>Remind me</Button>;
  * }

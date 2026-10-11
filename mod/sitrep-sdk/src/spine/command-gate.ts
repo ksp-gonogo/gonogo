@@ -8,65 +8,33 @@ import { GateOutcome } from "../__generated__/contract";
 import { CommandErrorCode } from "../__generated__/error-codes";
 
 /**
- * What the mod says about a command BEFORE anyone dispatches it, shaped for the
- * control that has to draw itself.
+ * What the mod says about a command before anyone sends it, shaped for the
+ * control that has to draw itself. {@link UseCommandResult.gate} carries it.
  *
- * Deliberately the same fields a refusal carries (`errorCode`, `breach`,
- * `detail`), because they are the same fields: the mod evaluates one gate set
- * one way and the only difference is whether the arguments were supplied. A
- * control renders "the game will refuse this" through the same composer it uses
- * for "the game refused this", and the two cannot drift apart on wording.
+ * It carries the same `errorCode`, `breach` and `detail` a refusal does, so a
+ * control can say "the game will refuse this" in the same words it uses for
+ * "the game refused this".
  *
  * @category Commands
  */
 export interface CommandGateStatus {
   /**
-   * The game EVALUATED this command's requirements and said no. The control
-   * should say so rather than wait to be pressed.
-   *
-   * Fail ONLY. Never an Unknown, and the distinction is load-bearing rather than
-   * pedantic: see {@link undetermined}.
-   *
-   * Never an Abstain either, which means the answer genuinely depends on what
-   * you ask the command to do. There is nothing honest to say in advance there.
+   * The game checked this command's requirements and they fail. The control
+   * should say so rather than wait to be pressed. It is `false` when the
+   * answer depends on the arguments the command is given, since there is
+   * nothing to say in advance then.
    */
   blocked: boolean;
   /**
-   * The mod could not evaluate this command's gates at all: an authority that
-   * was not there to ask.
-   *
-   * **This is not a refusal and must never be drawn as one.** The reasons
-   * are mostly structural or transient and none of them is the game's judgement
-   * about the command: `ScenarioUpgradeableFacilities.Instance` is not there yet
-   * in a career save that is still loading, `FlightGlobals` is not ready mid
-   * scene-load, an Uplink declared a gate kind and forgot its evaluator.
-   * Rendering any of those as a dark control with a confident sentence teaches
-   * the operator a false belief about their own save, and does it permanently,
-   * which is worse than saying nothing.
-   *
-   * A SANDBOX save is deliberately NOT on that list any more. The same
-   * `Instance` is null there too, but permanently and because sandbox has no
-   * facility tiers at all, so the gates answer max rather than Unknown and the
-   * control is live because it PASSED. An authority that does not exist is not
-   * an authority that could not be read.
-   *
-   * So a control with an undetermined gate renders exactly as an ungated one:
-   * live, pressable, claiming nothing. The dispatch is the authority, and a
-   * refusal that arrives then at least names itself as one at the moment it
-   * happens.
-   *
-   * Kept as its OWN flag rather than folded into `blocked` because the wire
-   * has always told the two apart (`GateOutcome.Unknown` vs `GateOutcome.Fail`)
-   * and the client is where the distinction was at risk of being lost. `detail`
-   * carries why, for a diagnostic surface.
+   * The mod could not check this command's requirements at all, for instance
+   * while a save is still loading or between scenes. This is not a refusal and
+   * must not be drawn as one: it is no judgement about the command, so render
+   * the control as you would an ungated one, live and pressable. The dispatch
+   * still decides, and a refusal then names itself. `detail` says why, for a
+   * diagnostic surface.
    */
   undetermined: boolean;
-  /**
-   * The command this is about. Carried because the reason has to be a SENTENCE
-   * and a sentence needs a subject: without it "Unavailable: Launch Pad is
-   * occupied" names no control, which in a panel of eight is not enough to act
-   * on. Same field `CommandRefusalDetail` carries for the same reason.
-   */
+  /** The command this is about, so the reason can be shown beside the control it concerns. */
   command: string;
   /** Which authority said no. `CommandErrorCode.ModeUnavailable` when the evaluator named none. */
   errorCode: CommandErrorCode;

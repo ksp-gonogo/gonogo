@@ -54,12 +54,12 @@ export const CommandErrorCode = {
    */
   NotFound: "notFound",
   /**
-   * The maneuver plan is owned by a planner other than stock's
-   * `patchedConicSolver`, so a node written there would never be used.
+   * The maneuver plan is owned by a trajectory planner other than the game's
+   * own, such as a mod that plans its own burns, so a node written there would
+   * never be flown.
    *
-   * A node written while another planner owns the plan would show on the board
-   * and never be flown, so the command is refused and nothing is written. The
-   * owning planner is on the wire as `VesselManeuver.Planner`.
+   * The command is refused and nothing is written. The owning planner is on the
+   * wire as `VesselManeuver.Planner`.
    */
   PlanNotOwned: "planNotOwned",
   /**
@@ -130,11 +130,11 @@ export const CommandErrorCode = {
    * game's reason is on `CommandResult.detail`.
    *
    * Also returned by the SCET alarm command for a vantage it cannot check
-   * because no command centre is known to the simulation yet: the main menu, and
-   * the ticks before the first capture. The same command refuses a vantage that
-   * is known and inactive with `CommandErrorCode.Range` instead, because that
-   * one does not resolve by waiting. Any other command naming an inactive
-   * vantage fails with the `unknownVantage` fault.
+   * because the game has not yet reported any command centre: at the main menu,
+   * and in the first moments after a save loads. The same command refuses a
+   * vantage that is known and inactive with `CommandErrorCode.Range` instead,
+   * because that one does not resolve by waiting. Any other command naming an
+   * inactive vantage fails with the `unknownVantage` fault.
    *
    * Distinct from `CommandErrorCode.WrongState`, which is about the entity and
    * does not resolve by waiting.
@@ -183,10 +183,8 @@ export const CommandErrorCode = {
    * The command consumes a countable ITEM and there are not enough of them
    * aboard.
    *
-   * The provider decides by its own charge, which it should also state wherever
-   * it shows the cost, so the cost shown and the cost taken agree. The item is
-   * the provider's to name: this code says only that there were too few, never
-   * which item.
+   * The command's handler decides how many are needed. This code says only that
+   * there were too few, never which item.
    *
    * Separate from `CommandErrorCode.InsufficientFunds` and
    * `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.
@@ -196,34 +194,29 @@ export const CommandErrorCode = {
    */
   InsufficientResource: "insufficientResource",
   /**
-   * The provider was asked and could not read the state it needed. Nothing about
-   * the craft, the save or the moment was established, so the one fact this
-   * refusal carries is that the question went unresolved.
+   * The command's handler could not read the state it needed, so the question
+   * went unanswered. Nothing about the craft, the save or the moment was
+   * established, and the refusal is no judgement about the command.
    *
-   * Not `CommandErrorCode.CapabilityMismatch`, which is an established fact
-   * about the craft (a genuine omni antenna asked to aim). Not
-   * `CommandErrorCode.NotFound`, which says the craft carries nothing this
-   * command could act on. Not `CommandErrorCode.NotClearToProceed`, which
-   * resolves by waiting; this does not, and a retry is a second attempt at the
-   * same question.
+   * Unlike `CommandErrorCode.CapabilityMismatch`, this says nothing about what
+   * the craft can do. Waiting does not by itself make it succeed, but sending
+   * the command again asks the question afresh, and that is the only sound next
+   * move.
    *
-   * `CommandResult.detail` names what could not be read when the producer had a
-   * name for it, and never says what the result would have been. Nothing was
-   * learned about the vehicle, so offering the command again is the only sound
-   * next move.
+   * `CommandResult.detail` names what could not be read when the handler had a
+   * name for it.
    */
   Unreadable: "unreadable",
   /**
-   * The command acts at a PLACE, and the command centre it was sent from has no
-   * authority there: a launch from a pad in another planet's system.
+   * The command acts at a place, and the command centre it was sent from is not
+   * in that place's planetary system, so it has no authority there: a launch
+   * from a pad in another planet's system.
    *
-   * Authority, never delay. The command itself is still instant; what this
-   * refuses is the sender, not the moment, so no amount of waiting makes it
+   * This refuses the sender, not the moment, so no amount of waiting makes it
    * succeed. Sending from a centre in the place's own system does.
    *
    * `CommandResult.detail` names the centre and the place, and the system each
-   * is in, so an operator learns which seat to move to rather than seeing a
-   * control that simply does nothing.
+   * is in, so an operator learns which centre to send from.
    *
    * Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
    * carry the command. A centre may be perfectly linked to the place and still
@@ -239,9 +232,15 @@ export type CommandErrorCode = (typeof CommandErrorCode)[keyof typeof CommandErr
  * judgement a client makes: a `RefusalCode` says the game said no, this says
  * the machinery did not get that far, and a retry may work.
  *
- * Closed, and declared only here. An Uplink never declares a fault: a handler
- * that throws already becomes `FaultCode.CommandUnavailable`, and
- * `CommandFaultException` is how a handler raises one of these deliberately.
+ * Closed, and declared only here: the error codes an Uplink adds are refusals,
+ * refinements of a `CommandErrorCode` root, never faults. A handler that
+ * throws becomes `FaultCode.CommandUnavailable`, and one that throws a
+ * `CommandFaultException` raises a specific fault and leaves its command
+ * available.
+ *
+ * A command that was sent and never answered is neither a refusal nor one of
+ * these: its `send` rejects with the client's own `E_LOST` marker, which the
+ * SDK's `classifyCommandRejection` reports as `lost`.
  *
  * @category Error codes
  */
@@ -368,7 +367,7 @@ export const FaultCode = {
 export type FaultCode = (typeof FaultCode)[keyof typeof FaultCode];
 
 /**
- * Every code declared here, with the sentence an operator reads for it.
+ * Every code in this table, the refusals and the faults together as one flat list, each with the sentence an operator reads for it.
  *
  * @category Error codes
  */
@@ -411,7 +410,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "another planner owns the flight plan",
-    meaning: "The maneuver plan is owned by a planner other than stock's `patchedConicSolver`, so a node written there would never be used.\n\nA node written while another planner owns the plan would show on the board and never be flown, so the command is refused and nothing is written. The owning planner is on the wire as `VesselManeuver.Planner`.",
+    meaning: "The maneuver plan is owned by a trajectory planner other than the game's own, such as a mod that plans its own burns, so a node written there would never be flown.\n\nThe command is refused and nothing is written. The owning planner is on the wire as `VesselManeuver.Planner`.",
   },
   {
     id: "limitReached",
@@ -475,7 +474,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the flight is not clear for it yet",
-    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the SCET alarm command for a vantage it cannot check because no command centre is known to the simulation yet: the main menu, and the ticks before the first capture. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
+    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the SCET alarm command for a vantage it cannot check because the game has not yet reported any command centre: at the main menu, and in the first moments after a save loads. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
   },
   {
     id: "capabilityMismatch",
@@ -523,7 +522,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there are not enough of what it uses aboard",
-    meaning: "The command consumes a countable ITEM and there are not enough of them aboard.\n\nThe provider decides by its own charge, which it should also state wherever it shows the cost, so the cost shown and the cost taken agree. The item is the provider's to name: this code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
+    meaning: "The command consumes a countable ITEM and there are not enough of them aboard.\n\nThe command's handler decides how many are needed. This code says only that there were too few, never which item.\n\nSeparate from `CommandErrorCode.InsufficientFunds` and `CommandErrorCode.InsufficientScience`: a physical item cannot be bought.\n\nNot `CommandErrorCode.LimitReached`, which is a capacity that is full. This is a store that is empty.",
   },
   {
     id: "unreadable",
@@ -531,7 +530,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the game would not answer",
-    meaning: "The provider was asked and could not read the state it needed. Nothing about the craft, the save or the moment was established, so the one fact this refusal carries is that the question went unresolved.\n\nNot `CommandErrorCode.CapabilityMismatch`, which is an established fact about the craft (a genuine omni antenna asked to aim). Not `CommandErrorCode.NotFound`, which says the craft carries nothing this command could act on. Not `CommandErrorCode.NotClearToProceed`, which resolves by waiting; this does not, and a retry is a second attempt at the same question.\n\n`CommandResult.detail` names what could not be read when the producer had a name for it, and never says what the result would have been. Nothing was learned about the vehicle, so offering the command again is the only sound next move.",
+    meaning: "The command's handler could not read the state it needed, so the question went unanswered. Nothing about the craft, the save or the moment was established, and the refusal is no judgement about the command.\n\nUnlike `CommandErrorCode.CapabilityMismatch`, this says nothing about what the craft can do. Waiting does not by itself make it succeed, but sending the command again asks the question afresh, and that is the only sound next move.\n\n`CommandResult.detail` names what could not be read when the handler had a name for it.",
   },
   {
     id: "outOfReach",
@@ -539,7 +538,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "this command centre has no authority over that place",
-    meaning: "The command acts at a PLACE, and the command centre it was sent from has no authority there: a launch from a pad in another planet's system.\n\nAuthority, never delay. The command itself is still instant; what this refuses is the sender, not the moment, so no amount of waiting makes it succeed. Sending from a centre in the place's own system does.\n\n`CommandResult.detail` names the centre and the place, and the system each is in, so an operator learns which seat to move to rather than seeing a control that simply does nothing.\n\nDistinct from `CommandErrorCode.NoConnection`, which is a link that cannot carry the command. A centre may be perfectly linked to the place and still have no authority over it.",
+    meaning: "The command acts at a place, and the command centre it was sent from is not in that place's planetary system, so it has no authority there: a launch from a pad in another planet's system.\n\nThis refuses the sender, not the moment, so no amount of waiting makes it succeed. Sending from a centre in the place's own system does.\n\n`CommandResult.detail` names the centre and the place, and the system each is in, so an operator learns which centre to send from.\n\nDistinct from `CommandErrorCode.NoConnection`, which is a link that cannot carry the command. A centre may be perfectly linked to the place and still have no authority over it.",
   },
   {
     id: "invalidEnvelope",
