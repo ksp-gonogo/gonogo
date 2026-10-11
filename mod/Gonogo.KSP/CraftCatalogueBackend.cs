@@ -65,6 +65,27 @@ namespace Gonogo.KSP
 
         private List<CraftFileRecord>? _cached;
 
+        /// <summary>
+        /// What a craft file says on its own, kept per path against the file's
+        /// modification time. Measuring it instantiates a template and logs every
+        /// part the install lacks, so it is redone only when the file changes.
+        /// What the career can place is not in the file and is re-read on every
+        /// scan from the kept node.
+        /// </summary>
+        private readonly Dictionary<string, FileMeasure> _measured = new Dictionary<string, FileMeasure>();
+
+        private sealed class FileMeasure
+        {
+            public DateTime Modified;
+            public ConfigNode Root = null!;
+            public string? ShipName;
+            public KspEditorFacility Facility;
+            public int PartCount;
+            public double Mass;
+            public double Cost;
+            public float SizeX, SizeY, SizeZ;
+        }
+
         private double _scannedAt = double.NegativeInfinity;
 
         private string? _scannedSave;
@@ -89,16 +110,31 @@ namespace Gonogo.KSP
             }
 
             var records = new List<CraftFileRecord>();
+            var seen = new HashSet<string>();
             foreach (var facility in new[] { EditorFacility.VAB, EditorFacility.SPH })
             {
                 foreach (var file in FilesIn(save, facility))
                 {
+                    seen.Add(file);
                     var record = Measure(file);
                     if (record != null)
                     {
                         records.Add(record);
                     }
                 }
+            }
+
+            var gone = new List<string>();
+            foreach (var path in _measured.Keys)
+            {
+                if (!seen.Contains(path))
+                {
+                    gone.Add(path);
+                }
+            }
+            foreach (var path in gone)
+            {
+                _measured.Remove(path);
             }
 
             _cached = records;
@@ -172,6 +208,24 @@ namespace Gonogo.KSP
             if (node == null)
             {
                 return CraftLoad.Failed("the craft file could not be read");
+            }
+
+            // Named here rather than left to LoadShip, which refuses a craft with a
+            // part the install lacks without saying which, and opens KSP's own
+            // "Craft Loading Error" dialog over whatever screen the player is on.
+            var absent = new List<string>();
+            foreach (var partNode in node.GetNodes("PART"))
+            {
+                var name = PartNameFrom(partNode);
+                if (!string.IsNullOrEmpty(name) && PartLoader.getPartInfoByName(name) == null && !absent.Contains(name))
+                {
+                    absent.Add(name);
+                }
+            }
+            if (absent.Count > 0)
+            {
+                return CraftLoad.Failed(
+                    "the craft uses parts this install does not have: " + string.Join(", ", absent.ToArray()));
             }
 
             var ship = new ShipConstruct();
@@ -284,37 +338,57 @@ namespace Gonogo.KSP
         /// <para>Null when the file could not be parsed at all, which drops the
         /// row rather than publishing a craft nobody can measure.</para>
         /// </summary>
-        private static CraftFileRecord? Measure(string path)
+        private CraftFileRecord? Measure(string path)
         {
             try
             {
-                var root = ConfigNode.Load(path);
-                if (root == null)
+                var modified = File.GetLastWriteTimeUtc(path);
+                if (!_measured.TryGetValue(path, out var kept) || kept.Modified != modified)
                 {
-                    return null;
-                }
+                    var root = ConfigNode.Load(path);
+                    if (root == null)
+                    {
+                        _measured.Remove(path);
+                        return null;
+                    }
 
-                var info = new CraftProfileInfo();
-                info.LoadDetailsFromCraftFile(root, path);
+                    var info = new CraftProfileInfo();
+                    info.LoadDetailsFromCraftFile(root, path);
+
+                    var template = new ShipTemplate();
+                    template.LoadShip(root);
+                    var size = template.GetShipSize();
+
+                    kept = new FileMeasure
+                    {
+                        Modified = modified,
+                        Root = root,
+                        ShipName = info.shipName,
+                        Facility = (KspEditorFacility)(int)info.shipFacility,
+                        PartCount = info.partCount,
+                        Mass = info.totalMass,
+                        Cost = info.totalCost,
+                        SizeX = size.x,
+                        SizeY = size.y,
+                        SizeZ = size.z,
+                    };
+                    _measured[path] = kept;
+                }
 
                 var record = new CraftFileRecord
                 {
                     File = Path.GetFileNameWithoutExtension(path),
-                    ShipName = info.shipName,
-                    Facility = (KspEditorFacility)(int)info.shipFacility,
-                    PartCount = info.partCount,
-                    Mass = info.totalMass,
-                    Cost = info.totalCost,
+                    ShipName = kept.ShipName,
+                    Facility = kept.Facility,
+                    PartCount = kept.PartCount,
+                    Mass = kept.Mass,
+                    Cost = kept.Cost,
+                    SizeX = kept.SizeX,
+                    SizeY = kept.SizeY,
+                    SizeZ = kept.SizeZ,
                 };
 
-                var template = new ShipTemplate();
-                template.LoadShip(root);
-                var size = template.GetShipSize();
-                record.SizeX = size.x;
-                record.SizeY = size.y;
-                record.SizeZ = size.z;
-
-                MeasureParts(root, record);
+                MeasureParts(kept.Root, record);
                 return record;
             }
             catch (Exception ex)
