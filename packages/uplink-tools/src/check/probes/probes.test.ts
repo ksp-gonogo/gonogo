@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { cpSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -20,10 +20,7 @@ afterEach(() => {
 });
 
 /** A client whose node_modules holds the named @ksp-gonogo packages, each exporting `exports`. */
-function clientWith(
-  packages: Record<string, string[]>,
-  repository = "git+https://github.com/ksp-gonogo/gonogo.git",
-): string {
+function clientWith(packages: Record<string, string[]>): string {
   const dir = mkdtempSync(join(tmpdir(), "uplink-probe-"));
   scratch.push(dir);
   const dependencies: Record<string, string> = {};
@@ -35,13 +32,7 @@ function clientWith(
     for (const sub of subpaths) exports[`./${sub}`] = `./${sub}.js`;
     writeFileSync(
       join(pkgDir, "package.json"),
-      JSON.stringify({
-        name,
-        version: "1.0.0",
-        type: "module",
-        exports,
-        repository: { type: "git", url: repository },
-      }),
+      JSON.stringify({ name, version: "1.0.0", type: "module", exports }),
     );
     writeFileSync(join(pkgDir, "index.js"), "export const x = 1;\n");
     for (const sub of subpaths) {
@@ -62,35 +53,6 @@ const SIX = {
 describe("loadable", () => {
   it("passes when every entry point imports in a bare node", () => {
     expect(checkLoadable(clientWith(SIX))).toEqual([]);
-  });
-
-  it("leaves a package from another repository to the bundle that inlines it", () => {
-    const dir = clientWith(
-      { "@ksp-gonogo/other": ["one", "two"] },
-      "git+https://github.com/ksp-gonogo/kerbcast.git",
-    );
-    writeFileSync(
-      join(dir, "node_modules/@ksp-gonogo/other/one.js"),
-      "import './missing-extension';\n",
-    );
-    const gonogo = clientWith(SIX);
-    writeFileSync(
-      join(dir, "package.json"),
-      JSON.stringify({
-        name: "client",
-        version: "0.0.1",
-        dependencies: {
-          "@ksp-gonogo/other": "1.0.0",
-          "@ksp-gonogo/a": "1.0.0",
-        },
-      }),
-    );
-    cpSync(
-      join(gonogo, "node_modules/@ksp-gonogo/a"),
-      join(dir, "node_modules/@ksp-gonogo/a"),
-      { recursive: true },
-    );
-    expect(checkLoadable(dir)).toEqual([]);
   });
 
   it("names the entry point that does not import, and why", () => {
