@@ -146,6 +146,12 @@ describe("the built-in catalogue, derived", () => {
         {
           "domains": [
             "career",
+          ],
+          "id": "admin-building",
+        },
+        {
+          "domains": [
+            "career",
             "spaceCenter",
           ],
           "id": "astronaut-complex",
@@ -189,12 +195,6 @@ describe("the built-in catalogue, derived", () => {
             "spaceCenter",
           ],
           "id": "space-center-status",
-        },
-        {
-          "domains": [
-            "career",
-          ],
-          "id": "strategies",
         },
         {
           "domains": [

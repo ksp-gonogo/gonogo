@@ -10,11 +10,11 @@ import {
 import { useContributions } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { currencyOf } from "../shared/currencyOf";
+import { AdminBuildingView } from "./AdminBuildingView";
+import read from "./admin-building.declarations.g";
 import { parseEffectLines, parseStrategies } from "./parsing";
 import { inferCap, partition } from "./partition";
-import { StrategiesView } from "./StrategiesView";
 import { resolveScreens } from "./screens";
-import read from "./strategies.declarations.g";
 
 export type { Strategy } from "./types";
 export { parseEffectLines, parseStrategies };
@@ -30,12 +30,12 @@ const topics = defineTopicManifest({
   ],
 });
 
-type StrategiesConfig = Record<string, never>;
+type AdminBuildingConfig = Record<string, never>;
 
-function StrategiesComponent({
+function AdminBuildingComponent({
   w,
   h,
-}: Readonly<ComponentProps<StrategiesConfig>>) {
+}: Readonly<ComponentProps<AdminBuildingConfig>>) {
   /*
    * The strategy list is a fact that only moves when the operator acts, so the
    * last list received is still the list. The balances are judgements: they
@@ -75,7 +75,7 @@ function StrategiesComponent({
   const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
 
   // With no screens contributed (stock), the widget draws ungrouped.
-  const screenEntries = useContributions("strategies.screens");
+  const screenEntries = useContributions("admin-building.screens");
   const screens = useMemo(
     () => resolveScreens(screenEntries, strategies ?? []),
     [screenEntries, strategies],
@@ -85,7 +85,7 @@ function StrategiesComponent({
   const [factorById, setFactorById] = useState<Record<string, number>>({});
 
   return (
-    <StrategiesView
+    <AdminBuildingView
       w={w}
       h={h}
       strategies={strategies}
@@ -107,7 +107,7 @@ function StrategiesComponent({
 }
 
 /** The balance and the commitments held against it. */
-function useStrategiesEssentials(): readonly TinyEssential[] {
+function useAdminBuildingEssentials(): readonly TinyEssential[] {
   const career = topics.useTelemetry("career.status");
   const roster = partition(
     parseStrategies(stillTrue(career, undefined)?.strategies?.all) ?? [],
@@ -127,8 +127,8 @@ function useStrategiesEssentials(): readonly TinyEssential[] {
   ];
 }
 
-registerComponent<StrategiesConfig>({
-  id: "strategies",
+registerComponent<AdminBuildingConfig>({
+  id: "admin-building",
   name: "Admin Building",
   description:
     "Career strategies from the Administration Building: the ones you have running and their effects, and the ones you could start, with what each costs at the commitment you choose. Start and stop strategies from here.",
@@ -136,8 +136,8 @@ registerComponent<StrategiesConfig>({
   defaultSize: { w: 5, h: 9 },
   // Three columns and four rows hold a full balance over the tally.
   minSize: { w: 5, h: 4 },
-  component: StrategiesComponent,
-  tiny: { title: "ADMIN", useEssentials: useStrategiesEssentials },
+  component: AdminBuildingComponent,
+  tiny: { title: "ADMIN", useEssentials: useAdminBuildingEssentials },
   channels: topics.channels,
   ...read,
   fields: topics.fields,
@@ -145,8 +145,8 @@ registerComponent<StrategiesConfig>({
   actions: [],
   pushable: true,
   requires: ["career"],
-  contributionSlots: ["strategies.screens"],
-  augmentSlots: ["strategies.screen-body"],
+  contributionSlots: ["admin-building.screens"],
+  augmentSlots: ["admin-building.screen-body"],
 });
 
-export { StrategiesComponent };
+export { AdminBuildingComponent };

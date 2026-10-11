@@ -434,15 +434,15 @@ export interface ObjectiveSourceContext {
 }
 
 /**
- * Props passed to every `strategies.screen-body` augment: the body of one
+ * Props passed to every `admin-building.screen-body` augment: the body of one
  * Administration Building screen, drawn below the strategy cards the screen
- * lists. Screens come from the `strategies.screens` contribution slot, and the
+ * lists. Screens come from the `admin-building.screens` contribution slot, and the
  * slot is drawn only on a screen that is open for use.
  *
  * @category Widget slots
  */
-export interface StrategiesScreenBodyContext {
-  /** The `id` of the screen being drawn, as its `strategies.screens` entry gave it. An augment bound to more than one screen branches on it. */
+export interface AdminBuildingScreenBodyContext {
+  /** The `id` of the screen being drawn, as its `admin-building.screens` entry gave it. An augment bound to more than one screen branches on it. */
   screenId: string;
 }
 
@@ -1115,10 +1115,10 @@ declare module "./types" {
      * The body of an Administration Building screen in the Admin Building widget,
      * below the strategy cards the screen lists, for content of your own such
      * as a Programs screen with its own controls. Screens come from the
-     * `strategies.screens` contribution slot; the body is drawn only on a
-     * screen that is open for use. Passes a {@link StrategiesScreenBodyContext}.
+     * `admin-building.screens` contribution slot; the body is drawn only on a
+     * screen that is open for use. Passes a {@link AdminBuildingScreenBodyContext}.
      */
-    "strategies.screen-body": StrategiesScreenBodyContext;
+    "admin-building.screen-body": AdminBuildingScreenBodyContext;
   }
 
   // What each widget publishes about its own current focus, for an augment to

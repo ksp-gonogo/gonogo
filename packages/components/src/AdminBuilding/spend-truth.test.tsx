@@ -2,7 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { StrategiesComponent } from "./index";
+import { AdminBuildingComponent } from "./index";
 
 /**
  * What a strategy card may claim about what activating it costs. Three zero
@@ -43,7 +43,7 @@ const PRICED = {
   initialCostReputation: 7.3,
 };
 
-describe("Strategies: what a card claims activating it costs", () => {
+describe("Admin Building: what a card claims activating it costs", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -57,7 +57,7 @@ describe("Strategies: what a card claims activating it costs", () => {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "s" }}>
-          <StrategiesComponent config={{}} id="s" w={9} h={12} />
+          <AdminBuildingComponent config={{}} id="s" w={9} h={12} />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );

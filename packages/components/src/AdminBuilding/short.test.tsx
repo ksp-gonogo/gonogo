@@ -4,7 +4,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { StrategiesComponent } from "./index";
+import { AdminBuildingComponent } from "./index";
 
 const BASE = {
   description: "A blurb.",
@@ -55,7 +55,7 @@ const LOCKED = {
     "Requires more reputation than the program has earned.",
 };
 
-describe("Strategies short form", () => {
+describe("Admin Building short form", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -66,7 +66,7 @@ describe("Strategies short form", () => {
     const view = render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "s" }}>
-          <StrategiesComponent config={{}} id="s" w={w} h={h} />
+          <AdminBuildingComponent config={{}} id="s" w={w} h={h} />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );

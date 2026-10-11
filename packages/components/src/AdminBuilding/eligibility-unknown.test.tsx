@@ -10,7 +10,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { parseStrategies, StrategiesComponent } from "./index";
+import { AdminBuildingComponent, parseStrategies } from "./index";
 
 /**
  * Eligibility is three-valued and the widget draws all three. A null
@@ -37,7 +37,7 @@ function renderStrategies(fixture: StreamFixture) {
   const result = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "strat-unknown" }}>
-        <StrategiesComponent config={{}} id="strat-unknown" w={9} h={12} />
+        <AdminBuildingComponent config={{}} id="strat-unknown" w={9} h={12} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -133,7 +133,7 @@ describe("parseStrategies carries the third eligibility state", () => {
   });
 });
 
-describe("Strategies with an eligibility it could not read", () => {
+describe("Admin Building with an eligibility it could not read", () => {
   it("puts a genuine refusal in Locked", async () => {
     // The control: the assertions below would also pass on a widget with no Locked list.
     const fixture = newFixture();
@@ -261,7 +261,7 @@ describe("Strategies with an eligibility it could not read", () => {
  * roster's to say: the command's per-strategy gate runs the same checks the
  * command would, by the same route.
  */
-describe("Strategies with a verdict derived off-screen", () => {
+describe("Admin Building with a verdict derived off-screen", () => {
   /** A pair our career model never sends, but the published type admits it. */
   const DERIVED_YES = {
     ...REFUSED,
@@ -333,7 +333,7 @@ describe("Strategies with a verdict derived off-screen", () => {
  * Administration Building is shut), the mod's per-strategy gate says so in
  * advance, and that is the only thing that darkens the control.
  */
-describe("Strategies committing a strategy the roster left unanswered", () => {
+describe("Admin Building committing a strategy the roster left unanswered", () => {
   it("says the unread checks are made at confirm only where activation is the game's own", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);

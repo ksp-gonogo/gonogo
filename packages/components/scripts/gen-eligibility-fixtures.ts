@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Write the full-roster Strategies fixture and the three
- * `Strategies/__render_unknown__` fixtures derived from it.
+ * `AdminBuilding/__render_unknown__` fixtures derived from it.
  *
  * Generated rather than hand-authored because the case being rendered is a
  * SCALE case: `3e0a841fa` was found on a career whose Administration Building
@@ -21,9 +21,9 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROSTER_OUT = resolve(
   HERE,
-  "../src/Strategies/__fixtures__/full-admin-building.json",
+  "../src/AdminBuilding/__fixtures__/full-admin-building.json",
 );
-const OUT_DIR = resolve(HERE, "../src/Strategies/__render_unknown__");
+const OUT_DIR = resolve(HERE, "../src/AdminBuilding/__render_unknown__");
 
 /**
  * Verbatim what the career model publishes beside a null eligibility, copied
@@ -466,7 +466,7 @@ async function main(): Promise<void> {
     withRoster(shut, {
       scenario: "admin-building-shut",
       synthetic: true,
-      notes: `DERIVED from Strategies/__fixtures__/full-admin-building.json (${all.length} synthetic rows) by setting canActivate to null and activateBlockedReason to the career model's own unanswered sentence on every INACTIVE row, which is the shape a shut Administration Building actually publishes: KSP answers eligibility for the whole screen or for none of it. Nothing else is changed, so every title, cost and effect line is the source fixture's. This is the case 3e0a841fa was found on: before it, all ${inactive.length} of these would sit under a heading reading Locked.`,
+      notes: `DERIVED from AdminBuilding/__fixtures__/full-admin-building.json (${all.length} synthetic rows) by setting canActivate to null and activateBlockedReason to the career model's own unanswered sentence on every INACTIVE row, which is the shape a shut Administration Building actually publishes: KSP answers eligibility for the whole screen or for none of it. Nothing else is changed, so every title, cost and effect line is the source fixture's. This is the case 3e0a841fa was found on: before it, all ${inactive.length} of these would sit under a heading reading Locked.`,
     }),
   );
 

@@ -1012,9 +1012,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "strategies",
-    fixturesPath: "Strategies/__fixtures__",
-    outPath: "renders/strategies-widget",
+    widgetId: "admin-building",
+    fixturesPath: "AdminBuilding/__fixtures__",
+    outPath: "renders/admin-building-widget",
     // Activate spends career funds, so the balance (or the statement standing in for it) has to be readable at every size the widget is rendered at.
     mustBeVisible: { selector: "[data-balance-row]" },
     modes: [

@@ -78,13 +78,13 @@ export type {
 } from "./alarm-request";
 export { useAlarmRequest } from "./alarm-request";
 export type {
+  AdminBuildingScreenEntry,
   CommSignalHopRateEntry,
   CrewRowToneEntry,
   ExperimentsInstrumentEntry,
   ShipMapPartMetaEntry,
   ShipMapPartMeterEntry,
   SpaceCenterFacilityEntry,
-  StrategiesScreenEntry,
   SystemEntity,
   SystemEntityEmphasis,
   SystemEntityFixedPosition,
@@ -130,6 +130,7 @@ export type {
 export type {
   ActionGroupSlotContext,
   ActionGroupSlotId,
+  AdminBuildingScreenBodyContext,
   AstronautComplexCrewContext,
   CrewAvatarContext,
   CrewBadgeContext,
@@ -156,7 +157,6 @@ export type {
   ShipMapPart,
   ShipMapPartStateModule,
   ShipMapPartType,
-  StrategiesScreenBodyContext,
   SystemOverlayContext,
   TargetingHudContext,
 } from "./slots";

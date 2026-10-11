@@ -8,18 +8,18 @@ import {
 
 /** The body slot draws only under a contributed screen, so the body's stub brings one that lists nothing and holds the body alone. */
 PLANTED_UPLINK.registerContribution({
-  id: "planted-slots-strategies-screen",
-  contributes: "strategies.screens",
-  requires: plantedSlotDomain("strategies.screen-body"),
+  id: "planted-slots-admin-building-screen",
+  contributes: "admin-building.screens",
+  requires: plantedSlotDomain("admin-building.screen-body"),
   compute: () => [{ id: "planted-slots", label: "Planted", order: 0 }],
 });
 
-plantSlot("strategies.screen-body", ({ screenId }) => (
-  <SlotStub slot="strategies.screen-body">screen: {screenId}</SlotStub>
+plantSlot("admin-building.screen-body", ({ screenId }) => (
+  <SlotStub slot="admin-building.screen-body">screen: {screenId}</SlotStub>
 ));
 
-plantContribution("strategies.screens", {
+plantContribution("admin-building.screens", {
   compute: () => [
-    { id: "planted-slot-screens", label: "strategies.screens", order: 0 },
+    { id: "planted-slot-screens", label: "admin-building.screens", order: 0 },
   ],
 });

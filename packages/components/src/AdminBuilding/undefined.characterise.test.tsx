@@ -8,10 +8,10 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { StrategiesComponent } from "./index";
+import { AdminBuildingComponent } from "./index";
 
 /**
- * What Strategies does when its telemetry reads are absent. A missing strategy
+ * What Admin Building does when its telemetry reads are absent. A missing strategy
  * list swaps the widget for a placeholder; a missing balance fails closed, so
  * Activate stays disabled.
  */
@@ -41,7 +41,7 @@ function renderStrategies(
     <fixture.Provider>
       {probe && <ReadingProbe topic="career.status" />}
       <DashboardItemContext.Provider value={{ instanceId: "strat-char" }}>
-        <StrategiesComponent
+        <AdminBuildingComponent
           config={{}}
           id="strat-char"
           w={size.w}
@@ -83,31 +83,29 @@ function emitCareer(fixture: StreamFixture, over: Record<string, unknown>) {
   });
 }
 
-describe("Strategies: nothing has arrived at all", () => {
-  it("swaps the whole widget for a placeholder, under a DIFFERENT panel title from the loaded one", () => {
+describe("Admin Building: nothing has arrived at all", () => {
+  it("swaps the whole widget for a placeholder that carries none of the loaded content", () => {
     renderStrategies(newFixture());
 
-    // The placeholder is titled "Strategies" and the loaded widget "Admin Building", so the title observes the gate.
-    expect(screen.getByText("Strategies")).toBeInTheDocument();
+    expect(screen.getByText("Admin Building")).toBeInTheDocument();
     expect(screen.getByText(/Awaiting career data\.\.\./)).toBeInTheDocument();
-    expect(screen.queryByText("Admin Building")).toBeNull();
     expect(screen.queryByLabelText("Active")).toBeNull();
     expect(screen.queryByLabelText("Available")).toBeNull();
     expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
     expect(screen.queryAllByText(NULL_DISPLAY)).toHaveLength(0);
-    expect(visibleText()).toBe("StrategiesAwaiting career data...");
+    expect(visibleText()).toBe("Admin BuildingAwaiting career data...");
   });
 
   it("says nothing at all in a short box, because the placeholder is itself gated on height", () => {
     // At h=3 the awaiting branch renders an empty body.
     renderStrategies(newFixture(), { w: 9, h: 3 });
 
-    expect(screen.getByText("Strategies")).toBeInTheDocument();
+    expect(screen.getByText("Admin Building")).toBeInTheDocument();
     expect(screen.queryByText(/Awaiting career data/)).toBeNull();
   });
 });
 
-describe("Strategies: the `strategies === null` absence gate", () => {
+describe("Admin Building: the `strategies === null` absence gate", () => {
   it("fires for a never-arrived topic and stops firing for a confirmed-empty list", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
@@ -158,7 +156,7 @@ describe("Strategies: the `strategies === null` absence gate", () => {
   });
 });
 
-describe("Strategies: null versus undefined", () => {
+describe("Admin Building: null versus undefined", () => {
   it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
     const fixture = newFixture();
     renderStrategies(fixture, undefined, { probe: true });
@@ -173,7 +171,7 @@ describe("Strategies: null versus undefined", () => {
   });
 });
 
-describe("Strategies: an absent balance beside a present strategy list", () => {
+describe("Admin Building: an absent balance beside a present strategy list", () => {
   it("renders the funds/rep/science tallies as the null dash", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
@@ -229,11 +227,11 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
   });
 });
 
-describe("Strategies: tiny mode keeps the funds essential", () => {
+describe("Admin Building: tiny mode keeps the funds essential", () => {
   it("draws the null token for funds while balances are absent, and the balance once it arrives", async () => {
     const fixture = newFixture();
     // w=4 is the tiny bucket.
-    renderWidget("strategies", { w: 4, h: 4, wrapper: fixture.Provider });
+    renderWidget("admin-building", { w: 4, h: 4, wrapper: fixture.Provider });
 
     emitCareer(fixture, {
       balances: null,

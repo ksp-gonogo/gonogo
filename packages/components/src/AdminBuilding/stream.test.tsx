@@ -2,19 +2,19 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { StrategiesComponent } from "./index";
+import { AdminBuildingComponent } from "./index";
 
 // Unmounted before `clearActionHandlers()`, which would otherwise update a mounted widget outside act().
 const renderedTrees: Array<() => void> = [];
 
-/** Strategies off the real stream pipeline via `StubTransport`. */
+/** Admin Building off the real stream pipeline via `StubTransport`. */
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
   clearActionHandlers();
 });
 
-describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () => {
+describe("Admin Building: genuinely runs off the stream (M3/M3b career batch)", () => {
   it("renders the funds/reputation/science tallies derived from career.status.balances", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -24,7 +24,7 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
     const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "strats-stream" }}>
-          <StrategiesComponent id="strats-stream" w={9} h={12} />
+          <AdminBuildingComponent id="strats-stream" w={9} h={12} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -64,7 +64,7 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
         <DashboardItemContext.Provider
           value={{ instanceId: "strats-stream-2" }}
         >
-          <StrategiesComponent id="strats-stream-2" w={9} h={12} />
+          <AdminBuildingComponent id="strats-stream-2" w={9} h={12} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

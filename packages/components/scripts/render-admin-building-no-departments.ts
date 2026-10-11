@@ -1,11 +1,11 @@
 #!/usr/bin/env tsx
 /**
- * Review renders for Saga #649 (T4): a `strategies.screens` contribution
+ * Review renders for Saga #649 (T4): a `admin-building.screens` contribution
  * naming no departments must draw no strategy lists, since the sdk contract
  * already says such a screen "lists nothing and is chrome for its augments"
  * (`contribution-slots.ts`).
  *
- * The scene: the planted Uplink's `strategies-finances-screen` contribution
+ * The scene: the planted Uplink's `admin-building-finances-screen` contribution
  * (`scripts/probe/plantedUplink.ts`, gated on `planted.available`) puts one
  * screen with no `departments` alongside a real three-department roster.
  * Nobody claims Operations/Finances/Public Relations, so they land on the
@@ -27,10 +27,10 @@ import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 
 const CONFIGS: WidgetRenderConfig[] = [
   {
-    widgetId: "strategies",
-    label: "strategies/admin-building-no-departments",
-    slug: "strategies-no-departments",
-    fixturesPath: "Strategies/__fixtures__/probe",
+    widgetId: "admin-building",
+    label: "admin-building/admin-building-no-departments",
+    slug: "admin-building-no-departments",
+    fixturesPath: "AdminBuilding/__fixtures__/probe",
     outPath: "renders/admin-building-no-departments",
     fullContent: true,
     modes: [

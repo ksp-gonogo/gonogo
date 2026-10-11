@@ -61,7 +61,7 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/Navball#state",
   "packages/components/src/PowerSystems#state",
   "packages/components/src/ScienceData#state",
-  "packages/components/src/Strategies#state",
+  "packages/components/src/AdminBuilding#state",
   /*
    * `reading.state` here too, but TechTree also reads a tech node's own
    * `e.state` in `parseTechNodes`, so the discriminant is not the whole answer.

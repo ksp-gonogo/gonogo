@@ -13,11 +13,11 @@ import { beforeAll, describe, expect, it } from "vitest";
  */
 const WIDGETS_THAT_BLOCKED_AN_UPLINK_PAGE = [
   /**
-   * Three contributions a stand-in cannot draw, because `strategies.screens`,
+   * Three contributions a stand-in cannot draw, because `admin-building.screens`,
    * `space-center-status.facilities` and `astronaut-complex.readouts` are each
    * read by a `useContributions(...)` in the host's own body.
    */
-  "strategies",
+  "admin-building",
   "space-center-status",
   "astronaut-complex",
   /**
@@ -57,7 +57,7 @@ describe("@ksp-gonogo/uplink-tools/widgets", () => {
   });
 
   it("registers a widget with a BODY, which is the whole difference from a stand-in", () => {
-    const strategies = getComponents().find((c) => c.id === "strategies");
+    const strategies = getComponents().find((c) => c.id === "admin-building");
     /**
      * `standInHostWidget` synthesises `{ component: () => null, description:
      * "Stand-in host widget for a render scene.", channels: undefined }`. A slot drawn
@@ -74,6 +74,6 @@ describe("@ksp-gonogo/uplink-tools/widgets", () => {
       "Stand-in host widget for a render scene.",
     );
     expect(strategies?.channels?.length ?? 0).toBeGreaterThan(0);
-    expect(strategies?.contributionSlots).toContain("strategies.screens");
+    expect(strategies?.contributionSlots).toContain("admin-building.screens");
   });
 });

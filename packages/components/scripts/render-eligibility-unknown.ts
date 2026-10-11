@@ -24,7 +24,7 @@
  * These exist to be looked at by a person.
  *
  * No `dist` staleness guard here, unlike `render-reckoned-tail.ts`: the change
- * being shown is `src/Strategies/index.tsx`, which esbuild bundles from source,
+ * being shown is `src/AdminBuilding/index.tsx`, which esbuild bundles from source,
  * so this render cannot predate it.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-eligibility-unknown`.
@@ -36,10 +36,10 @@ import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 
 const CONFIGS: WidgetRenderConfig[] = [
   {
-    widgetId: "strategies",
-    label: "strategies/eligibility-unknown-roster",
-    slug: "strategies-eligibility-roster",
-    fixturesPath: "Strategies/__render_unknown__",
+    widgetId: "admin-building",
+    label: "admin-building/eligibility-unknown-roster",
+    slug: "admin-building-eligibility-roster",
+    fixturesPath: "AdminBuilding/__render_unknown__",
     outPath: "renders/eligibility-unknown/roster",
     /*
      * Fixed tile, not full content. The scene's whole claim is the HEADING over
@@ -91,10 +91,10 @@ const CONFIGS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "strategies",
-    label: "strategies/eligibility-unknown-buckets",
-    slug: "strategies-eligibility-buckets",
-    fixturesPath: "Strategies/__render_unknown__",
+    widgetId: "admin-building",
+    label: "admin-building/eligibility-unknown-buckets",
+    slug: "admin-building-eligibility-buckets",
+    fixturesPath: "AdminBuilding/__render_unknown__",
     outPath: "renders/eligibility-unknown/buckets",
     // Whole content, because the claim here is that the three headings coexist and one of them below the fold would be the same as it not being there.
     fullContent: true,

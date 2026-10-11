@@ -52,7 +52,7 @@
  * `HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"]`.
  *
  * Every OTHER contribution slot is drawn by the host widget's own body, and a
- * stand-in's body is `() => null`. `strategies.screens`,
+ * stand-in's body is `() => null`. `admin-building.screens`,
  * `space-center-status.facilities` and `astronaut-complex.readouts` are each a
  * `useContributions(...)` inside the widget. Standing in for those produces a
  * blank frame that reports success, which is measured (ticket 317) rather than

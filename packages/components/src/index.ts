@@ -1,6 +1,7 @@
 // Components self-register on import. Themes live in @ksp-gonogo/ui.
 
 export * from "./ActionGroup";
+export * from "./AdminBuilding";
 export * from "./AstronautComplex";
 export * from "./AtmosphereProfile";
 export * from "./CommSignal";
@@ -33,7 +34,6 @@ export * from "./ScienceData";
 export * from "./SemiMajorAxis";
 export * from "./ShipMap";
 export * from "./SpaceCenterStatus";
-export * from "./Strategies";
 export * from "./SystemView";
 export * from "./shared/AlarmsLauncher";
 export * from "./shared/RequiresGuard";

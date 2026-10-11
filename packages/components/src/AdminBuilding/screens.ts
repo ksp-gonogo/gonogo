@@ -7,7 +7,7 @@ import type { Strategy } from "./index";
  * to register. Mirrored in the sdk's `api/contribution-slots.ts`, the copy an
  * Uplink types against.
  */
-export interface StrategiesScreenEntry {
+export interface AdminBuildingScreenEntry {
   id: string;
   label: string;
   order?: number;
@@ -17,7 +17,7 @@ export interface StrategiesScreenEntry {
   /**
    * True when the screen's own body already carries the activate/deactivate
    * verbs for its cards (as when an Uplink's screen offers its own Accept and Complete
-   * through its `strategies.screen-body` augment). The host then draws that
+   * through its `admin-building.screen-body` augment). The host then draws that
    * screen's Active and Available cards with no Activate or Deactivate button
    * of its own, rather than one that could only ever be refused.
    * Nor does it draw a price or a commitment factor on them: the costs a
@@ -41,7 +41,7 @@ export interface ResolvedScreen {
    * sections at all rather than an empty-looking building.
    */
   listsStrategies: boolean;
-  /** Mirrors {@link StrategiesScreenEntry.drawsOwnActions}. */
+  /** Mirrors {@link AdminBuildingScreenEntry.drawsOwnActions}. */
   drawsOwnActions: boolean;
   /** The strategies this screen lists, in the order the career reported them. */
   strategies: Strategy[];
@@ -52,7 +52,7 @@ export interface ResolvedScreen {
  * set of screens never hides the rest of the building. It exists only while
  * something is unclaimed.
  */
-export const UNCLAIMED_SCREEN_ID = "strategies.unclaimed";
+export const UNCLAIMED_SCREEN_ID = "admin-building.unclaimed";
 
 const UNORDERED = Number.POSITIVE_INFINITY;
 
@@ -63,14 +63,14 @@ const UNORDERED = Number.POSITIVE_INFINITY;
  * ungrouped widget: one tab over the whole list is chrome that says nothing.
  */
 export function resolveScreens(
-  contributed: readonly StrategiesScreenEntry[],
+  contributed: readonly AdminBuildingScreenEntry[],
   strategies: readonly Strategy[],
 ): ResolvedScreen[] {
   if (contributed.length === 0) return [];
 
   // First entry wins a repeated screen id.
   const seen = new Set<string>();
-  const unique: StrategiesScreenEntry[] = [];
+  const unique: AdminBuildingScreenEntry[] = [];
   for (const entry of contributed) {
     if (seen.has(entry.id)) continue;
     seen.add(entry.id);

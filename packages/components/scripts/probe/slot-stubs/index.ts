@@ -17,7 +17,7 @@ import "./power-systems";
 import "./science-data";
 import "./ship-map";
 import "./space-center-status";
-import "./strategies";
+import "./admin-building";
 import "./system-view";
 import "./target-picker";
 import "./targeting";

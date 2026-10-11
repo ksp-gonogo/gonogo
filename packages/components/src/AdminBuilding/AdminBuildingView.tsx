@@ -16,7 +16,7 @@ import type { ResolvedScreen } from "./screens";
 import { BalanceRow, Empty, LockedScreen, Sep, Tally } from "./styles";
 import type { Strategy } from "./types";
 
-export interface StrategiesViewProps {
+export interface AdminBuildingViewProps {
   w: number | undefined;
   h: number | undefined;
   strategies: readonly Strategy[] | null;
@@ -42,7 +42,7 @@ export interface StrategiesViewProps {
   setExpandedId: Dispatch<SetStateAction<string | null>>;
 }
 
-export function StrategiesView({
+export function AdminBuildingView({
   w,
   h,
   strategies,
@@ -59,13 +59,13 @@ export function StrategiesView({
   deactivateCmd,
   expandedId,
   setExpandedId,
-}: Readonly<StrategiesViewProps>) {
+}: Readonly<AdminBuildingViewProps>) {
   const showSubtitle = (h ?? 8) >= 4;
 
   if (strategies === null) {
     return (
       <Panel
-        panelTitle="Strategies"
+        panelTitle="Admin Building"
         compactTitle={["ADMIN", "ADM"]}
         sections={
           showSubtitle ? (

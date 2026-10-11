@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Review renders for a `strategies.screens` contribution that draws its own
+ * Review renders for a `admin-building.screens` contribution that draws its own
  * actions: the host draws that screen's cards with neither an Activate button
  * nor a price, because the price it would show is stock's activation cost and
  * the spend belongs to the Uplink's own body. The stock scene is the same
@@ -19,10 +19,10 @@ import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 
 const CONFIGS: WidgetRenderConfig[] = [
   {
-    widgetId: "strategies",
-    label: "strategies/admin-building-own-actions",
-    slug: "strategies-own-actions",
-    fixturesPath: "Strategies/__fixtures__/probe",
+    widgetId: "admin-building",
+    label: "admin-building/admin-building-own-actions",
+    slug: "admin-building-own-actions",
+    fixturesPath: "AdminBuilding/__fixtures__/probe",
     outPath: "renders/admin-building-own-actions",
     fullContent: true,
     modes: [
@@ -30,10 +30,10 @@ const CONFIGS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "strategies",
-    label: "strategies/stock",
-    slug: "strategies-stock",
-    fixturesPath: "Strategies/__fixtures__",
+    widgetId: "admin-building",
+    label: "admin-building/stock",
+    slug: "admin-building-stock",
+    fixturesPath: "AdminBuilding/__fixtures__",
     outPath: "renders/admin-building-stock",
     fullContent: true,
     modes: [

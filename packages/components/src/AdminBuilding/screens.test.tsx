@@ -17,9 +17,9 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { StrategiesComponent } from "./index";
+import { AdminBuildingComponent } from "./index";
 import { parseStrategies } from "./parsing";
-import { resolveScreens, type StrategiesScreenEntry } from "./screens";
+import { type AdminBuildingScreenEntry, resolveScreens } from "./screens";
 
 /**
  * The Administration Building's tab strip: a contribution supplies the screen
@@ -79,7 +79,7 @@ describe("resolveScreens", () => {
   });
 
   it("orders by the stated order, then by contribution order", () => {
-    const entries: StrategiesScreenEntry[] = [
+    const entries: AdminBuildingScreenEntry[] = [
       { id: "late", label: "Late", order: 20 },
       { id: "unordered-first", label: "Unordered first" },
       { id: "early", label: "Early", order: 10 },
@@ -94,7 +94,7 @@ describe("resolveScreens", () => {
   });
 
   it("keeps the first of two screens claiming the same id", () => {
-    const entries: StrategiesScreenEntry[] = [
+    const entries: AdminBuildingScreenEntry[] = [
       { id: "surveys", label: "Surveys" },
       { id: "surveys", label: "Survey work" },
     ];
@@ -192,7 +192,7 @@ describe("resolveScreens", () => {
         parsed("designerAster", "Engineering"),
       ],
     );
-    expect(screens[1].id).toBe("strategies.unclaimed");
+    expect(screens[1].id).toBe("admin-building.unclaimed");
     expect(screens[1].listsStrategies).toBe(true);
   });
 
@@ -215,8 +215,8 @@ describe("resolveScreens", () => {
 });
 
 const META = {
-  componentId: "strategies",
-  contributionSlots: ["strategies.screens"] as const,
+  componentId: "admin-building",
+  contributionSlots: ["admin-building.screens"] as const,
 };
 
 const renderedTrees: Array<() => void> = [];
@@ -232,7 +232,7 @@ function renderWidget(availability?: DomainAvailabilityStore) {
       <WidgetMetaContext.Provider value={META}>
         <ContributionsProvider>
           <DashboardItemContext.Provider value={{ instanceId: "s" }}>
-            <StrategiesComponent config={{}} id="s" w={9} h={12} />
+            <AdminBuildingComponent config={{}} id="s" w={9} h={12} />
           </DashboardItemContext.Provider>
         </ContributionsProvider>
       </WidgetMetaContext.Provider>
@@ -289,7 +289,7 @@ const PLANTED_CAREER = [
   }),
 ];
 
-describe("Strategies: the screen contribution slot", () => {
+describe("Admin Building: the screen contribution slot", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
@@ -311,7 +311,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("draws a tab per contributed screen and lists only that screen's departments", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         {
           id: "surveys",
@@ -343,7 +343,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("keeps the unclaimed strategies reachable on the trailing screen", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
@@ -363,7 +363,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("moves between screens on the arrow keys, per the tablist pattern", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
@@ -389,7 +389,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("draws a locked screen as a reachable tab that states why it will not open", async () => {
     registerContribution({
       id: "test-locked-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
         {
@@ -429,14 +429,14 @@ describe("Strategies: the screen contribution slot", () => {
   it("draws no divider above a not-yet-available screen body, even on a screen that lists strategies", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     registerAugment({
       id: "test-surveys-body-gated",
-      augments: "strategies.screen-body",
+      augments: "admin-building.screen-body",
       requires: "planted",
       component: () => <div data-testid="screen-body">body</div>,
     });
@@ -455,14 +455,14 @@ describe("Strategies: the screen contribution slot", () => {
   it("composes an augment into the selected screen's body", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     registerAugment({
       id: "test-surveys-body",
-      augments: "strategies.screen-body",
+      augments: "admin-building.screen-body",
       component: ({ screenId }: { screenId: string }) => (
         <div data-testid="screen-body">body for {screenId}</div>
       ),
@@ -484,14 +484,14 @@ describe("Strategies: the screen contribution slot", () => {
   it("puts an augment's body inside the same inset box as the widget's own sections", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
     });
     registerAugment({
       id: "test-surveys-body",
-      augments: "strategies.screen-body",
+      augments: "admin-building.screen-body",
       component: () => <div data-testid="screen-body">body</div>,
     });
     const { container, stream } = renderWidget();
@@ -514,7 +514,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("drops the department chip on a screen that IS one department, and keeps it on Other", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],
@@ -545,12 +545,12 @@ describe("Strategies: the screen contribution slot", () => {
   it("draws no strategy lists on a screen naming no departments, only its augment body", async () => {
     registerContribution({
       id: "test-finances-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [{ id: "finances", label: "Finances" }],
     });
     registerAugment({
       id: "test-finances-body",
-      augments: "strategies.screen-body",
+      augments: "admin-building.screen-body",
       component: ({ screenId }: { screenId: string }) =>
         screenId === "finances" ? (
           <div data-testid="finances-body">budget</div>
@@ -578,7 +578,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("draws a screen's cards with no Activate/Deactivate when it draws its own actions", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         {
           id: "surveys",
@@ -603,7 +603,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("draws no price, no-cost note or factor on a screen that draws its own actions, and both on one that does not", async () => {
     registerContribution({
       id: "test-priced-screens",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         {
           id: "surveys",
@@ -657,7 +657,7 @@ describe("Strategies: the screen contribution slot", () => {
   it("has no axe violations with the tab strip up", async () => {
     registerContribution({
       id: "test-surveys-screen",
-      contributes: "strategies.screens",
+      contributes: "admin-building.screens",
       compute: () => [
         { id: "surveys", label: "Surveys", departments: ["Surveys"] },
       ],

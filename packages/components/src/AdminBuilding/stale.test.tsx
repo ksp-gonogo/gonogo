@@ -6,10 +6,10 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { StrategiesComponent } from "./index";
+import { AdminBuildingComponent } from "./index";
 
 /**
- * What Strategies does when `career.status` stops being current: the roster is
+ * What Admin Building does when `career.status` stops being current: the roster is
  * a fact and stays, the balances stay on screen marked held and no longer arm a
  * spend. The refusal names the held balance rather than calling the career
  * short of funds.
@@ -37,7 +37,7 @@ function renderStrategies(
   const result = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "strat-stale" }}>
-        <StrategiesComponent
+        <AdminBuildingComponent
           config={{}}
           id="strat-stale"
           w={size.w}
@@ -86,7 +86,7 @@ function goStale(fixture: StreamFixture): void {
   });
 }
 
-describe("Strategies when the career balances are held", () => {
+describe("Admin Building when the career balances are held", () => {
   it("shows the balances and arms Activate while the record is current", async () => {
     // The control: the assertions below would also pass on a widget that never shows a balance or enables a button.
     const fixture = newFixture();
@@ -173,7 +173,7 @@ describe("Strategies when the career balances are held", () => {
   it("marks the tiny form's held balance rather than blanking it", async () => {
     // w=4 is the tiny bucket.
     const fixture = newFixture();
-    renderWidget("strategies", {
+    renderWidget("admin-building", {
       instanceId: "strat-stale",
       w: 4,
       h: 4,

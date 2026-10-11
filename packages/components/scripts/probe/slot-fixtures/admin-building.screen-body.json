@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "scenario": "strategies.screen-body",
-    "notes": "one-active-room-for-more, the scene the strategies.screen-body and strategies.screens stubs draw on. A story announces each stub's own Domain."
+    "scenario": "admin-building.screen-body",
+    "notes": "one-active-room-for-more, the scene the admin-building.screen-body and admin-building.screens stubs draw on. A story announces each stub's own Domain."
   },
   "strategies.all": [
     {

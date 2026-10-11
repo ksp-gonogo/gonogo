@@ -64,7 +64,7 @@ import {
  * priced in", the `Strategies` half of the same audit, where "No setup cost"
  * sat over a live Activate for a Program costing 300 Confidence. That is not
  * statically checkable and no proxy for it is invented here. It is held by
- * `packages/components/src/Strategies/spend-truth.test.tsx`.
+ * `packages/components/src/AdminBuilding/spend-truth.test.tsx`.
  */
 
 /** The hook whose blocked phase is the subject. */

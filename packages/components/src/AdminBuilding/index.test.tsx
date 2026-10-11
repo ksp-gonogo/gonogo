@@ -6,9 +6,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
+  AdminBuildingComponent,
   parseEffectLines,
   parseStrategies,
-  StrategiesComponent,
 } from "./index";
 
 function emitCareer(
@@ -136,7 +136,7 @@ describe("parseStrategies", () => {
   });
 });
 
-describe("StrategiesComponent", () => {
+describe("AdminBuildingComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -150,7 +150,7 @@ describe("StrategiesComponent", () => {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "s" }}>
-          <StrategiesComponent config={{}} id="s" />
+          <AdminBuildingComponent config={{}} id="s" />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );

@@ -8143,6 +8143,14 @@
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
       {
+        "key": "sitrep-sdk . ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . ContributionRegistry#\"strategies.screens\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
         "key": "sitrep-sdk . DeployedExperimentContext#held",
         "note": "DeployedExperimentContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -8247,6 +8255,14 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"strategies.screen-body\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
         "key": "sitrep-sdk . StatEntry#value?",
         "note": "A stat figure may be a whole Reading, drawn held while it is held"
       },
@@ -8257,6 +8273,46 @@
       {
         "key": "sitrep-sdk . StateVector#velocity",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenBodyContext",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenBodyContext#screenId",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry#departments?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry#disabledReason?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry#drawsOwnActions?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry#enabled?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry#id",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry#label",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . StrategiesScreenEntry#order?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
         "key": "sitrep-sdk . StreamStatusValue",
@@ -8591,6 +8647,14 @@
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
       {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"strategies.screens\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
         "key": "sitrep-sdk ./registry ~DepKey",
         "note": "Follows ContributionDep: no { reading } form to key"
       },
@@ -8641,6 +8705,38 @@
       {
         "key": "sitrep-sdk ./registry ~StatEntry#value?",
         "note": "A stat figure may be a whole Reading, drawn held while it is held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry#departments?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry#disabledReason?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry#drawsOwnActions?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry#enabled?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry#id",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry#label",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~StrategiesScreenEntry#order?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
         "key": "sitrep-sdk ./registry ~SystemEntityOrbitPosition#trueAnomaly",
@@ -8843,6 +8939,14 @@
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
       {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"strategies.screens\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
         "key": "sitrep-sdk ./spine ~DepKey",
         "note": "Follows ContributionDep: no { reading } form to key"
       },
@@ -8895,6 +8999,38 @@
         "note": "A stat figure may be a whole Reading, drawn held while it is held"
       },
       {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry#departments?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry#disabledReason?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry#drawsOwnActions?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry#enabled?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry#id",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry#label",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~StrategiesScreenEntry#order?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
         "key": "sitrep-sdk ./spine ~SystemEntityOrbitPosition#trueAnomaly",
         "note": "Removed: the widget carries the entity to the instant on screen from epoch and meanAnomalyAtEpoch, so a contribution cannot freeze a marker at a stale anomaly and never advances an orbit itself"
       },
@@ -8945,6 +9081,14 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionDep",
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"strategies.screens\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
         "key": "sitrep-sdk ./testing ~DepKey",
@@ -9035,8 +9179,56 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"strategies.screen-body\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
         "note": "A stat figure may be a whole Reading, drawn held while it is held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenBodyContext",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenBodyContext#screenId",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry#departments?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry#disabledReason?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry#drawsOwnActions?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry#enabled?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry#id",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry#label",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~StrategiesScreenEntry#order?",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
         "key": "sitrep-sdk ./testing ~StreamStatusValue",
@@ -9147,6 +9339,14 @@
         "note": "now an interface extending CommandLossLike with an optional fault code, where it was an alias of CommandLossLike"
       },
       {
+        "key": "ui-kit . ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "ui-kit . ContributionRegistry#\"strategies.screens\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
         "key": "ui-kit . ControlDelayStream",
         "note": "its label prop is now aria-label"
       },
@@ -9253,6 +9453,14 @@
       {
         "key": "ui-kit . ReckoningMark",
         "note": "Its kind widens with \"current\" and it gains the optional elsewhere prop, which draws the kind's hollow form. Existing callers draw as before"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"strategies.screen-body\"",
+        "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
         "key": "ui-kit . Spinner",
@@ -9536,6 +9744,46 @@
       }
     ],
     "additions": [
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenBodyContext",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenBodyContext#screenId",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
       {
         "key": "sitrep-sdk . AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
@@ -10179,6 +10427,46 @@
       {
         "key": "sitrep-sdk ./registry ~ActionGroupSlotId",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenBodyContext",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenBodyContext#screenId",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./registry ~AstronautComplexCrewContext",
@@ -10885,6 +11173,10 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"astronaut-complex.crew\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -10993,10 +11285,6 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"strategies.screen-body\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"system-view.actions\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -11031,14 +11319,6 @@
       {
         "key": "sitrep-sdk ./registry ~StatEntry#held?",
         "note": "StatEntry carries the reading it was drawn from, so the host widget draws a held value as held"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~StrategiesScreenBodyContext",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~StrategiesScreenBodyContext#screenId",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk ./registry ~SystemEntity#currency?",
@@ -11461,6 +11741,38 @@
         "note": "Wraps a degree value to (-180, 180]; the one copy, moved out of the impact point and core calc, which now re-export it"
       },
       {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
         "key": "sitrep-sdk ./spine ~CommSignalHopRateEntry#held?",
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -11575,6 +11887,46 @@
       {
         "key": "sitrep-sdk ./spine ~SystemEntitySubjectPosition#subject",
         "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenBodyContext",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenBodyContext#screenId",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./testing ~AugmentDefinition#sizeDelta?",

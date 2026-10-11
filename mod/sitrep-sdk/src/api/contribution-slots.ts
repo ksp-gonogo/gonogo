@@ -409,18 +409,18 @@ export interface CrewRowToneEntry {
 
 /**
  * One screen of the Administration Building, contributed to
- * `strategies.screens`: a tab that lists some strategy departments.
+ * `admin-building.screens`: a tab that lists some strategy departments.
  *
  * With no entries, the widget draws every strategy in one list. With entries,
  * it draws one tab per screen, sorted by `order`, and adds an "Other" tab for
  * any strategy whose department no screen lists. The first entry for an `id` is
  * the one drawn. What a screen contains beyond its strategy cards is drawn by
- * augments on `strategies.screen-body`, which receive the screen's `id`.
+ * augments on `admin-building.screen-body`, which receive the screen's `id`.
  *
  * @category Widget slots
  */
-export interface StrategiesScreenEntry {
-  /** Stable id, passed to `strategies.screen-body` augments as `screenId`. */
+export interface AdminBuildingScreenEntry {
+  /** Stable id, passed to `admin-building.screen-body` augments as `screenId`. */
   id: string;
   /** The tab's label, such as `"Programs"`. */
   label: string;
@@ -443,7 +443,7 @@ export interface StrategiesScreenEntry {
   /** Why the screen cannot be used, in the operator's terms. `"Not available yet"` when absent. */
   disabledReason?: string;
   /**
-   * True when the screen's `strategies.screen-body` augment draws its own
+   * True when the screen's `admin-building.screen-body` augment draws its own
    * controls for activating and deactivating its strategies, such as a
    * Programs tab a career mod's Uplink contributes, offering Accept and
    * Complete in place of Activate and Deactivate. The widget then draws that
@@ -688,11 +688,11 @@ declare module "./types" {
      * Screens of the Administration Building in the Admin Building widget, each
      * drawn as a tab listing some strategy departments. With no entries the
      * widget draws every strategy in one list. What a screen holds beyond its
-     * strategy cards comes from the `strategies.screen-body` augment slot.
-     * Returns {@link StrategiesScreenEntry} entries.
+     * strategy cards comes from the `admin-building.screen-body` augment slot.
+     * Returns {@link AdminBuildingScreenEntry} entries.
      */
-    "strategies.screens": {
-      entry: StrategiesScreenEntry;
+    "admin-building.screens": {
+      entry: AdminBuildingScreenEntry;
     };
     /**
      * Science instruments the Experiments widget cannot find on the stock
