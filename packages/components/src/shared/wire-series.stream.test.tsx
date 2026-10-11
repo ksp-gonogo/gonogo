@@ -91,14 +91,14 @@ describe("series computed from the wire, with no derived channel in the store", 
     expect(container.querySelector(PLOTTED_LINE)).toBeNull();
 
     act(() => {
-      for (const [validAt, altitudeAsl, surfaceSpeed, verticalSpeed] of [
+      for (const [validAt, altitudeAsl, orbitalSpeed, verticalSpeed] of [
         [-200, 1_000, 150, 140],
         [-100, 8_000, 600, 400],
         [10, 20_000, 1_400, 300],
       ]) {
         fixture.emit(
           "vessel.flight",
-          { altitudeAsl, surfaceSpeed, verticalSpeed },
+          { altitudeAsl, orbitalSpeed, verticalSpeed },
           { validAt },
         );
       }

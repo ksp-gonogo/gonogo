@@ -1,7 +1,7 @@
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
-import { seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
-import { Readout, ReadoutCaption, Sparkline } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Panel, Section } from "@ksp-gonogo/ui-kit";
+import { seriesKeyOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { Readout, Sparkline } from "@ksp-gonogo/ui";
+import { NULL_DISPLAY, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import { GraphSeries } from "./GraphSeries";
 import { paletteColor } from "./palette";
@@ -38,7 +38,11 @@ export function GraphReadout({
     sparkValues.length > 0 ? sparkValues[sparkValues.length - 1] : undefined;
   const color = cfg.color ?? paletteColor(0);
   const seriesLabel = cfg.label ?? meta?.label ?? seriesKeyOf(cfg.source);
-  const unit = meta?.unit;
+  const unit = meta?.unit && meta.unit !== "raw" ? meta.unit : undefined;
+  // The newest sample is a model's figure, not a measurement, when a reckoned run reaches it.
+  const modelled = (raw.reckoned ?? []).some(
+    (run) => run.to >= sparkValues.length - 1,
+  );
 
   // The series label is dropped when it would only repeat the title.
   const readoutTitle = title ?? "GRAPH";
@@ -65,8 +69,16 @@ export function GraphReadout({
               size="hero"
               aria-label={`${seriesLabel} ${latest ?? "no data"}`}
             >
-              {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
-              {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
+              {latest === undefined ? (
+                NULL_DISPLAY
+              ) : unit ? (
+                <Unit
+                  value={value(unit, latest)}
+                  marked={modelled ? MODELLED : undefined}
+                />
+              ) : (
+                formatReadoutValue(latest)
+              )}
             </Readout>
           </div>
           {needsFetch && (
@@ -82,6 +94,11 @@ export function GraphReadout({
     />
   );
 }
+
+const MODELLED = {
+  kind: "modelled",
+  caption: "Newest point is modelled, not measured",
+} as const;
 
 const READOUT_BODY: CSSProperties = {
   flex: 1,

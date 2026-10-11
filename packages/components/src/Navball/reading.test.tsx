@@ -148,7 +148,11 @@ describe("Navball never draws an attitude it does not have", () => {
 
     const controlsBefore = screen
       .getAllByRole("button")
-      .map((b) => `${b.textContent}:${b.hasAttribute("disabled")}`)
+      // A held toggle appends its spoken currency after the label, which is a mark and not a change of control.
+      .map(
+        (b) =>
+          `${(b.textContent ?? "").replace(/,.*$/, "")}:${b.hasAttribute("disabled")}`,
+      )
       .sort();
     expect(controlsBefore.length).toBeGreaterThan(0);
 
@@ -156,12 +160,42 @@ describe("Navball never draws an attitude it does not have", () => {
       fixture.store.setTransportConnected(false);
       fixture.store.beginFrame();
     });
-    await waitFor(() => expect(heldMarks()).toHaveLength(3));
+    // Heading, pitch and roll, and the SAS and RCS toggles; the control state is held too.
+    await waitFor(() => expect(heldMarks()).toHaveLength(5));
 
     const controlsAfter = screen
       .getAllByRole("button")
-      .map((b) => `${b.textContent}:${b.hasAttribute("disabled")}`)
+      // A held toggle appends its spoken currency after the label, which is a mark and not a change of control.
+      .map(
+        (b) =>
+          `${(b.textContent ?? "").replace(/,.*$/, "")}:${b.hasAttribute("disabled")}`,
+      )
       .sort();
     expect(controlsAfter).toEqual(controlsBefore);
+  });
+  it("marks the SAS and RCS toggles held when the control reading has stopped arriving", async () => {
+    const { fixture } = mount("nb-stale-toggles", { w: 10, h: 12 });
+
+    act(() => {
+      fixture.emit("vessel.attitude", {
+        heading: 90,
+        pitch: 45,
+        roll: 0,
+        headingRootFrame: 90,
+        pitchRootFrame: 45,
+        rollRootFrame: 0,
+      });
+      fixture.emit("vessel.control", { sas: true, rcs: false, throttle: 0.8 });
+    });
+    await waitFor(() => expect(visibleText()).toContain("SAS"));
+    expect(heldMarks()).toHaveLength(0);
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+
+    // Heading, pitch and roll, and the two toggles. The throttle column goes with the dial.
+    await waitFor(() => expect(heldMarks()).toHaveLength(5));
   });
 });

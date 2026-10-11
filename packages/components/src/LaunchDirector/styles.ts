@@ -48,10 +48,13 @@ export const PadDetails = styled.span`
 `;
 
 // Unreported reads as a caution, so silence is never read as an empty pad.
-export const PadOccupancy = styled.span<{ $occupied: boolean | null }>`
+export const PadOccupancy = styled.span<{
+  $occupied: boolean | null;
+  $stacked?: boolean;
+}>`
   font-size: var(--font-size-compact);
   flex-shrink: 0;
-  text-align: right;
+  text-align: ${(p) => (p.$stacked ? "left" : "right")};
   color: ${(p) => occupancyColor(p.$occupied)};
 `;
 

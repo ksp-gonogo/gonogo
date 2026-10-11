@@ -21,6 +21,8 @@ export type LaunchDirectorConfig = Record<string, never>;
 /** The letterbox tile: wide enough for two readable columns, too short to stack them. */
 const LETTERBOX_MIN_COLS = 14;
 const LETTERBOX_MAX_ROWS = 6;
+/** Below this a pad's name and its occupancy no longer fit on one line. */
+const NARROW_MAX_COLS = 5;
 
 const SUBTITLE_STYLE = {
   fontSize: "var(--font-size-compact)",
@@ -248,6 +250,7 @@ export function LaunchDirectorComponent({
                 funds={careerFunds ?? undefined}
                 rows={rows}
                 letterbox={letterbox}
+                narrow={cols <= NARROW_MAX_COLS}
                 launchCmd={launchCmd}
                 recoverCmd={recoverCmd}
                 revertEditorCmd={revertEditorCmd}

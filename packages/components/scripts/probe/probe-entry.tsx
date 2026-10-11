@@ -717,6 +717,15 @@ async function mountInto(
           new PointerEvent(type, { bubbles: type === "pointerover" }),
         );
       }
+      // A pointer arriving on an element has a position, and a surface that anchors to it reads it from the move.
+      const box = el.getBoundingClientRect();
+      el.dispatchEvent(
+        new MouseEvent("mousemove", {
+          bubbles: true,
+          clientX: box.left + box.width / 2,
+          clientY: box.top + box.height / 2,
+        }),
+      );
       await settle(h.awaitMs ?? 100);
     }
   }

@@ -9,8 +9,8 @@ import {
 import { ObjectivesComponent } from "./index";
 
 /**
- * Characterisation: pins what Objectives does today when its one read is `undefined`, not what it should do.
- * Never arrived, tombstoned, a null `contracts` sub-tree and `active: []` all render "No active objectives".
+ * Characterisation: pins what Objectives does when its one read is `undefined`.
+ * A topic that has never arrived says it is awaiting data; a tombstone, a null `contracts` sub-tree and `active: []` all render "No active objectives".
  */
 
 function newFixture() {
@@ -40,23 +40,23 @@ function objectivesList() {
 }
 
 describe("Objectives: nothing has arrived at all", () => {
-  it('states "No active objectives" as a live status, with no list at all', () => {
+  it("says it is awaiting contract data rather than claiming there are no objectives", () => {
     renderObjectives(newFixture());
 
-    // A cold topic is reported as a confident absence.
     const status = screen.getByRole("status");
-    expect(status).toHaveTextContent("No active objectives");
+    expect(status).toHaveTextContent("Awaiting contract data");
+    expect(status).not.toHaveTextContent("No active objectives");
     expect(objectivesList()).toBeNull();
   });
 });
 
 describe("Objectives: the absence gates around `contracts.active`", () => {
-  it("renders identically for a never-arrived topic and for a confirmed-empty active list", async () => {
+  it("tells a never-arrived topic from a confirmed-empty active list", async () => {
     const fixture = newFixture();
     renderObjectives(fixture, { probe: true });
 
     const beforeAnything = screen.getByRole("status").textContent;
-    expect(beforeAnything).toContain("No active objectives");
+    expect(beforeAnything).toContain("Awaiting contract data");
 
     act(() => {
       fixture.emit("career.status", {
@@ -69,8 +69,9 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
     });
 
     await screen.findByText("career.status: observed");
-    // "No active contracts" and "heard nothing" produce the same DOM.
-    expect(screen.getByRole("status").textContent).toBe(beforeAnything);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "No active objectives",
+    );
     expect(objectivesList()).toBeNull();
   });
 
@@ -146,12 +147,11 @@ describe("Objectives: the absence gates around `contracts.active`", () => {
 });
 
 describe("Objectives: null versus undefined", () => {
-  it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
+  it("reads a whole-topic tombstone as a confirmed absence, unlike a topic that never arrived", async () => {
     const fixture = newFixture();
     renderObjectives(fixture, { probe: true });
 
     act(() => {
-      // A tombstone is `null`, not `undefined`, but lands on the same empty state.
       fixture.emit("career.status", null);
     });
 

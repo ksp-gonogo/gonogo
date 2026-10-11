@@ -75,8 +75,6 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "depicts the pre-telemetry placeholder deliberately, as its own case",
   "MapView/no-vessel-data":
     "no vessel position to plot, so the map draws its ground state only",
-  "Objectives/empty":
-    "no active objectives, which is a real state and not a missing read",
   "SemiMajorAxis/no-data":
     "no orbit to report; the widget is a single readout with nothing behind it",
   "Targeting/no-target":
