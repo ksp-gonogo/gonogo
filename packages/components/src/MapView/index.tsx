@@ -155,6 +155,7 @@ function MapViewComponent({
     speed,
     vSpeed: telemetry.vSpeed,
     trajectoryLength,
+    track: `${telemetry.vesselId ?? ""} over ${targetBodyId ?? ""}`,
   });
 
   const baseLayers = useBaseLayers();
@@ -220,7 +221,6 @@ function MapViewComponent({
     baseLayers,
     trajectoryRef,
     trajectoryCount,
-    bodyName: targetBodyId,
     hasAtmosphere: body?.hasAtmosphere,
     maxAtmosphere: body?.maxAtmosphere,
     vesselOnThisBody,

@@ -21,7 +21,6 @@ import {
   paintTrail,
   paintVesselMarker,
   sizedContext,
-  trailPoints,
 } from "./canvasPaint";
 import { groupBaseLayersByUplink } from "./orderBaseLayers";
 import type { BaseSurfaceLayer } from "./paintBaseSurface";
@@ -35,11 +34,9 @@ interface MapPaintingInputs {
   bodyTexture: string | undefined;
   bodyColor: string | undefined;
   baseLayers: ReturnType<typeof useBaseLayers>;
-  /** The flown trail's buffer, newest last, and how many points it has ever taken. */
+  /** The flown trail's buffer, newest last, and a count that moves whenever its content does. */
   trajectoryRef: RefObject<TrajectoryPoint[]>;
   trajectoryCount: number;
-  /** The body mapped, whose change starts the trail afresh. */
-  bodyName: string | undefined;
   hasAtmosphere: boolean | undefined;
   maxAtmosphere: number | undefined;
   vesselOnThisBody: boolean;
@@ -71,7 +68,6 @@ export function useMapPainting({
   baseLayers,
   trajectoryRef,
   trajectoryCount,
-  bodyName,
   hasAtmosphere,
   maxAtmosphere,
   vesselOnThisBody,
@@ -155,17 +151,8 @@ export function useMapPainting({
     ctx.clearRect(0, 0, w, h);
   }, [containerSize]);
 
-  // The buffer outlives a change of body, and the points flown over the last one are not this map's.
-  const trailStartedAt = useRef(0);
-  const trajectoryCountRef = useRef(trajectoryCount);
-  trajectoryCountRef.current = trajectoryCount;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: bodyName is the change trigger, not consumed in the body
-  useEffect(() => {
-    trailStartedAt.current = trajectoryCountRef.current;
-  }, [bodyName]);
-
   // trajectoryCount drives the redraw: the buffer's ref is stable but its content is not.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: trajectoryCount and bodyName trigger the redraw when the buffer's content or its start changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: trajectoryCount triggers the redraw when the buffer's content changes
   useEffect(() => {
     const canvas = persistentDataRef.current;
     if (!canvas || !containerSize) return;
@@ -177,13 +164,7 @@ export function useMapPainting({
       h,
       camera,
       // The trail is the vessel's track, meaningless projected through another body's frame.
-      points: vesselOnThisBody
-        ? trailPoints(
-            trajectoryRef.current ?? [],
-            trajectoryCount,
-            trailStartedAt.current,
-          )
-        : [],
+      points: vesselOnThisBody ? (trajectoryRef.current ?? []) : [],
       adjustedMap,
       hasAtmosphere,
       maxAtmosphere,
@@ -192,7 +173,6 @@ export function useMapPainting({
     containerSize,
     camera,
     trajectoryCount,
-    bodyName,
     vesselOnThisBody,
     adjustedMap,
     hasAtmosphere,

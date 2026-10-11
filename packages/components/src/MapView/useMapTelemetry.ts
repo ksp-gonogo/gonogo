@@ -58,6 +58,8 @@ export interface MapTelemetry {
   impactLat: number | undefined;
   impactLon: number | undefined;
   vesselOnThisBody: boolean;
+  /** The active vessel's id, so what belongs to one craft is not carried over to the next. */
+  vesselId: string | undefined;
   /** Whether the craft is flying, so its conic lays a ground track and carries its position; false on the ground, where it turns with the body and has neither. */
   predictable: boolean;
 }
@@ -167,11 +169,11 @@ export function useMapTelemetry(
   );
   /* On the ground the craft turns with the body. Its elements still describe a conic, one that falls through the surface, so a track laid from them is a single point and a position carried along them is wrong. */
   const identityReading = useTelemetry("vessel.identity");
-  const predictable = !isGroundedSituation(
+  const identity =
     identityReading.state === "observed" || identityReading.state === "held"
-      ? identityReading.value.situation
-      : undefined,
-  );
+      ? identityReading.value
+      : undefined;
+  const predictable = !isGroundedSituation(identity?.situation);
   const modelledPosition = useModelledPosition({
     enabled: predictable,
     targetBodyId,
@@ -229,6 +231,7 @@ export function useMapTelemetry(
     impactLon: impactMarked ? impact.lon : undefined,
     // An override that diverges from the vessel's body suppresses every vessel-relative draw and the follow chrome.
     vesselOnThisBody: !bodyOverride || bodyOverride === bodyName,
+    vesselId: identity?.vesselId ?? undefined,
     predictable,
   };
 }

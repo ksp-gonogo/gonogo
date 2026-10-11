@@ -11,6 +11,12 @@ export type TrajectoryPoint = {
   vSpeed: number;
 };
 
+/**
+ * The flown trail: the newest `trajectoryLength` positions of one craft over
+ * one body. `track` names whose trail it is, and a change of it empties the
+ * buffer, since a line from the last track's end to this one's start was never
+ * flown.
+ */
 export function useTrajectoryBuffer({
   lat,
   lon,
@@ -20,6 +26,7 @@ export function useTrajectoryBuffer({
   speed,
   vSpeed,
   trajectoryLength,
+  track,
 }: {
   lat: number | undefined;
   lon: number | undefined;
@@ -29,11 +36,22 @@ export function useTrajectoryBuffer({
   speed: number | undefined;
   vSpeed: number | undefined;
   trajectoryLength: number;
+  track: string | undefined;
 }) {
   const { trajectoryCount, incrementTrajectoryCount } = useTrajectoryCount();
   const trajectoryRef = useRef<TrajectoryPoint[]>([]);
+  const trackRef = useRef(track);
 
   useEffect(() => {
+    if (trackRef.current !== track) {
+      trackRef.current = track;
+      // The position in hand may still be the last track's, so this one starts at the next.
+      if (trajectoryRef.current.length > 0) {
+        trajectoryRef.current.length = 0;
+        incrementTrajectoryCount();
+      }
+      return;
+    }
     if (lat === undefined || lon === undefined || altSea === undefined) return;
     const point: TrajectoryPoint = {
       lat,
@@ -55,6 +73,7 @@ export function useTrajectoryBuffer({
     lon,
     altSea,
     trajectoryLength,
+    track,
     mach,
     q,
     speed,

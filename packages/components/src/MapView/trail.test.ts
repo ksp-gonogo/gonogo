@@ -1,12 +1,7 @@
 import { latLonToMap } from "@ksp-gonogo/core";
 import { describe, expect, it, vi } from "vitest";
 import { type Camera, fitCamera, WORLD_W } from "./camera";
-import {
-  MAP_MARK,
-  paintTrail,
-  trailPoints,
-  trailScreenWidth,
-} from "./canvasPaint";
+import { MAP_MARK, paintTrail, trailScreenWidth } from "./canvasPaint";
 import type { TrajectoryPoint } from "./useTrajectoryBuffer";
 
 /** The map's projection in the order the painters call it. */
@@ -140,21 +135,5 @@ describe("the flown trail across the antimeridian", () => {
     const { spans } = paint(farEast, crossing);
     expect(spans.length).toBeGreaterThan(0);
     for (const [from] of spans) expect(from).toBeGreaterThan(2 * WORLD_W);
-  });
-});
-
-describe("trailPoints", () => {
-  const buffer = [point({ lon: 1 }), point({ lon: 2 }), point({ lon: 3 })];
-
-  it("is the whole buffer while every point in it was flown over this body", () => {
-    expect(trailPoints(buffer, 3, 0)).toBe(buffer);
-    // Older points have been shifted out: ten taken, three kept, all since the start.
-    expect(trailPoints(buffer, 10, 2)).toBe(buffer);
-  });
-
-  it("drops the points flown before the map changed body", () => {
-    // Ten taken, eight of them before the switch: the two newest are this body's.
-    expect(trailPoints(buffer, 10, 8).map((p) => p.lon)).toEqual([2, 3]);
-    expect(trailPoints(buffer, 10, 10)).toEqual([]);
   });
 });

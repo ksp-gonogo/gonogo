@@ -370,21 +370,6 @@ export function paintTrail(
 }
 
 /**
- * The points of the trail that belong to the body now mapped: the newest
- * `total - startedAt` of the buffer, which holds the newest points whichever
- * body they were flown over. `startedAt` is the count of points taken when the
- * map last changed body.
- */
-export function trailPoints(
-  buffer: readonly TrajectoryPoint[],
-  total: number,
-  startedAt: number,
-): readonly TrajectoryPoint[] {
-  const fresh = Math.max(0, total - startedAt);
-  return fresh >= buffer.length ? buffer : buffer.slice(buffer.length - fresh);
-}
-
-/**
  * The vessel's mark and crosshair at a screen-space point, for a position that
  * is a reading of now. A held or modelled one is drawn by the kit's
  * `paintVesselPositions` with {@link paintCrosshair} behind it.
