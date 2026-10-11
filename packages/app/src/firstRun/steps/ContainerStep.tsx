@@ -1,11 +1,12 @@
 import { Button, CommandBlock } from "@ksp-gonogo/ui";
 import { Stack, Text } from "@ksp-gonogo/ui-kit";
+import { VERSION } from "../../version";
 import { relayCheck } from "../checks";
 import { runs, say } from "../copy";
 import {
   browserShell,
   CONTAINER_STATUS_COMMAND,
-  RUN_IMAGE_TAG,
+  imageTagOf,
   runCommandFor,
 } from "../setupGuide";
 import { useRelayHealth } from "../useRelayHealth";
@@ -21,14 +22,15 @@ export function ContainerStep() {
   const { health, recheck } = useRelayHealth();
   const check = relayCheck(health);
   const shell = browserShell();
+  const tag = imageTagOf(VERSION);
 
   return (
     <Stack gap="related-comfortable">
       <Text level="muted" size="sm">
-        {say("container.instruction", { tag: RUN_IMAGE_TAG })}
+        {say("container.instruction", { tag })}
       </Text>
       <CommandBlock
-        command={runCommandFor(shell)}
+        command={runCommandFor(shell, tag)}
         label={say("container.runCommandLabel")}
       />
       {shell === "powershell" && (

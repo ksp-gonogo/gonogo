@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { say } from "./copy";
 import {
   CKAN_UPLINK_FILTER,
+  imageTagOf,
   RUN_COMMAND,
   RUN_COMMAND_LINES,
   RUN_IMAGE_TAG,
@@ -34,7 +35,20 @@ describe("the run command is spelled once", () => {
   it("pulls the one image tag the wizard copy names", () => {
     expect(RUN_COMMAND.endsWith(`gonogo:${RUN_IMAGE_TAG}`)).toBe(true);
     expect(say("container.instruction", { tag: RUN_IMAGE_TAG })).toContain(
-      `tagged ${RUN_IMAGE_TAG},`,
+      `published under, ${RUN_IMAGE_TAG}.`,
+    );
+  });
+
+  it("takes the tag from the build it is printed by", () => {
+    expect(imageTagOf("1.0.0-rc.1a64716")).toBe("rc");
+    expect(imageTagOf("2.0.0-rc.23")).toBe("rc");
+    expect(imageTagOf("2.0.0")).toBe("latest");
+    expect(imageTagOf("0.0.0")).toBe(RUN_IMAGE_TAG);
+    expect(runCommandFor("posix", "latest").endsWith("gonogo:latest")).toBe(
+      true,
+    );
+    expect(runCommandFor("posix", "latest")).toBe(
+      runCommandFor("posix").replace(/gonogo:rc$/, "gonogo:latest"),
     );
   });
 

@@ -53,6 +53,8 @@ That includes playing with someone who isn't on your network: they don't need th
 
 An Uplink is one mod's worth of extra telemetry and widgets, and it comes in two halves: a plugin that goes in `GameData/` beside the Gonogo mod, and a client bundle that ships with the gonogo app itself. You install the plugin half; the app fetches its own half. Install the Uplink from CKAN (search `dep:GonogoCore`), which also installs the Gonogo mod it depends on. Install kOS (or SCANsat) itself first.
 
+An Uplink the app lists as "Refused: contract mismatch: contract vX vs core vY" was built for a different version of the Gonogo mod than the one running. The dashboard still works; only that mod's widgets are missing. Install an Uplink release built for your mod's version (updating it in CKAN does this), or update the Gonogo mod to match, then reload the page.
+
 To install one by hand, download its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is). Install the mod it connects to (kOS, SCANsat, Kerbcast) the same way or from CKAN. If the releases page has no zip for an Uplink yet, there is nothing to install yet: it arrives with its first release. Uplinks are optional and independent. A missing one costs you its widgets and nothing else.
 
 ## Connecting the dashboard to KSP
@@ -109,7 +111,14 @@ The **Uplinks** tab beside it has a page for every Uplink the mod reports instal
 
 Load any save in KSP, then press the **+** button in the bottom-right of the dashboard and add **System View**. It draws a diagram of the bodies orbiting a chosen parent, fed by the `system.bodies` channel, which is the channel that asks least of your save: no vessel and no flight scene, just a loaded game.
 
-If System View draws bodies, telemetry is arriving and you are done. Fly something and the vessel widgets follow.
+If System View draws bodies, the stream is arriving. That proves the connection and the game's bodies, not a vessel: the bodies belong to the game, so they draw from the main menu on. A vessel's widgets need more, covered next.
+
+### 4. Connected, but the vessel widgets stay empty
+
+The Telemetry stream row reads CONNECTED and System View draws, but Current Orbit shows a dash, Crew Status says "Waiting for telemetry..." and CommNet reads "Signal lost". Work down these:
+
+- **Is the game in the flight scene, with a vessel?** The Space Center and the Tracking Station have no active vessel, so vessel widgets have nothing to read. Load a save and press **Launch**, or fly a vessel from the Tracking Station, and give the app a few seconds
+- **Does that vessel have a CommNet link home?** The dashboard works as the operators at home would: a craft's data reaches them only along its comms path. A vessel with no link, such as one with no antenna, out of range of every ground station or behind a body, delivers nothing. Its widgets then say they are waiting if nothing has arrived since the page opened, or keep the last value they received and mark it as held. CommNet reads "Signal lost" and the header reads "Signal delay: disconnected". Nothing is wrong with the dashboard or the connection: get a link, with an antenna in range of a ground station or a relay, and the widgets fill in
 
 ### Connected, but the vessel widgets stay empty
 
