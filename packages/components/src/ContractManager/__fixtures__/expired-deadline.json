@@ -106,7 +106,9 @@
                 ],
                 "agent": "Experimental Engineering Group",
                 "reputationCompletion": 3,
-                "dateDeadline": 90000
+                "dateDeadline": 90000,
+                "fundsFailure": 4800,
+                "reputationFailure": 1.8
               }
             ],
             "offered": [

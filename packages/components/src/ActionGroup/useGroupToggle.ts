@@ -78,8 +78,12 @@ export function useGroupToggle({
     // Some groups, Stage among them, report a number rather than a boolean.
     isOn: typeof value === "number" ? value > 0 : value === true,
     stateLabel: stateLabelOf(value),
-    // An `assumed` group stays live.
-    canToggle: Boolean(group?.toggle) && !valueHeld && !stateUnreadable,
+    // A press that `buildToggleArgs` would refuse is not offered: with no state to invert, an enabled button would do nothing.
+    canToggle:
+      Boolean(group?.toggle) &&
+      !valueHeld &&
+      !stateUnreadable &&
+      buildToggleArgs(group as ActionGroup, value) !== TOGGLE_INVALID,
     unavailableReason: group
       ? unavailableReasonOf({
           valueHeld,

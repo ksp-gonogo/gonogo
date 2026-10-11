@@ -955,24 +955,13 @@ const WIDGETS: WidgetRenderConfig[] = [
       // The smallest tiny size: the kit's tiny form, the group's name over its toggle button.
       { name: "tiny-3x3", w: 3, h: 3 },
       // 3×4: still tiny bucket (w<5), so the same tiny form.
-      { name: "compact-3x4", w: 3, h: 4, config: { actionGroupId: "RCS" } },
-      // 6×4: normal bucket: OfficialName visible (cols>=5), state-pill toggle
-      // present. Gear group with custom label exercises the secondary line.
-      {
-        name: "normal-6x4",
-        w: 6,
-        h: 4,
-        config: { actionGroupId: "Gear", label: "Landing Gear" },
-      },
-      // Default registered size (6×6): full UI with custom label.
-      {
-        name: "default-6x6",
-        w: 6,
-        h: 6,
-        config: { actionGroupId: "AG1", label: "Chutes" },
-      },
+      { name: "compact-3x4", w: 3, h: 4 },
+      // 6×4: normal bucket: OfficialName visible (cols>=5), state-pill toggle present.
+      { name: "normal-6x4", w: 6, h: 4 },
+      // Default registered size (6×6): the full body.
+      { name: "default-6x6", w: 6, h: 6 },
       // Wide: label + OfficialName strip have generous horizontal room.
-      { name: "wide-9x6", w: 9, h: 6, config: { actionGroupId: "SAS" } },
+      { name: "wide-9x6", w: 9, h: 6 },
     ],
   },
   {

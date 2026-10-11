@@ -80,7 +80,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
     // Named absences: no unknown-body notice, no no-model notice, no HUD chip; the empty state is the one notice.
     expect(screen.getAllByRole("status")).toHaveLength(1);
     expect(visibleText(container)).not.toContain("Unknown body");
-    expect(visibleText(container)).not.toContain("ρ");
+    expect(visibleText(container)).not.toContain("Density");
     // No current-pressure threshold: only its label renders the spelled-out unit.
     expect(visibleText(container)).not.toMatch(/pascals/);
   });
@@ -173,7 +173,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
     });
 
     await waitFor(() => expect(visibleText(container)).toMatch(/pascals/));
-    expect(visibleText(container)).not.toContain("ρ");
+    expect(visibleText(container)).not.toContain("Density");
     expect(visibleText(container)).not.toContain("Air");
     expect(visibleText(container)).not.toContain("Skin");
   });
@@ -187,7 +187,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
         flight: { altitudeAsl: 5_600, atmDensity: 1.217 },
       });
     });
-    await waitFor(() => expect(visibleText(container)).toContain("ρ"));
+    await waitFor(() => expect(visibleText(container)).toContain("Density"));
 
     // An observed 0 kg/m³ is discarded by the same test as an absent field: the chip vanishes rather than reading zero.
     act(() => {
@@ -198,7 +198,9 @@ describe("AtmosphereProfile: what undefined means today", () => {
       );
     });
 
-    await waitFor(() => expect(visibleText(container)).not.toContain("ρ"));
+    await waitFor(() =>
+      expect(visibleText(container)).not.toContain("Density"),
+    );
     expect(visibleText(container)).not.toContain("kg/m³");
   });
 

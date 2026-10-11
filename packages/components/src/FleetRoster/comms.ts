@@ -37,12 +37,17 @@ export const COMMS: Record<CommsLink, { label: string; aria: string }> = {
 function rollupVerdict(
   total: number,
   linked: number,
-  notLinked: number,
+  none: number,
+  unknown: number,
 ): { badgeLabel: string; tone: Tone } {
   if (total === 0) return { badgeLabel: "No Vessels", tone: "neutral" };
-  if (notLinked === 0) return { badgeLabel: "All Linked", tone: "go" };
-  if (linked === 0) return { badgeLabel: "No Link", tone: "nogo" };
-  return { badgeLabel: `${notLinked} Not Linked`, tone: "warn" };
+  if (none === 0 && unknown === 0)
+    return { badgeLabel: "All Linked", tone: "go" };
+  // A link nobody has reported is not a missing one, so it never raises the alarm tones.
+  if (none === 0) return { badgeLabel: `${unknown} Unknown`, tone: "neutral" };
+  if (linked === 0 && unknown === 0)
+    return { badgeLabel: "No Link", tone: "nogo" };
+  return { badgeLabel: `${none} Not Linked`, tone: "warn" };
 }
 
 /** Fleet-wide comms rollup for the header badge and footer meter, worded around LINK: the widget has no data for a health verdict. */
@@ -60,6 +65,6 @@ export function commsRollup(vessels: FleetVessel[]): {
     linked,
     none,
     unknown,
-    ...rollupVerdict(vessels.length, linked, none + unknown),
+    ...rollupVerdict(vessels.length, linked, none, unknown),
   };
 }

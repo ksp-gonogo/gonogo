@@ -47,6 +47,8 @@ export const OFFERED_ACTIONS_STYLE = {
 
 export const ACTIVE_ACTIONS_STYLE = {
   display: "flex",
+  flexWrap: "wrap",
+  alignItems: "flex-end",
   justifyContent: "flex-end",
   gap: "var(--gap-related)",
   marginTop: "auto",
@@ -90,6 +92,21 @@ export const REWARD_VALUE_STYLE = {
   fontWeight: 600,
   color: "var(--color-accent-fg)",
   fontVariantNumeric: "tabular-nums",
+} as const;
+
+export const PENALTY_VALUE_STYLE = {
+  ...REWARD_VALUE_STYLE,
+  color: "var(--color-nogo-text)",
+} as const;
+
+/* Takes the room beside the button and drops onto its own line when the card is too narrow for both. */
+export const CANCEL_COST_STYLE = {
+  display: "flex",
+  flexWrap: "wrap",
+  alignItems: "baseline",
+  gap: "var(--gap-rewards)",
+  flex: "1 1 12ch",
+  minWidth: 0,
 } as const;
 
 export const PARAMETERS_STYLE = {
