@@ -70,6 +70,7 @@ namespace Gonogo.KSP.SilenceTracking
             SilenceGeometrySink.Bind(host.Kernel);
             _silenceSource = host.RegisterDynamicNamespace(ChannelEngine.SilenceEventPrefix, new ChannelDeclaration
             {
+                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
@@ -133,12 +134,11 @@ namespace Gonogo.KSP.SilenceTracking
                 }
                 var (_, connected) = FleetCommsReader.ReadVessel(vessel, config);
                 var orbit = BuildOrbitElements(vessel);
-                var landedOrSplashed = vessel.situation == Vessel.Situations.LANDED || vessel.situation == Vessel.Situations.SPLASHED;
                 present.Add(new SilenceSample(
                     vessel.id.ToString(),
                     connected,
                     orbit,
-                    landedOrSplashed,
+                    RestsOnSurface(vessel),
                     ReferenceBodyIndexOf(vessel)));
             }
 
@@ -252,6 +252,15 @@ namespace Gonogo.KSP.SilenceTracking
         /// fewer fields costs nothing; a policy reading fabricated ones is
         /// worse than no policy.</para>
         /// </summary>
+        /// <summary>
+        /// Whether the craft sits on its body rather than on a conic, which is the
+        /// game's own <c>LandedOrSplashed</c>: a craft in PRELAUNCH is landed too.
+        /// The game stops maintaining such a craft's orbit once it is packed, so
+        /// its elements describe nothing and a geometry swept from them fails the
+        /// frame self-check by the body's radius on every capture.
+        /// </summary>
+        internal static bool RestsOnSurface(Vessel vessel) => vessel.LandedOrSplashed;
+
         private static OrbitElements? BuildOrbitElements(Vessel vessel)
         {
             var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;

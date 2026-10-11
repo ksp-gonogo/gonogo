@@ -1,3 +1,4 @@
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import "./reckoner-test-topics";
 import { type ReckonerDefinition, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -83,6 +84,7 @@ function delayedStore(wall: { now: () => number }) {
 
 /** Dead-reckons the relative position only; every other field is a copy. */
 function registerPositionOnlyModel() {
+  declareTestReckonable("test.target", "test");
   registerReckoner("test.target", "test", {
     deps: [],
     reckon: (point, _deps, { reckonUt }) => ({
@@ -190,6 +192,7 @@ describe("a per-topic model, expressed per field", () => {
     // silently answers for fields nobody claimed.
     const wall = fakeWall();
     const store = delayedStore(wall);
+    declareTestReckonable("test.dock", "test");
     registerReckoner("test.dock", "test", {
       deps: [],
       reckon: (point) => ({
@@ -227,12 +230,13 @@ describe("a topic two owners both model is served with neither", () => {
 
   beforeEach(clearReckoners);
 
-  it("answers with no model, so the reading is honestly stale", () => {
+  it("answers with no model, and says the contest is why", () => {
     // Last-write-wins would have picked by module import order, which is a
     // fact about the bundler and not a judgement about the physics. A reading
-    // with no model says "nothing trustworthy can be said", which is true; one
-    // carrying whichever model loaded second is a confident picture assembled
-    // by accident, and a wrong reckoner is worse than none.
+    // that declines as contested says "nothing trustworthy can be said, and
+    // here is why"; one carrying whichever model loaded second is a confident
+    // picture assembled by accident, and a wrong reckoner is worse than none.
+    declareTestReckonable("test.target", "two-body-model");
     registerReckoner("test.target", "two-body-model", {
       deps: [],
       reckon: () => ({
@@ -240,6 +244,7 @@ describe("a topic two owners both model is served with neither", () => {
         reckon: () => OBSERVED,
       }),
     });
+    declareTestReckonable("test.target", "n-body-model");
     registerReckoner("test.target", "n-body-model", {
       deps: [],
       reckon: () => ({
@@ -256,7 +261,10 @@ describe("a topic two owners both model is served with neither", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<Target>("test.target");
-    expect(reading.reckoning.status).toBe("none");
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "contested" },
+    });
     expect(reading.state).toBe("held");
     expect(getReckonerConflicts()).toEqual([
       { topic: "test.target", owners: ["n-body-model", "two-body-model"] },
@@ -270,7 +278,9 @@ describe("a topic two owners both model is served with neither", () => {
      * owner on it. Counting core would report the intended arrangement as a
      * disagreement on every install that has an Uplink at all.
      */
+    declareTestReckonable("test.target", CORE_RECKONER_OWNER);
     registerReckoner("test.target", CORE_RECKONER_OWNER, declines);
+    declareTestReckonable("test.target", "n-body-model");
     registerReckoner("test.target", "n-body-model", declines);
 
     expect(getReckonerConflicts()).toEqual([]);
@@ -281,7 +291,9 @@ describe("a topic two owners both model is served with neither", () => {
     // A module re-evaluating under HMR, or a test re-importing after
     // resetModules, is a benign single-owner case and must not look like two
     // Uplinks disagreeing.
+    declareTestReckonable("test.target", "two-body-model");
     registerReckoner("test.target", "two-body-model", declines);
+    declareTestReckonable("test.target", "two-body-model");
     registerReckoner("test.target", "two-body-model", declines);
 
     expect(getReckonerConflicts()).toEqual([]);
@@ -302,6 +314,7 @@ describe("every path to a reckoning shares the one cache", () => {
     const store = delayedStore(wall);
 
     let runs = 0;
+    declareTestReckonable("test.target", "test");
     registerReckoner("test.target", "test", {
       deps: [],
       reckon: (point, _deps, { reckonUt }) => ({

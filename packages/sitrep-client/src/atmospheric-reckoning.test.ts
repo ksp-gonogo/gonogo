@@ -4,6 +4,7 @@ import {
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TopicReading } from "./reading";
 import {
@@ -1096,7 +1097,9 @@ describe("the altitude band through the store's input-rule walk", () => {
     // The elements reach to 20 and the roster only to 12, so 13 is inside one
     // input and outside the other. Whichever runs out first is the one that
     // settles the altitude's reach.
+    declareTestReckonable("vessel.orbit", "test-uplink");
     registerReckoner("vessel.orbit", "test-uplink", reachingTo(20));
+    declareTestReckonable("system.bodies", "test-uplink");
     registerReckoner("system.bodies", "test-uplink", reachingTo(12));
 
     const reading = s.at(13);
@@ -1111,7 +1114,9 @@ describe("the altitude band through the store's input-rule walk", () => {
   it("still carries the altitude while both inputs reach", () => {
     const s = scene();
     s.descend(SCATTERED_DESCENT);
+    declareTestReckonable("vessel.orbit", "test-uplink");
     registerReckoner("vessel.orbit", "test-uplink", reachingTo(20));
+    declareTestReckonable("system.bodies", "test-uplink");
     registerReckoner("system.bodies", "test-uplink", reachingTo(12));
 
     // The control for the case above: one second earlier, nothing has run out and the same frame is carried.
@@ -1126,6 +1131,7 @@ describe("the altitude band through the store's input-rule walk", () => {
     const t = scene();
     t.descend(SCATTERED_DESCENT);
     const pulls = { count: 0 };
+    declareTestReckonable("system.bodies", "test-uplink");
     registerReckoner(
       "system.bodies",
       "test-uplink",
@@ -1148,6 +1154,7 @@ describe("the altitude band through the store's input-rule walk", () => {
     const s = scene();
     s.descend(SCATTERED_DESCENT);
     const pulls = { count: 0 };
+    declareTestReckonable("system.bodies", "test-uplink");
     registerReckoner(
       "system.bodies",
       "test-uplink",

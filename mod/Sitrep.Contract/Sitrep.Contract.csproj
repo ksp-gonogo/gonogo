@@ -112,5 +112,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Sitrep.Core" />
     <InternalsVisibleTo Include="Sitrep.Host" />
+    <InternalsVisibleTo Include="Sitrep.Contract.TestSupport" />
   </ItemGroup>
 </Project>

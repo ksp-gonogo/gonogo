@@ -47,33 +47,10 @@ export interface GeneratedReckonableValue {
   readonly inputs: readonly GeneratedReckonableInput[];
 }
 
-export const GENERATED_RECKONABLE_VALUES = [
-  { topic: "comms.delay", field: "oneWaySeconds", basis: "kepler-propagation", inputs: [ { topic: "", path: "source" }, { topic: "comms.path", path: "" }, { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" }, { topic: "commandCentre.roster", path: "" } ] },
-  { topic: "target.available", field: "entries", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.dock", field: "distance", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativePosition" }, { topic: "", path: "relativeVelocity" } ] },
-  { topic: "vessel.dock", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
-  { topic: "vessel.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.flight", field: "altitudeAsl", basis: "powered-integration", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.flight", field: "altitudeAsl", basis: "rate-integration", inputs: [ { topic: "", path: "verticalSpeed" }, { topic: "", path: "gForce" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.flight", field: "orbitalSpeed", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" } ] },
-  { topic: "vessel.flight", field: "orbitalSpeed", basis: "powered-integration", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "argPe", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "ecc", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "epoch", basis: "kepler-propagation", inputs: [ { topic: "", path: "sma" }, { topic: "", path: "mu" }, { topic: "", path: "horizon" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "epoch", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "inc", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "lan", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "meanAnomalyAtEpoch", basis: "kepler-propagation", inputs: [ { topic: "", path: "sma" }, { topic: "", path: "mu" }, { topic: "", path: "horizon" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "meanAnomalyAtEpoch", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit", field: "sma", basis: "powered-integration", inputs: [ { topic: "", path: "mu" }, { topic: "vessel.propulsion", path: "" }, { topic: "dv.stages", path: "" }, { topic: "vessel.structure", path: "" }, { topic: "system.bodies", path: "" } ] },
-  { topic: "vessel.orbit.truth", field: "position", basis: "kepler-propagation", inputs: [ { topic: "", path: "velocity" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
-  { topic: "vessel.orbit.truth", field: "velocity", basis: "kepler-propagation", inputs: [ { topic: "", path: "position" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
-  { topic: "vessel.target", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
-] as const satisfies readonly GeneratedReckonableValue[];
-
 /**
- * The same rows keyed by Topic, as the field-name tuple the SDK turns into a
- * key union. A Topic ABSENT here has no declared model for any of its values.
+ * The top-level fields of each object Topic a declared model moves, as the
+ * tuple the SDK turns into a key union. The rows themselves, nested and
+ * array values included, are GENERATED_CONTRACT_TAGS.reckonable in ./units.ts.
  */
 export const GENERATED_RECKONABLE_FIELDS = {
   "comms.delay": ["oneWaySeconds"],

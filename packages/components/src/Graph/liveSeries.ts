@@ -1,11 +1,26 @@
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
 import { seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
-import type { ChartSeries, ChartSeriesData } from "@ksp-gonogo/ui";
+import type { ChartSeries, ChartSeriesData, SeriesType } from "@ksp-gonogo/ui";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { alignXY } from "./align";
 import { paletteColor } from "./palette";
 import { formatReadoutValue } from "./ticks";
 import type { GraphSeries } from "./types";
+
+/**
+ * A line asked of a value that cannot be joined is drawn the way the value
+ * allows: a step for one that stands until it changes, separate points for
+ * occurrences. Every other choice is the operator's and stands.
+ */
+function drawnAs(
+  chosen: SeriesType,
+  interpolation: SeriesRange["interpolation"],
+): SeriesType {
+  if (chosen !== "line") return chosen;
+  if (interpolation === "step") return "step";
+  if (interpolation === "none") return "scatter";
+  return "line";
+}
 
 /** Each configured series resolved to plottable data: paired against the shared X buffer on a parametric axis, or read straight off its own timestamps on a time axis. */
 export function buildLiveSeries(
@@ -53,7 +68,10 @@ export function buildLiveSeries(
       label: cfg.label ?? meta?.label ?? key,
       axis: axes[i],
       color: cfg.color ?? paletteColor(i),
-      type: cfg.type ?? "line",
+      type: drawnAs(
+        cfg.type ?? "line",
+        xIsTime ? raw.interpolation : undefined,
+      ),
       format: (y: number) =>
         meta?.unit && meta.unit !== "raw"
           ? writeQuantity({ magnitude: y, unit: meta.unit })

@@ -213,6 +213,7 @@ setQuantityLocale("en-GB");
   files.set(
     "client/src/uplink.ts",
     `import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
+import { GENERATED_CONTRACT_TAGS } from "./__generated__/units.js";
 
 /** Must equal package.json's version: gonogo-uplink.json is generated from this. */
 const UPLINK_VERSION = "0.0.1";
@@ -227,6 +228,8 @@ export const ${upper} = defineUplinkClient({
   version: UPLINK_VERSION,
   name: ${JSON.stringify(o.name)},
   description: "Shows that the ${o.name} Uplink is installed and publishing: a count of its samples and the game time of the latest.",
+  // What the contract slice declares about its values: how each relates in time, and any value a model of yours carries forward.
+  tags: GENERATED_CONTRACT_TAGS,
 });
 `,
   );
@@ -761,6 +764,9 @@ namespace ${ns}
                 new ChannelDeclaration
                 {
                     Topic = HeartbeatTopic,
+                    // Discrete: each sample stands until the next replaces it. A value
+                    // that moves between samples is Continuous, a one-off occurrence Event.
+                    Kind = SampleKind.Discrete,
                     Delivery = Delivery.LossyLatest,
                     // TrueNow: a heartbeat describes the connection, not a vessel.
                     // A fact about a vessel's state is DelayRole.Delayed.
@@ -990,10 +996,13 @@ function applyCoreTopics(files: Map<string, string>, o: SeedOptions): void {
     return json({ ...manifest, scripts });
   });
   edit("client/src/uplink.ts", (text) =>
-    text.replace(
-      /description: "[^"]*",/,
-      `description: "Shows the name of the vessel being flown, from a Topic Gonogo already publishes.",`,
-    ),
+    text
+      .replace(
+        /description: "[^"]*",/,
+        `description: "Shows the name of the vessel being flown, from a Topic Gonogo already publishes.",`,
+      )
+      .replace(/^import \{ GENERATED_CONTRACT_TAGS \} from .*\n/m, "")
+      .replace(/^ *\/\/ What the contract slice declares.*\n *tags: .*\n/m, ""),
   );
   files.set(
     "client/src/index.ts",

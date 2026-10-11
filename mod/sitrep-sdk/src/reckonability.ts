@@ -1,11 +1,10 @@
-// Runtime accessor for the contract's reckonability declarations.
+// Runtime accessor for the contracts' reckonability declarations.
 //
-// Reckonability is declared PER VALUE, in C# ([SitrepReckonable] on a Topic
-// payload's property), and codegen emits the rows into
-// ./__generated__/reckonability.ts. This module is the hand-written accessor
-// over that data, mirroring units.ts and control-channels.ts: the generated file
-// stays free to change shape, and every consumer holds a named function instead
-// of an import of the const.
+// Reckonability is declared PER VALUE, in C# ([SitrepReckonable] on a payload's
+// property, or [assembly: SitrepReckonableOn] for another owner's Topic). Each
+// contract's codegen writes its rows into the value-tag table its client
+// registers (./contract-tags.ts), so core's rows and an Uplink's are read the
+// same way, each carrying the owner that declared it.
 //
 // Two views, because two layers ask different questions. The TYPE layer wants
 // the field names, so `ReckonableReading<Payload, ReckonableKey>` can project the payload down to
@@ -15,24 +14,43 @@
 // wants the declared inputs, so a store that cannot run the model can say which
 // published input was missing, spelled the way the contract spells it.
 
-import {
+import type {
   GENERATED_RECKONABLE_FIELDS,
-  GENERATED_RECKONABLE_VALUES,
-  type GeneratedReckonableInput,
-  type GeneratedReckonableValue,
+  GeneratedReckonableInput,
+  GeneratedReckonableValue,
 } from "./__generated__/reckonability";
+import { type OwnedReckonableValue, reckonableRowsOf } from "./contract-tags";
 import type { TopicId } from "./topics";
 
-export type { GeneratedReckonableInput, GeneratedReckonableValue };
+export type {
+  GeneratedReckonableInput,
+  GeneratedReckonableValue,
+  OwnedReckonableValue,
+};
+
+type GeneratedReckonableFieldMap = {
+  readonly [Topic in keyof typeof GENERATED_RECKONABLE_FIELDS]: (typeof GENERATED_RECKONABLE_FIELDS)[Topic][number];
+};
 
 /**
- * A Topic whose contract declares a forward model on at least one of its
- * values, such as `vessel.flight`. Reading one with {@link useTelemetry}
- * returns a {@link ReckonableReading}.
+ * The fields of each object Topic a declared model moves, as a union per
+ * Topic. Core's come from its contract; an Uplink whose contract marks a value
+ * of its own object Topic adds that Topic here with `declare module
+ * "@ksp-gonogo/sitrep-sdk"`, the same way it adds to `TopicPayloadMap`, so
+ * reading it returns a {@link ReckonableReading}.
  *
  * @category Reckoners
  */
-export type ReckonableTopic = keyof typeof GENERATED_RECKONABLE_FIELDS;
+export interface ReckonableFieldMap extends GeneratedReckonableFieldMap {}
+
+/**
+ * A Topic whose contract declares a forward model on at least one of its
+ * top-level values, such as `vessel.flight`. Reading one with
+ * {@link useTelemetry} returns a {@link ReckonableReading}.
+ *
+ * @category Reckoners
+ */
+export type ReckonableTopic = keyof ReckonableFieldMap;
 
 /**
  * The fields of `Topic` that have a declared forward model, as a union of
@@ -41,12 +59,11 @@ export type ReckonableTopic = keyof typeof GENERATED_RECKONABLE_FIELDS;
  * @category Reckoners
  */
 export type ReckonableFields<Topic extends TopicId> =
-  Topic extends ReckonableTopic
-    ? (typeof GENERATED_RECKONABLE_FIELDS)[Topic][number]
-    : never;
+  Topic extends ReckonableTopic ? ReckonableFieldMap[Topic] : never;
 
 /**
- * Returns whether `topic` has a declared forward model on any of its values.
+ * Returns whether any registered contract declares a forward model on a value
+ * of `topic`: core's own, or an Uplink's on a Topic it publishes or models.
  *
  * @category Reckoners
  * @categoryDescription Reckoners
@@ -56,14 +73,8 @@ export type ReckonableFields<Topic extends TopicId> =
  * received.
  */
 export function isReckonableTopic(topic: string): topic is ReckonableTopic {
-  return topic in GENERATED_RECKONABLE_FIELDS;
+  return reckonableRowsOf(topic).length > 0;
 }
-
-const BY_TOPIC: ReadonlyMap<string, readonly GeneratedReckonableValue[]> =
-  GENERATED_RECKONABLE_VALUES.reduce((map, row) => {
-    map.set(row.topic, [...(map.get(row.topic) ?? []), row]);
-    return map;
-  }, new Map<string, GeneratedReckonableValue[]>());
 
 /**
  * Returns every declared model on `topic`, one entry per field and model, or
@@ -71,12 +82,16 @@ const BY_TOPIC: ReadonlyMap<string, readonly GeneratedReckonableValue[]> =
  * each with its own basis and inputs: `vessel.flight`'s `altitudeAsl` uses an
  * orbit model above the atmosphere and a rate model below it.
  *
+ * Pass `owner` for only the models that owner's contract declared, which is
+ * the set its registered reckoner answers for.
+ *
  * @category Reckoners
  */
 export function reckonableValuesOf(
   topic: string,
-): readonly GeneratedReckonableValue[] {
-  return BY_TOPIC.get(topic) ?? [];
+  owner?: string,
+): readonly OwnedReckonableValue[] {
+  return reckonableRowsOf(topic, owner);
 }
 
 /**

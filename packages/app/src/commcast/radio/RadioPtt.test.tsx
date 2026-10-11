@@ -196,7 +196,7 @@ describe("the voice ribbon it publishes", () => {
        an outbound acked command. */
     expect(handle?.tags).toEqual({
       direction: "telemetry",
-      continuity: "continuous",
+      kind: "continuous",
       delivery: "fire-and-forget",
     });
     expect(handle?.inFlight).toEqual([]);
@@ -217,7 +217,7 @@ describe("the voice ribbon it publishes", () => {
        what it is. */
     expect(crossing?.tags).toEqual({
       direction: "telemetry",
-      continuity: "continuous",
+      kind: "continuous",
       delivery: "fire-and-forget",
     });
     expect(crossing?.oneWaySeconds).toBe(1);

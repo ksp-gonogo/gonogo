@@ -80,7 +80,7 @@ namespace Sitrep.Host.IntegrationTests
                 Channels = new List<ChannelDeclaration>
                 {
                     new ChannelDeclaration
-                    {
+                    { Kind = SampleKind.Continuous,
                         Topic = Topic,
                         Delivery = Delivery.LossyLatest,
                         Delay = DelayRole.TrueNow,

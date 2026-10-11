@@ -270,6 +270,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = RosterTopic,
                     // ReliableOrdered, not LossyLatest: reconciling a client's own
@@ -289,6 +290,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = TopicsTopic,
                     // The same reasons as the roster: an arm refused for a Topic
@@ -303,6 +305,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Event,
                     Requires = Requirement.None,
                     Topic = FiredTopic,
                     // A one-shot event, and the same replay argument CrashUplink

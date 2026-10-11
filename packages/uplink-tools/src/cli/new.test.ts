@@ -546,6 +546,8 @@ describe("uplink-tools new", () => {
       'channels: ["vessel.identity"]',
     );
     expect(read("client/src/index.ts")).not.toContain("topics");
+    expect(read("client/src/uplink.ts")).not.toContain("__generated__");
+    expect(read("client/src/uplink.ts")).not.toContain("tags:");
   });
 
   it("writes a CI workflow for a lone repo when asked, checking generated types only where there are some", async () => {

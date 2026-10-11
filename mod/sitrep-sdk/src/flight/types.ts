@@ -153,6 +153,14 @@ export interface SeriesBridge {
 }
 
 /**
+ * How a chart draws between two points of a series. See
+ * {@link SeriesRange.interpolation}.
+ *
+ * @category Flight recording
+ */
+export type SeriesInterpolation = "linear" | "step" | "none";
+
+/**
  * A window of a series as parallel arrays: `t` and `v` have the same length.
  * `queryRange` and `getLatest` return one.
  *
@@ -200,6 +208,14 @@ export interface SeriesRange<Payload = unknown> {
    * span a model has something to say about. See {@link SeriesBridge}.
    */
   bridges?: SeriesBridge[];
+
+  /**
+   * How to draw between two points, from the value's sample kind: `"linear"`
+   * joins them with a line, `"step"` holds each value until the next point and
+   * then steps, `"none"` draws each point on its own and joins nothing. Absent
+   * means `"linear"`.
+   */
+  interpolation?: SeriesInterpolation;
 
   /**
    * The instant the window was asked for, in the series' time basis, when the

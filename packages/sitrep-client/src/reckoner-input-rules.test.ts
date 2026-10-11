@@ -1,3 +1,4 @@
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import "./reckoner-test-topics";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
@@ -119,7 +120,9 @@ afterEach(() => clearReckoners());
 describe("rule 1: a model reaches no further than its inputs do", () => {
   it("withdraws a model whose input is past its own horizon", () => {
     const store = storeWithInput(200);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, inputModel(100));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, {
       deps: [INPUT],
       reckon: () => ({
@@ -128,12 +131,17 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
       }),
     });
 
-    expect(store.sampleReading("test.contact").reckoning.status).toBe("none");
+    expect(store.sampleReading("test.contact").reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "beyond-horizon" },
+    });
   });
 
   it("leaves the same model alone while the input still reaches", () => {
     const store = storeWithInput(50);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, inputModel(100));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, {
       deps: [INPUT],
       reckon: () => ({
@@ -149,7 +157,9 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
 
   it("names the input that ran out, in the contract's own spelling", () => {
     const store = storeWithInput(200);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, inputModel(100));
+    declareTestReckonable("vessel.dock", UPLINK);
     registerReckoner("vessel.dock", UPLINK, {
       deps: [INPUT],
       reckon: () => ({
@@ -172,7 +182,9 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
     // A second observation gives the tail a 10 s cadence to stride at.
     ingestPoint(store, "test.contact", 0, { relativePosition: 5, name: "a" });
     store.beginFrame();
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, inputModel(100));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, {
       deps: [INPUT],
       reckon: (point) => ({
@@ -196,7 +208,9 @@ describe("rule 1: a model reaches no further than its inputs do", () => {
 
   it("serves the model anyway where the author declared an exemption", () => {
     const store = storeWithInput(200);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, inputModel(100));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, {
       deps: [INPUT],
       exempt: {
@@ -253,7 +267,9 @@ describe("rule 2: a band claims no more than its inputs know", () => {
 
   it("caps a bound claim at sigma1 when an input only offers sigma1", () => {
     const store = storeWithInput(50);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, bandedInputModel("sigma1", 3));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, claiming("bound", 0.5));
 
     expect(bandOf(store)?.kind).toBe("sigma1");
@@ -261,7 +277,9 @@ describe("rule 2: a band claims no more than its inputs know", () => {
 
   it("leaves a bound claim alone when every input band is a bound", () => {
     const store = storeWithInput(50);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, bandedInputModel("bound", 3));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, claiming("bound", 0.5));
 
     expect(bandOf(store)?.kind).toBe("bound");
@@ -269,7 +287,9 @@ describe("rule 2: a band claims no more than its inputs know", () => {
 
   it("drops a claim of exactness made over an inexact input", () => {
     const store = storeWithInput(50);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, bandedInputModel("bound", 3));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, claiming("bound", 0));
 
     expect(bandOf(store)).toBeUndefined();
@@ -277,7 +297,9 @@ describe("rule 2: a band claims no more than its inputs know", () => {
 
   it("keeps an exact claim where no input is inexact", () => {
     const store = storeWithInput(50);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, bandedInputModel("bound", 0));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, claiming("bound", 0));
 
     expect(bandOf(store)?.kind).toBe("bound");
@@ -285,7 +307,9 @@ describe("rule 2: a band claims no more than its inputs know", () => {
 
   it("honours a declared exemption and serves the model's own claim", () => {
     const store = storeWithInput(50);
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, bandedInputModel("sigma1", 3));
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner(
       "test.contact",
       UPLINK,
@@ -341,7 +365,9 @@ describe("two models that name each other's topics", () => {
       relativePositionError: 0,
     });
     store.beginFrame();
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, mutual(undefined)("test.dock"));
+    declareTestReckonable("test.dock", UPLINK);
     registerReckoner("test.dock", UPLINK, mutual(undefined)("test.contact"));
 
     expect(store.sampleReading("test.contact").reckoning.status).toBe(
@@ -356,7 +382,9 @@ describe("two models that name each other's topics", () => {
       relativePositionError: 0,
     });
     store.beginFrame();
+    declareTestReckonable("test.contact", UPLINK);
     registerReckoner("test.contact", UPLINK, mutual("bound")("test.dock"));
+    declareTestReckonable("test.dock", UPLINK);
     registerReckoner("test.dock", UPLINK, mutual("sigma1")("test.contact"));
 
     const reading = store.sampleReading("test.contact");
@@ -369,6 +397,7 @@ describe("two models that name each other's topics", () => {
 
 describe("an exemption is declared, reasoned and listed", () => {
   it("refuses a registration whose exemption carries no reason", () => {
+    declareTestReckonable("test.contact", UPLINK);
     expect(() =>
       registerReckoner("test.contact", UPLINK, {
         deps: [],
@@ -386,6 +415,7 @@ describe("an exemption is declared, reasoned and listed", () => {
    * working.
    */
   it("refuses a basis-scoped exemption whose input carries no reason", () => {
+    declareTestReckonable("test.contact", UPLINK);
     expect(() =>
       registerReckoner("test.contact", UPLINK, {
         deps: [INPUT],
@@ -403,6 +433,7 @@ describe("an exemption is declared, reasoned and listed", () => {
    * that way after the dep it was written for is renamed or dropped.
    */
   it("refuses a basis-scoped exemption naming an input the model does not take", () => {
+    declareTestReckonable("test.contact", UPLINK);
     expect(() =>
       registerReckoner("test.contact", UPLINK, {
         deps: [INPUT],
@@ -432,6 +463,7 @@ describe("an exemption is declared, reasoned and listed", () => {
    * no set, because it reads as a reviewed empty.
    */
   it("enumerates a narrowed opt-out, not just a registration-wide one", () => {
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, {
       deps: [INPUT],
       exempt: {
@@ -457,6 +489,7 @@ describe("an exemption is declared, reasoned and listed", () => {
   });
 
   it("lists every exemption with its topic, owner, rule and reason", () => {
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, {
       deps: [],
       exempt: {
@@ -483,6 +516,7 @@ describe("an exemption is declared, reasoned and listed", () => {
   });
 
   it("lists nothing for a model that declared no exemption", () => {
+    declareTestReckonable(INPUT, UPLINK);
     registerReckoner(INPUT, UPLINK, inputModel(100));
 
     expect(getReckonerExemptions()).toEqual([]);

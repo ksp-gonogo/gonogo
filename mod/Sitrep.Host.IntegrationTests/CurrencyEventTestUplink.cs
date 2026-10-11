@@ -38,7 +38,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             _host = host;
             _events = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
-            {
+            { Kind = SampleKind.Continuous,
                 Delivery = Delivery.ReliableOrdered,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),

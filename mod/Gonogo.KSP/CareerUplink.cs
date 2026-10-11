@@ -59,6 +59,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = CareerViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
@@ -79,6 +80,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = CareerViewProvider.ModeTopic,
                     Delivery = Delivery.LossyLatest,
@@ -93,6 +95,7 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = CareerViewProvider.FacilitiesTopic,
                     Delivery = Delivery.LossyLatest,

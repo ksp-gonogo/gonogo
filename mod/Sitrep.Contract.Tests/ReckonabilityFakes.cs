@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Sitrep.Contract;
 
 namespace Sitrep.Contract.Tests
@@ -67,7 +68,7 @@ namespace Sitrep.Contract.Tests
             public double Range { get; set; }
         }
 
-        /// <summary>A mark on an array Topic, whose projection cannot be joined back to its element.</summary>
+        /// <summary>A mark on an array Topic whose entries name no key, so nothing joins a modelled value back to its entry.</summary>
         [SitrepContract]
         [SitrepTopic("fake.array", isArray: true)]
         public class ArrayTopicMark
@@ -196,6 +197,95 @@ namespace Sitrep.Contract.Tests
             public double Range { get; set; }
 
             public double Epoch { get; set; }
+        }
+
+        /// <summary>An array Topic whose entries name their key: the mark is joinable.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.keyed-array", isArray: true)]
+        public class KeyedArrayTopicMark
+        {
+            [SitrepEntryKey]
+            public string? Name { get; set; }
+
+            [SitrepReckonable(ReckoningBases.RateIntegration, "rate")]
+            public double Level { get; set; }
+
+            public double Rate { get; set; }
+        }
+
+        /// <summary>One entry of a nested list, keyed at its own level.</summary>
+        [SitrepContract]
+        public class KeyedRule
+        {
+            [SitrepEntryKey]
+            public string? Name { get; set; }
+
+            [SitrepReckonable(ReckoningBases.RateIntegration, "rate")]
+            public double Level { get; set; }
+
+            public double Rate { get; set; }
+        }
+
+        /// <summary>A mark two lists deep, each list naming its own key.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.nested-keyed", isArray: true)]
+        public class NestedKeyedLists
+        {
+            [SitrepEntryKey]
+            public string? Name { get; set; }
+
+            public List<KeyedRule>? Rules { get; set; }
+        }
+
+        /// <summary>One entry of a nested list that names no key.</summary>
+        [SitrepContract]
+        public class UnkeyedRule
+        {
+            [SitrepReckonable(ReckoningBases.RateIntegration, "rate")]
+            public double Level { get; set; }
+
+            public double Rate { get; set; }
+        }
+
+        /// <summary>A mark inside a list whose entries cannot be told apart across samples.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.nested-unkeyed")]
+        public class NestedUnkeyedList
+        {
+            public List<UnkeyedRule>? Rules { get; set; }
+        }
+
+        /// <summary>A mark inside a dictionary, whose key is the entry's identity already.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.dictionary")]
+        public class DictionaryCrossed
+        {
+            public Dictionary<string, UnkeyedRule>? Rules { get; set; }
+        }
+
+        /// <summary>A list entry naming two identities.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.two-keys", isArray: true)]
+        public class TwoKeys
+        {
+            [SitrepEntryKey]
+            public string? Name { get; set; }
+
+            [SitrepEntryKey]
+            public string? Id { get; set; }
+
+            [SitrepReckonable(ReckoningBases.RateIntegration, "rate")]
+            public double Level { get; set; }
+
+            public double Rate { get; set; }
+        }
+
+        /// <summary>A Topic with nothing modelled on it, for an assembly mark to name as an input.</summary>
+        [SitrepContract]
+        [SitrepTopic("fake.rates")]
+        public class Rates
+        {
+            public double Rate { get; set; }
         }
     }
 }

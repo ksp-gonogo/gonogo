@@ -39,7 +39,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = Topic,
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.TrueNow,
@@ -126,7 +126,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = Topic,
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.TrueNow,
@@ -186,14 +186,14 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = FlightTopic,
                     Delivery = Delivery.LossyLatest,
                     // Delayed, and an ordinary one: no TrueNow declaration and no

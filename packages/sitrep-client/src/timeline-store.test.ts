@@ -719,10 +719,15 @@ describe("lerpPayload: angular wrap + discrete-field safety (M2 T5 close-review 
     expect(Math.abs(result?.longitude ?? 0)).toBeGreaterThan(170);
   });
 
-  it("holds the BEFORE value for a discrete/index numeric field (referenceBodyIndex) instead of fractionalizing it", () => {
+  it("holds the BEFORE value for a field it is told holds (referenceBodyIndex) instead of fractionalizing it", () => {
     const before = { referenceBodyIndex: 1, sma: 700_000 };
     const after = { referenceBodyIndex: 2, sma: 800_000 };
-    const result = lerpPayload(before, after, 0.5);
+    const result = lerpPayload(
+      before,
+      after,
+      0.5,
+      (field) => field === "referenceBodyIndex",
+    );
     expect(result).toBeDefined();
     expect(result?.referenceBodyIndex).toBe(1); // hold-last, never 1.5
     expect(result?.sma).toBeCloseTo(750_000); // genuinely continuous field still lerps

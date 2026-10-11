@@ -331,7 +331,7 @@ namespace Sitrep.Host.IntegrationTests
             };
 
             private static ChannelDeclaration Declare(string topic) => new ChannelDeclaration
-            {
+            { Kind = SampleKind.Continuous,
                 Topic = topic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 100_000, quantum: EmissionQuantum.Absolute(0)),

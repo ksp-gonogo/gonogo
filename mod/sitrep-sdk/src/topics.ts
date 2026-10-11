@@ -56,6 +56,7 @@ import {
   GENERATED_COLLECTION_TOPIC_IDS,
   GENERATED_TOPIC_IDS,
 } from "./__generated__/topic-map";
+import type { SampleKind } from "./contract-tags";
 import {
   noteRuntimeTopic,
   noteRuntimeTopicMetadata,
@@ -167,6 +168,15 @@ export interface SystemUplinksTopicPayloadMap {
       heldAtHome: string[];
       trueNowPrefixes: string[];
       addressed?: string[];
+    };
+    /**
+     * Every registered channel's sample kind, by topic and, for a dynamic
+     * namespace, by prefix: how a reader may draw between its samples. See
+     * `readDeclaredSampleKinds`.
+     */
+    sampleKinds?: {
+      topics: Record<string, SampleKind>;
+      prefixes: Record<string, SampleKind>;
     };
   };
 }

@@ -133,7 +133,7 @@ namespace Sitrep.Host.IntegrationTests
 
             private static ChannelDeclaration Declare(string topic, DelayRole delay, bool heldAtHome = false) =>
                 new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Topic = topic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),

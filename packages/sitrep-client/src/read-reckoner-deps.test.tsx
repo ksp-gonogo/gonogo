@@ -1,4 +1,5 @@
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk/spine";
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
@@ -124,6 +125,7 @@ describe("a point read holds up its reckoner's declared inputs", () => {
   it("subscribes the deps an UPLINK's model declares, on the same terms", () => {
     const fixture = buildFixture();
     // Registered exactly as an Uplink client registers one at module load: a non-core owner, against a Topic core's reckoners say nothing about.
+    declareTestReckonable("test.contact", "acme-uplink");
     registerReckoner("test.contact", "acme-uplink", {
       deps: ["test.temperature"],
       reckon: (point) => ({

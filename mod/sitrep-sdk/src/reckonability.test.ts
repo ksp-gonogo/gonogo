@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GENERATED_RECKONABLE_VALUES } from "./__generated__/reckonability";
+import { GENERATED_CONTRACT_TAGS } from "./__generated__/units";
 import {
   reckonableInputSpelling,
   reckonableInputsOf,
@@ -88,7 +88,9 @@ describe("a value served by several models", () => {
 /** Every `(topic, field)` node the rows declare, as one key per value. */
 function declaredNodes(): Set<string> {
   return new Set(
-    GENERATED_RECKONABLE_VALUES.map((row) => `${row.topic}.${row.field}`),
+    GENERATED_CONTRACT_TAGS.reckonable.map(
+      (row) => `${row.topic}.${row.field}`,
+    ),
   );
 }
 
@@ -105,7 +107,7 @@ function declaredNodes(): Set<string> {
 function declaredEdges(): [from: string, to: string][] {
   const nodes = declaredNodes();
   const edges: [string, string][] = [];
-  for (const row of GENERATED_RECKONABLE_VALUES) {
+  for (const row of GENERATED_CONTRACT_TAGS.reckonable) {
     const from = `${row.topic}.${row.field}`;
     for (const input of row.inputs) {
       const to =

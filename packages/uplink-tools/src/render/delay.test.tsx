@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+
 import {
   magnitudeOf,
   registerComponent,
@@ -7,6 +8,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-sdk";
 import { registerReckoner } from "@ksp-gonogo/sitrep-sdk/spine";
+import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import {
   installRenderProbe,
@@ -113,6 +115,7 @@ beforeAll(async () => {
     component: Level,
     channels: ["probe.tank"],
   });
+  declareTestReckonable("probe.tank", "probe-delay");
   registerReckoner("probe.tank", "probe-delay", {
     deps: [],
     reckon: (point, _deps, frame) => ({

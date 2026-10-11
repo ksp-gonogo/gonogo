@@ -213,7 +213,6 @@ export {
   type InFlightListProps,
 } from "./CommandDelay/InFlightList";
 export {
-  type RailContinuity,
   type RailDelivery,
   type RailDirection,
   type RailTags,

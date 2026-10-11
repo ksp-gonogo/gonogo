@@ -45,8 +45,9 @@ namespace Gonogo.KSP
         private IChannelPublisher? _hasRecent;
         private bool _subscribed;
 
-        private static ChannelDeclaration Channel(string topic, Delivery delivery) => new ChannelDeclaration
+        private static ChannelDeclaration Channel(string topic, Delivery delivery, SampleKind kind) => new ChannelDeclaration
         {
+            Kind = kind,
             Requires = Requirement.None,
             Topic = topic,
             // A crash is a flight event at the vessel, so it is Delayed (rides
@@ -66,8 +67,8 @@ namespace Gonogo.KSP
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                Channel(CrashTopics.LastCrashTopic, Delivery.ReliableOrdered),
-                Channel(CrashTopics.HasRecentTopic, Delivery.ReliableOrdered),
+                Channel(CrashTopics.LastCrashTopic, Delivery.ReliableOrdered, SampleKind.Event),
+                Channel(CrashTopics.HasRecentTopic, Delivery.ReliableOrdered, SampleKind.Discrete),
             },
         };
 

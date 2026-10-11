@@ -35,6 +35,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Continuous,
                     Requires = Requirement.None,
                     Topic = PartsViewProvider.PowerTopic,
                     Delivery = Delivery.LossyLatest,

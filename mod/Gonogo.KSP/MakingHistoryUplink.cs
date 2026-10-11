@@ -39,6 +39,7 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
+                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = MakingHistoryViewProvider.MissionTopic,
                     Delivery = Delivery.LossyLatest,

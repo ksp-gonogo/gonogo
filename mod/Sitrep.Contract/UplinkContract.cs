@@ -51,6 +51,27 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// How a channel's samples relate in time, which decides what a reader may do
+    /// between two of them: draw a line, hold a step, or neither.
+    ///
+    /// <para>Every <see cref="ChannelDeclaration"/> states one, and a value may
+    /// override it with <see cref="SitrepSampleKindAttribute"/> where it differs
+    /// from the channel around it.</para>
+    /// </summary>
+    /// <category>Channels and emission</category>
+    public enum SampleKind
+    {
+        /// <summary>The value moves between samples. A reader may draw a line between two, interpolate, and carry it forward with a model where one is declared.</summary>
+        Continuous,
+
+        /// <summary>The value stands until the next sample changes it. A reader draws a step and never interpolates.</summary>
+        Discrete,
+
+        /// <summary>Each sample is one occurrence at its own time. A reader draws points and never a line or a step, and nothing carries it forward.</summary>
+        Event,
+    }
+
+    /// <summary>
     /// The session a frame is about to reach, as a
     /// <see cref="ChannelDeclaration.ViewerFilter"/> sees it.
     /// </summary>
@@ -128,6 +149,15 @@ namespace Sitrep.Contract
         /// rather than inferred from the default.
         /// </summary>
         public DelayRole Delay { get; set; } = DelayRole.Delayed;
+
+        /// <summary>
+        /// How the channel's samples relate in time. Required, with no default:
+        /// whether a reader may draw between two samples is a fact about the
+        /// channel that only its author knows. A value that differs from it
+        /// declares its own with <see cref="SitrepSampleKindAttribute"/>.
+        /// </summary>
+        public required SampleKind Kind { get; set; }
+
         /// <summary>
         /// What this save must have unlocked before the channel can carry
         /// anything: the same requirement descriptors a command declares,

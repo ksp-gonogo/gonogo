@@ -961,7 +961,7 @@ namespace Sitrep.Host.IntegrationTests
             public void Register(IUplinkHost host)
             {
                 host.RegisterDynamicNamespace("keyed.", new ChannelDeclaration
-                {
+                { Kind = SampleKind.Continuous,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                     Delay = DelayRole.Delayed,
