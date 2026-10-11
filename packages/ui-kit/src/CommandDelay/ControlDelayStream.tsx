@@ -63,10 +63,12 @@ export interface ControlStreamDatum {
 }
 
 /**
- * A continuous entry with amplitude history and no readback: the operator's
- * voice crossing the gap, drawn as the RIBBON mark in the outgoing zone. It
- * differs from {@link ControlStreamDatum} in its data: loudness per chunk, no
- * value and no echo.
+ * One continuous transmission on its way from the command centre to a vessel,
+ * such as the operator's voice: its loudness per chunk, with no value and no
+ * echo back. Useful for showing how far a transmission has travelled. Used by
+ * {@link ControlDelayStream}, which draws it as the ribbon mark in the
+ * outgoing zone. A {@link ControlStreamDatum} carries a commanded value and
+ * its echo instead.
  *
  * @category CommandDelay
  */

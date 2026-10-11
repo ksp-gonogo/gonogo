@@ -479,6 +479,63 @@ solution open.
 
 ---
 
+## Published doc comments: say what it shows, what it is for, where it is used
+
+A doc comment on anything `ui-kit`, `sitrep-sdk` or `uplink-tools` exports is
+read by an Uplink author in an editor hover and on the reference site. The
+summary has three parts, in this order:
+
+```ts
+/**
+ * The one-way delay between the active command centre and the vessel or device
+ * a control sends to, as a small chip ("one-way ~4.2 s"). The figure is the
+ * one its caller passes in `oneWaySeconds`. Useful for showing the user the
+ * expected time for a command to reach the target. Used alongside
+ * time-sensitive controls like {@link Console} to help the user understand
+ * when a command is likely to happen.
+ */
+```
+
+1. **What it shows or is**, in the game's own nouns, naming both ends of
+   anything that has two (command centre and vessel), never "the other end",
+   "the gap" or "the link". The sentence must be true for every caller: a
+   component that draws what it is given says so
+2. **What it is for**, from the side of the person at the screen ("Useful for
+   showing the user...")
+3. **Where it is used**, naming a real consumer ("Used by {@link InFlightList}",
+   "Used alongside controls like {@link Console}"). A published symbol goes in
+   code form, a private widget in plain words (`published-doc-reachability`
+   fails a code-form reference nobody can import). Where nothing consumes it
+   yet, leave the sentence out, never invent one. A consumer in an Uplink is
+   described by what it is ("a script terminal"), since `uplink-boundary`
+   fails a core file that names an Uplink's mod
+
+And the voice:
+
+- **Literal words.** Delay, command, control, vessel; not "light time", "words
+  land", "the press" or "crossing the gap"
+- **No capitals for emphasis.** A word in capitals is an acronym or a label the
+  UI prints (`HELD`). If a sentence needs the stress to be read correctly,
+  reword the sentence
+- **No aphorisms and no rhetorical contrasts** ("read before the press rather
+  than learned after it", "a list nothing reads rots"). "X, not Y" stays only
+  where Y is a mistake a caller can make with this export
+- **No narrating what anyone is thinking** ("the operator's question is...",
+  "what an author wants here is...")
+- **No design rationale and no history.** Why it was built this way, what it
+  replaced and which defect shaped it belong in a test or nowhere. A rule the
+  caller must follow stays, stated as the rule
+- **Formatting detail goes on the prop that controls it**, or nowhere: decimal
+  places, padding and rounding are not part of what a thing is
+- **Keep every fact a caller needs**: a null rule, a unit, a vocabulary, an
+  ordering, what happens with no provider mounted. Cut the voice, never the
+  fact
+
+A longer comment keeps the same order: the three-part summary first, then one
+paragraph per rule a caller has to know.
+
+---
+
 ## Spending: show what the spend costs, in the currency it costs
 
 Any **widget** that exposes an action which spends a career resource must show the operator

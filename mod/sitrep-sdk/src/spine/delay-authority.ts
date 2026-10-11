@@ -92,23 +92,22 @@ export function readHomeCentre(payload: unknown): string | null {
 }
 
 /**
- * Extract the one-way delay (seconds) a `comms.delay` payload REPORTS, or
- * `null` when it reports no measurable one, which the caller holds through
- * rather than reading as zero.
+ * The one-way delay in seconds that a `comms.delay` payload reports, or
+ * `null` when it reports no measurable delay. Useful for anything timed by
+ * the signal delay. Used by the delay clock and by the signal delay readout.
+ * A caller keeps its previous delay through a `null` and never reads it as
+ * zero.
  *
- * The discriminator is the VALUE, never `source`
- * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`). `CommsDelaySource.None` covers
- * two opposite states that share it: a 0 is "the delay feature is off and the
- * vessel is connected", a null is "there is no path home to measure". Reading
- * the source first collapsed the second onto the first, so a craft nothing
- * could reach was clocked as if it were on the LAN. `command-delay.ts`'s
- * `currentMode` reads the same payload the same value-first way; the two now
- * agree.
+ * The answer comes from the value and never from `source`
+ * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`), because
+ * `CommsDelaySource.None` covers two opposite states: a 0 is "the delay
+ * feature is off and the vessel is connected", and a null is "there is no
+ * path home to measure". `command-delay.ts`'s `currentMode` reads the payload
+ * the same way.
  *
- * A wrapped, finite, non-negative reading is the only thing that MOVES the
- * delay. Absence, malformation, NaN and a negative alike return `null`: not
- * one of them is evidence that the craft got closer, and zero is the single
- * direction this must never fail in, because a zero pins the whole clock to
+ * Only a finite, non-negative delay is returned, as a bare number or as the
+ * magnitude of a `Value`. An absent or malformed payload, NaN and a negative
+ * all return `null`, because a wrongly reported zero pins the whole clock to
  * the predicted present and releases every delayed channel at once.
  */
 export function readOneWaySeconds(payload: unknown): number | null {

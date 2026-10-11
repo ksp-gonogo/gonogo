@@ -342,16 +342,14 @@ export function TelemetryProvider({
 }
 
 /**
- * FIRST-PARTY derived channels every `TelemetryProvider`-built default store
- * registers. A caller that needs a channel NOT in this list yet (or wants to
- * omit one) supplies its own pre-built `store` prop instead of relying on the
- * default.
+ * The first-party derived channels registered on the default store a
+ * `TelemetryProvider` builds. A caller that needs a channel missing from this
+ * list, or wants to omit one, passes its own pre-built `store` prop.
  *
- * An Uplink does NOT belong here and cannot edit it: it calls
- * `defineUplinkClient(...).registerDerivedChannel` and its contribution is
- * drained alongside this list when the store is built. A derived channel is
- * the only mechanism that can join two Topics, and a model that needs two
- * Topics is exactly the kind core must not own.
+ * An Uplink adds a derived channel with
+ * `defineUplinkClient(...).registerDerivedChannel` and never by editing this
+ * list: its channel is registered alongside these when the store is built. A
+ * derived channel is the only way to join two Topics.
  */
 export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
   [
@@ -553,19 +551,15 @@ export function useViewClockOptional(): ViewClockView | undefined {
 }
 
 /**
- * The current view time (UT seconds) as a reactive value, the ergonomic
- * "read view-UT directly" surface widgets need after the `t.universalTime`
- * DROP (it was never a stream; it IS the SDK view time the propagation already
- * evaluates at). Subscribes to the shared `ViewClock`'s per-frame `onFrame`
- * tick and returns the frozen `viewUt` for the current frame (respecting
- * a scrub). `undefined` when no `TelemetryProvider` is mounted or
- * before the first confirmed sample (the view time isn't finite yet), the
- * natural "no stream / not synced" signal a widget can `??`-fall-back on.
+ * The current view time in UT seconds, as a reactive value: the instant the
+ * frame on screen is drawn for, which follows a scrub. Useful for a widget
+ * that counts down against telemetry, so the countdown is timed by the same
+ * clock as the data. `undefined` when no `TelemetryProvider` is mounted or
+ * before the first confirmed sample, so a widget can fall back with `??`.
  *
- * Per-frame reactive by design (the same rAF cadence the media buffer runs
- * on): a widget that reads view-UT for a live countdown re-renders each frame,
- * which is exactly what a live countdown requires. Callers that only need the
- * clock object (not a reactive value) should use `useViewClock` instead.
+ * It re-renders its caller on every animation frame, the cadence the media
+ * buffer runs on, which is what a live countdown needs. A caller that needs
+ * the clock object and no reactive value uses `useViewClock`.
  */
 export function useViewUt(): Value<"ut"> | undefined {
   return useFrameInstant(receivedEdge);
@@ -1109,14 +1103,15 @@ export function useActiveTelemetryClient(): TelemetryClient | undefined {
 }
 
 /**
- * Why a command that DID route came back unsuccessful: the mod's own code and
- * message, as it wrote them.
+ * The mod's refusal of a command that was routed: its code and message, as
+ * the mod wrote them. Useful for telling the user why a command did not take
+ * effect. Used by `dispatchActiveCommandTopic`, which resolves `settled` with
+ * it.
  *
- * Carried rather than swallowed because a refusal is frequently the only place
- * a fact lives. The SCET alarm arm refuses a threshold naming a Topic the
- * simulation cannot resolve, and the message names the Topic; a caller that
- * cannot read it has an alarm sitting armed that will never fire and nothing to
- * say about why.
+ * The message can be the only place a fact is stated. Arming a SCET alarm on
+ * a threshold whose Topic the simulation cannot resolve is refused with a
+ * message naming that Topic, and an alarm armed without reading it never
+ * fires.
  */
 export interface DispatchCommandRefusal {
   code: string;
@@ -1184,21 +1179,17 @@ function describeDispatchRejection(error: unknown): DispatchCommandRefusal {
 }
 
 /**
- * Dispatch a command through the stream, for a plain-class caller with no render
- * tree to call {@link useCommand} from.
+ * Dispatches a command through the stream, for a plain-class caller with no
+ * render tree to call {@link useCommand} from. Used by the host services that
+ * send commands outside React, such as alarms and warp control.
  *
- * **Deliberately SYNCHRONOUS in its routing decision.** A caller must be able to
- * check `routed` in the SAME tick as the call, so it can say at once that a
- * command did not go rather than a microtask later. Only the routed case is
- * genuinely asynchronous, and its `settled` promise never rejects: it resolves
- * with the refusal when there was one and with `undefined` when the command
- * succeeded, so a caller that does not care can keep ignoring it.
+ * The routing decision is synchronous, so `routed` can be checked in the same
+ * tick as the call. `routed: false` means only that no provider is mounted,
+ * so there is no stream to put the command on.
  *
- * `routed: false` means one thing only: no provider is mounted, so there is no
- * stream to put the command on.
- *
- * Whether the simulation will TAKE a command is the simulation's to answer, and
- * it does: `settled` carries its refusal, code and message as it wrote them.
+ * A routed command settles asynchronously, and `settled` never rejects. It
+ * resolves with the simulation's refusal (its code and message as written)
+ * when the command was refused, and with `undefined` when it succeeded.
  */
 export function dispatchActiveCommandTopic(
   command: string,

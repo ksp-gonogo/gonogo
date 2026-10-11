@@ -2,30 +2,25 @@ import { useEffect, useRef } from "react";
 import { useTelemetryClientOptional } from "./context";
 
 /**
- * Fires `handler` for each discrete event delivered on `topic`, the
- * consumption side of a `ReliableOrdered` channel (e.g. `crash.lastCrash`),
- * where every frame the server publishes is delivered in order and none is
- * coalesced away. Where `useStream` reads the sticky latest VALUE of a state
- * topic and re-renders, this hook reacts to each ARRIVAL: the natural shape for
- * a widget that must do something once per event (raise a crash alarm, push a
- * notification, log a mission line) rather than render a current reading.
+ * Calls `handler` once for each event delivered on `topic`. Useful for a
+ * widget that acts once per event: raising a crash alarm, pushing a
+ * notification or logging a mission line. Used with a `ReliableOrdered`
+ * channel such as `crash.lastCrash`, where every frame the mod publishes is
+ * delivered in order and none is coalesced. To render the latest event, read
+ * it with `useStream(topic)`.
  *
- * Subscribes straight through the `TelemetryClient` rather than the
- * `TimelineStore`/frame path `useStream` uses: the store coalesces ingests to
- * one `beginFrame()` per animation frame, which would drop the second of two
- * events landing in the same tick: exactly the coalescing the reliable lane
- * exists to prevent. The client's per-topic fan-out delivers every
- * `stream-data` frame individually, so a burst of events each fire the handler.
+ * Every event is delivered, including two that land in the same animation
+ * frame. The hook subscribes through the `TelemetryClient`, whose per-topic
+ * fan-out delivers each `stream-data` frame on its own; the `TimelineStore`
+ * frame path that `useStream` reads coalesces ingests to one per frame.
  *
- * The sticky last value the client replays synchronously on subscribe is NOT
- * treated as an event: it is the already-seen latest, so a widget mounting
- * after a crash does not re-raise the alarm for it (and remounts, StrictMode,
- * a layout change; never re-fire). Only frames arriving after subscription
- * count. A widget that instead wants to RENDER the last event should read it
- * with `useStream(topic)`.
+ * The last value the client replays on subscribe is not an event, so a widget
+ * that mounts after a crash does not raise the alarm for it again, and
+ * neither does a remount, StrictMode or a layout change. Only frames that
+ * arrive after the subscription count.
  *
- * `handler` may change identity every render without re-subscribing, the
- * latest one is always called (held in a ref), so callers need not memoize it.
+ * `handler` may change identity on every render without re-subscribing. The
+ * latest one is always called, so callers need not memoize it.
  */
 export function useStreamEvent<Payload>(
   topic: string,

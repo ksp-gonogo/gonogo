@@ -260,18 +260,18 @@ export function getReplacementConflicts(): ReplacementConflict[] {
 }
 
 /**
- * The components to actually render, with widget-level replacement
- * applied:
+ * The components to render, after widget replacement is applied:
  *
- * - A target with exactly ONE registered replacer → the original is suppressed
- *   and the replacer takes its place.
- * - A target with TWO OR MORE replacers → a conflict ({@link
+ * - A target with exactly one registered replacer is suppressed, and the
+ *   replacer takes its place
+ * - A target with two or more replacers is a conflict ({@link
  *   getReplacementConflicts}): the original is kept, and every competing
- *   replacer is withheld until the user resolves it. Never silently merged.
- * - A replacer whose target isn't registered renders as an ordinary component.
+ *   replacer is withheld until the user resolves it. Replacers are never
+ *   merged
+ * - A replacer whose target is not registered renders as an ordinary component
  *
- * Prefer this over {@link getComponents} anywhere the rendered widget set is
- * assembled; `getComponents` remains the raw, unresolved view.
+ * Used wherever the rendered widget set is assembled. {@link getComponents}
+ * is the raw, unresolved list.
  */
 export function getResolvedComponents(): AnyDef[] {
   const { components } = registry();

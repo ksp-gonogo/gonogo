@@ -107,16 +107,16 @@ export interface InFlightListItem {
 export type InFlightListMode = "live" | "staged" | "no-path";
 
 /**
- * How much room the list gets to say what it knows. Orthogonal to `mode`,
- * which is about WHAT is being counted; this is about how much space there is
- * to count it in.
+ * How much of each in-flight command {@link InFlightList} draws, by the room
+ * it has. Independent of `mode`, which describes the link.
  *
- *   - `full`    arrow, label and countdown per command, one per line
- *   - `compact` arrow and countdown only; the label moves to the accessible
- *               name and tooltip
- *   - `badge`   one chip for the whole set: count plus the nearest arrival
- *
- * `auto` (the default) measures the rendered width and picks.
+ * - `full`: arrow, label and countdown per command, one per line
+ * - `compact`: arrow and countdown only; the label moves to the accessible
+ *   name and tooltip
+ * - `badge`: one chip for the whole set, with the count and the nearest
+ *   arrival
+ * - `auto` (the default): measures the rendered width and picks one of the
+ *   three
  *
  * @category CommandDelay
  */

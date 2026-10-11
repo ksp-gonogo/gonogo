@@ -130,13 +130,13 @@ export interface TrajectoryFrame {
 }
 
 /**
- * Why a curve stops where it stops.
+ * The reason a drawn trajectory arc ends where it does: at the last instant
+ * the propagation provider vouched for, or after one full revolution. Useful
+ * for labelling the mark a renderer draws at the end of the arc. Used by the
+ * orbit diagram.
  *
- * Never absent, because the failure it prevents is that a prediction which stops
- * short and a trajectory which ends look identical on a diagram. A renderer puts
- * a visible MARK at the far end either way; this says which sentence goes with
- * it, and the two are different: one is where our authority ran out, the other
- * is a drawing convention that refuses to retrace a lap it cannot promise.
+ * Always present, because an arc cut short at the provider's horizon and one
+ * that completes its revolution look the same on a diagram.
  */
 export type ArcFarEnd =
   /** The last instant the provider vouched for. */

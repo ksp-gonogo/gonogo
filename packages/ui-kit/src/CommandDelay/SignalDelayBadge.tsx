@@ -9,7 +9,7 @@ import { withDelayCurrency } from "./delayCurrency";
  * @category CommandDelay
  */
 export interface SignalDelayBadgeProps {
-  /** One-way separation in seconds. Rendered as-is; the caller decides IF. */
+  /** The one-way delay in seconds, drawn as given: the caller decides whether to render the badge at all. Under a minute it is written with one decimal. */
   oneWaySeconds: number;
   /** The delay as the reading it arrived in, so a quiet `comms.delay` draws the figure held. */
   delayReading?: Reading<Value<"s">> | null;
@@ -18,12 +18,12 @@ export interface SignalDelayBadgeProps {
 }
 
 /**
- * How long it takes to REACH the other end, as one small chip ("one-way ~4.2 s").
- *
- * One-way, because the operator's question is when their words land. Draw it
- * beside a control that sends across the gap, so the light time is read before
- * the press rather than learned after it. Under a minute the figure keeps one
- * decimal.
+ * The one-way delay between the active command centre and the vessel or device
+ * a control sends to, as a small chip ("one-way ~4.2 s"). The figure is the
+ * one its caller passes in `oneWaySeconds`. Useful for showing the user the
+ * expected time for a command to reach the target. Used alongside
+ * time-sensitive controls like {@link Console} to help the user understand
+ * when a command is likely to happen.
  *
  * @category CommandDelay
  */

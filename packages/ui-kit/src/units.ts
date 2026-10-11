@@ -667,13 +667,13 @@ function formatWhole(
 }
 
 /**
- * A quantity as a screen reader should hear it: the value followed by the
- * unit's WORD rather than its symbol.
- *
- * For the places that cannot take a node (`aria-label`, `title`, an SVG
- * `aria-valuetext`), so an accessible name reads "250.0 kilometres" rather
- * than "kay em". If the result is going to be rendered, use {@link Unit} or
- * {@link writeQuantity}. Falls back to the symbol for a unit with no word.
+ * A quantity as text for a screen reader: the value followed by the unit's
+ * word, so an accessible name reads "250.0 kilometres" where the symbol would
+ * be spoken as "kay em". Useful in the places that cannot take a node
+ * (`aria-label`, `title`, an SVG `aria-valuetext`). Used by {@link Dial} and
+ * {@link Meter} for their accessible values. To render a quantity, use
+ * {@link Unit} or {@link writeQuantity}. Falls back to the symbol for a unit
+ * with no word.
  *
  * @category Unit
  */

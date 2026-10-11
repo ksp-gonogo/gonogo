@@ -39,14 +39,14 @@ export interface OrbitEncounterPayload {
 }
 
 /**
- * The `vessel.orbit` channel payload: elements, never position (mirrors
- * `mod/Sitrep.Contract/VesselOrbit.cs`).
+ * The `vessel.orbit` channel payload: a vessel's orbital elements, with no
+ * position (mirrors `mod/Sitrep.Contract/VesselOrbit.cs`).
  *
- * Units, verbatim from the C# doc comment: `sma` in metres; `inc`/`lan`/
- * `argPe` in DEGREES (KSP-native); `meanAnomalyAtEpoch` in RADIANS (also
- * KSP-native): an inherited KSP inconsistency, deliberately kept. `lan`/
- * `argPe` are `null` for an undefined ascending node / periapsis (near-
- * equatorial / near-circular orbits): never NaN, never a fake 0.
+ * `sma` is in metres, `inc`, `lan` and `argPe` in degrees, and
+ * `meanAnomalyAtEpoch` in radians. The mix of degrees and radians is KSP's
+ * own and is kept. `lan` and `argPe` are `null` for an undefined ascending
+ * node or periapsis (a near-equatorial or near-circular orbit), never NaN
+ * and never 0.
  */
 export interface VesselOrbitPayload {
   /**

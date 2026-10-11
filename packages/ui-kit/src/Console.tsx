@@ -22,8 +22,9 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
    */
   tone?: ConsoleTone;
   /**
-   * How long it takes to reach the other end, in seconds. `null` when there is
-   * no measurable path. Neither `null` nor zero gets a {@link SignalDelayBadge}.
+   * The one-way delay between the command centre and the craft or device the
+   * console talks to, in seconds. `null` when there is no measurable path.
+   * Neither `null` nor zero gets a {@link SignalDelayBadge}.
    */
   oneWaySeconds?: number | null;
   /**
@@ -70,26 +71,27 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
 const QUEUE_LABEL = "Uplink queue";
 
 /**
- * A console: a scrolling surface, what is still crossing on the link, the line
- * the operator is typing, and one reading of how far away the other end is
- * (the craft or device the console talks to, whose distance `oneWaySeconds`
- * gives).
+ * A two-way text console for a craft or device that may be a signal delay
+ * away: the scrollback, the lines still in transit, the line being typed, and
+ * one reading of the one-way delay between the command centre and that craft
+ * or device (`oneWaySeconds`). Used by widgets that send typed lines, such as
+ * a script terminal or a message thread.
  *
- * The delay reading is chosen here, not by the widget: a standing
- * {@link SignalDelayBadge} when the one-way delay is a second or less, so a
- * countdown would be over before it could be read, an {@link InFlightList} queue of what
- * is crossing when it is not, never both. Both sit at the foot. A widget says
- * only how far away the other end is (`oneWaySeconds`), whether it can queue
- * (`canQueue`) and what is queued (`inFlight`).
+ * The console picks the delay reading. While the one-way delay is a second or
+ * less it draws a standing {@link SignalDelayBadge}, since a countdown that
+ * short would end before it could be read. Above that it draws an
+ * {@link InFlightList} of what is in transit. It never draws both, and both
+ * sit at the foot. The widget supplies the delay (`oneWaySeconds`), whether
+ * its lines can queue (`canQueue`) and what is queued (`inFlight`).
  *
  * The composer (usually a {@link ComposerBar}) and the scrollback are the
- * widget's; this places them and draws the frame around them.
+ * widget's; the console places them and draws the frame around them.
  *
  * @category Console
  * @categoryDescription Console
  * A two-way text console over a delayed link: the scrollback, the line being
- * typed, and what is still crossing, framed with one reading of how far away
- * the other end (the craft the console talks to) is.
+ * typed, and the lines still in transit, framed with one reading of the
+ * one-way delay to the craft the console talks to.
  */
 export function Console({
   tone,

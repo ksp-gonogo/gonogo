@@ -38,8 +38,10 @@ export interface CountdownProps {
 }
 
 /**
- * A duration read as a CLOCK: `1m 20s`, or `T−1m 20s` on a launch clock.
- * Which component renders a `Value<"s">` depends on what it MEANS:
+ * A duration drawn as a clock: `1m 20s`, or `T−1m 20s` on a launch clock.
+ * Useful for showing the time left until an event. Used by
+ * {@link InFlightList} for each command's arrival. A `Value<"s">` has three
+ * renderers, chosen by what the value is:
  *
  * - {@link Unit} for a magnitude: a burn lasting 90 seconds
  * - `Countdown` for a clock, with the opt-in `T−` / `T+` prefix and

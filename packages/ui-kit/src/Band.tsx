@@ -41,12 +41,13 @@ export interface BandProps<UnitSymbol extends string = string>
 }
 
 /**
- * A closed interval, rendered as its two ENDS and never collapsed to a
- * midpoint, since the width is often the point (a mean orbital element's width
- * says whether the orbit is stable).
+ * A closed interval drawn as its two ends, such as the range a mean orbital
+ * element moves over. Useful where the width of the range matters as much as
+ * where it sits: the width of a mean orbital element says whether the orbit
+ * is stable. It is never reduced to a midpoint.
  *
- * - A half-absent band is absent: with either end missing it draws the null
- *   token, since one end alone would read as a scalar
+ * - With either end missing it draws the null token, since one end alone
+ *   would read as a single value
  * - The precision follows the width: digits widen until the ends read
  *   differently, so 6 700 km to 6 710 km never prints as `6.7 Mm` twice
  * - Both ends are one {@link UnitSharedFormat} group, which settles the unit

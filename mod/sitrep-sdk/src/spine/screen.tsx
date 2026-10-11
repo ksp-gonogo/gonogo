@@ -2,11 +2,13 @@ import type { ReactNode } from "react";
 import { createContext, useContext } from "react";
 
 /**
- * Which screen a component is mounted on: a DEPLOYMENT CONFIGURATION, not a
- * role. `"main"` is direct-WS and peer-hosting, `"station"` is peer-fed,
- * `"pilot"` is direct-WS aboard the craft without hosting. The same registered
- * component can render different UIs on each when it participates in a
- * multi-role interaction (e.g. GO/NO-GO voting).
+ * Which kind of screen a component is mounted on, by how that screen gets its
+ * data. `"main"` reads the game's stream directly and hosts station screens,
+ * `"station"` is fed by a main screen over a peer connection, and `"pilot"`
+ * reads the stream directly aboard the craft and hosts nothing. Useful for a
+ * component that draws a different UI on each screen. Used by GO/NO-GO
+ * voting. It says nothing about the user's role, and `Seat` says where they
+ * sit.
  */
 export type Screen = "main" | "station" | "pilot";
 

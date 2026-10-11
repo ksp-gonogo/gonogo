@@ -121,18 +121,20 @@ function said(detail: string | undefined): string | null {
 }
 
 /**
- * What the operator reads when the game refuses a command:
+ * The sentence shown when the game refuses a command:
  *
  *     Hire Valentina Kerman refused: the Astronaut Complex holds 16 of 16 active crew.
  *     Upgrade Launch Pad refused: it is already at tier 3 of 3.
  *     Upgrade Launch Pad refused: it costs 253,000f and funds are 189,412f.
  *
- * The command and args name the SUBJECT, the code picks the clause (the
- * refinement's own sentence ahead of its root's), and the `LimitBreach`
- * supplies the NUMBERS, written as {@link Unit} writes them.
+ * The command and its args name the subject, the refusal code picks the
+ * clause (a refinement's own sentence ahead of its root's), and the
+ * `LimitBreach` supplies the numbers, written as {@link Unit} writes them.
+ * Used by {@link CommandButton} and {@link CommandList}, which show it when a
+ * command of theirs is refused.
  *
- * Names are user-supplied and unbounded, so whatever renders this must WRAP:
- * truncation eats the numbers off the end.
+ * Names are user-supplied and unbounded, so render the sentence where it can
+ * wrap: truncating it cuts the numbers off the end.
  *
  * @category CommandDelay
  */

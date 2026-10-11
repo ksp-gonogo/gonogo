@@ -49,9 +49,10 @@ import {
 export type DelayLane = "delayed" | "true-now";
 
 /**
- * A Gonogo Topic that is read with no signal delay, because it does not
- * describe a craft across the gap: uplink health, the celestial bodies, the
- * alarms, the warp state and the comms network's layout.
+ * A Gonogo Topic that is read with no signal delay, because what it describes
+ * is true at the command centre and not out at a vessel: uplink health, the
+ * celestial bodies, the alarms, the warp state and the comms network's
+ * layout.
  *
  * @category Delay and vantage
  */

@@ -35,15 +35,14 @@ export interface StepperProps<Option> {
 }
 
 /**
- * A stepper over a FIXED ORDERED SET: eight step counts, four tolerances, five
- * quality levels. For a free quantity with a unit use {@link UnitInput}; for
- * one tuned by feel use {@link JogWheel}.
+ * A stepper over a fixed, ordered set of options, such as eight step counts,
+ * four tolerances or five quality levels. For a free quantity with a unit use
+ * {@link UnitInput}; for one tuned by feel use {@link JogWheel}.
  *
- * Rendered as the ARIA spinbutton pattern. `aria-valuenow` carries the INDEX
- * rather than the value, because the members need not be evenly spaced;
- * `aria-valuetext` carries the formatted member, which is what gets announced.
- * Up and right step forward, down and left step back, Home and End go to the
- * ends.
+ * Rendered as the ARIA spinbutton pattern. The members need not be evenly
+ * spaced, so `aria-valuenow` carries the member's index and `aria-valuetext`
+ * the formatted member, which is what gets announced. Up and right step
+ * forward, down and left step back, Home and End go to the ends.
  *
  * @category Form
  */
