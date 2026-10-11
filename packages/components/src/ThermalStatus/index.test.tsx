@@ -160,4 +160,41 @@ describe("ThermalStatusComponent", () => {
     );
     expect(screen.queryByText("Heat shield")).toBeNull();
   });
+
+  it("keeps the engine row at five rows when the engine is what sets the badge", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderThermal(fixture, 5);
+    act(() => {
+      fixture.emit("vessel.thermal", {
+        hottestPart: { name: "Heat Shield", skinTemp: 640, skinMaxTemp: 2273 },
+        maxInternalTempRatio: 0.3,
+        hottestEngineTemp: 2150,
+        hottestEngineMaxTemp: 2273,
+        hottestEngineTempRatio: 0.945,
+        anyEnginesOverheating: true,
+      });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Hottest engine")).toBeInTheDocument(),
+    );
+  });
+
+  it("drops the engine row at five rows while the engine is not the worst band", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
+    renderThermal(fixture, 5);
+    act(() => {
+      fixture.emit("vessel.thermal", {
+        hottestPart: { name: "Heat Shield", skinTemp: 640, skinMaxTemp: 2273 },
+        maxInternalTempRatio: 0.3,
+        hottestEngineTemp: 913,
+        hottestEngineMaxTemp: 2273,
+        hottestEngineTempRatio: 0.3,
+        anyEnginesOverheating: false,
+      });
+    });
+
+    await waitFor(() => expect(visibleText()).toContain("Heat Shield"));
+    expect(screen.queryByText("Hottest engine")).toBeNull();
+  });
 });

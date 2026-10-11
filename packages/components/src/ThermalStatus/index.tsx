@@ -1,5 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent } from "@ksp-gonogo/core";
+import { BAND_RANK } from "./bands";
 import { ThermalStatusView } from "./ThermalStatusView";
 import { thermalTopics, useThermal } from "./useThermal";
 import { useThermalEssentials } from "./useThermalEssentials";
@@ -11,14 +12,15 @@ function ThermalStatusComponent({
 }: Readonly<ComponentProps<ThermalStatusConfig>>) {
   const { noData, worstBand, hottest, engine, shield } = useThermal();
 
-  // Selective rendering: the badge is always shown; rows drop from the bottom (heat shield first, then engine, then hottest-part) as height shrinks.
+  // Selective rendering: the badge is always shown; rows drop from the bottom (heat shield first, then engine, then hottest-part) as height shrinks. An engine that sets the badge keeps its row, so the badge never names a cause the body does not show.
   const rows = h ?? 7;
+  const engineSetsBadge = BAND_RANK[engine.band] > BAND_RANK[hottest.band];
   return (
     <ThermalStatusView
       noData={noData}
       worstBand={worstBand}
       hottest={rows >= 5 ? hottest : null}
-      engine={rows >= 6 ? engine : null}
+      engine={rows >= 6 || engineSetsBadge ? engine : null}
       shield={rows >= 7 && shield !== undefined ? shield : null}
     />
   );

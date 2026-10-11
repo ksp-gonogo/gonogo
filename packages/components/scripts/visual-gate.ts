@@ -26,6 +26,7 @@ import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { diffRatio, writeDiff } from "./crossBrowserComposite";
+import { orphanBaselineDirs } from "./orphanBaselines";
 import { listUplinkWidgets } from "./uplinkWidgets";
 import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 import { listWidgets } from "./widgets";
@@ -65,7 +66,7 @@ function baselineDirFor(engine: Engine, config: WidgetRenderConfig): string {
 interface Failure {
   widget: string;
   name: string;
-  kind: "drift" | "missing-baseline" | "no-renders";
+  kind: "drift" | "missing-baseline" | "no-renders" | "orphan-baseline";
   ratio?: number;
 }
 
@@ -132,6 +133,18 @@ async function main(): Promise<void> {
       for (const file of renders) {
         await cp(join(actualDir, file), join(baselineDir, file));
         written++;
+      }
+    }
+    if (!widgetId) {
+      for (const dir of await orphanBaselineDirs(
+        resolve(BASELINE_ROOT, engine),
+        configs,
+      )) {
+        await rm(resolve(BASELINE_ROOT, engine, dir), {
+          recursive: true,
+          force: true,
+        });
+        console.log(`  - pruned orphan baseline directory ${dir}`);
       }
     }
     console.log(`✓ Updated ${written} ${engine} baseline(s).`);
@@ -213,6 +226,15 @@ async function main(): Promise<void> {
     }
   }
 
+  if (!widgetId) {
+    for (const dir of await orphanBaselineDirs(
+      resolve(BASELINE_ROOT, engine),
+      configs,
+    )) {
+      failures.push({ widget: dir, name: dir, kind: "orphan-baseline" });
+    }
+  }
+
   console.log(
     `\n${engine}: compared ${compared} render(s) against baselines ` +
       `(threshold ${(ALLOWED_RATIO * 100).toFixed(2)}%).`,
@@ -242,9 +264,17 @@ async function main(): Promise<void> {
     console.error(
       f.kind === "no-renders"
         ? `  NO RENDERS: ${f.widget} produced nothing (${f.name})`
-        : f.kind === "missing-baseline"
-          ? `  MISSING baseline: ${f.widget}/${f.name}`
-          : `  DRIFT ${((f.ratio ?? 0) * 100).toFixed(2)}%: ${f.widget}/${f.name}`,
+        : f.kind === "orphan-baseline"
+          ? `  ORPHAN baseline directory: ${f.name} (no render config writes to it)`
+          : f.kind === "missing-baseline"
+            ? `  MISSING baseline: ${f.widget}/${f.name}`
+            : `  DRIFT ${((f.ratio ?? 0) * 100).toFixed(2)}%: ${f.widget}/${f.name}`,
+    );
+  }
+  if (failures.some((f) => f.kind === "orphan-baseline")) {
+    console.error(
+      `\nAn ORPHAN directory is left over from a renamed or removed widget and is\n` +
+        `never compared. An unscoped update-baselines run prunes it.`,
     );
   }
   const ref = process.env.GITHUB_REF_NAME ?? "<branch>";
