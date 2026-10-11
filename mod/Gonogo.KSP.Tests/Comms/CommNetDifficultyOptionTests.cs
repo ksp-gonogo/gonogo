@@ -190,6 +190,33 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
+        /// A link report is about a craft. With none on screen (an editor) the
+        /// connectivity, control and link channels stay silent rather than
+        /// reporting a link the no-comms-model wrapper would call connected,
+        /// while the occlusion rule, which is about the bodies, still goes out.
+        /// </summary>
+        [Fact]
+        public void WithNoCraftOnScreen_NoLinkIsReported_AndOcclusionStillIs()
+        {
+            var host = new NoOpUplinkHost(new Kernel());
+            var uplink = RegisteredUplink(new DeadGraphBackend(), host);
+
+            CommsCoreUplink.ConfigureCommsModelProbe(() => false);
+            CommsCoreUplink.ConfigureActiveVesselProbe(() => null);
+            try
+            {
+                uplink.HandleOnCourier(uplink.CaptureOnMain(new KspSnapshot { Ut = 100.0 }));
+
+                Assert.Equal(new[] { CommsCoreUplink.OcclusionTopic }, host.Published);
+            }
+            finally
+            {
+                CommsCoreUplink.ConfigureCommsModelProbe(null);
+                CommsCoreUplink.ConfigureActiveVesselProbe(null);
+            }
+        }
+
+        /// <summary>
         /// The delay the gate is handed, through the same composition: a KNOWN
         /// zero naming its own reason, not the null a craft with no measurable
         /// path reports.
@@ -274,10 +301,13 @@ namespace Gonogo.KSP.Tests.Comms
         /// SecurityException with no Unity player behind it). What stands in
         /// for it is what stock's object graph actually reports on such a save.
         /// </param>
-        private static CommsCoreUplink RegisteredUplink(ICommsBackend backend)
+        private static CommsCoreUplink RegisteredUplink(ICommsBackend backend) =>
+            RegisteredUplink(backend, new NoOpUplinkHost(new Kernel()));
+
+        private static CommsCoreUplink RegisteredUplink(ICommsBackend backend, NoOpUplinkHost host)
         {
             var uplink = new CommsCoreUplink();
-            var kernel = new Kernel();
+            var kernel = host.Kernel;
             uplink.DeclareCapabilities(kernel);
             kernel.RegisterProvider(new ProviderRegistration
             {
@@ -287,7 +317,7 @@ namespace Gonogo.KSP.Tests.Comms
                 Factory = _ => backend,
             });
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
-            uplink.Register(new NoOpUplinkHost(kernel));
+            uplink.Register(host);
             return uplink;
         }
 
@@ -356,7 +386,9 @@ namespace Gonogo.KSP.Tests.Comms
 
             public Kernel Kernel { get; }
 
-            public IChannelPublisher Publisher(string topic) => new NullPublisher();
+            internal List<string> Published { get; } = new List<string>();
+
+            public IChannelPublisher Publisher(string topic) => new RecordingPublisher(topic, Published);
 
             public void AddSampledSource(Func<KspSnapshot?, object?> captureOnMainThread, Action<object?> handleOffMainThread)
             {
@@ -397,16 +429,23 @@ namespace Gonogo.KSP.Tests.Comms
             public void ForceKeyframe(string topic) => throw new NotSupportedException();
             public void ResetChannelBirth(IEnumerable<string> topics) => throw new NotSupportedException();
 
-            private sealed class NullPublisher : IChannelPublisher
+            private sealed class RecordingPublisher : IChannelPublisher
             {
-                public void Publish(object? payload, double ut)
+                private readonly string _topic;
+                private readonly List<string> _published;
+
+                internal RecordingPublisher(string topic, List<string> published)
                 {
+                    _topic = topic;
+                    _published = published;
                 }
+
+                public void Publish(object? payload, double ut) => _published.Add(_topic);
             }
 
             private sealed class NullDynamicSource : IDynamicChannelSource
             {
-                public IChannelPublisher Publisher(string subTopic) => new NullPublisher();
+                public IChannelPublisher Publisher(string subTopic) => new RecordingPublisher(subTopic, new List<string>());
 
                 public void OnSubscribed(Action<string> callback)
                 {

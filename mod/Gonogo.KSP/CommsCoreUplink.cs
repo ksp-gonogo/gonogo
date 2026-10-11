@@ -749,6 +749,20 @@ namespace Gonogo.KSP
             try
             {
                 var active = _activeVesselProbe();
+                if (active == null)
+                {
+                    // No craft is on screen (an editor, the space centre, the
+                    // tracking station): a link report is about a craft, so
+                    // there is nothing to report. The occlusion rule is about
+                    // the bodies and still goes out.
+                    return new CommsCapture
+                    {
+                        Ut = snapshot?.Ut ?? Planetarium.GetUniversalTime(),
+                        HasCraft = false,
+                        Occlusion = OcclusionFor(backend, snapshot),
+                    };
+                }
+
                 var path = backend.Path(active);
                 var delay = SignalDelay.Compute(
                     SignalDelayConfig,
@@ -866,9 +880,14 @@ namespace Gonogo.KSP
             {
                 return;
             }
+            _occlusion?.Publish(capture.Occlusion, capture.Ut);
+            if (!capture.HasCraft)
+            {
+                return;
+            }
+
             _connectivity?.Publish(capture.Connectivity, capture.Ut);
             _control?.Publish(capture.Control, capture.Ut);
-            _occlusion?.Publish(capture.Occlusion, capture.Ut);
             // comms.link: the client-facing, freeze-exempt-Delayed connectivity
             // successor. Same Connected comms.connectivity carries,
             // but on the topic clients read so the disconnect edge survives the
@@ -898,6 +917,7 @@ namespace Gonogo.KSP
         private sealed class CommsCapture
         {
             public double Ut;
+            public bool HasCraft = true;
             public CommsConnectivity Connectivity = new();
             public CommsSignal Signal = new();
             public CommsControl Control = new();

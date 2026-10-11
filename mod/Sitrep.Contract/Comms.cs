@@ -56,8 +56,10 @@ public enum CommsControlSource
 
 /// <summary>
 /// Whether the active vessel has a control link home right now, and the degree
-/// of control it has. Always present, and read from the comms mod in force:
-/// ground-side truth, with all three fields describing the same tick.
+/// of control it has. Read from the comms mod in force: ground-side truth, with
+/// all three fields describing the same tick. Nothing is published while no
+/// craft is on screen (an editor, the space centre, the tracking station): a
+/// link report is about a craft.
 /// </summary>
 /// <category>Comms</category>
 /// <categoryDescription>
