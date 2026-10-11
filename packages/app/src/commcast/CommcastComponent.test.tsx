@@ -11,6 +11,7 @@
  */
 import { clearRegistry } from "@ksp-gonogo/core";
 import { TelemetryClient, TelemetryProvider } from "@ksp-gonogo/sitrep-client";
+import { UnreachableReason } from "@ksp-gonogo/sitrep-sdk";
 import {
   StubTransport,
   setupStreamFixture,
@@ -505,12 +506,38 @@ describe("Commcast, rendered", () => {
             displayName: "Woomera Range",
             kind: "GroundStation",
             lastReachableUt: 5,
+            reason: UnreachableReason.NoLongerExists,
           },
         ],
       );
       const row = await screen.findByRole("button", { name: /Woomera Range/ });
-      expect(row).toHaveTextContent(/Unreachable, last reachable/);
+      expect(row).toHaveTextContent(
+        /Unreachable ground station, gone, last reachable/,
+      );
+      expect(row).toHaveTextContent("Woomera Range (gone)");
       expect(row).not.toHaveTextContent("ground:woomera");
+      await act(async () => {});
+    });
+
+    it("names no reason when the mod's word does not carry one", async () => {
+      renderOnStream(
+        woomeraSaid(),
+        ROSTER,
+        [],
+        [
+          {
+            id: "ground:woomera",
+            displayName: "Woomera Range",
+            kind: "GroundStation",
+            lastReachableUt: 5,
+          },
+        ],
+      );
+      const row = await screen.findByRole("button", { name: /Woomera Range/ });
+      expect(row).toHaveTextContent(
+        /Unreachable ground station, last reachable/,
+      );
+      expect(row).not.toHaveTextContent("(");
       await act(async () => {});
     });
 
