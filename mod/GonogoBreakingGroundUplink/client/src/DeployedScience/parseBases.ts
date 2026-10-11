@@ -20,6 +20,12 @@ export interface DeployedExperiment {
 export interface DeployedBase {
   id: number;
   body: string;
+  /** Where the base sits, `null` when the mod withheld it. */
+  biome: string | null;
+  /** KSP's situation name for the cluster (`LANDED`, `SPLASHED`), `null` when withheld. */
+  situation: string | null;
+  /** `null` is unknown, not "off the ground". */
+  deployedOnGround: boolean | null;
   /** `null` when the mod declined to state the cluster's power state, which is a third answer and not "unpowered". */
   powered: boolean | null;
   /** Breaking Ground's own integral power units, not electric charge; a live cluster with dark panels reports 0. */
@@ -35,6 +41,9 @@ interface FlatDeployedEntry {
   vesselName: string;
   partName: string | null;
   body: string | null;
+  biome: string | null;
+  situation: string | null;
+  deployedOnGround: boolean | null;
   experimentId: string | null;
   /** The four science figures, `null` when the mod withheld one; a freshly planted experiment reports 0%. */
   scienceCompletedPercentage: number | null;
@@ -65,6 +74,10 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
     vesselName: e.vesselName,
     partName: typeof e.partName === "string" ? e.partName : null,
     body: typeof e.body === "string" ? e.body : null,
+    biome: typeof e.biome === "string" ? e.biome : null,
+    situation: typeof e.situation === "string" ? e.situation : null,
+    deployedOnGround:
+      typeof e.deployedOnGround === "boolean" ? e.deployedOnGround : null,
     experimentId: typeof e.experimentId === "string" ? e.experimentId : null,
     scienceCompletedPercentage: numOrNull(e.scienceCompletedPercentage),
     scienceTransmittedPercentage: numOrNull(e.scienceTransmittedPercentage),
@@ -158,6 +171,9 @@ export function parseBases(raw: unknown): DeployedBase[] | null {
     return {
       id: baseIndex,
       body: first?.body ?? "",
+      biome: first?.biome ?? null,
+      situation: first?.situation ?? null,
+      deployedOnGround: first?.deployedOnGround ?? null,
       powered: poweredFromState(first?.power),
       powerAvailable: first?.powerAvailable ?? null,
       powerRequired: first?.powerRequired ?? null,

@@ -32,7 +32,8 @@
  * (the 8 `meta.source` entries that `ScetPayload.ReadSource` reads came off)
  * and no longer credits a widget that declares no `fields` as reading every
  * field of its Topics, which surfaced fields that were only ever mounted on.
- * Those arrive under a "newly visible unread (Saga 761" reason. The scan then
+ * Each carries a reason saying whether the field is kept for API consumers,
+ * owed a reader, or a delete candidate. The scan then
  * credited a field read off an element or a destructured binding, and 47 of
  * the 125 came off; the one-time admission the check made for them is gone,
  * so the list is strictly shrink-only again.
@@ -140,83 +141,73 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:vessel.thermal.maxSkinTempRatio":
     "no reader found (gonogo Saga task 727 seed, 2026-09-30)",
   "field:career.status.strategies.activeCount":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the length of CareerStrategies.active, published for API consumers",
   "field:career.status.tech.unlockedCount":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by the career status widget (research progress figure)",
   "field:career.status.tech.unlockedIds":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "delete candidate: derived from loaded parts, so a node that unlocks no part never appears; CareerTechNode.unlocked is the per-node reading",
   "field:commandCentre.roster.bodyIndex":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by the Command Centres widget (placement and route quality of each centre)",
   "field:commandCentre.roster.delayQuality":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by the Command Centres widget (placement and route quality of each centre)",
   "field:commandCentre.roster.latitude":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by the Command Centres widget (placement and route quality of each centre)",
   "field:commandCentre.roster.longitude":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by the Command Centres widget (placement and route quality of each centre)",
   "field:comms.delay.meta.source":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: names the payload's subject (vessel or game) for API consumers; the mod copies it from comms.link",
   "field:comms.link.meta.source":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: names the payload's subject (vessel or game) for API consumers; the mod copies it to comms.delay",
   "field:crash.lastCrash.eventKind":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:crash.lastCrash.events":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:crash.lastCrash.flightStats.highestSpeedOverLand":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:crash.lastCrash.flightStats.liftOff":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:crash.lastCrash.flightStats.missionEnd":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:crash.lastCrash.flightStats.totalDistance":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:crash.lastCrash.msg":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:crash.lastCrash.vesselType":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:deployed.bases.biome":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:deployed.bases.deployedOnGround":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:deployed.bases.situation":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:robotics.servos.motorState":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
-  "field:robotics.servos.servoIsMotorized":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: the crash event's payload, consumed by the alarm path rather than a widget; Landing Status owns any reader",
   "field:robotics.servos.traverseVelocity":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: unit follows the servo kind and is undeclared, so no widget can draw it honestly",
   "field:science.instruments.resettable":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Experiments (refines the one-shot note to say whether a reset is possible)",
   "field:science.lab.valueModel":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: tags which unit family a lab's rate is in, for API consumers and extension namespaces",
   "field:settings.gonogo.persistence.savedAtUt":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: published for API consumers, no first-party surface shows the last save time",
   "field:spaceCenter.crewRoster.experience":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Astronaut Complex (raw experience points beside the level)",
   "field:spaceCenter.launchSites.isStock":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Space Center Status (site coordinates and stock-or-modded tag)",
   "field:spaceCenter.launchSites.latitude":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Space Center Status (site coordinates and stock-or-modded tag)",
   "field:spaceCenter.launchSites.longitude":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Space Center Status (site coordinates and stock-or-modded tag)",
   "field:vessel.landing.outcome":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.predictedSlopeHeading":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.predictedTerrainElevation":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.slopeAngleUnderVessel":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.slopeSampleRadiusMeters":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.landing.terrainElevationUnderVessel":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
   "field:vessel.structure.partCount":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "delete candidate: duplicates the length of vessel.parts",
   "field:vessel.target.orbit.meta.quality":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: published for API consumers, the target orbit's own quality tag",
   "field:vessel.target.partId":
-    "newly visible unread (Saga 761: a widget with no `fields` no longer counts as a reader)",
+    "kept: identifies the targeted docking port for API consumers; no widget addresses a port by id",
 };
 
 /**

@@ -30,6 +30,19 @@ function progressRatioReading(
   return combineReadings([source], () => value("ratio", fraction));
 }
 
+const titleCase = (name: string) =>
+  name.charAt(0) + name.slice(1).toLowerCase().replace(/_/g, " ");
+
+/** Biome and situation of the cluster, plus a note when it is known not to sit on the ground. */
+function siteLine(base: DeployedBase): string | null {
+  const parts = [
+    base.biome,
+    base.situation === null ? null : titleCase(base.situation),
+    base.deployedOnGround === false ? "not on the ground" : null,
+  ].filter((p): p is string => p !== null && p !== "");
+  return parts.length === 0 ? null : parts.join(" · ");
+}
+
 /** One base's card: its power state and balance, then a meter per experiment, each figure carrying the roster's currency. */
 export function DeployedBaseCard({
   base,
@@ -57,6 +70,11 @@ export function DeployedBaseCard({
             {POWER_LABEL[state]}
           </Badge>
         </Cluster>
+        {siteLine(base) && (
+          <Text level="muted" style={XS2_STYLE}>
+            {siteLine(base)}
+          </Text>
+        )}
         <Text level="muted" style={XS2_STYLE}>
           {/* Breaking Ground power units, not electric charge. */}
           {powerBalance(base) ?? "Power unknown"}

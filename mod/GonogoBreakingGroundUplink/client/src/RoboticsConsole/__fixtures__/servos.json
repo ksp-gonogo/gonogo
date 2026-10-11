@@ -20,6 +20,7 @@
       "servoIsLocked": false,
       "servoIsMotorized": true,
       "servoMotorIsEngaged": true,
+      "motorState": "Moving",
       "servoMotorLimit": 100,
       "currentAngle": 22,
       "targetAngle": 60
@@ -60,6 +61,7 @@
             "servoIsLocked": false,
             "servoIsMotorized": true,
             "servoMotorIsEngaged": true,
+            "motorState": "Moving",
             "servoMotorLimit": 100,
             "currentAngle": 22,
             "targetAngle": 60

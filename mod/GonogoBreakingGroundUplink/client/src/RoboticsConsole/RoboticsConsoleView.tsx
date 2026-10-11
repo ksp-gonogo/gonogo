@@ -175,7 +175,9 @@ export function RoboticsConsoleView({
                 size="sm"
                 pressed={selected.motorEngaged === true}
                 tone="go"
-                disabled={selected.motorEngaged === null}
+                disabled={
+                  selected.motorEngaged === null || selected.motorized === false
+                }
                 aria-label={flagLabel("Toggle motor", selected.motorEngaged)}
                 onClick={() =>
                   selected.motorEngaged !== null &&
@@ -184,6 +186,11 @@ export function RoboticsConsoleView({
               >
                 Motor {motorStateText(selected.motorEngaged)}
               </ToggleButton>
+              {selected.motorState && (
+                <Text level="muted" size="sm">
+                  {selected.motorState}
+                </Text>
+              )}
               <ToggleButton
                 size="sm"
                 pressed={selected.locked === true}

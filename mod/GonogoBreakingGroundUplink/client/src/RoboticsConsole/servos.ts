@@ -19,6 +19,10 @@ export interface ServoInfo {
   /** Unknown is never false: the toggles send an absolute state computed by inverting these. */
   motorEngaged: boolean | null;
   locked: boolean | null;
+  /** `false` is a servo with no motor to engage; `null` is unknown, not motorless. */
+  motorized: boolean | null;
+  /** The motor's state text as KSP displays it, `null` when withheld. */
+  motorState: string | null;
   torqueLimit: number | null;
 }
 
@@ -81,6 +85,8 @@ export function parseServos(raw: unknown): ServoInfo[] {
           : Math.abs(current - target) < AT_TARGET_EPSILON[type],
       motorEngaged: boolOrNull(e.servoMotorIsEngaged),
       locked: boolOrNull(e.servoIsLocked),
+      motorized: boolOrNull(e.servoIsMotorized),
+      motorState: typeof e.motorState === "string" ? e.motorState : null,
       torqueLimit: numOrNull(e.servoMotorLimit),
     });
   }
