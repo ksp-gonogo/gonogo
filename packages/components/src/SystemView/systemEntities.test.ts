@@ -315,6 +315,75 @@ function pointEntity(
   };
 }
 
+describe("an entity on an open orbit", () => {
+  // A Mun flyby: 278 m/s of excess speed, periapsis 250 km from the centre.
+  const MUN_MU = 6.5138398e10;
+  const MUN_SOI = 2_429_559;
+  const PERIAPSIS = 250_000;
+  const SMA = -MUN_MU / 278 ** 2;
+  const ECC = 1 + PERIAPSIS / Math.abs(SMA);
+  const FLYBY = {
+    kind: "orbit" as const,
+    parentName: "Mun",
+    sma: SMA,
+    ecc: ECC,
+    lan: 0,
+    argPe: 0,
+    inclination: 0,
+    epoch: 0,
+    meanAnomalyAtEpoch: -1.06,
+  };
+  const MUN_CTX: SystemEntitiesContext = {
+    parentName: "Mun",
+    width: 400,
+    height: 400,
+    plotScale: 1e-4,
+    center: { x: 0, y: 0 },
+    ut: 0,
+    muOf: () => MUN_MU,
+    soiOf: () => MUN_SOI,
+  };
+
+  it("draws an open arc from one edge of the body's sphere of influence to the other, through periapsis", () => {
+    const d = projectOrbitRing(FLYBY, MUN_CTX) ?? "";
+    expect(d.trimEnd().endsWith("Z")).toBe(false);
+    expect(d).not.toMatch(/NaN|Infinity/);
+    const radii = pathPoints(d).map((p) => Math.hypot(p.x, p.y));
+    expect(radii.length).toBeGreaterThan(8);
+    expect(radii[0]).toBeCloseTo(MUN_SOI * 1e-4, 3);
+    expect(radii[radii.length - 1]).toBeCloseTo(MUN_SOI * 1e-4, 3);
+    expect(Math.min(...radii)).toBeCloseTo(PERIAPSIS * 1e-4, 3);
+  });
+
+  it("places the entity on that arc, inbound", () => {
+    const at = projectEntityPosition(FLYBY, MUN_CTX);
+    expect(at).not.toBeNull();
+    if (at === null) return;
+    const arc = pathPoints(projectOrbitRing(FLYBY, MUN_CTX) ?? "");
+    const offArc = Math.min(
+      ...arc.map((p) => Math.hypot(p.x - at.x, p.y - at.y)),
+    );
+    expect(offArc).toBeLessThan(8);
+    // Periapsis is on +x and the craft has not reached it, so it is below the axis.
+    expect(at.y).toBeLessThan(0);
+    const radius = Math.hypot(at.x, at.y);
+    expect(radius).toBeGreaterThan(PERIAPSIS * 1e-4);
+    expect(radius).toBeLessThan(MUN_SOI * 1e-4);
+  });
+
+  it("draws to a multiple of periapsis about a body that states no sphere of influence", () => {
+    const radii = pathPoints(
+      projectOrbitRing(FLYBY, { ...MUN_CTX, soiOf: () => null }) ?? "",
+    ).map((p) => Math.hypot(p.x, p.y));
+    expect(radii[0]).toBeCloseTo(8 * PERIAPSIS * 1e-4, 3);
+  });
+
+  it("draws nothing for a parabolic orbit", () => {
+    expect(projectOrbitRing({ ...FLYBY, ecc: 1 }, MUN_CTX)).toBeNull();
+    expect(projectEntityPosition({ ...FLYBY, ecc: 1 }, MUN_CTX)).toBeNull();
+  });
+});
+
 describe("resolveSystemEntities", () => {
   let warnSpy: ReturnType<typeof vi.spyOn>;
 

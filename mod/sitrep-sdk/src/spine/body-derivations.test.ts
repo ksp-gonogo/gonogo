@@ -87,15 +87,50 @@ describe("bodyDerivations", () => {
       expect(later as number).toBeLessThan(360);
       expect(later as number).toBeGreaterThan(0);
     });
-    it("returns null for hyperbolic / parabolic orbits (ecc ≥ 1)", () => {
+    it("places a craft on an open orbit: before periapsis in the far half of the circle, after it in the near half", () => {
+      const open = {
+        semiMajorAxis: -842_845,
+        eccentricity: 1.2966,
+        meanAnomalyAtEpoch: -1.06,
+        epoch: 0,
+        parentGravParameter: 6.5138398e10,
+      };
+      const inbound = deriveTrueAnomalyDeg({ ...open, ut: 0 });
+      expect(inbound).toBeGreaterThan(180);
+      expect(inbound).toBeLessThan(360);
+      const atPeriapsis = deriveTrueAnomalyDeg({
+        ...open,
+        meanAnomalyAtEpoch: 0,
+        ut: 0,
+      });
+      expect(atPeriapsis).toBe(0);
+      const outbound = deriveTrueAnomalyDeg({ ...open, ut: 6000 });
+      expect(outbound).toBeGreaterThan(0);
+      expect(outbound).toBeLessThan(180);
+    });
+    it("returns null for a parabolic orbit, and for an open one with no size", () => {
+      const base = {
+        meanAnomalyAtEpoch: 0,
+        epoch: 0,
+        parentGravParameter: KERBOL_MU,
+        ut: 0,
+      };
       expect(
         deriveTrueAnomalyDeg({
+          ...base,
           semiMajorAxis: KERBIN_SMA,
-          eccentricity: 1.2,
-          meanAnomalyAtEpoch: 0,
-          epoch: 0,
-          parentGravParameter: KERBOL_MU,
-          ut: 0,
+          eccentricity: 1,
+        }),
+      ).toBeNull();
+      expect(
+        deriveTrueAnomalyDeg({ ...base, semiMajorAxis: 0, eccentricity: 1.2 }),
+      ).toBeNull();
+      // A closed orbit still needs a positive size.
+      expect(
+        deriveTrueAnomalyDeg({
+          ...base,
+          semiMajorAxis: -KERBIN_SMA,
+          eccentricity: 0.2,
         }),
       ).toBeNull();
     });

@@ -18,6 +18,8 @@ export interface TargetConic {
   lan: number;
   argPe: number;
   inclination: number;
+  /** Radius of the sphere of influence of the body the conic is about, metres, which is as far as an open one is drawn. Null or absent where that body states none. */
+  soi?: number | null;
 }
 
 /** The target's next sphere-of-influence transition, placed on its conic. */
@@ -29,14 +31,16 @@ export interface TargetEncounter {
   trueAnomaly: number | null;
 }
 
-/** The body a target's elements are about, when its closed conic can be drawn: finite, bound, and about a body the catalogue names. */
+/** The body a target's elements are about, when its conic can be drawn: finite, closed with a positive semi-major axis or open with any but zero, and about a body the catalogue names. A parabolic target has no conic to draw. */
 export function targetParentOf(
   orbit: VesselOrbit | null | undefined,
   nameByIndex: ReadonlyMap<number, string>,
 ): string | null {
   if (orbit == null) return null;
   if (!orbit.sma.isFinite() || !orbit.ecc.isFinite()) return null;
-  if (!orbit.sma.isPositive()) return null;
+  const open = orbit.ecc.greaterThan(1);
+  if (!open && !orbit.ecc.lessThan(1)) return null;
+  if (open ? orbit.sma.isZero() : !orbit.sma.isPositive()) return null;
   return nameByIndex.get(orbit.referenceBodyIndex) ?? null;
 }
 

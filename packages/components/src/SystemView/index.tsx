@@ -269,7 +269,11 @@ function SystemViewComponent({
   const targetConic =
     targetParent === null || targetElements === null
       ? null
-      : { parentName: targetParent, ...targetElements };
+      : {
+          parentName: targetParent,
+          ...targetElements,
+          soi: bodies.find((b) => b.name === targetParent)?.soi ?? null,
+        };
   const targetTrajectory = useOrbitTrajectory(
     targetConic === null ? undefined : (targetOrbit ?? undefined),
   );
@@ -509,6 +513,8 @@ function SystemViewComponent({
       ut: universalTime,
       muOf: (bodyName: string) =>
         bodies.find((b) => b.name === bodyName)?.gravParameter ?? null,
+      soiOf: (bodyName: string) =>
+        bodies.find((b) => b.name === bodyName)?.soi ?? null,
       bodyPlace: (bodyIndex: number) => {
         const body = poseAtIndex(poses, bodyIndex);
         const frameBody = poseAtIndex(poses, frameBodyIndex);

@@ -219,6 +219,89 @@ describe("SystemView draws a craft on an open orbit", () => {
   });
 });
 
+describe("SystemView draws a target on an open orbit", () => {
+  const KERBIN_SOI = 84_159_286;
+  const TARGET_PERIAPSIS = 2_000_000;
+  const TARGET_SMA = -6_000_000;
+  const TARGET_ECC = 1 + TARGET_PERIAPSIS / Math.abs(TARGET_SMA);
+
+  it("draws the target's open arc about Kerbin, out to Kerbin's sphere of influence", async () => {
+    const fixture: StreamFixture = setupStreamFixture({
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+    const view = render(
+      <fixture.Provider>
+        <WidgetMetaContext.Provider
+          value={{ componentId: "system-view", contributionSlots: [] }}
+        >
+          <ContributionsProvider>
+            <SystemViewComponent
+              config={{ frame: "Kerbin" } as never}
+              id="sv"
+            />
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
+      </fixture.Provider>,
+    );
+    const analytic = { kind: 1, trajectoryKind: 1 };
+    act(() => {
+      fixture.emit("system.bodies", SYSTEM);
+      fixture.emit("vessel.identity", {
+        vesselId: "v-active",
+        name: "Active Craft",
+        vesselType: 0,
+        situation: 3,
+        parentBodyIndex: KERBIN_INDEX,
+      });
+      fixture.emit("vessel.orbit", {
+        referenceBodyIndex: KERBIN_INDEX,
+        sma: 700_000,
+        ecc: 0.01,
+        inc: 0,
+        lan: 0,
+        argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 0,
+        mu: KERBIN_MU,
+        horizon: analytic,
+      });
+      fixture.emit("vessel.target", {
+        name: "Departing Probe",
+        kind: 0,
+        vesselId: "v-probe",
+        orbit: {
+          referenceBodyIndex: KERBIN_INDEX,
+          sma: TARGET_SMA,
+          ecc: TARGET_ECC,
+          inc: 0,
+          lan: 0,
+          argPe: 40,
+          meanAnomalyAtEpoch: 0.3,
+          epoch: 0,
+          mu: KERBIN_MU,
+          patches: [],
+          horizon: analytic,
+        },
+      });
+    });
+    const kerbin = centreOf(await drawn(view, 'circle[data-body="Kerbin"]'));
+    const path = await drawn(view, "[data-target-trajectory]");
+    const d = path.getAttribute("d") ?? "";
+    expect(d).not.toMatch(/NaN|Infinity/);
+    expect(d.trimEnd().endsWith("Z")).toBe(false);
+    const radii = verticesOf(path).map((v) => distance(v, kerbin));
+    expect(radii.length).toBeGreaterThan(8);
+    const edge = radii[0];
+    expect(radii[radii.length - 1]).toBeCloseTo(edge, 2);
+    expect(Math.min(...radii) / edge).toBeCloseTo(
+      TARGET_PERIAPSIS / KERBIN_SOI,
+      3,
+    );
+    await act(async () => {});
+  });
+});
+
 describe("SystemView draws a flyby that is still ahead of the craft", () => {
   function mountFlybyAhead() {
     const fixture: StreamFixture = setupStreamFixture({

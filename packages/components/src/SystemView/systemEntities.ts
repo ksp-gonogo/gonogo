@@ -13,7 +13,12 @@ import type {
   SystemEntityStyle,
   SystemEntitySubjectPosition,
 } from "@ksp-gonogo/sitrep-sdk";
-import { orbitPointAt, orbitRingOf } from "./orbitGeometry";
+import {
+  openOrbitArcOf,
+  openOrbitReach,
+  orbitPointAt,
+  orbitRingOf,
+} from "./orbitGeometry";
 import { INERTIAL_PLACEMENT, type Placement } from "./projection";
 
 export type {
@@ -49,6 +54,8 @@ export interface SystemEntitiesContext {
   ut?: number;
   /** A body's gravitational parameter by name, for carrying an orbit position forward. */
   muOf?: (bodyName: string) => number | null;
+  /** The radius of a body's sphere of influence by name, metres, which is as far as an open orbit about it is drawn; null where the body states none. */
+  soiOf?: (bodyName: string) => number | null;
   /** Where a body is relative to the frame body, in the catalogue's axes and metres, and how well that is known; null when it has no place. */
   bodyPlace?: (bodyIndex: number) => {
     offset: readonly [number, number, number];
@@ -114,7 +121,7 @@ export function projectEntityPosition(
   }
   if (!sameParent(position.parentName, ctx.parentName)) return null;
   if (position.kind === "orbit") {
-    if (!(position.sma > 0) || !Number.isFinite(position.sma)) return null;
+    if (!orbitHasShape(position)) return null;
     const trueAnomaly = trueAnomalyOf(position, ctx);
     if (trueAnomaly === null) return null;
     const at = placement.place(
@@ -150,13 +157,51 @@ export function projectEntityPosition(
   };
 }
 
-/** An `orbit-path` ring as a closed polyline in SVG user units, sampled like the host's own rings so the two cannot disagree; `null` as for `projectEntityPosition`. */
+/** Whether an orbit position's size and shape can be drawn: a closed orbit with a positive semi-major axis, or an open one (eccentricity above 1) with any finite size. A parabolic orbit cannot. */
+function orbitHasShape(orbit: SystemEntityOrbitPosition): boolean {
+  if (!Number.isFinite(orbit.sma)) return false;
+  if (orbit.ecc > 1) return orbit.sma !== 0;
+  return orbit.ecc < 1 && orbit.sma > 0;
+}
+
+/** An open orbit's arc inside its body's sphere of influence, as an open polyline in SVG user units, sampled like the host's own. */
+function projectOpenArc(
+  orbit: SystemEntityOrbitPosition,
+  ctx: SystemEntitiesContext,
+): string | null {
+  const reach = openOrbitReach(
+    orbit.sma,
+    orbit.ecc,
+    ctx.soiOf?.(orbit.parentName),
+  );
+  if (reach === null) return null;
+  const placement = ctx.placement ?? INERTIAL_PLACEMENT;
+  const points = openOrbitArcOf(
+    orbit.sma,
+    orbit.ecc,
+    orbit.lan,
+    orbit.argPe,
+    orbit.inclination,
+    reach,
+  ).map((p) => placement.place(p));
+  if (points.length < 2) return null;
+  return points
+    .map((p, i) => {
+      const x = ctx.center.x + p[0] * ctx.plotScale;
+      const y = ctx.center.y + p[1] * ctx.plotScale;
+      return `${i === 0 ? "M" : " L"}${x},${y}`;
+    })
+    .join("");
+}
+
+/** An `orbit-path` as a polyline in SVG user units, sampled like the host's own so the two cannot disagree: a closed ring, or for an open orbit the arc inside its body's sphere of influence, left open. `null` as for `projectEntityPosition`. */
 export function projectOrbitRing(
   orbit: SystemEntityOrbitPosition,
   ctx: SystemEntitiesContext,
 ): string | null {
   if (!sameParent(orbit.parentName, ctx.parentName)) return null;
-  if (!(orbit.sma > 0) || !Number.isFinite(orbit.sma)) return null;
+  if (!orbitHasShape(orbit)) return null;
+  if (orbit.ecc > 1) return projectOpenArc(orbit, ctx);
   const placement = ctx.placement ?? INERTIAL_PLACEMENT;
   const points = orbitRingOf(
     orbit.sma,

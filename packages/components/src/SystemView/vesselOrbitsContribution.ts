@@ -156,10 +156,12 @@ function ringPlace(v: VesselRosterEntry): RingPlace | null {
 }
 
 /**
- * Every element a vessel's ring needs, or `null` when any is unread or the
- * `sma` is not a positive length; shared by the vessel entities and the graph's
- * node join. An unreported element is not a zero, and a ring drawn from a
- * guessed one is a confident wrong orbit.
+ * Every element a vessel's path needs, or `null` when any is unread or the
+ * size and shape do not make an orbit: a closed one needs a positive `sma`, an
+ * open one (`ecc` above 1) any `sma` but zero, and a parabolic one has none.
+ * Shared by the vessel entities and the graph's node join. An unreported
+ * element is not a zero, and a path drawn from a guessed one is a confident
+ * wrong orbit.
  */
 function conicElements(v: VesselRosterEntry): ConicElements | null {
   const sma = magnitudeOf(v.orbit?.sma);
@@ -167,8 +169,10 @@ function conicElements(v: VesselRosterEntry): ConicElements | null {
   const lan = magnitudeOf(v.orbit?.lan);
   const argPe = magnitudeOf(v.orbit?.argPe);
   const inclination = magnitudeOf(v.orbit?.inc);
-  if (sma == null || !(sma > 0)) return null;
-  if (ecc == null || lan == null || argPe == null || inclination == null) {
+  if (sma == null || ecc == null) return null;
+  const drawable = ecc > 1 ? sma !== 0 : ecc < 1 && sma > 0;
+  if (!drawable) return null;
+  if (lan == null || argPe == null || inclination == null) {
     return null;
   }
   return { sma, ecc, lan, argPe, inclination };

@@ -189,6 +189,56 @@ describe("computeVesselOrbitEntities", () => {
     expect(entities[0].shape).toEqual({ kind: "point", radiusPx: 3 });
   });
 
+  it("draws a craft on an open orbit on its own path, not as a dot at its body", () => {
+    const entities = computeVesselOrbitEntities(
+      wire([
+        vessel({
+          orbit: {
+            sma: value("m", -842_845),
+            ecc: value("1", 1.2966),
+            inc: value("°", 0),
+            lan: value("°", 0),
+            argPe: value("°", 333),
+            meanAnomalyAtEpoch: value("rad", -1.06),
+            epoch: value("ut", 0),
+          },
+        }),
+      ]),
+      bodies(),
+    );
+    expect(entities[0].shape).toEqual({ kind: "orbit-path" });
+    expect(entities[0].position).toMatchObject({
+      kind: "orbit",
+      parentName: "Kerbin",
+      sma: -842_845,
+      ecc: 1.2966,
+      meanAnomalyAtEpoch: -1.06,
+    });
+  });
+
+  it("degrades a closed orbit with a negative sma, and a parabolic one, to the dot", () => {
+    for (const [sma, ecc] of [
+      [-700_000, 0.2],
+      [700_000, 1],
+    ]) {
+      const entities = computeVesselOrbitEntities(
+        wire([
+          vessel({
+            orbit: {
+              sma: value("m", sma),
+              ecc: value("1", ecc),
+              inc: value("°", 0),
+              lan: value("°", 0),
+              argPe: value("°", 0),
+            },
+          }),
+        ]),
+        bodies(),
+      );
+      expect(entities[0].shape).toEqual({ kind: "point", radiusPx: 3 });
+    }
+  });
+
   it("omits a vessel whose body can't be resolved (no data, not a fabricated position)", () => {
     const entities = computeVesselOrbitEntities(
       wire([vessel({ bodyIndex: 99 })]),

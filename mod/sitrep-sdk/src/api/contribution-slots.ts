@@ -204,9 +204,9 @@ export interface SystemEntityOrbitPosition {
   kind: "orbit";
   /** The body orbited. Matched without regard to case or surrounding space; the entity is not drawn unless this is the body the diagram is centred on. */
   parentName: string;
-  /** Semi-major axis, in metres. Not drawn unless positive and finite. */
+  /** Semi-major axis, in metres: positive on a closed orbit, negative on an open one, as the game reports it. Not drawn unless finite, and positive where the orbit is closed. */
   sma: number;
-  /** Eccentricity. */
+  /** Eccentricity. Above 1 is an open orbit, as on a flyby or an escape, drawn as the arc inside the parent's sphere of influence. Exactly 1 is not drawn. */
   ecc: number;
   /** Longitude of the ascending node, in degrees. */
   lan: number;
@@ -216,7 +216,7 @@ export interface SystemEntityOrbitPosition {
   inclination: number;
   /** The UT the mean anomaly is for, in seconds. */
   epoch?: number;
-  /** Mean anomaly at `epoch`, in radians. */
+  /** Mean anomaly at `epoch`, in radians. On an open orbit it is zero at periapsis and negative before it. */
   meanAnomalyAtEpoch?: number;
 }
 

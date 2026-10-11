@@ -26,8 +26,8 @@ export function overlayGeometry({
   } | null;
   size: { w: number; h: number };
   projection: Placement | null;
-  /** What an entity needs of the model: the instant, a body's μ, where a body is. */
-  places: Pick<SystemEntitiesContext, "ut" | "muOf" | "bodyPlace">;
+  /** What an entity needs of the model: the instant, a body's μ and sphere of influence, where a body is. */
+  places: Pick<SystemEntitiesContext, "ut" | "muOf" | "soiOf" | "bodyPlace">;
 }): SystemEntitiesContext | null {
   if (parentName === null || size.w <= 0 || size.h <= 0) return null;
   return {

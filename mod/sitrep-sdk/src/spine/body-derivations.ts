@@ -46,12 +46,28 @@ export function derivePeriod(
   );
 }
 
+/** Whether a semi-major axis is one the anomaly solve can use: positive for a closed orbit, any finite non-zero length for an open one. A parabolic orbit has none. */
+function conicHasSize(
+  semiMajorAxis: number | null | undefined,
+  eccentricity: number,
+): semiMajorAxis is number {
+  if (eccentricity >= 0 && eccentricity < 1) return isPos(semiMajorAxis);
+  return (
+    eccentricity > 1 &&
+    typeof semiMajorAxis === "number" &&
+    Number.isFinite(semiMajorAxis) &&
+    semiMajorAxis !== 0
+  );
+}
+
 /**
  * True anomaly, degrees in `[0, 360)`, at universal time `ut`, reconstructed
  * from the mean anomaly at epoch via the shared Kepler solver (never a second
- * reimplementation of Kepler's equation). Returns `null` for an open orbit
- * (`ecc` of 1 or more), which a catalogue body is never on and this does not
- * place, a missing input, or a non-finite `ut`.
+ * reimplementation of Kepler's equation). A closed orbit needs a positive
+ * semi-major axis; an open one (`ecc` above 1) is solved along its hyperbola
+ * from the size of its semi-major axis, whichever sign it carries. Returns
+ * `null` for a parabolic orbit (`ecc` exactly 1), a missing input, or a
+ * non-finite `ut`.
  */
 export function deriveTrueAnomalyDeg(params: {
   semiMajorAxis: number | null | undefined;
@@ -70,10 +86,9 @@ export function deriveTrueAnomalyDeg(params: {
     ut,
   } = params;
   if (
-    !isPos(semiMajorAxis) ||
-    !isPos(parentGravParameter) ||
     typeof eccentricity !== "number" ||
-    !(eccentricity >= 0 && eccentricity < 1) ||
+    !conicHasSize(semiMajorAxis, eccentricity) ||
+    !isPos(parentGravParameter) ||
     typeof meanAnomalyAtEpoch !== "number" ||
     !Number.isFinite(meanAnomalyAtEpoch) ||
     typeof epoch !== "number" ||

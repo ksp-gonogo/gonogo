@@ -1,0 +1,231 @@
+{
+  "_meta": {
+    "shows": "A craft in low Kerbin orbit with two others on open orbits about Kerbin: a targeted probe leaving for Duna and a craft arriving from Eve, each drawn on its own open arc beside one in a closed orbit.",
+    "capturedAt": "2026-10-12",
+    "vessel": "Tester (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "In low Kerbin orbit; the target is on an escape orbit and one roster craft is inbound on an open orbit",
+    "notes": "SYNTHETIC. kerbin-orbit-no-target.json's system and craft, plus a vessel.target about Kerbin on an open orbit (sma -12 Mm, ecc 1.5, periapsis 6 Mm, 0.4 rad of mean anomaly past it) that escapes at UT 113100, where its hyperbola reaches Kerbin's 84.2 Mm sphere of influence, and a system.vessels roster of two: one inbound on an open orbit (sma -20 Mm, ecc 1.25, periapsis 5 Mm, 1.5 rad of mean anomaly short of it) and one in a closed keostationary orbit for contrast."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbol",
+              "parentIndex": null,
+              "radius": 261600000,
+              "gravParameter": 1.1723328e18,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Kerbin",
+              "parentIndex": 0,
+              "radius": 600000,
+              "gravParameter": 3531600000000.0,
+              "sphereOfInfluence": 84159286,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 13599840256,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.14,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mun",
+              "parentIndex": 1,
+              "radius": 200000,
+              "gravParameter": 65138398000,
+              "sphereOfInfluence": 2429559,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 12000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.93228,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Minmus",
+              "parentIndex": 1,
+              "radius": 60000,
+              "gravParameter": 1765800000,
+              "sphereOfInfluence": 2247428,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 47000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.490659,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Tester",
+          "name": "Tester",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "patches": [
+            {
+              "startUt": 0,
+              "endUt": 1958.1284360312443,
+              "patchStartTransition": 0,
+              "patchEndTransition": 1,
+              "sma": 700000,
+              "ecc": 0,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 0,
+              "period": 1958.1284360312443,
+              "peA": 700000,
+              "apA": 700000,
+              "semiLatusRectum": 700000,
+              "semiMinorAxis": 700000.0,
+              "referenceBody": "Kerbin",
+              "closestEncounterBody": null
+            }
+          ]
+        },
+        "meta": {
+          "quality": 1
+        }
+      },
+      {
+        "channel": "vessel.target",
+        "value": {
+          "name": "Duna Probe",
+          "kind": 0,
+          "vesselId": "v-duna-probe",
+          "bodyIndex": null,
+          "relativePosition": {
+            "x": 5200000,
+            "y": 3800000,
+            "z": 0
+          },
+          "relativeVelocity": {
+            "x": -310,
+            "y": 940,
+            "z": 0
+          },
+          "orbit": {
+            "referenceBodyIndex": 1,
+            "sma": -12000000,
+            "ecc": 1.5,
+            "inc": 0,
+            "lan": 0,
+            "argPe": 60,
+            "meanAnomalyAtEpoch": 0.4,
+            "epoch": 0,
+            "mu": 3531600000000.0,
+            "patches": [],
+            "encounter": {
+              "transitionType": 3,
+              "transitionUt": 113100,
+              "bodyIndex": 0
+            },
+            "horizon": {
+              "kind": 1,
+              "trajectoryKind": 1
+            }
+          }
+        }
+      },
+      {
+        "channel": "system.vessels",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "v-eve-return",
+              "name": "Eve Return",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 2,
+              "orbit": {
+                "sma": -20000000,
+                "ecc": 1.25,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 200,
+                "meanAnomalyAtEpoch": -1.5,
+                "epoch": 0
+              }
+            },
+            {
+              "vesselId": "v-keostat",
+              "name": "Keostat",
+              "vesselType": 0,
+              "situation": 3,
+              "bodyIndex": 1,
+              "crewCount": 0,
+              "crewCapacity": 0,
+              "commsConnected": true,
+              "commsControlSource": 2,
+              "orbit": {
+                "sma": 3463334,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 2.2,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
