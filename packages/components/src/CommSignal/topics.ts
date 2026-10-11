@@ -15,5 +15,8 @@ export const commSignalTopics = defineTopicManifest({
     "comms.signal.measuredPath.nodes",
     "vessel.comms.controlState",
     "comms.delay.oneWaySeconds",
+    "comms.path.hops",
+    "comms.commandCentre.displayName",
+    "vessel.identity.name",
   ],
 });

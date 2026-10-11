@@ -113,13 +113,19 @@ function useHeldChoice(choice: ReadFrameChoice | null): ReadFrameChoice | null {
   return held.current;
 }
 
-/** The elements a diagram draws a conic from, in the plain degrees and metres its geometry works in. */
+/**
+ * The elements a diagram draws a conic from, in the plain degrees and metres its geometry works in.
+ * Null where the node or periapsis angle is unreported: an absent angle is not zero, and a ring drawn with one would stand at an orientation nothing reported.
+ */
 function conicElementsOf(orbit: VesselOrbit) {
+  const lan = orbit.lan?.magnitude;
+  const argPe = orbit.argPe?.magnitude;
+  if (lan === undefined || argPe === undefined) return null;
   return {
     sma: orbit.sma.magnitude,
     ecc: orbit.ecc.magnitude,
-    lan: orbit.lan?.magnitude ?? 0,
-    argPe: orbit.argPe?.magnitude ?? 0,
+    lan,
+    argPe,
     inclination: orbit.inc.magnitude,
   };
 }
@@ -251,10 +257,12 @@ function SystemViewComponent({
       ? targetReading.value.orbit
       : undefined;
   const targetParent = targetParentOf(targetOrbit, nameByIndex);
+  const targetElements =
+    targetOrbit == null ? null : conicElementsOf(targetOrbit);
   const targetConic =
-    targetParent === null || targetOrbit == null
+    targetParent === null || targetElements === null
       ? null
-      : { parentName: targetParent, ...conicElementsOf(targetOrbit) };
+      : { parentName: targetParent, ...targetElements };
   const targetTrajectory = useOrbitTrajectory(
     targetConic === null ? undefined : (targetOrbit ?? undefined),
   );
@@ -289,11 +297,15 @@ function SystemViewComponent({
     vesselPlotState === "observed" && craft?.modelled != null
       ? "predicted"
       : vesselPlotState;
+  const vesselElements = orbit === undefined ? null : conicElementsOf(orbit);
   const vesselOrbit =
-    vesselBody != null && orbit?.sma.isFinite() && vesselAt !== null
+    vesselBody != null &&
+    orbit?.sma.isFinite() &&
+    vesselElements !== null &&
+    vesselAt !== null
       ? {
           parentName: vesselBody,
-          ...conicElementsOf(orbit),
+          ...vesselElements,
           trueAnomaly: vesselAt,
         }
       : null;
