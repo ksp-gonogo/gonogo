@@ -81,18 +81,18 @@ const POI_LAYER_ROOT_STYLE: CSSProperties = {
   pointerEvents: "none",
 };
 
-export function PoiMarkerButton({
-  $style,
-  style,
-  ...rest
-}: Readonly<
-  ButtonHTMLAttributes<HTMLButtonElement> & {
-    $style: PoiKindStyle;
-    style?: CSSProperties;
-  }
->) {
+export const PoiMarkerButton = forwardRef<
+  HTMLButtonElement,
+  Readonly<
+    ButtonHTMLAttributes<HTMLButtonElement> & {
+      $style: PoiKindStyle;
+      style?: CSSProperties;
+    }
+  >
+>(function PoiMarkerButton({ $style, style, ...rest }, ref) {
   return (
     <IconButton
+      ref={ref}
       style={{
         ...POI_MARKER_BUTTON_STYLE,
         background: $style.background,
@@ -102,7 +102,7 @@ export function PoiMarkerButton({
       {...rest}
     />
   );
-}
+});
 
 const POI_MARKER_BUTTON_STYLE: CSSProperties = {
   position: "absolute",

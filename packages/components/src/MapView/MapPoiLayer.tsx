@@ -11,7 +11,13 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
-import { Floating, Tooltip, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  Floating,
+  repeatsInView,
+  Tooltip,
+  Unit,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import type {
   CSSProperties,
   FocusEvent,
@@ -20,6 +26,7 @@ import type {
   RefObject,
 } from "react";
 import {
+  forwardRef,
   useCallback,
   useEffect,
   useMemo,
@@ -48,7 +55,18 @@ export interface MapPoiLayerProps {
   bodyId: string | undefined;
   /** The same `MapOverlayContext.project` a `map-view.overlay` augment draws with. */
   project: (lat: number, lon: number) => { x: number; y: number };
+  /** The map that repeats east and west. Given, each point is marked in every repeat of the world in view; absent, once, where `project` puts it. */
+  repeats?: MapRepeats;
 }
+
+/** The map area's width and the distance from one repeat of the world to the next, both in overlay pixels. */
+export interface MapRepeats {
+  width: number;
+  period: number;
+}
+
+/** Half a marker's width: how far outside the map area a point can sit with its marker still showing. */
+const MARKER_REACH = 5;
 
 /** How long the card outlives the pointer leaving its marker, so the pointer can cross the gap to the card. */
 const CARD_CLOSE_GRACE_MS = 250;
@@ -59,8 +77,8 @@ const CARD_CONTROLS =
 /** What a marker and the card tell the layer about the pointer and focus. */
 interface PoiHover {
   hoveredId: string | undefined;
-  /** Opens the card for `poi` and cancels any pending close. */
-  show: (poi: MapPoi, marker: HTMLElement) => void;
+  /** Opens the card for `poi` and cancels any pending close. `repeat` counts whole worlds east of where `project` puts the point, for a card opened from another repeat's marker. */
+  show: (poi: MapPoi, marker: HTMLElement, repeat?: number) => void;
   /** Starts the close grace; `keep` cancels it. */
   leave: () => void;
   keep: () => void;
@@ -84,6 +102,7 @@ function getProvidersSnapshot(): MapPoiProviderDefinition[] {
 export function MapPoiLayer({
   bodyId,
   project,
+  repeats,
 }: Readonly<MapPoiLayerProps>): ReactElement {
   // Re-render when providers register, so a layer mounted before a provider loads picks it up.
   const providers = useSyncExternalStore(
@@ -92,6 +111,7 @@ export function MapPoiLayer({
     getProvidersSnapshot,
   );
   const [hoveredPoi, setHoveredPoi] = useState<MapPoi | null>(null);
+  const [hoveredRepeat, setHoveredRepeat] = useState(0);
   const layerRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const markerRef = useRef<HTMLElement | null>(null);
@@ -108,10 +128,11 @@ export function MapPoiLayer({
   const hover = useMemo<PoiHover>(
     () => ({
       hoveredId: hoveredPoi?.id,
-      show: (poi, marker) => {
+      show: (poi, marker, repeat = 0) => {
         keep();
         markerRef.current = marker;
         setHoveredPoi(poi);
+        setHoveredRepeat(repeat);
       },
       leave: () => {
         keep();
@@ -150,6 +171,7 @@ export function MapPoiLayer({
             provider={provider}
             bodyId={bodyId}
             project={project}
+            repeats={repeats}
             hover={hover}
           />
         ) : (
@@ -158,6 +180,7 @@ export function MapPoiLayer({
             provider={provider}
             bodyId={bodyId}
             project={project}
+            repeats={repeats}
             hover={hover}
           />
         ),
@@ -166,6 +189,7 @@ export function MapPoiLayer({
         <PoiHoverCardView
           poi={hoveredPoi}
           project={project}
+          shift={hoveredRepeat * (repeats?.period ?? 0)}
           layerRef={layerRef}
           cardRef={cardRef}
           hover={hover}
@@ -181,12 +205,14 @@ function PoiProviderGate({
   provider,
   bodyId,
   project,
+  repeats,
   hover,
 }: {
   domain: string;
   provider: MapPoiProviderDefinition;
   bodyId: string | undefined;
   project: MapPoiLayerProps["project"];
+  repeats: MapRepeats | undefined;
   hover: PoiHover;
 }): ReactElement | null {
   const available = useTelemetry(`${domain}.available` as TopicId);
@@ -199,6 +225,7 @@ function PoiProviderGate({
       provider={provider}
       bodyId={bodyId}
       project={project}
+      repeats={repeats}
       hover={hover}
     />
   );
@@ -209,11 +236,13 @@ function PoiProviderMarkers({
   provider,
   bodyId,
   project,
+  repeats,
   hover,
 }: {
   provider: MapPoiProviderDefinition;
   bodyId: string | undefined;
   project: MapPoiLayerProps["project"];
+  repeats: MapRepeats | undefined;
   hover: PoiHover;
 }): ReactElement | null {
   const pois = provider.usePois({ bodyId });
@@ -222,27 +251,83 @@ function PoiProviderMarkers({
   return (
     <>
       {pois.map((poi) => (
-        <PoiMarker key={poi.id} poi={poi} project={project} hover={hover} />
+        <PoiMarker
+          key={poi.id}
+          poi={poi}
+          project={project}
+          repeats={repeats}
+          hover={hover}
+        />
       ))}
     </>
   );
 }
 
+/**
+ * One point's markers: the one `project` places, which carries the name and
+ * the keyboard, and a copy in every other repeat of the world in view. A copy
+ * answers the pointer only and opens the same card beside itself, so a screen
+ * reader and the Tab order meet each point once.
+ */
 function PoiMarker({
   poi,
   project,
+  repeats,
   hover,
 }: {
   poi: MapPoi;
   project: MapPoiLayerProps["project"];
+  repeats: MapRepeats | undefined;
   hover: PoiHover;
 }): ReactElement {
   const isHovered = hover.hoveredId === poi.id;
   const { x, y } = project(poi.lat, poi.lon);
   const style: CSSProperties = { left: x, top: y };
+  const namedRef = useRef<HTMLButtonElement>(null);
+  const period = repeats?.period ?? 0;
+  const copies =
+    repeats === undefined
+      ? []
+      : repeatsInView(x, x, -MARKER_REACH, repeats.width + MARKER_REACH, period)
+          .map((shift) => Math.round(shift / period))
+          .filter((repeat) => repeat !== 0);
 
   return (
+    <>
+      {copies.map((repeat) => (
+        <PoiMarkerButton
+          key={repeat}
+          type="button"
+          aria-hidden="true"
+          tabIndex={-1}
+          style={{ left: x + repeat * period, top: y }}
+          $style={markerStyleFor(poi)}
+          onMouseEnter={(e) =>
+            hover.show(poi, namedRef.current ?? e.currentTarget, repeat)
+          }
+          onMouseLeave={() => {
+            if (isHovered) hover.leave();
+          }}
+        />
+      ))}
+      <NamedPoiMarker
+        ref={namedRef}
+        poi={poi}
+        style={style}
+        isHovered={isHovered}
+        hover={hover}
+      />
+    </>
+  );
+}
+
+const NamedPoiMarker = forwardRef<
+  HTMLButtonElement,
+  { poi: MapPoi; style: CSSProperties; isHovered: boolean; hover: PoiHover }
+>(function NamedPoiMarker({ poi, style, isHovered, hover }, ref) {
+  return (
     <PoiMarkerButton
+      ref={ref}
       type="button"
       aria-label={poi.label}
       aria-expanded={isHovered}
@@ -269,17 +354,20 @@ function PoiMarker({
       }}
     />
   );
-}
+});
 
 function PoiHoverCardView({
   poi,
   project,
+  shift,
   layerRef,
   cardRef,
   hover,
 }: {
   poi: MapPoi;
   project: MapPoiLayerProps["project"];
+  /** Overlay pixels east of where `project` puts the point, to the marker the card was opened from. */
+  shift: number;
   layerRef: RefObject<HTMLDivElement | null>;
   cardRef: RefObject<HTMLDivElement>;
   hover: PoiHover;
@@ -289,7 +377,7 @@ function PoiHoverCardView({
     const rect = layerRef.current?.getBoundingClientRect();
     if (!rect) return null;
     const { x, y } = project(poi.lat, poi.lon);
-    return { x: rect.left + x, y: rect.top + y };
+    return { x: rect.left + x + shift, y: rect.top + y };
   };
 
   const metaEntries = poi.meta

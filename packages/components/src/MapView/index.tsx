@@ -452,6 +452,10 @@ function MapViewComponent({
                       <MapPoiLayer
                         bodyId={targetBodyId}
                         project={overlayContext.project}
+                        repeats={{
+                          width: overlayContext.width,
+                          period: WORLD_W * camera.zoom,
+                        }}
                       />
                     )}
                   </CanvasContainer>

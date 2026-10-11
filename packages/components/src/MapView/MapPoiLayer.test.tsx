@@ -277,6 +277,90 @@ describe("MapPoiLayer", () => {
     expect(container.querySelectorAll("*").length).toBeGreaterThan(0);
   });
 
+  describe("on a map that repeats east and west", () => {
+    /** Three worlds across the map area: one where `project` puts the point, one either side. */
+    const repeats = { width: 300, period: 100 };
+    function renderRepeating() {
+      registerMapPoiProvider({
+        id: "vanilla:test",
+        usePois: () => [
+          makePoi({ id: "poi-1", label: "Runway", lat: 130, lon: 40 }),
+        ],
+      });
+      const view = render(
+        <MapPoiLayer bodyId="Kerbin" project={project} repeats={repeats} />,
+      );
+      renderedTrees.push(view.unmount);
+      return view;
+    }
+    const markersIn = (container: HTMLElement) =>
+      [...container.querySelectorAll("button")].map((b) => b.style.left);
+
+    it("marks a point in every repeat of the world in view", () => {
+      const { container } = renderRepeating();
+
+      expect(markersIn(container).sort()).toEqual(["130px", "230px", "30px"]);
+    });
+
+    it("leaves out a repeat whose marker would sit outside the map area", () => {
+      registerMapPoiProvider({
+        id: "vanilla:test",
+        usePois: () => [makePoi({ id: "poi-1", label: "Runway", lat: 150 })],
+      });
+      const view = render(
+        <MapPoiLayer
+          bodyId="Kerbin"
+          project={project}
+          repeats={{ width: 200, period: 100 }}
+        />,
+      );
+      renderedTrees.push(view.unmount);
+
+      expect(markersIn(view.container).sort()).toEqual(["150px", "50px"]);
+    });
+
+    it("names the point once and gives the keyboard one stop for it", () => {
+      const { container } = renderRepeating();
+
+      const named = screen.getAllByRole("button", { name: "Runway" });
+      expect(named).toHaveLength(1);
+      expect(named[0].style.left).toBe("130px");
+      const copies = [...container.querySelectorAll("button")].filter(
+        (b) => b !== named[0],
+      );
+      for (const copy of copies) {
+        expect(copy).toHaveAttribute("aria-hidden", "true");
+        expect(copy.tabIndex).toBe(-1);
+      }
+    });
+
+    it("opens the card from a copy, and Escape returns focus to the named marker", () => {
+      vi.useFakeTimers();
+      const { container } = renderRepeating();
+      const named = screen.getByRole("button", { name: "Runway" });
+      const copy = [...container.querySelectorAll("button")].find(
+        (b) => b.style.left === "230px",
+      );
+      if (!copy) throw new Error("no marker in the eastern repeat");
+
+      fireEvent.mouseEnter(copy);
+      const card = screen.getByRole("group", { name: "Runway details" });
+      expect(named).toHaveAttribute("aria-expanded", "true");
+
+      fireEvent.keyDown(card, { key: "Escape" });
+      expect(
+        screen.queryByRole("group", { name: "Runway details" }),
+      ).toBeNull();
+      expect(named).toHaveFocus();
+    });
+
+    it("a11y smoke: a point marked in three repeats has no violations", async () => {
+      const { container } = renderRepeating();
+
+      await expectNoA11yViolations(container);
+    });
+  });
+
   it("a11y smoke: markers + open hover card have no violations", async () => {
     registerMapPoiProvider({
       id: "vanilla:test",
