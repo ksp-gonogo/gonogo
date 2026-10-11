@@ -50,7 +50,11 @@ function entry(id: string, integrity: string, contractMajor = 3) {
   };
 }
 
-async function load(index: RegistryIndex, ids: readonly string[]) {
+async function load(
+  index: RegistryIndex,
+  ids: readonly string[],
+  fetchBytes: (url: string) => Promise<ArrayBuffer> = async () => BYTES,
+) {
   vi.stubGlobal(
     "fetch",
     vi.fn(async () => Response.json(index)),
@@ -61,7 +65,7 @@ async function load(index: RegistryIndex, ids: readonly string[]) {
     override: ids,
     hostCompat: HOST,
     appVersion: "1.0.0",
-    fetchBytes: async () => BYTES,
+    fetchBytes,
     importBundle: async (_bytes, url) => {
       imported.push(url);
       return {};
@@ -112,6 +116,32 @@ describe("consent across several Uplinks", () => {
       ["beta", "quarantined"],
       ["gamma", "loaded"],
     ]);
+    expect(imported).toEqual([
+      "/uplinks/alpha.client.js",
+      "/uplinks/gamma.client.js",
+    ]);
+  });
+
+  it("keeps roster order when an earlier Uplink is declined and the first is slow to download", async () => {
+    setConsentBatchPrompt(async (infos) =>
+      infos.map((info) => info.id !== "beta"),
+    );
+
+    const { imported } = await load(
+      {
+        uplinks: [
+          entry("alpha", hash),
+          entry("beta", hash),
+          entry("gamma", hash),
+        ],
+      },
+      ["alpha", "beta", "gamma"],
+      async (url) => {
+        if (url.includes("alpha")) await new Promise((r) => setTimeout(r, 30));
+        return BYTES;
+      },
+    );
+
     expect(imported).toEqual([
       "/uplinks/alpha.client.js",
       "/uplinks/gamma.client.js",

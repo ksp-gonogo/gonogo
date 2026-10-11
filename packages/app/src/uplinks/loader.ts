@@ -1141,7 +1141,7 @@ export async function loadEnabledUplinks(
     const run = loadById(id, index, ctx, slot).finally(() =>
       slot.consent.pass(),
     );
-    turn = run.catch(() => undefined);
+    turn = Promise.all([turn, run.catch(() => undefined)]);
     runs.push(run);
   }
   return Promise.all(runs);
