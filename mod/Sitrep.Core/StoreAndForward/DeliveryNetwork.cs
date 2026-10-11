@@ -819,6 +819,7 @@ namespace Sitrep.Core.StoreAndForward
                             Landed = record.Landed,
                             Excluded = record.Excluded == null ? null : new HashSet<string>(record.Excluded, StringComparer.Ordinal),
                             ExcludedAtPlan = _planVersion,
+                            RetryExcludedUt = _clock.Now() + MaxRetrySeconds,
                         };
                         List(_held, record.Node).Add(held);
                         if (held.Away != null)
@@ -899,6 +900,19 @@ namespace Sitrep.Core.StoreAndForward
             lock (_gate)
             {
                 return _sentCommands.ContainsKey(id);
+            }
+        }
+
+        /// <summary>
+        /// Whether <paramref name="node"/> holds the copy <paramref name="id"/> and
+        /// it has not reached anyone: waiting there, or sent and lost on its hop.
+        /// </summary>
+        public bool NeverLeft(string node, string id)
+        {
+            lock (_gate)
+            {
+                return _held.TryGetValue(node, out var list)
+                    && list.Any(h => string.Equals(h.Message.Id, id, StringComparison.Ordinal) && (h.Away == null || !h.Landed));
             }
         }
 
@@ -1250,7 +1264,8 @@ namespace Sitrep.Core.StoreAndForward
                     continue;
                 }
                 var destination = message is CancelMessage c && c.TargetNode != null ? c.TargetNode : message.Destination;
-                if (held.ExcludedAtPlan != _planVersion)
+                if (held.ExcludedAtPlan != _planVersion
+                    || (held.Excluded != null && nowUt >= held.RetryExcludedUt && !IsItsOwnCentre(node, message)))
                 {
                     held.Excluded = null;
                 }
@@ -1520,6 +1535,7 @@ namespace Sitrep.Core.StoreAndForward
             var flight = new Flight(held.Message, node, to, nowUt, nowUt + light, endToEnd) { CameFrom = held.CameFrom, Custody = held, ToDish = toDish, Retargeted = retargeted };
             held.Away = to;
             held.Landed = false;
+            held.LaunchedUt = nowUt;
             // Twice the time the light really takes where there is a real path,
             // since an answer cannot be back sooner, and twice what the node
             // expected where there is none. Either way the node learns nothing
@@ -1576,6 +1592,13 @@ namespace Sitrep.Core.StoreAndForward
             held.EligibleUt = atUt;
             (held.Excluded ??= new HashSet<string>(StringComparer.Ordinal)).Add(to);
             held.ExcludedAtPlan = _planVersion;
+            // A craft or relay holding a copy that lost light tries the hop again
+            // after a wait that doubles with each loss: nothing will tell it the
+            // link is back, and the plan does not change for a craft that holds
+            // still. A command centre keeps to what it has heard instead.
+            held.Losses++;
+            var wait = Math.Max(MinRetrySeconds, atUt - held.LaunchedUt) * Math.Pow(2.0, Math.Min(held.Losses - 1, 16));
+            held.RetryExcludedUt = atUt + Math.Min(MaxRetrySeconds, wait);
             if (held.Message is CommandMessage command && StoredCancelFor(node, command) != null)
             {
                 list.Remove(held);
@@ -1595,6 +1618,10 @@ namespace Sitrep.Core.StoreAndForward
             SpanMessage span => (3, span.Samples.Count == 0 ? 0 : (long)Math.Floor(span.Samples[0].Ut * 1000.0), span.Id),
             _ => (2, 0, held.Message.Id),
         };
+
+        private const double MinRetrySeconds = 1.0;
+
+        private const double MaxRetrySeconds = 300.0;
 
         private void Expire(double nowUt)
         {
@@ -1858,6 +1885,15 @@ namespace Sitrep.Core.StoreAndForward
             public HashSet<string>? Excluded { get; set; }
 
             public int ExcludedAtPlan { get; set; }
+
+            /// <summary>When the hop that was caught may be tried again without the plan changing.</summary>
+            public double RetryExcludedUt { get; set; } = double.PositiveInfinity;
+
+            /// <summary>How many times a hop has lost this copy's light, which lengthens the wait to try again.</summary>
+            public int Losses { get; set; }
+
+            /// <summary>When this copy last left.</summary>
+            public double LaunchedUt { get; set; }
 
             /// <summary>The node this copy was sent to, while its own node still has custody of it; null for a copy that is waiting here.</summary>
             public string? Away { get; set; }

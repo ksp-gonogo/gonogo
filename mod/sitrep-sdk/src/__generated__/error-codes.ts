@@ -301,6 +301,13 @@ export const FaultCode = {
    */
   CommandExpired: "commandExpired",
   /**
+   * No reply came home before the centre gave the command up: it left, and
+   * nothing was heard from the craft, a relay or a report in all the time one
+   * could have taken. The command may have run, and its answer may be waiting at
+   * a craft that has no link home; the centre cannot tell which.
+   */
+  ReplyNotReceived: "replyNotReceived",
+  /**
    * A command sent in a group was not sent because another command in the same
    * group was refused, or because the group itself could not be sent. A group
    * goes whole or not at all, so every member is refused with this one, and the
@@ -627,6 +634,14 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     origin: "mod",
     sentence: "it expired before it could run",
     meaning: "A held command reached its expiry, or its place on the lane passed, before it could run. A lane is the numbered sequence of commands to one craft, which the craft settles in number order.",
+  },
+  {
+    id: "replyNotReceived",
+    kind: "fault",
+    refines: null,
+    origin: "mod",
+    sentence: "no reply came home, so it is not known whether it ran",
+    meaning: "No reply came home before the centre gave the command up: it left, and nothing was heard from the craft, a relay or a report in all the time one could have taken. The command may have run, and its answer may be waiting at a craft that has no link home; the centre cannot tell which.",
   },
   {
     id: "groupRefused",

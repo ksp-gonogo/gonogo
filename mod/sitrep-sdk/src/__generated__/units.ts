@@ -1006,6 +1006,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     predictedHeldAt: "id",
     predictedHeldUntilUt: "ut",
     predictedReplyUt: "ut",
+    replyOverdueUt: "ut",
     topic: "id",
     vantage: "id",
   },

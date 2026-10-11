@@ -217,6 +217,14 @@ public sealed class FaultCode : IEquatable<FaultCode>
     public static readonly FaultCode CommandExpired = Mod("commandExpired", "it expired before it could run");
 
     /// <summary>
+    /// No reply came home before the centre gave the command up: it left, and
+    /// nothing was heard from the craft, a relay or a report in all the time one
+    /// could have taken. The command may have run, and its answer may be waiting
+    /// at a craft that has no link home; the centre cannot tell which.
+    /// </summary>
+    public static readonly FaultCode ReplyNotReceived = Mod("replyNotReceived", "no reply came home, so it is not known whether it ran");
+
+    /// <summary>
     /// A command sent in a group was not sent because another command in the same
     /// group was refused, or because the group itself could not be sent. A group
     /// goes whole or not at all, so every member is refused with this one, and the

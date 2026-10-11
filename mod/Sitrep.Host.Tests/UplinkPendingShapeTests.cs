@@ -65,6 +65,10 @@ namespace Sitrep.Host.Tests
                 "PredictedHeldAt:System.String",
                 "PredictedHeldUntilUt:System.Nullable`1[System.Double]",
                 "CancelDeadlineUt:System.Nullable`1[System.Double]",
+                // The centre's own news of silence: its prediction said the reply
+                // would be home and nothing has come. It reads no execution or
+                // vessel state, only the prediction and the centre's own clock.
+                "ReplyOverdueUt:System.Nullable`1[System.Double]",
                 "Attempts:System.Int32",
                 "Members:System.Collections.Generic.List`1[System.String]",
             };

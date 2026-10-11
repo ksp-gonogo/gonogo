@@ -162,6 +162,17 @@ public class PendingUplink
     [SitrepUnit(Units.UniversalTime)]
     public double? CancelDeadlineUt { get; set; }
 
+    /// <summary>
+    /// When the centre first found its reply overdue: the reply was predicted to
+    /// be home by now, no wait for a window was predicted, and nothing has come.
+    /// The command may have run and its answer be unable to come home, so this is
+    /// news of silence, not of failure, and the entry stays until its reply, a
+    /// report or its expiry settles it. Null while the reply is not yet due, or
+    /// is predicted to wait.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? ReplyOverdueUt { get; set; }
+
     /// <summary>How many copies of its lane number have been sent: 1, or more after a send again.</summary>
     [SitrepUnit(Units.Count)]
     public int Attempts { get; set; } = 1;

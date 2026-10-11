@@ -9044,6 +9044,7 @@ namespace Sitrep.Host
             {
                 return;
             }
+            MarkOverdueReplies(ut);
             var overdue = _pending.FindAll(entry =>
             {
                 // A held command's entry goes when its settling report reaches this
@@ -9069,6 +9070,33 @@ namespace Sitrep.Host
                 {
                     ForgetDeliveryJobs(entry);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Sets <see cref="PendingUplink.ReplyOverdueUt"/> on every entry on a lane
+        /// whose reply was predicted home, with no wait for a window, and has not
+        /// come a margin after that. A later prediction that puts the reply in the
+        /// future or behind a wait clears it, so the field only ever says what the
+        /// current prediction says.
+        /// </summary>
+        private void MarkOverdueReplies(double ut)
+        {
+            foreach (var entry in _pending)
+            {
+                if (entry.LaneSeq == null)
+                {
+                    continue;
+                }
+                var overdue = entry.PredictedHeldAt == null
+                    && entry.PredictedReplyUt != null
+                    && ut > entry.PredictedReplyUt.Value + PendingSettleMarginSeconds;
+                if (!overdue)
+                {
+                    entry.ReplyOverdueUt = null;
+                    continue;
+                }
+                entry.ReplyOverdueUt ??= ut;
             }
         }
 

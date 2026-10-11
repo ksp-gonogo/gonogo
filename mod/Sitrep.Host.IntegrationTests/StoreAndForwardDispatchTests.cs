@@ -91,6 +91,50 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
+        public void AReplyThatCannotComeHomeIsMarkedOverdueThenRefusedAsNotReceivedRatherThanExpired()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                OpenRoute(engine);
+                Tick(engine, 0.0);
+
+                FaultCode? refused = null;
+                string? reason = null;
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op, onRefused: (code, why) =>
+                {
+                    refused = code;
+                    reason = why;
+                });
+                Tick(engine, 1.0);
+                Tick(engine, 1.0 + OneWaySeconds + 0.5);
+                Assert.Equal(1, uplink.HandledCount);
+
+                CutRoute(engine);
+                var entry = Assert.Single(Pending(engine));
+                Assert.Null(entry.ReplyOverdueUt);
+                Tick(engine, (entry.PredictedReplyUt ?? 0.0) - 1.0);
+                Assert.Null(Assert.Single(Pending(engine)).ReplyOverdueUt);
+
+                Tick(engine, (entry.PredictedReplyUt ?? 0.0) + 10.0);
+                Assert.NotNull(Assert.Single(Pending(engine)).ReplyOverdueUt);
+                Assert.Null(refused);
+
+                Tick(engine, (entry.ExpiresAtUt ?? 0.0) + 2 * OneWaySeconds + 60.0);
+                Assert.Equal(FaultCode.ReplyNotReceived, refused);
+                Assert.DoesNotContain("expired before it could run", reason);
+                Assert.Empty(Pending(engine));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        [Fact]
         public void ACancelStopsAHeldCommandAndRefusesItsRequest()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);

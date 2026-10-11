@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 37.2.0
+  version: 37.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -14076,6 +14076,14 @@ components:
             it could run. A lane is the numbered sequence of commands to one craft,
             which the craft settles in number order.
           x-sitrep-sentence: it expired before it could run
+        - const: replyNotReceived
+          title: ReplyNotReceived
+          description: |-
+            No reply came home before the centre gave the command up: it left, and
+            nothing was heard from the craft, a relay or a report in all the time one
+            could have taken. The command may have run, and its answer may be waiting at
+            a craft that has no link home; the centre cannot tell which.
+          x-sitrep-sentence: no reply came home, so it is not known whether it ran
         - const: groupRefused
           title: GroupRefused
           description: |-

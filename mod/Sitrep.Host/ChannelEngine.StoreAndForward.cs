@@ -1003,6 +1003,8 @@ namespace Sitrep.Host
             {
                 case JourneyKind.Expired when report.OtherCopiesOut:
                     return null;
+                case JourneyKind.Expired when report.Detail == NoReplyDetail:
+                    return (FaultCode.ReplyNotReceived, "No reply came home before it was given up on. It may have run on the craft, and its answer may be waiting there for a link.");
                 case JourneyKind.Expired:
                     return (FaultCode.CommandExpired, "It expired at " + report.At + " before it could run.");
                 case JourneyKind.Cancelled:
@@ -1022,6 +1024,9 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>What a journey report says of a command the centre gave up on without hearing anything back.</summary>
+        internal const string NoReplyDetail = "no reply came home";
+
         /// <summary>
         /// A held command past its expiry whose settling report never reached
         /// the centre that sent it: nothing can run it now, so the centre reports
@@ -1040,8 +1045,12 @@ namespace Sitrep.Host
                 At = entry.Vantage,
                 AtUt = ut,
                 LandedUt = ut,
+                Detail = StillHeldAtCentre(entry) ? null : NoReplyDetail,
             });
         }
+
+        /// <summary>Whether the command never got past the centre that sent it, so nothing of it can have run or been answered.</summary>
+        private bool StillHeldAtCentre(PendingUplink entry) => _delivery.NeverLeft(entry.Vantage, entry.Id);
 
         /// <summary>Forgets the client request of a pending entry the backstop pruned, so a report that never comes home holds nothing.</summary>
         private void ForgetDeliveryJobs(PendingUplink entry)

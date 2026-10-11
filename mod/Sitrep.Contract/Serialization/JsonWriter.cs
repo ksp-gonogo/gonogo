@@ -1665,6 +1665,10 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendNullableNumber(sb, entry.CancelDeadlineUt);
             sb.Append(',');
+            AppendString(sb, "replyOverdueUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, entry.ReplyOverdueUt);
+            sb.Append(',');
             AppendString(sb, "attempts");
             sb.Append(':');
             AppendInteger(sb, entry.Attempts);
