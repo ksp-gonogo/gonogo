@@ -101,10 +101,12 @@ public class CommsConnectivity
 /// <summary>
 /// The <c>comms.signal</c> payload: the active vessel's own reading of its
 /// link, from the elected comms backend. A strength from 0 to 1 whose meaning
-/// depends on the backend: stock CommNet reports a coarse fraction of the
-/// link's range, RealAntennas how much headroom the link has over its data
-/// rate. <see cref="Quantity"/> says which, so a reader names the figure
-/// correctly and never compares two that are different quantities.
+/// depends on the backend: stock CommNet reports KSP's own signal strength
+/// for the path, which falls off smoothly towards the range edge of each link
+/// and is multiplied across relays, RealAntennas how far up its data-rate
+/// ladder the path's links close. <see cref="Quantity"/> says which, so a
+/// reader names the figure correctly and never compares two that are
+/// different quantities.
 ///
 /// <para>Each command centre is sent its own, the newest reading to have
 /// reached it. A reading is of the vessel's whole path at one instant, so
@@ -125,7 +127,7 @@ public class CommsConnectivity
 /// without a Major bump. Of the two things a non-nullable double can say, 1 is
 /// the one that does not mislead, because 0 is what the app's own
 /// SignalLossIndicator keys its "Lost" verdict on.
-/// <para>RealAntennas' value is a headroom fraction on its data-rate ladder
+/// <para>RealAntennas' value is a position on its data-rate ladder
 /// (<c>CommsLinkState.PathStrength</c>), so the two backends put different
 /// curves behind one field, and <see cref="Quantity"/> is what says which curve a
 /// value is on.</para>
@@ -148,8 +150,8 @@ public class CommsSignal
     public double Strength { get; set; }
 
     /// <summary>
-    /// Which quantity <see cref="Strength"/> is: a fraction of the link's range,
-    /// a fraction of its data-rate headroom, or a stand-in where no link is
+    /// Which quantity <see cref="Strength"/> is: KSP's signal strength for the
+    /// path, a position on the data-rate ladder, or a stand-in where no link is
     /// modelled. A strength worked out for a path carries the quantity its hops
     /// were stated in, and <see cref="SignalQuantity.Unknown"/> where they disagree.
     /// </summary>
@@ -218,10 +220,20 @@ public enum SignalQuantity
     /// <summary>Nothing says which: the hops of a worked-out path disagree, or a read failed.</summary>
     Unknown,
 
-    /// <summary>The share of the link's range left: 0 at the edge of range and 1 at no distance. Stock CommNet's.</summary>
+    /// <summary>
+    /// KSP's signal strength for the path, the figure the game's own signal
+    /// readout shows: each link's strength falls off smoothly towards the edge
+    /// of its range, and a path's is the product of its links', so relays
+    /// compound. Stock CommNet's. Not the share of range left: a link with
+    /// 59% of its range left reads about 63%.
+    /// </summary>
     RangeFraction,
 
-    /// <summary>The share of data-rate headroom left: 0 where the lowest rate fails and 1 at the top of the ladder. RealAntennas'.</summary>
+    /// <summary>
+    /// How far up its data-rate ladder the path's links close: 1 at the top
+    /// rate, one rung less for each halving of the data rate, 0 where a link
+    /// does not close, multiplied across the path's links. RealAntennas'.
+    /// </summary>
     DataRateHeadroom,
 
     /// <summary>A stand-in: the save models no comms network, so there is no link to grade and the figure is 1.</summary>
@@ -964,8 +976,8 @@ public interface ICommsBackend : ISitrepProvider
     /// game. The model it returns is safe on any thread.</para>
     /// <internal>
     /// A quality derived as <c>1 - comms.signal.strength</c> is a different
-    /// curve per install: that field is a range fraction under stock and a
-    /// rate-ladder headroom fraction under RealAntennas.
+    /// curve per install: that field is KSP's signal strength under stock and a
+    /// rate-ladder position under RealAntennas.
     /// </internal>
     /// </summary>
     /// <returns>The degrade rating for the active vessel's link, never null.</returns>

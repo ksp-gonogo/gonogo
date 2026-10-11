@@ -226,12 +226,14 @@ public readonly struct CommsLinkState
     /// <summary>
     /// The backend's own strength for the whole path home, 0 to 1, published
     /// unchanged on <see cref="CommsSignal"/>. <see cref="Quantity"/> says what
-    /// it measures: under stock CommNet the share of the link's range left,
-    /// under RealAntennas the share of data-rate headroom left.
+    /// it measures: under stock CommNet KSP's signal strength for the path,
+    /// which falls off smoothly towards each link's range edge and is
+    /// multiplied across relays, under RealAntennas how far up its data-rate
+    /// ladder the path's links close.
     /// </summary>
     public double PathStrength { get; }
 
-    /// <summary>Which quantity <see cref="PathStrength"/> is: a backend names its own, since the share of range left and the share of data-rate headroom left are different figures.</summary>
+    /// <summary>Which quantity <see cref="PathStrength"/> is: a backend names its own, since KSP's signal strength and a position on the data-rate ladder are different figures.</summary>
     public SignalQuantity Quantity { get; }
 }
 

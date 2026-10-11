@@ -13,7 +13,6 @@ import {
   type ControlDescription,
   describeControl,
   describeQuantity,
-  type QuantityReading,
   signalBarCount,
 } from "./signalVerdict";
 import type { Tone } from "./tones";
@@ -35,8 +34,8 @@ export interface SignalVerdict {
   pct: number | null;
   bars: number | null;
   control: ControlDescription;
-  /** What the strength is a fraction of, as the elected comms backend declares it, or null where nothing says. */
-  quantity: QuantityReading | null;
+  /** What the strength measures where the headline figure does not say, as the elected comms backend declares it, or null. */
+  quantity: string | null;
   /** The observed strength reading, or null wherever `pct` is. */
   strengthReading: TinyEssential["value"];
   /**
@@ -163,7 +162,6 @@ export function useSignalVerdict(): SignalVerdict {
       told?.strength === undefined || told.strength === null
         ? commsHeld?.signalQuantity
         : told.quantity,
-      pct,
     ),
     strengthReading:
       pct === null

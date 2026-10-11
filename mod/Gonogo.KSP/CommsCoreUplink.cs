@@ -74,8 +74,8 @@ namespace Gonogo.KSP
         /// <para>It exists so a consumer choosing a quality (a video feed's
         /// bitrate, a voice channel's noise) has one number that means the same
         /// KIND of thing on every install. <c>comms.signal</c> cannot
-        /// serve: it carries a range fraction under stock and a rate-ladder
-        /// headroom fraction under RealAntennas, so the <c>1 - strength</c> a
+        /// serve: it carries KSP's signal strength under stock and a rate-ladder
+        /// position under RealAntennas, so the <c>1 - strength</c> a
         /// consumer would otherwise write is a different curve per save with
         /// nothing on the wire saying so.</para>
         ///

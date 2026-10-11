@@ -20,7 +20,7 @@ function mount() {
 }
 
 describe("CommSignal says which quantity the strength is", () => {
-  it("names the quantity of the strength sent to the command centre", async () => {
+  it("names the ladder position of the strength sent to the command centre", async () => {
     const { fixture, container } = mount();
 
     act(() => {
@@ -39,13 +39,13 @@ describe("CommSignal says which quantity the strength is", () => {
     });
 
     await waitFor(() =>
-      expect(screen.getByText("data-rate headroom")).toBeTruthy(),
+      expect(screen.getByText("Data-rate ladder position")).toBeTruthy(),
     );
-    expect(screen.queryByText("of range left")).toBeNull();
+    expect(screen.queryByText(/range left/)).toBeNull();
     await expectNoA11yViolations(container);
   });
 
-  it("names the craft's own quantity until the centre is sent a strength", async () => {
+  it("draws no strength row for KSP's own signal strength, the headline already reads it", async () => {
     const { fixture } = mount();
 
     act(() => {
@@ -57,7 +57,11 @@ describe("CommSignal says which quantity the strength is", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("of range left")).toBeTruthy());
+    await waitFor(() => expect(screen.getByText("Control")).toBeTruthy());
+    expect(screen.queryByText("Strength")).toBeNull();
+    expect(screen.queryByText(/range left/)).toBeNull();
+    expect(screen.getByText("Signal connected")).toBeTruthy();
+    expect(document.body.textContent).toMatch(/60\s*%/);
   });
 
   it("draws no row where nothing says which quantity it is", async () => {
@@ -78,21 +82,13 @@ describe("CommSignal says which quantity the strength is", () => {
 });
 
 describe("describeQuantity", () => {
-  it("states the figure with what it measures, and nothing for unknown", () => {
-    expect(describeQuantity(SignalQuantity.RangeFraction, 0.62)).toEqual({
-      percent: 62,
-      words: "of range left",
-    });
-    expect(describeQuantity(SignalQuantity.DataRateHeadroom, 0.5)).toEqual({
-      percent: 50,
-      words: "data-rate headroom",
-    });
-    expect(describeQuantity(SignalQuantity.RangeFraction, null)).toBeNull();
-    expect(describeQuantity(SignalQuantity.NoModel, 1)).toEqual({
-      percent: null,
-      words: "Not modelled",
-    });
-    expect(describeQuantity(SignalQuantity.Unknown, 0.5)).toBeNull();
-    expect(describeQuantity(undefined, 0.5)).toBeNull();
+  it("words only the quantities the headline figure does not already say", () => {
+    expect(describeQuantity(SignalQuantity.RangeFraction)).toBeNull();
+    expect(describeQuantity(SignalQuantity.DataRateHeadroom)).toBe(
+      "Data-rate ladder position",
+    );
+    expect(describeQuantity(SignalQuantity.NoModel)).toBe("Not modelled");
+    expect(describeQuantity(SignalQuantity.Unknown)).toBeNull();
+    expect(describeQuantity(undefined)).toBeNull();
   });
 });

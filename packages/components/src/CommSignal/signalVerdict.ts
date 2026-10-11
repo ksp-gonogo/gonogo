@@ -102,33 +102,20 @@ export function connectionAnnouncement(connected: boolean | undefined): string {
   return "";
 }
 
-/** The strength figure and the words saying what it measures, drawn as `<figure> <words>`. */
-export interface QuantityReading {
-  /** 0 to 100, or null where the quantity carries no figure of its own. */
-  percent: number | null;
-  words: string;
-}
-
 /**
- * What the strength figure measures, for the detail grid beside its label, or
- * null where nothing says: two backends both report 0 to 1, and a figure read
- * as the wrong one misleads.
+ * What the strength measures, in words, for the detail grid beside its label,
+ * or null where the headline figure already says it: KSP's own signal
+ * strength reads as a plain percentage and needs no second line, and nothing
+ * says what an unknown quantity is.
  */
 export function describeQuantity(
   quantity: SignalQuantity | undefined,
-  fraction: number | null,
-): QuantityReading | null {
+): string | null {
   switch (quantity) {
-    case SignalQuantity.RangeFraction:
-      return fraction === null
-        ? null
-        : { percent: fraction * 100, words: "of range left" };
     case SignalQuantity.DataRateHeadroom:
-      return fraction === null
-        ? null
-        : { percent: fraction * 100, words: "data-rate headroom" };
+      return "Data-rate ladder position";
     case SignalQuantity.NoModel:
-      return { percent: null, words: "Not modelled" };
+      return "Not modelled";
     default:
       return null;
   }

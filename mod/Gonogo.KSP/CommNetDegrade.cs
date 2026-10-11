@@ -7,16 +7,16 @@ namespace Gonogo.KSP
     /// <see cref="CommNetBackend.DegradeModel"/> hands back.
     ///
     /// <para><b>The grading, and what it is made of.</b> Stock's
-    /// <c>CommNetVessel.SignalStrength</c> is a RANGE fraction: how much of the
-    /// antenna pair's range curve the link has left, with stock's plasma-blackout
-    /// multiplier already folded in. That is a genuine quality curve under this
-    /// backend, so the rating is one minus it, and a link the game reports as
+    /// <c>CommNetVessel.SignalStrength</c> is KSP's signal strength for the path:
+    /// each link's range curve evaluated at its normalised range, multiplied
+    /// across the path, with stock's plasma-blackout multiplier already folded
+    /// in. That is a genuine quality curve under this backend, so the rating is one minus it, and a link the game reports as
     /// disconnected rates 1 outright rather than being read off a strength field
     /// that means nothing once there is no link to measure.</para>
     ///
     /// <para><b>Why the same arithmetic is not shared with the RealAntennas
     /// backend.</b> It looks identical and it is not the same rule: RA fills the
-    /// same field with a rate-ladder headroom fraction instead, so the two
+    /// same field with a rate-ladder position instead, so the two
     /// produce different curves from the same expression. Sharing the code would
     /// re-create exactly the ambiguity <c>comms.degrade</c> exists to remove, and
     /// the rating would arrive under one name for two rules. Each backend
@@ -29,7 +29,7 @@ namespace Gonogo.KSP
     {
         internal const string ModelId = "commnet-range-fraction";
 
-        internal const string ModelName = "Stock CommNet (antenna range fraction)";
+        internal const string ModelName = "Stock CommNet (signal strength)";
 
         /// <summary>
         /// The rating for one tick's link reading, or

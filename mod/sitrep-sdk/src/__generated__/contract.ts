@@ -1797,10 +1797,11 @@ export interface CommsConnectivity
 /**
 * The `comms.signal` payload: the active vessel's own reading of its link,
 * from the elected comms backend. A strength from 0 to 1 whose meaning depends
-* on the backend: stock CommNet reports a coarse fraction of the link's range,
-* RealAntennas how much headroom the link has over its data rate.
-* `CommsSignal.quantity` says which, so a reader names the figure correctly
-* and never compares two that are different quantities.
+* on the backend: stock CommNet reports KSP's own signal strength for the
+* path, which falls off smoothly towards the range edge of each link and is
+* multiplied across relays, RealAntennas how far up its data-rate ladder the
+* path's links close. `CommsSignal.quantity` says which, so a reader names the
+* figure correctly and never compares two that are different quantities.
 *
 * Each command centre is sent its own, the newest reading to have reached it.
 * A reading is of the vessel's whole path at one instant, so it reaches a
@@ -1827,10 +1828,10 @@ export interface CommsSignal
 	*/
 	strength: Value<"ratio">;
 	/**
-	* Which quantity `CommsSignal.strength` is: a fraction of the link's range, a
-	* fraction of its data-rate headroom, or a stand-in where no link is modelled.
-	* A strength worked out for a path carries the quantity its hops were stated
-	* in, and `SignalQuantity.Unknown` where they disagree.
+	* Which quantity `CommsSignal.strength` is: KSP's signal strength for the
+	* path, a position on the data-rate ladder, or a stand-in where no link is
+	* modelled. A strength worked out for a path carries the quantity its hops
+	* were stated in, and `SignalQuantity.Unknown` where they disagree.
 	*/
 	quantity: SignalQuantity;
 	/**
@@ -1878,13 +1879,17 @@ export enum SignalQuantity {
 	*/
 	Unknown = 0,
 	/**
-	* The share of the link's range left: 0 at the edge of range and 1 at no
-	* distance. Stock CommNet's.
+	* KSP's signal strength for the path, the figure the game's own signal readout
+	* shows: each link's strength falls off smoothly towards the edge of its
+	* range, and a path's is the product of its links', so relays compound. Stock
+	* CommNet's. Not the share of range left: a link with 59% of its range left
+	* reads about 63%.
 	*/
 	RangeFraction = 1,
 	/**
-	* The share of data-rate headroom left: 0 where the lowest rate fails and 1 at
-	* the top of the ladder. RealAntennas'.
+	* How far up its data-rate ladder the path's links close: 1 at the top rate,
+	* one rung less for each halving of the data rate, 0 where a link does not
+	* close, multiplied across the path's links. RealAntennas'.
 	*/
 	DataRateHeadroom = 2,
 	/**

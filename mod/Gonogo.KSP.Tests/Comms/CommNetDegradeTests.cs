@@ -35,7 +35,7 @@ namespace Gonogo.KSP.Tests.Comms
         /// A link the game reports as DOWN rates 1: fully degraded, as a real
         /// graded answer under stock's own name. Note it does not consult the
         /// strength field at all, which is deliberate: a disconnected craft's
-        /// range fraction describes a link that is not there.
+        /// signal strength describes a link that is not there.
         /// </summary>
         [Fact]
         public void ADisconnectedLinkRatesUnusableWhateverTheStrengthFieldSays()
@@ -48,7 +48,7 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
-        /// A connected link grades on stock's range fraction, inverted so the
+        /// A connected link grades on stock's signal strength, inverted so the
         /// scale runs the way the contract declares: a full-strength link is
         /// pristine, a marginal one is nearly unusable.
         /// </summary>

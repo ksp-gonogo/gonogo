@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 /// main thread, and hands back a model that is thereafter just a number.</para>
 /// <internal>
 /// A resolved rating rather than the quantities behind it: a margin in dB, a
-/// range fraction and a rate-ladder position cannot be compared, and a consumer
+/// signal strength and a rate-ladder position cannot be compared, and a consumer
 /// handed any of them would have to know which backend produced it.
 /// </internal>
 /// </summary>
@@ -33,7 +33,7 @@ public interface ICommsDegradeModel
     string ModelId { get; }
 
     /// <summary>Human-readable name a UI can show, e.g. <c>"Stock CommNet
-    /// (range fraction)"</c>.</summary>
+    /// (signal strength)"</c>.</summary>
     string ModelName { get; }
 
     /// <summary>
