@@ -19,10 +19,12 @@ type Story = StoryObj<typeof meta>;
 
 /**
  * A craft that has just left a 100 km Kerbin orbit on the Hohmann ellipse to the
- * Mun, coasting 7.3 hours to the edge of the Mun's sphere of influence. Played at
- * 600 times real time: the Mun swings round its orbit, the craft climbs its
- * ellipse and the phase angle between them closes. The view follows the craft,
- * zoomed in on it, as Focus vessel leaves it. Replay starts it over.
+ * Mun. Played at 600 times real time: the Mun swings round its orbit, the craft
+ * climbs its ellipse and the phase angle between them closes. The view follows
+ * the craft, zoomed in on it, as Focus vessel leaves it. Where the craft reaches
+ * the Mun's sphere of influence it brakes into orbit about the Mun, the frame
+ * re-centres on the Mun and the craft is played at 1500 times real time from
+ * apoapsis to periapsis. Replay starts it over.
  */
 export const MunTransfer: Story = {
   name: "Mun transfer",

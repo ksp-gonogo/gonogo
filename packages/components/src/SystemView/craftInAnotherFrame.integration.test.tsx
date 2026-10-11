@@ -159,4 +159,12 @@ describe("SystemView draws the craft in a frame centred on another body", () => 
     expect(markerNear(craft, body, 12)).toBe(true);
     await act(async () => {});
   });
+
+  it("draws a craft about a body with no moons rather than the empty state when the frame follows the craft", async () => {
+    const { view } = mount(MUN_INDEX, "auto");
+    const { craft } = await craftAndBody(view, "Mun");
+    expect(craft).not.toBeNull();
+    expect(view.container.textContent).not.toContain("No bodies orbiting");
+    await act(async () => {});
+  });
 });

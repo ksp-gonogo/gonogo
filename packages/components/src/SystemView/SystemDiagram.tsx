@@ -316,7 +316,9 @@ export function SystemDiagram({
     onFocusBodyChange?.(focusedBody);
   }, [focusedBody, onFocusBodyChange]);
 
-  const emptyDiagram = !parent || children.length === 0;
+  // A craft about a body with no moons is the whole picture there is to draw.
+  const emptyDiagram =
+    !parent || (children.length === 0 && vesselHere === null);
   const {
     zoom,
     pan,

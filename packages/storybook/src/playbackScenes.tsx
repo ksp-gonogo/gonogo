@@ -10,6 +10,7 @@ import {
 import type { PlaybackFrame } from "../../components/scripts/playbackFrame";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
 import {
+  ENCOUNTER_UT,
   transferFirstScene,
   transferFrames,
 } from "../../components/scripts/systemTransferModel";
@@ -28,8 +29,13 @@ interface FramePlayerProps extends PlaybackSceneProps {
   frames: readonly PlaybackFrame[];
   /** Part of the mount's key, so a story that swaps its model remounts. */
   name: string;
-  /** Run once the widget has mounted, before the first frame: the presses and gestures an operator would make to set the view up. */
-  setup?: (scene: HTMLElement) => void;
+  /**
+   * Run once the widget has mounted, before the first frame: the presses and
+   * gestures an operator would make to set the view up. It may return a
+   * function that runs after each frame is put on the stream, for the presses
+   * the story calls for as it goes.
+   */
+  setup?: (scene: HTMLElement) => ((frame: PlaybackFrame) => void) | undefined;
 }
 
 /**
@@ -58,7 +64,8 @@ export function FramePlayer({
   const play = useCallback(
     (mount: ProbeMount) => {
       clearInterval(timer.current);
-      if (sceneRef.current) setup?.(sceneRef.current);
+      const scene = sceneRef.current;
+      const onFrame = scene ? setup?.(scene) : undefined;
       requestAnimationFrame(() => requestAnimationFrame(() => setFramed(true)));
       const started = performance.now();
       let index = 0;
@@ -73,6 +80,7 @@ export function FramePlayer({
           mount.scrubTo(frame.ut);
           for (const e of frame.emits) mount.emit(e.channel, e.value, e.meta);
           setClock(frame.clock);
+          onFrame?.(frame);
         }
         if (index + 1 >= frames.length) clearInterval(timer.current);
       }, 1000 / 30);
@@ -108,12 +116,15 @@ export function FramePlayer({
   );
 }
 
+function pressButton(scene: HTMLElement, name: string): void {
+  [...scene.querySelectorAll("button")]
+    .find((b) => b.textContent === name)
+    ?.click();
+}
+
 /** Following the craft and zooming in on it, as an operator would, so the burn's parking orbit and the climb away from it read at their own scale. */
 function followAndZoom(scene: HTMLElement): void {
-  const focus = [...scene.querySelectorAll("button")].find(
-    (b) => b.textContent === "Focus vessel",
-  );
-  focus?.click();
+  pressButton(scene, "Focus vessel");
   const diagram = scene.querySelector("svg[viewBox]");
   for (let notch = 0; notch < FOLLOW_ZOOM_NOTCHES; notch++) {
     diagram?.dispatchEvent(
@@ -127,10 +138,23 @@ function followAndZoom(scene: HTMLElement): void {
   }
 }
 
-/** Each notch is a 1.15 times zoom; two keeps the craft's neighbourhood large and the outer moon's tinted ring in view. */
-const FOLLOW_ZOOM_NOTCHES = 2;
+/** Each notch is a 1.15 times zoom. Twelve put the craft at periapsis farther from Kerbin than the marker-crowding distance, so it sits on its orbit from the first frame. */
+const FOLLOW_ZOOM_NOTCHES = 12;
 
-/** System View following a craft from low Kerbin orbit to the Mun, the Mun and the phase angle moving as the clock runs. */
+/** Following the craft out to the Mun, then resetting the view when the craft becomes the Mun's and the frame re-centres on it. */
+function followThenFrameTheCapture(
+  scene: HTMLElement,
+): (frame: PlaybackFrame) => void {
+  followAndZoom(scene);
+  let framed = false;
+  return (frame: PlaybackFrame) => {
+    if (framed || frame.ut < ENCOUNTER_UT) return;
+    framed = true;
+    pressButton(scene, "Reset view");
+  };
+}
+
+/** System View following a craft from low Kerbin orbit to the Mun and into orbit about it, the Mun and the phase angle moving as the clock runs. */
 export function SystemTransferScene({ w = 20, h = 18 }: PlaybackSceneProps) {
   const model = useMemo(
     () => ({ first: transferFirstScene(), frames: transferFrames() }),
@@ -140,7 +164,7 @@ export function SystemTransferScene({ w = 20, h = 18 }: PlaybackSceneProps) {
     <FramePlayer
       widgetId="system-view"
       name="transfer"
-      setup={followAndZoom}
+      setup={followThenFrameTheCapture}
       first={model.first}
       frames={model.frames}
       w={w}

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  CAPTURE_RATE,
+  CAPTURE_SPAN,
+  captureOrbitAt,
   ENCOUNTER_UT,
   hohmann,
   KERBIN_MU,
@@ -22,10 +25,22 @@ describe("Mun transfer playback", () => {
     expect(h.ecc).toBeCloseTo(orbit.ecc, 5);
   });
 
-  it("ends the coast inside the half period, where the encounter begins", () => {
+  it("ends the coast inside the half period, where the craft meets the Mun's sphere of influence", () => {
     const h = hohmann(KERBIN_MU, PARKING_RADIUS, MUN_ORBIT_RADIUS);
     expect(ENCOUNTER_UT).toBeLessThan(h.halfPeriod);
-    expect(transferFrames().at(-1)?.ut).toBe(ENCOUNTER_UT);
+    expect(orbitAt(0)).toMatchObject({
+      encounter: { transitionUt: ENCOUNTER_UT },
+      patches: [{ endUt: ENCOUNTER_UT }],
+    });
+  });
+
+  it("goes on past the encounter in orbit about the Mun, for half a revolution", () => {
+    const frames = transferFrames();
+    expect(frames.at(-1)?.ut).toBeCloseTo(ENCOUNTER_UT + CAPTURE_SPAN, 3);
+    const after = frames.filter((f) => f.ut > ENCOUNTER_UT);
+    expect(after.length).toBeGreaterThan(50);
+    const step = after[2].ut - after[1].ut;
+    expect(step).toBeCloseTo(0.1 * CAPTURE_RATE, 6);
   });
 
   it("plays 30 to 60 seconds, moving the clock forward every frame", () => {
@@ -50,6 +65,42 @@ describe("Mun transfer playback samples", () => {
       (meanMotion * ENCOUNTER_UT) % (2 * Math.PI),
       9,
     );
+  });
+});
+
+describe("Mun transfer playback capture", () => {
+  const MUN_INDEX = 2;
+  const emitted = (
+    emits: { channel: string; value: unknown }[],
+    channel: string,
+  ) => emits.find((e) => e.channel === channel)?.value;
+
+  it("keeps the craft about Kerbin until the encounter and about the Mun from it", () => {
+    for (const frame of transferFrames()) {
+      const body = frame.ut >= ENCOUNTER_UT ? MUN_INDEX : 1;
+      expect(emitted(frame.emits, "vessel.identity")).toMatchObject({
+        parentBodyIndex: body,
+      });
+      expect(emitted(frame.emits, "vessel.orbit")).toMatchObject({
+        referenceBodyIndex: body,
+      });
+    }
+  });
+
+  it("binds the craft to the Mun on an ellipse that stays inside its sphere of influence", () => {
+    const { sma, ecc, mu } = captureOrbitAt(ENCOUNTER_UT);
+    expect(ecc).toBeGreaterThan(0);
+    expect(ecc).toBeLessThan(1);
+    expect(sma * (1 + ecc)).toBeLessThanOrEqual(2_429_559 + 1e-6);
+    expect(sma * (1 - ecc)).toBeGreaterThan(200_000);
+    expect(mu).toBeCloseTo(6.5138398e10, -3);
+  });
+
+  it("starts the capture orbit at apoapsis and ends it at periapsis", () => {
+    const at = (ut: number) =>
+      captureOrbitAt(ut).meanAnomalyAtEpoch % (2 * Math.PI);
+    expect(at(ENCOUNTER_UT)).toBeCloseTo(Math.PI, 9);
+    expect(at(ENCOUNTER_UT + CAPTURE_SPAN)).toBeCloseTo(0, 6);
   });
 });
 
