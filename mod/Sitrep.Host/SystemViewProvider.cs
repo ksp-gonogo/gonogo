@@ -336,7 +336,7 @@ namespace Sitrep.Host
         /// name/vesselType/situation/mainBody/crewCount/crewCapacity/
         /// commsConnected/commsControlSource/sma..epoch, primitives only) to
         /// the <c>system.vessels</c> payload: <c>{ "vessels": [ { vesselId,
-        /// name, vesselType, situation, bodyIndex, crewCount, crewCapacity,
+        /// name, vesselType, situation, bodyIndex, landedAt, latitude, longitude, crewCount, crewCapacity,
         /// commsConnected, commsControlSource, orbit }, ... ] }</c>. Follows
         /// <see cref="BuildSystemBodies"/>'s own untyped-dict convention
         /// (no separate Sitrep.Contract POCO: this channel isn't
@@ -398,6 +398,9 @@ namespace Sitrep.Host
                     ["vesselType"] = (int)SharedMappers.ParseVesselType(GetString(rawVessel, "vesselType")),
                     ["situation"] = (int)SharedMappers.ParseSituation(GetString(rawVessel, "situation")),
                     ["bodyIndex"] = bodyIndex,
+                    ["landedAt"] = GetString(rawVessel, "landedAt"),
+                    ["latitude"] = GetDouble(rawVessel, "latitude"),
+                    ["longitude"] = GetDouble(rawVessel, "longitude"),
                     ["crewCount"] = GetInt(rawVessel, "crewCount"),
                     ["crewCapacity"] = GetInt(rawVessel, "crewCapacity"),
                     ["commsConnected"] = GetBool(rawVessel, "commsConnected"),

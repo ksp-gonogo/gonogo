@@ -205,7 +205,10 @@
               "name": "Flag: Launch Pad",
               "vesselType": 8,
               "situation": 0,
-              "bodyIndex": 1
+              "bodyIndex": 1,
+              "landedAt": "Launch Pad",
+              "latitude": -0.0972,
+              "longitude": -74.5577
             }
           ]
         }

@@ -8,12 +8,22 @@ const FIELD_LABELS: Readonly<Record<string, string>> = {
   type: "Type",
   situation: "Situation",
   body: "Body",
+  site: "Site",
+  position: "Position",
   crew: "Crew",
   comms: "Comms",
 };
 
 /** Row order for the fields `metaFor` produces; any other field still renders, appended after. */
-const FIELD_ORDER = ["type", "situation", "body", "crew", "comms"];
+const FIELD_ORDER = [
+  "type",
+  "situation",
+  "body",
+  "site",
+  "position",
+  "crew",
+  "comms",
+];
 
 export interface VesselInfoPanelProps {
   meta: SystemEntityMeta;
