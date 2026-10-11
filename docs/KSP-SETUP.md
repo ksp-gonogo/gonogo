@@ -111,6 +111,13 @@ Load any save in KSP, then press the **+** button in the bottom-right of the das
 
 If System View draws bodies, telemetry is arriving and you are done. Fly something and the vessel widgets follow.
 
+### Connected, but the vessel widgets stay empty
+
+If the stream reads CONNECTED and System View draws bodies, but Orbit shows a dash, Crew reads "Waiting for telemetry..." and CommNet reads "No signal", the connection is working and the game has nothing about a craft to send yet. There are two causes:
+
+- **No craft in flight.** Vessel data is sent only in the flight scene, with a craft under your control. The Space Center, Tracking Station and editor send the bodies and nothing about a vessel. Launch something, or switch to a craft already in flight
+- **No signal.** With CommNet on, the mod holds back a craft's telemetry while it has no connection to a command centre, as mission control would lose it. A craft that has had no signal since you loaded it has sent nothing, so its widgets stay empty; one that loses signal in flight keeps its last readings until the link returns, then catches up. Get it a connection (in range of the KSC, or through a relay) and the widgets fill
+
 ## kOS
 
 The kOS Terminal widget needs two mods in KSP: **[kOS](https://ksp-kos.github.io/KOS/)** itself, and **GonogoKosUplink**, which is what lets gonogo talk to it (both installed above).

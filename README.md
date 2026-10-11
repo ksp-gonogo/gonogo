@@ -72,12 +72,7 @@ Then run the same `docker run` command again. (After the first release, pull and
 
 ### What you see the first time
 
-On a brand new browser, in this order:
-
-1. **Before you start**, one page with every question the browser has to answer. Each Uplink the Gonogo mod reports in KSP gets a row, with the mod it connects and the version of that mod it was built for. An Uplink is an add-on that brings one other mod's widgets into the dashboard. **Load** runs that Uplink's code in the app with the same access as the rest of it, so only load ones you trust. **Skip** leaves it out: its widgets do not appear, and Settings → Uplinks says why and offers **Reconsider**. Either answer is remembered for that Uplink's version. The page also asks whether to send anonymous logs and errors to the developer, which you can change later in Settings
-2. **Set up Gonogo**, a six-step dialog that opens once: Welcome, Start the container, Connect to KSP, Uplinks, Health check, Done. Each step shows the command it needs and checks the result for you, and none blocks the next. The connection step is where you type the KSP computer's address if the game is on another computer. **Settings → Connection → Run setup again** opens it again
-
-Then the dashboard itself is **empty**: it says "No widgets on this dashboard" and "Use the + button at the bottom right (Add component) to add one". A new station starts the same way. Load a game in KSP, add widgets (**System View** is a good first one), and you should see data coming in. The mod setup is walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md). To point the main screen somewhere else later, use **Settings → Connection** in the bottom-right **+** menu, anything you save there overrides `KSP_HOST`.
+A new browser asks its questions on one **Before you start** page: which Uplinks to load, and whether to send anonymous logs. **Load** runs an Uplink's code with the same access as the app, so only load ones you trust; either answer is remembered for that Uplink's version. A short setup then checks the container, the connection to KSP and your Uplinks, and **Settings → Connection → Run setup again** reopens it. The dashboard starts empty: load a game in KSP, press **Add a widget** and start with **System View**. If something stays empty, [docs/KSP-SETUP.md](docs/KSP-SETUP.md#checking-telemetry-is-arriving) walks the checks.
 
 ### Adding a station screen
 
@@ -87,7 +82,7 @@ A station is any other browser: a tablet, a second laptop, a phone.
 2. On the other device, open one of those addresses (or scan the QR code, which carries the code in the link):
    - **This app**, your own main screen's address (`http://<main screen computer's address>:8080/station`): use it for a device on the same network, or another window on the main screen's own computer when the main screen is on localhost
    - **Public build** (`https://ksp-gonogo.github.io/app/station`): use it for a device on another network, which needs internet. It is shown beside your own address when the main screen is on localhost or a local address. It exists once the first release is published; before then it is a 404, so use your own address on the same network
-3. If you opened the station page without the code in the link, enter the share code and connect. The new station is empty: press **+** (Add component) at the bottom right to add widgets
+3. If you opened the station page without the code in the link, enter the share code and connect. The new station is empty: press **Add a widget** to add some
 
 A station works only while the main screen's tab stays open and awake: it gets everything through that tab, so closing it, or a computer going to sleep, ends the session for every station until it is back. A station also opens **Before you start** on its own first load, with the same Uplink rows the main screen shows and no logs question, and answers are remembered per browser.
 

@@ -90,6 +90,11 @@ export function UplinkReadinessStep() {
           ))}
         </RowList>
       )}
+      {!waitingForMod && installed.length === 0 && (
+        <Hint>
+          <span>{say("uplinks.hint.none")}</span>
+        </Hint>
+      )}
       {waitingForMod && (
         <Hint>
           <span>{say("uplinks.hint.waiting")}</span>

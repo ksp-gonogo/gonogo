@@ -33,7 +33,7 @@ If the main screen can't reach the KSP computer on the same WiFi, a firewall on 
    - Type [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station) into the browser. This is the public build of the same app. It is a 404 until the first release is published, so before that use your own address
    - On the same WiFi, `http://<main-screen-computer-ip>:8080/station`, served by your own container. Running from a checkout it is `http://<main-screen-computer-ip>:5173/station`
 3. If you didn't arrive by QR or link, the station shows a **Connect to Mission Control** screen. Type the six-character code and press **Connect**
-4. A new main screen or station starts empty: it says "No widgets on this dashboard", and the **+** (Add component) at the bottom right is how you add one
+4. A new main screen or station starts empty: it says "No widgets on this dashboard" and offers an **Add a widget** button
 
 The station remembers the code, so it reconnects by itself on the next page load, provided the main screen's tab is open. To change or clear it, open the **Connection** FAB on a connected station: it shows the current code and status, takes a different code, and has a **Disconnect** that returns the device to the connect screen.
 

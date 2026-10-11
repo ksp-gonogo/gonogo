@@ -63,9 +63,10 @@ describe("MainScreen smoke", () => {
     expect(container.querySelector("div")).not.toBeNull();
   });
 
-  it("shows the empty-dashboard notice on a first run, naming the Add component control", () => {
+  it("shows the empty-dashboard notice on a first run, with a button that adds a widget", () => {
     renderScreen(<MainScreen />);
     expect(screen.getByText("No widgets on this dashboard")).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Add a widget" })).not.toBeNull();
     expect(
       screen.getByRole("button", { name: "Add component" }),
     ).not.toBeNull();

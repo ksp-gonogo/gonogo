@@ -50,9 +50,20 @@ export const WIZARD_COPY = {
   "connect.advance": "Check Uplinks",
   "connect.instruction":
     "Start KSP with the Gonogo mod installed. The mod starts with the game, so reaching the main menu is enough. If KSP runs on another computer, press the gear on the row below and set Host to that computer's address.",
+  "connect.twoComputers":
+    "KSP pauses when its window is not in front, so with both on one computer the dashboard stops getting data whenever you switch to it. Running KSP on a second computer avoids that.",
+  "connect.trust":
+    "The mod listens on port 8090 with no password, and that port accepts commands that fly your ship. Keep it to a network you trust and never forward it to the internet. Friends elsewhere join with your share code instead.",
   "connect.confirm":
     'To confirm the mod started, run this in your KSP install folder. A working start prints a line beginning "[Gonogo] Started".',
   "connect.logCommandLabel": "mod log command",
+  "connect.hint.address":
+    "To find the KSP computer's address, run the command for its system on that computer. The address usually starts 192.168. or 10.",
+  "connect.address.windows": "On Windows, look for IPv4 Address:",
+  "connect.address.macos": "On macOS:",
+  "connect.address.linux":
+    "On Linux or a Steam Deck, look for inet on your active connection:",
+  "connect.addressCommandLabel": "address command",
   "connect.check.pass": "Connected to KSP at {address}",
   "connect.check.checking": "Trying to reach KSP at {address}",
   "connect.check.fail": "Not connected to KSP at {address}",
@@ -81,6 +92,8 @@ export const WIZARD_COPY = {
     "{loaded} of {installed} installed {installed?Uplink has|Uplinks have} a loaded client",
   "uplinks.summaryRefused":
     "{summary}; {refused} refused for a contract mismatch",
+  "uplinks.hint.none":
+    "Uplinks are marked as development releases, which CKAN hides by default. If the search finds none, allow development releases in CKAN's settings (its stability tolerance) and search again.",
   "uplinks.hint.waiting":
     "This list comes from the mod, so it stays empty until the previous step is connected to KSP.",
   "uplinks.hint.attention":

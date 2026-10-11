@@ -29,6 +29,7 @@ import {
 import { type CopyRun, runs, say } from "./copy";
 import { FirstRunSetup } from "./FirstRunSetup";
 import {
+  ADDRESS_COMMAND,
   CKAN_UPLINK_FILTER,
   CONTAINER_LOGS_COMMAND,
   CONTAINER_STATUS_COMMAND,
@@ -354,6 +355,24 @@ describe("FirstRunSetup: the KSP connection check", () => {
     ).toHaveAttribute("href", SETUP_LINKS.networking);
   });
 
+  it("says why a second computer helps and that the port is not to be forwarded", async () => {
+    renderSetup(undefined, { ksp: "connected" });
+    await goToConnect();
+
+    expect(screen.getByText(say("connect.twoComputers"))).toBeInTheDocument();
+    expect(screen.getByText(say("connect.trust"))).toBeInTheDocument();
+  });
+
+  it("gives the command that finds the KSP computer's address on each system, since it need not be this one", async () => {
+    renderSetup();
+    await goToConnect();
+
+    expect(screen.getByText(say("connect.hint.address"))).toBeInTheDocument();
+    for (const command of Object.values(ADDRESS_COMMAND)) {
+      expect(screen.getByText(command)).toBeInTheDocument();
+    }
+  });
+
   it("reads connected and drops the hints once the mod answers", async () => {
     renderSetup(undefined, { ksp: "connected" });
     await goToConnect();
@@ -449,6 +468,17 @@ describe("FirstRunSetup: the Uplinks reading", () => {
 
     await emitRoster(wsClients, []);
     await screen.findByText(say("uplinks.check.none"));
+  });
+
+  it("says CKAN hides Uplinks until development releases are allowed, once the mod reports none", async () => {
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    expect(screen.queryByText(say("uplinks.hint.none"))).toBeNull();
+
+    await emitRoster(wsClients, []);
+    expect(
+      await screen.findByText(say("uplinks.hint.none")),
+    ).toBeInTheDocument();
   });
 
   it("gives a player one plain line for an author-facing refusal and keeps the detail behind Details", async () => {

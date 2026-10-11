@@ -1,9 +1,11 @@
 /*
- * The first-load page and the Settings version row, each driven by the app's
- * own component in a world a story chooses.
+ * The first-load page, the Settings version row and the empty dashboard, each
+ * driven by the app's own component in a world a story chooses.
  */
 import "./setup";
 import { type ReactNode, useEffect, useState } from "react";
+import { OverlayProvider } from "../../app/src/components/ComponentOverlay";
+import { EmptyDashboardNotice } from "../../app/src/components/Dashboard/EmptyDashboardNotice";
 import { AppVersion } from "../../app/src/settings/AppVersion";
 import {
   __resetLatestRelease,
@@ -159,5 +161,16 @@ export function AppVersionScene({ world }: Readonly<{ world: VersionWorld }>) {
         <AppVersion />
       </Dialog>
     </FixtureStream>
+  );
+}
+
+/** A dashboard with no widgets, inside a screen whose picker its button opens. */
+export function EmptyDashboardScene() {
+  return (
+    <OverlayProvider addItem={() => {}} updateItemConfig={() => {}}>
+      <div data-story-widget>
+        <EmptyDashboardNotice />
+      </div>
+    </OverlayProvider>
   );
 }

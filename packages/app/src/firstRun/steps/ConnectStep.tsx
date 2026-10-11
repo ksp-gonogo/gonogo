@@ -2,9 +2,11 @@ import { CommandBlock } from "@ksp-gonogo/ui";
 import { Stack, Text } from "@ksp-gonogo/ui-kit";
 import { SitrepConnection } from "../../settings/SitrepConnection";
 import { runs, say } from "../copy";
-import { isWindows, MOD_LOG_COMMAND } from "../setupGuide";
+import { ADDRESS_COMMAND, isWindows, MOD_LOG_COMMAND } from "../setupGuide";
 import { useConnectionCheck } from "../useConnectionCheck";
 import { Hint, HintList, Prose, StepCheck } from "./StepParts";
+
+const ADDRESS_SYSTEMS = ["windows", "macos", "linux"] as const;
 
 /**
  * The connect step embeds the SAME host row the Settings Connection tab
@@ -24,6 +26,12 @@ export function ConnectStep() {
         {say("connect.instruction")}
       </Text>
       <Text level="muted" size="sm">
+        {say("connect.twoComputers")}
+      </Text>
+      <Text level="muted" size="sm">
+        {say("connect.trust")}
+      </Text>
+      <Text level="muted" size="sm">
         {say("connect.confirm")}
       </Text>
       <CommandBlock
@@ -41,6 +49,20 @@ export function ConnectStep() {
             </li>
             <li>
               <Prose runs={runs("connect.hint.blocked")} />
+            </li>
+            <li>
+              <Stack gap="related">
+                <span>{say("connect.hint.address")}</span>
+                {ADDRESS_SYSTEMS.map((system) => (
+                  <Stack key={system} gap="related-dense">
+                    <span>{say(`connect.address.${system}`)}</span>
+                    <CommandBlock
+                      command={ADDRESS_COMMAND[system]}
+                      label={say("connect.addressCommandLabel")}
+                    />
+                  </Stack>
+                ))}
+              </Stack>
             </li>
           </HintList>
         </Hint>

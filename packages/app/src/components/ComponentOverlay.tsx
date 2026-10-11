@@ -42,6 +42,9 @@ import type { DashboardItem } from "./Dashboard";
 interface OverlayContextValue {
   addItem: (item: DashboardItem, layout: { w: number; h: number }) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
+  /** Whether the picker is open. Held here so a control outside the overlay can open it. */
+  pickerOpen: boolean;
+  setPickerOpen: (open: boolean) => void;
 }
 
 const OverlayContext = createContext<OverlayContextValue | null>(null);
@@ -55,13 +58,25 @@ export function OverlayProvider({
   addItem: (item: DashboardItem, layout: { w: number; h: number }) => void;
   updateItemConfig: (id: string, config: Record<string, unknown>) => void;
 }>) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const value = useMemo(
-    () => ({ addItem, updateItemConfig }),
-    [addItem, updateItemConfig],
+    () => ({ addItem, updateItemConfig, pickerOpen, setPickerOpen }),
+    [addItem, updateItemConfig, pickerOpen],
   );
   return (
     <OverlayContext.Provider value={value}>{children}</OverlayContext.Provider>
   );
+}
+
+/**
+ * Opens the Add component picker, or `null` where no picker is mounted, so a
+ * caller outside one renders no control that would do nothing.
+ */
+export function useOpenComponentPicker(): (() => void) | null {
+  const ctx = useContext(OverlayContext);
+  if (!ctx) return null;
+  const { setPickerOpen } = ctx;
+  return () => setPickerOpen(true);
 }
 
 function useOverlay(): OverlayContextValue {
@@ -71,7 +86,6 @@ function useOverlay(): OverlayContextValue {
 }
 
 export function ComponentOverlay() {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedTags, setSelectedTags] = useState<Set<string>>(
     () => new Set(),
@@ -83,7 +97,12 @@ export function ComponentOverlay() {
   const [activeIdx, setActiveIdx] = useState(0);
   const activeOptionRef = useRef<HTMLButtonElement | null>(null);
 
-  const { addItem, updateItemConfig } = useOverlay();
+  const {
+    addItem,
+    updateItemConfig,
+    pickerOpen: open,
+    setPickerOpen: setOpen,
+  } = useOverlay();
   const { open: openModal, close: closeModal } = useModal();
   const sizeDeltaFor = useSizeDeltaFor();
   // ModalProvider lives at the app root, above SerialDeviceProvider. Config
@@ -177,7 +196,7 @@ export function ComponentOverlay() {
     setQuery("");
     setSelectedTags(new Set());
     setActiveIdx(0);
-  }, []);
+  }, [setOpen]);
 
   const handleSelect = useCallback(
     (def: ComponentDefinition) => {

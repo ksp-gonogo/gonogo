@@ -1,12 +1,15 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { SerialDeviceProvider, SerialDeviceService } from "@ksp-gonogo/serial";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
+import { ModalProvider } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it, vi } from "vitest";
+import { ComponentOverlay, OverlayProvider } from "../ComponentOverlay";
 import { Dashboard } from "./index";
 
 const NOOP = vi.fn();
 
-function renderDashboard(items: Parameters<typeof Dashboard>[0]["items"]) {
-  return render(
+function dashboard(items: Parameters<typeof Dashboard>[0]["items"]) {
+  return (
     <Dashboard
       items={items}
       layouts={{}}
@@ -21,17 +24,53 @@ function renderDashboard(items: Parameters<typeof Dashboard>[0]["items"]) {
       removeItem={NOOP}
       moveItemUp={NOOP}
       moveItemDown={NOOP}
-    />,
+    />
+  );
+}
+
+function renderDashboard(items: Parameters<typeof Dashboard>[0]["items"]) {
+  return render(dashboard(items));
+}
+
+/** The dashboard as a screen mounts it, beside the picker its button opens. */
+function renderScreen(items: Parameters<typeof Dashboard>[0]["items"]) {
+  return render(
+    <ModalProvider>
+      <SerialDeviceProvider
+        service={new SerialDeviceService({ screenKey: "test" })}
+      >
+        <OverlayProvider addItem={NOOP} updateItemConfig={NOOP}>
+          {dashboard(items)}
+          <ComponentOverlay />
+        </OverlayProvider>
+      </SerialDeviceProvider>
+    </ModalProvider>,
   );
 }
 
 describe("Dashboard with no widgets", () => {
-  it("says so and names the control that adds one", async () => {
-    const { container } = renderDashboard([]);
+  it("says so, with a button that opens the widget picker", async () => {
+    const { container } = renderScreen([]);
 
     expect(screen.getByText("No widgets on this dashboard")).toBeVisible();
-    expect(screen.getByText(/Add component/)).toBeVisible();
+    expect(
+      screen.queryByRole("dialog", { name: "Add a component" }),
+    ).toBeNull();
     await expectNoA11yViolations(container);
+
+    await act(async () => {
+      screen.getByRole("button", { name: "Add a widget" }).click();
+    });
+    expect(
+      screen.getByRole("dialog", { name: "Add a component" }),
+    ).toBeVisible();
+  });
+
+  it("shows no button where no picker is mounted to open", () => {
+    renderDashboard([]);
+
+    expect(screen.getByText("No widgets on this dashboard")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Add a widget" })).toBeNull();
   });
 
   it("shows no notice once a widget is placed", () => {

@@ -1,8 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { withGonogoFrame } from "../../frame";
-import { AppVersionScene, FirstLoadChoicesScene } from "../../helpScenes";
+import {
+  AppVersionScene,
+  EmptyDashboardScene,
+  FirstLoadChoicesScene,
+} from "../../helpScenes";
 
-/** The first-load page, and the version row under Settings, General, About. */
+/** The first-load page, the version row under Settings, General, About, and the empty dashboard. */
 const meta = {
   title: "App/First load and version",
   decorators: [withGonogoFrame],
@@ -49,4 +53,9 @@ export const VersionOffline: StoryObj<typeof AppVersionScene> = {
 export const VersionMismatch: StoryObj<typeof AppVersionScene> = {
   name: "Version: mod from another release",
   render: () => <AppVersionScene world="mismatch" />,
+};
+
+export const EmptyDashboard: StoryObj<typeof EmptyDashboardScene> = {
+  name: "Empty dashboard",
+  render: () => <EmptyDashboardScene />,
 };

@@ -77,6 +77,13 @@ export const MOD_LOG_COMMAND = {
   windows: 'findstr /C:"[Gonogo]" KSP.log',
 } as const;
 
+/** What prints a computer's network address, by the system it runs, since the KSP computer's need not match this browser's. */
+export const ADDRESS_COMMAND = {
+  windows: "ipconfig",
+  macos: "ipconfig getifaddr en0",
+  linux: "ip addr show",
+} as const;
+
 /** The CKAN identifier every Uplink depends on, and so the one a search for Uplinks names. */
 export const CKAN_CORE_IDENTIFIER = "GonogoCore";
 
