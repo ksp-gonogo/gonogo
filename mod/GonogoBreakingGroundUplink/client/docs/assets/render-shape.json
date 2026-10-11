@@ -8,34 +8,34 @@
       "text": "e2f1fa7a"
     },
     "controller-not-connected--default.png": {
-      "hash": "7221dea02b3c9cc5",
-      "elements": 34,
-      "text": "33ce86a5"
+      "hash": "05bd772a038ea36c",
+      "elements": 35,
+      "text": "6099a8de"
     },
     "controller-not-connected--min.png": {
-      "hash": "277e3299d268e211",
-      "elements": 34,
-      "text": "e806199d"
+      "hash": "581b83b6869e0eed",
+      "elements": 35,
+      "text": "34fdff47"
     },
     "mun-and-minmus-bases--default.png": {
-      "hash": "7e3c060d861fa82d",
-      "elements": 66,
-      "text": "7e5d4ed7"
+      "hash": "1d0a0aa41e89b7d4",
+      "elements": 68,
+      "text": "4324c154"
     },
     "mun-and-minmus-bases--min.png": {
-      "hash": "2d62dd427edad650",
-      "elements": 66,
-      "text": "0f1e4a5f"
+      "hash": "36746697520a9099",
+      "elements": 68,
+      "text": "04eb00ce"
     },
     "mun-and-minmus-bases-stopped-arriving--default.png": {
-      "hash": "5aaf067a4a86a4ae",
-      "elements": 69,
-      "text": "7e5d4ed7"
+      "hash": "fa40e2da90ac0406",
+      "elements": 73,
+      "text": "731942ab"
     },
     "mun-and-minmus-bases-stopped-arriving--min.png": {
-      "hash": "0f70f598a8795273",
-      "elements": 69,
-      "text": "0f1e4a5f"
+      "hash": "ded087746bba5a29",
+      "elements": 73,
+      "text": "81c3ca4e"
     },
     "robotics-dlc-absent--default.png": {
       "hash": "9e3981faa5640401",
@@ -43,14 +43,14 @@
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "819aa79e1689ddd9",
-      "elements": 62,
-      "text": "ce36f370"
+      "hash": "a0918b7370c947dc",
+      "elements": 65,
+      "text": "f14fa8db"
     },
     "rotors--min.png": {
-      "hash": "8df7f3450ea308c9",
-      "elements": 50,
-      "text": "a49b575e"
+      "hash": "d28b8f83d937e120",
+      "elements": 53,
+      "text": "482ff170"
     },
     "rotors-dlc-absent--default.png": {
       "hash": "a6205d6486c9b92a",
@@ -58,24 +58,24 @@
       "text": "f903d91f"
     },
     "rotors-link-lost--default.png": {
-      "hash": "2744fa405ad61deb",
-      "elements": 68,
-      "text": "14b84f1c"
+      "hash": "99d6a379d4e6ed64",
+      "elements": 79,
+      "text": "8b5ad60a"
     },
     "servos--default.png": {
-      "hash": "ced5fa36bc112506",
-      "elements": 56,
-      "text": "5a799c90"
+      "hash": "8a29939773c3af6e",
+      "elements": 61,
+      "text": "c9621c46"
     },
     "servos--min.png": {
-      "hash": "a62bd9f679ebfee4",
-      "elements": 33,
+      "hash": "dd0c930e65df2c1f",
+      "elements": 36,
       "text": "220c5a23"
     },
     "servos-link-lost--default.png": {
-      "hash": "7e84768ca54bef58",
-      "elements": 61,
-      "text": "08e4ea00"
+      "hash": "08b8ffc76470d8a0",
+      "elements": 72,
+      "text": "03c0e156"
     }
   }
 }
