@@ -65,7 +65,6 @@ function registerTrivial() {
     configComponent: TrivialConfigUI,
     openConfigOnAdd: true,
     dataRequirements: [],
-    behaviors: [],
     defaultConfig: { label: "default" },
   } as unknown as ComponentDefinition);
 }

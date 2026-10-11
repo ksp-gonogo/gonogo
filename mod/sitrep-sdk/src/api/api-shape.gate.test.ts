@@ -63,7 +63,6 @@ describe("sitrep-sdk author-facing barrel: shims without a host", () => {
       tags: ["test"],
       component: () => null,
       dataRequirements: [],
-      behaviors: [],
       defaultConfig: {},
     };
     expect(() => barrel.registerComponent(def)).not.toThrow();

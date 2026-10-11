@@ -126,8 +126,8 @@ kOS integration now rides the same Sitrep WS stream as telemetry, script dispatc
 The foundation for everything extensible:
 
 - **Plugin registry**: `registerComponent(def)`, `registerTheme(def)`, and `registerDataSource(def)` are the three extension points. Calling these at module load time is all that's needed to extend the app.
-- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `ComponentBehavior`, `DataSource`, `DataRequirement`, etc.
-- **GO/NO-GO system**: aggregates the human GO/NO-GO readiness state across all active stations. It is a human readiness ceremony (operators voting) that triggers a stage transition and nothing else; no component feeds into it (`behaviors: ['gonogo-participant']` is inert by design).
+- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `DataSource`, `DataRequirement`, etc.
+- **GO/NO-GO system**: aggregates the human GO/NO-GO readiness state across all active stations. It is a human readiness ceremony (operators voting) that triggers a stage transition and nothing else; no component feeds into it.
 - **Data source interface (repository pattern)**: all data sources implement a common `DataSource` interface:
   ```ts
   interface DataSource {
@@ -187,7 +187,6 @@ registerComponent({
   component: MyCustomGauge,   // reads with useTelemetry('vessel.flight')
   channels: ['vessel.flight'], // Topics this widget mounts on
   defaultSize: { w: 4, h: 4 },
-  behaviors: [],              // opt-in behavior flags
   defaultConfig: {},
 });
 ```

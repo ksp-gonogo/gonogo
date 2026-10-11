@@ -57,7 +57,6 @@ function register(id: string, component: (props: never) => JSX.Element): void {
     tags: [],
     component: component as never,
     dataRequirements: [],
-    behaviors: [],
     defaultConfig: {},
   });
 }

@@ -79,7 +79,10 @@ export class SettingsService {
   }
 
   /** Calls the listener with the new value each time the key's value changes. Returns the function that stops it. */
-  subscribe<SettingValue>(key: string, cb: Listener<SettingValue>): () => void {
+  subscribe<SettingValue>(
+    key: string,
+    cb: (value: SettingValue) => void,
+  ): () => void {
     let bucket = this.listeners.get(key);
     if (!bucket) {
       bucket = new Set();

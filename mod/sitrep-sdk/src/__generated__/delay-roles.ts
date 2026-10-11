@@ -35,7 +35,11 @@ export const GENERATED_TRUENOW_TOPICS = [
   "time.warp",
 ] as const;
 
-/** One of the topics above, as a key union for the type layer. */
+/**
+ * A Topic the mod declares `TrueNow`: read with no signal delay.
+ *
+ * @category Delay and vantage
+ */
 export type GeneratedTrueNowTopic =
   (typeof GENERATED_TRUENOW_TOPICS)[number];
 
@@ -57,7 +61,11 @@ export const GENERATED_HELD_AT_HOME_TOPICS = [
   "spaceCenter.savedShips",
 ] as const;
 
-/** One of the topics above, as a key union for the type layer. */
+/**
+ * A Topic the mod declares `HeldAtHome`: delivered after the delay to the home command centre.
+ *
+ * @category Delay and vantage
+ */
 export type GeneratedHeldAtHomeTopic =
   (typeof GENERATED_HELD_AT_HOME_TOPICS)[number];
 

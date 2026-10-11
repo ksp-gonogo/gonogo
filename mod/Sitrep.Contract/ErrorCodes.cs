@@ -320,6 +320,7 @@ public sealed class FaultCode : IEquatable<FaultCode>
 /// than a result: the host sends an <c>error</c> frame carrying it and, unlike
 /// any other throw, leaves the command available.
 /// </summary>
+/// <category>Commands</category>
 public sealed class CommandFaultException : Exception
 {
     /// <summary>A fault with the machinery's own account of it, for a log rather than an operator.</summary>

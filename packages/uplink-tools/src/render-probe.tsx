@@ -392,8 +392,6 @@ export interface InventoryMode {
  * @category Inventory
  */
 export interface InventoryWidget extends WidgetRecord {
-  /** The registration's behavior flags. */
-  behaviors: string[];
   /** The sizes the harness renders the widget at, the default size first. */
   modes: InventoryMode[];
 }
@@ -634,7 +632,6 @@ export function readInventory(uplinkId?: string): UplinkInventory {
   const owned = (owner: { id: string } | undefined) => owner?.id === client.id;
   const widgetInventory = (def: ComponentDefinition): InventoryWidget => ({
     ...widgetRecordOf(def),
-    behaviors: (def.behaviors ?? []).map((b) => String(b)),
     modes: modesFor(def),
   });
   return {

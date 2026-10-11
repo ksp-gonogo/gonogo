@@ -28,7 +28,7 @@ export const CORE_CONTRACT_OWNER = "core";
  * and may be drawn as a line, `discrete` stands until the next sample and is
  * drawn as a step, `event` is one occurrence per sample and is drawn as points.
  *
- * @category Channels
+ * @category Registering
  */
 export type SampleKind = "continuous" | "discrete" | "event";
 
@@ -37,7 +37,7 @@ export type SampleKind = "continuous" | "discrete" | "event";
  * the channel's own for the value and everything beneath it; `event` is never
  * one, since whether a sample is an occurrence is a fact about the whole sample.
  *
- * @category Channels
+ * @category Registering
  */
 export interface ValueTags {
   /** How this value and everything beneath it relate in time, where it differs from the channel's own kind. */
@@ -68,7 +68,7 @@ export interface ContractReckonableRow {
  * The table a contract's codegen writes into its generated units file: value
  * tags by Topic then path, and the values its models carry forward.
  *
- * @category Channels
+ * @category Registering
  */
 export interface ContractTagTable {
   /** The tags declared on each Topic's values, by Topic then path. */
@@ -128,7 +128,7 @@ let generation = 0;
  * naming both, and when a row names a model outside the closed vocabulary.
  * Registering again under the same owner replaces what it registered before.
  *
- * @category Channels
+ * @category Registering
  */
 export function registerContractTags(
   owner: string,
@@ -188,7 +188,7 @@ export function reckonableRowsOf(
  * level), with the owner that declared them, or `undefined` when no contract
  * declares any.
  *
- * @category Channels
+ * @category Registering
  */
 export function valueTagsOf(
   topic: string,

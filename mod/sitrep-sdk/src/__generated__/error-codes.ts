@@ -24,6 +24,16 @@ export interface ErrorCodeDeclaration {
 }
 
 /**
+ * One error code an Uplink declares: always a refusal, since an Uplink's codes refine a root and faults are declared by Gonogo.
+ *
+ * @category Error codes
+ */
+export interface UplinkErrorCodeDeclaration extends ErrorCodeDeclaration {
+  readonly kind: "refusal";
+  readonly origin: null;
+}
+
+/**
  * The root refusals: the closed set every client can switch on. Each says what
  * kind of refusal it was, and so whether waiting, changing the craft, or doing
  * something in the game is what makes a retry worthwhile.

@@ -179,9 +179,13 @@ export interface StreamBackedSettingOf<
  */
 export interface StoredStreamBackedSettingOf<SettingKind extends SettingType>
   extends SettingDefinitionBase {
+  /** Always `"stream-backed"`: the value is read from a Topic rather than stored. */
   backing: "stream-backed";
+  /** The kind of value the row holds. */
   type?: SettingKind;
+  /** The id of the Topic the value is read from. */
   topic: string;
+  /** Picks the row's value out of the Topic's payload. */
   select: (
     payload: unknown,
   ) => SettingValueByType[SettingKind] | null | undefined;

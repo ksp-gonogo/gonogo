@@ -372,9 +372,7 @@ export function scenesAssertingNothing(inputs: DocsInputs): string[] {
  * @category Uplink page
  */
 export function widgetRecordsOf(inventory: UplinkInventory): WidgetRecord[] {
-  return inventory.widgets.map(
-    ({ behaviors: _b, modes: _m, ...record }) => record,
-  );
+  return inventory.widgets.map(({ modes: _m, ...record }) => record);
 }
 
 // Takes the record, never the inventory entry, so nothing reaches a widget's section that `docs/widgets.json` does not also carry.

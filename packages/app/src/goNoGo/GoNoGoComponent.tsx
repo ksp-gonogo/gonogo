@@ -735,7 +735,6 @@ registerComponent<GoNoGoWidgetConfig>({
   component: GoNoGoComponent,
   configComponent: GoNoGoConfigComponent,
   dataRequirements: ["vessel.identity.launchUt"],
-  behaviors: ["gonogo-participant"],
   defaultConfig: {
     countdownSeconds: DEFAULT_GONOGO_CONFIG.countdownLengthMs / 1000,
     triggerStageAtZero: DEFAULT_GONOGO_CONFIG.triggerStageAtZero,

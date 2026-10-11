@@ -78,7 +78,6 @@ registerComponent({
   tags: ["telemetry"],
   component: ConfigProbe as never,
   dataRequirements: [],
-  behaviors: [],
   defaultConfig: { marker: "from-registry" },
 });
 

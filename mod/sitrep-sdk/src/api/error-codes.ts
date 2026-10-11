@@ -1,6 +1,7 @@
 import {
   CORE_ERROR_CODES,
   type ErrorCodeDeclaration,
+  type UplinkErrorCodeDeclaration,
 } from "../__generated__/error-codes";
 
 const coreById = new Map<string, ErrorCodeDeclaration>(
@@ -34,7 +35,7 @@ export function describeErrorCode(
  * @category Error codes
  */
 export function registerErrorCodes(
-  codes: readonly ErrorCodeDeclaration[],
+  codes: readonly UplinkErrorCodeDeclaration[],
 ): void {
   for (const code of codes) {
     if (coreById.has(code.id)) continue;

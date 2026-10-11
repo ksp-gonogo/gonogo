@@ -34,7 +34,6 @@ function registerMini() {
     tags: [],
     component: MiniWidget,
     dataRequirements: [],
-    behaviors: [],
     defaultConfig: {},
   } as unknown as ComponentDefinition);
 }
@@ -164,7 +163,6 @@ describe("PushedDashboardOverlay", () => {
       tags: [],
       component: ContextDependentWidget,
       dataRequirements: [],
-      behaviors: [],
       defaultConfig: {},
       actions: ACTIONS,
     } as unknown as ComponentDefinition);

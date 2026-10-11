@@ -17,7 +17,7 @@ import { useLatestValue } from "./use-stream";
 /**
  * Why a capability is locked: the unlocks it is missing, and the evaluator's prose for when it named none.
  *
- * @category Panel
+ * @category Readings
  */
 export interface CapabilityLock {
   /** The Topic or command that is locked. */

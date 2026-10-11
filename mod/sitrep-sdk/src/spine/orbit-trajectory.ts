@@ -666,7 +666,7 @@ export function arcInOrbitPlane(
 /**
  * How many points a closed orbit ring is sampled into.
  *
- * @category Orbits and trajectories
+ * @category Frames of reference
  */
 export const ORBIT_RING_SAMPLES = 96;
 
@@ -678,7 +678,7 @@ export const ORBIT_RING_SAMPLES = 96;
  * instead of piling up at apoapsis. Eccentricity is held below 1, so an
  * unbound set draws its widest ellipse rather than failing.
  *
- * @category Orbits and trajectories
+ * @category Frames of reference
  */
 export function orbitRing(
   orbit: Pick<OrbitElements, "sma" | "ecc" | "inc" | "lan" | "argPe">,

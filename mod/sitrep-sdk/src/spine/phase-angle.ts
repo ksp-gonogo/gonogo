@@ -23,7 +23,7 @@ function dot(a: Vec3Tuple, b: Vec3Tuple): number {
  * coplanar. Null when `from` has no motion to give a plane, or either position
  * is the centre itself.
  *
- * @category Frames of reference
+ * @category Orbits and trajectories
  */
 export function phaseAngleBetween(
   from: { position: Vec3Tuple; velocity: Vec3Tuple },

@@ -80,6 +80,8 @@ interface RawSystemUplinksPayload {
  *
  * Its literal tuple type gives {@link UplinkHealthStateName} a closed union,
  * which you can key a `Record` on.
+ *
+ * @category Host and runtime
  */
 export const HEALTH_STATE_NAMES = [
   "healthy",

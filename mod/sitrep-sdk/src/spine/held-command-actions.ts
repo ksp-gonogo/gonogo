@@ -12,7 +12,12 @@ export const UPLINK_CANCEL_COMMAND = "system.uplink.cancel";
 /** The send-again command: a new copy of a held or overdue command, in its own place on its lane. */
 export const UPLINK_RESEND_COMMAND = "system.uplink.resend";
 
-/** What a cancel or a send again did at the sending centre. */
+/**
+ * What a cancel or a send again did at the sending centre: the cancel's last
+ * lane number, the new copy's id and expiry, or why it was refused.
+ *
+ * @category Commands
+ */
 export interface UplinkActionOutcome {
   /** For a cancel, the last lane number it covers: more than counted when another screen sent on the lane meanwhile. */
   throughSeq?: Value<"count">;

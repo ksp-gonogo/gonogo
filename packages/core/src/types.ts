@@ -106,8 +106,6 @@ export interface DataSource<
   affectedBySignalLoss?: boolean;
 }
 
-export type ComponentBehavior = "gonogo-participant";
-
 /**
  * Action inputs: wiring for physical/virtual controls to trigger component
  * functionality. Components declare their available actions at registration;
@@ -312,7 +310,6 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * questions collapse back into one.
    */
   fields?: readonly WidgetFieldPath[];
-  behaviors?: ComponentBehavior[];
   defaultConfig?: Partial<Config>;
   /**
    * Actions this component exposes to the serial input platform. Each entry

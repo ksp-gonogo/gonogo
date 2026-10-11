@@ -50,6 +50,8 @@ export interface ProcessorHandle<
  * Wrapped in a tuple so a union of deps does not distribute: the question is
  * about the list as a whole, and a distributed `extends never` would decide it
  * once per member.
+ *
+ * @category Processors
  */
 export type CarriesCurrency<Deps extends readonly Dep[]> = [
   Extract<Deps[number], ReadingDep>,
@@ -59,72 +61,39 @@ export type CarriesCurrency<Deps extends readonly Dep[]> = [
 
 /**
  * A dep asking for a Topic's `Reading` rather than its bare payload.
+ * `{ reading: "vessel.resources" }` resolves to the Topic's {@link TopicReading}
+ * in the processor's `compute`, so the result can say how current it is: a
+ * processor given only the payload computes on last-contact values during a
+ * blackout and presents the result as if it were now.
  *
- * The wrapper exists because a Topic id is a plain string, so there is nothing
- * to distinguish "give me the value" from "give me the value and its currency"
- * without one. `{ reading: "vessel.resources" }` reads at the call site as the
- * request it is.
+ * A processor with a reading among its deps returns a `Reading` of its own,
+ * observed, held or modelled by those inputs (see {@link CarriesCurrency}).
+ * Return a plain value, not the reading, when the result combines several
+ * Topics: it is no single Topic's currency.
  *
- * ## Why a processor needs this at all
+ * @typeParam Topic - The Topic read.
  *
- * A processor resolved a Topic dep to `point.payload`: the VALUE channel alone,
- * with no staleness, no `validAt` and no model. So a derivation that reasons
- * ACROSS topics could not tell whether its inputs were current, and during a
- * blackout it computed on last-contact values and its consumers presented the
- * result as though it were now. `ShipSystems` does exactly that today: a
- * time-to-empty derived from levels observed twenty minutes ago, rendered with
- * nothing anywhere saying so. That is the failure this whole type exists to
- * prevent, in the widget where it matters most.
- *
- * ## Why it composes
- *
- * `evaluate` skips a processor whose `lastFrameGeneration` matches the frame,
- * so it is memoised WITHIN a frame and re-evaluated ACROSS frames.
- * `sampleReading` re-derives a reading carrying a model whenever the frame's
- * view time moves. Both are keyed on the same thing, the frame, so a processor
- * sees a reading built for the moment it is deriving for without any new
- * invalidation machinery.
- *
- * ## What a processor should NOT do with it
- *
- * Return it. A `Reading` is one Topic's currency; a cross-resource conclusion
- * ("four hours of oxygen, but not if the batteries go first") is not one
- * Topic's anything. A processor whose output is modelled carries its own
- * provenance instead, the way a projection channel's payload does with
- * `observed` / `projected` / `lower` / `upper` / `elapsed`.
+ * @category Processors
  */
 export interface ReadingDep<Topic extends TopicId = TopicId> {
+  /** The Topic whose reading the processor is given. */
   readonly reading: Topic;
 }
 
 /**
- * A dep whose topic is only known once the FIXED deps have resolved: "the orbit
- * of whichever vessel this route names", not a topic id anyone can write down.
+ * A dep whose Topic is only known once the fixed deps have resolved: "the orbit
+ * of whichever vessel this route names", not a Topic id anyone can write down
+ * in advance. Only a reckoner declares one; a processor handed one is refused.
  *
- * ## Why a fixed list cannot express it
+ * `Payload` is the payload the resolved Topic carries, which you state, since a
+ * Topic id computed at runtime has no entry in `TopicPayloadMap` to infer from.
+ * When `subject` returns `undefined` the dep resolves to `undefined` and the
+ * model declines for the missing input, the same as any other absent Topic.
  *
- * `comms.delay`'s model refuses a relayed route outright, and its own decline
- * says why: the route home starts at a relay, and where that relay is now sits
- * on `fleet.<guid>.orbit`, whose guid arrives IN the route. The model has the
- * guid in hand at reckon time; what it has no way to say is "subscribe that".
- * Every other dep variety names its topic at declaration time, which is exactly
- * the thing a subject cannot do.
+ * @typeParam Payload - The payload the resolved Topic carries.
+ * @typeParam Fixed - The leading deps `subject` reads, so it destructures typed.
  *
- * ## The payload type is stated, not looked up
- *
- * `Payload` is the payload the resolved topic carries, and the author gives it,
- * the same way `useStream<WireOf<VesselOrbitPayload>>(`fleet.${guid}.orbit`)`
- * already does at every other dynamic read in the tree. A dynamic topic has no
- * member in `TopicPayloadMap` to infer from: the ids are computed at runtime,
- * which is the same reason `dynamicWholeTopicPrefixes` exists rather than a
- * generated list.
- *
- * ## An undeclared subject declines, it does not guess
- *
- * `subject` returning `undefined` resolves the dep to `undefined`, which the
- * store already turns into the `input-absent` decline every other unmet dep
- * gets. A model that cannot name its subject has not got its input, and saying
- * so is the same result as an absent channel rather than a new one.
+ * @category Reckoners
  */
 export interface SubjectDep<
   Payload = unknown,
@@ -161,6 +130,8 @@ export interface SubjectDep<
  * handed one is refused out loud by the evaluator: a processor has no point to
  * take a subject from, and resolving it to `undefined` there would be
  * indistinguishable from an absent input.
+ *
+ * @category Processors
  */
 export type Dep =
   | TopicId
@@ -190,7 +161,12 @@ type ResolvedDep<Dependency extends Dep> =
           ? TopicPayload<Dependency> | undefined
           : never;
 
-/** Positionally-mapped tuple of resolved dependency values, in deps order. */
+/**
+ * The tuple of resolved dependency values a processor's `compute` receives, in
+ * the order of its deps.
+ *
+ * @category Processors
+ */
 export type ResolvedDeps<Deps extends readonly Dep[]> = {
   [Index in keyof Deps]: Deps[Index] extends Dep
     ? ResolvedDep<Deps[Index]>
@@ -205,6 +181,8 @@ export type ResolvedDeps<Deps extends readonly Dep[]> = {
  * It holds only the frame's view time, the game time the screen is showing.
  * Use it, not the wall clock, to turn an instant on the wire into a remaining
  * duration, so a replay of the same samples gives the same result.
+ *
+ * @category Processors
  */
 export interface ProcessorFrame {
   /** The frame's frozen view time. Every read in this frame shares it. */

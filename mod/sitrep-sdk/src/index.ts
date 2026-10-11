@@ -12,6 +12,11 @@
  * @packageDocumentation
  */
 export * from "./__generated__/contract";
+export type { GeneratedControlChannelId } from "./__generated__/control-channels";
+export type {
+  GeneratedHeldAtHomeTopic,
+  GeneratedTrueNowTopic,
+} from "./__generated__/delay-roles";
 export * from "./__generated__/error-codes";
 export * from "./api";
 // The HOST's logger, not `@ksp-gonogo/logger`'s singleton (a bundled second copy of
@@ -388,6 +393,7 @@ export {
   deriveDeltaVBudget,
   normaliseStage,
 } from "./spine/delta-v-budget";
+export type { UplinkActionOutcome } from "./spine/held-command-actions";
 export {
   type Anomalies,
   type ConicShape,
@@ -462,8 +468,14 @@ export {
 // its contract does not. See `defineProcessorContract`'s own doc for why a
 // declaration-merged registry keyed by id cannot do this job.
 export {
+  type CarriesCurrency,
+  type Dep,
   defineProcessorContract,
+  type ProcessorFrame,
   type ProcessorHandle,
+  type ReadingDep,
+  type ResolvedDeps,
+  type SubjectDep,
 } from "./spine/processors";
 // Which screen the widget is mounted on, and which seat that puts the operator
 // in. The `Screen` and `Seat` TYPES are already on this barrel (via `./api`),
@@ -479,6 +491,7 @@ export {
   useScreen,
   useSeat,
 } from "./spine/screen";
+export type { StoredStreamBackedSettingOf } from "./spine/settings-registry";
 // The shape of `system.uplinkHealth`, so an Uplink can read the roster it is
 // itself reported on. Published because health is where an Uplink says what it
 // depends on and whether that dependency is usable, which is the sort of thing a
@@ -492,6 +505,7 @@ export type {
   UplinkHealthFact,
   UplinkHealthStateName,
 } from "./spine/uplink-health";
+export { HEALTH_STATE_NAMES } from "./spine/uplink-health";
 export { useSystemInstant } from "./system-instant";
 export * from "./timeline";
 export {

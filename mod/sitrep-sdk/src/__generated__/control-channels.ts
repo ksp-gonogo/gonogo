@@ -37,5 +37,10 @@ export const GENERATED_CONTROL_CHANNELS = [
   { id: "vessel.control.yaw", readTopic: "vessel.control", readField: "yaw", writeCommand: "vessel.control.setAxes", argsType: "SetControlAxesArgs", valueField: "yaw" },
 ] as const satisfies readonly GeneratedControlChannel[];
 
+/**
+ * The id of one control channel: a control set with a command and read back from a Topic.
+ *
+ * @category Commands
+ */
 export type GeneratedControlChannelId =
   (typeof GENERATED_CONTROL_CHANNELS)[number]["id"];

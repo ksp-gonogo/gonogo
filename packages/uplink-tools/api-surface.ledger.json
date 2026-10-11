@@ -429,7 +429,7 @@
     "breaks": [
       {
         "key": "uplink-tools . ~InventoryWidget",
-        "note": "InventoryWidget now extends WidgetRecord and adds only behaviors and modes"
+        "note": "InventoryWidget now extends WidgetRecord and adds only modes"
       },
       {
         "key": "uplink-tools . ~InventoryWidget#actions",
@@ -438,6 +438,10 @@
       {
         "key": "uplink-tools . ~InventoryWidget#augmentSlots",
         "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools . ~InventoryWidget#behaviors",
+        "note": "InventoryWidget no longer carries the inert behaviors list"
       },
       {
         "key": "uplink-tools . ~InventoryWidget#channels",
@@ -489,7 +493,7 @@
       },
       {
         "key": "uplink-tools ./render-probe InventoryWidget",
-        "note": "InventoryWidget now extends WidgetRecord and adds only behaviors and modes"
+        "note": "InventoryWidget now extends WidgetRecord and adds only modes"
       },
       {
         "key": "uplink-tools ./render-probe InventoryWidget#actions",
@@ -498,6 +502,10 @@
       {
         "key": "uplink-tools ./render-probe InventoryWidget#augmentSlots",
         "note": "Moved to WidgetRecord, which InventoryWidget extends; same type"
+      },
+      {
+        "key": "uplink-tools ./render-probe InventoryWidget#behaviors",
+        "note": "InventoryWidget no longer carries the inert behaviors list"
       },
       {
         "key": "uplink-tools ./render-probe InventoryWidget#channels",

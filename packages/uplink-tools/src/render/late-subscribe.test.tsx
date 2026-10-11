@@ -79,7 +79,6 @@ const INVENTORY: UplinkInventory = {
       defaultSize: null,
       minSize: null,
       tiny: false,
-      behaviors: [],
       modes: [{ name: "default", w: 6, h: 4, pxW: 232, pxH: 124 }],
     },
   ],

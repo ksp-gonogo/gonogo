@@ -52,15 +52,6 @@ import type { Tone } from "./tone";
 export type DataRequirement = string;
 
 /**
- * A behaviour flag a widget may list in {@link ComponentDefinition.behaviors}.
- * The one value, `"gonogo-participant"`, changes nothing: the GO/NO-GO poll is
- * a vote the operators take, and no widget feeds it. Leave `behaviors` out.
- *
- * @category Registering
- */
-export type ComponentBehavior = "gonogo-participant";
-
-/**
  * A game state a widget needs before it can show anything useful.
  * `"flight"` needs a vessel in flight; `"career"` needs a career save or a
  * science-mode save (KSP's mode with science but no funds). While one a widget lists is not met, the dashboard draws a notice
@@ -431,8 +422,6 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * can read.
    */
   fields?: readonly WidgetFieldPath[];
-  /** Behaviours the widget opts into; see {@link ComponentBehavior}. The only one has no effect, so leave this out. */
-  behaviors?: ComponentBehavior[];
   /** The settings a new instance starts with. */
   defaultConfig?: Partial<Config>;
   /** Actions an operator can bind to a key, button or axis. Handle them with {@link useActionInput}. */

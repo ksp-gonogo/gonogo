@@ -8135,8 +8135,16 @@
         "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
       },
       {
+        "key": "sitrep-sdk . ComponentBehavior",
+        "note": "the inert behaviors field and its one value are removed"
+      },
+      {
         "key": "sitrep-sdk . ComponentDefinition#augmentSlots?",
         "note": "Typed as the slot ids SlotRegistry declares rather than any string, so a widget cannot list a slot nothing declares; an Uplink listing its own slot declares it with declare module first, as every bundled Uplink already does"
+      },
+      {
+        "key": "sitrep-sdk . ComponentDefinition#behaviors?",
+        "note": "the inert behaviors field and its one value are removed"
       },
       {
         "key": "sitrep-sdk . ContributionDep",
@@ -8181,6 +8189,14 @@
       {
         "key": "sitrep-sdk . GonogoHost#useDataSources",
         "note": "typed as DataSourceState[] instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk . GonogoHost#useViewClock",
+        "note": "the view clock is typed as DelayClockLike instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk . GonogoHost#useViewClockOptional",
+        "note": "the view clock is typed as DelayClockLike instead of unknown"
       },
       {
         "key": "sitrep-sdk . HeldGrade",
@@ -8241,6 +8257,10 @@
       {
         "key": "sitrep-sdk . ServerMessage",
         "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
+      },
+      {
+        "key": "sitrep-sdk . SettingsService#subscribe",
+        "note": "subscribe takes its callback type inline, so the unexported Listener alias is gone"
       },
       {
         "key": "sitrep-sdk . ShipMapOverlayContext#held",
@@ -8399,12 +8419,28 @@
         "note": "Takes an optional owner and returns each row with the owner whose contract declared it, so a decline is explained from the elected model's marks"
       },
       {
+        "key": "sitrep-sdk . registerErrorCodes",
+        "note": "an Uplink's error code table is typed as refusals only"
+      },
+      {
         "key": "sitrep-sdk . useDataSources",
         "note": "typed as DataSourceState[] instead of unknown"
       },
       {
         "key": "sitrep-sdk . useSetting",
         "note": "The default argument is optional: without one the hook reads the default of the client setting registered under the key, and throws when there is none"
+      },
+      {
+        "key": "sitrep-sdk . useViewClock",
+        "note": "the view clock is typed as DelayClockLike instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk . useViewClockOptional",
+        "note": "the view clock is typed as DelayClockLike instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk . ~CarriesCurrency",
+        "note": "CarriesCurrency is exported from the root, since it is named in an author-facing signature"
       },
       {
         "key": "sitrep-sdk . ~CommandFound",
@@ -8519,6 +8555,10 @@
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
+        "key": "sitrep-sdk . ~Dep",
+        "note": "Dep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
         "key": "sitrep-sdk . ~DepKey",
         "note": "Follows ContributionDep: no { reading } form to key"
       },
@@ -8571,6 +8611,10 @@
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
       },
       {
+        "key": "sitrep-sdk . ~Listener",
+        "note": "subscribe takes its callback type inline, so the unexported Listener alias is gone"
+      },
+      {
         "key": "sitrep-sdk . ~MapViewScope",
         "note": "No longer reachable only through WidgetScopeRegistry: now exported by name, with the same shape"
       },
@@ -8589,6 +8633,66 @@
       {
         "key": "sitrep-sdk . ~PredictedPhase",
         "note": "Recorded under its own name now that it is exported, so the unnamed entry is gone; the shape is unchanged"
+      },
+      {
+        "key": "sitrep-sdk . ~ProcessorFrame",
+        "note": "ProcessorFrame is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~ProcessorFrame#viewUt",
+        "note": "ProcessorFrame is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~ReadingDep",
+        "note": "ReadingDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~ReadingDep#reading",
+        "note": "ReadingDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~ResolvedDeps",
+        "note": "ResolvedDeps is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~StoredStreamBackedSettingOf",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~StoredStreamBackedSettingOf#backing",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~StoredStreamBackedSettingOf#readOnly?",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~StoredStreamBackedSettingOf#select",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~StoredStreamBackedSettingOf#topic",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~StoredStreamBackedSettingOf#type?",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~SubjectDep",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~SubjectDep#__payloadType?",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~SubjectDep#forSubject",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ~SubjectDep#subject",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
       },
       {
         "key": "sitrep-sdk . ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
@@ -8667,8 +8771,16 @@
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
       {
+        "key": "sitrep-sdk ./registry ~ComponentBehavior",
+        "note": "the inert behaviors field and its one value are removed"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#augmentSlots?",
         "note": "Typed as the slot ids SlotRegistry declares rather than any string, so a widget cannot list a slot nothing declares; an Uplink listing its own slot declares it with declare module first, as every bundled Uplink already does"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#behaviors?",
+        "note": "the inert behaviors field and its one value are removed"
       },
       {
         "key": "sitrep-sdk ./registry ~ContributionDep",
@@ -9181,6 +9293,14 @@
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useDataSources",
         "note": "typed as DataSourceState[] instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useViewClock",
+        "note": "the view clock is typed as DelayClockLike instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~GonogoHost#useViewClockOptional",
+        "note": "the view clock is typed as DelayClockLike instead of unknown"
       },
       {
         "key": "sitrep-sdk ./testing ~HeldGrade",
@@ -9953,6 +10073,10 @@
         "note": "Exported from the root because the published LockSummary.locks is typed by it"
       },
       {
+        "key": "sitrep-sdk . CarriesCurrency",
+        "note": "CarriesCurrency is exported from the root, since it is named in an author-facing signature"
+      },
+      {
         "key": "sitrep-sdk . ChannelFamily",
         "note": "A pattern for Topic ids built at runtime, one angle-bracket placeholder per dotted segment"
       },
@@ -10221,8 +10345,16 @@
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
+        "key": "sitrep-sdk . Dep",
+        "note": "Dep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
         "key": "sitrep-sdk . FRAMEWORK_READS",
         "note": "The Topics the framework reads for a widget, keyed by the hook or component that reads them, which a scan of a widget's reads leaves out"
+      },
+      {
+        "key": "sitrep-sdk . HEALTH_STATE_NAMES",
+        "note": "published because UplinkHealthStateName is keyed on it"
       },
       {
         "key": "sitrep-sdk . MapViewScope",
@@ -10305,8 +10437,28 @@
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
       {
+        "key": "sitrep-sdk . ProcessorFrame",
+        "note": "ProcessorFrame is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ProcessorFrame#viewUt",
+        "note": "ProcessorFrame is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ReadingDep",
+        "note": "ReadingDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . ReadingDep#reading",
+        "note": "ReadingDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
         "key": "sitrep-sdk . ReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
+      },
+      {
+        "key": "sitrep-sdk . ResolvedDeps",
+        "note": "ResolvedDeps is exported from the root, since it is named in an author-facing signature"
       },
       {
         "key": "sitrep-sdk . SYSTEM_POSES",
@@ -10343,6 +10495,46 @@
       {
         "key": "sitrep-sdk . StatEntry#held?",
         "note": "StatEntry carries the reading it was drawn from, so the host widget draws a held value as held"
+      },
+      {
+        "key": "sitrep-sdk . StoredStreamBackedSettingOf",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . StoredStreamBackedSettingOf#backing",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . StoredStreamBackedSettingOf#readOnly?",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . StoredStreamBackedSettingOf#select",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . StoredStreamBackedSettingOf#topic",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . StoredStreamBackedSettingOf#type?",
+        "note": "StoredStreamBackedSettingOf is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . SubjectDep",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . SubjectDep#__payloadType?",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . SubjectDep#forSubject",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . SubjectDep#subject",
+        "note": "SubjectDep is exported from the root, since it is named in an author-facing signature"
       },
       {
         "key": "sitrep-sdk . SystemEntity#currency?",
@@ -10403,6 +10595,26 @@
       {
         "key": "sitrep-sdk . TinyEssentialMark#kind?",
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
+        "key": "sitrep-sdk . UplinkActionOutcome",
+        "note": "UplinkActionOutcome is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . UplinkActionOutcome#expiresAtUt?",
+        "note": "UplinkActionOutcome is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . UplinkActionOutcome#id?",
+        "note": "UplinkActionOutcome is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . UplinkActionOutcome#refusal?",
+        "note": "UplinkActionOutcome is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . UplinkActionOutcome#throughSeq?",
+        "note": "UplinkActionOutcome is exported from the root, since it is named in an author-facing signature"
       },
       {
         "key": "sitrep-sdk . UplinkClientConfig",
@@ -10491,26 +10703,6 @@
       {
         "key": "sitrep-sdk . ~GeneratedReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
-        "key": "sitrep-sdk . ~UplinkActionOutcome",
-        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk . ~UplinkActionOutcome#expiresAtUt?",
-        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk . ~UplinkActionOutcome#id?",
-        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk . ~UplinkActionOutcome#refusal?",
-        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk . ~UplinkActionOutcome#throughSeq?",
-        "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
       },
       {
         "key": "sitrep-sdk . ~Vec3Tuple",
@@ -12347,6 +12539,18 @@
       {
         "key": "sitrep-sdk ./testing ~DeclaredSampleKinds#topics",
         "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DelayClockLike",
+        "note": "DelayClockLike is named by the typed view clock, so it is on the testing surface too"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DelayClockLike#confirmedEdgeUt",
+        "note": "DelayClockLike is named by the typed view clock, so it is on the testing surface too"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~DelayClockLike#onFrame",
+        "note": "DelayClockLike is named by the typed view clock, so it is on the testing surface too"
       },
       {
         "key": "sitrep-sdk ./testing ~GameStatus",

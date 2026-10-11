@@ -19,7 +19,6 @@ const mockComponent: ComponentDefinition = {
   tags: ["test"],
   component: () => null,
   dataRequirements: [],
-  behaviors: [],
   defaultConfig: {},
 };
 

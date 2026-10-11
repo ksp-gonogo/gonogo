@@ -45,6 +45,7 @@ import type {
   AnyContribution,
   AugmentDefinition,
   DataSourceState,
+  DelayClockLike,
   LateTelemetrySubscribe,
   ModSettingDep,
   ModSettingsRegistry,
@@ -196,7 +197,6 @@ export type {
   CommandRefusalDetail,
   CommandStatus,
   CommandUndelivered,
-  ComponentBehavior,
   ComponentDefinition,
   ComponentProps,
   ComponentRequirement,
@@ -968,8 +968,9 @@ export function useProcessor<Result, Carried extends boolean>(handle: {
  * time, use {@link useViewUt}.
  *
  * Throws when no telemetry stream is mounted; {@link useViewClockOptional}
- * returns `undefined` instead. The return is typed `unknown`; what it offers
- * is described by {@link DelayClockLike}, so assign it to that type.
+ * returns `undefined` instead. The return is typed {@link DelayClockLike}: the
+ * latest UT that may be shown and a per-frame callback, which is what a
+ * delayed media player needs.
  *
  * @category Delay and vantage
  * @categoryDescription Delay and vantage
@@ -978,7 +979,7 @@ export function useProcessor<Result, Carried extends boolean>(handle: {
  * way out, and events shown only once the delay has passed. Read here before
  * showing a time, a countdown or a command in flight.
  */
-export function useViewClock(): unknown {
+export function useViewClock(): DelayClockLike {
   return getHost().useViewClock();
 }
 
@@ -1141,7 +1142,7 @@ export function useTelemetryStoreOptional(): unknown {
  *
  * @category Delay and vantage
  */
-export function useViewClockOptional(): unknown {
+export function useViewClockOptional(): DelayClockLike | undefined {
   return getHost().useViewClockOptional();
 }
 

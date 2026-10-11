@@ -3,7 +3,7 @@ import { createContext, useContext, useLayoutEffect } from "react";
 /**
  * Something a widget uses that the save may not have unlocked: a topic it reads or a command it holds.
  *
- * @category Panel
+ * @category Readings
  */
 export type Capability =
   | {

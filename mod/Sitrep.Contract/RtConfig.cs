@@ -630,7 +630,7 @@ public static class RtConfig
     /// generated directory.
     /// </param>
     /// <param name="declarationImportFrom">
-    /// Where <c>ErrorCodeDeclaration</c> comes from. Null for core, which
+    /// Where <c>UplinkErrorCodeDeclaration</c> comes from. Null for core, which
     /// declares it; an Uplink passes the published package name.
     /// </param>
     /// <param name="tableName">The name of the exported table of every code.</param>
@@ -672,11 +672,17 @@ public static class RtConfig
             sb.Append("  /** What the code means, from its declaration's doc comment. Empty when that is not to hand. */\n");
             sb.Append("  readonly meaning: string;\n");
             sb.Append("}\n\n");
+            sb.Append("/**\n * One error code an Uplink declares: always a refusal, since an Uplink's codes refine a root and faults are declared by Gonogo.\n *\n * @category Error codes\n */\n");
+            sb.Append("export interface UplinkErrorCodeDeclaration extends ErrorCodeDeclaration {\n");
+            sb.Append("  readonly kind: \"refusal\";\n");
+            sb.Append("  readonly origin: null;\n");
+            sb.Append("}\n\n");
         }
         else
         {
-            sb.Append("import type { ErrorCodeDeclaration } from \"").Append(declarationImportFrom).Append("\";\n\n");
+            sb.Append("import type { UplinkErrorCodeDeclaration } from \"").Append(declarationImportFrom).Append("\";\n\n");
         }
+        var tableType = declarationImportFrom == null ? "ErrorCodeDeclaration" : "UplinkErrorCodeDeclaration";
 
         var rows = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -703,7 +709,7 @@ public static class RtConfig
         }
 
         sb.Append("/**\n * Every code in this table, the refusals and the faults together as one flat list, each with the sentence an operator reads for it.\n *\n * @category ").Append(ErrorCodeCategory).Append("\n */\n");
-        sb.Append("export const ").Append(tableName).Append(": readonly ErrorCodeDeclaration[] = [\n");
+        sb.Append("export const ").Append(tableName).Append(": readonly ").Append(tableType).Append("[] = [\n");
         foreach (var row in rows) sb.Append(row);
         sb.Append("];\n");
 
@@ -2112,6 +2118,7 @@ public static class RtConfig
         }
         sb.Append("] as const satisfies readonly GeneratedControlChannel[];\n\n");
 
+        sb.Append("/**\n * The id of one control channel: a control set with a command and read back from a Topic.\n *\n * @category Commands\n */\n");
         sb.Append("export type GeneratedControlChannelId =\n");
         sb.Append("  (typeof GENERATED_CONTROL_CHANNELS)[number][\"id\"];\n");
 

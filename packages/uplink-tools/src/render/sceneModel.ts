@@ -42,7 +42,7 @@ function sceneName(file: string): string {
  * }
  * ```
  *
- * @category Scenes
+ * @category Rendering scenes
  */
 export interface FixtureFile {
   /** Notes for whoever reads the file next. Nothing reads it. */
@@ -58,7 +58,7 @@ export interface FixtureFile {
  * sizes, and what its picture is held to. Exactly one of `widget`, `augment`
  * and `contribution` names the target.
  *
- * @category Scenes
+ * @category Rendering scenes
  */
 export interface FixtureScene {
   /** The id of the registered widget to mount. */
@@ -185,7 +185,7 @@ export interface SceneAct {
  * The `_stream` block of a {@link FixtureFile}: the wire the scene is fed
  * from.
  *
- * @category Scenes
+ * @category Rendering scenes
  */
 export interface FixtureStream {
   /**
