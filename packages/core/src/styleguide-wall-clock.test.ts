@@ -77,6 +77,12 @@ const ALLOWED_WALL_CLOCK: Record<string, number> = {
   // currency computation. 2 reads.
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 2,
 
+  // `since` on the pending-click spinner: how long ago the OPERATOR clicked,
+  // which is a fact about this browser session and not about any sample's age.
+  // Backs a 5 s safety net that clears the spinner if the readback never
+  // lands. 1 read.
+  "packages/components/src/TargetPicker/TargetPickerView.tsx": 1,
+
   // The live time-series x-axis window. Flagged rather than endorsed: plotting
   // samples against wall clock means that under a signal delay the newest
   // sample sits behind the right edge by one delay, so the graph shows a

@@ -1,13 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  declineConsent,
   ensureConsent,
-  ensureConsents,
   grantConsent,
   hasConsent,
-  hasDeclined,
   revokeConsent,
-  setConsentBatchPrompt,
   setConsentPrompt,
 } from "./consent";
 
@@ -57,58 +53,24 @@ describe("consent store", () => {
     expect(hasConsent("alpha", "1.0.0")).toBe(false);
   });
 
-  it("persists either answer, so a decline is not asked again", async () => {
-    const prompt = vi.fn(async () => false);
-    setConsentPrompt(prompt);
+  it("persists the grant when the prompt returns true, and not when it returns false", async () => {
+    setConsentPrompt(async () => false);
     expect(
       await ensureConsent({ id: "beta", name: "Beta", version: "1.0.0" }),
     ).toBe(false);
     expect(hasConsent("beta", "1.0.0")).toBe(false);
-    expect(hasDeclined("beta", "1.0.0")).toBe(true);
 
     setConsentPrompt(async () => true);
     expect(
       await ensureConsent({ id: "beta", name: "Beta", version: "1.0.0" }),
-    ).toBe(false);
-    expect(prompt).toHaveBeenCalledOnce();
-
-    // A new version is new bytes to trust, so it asks again.
-    expect(
-      await ensureConsent({ id: "beta", name: "Beta", version: "1.1.0" }),
     ).toBe(true);
-    expect(hasConsent("beta", "1.1.0")).toBe(true);
+    expect(hasConsent("beta", "1.0.0")).toBe(true);
   });
 
-  it("asks every open question in one batch and none it already has an answer for", async () => {
+  it("revokeConsent clears a remembered grant so the next load re-asks", () => {
     grantConsent("alpha", "1.0.0");
-    declineConsent("gamma", "1.0.0");
-    const batch = vi.fn(async (infos: readonly { id: string }[]) =>
-      infos.map((info) => info.id === "beta"),
-    );
-    setConsentBatchPrompt(batch);
-
-    const answers = await ensureConsents([
-      { id: "alpha", name: "Alpha", version: "1.0.0" },
-      { id: "beta", name: "Beta", version: "1.0.0" },
-      { id: "gamma", name: "Gamma", version: "1.0.0" },
-      { id: "delta", name: "Delta", version: "1.0.0" },
-    ]);
-
-    expect(answers).toEqual([true, true, false, false]);
-    expect(batch).toHaveBeenCalledOnce();
-    expect(batch.mock.calls[0]?.[0].map((info) => info.id)).toEqual([
-      "beta",
-      "delta",
-    ]);
-    expect(hasDeclined("delta", "1.0.0")).toBe(true);
-  });
-
-  it("revokeConsent clears a remembered answer of either kind so the next load re-asks", () => {
-    grantConsent("alpha", "1.0.0");
-    declineConsent("beta", "1.0.0");
+    expect(hasConsent("alpha", "1.0.0")).toBe(true);
     revokeConsent("alpha", "1.0.0");
-    revokeConsent("beta", "1.0.0");
     expect(hasConsent("alpha", "1.0.0")).toBe(false);
-    expect(hasDeclined("beta", "1.0.0")).toBe(false);
   });
 });

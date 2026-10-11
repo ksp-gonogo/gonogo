@@ -19861,32 +19861,6 @@ components:
           type: number
           x-sitrep-unit: ut
           description: Universal time at which this centre was last on `commandCentre.roster`.
-        reason:
-          description: |-
-            Why the centre left the roster, as far as the receiving centre has been
-            told. Null when the centre's own word does not say, so absence is not a
-            reason.
-          anyOf:
-            - $ref: "#/components/schemas/UnreachableReason"
-              x-sitrep-unit: enum
-            - type: "null"
-    UnreachableReason:
-      type: integer
-      description: |-
-        Why a command centre is no longer on a roster: the two ways a centre leaves
-        it that the game tells apart.
-      x-sitrep-enum-kind: ordinal
-      oneOf:
-        - const: 0
-          title: NoLongerExists
-          description: |-
-            The centre no longer exists: a crewed vessel destroyed or recovered, or a
-            ground station the game no longer lists.
-        - const: 1
-          title: NoLongerCentre
-          description: |-
-            The vessel still exists but has reported that it is no longer a command
-            centre.
     Unsubscribe:
       type: object
       description: Asks the server to stop sending a Topic to this connection.

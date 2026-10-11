@@ -36,7 +36,7 @@ function TotalFigure({
           gap: "var(--gap-related)",
           flexWrap: "wrap",
           fontWeight: 700,
-          color: "var(--color-text-primary)",
+          color: "var(--color-nogo-text)",
         }}
       >
         {children}
@@ -64,8 +64,7 @@ export function TotalsSection({
       radius="regular"
       style={{
         display: "flex",
-        flexWrap: "wrap",
-        gap: "var(--gap-related) var(--gap-section)",
+        gap: "var(--gap-section)",
         padding: "var(--inset-surface)",
       }}
     >

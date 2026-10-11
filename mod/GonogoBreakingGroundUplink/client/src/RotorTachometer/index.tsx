@@ -9,7 +9,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
-  heldGradeOf,
   Panel,
   Section,
   SelectableRow,
@@ -160,19 +159,12 @@ function RotorTachometerComponent({
     );
   }
 
-  // The flags and the cap are drawn as plain text, so the panel carries the held mark for the read behind them.
-  const heldGrade = heldGradeOf(roboticsReading);
   const showGauge = (h ?? 8) >= 6;
   const readingsOf = (r: RotorInfo) => roboticsReading[r.srcIndex];
 
   return (
     <Panel
       panelTitle="ROTORS"
-      panelBadges={
-        heldGrade === undefined
-          ? undefined
-          : [{ id: "read", label: "Reading", held: heldGrade }]
-      }
       sections={[
         showGauge && (
           <RotorGauge
@@ -185,7 +177,6 @@ function RotorTachometerComponent({
         <RotorControls
           key="controls"
           selected={selected}
-          rpmLimitReading={readingsOf(selected).rpmLimit}
           torqueReading={readingsOf(selected).servoMotorLimit}
           setRpmLimit={setRpmLimit}
           setTorqueLimit={setTorqueLimit}

@@ -48,61 +48,6 @@ permissions:
   contents: read
 
 jobs:
-  # First in the file on purpose: the browsers are the longest jobs, and one that
-  # is queued behind the rest sets the wall time of the whole run.
-  e2e:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox, webkit]
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ inputs.ref || github.sha }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-
-      - uses: pnpm/action-setup@v6
-        with:
-          run_install: false
-
-      - name: Get pnpm store path
-        id: pnpm-cache
-        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
-
-      - uses: actions/cache@v5
-        with:
-          path: ${{ steps.pnpm-cache.outputs.store }}
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: ${{ runner.os }}-pnpm-
-
-      - name: pnpm install
-        run: pnpm install --frozen-lockfile
-
-      # turbo build so the Playwright webServers (relay via tsx, app via
-      # vite) have all workspace dists. Cache is local-only, so each matrix
-      # job builds independently: costs CPU, not wall-time (jobs run in
-      # parallel).
-      - name: Build workspace
-        run: pnpm build
-
-      - name: Install Playwright browser
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
-
-      - name: Playwright e2e (${{ matrix.browser }})
-        run: pnpm exec playwright test --project=${{ matrix.browser }}
-
-      - name: Upload Playwright traces on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-traces-${{ matrix.browser }}
-          path: test-results/
-          retention-days: 7
-
   # Fast static checks: linting, typechecking and the small filesystem/document
   # gates that need no test run, no render and no build. Split out of the old
   # single `test` job so a broken lint or type error reports in minutes rather
@@ -392,12 +337,12 @@ jobs:
   # gate. Split from `font-gate` below so the two heaviest render passes run
   # concurrently instead of one after the other in the same job.
   overlap-gate:
-    name: overlap-gate (${{ matrix.shard }}/2)
+    name: overlap-gate (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -453,7 +398,7 @@ jobs:
       - name: Install Playwright browser
         run: pnpm exec playwright install --with-deps chromium
 
-      # Sharded by widget (`--shard i/2` partitions the render configs, each in
+      # Sharded by widget (`--shard i/4` partitions the render configs, each in
       # exactly one shard, the floor checked on the whole set). Every shard
       # re-runs the detectors' own plants inside its render, so each stays
       # able to fail as BLIND. The smoke check and the aspect gate are not
@@ -496,7 +441,7 @@ jobs:
       # the fixture's real figures, which the minsize gate's empty renders cannot
       # see overflow. A planted tiny widget must fit empty and fail fed at 2x3,
       # or the run fails as blind.
-      - run: pnpm --filter @ksp-gonogo/components overlap-gate --shard ${{ matrix.shard }}/2
+      - run: pnpm --filter @ksp-gonogo/components overlap-gate --shard ${{ matrix.shard }}/4
 
       # Checkered-flag aspect gate: a checkerboard of square cells painted into
       # a FramedDisplay with object-fit cover, at landscape, portrait and square
@@ -515,12 +460,12 @@ jobs:
   # render pass and used to run one after the other in the same job for no
   # dependency reason.
   font-gate:
-    name: font-gate (${{ matrix.shard }}/2)
+    name: font-gate (${{ matrix.shard }}/4)
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v5
         with:
@@ -566,7 +511,7 @@ jobs:
       # MIN_WIDGETS refusal as the overlap gate, and the detector plants a
       # deliberately wrong font-family on every run and throws if it does not
       # catch it.
-      - run: pnpm --filter @ksp-gonogo/components font-gate --shard ${{ matrix.shard }}/2
+      - run: pnpm --filter @ksp-gonogo/components font-gate --shard ${{ matrix.shard }}/4
 
   # Min-size gate: mounts EVERY registered widget at the `minSize` it itself
   # declares and fails when its title ellipsises, its content is clipped with
@@ -661,10 +606,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - leg: components 1/2
-            scope: --filter components --shard 1/2
-          - leg: components 2/2
-            scope: --filter components --shard 2/2
+          - leg: components 1/4
+            scope: --filter components --shard 1/4
+          - leg: components 2/4
+            scope: --filter components --shard 2/4
+          - leg: components 3/4
+            scope: --filter components --shard 3/4
+          - leg: components 4/4
+            scope: --filter components --shard 4/4
           - leg: app
             scope: --filter app
           - leg: core
@@ -1222,6 +1171,59 @@ jobs:
         env:
           KSP_ROOT: ${{ github.workspace }}/ksp-managed
         run: pnpm scaffold-probe
+
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile
+
+      # turbo build so the Playwright webServers (relay via tsx, app via
+      # vite) have all workspace dists. Cache is local-only, so each matrix
+      # job builds independently: costs CPU, not wall-time (jobs run in
+      # parallel).
+      - name: Build workspace
+        run: pnpm build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Playwright e2e (${{ matrix.browser }})
+        run: pnpm exec playwright test --project=${{ matrix.browser }}
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces-${{ matrix.browser }}
+          path: test-results/
+          retention-days: 7
 
   # Per-engine visual regression gate. Renders every widget through the probe
   # harness for one engine and diffs each against its committed baseline under

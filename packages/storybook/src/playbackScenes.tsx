@@ -47,8 +47,6 @@ export function FramePlayer({
   h,
 }: FramePlayerProps) {
   const sceneRef = useRef<HTMLDivElement>(null);
-  // A set-up view is shown only once it is set up, so the first picture is the framed one and not a jump to it.
-  const [framed, setFramed] = useState(setup === undefined);
   const [run, setRun] = useState(0);
   const [clock, setClock] = useState(frames[0].clock);
   const timer = useRef<ReturnType<typeof setInterval>>();
@@ -59,7 +57,6 @@ export function FramePlayer({
     (mount: ProbeMount) => {
       clearInterval(timer.current);
       if (sceneRef.current) setup?.(sceneRef.current);
-      requestAnimationFrame(() => requestAnimationFrame(() => setFramed(true)));
       const started = performance.now();
       let index = 0;
       timer.current = setInterval(() => {
@@ -83,7 +80,6 @@ export function FramePlayer({
   const replay = () => {
     clearInterval(timer.current);
     setClock(frames[0].clock);
-    setFramed(setup === undefined);
     setRun((n) => n + 1);
   };
 
@@ -94,7 +90,7 @@ export function FramePlayer({
         <PlaybackStart onClick={replay}>Replay</PlaybackStart>
         <span aria-live="off">{clock}</span>
       </div>
-      <div ref={sceneRef} style={{ visibility: framed ? "visible" : "hidden" }}>
+      <div ref={sceneRef}>
         <WidgetScene
           key={`${name}-${run}`}
           widgetId={widgetId}
@@ -127,8 +123,8 @@ function followAndZoom(scene: HTMLElement): void {
   }
 }
 
-/** Each notch is a 1.15 times zoom; two keeps the craft's neighbourhood large and the outer moon's tinted ring in view. */
-const FOLLOW_ZOOM_NOTCHES = 2;
+/** Each notch is a 1.15 times zoom. */
+const FOLLOW_ZOOM_NOTCHES = 4;
 
 /** System View following a craft from low Kerbin orbit to the Mun, the Mun and the phase angle moving as the clock runs. */
 export function SystemTransferScene({ w = 20, h = 18 }: PlaybackSceneProps) {

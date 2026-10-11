@@ -99,6 +99,7 @@ export function TargetPickerComponent({
   const [pendingTarget, setPendingTarget] = useState<{
     id: string;
     expectedName: string;
+    since: number;
   } | null>(null);
   useEffect(() => {
     if (pendingTarget === null) return;
@@ -116,6 +117,7 @@ export function TargetPickerComponent({
     setPendingTarget({
       id: entryId(entry),
       expectedName: entry.name,
+      since: Date.now(),
     });
     void setTargetCmd.send(args, { label: `Target ${entry.name}` });
   };

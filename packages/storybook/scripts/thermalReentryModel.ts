@@ -62,9 +62,9 @@ function frameAt(t: number): { emits: PlaybackEmit[]; caption: string } {
       channel: "vessel.thermal",
       value: {
         maxSkinTempRatio: ratio,
-        maxInternalTempRatio: ratio,
+        maxInternalTempRatio: ratio * 0.97,
         hottestPart: {
-          internalTemp: temp,
+          internalTemp: temp * 0.97,
           maxTemp: part.maxTemp,
           skinTemp: temp,
           skinMaxTemp: part.maxTemp,
@@ -99,6 +99,6 @@ export function thermalReentryScenario(): PlaybackScenario {
       frameAt(i / REENTRY_FRAMES),
     ),
     stepMs: 400,
-    defaultSize: { w: 8, h: 7 },
+    defaultSize: { w: 9, h: 14 },
   };
 }

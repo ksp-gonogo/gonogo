@@ -48,7 +48,7 @@ describe("Targeting: genuinely runs off the stream", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("10.0 km"));
-    expect(visibleText()).toContain("Closing 50.00 m/s");
+    expect(visibleText()).toContain("Δv 50.00 m/s");
   });
 
   it("derives docking-HUD alignment angles + forwardDot from vessel.dock", async () => {

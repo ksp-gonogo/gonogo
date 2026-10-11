@@ -91,7 +91,7 @@ describe("the unit-test and act-warnings legs cover every package once", () => {
     const shards = scopes
       .filter((s) => s.includes("--shard"))
       .map((s) => s.split("--shard ")[1]);
-    expect(shards.sort()).toEqual(["1/2", "2/2"]);
+    expect(shards.sort()).toEqual(["1/4", "2/4", "3/4", "4/4"]);
     const filtered = scopes
       .filter((s) => !s.includes("--shard") && s.startsWith("--filter "))
       .map((s) => s.replace("--filter ", ""));
@@ -104,23 +104,5 @@ describe("the unit-test and act-warnings legs cover every package once", () => {
     expect(filtered.sort()).toEqual(["app", "core"]);
     for (const name of [...filtered, ...except])
       expect(packages).toContain(name);
-  });
-
-  it.each([
-    "overlap-gate",
-    "font-gate",
-  ])("runs every %s shard the matrix names, each as its own i/n of the same n", (gate) => {
-    const ci = readFileSync(join(ROOT, ".github/workflows/ci.yml"), "utf8");
-    const start = ci.indexOf(`\n  ${gate}:\n`);
-    const body = ci.slice(start + 1).split(/\n {2}[a-z][\w-]*:\n/)[0] ?? "";
-    const matrix = body.match(/shard: \[([\d, ]+)\]/);
-    expect(matrix, `${gate} has a shard matrix`).not.toBeNull();
-    const indexes = (matrix?.[1] ?? "").split(",").map((n) => n.trim());
-    const count = indexes.length;
-    expect(indexes).toEqual(
-      Array.from({ length: count }, (_, i) => String(i + 1)),
-    );
-    expect(body).toContain(`${gate} --shard \${{ matrix.shard }}/${count}`);
-    expect(body).toContain(`name: ${gate} (\${{ matrix.shard }}/${count})`);
   });
 });

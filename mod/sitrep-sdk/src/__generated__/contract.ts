@@ -1063,30 +1063,6 @@ export interface UnreachableCentreEntry
 	kind: string;
 	/** Universal time at which this centre was last on `commandCentre.roster`. */
 	lastReachableUt: Value<"ut">;
-	/**
-	* Why the centre left the roster, as far as the receiving centre has been
-	* told. Null when the centre's own word does not say, so absence is not a
-	* reason.
-	*/
-	reason?: UnreachableReason | null;
-}
-/**
-* Why a command centre is no longer on a roster: the two ways a centre leaves
-* it that the game tells apart.
-*
-* @category Comms
-*/
-export enum UnreachableReason {
-	/**
-	* The centre no longer exists: a crewed vessel destroyed or recovered, or a
-	* ground station the game no longer lists.
-	*/
-	NoLongerExists = 0,
-	/**
-	* The vessel still exists but has reported that it is no longer a command
-	* centre.
-	*/
-	NoLongerCentre = 1
 }
 /**
 * One ordered pair in the `commandCentre.separation` channel: how far

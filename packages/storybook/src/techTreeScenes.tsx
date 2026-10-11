@@ -77,8 +77,8 @@ export interface TechTreeCareerSceneProps {
  * Replay starts the career over.
  */
 export function TechTreeCareerScene({
-  w = 32,
-  h = 31,
+  w = 24,
+  h = 22,
 }: TechTreeCareerSceneProps) {
   const frames = useMemo(() => playCareer(TREE), []);
   const first = useMemo(

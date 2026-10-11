@@ -154,14 +154,6 @@ export interface Scene {
   separation?: { from: string; to: string; oneWaySeconds: number }[];
   /** Who each pane can address. */
   roster?: { id: string; displayName: string; active: boolean }[];
-  /** Centres that left the roster, as `commandCentre.unreachable` lists them. */
-  unreachable?: {
-    id: string;
-    displayName: string;
-    kind: string;
-    lastReachableUt: number;
-    reason?: number;
-  }[];
   /** `comms.delay`'s own path home, or omitted for a screen with no craft. */
   oneWaySeconds?: number;
   /** For the settle report, so an unsettled render names itself. */
@@ -484,7 +476,6 @@ function paneTree(pane: Pane, index: number) {
   for (const topic of [
     "commandCentre.roster",
     "commandCentre.separation",
-    "commandCentre.unreachable",
     "comms.delay",
     "comms.link",
   ]) {
@@ -699,13 +690,6 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
     }
     if (scene.roster) {
       panes[i].fixture.emit("commandCentre.roster", scene.roster, meta);
-    }
-    if (scene.unreachable) {
-      panes[i].fixture.emit(
-        "commandCentre.unreachable",
-        scene.unreachable,
-        meta,
-      );
     }
     /*
      * `comms.link` is declared by the widget, so a scene that never publishes

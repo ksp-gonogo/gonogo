@@ -52,6 +52,8 @@
  * other side by `gonogo-uplinks/tooling/verify-contract-reader-debt.mjs`).
  */
 export const CONTRACT_READER_DEBT: Record<string, string> = {
+  "field:commandCentre.unreachable.kind":
+    "no shipping code reads it, only stories named it",
   "field:commcast.transmissions.topic":
     "always commcast.radio, which Commcast already subscribes to by its own constant",
   "field:comms.commandCentre.bodyIndex":
@@ -213,4 +215,6 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
  * it a reader. Shrink-only like the list itself: a key leaves here when its
  * reader lands, and nothing may be added to it once the base carries one.
  */
-export const CONTRACT_READER_ADDED_WITH_TICKET: Record<string, string> = {};
+export const CONTRACT_READER_ADDED_WITH_TICKET: Record<string, string> = {
+  "field:commandCentre.unreachable.kind": "Saga 922",
+};

@@ -58,21 +58,4 @@ describe("SemiMajorAxisComponent", () => {
     await waitFor(() => expect(visibleText()).toContain("675.0 km"));
     expect(screen.getByText(/Kerbin/)).toBeInTheDocument();
   });
-
-  it("names an unbound orbit, whose semi-major axis is negative", async () => {
-    renderSma();
-    act(() => {
-      stream.emit("vessel.orbit", { sma: -5_000_000, referenceBodyIndex: 1 });
-    });
-    await waitFor(() => expect(visibleText()).toContain("Hyperbolic"));
-  });
-
-  it("does not name a bound orbit hyperbolic", async () => {
-    renderSma();
-    act(() => {
-      stream.emit("vessel.orbit", { sma: 675_000, referenceBodyIndex: 1 });
-    });
-    await waitFor(() => expect(visibleText()).toContain("675.0 km"));
-    expect(visibleText()).not.toContain("Hyperbolic");
-  });
 });

@@ -33,19 +33,8 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { HttpResponse, http } from "msw";
-import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { say } from "../firstRun/copy";
 import { resolveUplinkIdentity } from "../uplinks/identity";
 import {
@@ -53,18 +42,9 @@ import {
   setUplinkOutcome,
 } from "../uplinks/loaderState";
 import { registerSetting } from "./registry";
-import { __resetLatestRelease, LATEST_RELEASE_URL } from "./releaseCheck";
 import { SettingsProvider } from "./SettingsContext";
 import { SettingsModal, type SettingsModalProps } from "./SettingsModal";
 import { SettingsService } from "./SettingsService";
-
-/* The General tab asks GitHub for the newest release; here it has none to give. */
-const server = setupServer(
-  http.get(LATEST_RELEASE_URL, () => new HttpResponse(null, { status: 404 })),
-);
-beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
-afterAll(() => server.close());
-beforeEach(() => __resetLatestRelease());
 
 /*
  * Mocks for sidebar dependencies that SettingsModal pulls in but the

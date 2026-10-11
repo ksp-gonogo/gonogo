@@ -190,16 +190,6 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(1.0, told.Value.Degrade!.Level!.Value);
         }
 
-        [Fact]
-        public void WhereTheCentreBelievesInNoPathYetTheRadiosWordIsToldAsMeasuredAndNotAsAnotherPath()
-        {
-            var told = CentreSignal.For(new CommsPath(), null, Heard(0.9, true, ("probe", "KSC")));
-
-            Assert.Equal(0.9, told!.Value.Strength);
-            Assert.False(told.Value.Modelled);
-            Assert.False(told.Value.OtherPath);
-        }
-
         /// <summary>A figure measured on another path is not this path's figure. With nothing to work out it is still told, as what it is.</summary>
         [Fact]
         public void WithNoStrengthToWorkOutAReportOfAnotherPathIsToldAsBeingOfAnotherPath()

@@ -175,9 +175,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     // Both, side by side: the observation, and the model named so trust can be calibrated.
     expect(visibleText()).toContain("10.0 km");
     expect(visibleText()).toContain("12.0 km");
-    expect(visibleText()).toContain(
-      "carried forward at the last observed velocity",
-    );
+    expect(visibleText()).toContain("linear-dead-reckoning");
     expect(document.querySelector("[data-held]")).not.toBeNull();
   });
 

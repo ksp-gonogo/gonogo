@@ -16,9 +16,6 @@ import type { Strategy } from "./types";
 /** The widget is drawn short below this many rows; a tall tile has room for the full cards. */
 export const SHORT_BELOW_ROWS = 7;
 
-/** A short tile at least this many columns wide has room for the full cards, which scroll. */
-export const SHORT_BELOW_COLS = 12;
-
 /** What the one badge on a short row says: the strategy's state, with the game's own reason where it has one. */
 export type ShortState =
   | { kind: "active" }

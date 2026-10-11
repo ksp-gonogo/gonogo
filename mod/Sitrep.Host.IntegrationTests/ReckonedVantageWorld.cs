@@ -397,15 +397,8 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the game's vessel list is still being filled, as it is for a few seconds after a load: nothing can be read from it.</summary>
         public bool ListNotStanding { get; set; }
 
-        /// <summary>Whether the game has nothing to read at all, as before a scene has loaded: <see cref="Look"/> answers null.</summary>
-        public bool NoGame { get; set; }
-
         public ContactGameLook? Look()
         {
-            if (NoGame)
-            {
-                return null;
-            }
             if (ListNotStanding)
             {
                 // What the game can still name with no vessel list to read: its ground stations.

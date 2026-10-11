@@ -1,35 +1,19 @@
-import { UnreachableReason } from "@ksp-gonogo/sitrep-sdk";
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { speakQuantity, useTooltip, VisuallyHidden } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import styled from "styled-components";
-import type { AddressBook, Unreachable } from "./CommcastContext";
+import type { AddressBook } from "./CommcastContext";
 import type { RecipientId } from "./types";
 
 const Addressee__Gone = styled.span`
   color: var(--color-text-faint);
 `;
 
-const REASON_WORD: Record<UnreachableReason, string> = {
-  [UnreachableReason.NoLongerExists]: "gone",
-  [UnreachableReason.NoLongerCentre]: "not a centre",
-};
-
-const KIND_WORD: Record<string, string> = {
-  GroundStation: "ground station",
-  CrewedVessel: "crewed vessel",
-  Custom: "custom centre",
-};
-
 /** What the tooltip and the accessible name say about an unreachable addressee; an absent stamp is unknown, never a time. */
-function unreachableText(gone: Unreachable): string {
+function unreachableText(lastReachable: Value<"ut"> | undefined): string {
   const when =
-    gone.lastReachable === undefined
-      ? "unknown"
-      : speakQuantity(gone.lastReachable);
-  const why = gone.reason === undefined ? "" : `, ${REASON_WORD[gone.reason]}`;
-  const kind =
-    gone.kind === undefined ? "" : ` ${KIND_WORD[gone.kind] ?? gone.kind}`;
-  return `Unreachable${kind}${why}, last reachable ${when}`;
+    lastReachable === undefined ? "unknown" : speakQuantity(lastReachable);
+  return `Unreachable, last reachable ${when}`;
 }
 
 /** One addressee by name; greyed, with when it was last reachable, once it has left the roster. */
@@ -41,14 +25,13 @@ export function Addressee({
   book: AddressBook;
 }) {
   const gone = book.unreachableOf(id);
-  const text = gone ? unreachableText(gone) : null;
+  const text = gone ? unreachableText(gone.lastReachable) : null;
   const { anchor, tip } = useTooltip(text);
   const name = book.nameFor(id);
   if (!gone) return <>{name}</>;
   return (
     <Addressee__Gone {...anchor}>
       {name}
-      {gone.reason !== undefined && ` (${REASON_WORD[gone.reason]})`}
       <VisuallyHidden>, {text}</VisuallyHidden>
       {tip}
     </Addressee__Gone>

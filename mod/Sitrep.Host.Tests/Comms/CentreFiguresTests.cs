@@ -126,25 +126,6 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
-        public void ACentreSaysWhyItLeftOnlyWhenTheGameOrItsOwnWordDoes()
-        {
-            var memory = new RosterMemory();
-            memory.Observe(Roster, 100.0);
-
-            memory.Observe(new[] { Entry("ground:ksc") }, 200.0);
-            var station = memory.Unreachable().Single(e => e.Id == "ground:forward");
-            var vessel = memory.Unreachable().Single(e => e.Id == "vessel:crewed");
-            Assert.Equal(UnreachableReason.NoLongerExists, station.Reason);
-            Assert.Null(vessel.Reason);
-
-            memory.Observe(new[] { Entry("ground:ksc") }, 300.0, new[] { CraftState.WithoutARadio("vessel:crewed", 250.0, null) });
-            Assert.Equal(UnreachableReason.NoLongerCentre, memory.Unreachable().Single(e => e.Id == "vessel:crewed").Reason);
-
-            memory.Observe(new[] { Entry("ground:ksc") }, 400.0, new[] { CraftState.Gone("vessel:crewed", 350.0) });
-            Assert.Equal(UnreachableReason.NoLongerExists, memory.Unreachable().Single(e => e.Id == "vessel:crewed").Reason);
-        }
-
-        [Fact]
         public void ACentreThatWasNeverOnARosterIsNotRemembered()
         {
             var memory = new RosterMemory();

@@ -21,7 +21,9 @@ function burnLabel(
 ): ReactNode {
   // NaN is a burn time the wire did not carry, not a stage that burns for no time.
   if (!Number.isFinite(burnTime)) return NULL_DISPLAY;
-  return <Unit value={budgetFigure(budgetReading, value("s", burnTime))} />;
+  if (burnTime > 0)
+    return <Unit value={budgetFigure(budgetReading, value("s", burnTime))} />;
+  return "0s";
 }
 
 /**
@@ -84,7 +86,7 @@ export function StageStackSection({
                   justifySelf: "end",
                   whiteSpace: "nowrap",
                   color: active
-                    ? "var(--color-text-primary)"
+                    ? "var(--color-nogo-text)"
                     : "var(--color-text-faint)",
                 }}
               >

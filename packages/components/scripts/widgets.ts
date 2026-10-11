@@ -361,7 +361,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // (rows<4 suppresses both). Catches overflow at tight sizes.
       { name: "min-3x3", w: 3, h: 3 },
       // Default registered size: bars, subtitle, and full detail grid.
-      { name: "default-6x6", w: 6, h: 6 },
+      { name: "default-6x5", w: 6, h: 5 },
       // Tall narrow: detail grid wraps in a single column layout.
       { name: "tall-4x7", w: 4, h: 7 },
       // Wide short: subtitle visible, grid has generous horizontal room.

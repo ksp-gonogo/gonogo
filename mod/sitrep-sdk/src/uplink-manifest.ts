@@ -121,11 +121,10 @@ export interface UplinkDeclaration {
   csharpNamespace?: string;
   /**
    * The KSP mod this Uplink wraps, when it wraps one, or `null` when it wraps
-   * none. The generated page prints it, and its name and `builtAgainst` are
-   * copied into `gonogo-uplink.json`, where the app shows them beside the
-   * Uplink when asking whether to load it.
+   * none. The generated page prints it. It is not copied into
+   * `gonogo-uplink.json`, since the app loading the client has no use for it.
    *
-   * @readBy bundle, docs, page
+   * @readBy docs, page
    */
   mod?: UplinkWrappedMod | null;
   /**
@@ -205,13 +204,6 @@ export interface UplinkManifest {
   author: string;
   /** The URL of its source repository, from `uplink.json`. Empty when that names none. */
   repo: string;
-  /**
-   * The KSP mod this Uplink connects and the version of it the Uplink was built
-   * against, from `uplink.json`'s `mod`. The app shows them beside the Uplink
-   * when an operator decides whether to load it. Absent when `uplink.json`
-   * names neither.
-   */
-  mod?: { name?: string; builtAgainst?: string };
   /** The Uplink's own version, which its client and its plugin share. */
   version: string;
   /** The oldest app version it is known to work with. The app warns below it and still loads the client. */
@@ -380,13 +372,6 @@ function agreed(
   );
 }
 
-function wrappedMod(
-  mod: UplinkWrappedMod | null | undefined,
-): UplinkManifest["mod"] {
-  if (!mod?.name && !mod?.builtAgainst) return undefined;
-  return { name: mod.name, builtAgainst: mod.builtAgainst };
-}
-
 /**
  * The manifest, from the files an Uplink already has.
  *
@@ -454,7 +439,6 @@ export function buildUplinkManifest(
     // An Uplink that declares no author IS unknown, and an empty string says so without claiming anything.
     author: declared.author ?? "",
     repo: declared.repo ?? "",
-    mod: wrappedMod(declared.mod),
     version: pkg.version ?? registered?.version ?? "0.0.0",
     /*
      * The one gate field nothing can derive: it is a claim about the APP, and

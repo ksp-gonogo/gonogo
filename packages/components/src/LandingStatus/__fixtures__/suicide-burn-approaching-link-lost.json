@@ -82,7 +82,7 @@
         "value": {
           "totalMass": 5,
           "dryMass": 3,
-          "currentThrust": 0,
+          "currentThrust": 18,
           "availableThrust": 18
         }
       },

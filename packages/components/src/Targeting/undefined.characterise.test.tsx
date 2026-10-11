@@ -158,7 +158,7 @@ describe("Targeting: a partial vessel.dock record", () => {
     );
     // The headline is the TARGET's 77 m.
     expect(visibleText(container)).toContain("77.0 m");
-    // The closing row is the target's radial rate.
+    // The Δv row is the target's radial rate.
     expect(visibleText(container)).toContain("-0.77 m/s");
   });
 
@@ -231,8 +231,8 @@ describe("Targeting: a partial vessel.target record", () => {
     // No geometry also blocks the mode effect, so the target never reaches approach or the HUD.
     expect(screen.queryByText("APPROACH")).toBeNull();
     expect(screen.queryByRole("region", { name: /Docking HUD/ })).toBeNull();
-    // No relVel, so the closing sub-readout is absent rather than placeholdered.
-    expect(visibleText(container)).not.toContain("Closing");
+    // No relVel, so the Δv sub-readout is absent rather than placeholdered.
+    expect(visibleText(container)).not.toContain("Δv");
   });
 
   it("renders TCA as the null placeholder when the record carries no closest approach", async () => {

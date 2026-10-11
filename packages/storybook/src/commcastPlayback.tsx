@@ -23,14 +23,12 @@ import {
   speechChunks,
   spokenSeconds,
   staticLevel,
-  TEXT_LINES,
 } from "../scripts/commsPlaybackModel";
 import {
   ARES,
   CommcastScene,
   type CommcastSceneProps,
   KSC,
-  RECOVERY,
   ROW,
   WOOMERA,
 } from "./commcastScenes";
@@ -131,18 +129,6 @@ function backendFor(speakers: Speakers): RadioBackend {
   };
 }
 
-const ORIGIN: Record<Keying["from"], string> = {
-  ares: ARES,
-  woomera: WOOMERA,
-  recovery: RECOVERY,
-};
-
-const PITCH_HZ: Record<Keying["from"], number> = {
-  ares: 190,
-  woomera: 330,
-  recovery: 260,
-};
-
 function authorKey(k: Keying): string {
   return `radio-${k.from}`;
 }
@@ -153,12 +139,10 @@ function chunkFrame(
   bytes: Uint8Array,
   arrivedUt: number,
 ): HeardRadioFrame {
-  /* Each speaker holds a loop of their own with the ground station, so each is a badge of their own. */
-  const ends = [KSC, ORIGIN[k.from]];
   const transmission: RadioTransmission = {
     id: k.id,
-    groupId: JSON.stringify([...ends].sort()),
-    from: ORIGIN[k.from],
+    groupId: GROUP,
+    from: k.from === "ares" ? ARES : WOOMERA,
     authorStationKey: authorKey(k),
     authorName: k.authorName,
     authorSeat: k.from === "ares" ? "pilot" : "mission-control",
@@ -170,7 +154,7 @@ function chunkFrame(
     transmissionId: k.id,
     authorStationKey: authorKey(k),
     transmission,
-    to: ends,
+    to: [KSC, ARES],
     seq,
     ut: arrivedUt,
     bytes,
@@ -185,7 +169,10 @@ function framesOf(k: Keying, baseUt: number): HeardRadioFrame[] {
   );
   const clip: RadioClip = {
     name: k.id,
-    chunks: speechChunks(k.seconds, PITCH_HZ[k.from]).slice(0, spoken),
+    chunks: speechChunks(k.seconds, k.from === "ares" ? 190 : 330).slice(
+      0,
+      spoken,
+    ),
     seconds: spoken * CLIP_CHUNK_SECONDS,
   };
   return clip.chunks.map((_, seq) =>
@@ -257,7 +244,6 @@ export function CommsPlaybackScene({
       if (!playing.current || !heard) return;
       const began = performance.now();
       const pending = KEYINGS.map((k) => ({ k, sent: false }));
-      const lines = TEXT_LINES.map((line) => ({ line, sent: false }));
       let edge = 0;
       clearInterval(timer.current);
       timer.current = setInterval(() => {
@@ -286,26 +272,6 @@ export function CommsPlaybackScene({
             transmissionId: p.k.id,
             authorStationKey: authorKey(p.k),
             ut: baseUt + p.k.startAt + p.k.seconds,
-          });
-        }
-        for (const l of lines) {
-          if (l.sent || l.line.sentAt > t) continue;
-          l.sent = true;
-          const sentUt = ut - (t - l.line.sentAt);
-          heard.receiveTransmission({
-            id: l.line.id,
-            groupId: GROUP,
-            to: [ARES, KSC].sort(),
-            from: ARES,
-            authorStationKey: `author-${ARES}`,
-            authorName: l.line.authorName,
-            authorSeat: "pilot",
-            sentUt,
-            lastSentUt: sentUt,
-            attempts: 1,
-            separationSeconds: ONE_WAY_SECONDS,
-            kind: "text",
-            body: l.line.body,
           });
         }
         if (t >= PLAYBACK_SECONDS) clearInterval(timer.current);

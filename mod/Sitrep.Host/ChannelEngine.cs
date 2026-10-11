@@ -2229,8 +2229,6 @@ namespace Sitrep.Host
                 // of every refusal reason on the roster.
                 ["coreContractMajor"] = Sitrep.Contract.ContractVersion.Major,
                 ["coreContractMinor"] = Sitrep.Contract.ContractVersion.Minor,
-                // The release the mod was built as, so the app can say whether it and the mod match.
-                ["coreVersion"] = CoreBuildInfo.Version,
                 ["delayRoles"] = DelayRolesPayload(),
             };
         }

@@ -1,37 +1,25 @@
 import { act, harnessTheme, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { AnalyticsConsentModal } from "../analytics/AnalyticsConsentModal";
 import { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
 import type { ConsentInfo } from "./consent";
-import { type FirstLoadPromptOptions, promptForConsents } from "./consentModal";
+import { promptForConsent } from "./consentModal";
 import { resolveUplinkIdentity } from "./identity";
 
 /**
- * The first-load page, which mounts its own root outside React's tree. It asks
- * every Uplink's question and the logs question on one page, and resolves only
- * once each has an answer.
+ * The Uplink consent prompt, which mounts its own root outside React's tree.
+ * Two things under test: that a keyboard operator can answer it, and that the
+ * nested-modal guard still holds now that both consent gates share one
+ * refcounted implementation, this prompt is the one that can open OVER an
+ * already-open modal rather than only at boot.
  */
 
-const PLOTTER: ConsentInfo = {
-  id: "plotter",
-  name: "Plotter",
-  version: "0.0.1",
-  author: "jpeps",
-  identity: resolveUplinkIdentity(
-    "plotter",
-    { name: "Plotter", author: "jpeps" },
-    {},
-  ),
-  mod: { name: "Plotter", builtAgainst: "1.6.0.1" },
-};
-
-const SURVEY: ConsentInfo = {
-  id: "survey",
-  name: "Survey",
-  version: "0.0.1",
-  mod: { name: "Survey", builtAgainst: "20.4" },
+const info: ConsentInfo = {
+  id: "gonogo-example-uplink",
+  name: "Example",
+  version: "1.2.3",
+  author: "Somebody",
 };
 
 const DECLARED = {
@@ -41,159 +29,85 @@ const DECLARED = {
 };
 
 afterEach(() => {
-  // A page left standing would keep its isolation applied to the next test.
-  document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-  localStorage.clear();
+  // Any prompt left standing would keep its isolation applied to the next test.
+  for (const button of screen.queryAllByRole("button", {
+    name: "Don’t load",
+  })) {
+    button.click();
+  }
 });
 
 /**
- * The answers are handed back boxed. An `async` function that returns a promise
- * flattens it, which here would mean awaiting the operator's clicks before the
+ * The decision is handed back boxed. An `async` function that returns a promise
+ * flattens it, which here would mean awaiting the operator's click before the
  * test body ever ran.
  */
-async function openPage(
-  uplinks: readonly ConsentInfo[],
-  options: FirstLoadPromptOptions = {},
-): Promise<{ answers: Promise<boolean[]> }> {
-  let answers!: Promise<boolean[]>;
+async function openPrompt(
+  which: ConsentInfo = info,
+): Promise<{ decision: Promise<boolean> }> {
+  let decision!: Promise<boolean>;
   await act(async () => {
-    answers = promptForConsents(uplinks, harnessTheme, options);
+    decision = promptForConsent(which, harnessTheme);
   });
-  await screen.findByRole("dialog", { name: "Before you start" });
-  return { answers };
+  await screen.findByRole("dialog", { name: /Load Uplink/ });
+  return { decision };
 }
 
-function rowButton(
-  group: string,
-  name: "Skip" | "Load" | "Decline" | "Enable",
-) {
-  const row = screen.getByRole("group", { name: group });
-  const button = [...row.querySelectorAll("button")].find(
-    (b) => b.textContent === name,
-  );
-  if (!button) throw new Error(`no ${name} in ${group}`);
-  return button;
-}
-
-async function press(button: HTMLElement): Promise<void> {
+async function closePrompt(decision: Promise<boolean>): Promise<void> {
   await act(async () => {
-    button.click();
+    screen.getByRole("button", { name: "Don’t load" }).click();
   });
+  await decision;
 }
 
-describe("the first-load page", () => {
-  it("asks every Uplink on one page and answers each in the order given", async () => {
-    const { answers } = await openPage([PLOTTER, SURVEY]);
-    const proceed = screen.getByRole("button", { name: "Continue" });
-    expect(proceed).toBeDisabled();
-    expect(screen.getByText("2 still to answer")).toBeInTheDocument();
+describe("promptForConsent keyboard access", () => {
+  it("puts focus on Load and keeps Tab inside the dialog", async () => {
+    const { decision } = await openPrompt();
+    const dialog = screen.getByRole("dialog", { name: /Load Uplink/ });
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: "Load" }),
+    );
 
-    await press(rowButton("Load Plotter Uplink?", "Load"));
-    await press(rowButton("Load Survey Uplink?", "Skip"));
-    expect(proceed).toBeEnabled();
-    await press(proceed);
-
-    await expect(answers).resolves.toEqual([true, false]);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("titles each row as the Uplink, with the mod version it was built for", async () => {
-    const { answers } = await openPage([
-      PLOTTER,
-      { ...SURVEY, name: "Survey Uplink" },
-    ]);
-    expect(screen.getByText("Plotter Uplink")).toBeInTheDocument();
-    expect(screen.getByText("Built for Plotter 1.6.0.1")).toBeInTheDocument();
-    // A name that already says Uplink is not said twice.
-    expect(screen.getByText("Survey Uplink")).toBeInTheDocument();
-    expect(screen.queryByText(/Uplink Uplink/)).not.toBeInTheDocument();
-    await expectNoA11yViolations(document.body);
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await answers;
-  });
-
-  it("says nothing about a mod the manifest does not name", async () => {
-    const { answers } = await openPage([{ ...SURVEY, mod: undefined }]);
-    expect(screen.queryByText(/Built for/)).not.toBeInTheDocument();
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await answers;
-  });
-
-  it("keeps Tab inside the page", async () => {
-    const { answers } = await openPage([PLOTTER, SURVEY]);
-    const dialog = screen.getByRole("dialog", { name: "Before you start" });
     const user = userEvent.setup();
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 8; i++) {
       await user.tab();
       expect(dialog.contains(document.activeElement)).toBe(true);
     }
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await answers;
-  });
 
-  it("answers what is still open with Skip on Escape, and keeps what was chosen", async () => {
-    const { answers } = await openPage([PLOTTER, SURVEY]);
-    await press(rowButton("Load Plotter Uplink?", "Load"));
     await act(async () => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      screen.getByRole("button", { name: "Don’t load" }).click();
     });
-    await expect(answers).resolves.toEqual([true, false]);
-  });
-});
-
-describe("the anonymous-logs question", () => {
-  it("is asked beside the Uplinks and its answer is written to the service", async () => {
-    const service = new AnalyticsConsentService();
-    const { answers } = await openPage([PLOTTER], { logs: service });
-    expect(screen.getByText("2 still to answer")).toBeInTheDocument();
-    expect(
-      screen.getByText("Send anonymous errors and logs to the developer."),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/mission data/)).not.toBeInTheDocument();
-
-    await press(rowButton("Load Plotter Uplink?", "Skip"));
-    await press(rowButton("Send anonymous logs?", "Enable"));
-    await press(screen.getByRole("button", { name: "Continue" }));
-
-    await expect(answers).resolves.toEqual([false]);
-    expect(service.isEnabled()).toBe(true);
+    await expect(decision).resolves.toBe(false);
   });
 
-  it("is declined by Escape like every other open question", async () => {
-    const service = new AnalyticsConsentService();
-    const { answers } = await openPage([PLOTTER], { logs: service });
+  it("declines on Escape", async () => {
+    const { decision } = await openPrompt();
     await act(async () => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+      );
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
     });
-    await answers;
-    expect(service.hasAnswered()).toBe(true);
-    expect(service.isEnabled()).toBe(false);
-  });
-
-  it("is not asked when the caller does not pass it, as on a station", async () => {
-    const { answers } = await openPage([{ ...PLOTTER, onStation: true }]);
-    expect(screen.queryByText(/anonymous/i)).not.toBeInTheDocument();
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await answers;
+    await expect(decision).resolves.toBe(false);
   });
 });
 
 /*
  * The consent moment is where the difference between a vouched identity and a
  * self-declared one has to be legible, because it is the only moment an
- * operator gets to weigh it.
+ * operator gets to weigh it. Both dialogs show the author and the repo; only
+ * one of them says the mod vouched for them.
  */
-describe("identity provenance on the first-load page", () => {
+describe("promptForConsent identity provenance", () => {
   it("shows a mod-vouched author and repo, and names the mod as the voucher", async () => {
-    const { answers } = await openPage([
-      {
-        ...SURVEY,
-        id: "example",
-        name: "Example",
-        identity: resolveUplinkIdentity("example", DECLARED, {}),
-      },
-    ]);
-    expect(screen.getByText("Example Uplink")).toBeInTheDocument();
+    const { decision } = await openPrompt({
+      ...info,
+      identity: resolveUplinkIdentity(info.id, DECLARED, {}),
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Load Uplink “Example”?" }),
+    ).toBeInTheDocument();
     expect(screen.getByText("by Somebody")).toBeInTheDocument();
     expect(
       screen.getByText("https://example.invalid/somebody/example"),
@@ -201,70 +115,113 @@ describe("identity provenance on the first-load page", () => {
     expect(
       screen.getByText("Vouched by the installed mod"),
     ).toBeInTheDocument();
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await answers;
+
+    await closePrompt(decision);
   });
 
+  /*
+   * The whole point of surfacing a disagreement before the pull: this dialog is
+   * where the operator answers, and the mod and the bundle naming the same
+   * Uplink differently is a fact they need in front of them while answering.
+   * It informs, it does not decide: the mod's values still headline.
+   */
   it("puts the bundle's competing claims in front of the operator deciding", async () => {
-    const { answers } = await openPage([
-      {
-        ...SURVEY,
-        id: "example",
-        name: "Example",
-        identity: resolveUplinkIdentity("example", DECLARED, {
-          name: "Impostor",
-          author: "Impostor",
-        }),
-      },
-    ]);
-    expect(screen.getByText("Example Uplink")).toBeInTheDocument();
+    const { decision } = await openPrompt({
+      ...info,
+      identity: resolveUplinkIdentity(info.id, DECLARED, {
+        name: "Impostor",
+        author: "Impostor",
+        repo: "https://example.invalid/impostor/example",
+      }),
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Load Uplink “Example”?" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("by Somebody")).toBeInTheDocument();
     expect(
       screen.getByText("Bundle's own name: “Impostor”"),
     ).toBeInTheDocument();
     expect(
       screen.getByText("Bundle's own author: “Impostor”"),
     ).toBeInTheDocument();
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await answers;
+    expect(
+      screen.getByText(
+        "Bundle's own repo: “https://example.invalid/impostor/example”",
+      ),
+    ).toBeInTheDocument();
+
+    await closePrompt(decision);
   });
 
-  /*
-   * A bundle must not get to write the title of the row deciding whether to
-   * run it: a self-declared name is shown as one the bundle calls itself,
-   * while the title falls back to the id the mod reported.
-   */
-  it("titles the row with the mod-reported id, not the name a bundle claims for itself", async () => {
-    const { answers } = await openPage([
-      {
-        ...SURVEY,
-        id: "gonogo-example",
-        name: "Example",
-        identity: resolveUplinkIdentity("gonogo-example", {}, DECLARED),
-      },
-    ]);
-    expect(screen.getByText("gonogo-example Uplink")).toBeInTheDocument();
-    expect(screen.getByText("Calls itself “Example”")).toBeInTheDocument();
+  it("shows a self-declared author and repo as the bundle's own claim", async () => {
+    const { decision } = await openPrompt({
+      ...info,
+      identity: resolveUplinkIdentity(info.id, {}, DECLARED),
+    });
+
+    expect(screen.getByText("by Somebody")).toBeInTheDocument();
+    expect(
+      screen.getByText("https://example.invalid/somebody/example"),
+    ).toBeInTheDocument();
     expect(
       screen.getByText("Self-declared by the bundle, unverified"),
     ).toBeInTheDocument();
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    await answers;
+
+    await closePrompt(decision);
+  });
+
+  /*
+   * A bundle must not get to write the heading of the dialog deciding whether
+   * to run it: a self-declared name is shown as one the bundle calls itself,
+   * while the heading falls back to the id the mod reported.
+   */
+  it("headlines the mod-reported id, not the name a bundle claims for itself", async () => {
+    const { decision } = await openPrompt({
+      ...info,
+      name: "Example",
+      identity: resolveUplinkIdentity(info.id, {}, DECLARED),
+    });
+
+    expect(
+      screen.getByRole("heading", {
+        name: "Load Uplink “gonogo-example-uplink”?",
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Calls itself “Example”")).toBeInTheDocument();
+
+    await closePrompt(decision);
+  });
+
+  it("says nothing about an identity nothing declared", async () => {
+    const { decision } = await openPrompt({
+      id: info.id,
+      name: info.id,
+      version: info.version,
+      identity: resolveUplinkIdentity(info.id, {}, {}),
+    });
+
+    expect(screen.queryByText(/^by /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Vouched by/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Self-declared/)).not.toBeInTheDocument();
+
+    await closePrompt(decision);
   });
 });
 
-describe("the first-load page's nested-modal guard", () => {
+describe("promptForConsent nested-modal guard", () => {
   it("isolates what is behind it and restores on close", async () => {
     const behind = document.createElement("div");
     document.body.append(behind);
 
-    const { answers } = await openPage([PLOTTER]);
+    const { decision } = await openPrompt();
     expect(behind).toHaveAttribute("inert");
     expect(behind).toHaveAttribute("aria-hidden", "true");
 
     await act(async () => {
-      document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+      screen.getByRole("button", { name: "Don’t load" }).click();
     });
-    await answers;
+    await decision;
 
     expect(behind).not.toHaveAttribute("inert");
     expect(behind).not.toHaveAttribute("aria-hidden");
@@ -272,9 +229,11 @@ describe("the first-load page's nested-modal guard", () => {
   });
 
   it("leaves the outer gate's isolation in place when it closes on top of it", async () => {
+    // The page behind both gates.
     const behind = document.createElement("div");
     document.body.append(behind);
 
+    // The analytics gate opens first and isolates the page.
     const consentService = new AnalyticsConsentService();
     const outer = document.createElement("div");
     document.body.append(outer);
@@ -285,12 +244,15 @@ describe("the first-load page's nested-modal guard", () => {
     });
     await waitFor(() => expect(behind).toHaveAttribute("inert"));
 
-    const { answers } = await openPage([PLOTTER]);
-    await press(rowButton("Load Plotter Uplink?", "Skip"));
-    await press(screen.getByRole("button", { name: "Continue" }));
-    await answers;
+    // The Uplink prompt opens over it, then closes.
+    const { decision } = await openPrompt();
+    await act(async () => {
+      screen.getByRole("button", { name: "Don’t load" }).click();
+    });
+    await decision;
 
-    // The outer gate is still open, so the page must still be isolated.
+    // The outer gate is still open, so the page must still be isolated. A
+    // set/remove guard without refcounting hands the page back here.
     expect(behind).toHaveAttribute("inert");
     expect(behind).toHaveAttribute("aria-hidden", "true");
 
@@ -301,5 +263,24 @@ describe("the first-load page's nested-modal guard", () => {
 
     outer.remove();
     behind.remove();
+    localStorage.clear();
+  });
+});
+
+describe("promptForConsent on a station", () => {
+  it("says declining stops that Uplink's widgets for this session", async () => {
+    const { decision } = await openPrompt({ ...info, onStation: true });
+    expect(
+      screen.getByText(
+        /widgets will not work on this station for this session/,
+      ),
+    ).toBeInTheDocument();
+    await closePrompt(decision);
+  });
+
+  it("leaves the main screen's prompt without that line", async () => {
+    const { decision } = await openPrompt();
+    expect(screen.queryByText(/on this station/)).not.toBeInTheDocument();
+    await closePrompt(decision);
   });
 });

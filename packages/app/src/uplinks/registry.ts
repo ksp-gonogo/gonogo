@@ -72,8 +72,6 @@ export interface UplinkDescriptor {
    * ordinary one, however the index came to say it.
    */
   source?: "local";
-  /** The mod this Uplink connects and the version it was built against, from its manifest. */
-  mod?: { name?: string; builtAgainst?: string };
   versions: UplinkVersionDescriptor[];
 }
 

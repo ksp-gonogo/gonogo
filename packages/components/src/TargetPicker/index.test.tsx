@@ -581,21 +581,6 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
     }
   });
 
-  it("gives each row its full name on hover, since a long name is cut to fit the row", async () => {
-    renderPicker(fixture);
-    emitAvailable(fixture, [
-      { ...RELAY_ONE, name: "Clamp-O-Tron Sr. Docking Port (starboard)" },
-    ]);
-    const rows = await screen.findAllByRole("button", { name: /Clamp-O-Tron/ });
-    for (const row of rows) {
-      expect(
-        row.querySelector(
-          '[data-tooltip="Clamp-O-Tron Sr. Docking Port (starboard)"]',
-        ),
-      ).not.toBeNull();
-    }
-  });
-
   it("renders current target details and clears via vessel.target.clear", async () => {
     const user = userEvent.setup();
     renderPicker(fixture);

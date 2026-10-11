@@ -105,42 +105,6 @@ namespace Sitrep.Host.IntegrationTests
             Assert.NotNull(view.Vessel(ScriptedContactGame.RelayGuid));
         }
 
-        /// <summary>
-        /// A game with nothing to read at all holds every centre's topics as they
-        /// were, the same as an unread list, and a craft is neither taken as gone
-        /// nor planned for until the game can be read again.
-        /// </summary>
-        [Fact]
-        public async Task AGameWithNothingToReadHoldsWhatEachCentreKnewUntilItCanBeRead()
-        {
-            await using var world = await ReckonedVantageWorld.StartAsync();
-            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
-            {
-                world.Tick(ut);
-            }
-            await world.SettleAsync();
-            var before = world.Engine.HeardSnapshotNow()!;
-
-            world.Game.NoGame = true;
-            world.Tick(703.0);
-            world.Tick(704.0);
-            await world.SettleAsync();
-            Assert.Same(before, world.Engine.HeardSnapshotNow());
-
-            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
-            await using var seated = client;
-            world.Tick(705.0);
-            world.Tick(706.0);
-            await client.AssertNoMessageArrivesAsync(TestBudgets.Quiet);
-            Assert.Null(view.Vessels);
-
-            world.Game.NoGame = false;
-            world.Tick(707.0);
-            world.Tick(708.0);
-            await ReckonedVantageWorld.SettleAsync(client, view);
-            Assert.NotNull(view.Vessel(ScriptedContactGame.RelayGuid));
-        }
-
         [Fact]
         public async Task WhatEachCentreKnewIsGivenBackAtOnceAndNoCraftIsTakenAsGone()
         {
