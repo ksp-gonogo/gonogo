@@ -21,21 +21,25 @@ export class MemoryStore implements FlightStore {
   private flights = new Map<string, FlightRecord>();
   private samples = new Map<string, SampleRow[]>();
 
+  /** Saves a flight record, replacing one with the same id. */
   async upsertFlight(record: FlightRecord): Promise<void> {
     this.flights.set(record.id, { ...record });
   }
 
+  /** The flight with this id, or `null`. */
   async getFlight(id: string): Promise<FlightRecord | null> {
     const rec = this.flights.get(id);
     return rec ? { ...rec } : null;
   }
 
+  /** Every saved flight. */
   async listFlights(): Promise<FlightRecord[]> {
     return Array.from(this.flights.values())
       .map((r) => ({ ...r }))
       .sort(FLIGHTS_DESC);
   }
 
+  /** Deletes a flight and its samples. */
   async deleteFlight(id: string): Promise<void> {
     this.flights.delete(id);
     for (const key of Array.from(this.samples.keys())) {
@@ -44,6 +48,7 @@ export class MemoryStore implements FlightStore {
     }
   }
 
+  /** Deletes every flight and its samples. */
   async clearAllFlights(): Promise<void> {
     this.flights.clear();
     this.samples.clear();

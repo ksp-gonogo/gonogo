@@ -78,6 +78,7 @@ export type {
  * @category Extensions
  */
 export type AnyAugment = Omit<AugmentDefinition<string>, "component"> & {
+  /** The augment's component, with its slot props erased to a plain record. */
   component: ComponentType<Record<string, unknown>>;
 };
 

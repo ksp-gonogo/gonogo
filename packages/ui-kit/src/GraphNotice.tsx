@@ -67,6 +67,7 @@ export function placeGraphNotice({
  * @category LineGraph
  */
 export interface GraphNoticeProps extends HTMLAttributes<HTMLDivElement> {
+  /** The notice's words. */
   children?: ReactNode;
   /**
    * `overlay` pins the pill to the bottom-left corner over the graph (pair with

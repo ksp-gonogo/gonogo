@@ -2178,7 +2178,9 @@ public static class RtConfig
         sb.Append(" * @category Reckoners\n");
         sb.Append(" */\n");
         sb.Append("export interface GeneratedReckonableInput {\n");
+        sb.Append("  /** The Topic the input is read from, or \"\" for a path on the value's own payload. */\n");
         sb.Append("  readonly topic: string;\n");
+        sb.Append("  /** The field of the payload the input is read from, or \"\" for another Topic's whole payload. */\n");
         sb.Append("  readonly path: string;\n");
         sb.Append("}\n\n");
 
@@ -2188,9 +2190,13 @@ public static class RtConfig
         sb.Append(" * @category Reckoners\n");
         sb.Append(" */\n");
         sb.Append("export interface GeneratedReckonableValue {\n");
+        sb.Append("  /** The Topic the value is on. */\n");
         sb.Append("  readonly topic: string;\n");
+        sb.Append("  /** The payload field the model moves. */\n");
         sb.Append("  readonly field: string;\n");
+        sb.Append("  /** The kind of model that moves it. */\n");
         sb.Append("  readonly basis: GeneratedReckoningBasis;\n");
+        sb.Append("  /** What the model reads. */\n");
         sb.Append("  readonly inputs: readonly GeneratedReckonableInput[];\n");
         sb.Append("}\n\n");
 

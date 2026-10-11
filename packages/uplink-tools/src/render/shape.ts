@@ -197,6 +197,7 @@ export interface ShapeRecord {
   /** The engine the shapes were taken in. A record from another engine is not
    *  comparable and the check refuses rather than failing. */
   engine: string;
+  /** The shape of each picture, by file. */
   assets: Record<string, AssetShape>;
 }
 

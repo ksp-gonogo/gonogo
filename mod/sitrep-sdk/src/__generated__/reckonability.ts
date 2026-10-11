@@ -31,7 +31,9 @@ export type GeneratedReckoningBasis =
  * @category Reckoners
  */
 export interface GeneratedReckonableInput {
+  /** The Topic the input is read from, or "" for a path on the value's own payload. */
   readonly topic: string;
+  /** The field of the payload the input is read from, or "" for another Topic's whole payload. */
   readonly path: string;
 }
 
@@ -41,9 +43,13 @@ export interface GeneratedReckonableInput {
  * @category Reckoners
  */
 export interface GeneratedReckonableValue {
+  /** The Topic the value is on. */
   readonly topic: string;
+  /** The payload field the model moves. */
   readonly field: string;
+  /** The kind of model that moves it. */
   readonly basis: GeneratedReckoningBasis;
+  /** What the model reads. */
   readonly inputs: readonly GeneratedReckonableInput[];
 }
 

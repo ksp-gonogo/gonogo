@@ -146,6 +146,7 @@ export interface DeltaVBudget {
    * arrived.
    */
   activeStage: DeltaVStage | null;
+  /** How current the budget is. */
   budget: BudgetProvenance;
 }
 

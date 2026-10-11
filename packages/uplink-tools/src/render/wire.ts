@@ -17,6 +17,7 @@ import {
  * @category Uplink page
  */
 export interface WireField {
+  /** The field's name on the wire. */
   name: string;
   /** A unit token (`m/s`, `ut`, `flag`) when the field is a scalar. */
   unit?: string;
@@ -30,11 +31,13 @@ export interface WireField {
  * @category Uplink page
  */
 export interface WireChannel {
+  /** The channel's Topic id. */
   id: string;
   /** The payload interface name, or undefined for one the slice does not type. */
   payload?: string;
   /** The channel carries a bare JSON array of the payload type. */
   array: boolean;
+  /** The fields its payload carries. */
   fields: WireField[];
   /** From the C# declaration site. See `./channels`. */
   disposition: ChannelDisposition;
@@ -46,7 +49,9 @@ export interface WireChannel {
  * @category Uplink page
  */
 export interface WirePayload {
+  /** The payload type's name. */
   name: string;
+  /** The fields it carries. */
   fields: WireField[];
 }
 
@@ -68,6 +73,7 @@ export interface WireCommand {
 export interface WireSurface {
   /** False when the Uplink has no contract slice, so nothing was generated. */
   present: boolean;
+  /** The Topics the Uplink publishes. */
   channels: WireChannel[];
   /**
    * Shapes another payload's field holds, so a reader reaches them THROUGH a

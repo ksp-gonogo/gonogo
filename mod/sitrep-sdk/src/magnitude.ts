@@ -9,7 +9,14 @@
  * @category Units and values
  */
 // `magnitude` is required, not optional: an optional one lets any object at all through, a Reading included.
-export type Quantityish = { magnitude: number } | number | null | undefined;
+export type Quantityish =
+  | {
+      /** The number, in the quantity's own unit. */
+      magnitude: number;
+    }
+  | number
+  | null
+  | undefined;
 
 /**
  * Returns the number inside a quantity, or `null` when it is absent or not

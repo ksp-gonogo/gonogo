@@ -89,9 +89,14 @@ export type RadioUnsupportedReason = "insecure-context" | "no-codec";
  * @category Radio
  */
 export type RadioSupport =
-  | { supported: true }
   | {
+      /** The browser can run the radio. */
+      supported: true;
+    }
+  | {
+      /** The browser cannot run the radio. */
       supported: false;
+      /** Why not. */
       reason: RadioUnsupportedReason;
       /** The names from {@link RADIO_REQUIRED_GLOBALS} that were absent.
        *  Empty for `insecure-context`, which is diagnosed before the

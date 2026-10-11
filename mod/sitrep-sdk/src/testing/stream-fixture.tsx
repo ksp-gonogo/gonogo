@@ -42,9 +42,13 @@ export interface StreamFixtureOptions {
  * @category Stream fixture
  */
 export interface StreamFixture {
+  /** The transport the test feeds by hand. */
   transport: StubTransport;
+  /** The telemetry client built over it. */
   client: TelemetryClient;
+  /** The store the client fills. */
   store: TimelineStore;
+  /** The wall clock the fixture runs on, which the test advances. */
   wall: FakeWallClock;
   /** Wraps `children` in the `TelemetryProvider` this fixture built. */
   Provider: (props: { children: ReactNode }) => JSX.Element;

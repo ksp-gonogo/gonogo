@@ -29,7 +29,9 @@ import { TINY_BELOW, TINY_SIZE } from "./widgetSize";
  * @category TinyEssentials
  */
 export interface TinyEssentialsProps {
+  /** A short name for the widget, drawn with its figures. */
   title: string;
+  /** The figures the widget cannot do without, in the order drawn. */
   essentials: readonly TinyEssential[];
 }
 

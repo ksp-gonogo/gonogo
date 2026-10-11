@@ -145,11 +145,24 @@ export type CommandFound = CommandLoss & CommandFoundOutcome;
  * @category Commands
  */
 export type CommandFoundOutcome =
-  | { outcome: "ran"; result: unknown }
-  | ({ outcome: "refused"; errorCode: CommandErrorCode } & Partial<
-      Omit<CommandRefusalDetail, "command" | "args" | "label">
-    >)
-  | { outcome: "errored"; error: { code: string; message: string } };
+  | {
+      /** The command ran. */
+      outcome: "ran";
+      /** The command's reply. */
+      result: unknown;
+    }
+  | ({
+      /** The command was refused. */
+      outcome: "refused";
+      /** Why it was refused. */
+      errorCode: CommandErrorCode;
+    } & Partial<Omit<CommandRefusalDetail, "command" | "args" | "label">>)
+  | {
+      /** The command errored. */
+      outcome: "errored";
+      /** The error it came back with. */
+      error: { code: string; message: string };
+    };
 
 /**
  * Where the latest dispatch of a command is, as the `status` of a
@@ -176,28 +189,66 @@ export type CommandFoundOutcome =
  */
 // On the wire a refusal is a CommandResult.Fail on command-response; the "error" message type is the failed class.
 export type CommandStatus =
-  | { phase: "idle" }
   | {
+      /** Nothing has been sent. */
+      phase: "idle";
+    }
+  | {
+      /** The command is on its way. */
       phase: "in-flight";
+      /** Identifies the send. */
       requestId: string;
+      /** When the reply is due, in UT seconds. */
       etaConfirm: number;
       /** What the mod said of a command it accepted against the odds, as a sentence to show: a continuous input that its centre's plan says will be dropped on the way. Absent for an ordinary command. */
       warning?: string;
     }
-  | { phase: "confirmed"; requestId: string; result: unknown }
   | {
-      phase: "failed";
+      /** The command ran and was answered. */
+      phase: "confirmed";
+      /** Identifies the send. */
       requestId: string;
+      /** The command's reply. */
+      result: unknown;
+    }
+  | {
+      /** The command failed. */
+      phase: "failed";
+      /** Identifies the send. */
+      requestId: string;
+      /** The error it came back with. */
       error: { code: string; message: string };
     }
   | ({
+      /** The mod refused the command. */
       phase: "refused";
+      /** Identifies the send. */
       requestId: string;
+      /** Why it was refused. */
       errorCode: CommandErrorCode;
     } & Partial<CommandRefusalDetail>)
-  | { phase: "lost"; requestId: string; reason: string }
-  | { phase: "undelivered"; requestId: string; reason: string }
-  | ({ phase: "found"; requestId: string } & CommandFoundOutcome);
+  | {
+      /** No reply came back, so the command may have run. */
+      phase: "lost";
+      /** Identifies the send. */
+      requestId: string;
+      /** A sentence describing the loss. */
+      reason: string;
+    }
+  | {
+      /** The command never left, so it did not run. */
+      phase: "undelivered";
+      /** Identifies the send. */
+      requestId: string;
+      /** A sentence saying why it did not leave. */
+      reason: string;
+    }
+  | ({
+      /** A lost command was answered after all. */
+      phase: "found";
+      /** Identifies the send. */
+      requestId: string;
+    } & CommandFoundOutcome);
 
 /**
  * The rejection value for every dispatch that does not succeed.
