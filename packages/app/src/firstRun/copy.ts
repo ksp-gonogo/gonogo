@@ -43,7 +43,7 @@ export const WIZARD_COPY = {
     "This checks again every few seconds. To see whether the container is running:",
   "container.statusCommandLabel": "container status command",
   "container.hint.fix":
-    "If that lists no container, run the first command. If it lists one, port 3002 was not published: remove the container and run the first command again, unchanged. The [deployment guide](deployment) covers the relay and its ports.",
+    "If that lists no container, run the first command. If it lists one, port 3002 was not published: remove the container and run the first command again, unchanged. The [networking guide](relayPorts) covers the relay and its ports.",
   "container.recheck": "Check again",
 
   "connect.heading": "Connect to KSP",

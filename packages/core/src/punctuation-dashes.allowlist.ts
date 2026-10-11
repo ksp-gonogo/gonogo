@@ -20,7 +20,6 @@
  */
 export const PUNCTUATION_DASH_DEBT: Record<string, number> = {
   "CLAUDE.md": 1,
-  "docs/DEPLOYMENT.md": 2,
   "docs/NETWORKING.md": 1,
   "mod/Gonogo.KSP/KspRoboticsActuator.cs": 1,
   "mod/Sitrep.Host.IntegrationTests/TestUplinks.cs": 1,

@@ -290,9 +290,9 @@ describe("FirstRunSetup: the container check", () => {
     expect(screen.getByText(CONTAINER_STATUS_COMMAND)).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
-        name: linkWords(runs("container.hint.fix"), "deployment"),
+        name: linkWords(runs("container.hint.fix"), "relayPorts"),
       }),
-    ).toHaveAttribute("href", SETUP_LINKS.deployment);
+    ).toHaveAttribute("href", SETUP_LINKS.relayPorts);
     expect(
       screen.getByRole("button", { name: say("container.recheck") }),
     ).toBeInTheDocument();

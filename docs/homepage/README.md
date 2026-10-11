@@ -19,5 +19,5 @@ command printed here drifts from the one the app prints.
 Nothing in this folder is deployed by hand. `deploy.yml`'s release channel copies
 `index.html` to the root of the `ksp-gonogo/ksp-gonogo.github.io` repository each time a
 release is cut, beside the release app at `/app/` and the redirects from the old
-`/gonogo/...` URLs. See [DEPLOYMENT.md](../DEPLOYMENT.md) for the layout of that site and
+`/gonogo/...` URLs. See [the maintainer docs](https://ksp-gonogo.github.io/uplink-dev-docs/maintaining/) for the layout of that site and
 which workflow owns which path.

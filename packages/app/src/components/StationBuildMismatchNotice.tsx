@@ -7,7 +7,7 @@ import { VERSION } from "../version";
 
 /** How to move the main app to a newer build. */
 export const UPGRADE_URL =
-  "https://github.com/ksp-gonogo/gonogo/blob/main/docs/DEPLOYMENT.md#end-user-bundle";
+  "https://github.com/ksp-gonogo/gonogo/blob/main/README.md#updating";
 
 type Host = Pick<PeerHostService, "onStationInfo" | "onPeerDisconnect">;
 

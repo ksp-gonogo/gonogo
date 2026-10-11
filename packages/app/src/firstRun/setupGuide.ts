@@ -99,7 +99,7 @@ export const SETUP_LINKS = {
   kspSetup: `${DOCS}/KSP-SETUP.md`,
   telemetryChecks: `${DOCS}/KSP-SETUP.md#checking-telemetry-is-arriving`,
   networking: `${DOCS}/NETWORKING.md`,
-  deployment: `${DOCS}/DEPLOYMENT.md`,
+  relayPorts: `${DOCS}/NETWORKING.md#cross-internet-stations-cellular-remote-networks`,
   source: "https://github.com/ksp-gonogo/gonogo",
   uplinkDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/",
 } as const;

@@ -111,6 +111,6 @@ Main screen ◄──► Station screens (peer-to-peer data channels)
 - **[docs/NETWORKING.md](docs/NETWORKING.md)**: running KSP and the main screen on two computers, and connecting stations across networks
 - **[Uplink developer docs](https://ksp-gonogo.github.io/uplink-dev-docs/)**: building an Uplink, the extension unit for new telemetry, commands and widgets
 - **[asyncapi.yaml](asyncapi.yaml)**: the mod's wire contract as an AsyncAPI document, every core telemetry channel and command with its payload schema and the contract's own explanation of it. Generated, never hand-edited
-- **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: GitHub Pages, the backend container images and the release candidate channel (maintainer reference)
+- **[Maintaining Gonogo](https://ksp-gonogo.github.io/uplink-dev-docs/maintaining/)**: GitHub Pages, the backend container images and the release candidate channel (maintainer reference)
 - **[packages/serial/README.md](packages/serial/README.md)**: wiring physical USB controllers (throttle quadrants, button boxes) to widget actions
 - **[CONTRIBUTING.md](CONTRIBUTING.md)**: the developer setup, running the tests, and how to land a change

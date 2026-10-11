@@ -104,7 +104,7 @@ TURN_EXTERNAL_IP=<your public IP>
 
 `curl ifconfig.me` gives your current public IP. That variable is read by both `scripts/dev.sh` and the relay, and an explicit value always wins over auto-detection.
 
-When the relay runs on a public Linux box (as in the production setup described in [DEPLOYMENT.md](DEPLOYMENT.md#port-forwarding-for-off-network-stations)), it auto-discovers its public IP at startup, so no extra configuration is needed.
+When the relay runs on a public Linux box (an always-on setup), it auto-discovers its public IP at startup, so no extra configuration is needed.
 
 A relay containerized on a macOS host relays cross-internet traffic fine once both of the above are in place, it's been verified end-to-end with a station on cellular. A public Linux host is the better always-on choice (stable public IP, no home port-forwarding), but it isn't a requirement.
 
@@ -113,3 +113,22 @@ A relay containerized on a macOS host relays cross-internet traffic fine once bo
 Open the **Add Station** modal on the main screen. An indicator at the bottom checks whether the relay's TURN server is reachable. This matters only for stations out on the internet, which need TURN to connect: green means a cross-internet station can be relayed, red usually means a missing port-forward or the wrong public address. A station on the same WiFi connects regardless of what this indicator says, because it doesn't use TURN; if one is failing, work through [When a station won't connect](#when-a-station-wont-connect) instead.
 
 The probe runs in the main screen's browser and looks for the relay at `http://localhost:3002`, so run the main screen on the machine the relay is on. Open it from a second computer and the indicator reports no TURN even when the relay is healthy.
+
+The relay answers three requests on port `3002`, handy from the machine it runs on:
+
+- `GET http://localhost:3002/health` reports the relay status, the public IP coturn is advertising, and the most recently registered host peer id (for diagnostics only; stations do not read it to find the host)
+- `GET http://localhost:3002/version` returns `{ version, buildTime }`, which is how you tell which image a box is actually on
+- `GET http://localhost:3002/ice-config` returns the ICE servers the main screen fetches on boot. The TURN shared secret in it rotates on every relay restart and lives only in the relay's memory
+
+## Running the relay on its own
+
+The container from the README runs the app and the relay together. For an always-on relay on a separate machine, such as a public Linux box, run the relay image by itself (swap `podman` for `docker` if you prefer):
+
+```bash
+podman run -d --name gonogo-relay \
+  -p 3002:3002 -p 3478:3478/udp -p 3478:3478/tcp -p 49160-49170:49160-49170/udp \
+  -e TURN_EXTERNAL_IP=<public-ip> \
+  ghcr.io/ksp-gonogo/gonogo-relay:latest
+```
+
+On a box where the TURN ports are directly reachable, the relay finds its public IP by itself and nothing needs forwarding at home; leave `TURN_EXTERNAL_IP` out unless discovery gets it wrong.

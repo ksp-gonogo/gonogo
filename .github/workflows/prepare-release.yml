@@ -28,7 +28,7 @@ name: prepare-release
 # and push nothing.
 #
 # The bump size states the wire-compatibility promise (see
-# docs/DEPLOYMENT.md): patch = compatible/silent, minor = advisory
+# https://ksp-gonogo.github.io/uplink-dev-docs/maintaining/): patch = compatible/silent, minor = advisory
 # mismatch banner on skewed stations, major = peer protocol broke.
 
 on:
