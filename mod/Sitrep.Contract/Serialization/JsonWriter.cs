@@ -2212,6 +2212,13 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "lastReachableUt");
             sb.Append(':');
             AppendNumber(sb, e.LastReachableUt);
+            if (e.Reason.HasValue)
+            {
+                sb.Append(',');
+                AppendString(sb, "reason");
+                sb.Append(':');
+                AppendNumber(sb, (int)e.Reason.Value);
+            }
             sb.Append('}');
         }
 

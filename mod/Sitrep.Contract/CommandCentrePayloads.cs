@@ -172,6 +172,29 @@ public class UnreachableCentreEntry
     /// <summary>Universal time at which this centre was last on <c>commandCentre.roster</c>.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double LastReachableUt { get; set; }
+
+    /// <summary>
+    /// Why the centre left the roster, as far as the receiving centre has been
+    /// told. Null when the centre's own word does not say, so absence is not a
+    /// reason.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public UnreachableReason? Reason { get; set; }
+}
+
+/// <summary>Why a command centre is no longer on a roster: the two ways a centre leaves it that the game tells apart.</summary>
+/// <category>Comms</category>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum UnreachableReason
+{
+    /// <summary>The centre no longer exists: a crewed vessel destroyed or recovered, or a ground station the game no longer lists.</summary>
+    NoLongerExists,
+
+    /// <summary>The vessel still exists but has reported that it is no longer a command centre.</summary>
+    NoLongerCentre,
 }
 
 /// <summary>

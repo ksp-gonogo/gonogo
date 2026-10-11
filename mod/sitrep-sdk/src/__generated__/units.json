@@ -1357,7 +1357,8 @@
       "displayName": "text",
       "id": "id",
       "kind": "text",
-      "lastReachableUt": "ut"
+      "lastReachableUt": "ut",
+      "reason": "enum"
     },
     "Unsubscribe": {
       "topic": "id",
@@ -1645,7 +1646,8 @@
       "displayName": "text",
       "id": "id",
       "kind": "text",
-      "lastReachableUt": "ut"
+      "lastReachableUt": "ut",
+      "reason": "enum"
     },
     "commcast.traffic": {
       "added": "id",
@@ -2918,6 +2920,9 @@
       "source": "TargetKnowledge",
       "vesselType": "VesselType"
     },
+    "UnreachableCentreEntry": {
+      "reason": "UnreachableReason"
+    },
     "VesselComms": {
       "controlState": "ControlState",
       "signalQuantity": "SignalQuantity"
@@ -2953,6 +2958,9 @@
     },
     "career.mode": {
       "mode": "GameMode"
+    },
+    "commandCentre.unreachable": {
+      "reason": "UnreachableReason"
     },
     "commcast.traffic": {
       "kind": null
@@ -3292,6 +3300,10 @@
     "UnlockKind": {
       "0": "Tech",
       "1": "Facility"
+    },
+    "UnreachableReason": {
+      "0": "NoLongerExists",
+      "1": "NoLongerCentre"
     },
     "VesselType": {
       "0": "Ship",

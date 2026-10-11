@@ -6,6 +6,7 @@ import {
 import type {
   CommandCentreEntry,
   UnreachableCentreEntry,
+  UnreachableReason,
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useSeat } from "@ksp-gonogo/sitrep-sdk/spine";
@@ -211,6 +212,10 @@ export function useMyVantage(): Vantage {
 export interface Unreachable {
   /** When the mod last saw it on the roster; undefined when it never has, which is unknown rather than zero. */
   lastReachable: Value<"ut"> | undefined;
+  /** Why it left, when the mod's word says; undefined when it does not, which is unknown rather than any one reason. */
+  reason: UnreachableReason | undefined;
+  /** What sort of centre it was, as the roster reported it; undefined when the mod never listed it. */
+  kind: string | undefined;
 }
 
 /** Who a thread's members are, by name, and which of them can no longer be reached. */
@@ -246,7 +251,11 @@ export function useAddressBook(): AddressBook {
           return undefined;
         }
         const seen = remembered.find((e) => e.id === id);
-        return { lastReachable: seen?.lastReachableUt };
+        return {
+          lastReachable: seen?.lastReachableUt,
+          reason: seen?.reason ?? undefined,
+          kind: seen?.kind,
+        };
       },
     }),
     [entries, remembered],
