@@ -13,6 +13,7 @@ import { GROUPS, RULES } from "./rules";
 import { humanReport, jsonReport, type RunResult, runCheck } from "./run";
 import { scanClient } from "./scan";
 import { sdkDynamicPrefixes } from "./sdk-prefixes";
+import type { ClientScan } from "./types";
 
 export const CHECK_USAGE = `uplink-tools check [options]
 
@@ -21,7 +22,9 @@ export const CHECK_USAGE = `uplink-tools check [options]
   nothing is found, 1 when findings remain, and 2 when the check could not run.
 
   --client <dir>      the Uplink's client package (default: client/ in the Uplink
-                      the current directory is inside)
+                      the current directory is inside). An Uplink with no client
+                      is checked by the rules that read none, today the parent
+                      mod's version
   --fix               write the files check owns, then re-verify. Refused when
                       CI is set
   --only <groups>     run only these comma-separated groups. loadable and minsize
@@ -36,6 +39,19 @@ export const CHECK_USAGE = `uplink-tools check [options]
               a bare node
     minsize   every widget draws without clipping at the minSize it declares,
               in a browser (npx playwright install chromium)`;
+
+/** What a rule that reads nothing of the client is handed when the Uplink has none. */
+const NO_CLIENT_SCAN: ClientScan = {
+  widgets: [],
+  registeredPrefixes: [],
+  indexMissing: [],
+  directives: [],
+  augments: [],
+  typeErrors: 0,
+};
+
+const probesNamed = (only: readonly string[] | undefined) =>
+  (only ?? []).filter((group) => PROBE_GROUPS.includes(group));
 
 const list = (value: string | undefined) =>
   value === undefined ? undefined : value.split(",").filter(Boolean);
@@ -62,7 +78,10 @@ export async function check(
           ? join(uplinkDir, "client")
           : cwd,
     );
-    if (!existsSync(join(clientDir, "tsconfig.json"))) {
+    const hasClient = existsSync(join(clientDir, "tsconfig.json"));
+    const clientless =
+      !hasClient && named === undefined && uplinkDir !== undefined;
+    if (!hasClient && !clientless) {
       throw new CheckUnableError(
         `no client with a tsconfig.json found at ${clientDir}. Run check inside an Uplink, or name its client with --client <dir>.`,
       );
@@ -84,6 +103,14 @@ export async function check(
     }
     const ruleOnly = only?.filter((g) => !PROBE_GROUPS.includes(g));
     const ruleSkip = skip?.filter((g) => !PROBE_GROUPS.includes(g));
+    if (clientless) {
+      const probeNames = probesNamed(only);
+      if (probeNames.length > 0) {
+        throw new CheckUnableError(
+          `${probeNames.join(" and ")} read${probeNames.length === 1 ? "s" : ""} the Uplink's client, and ${uplinkDir} has none.`,
+        );
+      }
+    }
     const probes = PROBES.filter(
       (probe) => only?.includes(probe.group) && !skip?.includes(probe.group),
     );
@@ -95,24 +122,28 @@ export async function check(
       exitCode: 0,
     };
     if (only === undefined || (ruleOnly?.length ?? 0) > 0) {
-      const ts = await loadTypeScript(clientDir);
-      const sdkPrefixes = sdkDynamicPrefixes(clientDir);
+      const ts = clientless ? undefined : await loadTypeScript(clientDir);
+      const sdkPrefixes = clientless
+        ? { prefixes: [], problem: undefined }
+        : sdkDynamicPrefixes(clientDir);
       const indexes = createIndexReader();
       result = runCheck({
-        rules: RULES,
+        rules: clientless ? RULES.filter((rule) => rule.clientless) : RULES,
         groups: GROUPS,
         clientDir,
         dynamicPrefixes: sdkPrefixes.prefixes,
         dynamicPrefixesProblem: sdkPrefixes.problem,
         scan: () =>
-          scanClient(
-            ts,
-            createClientProgram(ts, clientDir, { workspace: true }),
-            {
-              clientDir,
-              indexes,
-            },
-          ),
+          ts === undefined
+            ? NO_CLIENT_SCAN
+            : scanClient(
+                ts,
+                createClientProgram(ts, clientDir, { workspace: true }),
+                {
+                  clientDir,
+                  indexes,
+                },
+              ),
         fix: switches.has("--fix"),
         only: ruleOnly,
         skip: ruleSkip,

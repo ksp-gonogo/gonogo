@@ -31,6 +31,11 @@ export interface Rule {
   /** Stable, `<group>/<name>`. */
   id: string;
   group: string;
+  /**
+   * Set on a rule that reads nothing of the client, so it can judge an Uplink
+   * that has none. `check` runs only these when the Uplink has no client.
+   */
+  clientless?: boolean;
   check(ctx: CheckContext): FixableFinding[];
 }
 

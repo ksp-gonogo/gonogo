@@ -177,6 +177,51 @@ describe("exit codes", () => {
   });
 });
 
+describe("an Uplink with no client", () => {
+  async function checkIn(dir: string, args: string[] = []) {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const code = await check(args, dir, {});
+    return {
+      code,
+      out: log.mock.calls.map((c) => String(c[0])).join("\n"),
+      err: error.mock.calls.map((c) => String(c[0])).join("\n"),
+    };
+  }
+  function uplinkWith(mod: object | null): string {
+    const dir = mkdtempSync(join(tmpdir(), "gonogo-check-"));
+    scratch.push(dir);
+    writeFileSync(
+      join(dir, "uplink.json"),
+      JSON.stringify({ id: "example", name: "Example", mod }),
+    );
+    return dir;
+  }
+
+  it("still has its parent mod's version checked, from uplink.json alone", async () => {
+    const ok = uplinkWith({
+      name: "Example",
+      builtAgainst: "1.0",
+      tier: "ckan",
+    });
+    expect((await checkIn(ok, ["--only", "manifest"])).code).toBe(0);
+  });
+
+  it("fails on a planted mod block with no version, so a check that reads nothing cannot pass", async () => {
+    const bad = uplinkWith({ name: "Example", tier: "ckan" });
+    const found = await checkIn(bad, ["--only", "manifest"]);
+    expect(found.code).toBe(1);
+    expect(found.out).toContain("manifest/mod-version");
+  });
+
+  it("stops rather than pass a group that reads the client", async () => {
+    const dir = uplinkWith(null);
+    const stopped = await checkIn(dir, ["--only", "loadable"]);
+    expect(stopped.code).toBe(2);
+    expect(stopped.err).toContain("has none");
+  });
+});
+
 describe("--fix", () => {
   it("is refused under CI and writes nothing", async () => {
     const dir = client({ generated: null });

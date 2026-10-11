@@ -240,6 +240,7 @@ export const MOD_TIERS = ["ckan", "manual"] as const;
 export const modVersionRule: Rule = {
   id: "manifest/mod-version",
   group: GROUP,
+  clientless: true,
   check({ clientDir }: CheckContext): FixableFinding[] {
     const uplinkDir = findUplinkDir(clientDir);
     if (!uplinkDir) return [];
