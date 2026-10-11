@@ -1306,6 +1306,9 @@ async function findClippedContent(page: Page): Promise<string[]> {
         for (let anc = el.parentElement; anc; anc = anc.parentElement) {
           const as = getComputedStyle(anc);
           if (as.opacity === "0") break;
+          /* The same subtree rule as the element's own `clip` above: a
+             visually-hidden block's descendants are not drawn either. */
+          if (as.clip === "rect(0px, 0px, 0px, 0px)") break;
           const hidesX = /^(hidden|clip)$/.test(as.overflowX);
           const hidesY = /^(hidden|clip)$/.test(as.overflowY);
           const scrollsX = /^(auto|scroll)$/.test(as.overflowX);
@@ -1429,7 +1432,7 @@ async function findClippedContent(page: Page): Promise<string[]> {
  *   box hiding it. Scrolling brings it only into the part of the scroller's
  *   viewport the operator never sees
  *
- * Eight quiet cases, each a thing this codebase does on purpose:
+ * Nine quiet cases, each a thing this codebase does on purpose:
  *
  * - `quiet-scroll`: content past the end of an `overflow: auto` container. The
  *   operator can scroll to it, so it is not out of reach
@@ -1446,6 +1449,9 @@ async function findClippedContent(page: Page): Promise<string[]> {
  *   shape of a tape's far headings. Only a declaration tells that from a
  *   defect, so undeclared it is left alone
  * - `quiet-sr-only`: the visually-hidden idiom, parked out of sight on purpose
+ * - `quiet-sr-only-subtree`: text nested inside a visually-hidden block, the
+ *   shape of rows kept for a screen reader, which is hidden along with its
+ *   ancestor
  * - `quiet-reserved`: the held mark's own shape, the `fires-absolute` box with
  *   the host reserving the dot's room at its end and the dot hung inside it, so
  *   a shrink-wrapped clipper has the room and the dot is drawn
@@ -1516,6 +1522,10 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
             style="position:absolute;right:0;top:0;width:6px;height:6px;background:#fa0"></span></span>
         </span>
       </div>
+      <div style="position:absolute;top:880px;left:0;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap"><span
+        id="quiet-sr-only-subtree" style="display:inline-block;margin-left:200px">spoken row</span></div>
+      <div style="position:absolute;top:960px;left:0;width:40px;height:20px;overflow:hidden;clip:rect(0,40px,20px,0);white-space:nowrap"><span
+        id="fires-real-clip" style="display:inline-block;margin-left:200px">drawn row</span></div>
       <div style="position:absolute;top:840px;left:0;width:60px;height:20px;overflow:hidden">
         <span id="quiet-sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap">spoken</span>
       </div>`;
@@ -1531,6 +1541,7 @@ async function proveClipDetectorWorks(page: Page): Promise<void> {
     "fires-below",
     "fires-below-fold",
     "fires-overhang",
+    "fires-real-clip",
   ].filter((id) => !found.some((f) => f.includes(`#${id}>`)));
   const misfired = found.filter((f) => f.includes("#quiet-"));
   if (missed.length > 0) {

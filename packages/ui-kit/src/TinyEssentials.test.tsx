@@ -341,7 +341,7 @@ describe("TinyEssentials", () => {
       { label: "Hdg", value: value("deg", 90) },
     ];
 
-    it("draws the rows that fit, in order, and drops the rest", async () => {
+    it("draws the rows that fit, in order, and keeps the rest for a screen reader", async () => {
       stubLayout(45);
       const { container } = render(
         <TinyEssentials title="LANDING" essentials={THREE} />,
@@ -351,7 +351,10 @@ describe("TinyEssentials", () => {
           (e) => e.querySelector("dt")?.textContent,
         ),
       ).toEqual(["Alt", "V/S"]);
-      expect(screen.queryByText("Hdg")).toBeNull();
+      expect(
+        screen.getByText("Hdg").closest("[data-tiny-essential]"),
+      ).toBeNull();
+      expect(screen.getByText("Hdg").tagName).toBe("DT");
       await expectNoA11yViolations(container);
     });
 
@@ -376,7 +379,9 @@ describe("TinyEssentials", () => {
           ]}
         />,
       );
-      expect(screen.queryByText("ACTIVE")).toBeNull();
+      expect(
+        screen.getByText("ACTIVE").closest("[data-tiny-essential]"),
+      ).toBeNull();
       const spoken = [...container.querySelectorAll("[aria-live]")]
         .map((r) => r.textContent)
         .filter((t) => t !== "");

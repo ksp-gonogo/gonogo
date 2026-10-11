@@ -44,7 +44,9 @@ export interface TinyEssentialsProps {
  * essential declares it urgent, through an assertive one that interrupts.
  *
  * Rows are drawn in order while they fit the tile and the ones that do not
- * are dropped from the end, so every figure the tile shows is whole.
+ * are dropped from the end, so every figure the tile shows is whole. A dropped
+ * row stays in the accessibility tree, in a screen-reader-only block after the
+ * drawn ones.
  *
  * @category TinyEssentials
  * @categoryDescription TinyEssentials
@@ -114,6 +116,18 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
                     <EssentialFigure essential={essential} />
                   </TinyEssentials__RowFigure>
                 </TinyEssentials__Row>
+              ))}
+              {rest.slice(drawn).map((essential) => (
+                <VisuallyHidden as="div" key={essential.label}>
+                  <dt>{essential.label}</dt>
+                  <dd>
+                    {essential.control === undefined ? (
+                      <EssentialFigure essential={essential} />
+                    ) : (
+                      essential.control.label
+                    )}
+                  </dd>
+                </VisuallyHidden>
               ))}
             </TinyEssentials__Rows>
           )}
