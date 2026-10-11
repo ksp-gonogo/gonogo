@@ -1452,6 +1452,8 @@ describe("touchdown map, the projection of the view", () => {
     expect(at("bearing-90").y).toBeGreaterThan(0);
     const label = plot?.layers.find((l) => l.id === "bearing-90");
     expect(label?.kind === "marker" && label.label).toBe("090°");
+    // The numbers stand alone: no ring or dot is drawn round a bearing.
+    expect(label?.kind === "marker" && label.shape).toBe("none");
     const heading = plot?.layers.find((l) => l.id === "heading");
     expect(heading?.kind === "caption" && heading.text).toBe("HDG 090°");
   });

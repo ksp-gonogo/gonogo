@@ -499,3 +499,19 @@ describe("the relief layer's absolute bands", () => {
     expect(fills([0, 0, 500, 500]).size).toBeGreaterThan(1);
   });
 });
+
+describe("a marker with no shape", () => {
+  it("draws its label alone, with no circle round it", () => {
+    const { container } = chart([
+      {
+        kind: "marker",
+        id: "m",
+        at: { x: 1, y: 1 },
+        shape: "none",
+        label: "090°",
+      },
+    ]);
+    expect(container.querySelector('[data-plot-layer="m"]')).toBeNull();
+    expect(container.textContent).toContain("090°");
+  });
+});

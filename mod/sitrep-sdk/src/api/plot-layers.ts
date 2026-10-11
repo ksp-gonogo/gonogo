@@ -174,8 +174,15 @@ export interface PlotMarkerLayer extends PlotLayerBase {
   kind: "marker";
   /** Where the mark stands. */
   at: PlotPoint;
-  /** Defaults to `"dot"`. */
-  shape?: "dot" | "ring" | "cross" | "chevron-up" | "chevron-down" | "vessel";
+  /** Defaults to `"dot"`. `"none"` draws no mark: the label alone, centred on the point. */
+  shape?:
+    | "dot"
+    | "ring"
+    | "cross"
+    | "chevron-up"
+    | "chevron-down"
+    | "vessel"
+    | "none";
   /**
    * How the position of a `"vessel"` mark is known, which decides its shape and
    * fill: `"current"` is a reading of now, `"held"` the last observation kept past

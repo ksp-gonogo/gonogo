@@ -52,6 +52,16 @@ export const RingRidge240: Story = {
   args: { terrain: "ridge", agl: 240, oblique: true },
 };
 
+/** The landing zone ring over a 90 m scarp that crosses it, seen obliquely from 120 m. */
+export const RingScarp120: Story = {
+  args: { terrain: "scarp", agl: 120, oblique: true },
+};
+
+/** The landing zone ring over a 90 m scarp that crosses it, seen obliquely from 240 m. */
+export const RingScarp240: Story = {
+  args: { terrain: "scarp", agl: 240, oblique: true },
+};
+
 /** The landing zone ring over crater ground, seen obliquely from 120 m. */
 export const RingCrater120: Story = {
   args: { terrain: "crater", agl: 120, oblique: true },

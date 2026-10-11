@@ -13,6 +13,8 @@ export const RING_TERRAINS = {
   flat: () => 0,
   slope30: (east: number) => 0.3 * east,
   slope60: (east: number) => 0.6 * east,
+  scarp: (east: number, north: number) =>
+    90 / (1 + Math.exp(-(east - 6) / 9)) + 6 * Math.sin(north / 14),
   ridge: (east: number) => 18 * Math.exp(-(((east - 18) / 12) ** 2)),
   crater: (east: number, north: number) => {
     const d = Math.hypot(east, north);

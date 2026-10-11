@@ -762,7 +762,7 @@ function MarkerLayer({
   } as const;
 
   const mark =
-    shape === "vessel" ? (
+    shape === "none" ? null : shape === "vessel" ? (
       // The shared vessel mark, so the craft reads the same here as on the map: shape and fill say how its position is known.
       <g {...common}>
         <VesselMarkSvg
@@ -823,8 +823,9 @@ function MarkerLayer({
       {mark}
       {frame.labels && layer.label && (
         <text
-          x={x + r + 3}
+          x={shape === "none" ? x : x + r + 3}
           y={y + 3}
+          textAnchor={shape === "none" ? "middle" : undefined}
           fontSize={CAPTION_LABEL_SIZE}
           fill={toneText(layer)}
           fillOpacity={toneOpacity(layer)}
