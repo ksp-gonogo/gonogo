@@ -175,7 +175,7 @@ namespace Sitrep.Core.Tests
                 .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false))
                 .Where(t => t.GetConstructor(Type.EmptyTypes) != null);
 
-        internal static void SerializeThroughWire(object payload)
+        internal static string SerializeThroughWire(object payload)
         {
             var msg = new StreamData<object?>
             {
@@ -189,7 +189,7 @@ namespace Sitrep.Core.Tests
                     TimelineEpoch = 0,
                 },
             };
-            EnvelopeCodec.WriteStreamData(msg);
+            return EnvelopeCodec.WriteStreamData(msg);
         }
 
         /// <summary>
@@ -293,10 +293,20 @@ namespace Sitrep.Core.Tests
                 },
             });
 
-            SerializeThroughWire(new List<UnreachableCentreEntry>
+            var unreachableJson = SerializeThroughWire(new List<UnreachableCentreEntry>
             {
-                new UnreachableCentreEntry { Id = "ground:Dish", DisplayName = "Dish", Kind = "GroundStation", LastReachableUt = 1234 },
+                new UnreachableCentreEntry
+                {
+                    Id = "ground:Dish",
+                    DisplayName = "Dish",
+                    Kind = "GroundStation",
+                    LastReachableUt = 1234,
+                    Reason = UnreachableReason.NoLongerExists,
+                },
             });
+
+            // The app reads this as the numeric UnreachableReason enum, where 0 is NoLongerExists.
+            Assert.Contains("\"reason\":0", unreachableJson);
 
             SerializeThroughWire(
                 CommandResult<ScienceTransmission>.Fail(CommandErrorCode.InsufficientResource.Refine("planted.tooFew", "there are too few aboard")));
