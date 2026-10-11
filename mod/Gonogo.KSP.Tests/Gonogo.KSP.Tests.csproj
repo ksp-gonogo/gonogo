@@ -144,6 +144,7 @@
          anchor named something else, two anchors, none) are all stand-ins a
          headless test can declare. -->
     <Compile Include="..\Gonogo.KSP\CalendarEpoch.cs" />
+    <Compile Include="..\Gonogo.KSP\WarpRung.cs" />
     <!-- EvaParentage.cs is the RULE behind ActiveVesselScope: which vessel gonogo
          reports as active while a kerbal is outside their craft. It takes ids and
          a liveness probe and names no KSP type, so it is exercised on every

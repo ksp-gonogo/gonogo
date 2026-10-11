@@ -145,7 +145,8 @@ export class WarpObserver {
   }
 
   detectUnscheduled(): void {
-    const elevated = this.observedWarp.index > 0 || this.observedWarp.rate > 1;
+    // By the rate alone: a rung number means nothing in a scene that cannot warp, and time passing at 1x is not warp on any rung.
+    const elevated = this.observedWarp.rate > 1;
     if (!elevated) {
       this.unscheduledWarp = null;
       return;

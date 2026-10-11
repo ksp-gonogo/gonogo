@@ -3376,7 +3376,9 @@ namespace Gonogo.KSP
         /// are confirmed via decompile to already guard their own
         /// <c>!fetch</c> case internally (returning 1x/HIGH defaults) - no
         /// extra null check needed here, unlike the Unity-object guards
-        /// elsewhere in this class. <c>FlightDriver.Pause</c> reads a
+        /// elsewhere in this class. The rung is the exception: its default
+        /// is 1, which <see cref="WarpRung"/> reads as 0 where no scene can
+        /// warp. <c>FlightDriver.Pause</c> reads a
         /// private STATIC field (not instance-backed), so it's always safe
         /// to call too.
         /// </summary>
@@ -3397,7 +3399,7 @@ namespace Gonogo.KSP
             return new Dictionary<string, object?>
             {
                 ["warpRate"] = (double)TimeWarp.CurrentRate,
-                ["warpRateIndex"] = TimeWarp.CurrentRateIndex,
+                ["warpRateIndex"] = WarpRung.Index(TimeWarp.fetch != null, TimeWarp.CurrentRateIndex),
                 ["warpRates"] = ReadWarpRates(),
                 ["warpMode"] = TimeWarp.WarpMode.ToString(),
                 ["paused"] = FlightDriver.Pause,

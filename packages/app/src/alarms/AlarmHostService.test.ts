@@ -389,6 +389,29 @@ describe("AlarmHostService", () => {
     expect(svc.snapshot().unscheduledWarp).not.toBeNull();
   });
 
+  it("does not call a 1x reading unscheduled warp, whatever rung it names", async () => {
+    const { svc, telemetry } = makeService();
+    telemetry.set("t.universalTime", 1200);
+    telemetry.set("t.currentRateIndex", 1);
+    telemetry.set("t.currentRate", 1);
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(svc.snapshot().unscheduledWarp).toBeNull();
+  });
+
+  it("clears the unscheduled-warp flag once the rate is back at 1x", async () => {
+    const { svc, telemetry } = makeService();
+    telemetry.set("t.universalTime", 1200);
+    telemetry.set("t.currentRateIndex", 3);
+    telemetry.set("t.currentRate", 10);
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(svc.snapshot().unscheduledWarp).not.toBeNull();
+
+    telemetry.set("t.currentRateIndex", 1);
+    telemetry.set("t.currentRate", 1);
+    await vi.advanceTimersByTimeAsync(1100);
+    expect(svc.snapshot().unscheduledWarp).toBeNull();
+  });
+
   it("suppresses the unscheduled-warp flag when a station just announced a warp intent", async () => {
     const { svc, telemetry } = makeService();
     svc.registerStationWarpIntent();
