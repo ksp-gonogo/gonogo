@@ -214,7 +214,7 @@ describe("a field's reckoning", () => {
 });
 
 describe("a model that integrates from the last observation", () => {
-  function targetStore(delaySeconds: number) {
+  function targetStore(delaySeconds: number, topic = "vessel.target") {
     clearReckoners();
     registerCoreReckoners();
     const clock = new ViewClock({
@@ -224,7 +224,7 @@ describe("a model that integrates from the last observation", () => {
     });
     const store = new TimelineStore(clock);
     const observedAt = UT_NOW - delaySeconds;
-    store.ingest("vessel.target", {
+    store.ingest(topic, {
       validAt: observedAt,
       payload: {
         relativePosition: { x: 100, y: 0, z: 0 },
@@ -263,5 +263,14 @@ describe("a model that integrates from the last observation", () => {
       status: "declined",
       declined: { reason: "beyond-horizon" },
     });
+  });
+
+  it.each([
+    "vessel.target",
+    "vessel.dock",
+  ])("carries no mark on %s once the light-time passes 30 seconds", (topic) => {
+    const reading = targetStore(31, topic).sampleReading(topic);
+    expect(reading.reckoning.status).toBe("declined");
+    expect(reading.reckoning).not.toHaveProperty("value");
   });
 });
