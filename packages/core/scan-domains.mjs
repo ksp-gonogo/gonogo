@@ -32,7 +32,10 @@ const RATCHET_LISTS =
 
 /** Scan test file (relative to packages/core) to the repo paths it can see. */
 export const SCAN_DOMAINS = {
-  "src/act-gate-update-scope.test.ts": [/^scripts\/act-warning-/],
+  "src/act-gate-update-scope.test.ts": [
+    /^scripts\/act-warning-/,
+    /^scripts\/test-file-shard/,
+  ],
   "src/asyncapi-document.test.ts": [
     MOD,
     /^asyncapi\.yaml$/,

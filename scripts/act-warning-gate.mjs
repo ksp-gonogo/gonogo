@@ -78,7 +78,7 @@
  *   pnpm act-warning-gate --filter ui  restrict to packages matching a substring
  *   pnpm act-warning-gate --except a,b leave out the packages with exactly these names
  *   pnpm act-warning-gate --filter components --shard 2/4
- *                                      measure one quarter of the files, for a CI leg
+ *                                      measure one share of the files, dealt by weight, for a CI leg
  *   pnpm act-warning-gate --update --only <substring>
  *                                      rewrite ONLY entries matching <substring>
  *   pnpm act-warning-gate --update --all
@@ -105,6 +105,7 @@ import {
   reconcile,
 } from "./act-warning-compare.mjs";
 import { KNOWN_ACT_WARNINGS } from "./act-warning-debt.mjs";
+import { filesForShard } from "./test-file-shard.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -371,7 +372,12 @@ function measure(pkg) {
       if (plant) rmSync(plant, { force: true });
     }
   } else {
-    run = runVitest([`--shard=${shard}`]);
+    const [index, count] = shard.split("/").map(Number);
+    const files = filesForShard(join(repoRoot, pkg.dir), index, count);
+    run =
+      files.length > 0
+        ? runVitest(files)
+        : { status: 0, stdout: "", stderr: "" };
     if (plant) {
       writeFileSync(plant, PROVOCATION_SOURCE);
       try {
