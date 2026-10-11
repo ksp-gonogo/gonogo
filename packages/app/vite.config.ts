@@ -145,6 +145,7 @@ const uplinkBundles = (): PluginOption => ({
         name: target.name,
         author: target.author,
         repo: target.repo,
+        bundled: true,
         versions: [
           {
             version: pkg.version,

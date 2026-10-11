@@ -5,6 +5,12 @@
 // quarantines it with a legible reason until "Reconsider" in Settings clears
 // it. A new version asks again, because it is new bytes to trust.
 //
+// An Uplink bundled in the core mod is the exception, and the loader (not this
+// file) decides it: its client hash is baked into the plugin and vouched for by
+// the installed mod, so the prompt would ask a player to judge something they
+// cannot. It applies only while the mod's hash equals the index's; a mismatch
+// asks like any other Uplink, and bytes that miss the hash are refused.
+//
 // Generic on purpose (no mod token) so the uplink-boundary ratchet stays clean.
 
 import { logger } from "@ksp-gonogo/logger";

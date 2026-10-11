@@ -74,6 +74,13 @@ export interface UplinkDescriptor {
   source?: "local";
   /** The mod this Uplink connects and the version it was built against, from its manifest. */
   mod?: { name?: string; builtAgainst?: string };
+  /**
+   * Set by the build on an Uplink whose client ships inside the core mod, so
+   * the mod bakes its client hash into the plugin. The loader skips the consent
+   * prompt for one only while the live roster's hash from the mod equals the
+   * index's; any other Uplink is asked about.
+   */
+  bundled?: true;
   versions: UplinkVersionDescriptor[];
 }
 
