@@ -23,7 +23,7 @@ You can use widget profiles to dynamically switch dashboards based on what you'r
 
 ## What you need
 
-**If you just want to run a station**, you need a share code from whoever runs the main screen, and internet access on the station, because it finds the main screen through the public PeerJS broker (`0.peerjs.com`), which carries no telemetry; [docs/NETWORKING.md](docs/NETWORKING.md) has the detail. They open **Add station** on it and it shows the address to open on your device, with a QR code for it; see [Adding a station screen](#adding-a-station-screen). The public address is `https://ksp-gonogo.github.io/app/station`, which exists once the first release is published; until then, use the address Add Station shows for the main screen itself.
+**If you just want to run a station**, you need a share code from whoever runs the main screen. They open **Add station** on it and it shows the address to open on your device, with a QR code for it; see [Adding a station screen](#adding-a-station-screen). The public address is `https://ksp-gonogo.github.io/app/station`, which exists once the first release is published; until then, use the address Add Station shows for the main screen itself.
 
 To host, you need:
 
@@ -72,13 +72,7 @@ Then run the same `docker run` command again. (After the first release, pull and
 
 ### What you see the first time
 
-A new browser asks its questions on one **Before you start** page: which Uplinks to load, and whether to send anonymous logs, which carries no mission data.
-
-An Uplink is an add-on that brings one other mod's widgets into the dashboard, and **Load** runs its code in the app with the same access as the rest of it. **Skip** leaves it out: you lose that mod's widgets and any commands they send, and nothing else is affected, so skipping is safe. Either answer is remembered for that Uplink's version, and a skipped one shows **Reconsider** in Settings → Uplinks. To decide, look at the name and the author on the page: load an Uplink for a mod you have installed and recognise, and that you got from CKAN or the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases). Skip one you did not install or whose author you cannot place. An Uplink for a mod you do not play only shows widgets that stay empty.
-
-A short setup then checks the container, the connection to KSP and your Uplinks, and **Settings → Connection → Run setup again** reopens it. Its Uplinks step counts the Uplinks the mod reports and how many "need attention". A line such as "Refused: contract mismatch: contract v35.0 vs core v36.2" means that Uplink was built for an older version of the Gonogo mod than the one running, so the app refuses to load it. The dashboard works without it: only that mod's widgets are missing. To fix it, update the Uplink (from CKAN, or its zip on the Uplinks releases page) to a release built for the mod you have, or update the mod to match. Settings → Uplinks shows each Uplink's own reason.
-
-The dashboard starts empty: load a game in KSP, press **Add a widget** and start with **System View**. If something stays empty, [docs/KSP-SETUP.md](docs/KSP-SETUP.md#checking-telemetry-is-arriving) walks the checks.
+A new browser asks its questions on one **Before you start** page: which Uplinks to load, and whether to send anonymous logs. **Load** runs an Uplink's code with the same access as the app, so only load ones you trust; either answer is remembered for that Uplink's version. A short setup then checks the container, the connection to KSP and your Uplinks, and **Settings → Connection → Run setup again** reopens it. The dashboard starts empty: load a game in KSP, press **Add a widget** and start with **System View**. If something stays empty, [docs/KSP-SETUP.md](docs/KSP-SETUP.md#checking-telemetry-is-arriving) walks the checks.
 
 ### Adding a station screen
 

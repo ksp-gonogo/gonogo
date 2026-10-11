@@ -32,7 +32,7 @@ export const WIZARD_COPY = {
   "container.heading": "Start the container",
   "container.advance": "Connect to KSP",
   "container.instruction":
-    "Start the Gonogo container. It serves this app and the relay that lets other screens join yours. If it is already running, there is nothing to do here. The command ends with the image tag this build of the app was published under, {tag}.",
+    "Start the Gonogo container. It serves this app and the relay that lets other screens join yours. If it is already running, there is nothing to do here. Until the first release is published the image is only tagged {tag}, so the command ends with it; after the first release, end it with :latest instead.",
   "container.runCommandLabel": "run command",
   "container.powershellNote":
     "Written for PowerShell, the default terminal on Windows. In Command Prompt, type ^ in place of the ` that ends each line.",

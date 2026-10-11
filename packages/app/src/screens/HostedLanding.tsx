@@ -4,12 +4,10 @@ import { say } from "../firstRun/copy";
 import {
   browserShell,
   CKAN_UPLINK_FILTER,
-  imageTagOf,
   LOCAL_APP_URL,
   runCommandFor,
   SETUP_LINKS,
 } from "../firstRun/setupGuide";
-import { VERSION } from "../version";
 
 /**
  * Shown at "/" when the app is served over HTTPS, i.e. the published
@@ -57,10 +55,7 @@ export function HostedLanding() {
               <a href={SETUP_LINKS.docker}>install Docker</a> and start it. Then
               run this in a terminal:
             </StepText>
-            <CommandBlock
-              command={runCommandFor(shell, imageTagOf(VERSION))}
-              label="run command"
-            />
+            <CommandBlock command={runCommandFor(shell)} label="run command" />
             <StepText>
               {shell === "powershell" && `${say("container.powershellNote")} `}
               With Podman, type <code>podman</code> in place of{" "}

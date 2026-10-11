@@ -23,30 +23,15 @@ export const RUN_IMAGE_TAG = "rc";
  * printed on. Every surface that prints the command renders these lines, so
  * the README, the home page and the app cannot drift.
  */
-function runCommandLinesFor(tag: string): string[] {
-  return [
-    `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped`,
-    "--add-host=host.docker.internal:host-gateway",
-    "-e KSP_HOST=host.docker.internal",
-    "-p 8080:8080 -p 3002:3002",
-    "-p 3478:3478/tcp -p 3478:3478/udp",
-    "-p 49160-49170:49160-49170/udp",
-    `ghcr.io/ksp-gonogo/gonogo:${tag}`,
-  ];
-}
-
-export const RUN_COMMAND_LINES = runCommandLinesFor(RUN_IMAGE_TAG);
-
-/**
- * The image tag that matches a build of the app: a release candidate's version
- * carries `-rc.` and its image is tagged `rc`, a release is a plain
- * `X.Y.Z` and its image is tagged `latest`. A build that stamps no version
- * (`0.0.0`) takes the tag the static pages print.
- */
-export function imageTagOf(version: string): string {
-  if (version === "0.0.0" || version.includes("-")) return RUN_IMAGE_TAG;
-  return /^\d+\.\d+\.\d+$/.test(version) ? "latest" : RUN_IMAGE_TAG;
-}
+export const RUN_COMMAND_LINES = [
+  `docker run -d --name ${CONTAINER_NAME} --restart unless-stopped`,
+  "--add-host=host.docker.internal:host-gateway",
+  "-e KSP_HOST=host.docker.internal",
+  "-p 8080:8080 -p 3002:3002",
+  "-p 3478:3478/tcp -p 3478:3478/udp",
+  "-p 49160-49170:49160-49170/udp",
+  `ghcr.io/ksp-gonogo/gonogo:${RUN_IMAGE_TAG}`,
+] as const;
 
 /** The run command as the single line it runs as, with no continuation of any shell's. */
 export const RUN_COMMAND = RUN_COMMAND_LINES.join(" ");
@@ -67,11 +52,8 @@ const LINE_CONTINUATION: Record<CommandShell, string> = {
 };
 
 /** The run command broken between flags, each line but the last ending in `shell`'s continuation, so the text pastes and runs as printed. */
-export function runCommandFor(
-  shell: CommandShell,
-  tag: string = RUN_IMAGE_TAG,
-): string {
-  return runCommandLinesFor(tag).join(` ${LINE_CONTINUATION[shell]}\n  `);
+export function runCommandFor(shell: CommandShell): string {
+  return RUN_COMMAND_LINES.join(` ${LINE_CONTINUATION[shell]}\n  `);
 }
 
 /** Fetches the newest image under the run command's tag. `docker run` never pulls a tag it already has, so an update starts here. */
