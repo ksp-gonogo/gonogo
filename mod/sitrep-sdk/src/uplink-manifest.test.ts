@@ -115,6 +115,32 @@ describe("gonogo-uplink.json", () => {
     expect(manifest.sdkVersion).toMatch(/^\d+\.\d+\.\d+/);
   });
 
+  it("carries the mod uplink.json says the Uplink connects, and leaves the field out when it names none", () => {
+    const withMod = buildUplinkManifest({
+      clientDir: anUplink({
+        declaration: {
+          id: "example",
+          name: "Example Uplink",
+          mod: { name: "Plotter", tier: "ckan", builtAgainst: "1.6.0.1" },
+        },
+      }),
+      registered: REGISTERED,
+      compat: COMPAT,
+      integrity: "",
+    });
+    expect(withMod.mod).toEqual({ name: "Plotter", builtAgainst: "1.6.0.1" });
+
+    const without = serialiseUplinkManifest(
+      buildUplinkManifest({
+        clientDir: anUplink(),
+        registered: REGISTERED,
+        compat: COMPAT,
+        integrity: "",
+      }),
+    );
+    expect(JSON.parse(without)).not.toHaveProperty("mod");
+  });
+
   it("names an Uplink with no uplink.json from its own registrations", () => {
     const root = mkdtempSync(join(tmpdir(), "gonogo-manifest-"));
     scratch.push(root);

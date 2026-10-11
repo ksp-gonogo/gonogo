@@ -56,6 +56,12 @@ export function runCommandFor(shell: CommandShell): string {
   return RUN_COMMAND_LINES.join(` ${LINE_CONTINUATION[shell]}\n  `);
 }
 
+/** Fetches the newest image under the run command's tag. `docker run` never pulls a tag it already has, so an update starts here. */
+export const UPDATE_PULL_COMMAND = `docker pull ghcr.io/ksp-gonogo/gonogo:${RUN_IMAGE_TAG}`;
+
+/** Removes the running container so the run command can start it again from the newly pulled image. */
+export const UPDATE_REMOVE_COMMAND = `docker rm -f ${CONTAINER_NAME}`;
+
 /** Lists the container when it is running, and prints only a header row when it is not. */
 export const CONTAINER_STATUS_COMMAND = `docker ps --filter name=${CONTAINER_NAME}`;
 

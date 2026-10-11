@@ -1,29 +1,25 @@
-// The first-load consent modal (design §3.5 / D-consent option A). Because the
-// loader runs pre-render, before the app's React tree and its ModalProvider
-// exist, this mounts a one-off modal into its own `createRoot`, resolves on the
-// operator's click, then unmounts. `main.tsx` wires it via `setConsentPrompt`.
+// The first-load page (design §3.5). Because the loader runs pre-render, before
+// the app's React tree and its ModalProvider exist, this mounts a one-off modal
+// into its own `createRoot`, resolves once the operator has answered every
+// question on it, then unmounts. `main.tsx` wires it via `setConsentBatchPrompt`.
 //
-// It names the Uplink / author / repo / version, says which of those the mod
-// vouched for and which the bundle wrote about itself, and states the §3.5
-// limit: the mod vouches for this client, but a compromised mod could vouch for
-// a compromised client: mod trust comes from CKAN, not from us.
+// Each Uplink row names who vouched for its identity and who only claims it:
+// the mod vouches for its client, but a compromised mod could vouch for a
+// compromised client, so mod trust comes from CKAN, not from us.
 
-import { Button } from "@ksp-gonogo/ui";
-import { useEffect, useId, useRef } from "react";
+import { useId, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import styled, { type DefaultTheme, ThemeProvider } from "styled-components";
 import { isolateModal } from "../a11y/modalIsolation";
 import { useFocusTrap } from "../a11y/useFocusTrap";
 import type { ConsentInfo } from "./consent";
-import { UplinkIdentityBlock } from "./UplinkIdentityBlock";
+import { type FirstLoadAnswers, FirstLoadChoices } from "./FirstLoadChoices";
 
-// The rem sizes below are root-relative on purpose: this is a pre-render
-// consent surface that scales with the browser font size. Only the unitless
-// line-height, the radius and the z-index take tokens.
+// The rem sizes below are root-relative on purpose: this is a pre-render surface that scales with the browser font size.
 const Backdrop = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.82);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -35,78 +31,42 @@ const Dialog = styled.div`
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-floating);
-  max-width: 460px;
+  max-width: 640px;
   width: calc(100% - 2rem);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
   padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-related-comfortable);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 
   h2 {
-    margin: 0 0 0.75rem;
+    margin: 0;
     font-size: 1.1rem;
   }
-  p {
-    margin: 0 0 0.75rem;
-    line-height: var(--line-height-body);
-    font-size: 0.9rem;
-  }
-  .UplinkConsent__meta {
-    color: var(--color-text-muted);
-    font-size: 0.85rem;
-  }
-  .UplinkConsent__limit {
-    color: var(--color-warn-on-status);
-    font-size: 0.82rem;
-  }
-  .UplinkConsent__actions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: flex-end;
-    margin-top: 1.25rem;
-  }
+  &:focus-visible,
   button:focus-visible {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
 `;
 
-interface ConsentDialogProps {
-  info: ConsentInfo;
-  onResolve: (granted: boolean) => void;
+export interface FirstLoadPageProps {
+  uplinks: readonly ConsentInfo[];
+  askLogs: boolean;
+  onDone: (answers: FirstLoadAnswers) => void;
 }
 
-/**
- * What the heading calls the Uplink. A name the mod or the Hub vouches for is
- * the Uplink's name; a name only the bundle claims is a claim, and putting it
- * in the heading of the dialog that decides whether to run it would let a
- * bundle borrow any name it liked. That one stays in the identity block below,
- * as something the bundle calls itself, and the heading falls back to the id
- * the mod reports.
- */
-function headingName(info: ConsentInfo): string {
-  if (info.identity?.name.source === "bundle") return info.id;
-  return info.name;
-}
-
-function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
+/** The first-load questions in the dialog that holds them. */
+export function FirstLoadPage({
+  uplinks,
+  askLogs,
+  onDone,
+}: Readonly<FirstLoadPageProps>) {
   const titleId = useId();
-  const descId = useId();
-  const identity = info.identity;
   const dialogRef = useRef<HTMLDivElement>(null);
-  const loadRef = useRef<HTMLButtonElement>(null);
-
-  // Focus starts on Load, the choice an operator who opened the Hub and clicked
-  // Load is already committed to. Tab then stays in here; without the trap it
-  // walked out into whatever sits behind, which for the boot-time call is the
-  // dashboard.
-  useFocusTrap(dialogRef, loadRef);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onResolve(false);
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onResolve]);
+  useFocusTrap(dialogRef);
 
   return (
     <Backdrop>
@@ -115,83 +75,60 @@ function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        aria-describedby={descId}
         tabIndex={-1}
       >
-        <h2 id={titleId}>Load Uplink “{headingName(info)}”?</h2>
-        <div id={descId}>
-          <p className="UplinkConsent__meta">
-            {info.id}@{info.version}
-          </p>
-          {identity && <UplinkIdentityBlock identity={identity} />}
-          <p>
-            This runs with the same access as the rest of the app. Only install
-            Uplink clients you trust.
-          </p>
-          {info.onStation && (
-            <p>
-              If you decline, this Uplink’s widgets will not work on this
-              station for this session.
-            </p>
-          )}
-        </div>
-        <div className="UplinkConsent__actions">
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={() => onResolve(false)}
-          >
-            Don’t load
-          </Button>
-          <Button
-            variant="primary"
-            ref={loadRef}
-            type="button"
-            onClick={() => onResolve(true)}
-          >
-            Load
-          </Button>
-        </div>
+        <h2 id={titleId}>Before you start</h2>
+        <FirstLoadChoices uplinks={uplinks} askLogs={askLogs} onDone={onDone} />
       </Dialog>
     </Backdrop>
   );
 }
 
+export interface FirstLoadPromptOptions {
+  /**
+   * The anonymous-logs consent, when this page should ask it too: the main
+   * screen while it is unanswered. Its answer is written straight to it.
+   */
+  logs?: { set(value: "enabled" | "disabled"): void };
+}
+
 /**
- * Mount the consent modal, resolve on the operator's click (or Escape =
- * decline), and tear the one-off root down. Returns the operator's decision.
- * `theme` is the app's active styled-components theme so the modal renders in
- * the same palette as the app it is about to extend.
+ * Mount the first-load page, resolve once every question is answered (or
+ * Escape answers what is left), and tear the one-off root down. Returns one
+ * answer per Uplink, in the order given. `theme` is the app's active
+ * styled-components theme, so the page renders in the palette of the app it
+ * is about to extend.
  */
-export function promptForConsent(
-  info: ConsentInfo,
+export function promptForConsents(
+  uplinks: readonly ConsentInfo[],
   theme: DefaultTheme,
-): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
+  options: FirstLoadPromptOptions = {},
+): Promise<boolean[]> {
+  return new Promise<boolean[]>((resolve) => {
     const container = document.createElement("div");
     document.body.appendChild(container);
     const root = createRoot(container);
 
-    // Nested-modal guard: this can fire while another modal is already open
-    // behind it, both siblings under document.body (this one via its own
-    // createRoot, per the doc comment above; a Settings modal via
-    // `@ksp-gonogo/ui`'s Modal.tsx),
-    // so without this, two role="dialog" elements sit in the accessibility tree
-    // at once. Only one modal should ever be reachable at a time (WCAG dialog
-    // pattern). Harmless when this is the boot-time, nothing-else-open call:
-    // there are simply no siblings to isolate.
+    // This can open while another modal is already up behind it, so whatever is behind is isolated until it closes.
     const release = isolateModal(container);
 
-    const finish = (granted: boolean): void => {
+    const finish = (answers: FirstLoadAnswers): void => {
+      if (options.logs && answers.logs !== undefined) {
+        options.logs.set(answers.logs ? "enabled" : "disabled");
+      }
       release();
       root.unmount();
       container.remove();
-      resolve(granted);
+      resolve(answers.uplinks);
     };
 
     root.render(
       <ThemeProvider theme={theme}>
-        <ConsentDialog info={info} onResolve={finish} />
+        <FirstLoadPage
+          uplinks={uplinks}
+          askLogs={options.logs !== undefined}
+          onDone={finish}
+        />
       </ThemeProvider>,
     );
   });

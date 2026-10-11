@@ -4402,6 +4402,9 @@ namespace Sitrep.Host.IntegrationTests
                 // repeated per entry: it is a fact about this core, not about any uplink.
                 Assert.Equal((double)ContractVersion.Major, payload["coreContractMajor"]);
                 Assert.Equal((double)ContractVersion.Minor, payload["coreContractMinor"]);
+                // A test build ships no build-info.txt, so the release label is present and null rather than missing.
+                Assert.True(payload.ContainsKey("coreVersion"));
+                Assert.Null(payload["coreVersion"]);
 
                 var uplinks = Assert.IsType<List<object?>>(payload["uplinks"]);
                 var byId = new Dictionary<string, Dictionary<string, object?>>();

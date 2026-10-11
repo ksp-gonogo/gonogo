@@ -146,6 +146,12 @@ export interface SystemUplinksTopicPayloadMap {
     coreContractMajor?: number | null;
     coreContractMinor?: number | null;
     /**
+     * The release the running mod was built as: a tag such as `v1.4.0`, or a
+     * candidate label such as `rc-abc1234`. `null` for a build that records
+     * none, which is every local build, and absent on a mod predating the field.
+     */
+    coreVersion?: string | null;
+    /**
      * Every registered channel's delay role, core and Uplink alike, each list
      * sorted. `trueNow` and `heldAtHome` name static topics; `trueNowPrefixes`
      * names the dynamic namespaces declared TrueNow, whose materialized topics
