@@ -24,7 +24,8 @@ import {
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import type { UplinkHealthStateName } from "@ksp-gonogo/sitrep-sdk";
-import { type ConsentInfo, ensureConsent } from "./consent";
+import { type ConsentInfo, ensureConsents } from "./consent";
+import { ConsentRound, type ConsentSlot } from "./consentRound";
 import type { HostCompat } from "./hostCompat";
 import {
   registryIdentity,
@@ -122,9 +123,9 @@ export interface LoaderContext {
   roster?: RosterEntry[];
   /**
    * Resolve per-Uplink first-load consent (design §3.5 / §5 step 4). Injected so
-   * tests can drive the gate; defaults to the real `ensureConsent`, which
-   * short-circuits a remembered `id@version` grant and otherwise prompts the
-   * operator via the modal wired at boot.
+   * tests can drive the gate, one Uplink at a time; defaults to the real
+   * `ensureConsents`, which short-circuits a remembered `id@version` answer and
+   * asks the rest together on the first-load page wired at boot.
    */
   ensureConsent?: (info: ConsentInfo) => Promise<boolean>;
   /**
@@ -647,6 +648,7 @@ function clientSourceDescriptor(
     author: identity.author?.value ?? "",
     repo: identity.repo?.value ?? "",
     identity,
+    mod: manifest.mod,
     versions: [
       {
         version: manifest.version,
@@ -711,6 +713,7 @@ async function loadThirdParty(
   id: string,
   roster: RosterEntry,
   ctx: LoaderContext,
+  slot?: LoadSlot,
 ): Promise<UplinkLoadOutcome> {
   /*
    * Everything before the manifest arrives can only be named by the mod, so
@@ -783,6 +786,7 @@ async function loadThirdParty(
       ctx,
       "installed-mod",
       true,
+      slot,
     );
   }
 
@@ -812,7 +816,29 @@ async function loadThirdParty(
 
   const descriptor = descriptorFromClientSource(roster, manifest);
   // The mod is the anchor here: `descriptorFromClientSource` fills `integrity` from `expectedClientHash`, so there is no Hub index in this story at all.
-  return loadOne(descriptor, ctx, "installed-mod");
+  return loadOne(descriptor, ctx, "installed-mod", false, slot);
+}
+
+/**
+ * A load's place in a batch: its consent slot, and the load before it, which
+ * it waits for once past consent so the Uplinks still import one at a time.
+ */
+interface LoadSlot {
+  consent: ConsentSlot;
+  turn: Promise<unknown>;
+}
+
+/** How a batch of consent questions is answered: a test's injected gate one at a time, else the persisted store and the first-load page. */
+function resolveConsents(
+  ctx: LoaderContext,
+): (infos: readonly ConsentInfo[]) => Promise<boolean[]> {
+  const single = ctx.ensureConsent;
+  if (!single) return ensureConsents;
+  return async (infos) => {
+    const answers: boolean[] = [];
+    for (const info of infos) answers.push(await single(info));
+    return answers;
+  };
 }
 
 /**
@@ -829,6 +855,7 @@ async function loadOne(
   ctx: LoaderContext,
   integrityAnchor: UplinkIntegrityParty = "hub-index",
   unvouched = false,
+  slot?: LoadSlot,
 ): Promise<UplinkLoadOutcome> {
   const identity = descriptorIdentity(descriptor);
   const local = isLocal(descriptor);
@@ -856,21 +883,28 @@ async function loadOne(
     const { skewOverridden } = checkCompat(descriptor, version, ctx, roster);
 
     // Consent gates the fetch (design §5 step 4: consent between gate and fetch).
-    // First-party ids are NOT pre-trusted, a first load at a new id@version asks
-    // the operator; a remembered grant short-circuits. Decline quarantines with a
-    // legible reason. Bytes are never fetched for a declined Uplink.
-    if (!local) {
-      const ensure = ctx.ensureConsent ?? ensureConsent;
-      const consented = await ensure({
+    // A remembered answer short-circuits; otherwise the operator answers on the
+    // first-load page. Decline quarantines with a legible reason, and bytes are
+    // never fetched for a declined Uplink.
+    if (local) {
+      slot?.consent.pass();
+    } else {
+      const info: ConsentInfo = {
         id: descriptor.id,
         name: descriptor.name,
         version: version.version,
         author: descriptor.author || undefined,
         identity,
         onStation: ctx.bundlesFromHost === true,
-      });
+        mod: descriptor.mod,
+      };
+      const consented = slot
+        ? await slot.consent.ask(info)
+        : await resolveConsents(ctx)([info]).then(([granted]) => granted);
       if (!consented) refuse("consent declined");
     }
+    // Loads run side by side only as far as consent; from here they take turns, in roster order.
+    await slot?.turn;
 
     // Fetch, then verify the bytes BEFORE import (design §5 step 5).
     // `version.integrity` is threaded through as `expectedHash` (D6) so a
@@ -1063,8 +1097,10 @@ function deriveEnabledIds(
 /**
  * Load every enabled Uplink from the registry. Reads the index once, derives
  * the enabled set from the live roster (`deriveEnabledIds`), then loads each
- * enabled id independently (one bad Uplink never blocks a good one). Returns
- * every outcome; also written to the loader-state store for the Uplinks list.
+ * enabled id independently (one bad Uplink never blocks a good one). Every
+ * consent question is asked together once each load has reached its gate, and
+ * the imports then run one at a time in roster order. Returns every outcome;
+ * also written to the loader-state store for the Uplinks list.
  */
 export async function loadEnabledUplinks(
   ctx: LoaderContext,
@@ -1097,35 +1133,49 @@ export async function loadEnabledUplinks(
   }
 
   const effectiveIds = deriveEnabledIds(ctx.roster, index, ctx.override);
-  const outcomes: UplinkLoadOutcome[] = [];
+  const round = new ConsentRound(effectiveIds.length, resolveConsents(ctx));
+  const runs: Promise<UplinkLoadOutcome>[] = [];
+  let turn: Promise<unknown> = Promise.resolve();
   for (const id of effectiveIds) {
-    const descriptor = index.uplinks.find((u) => u.id === id);
-    if (descriptor) {
-      outcomes.push(await loadOne(descriptor, ctx));
-      continue;
-    }
-    // No first-party descriptor: `deriveEnabledIds` only put this id in
-    // `effectiveIds` without one because the roster carries a `clientSource`
-    // for it (D5-loader follow-on), so build+load via that path instead.
-    // The plain "not found in the registry index" quarantine below is now
-    // unreachable via the roster-driven path (kept as a defensive fallback
-    // for a caller that hand-supplies an `override` naming an id that's in
-    // neither the index nor the roster at all).
-    const rosterEntry = ctx.roster?.find((r) => r.id === id);
-    if (rosterEntry?.clientSource) {
-      outcomes.push(await loadThirdParty(id, rosterEntry, ctx));
-      continue;
-    }
-    const outcome: UplinkLoadOutcome = {
-      id,
-      name: id,
-      status: "quarantined",
-      reason: "not found in the registry index",
-    };
-    setUplinkOutcome(outcome);
-    outcomes.push(outcome);
+    const slot: LoadSlot = { consent: round.slot(), turn };
+    const run = loadById(id, index, ctx, slot).finally(() =>
+      slot.consent.pass(),
+    );
+    turn = run.catch(() => undefined);
+    runs.push(run);
   }
-  return outcomes;
+  return Promise.all(runs);
+}
+
+async function loadById(
+  id: string,
+  index: RegistryIndex,
+  ctx: LoaderContext,
+  slot: LoadSlot,
+): Promise<UplinkLoadOutcome> {
+  const descriptor = index.uplinks.find((u) => u.id === id);
+  if (descriptor) {
+    return loadOne(descriptor, ctx, "hub-index", false, slot);
+  }
+  // No first-party descriptor: `deriveEnabledIds` only put this id in
+  // `effectiveIds` without one because the roster carries a `clientSource`
+  // for it (D5-loader follow-on), so build+load via that path instead.
+  // The plain "not found in the registry index" quarantine below is now
+  // unreachable via the roster-driven path (kept as a defensive fallback
+  // for a caller that hand-supplies an `override` naming an id that's in
+  // neither the index nor the roster at all).
+  const rosterEntry = ctx.roster?.find((r) => r.id === id);
+  if (rosterEntry?.clientSource) {
+    return loadThirdParty(id, rosterEntry, ctx, slot);
+  }
+  const outcome: UplinkLoadOutcome = {
+    id,
+    name: id,
+    status: "quarantined",
+    reason: "not found in the registry index",
+  };
+  setUplinkOutcome(outcome);
+  return outcome;
 }
 
 /**

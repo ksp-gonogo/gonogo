@@ -11837,6 +11837,10 @@
         "note": "New: a field uplink-tools already read from uplink.json, now on the type so the reference documents it"
       },
       {
+        "key": "sitrep-sdk ./uplink-manifest UplinkManifest#mod?",
+        "note": "New: gonogo-uplink.json carries the mod an Uplink connects and the version it was built against, for the first-load page"
+      },
+      {
         "key": "sitrep-sdk ./uplink-manifest UplinkWrappedMod",
         "note": "New: the mod block of uplink.json as a named, documented type"
       },

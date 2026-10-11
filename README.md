@@ -68,15 +68,14 @@ docker rm -f gonogo
 
 Then run the same `docker run` command again. (After the first release, pull and run `:latest` instead.) Update the Gonogo mod in KSP at the same time, since the app and the mod are released together and an old mod may lack channels a new app expects. CKAN does this for you; a hand install means deleting `GameData/Gonogo` and copying the new one in. The container holds no data of its own: your layouts, settings, share code and Uplink answers live in the browser, per address, so they survive as long as you keep opening the same address (`localhost:8080`). Stations keep theirs in their own browsers.
 
-The app has no version readout in its screens yet (a station shows its version only when it differs from the main screen's). To see what you are running, open `http://localhost:3002/version`, or view the page source of the main screen and look for `gonogo-version`.
+**Settings → General → About** shows the app's version, the mod's, and the newest published release. When a newer release is out, it gives the commands above to update the container. The check asks GitHub, so offline it says it could not check.
 
 ### What you see the first time
 
 On a brand new browser, in this order:
 
-1. If the Gonogo mod reports Uplinks installed in KSP, one dialog per Uplink asks **Load Uplink "..."?** An Uplink is an add-on that brings one other mod's widgets into the dashboard. **Load** runs that Uplink's code in the app with the same access as the rest of it, so only load ones you trust, and the answer is remembered for that version. **Don't load** leaves the Uplink out: its widgets do not appear, Settings → Uplinks says why, and you are asked again on the next page load
-2. **Help improve gonogo?** asks whether to send anonymous logs and errors to the developer, with no mission data. **Enable** or **Decline**; you can change it later in Settings
-3. **Set up Gonogo**, a six-step dialog that opens once: Welcome, Start the container, Connect to KSP, Uplinks, Health check, Done. Each step shows the command it needs and checks the result for you, and none blocks the next. The connection step is where you type the KSP computer's address if the game is on another computer. **Settings → Connection → Run setup again** opens it again
+1. **Before you start**, one page with every question the browser has to answer. Each Uplink the Gonogo mod reports in KSP gets a row, with the mod it connects and the version of that mod it was built for. An Uplink is an add-on that brings one other mod's widgets into the dashboard. **Load** runs that Uplink's code in the app with the same access as the rest of it, so only load ones you trust. **Skip** leaves it out: its widgets do not appear, and Settings → Uplinks says why and offers **Reconsider**. Either answer is remembered for that Uplink's version. The page also asks whether to send anonymous logs and errors to the developer, which you can change later in Settings
+2. **Set up Gonogo**, a six-step dialog that opens once: Welcome, Start the container, Connect to KSP, Uplinks, Health check, Done. Each step shows the command it needs and checks the result for you, and none blocks the next. The connection step is where you type the KSP computer's address if the game is on another computer. **Settings → Connection → Run setup again** opens it again
 
 Then the dashboard itself is **empty**: it says "No widgets on this dashboard" and "Use the + button at the bottom right (Add component) to add one". A new station starts the same way. Load a game in KSP, add widgets (**System View** is a good first one), and you should see data coming in. The mod setup is walked through in [docs/KSP-SETUP.md](docs/KSP-SETUP.md). To point the main screen somewhere else later, use **Settings → Connection** in the bottom-right **+** menu, anything you save there overrides `KSP_HOST`.
 
@@ -90,7 +89,7 @@ A station is any other browser: a tablet, a second laptop, a phone.
    - **Public build** (`https://ksp-gonogo.github.io/app/station`): use it for a device on another network, which needs internet. It is shown beside your own address when the main screen is on localhost or a local address. It exists once the first release is published; before then it is a 404, so use your own address on the same network
 3. If you opened the station page without the code in the link, enter the share code and connect. The new station is empty: press **+** (Add component) at the bottom right to add widgets
 
-A station works only while the main screen's tab stays open and awake: it gets everything through that tab, so closing it, or a computer going to sleep, ends the session for every station until it is back. A station also asks **Load Uplink "..."?** on its own first load, the same prompt the main screen shows, and answers are remembered per browser.
+A station works only while the main screen's tab stays open and awake: it gets everything through that tab, so closing it, or a computer going to sleep, ends the session for every station until it is back. A station also opens **Before you start** on its own first load, with the same Uplink rows the main screen shows and no logs question, and answers are remembered per browser.
 
 ---
 

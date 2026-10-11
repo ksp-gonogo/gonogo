@@ -76,6 +76,12 @@ export interface GonogoUplinkManifest {
   name?: string;
   author?: string;
   repo?: string;
+  /**
+   * The KSP mod the Uplink connects, and the version of it the Uplink was built
+   * against, from the author's `uplink.json`. Shown beside the Uplink when an
+   * operator decides whether to load it; checked by nothing.
+   */
+  mod?: { name?: string; builtAgainst?: string };
   /** Where the bundle sits relative to this manifest. The loader derives its
    *  own URL the other way round, from the bundle it was asked to load. */
   bundleUrl?: string;

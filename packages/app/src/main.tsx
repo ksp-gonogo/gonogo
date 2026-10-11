@@ -20,9 +20,10 @@ import "./commcast/CommcastComponent"; // app-level component: registers on impo
 import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
-import { bootsWithoutDirectMod } from "./screens/isStationRoute";
-import { setConsentPrompt } from "./uplinks/consent";
-import { promptForConsent } from "./uplinks/consentModal";
+import { analyticsConsentService } from "./analytics/AnalyticsConsentService";
+import { bootsWithoutDirectMod, currentRoute } from "./screens/isStationRoute";
+import { setConsentBatchPrompt } from "./uplinks/consent";
+import { promptForConsents } from "./uplinks/consentModal";
 import { loaderBootIdsOverride } from "./uplinks/flag";
 import { hostCompat } from "./uplinks/hostCompat";
 import { loadEnabledUplinks } from "./uplinks/loader";
@@ -98,12 +99,20 @@ function renderApp(): void {
 // (`createPeerBundleFetcher`, D6). `renderApp()` still runs unconditionally
 // here: it mounts `<App>`, which is what renders `StationScreen` at all.
 async function bootUplinksAndRender(): Promise<void> {
-  // Wire the real modal-backed consent prompt before the loader runs (the
-  // store defaults to "deny" until this is set). Renders in the app's active
-  // theme so it matches the app it is about to extend. Needed on BOTH
-  // screens: a station's deferred `StationUplinkLoader` run still gates its
-  // first load on this same consent seam.
-  setConsentPrompt((info) => promptForConsent(info, activeThemeValue));
+  // Wire the first-load page before the loader runs (the store defaults to
+  // "deny" until this is set). Renders in the app's active theme so it matches
+  // the app it is about to extend. Needed on BOTH screens: a station's deferred
+  // `StationUplinkLoader` run still gates its first load on this same consent
+  // seam. Only the main screen adds the anonymous-logs question, and only while
+  // it is unanswered; a station follows the main screen's answer.
+  setConsentBatchPrompt((infos) =>
+    promptForConsents(infos, activeThemeValue, {
+      logs:
+        currentRoute() === "main" && !analyticsConsentService.hasAnswered()
+          ? analyticsConsentService
+          : undefined,
+    }),
+  );
 
   if (bootsWithoutDirectMod()) {
     // No roster probe, no fetch-based loader here; see the doc comment
