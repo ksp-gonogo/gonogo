@@ -125,6 +125,80 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.True(tickRoutes <= 2, "routes planned by one tick over 200 held spans: " + tickRoutes);
         }
 
+        /// <summary>The lander's only contact opens at UT 500, straight to the centre.</summary>
+        private sealed class WindowPlan : IDeliveryRoutes, ISenderPlans
+        {
+            public const double OpensUt = 500.0;
+
+            public bool Reckons => true;
+
+            public IDeliveryRoutes? PlanOf(string centre) => this;
+
+            public int Asked { get; private set; }
+
+            public IReadOnlyList<PlannedHop>? Route(string from, string to, double readyUt, double deadlineUt, bool turnsOnTheWay = false)
+            {
+                Asked++;
+                var leaves = Math.Max(readyUt, OpensUt);
+                return from == Lander ? new[] { new PlannedHop(Ksc, leaves, leaves + 10) } : null;
+            }
+        }
+
+        [Fact]
+        public void AWindowOpeningIsLookedAtOnceHoweverManySpansWereWaitingForIt()
+        {
+            var plan = new WindowPlan();
+            var links = new Links();
+            var clock = new ManualClock();
+            var network = new DeliveryNetwork(clock, links, plan, (c, ut) => null, r => { }, beliefs: plan, deliverSpan: (span, at) => { });
+            clock.AdvanceTo(1.0);
+            network.Tick(1.0);
+            for (var i = 0; i < 200; i++)
+            {
+                var span = new SpanMessage { Craft = Lander, Centre = Ksc, Topic = "topic." + i };
+                span.Samples.Add(new SpanSample(1.0, new SpanPayload { Bytes = 100, ReleaseCost = 10, Carriers = 1, Held = 1.0 }));
+                network.AddSpan(Lander, span);
+            }
+            network.Tick(2.0);
+
+            // The window opens inside this advance, with the craft's link still down.
+            var before = plan.Asked;
+            clock.AdvanceTo(WindowPlan.OpensUt + 100.0);
+            var asked = plan.Asked - before;
+
+            Assert.Equal(200, network.Spans().Count);
+            Assert.True(asked <= 2, "routes planned as one window opened for 200 waiting spans: " + asked);
+
+            // And they still all leave once the link is up.
+            links.Up(Lander, Ksc, 10.0);
+            network.Tick(WindowPlan.OpensUt + 100.0);
+            Assert.All(network.Spans(), held => Assert.True(held.InFlight));
+        }
+
+        [Fact]
+        public void ASpanWaitingForAWindowLeavesAtTheInstantItOpensInsideOneAdvance()
+        {
+            var plan = new WindowPlan();
+            var links = new Links();
+            var clock = new ManualClock();
+            var delivered = new List<double>();
+            var network = new DeliveryNetwork(clock, links, plan, (c, ut) => null, r => { }, beliefs: plan, deliverSpan: (span, at) => delivered.Add(at));
+            clock.AdvanceTo(1.0);
+            network.Tick(1.0);
+            foreach (var topic in new[] { "vessel.flight", "vessel.orbit" })
+            {
+                var span = new SpanMessage { Craft = Lander, Centre = Ksc, Topic = topic };
+                span.Samples.Add(new SpanSample(1.0, new SpanPayload { Bytes = 100, ReleaseCost = 10, Carriers = 1, Held = 1.0 }));
+                network.AddSpan(Lander, span);
+            }
+            network.Tick(2.0);
+
+            links.Up(Lander, Ksc, 10.0);
+            clock.AdvanceTo(WindowPlan.OpensUt + 100.0);
+
+            Assert.Equal(new[] { WindowPlan.OpensUt + 10.0, WindowPlan.OpensUt + 10.0 }, delivered);
+        }
+
         [Fact]
         public void ACraftWithNoWayOnHoldsOneSpanOfATopicHoweverManyTimesItHandsSamplesOver()
         {

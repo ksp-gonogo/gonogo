@@ -222,6 +222,8 @@ namespace Sitrep.Core.StoreAndForward
         private readonly IClock _clock;
         private readonly SweepLinks _links;
         private readonly Dictionary<string, double> _spanSweepUt = new Dictionary<string, double>(StringComparer.Ordinal);
+        // The instant a wake last looked over everything each node holds.
+        private readonly Dictionary<string, double> _wakeSweepUt = new Dictionary<string, double>(StringComparer.Ordinal);
         private readonly IDeliveryRoutes _routes;
         private readonly ISenderPlans? _beliefs;
         private readonly Func<CommandMessage, double, object?> _execute;
@@ -846,6 +848,7 @@ namespace Sitrep.Core.StoreAndForward
                 _senders.Clear();
                 _sentCommands.Clear();
                 _leftSender.Clear();
+                _wakeSweepUt.Clear();
                 ResetRetargets();
             }
         }
@@ -1366,7 +1369,9 @@ namespace Sitrep.Core.StoreAndForward
         /// Has a message that is waiting for a window looked again at the instant
         /// the window is planned to open, rather than at whichever tick comes
         /// next. Under warp a tick spans many seconds, and a window shorter than
-        /// that opens and shuts between two of them.
+        /// that opens and shuts between two of them. Every message waiting for
+        /// the same window wakes at the same instant, and the first to wake
+        /// looks at everything its node holds, so the rest find it done.
         /// </summary>
         private void WakeAt(string node, Held held, double? opensUt, double nowUt)
         {
@@ -1381,8 +1386,10 @@ namespace Sitrep.Core.StoreAndForward
             {
                 held.WakeUt = double.NaN;
                 held.CancelWake = null;
-                if (_held.TryGetValue(node, out var waiting) && waiting.Contains(held))
+                var looked = _wakeSweepUt.TryGetValue(node, out var lookedUt) && lookedUt == at;
+                if (!looked && _held.TryGetValue(node, out var waiting) && waiting.Contains(held))
                 {
+                    _wakeSweepUt[node] = at;
                     Depart(node, at);
                 }
             }));
