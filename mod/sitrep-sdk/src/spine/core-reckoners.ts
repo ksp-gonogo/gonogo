@@ -70,18 +70,12 @@ const POWERED_WINDOW = { spanUt: 10, maxSamples: 32 } as const;
  * How far a first-order advance of a RELATIVE position stays honest, in seconds.
  *
  * Relative motion between an orbiting pair is curved, so a position carried by
- * its last observed velocity diverges as the square of the elapsed time. The
- * radial term of that divergence is 1.5·n²·t² of the separation, where n is the
- * mean motion: in the lowest orbit above Kerbin's air (n ≈ 3.4e-3 rad/s) it is
- * under 2% at thirty seconds and the whole separation by four minutes, and every
- * higher orbit bends less. The other half of the horizon is a burn, which a
- * craft out of contact is exactly the craft we cannot know about, and nothing
- * bounds it. So the horizon stays at thirty seconds rather than stretching
- * toward where curvature alone would allow.
- *
- * It counts from the last observation, so the light-time spends it: under more
- * than thirty seconds of delay a target or dock reading carries no modelled
- * mark, only its age. That is the intended reading of a pair this far away.
+ * its last observed velocity diverges as the square of the elapsed time; and the
+ * other half of the horizon is a burn, which a craft out of contact is exactly
+ * the craft we cannot know about. Both say the same thing: this model is worth
+ * seconds, not minutes. Thirty is the round number inside that, chosen rather
+ * than measured, and it is stated here as one constant so widening it is a
+ * decision somebody takes rather than a number that drifts per widget.
  *
  * A conic has no equivalent, and correctly: its horizon is the producer's own
  * (`orbit.horizon`), the SOI transition and the air, all of which are published

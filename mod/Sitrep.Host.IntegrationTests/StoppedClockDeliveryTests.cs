@@ -237,7 +237,7 @@ namespace Sitrep.Host.IntegrationTests
 
             private static ChannelDeclaration Declare(string topic, DelayRole delay, bool heldAtHome = false) =>
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = topic,
                     Requires = Requirement.None,
                     Delivery = Delivery.LossyLatest,

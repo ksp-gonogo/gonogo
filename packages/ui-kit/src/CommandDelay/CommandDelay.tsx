@@ -41,8 +41,8 @@ export interface CommandDelayHandle {
   inFlight: InFlightCommandLike[];
   /**
    * What this entry IS on the delay rail's three axes, in full: `direction`
-   * (a `command` leaving or `telemetry` arriving), `kind` (`event` or
-   * `discrete`, one point, or `continuous`, a span) and `delivery` (`acked`, answered, or
+   * (a `command` leaving or `telemetry` arriving), `continuity` (`discrete`, one
+   * point, or `continuous`, a span) and `delivery` (`acked`, answered, or
    * `fire-and-forget`). The delay rail is the strip a panel draws above its
    * header to show what is crossing the signal delay. The renderer follows
    * from these, so no consumer branches on what kind of command this is. A

@@ -1,8 +1,4 @@
-import type {
-  GapModel,
-  TimelinePoint,
-  TimelineStore,
-} from "@ksp-gonogo/sitrep-client";
+import type { GapModel } from "@ksp-gonogo/sitrep-client";
 import {
   subscribeTopicRead,
   useTelemetryClientOptional,
@@ -13,7 +9,6 @@ import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useRef, useSyncExternalStore } from "react";
 import type {
   SeriesBridge,
-  SeriesInterpolation,
   SeriesRange,
   SeriesReckonedSpan,
   SeriesStatusSpan,
@@ -184,38 +179,6 @@ export function bandEnds(
   return [lo?.toWire(), hi?.toWire()];
 }
 
-/**
- * The points of an event series that are occurrences. A channel re-sends its
- * newest record on a keyframe so a late subscriber has it, stamped at the
- * keyframe's own instant, and drawn as a point that would be an occurrence that
- * never happened. So a point whose record matches the occurrence before it is a
- * repeat, compared on the whole record so that two occurrences sharing one
- * field are still two.
- */
-function occurrencesOf<Payload>(
-  points: readonly TimelinePoint<Payload>[],
-  store: TimelineStore,
-  topic: string,
-  fromUt: number,
-  toUt: number,
-): TimelinePoint<Payload>[] {
-  const records = new Map(
-    (store.sampleRange<unknown>(topic, fromUt, toUt) ?? []).map((point) => [
-      point.validAt,
-      JSON.stringify(point.payload),
-    ]),
-  );
-  const kept: TimelinePoint<Payload>[] = [];
-  let previous: string | undefined;
-  for (const point of points) {
-    const record = records.get(point.validAt) ?? JSON.stringify(point.payload);
-    if (record === previous) continue;
-    previous = record;
-    kept.push(point);
-  }
-  return kept;
-}
-
 /** A sample as a plottable value: a quantity's magnitude, anything else as-is. */
 export function plotValue(payload: unknown): unknown {
   return payload !== null &&
@@ -293,22 +256,7 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
      * one and which nothing else in the tree calls.
      */
     const tail = store.sampleReckonedTail<unknown>(topic, fromUt, toUt);
-    /*
-     * How the value relates in time decides what is drawn between two points:
-     * a line for a continuous value, a step for one that stands until it
-     * changes, and nothing at all between two occurrences.
-     */
-    const tags = store.tagsOf(topic);
-    const interpolation: SeriesInterpolation =
-      tags.kind === "event"
-        ? "none"
-        : tags.kind === "discrete"
-          ? "step"
-          : "linear";
-    const observed =
-      tags.kind === "event"
-        ? occurrencesOf(points ?? [], store, tags.topic, fromUt, toUt)
-        : (points ?? []);
+    const observed = points ?? [];
     /*
      * A tail with no observed run in front of it is a real window and worth
      * drawing: the last observation can sit off the left edge while the model
@@ -338,8 +286,6 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
       // segment before it to break. The hole is real, and it is off the left
       // edge of the window, where a chart already draws nothing.
       if (i === 0) continue;
-      // Occurrences are never joined, so there is no line for a hole to break.
-      if (interpolation === "none") break;
       if (observed[i].meta.gapSinceUt != null) {
         nextBreaks.push(i);
         continue;
@@ -485,8 +431,7 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
        * fixed while the view time keeps advancing, and the growing blank
        * between the two is the only thing that changes.
        */
-      prev.windowEndAt === (nextReckoned.length > 0 ? toUt : undefined) &&
-      (prev.interpolation ?? "linear") === interpolation;
+      prev.windowEndAt === (nextReckoned.length > 0 ? toUt : undefined);
     if (unchanged) return prev;
 
     lastSnapshotRef.current = {
@@ -499,7 +444,6 @@ export function useDataSeries(key: string, windowSec: number): SeriesRange {
       bridges: nextBridges,
       spans: nextSpans,
       reckoned: nextReckoned,
-      interpolation,
       /*
        * Only where a model actually answered for part of the window. Stating
        * it always would put the frame's view time into the snapshot of every

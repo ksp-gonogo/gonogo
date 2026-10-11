@@ -90,7 +90,7 @@ export interface ControlRibbonDatum {
   /**
    * What this entry IS on the three axes, in full, and NOT optional. A
    * producer builds them with {@link railTagsForTelemetry}, passing its
-   * sample kind.
+   * continuity.
    */
   tags: RailTags;
 }

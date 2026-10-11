@@ -44,7 +44,6 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SpaceCenterViewProvider.LaunchSitesTopic,
                     Delivery = Delivery.LossyLatest,
@@ -54,7 +53,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SpaceCenterViewProvider.SceneTopic,
                     Delivery = Delivery.LossyLatest,
@@ -63,7 +61,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SpaceCenterViewProvider.CrewRosterTopic,
                     Delivery = Delivery.LossyLatest,
@@ -73,7 +70,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SpaceCenterViewProvider.SavedShipsTopic,
                     Delivery = Delivery.LossyLatest,
@@ -83,7 +79,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SpaceCenterViewProvider.PartsAvailableTopic,
                     Delivery = Delivery.LossyLatest,
@@ -93,7 +88,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SpaceCenterViewProvider.PoisTopic,
                     Delivery = Delivery.LossyLatest,
@@ -103,7 +97,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SpaceCenterViewProvider.AstronautComplexTopic,
                     Delivery = Delivery.LossyLatest,

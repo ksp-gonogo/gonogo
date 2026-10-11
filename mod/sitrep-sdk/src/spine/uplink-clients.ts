@@ -7,7 +7,6 @@ import {
   registerRootProvider,
 } from "../api/root-providers";
 import type { ContributionDefinition, ContributionDep } from "../api/types";
-import { type ContractTagTable, registerContractTags } from "../contract-tags";
 import type { DepWindows, ReckonerDefinition } from "../reading";
 import type { DerivedChannelDefinition } from "../timeline";
 import type { TopicId, TopicPayload } from "../topics";
@@ -166,30 +165,6 @@ function clients(): Map<string, UplinkClientHandle> {
 }
 
 /**
- * What a client declares about itself: its identity, and the value tags its
- * contract's codegen wrote.
- *
- * @category Registering
- */
-export interface UplinkClientConfig {
-  /** The Uplink's id, as its mod half declares it. */
-  id: string;
-  /** The client's version, which equals the Uplink's package version. */
-  version: string;
-  /** The Uplink's name as the dashboard shows it. */
-  name: string;
-  /** What the Uplink does, in one or two sentences. See {@link UplinkClientHandle.description}. */
-  description: string;
-  /**
-   * The value tags this Uplink's contract declares: `GENERATED_CONTRACT_TAGS`
-   * from its generated `units.ts`. Registered under the client's id before the
-   * handle is returned, so the handle's `registerReckoner` finds the marks that
-   * let it model a value.
-   */
-  tags?: ContractTagTable;
-}
-
-/**
  * Declare a client's identity and record it in the client registry. Returns
  * a frozen handle: stamp it as `owner` on every `registerComponent`/
  * `registerAugment` call the client makes, or call its bound
@@ -204,10 +179,12 @@ export interface UplinkClientConfig {
  * cross-package collision risk to guard against the way there is for widget
  * ids shared across a flat namespace.
  */
-export function defineUplinkClient(
-  cfg: UplinkClientConfig,
-): UplinkClientHandle {
-  if (cfg.tags) registerContractTags(cfg.id, cfg.tags);
+export function defineUplinkClient(cfg: {
+  id: string;
+  version: string;
+  name: string;
+  description: string;
+}): UplinkClientHandle {
   const handle: UplinkClientHandle = Object.freeze({
     id: cfg.id,
     version: cfg.version,

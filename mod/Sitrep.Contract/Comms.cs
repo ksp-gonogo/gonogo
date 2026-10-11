@@ -367,7 +367,6 @@ public class CommsHop
     /// when the hop's geometry is not known, never 0.
     /// </summary>
     [SitrepUnit(Units.Metres)]
-    [SitrepSampleKind(SampleKind.Continuous)]
     public double? DistanceMeters { get; set; }
 
     /// <summary>
@@ -380,7 +379,6 @@ public class CommsHop
     /// enough to work one out.
     /// </summary>
     [SitrepUnit(Units.Ratio)]
-    [SitrepSampleKind(SampleKind.Continuous)]
     public double? Strength { get; set; }
 
     /// <summary>

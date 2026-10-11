@@ -85,7 +85,7 @@ describe("useTransmissions", () => {
     act(() => screen.getByText("sent").click());
 
     expect(
-      screen.getByText("tags:telemetry/event/fire-and-forget"),
+      screen.getByText("tags:telemetry/discrete/fire-and-forget"),
     ).toBeTruthy();
     expect(screen.getByRole("listitem").textContent).toBe(
       "Crew Report telemetry in-transit reach:4 reply:null",

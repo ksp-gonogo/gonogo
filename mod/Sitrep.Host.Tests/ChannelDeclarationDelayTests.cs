@@ -24,7 +24,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void DefaultsToDelayed()
         {
-            var declaration = new ChannelDeclaration { Kind = SampleKind.Continuous, Topic = "test.topic" };
+            var declaration = new ChannelDeclaration { Topic = "test.topic" };
             Assert.Equal(DelayRole.Delayed, declaration.Delay);
         }
 
@@ -33,7 +33,7 @@ namespace Sitrep.Host.Tests
         [InlineData(DelayRole.TrueNow)]
         public void RoundTripsExplicitDisposition(DelayRole role)
         {
-            var declaration = new ChannelDeclaration { Kind = SampleKind.Continuous, Topic = "test.topic", Delay = role };
+            var declaration = new ChannelDeclaration { Topic = "test.topic", Delay = role };
             Assert.Equal(role, declaration.Delay);
         }
 

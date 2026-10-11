@@ -125,7 +125,7 @@ const PITCH_STREAM = {
  */
 const TRANSMIT_ONE_WAY = 30;
 const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
-const TRANSMISSION_TAGS = railTagsForTelemetry("event");
+const TRANSMISSION_TAGS = railTagsForTelemetry("discrete");
 const TRANSMIT_COMMAND = pendingCrossing({
   id: "c0",
   clientRequestId: "c0",

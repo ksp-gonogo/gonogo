@@ -161,7 +161,7 @@ namespace Sitrep.Host.IntegrationTests
             };
 
             private static ChannelDeclaration Declare(string topic, CommandRequirement[]? requires) => new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Topic = topic,
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.TrueNow,
@@ -177,7 +177,7 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddChannelSource(UnstatedTopic, _ => null);
                 host.AddGateEvaluator(new SubTopicGate());
                 host.RegisterDynamicNamespace(KeyedPrefix, new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),

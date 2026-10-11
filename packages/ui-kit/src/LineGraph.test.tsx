@@ -34,44 +34,6 @@ describe("LineGraph", () => {
     expect(lines).toHaveLength(2);
   });
 
-  it("holds a step series at each value until the next point, then steps", () => {
-    const { container } = render(
-      <LineGraph
-        series={[{ ...AMBIENT, interpolation: "step" }]}
-        yDomain={[0, 4]}
-        aria-label="Dry mass"
-      />,
-    );
-    const points = container
-      .querySelector("polyline")
-      ?.getAttribute("points")
-      ?.split(" ");
-    // Three points become five: a corner at each new x, at the value before it.
-    expect(points).toHaveLength(5);
-    const [, corner, next] = (points ?? []).map((p) =>
-      p.split(",").map(Number),
-    );
-    expect(corner[0]).toBe(next[0]);
-    expect(corner[1]).not.toBe(next[1]);
-  });
-
-  it("marks each point of an occurrence series and joins none of them", async () => {
-    const { container } = render(
-      <LineGraph
-        series={[{ ...AMBIENT, interpolation: "none" }]}
-        aria-label="Crashes"
-      />,
-    );
-    expect(container.querySelectorAll("polyline")).toHaveLength(0);
-    const marks = container.querySelectorAll("line[stroke='red']");
-    expect(marks).toHaveLength(3);
-    for (const mark of marks) {
-      expect(mark.getAttribute("x1")).toBe(mark.getAttribute("x2"));
-      expect(mark.getAttribute("y1")).toBe(mark.getAttribute("y2"));
-    }
-    await expectNoA11yViolations(container);
-  });
-
   // A break is a span with no readings; a stroke across it could not be told from data.
   it("breaks the stroke at a break index instead of joining across it", () => {
     const { container } = render(

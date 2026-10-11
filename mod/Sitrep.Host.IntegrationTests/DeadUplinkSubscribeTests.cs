@@ -180,7 +180,7 @@ namespace Sitrep.Host.IntegrationTests
                 Channels = new List<ChannelDeclaration>
                 {
                     new ChannelDeclaration
-                    { Kind = SampleKind.Continuous,
+                    {
                         Topic = DeclaredTopic,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -213,7 +213,7 @@ namespace Sitrep.Host.IntegrationTests
                 Channels = new List<ChannelDeclaration>
                 {
                     new ChannelDeclaration
-                    { Kind = SampleKind.Continuous,
+                    {
                         Topic = DeclaredTopic,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),

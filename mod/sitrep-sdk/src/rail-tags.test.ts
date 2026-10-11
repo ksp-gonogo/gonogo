@@ -77,7 +77,7 @@ describe("railTagsForCommand", () => {
   it("reads the fly-by-wire override as a point, like every other command", () => {
     expect(railTagsForCommand("vessel.control.setAxes")).toEqual({
       direction: "command",
-      kind: "event",
+      continuity: "discrete",
       delivery: "acked",
     });
   });
@@ -85,7 +85,7 @@ describe("railTagsForCommand", () => {
   it("reads an ordinary command as a discrete acked point event", () => {
     expect(railTagsForCommand("vessel.control.stage")).toEqual({
       direction: "command",
-      kind: "event",
+      continuity: "discrete",
       delivery: "acked",
     });
   });
@@ -93,14 +93,16 @@ describe("railTagsForCommand", () => {
   /*
    * The finding this refactor turned up, pinned so it cannot drift back by
    * accident. A throttle looks continuous, and the rail drew it that way for as
-   * long as the graph decided its kind by which array a datum arrived in. The
+   * long as the graph decided continuity by which array a datum arrived in. The
    * mod says otherwise: `KspVesselActuator.SetThrottle` sets a held global once
    * and the fly-by-wire override "writes every axis except this one", so ONE
    * dispatch of it is a point event. What is continuous is the AXIS a widget
    * holds, which is `railTagsForControlAxis`'s business below, not the command's.
    */
-  it("reads setThrottle as an event, because one dispatch of it is a point", () => {
-    expect(railTagsForCommand("vessel.control.setThrottle").kind).toBe("event");
+  it("reads setThrottle as discrete, because one dispatch of it is a point", () => {
+    expect(railTagsForCommand("vessel.control.setThrottle").continuity).toBe(
+      "discrete",
+    );
   });
 
   /*
@@ -136,7 +138,7 @@ describe("railTagsForCommand", () => {
   it("derives fire-and-forget from a row that answers nothing", () => {
     expect(railTagsFromCommandRail({ replies: false, delayed: true })).toEqual({
       direction: "command",
-      kind: "event",
+      continuity: "discrete",
       delivery: "fire-and-forget",
     });
   });
@@ -159,7 +161,7 @@ describe("an Uplink registering its own command", () => {
     expect(commandRail(id)).toEqual({ replies: true, delayed: true });
     expect(railTagsForCommand(id)).toEqual({
       direction: "command",
-      kind: "event",
+      continuity: "discrete",
       delivery: "acked",
     });
   });
@@ -196,7 +198,7 @@ describe("the axis triples are interned", () => {
 
   it("still tells the combinations apart", () => {
     expect(railTagsForTelemetry("continuous")).not.toBe(
-      railTagsForTelemetry("event"),
+      railTagsForTelemetry("discrete"),
     );
   });
 
@@ -209,7 +211,7 @@ describe("railTagsForTelemetry", () => {
   it("fixes direction and delivery and asks only for continuity", () => {
     expect(railTagsForTelemetry("continuous")).toEqual({
       direction: "telemetry",
-      kind: "continuous",
+      continuity: "continuous",
       delivery: "fire-and-forget",
     });
   });
@@ -221,9 +223,9 @@ describe("railTagsForTelemetry", () => {
    * does (see `railTags.test.ts` there).
    */
   it("declares a discrete arrival with no new code path", () => {
-    expect(railTagsForTelemetry("event")).toEqual({
+    expect(railTagsForTelemetry("discrete")).toEqual({
       direction: "telemetry",
-      kind: "event",
+      continuity: "discrete",
       delivery: "fire-and-forget",
     });
   });
@@ -234,7 +236,7 @@ describe("railTagsForControlAxis", () => {
     // Every command is discrete (asserted above); the held axis is not.
     expect(railTagsForControlAxis("vessel.control.setThrottle")).toEqual({
       direction: "command",
-      kind: "continuous",
+      continuity: "continuous",
       delivery: "acked",
     });
   });

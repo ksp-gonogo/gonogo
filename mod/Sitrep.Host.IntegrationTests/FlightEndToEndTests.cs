@@ -310,7 +310,7 @@ namespace Sitrep.Host.IntegrationTests
                     EventChannel(FlightTopics.EndedTopic),
                     EventChannel(FlightTopics.VesselChangedTopic),
                     new ChannelDeclaration
-                    { Kind = SampleKind.Continuous,
+                    {
                         Topic = ChannelEngine.CommsDelayTopic,
                         Delay = DelayRole.TrueNow,
                         Delivery = Delivery.LossyLatest,
@@ -320,7 +320,7 @@ namespace Sitrep.Host.IntegrationTests
             };
 
             private static ChannelDeclaration EventChannel(string topic) => new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Topic = topic,
                 Delay = DelayRole.Delayed,
                 Delivery = Delivery.ReliableOrdered,
@@ -328,7 +328,7 @@ namespace Sitrep.Host.IntegrationTests
             };
 
             private static ChannelDeclaration ValueChannel(string topic) => new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Topic = topic,
                 Delay = DelayRole.Delayed,
                 Delivery = Delivery.LossyLatest,

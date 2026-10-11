@@ -89,7 +89,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 _host = host;
                 _source = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),

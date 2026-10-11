@@ -39,7 +39,6 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration EventChannel(string topic) => new ChannelDeclaration
         {
-            Kind = SampleKind.Event,
             Requires = Requirement.None,
             Topic = topic,
             Delay = DelayRole.Delayed,
@@ -49,7 +48,6 @@ namespace Gonogo.KSP
 
         private static ChannelDeclaration ValueChannel(string topic) => new ChannelDeclaration
         {
-            Kind = SampleKind.Discrete,
             Requires = Requirement.None,
             Topic = topic,
             Delay = DelayRole.Delayed,

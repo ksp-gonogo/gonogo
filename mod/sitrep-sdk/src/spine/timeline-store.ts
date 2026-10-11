@@ -1,13 +1,6 @@
 import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import {
-  channelKindOf,
-  type DeclaredSampleKinds,
-  readDeclaredSampleKinds,
-  sampleKindOf,
-} from "../channel-tags";
-import { type SampleKind, valueTagsOf } from "../contract-tags";
-import {
   type DeclaredDelayRoles,
   type DelayLane,
   delayLaneOf,
@@ -28,11 +21,7 @@ import type {
   UncertaintyBand,
 } from "../reading";
 import { bandIsWellFormed } from "../reading";
-import {
-  type OwnedReckonableValue,
-  reckonableInputSpelling,
-  reckonableValuesOf,
-} from "../reckonability";
+import { reckonableInputSpelling, reckonableValuesOf } from "../reckonability";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 import { isValue, type Value, value } from "../unit-system/value";
 import {
@@ -576,6 +565,20 @@ const ANGULAR_DEGREE_FIELD_NAMES: ReadonlySet<string> = new Set([
   "bearing",
 ]);
 
+/**
+ * Field names that are numeric but not genuinely continuous, an index,
+ * enum ordinal, or other discrete quantity where a fractional value is
+ * physically meaningless: e.g.
+ * `referenceBodyIndex` 1 -> 2 must never become `1.5`. Held at `before`
+ * rather than fractionalized, mirroring how a non-numeric field that's
+ * identical on both sides already passes through unchanged. Same
+ * explicit-allowlist reasoning as `ANGULAR_DEGREE_FIELD_NAMES`: extend
+ * deliberately, don't infer from naming conventions.
+ */
+const DISCRETE_NUMERIC_FIELD_NAMES: ReadonlySet<string> = new Set([
+  "referenceBodyIndex",
+]);
+
 /** Normalize a degree value into `(-180, 180]`. */
 function normalizeDegrees(deg: number): number {
   const wrapped = ((((deg + 180) % 360) + 360) % 360) - 180;
@@ -590,10 +593,9 @@ function lerpAngleDegrees(before: number, after: number, t: number): number {
 }
 
 /**
- * Interpolate one field value at `t`, honoring the angular wrap above. A field
- * whose kind is not continuous holds at `before`: it stands until the sample
- * that changes it, so there is no halfway value to give. Falls back to the
- * caller's identical-value-passthrough / refuse-on-mismatch handling for
+ * Interpolate one field value at `t`, honoring the angular-wrap and
+ * discrete-field policies above. Falls back to
+ * the caller's identical-value-passthrough / refuse-on-mismatch handling for
  * anything that isn't a plain number pair.
  */
 function lerpFieldValue(
@@ -601,28 +603,23 @@ function lerpFieldValue(
   before: unknown,
   after: unknown,
   t: number,
-  holds: boolean,
 ): { value: unknown } | undefined {
-  if (holds) return { value: before };
   // A declared quantity arrives WRAPPED, so the numeric branch below would
   // never fire for it and every measured field would hold-last instead of
   // interpolating. Lerp the magnitudes and re-declare the unit: both samples
   // are the same field on the same topic, so their units agree by
   // construction.
   if (isValue(before) && isValue(after)) {
-    const lerped = lerpFieldValue(
-      key,
-      before.magnitude,
-      after.magnitude,
-      t,
-      false,
-    );
+    const lerped = lerpFieldValue(key, before.magnitude, after.magnitude, t);
     if (lerped === undefined || typeof lerped.value !== "number") {
       return undefined;
     }
     return { value: value(before.unit, lerped.value) };
   }
   if (typeof before === "number" && typeof after === "number") {
+    if (DISCRETE_NUMERIC_FIELD_NAMES.has(key)) {
+      return { value: before }; // hold-last; never fractionalize an index/ordinal
+    }
     if (ANGULAR_DEGREE_FIELD_NAMES.has(key)) {
       return { value: lerpAngleDegrees(before, after, t) };
     }
@@ -639,7 +636,7 @@ function lerpFieldValue(
  * lerps field-by-field via `lerpFieldValue`: a genuinely continuous numeric
  * field lerps straight-line, an ANGULAR field (`ANGULAR_DEGREE_FIELD_NAMES`)
  * wraps the short way instead of blending through the far side of the
- * wrap, a field `holds` names (one whose kind is not continuous) stays at
+ * wrap, a DISCRETE numeric field (`DISCRETE_NUMERIC_FIELD_NAMES`) holds at
  * `before` rather than fractionalizing, a non-numeric field that is
  * IDENTICAL on both sides passes through unchanged (e.g. an unchanged
  * string/enum field), and a non-numeric field that actually DIFFERS makes
@@ -653,7 +650,6 @@ export function lerpPayload<Payload>(
   before: Payload,
   after: Payload,
   t: number,
-  holds: (field: string) => boolean = () => false,
 ): Payload | undefined {
   if (typeof before === "number" && typeof after === "number") {
     return (before + (after - before) * t) as Payload;
@@ -675,13 +671,7 @@ export function lerpPayload<Payload>(
 
     const result: Record<string, unknown> = {};
     for (const key of keys) {
-      const lerped = lerpFieldValue(
-        key,
-        beforeObj[key],
-        afterObj[key],
-        t,
-        holds(key),
-      );
+      const lerped = lerpFieldValue(key, beforeObj[key], afterObj[key], t);
       if (!lerped) return undefined;
       result[key] = lerped.value;
     }
@@ -703,7 +693,6 @@ export function lerpPayload<Payload>(
 function interpolatedRead<Payload>(
   timeline: ClientTimeline<Payload>,
   viewUt: number,
-  holds: (field: string) => boolean,
 ): TimelinePoint<Payload> | undefined {
   const straddle = timeline.straddle(viewUt);
   if (!straddle) return timeline.at(viewUt);
@@ -713,7 +702,7 @@ function interpolatedRead<Payload>(
 
   const span = after.validAt - before.validAt;
   const t = span === 0 ? 0 : (viewUt - before.validAt) / span;
-  const payload = lerpPayload(before.payload, after.payload, t, holds);
+  const payload = lerpPayload(before.payload, after.payload, t);
   if (payload === undefined) return before;
 
   return {
@@ -925,9 +914,6 @@ export class TimelineStore {
    */
   private declaredRoles: DeclaredDelayRoles | undefined;
 
-  /** The sample kinds the mod stated on the newest `system.uplinks`, captured at ingest for the same reason the roles are. */
-  private declaredKinds: DeclaredSampleKinds | undefined;
-
   constructor(
     readonly clock: ViewClock,
     private readonly options: TimelineStoreOptions = {},
@@ -1067,7 +1053,6 @@ export class TimelineStore {
     this.timelineFor<Payload>(topic).append(point);
     if (topic === UPLINK_ROSTER_TOPIC) {
       this.declaredRoles = readDeclaredDelayRoles(point.payload);
-      this.declaredKinds = readDeclaredSampleKinds(point.payload);
     }
     this.clock.observeSample(
       point.validAt,
@@ -1820,20 +1805,12 @@ export class TimelineStore {
    * sampling skipped the part beyond it, and nothing stands behind a chord
    * across it. Where the host states no such interval, nothing can tell the two
    * apart, and the answer stays `undefined`.
-   *
-   * ## Only a continuous value has a gap to carry
-   *
-   * A discrete value stands until the sample that changes it and an event has
-   * no line between occurrences, so neither is drawn across the gap and
-   * neither is asked about it. The kind is the field's own, so a continuous
-   * value inside a discrete Topic is still bridged.
    */
   gapModel(
     topic: string,
     before: TimelinePoint<unknown>,
     after: TimelinePoint<unknown>,
   ): GapModel | undefined {
-    if (this.tagsOf(topic).kind !== "continuous") return undefined;
     const gap = after.validAt - before.validAt;
     if (!(gap > 0)) return undefined;
     const warp = this.sampleRange<{
@@ -2157,48 +2134,6 @@ export class TimelineStore {
     return rawField ? this.declaredLane(rawField.rawTopic) : "delayed";
   }
 
-  /**
-   * What the contracts say about the value a key names, a Topic or a Topic with a
-   * field path (`vessel.propulsion.dryMass`, `comms.path.hops.0.strength`):
-   * how it relates in time, whether it identifies its list entry, and the
-   * models declared on it. A whole Topic answers for its channel and for every
-   * model on it.
-   */
-  tagsOf(key: string): {
-    /** The wire topic the key reads, which is the key itself for a whole Topic. */
-    readonly topic: string;
-    /** The field path inside that topic's payload, empty for a whole Topic. */
-    readonly path: readonly string[];
-    readonly kind: SampleKind;
-    readonly entryKey: boolean;
-    readonly reckonable: readonly OwnedReckonableValue[];
-  } {
-    // A Topic under a declared namespace is its own wire topic, so it is asked whole before any split into fields.
-    const whole = channelKindOf(key, this.declaredKinds) !== undefined;
-    const split = whole ? undefined : this.resolveRawFieldSubtopic(key);
-    const topic = split?.rawTopic ?? key;
-    const path = split?.fieldPath ?? [];
-    const matches = (declared: string) => {
-      const pattern = declared === "" ? [] : declared.split(".");
-      return (
-        pattern.length === path.length &&
-        pattern.every((part, i) => part === "*" || part === path[i])
-      );
-    };
-    const entryKey = [...(valueTagsOf(topic)?.paths ?? [])].some(
-      ([declared, tags]) => tags.entryKey === true && matches(declared),
-    );
-    const rows = reckonableValuesOf(topic);
-    return {
-      topic,
-      path,
-      kind: sampleKindOf(topic, path, this.declaredKinds),
-      entryKey,
-      reckonable:
-        path.length === 0 ? rows : rows.filter((row) => matches(row.field)),
-    };
-  }
-
   /** A whole declared topic's lane, by the roles the mod stated when it has stated any. */
   private readonly declaredLane = (topic: string): DelayLane =>
     delayLaneOf(topic, this.declaredRoles);
@@ -2257,17 +2192,7 @@ export class TimelineStore {
       () => {
         const timeline = this.timelineFor<Payload>(topic);
         if (timeline.epoch < epoch) return undefined;
-        const viewUt = this.viewUtFor(effectiveToken, lane);
-        // A topic that is not continuous as a whole stands until its next sample.
-        if (sampleKindOf(topic, [], this.declaredKinds) !== "continuous") {
-          return timeline.at(viewUt);
-        }
-        return interpolatedRead(
-          timeline,
-          viewUt,
-          (field) =>
-            sampleKindOf(topic, [field], this.declaredKinds) !== "continuous",
-        );
+        return interpolatedRead(timeline, this.viewUtFor(effectiveToken, lane));
       },
     );
   }
@@ -2477,15 +2402,6 @@ export class TimelineStore {
     const elected = getReckoner(topic);
     if (!elected) return undefined;
     if (!point || point.payload === null) return undefined;
-    // Registration refuses an Event channel core declares; one only the mod's roster names is caught here.
-    if (channelKindOf(topic, this.declaredKinds) === "event") {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          note: "each sample is one occurrence at its own time, so there is nothing between two of them to carry forward",
-        },
-      };
-    }
     const definition = elected.definition;
 
     const own = this.windowedHistory(topic, token, point, definition.window);
@@ -2967,18 +2883,11 @@ export class TimelineStore {
     topic: string,
     token: FrameToken,
   ): ReckoningDecline | undefined {
-    const declared = TimelineStore.declaredFor(topic);
+    const declared = reckonableValuesOf(topic);
     if (declared.length === 0) return undefined;
     const own = this.sample<unknown>(topic, token);
     for (const declaredValue of declared) {
-      const perEntry = declaredValue.field.split(".").includes("*");
       for (const input of declaredValue.inputs) {
-        /*
-         * A value inside a list reads its own inputs off its own entry, and an
-         * entry missing one is simply an entry the model leaves alone. Only an
-         * input on another Topic can withhold the whole reading.
-         */
-        if (perEntry && input.topic === "") continue;
         const payload =
           input.topic === ""
             ? own?.payload
@@ -2998,17 +2907,6 @@ export class TimelineStore {
       }
     }
     return undefined;
-  }
-
-  /**
-   * The marks a decline on `topic` is explained from: the elected model's
-   * owner's, so a refusal never blames an input that belongs to a model that was
-   * not chosen, or every owner's where no model is elected.
-   */
-  private static declaredFor(topic: string): readonly OwnedReckonableValue[] {
-    const elected = getReckoner(topic)?.owner;
-    const own = elected === undefined ? [] : reckonableValuesOf(topic, elected);
-    return own.length > 0 ? own : reckonableValuesOf(topic);
   }
 
   /**
@@ -3126,10 +3024,15 @@ export class TimelineStore {
             ? registered.owner
             : CORE_RECKONER_OWNER;
         const unowned = this.unownedTopics.has(topic);
-        // Built only where a contract declared a value reckonable, which is
-        // every Topic a model is registered for: registration is refused
-        // without a mark, so a model's refusal always has an arm to land in.
-        // An undeclared Topic has nothing to explain.
+        // Built only where the CONTRACT declared a value reckonable. An
+        // undeclared topic has nothing to explain, and its reading is typed
+        // `Reading`, which has no `declined` member on any arm, so a reason
+        // attached there is one no caller can reach.
+        //
+        // The check is on the whole expression rather than on the `declineFor`
+        // branch alone. A registered reckoner declines too, and a reckoner is
+        // registered by topic STRING with no mark involved, so an Uplink may
+        // have one on any topic at all.
         const declined =
           reckonableValuesOf(topic).length === 0
             ? undefined

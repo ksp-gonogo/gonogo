@@ -130,13 +130,11 @@ public class VesselPart
     /// <summary><c>Part.temperature</c>: current internal temperature (K);
     /// <c>null</c> where KSP reports <c>-1</c>, not yet simulated.</summary>
     [SitrepUnit(Units.Kelvin)]
-    [SitrepSampleKind(SampleKind.Continuous)]
     public double? CurrentTemp { get; set; }
 
     /// <summary><c>Part.skinTemperature</c>: current skin temperature
     /// (K); <c>null</c> when absent, such as before physics runs.</summary>
     [SitrepUnit(Units.Kelvin)]
-    [SitrepSampleKind(SampleKind.Continuous)]
     public double? SkinTemp { get; set; }
 
     /// <summary><c>Part.partInfo.category</c> (<c>PartCategories</c> enum name,
@@ -186,7 +184,6 @@ public class VesselPart
     /// <c>"ElectricCharge"</c>): storage plus live production or consumption.
     /// Empty when the part carries no resources.
     /// </summary>
-    [SitrepSampleKind(SampleKind.Continuous)]
     public Dictionary<string, PartResourceFlow> Resources { get; set; } = new();
 
     /// <summary>

@@ -40,7 +40,7 @@ export interface UseTransmissionsResult {
   expect(transmission: SentTransmission): void;
 }
 
-const TRANSMISSION_TAGS = railTagsForTelemetry("event");
+const TRANSMISSION_TAGS = railTagsForTelemetry("discrete");
 const NO_IN_FLIGHT: InFlightCommand[] = [];
 const REREAD_MS = 1000;
 

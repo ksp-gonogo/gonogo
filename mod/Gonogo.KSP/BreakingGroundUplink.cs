@@ -83,7 +83,6 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Continuous,
                     Requires = new[]
                     {
                         CareerGates.PartModuleResearched(
@@ -100,7 +99,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     // "Does THIS vessel have any Breaking Ground servos", a
                     // single { available } wrapper. Vessel-derived (parts on
@@ -114,7 +112,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Continuous,
                     Requires = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.GroundExperiment) },
                     Topic = BreakingGroundViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,

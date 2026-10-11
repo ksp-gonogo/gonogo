@@ -11,12 +11,12 @@
  * loud at all. This file is the vocabulary, and the three derivations that fill
  * it in from what the mod already declares and from what a producer knows.
  *
- * | direction | kind       | delivery         | a real example                  |
+ * | direction | continuity | delivery         | a real example                  |
  * |-----------|------------|------------------|---------------------------------|
- * | command   | event      | acked            | staging, an action group        |
+ * | command   | discrete   | acked            | staging, an action group        |
  * | command   | continuous | acked            | fly-by-wire, ack = the readback |
  * | telemetry | continuous | fire-and-forget  | radio voice                     |
- * | telemetry | event      | fire-and-forget  | a science result sent home      |
+ * | telemetry | discrete   | fire-and-forget  | a science result sent home      |
  *
  * The axes are orthogonal, and each drives exactly ONE visual property in the
  * kit that draws them (`@ksp-gonogo/ui-kit`'s `railTags.ts`, where the accessors
@@ -36,10 +36,9 @@
  * - DELIVERY comes off the generated rail table's `replies`, which codegen
  *   fills in from whether the command replies. Telemetry has no reply channel
  *   at all, so nothing replies to a push
- * - KIND is the same sample kind a channel declares, and a property of the
- *   PRODUCER: each of the three derivations below reads it from what the
- *   producer is doing rather than from a declaration. One dispatch of a command
- *   is an event, always: what is continuous is
+ * - CONTINUITY is a property of the PRODUCER, and each of the three derivations
+ *   below reads it from what the producer is doing rather than from a
+ *   declaration. One dispatch of a command is a point, always: what is a span is
  *   the AXIS a widget holds, which is {@link railTagsForControlAxis}, or the
  *   stream a producer is pushing, which is {@link railTagsForTelemetry}. The
  *   command's own id cannot say which, because the same id is both depending on
@@ -47,7 +46,6 @@
  */
 
 import { commandRail } from "./commands";
-import type { SampleKind } from "./contract-tags";
 
 /**
  * Which way an entry on the delay rail travels: a `"command"` goes out to the
@@ -59,6 +57,15 @@ import type { SampleKind } from "./contract-tags";
 export type RailDirection = "command" | "telemetry";
 
 /**
+ * Whether an entry on the delay rail is a single moment or a span of time. A
+ * `"discrete"` entry is drawn as a dot travelling the rail, a `"continuous"`
+ * one as a ribbon along it.
+ *
+ * @category Commands
+ */
+export type RailContinuity = "discrete" | "continuous";
+
+/**
  * Whether anything replies to an entry on the delay rail. An `"acked"` entry is
  * drawn with a return leg for its reply; a `"fire-and-forget"` one ends when it
  * reaches the far end.
@@ -68,27 +75,22 @@ export type RailDirection = "command" | "telemetry";
 export type RailDelivery = "acked" | "fire-and-forget";
 
 /**
- * How a command or Topic travels on the delay rail: which way, how it relates
- * in time, and whether anything replies. `<CommandDelay>` chooses how to draw
- * an entry from these. `kind` is the same sample kind a channel declares: a
- * continuous entry is drawn as a ribbon along the rail, a discrete one or an
- * event as a dot travelling it.
+ * How a command or Topic travels on the delay rail: which way, as single
+ * messages or continuously, and whether anything replies. `<CommandDelay>`
+ * chooses how to draw an entry from these.
  *
- * | direction | kind | delivery | example |
+ * | direction | continuity | delivery | example |
  * | --- | --- | --- | --- |
- * | command | event | acked | staging, an action group |
+ * | command | discrete | acked | staging, an action group |
  * | command | continuous | acked | fly-by-wire, acknowledged by the craft's readback |
  * | telemetry | continuous | fire-and-forget | radio voice |
- * | telemetry | event | fire-and-forget | a science result sent home |
+ * | telemetry | discrete | fire-and-forget | a science result sent home |
  *
  * @category Commands
  */
 export interface RailTags {
-  /** Which way the entry travels. */
   direction: RailDirection;
-  /** How the entry relates in time: a ribbon when continuous, a dot when discrete or an event. */
-  kind: SampleKind;
-  /** Whether anything replies to the entry. */
+  continuity: RailContinuity;
   delivery: RailDelivery;
 }
 
@@ -130,7 +132,7 @@ export interface CommandRail {
  * to draw the same thing. `useControlStream` has the same exposure through its
  * own `useMemo` dependencies.
  *
- * Fixing it here rather than asking each caller to memoise: there are twelve
+ * Fixing it here rather than asking each caller to memoise: there are eight
  * possible values, they never change, and a caller that forgot would produce a
  * performance regression with no visible symptom.
  */
@@ -138,13 +140,13 @@ const INTERNED = new Map<string, RailTags>();
 
 function railTags(
   direction: RailDirection,
-  kind: SampleKind,
+  continuity: RailContinuity,
   delivery: RailDelivery,
 ): RailTags {
-  const key = `${direction}/${kind}/${delivery}`;
+  const key = `${direction}/${continuity}/${delivery}`;
   const held = INTERNED.get(key);
   if (held) return held;
-  const minted = Object.freeze({ direction, kind, delivery });
+  const minted = Object.freeze({ direction, continuity, delivery });
   INTERNED.set(key, minted);
   return minted;
 }
@@ -158,7 +160,7 @@ function railTags(
  */
 export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
   "command",
-  "event",
+  "discrete",
   "acked",
 );
 
@@ -171,7 +173,7 @@ export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
 export function railTagsFromCommandRail(rail: CommandRail): RailTags {
   return railTags(
     "command",
-    "event",
+    "discrete",
     rail.replies ? "acked" : "fire-and-forget",
   );
 }
@@ -210,10 +212,10 @@ export function railTagsForControlAxis(writeCommand: string): RailTags {
  * Returns the tags for data coming back from a craft, such as a radio
  * transmission or a science result. It is always fire-and-forget, since nothing
  * replies to telemetry. Pass `"continuous"` for a stream such as an open
- * microphone, and `"event"` for a single result.
+ * microphone, and `"discrete"` for a single result.
  *
  * @category Commands
  */
-export function railTagsForTelemetry(kind: SampleKind): RailTags {
-  return railTags("telemetry", kind, "fire-and-forget");
+export function railTagsForTelemetry(continuity: RailContinuity): RailTags {
+  return railTags("telemetry", continuity, "fire-and-forget");
 }

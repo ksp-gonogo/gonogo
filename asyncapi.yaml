@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 37.0.0
+  version: 36.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -86,13 +86,6 @@ info:
       light-time clock, so the value is what the vantage KNEW rather than what is
       true now. `true-now` bypasses it, and is for a ground-side fact with no
       analogue in flight, such as whether the SCANsat assembly is installed at all
-    - `x-sitrep-sample-kind`, on a telemetry channel: how its samples relate in
-      time. `continuous` moves between samples, so a reader may draw a line,
-      interpolate and carry it forward with a declared model. `discrete` stands
-      until the next sample changes it, so a reader draws a step and never
-      interpolates. `event` is one occurrence per sample, so a reader draws points
-      and never a line or a step. A value inside the payload may declare its own
-      kind, which the generated SDK carries per field
     - `x-sitrep-held-at-home`, on a `delayed` telemetry channel: `true` means the
       value is held at the home command (the career ledger, the space centre's
       records) rather than aboard a craft. Each vantage receives a change after its
@@ -235,7 +228,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -309,7 +301,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -335,7 +326,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -480,7 +470,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -522,7 +511,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -555,7 +543,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -649,7 +636,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -680,7 +666,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -715,7 +700,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -748,7 +732,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -880,7 +863,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -913,7 +895,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -941,7 +922,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -960,7 +940,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -993,7 +972,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -1012,7 +990,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1051,7 +1028,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1098,7 +1074,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1132,7 +1107,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1159,7 +1133,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1182,7 +1155,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1209,7 +1181,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1248,7 +1219,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1281,7 +1251,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 1000
     messages:
       streamData:
@@ -1317,7 +1286,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1337,7 +1305,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -1357,7 +1324,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -1386,7 +1352,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1419,7 +1384,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1442,7 +1406,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1466,7 +1429,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1497,7 +1459,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1522,7 +1483,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1545,7 +1505,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -1572,7 +1531,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -1595,7 +1553,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -1621,7 +1578,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1641,7 +1597,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1665,7 +1620,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1741,7 +1695,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1891,7 +1844,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-absence-is-data: true
     x-sitrep-held-at-home: true
@@ -1914,7 +1866,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -1934,7 +1885,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -1963,7 +1913,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: reliable-ordered
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: event
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
@@ -1996,7 +1945,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2227,7 +2175,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2257,7 +2204,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -2335,7 +2281,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2361,7 +2306,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2391,7 +2335,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2412,7 +2355,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2440,7 +2382,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2505,7 +2446,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2586,7 +2526,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -2615,7 +2554,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -2644,7 +2582,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -2668,7 +2605,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -2695,7 +2631,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -2719,7 +2654,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     x-sitrep-held-at-home: true
     messages:
@@ -2747,7 +2681,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2770,7 +2703,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2841,7 +2773,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2952,7 +2883,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -2984,7 +2914,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3029,7 +2958,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3089,7 +3017,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: true-now
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3119,7 +3046,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3142,7 +3068,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3173,7 +3098,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3451,7 +3375,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3480,7 +3403,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3504,7 +3426,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3526,7 +3447,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3556,7 +3476,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3612,7 +3531,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3638,7 +3556,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3732,7 +3649,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3763,7 +3679,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3788,7 +3703,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3808,7 +3722,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3830,7 +3743,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3871,7 +3783,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3893,7 +3804,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: discrete
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3918,7 +3828,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -3947,7 +3856,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:
@@ -4019,7 +3927,6 @@ channels:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
     x-sitrep-delay-role: delayed
-    x-sitrep-sample-kind: continuous
     x-sitrep-keyframe-interval-ut: 30
     messages:
       streamData:

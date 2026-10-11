@@ -592,7 +592,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.SetDeliveryInputs(_inputs);
             var channels = ContactPlanSource.Channels();
             channels.Add(new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 // The active craft's link report, as the comms Uplink declares it: Delayed, and exempt from the freeze by its topic.
                 Topic = ChannelEngine.ConnectivityMetaTopic,
                 Delivery = Delivery.LossyLatest,
@@ -600,7 +600,7 @@ namespace Sitrep.Host.IntegrationTests
                 Delay = DelayRole.Delayed,
             });
             channels.Add(new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Topic = ActiveTelemetryTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 100000, quantum: EmissionQuantum.Absolute(0)),
@@ -608,7 +608,7 @@ namespace Sitrep.Host.IntegrationTests
                 Recordable = true,
             });
             channels.Add(new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Topic = RelayStateTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),

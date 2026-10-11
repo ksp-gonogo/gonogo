@@ -41,7 +41,7 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = OnboardTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -49,7 +49,7 @@ namespace Sitrep.Host.IntegrationTests
                     Recordable = true,
                 },
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = SessionTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
@@ -57,7 +57,7 @@ namespace Sitrep.Host.IntegrationTests
                     Recordable = false,
                 },
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = LinkTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),

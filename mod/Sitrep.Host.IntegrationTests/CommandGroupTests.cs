@@ -666,14 +666,14 @@ namespace Sitrep.Host.IntegrationTests
                 Channels = new List<ChannelDeclaration>
                 {
                     new ChannelDeclaration
-                    { Kind = SampleKind.Continuous,
+                    {
                         Topic = Topic,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                         Delay = DelayRole.Delayed,
                     },
                     new ChannelDeclaration
-                    { Kind = SampleKind.Continuous,
+                    {
                         Topic = OtherTopic,
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),

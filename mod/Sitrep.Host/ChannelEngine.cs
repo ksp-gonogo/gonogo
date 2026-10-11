@@ -1599,7 +1599,6 @@ namespace Sitrep.Host
             // _channelSources entry follows.
             _channelDeclarations[UplinksTopic] = new ChannelDeclaration
             {
-                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = UplinksTopic,
                 Delivery = Delivery.LossyLatest,
@@ -1629,7 +1628,6 @@ namespace Sitrep.Host
             // the operator sits at, not a reading about a craft.
             _channelDeclarations[SettingsTopic] = new ChannelDeclaration
             {
-                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = SettingsTopic,
                 Delivery = Delivery.LossyLatest,
@@ -1662,7 +1660,6 @@ namespace Sitrep.Host
             // UplinksTopic above.
             _channelDeclarations[UplinkPendingTopic] = new ChannelDeclaration
             {
-                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = UplinkPendingTopic,
                 Delivery = Delivery.LossyLatest,
@@ -1690,7 +1687,6 @@ namespace Sitrep.Host
             // single-writer-before-start rule as the two above.
             _channelDeclarations[UplinkGatesTopic] = new ChannelDeclaration
             {
-                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = UplinkGatesTopic,
                 Delivery = Delivery.LossyLatest,
@@ -1729,7 +1725,6 @@ namespace Sitrep.Host
             // is the descriptor's `version` field rather than this assembly's.
             _channelDeclarations[UnitsTopic] = new ChannelDeclaration
             {
-                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = UnitsTopic,
                 Delivery = Delivery.LossyLatest,
@@ -1757,7 +1752,6 @@ namespace Sitrep.Host
             // rule as the four above.
             _channelDeclarations[ChannelsTopic] = new ChannelDeclaration
             {
-                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = ChannelsTopic,
                 Delivery = Delivery.LossyLatest,
@@ -1963,15 +1957,6 @@ namespace Sitrep.Host
             }
 
             _registeredUplinks[id] = uplink;
-
-            foreach (var channel in uplink.Manifest.Channels)
-            {
-                if (!Enum.IsDefined(typeof(SampleKind), channel.Kind))
-                {
-                    MarkUplinkUnavailable(id, UndefinedKind("channel \"" + channel.Topic + "\"", channel.Kind));
-                    return;
-                }
-            }
 
             string? contradiction = null;
             foreach (var channel in uplink.Manifest.Channels)
@@ -2247,59 +2232,8 @@ namespace Sitrep.Host
                 // The release the mod was built as, so the app can say whether it and the mod match.
                 ["coreVersion"] = CoreBuildInfo.Version,
                 ["delayRoles"] = DelayRolesPayload(),
-                ["sampleKinds"] = SampleKindsPayload(),
             };
         }
-
-        private Dictionary<string, object?>? _sampleKindsPayload;
-        private int _sampleKindsDeclarationCount = -1;
-        private int _sampleKindsNamespaceCount = -1;
-
-        /// <summary>
-        /// Every registered channel's sample kind, as a client reads how to draw
-        /// between its samples: <c>{ topics, prefixes }</c>, each a map from topic
-        /// or namespace prefix to <c>continuous</c>, <c>discrete</c> or <c>event</c>.
-        /// A topic under a dynamic namespace is covered by its prefix and not listed
-        /// on its own, so the roster does not grow with every craft. Rebuilt only
-        /// when a declaration or a namespace has been added, as the delay roles are.
-        /// </summary>
-        private Dictionary<string, object?> SampleKindsPayload()
-        {
-            if (_sampleKindsPayload != null
-                && _sampleKindsDeclarationCount == _channelDeclarations.Count
-                && _sampleKindsNamespaceCount == _dynamicNamespaces.Count)
-            {
-                return _sampleKindsPayload;
-            }
-
-            var topics = new SortedDictionary<string, object?>(StringComparer.Ordinal);
-            foreach (var kvp in _channelDeclarations)
-            {
-                if (FindDynamicNamespaceForTopic(kvp.Key) != null)
-                {
-                    continue;
-                }
-                topics[kvp.Key] = SampleKindWireName(kvp.Value.Kind);
-            }
-
-            var prefixes = new SortedDictionary<string, object?>(StringComparer.Ordinal);
-            foreach (var kvp in _dynamicNamespaces)
-            {
-                prefixes[kvp.Key] = SampleKindWireName(kvp.Value.Kind);
-            }
-
-            _sampleKindsPayload = new Dictionary<string, object?>
-            {
-                ["topics"] = topics,
-                ["prefixes"] = prefixes,
-            };
-            _sampleKindsDeclarationCount = _channelDeclarations.Count;
-            _sampleKindsNamespaceCount = _dynamicNamespaces.Count;
-            return _sampleKindsPayload;
-        }
-
-        private static string SampleKindWireName(SampleKind kind) =>
-            kind == SampleKind.Event ? "event" : kind == SampleKind.Discrete ? "discrete" : "continuous";
 
         private Dictionary<string, object?>? _delayRolesPayload;
         private int _delayRolesDeclarationCount = -1;
@@ -2750,7 +2684,6 @@ namespace Sitrep.Host
             _modSettings[id] = publisher;
             _channelDeclarations[topic] = new ChannelDeclaration
             {
-                Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
                 Topic = topic,
                 Delivery = Delivery.LossyLatest,
@@ -3639,10 +3572,6 @@ namespace Sitrep.Host
 
         public IDynamicChannelSource RegisterDynamicNamespace(string prefix, ChannelDeclaration template)
         {
-            if (!Enum.IsDefined(typeof(SampleKind), template.Kind))
-            {
-                throw new ArgumentException(UndefinedKind("namespace \"" + prefix + "\"", template.Kind), nameof(template));
-            }
             _dynamicNamespaces[prefix] = template;
             _dynamicNamespaceOwner[prefix] = _currentRegisteringUplinkId ?? "";
             if (template.PerVesselNode && !_perVesselNamespacePrefixes.Contains(prefix))
@@ -3651,10 +3580,6 @@ namespace Sitrep.Host
             }
             return new DynamicChannelSource(this, prefix);
         }
-
-        private static string UndefinedKind(string what, SampleKind kind) =>
-            what + " declares sample kind " + (int)kind + ", which is not a SampleKind:"
-            + " a reader could not tell whether to draw a line, a step or points between its samples";
 
         /// <summary>
         /// <see cref="IDynamicChannelSource.OnSubscribed"/>'s engine-side
@@ -3724,7 +3649,6 @@ namespace Sitrep.Host
             var template = _dynamicNamespaces[prefix];
             _channelDeclarations[fullTopic] = new ChannelDeclaration
             {
-                Kind = template.Kind,
                 Topic = fullTopic,
                 Delivery = template.Delivery,
                 Emission = template.Emission,

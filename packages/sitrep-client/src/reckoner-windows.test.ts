@@ -1,4 +1,3 @@
-import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TestContact } from "./reckoner-test-topics";
 import { clearReckoners, registerReckoner } from "./reckoners";
@@ -87,7 +86,6 @@ describe("a reckoner's own window", () => {
   it("is one sample when no window is declared, so an existing model is unchanged", () => {
     const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon(point, _resolved, frame) {
@@ -109,7 +107,6 @@ describe("a reckoner's own window", () => {
   it("hands back the declared span, oldest first, ending at the observation", () => {
     const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 25, maxSamples: 16 },
@@ -141,7 +138,6 @@ describe("a reckoner's own window", () => {
     const wall = fakeWall();
     const store = delayedStore(wall);
     let seen: readonly TimelinePoint<number>[] = [];
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 25, maxSamples: 16 },
@@ -168,7 +164,6 @@ describe("a reckoner's own window", () => {
     const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
     let ran = false;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 1000, maxSamples: 3 },
@@ -197,7 +192,6 @@ describe("minSamples is the only rejection, and it is the store's", () => {
   it("never runs the model when the window holds too few points", () => {
     const store = delayedStore(fakeWall());
     let calls = 0;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 25, maxSamples: 16, minSamples: 4 },
@@ -215,16 +209,12 @@ describe("minSamples is the only rejection, and it is the store's", () => {
     const reading = store.sampleReading<number>("test.temperature");
 
     expect(calls).toBe(0);
-    expect(reading.reckoning).toMatchObject({
-      status: "declined",
-      declined: { reason: "insufficient-history" },
-    });
+    expect(reading.reckoning.status).toBe("none");
   });
 
   it("runs the model once the floor is met", () => {
     const store = delayedStore(fakeWall());
     let calls = 0;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 25, maxSamples: 16, minSamples: 3 },
@@ -254,7 +244,6 @@ describe("minSamples is the only rejection, and it is the store's", () => {
      * so registering a windowed model here is what proves the reason travels.
      */
     const store = delayedStore(fakeWall());
-    declareTestReckonable("vessel.flight", "test");
     registerReckoner("vessel.flight", "test", {
       deps: [],
       window: { spanUt: 60, maxSamples: 8, minSamples: 5 },
@@ -285,7 +274,6 @@ describe("minSamples is the only rejection, and it is the store's", () => {
      * store can tell them apart, so the sentence it writes has to.
      */
     const store = delayedStore(fakeWall());
-    declareTestReckonable("vessel.flight", "test");
     registerReckoner("vessel.flight", "test", {
       deps: [],
       window: { spanUt: 1000, maxSamples: 16, minSamples: 6 },
@@ -338,7 +326,6 @@ describe("a window stops at a break in the record", () => {
      */
     const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 1000, maxSamples: 16 },
@@ -366,7 +353,6 @@ describe("a window stops at a break in the record", () => {
   it("truncates at a tombstone, which is the value confirmed gone and back", () => {
     const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<number>[] = [];
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 1000, maxSamples: 16 },
@@ -398,7 +384,6 @@ describe("a window stops at a break in the record", () => {
      */
     const store = delayedStore(fakeWall());
     let calls = 0;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       window: { spanUt: 1000, maxSamples: 16, minSamples: 4 },
@@ -421,11 +406,8 @@ describe("a window stops at a break in the record", () => {
 
     expect(calls).toBe(0);
     expect(
-      store.sampleReading<number>("test.temperature").reckoning,
-    ).toMatchObject({
-      status: "declined",
-      declined: { reason: "insufficient-history" },
-    });
+      store.sampleReading<number>("test.temperature").reckoning.status,
+    ).toBe("none");
   });
 });
 
@@ -439,7 +421,6 @@ describe("a dependency resolves to one point unless it opts in", () => {
      */
     const store = delayedStore(fakeWall());
     let seen: TimelinePoint<TestContact> | undefined;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: ["test.contact"],
       reckon(point, [contact]) {
@@ -468,7 +449,6 @@ describe("a dependency resolves to one point unless it opts in", () => {
   it("resolves to an array of its own history once it declares a window", () => {
     const store = delayedStore(fakeWall());
     let seen: readonly TimelinePoint<TestContact>[] = [];
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: ["test.contact"],
       depWindows: { "test.contact": { spanUt: 25, maxSamples: 16 } },
@@ -505,7 +485,6 @@ describe("a dependency resolves to one point unless it opts in", () => {
      */
     const store = delayedStore(fakeWall());
     let calls = 0;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: ["test.contact"],
       depWindows: { "test.contact": { spanUt: 25, maxSamples: 16 } },
@@ -523,10 +502,7 @@ describe("a dependency resolves to one point unless it opts in", () => {
 
     expect(calls).toBe(0);
     expect(
-      store.sampleReading<number>("test.temperature").reckoning,
-    ).toMatchObject({
-      status: "declined",
-      declined: { reason: "input-absent", input: "@test.contact" },
-    });
+      store.sampleReading<number>("test.temperature").reckoning.status,
+    ).toBe("none");
   });
 });

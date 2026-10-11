@@ -135,7 +135,6 @@ namespace Sitrep.Host.Commcast
             {
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Event,
                     Requires = Requirement.None,
                     Topic = TrafficTopic,
                     Delivery = Delivery.ReliableOrdered,
@@ -145,7 +144,6 @@ namespace Sitrep.Host.Commcast
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Event,
                     Requires = Requirement.None,
                     Topic = TransmissionsTopic,
                     Delivery = Delivery.ReliableOrdered,
@@ -155,7 +153,6 @@ namespace Sitrep.Host.Commcast
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Event,
                     Requires = Requirement.None,
                     Topic = RadioTopic,
                     Delivery = Delivery.ReliableOrdered,

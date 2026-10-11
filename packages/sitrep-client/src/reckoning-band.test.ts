@@ -1,4 +1,3 @@
-import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import "./reckoner-test-topics";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
@@ -172,7 +171,6 @@ describe("a reading carries the band its model offered", () => {
 
   it("puts the model's band on the reckoning, keyed by path", () => {
     const store = newStore(40);
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", wideningReckoner(0.5));
     ingestPoint(store, "test.temperature", 10, 100);
     store.setTransportConnected(false);
@@ -194,7 +192,6 @@ describe("a reading carries the band its model offered", () => {
 
   it("leaves bands absent for a model that offers none", () => {
     const store = newStore(40);
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -224,7 +221,6 @@ describe("a reading carries the band its model offered", () => {
    */
   it("widens as the frame's view time runs away from the observation", () => {
     const store = newStore(20);
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", wideningReckoner(0.5));
     ingestPoint(store, "test.temperature", 10, 100);
     store.setTransportConnected(false);
@@ -276,7 +272,6 @@ describe("a reckoned tail carries the band per instant", () => {
 
   it("widens down the tail rather than repeating one interval", () => {
     const store = newStore(50);
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", wideningReckoner());
     ingestPoint(store, "test.temperature", 10, 0);
     ingestPoint(store, "test.temperature", 20, 0);
@@ -302,7 +297,6 @@ describe("a reckoned tail carries the band per instant", () => {
    */
   it("drops a malformed band and still draws the instant", () => {
     const store = newStore(50);
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -360,7 +354,6 @@ describe("a reckoned tail carries the band per instant", () => {
 
   function altitudeTail(bandUnit: "m" | "s") {
     const store = newStore(50);
-    declareTestReckonable("test.altitude", "test");
     registerReckoner("test.altitude", "test", metreAltitudeReckoner(bandUnit));
     ingestPoint(store, "test.altitude", 10, value("m", 100));
     ingestPoint(store, "test.altitude", 20, value("m", 100));
@@ -395,7 +388,6 @@ describe("a reckoned tail carries the band per instant", () => {
 
   it("leaves a bandless model's tail bandless", () => {
     const store = newStore(50);
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -463,7 +455,6 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
 
   it("carries a band declared at the field's own path", () => {
     const store = newStore(40);
-    declareTestReckonable("test.contact", "test");
     registerReckoner(
       "test.contact",
       "test",
@@ -484,7 +475,6 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
 
   it("refuses a band declared on the payload root, which is not this field's", () => {
     const store = newStore(40);
-    declareTestReckonable("test.contact", "test");
     registerReckoner("test.contact", "test", contactReckoner(""));
     ingestContact(store);
 
@@ -499,7 +489,6 @@ describe("a field subtopic borrows its record's band, at its own path only", () 
 
   it("carries it onto the plotted tail as well as the point read", () => {
     const store = newStore(40);
-    declareTestReckonable("test.contact", "test");
     registerReckoner(
       "test.contact",
       "test",

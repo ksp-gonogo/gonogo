@@ -63,7 +63,6 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SystemViewProvider.Topic,
                     Delivery = Delivery.LossyLatest,
@@ -106,7 +105,6 @@ namespace Gonogo.KSP
                 // touching costs the 30s keyframe and nothing else.
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = ControlFrameTopic,
                     Delivery = Delivery.LossyLatest,
@@ -123,7 +121,6 @@ namespace Gonogo.KSP
                 // the 30s keyframe floor is what the steady state costs.
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SystemViewProvider.RevertTopic,
                     Delivery = Delivery.LossyLatest,
@@ -139,7 +136,6 @@ namespace Gonogo.KSP
                 // state costs.
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = SystemViewProvider.DlcTopic,
                     Delivery = Delivery.LossyLatest,

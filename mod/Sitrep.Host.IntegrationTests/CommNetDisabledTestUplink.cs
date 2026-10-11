@@ -45,21 +45,21 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = ChannelEngine.CommsDelayTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = ChannelEngine.ConnectivityMetaTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = DelayedTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,

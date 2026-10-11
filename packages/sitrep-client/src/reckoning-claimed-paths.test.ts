@@ -1,5 +1,4 @@
 import { type TopicPayload, value } from "@ksp-gonogo/sitrep-sdk";
-import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { clearReckoners, registerReckoner } from "./reckoners";
 import { makeMeta } from "./stub-transport";
@@ -25,7 +24,6 @@ function storeWith(payload: Partial<Flight>): TimelineStore {
 
 /** A model that claims the root and `claimed`, and returns exactly `returned`. */
 function registerClaiming(claimed: string, returned: Partial<Flight>) {
-  declareTestReckonable("vessel.flight", "test");
   registerReckoner("vessel.flight", "test", {
     deps: [],
     reckon: () => ({

@@ -25,7 +25,6 @@ import type {
 import type { Reading, ReckonableReading, TopicReading } from "../reading";
 import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { CommandGroupHandle } from "../spine/command-group";
-import type { UplinkClientConfig } from "../spine/uplink-clients";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import type { UplinkAlarmRequest } from "./alarm-request";
@@ -153,7 +152,12 @@ export interface GonogoHost {
   clearContributions(): void;
 
   /** What {@link defineUplinkClient} calls. */
-  defineUplinkClient(cfg: UplinkClientConfig): UplinkClientHandle;
+  defineUplinkClient(cfg: {
+    id: string;
+    version: string;
+    name: string;
+    description: string;
+  }): UplinkClientHandle;
 
   /** What {@link registerSettingsTab} calls. */
   registerSettingsTab(def: SettingsTabDefinition): void;

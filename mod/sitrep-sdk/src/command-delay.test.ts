@@ -62,7 +62,7 @@ describe("deriveRailEntry, the one path commands and transmissions share", () =>
     label: "Crew Report from Kerbin's Shores",
     command: "crewReport@KerbinSrfLandedShores",
     topic: "",
-    tags: railTagsForTelemetry("event"),
+    tags: railTagsForTelemetry("discrete"),
     sentAt: value("ut", 100),
     oneWaySeconds: value("s", 4),
   };

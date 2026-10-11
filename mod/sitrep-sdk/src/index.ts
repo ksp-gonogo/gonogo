@@ -103,16 +103,6 @@ export {
 // off the wire needs them, and a table it typed itself is how a name no build
 // emits comes to compile.
 export * from "./contract-enum-names";
-/**
- * The value tags a contract declares, in the table an Uplink's codegen writes
- * and passes to `defineUplinkClient`.
- */
-export type {
-  ContractReckonableRow,
-  ContractTagTable,
-  SampleKind,
-  ValueTags,
-} from "./contract-tags";
 export {
   type ControlChannelHandle,
   type ControlChannelId,
@@ -244,7 +234,6 @@ export type {
   ReadingSeriesRange,
   Sample,
   SeriesBridge,
-  SeriesInterpolation,
   SeriesRange,
   SeriesReckonedSpan,
   SeriesStatusSpan,
@@ -283,6 +272,7 @@ export { PerfBudget } from "./perf/PerfBudget";
  */
 export {
   type CommandRail,
+  type RailContinuity,
   type RailDelivery,
   type RailDirection,
   type RailTags,
@@ -309,8 +299,6 @@ export {
   type GeneratedReckonableInput,
   type GeneratedReckonableValue,
   isReckonableTopic,
-  type OwnedReckonableValue,
-  type ReckonableFieldMap,
   type ReckonableFields,
   type ReckonableTopic,
   reckonableInputSpelling,

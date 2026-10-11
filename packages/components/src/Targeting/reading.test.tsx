@@ -2,7 +2,6 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { clearReckoners, registerReckoner } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { registerCoreReckoners } from "@ksp-gonogo/sitrep-sdk/spine";
-import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -140,7 +139,6 @@ describe("Targeting: stale renders the last observation as an observation", () =
 
   it("renders the modelled range beside the observation once a model exists", async () => {
     // With a model available, the widget renders BOTH the observation with its age and the model with its basis.
-    declareTestReckonable("vessel.target", "targeting");
     registerReckoner(
       "vessel.target",
       // A non-core owner, so the election prefers it over core's own model.

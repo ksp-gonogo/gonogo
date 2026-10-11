@@ -1195,10 +1195,7 @@ export interface AugmentDefinition<Slot extends string = string> {
   owner?: UplinkClientHandle;
 }
 
-export type {
-  UplinkClientConfig,
-  UplinkClientHandle,
-} from "../spine/uplink-clients";
+export type { UplinkClientHandle } from "../spine/uplink-clients";
 
 /**
  * What {@link registerCoverageSource} takes: one layer of map coverage, such as

@@ -1857,9 +1857,7 @@ public static class RtConfig
             }
             sb.Append("  },\n");
         }
-        sb.Append("};\n\n");
-
-        AppendContractTags(sb, assembly ?? typeof(UnitDescriptor).Assembly);
+        sb.Append("};\n");
 
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine("codegen (unit-map) -> " + outPath);
@@ -1869,83 +1867,6 @@ public static class RtConfig
             File.WriteAllText(jsonOutPath, UnitDescriptor.ToJson(maps));
             Console.WriteLine("codegen (unit-descriptor) -> " + jsonOutPath);
         }
-    }
-
-    /// <summary>
-    /// The assembly's value tags as the one table its client registers under its
-    /// own id: each value's declared sample kind and entry key, keyed by Topic then
-    /// path, and every value a declared model carries forward. Only what the
-    /// source declares is written; what a reader infers from a unit or from the
-    /// channel's own kind is worked out where it is read.
-    /// </summary>
-    private static void AppendContractTags(StringBuilder sb, Assembly assembly)
-    {
-        var walked = ValueTagWalk.Walk(UnitDescriptor.LoadableTypes(assembly));
-        var byTopic = new SortedDictionary<string, SortedDictionary<string, string>>(StringComparer.Ordinal);
-        foreach (var value in walked)
-        {
-            var tags = new List<string>();
-            var kind = value.Property.GetCustomAttribute<SitrepSampleKindAttribute>(false);
-            if (kind != null)
-            {
-                tags.Add("kind: \"" + ValueTagWalk.WireName(kind.Kind) + "\"");
-            }
-
-            if (value.Property.GetCustomAttribute<SitrepEntryKeyAttribute>(false) != null)
-            {
-                tags.Add("entryKey: true");
-            }
-
-            if (tags.Count == 0)
-            {
-                continue;
-            }
-
-            if (!byTopic.TryGetValue(value.Topic, out var paths))
-            {
-                paths = new SortedDictionary<string, string>(StringComparer.Ordinal);
-                byTopic[value.Topic] = paths;
-            }
-
-            paths[value.Path] = "{ " + string.Join(", ", tags) + " }";
-        }
-
-        sb.Append("/**\n");
-        sb.Append(" * The value tags this contract declares, registered by its client under its\n");
-        sb.Append(" * own id: `topics` holds each value's declared sample kind and entry key by\n");
-        sb.Append(" * Topic and path (`*` crosses a list or dictionary), and `reckonable` every\n");
-        sb.Append(" * value a declared model carries forward, with the inputs it needs.\n");
-        sb.Append(" */\n");
-        sb.Append("export const GENERATED_CONTRACT_TAGS = {\n");
-        sb.Append("  topics: {\n");
-        foreach (var topic in byTopic)
-        {
-            sb.Append("    \"").Append(topic.Key).Append("\": {\n");
-            foreach (var path in topic.Value)
-            {
-                sb.Append("      \"").Append(path.Key).Append("\": ").Append(path.Value).Append(",\n");
-            }
-            sb.Append("    },\n");
-        }
-        sb.Append("  },\n");
-        sb.Append("  reckonable: [\n");
-        foreach (var r in ValueTagWalk.ReckonableRows(assembly, walked))
-        {
-            sb.Append("    { topic: \"").Append(r.Topic)
-                .Append("\", field: \"").Append(r.Field)
-                .Append("\", basis: \"").Append(r.Basis)
-                .Append("\", inputs: [");
-            for (var i = 0; i < r.Inputs.Count; i++)
-            {
-                sb.Append(i == 0 ? " " : ", ")
-                    .Append("{ topic: \"").Append(r.Inputs[i].Topic)
-                    .Append("\", path: \"").Append(r.Inputs[i].Path)
-                    .Append("\" }");
-            }
-            sb.Append(r.Inputs.Count == 0 ? "] },\n" : " ] },\n");
-        }
-        sb.Append("  ],\n");
-        sb.Append("} as const;\n");
     }
 
     private static void AppendStaticBody(
@@ -2120,16 +2041,40 @@ public static class RtConfig
     }
 
     /// <summary>
-    /// Writes the type layer of the reckonable-value map consumed by
-    /// <c>mod/sitrep-sdk/src/reckonability.ts</c>: the <c>GeneratedReckoningBasis</c>
-    /// vocabulary, the row and input shapes, and <c>GENERATED_RECKONABLE_FIELDS</c>,
-    /// the top-level fields of each object Topic a declared model moves.
-    /// <c>ReckonableReading&lt;T, K&gt;</c> takes a key union, and rtcli cannot emit a
-    /// type alias at all.
+    /// Writes the generated reckonable-value map
+    /// (<c>GENERATED_RECKONABLE_VALUES</c> + <c>GENERATED_RECKONABLE_FIELDS</c> +
+    /// the <c>GeneratedReckoningBasis</c> vocabulary) consumed by
+    /// <c>mod/sitrep-sdk/src/reckonability.ts</c>. Every
+    /// <see cref="SitrepReckonableAttribute"/> contributes one row, so a property
+    /// served by two models contributes two: the owning type's
+    /// <c>[SitrepTopic]</c> is the topic, the camelCased property name is the
+    /// field, and the declared inputs are split into their topic and path halves
+    /// so a consumer never re-parses the <c>@topic#path</c> spelling. The FIELDS
+    /// view below keeps that property once, because two models of one value are
+    /// still one field of the projection.
     ///
-    /// <para>The rows themselves reach the client with every other value tag, in
-    /// <c>GENERATED_CONTRACT_TAGS</c> (see <see cref="EmitUnitMap"/>), which is what
-    /// lets an Uplink's marks reach it the same way core's do.</para>
+    /// <para>The FIELDS view is the one the SDK's type layer needs, because
+    /// <c>ReckonableReading&lt;T, K&gt;</c> takes a key union and rtcli cannot
+    /// emit a type alias at all. The VALUES view is what the store needs at
+    /// runtime: a reckoner that never fires should say which published input was
+    /// missing, and the only place that input's declared spelling exists is
+    /// here.</para>
+    ///
+    /// <para>Throws when a mark sits on a type with no <c>[SitrepTopic]</c>, or
+    /// on one whose Topic is <c>IsArray</c>. Both are the same cross-check
+    /// <see cref="EmitChannelMap"/> makes and for the same reason: the generated
+    /// artifact keys on a Topic id, so a mark with no Topic has nowhere to go,
+    /// and an element projection of an array Topic loses the identity fields that
+    /// would join it back to its element.</para>
+    ///
+    /// <para><b>Core's own assembly only</b>, unlike <see
+    /// cref="EmitTopicMap"/>'s optional <c>assembly</c> parameter. An Uplink
+    /// marking a value in its own contract slice needs more than the parameter:
+    /// the SDK reads ONE generated table, so a per-Uplink table needs a merge
+    /// seam in <c>mod/sitrep-sdk/src/reckonability.ts</c>, and the gate in
+    /// <c>Sitrep.Contract.Tests</c> needs a per-Uplink leg to resolve the marks
+    /// against the core topic set plus the Uplink's own. No Uplink payload
+    /// carries a mark, so the parameter is left off.</para>
     /// </summary>
     private static void EmitReckonability(string outPath)
     {
@@ -2142,8 +2087,60 @@ public static class RtConfig
             }
         }
 
-        var assembly = typeof(RtConfig).Assembly;
-        var rows = ValueTagWalk.ReckonableRows(assembly, ValueTagWalk.Walk(UnitDescriptor.LoadableTypes(assembly)));
+        var rows = new List<(string Topic, string Field, string Basis, List<(string Topic, string Path)> Inputs)>();
+        foreach (var type in typeof(RtConfig).Assembly.GetTypes())
+        {
+            var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                var attrs = prop.GetCustomAttributes<SitrepReckonableAttribute>().ToList();
+                if (attrs.Count == 0)
+                {
+                    continue;
+                }
+
+                if (topic == null)
+                {
+                    throw new InvalidOperationException(
+                        "[SitrepReckonable] on " + type.Name + "." + prop.Name +
+                        " requires its owning type to carry [SitrepTopic]: the generated map keys on a Topic id.");
+                }
+
+                if (topic.IsArray)
+                {
+                    throw new InvalidOperationException(
+                        "[SitrepReckonable] on " + type.Name + "." + prop.Name +
+                        " sits on the element type of the array Topic \"" + topic.TopicId +
+                        "\". A projection of an array element carries no identity fields, so nothing could join it back to its element.");
+                }
+
+                foreach (var attr in attrs)
+                {
+                    var inputs = new List<(string Topic, string Path)>();
+                    foreach (var input in attr.Inputs)
+                    {
+                        inputs.Add(SplitReckonableInput(input));
+                    }
+
+                    rows.Add((topic.TopicId, UnitDescriptor.CamelCase(prop.Name), attr.Basis, inputs));
+                }
+            }
+        }
+
+        // (topic, field, BASIS). The third key is what a value served by two models
+        // needs: without it the two rows of one field sort equal and their order is
+        // reflection order, which is the whole thing this sort exists to remove.
+        rows.Sort((a, b) =>
+        {
+            var byTopic = string.CompareOrdinal(a.Topic, b.Topic);
+            if (byTopic != 0)
+            {
+                return byTopic;
+            }
+
+            var byField = string.CompareOrdinal(a.Field, b.Field);
+            return byField != 0 ? byField : string.CompareOrdinal(a.Basis, b.Basis);
+        });
 
         var sb = new StringBuilder();
         sb.Append("//     This code was generated by the Sitrep contract reckonability codegen\n");
@@ -2194,26 +2191,33 @@ public static class RtConfig
         sb.Append("  readonly inputs: readonly GeneratedReckonableInput[];\n");
         sb.Append("}\n\n");
 
+        sb.Append("export const GENERATED_RECKONABLE_VALUES = [\n");
+        foreach (var r in rows)
+        {
+            sb.Append("  { topic: \"").Append(r.Topic)
+                .Append("\", field: \"").Append(r.Field)
+                .Append("\", basis: \"").Append(r.Basis)
+                .Append("\", inputs: [");
+            for (var i = 0; i < r.Inputs.Count; i++)
+            {
+                sb.Append(i == 0 ? " " : ", ")
+                    .Append("{ topic: \"").Append(r.Inputs[i].Topic)
+                    .Append("\", path: \"").Append(r.Inputs[i].Path)
+                    .Append("\" }");
+            }
+            sb.Append(r.Inputs.Count == 0 ? "] },\n" : " ] },\n");
+        }
+        sb.Append("] as const satisfies readonly GeneratedReckonableValue[];\n\n");
+
         sb.Append("/**\n");
-        sb.Append(" * The top-level fields of each object Topic a declared model moves, as the\n");
-        sb.Append(" * tuple the SDK turns into a key union. The rows themselves, nested and\n");
-        sb.Append(" * array values included, are GENERATED_CONTRACT_TAGS.reckonable in ./units.ts.\n");
+        sb.Append(" * The same rows keyed by Topic, as the field-name tuple the SDK turns into a\n");
+        sb.Append(" * key union. A Topic ABSENT here has no declared model for any of its values.\n");
         sb.Append(" */\n");
         sb.Append("export const GENERATED_RECKONABLE_FIELDS = {\n");
         string currentTopic = null;
         var fieldsByTopic = new List<(string Topic, List<string> Fields)>();
         foreach (var r in rows)
         {
-            /*
-             * A value inside a list or a nested shape is not a key of the payload, so
-             * the projection type has nowhere to put it: its Topic reads as a plain
-             * reading, which carries a decline as readily as a marked one.
-             */
-            if (r.Field.IndexOf('.') >= 0 || r.Field.IndexOf('*') >= 0)
-            {
-                continue;
-            }
-
             if (currentTopic != r.Topic)
             {
                 currentTopic = r.Topic;
@@ -2337,6 +2341,29 @@ public static class RtConfig
             sb.Append("  },\n");
         }
         sb.Append("} as const satisfies Record<string, Record<string, GeneratedFrameDeclaration>>;\n");
+    }
+
+    /// <summary>
+    /// One declared input split into the Topic it names and the path inside it.
+    ///
+    /// <para>A bare path is a field on the value's own payload, so it has no
+    /// topic; <c>@topic</c> is another Topic's whole payload, so it has no path;
+    /// <c>@topic#path</c> has both. Splitting on the FIRST <c>#</c> is what makes
+    /// the two-Topic ambiguity the attribute's doc names (<c>vessel.orbit</c>
+    /// against <c>vessel.orbit.truth</c>) a non-question here.</para>
+    /// </summary>
+    private static (string Topic, string Path) SplitReckonableInput(string input)
+    {
+        if (string.IsNullOrEmpty(input) || input[0] != '@')
+        {
+            return ("", input ?? "");
+        }
+
+        var body = input.Substring(1);
+        var hash = body.IndexOf('#');
+        return hash < 0
+            ? (body, "")
+            : (body.Substring(0, hash), body.Substring(hash + 1));
     }
 
     /// <summary>

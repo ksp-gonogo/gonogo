@@ -58,7 +58,6 @@ public class EvaKerbal
 
     /// <summary>EVA propellant remaining in the pack.</summary>
     [SitrepUnit(Units.ResourceUnits)]
-    [SitrepSampleKind(SampleKind.Continuous)]
     public double? PropellantAmount { get; set; }
 
     /// <summary>What the pack holds when full, so a reader can draw a fraction

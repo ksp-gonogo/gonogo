@@ -1,4 +1,3 @@
-import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import "./reckoner-test-topics";
 import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -130,7 +129,6 @@ describe("a reckoner can see the UT it is reckoning for", () => {
         };
       },
     };
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", reckoner);
 
     store.ingest("test.temperature", numberPoint(100, 5));
@@ -146,7 +144,6 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const wall = fakeWall();
     const { store } = delayedStore(wall);
 
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -179,7 +176,6 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     const { store } = delayedStore(wall);
 
     const HORIZON_SECONDS = 120;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point, _deps, { reckonUt }) => {
@@ -201,15 +197,11 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     ).toBe("available");
 
     // Nothing arrives; only time passes. Past the horizon the model withdraws,
-    // and the topic keeps the staleness it honestly has, saying why no model
-    // is on offer.
+    // and the topic keeps the staleness it honestly has with nothing on offer.
     wall.advanceBy(600);
     store.beginFrame();
     const expired = store.sampleReading<number>("test.temperature");
-    expect(expired.reckoning).toMatchObject({
-      status: "declined",
-      declined: { reason: "beyond-horizon" },
-    });
+    expect(expired.reckoning.status).toBe("none");
     expect(expired.state).toBe("held");
   });
 
@@ -249,7 +241,6 @@ describe("a reckoning says which fields it actually modelled", () => {
     const { store } = delayedStore(wall);
 
     type Target = { relativePosition: number; name: string };
-    declareTestReckonable("test.contact", "test");
     registerReckoner("test.contact", "test", {
       deps: [],
       reckon: (point) => ({
@@ -298,7 +289,6 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     const wall = fakeWall();
     const { store } = delayedStore(wall);
 
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -339,7 +329,6 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = delayedStore(wall);
 
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -367,7 +356,6 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const { store } = delayedStore(wall);
 
     let runs = 0;
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -401,7 +389,6 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = delayedStore(wall);
 
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
@@ -436,7 +423,6 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = delayedStore(wall);
 
-    declareTestReckonable("test.temperature", "test");
     registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({

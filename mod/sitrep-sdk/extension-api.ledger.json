@@ -8215,26 +8215,6 @@
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
       },
       {
-        "key": "sitrep-sdk . RailContinuity",
-        "note": "Removed: the delay rail takes the same sample kind a channel declares (SampleKind) instead of a vocabulary of its own"
-      },
-      {
-        "key": "sitrep-sdk . RailTags#continuity",
-        "note": "Replaced by kind: the rail's entries say how they relate in time with the shared SampleKind, a one-off command being an event"
-      },
-      {
-        "key": "sitrep-sdk . RailTags#kind",
-        "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
-      },
-      {
-        "key": "sitrep-sdk . ReckonableFields",
-        "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
-      },
-      {
-        "key": "sitrep-sdk . ReckonableTopic",
-        "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
-      },
-      {
         "key": "sitrep-sdk . SDK_VERSION",
         "note": "Removed. It was generated from package.json at build, and a release stamps the version onto the packed manifest after that, so every published sdk said 0.0.1. Nothing reads it; the package's version is in its package.json"
       },
@@ -8389,14 +8369,6 @@
       {
         "key": "sitrep-sdk . deriveCelestialFacts",
         "note": "Drops its ut argument, since the catalogue no longer holds anything that depends on an instant; where a body is at an instant is systemPosesAt"
-      },
-      {
-        "key": "sitrep-sdk . railTagsForTelemetry",
-        "note": "Takes a SampleKind: pass event for a single result, continuous for a stream"
-      },
-      {
-        "key": "sitrep-sdk . reckonableValuesOf",
-        "note": "Takes an optional owner and returns each row with the owner whose contract declared it, so a decline is explained from the elected model's marks"
       },
       {
         "key": "sitrep-sdk . useDataSources",
@@ -8839,18 +8811,6 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
-        "key": "sitrep-sdk ./spine RailContinuity",
-        "note": "Removed: the delay rail takes the same sample kind a channel declares (SampleKind) instead of a vocabulary of its own"
-      },
-      {
-        "key": "sitrep-sdk ./spine RailTags#continuity",
-        "note": "Replaced by kind: the rail's entries say how they relate in time with the shared SampleKind, a one-off command being an event"
-      },
-      {
-        "key": "sitrep-sdk ./spine RailTags#kind",
-        "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
-      },
-      {
         "key": "sitrep-sdk ./spine StateVector#position",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -8889,10 +8849,6 @@
       {
         "key": "sitrep-sdk ./spine TimelineStore#subscribeGameStatus",
         "note": "New: listens for a change in what the game is doing"
-      },
-      {
-        "key": "sitrep-sdk ./spine TimelineStore#tagsOf",
-        "note": "New: what the contracts say about a value, its sample kind, whether it keys its list entry, and the models declared on it"
       },
       {
         "key": "sitrep-sdk ./spine UplinkClientHandle#description",
@@ -8935,10 +8891,6 @@
         "note": "Renamed canPropagatePatch, which also refuses a patch whose lan, argPe or meanAnomalyAtEpoch is null, and narrows the patch to PropagablePatch"
       },
       {
-        "key": "sitrep-sdk ./spine lerpPayload",
-        "note": "Takes which fields hold, from each field's sample kind; a field that is not continuous stays at the earlier value"
-      },
-      {
         "key": "sitrep-sdk ./spine librationOffsetOf",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -8961,10 +8913,6 @@
       {
         "key": "sitrep-sdk ./spine pointMassAccelerationAt",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
-      },
-      {
-        "key": "sitrep-sdk ./spine railTagsForTelemetry",
-        "note": "Takes a SampleKind: pass event for a single result, continuous for a stream"
       },
       {
         "key": "sitrep-sdk ./spine rotateInertialToPerifocal",
@@ -9013,14 +8961,6 @@
       {
         "key": "sitrep-sdk ./spine ~PlotMarkerLayer#shape?",
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ReckonableFields",
-        "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ReckonableTopic",
-        "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
       },
       {
         "key": "sitrep-sdk ./spine ~ServerMessage",
@@ -9127,10 +9067,6 @@
         "note": "New: listens for a change in what the game is doing"
       },
       {
-        "key": "sitrep-sdk ./testing TimelineStore#tagsOf",
-        "note": "New: what the contracts say about a value, its sample kind, whether it keys its list entry, and the models declared on it"
-      },
-      {
         "key": "sitrep-sdk ./testing ViewClock#observeSample",
         "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
       },
@@ -9205,26 +9141,6 @@
       {
         "key": "sitrep-sdk ./testing ~PlotMarkerLayer#shape?",
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RailContinuity",
-        "note": "Removed: the delay rail takes the same sample kind a channel declares (SampleKind) instead of a vocabulary of its own"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RailTags#continuity",
-        "note": "Replaced by kind: the rail's entries say how they relate in time with the shared SampleKind, a one-off command being an event"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RailTags#kind",
-        "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ReckonableFields",
-        "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ReckonableTopic",
-        "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
       },
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
@@ -9523,24 +9439,12 @@
         "note": "Gains a current entry (the lilac ring, which has only a hollow form) and a hollowDomSize on held and modelled. Every field a caller read before is unchanged; code that walks the table's keys now meets current"
       },
       {
-        "key": "ui-kit . RailContinuity",
-        "note": "Removed: the delay rail takes the same sample kind a channel declares (SampleKind) instead of a vocabulary of its own"
-      },
-      {
         "key": "ui-kit . RailFailed",
         "note": "now its own interface over CommandFailedEntry, where it was an alias of RailLoss, so the rail's failures carry their code"
       },
       {
         "key": "ui-kit . RailFailed#tags",
         "note": "moved onto the new RailFailed interface, unchanged"
-      },
-      {
-        "key": "ui-kit . RailTags#continuity",
-        "note": "Replaced by kind: the rail's entries say how they relate in time with the shared SampleKind, a one-off command being an event"
-      },
-      {
-        "key": "ui-kit . RailTags#kind",
-        "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
       },
       {
         "key": "ui-kit . Readout",
@@ -9813,10 +9717,6 @@
       {
         "key": "ui-kit . ~ModalOpenOptions#width?",
         "note": "exported, since a published component's props or return type already names it"
-      },
-      {
-        "key": "ui-kit . ~RailTagKey",
-        "note": "Keyed by sample kind (command/event/acked) where it was keyed by the rail's own continuity word"
       },
       {
         "key": "ui-kit . ~SwitchBaseProps",
@@ -10165,38 +10065,6 @@
         "note": "What solveConic returns: the anomalies in radians and the radius in metres"
       },
       {
-        "key": "sitrep-sdk . ContractReckonableRow",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk . ContractReckonableRow#basis",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk . ContractReckonableRow#field",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk . ContractReckonableRow#inputs",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk . ContractReckonableRow#topic",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk . ContractTagTable",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
-        "key": "sitrep-sdk . ContractTagTable#reckonable?",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
-        "key": "sitrep-sdk . ContractTagTable#topics?",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
         "key": "sitrep-sdk . ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -10231,14 +10099,6 @@
       {
         "key": "sitrep-sdk . MapViewScope#bodyName",
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
-      },
-      {
-        "key": "sitrep-sdk . OwnedReckonableValue",
-        "note": "A reckonable row with the owner whose contract declared it"
-      },
-      {
-        "key": "sitrep-sdk . OwnedReckonableValue#owner",
-        "note": "A reckonable row with the owner whose contract declared it"
       },
       {
         "key": "sitrep-sdk . PendingEntry#members?",
@@ -10305,24 +10165,8 @@
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
       {
-        "key": "sitrep-sdk . ReckonableFieldMap",
-        "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
         "key": "sitrep-sdk . SYSTEM_POSES",
         "note": "The processor behind useSystemInstant, readable by id from a contribution's deps"
-      },
-      {
-        "key": "sitrep-sdk . SampleKind",
-        "note": "How a channel's samples relate in time: continuous, discrete or event"
-      },
-      {
-        "key": "sitrep-sdk . SeriesInterpolation",
-        "note": "How a chart draws between two points of a series: a line, a step, or nothing"
-      },
-      {
-        "key": "sitrep-sdk . SeriesRange#interpolation?",
-        "note": "Says how to draw between points, from the plotted value's sample kind"
       },
       {
         "key": "sitrep-sdk . SizeDelta",
@@ -10405,42 +10249,6 @@
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
       },
       {
-        "key": "sitrep-sdk . UplinkClientConfig",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk . UplinkClientConfig#description",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk . UplinkClientConfig#id",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk . UplinkClientConfig#name",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk . UplinkClientConfig#tags?",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk . UplinkClientConfig#version",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk . ValueTags",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk . ValueTags#entryKey?",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk . ValueTags#kind?",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
         "key": "sitrep-sdk . asStatic",
         "note": "Exported from the root barrel, where its documentation already said it was"
       },
@@ -10487,10 +10295,6 @@
       {
         "key": "sitrep-sdk . useSystemInstant",
         "note": "Where every body is at the instant on screen, as a pose that says whether it is exact, modelled, held or withdrawn"
-      },
-      {
-        "key": "sitrep-sdk . ~GeneratedReckonableFieldMap",
-        "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
       },
       {
         "key": "sitrep-sdk . ~UplinkActionOutcome",
@@ -11167,10 +10971,6 @@
       {
         "key": "sitrep-sdk ./registry ~PlotWaterLayer#view",
         "note": "Whether the sea is seen from above or from the side"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SampleKind",
-        "note": "How a channel's samples relate in time: continuous, discrete or event"
       },
       {
         "key": "sitrep-sdk ./registry ~ScienceDataAboardRowContext",
@@ -11869,30 +11669,6 @@
         "note": "The poses of every body at one instant, by body index"
       },
       {
-        "key": "sitrep-sdk ./spine UplinkClientConfig",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./spine UplinkClientConfig#description",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./spine UplinkClientConfig#id",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./spine UplinkClientConfig#name",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./spine UplinkClientConfig#tags?",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./spine UplinkClientConfig#version",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
         "key": "sitrep-sdk ./spine Vec3Tuple",
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
@@ -12001,38 +11777,6 @@
         "note": "CommSignalHopRateEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
       {
-        "key": "sitrep-sdk ./spine ~ContractReckonableRow",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContractReckonableRow#basis",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContractReckonableRow#field",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContractReckonableRow#inputs",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContractReckonableRow#topic",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContractTagTable",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContractTagTable#reckonable?",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ContractTagTable#topics?",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
         "key": "sitrep-sdk ./spine ~ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -12043,30 +11787,6 @@
       {
         "key": "sitrep-sdk ./spine ~DataSourceStatus",
         "note": "reachable through the spine's DataSourceState"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~DeclaredSampleKinds",
-        "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~DeclaredSampleKinds#prefixes",
-        "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~DeclaredSampleKinds#topics",
-        "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~GeneratedReckonableFieldMap",
-        "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~OwnedReckonableValue",
-        "note": "A reckonable row with the owner whose contract declared it"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~OwnedReckonableValue#owner",
-        "note": "A reckonable row with the owner whose contract declared it"
       },
       {
         "key": "sitrep-sdk ./spine ~PendingEntry#members?",
@@ -12125,14 +11845,6 @@
         "note": "Whether the sea is seen from above or from the side"
       },
       {
-        "key": "sitrep-sdk ./spine ~ReckonableFieldMap",
-        "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~SampleKind",
-        "note": "How a channel's samples relate in time: continuous, discrete or event"
-      },
-      {
         "key": "sitrep-sdk ./spine ~SizeDelta",
         "note": "The room an extension asks of its host widget, whole grid units of zero or more"
       },
@@ -12175,22 +11887,6 @@
       {
         "key": "sitrep-sdk ./spine ~SystemEntitySubjectPosition#subject",
         "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ValueTags",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ValueTags#entryKey?",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk ./spine ~ValueTags#kind?",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk ./testing declareTestReckonable",
-        "note": "Declares a test Topic's mark, so a test can register a model where the contract marks nothing"
       },
       {
         "key": "sitrep-sdk ./testing ~AdminBuildingScreenBodyContext",
@@ -12281,38 +11977,6 @@
         "note": "New with command groups"
       },
       {
-        "key": "sitrep-sdk ./testing ~ContractReckonableRow",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractReckonableRow#basis",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractReckonableRow#field",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractReckonableRow#inputs",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractReckonableRow#topic",
-        "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractTagTable",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractTagTable#reckonable?",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ContractTagTable#topics?",
-        "note": "The value tags a contract's codegen writes as GENERATED_CONTRACT_TAGS, passed to defineUplinkClient"
-      },
-      {
         "key": "sitrep-sdk ./testing ~ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -12337,18 +12001,6 @@
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
       {
-        "key": "sitrep-sdk ./testing ~DeclaredSampleKinds",
-        "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~DeclaredSampleKinds#prefixes",
-        "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~DeclaredSampleKinds#topics",
-        "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
-      },
-      {
         "key": "sitrep-sdk ./testing ~GameStatus",
         "note": "New: what the game is doing and the scene it names"
       },
@@ -12359,10 +12011,6 @@
       {
         "key": "sitrep-sdk ./testing ~GameStatus#state",
         "note": "New: a field of the game status"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~GeneratedReckonableFieldMap",
-        "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
       },
       {
         "key": "sitrep-sdk ./testing ~GroupMember",
@@ -12387,14 +12035,6 @@
       {
         "key": "sitrep-sdk ./testing ~GroupMember#topic?",
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~OwnedReckonableValue",
-        "note": "A reckonable row with the owner whose contract declared it"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~OwnedReckonableValue#owner",
-        "note": "A reckonable row with the owner whose contract declared it"
       },
       {
         "key": "sitrep-sdk ./testing ~PlotEntry#held?",
@@ -12447,14 +12087,6 @@
       {
         "key": "sitrep-sdk ./testing ~PlotWaterLayer#view",
         "note": "Whether the sea is seen from above or from the side"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ReckonableFieldMap",
-        "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SampleKind",
-        "note": "How a channel's samples relate in time: continuous, discrete or event"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",
@@ -12519,42 +12151,6 @@
       {
         "key": "sitrep-sdk ./testing ~UplinkActionOutcome#throughSeq?",
         "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~UplinkClientConfig",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~UplinkClientConfig#description",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~UplinkClientConfig#id",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~UplinkClientConfig#name",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~UplinkClientConfig#tags?",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~UplinkClientConfig#version",
-        "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ValueTags",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ValueTags#entryKey?",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~ValueTags#kind?",
-        "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
         "key": "sitrep-sdk ./uplink-manifest UplinkCodegenDeclaration",
@@ -12875,10 +12471,6 @@
       {
         "key": "ui-kit . LineGraphProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
-      },
-      {
-        "key": "ui-kit . LineGraphSeries#interpolation?",
-        "note": "Draws a series as a line, a step or separate marks, from the plotted value's sample kind"
       },
       {
         "key": "ui-kit . MarkKind",

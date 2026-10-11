@@ -1,12 +1,9 @@
-import { channelKindOf } from "../channel-tags";
-import { CORE_CONTRACT_OWNER } from "../contract-tags";
 import type {
   AnyReckonerDefinition,
   DepWindows,
   ReckonerDefinition,
   ReckonerInputRule,
 } from "../reading";
-import { reckonableValuesOf } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Dep } from "./processors";
 
@@ -53,7 +50,7 @@ const reckoners = new Map<string, Map<string, AnyReckonerDefinition>>();
  * `defineUplinkClient` stamps the client's own id, and `CORE_UPLINK_CLIENT` is
  * the one handle carrying this one.
  */
-export const CORE_RECKONER_OWNER = CORE_CONTRACT_OWNER;
+export const CORE_RECKONER_OWNER = "core";
 
 /**
  * Register `owner`'s forward model for `topic`.
@@ -93,27 +90,6 @@ export function registerReckoner<
   owner: string,
   reckoner: ReckonerDefinition<TopicPayload<Topic>, Projection, Deps, Windows>,
 ): void {
-  /*
-   * A model with no mark behind it is served when it answers and invisible when
-   * it refuses: a decline is explained from the marks, so without one a refusal
-   * reads as "nobody models this" and a consumer goes on to compute from the raw
-   * values the model just withheld.
-   */
-  if (channelKindOf(topic) === "event") {
-    throw new Error(
-      `registerReckoner("${topic}", "${owner}"): ${topic} is an Event channel. Each sample is one ` +
-        "occurrence at its own time, so there is nothing between two of them to carry forward.",
-    );
-  }
-  if (reckonableValuesOf(topic, owner).length === 0) {
-    throw new Error(
-      `registerReckoner("${topic}", "${owner}"): "${owner}" declares no value of ${topic} reckonable.\n\n` +
-        "A model is registered for a value its owner's contract marks, so that when it declines the " +
-        "reading says why rather than reading as unmodelled. Mark the value with [SitrepReckonable] on " +
-        `the payload property in your own contract, or with [assembly: SitrepReckonableOn("${topic}", ...)] ` +
-        "for a Topic another owner publishes, and pass the generated tags to defineUplinkClient.",
-    );
-  }
   const requireReason = (
     rule: string,
     reason: string | undefined,

@@ -1,4 +1,3 @@
-using Sitrep.Contract;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -62,12 +61,12 @@ namespace Gonogo.KSP.Tests
         {
             const string planted = @"
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = ""a.b"",
                     Emission = new EmissionPolicy(1, null),
                 },
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = ""c.d"",
                     Requires = Requirement.None,
                     Emission = new EmissionPolicy(1, null) { Inner = { } },
@@ -81,7 +80,7 @@ namespace Gonogo.KSP.Tests
 
         private static bool StatesRequires(string block) => Regex.IsMatch(block, @"\bRequires\s*=");
 
-        /// <summary>Each <c>new ChannelDeclaration { Kind = SampleKind.Continuous, ... }</c> initializer, braces balanced, with the line it starts on.</summary>
+        /// <summary>Each <c>new ChannelDeclaration { ... }</c> initializer, braces balanced, with the line it starts on.</summary>
         private static IEnumerable<(string Text, int Line)> DeclarationBlocks(string source)
         {
             foreach (Match match in Regex.Matches(source, @"new\s+ChannelDeclaration\s*\{"))

@@ -123,20 +123,6 @@ function registerProbeReckoner(): void {
     name: "Equivalence Probe",
     description:
       "Registers core's conic a second time, through the author surface.",
-    /* What its contract's codegen writes for [assembly: SitrepReckonableOn("vessel.flight", "altitudeAsl", ReckoningBases.KeplerPropagation, "@vessel.orbit", "@system.bodies")]. */
-    tags: {
-      reckonable: [
-        {
-          topic: "vessel.flight",
-          field: "altitudeAsl",
-          basis: "kepler-propagation",
-          inputs: [
-            { topic: "vessel.orbit", path: "" },
-            { topic: "system.bodies", path: "" },
-          ],
-        },
-      ],
-    },
   });
   PROBE.registerReckoner("vessel.flight", {
     deps: ["vessel.orbit", "system.bodies"],

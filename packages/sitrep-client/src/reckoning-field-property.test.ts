@@ -3,7 +3,6 @@ import {
   type UncertaintyBand,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { declareTestReckonable } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { clearReckoners, registerReckoner } from "./reckoners";
 import { makeMeta } from "./stub-transport";
@@ -67,7 +66,6 @@ function altitudeBand(at: number): UncertaintyBand<"m"> {
  * the model's basis.
  */
 function registerAltitudeOnlyModel(): void {
-  declareTestReckonable("vessel.flight", "test");
   registerReckoner("vessel.flight", "test", {
     deps: [],
     reckon: (point) => ({
@@ -156,7 +154,6 @@ describe("a field property carries the band its topic's model produced", () => {
    * the fabrication this whole type exists to stop.
    */
   it("reckons nothing at all for a model that claims no root", () => {
-    declareTestReckonable("vessel.flight", "test");
     registerReckoner("vessel.flight", "test", {
       deps: [],
       reckon: () => ({
@@ -173,7 +170,6 @@ describe("a field property carries the band its topic's model produced", () => {
 
   // A reckoner claiming only the root answers the topic and models none of its fields.
   it("models no field for a reckoner that claims only the root", () => {
-    declareTestReckonable("vessel.flight", "test");
     registerReckoner("vessel.flight", "test", {
       deps: [],
       reckon: () => ({

@@ -95,7 +95,6 @@ public class VesselOrbit
     // Moves with MeanAnomalyAtEpoch: advancing one without the other would date the phase to the wrong instant.
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "sma", "mu", "horizon", "@system.bodies")]
     [SitrepReckonable(ReckoningBases.PoweredIntegration, "mu", "@vessel.propulsion", "@dv.stages", "@vessel.structure", "@system.bodies")]
-    [SitrepSampleKind(SampleKind.Continuous)]
     public double Epoch { get; set; }
 
     /// <summary>The reference body's standard gravitational parameter (GM), so the elements propagate without a separate body lookup.</summary>

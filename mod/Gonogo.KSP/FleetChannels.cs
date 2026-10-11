@@ -107,7 +107,6 @@ namespace Gonogo.KSP
             _journeyWriter = host as IVesselJourneyWriter;
             _orbitSource = host.RegisterDynamicNamespace(ChannelEngine.FleetNodePrefix, new ChannelDeclaration
             {
-                Kind = SampleKind.Continuous,
                 Requires = Requirement.None,
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,

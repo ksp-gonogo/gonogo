@@ -92,7 +92,6 @@ namespace Gonogo.KSP
             {
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = ScienceViewProvider.ExperimentsTopic,
                     Delivery = Delivery.LossyLatest,
@@ -104,7 +103,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = ScienceViewProvider.InstrumentsTopic,
                     Delivery = Delivery.LossyLatest,
@@ -114,7 +112,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Continuous,
                     Requires = new[] { CareerGates.PartModuleResearched(CareerGates.Modules.ScienceLab) },
                     Topic = ScienceViewProvider.LabTopic,
                     Delivery = Delivery.LossyLatest,
@@ -124,7 +121,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = ScienceViewProvider.SensorsTopic,
                     Delivery = Delivery.LossyLatest,
@@ -135,7 +131,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = ScienceViewProvider.ExperimentBreakdownTopic,
                     Delivery = Delivery.LossyLatest,
@@ -146,7 +141,6 @@ namespace Gonogo.KSP
                 },
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Topic = ScienceViewProvider.ArchiveTopic,
                     Delivery = Delivery.LossyLatest,

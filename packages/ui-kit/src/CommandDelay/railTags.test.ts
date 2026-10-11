@@ -1,7 +1,7 @@
-import type { SampleKind } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   allRailTags,
+  type RailContinuity,
   type RailDelivery,
   type RailDirection,
   type RailRenderer,
@@ -22,7 +22,7 @@ import {
  */
 describe("each axis drives exactly one visual property", () => {
   const cases = [
-    { axis: "kind" as const, read: railMark },
+    { axis: "continuity" as const, read: railMark },
     { axis: "delivery" as const, read: railDrawsReturnLeg },
     { axis: "direction" as const, read: railFlow },
     { axis: "direction" as const, read: railToneToken },
@@ -49,15 +49,15 @@ describe("each axis drives exactly one visual property", () => {
 describe("the axis product", () => {
   it("enumerates every combination of the three axes, once each", () => {
     const all = allRailTags();
-    expect(all).toHaveLength(12);
-    expect(new Set(all.map(railTagKey)).size).toBe(12);
+    expect(all).toHaveLength(8);
+    expect(new Set(all.map(railTagKey)).size).toBe(8);
   });
 
   it("spells a combination the way the renderer table is keyed", () => {
     expect(
       railTagKey({
         direction: "telemetry",
-        kind: "continuous",
+        continuity: "continuous",
         delivery: "fire-and-forget",
       }),
     ).toBe("telemetry/continuous/fire-and-forget");
@@ -72,33 +72,29 @@ describe("the axis product", () => {
 describe("which combinations have a renderer", () => {
   // Named rather than derived from the table, so it is an independent statement of the same fact.
   const DRAWN: ReadonlyArray<[RailTagKey, RailRenderer]> = [
-    ["command/event/acked", "in-flight-row"],
     ["command/discrete/acked", "in-flight-row"],
     ["command/continuous/acked", "continuous-strip"],
     ["telemetry/continuous/fire-and-forget", "continuous-strip"],
-    ["telemetry/event/fire-and-forget", "in-flight-row"],
     ["telemetry/discrete/fire-and-forget", "in-flight-row"],
   ];
 
   for (const [key, renderer] of DRAWN) {
     it(`draws ${key} with ${renderer}`, () => {
-      const [direction, kind, delivery] = key.split("/");
+      const [direction, continuity, delivery] = key.split("/");
       expect(
         railRendererFor({
           direction: direction as RailDirection,
-          kind: kind as SampleKind,
+          continuity: continuity as RailContinuity,
           delivery: delivery as RailDelivery,
         }),
       ).toBe(renderer);
     });
   }
 
-  // The six nothing draws, and no producer can make: a command's result is always delivered, and telemetry has no reply channel.
+  // The four nothing draws, and no producer can make: a command's result is always delivered, and telemetry has no reply channel.
   const UNDRAWN: readonly RailTagKey[] = [
-    "command/event/fire-and-forget",
     "command/discrete/fire-and-forget",
     "command/continuous/fire-and-forget",
-    "telemetry/event/acked",
     "telemetry/discrete/acked",
     "telemetry/continuous/acked",
   ];
@@ -109,14 +105,14 @@ describe("which combinations have a renderer", () => {
     );
   });
 
-  it("accounts for all twelve combinations either way", () => {
+  it("accounts for all eight combinations either way", () => {
     expect(DRAWN.length + UNDRAWN.length).toBe(allRailTags().length);
   });
 
   it("draws a science result sent home in the same queue a command's row is in", () => {
     const scienceHome: RailTags = {
       direction: "telemetry",
-      kind: "event",
+      continuity: "discrete",
       delivery: "fire-and-forget",
     };
     expect(railRendererFor(scienceHome)).toBe(
@@ -129,11 +125,11 @@ describe("which combinations have a renderer", () => {
   });
 
   it("answers null rather than a fallback renderer for an undrawn row", () => {
-    // Not `in-flight-row`: a fallback to the queue of points would look right and be wrong.
+    // Not `in-flight-row`: a discrete-queue fallback would look right and be wrong.
     expect(
       railRendererFor({
         direction: "telemetry",
-        kind: "event",
+        continuity: "discrete",
         delivery: "acked",
       }),
     ).toBeNull();

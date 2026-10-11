@@ -106,7 +106,7 @@ namespace Gonogo.KSP
             Version = "1.0.0",
             Channels = new List<ChannelDeclaration>
             {
-                Channel(VesselViewProvider.IdentityTopic, SampleKind.Discrete),
+                Channel(VesselViewProvider.IdentityTopic),
                 // Orbital elements barely move on-rails (maneuver/SOI
                 // transitions only) but can move every tick off-rails
                 // (powered/atmospheric flight) -- a 30s keyframe cadence
@@ -117,28 +117,28 @@ namespace Gonogo.KSP
                 // the keyframe and nothing else. A per-field deadband for
                 // structured channels is still a follow-up: value equality is
                 // exact, so an element wobbling in its last digits re-emits.
-                Channel(VesselViewProvider.OrbitTopic, SampleKind.Continuous),
+                Channel(VesselViewProvider.OrbitTopic),
                 // Dev-gated debug channel (design doc §6.5) -- same cadence
                 // as orbit. There is no engine-level "hide from the picker"
                 // flag yet (a future SDK/picker concern), so this is
                 // dev-only BY CONVENTION: never bind it from a widget.
-                Channel(VesselViewProvider.OrbitTruthTopic, SampleKind.Continuous),
-                Channel(VesselViewProvider.FlightTopic, SampleKind.Continuous),
+                Channel(VesselViewProvider.OrbitTruthTopic),
+                Channel(VesselViewProvider.FlightTopic),
                 // ---- M1 Task 2 channels -- same pattern, same cadence;
                 // per-channel deadband/rate-clamp tuning is deferred exactly
                 // like Task 1's (see the OrbitTopic comment above).
-                Channel(VesselViewProvider.AttitudeTopic, SampleKind.Continuous),
-                Channel(VesselViewProvider.ResourcesTopic, SampleKind.Continuous),
-                Channel(VesselViewProvider.ThermalTopic, SampleKind.Continuous),
-                Channel(VesselViewProvider.ControlTopic, SampleKind.Discrete),
+                Channel(VesselViewProvider.AttitudeTopic),
+                Channel(VesselViewProvider.ResourcesTopic),
+                Channel(VesselViewProvider.ThermalTopic),
+                Channel(VesselViewProvider.ControlTopic),
                 // vessel.physics.mode -- discrete on-rails/packed/unpacked enum
                 // (§0.0: its own Topic Value, not a Meta.Quality stand-in);
                 // same cadence/DelayRole.Delayed posture as every vessel.*
                 // channel (it's vessel-derived, not a ground-side fact).
-                Channel(VesselViewProvider.PhysicsModeTopic, SampleKind.Discrete),
-                Channel(VesselViewProvider.CommsTopic, SampleKind.Continuous),
-                Channel(VesselViewProvider.PropulsionTopic, SampleKind.Continuous),
-                Channel(VesselViewProvider.ManeuverTopic, SampleKind.Discrete),
+                Channel(VesselViewProvider.PhysicsModeTopic),
+                Channel(VesselViewProvider.CommsTopic),
+                Channel(VesselViewProvider.PropulsionTopic),
+                Channel(VesselViewProvider.ManeuverTopic),
                 // vessel.target/crew: legitimately null with a present,
                 // active vessel (no target selected / no crew aboard), not
                 // just "no subject yet": opt into AbsenceIsData so the
@@ -146,14 +146,14 @@ namespace Gonogo.KSP
                 // hanging on "SYNCING" forever. vessel.maneuver stays OFF:
                 // "no node" is already signalled via an empty Nodes = []
                 // array, never a null mapper result.
-                Channel(VesselViewProvider.TargetTopic, SampleKind.Continuous, absenceIsData: true),
-                Channel(VesselViewProvider.CrewTopic, SampleKind.Discrete, absenceIsData: true),
+                Channel(VesselViewProvider.TargetTopic, absenceIsData: true),
+                Channel(VesselViewProvider.CrewTopic, absenceIsData: true),
                 // Nobody outside is a real answer, not a gap: the channel
                 // publishes an empty roster rather than going quiet.
-                Channel(VesselViewProvider.EvaCrewTopic, SampleKind.Discrete, absenceIsData: true),
+                Channel(VesselViewProvider.EvaCrewTopic, absenceIsData: true),
                 // Nothing aboard carrying cargo is a real answer, not a gap.
-                Channel(VesselViewProvider.InventoryTopic, SampleKind.Discrete, absenceIsData: true),
-                Channel(VesselViewProvider.StructureTopic, SampleKind.Discrete),
+                Channel(VesselViewProvider.InventoryTopic, absenceIsData: true),
+                Channel(VesselViewProvider.StructureTopic),
                 // time.warp -- see WarpState's doc comment for why this channel
                 // is declared/registered here alongside the genuinely
                 // vessel-scoped ones, and WarpChannel below for why it does not
@@ -172,20 +172,20 @@ namespace Gonogo.KSP
                 // vessel.dock: legitimately null when a present, active
                 // vessel isn't currently docking (same AbsenceIsData
                 // reasoning as vessel.target/crew above).
-                Channel(VesselViewProvider.DockTopic, SampleKind.Continuous, absenceIsData: true, requires: DockingRequires),
-                Channel(VesselViewProvider.SurfaceTopic, SampleKind.Continuous),
+                Channel(VesselViewProvider.DockTopic, absenceIsData: true, requires: DockingRequires),
+                Channel(VesselViewProvider.SurfaceTopic),
                 // vessel.landing: terrain-informed landing data + an
                 // atmosphere-aware descent estimate. Whole-record absence is
                 // meaningful ("not descending toward a solid surface"), so
                 // absenceIsData: true (same as vessel.dock/target/crew).
-                Channel(VesselViewProvider.LandingTopic, SampleKind.Continuous, absenceIsData: true),
+                Channel(VesselViewProvider.LandingTopic, absenceIsData: true),
                 // vessel.parts (P1b slice 2): the full part-tree topology
                 // (VesselPartsViewProvider), sibling of vessel.structure. Same
                 // structured-vessel.* cadence/DelayRole.Delayed posture; per-
                 // part temps ride here (thermal folds in). Its raw list can be
                 // large but only changes on a staging/dock event, so the 30s
                 // keyframe + change-gate posture fits.
-                Channel(VesselPartsViewProvider.PartsTopic, SampleKind.Discrete),
+                Channel(VesselPartsViewProvider.PartsTopic),
                 // dv.stages / dv.summary (P1b slice 2): KSP's STOCK
                 // VesselDeltaV stage simulation (StageDeltaVViewProvider),
                 // captured off the active vessel like vessel.parts. Same
@@ -202,8 +202,8 @@ namespace Gonogo.KSP
                 // waits on SYNCING forever instead of learning there is no figure.
                 // Consumers have to tell "the sim has nothing for this craft" from
                 // "we have not heard", and only the tombstone carries that.
-                Channel(StageDeltaVViewProvider.StagesTopic, SampleKind.Continuous, absenceIsData: true),
-                Channel(StageDeltaVViewProvider.SummaryTopic, SampleKind.Continuous, absenceIsData: true),
+                Channel(StageDeltaVViewProvider.StagesTopic, absenceIsData: true),
+                Channel(StageDeltaVViewProvider.SummaryTopic, absenceIsData: true),
             },
             // Command delay classification lives on each command's args type in
             // the contract (SitrepCommandAttribute.Delay), which is the SAME
@@ -391,7 +391,6 @@ namespace Gonogo.KSP
                 PartActionsViewProvider.PartActionsPrefix,
                 new ChannelDeclaration
                 {
-                    Kind = SampleKind.Discrete,
                     Requires = Requirement.None,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -511,9 +510,8 @@ namespace Gonogo.KSP
         };
 
         private static ChannelDeclaration Channel(
-            string topic, SampleKind kind, bool absenceIsData = false, bool recordable = true, CommandRequirement[]? requires = null) => new ChannelDeclaration
+            string topic, bool absenceIsData = false, bool recordable = true, CommandRequirement[]? requires = null) => new ChannelDeclaration
         {
-            Kind = kind,
             Requires = requires ?? Requirement.None,
             Topic = topic,
             Recordable = recordable,
@@ -555,7 +553,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static ChannelDeclaration WarpChannel()
         {
-            var declaration = Channel(VesselViewProvider.WarpTopic, SampleKind.Discrete, recordable: false);
+            var declaration = Channel(VesselViewProvider.WarpTopic, recordable: false);
             declaration.Delay = DelayRole.TrueNow;
             return declaration;
         }
@@ -578,7 +576,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static ChannelDeclaration CalendarChannel()
         {
-            var declaration = Channel(VesselViewProvider.CalendarTopic, SampleKind.Discrete, recordable: false);
+            var declaration = Channel(VesselViewProvider.CalendarTopic, recordable: false);
             declaration.Delay = DelayRole.TrueNow;
             return declaration;
         }

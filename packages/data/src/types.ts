@@ -14,7 +14,6 @@ export type {
   ReadingSeriesRange,
   Sample,
   SeriesBridge,
-  SeriesInterpolation,
   SeriesRange,
   SeriesReckonedSpan,
   SeriesStatusSpan,

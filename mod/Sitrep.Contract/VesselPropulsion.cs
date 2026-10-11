@@ -26,7 +26,6 @@ public class VesselPropulsion
 
     /// <summary>The vessel's mass without resources, in tonnes: the sum of every part's <c>Part.mass</c>.</summary>
     [SitrepUnit(Units.Tonnes)]
-    [SitrepSampleKind(SampleKind.Discrete)]
     public double DryMass { get; set; }
 
     /// <summary>The thrust every engine on the vessel is producing now, in kN (the sum of <c>ModuleEngines.finalThrust</c>). Zero when nothing is firing.</summary>

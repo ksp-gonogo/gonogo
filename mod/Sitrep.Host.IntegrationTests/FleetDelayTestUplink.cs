@@ -45,7 +45,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             _host = host;
             _orbitSource = host.RegisterDynamicNamespace(Prefix, new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -57,14 +57,14 @@ namespace Sitrep.Host.IntegrationTests
             // ChannelEngine.CurrencyEventPrefix, that PerVesselNode still maps
             // back onto this vessel's own fleet.<id> node.
             _silenceSource = host.RegisterDynamicNamespace(ChannelEngine.SilenceEventPrefix, new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 PerVesselNode = true,
             });
             _extensionSource = host.RegisterDynamicNamespace(ExtensionPrefix, new ChannelDeclaration
-            { Kind = SampleKind.Continuous,
+            {
                 Delivery = Delivery.LossyLatest,
                 Delay = DelayRole.Delayed,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),

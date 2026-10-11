@@ -127,14 +127,14 @@ namespace Sitrep.Host.IntegrationTests
             Channels = new List<ChannelDeclaration>
             {
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = SampleTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 3600, quantum: EmissionQuantum.Absolute(0)),
                 },
                 new ChannelDeclaration
-                { Kind = SampleKind.Continuous,
+                {
                     Topic = NoticeTopic,
                     Delivery = Delivery.ReliableOrdered,
                     Delay = DelayRole.TrueNow,

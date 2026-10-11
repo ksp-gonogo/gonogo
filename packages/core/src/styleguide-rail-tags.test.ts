@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
  * `railTagsForCommand` (a dispatch is a point, delivery off what the command
  * answers), `railTagsForControlAxis` (a held axis is a span, delivery off the
  * command), and `railTagsForTelemetry` (direction and delivery are what
- * telemetry structurally is, the kind stated by the producer). A production
+ * telemetry structurally is, continuity stated by the producer). A production
  * site reaches one of them or it is wrong.
  *
  * ## Why this is a ban rather than a budget
@@ -23,7 +23,7 @@ import { describe, expect, it } from "vitest";
  *
  * `Partial<RailTags>` was the escape hatch. Three types carried one, layered
  * over a default, and the layering was how the rail came to assume all three
- * axes: an entry that stated its continuity inherited a `direction` and a
+ * axes: an entry that stated `continuity` inherited a `direction` and a
  * `delivery` nobody had thought about, and the assumption looked like a
  * declaration. Nothing needs a patch over derived axes: a producer the
  * contract does not describe declares all three through
@@ -41,7 +41,7 @@ import { describe, expect, it } from "vitest";
  *
  * - the derivations themselves. They are the one place an axis is decided, and
  *   each says why in prose next to the decision
- * - TESTS. A test asserting `{ direction: "telemetry", kind: "continuous",
+ * - TESTS. A test asserting `{ direction: "telemetry", continuity: "continuous",
  *   delivery: "fire-and-forget" }` is stating the expected answer independently
  *   of the code that produced it, which is the whole value of the assertion. A
  *   test that called the derivation to build its own expectation would agree
@@ -56,7 +56,7 @@ const SCAN_ROOTS = ["packages", "mod"];
  * DIRECTION alone is the probe, not all three. It is the axis no producer has
  * any business choosing (a command id is a command, a push is telemetry), so a
  * site spelling it has necessarily bypassed a derivation, and any hand-written
- * triple contains it. Matching on `kind` instead would catch nothing: the
+ * triple contains it. Matching on `continuity` instead would catch nothing: the
  * word is a legitimate parameter name in all three derivations and in every
  * caller that passes one through.
  */
@@ -184,7 +184,9 @@ describe("the rail's axes are derived, never spelled", () => {
     const cmd = `"comm${"and"}"`;
     const tel = `"telem${"etry"}"`;
 
-    expect(HAND_TAGGED_RE.test(`{ ${dir}: ${cmd}, kind: "event" }`)).toBe(true);
+    expect(
+      HAND_TAGGED_RE.test(`{ ${dir}: ${cmd}, continuity: "discrete" }`),
+    ).toBe(true);
     expect(HAND_TAGGED_RE.test(`  ${dir}:   ${tel},`)).toBe(true);
     expect(HAND_TAGGED_RE.test(`${dir}: 'comm${"and"}'`)).toBe(true);
     // Neighbours that must NOT trip it: another `direction` field entirely, and a mention of the vocabulary that decides nothing.
@@ -217,7 +219,7 @@ describe("the rail's axes are derived, never spelled", () => {
         `${handTagged.length} production file(s) write a rail axis as a literal.\n` +
           "Call a derivation instead: railTagsForCommand(command) for a command, " +
           "railTagsForControlAxis(writeCommand) for a held axis, " +
-          "railTagsForTelemetry(kind) for something arriving. A site that " +
+          "railTagsForTelemetry(continuity) for something arriving. A site that " +
           "decides an axis goes on deciding it after the derivation moves.\n" +
           handTagged.map((o) => `  ${o}`).join("\n"),
       );

@@ -41,14 +41,6 @@ export interface LineGraphSeries {
    * grows to include the bounds.
    */
   reckoned?: readonly SeriesReckonedSpan[];
-  /**
-   * How to draw between two points, from the plotted value's sample kind:
-   * `"linear"` (the default) joins them with a line, `"step"` holds each value
-   * until the next point and then steps, for a value that stands until it
-   * changes, and `"none"` marks each point on its own and joins nothing, for a
-   * series of separate occurrences.
-   */
-  interpolation?: "linear" | "step" | "none";
 }
 
 /**
@@ -255,21 +247,6 @@ function splitAtBreaks<Point extends { x: number; y: number }>(
   return runs;
 }
 
-/**
- * A run's points with a corner inserted before each one, so a line through
- * them holds the previous value until the next point and then steps.
- */
-function stepped<Point extends { x: number; y: number }>(
-  run: readonly Point[],
-): Point[] {
-  const out: Point[] = [];
-  for (const [i, point] of run.entries()) {
-    if (i > 0) out.push({ ...point, y: run[i - 1].y });
-    out.push(point);
-  }
-  return out;
-}
-
 function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
   const xs: number[] = [];
   for (const s of series)
@@ -384,12 +361,10 @@ export function LineGraph({
 
         {isSparkline &&
           series.map((s, si) => {
-            // Fewer than two points draws nothing, as for the stroke, and separate occurrences have no area under them.
-            if (s.points.length < 2 || s.interpolation === "none") return null;
+            // Fewer than two points draws nothing, as for the stroke.
+            if (s.points.length < 2) return null;
             // One polygon per unbroken run, so a hole leaves unshaded ground.
-            return splitAtBreaks(tagged[si], s.breaks).map((unstepped) => {
-              const run =
-                s.interpolation === "step" ? stepped(unstepped) : unstepped;
+            return splitAtBreaks(tagged[si], s.breaks).map((run) => {
               if (run.length < 2) return null;
               const first = run[0];
               const last = run[run.length - 1];
@@ -443,30 +418,8 @@ export function LineGraph({
             />
           ))}
 
-        {series.map((s) => {
-          if (s.interpolation !== "none") return null;
-          /*
-           * Each occurrence its own mark and nothing between: a zero-length
-           * line with a round cap, so the mark stays round however far the
-           * chart is stretched.
-           */
-          return s.points.map((p) => (
-            <line
-              key={`${s.id}-mark-${p.x}`}
-              x1={toX(p.x)}
-              x2={toX(p.x)}
-              y1={toY(p.y)}
-              y2={toY(p.y)}
-              stroke={s.color}
-              strokeWidth={isSparkline ? 3 : 4}
-              strokeLinecap="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          ));
-        })}
-
         {series.map((s, si) => {
-          if (s.points.length < 2 || s.interpolation === "none") return null;
+          if (s.points.length < 2) return null;
           /*
            * One polyline per unbroken run and per basis within it, keyed on its
            * own first x, since run boundaries move as data slides through the window.
@@ -474,11 +427,7 @@ export function LineGraph({
           return splitAtBreaks(tagged[si], s.breaks).flatMap((run) =>
             splitAtBasis(run).map((piece) => {
               if (piece.points.length < 2) return null;
-              const drawn =
-                s.interpolation === "step"
-                  ? stepped(piece.points)
-                  : piece.points;
-              const points = drawn
+              const points = piece.points
                 .map((p) => `${toX(p.x)},${toY(p.y)}`)
                 .join(" ");
               return (
