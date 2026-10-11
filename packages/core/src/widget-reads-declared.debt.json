@@ -1,0 +1,6 @@
+{
+  "debt": [
+    "declarations/field-not-read packages/components/src/SpaceCenterStatus/index.tsx",
+    "declarations/required-unread packages/components/src/SpaceCenterStatus/index.tsx"
+  ]
+}

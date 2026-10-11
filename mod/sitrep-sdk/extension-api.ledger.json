@@ -9519,6 +9519,14 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . CommandButton",
+        "note": "its active prop is now pressed, the name Button and ToggleButton use"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#active?",
+        "note": "renamed pressed, the name Button and ToggleButton use"
+      },
+      {
         "key": "ui-kit . CommandDelay",
         "note": "its label prop is now aria-label"
       },
@@ -12867,6 +12875,10 @@
       {
         "key": "ui-kit . ComboboxListboxProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . CommandButtonProps#pressed?",
+        "note": "renamed from active, the name Button and ToggleButton use"
       },
       {
         "key": "ui-kit . CommandDelayHandle#\"aria-label\"?",

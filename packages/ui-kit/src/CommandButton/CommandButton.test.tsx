@@ -654,7 +654,7 @@ describe("CommandButton: representing state as well as acting", () => {
       <CommandButton
         handle={makeHandle(() => Promise.resolve(OK))}
         label="SAS"
-        active
+        pressed
       />,
     );
     expect(screen.getByRole("button", { name: "SAS" })).toHaveAttribute(
@@ -684,7 +684,7 @@ describe("CommandButton: representing state as well as acting", () => {
         label="SAS"
         confirmLabel="Confirm SAS"
         pendingLabel="Setting..."
-        active={false}
+        pressed={false}
       />,
     );
 
@@ -1039,7 +1039,7 @@ describe("CommandButton: accessibility", () => {
         handle={makeHandle(() => Promise.resolve(OK))}
         label="Hire"
         confirmLabel="Confirm hire"
-        active={false}
+        pressed={false}
       />,
     ));
   });

@@ -562,18 +562,19 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
   /**
    * Whether this control's command is CURRENTLY IN EFFECT, for a control that
    * represents state as well as acting on it: a SAS toggle, an action group, an
-   * activated strategy. Sets `aria-pressed` and the active fill. Leave it
+   * activated strategy. Sets `aria-pressed` and the pressed fill, the same
+   * state {@link Button} and {@link ToggleButton} call `pressed`. Leave it
    * undefined for a control that only acts.
    */
-  active?: boolean;
+  pressed?: boolean;
   /**
    * How much the control asks to be pressed at rest. `ghost` (default) is the
-   * quiet outline that fills only while active, armed or refused; `primary`
+   * quiet outline that fills only while pressed, armed or refused; `primary`
    * is filled in `tone` at rest, for the one verb of a group that commits.
    */
   variant?: "ghost" | "primary";
   /**
-   * The tone of the fill while `active`, and of the resting fill for a
+   * The tone of the fill while `pressed`, and of the resting fill for a
    * `primary` control. Defaults to `neutral`.
    */
   tone?: CommandButtonTone;
@@ -659,7 +660,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
   confirmAriaLabel,
   pendingAriaLabel,
   blockedAriaLabel,
-  active,
+  pressed,
   variant = "ghost",
   tone = "neutral",
   icon,
@@ -742,7 +743,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
         ? foundText
         : null;
 
-  const filled = active === true || isArmed || isRefused;
+  const filled = pressed === true || isArmed || isRefused;
   const drawnTone = commandTone({
     restTone: variant === "primary" ? tone : "neutral",
     filled,
@@ -767,7 +768,7 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
           $pressed={filled}
           $armed={isArmed}
           $blocked={isBlocked}
-          aria-pressed={active}
+          aria-pressed={pressed}
           aria-busy={isPending || undefined}
           // aria-disabled, not disabled, so the control keeps focus while the outcome lands on it.
           aria-disabled={isBlocked || isPending || undefined}
