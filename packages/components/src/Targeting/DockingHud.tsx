@@ -8,6 +8,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  reckoningBasisPhrase,
   Section,
   Text,
   Truncate,
@@ -69,7 +70,7 @@ export function DockingHud(props: DockingHudProps) {
   const showViewport = wideShort || (rows >= 6 && cols >= 4);
   // Narrow: the paired grid cannot hold the readouts without wrapping.
   const stackReadouts = cols < 5;
-  // The smallest size keeps only Δv, the headline closing cue.
+  // The smallest size keeps only the closing rate, the headline cue.
   const showAlignmentDetail = cols >= 4;
 
   // Past ±8° the pilot is reorienting, not docking, so the reticle clamps.
@@ -164,7 +165,7 @@ export function DockingHud(props: DockingHudProps) {
             whiteSpace: "nowrap",
           }}
         >
-          Δv
+          Closing
         </ReadoutCaption>
         <Text
           style={{
@@ -252,7 +253,7 @@ export function DockingHud(props: DockingHudProps) {
       </Grid>
       {modelled && (
         <ReadoutCaption role="status">
-          Alignment reckoned ({modelled.basis})
+          Alignment reckoned, {reckoningBasisPhrase(modelled.basis)}
         </ReadoutCaption>
       )}
     </div>

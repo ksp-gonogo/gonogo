@@ -132,6 +132,21 @@ describe("RoboticsConsoleComponent", () => {
     });
   });
 
+  it("gives the at-target tick in the joint list a spoken name", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+    });
+    renderConsole(fixture);
+    act(() => {
+      fixture.emit("robotics.available", { available: true });
+      fixture.emit("robotics.servos", [
+        servo({ partId: "11", currentAngle: 30, targetAngle: 30 }),
+        servo({ partId: "12", currentAngle: 10, targetAngle: 40 }),
+      ]);
+    });
+    expect(await screen.findByRole("img", { name: "at target" })).toBeTruthy();
+  });
+
   it("labels a piston in metres, not percent", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -149,11 +164,11 @@ describe("RoboticsConsoleComponent", () => {
       ]);
     });
     expect(await screen.findByText(/MOVING/i)).toBeInTheDocument();
-    // Piston extension is in metres. The number and unit are separate text nodes, so match the innermost combined textContent.
-    const withUnit = screen
-      .getAllByText((_content, el) => el?.textContent === "0.60m")
-      .at(-1);
-    expect(withUnit).toBeDefined();
+    // Piston extension is in metres, drawn through Unit as a figure with its own unit symbol.
+    const figures = Array.from(document.querySelectorAll("[data-figure]"));
+    expect(figures.some((el) => /^0\.60\s?m/.test(el.textContent ?? ""))).toBe(
+      true,
+    );
   });
 
   it("ignores rotor entries in the same robotics.servos array", async () => {

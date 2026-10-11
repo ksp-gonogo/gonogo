@@ -1,5 +1,3 @@
-import { formatCompactCurrency } from "@ksp-gonogo/core";
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
@@ -8,8 +6,8 @@ import {
   sayHeld,
   Tooltip,
   Unit,
-  type UnitValue,
 } from "@ksp-gonogo/ui-kit";
+import { type HeldSince, heldFigure } from "../shared/heldFigure";
 import {
   type FacilityKey,
   type FacilityLevel,
@@ -30,21 +28,6 @@ import {
 } from "./styles";
 import { buildFacilityTooltip, plainTierSpecs, TierBlock } from "./TierBlock";
 import { UpgradeButton } from "./UpgradeButton";
-
-/** When the tiers on screen were last a reading of now; `null` while they still are. */
-export type HeldSince = Pick<Reading<unknown>, "asOfUt" | "grade"> | null;
-
-function tierFigure(level: number, heldSince: HeldSince): UnitValue<"count"> {
-  const figure = value("count", level);
-  if (heldSince === null) return figure;
-  return {
-    state: "held",
-    value: figure,
-    asOfUt: heldSince.asOfUt,
-    grade: heldSince.grade,
-    reckoning: { status: "none" },
-  };
-}
 
 function affordVerdict(
   moneyDecides: boolean,
@@ -89,12 +72,13 @@ export function FacilityGridItem({
     careerFunds >= f.upgradeFunds;
   // A blocked command is refused for a reason the balance has no part in, and a balance that is held answers nothing, so either way the price is a plain figure.
   const moneyDecides = !upgradeBlocked && careerFunds !== null;
+  const verdict = affordVerdict(moneyDecides, canAfford);
   const tooltip = buildFacilityTooltip(label, f);
   // Gated on the whole grid: a cell whose own description is empty still has to say so.
   const showTierSpecs = tierSpecsFit && anyTierText && !!f;
   // Only a facility with somewhere left to go owes a NEXT block; `max === 0` is an unknown ceiling.
   const hasNextTier = !!f && f.max > 0 && !atMax;
-  const tier = tierFigure(displayLevel, tiersHeldSince);
+  const tier = heldFigure(value("count", displayLevel), tiersHeldSince);
   const { caption: heldCaption } = resolveCurrency(tier);
 
   return (
@@ -128,11 +112,18 @@ export function FacilityGridItem({
         {f && f.upgradeFunds > 0 && !atMax && (
           <UpgradeRow>
             <UpgradeCost
-              $afford={moneyDecides ? canAfford : true}
+              $verdict={verdict}
               /* The verdict, observable from outside; absent when money decides nothing. */
-              data-afford={affordVerdict(moneyDecides, canAfford)}
+              data-afford={verdict}
             >
-              {formatCompactCurrency(f.upgradeFunds)}
+              {/* The price comes off the same entry as the tiers, so it is held whenever they are. */}
+              <Unit
+                value={heldFigure(
+                  value("funds", f.upgradeFunds),
+                  tiersHeldSince,
+                )}
+                scale="compact"
+              />
             </UpgradeCost>
             <UpgradeButton
               upgradeCmd={upgradeCmd}

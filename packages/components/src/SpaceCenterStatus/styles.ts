@@ -87,12 +87,17 @@ export const UpgradeRow = styled.div`
   flex-wrap: wrap;
 `;
 
-export const UpgradeCost = styled.span<{ $afford: boolean }>`
+/** `yes` and `no` are the affordability verdicts; `undefined` is no verdict, drawn as a plain price rather than as an affordable one. */
+export const UpgradeCost = styled.span<{ $verdict: "yes" | "no" | undefined }>`
   font-size: var(--font-size-compact);
   /* The nogo bg token, not fg: fg is meant for the red fill and reads as ordinary copy on the dark cell. */
   color: ${(p) =>
-    p.$afford ? "var(--color-accent-fg)" : "var(--color-nogo-mark)"};
-  font-weight: ${(p) => (p.$afford ? "inherit" : "600")};
+    p.$verdict === "yes"
+      ? "var(--color-accent-fg)"
+      : p.$verdict === "no"
+        ? "var(--color-nogo-mark)"
+        : "var(--color-text-primary)"};
+  font-weight: ${(p) => (p.$verdict === "no" ? "600" : "inherit")};
   font-variant-numeric: tabular-nums;
 `;
 

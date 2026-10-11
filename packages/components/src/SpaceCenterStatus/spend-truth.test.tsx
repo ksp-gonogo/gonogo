@@ -184,7 +184,7 @@ describe("SpaceCenterStatus: what the upgrade control claims about money", () =>
       expect(container.querySelector('[data-gate="blocked"]')).not.toBeNull();
     });
     // The price stays on screen; only the verdict over it goes.
-    expect(container.textContent).toContain("112.5k");
+    expect(container.textContent).toMatch(/11[23](\.5)?kf/);
     expect(container.querySelector("[data-afford]")).toBeNull();
   });
 

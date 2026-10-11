@@ -4,6 +4,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  reckoningBasisPhrase,
   Section,
   Stack,
   Text,
@@ -94,7 +95,9 @@ export function TrackingView({
           </Text>
         )}
         {reckoned !== undefined && (
-          <ReadoutCaption>modelled ({reckoned.basis})</ReadoutCaption>
+          <ReadoutCaption>
+            Modelled, {reckoningBasisPhrase(reckoned.basis)}
+          </ReadoutCaption>
         )}
         {showSubReadout && (
           <Text
@@ -105,7 +108,7 @@ export function TrackingView({
               letterSpacing: "0.04em",
             }}
           >
-            Δv <Unit value={closingRateR} decimals={2} />
+            Closing <Unit value={closingRateR} decimals={2} />
           </Text>
         )}
       </Stack>
