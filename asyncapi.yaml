@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 37.3.0
+  version: 38.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -16113,18 +16113,20 @@ components:
         `VesselOrbit.argPe` are, and the patch is still sent. A patch with a null
         element cannot be propagated, so a reader that propagates one declines to
         rather than substituting a value.
+
+        An open patch (`OrbitPatch.ecc` of 1 or more) is sent like any other, with
+        `OrbitPatch.period` and `OrbitPatch.apA` null. Its mean motion is `sqrt(Mu /
+        |Sma|^3)`.
       required:
         - sma
         - ecc
         - inc
         - epoch
-        - period
         - startUt
         - endUt
         - patchStartTransition
         - patchEndTransition
         - peA
-        - apA
         - semiLatusRectum
         - semiMinorAxis
         - referenceBody
@@ -16132,11 +16134,15 @@ components:
         sma:
           type: number
           x-sitrep-unit: m
-          description: Semi-major axis in metres, KSP's `Orbit.semiMajorAxis`.
+          description: |-
+            Semi-major axis in metres, KSP's `Orbit.semiMajorAxis`. Negative on an open
+            patch.
         ecc:
           type: number
           x-sitrep-unit: "1"
-          description: "Eccentricity, KSP's `Orbit.eccentricity`: below 1 for a closed patch."
+          description: |-
+            Eccentricity, KSP's `Orbit.eccentricity`: below 1 for a closed patch, 1 or
+            more for an open one, as on a flyby or an escape.
         inc:
           type: number
           x-sitrep-unit: °
@@ -16172,11 +16178,14 @@ components:
             The universal time at which `OrbitPatch.meanAnomalyAtEpoch` holds, KSP's
             `Orbit.epoch`.
         period:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: s
           description: |-
-            Orbital period in seconds, KSP's `Orbit.period`. Always finite: a patch
-            whose period is not finite is not carried in the chain.
+            Orbital period in seconds, KSP's `Orbit.period`. Null on an open patch
+            (`OrbitPatch.ecc` of 1 or more), which has no period; always finite and
+            positive on a closed one.
         startUt:
           type: number
           x-sitrep-unit: ut
@@ -16208,11 +16217,14 @@ components:
             Periapsis altitude above `OrbitPatch.referenceBody`'s mean radius in metres,
             KSP's `Orbit.PeA`.
         apA:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: m
           description: |-
             Apoapsis altitude above `OrbitPatch.referenceBody`'s mean radius in metres,
-            KSP's `Orbit.ApA`.
+            KSP's `Orbit.ApA`. Null on an open patch (`OrbitPatch.ecc` of 1 or more),
+            which has no apoapsis.
         semiLatusRectum:
           type: number
           x-sitrep-unit: m

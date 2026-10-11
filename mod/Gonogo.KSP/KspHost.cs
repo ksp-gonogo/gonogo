@@ -913,6 +913,10 @@ namespace Gonogo.KSP
         {
             var body = patch.referenceBody;
             var closestEncounterBody = patch.closestEncounterBody;
+            // KSP gives a hyperbolic orbit an infinite period and an apoapsis
+            // altitude computed from its negative semi-major axis. An open
+            // orbit has neither.
+            var open = patch.eccentricity >= 1.0;
 
             return new Sitrep.Contract.OrbitPatch
             {
@@ -923,7 +927,7 @@ namespace Gonogo.KSP
                 ArgPe = FiniteOrNull(patch.argumentOfPeriapsis),
                 MeanAnomalyAtEpoch = FiniteOrNull(patch.meanAnomalyAtEpoch),
                 Epoch = patch.epoch,
-                Period = patch.period,
+                Period = open ? null : FiniteOrNull(patch.period),
                 StartUt = patch.StartUT,
                 EndUt = patch.EndUT,
                 PatchStartTransition = MapTransition(patch.patchStartTransition),
@@ -932,7 +936,7 @@ namespace Gonogo.KSP
                 // internally -- safe here since the caller already gated on
                 // body != null.
                 PeA = patch.PeA,
-                ApA = patch.ApA,
+                ApA = open ? null : FiniteOrNull(patch.ApA),
                 SemiLatusRectum = patch.semiLatusRectum,
                 SemiMinorAxis = patch.semiMinorAxis,
                 ReferenceBody = body!.bodyName,

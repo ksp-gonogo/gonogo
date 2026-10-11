@@ -5,7 +5,7 @@
     "vessel": "Munar Flyby (Mk1 pod)",
     "body": "Mun",
     "situation": "Coasting on an open orbit about the Mun, before periapsis",
-    "notes": "SYNTHETIC. The far end of kerbin-mun-encounter.json's transfer: the same coplanar system, with the craft now about the Mun at the excess speed a Hohmann arrival has (278 m/s), which with a 250 km periapsis radius is sma -842845 m and ecc 1.2966. It sits inbound at 1500 km from the Mun's centre at UT 0. The chain carries no patch for the flyby itself, because the mod sends only patches with a finite period; its one patch is the Kerbin ellipse the craft leaves on, computed from the craft's state where the open orbit crosses the Mun's sphere of influence and the Mun's own state at that instant, so the escape marker and the end of the open arc are the same point."
+    "notes": "SYNTHETIC. The far end of kerbin-mun-encounter.json's transfer: the same coplanar system, with the craft now about the Mun at the excess speed a Hohmann arrival has (278 m/s), which with a 250 km periapsis radius is sma -842845 m and ecc 1.2966. It sits inbound at 1500 km from the Mun's centre at UT 0. The chain's first patch is the flyby itself, an open patch with no period and no apoapsis; its second is the Kerbin ellipse the craft leaves on, computed from the craft's state where the open orbit crosses the Mun's sphere of influence and the Mun's own state at that instant, so the escape marker and the end of the open arc are the same point."
   },
   "_stream": {
     "pinnedUt": 0,
@@ -118,6 +118,28 @@
             "bodyIndex": 1
           },
           "patches": [
+            {
+              "startUt": -2535.8676785933294,
+              "endUt": 8978.376117115675,
+              "patchStartTransition": 0,
+              "patchEndTransition": 3,
+              "sma": -842844.5473836758,
+              "ecc": 1.2966146020354998,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 333,
+              "meanAnomalyAtEpoch": -1.0624837945910761,
+              "epoch": 0,
+              "period": null,
+              "peA": 50000.0,
+              "apA": null,
+              "semiLatusRectum": 574153.650508875,
+              "semiMinorAxis": -695645.2211377851,
+              "referenceBody": "Mun",
+              "closestEncounterBody": null,
+              "mu": 65138398000.0,
+              "referenceBodyIndex": 2
+            },
             {
               "startUt": 8978.376117115675,
               "endUt": 216546.87520362955,

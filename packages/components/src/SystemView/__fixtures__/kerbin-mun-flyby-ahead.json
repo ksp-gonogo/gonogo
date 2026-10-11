@@ -1,0 +1,198 @@
+{
+  "_meta": {
+    "shows": "A craft at periapsis on a Kerbin-to-Mun transfer with the whole chain ahead of it: the transfer ellipse, the open flyby leg inside the Mun's sphere of influence, and the Kerbin orbit it leaves on.",
+    "capturedAt": "2026-10-12",
+    "vessel": "Munar Flyby (Mk1 pod)",
+    "body": "Kerbin",
+    "situation": "On a Kerbin->Mun transfer ellipse at periapsis, a Mun flyby and the escape back to Kerbin on the wire",
+    "notes": "SYNTHETIC. kerbin-mun-encounter.json's transfer ellipse with the Mun moved -0.2100 rad along its orbit so the craft passes 241 km from its centre and flies on. The three patches join: the flyby patch (sma -786168 m, ecc 1.3072, no period and no apoapsis, which is how an open patch arrives) is the craft's state less the Mun's where the ellipse crosses the Mun's sphere of influence at UT 26988, and the last patch is the flyby's state plus the Mun's where it leaves the sphere at UT 38287."
+  },
+  "_stream": {
+    "pinnedUt": 0,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "index": 0,
+              "name": "Kerbol",
+              "parentIndex": null,
+              "radius": 261600000,
+              "gravParameter": 1.1723328e18,
+              "sphereOfInfluence": null,
+              "orbit": null
+            },
+            {
+              "index": 1,
+              "name": "Kerbin",
+              "parentIndex": 0,
+              "radius": 600000,
+              "gravParameter": 3531600000000.0,
+              "sphereOfInfluence": 84159286,
+              "hasOcean": true,
+              "atmosphere": {
+                "depth": 70000,
+                "hasOxygen": true,
+                "seaLevelPressure": 101.325
+              },
+              "orbit": {
+                "sma": 13599840256,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.14,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 2,
+              "name": "Mun",
+              "parentIndex": 1,
+              "radius": 200000,
+              "gravParameter": 65138398000,
+              "sphereOfInfluence": 2429559,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 12000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 1.72228,
+                "epoch": 0
+              }
+            },
+            {
+              "index": 3,
+              "name": "Minmus",
+              "parentIndex": 1,
+              "radius": 60000,
+              "gravParameter": 1765800000,
+              "sphereOfInfluence": 2247428,
+              "tidallyLocked": true,
+              "orbit": {
+                "sma": 47000000,
+                "ecc": 0,
+                "inc": 0,
+                "lan": 0,
+                "argPe": 0,
+                "meanAnomalyAtEpoch": 3.490659,
+                "epoch": 0
+              }
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "Munar Flyby",
+          "name": "Munar Flyby",
+          "vesselType": 0,
+          "situation": 3,
+          "parentBodyIndex": 1,
+          "launchUt": null
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 6350000.0,
+          "ecc": 0.88976378,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "encounter": {
+            "transitionType": 2,
+            "transitionUt": 26987.961447792364,
+            "bodyIndex": 2
+          },
+          "patches": [
+            {
+              "startUt": 0,
+              "endUt": 26987.961447792364,
+              "patchStartTransition": 0,
+              "patchEndTransition": 2,
+              "sma": 6350000.0,
+              "ecc": 0.88976378,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 0,
+              "meanAnomalyAtEpoch": 0,
+              "epoch": 0,
+              "period": 53500.11335814783,
+              "peA": 99999.99699999997,
+              "apA": 11400000.003,
+              "semiLatusRectum": 1322834.6403307088,
+              "semiMinorAxis": 2898275.3433895824,
+              "referenceBody": "Kerbin",
+              "closestEncounterBody": "Mun",
+              "mu": 3531600000000.0,
+              "referenceBodyIndex": 1,
+              "closestEncounterBodyIndex": 2
+            },
+            {
+              "startUt": 26987.961447792364,
+              "endUt": 38287.1556589671,
+              "patchStartTransition": 2,
+              "patchEndTransition": 3,
+              "sma": -786168.1708734746,
+              "ecc": 1.3071635650111522,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 30.53635931615889,
+              "meanAnomalyAtEpoch": -2.0685347883610614,
+              "epoch": 26987.961447792364,
+              "period": null,
+              "peA": 41482.21806379309,
+              "apA": null,
+              "semiLatusRectum": 557138.9751148614,
+              "semiMinorAxis": -661819.4081381814,
+              "referenceBody": "Mun",
+              "closestEncounterBody": null,
+              "mu": 65138398000.0,
+              "referenceBodyIndex": 2,
+              "closestEncounterBodyIndex": null
+            },
+            {
+              "startUt": 38287.1556589671,
+              "endUt": 195985.20516386154,
+              "patchStartTransition": 3,
+              "patchEndTransition": 1,
+              "sma": 13054336.552090492,
+              "ecc": 0.5765861947781801,
+              "inc": 0,
+              "lan": 0,
+              "argPe": 60.81304434595663,
+              "meanAnomalyAtEpoch": -5.169795895301465,
+              "epoch": 38287.1556589671,
+              "period": 157698.04950489444,
+              "peA": 4927386.314166928,
+              "apA": 19981286.790014055,
+              "semiLatusRectum": 8714400.956121428,
+              "semiMinorAxis": 10665867.190766454,
+              "referenceBody": "Kerbin",
+              "closestEncounterBody": null,
+              "mu": 3531600000000.0,
+              "referenceBodyIndex": 1,
+              "closestEncounterBodyIndex": null
+            }
+          ]
+        },
+        "meta": {
+          "quality": 1
+        }
+      }
+    ]
+  }
+}

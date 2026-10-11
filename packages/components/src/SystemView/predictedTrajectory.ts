@@ -3,6 +3,8 @@
  *
  * Everything here is parent-centred inertial metres with `z` kept; the diagram places it into the frame in force. A patch around the frame body draws at the origin, one around a child draws offset to that child, and the first sample of a non-initial patch is the SOI crossing.
  *
+ * A closed patch about a child is drawn about the child where it is when the patch begins, so a capture orbit keeps its shape. An open one is a pass through the child's sphere of influence, in at one edge and out at the other, so each of its samples is offset by where the child is at that sample's own instant: that is the craft's path in this frame, and it meets the patch before it and the patch after it.
+ *
  * Not a reckoner: a reckoner carries a Topic's own value forward past its last observation, whereas this walks the patch chain the game's solver already published (`orbitPatches`) and samples each conic into a polyline. The windows and the SOI transitions come off the wire, so there is no observed value being carried and no uncertainty to label; the output is drawing geometry that sits on no channel, and `registerReckoner` takes a `TopicId`.
  */
 import {
@@ -63,7 +65,7 @@ export interface ProjectedPatch {
   patchIndex: number;
   /** Body this patch orbits (its reference frame). */
   referenceBody: string;
-  /** Whether this is the live orbit: the first elliptical patch around the frame body containing `ut`. */
+  /** Whether this is the live orbit: the first patch around the frame body that can be propagated and contains `ut`. */
   isCurrent: boolean;
   /** Sampled polyline in parent-centred metres. */
   points: PatchPoint[];
@@ -98,7 +100,7 @@ export interface PredictTrajectoryArgs {
   parentName: string;
   /** Current universal time: identifies the live patch. */
   ut: number;
-  /** Where a body sits relative to the frame body at a UT, in metres, or null when it has no place then. Asked at a patch's own start, since its arc is drawn about the body where it is when the patch begins. */
+  /** Where a body sits relative to the frame body at a UT, in metres, or null when it has no place then. Asked at a closed patch's own start, and at each sample's instant along an open one. */
   offsetAt: (bodyName: string, ut: number) => PatchPoint | null;
   /** Samples per patch arc. Capped to bound work; defaults to 64. */
   samplesPerPatch?: number;
@@ -113,14 +115,22 @@ function sameBody(a: string | null, b: string | null): boolean {
   return a.trim().toLowerCase() === b.trim().toLowerCase();
 }
 
-/** Where a patch's reference body sits on this frame when the patch begins, or `null` when the frame does not draw it. */
+const FRAME_BODY: PatchPoint = { x: 0, y: 0, z: 0 };
+
+/** Whether a patch is a pass through the sphere of influence of a body the frame draws as a child, whose samples are each offset by that body's place at their own instant. */
+function movesWithItsBody(patch: TrajectoryPatch, parentName: string): boolean {
+  return !sameBody(patch.referenceBody, parentName) && patch.ecc.greaterThan(1);
+}
+
+/** Where a patch's reference body sits on this frame at `ut`, or `null` when the frame does not draw it. */
 function frameOffset(
   patch: TrajectoryPatch,
   parentName: string,
   offsetAt: PredictTrajectoryArgs["offsetAt"],
+  ut: number,
 ): PatchPoint | null {
-  if (sameBody(patch.referenceBody, parentName)) return { x: 0, y: 0, z: 0 };
-  return offsetAt(patch.referenceBody, patch.startUt.valueOf());
+  if (sameBody(patch.referenceBody, parentName)) return FRAME_BODY;
+  return offsetAt(patch.referenceBody, ut);
 }
 
 /** Samples every patch around the frame parent or a drawn child; a patch around an off-screen body belongs to another frame and is skipped. */
@@ -138,7 +148,7 @@ export function predictTrajectory({
   }
   const steps = Math.max(2, Math.min(MAX_SAMPLES, Math.floor(samplesPerPatch)));
 
-  // The live patch is the first elliptical one orbiting the frame parent whose window contains `ut`.
+  // The live patch is the first propagable one orbiting the frame parent whose window contains `ut`.
   let currentIndex = -1;
   for (let i = 0; i < patches.length; i++) {
     const p = patches[i];
@@ -158,17 +168,27 @@ export function predictTrajectory({
     // A patch that ended before the instant on screen is behind the craft.
     if (patch.endUt.lessThan(value("ut", ut))) continue;
 
-    const offset = frameOffset(patch, parentName, offsetAt);
-    if (offset === null) continue;
-
-    // The live patch draws from `ut` forward; the live-orbit ellipse already shows the full loop.
+    // The live patch draws from `ut` forward; the live orbit's own ring or open arc already shows the whole of it.
     const arc = patchArc(patch, steps, i === currentIndex ? ut : undefined);
     if (arc.length === 0) continue;
-    const points: PatchPoint[] = arc.map(({ state }) => ({
-      x: offset.x + state.x,
-      y: offset.y + state.y,
-      z: offset.z + state.z,
-    }));
+    const moving = movesWithItsBody(patch, parentName);
+    const atStart = moving
+      ? null
+      : frameOffset(patch, parentName, offsetAt, patch.startUt.valueOf());
+    const points: PatchPoint[] = [];
+    for (const sample of arc) {
+      const offset = moving
+        ? frameOffset(patch, parentName, offsetAt, sample.ut)
+        : atStart;
+      if (offset === null) break;
+      points.push({
+        x: offset.x + sample.state.x,
+        y: offset.y + sample.state.y,
+        z: offset.z + sample.state.z,
+      });
+    }
+    // A body with no place at any sampled instant leaves the whole patch out: half an arc reads as a path that stops.
+    if (points.length !== arc.length) continue;
 
     const startEncounter = soiEventKind(patch.patchStartTransition);
 

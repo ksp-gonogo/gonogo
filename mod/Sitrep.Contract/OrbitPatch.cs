@@ -24,6 +24,9 @@ namespace Sitrep.Contract;
 /// <see cref="VesselOrbit.Lan"/> and <see cref="VesselOrbit.ArgPe"/> are, and the
 /// patch is still sent. A patch with a null element cannot be propagated, so a
 /// reader that propagates one declines to rather than substituting a value.</para>
+/// <para>An open patch (<see cref="Ecc"/> of 1 or more) is sent like any
+/// other, with <see cref="Period"/> and <see cref="ApA"/> null. Its mean
+/// motion is <c>sqrt(Mu / |Sma|^3)</c>.</para>
 /// </summary>
 /// <category>Orbits and trajectories</category>
 [SitrepContract]
@@ -32,11 +35,12 @@ namespace Sitrep.Contract;
 #endif
 public class OrbitPatch
 {
-    /// <summary>Semi-major axis in metres, KSP's <c>Orbit.semiMajorAxis</c>.</summary>
+    /// <summary>Semi-major axis in metres, KSP's <c>Orbit.semiMajorAxis</c>. Negative on an open patch.</summary>
     [SitrepUnit(Units.Metres)]
     public double Sma { get; set; }
 
-    /// <summary>Eccentricity, KSP's <c>Orbit.eccentricity</c>: below 1 for a closed patch.</summary>
+    /// <summary>Eccentricity, KSP's <c>Orbit.eccentricity</c>: below 1 for a
+    /// closed patch, 1 or more for an open one, as on a flyby or an escape.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double Ecc { get; set; }
 
@@ -60,10 +64,11 @@ public class OrbitPatch
     [SitrepUnit(Units.UniversalTime)]
     public double Epoch { get; set; }
 
-    /// <summary>Orbital period in seconds, KSP's <c>Orbit.period</c>. Always
-    /// finite: a patch whose period is not finite is not carried in the chain.</summary>
+    /// <summary>Orbital period in seconds, KSP's <c>Orbit.period</c>. Null on
+    /// an open patch (<see cref="Ecc"/> of 1 or more), which has no period;
+    /// always finite and positive on a closed one.</summary>
     [SitrepUnit(Units.Seconds)]
-    public double Period { get; set; }
+    public double? Period { get; set; }
 
     /// <summary>Universal time at which the trajectory enters this patch, KSP's <c>Orbit.StartUT</c>.</summary>
     [SitrepUnit(Units.UniversalTime)]
@@ -87,9 +92,10 @@ public class OrbitPatch
     public double PeA { get; set; }
 
     /// <summary>Apoapsis altitude above <see cref="ReferenceBody"/>'s mean
-    /// radius in metres, KSP's <c>Orbit.ApA</c>.</summary>
+    /// radius in metres, KSP's <c>Orbit.ApA</c>. Null on an open patch
+    /// (<see cref="Ecc"/> of 1 or more), which has no apoapsis.</summary>
     [SitrepUnit(Units.Metres)]
-    public double ApA { get; set; }
+    public double? ApA { get; set; }
 
     /// <summary>Semi-latus rectum in metres, KSP's <c>Orbit.semiLatusRectum</c>.</summary>
     [SitrepUnit(Units.Metres)]

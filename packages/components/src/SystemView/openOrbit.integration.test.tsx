@@ -5,6 +5,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
+import flybyAhead from "./__fixtures__/kerbin-mun-flyby-ahead.json";
 import { SystemViewComponent } from "./index";
 
 const KERBOL_MU = 1.1723328e18;
@@ -214,6 +215,67 @@ describe("SystemView draws a craft on an open orbit", () => {
     const craftRadius = distance(craftAt(marker), mun);
     expect(craftRadius).toBeGreaterThan(0);
     expect(craftRadius).toBeLessThan(soi);
+    await act(async () => {});
+  });
+});
+
+describe("SystemView draws a flyby that is still ahead of the craft", () => {
+  function mountFlybyAhead() {
+    const fixture: StreamFixture = setupStreamFixture({
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+    const view = render(
+      <fixture.Provider>
+        <WidgetMetaContext.Provider
+          value={{ componentId: "system-view", contributionSlots: [] }}
+        >
+          <ContributionsProvider>
+            <SystemViewComponent config={{ frame: "auto" } as never} id="sv" />
+          </ContributionsProvider>
+        </WidgetMetaContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      for (const emit of flybyAhead._stream.emits) {
+        fixture.emit(emit.channel as never, emit.value as never);
+      }
+    });
+    return view;
+  }
+
+  it("draws the open leg about the Mun, joined to the transfer before it and the orbit after it", async () => {
+    const view = mountFlybyAhead();
+    const leg = await drawn(view, '[data-patch-body="Mun"]');
+    const d = leg.getAttribute("d") ?? "";
+    expect(d).not.toMatch(/NaN|Infinity/);
+    expect(d.trimEnd().endsWith("Z")).toBe(false);
+    const legVertices = verticesOf(leg);
+    expect(legVertices.length).toBeGreaterThan(8);
+
+    const kerbinArcs = Array.from(
+      view.container.querySelectorAll('[data-patch-body="Kerbin"]'),
+    ).map(verticesOf);
+    expect(kerbinArcs).toHaveLength(2);
+    const [transfer, after] = kerbinArcs;
+    // The craft's state is continuous across a sphere of influence, so each leg starts where the one before it stops.
+    expect(
+      distance(transfer[transfer.length - 1], legVertices[0]),
+    ).toBeLessThan(1.5);
+    expect(
+      distance(legVertices[legVertices.length - 1], after[0]),
+    ).toBeLessThan(1.5);
+    await act(async () => {});
+  });
+
+  it("marks the encounter where the leg begins and the escape where it ends", async () => {
+    const view = mountFlybyAhead();
+    await drawn(view, '[data-patch-body="Mun"]');
+    const labels = Array.from(
+      view.container.querySelectorAll("[data-encounter-subject] text"),
+    ).map((t) => t.textContent);
+    expect(labels).toContain("→ Mun");
+    expect(labels).toContain("escape Kerbin");
     await act(async () => {});
   });
 });

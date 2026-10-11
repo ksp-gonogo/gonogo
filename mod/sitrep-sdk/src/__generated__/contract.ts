@@ -5008,13 +5008,23 @@ export interface NoCommandArgs
 * element cannot be propagated, so a reader that propagates one declines to
 * rather than substituting a value.
 *
+* An open patch (`OrbitPatch.ecc` of 1 or more) is sent like any other, with
+* `OrbitPatch.period` and `OrbitPatch.apA` null. Its mean motion is `sqrt(Mu /
+* |Sma|^3)`.
+*
 * @category Orbits and trajectories
 */
 export interface OrbitPatch
 {
-	/** Semi-major axis in metres, KSP's `Orbit.semiMajorAxis`. */
+	/**
+	* Semi-major axis in metres, KSP's `Orbit.semiMajorAxis`. Negative on an open
+	* patch.
+	*/
 	sma: Value<"m">;
-	/** Eccentricity, KSP's `Orbit.eccentricity`: below 1 for a closed patch. */
+	/**
+	* Eccentricity, KSP's `Orbit.eccentricity`: below 1 for a closed patch, 1 or
+	* more for an open one, as on a flyby or an escape.
+	*/
 	ecc: Value<"1">;
 	/** Inclination in degrees, KSP's `Orbit.inclination`. */
 	inc: Value<"°">;
@@ -5039,10 +5049,11 @@ export interface OrbitPatch
 	*/
 	epoch: Value<"ut">;
 	/**
-	* Orbital period in seconds, KSP's `Orbit.period`. Always finite: a patch
-	* whose period is not finite is not carried in the chain.
+	* Orbital period in seconds, KSP's `Orbit.period`. Null on an open patch
+	* (`OrbitPatch.ecc` of 1 or more), which has no period; always finite and
+	* positive on a closed one.
 	*/
-	period: Value<"s">;
+	period?: Value<"s"> | null;
 	/**
 	* Universal time at which the trajectory enters this patch, KSP's
 	* `Orbit.StartUT`.
@@ -5067,9 +5078,10 @@ export interface OrbitPatch
 	peA: Value<"m">;
 	/**
 	* Apoapsis altitude above `OrbitPatch.referenceBody`'s mean radius in metres,
-	* KSP's `Orbit.ApA`.
+	* KSP's `Orbit.ApA`. Null on an open patch (`OrbitPatch.ecc` of 1 or more),
+	* which has no apoapsis.
 	*/
-	apA: Value<"m">;
+	apA?: Value<"m"> | null;
 	/** Semi-latus rectum in metres, KSP's `Orbit.semiLatusRectum`. */
 	semiLatusRectum: Value<"m">;
 	/** Semi-minor axis in metres, KSP's `Orbit.semiMinorAxis`. */

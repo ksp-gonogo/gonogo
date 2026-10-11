@@ -36,12 +36,17 @@ function predictionRef(
   return { ut, lat: lat.magnitude, lon: lon.magnitude };
 }
 
-/** How far ahead to predict: `lead`, then 1.5 periods to show the closed loop, capped at one calendar day (about one rotation, which a planet pack changes). */
+/**
+ * How far ahead to predict: `lead`, then 1.5 periods to show the closed loop, capped at one calendar day (about one rotation, which a planet pack changes).
+ * An open patch has no period and no loop to close, so it is walked to the cap, and the walk itself ends where the patch does.
+ */
 function loopHorizon(
-  period: Value<"s">,
+  period: Value<"s"> | null | undefined,
   lead: Value<"s"> = value("s", 0),
 ): number {
-  return lead.plus(period.scaled(1.5)).min(kspCalendar().day).magnitude;
+  const day = kspCalendar().day;
+  if (period == null) return day;
+  return lead.plus(period.scaled(1.5)).min(day).magnitude;
 }
 
 /**

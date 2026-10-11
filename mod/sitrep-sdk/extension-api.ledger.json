@@ -8995,6 +8995,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./spine PatchConic",
+        "note": "A patch's period is optional and its gravitational parameter is read, so an open patch (a flyby or an escape leg), which has no period, can be propagated"
+      },
+      {
         "key": "sitrep-sdk ./spine RailContinuity",
         "note": "Removed: the delay rail takes the same sample kind a channel declares (SampleKind) instead of a vocabulary of its own"
       },

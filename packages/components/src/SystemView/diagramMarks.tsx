@@ -214,6 +214,7 @@ export function PredictedPatchArc({
   const stroke = patchStroke(patch);
   return (
     <path
+      data-patch-body={patch.referenceBody}
       d={d}
       fill="none"
       stroke={stroke}
@@ -244,8 +245,9 @@ export function EncounterMarker({
   const color =
     kind === "escape" ? "var(--color-info-mark)" : "var(--color-warn-mark)";
   const r = 4 / zoom;
+  // The craft's own encounter is the short form: it is drawn where the diagram is busiest.
   const encounterLabel =
-    subject === "target" ? `encounter ${body}` : `↳ ${body}`;
+    subject === "target" ? `encounter ${body}` : `→ ${body}`;
   const label = kind === "escape" ? `escape ${body}` : encounterLabel;
   return (
     <g pointerEvents="none" data-encounter-subject={subject}>

@@ -467,9 +467,18 @@ namespace Sitrep.Host
             var referenceBody = GetString(patch, "referenceBody");
 
             if (!sma.HasValue || !ecc.HasValue || !inc.HasValue || !epoch.HasValue ||
-                !period.HasValue || !startUt.HasValue || !endUt.HasValue ||
-                !peA.HasValue || !apA.HasValue || !semiLatusRectum.HasValue ||
+                !startUt.HasValue || !endUt.HasValue ||
+                !peA.HasValue || !semiLatusRectum.HasValue ||
                 !semiMinorAxis.HasValue || referenceBody == null)
+            {
+                return null;
+            }
+
+            // An open patch has neither a period nor an apoapsis, and KSP's
+            // figures for them there (an infinite period, a negative apoapsis
+            // altitude) are not values. A closed patch always has both.
+            var open = ecc.Value >= 1.0;
+            if (!open && (!period.HasValue || !apA.HasValue))
             {
                 return null;
             }
@@ -483,13 +492,13 @@ namespace Sitrep.Host
                 ArgPe = argPe,
                 MeanAnomalyAtEpoch = maae,
                 Epoch = epoch.Value,
-                Period = period.Value,
+                Period = open ? null : period,
                 StartUt = startUt.Value,
                 EndUt = endUt.Value,
                 PatchStartTransition = ParseTransitionType(GetString(patch, "patchStartTransition")),
                 PatchEndTransition = ParseTransitionType(GetString(patch, "patchEndTransition")),
                 PeA = peA.Value,
-                ApA = apA.Value,
+                ApA = open ? null : apA,
                 SemiLatusRectum = semiLatusRectum.Value,
                 SemiMinorAxis = semiMinorAxis.Value,
                 ReferenceBody = referenceBody,

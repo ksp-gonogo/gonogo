@@ -5,8 +5,9 @@
  * point are both this walk; they differ only in where they stop.
  */
 import type { OrbitPatch } from "../__generated__/contract";
-import { value } from "../unit-system/value";
+import { type Value, value } from "../unit-system/value";
 import { rotatePerifocalToInertial, solveConic } from "./kepler";
+import { mag } from "./kepler-reckoning";
 
 /** The elements of a patch a propagation reads. */
 export type PatchConic = Pick<
@@ -19,12 +20,15 @@ export type PatchConic = Pick<
   | "meanAnomalyAtEpoch"
   | "epoch"
   | "period"
+  | "mu"
 >;
 
 /**
  * A patch with every element a propagation reads present. The wire sends
  * `lan`, `argPe` and `meanAnomalyAtEpoch` as null where KSP left them
- * undefined, and such a patch cannot be propagated.
+ * undefined, and such a patch cannot be propagated. `period` stays absent on
+ * an open patch, which is carried by its `mu`; {@link canPropagatePatch}
+ * checks that whichever of the two the patch needs is there.
  */
 export type PropagablePatch = Omit<
   PatchConic,
@@ -98,9 +102,21 @@ function windowOf(patch: PatchSpan): { start: number; end: number } {
 const FULL_TURN = value("rad", 2 * Math.PI);
 
 /**
+ * A patch's mean motion: a full turn over its period where it has one, and
+ * `sqrt(mu / |sma|³)` on an open patch, which has none. `NaN` where the patch
+ * carries neither, which {@link canPropagatePatch} rules out.
+ */
+function patchMeanMotion(patch: PropagablePatch): Value<"rad·s⁻¹"> {
+  if (patch.period != null) return FULL_TURN.dividedBy(patch.period);
+  const size = Math.abs(mag(patch.sma));
+  return value("rad·s⁻¹", Math.sqrt(mag(patch.mu) / size ** 3));
+}
+
+/**
  * The craft's inertial state at `ut` on `patch`. The UT should lie inside the
  * patch's window; nothing is clamped, so picking the patch is the caller's.
- * Mean motion comes from the patch's own period.
+ * Mean motion comes from the patch's own period, or on an open patch from its
+ * own gravitational parameter.
  */
 export function patchStateAt(
   patch: PropagablePatch,
@@ -108,7 +124,7 @@ export function patchStateAt(
 ): InertialState {
   const { trueAnomaly, radius } = solveConic(
     patch,
-    FULL_TURN.dividedBy(patch.period),
+    patchMeanMotion(patch),
     value("ut", ut),
   );
 
@@ -135,20 +151,31 @@ export function geoFromInertial(
 }
 
 /**
- * Whether the elliptical solve can propagate a patch. Hyperbolic and parabolic
- * patches it cannot, and neither can one whose `lan`, `argPe` or
- * `meanAnomalyAtEpoch` is null.
+ * Whether a patch can be propagated. A closed patch needs its period. An open
+ * one (`ecc` above 1) has none and needs its gravitational parameter, which a
+ * patch off an older recording may lack. A parabolic patch (`ecc` exactly 1)
+ * cannot be, and neither can one whose `lan`, `argPe` or `meanAnomalyAtEpoch`
+ * is null.
  */
 export function canPropagatePatch<Patch extends PatchConic>(
   patch: Patch,
 ): patch is Patch & PropagablePatch {
+  if (
+    patch.lan == null ||
+    patch.argPe == null ||
+    patch.meanAnomalyAtEpoch == null
+  ) {
+    return false;
+  }
+  if (patch.ecc.lessThan(1)) {
+    return patch.period?.isFinite() === true && patch.period.isPositive();
+  }
+  if (!patch.ecc.greaterThan(1)) return false;
   return (
-    patch.lan != null &&
-    patch.argPe != null &&
-    patch.meanAnomalyAtEpoch != null &&
-    patch.ecc.lessThan(1) &&
-    patch.period.isFinite() &&
-    patch.period.isPositive()
+    patch.mu?.isFinite() === true &&
+    patch.mu.isPositive() &&
+    patch.sma.isFinite() &&
+    !patch.sma.isZero()
   );
 }
 

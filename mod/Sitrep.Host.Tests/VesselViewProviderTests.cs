@@ -447,6 +447,125 @@ namespace Sitrep.Host.Tests
             Assert.Null(patch.ClosestEncounterBody);
         }
 
+        private static Dictionary<string, object?> RawPatch(double sma, double ecc, double? period, double? apA) =>
+            new Dictionary<string, object?>
+            {
+                ["sma"] = sma,
+                ["ecc"] = ecc,
+                ["inc"] = 5.0,
+                ["lan"] = 10.0,
+                ["argPe"] = 20.0,
+                ["meanAnomalyAtEpoch"] = -1.2,
+                ["epoch"] = 90.0,
+                ["period"] = period,
+                ["startUt"] = 90.0,
+                ["endUt"] = 2500.0,
+                ["patchStartTransition"] = "ENCOUNTER",
+                ["patchEndTransition"] = "ESCAPE",
+                ["peA"] = 41_000.0,
+                ["apA"] = apA,
+                ["semiLatusRectum"] = 550_000.0,
+                ["semiMinorAxis"] = -660_000.0,
+                ["referenceBody"] = "Mun",
+                ["closestEncounterBody"] = null,
+                ["mu"] = 6.5138398e10,
+            };
+
+        private static VesselOrbit OrbitWithPatches(params Dictionary<string, object?>[] patches)
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.01,
+                    ["inc"] = 5.0,
+                    ["meanAnomalyAtEpoch"] = 1.2,
+                    ["epoch"] = 90.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                    ["patches"] = new List<object?>(patches),
+                },
+                bodies: KerbinAndMun());
+
+            var orbit = VesselViewProvider.BuildOrbit(snapshot);
+            Assert.NotNull(orbit);
+            return orbit!;
+        }
+
+        // KSP reports an infinite period and a negative apoapsis altitude for a
+        // hyperbolic patch. Neither exists on an open orbit, so both are absent
+        // and the patch itself is carried.
+        [Theory]
+        [InlineData(double.PositiveInfinity, -2_800_000.0)]
+        [InlineData(double.NaN, double.NaN)]
+        public void BuildOrbitCarriesAnOpenPatchWithNoPeriodAndNoApoapsis(double rawPeriod, double rawApA)
+        {
+            var orbit = OrbitWithPatches(RawPatch(-786_168.0, 1.307, rawPeriod, rawApA));
+
+            var patch = Assert.Single(orbit.Patches);
+            Assert.Equal(-786_168.0, patch.Sma);
+            Assert.Equal(1.307, patch.Ecc);
+            Assert.Null(patch.Period);
+            Assert.Null(patch.ApA);
+            Assert.Equal(41_000.0, patch.PeA);
+            Assert.Equal(6.5138398e10, patch.Mu);
+            Assert.Equal(TransitionType.Encounter, patch.PatchStartTransition);
+            Assert.Equal(TransitionType.Escape, patch.PatchEndTransition);
+        }
+
+        [Fact]
+        public void BuildOrbitCarriesAnOpenPatchWhoseRawPeriodAndApoapsisAreMissing()
+        {
+            var orbit = OrbitWithPatches(RawPatch(-786_168.0, 1.307, period: null, apA: null));
+
+            var patch = Assert.Single(orbit.Patches);
+            Assert.Null(patch.Period);
+            Assert.Null(patch.ApA);
+        }
+
+        [Fact]
+        public void BuildOrbitWritesAnOpenPatchPeriodAndApoapsisAsExplicitNulls()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                orbit: new Dictionary<string, object?>
+                {
+                    ["sma"] = 700_000.0,
+                    ["ecc"] = 0.01,
+                    ["inc"] = 5.0,
+                    ["meanAnomalyAtEpoch"] = 1.2,
+                    ["epoch"] = 90.0,
+                    ["mu"] = 3.5316e12,
+                    ["referenceBody"] = "Kerbin",
+                    ["patches"] = new List<object?>
+                    {
+                        RawPatch(-786_168.0, 1.307, double.PositiveInfinity, -2_800_000.0),
+                    },
+                },
+                bodies: KerbinAndMun());
+
+            var wire = Assert.IsType<Dictionary<string, object?>>(VesselViewProvider.BuildOrbitWire(snapshot));
+            var patches = Assert.IsAssignableFrom<System.Collections.IEnumerable>(wire["patches"]);
+            var patch = Assert.IsType<Dictionary<string, object?>>(Assert.Single(patches.Cast<object?>()));
+            Assert.True(patch.ContainsKey("period"));
+            Assert.Null(patch["period"]);
+            Assert.True(patch.ContainsKey("apA"));
+            Assert.Null(patch["apA"]);
+        }
+
+        // A closed patch always has both, so one without either is a broken
+        // read and is left out as before.
+        [Theory]
+        [InlineData(null, 240_000.0)]
+        [InlineData(2500.0, null)]
+        public void BuildOrbitLeavesOutAClosedPatchMissingItsPeriodOrApoapsis(double? period, double? apA)
+        {
+            var orbit = OrbitWithPatches(RawPatch(700_000.0, 0.01, period, apA));
+
+            Assert.Empty(orbit.Patches);
+        }
+
         [Fact]
         public void BuildOrbitDefaultsPatchesToAnEmptyListNeverNull()
         {

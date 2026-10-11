@@ -123,14 +123,109 @@ describe("geoFromInertial", () => {
   });
 });
 
+/*
+ * The leg of a Mun flyby inside the Mun's sphere of influence: 278 m/s of
+ * excess speed and a periapsis 250 km from the centre fix the shape, and the
+ * window runs from one crossing of the sphere to the other, periapsis halfway.
+ */
+const MUN_MU = 6.5138398e10;
+const MUN_SOI = 2_429_559;
+const FLYBY_PERIAPSIS = 250_000;
+const FLYBY_SMA = -MUN_MU / 278 ** 2;
+const FLYBY_ECC = 1 + FLYBY_PERIAPSIS / Math.abs(FLYBY_SMA);
+const FLYBY_EDGE = Math.acosh((1 + MUN_SOI / Math.abs(FLYBY_SMA)) / FLYBY_ECC);
+const FLYBY_EDGE_ANOMALY = FLYBY_ECC * Math.sinh(FLYBY_EDGE) - FLYBY_EDGE;
+const FLYBY_HALF_SPAN =
+  FLYBY_EDGE_ANOMALY / Math.sqrt(MUN_MU / Math.abs(FLYBY_SMA) ** 3);
+
+function flyby(overrides: Partial<WireOf<OrbitPatch>> = {}): OrbitPatch {
+  return wirePatch({
+    sma: FLYBY_SMA,
+    ecc: FLYBY_ECC,
+    inc: 0,
+    lan: 0,
+    argPe: 0,
+    meanAnomalyAtEpoch: -FLYBY_EDGE_ANOMALY,
+    epoch: 1000,
+    period: null,
+    apA: null,
+    startUt: 1000,
+    endUt: 1000 + 2 * FLYBY_HALF_SPAN,
+    patchStartTransition: TransitionType.Encounter,
+    patchEndTransition: TransitionType.Escape,
+    referenceBody: "Mun",
+    mu: MUN_MU,
+    ...overrides,
+  });
+}
+
 describe("canPropagatePatch", () => {
-  it("propagates a closed orbit and refuses an open one", () => {
+  it("propagates a closed orbit from its period", () => {
     expect(canPropagatePatch(circular())).toBe(true);
-    expect(
-      canPropagatePatch(
-        circular({ ecc: 1.5, period: Number.POSITIVE_INFINITY }),
+    expect(canPropagatePatch(circular({ period: null }))).toBe(false);
+  });
+
+  it("propagates an open patch, which has no period, from its own gravitational parameter", () => {
+    expect(canPropagatePatch(flyby())).toBe(true);
+  });
+
+  it("refuses an open patch that carries no gravitational parameter", () => {
+    expect(canPropagatePatch(flyby({ mu: null }))).toBe(false);
+  });
+
+  it("refuses a parabolic patch", () => {
+    expect(canPropagatePatch(flyby({ ecc: 1 }))).toBe(false);
+  });
+});
+
+describe("an open patch", () => {
+  it("enters and leaves at the sphere of influence and passes periapsis halfway", () => {
+    const patch = flyby();
+    if (!canPropagatePatch(patch)) throw new Error("not propagable");
+    expect(patchStateAt(patch, 1000).radius).toBeCloseTo(MUN_SOI, 2);
+    expect(patchStateAt(patch, 1000 + FLYBY_HALF_SPAN).radius).toBeCloseTo(
+      FLYBY_PERIAPSIS,
+      2,
+    );
+    expect(patchStateAt(patch, 1000 + 2 * FLYBY_HALF_SPAN).radius).toBeCloseTo(
+      MUN_SOI,
+      2,
+    );
+    // Periapsis lies on +x with argPe 0.
+    const periapsis = patchStateAt(patch, 1000 + FLYBY_HALF_SPAN);
+    expect(periapsis.x).toBeCloseTo(FLYBY_PERIAPSIS, 2);
+    expect(periapsis.y).toBeCloseTo(0, 2);
+  });
+
+  it("is sampled across its window with every state finite", () => {
+    const patch = flyby();
+    if (!canPropagatePatch(patch)) throw new Error("not propagable");
+    const arc = patchArc(patch, 32);
+    expect(arc).toHaveLength(33);
+    for (const { state } of arc) {
+      expect(Number.isFinite(state.x + state.y + state.z)).toBe(true);
+      expect(state.radius).toBeLessThanOrEqual(MUN_SOI + 1);
+      expect(state.radius).toBeGreaterThanOrEqual(FLYBY_PERIAPSIS - 1);
+    }
+  });
+
+  it("lays a ground track over the body it passes, to the end of the patch", () => {
+    const patch = flyby();
+    const samples = [
+      ...groundTrackSamples(
+        [patch, circular({ startUt: patch.endUt.magnitude, endUt: 1e6 })],
+        "Mun",
+        200_000,
+        138_984,
+        { ut: 1000, lat: 0, lon: 0 },
+        100_000,
+        60,
       ),
-    ).toBe(false);
+    ];
+    expect(samples.length).toBeGreaterThan(10);
+    expect(samples.every((s) => s.patchIndex === 0)).toBe(true);
+    expect(samples.at(-1)?.ut).toBeLessThanOrEqual(patch.endUt.magnitude);
+    expect(Math.min(...samples.map((s) => s.alt))).toBeLessThan(60_000);
   });
 });
 

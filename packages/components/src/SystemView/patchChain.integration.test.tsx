@@ -145,7 +145,7 @@ describe("SystemView's predicted patch chain", () => {
       wirePatch("Mun", ENCOUNTER_UT, 60_000, 2, 400_000),
     ]);
     await waitFor(() => {
-      expect(view.container.textContent).toContain("↳ Mun");
+      expect(view.container.textContent).toContain("→ Mun");
     });
     await act(async () => {});
   });
