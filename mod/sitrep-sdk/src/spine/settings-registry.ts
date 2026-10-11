@@ -44,7 +44,9 @@ import type { Screen } from "./screen";
 
 /**
  * What a row's value is: the same three words {@link AugmentSettingField}
- * uses for its `type`.
+ * uses for its `type`. The mod's settings file rows name the same three
+ * kinds as {@link SettingKind} (`Bool`, `Number`, `Text`), a wire enum a
+ * client reads rather than writes; a row you register here uses these words.
  *
  * @category Settings
  */
