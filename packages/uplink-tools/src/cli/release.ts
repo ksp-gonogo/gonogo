@@ -15,6 +15,7 @@ import { bakeUplink, describeBake, findUplinkDir } from "./bake";
 import { dotnet } from "./codegen";
 import { parseFlags } from "./flags";
 import { packageMod } from "./package";
+import { tagFault } from "./publish";
 
 export const RELEASE_USAGE = `uplink-tools release [options]
 
@@ -35,6 +36,8 @@ export const RELEASE_USAGE = `uplink-tools release [options]
   --allow-dev-package   zip a dev build anyway, to hand to one machine
   --out <dir>           one folder for both: the client in <dir>/<id>/, the
                         mod zip in <dir>/
+  --tag <tag>           refuse unless the tag is <id>-v<version>, the version in
+                        client/package.json, before anything is built
   --uplink <dir>        the Uplink's directory, the one holding uplink.json
                         (default: found by walking up from the current directory)`;
 
@@ -114,7 +117,7 @@ export async function release(
   const { values, switches } = parseFlags(argv, {
     verb: "release",
     usage: RELEASE_USAGE,
-    values: ["--dev-path", "--out", "--uplink"],
+    values: ["--dev-path", "--out", "--tag", "--uplink"],
     switches: ["--allow-dev-package"],
   });
   const named = values.get("--uplink");
@@ -160,6 +163,9 @@ export async function release(
     : "";
   const wrongUrl = url && !devPath ? urlVersionFault(url, version) : undefined;
   if (wrongUrl) throw new Error(wrongUrl);
+  const tag = values.get("--tag");
+  const wrongTag = tag ? tagFault(tag, id, version) : undefined;
+  if (wrongTag) throw new Error(wrongTag);
 
   const step = (label: string) => console.log(`\n== ${label}`);
   let bundlePath: string | undefined;

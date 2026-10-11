@@ -473,9 +473,9 @@ describe("the top-level help", () => {
   });
 
   it("refuses a command it does not have", () => {
-    const { code, out } = runBin(["publish"]);
+    const { code, out } = runBin(["deploy"]);
     expect(code).toBe(1);
-    expect(out).toContain('unknown command "publish"');
+    expect(out).toContain('unknown command "deploy"');
   });
 });
 

@@ -36,6 +36,7 @@ import { parseFlags, wantsHelp } from "./flags";
 import { NEW_USAGE, newUplink } from "./new";
 import { PACKAGE_USAGE, packageCommand } from "./package";
 import { PAGE_USAGE, page } from "./page";
+import { PUBLISH_USAGE, publish } from "./publish";
 import { RELEASE_USAGE, release } from "./release";
 import { serveDir } from "./serve";
 
@@ -53,6 +54,8 @@ const USAGE = `uplink-tools <command>
   package  lay the built plugin out as GameData and zip it
   release  bundle, bake, compile the plugin and package, in the order that
            gives a plugin the app will load a client for
+  publish  put the released client where its client.url is served from, and
+           say the links
   page     write this Uplink's generated page from its registrations, with
            no browser
   render   render this Uplink's widgets to images
@@ -409,6 +412,7 @@ export async function run(argv: readonly string[]): Promise<number> {
       codegen: [CODEGEN_USAGE, codegen],
       package: [PACKAGE_USAGE, packageCommand],
       page: [PAGE_USAGE, page],
+      publish: [PUBLISH_USAGE, publish],
       release: [RELEASE_USAGE, (rest) => release(rest, bundle)],
     };
     if (Object.hasOwn(plain, verb)) {

@@ -540,6 +540,168 @@ function passesOwnCheck(clientDir, widgetFile) {
   } finally {
     writeFileSync(widgetFile, original);
   }
+  passesProcessChecks(clientDir, widgetFile);
+}
+
+/**
+ * The groups of `check` that start a process, each shown to see before it is
+ * believed: a published entry point that will not import, a widget given a
+ * minimum it cannot be read at, a machine with no browser, and a wrapped mod
+ * that names no version.
+ */
+function passesProcessChecks(clientDir, widgetFile) {
+  const checkWith = (...groups) => [
+    "uplink-tools",
+    "check",
+    "--only",
+    groups.join(","),
+  ];
+  must("uplink-tools check --only loadable", "npx", checkWith("loadable"), {
+    cwd: clientDir,
+  });
+  must("uplink-tools check --only minsize", "npx", checkWith("minsize"), {
+    cwd: clientDir,
+    env: withBrowser,
+  });
+
+  const sdk = join(clientDir, "node_modules/@ksp-gonogo/sitrep-sdk");
+  const framesExport = JSON.parse(
+    readFileSync(join(sdk, "package.json"), "utf8"),
+  ).exports["./frames"];
+  const frames = join(
+    sdk,
+    typeof framesExport === "string" ? framesExport : framesExport.import,
+  );
+  const framesSource = readFileSync(frames, "utf8");
+  writeFileSync(frames, 'import "./not-there";\n');
+  try {
+    mustFail(
+      "a published entry point that will not import, seen by check --only loadable",
+      /loadable\/entry-point/,
+      "npx",
+      checkWith("loadable"),
+      { cwd: clientDir },
+    );
+  } finally {
+    writeFileSync(frames, framesSource);
+  }
+
+  const widget = readFileSync(widgetFile, "utf8");
+  if (!/minSize: \{ w: \d+, h: \d+ \}/.test(widget)) {
+    fail(`${widgetFile} does not state a minSize`);
+  }
+  writeFileSync(
+    widgetFile,
+    widget.replace(/minSize: \{ w: \d+, h: \d+ \}/, "minSize: { w: 1, h: 1 }"),
+  );
+  try {
+    mustFail(
+      "a widget given a 1 by 1 minimum, seen by check --only minsize",
+      /minsize\/misfit/,
+      "npx",
+      checkWith("minsize"),
+      { cwd: clientDir, env: withBrowser },
+    );
+  } finally {
+    writeFileSync(widgetFile, widget);
+  }
+  mustFail(
+    "check --only minsize on a machine with no browser",
+    /npx playwright install chromium/,
+    "npx",
+    checkWith("minsize"),
+    { cwd: clientDir },
+  );
+
+  const declared = join(clientDir, "..", "uplink.json");
+  const declaredSource = readFileSync(declared, "utf8");
+  writeFileSync(
+    declared,
+    JSON.stringify({ ...JSON.parse(declaredSource), mod: { name: "Planted" } }),
+  );
+  try {
+    mustFail(
+      "a wrapped mod that names no version, seen by check",
+      /manifest\/mod-version/,
+      "npx",
+      ["uplink-tools", "check", "--only", "manifest"],
+      { cwd: clientDir },
+    );
+  } finally {
+    writeFileSync(declared, declaredSource);
+  }
+}
+
+/**
+ * `publish` puts the released client where the plugin says it is served from:
+ * a releases branch, pushed to a remote that is a folder here. A published
+ * version is shown to be untouchable, and a tag for another version is shown to
+ * be refused before anything is built.
+ */
+function publishesToReleases() {
+  const remote = join(work, "releases-remote.git");
+  const noHooks = { ...env, GIT_CONFIG_COUNT: "0" };
+  const git = (label, ...args) =>
+    must(label, "git", args, { cwd: uplink, env: noHooks });
+  git("git init", "init", "-q", "-b", "main");
+  must("git init the remote", "git", ["init", "-q", "--bare", remote], {
+    env: noHooks,
+  });
+  git("git remote add", "remote", "add", "origin", remote);
+  git("git add", "add", "-A");
+  git(
+    "git commit",
+    "-c",
+    "user.name=probe",
+    "-c",
+    "user.email=probe@example.com",
+    "commit",
+    "-q",
+    "-m",
+    "init",
+  );
+  const tag = `${ID}-v0.0.1`;
+  mustFail(
+    "release for a tag naming another version, seen by --tag",
+    /is for version 9\.9\.9/,
+    "npx",
+    ["uplink-tools", "release", "--tag", `${ID}-v9.9.9`],
+    { cwd: client, env: noHooks },
+  );
+  must(
+    "uplink-tools publish --push",
+    "npx",
+    ["uplink-tools", "publish", "--push", "--tag", tag],
+    {
+      cwd: client,
+      env: noHooks,
+    },
+  );
+  const onRemote = must(
+    "the releases branch holds the bundle",
+    "git",
+    ["-C", remote, "ls-tree", "-r", "--name-only", "releases"],
+    { env: noHooks },
+  );
+  if (!onRemote.includes(`${ID}/0.0.1/${ID}.client.js`)) {
+    fail(
+      `the releases branch does not hold ${ID}/0.0.1/${ID}.client.js:\n${onRemote}`,
+    );
+  }
+  const bundleFile = join(client, "dist", ID, `${ID}.client.js`);
+  const bundleSource = readFileSync(bundleFile, "utf8");
+  writeFileSync(bundleFile, `${bundleSource}\n// changed after publishing\n`);
+  try {
+    mustFail(
+      "a published version given different bytes, seen by publish",
+      /already published with different bytes/,
+      "npx",
+      ["uplink-tools", "publish"],
+      { cwd: client, env: noHooks },
+    );
+  } finally {
+    writeFileSync(bundleFile, bundleSource);
+  }
 }
 
 // ── The author's own checks ─────────────────────────────────────────────────
@@ -727,6 +889,7 @@ if (JSON.parse(readFileSync(sidecar, "utf8")).integrity !== integrity) {
     "gonogo-uplink.json's integrity is not the hash of the bundle beside it",
   );
 }
+publishesToReleases();
 const dllBytes = readFileSync(plugin);
 const declared = JSON.parse(read("uplink.json"));
 for (const [what, value] of [

@@ -5,6 +5,7 @@ import {
   compatDifferences,
   compatRule,
   installedCompat,
+  modVersionRule,
   releaseFaultsRule,
 } from "./index";
 
@@ -125,5 +126,42 @@ describe("manifest release faults", () => {
   it("is the same function release calls for the placeholder", () => {
     expect(placeholderUrlFault("https://example.com/real")).toBeUndefined();
     expect(placeholderUrlFault("")).toBeUndefined();
+  });
+});
+
+describe("manifest/mod-version", () => {
+  const run = (mod: unknown) => {
+    const { clientDir } = uplinkOn({
+      "uplink.json": UPLINK_JSON({ mod }),
+      "client/package.json": PACKAGE_JSON(),
+    });
+    return modVersionRule.check(ctx(clientDir));
+  };
+
+  it("has nothing to say about an Uplink that wraps no mod", () => {
+    expect(run(null)).toEqual([]);
+    expect(run(undefined)).toEqual([]);
+  });
+
+  it("passes a block that names the version and a known tier", () => {
+    expect(
+      run({ name: "Example Mod", builtAgainst: "20.4", tier: "ckan" }),
+    ).toEqual([]);
+    expect(run({ builtAgainst: "1.0", tier: "manual" })).toEqual([]);
+  });
+
+  it("names each field a block leaves out", () => {
+    const [finding] = run({ name: "Example Mod" });
+    expect(finding.rule).toBe("manifest/mod-version");
+    expect(finding.severity).toBe("error");
+    expect(finding.message).toContain('"builtAgainst" or "tier"');
+    expect(finding.fix).toContain('"mod": null');
+    expect(run({ builtAgainst: "20.4" })[0].message).toContain('no "tier"');
+  });
+
+  it("refuses a tier nothing understands, and says which there are", () => {
+    const [finding] = run({ builtAgainst: "20.4", tier: "curseforge" });
+    expect(finding.message).toContain('"curseforge"');
+    expect(finding.message).toContain('"ckan" and "manual"');
   });
 });

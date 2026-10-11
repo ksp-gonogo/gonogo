@@ -569,6 +569,20 @@ describe("uplink-tools new", () => {
     expect(workflow(own)).toContain("dotnet test mod-tests");
     expect(workflow(own)).toContain("npm run release");
     expect(workflow(core)).not.toContain("codegen");
+    const releaseWorkflow = readFileSync(
+      join(own, ".github", "workflows", "release.yml"),
+      "utf8",
+    );
+    expect(releaseWorkflow).toContain('tags: ["solo-v*"]');
+    expect(releaseWorkflow).toContain(
+      'npx uplink-tools release --tag "$GITHUB_REF_NAME"',
+    );
+    expect(releaseWorkflow).toContain(
+      'npx uplink-tools publish --push --purge --tag "$GITHUB_REF_NAME"',
+    );
+    expect(readFileSync(join(own, ".gitignore"), "utf8")).toContain(
+      ".releases/",
+    );
     // Off unless asked for.
     expect(existsSync(join(plain, ".github"))).toBe(false);
   });

@@ -1487,6 +1487,7 @@ bin/
 obj/
 *.g.cs
 ksp.local.props
+.releases/
 `;
 
 /**
@@ -1607,6 +1608,59 @@ ${
           path: |
             client/dist
             dist
+`;
+}
+
+/**
+ * What a lone repo runs when a release tag is pushed: the author's own
+ * commands, in the order they run them. The zip is attached with the runner's
+ * `gh`, the one step that is not an uplink-tools command.
+ */
+function releaseWorkflow(id: string): string {
+  return `name: release
+
+# Publishes a version when its tag is pushed. Tag the commit whose
+# client/package.json says the version: ${id}-v0.0.1 for 0.0.1. The tag is
+# checked against the version before anything is built.
+on:
+  push:
+    tags: ["${id}-v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install the client
+        working-directory: client
+        run: npm install
+
+      - name: Build both halves for release
+        working-directory: client
+        run: npx uplink-tools release --tag "$GITHUB_REF_NAME"
+
+      # Puts the client where uplink.json's client.url is served from, on the
+      # releases branch, and refuses to change a version already there.
+      - name: Publish the client
+        working-directory: client
+        run: npx uplink-tools publish --push --purge --tag "$GITHUB_REF_NAME"
+
+      - name: Attach the plugin to the tag's release
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/*.zip --verify-tag --title "$GITHUB_REF_NAME"
 `;
 }
 
@@ -1744,6 +1798,7 @@ export async function newUplink(
     files.set("Directory.Build.targets", SINGLE_REPO_BUILD_TARGETS);
     if (answers.workflows) {
       files.set(".github/workflows/ci.yml", ciWorkflow(answers.topics));
+      files.set(".github/workflows/release.yml", releaseWorkflow(id));
     }
     if (answers.ksp !== null) {
       files.set(

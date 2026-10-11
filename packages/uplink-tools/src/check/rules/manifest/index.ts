@@ -228,4 +228,60 @@ export const releaseFaultsRule: Rule = {
   },
 };
 
-export const manifestRules: readonly Rule[] = [compatRule(), releaseFaultsRule];
+/** The two tiers a wrapped mod's `uplink.json` block may name. */
+export const MOD_TIERS = ["ckan", "manual"] as const;
+
+/**
+ * The wrapped mod's block, which claims "built and tested against this version"
+ * and is only a claim when it names one. A block with no `builtAgainst` or no
+ * `tier` leaves nothing to verify, and an unknown tier is a word no page or
+ * tool understands. An Uplink that wraps nothing declares `"mod": null`.
+ */
+export const modVersionRule: Rule = {
+  id: "manifest/mod-version",
+  group: GROUP,
+  check({ clientDir }: CheckContext): FixableFinding[] {
+    const uplinkDir = findUplinkDir(clientDir);
+    if (!uplinkDir) return [];
+    const uplinkFile = join(uplinkDir, "uplink.json");
+    const mod = readJson(uplinkFile)?.mod;
+    if (mod === undefined || mod === null) return [];
+    const block = asRecord(mod);
+    const missing = ["builtAgainst", "tier"].filter(
+      (field) => text(block[field]) === "",
+    );
+    const finding = (message: string, fix: string): FixableFinding => ({
+      rule: "manifest/mod-version",
+      severity: "error",
+      file: uplinkFile,
+      line: 1,
+      message,
+      fixable: false,
+      fix,
+    });
+    if (missing.length > 0) {
+      return [
+        finding(
+          `uplink.json's "mod" block has no ${missing.map((m) => `"${m}"`).join(" or ")}. Without the version it was built against there is no claim to verify, and the generated page prints a mod with no version.`,
+          `Set ${missing.map((m) => `"mod.${m}"`).join(" and ")}, or declare "mod": null when the Uplink wraps no mod.`,
+        ),
+      ];
+    }
+    const tier = text(block.tier);
+    if (!(MOD_TIERS as readonly string[]).includes(tier)) {
+      return [
+        finding(
+          `uplink.json's "mod.tier" is "${tier}", and the tiers are ${MOD_TIERS.map((t) => `"${t}"`).join(" and ")}: "ckan" for a mod CKAN lists, "manual" for one a player installs by hand.`,
+          `Set "mod.tier" to one of ${MOD_TIERS.map((t) => `"${t}"`).join(", ")}.`,
+        ),
+      ];
+    }
+    return [];
+  },
+};
+
+export const manifestRules: readonly Rule[] = [
+  compatRule(),
+  releaseFaultsRule,
+  modVersionRule,
+];
