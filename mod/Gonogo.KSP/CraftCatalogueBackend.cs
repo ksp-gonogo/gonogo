@@ -338,6 +338,8 @@ namespace Gonogo.KSP
         /// <para>Null when the file could not be parsed at all, which drops the
         /// row rather than publishing a craft nobody can measure.</para>
         /// </summary>
+        public static long ModifiedTicks(DateTime lastWrite) => lastWrite.ToUniversalTime().Ticks;
+
         private CraftFileRecord? Measure(string path)
         {
             try
@@ -380,6 +382,7 @@ namespace Gonogo.KSP
                     File = Path.GetFileNameWithoutExtension(path),
                     ShipName = kept.ShipName,
                     Facility = kept.Facility,
+                    Modified = ModifiedTicks(kept.Modified),
                     PartCount = kept.PartCount,
                     Mass = kept.Mass,
                     Cost = kept.Cost,

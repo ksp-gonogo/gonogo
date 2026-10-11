@@ -64,6 +64,18 @@ namespace Sitrep.Contract
         /// <summary>Which editor built it, from the file rather than from the folder it sits in.</summary>
         public KspEditorFacility? Facility { get; set; }
 
+        /// <summary>
+        /// When the file was last written, as UTC ticks (100 ns units since
+        /// 0001-01-01T00:00:00Z, the value of <c>DateTime.Ticks</c> on a UTC
+        /// time).
+        ///
+        /// <para>Changes whenever the craft is saved over, so a figure derived
+        /// from the file (a price, a measurement) can be reused for as long as
+        /// this and <see cref="File"/> and <see cref="Facility"/> are the same.
+        /// Null when the file's write time could not be read, never zero.</para>
+        /// </summary>
+        public long? Modified { get; set; }
+
         /// <summary>The number of parts in the craft, as KSP's craft profile reads it from the file.</summary>
         public int? PartCount { get; set; }
 

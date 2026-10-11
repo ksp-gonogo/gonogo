@@ -1,3 +1,4 @@
+using System;
 using Gonogo.KSP;
 using Sitrep.Contract;
 using Xunit;
@@ -17,6 +18,28 @@ namespace Gonogo.KSP.Tests
     /// </summary>
     public class CraftCatalogueBackendTests
     {
+        [Fact]
+        public void ModifiedTicks_IsTheUtcTickCountOfTheLastWrite()
+        {
+            var utc = new DateTime(2026, 10, 11, 21, 0, 0, DateTimeKind.Utc);
+
+            Assert.Equal(utc.Ticks, CraftCatalogueBackend.ModifiedTicks(utc));
+        }
+
+        [Fact]
+        public void ModifiedTicks_ConvertsALocalTimeToUtcRatherThanReadingItsWallClock()
+        {
+            var local = new DateTime(2026, 10, 11, 21, 0, 0, DateTimeKind.Local);
+
+            Assert.Equal(local.ToUniversalTime().Ticks, CraftCatalogueBackend.ModifiedTicks(local));
+        }
+
+        [Fact]
+        public void ARecordNobodyMeasuredCarriesNoModifiedTime()
+        {
+            Assert.Null(new CraftFileRecord().Modified);
+        }
+
         [Fact]
         public void Load_RefusesWithNoFileNamed()
         {
