@@ -114,6 +114,12 @@ namespace Sitrep.Core
 
         private readonly object _commandsGate = new object();
 
+        // node -> topic -> vantage -> the newest ValidAt delivered there on a
+        // topic NewestWins names. Cleared by ResetTimeline: a rewind makes an
+        // earlier instant the newest again.
+        private readonly Dictionary<string, Dictionary<string, Dictionary<string, double>>> _newestDelivered =
+            new Dictionary<string, Dictionary<string, Dictionary<string, double>>>();
+
         // node -> vantage -> the UT the link was marked down since (absent =
         // currently up). See MarkLinkDown/MarkLinkUp and ResolveStaleness --
         // what makes a late or reconnecting subscriber's catch-up sample
@@ -197,6 +203,15 @@ namespace Sitrep.Core
 
         /// <summary>The current timeline generation -- see <see cref="Meta.TimelineEpoch"/>.</summary>
         public int CurrentEpoch => _epoch;
+
+        /// <summary>
+        /// Which topics are state reports where only the newest matters: a
+        /// delivery whose sample is older than one already delivered to the
+        /// same vantage is not sent. Without it a report that travelled a
+        /// shorter route overtakes an older one still crossing a longer one,
+        /// and the older lands after it and reads as the current state.
+        /// </summary>
+        public Func<string, bool>? NewestWins { get; set; }
 
         public Courier(IClock clock, INetwork network)
         {
@@ -412,6 +427,7 @@ namespace Sitrep.Core
             // it would hold retention at a scene no longer reachable, for the rest
             // of the run.
             _owedScenes.Clear();
+            _newestDelivered.Clear();
             // UT has moved backwards, so a schedule set on the abandoned timeline
             // would sit in the future and suppress pruning for the rest of the run.
             _nextPruneUt = double.NegativeInfinity;
@@ -1167,7 +1183,40 @@ namespace Sitrep.Core
             {
                 return;
             }
+            // A catch-up is always served: the subscriber has been told nothing yet.
+            if (NewestWins != null
+                && NewestWins(topic)
+                && !NoteNewestDelivered(node, topic, subscriber.Vantage, sample.Value.ValidAt)
+                && !isCatchUp)
+            {
+                return;
+            }
             subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, sample.Value, fireUt, isCatchUp));
+        }
+
+        /// <summary>
+        /// Record that <paramref name="validAt"/> is about to be delivered to
+        /// <paramref name="vantage"/>, and say whether it may be: false when a
+        /// newer sample has already been.
+        /// </summary>
+        private bool NoteNewestDelivered(string node, string topic, string vantage, double validAt)
+        {
+            if (!_newestDelivered.TryGetValue(node, out var byTopic))
+            {
+                byTopic = new Dictionary<string, Dictionary<string, double>>();
+                _newestDelivered[node] = byTopic;
+            }
+            if (!byTopic.TryGetValue(topic, out var byVantage))
+            {
+                byVantage = new Dictionary<string, double>();
+                byTopic[topic] = byVantage;
+            }
+            if (byVantage.TryGetValue(vantage, out var newest) && validAt < newest)
+            {
+                return false;
+            }
+            byVantage[vantage] = validAt;
+            return true;
         }
 
         /// <summary>

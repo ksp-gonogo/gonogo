@@ -1551,7 +1551,7 @@ namespace Sitrep.Host
             // learn its own balance a craft's distance late.
             stubNetwork.SetNodeDelay(HomeCommandNode, 0.0);
             _network = stubNetwork;
-            _courier = new Courier(_clock, _network);
+            _courier = new Courier(_clock, _network) { NewestWins = IsFreezeExempt };
             // A break in a craft's route catches the light the craft sent. A
             // TrueNow channel is the ground's own state, and a freeze-exempt
             // report is a centre noticing the link, so neither was ever in flight.

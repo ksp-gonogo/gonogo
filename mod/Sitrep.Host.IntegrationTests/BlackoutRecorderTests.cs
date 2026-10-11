@@ -106,6 +106,49 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// A link report from inside an outage leaves under the light-time the
+        /// craft was last in contact at, and one from after reacquisition under
+        /// the route it has now. When that route is shorter the live report
+        /// overtakes the dark one still crossing, so the wire would interleave
+        /// the two and its validAt would run backwards. The superseded report
+        /// is never sent after the one that replaced it.
+        /// </summary>
+        [Fact]
+        public async Task ALinkReportNeverArrivesOlderThanOneAlreadySent()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new BlackoutRecorderTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, BlackoutRecorderTestUplink.LinkTopic, Timeout);
+
+                Tick(engine, Snap(0.0, connected: true, delay: 9.0));
+                Tick(engine, Snap(1.0, connected: true, delay: 9.0));
+                Tick(engine, Snap(2.0, connected: false, delay: 0.0));
+                Tick(engine, Snap(3.0, connected: true, delay: 2.0));
+                for (var ut = 4.0; ut <= 14.0; ut += 1.0)
+                {
+                    Tick(engine, Snap(ut, connected: true, delay: 2.0));
+                }
+
+                var frames = On(await DrainAllStreamDataAsync(client, Quiet), BlackoutRecorderTestUplink.LinkTopic);
+                Assert.Contains(frames, f => f.Meta.ValidAt >= 3.0);
+                for (var i = 1; i < frames.Count; i++)
+                {
+                    Assert.True(
+                        frames[i].Meta.ValidAt >= frames[i - 1].Meta.ValidAt,
+                        "a report valid at UT " + frames[i].Meta.ValidAt + " was sent after one valid at UT " + frames[i - 1].Meta.ValidAt);
+                }
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A channel declared <c>Recordable = false</c> has no recording to dump,
         /// and says so: its samples from inside the outage never appear, and its
         /// first post-outage sample carries <see cref="Meta.GapSinceUt"/> naming

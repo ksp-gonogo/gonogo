@@ -99,4 +99,33 @@ describe("TelemetryClient's latest value never goes backwards", () => {
 
     expect(client.getValue("comms.link")).toMatchObject({ connected: true });
   });
+
+  it("a connectivity frame interleaved from an outage never shows over the live one", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const seen: unknown[] = [];
+    client.subscribe("comms.connectivity", (payload) => seen.push(payload));
+    const vantage = "ground:Kerbin: KSC";
+    for (let i = 0; i < 3; i++) {
+      transport.emit(
+        "comms.connectivity",
+        { connected: true },
+        { validAt: 694 + i, vantage },
+      );
+      transport.emit(
+        "comms.connectivity",
+        { connected: false },
+        { validAt: 683 + i, vantage },
+      );
+    }
+
+    expect(seen).toEqual([
+      { connected: true },
+      { connected: true },
+      { connected: true },
+    ]);
+    expect(client.getValue("comms.connectivity")).toMatchObject({
+      connected: true,
+    });
+  });
 });
