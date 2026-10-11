@@ -49,9 +49,9 @@ export function derivePeriod(
 /**
  * True anomaly, degrees in `[0, 360)`, at universal time `ut`, reconstructed
  * from the mean anomaly at epoch via the shared Kepler solver (never a second
- * reimplementation of Kepler's equation). Returns `null` for a
- * parabolic/hyperbolic orbit (the solver's `ecc ∈ [0, 1)` domain), a missing
- * input, or a non-finite `ut`.
+ * reimplementation of Kepler's equation). Returns `null` for an open orbit
+ * (`ecc` of 1 or more), which a catalogue body is never on and this does not
+ * place, a missing input, or a non-finite `ut`.
  */
 export function deriveTrueAnomalyDeg(params: {
   semiMajorAxis: number | null | undefined;

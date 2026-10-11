@@ -10801,6 +10801,10 @@
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
       },
       {
+        "key": "sitrep-sdk . solveHyperbolicAnomaly",
+        "note": "New: solves the hyperbolic form of Kepler's equation, so an open orbit (a flyby or an escape) can be carried to an instant"
+      },
+      {
         "key": "sitrep-sdk . systemPosesAt",
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
       },
@@ -10811,6 +10815,10 @@
       {
         "key": "sitrep-sdk . trueAnomalyFromEccentric",
         "note": "Converts an eccentric anomaly to a true one, now reachable from the root barrel"
+      },
+      {
+        "key": "sitrep-sdk . trueAnomalyFromHyperbolic",
+        "note": "New: converts a hyperbolic anomaly to a true one, the open-orbit twin of trueAnomalyFromEccentric"
       },
       {
         "key": "sitrep-sdk . useSystemInstant",
@@ -10847,6 +10855,10 @@
       {
         "key": "sitrep-sdk ./frames bodyOrbitInput",
         "note": "New: a catalogue body's orbit as the input orbitTrajectory takes, with its own horizon"
+      },
+      {
+        "key": "sitrep-sdk ./frames openOrbitArc",
+        "note": "New: the part of an open orbit within a radius of its parent, the sampler a diagram draws a flyby or an escape with"
       },
       {
         "key": "sitrep-sdk ./frames orbitRing",
@@ -12237,6 +12249,10 @@
         "note": "New spine plumbing that lets a useCommand send join the group open around it; not an author surface"
       },
       {
+        "key": "sitrep-sdk ./spine openOrbitArc",
+        "note": "New: the part of an open orbit within a radius of its parent, the sampler a diagram draws a flyby or an escape with"
+      },
+      {
         "key": "sitrep-sdk ./spine orbitRing",
         "note": "New: the closed ring of an orbit in the parent's inertial axes, the one sampler every diagram draws a conic with"
       },
@@ -12265,8 +12281,16 @@
         "note": "Advances a conic to an instant at a caller-supplied mean motion and returns its anomalies and radius"
       },
       {
+        "key": "sitrep-sdk ./spine solveHyperbolicAnomaly",
+        "note": "New: solves the hyperbolic form of Kepler's equation, so an open orbit (a flyby or an escape) can be carried to an instant"
+      },
+      {
         "key": "sitrep-sdk ./spine systemPosesAt",
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
+      },
+      {
+        "key": "sitrep-sdk ./spine trueAnomalyFromHyperbolic",
+        "note": "New: converts a hyperbolic anomaly to a true one, the open-orbit twin of trueAnomalyFromEccentric"
       },
       {
         "key": "sitrep-sdk ./spine useLivePhaseAngles",

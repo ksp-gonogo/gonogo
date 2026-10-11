@@ -154,13 +154,34 @@ describe("orbitTrajectory", () => {
     });
   });
 
-  it("withholds an integrated ESCAPE trajectory rather than throwing", () => {
-    // `solveAnomalies` refuses `ecc >= 1`. There is no arc to sample and no
-    // conic authorised, so the honest answer is neither.
+  it("samples an integrated escape trajectory to its horizon", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({
+        sma: { magnitude: -2_000_000 },
+        ecc: { magnitude: 1.4 },
+        horizon: {
+          kind: Reach.Until,
+          untilUt: 500,
+          trajectoryKind: Shape.Integrated,
+        },
+      }),
+      viewUt: 0,
+    });
+    expect(answer).toMatchObject({
+      shape: "arc",
+      fromUt: 0,
+      toUt: 500,
+      farEnd: "horizon",
+    });
+  });
+
+  it("withholds an integrated parabolic trajectory rather than throwing", () => {
+    // Neither anomaly solves `ecc` of exactly 1. There is no arc to sample and
+    // no conic authorised, so the honest answer is neither.
     expect(
       orbitTrajectory({
         orbit: lko({
-          ecc: { magnitude: 1.4 },
+          ecc: { magnitude: 1 },
           horizon: {
             kind: Reach.Until,
             untilUt: 500,

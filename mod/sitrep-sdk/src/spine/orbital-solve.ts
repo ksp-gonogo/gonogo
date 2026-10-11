@@ -20,8 +20,10 @@ import {
  *
  * Pass `undefined` for a body radius that cannot be resolved yet and `null`
  * for a confirmed absence, and the two altitude fields answer the same way. On
- * a hyperbolic orbit a field with no value is `null`, never a wrong number:
- * there is no apoapsis, and periapsis stays valid.
+ * an open orbit (`ecc` of 1 or more) a field with no value is `null`, never a
+ * wrong number: there is no period and no apoapsis, and no time to periapsis
+ * once the craft has passed it. The anomaly, the radius and the periapsis
+ * stay valid.
  */
 export interface OrbitalSolve {
   /*
@@ -47,23 +49,24 @@ export interface OrbitalSolve {
    * `undefined` for "cannot resolve yet" and `null` for a confirmed absence, and
    * the two altitude fields answer the same way.
    *
-   * Hyperbolic orbits
+   * Open orbits
    *
-   * Real, on a fast escape or flyby under warp, and the elliptical-only solver
-   * cannot take them. `trySolve`/`trySolveAnomalies` degrade to `null` rather
-   * than throwing, so every field derived from them degrades in step and never
-   * to a bogus number. `apoapsisRadius` needs its own check on top of that:
-   * `sma·(1+ecc)` is still finite when `sma < 0`, just meaningless, so a finite
-   * guard cannot catch it. Periapsis stays valid either way, `sma·(1-ecc)` being
-   * a positive radius for both signs.
+   * Every flyby and escape is one. The craft has a place on it, so the anomaly
+   * and the radius are solved like any other. What an open orbit lacks needs a
+   * check a finite guard cannot make: `2π/n` and `sma·(1+ecc)` are both finite
+   * when `sma < 0`, just meaningless, so the period, the apoapsis and the time
+   * to apoapsis are withheld by the shape and not by the arithmetic. Periapsis
+   * stays valid, `sma·(1-ecc)` being a positive radius for both signs. A
+   * parabolic orbit (`ecc` exactly 1) has no solve at all, and
+   * `trySolve`/`trySolveAnomalies` answer `null` for it.
    */
-  /** Seconds, `2π/n`. */
+  /** Seconds, `2π/n`. `null` on an open orbit, which has no period. */
   period: number | null;
   /** Degrees in `[0, 360)`, the widget-facing convention. */
   trueAnomaly: number | null;
-  /** Seconds until the mean anomaly next reaches apoapsis. */
+  /** Seconds until the mean anomaly next reaches apoapsis. `null` on an open orbit. */
   timeToAp: number | null;
-  /** Seconds until it next reaches periapsis. */
+  /** Seconds until it next reaches periapsis. `null` on an open orbit once periapsis has passed. */
   timeToPe: number | null;
   /** `sma·(1+ecc)` from the body centre. `null` on a hyperbolic orbit, which has no apoapsis. */
   apoapsisRadius: number | null;
@@ -136,6 +139,19 @@ function timeToMeanAnomaly(
   let delta = (targetMeanAnomaly - meanAnomaly) % twoPi;
   if (delta < 0) delta += twoPi;
   return delta / meanMotion;
+}
+
+/**
+ * Seconds until an open orbit's one periapsis, where its mean anomaly is zero.
+ * `null` once the craft has passed it, since there is no next one.
+ */
+function timeToOpenPeriapsis(
+  meanAnomaly: number,
+  meanMotion: number,
+): number | null {
+  if (!Number.isFinite(meanAnomaly) || !(meanMotion > 0)) return null;
+  if (meanAnomaly > 0) return null;
+  return finiteOrNull(Math.abs(meanAnomaly) / meanMotion);
 }
 
 /**
@@ -216,8 +232,9 @@ function solveOrbitAt(
   const solved = trySolve(elements, ut);
   const anomalies = trySolveAnomalies(elements, ut);
 
+  const open = isHyperbolic(elements.ecc);
   const period =
-    anomalies == null
+    anomalies == null || open
       ? null
       : finiteOrNull((2 * Math.PI) / anomalies.meanMotion);
   const trueAnomaly =
@@ -225,13 +242,15 @@ function solveOrbitAt(
       ? null
       : finiteOrNull(wrapDegrees360(radToDeg(anomalies.trueAnomaly)));
   const timeToAp =
-    anomalies == null
+    anomalies == null || open
       ? null
       : timeToMeanAnomaly(anomalies.meanAnomaly, Math.PI, anomalies.meanMotion);
   const timeToPe =
     anomalies == null
       ? null
-      : timeToMeanAnomaly(anomalies.meanAnomaly, 0, anomalies.meanMotion);
+      : open
+        ? timeToOpenPeriapsis(anomalies.meanAnomaly, anomalies.meanMotion)
+        : timeToMeanAnomaly(anomalies.meanAnomaly, 0, anomalies.meanMotion);
 
   const orbitalRadius =
     solved?.position == null ? null : finiteOrNull(magnitude(solved.position));

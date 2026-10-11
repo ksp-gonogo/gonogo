@@ -407,7 +407,9 @@ export {
   solve,
   solveAnomalies,
   solveConic,
+  solveHyperbolicAnomaly,
   trueAnomalyFromEccentric,
+  trueAnomalyFromHyperbolic,
 } from "./spine/kepler";
 // ---------------------------------------------------------------------------
 // THE CONIC: the one two-body propagator in this repo, and the guard that says where it stops holding.

@@ -293,8 +293,8 @@ function SystemViewComponent({
       ? vesselTrajectory
       : null;
 
-  // Vessel orbit: feeds the dot drawn on its own orbit when the chosen frame matches its parent body.
-  const vSma = orbit?.sma?.magnitude;
+  // A Hohmann window is planned from a closed orbit: an open one has no radius to depart from, and its negative semi-major axis would still give a finite angle.
+  const vSma = orbit?.ecc.lessThan(1) ? orbit.sma.magnitude : undefined;
   // Where the craft is on that orbit: where a model carries it, else where it is now, else where it was last seen. With none of them there is no place to draw it, and periapsis is not a stand-in.
   const craft = craftOnOrbit(orbitReading, orbitObserved, derived);
   const vesselAt = craft?.modelled ?? craft?.current ?? craft?.held ?? null;
@@ -313,6 +313,7 @@ function SystemViewComponent({
           parentName: vesselBody,
           ...vesselElements,
           trueAnomaly: vesselAt,
+          soi: bodies.find((b) => b.name === vesselBody)?.soi ?? null,
         }
       : null;
 

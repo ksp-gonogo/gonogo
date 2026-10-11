@@ -4,12 +4,7 @@ import { value } from "../unit-system/value";
 import type { CelestialFacts } from "./celestial-facts";
 import type { CommsPeerOrbit } from "./comms-path-geometry";
 import type { OrbitElements, Vec3Tuple } from "./kepler";
-import {
-  buildElements,
-  isHyperbolic,
-  magnitude,
-  trySolve,
-} from "./kepler-reckoning";
+import { buildElements, magnitude, trySolve } from "./kepler-reckoning";
 import { systemInstantAt } from "./reference-frame";
 
 /**
@@ -78,7 +73,7 @@ export function knownCraftOrbits(
       elements.meanAnomalyAtEpoch,
       elements.epoch,
     ].every((n) => Number.isFinite(n));
-    if (!defined || isHyperbolic(elements.ecc)) return;
+    if (!defined || elements.ecc === 1) return;
     known.push({ index, bodyIndex, elements });
   });
   return known;

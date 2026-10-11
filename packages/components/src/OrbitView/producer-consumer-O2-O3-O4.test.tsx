@@ -17,7 +17,7 @@ describe("OrbitView: O2: hyperbolic orbit still counts as hasOrbit", () => {
       { w: 9, h: 18 },
       {
         bodyName: "Kerbin",
-        sma: -500_000,
+        sma: -2_000_000,
         ecc: 1.4,
         argPe: 0,
         quality: Quality.OnRails,
@@ -54,7 +54,7 @@ describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scal
       </>,
       {
         bodyName: "Kerbin",
-        sma: -500_000,
+        sma: -2_000_000,
         ecc: 1.4,
         argPe: 0,
         quality: Quality.OnRails,
@@ -68,12 +68,12 @@ describe("OrbitView: O3: no finite-negative apoapsis leaks into the overlay scal
       }
     });
 
-    // The apoapsis is null, never the `sma·(1+ecc)` figure of -1200000.
+    // The apoapsis is null, never the `sma·(1+ecc)` figure of -4800000.
     const solve = solved as OrbitalSolve | null;
     expect(solve).not.toBeNull();
     expect(solve?.apoapsisRadius).toBeNull();
-    // Periapsis stays real: sma·(1-ecc) = -500000 * (1 - 1.4) = 200000.
-    expect(solve?.periapsisRadius).toBeCloseTo(200_000);
+    // Periapsis stays real: sma·(1-ecc) = -2000000 * (1 - 1.4) = 800000.
+    expect(solve?.periapsisRadius).toBeCloseTo(800_000);
   });
 });
 

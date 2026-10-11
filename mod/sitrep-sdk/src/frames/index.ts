@@ -142,6 +142,7 @@ export {
   bodyOrbitInput,
   ORBIT_RING_SAMPLES,
   type OrbitTrajectory,
+  openOrbitArc,
   orbitRing,
   type TrajectoryFrame,
   TrajectoryFrameKindLike,

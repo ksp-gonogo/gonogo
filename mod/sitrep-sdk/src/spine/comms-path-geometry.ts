@@ -204,7 +204,7 @@ export function locateCommsPeer(
  * parent chain per peer is the usual way this gets slow.
  *
  * Null when the peer's body is not in the instant (its parent chain would not
- * solve) or the peer's own solve refuses, a hyperbolic relay orbit included.
+ * solve) or the peer's own solve refuses, as it does for a parabolic orbit.
  */
 export function commsPeerPositionAt(
   peer: CommsPeerLocation,

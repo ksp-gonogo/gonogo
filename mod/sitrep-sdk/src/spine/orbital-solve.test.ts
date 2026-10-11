@@ -92,22 +92,33 @@ describe("solveOrbit", () => {
   });
 
   /**
-   * The anomaly solve is elliptical-only and throws on a hyperbola, so every
-   * figure built on it reads null rather than a finite number from a formula
-   * that does not apply.
+   * `2π/n` is finite on a hyperbola and is not a period, so the shape withholds
+   * it and not the arithmetic. The craft still has a place on the orbit, and
+   * here it left periapsis 500 s ago, so there is no apsis ahead of it.
    */
-  it("reads null for the period, anomaly and apsis countdowns on a hyperbolic orbit, without throwing", () => {
+  it("reads null for the period and the apsis countdowns on a hyperbolic orbit past periapsis, and still places the craft", () => {
+    const s = solveOrbit(circular(-SMA, 1.2), ut(500), BODY_RADIUS);
+    expect(s.period).toBeNull();
+    expect(s.timeToAp).toBeNull();
+    expect(s.timeToPe).toBeNull();
+    expect(s.nextApsisType).toBeNull();
+    expect(s.timeToNextApsis).toBeNull();
+    expect(s.trueAnomaly).toBeGreaterThan(0);
+    expect(s.trueAnomaly).toBeLessThan(180);
+    expect(s.orbitalRadius).toBeGreaterThan(-SMA * (1 - 1.2));
+    expect(s.periapsisAlt).toBeCloseTo(-SMA * (1 - 1.2) - BODY_RADIUS, 6);
+  });
+
+  it("reads null for every solved figure on a parabolic orbit, without throwing", () => {
     let s: ReturnType<typeof solveOrbit> | undefined;
     expect(() => {
-      s = solveOrbit(circular(-SMA, 1.2), ut(500), BODY_RADIUS);
+      s = solveOrbit(circular(SMA, 1), ut(500), BODY_RADIUS);
     }).not.toThrow();
     expect(s?.period).toBeNull();
     expect(s?.trueAnomaly).toBeNull();
-    expect(s?.timeToAp).toBeNull();
     expect(s?.timeToPe).toBeNull();
-    expect(s?.nextApsisType).toBeNull();
-    expect(s?.timeToNextApsis).toBeNull();
-    expect(s?.periapsisAlt).toBeCloseTo(-SMA * (1 - 1.2) - BODY_RADIUS, 6);
+    expect(s?.orbitalRadius).toBeNull();
+    expect(s?.apoapsisRadius).toBeNull();
   });
 
   it("counts down to periapsis from just past it, and names that apsis next", () => {

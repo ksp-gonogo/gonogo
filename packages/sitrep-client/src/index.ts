@@ -287,6 +287,7 @@ export {
   librationPositionsFor,
   meanAnomalyAt,
   ORBIT_RING_SAMPLES,
+  openOrbitArc,
   orbitRing,
   orbitTrajectory,
   PropagationHorizonKindLike,

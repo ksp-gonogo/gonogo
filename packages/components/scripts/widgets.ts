@@ -1178,6 +1178,14 @@ const WIDGETS: WidgetRenderConfig[] = [
         forFixtures: ["kerbin-orbit-no-target"],
         config: { frame: "Kerbol" },
       },
+      // A craft on a flyby of the Mun in a frame centred on Kerbin: its open arc is drawn at the Mun, inside the Mun's sphere of influence.
+      {
+        name: "open-orbit-in-parent-frame-10x12",
+        w: 10,
+        h: 12,
+        forFixtures: ["mun-flyby-open-orbit"],
+        config: { frame: "Kerbin" },
+      },
       // The aspect extremes at this widget's minSize, where the shared 5x18 and 18x5 fall below it.
       { name: "portrait-6x18", w: 6, h: 18 },
       { name: "landscape-18x8", w: 18, h: 8 },

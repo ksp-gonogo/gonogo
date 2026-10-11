@@ -155,6 +155,8 @@ function sweptAreaFraction(E: number, e: number, intervals: number): number {
 const CONFORMANT: ReadonlyArray<{
   name: string;
   solve: (M: number, e: number) => number;
+  /** Set where the door takes an open orbit too, and answers it through the hyperbolic form. */
+  solvesOpenOrbits?: true;
 }> = [
   {
     name: "mod/sitrep-sdk/src/spine/kepler.ts (solveEccentricAnomaly)",
@@ -176,6 +178,7 @@ const CONFORMANT: ReadonlyArray<{
         },
         0,
       ).eccentricAnomaly,
+    solvesOpenOrbits: true,
   },
   {
     // The same function as the first entry now, reached through the name its own
@@ -273,11 +276,27 @@ describe("Kepler's equation: the contract every solver must satisfy", () => {
       it("refuses an eccentricity the elliptic form does not describe", () => {
         // The contract, picked rather than left to whichever file a caller happened
         // to reach: at e >= 1 the elliptic form of Kepler's equation does not apply,
-        // so a solver must refuse rather than return a number.
-        for (const e of [1.0, 1.4, 2.5]) {
+        // so a solver must refuse rather than return a number. A door that also
+        // takes an open orbit refuses the one eccentricity neither form describes.
+        for (const e of impl.solvesOpenOrbits ? [1.0] : [1.0, 1.4, 2.5]) {
           expect(() => impl.solve(1.0, e)).toThrow();
         }
       });
+
+      it.runIf(impl.solvesOpenOrbits === true)(
+        "answers an open orbit through the hyperbolic form, never the elliptic one",
+        () => {
+          for (const e of [1.0001, 1.4, 2.5, 40]) {
+            for (const M of [-250, -3, -1e-6, 0, 0.2, 1, 9, 4000]) {
+              const H = impl.solve(M, e);
+              expect(
+                Math.abs(e * Math.sinh(H) - H - M),
+                `e=${e} M=${M}: got H=${H}`,
+              ).toBeLessThanOrEqual(1e-9 * Math.max(1, Math.abs(M)));
+            }
+          }
+        },
+      );
     });
   }
 

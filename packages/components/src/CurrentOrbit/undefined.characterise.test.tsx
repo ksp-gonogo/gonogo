@@ -46,6 +46,8 @@ interface OrbitEmission {
   sma: number;
   ecc: number;
   inc?: number;
+  /** Mean anomaly at UT 0, radians; 0 puts the craft at periapsis. */
+  meanAnomalyAtEpoch?: number;
   /** Give the body a radius and emit `vessel.identity`, which the apsis altitudes and the body caption need. The roster is always emitted, since the conic declares it as an input. */
   withBody?: boolean;
 }
@@ -61,7 +63,7 @@ function emitOrbit(fixture: StreamFixture, o: OrbitEmission) {
         inc: o.inc ?? 0.3,
         lan: 0,
         argPe: 0,
-        meanAnomalyAtEpoch: 0,
+        meanAnomalyAtEpoch: o.meanAnomalyAtEpoch ?? 0,
         epoch: 0,
         mu: KERBIN_MU,
         horizon: ANALYTIC_UNBOUNDED_HORIZON,
@@ -154,8 +156,13 @@ describe("CurrentOrbit: a partial payload, the body without its radius", () => {
 describe("CurrentOrbit: null (inapplicable) versus undefined (nothing yet)", () => {
   it("catches a null Ap and a null t-Ap at the widget's own gate", async () => {
     const { container, fixture } = renderCurrentOrbit({ w: 9, h: 18 });
-    // A hyperbolic escape: apoapsis, the countdowns and the period arrive as `null` while periapsis stays real.
-    emitOrbit(fixture, { sma: -2000000, ecc: 1.35, withBody: true });
+    // A hyperbolic escape past its periapsis: apoapsis, the countdowns and the period arrive as `null` while periapsis stays real.
+    emitOrbit(fixture, {
+      sma: -2000000,
+      ecc: 1.35,
+      meanAnomalyAtEpoch: 0.5,
+      withBody: true,
+    });
 
     await waitFor(() => expect(visibleText(container)).toContain("Kerbin"));
 

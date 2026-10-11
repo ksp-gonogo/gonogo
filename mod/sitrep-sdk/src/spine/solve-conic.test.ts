@@ -67,10 +67,10 @@ describe("solveConic", () => {
     );
   });
 
-  it("refuses an unbound shape rather than answering", () => {
-    const hyperbolic = { ...conicOf(ELEMENTS), ecc: value("1", 1.2) };
+  it("refuses a parabolic shape rather than answering", () => {
+    const parabolic = { ...conicOf(ELEMENTS), ecc: value("1", 1) };
     expect(() =>
-      solveConic(hyperbolic, value("rad·s⁻¹", 1e-4), value("ut", 200)),
+      solveConic(parabolic, value("rad·s⁻¹", 1e-4), value("ut", 200)),
     ).toThrow(RangeError);
   });
 

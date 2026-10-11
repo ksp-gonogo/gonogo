@@ -205,9 +205,10 @@ export function buildElements(o: WireOrbitElements): OrbitElements {
 }
 
 /**
- * Returns whether an orbit with eccentricity `ecc` is not elliptical: 1 or
- * more, as on an escape or a flyby. {@link solve} throws for such an orbit;
- * {@link trySolve} returns `null`.
+ * Returns whether an orbit with eccentricity `ecc` is open: 1 or more, as on
+ * an escape or a flyby. An open orbit has no apoapsis and no period, and its
+ * periapsis is passed once. {@link solve} carries one with `ecc` above 1
+ * along its hyperbola and throws for `ecc` exactly 1.
  *
  * @category Reckoners
  */
@@ -216,8 +217,8 @@ export function isHyperbolic(ecc: number): boolean {
 }
 
 /**
- * Returns the same as {@link solve}, or `null` for an orbit that is not
- * elliptical instead of throwing.
+ * Returns the same as {@link solve}, or `null` for a parabolic orbit (`ecc`
+ * exactly 1) instead of throwing.
  *
  * @category Reckoners
  */
@@ -225,12 +226,13 @@ export function trySolve(
   elements: OrbitElements,
   ut: number,
 ): StateVector | null {
-  return isHyperbolic(elements.ecc) ? null : solve(elements, ut);
+  return elements.ecc === 1 ? null : solve(elements, ut);
 }
 
 /**
- * Returns the same as {@link solveAnomalies}, or `null` for an orbit that is
- * not elliptical instead of throwing.
+ * Returns the same as {@link solveAnomalies}, or `null` for a parabolic
+ * orbit (`ecc` exactly 1) instead of throwing. On an open orbit the answer's
+ * mean motion is not a period; see {@link Anomalies}.
  *
  * @category Reckoners
  */
@@ -238,14 +240,14 @@ export function trySolveAnomalies(
   elements: OrbitElements,
   ut: number,
 ): Anomalies | null {
-  return isHyperbolic(elements.ecc) ? null : solveAnomalies(elements, ut);
+  return elements.ecc === 1 ? null : solveAnomalies(elements, ut);
 }
 
 /**
  * Returns a craft's position and velocity relative to its parent body at
- * `ut`, from its orbital elements as a payload carries them, or `null` for an
- * orbit that is not elliptical. The same computation Gonogo uses for the
- * active craft.
+ * `ut`, from its orbital elements as a payload carries them, closed or open,
+ * or `null` for a parabolic orbit (`ecc` exactly 1). The same computation
+ * Gonogo uses for the active craft.
  *
  * @category Reckoners
  */
@@ -536,7 +538,7 @@ export function loadedRegimeDecline(
   if (now === null) {
     return underPhysics(
       "@vessel.orbit",
-      "hyperbolic elements: there is no position to show the craft clear of the air",
+      "parabolic elements: there is no position to show the craft clear of the air",
     );
   }
   if (!(magnitude(now.position) > floor)) {

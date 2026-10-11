@@ -5,7 +5,12 @@ import {
   TrajectoryFrameKindLike,
 } from "@ksp-gonogo/sitrep-client";
 import { type DepthGradientAxis, depthGradientAxis } from "./depthCues";
-import { orbitPointAt, orbitRingOf } from "./orbitGeometry";
+import {
+  openOrbitArcOf,
+  openOrbitReach,
+  orbitPointAt,
+  orbitRingOf,
+} from "./orbitGeometry";
 import type { Placement } from "./projection";
 import type { CelestialBody } from "./useCelestialBodies";
 
@@ -21,6 +26,8 @@ export interface VesselOrbit {
   inclination: number;
   /** True anomaly, degrees. */
   trueAnomaly: number;
+  /** Radius of the sphere of influence of the body the orbit is about, metres, which is as far as an open orbit is drawn. Null or absent where that body states none. */
+  soi?: number | null;
 }
 
 /** One drawn thing, in plot units, with the depth the projection dropped. */
@@ -269,13 +276,50 @@ export function placeBodies({
   };
 }
 
-/** The vessel's ring, which depends on its elements and not on where it is along them. `origin` is where the body it orbits sits against the frame body, in metres. */
+/**
+ * An open orbit's arc inside the sphere of influence it is in: both ends stand on that sphere, so the path is never closed and nothing is drawn beyond where the orbit holds.
+ * It carries no far-end mark, because an end here is a sphere-of-influence crossing and not the limit of what a provider vouched for.
+ */
+function placedOpenArcOf(
+  placement: Placement,
+  plotScale: number,
+  vessel: Pick<
+    VesselOrbit,
+    "sma" | "ecc" | "lan" | "argPe" | "inclination" | "soi"
+  >,
+  origin: Metres,
+): PlacedRing {
+  const reach = openOrbitReach(vessel.sma, vessel.ecc, vessel.soi);
+  if (reach === null) return NO_RING;
+  const points = openOrbitArcOf(
+    vessel.sma,
+    vessel.ecc,
+    vessel.lan,
+    vessel.argPe,
+    vessel.inclination,
+    reach,
+  ).map((p) => placement.place(shifted(p, origin)));
+  if (points.length < 2) return NO_RING;
+  return {
+    ring: openPath(points, plotScale),
+    ringDepth: depthGradientAxis(points, plotScale),
+    ringEnd: null,
+  };
+}
+
+/** The vessel's ring, or for an open orbit its arc, which depends on its elements and not on where it is along them. `origin` is where the body it orbits sits against the frame body, in metres. */
 export function placeVesselRing(
-  vessel: Pick<VesselOrbit, "sma" | "ecc" | "lan" | "argPe" | "inclination">,
+  vessel: Pick<
+    VesselOrbit,
+    "sma" | "ecc" | "lan" | "argPe" | "inclination" | "soi"
+  >,
   placement: Placement,
   plotScale: number,
   origin: Metres = ORIGIN,
 ): PlacedRing {
+  if (vessel.ecc >= 1) {
+    return placedOpenArcOf(placement, plotScale, vessel, origin);
+  }
   return placedRingOf(
     placement,
     plotScale,
@@ -380,9 +424,19 @@ export function maxApoapsis(children: readonly CelestialBody[]): number {
 /** Room the auto-fit view keeps between the outermost orbit and the viewBox edge, px. */
 const DIAGRAM_PAD = 20;
 
+/** The furthest the vessel's drawn path reaches from the body it orbits, metres: its apoapsis, or for an open orbit the end of its arc. Zero where neither exists. */
+function vesselPathExtent(
+  vessel: Pick<VesselOrbit, "sma" | "ecc" | "soi">,
+): number {
+  if (vessel.ecc >= 1) {
+    return openOrbitReach(vessel.sma, vessel.ecc, vessel.soi) ?? 0;
+  }
+  return vessel.sma * (1 + vessel.ecc);
+}
+
 /**
  * Metres to SVG user units at zoom 1: the projection's fixed half-extent when
- * it states one, otherwise the outermost body orbit or the vessel's own apoapsis
+ * it states one, otherwise the outermost body orbit or the vessel's own path
  * in the frame, whichever reaches further.
  */
 export function diagramPlotScale({
@@ -397,7 +451,10 @@ export function diagramPlotScale({
   height: number;
   extent: Placement["extent"];
   maxRadius: number;
-  vessel: { parentName: string; sma: number; ecc: number } | null | undefined;
+  vessel:
+    | { parentName: string; sma: number; ecc: number; soi?: number | null }
+    | null
+    | undefined;
   parentName: string;
 }): number {
   const baseRadius = Math.min(width, height) / 2 - DIAGRAM_PAD;
@@ -407,7 +464,7 @@ export function diagramPlotScale({
   const effectiveMax = Math.max(
     maxRadius,
     vessel && nameMatches(vessel.parentName, parentName)
-      ? vessel.sma * (1 + Math.min(vessel.ecc, 0.999))
+      ? vesselPathExtent(vessel)
       : 0,
   );
   return effectiveMax > 0 ? baseRadius / effectiveMax : 1;

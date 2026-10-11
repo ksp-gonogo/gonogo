@@ -201,6 +201,7 @@ export function SystemDiagram({
   const vLan = vesselHere?.lan;
   const vArgPe = vesselHere?.argPe;
   const vInc = vesselHere?.inclination;
+  const vSoi = vesselHere?.soi;
   // The ring is keyed on the elements' numbers, which hold still while the vessel moves along them.
   const vesselRing = useMemo(
     () =>
@@ -217,12 +218,13 @@ export function SystemDiagram({
               lan: vLan,
               argPe: vArgPe,
               inclination: vInc,
+              soi: vSoi,
             },
             placement,
             plotScale,
             origin ?? ZERO_METRES,
           ),
-    [vSma, vEcc, vLan, vArgPe, vInc, placement, plotScale, origin],
+    [vSma, vEcc, vLan, vArgPe, vInc, vSoi, placement, plotScale, origin],
   );
   const vTrueAnomaly = vesselHere?.trueAnomaly;
   const vesselPoint = useMemo(

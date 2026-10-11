@@ -17,8 +17,9 @@ const TWO_PI = 2 * Math.PI;
 /** Re-exported for this module's long-standing importers; declared in the unit system. */
 export { STANDARD_GRAVITY } from "../unit-system/definitions";
 
-/** Orbital period (seconds) of an ellipse: `2π·sqrt(sma³/mu)`. `null` for a non-bound (sma ≤ 0) or non-finite orbit. */
+/** Orbital period (seconds) of an ellipse: `2π·sqrt(sma³/mu)`. `null` for an open orbit (ecc ≥ 1 or sma ≤ 0), which has no period, and for a non-finite one. */
 export function orbitalPeriod(elements: OrbitElements): number | null {
+  if (elements.ecc >= 1) return null;
   if (elements.sma <= 0 || !Number.isFinite(elements.sma)) return null;
   const period = TWO_PI * Math.sqrt(elements.sma ** 3 / elements.mu);
   return Number.isFinite(period) ? period : null;

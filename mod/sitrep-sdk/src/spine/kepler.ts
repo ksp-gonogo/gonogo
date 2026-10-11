@@ -21,10 +21,13 @@
  * `KeplerProvider.cs` -- if the algorithm needs to change, change both
  * sides and regenerate the golden fixtures.
  *
- * Deterministic and side-effect-free: no wall-clock, no RNG. Only
- * elliptical orbits (0 <= ecc < 1) are supported -- this is the
- * dead-reckoning foundation for bound orbits, not an escape-trajectory
- * solver.
+ * Deterministic and side-effect-free: no wall-clock, no RNG.
+ *
+ * An open orbit (ecc > 1, as on a flyby or an escape) is solved here through
+ * the hyperbolic anomaly. `KeplerProvider` refuses one, so that branch has no
+ * C# twin and no golden fixture; its tests check it against the vis-viva
+ * energy and angular momentum of the elements instead. A parabolic orbit
+ * (ecc exactly 1) has neither anomaly and is refused by name.
  */
 
 import type { Value } from "../unit-system/value";
@@ -166,9 +169,9 @@ export function canPropagate(
  * @category Orbits and trajectories
  */
 export interface OrbitElements {
-  /** Semi-major axis, in metres. */
+  /** Semi-major axis, in metres. Negative on an open orbit, as the game reports it. */
   sma: number;
-  /** Eccentricity: 0 for a circle, below 1 for an ellipse. */
+  /** Eccentricity: 0 for a circle, below 1 for an ellipse, above 1 for an open orbit. */
   ecc: number;
   /** Inclination, radians. */
   inc: number;
@@ -176,7 +179,7 @@ export interface OrbitElements {
   lan: number;
   /** Argument of periapsis, radians. */
   argPe: number;
-  /** Mean anomaly at `epoch`, radians. */
+  /** Mean anomaly at `epoch`, radians. On an open orbit it is zero at periapsis, negative before it, and unbounded. */
   meanAnomalyAtEpoch: number;
   /** UT (seconds) at which `meanAnomalyAtEpoch` is valid. */
   epoch: number;
@@ -209,17 +212,39 @@ export interface StateVector {
  * Where an orbit is at one instant, as angles in radians, with its mean
  * motion. {@link solveAnomalies} returns one.
  *
+ * An open orbit (`ecc > 1`) has no period, so `2π / meanMotion` is not one:
+ * its mean motion is only the rate its mean anomaly advances at.
+ *
  * @category Orbits and trajectories
  */
 export interface Anomalies {
-  /** Mean anomaly at the solved instant. */
+  /** Mean anomaly at the solved instant: within `[0, 2π)` on a closed orbit, any real number on an open one. */
   meanAnomaly: number;
-  /** Eccentric anomaly at the solved instant. */
+  /** Eccentric anomaly at the solved instant. On an open orbit this is the hyperbolic anomaly. */
   eccentricAnomaly: number;
-  /** True anomaly at the solved instant. */
+  /** True anomaly at the solved instant. On an open orbit it stays inside the asymptotes, `|ν| < acos(-1/ecc)`. */
   trueAnomaly: number;
-  /** Mean motion, radians/second: `sqrt(mu / sma^3)`. */
+  /** Mean motion, radians/second: `sqrt(mu / |sma|^3)`. */
   meanMotion: number;
+}
+
+/**
+ * Returns whether an orbit of eccentricity `ecc` is open, solved through the
+ * hyperbolic anomaly, or closed, solved through the eccentric one. Throws a
+ * `RangeError` for a negative eccentricity and for a parabolic orbit
+ * (`ecc` exactly 1), which has neither anomaly.
+ */
+function isOpenConic(ecc: number): boolean {
+  if (ecc > 1.0) return true;
+  if (ecc === 1.0) {
+    throw new RangeError(
+      "A parabolic orbit (ecc = 1) is not solved here: it has no eccentric or hyperbolic anomaly",
+    );
+  }
+  if (ecc < 0.0) {
+    throw new RangeError(`Eccentricity cannot be negative; got ecc=${ecc}`);
+  }
+  return false;
 }
 
 /**
@@ -261,24 +286,50 @@ export function eccentricFromTrueAnomaly(
 }
 
 /**
+ * Returns the true anomaly for a hyperbolic anomaly, both in radians, on an
+ * open orbit (`ecc > 1`). Zero at periapsis and negative before it.
+ *
+ * @category Orbits and trajectories
+ * @intent an Uplink that solved a hyperbolic anomaly of its own, for a flyby or an escape preview, turns it into the angle a drawn point needs
+ */
+export function trueAnomalyFromHyperbolic(
+  hyperbolicAnomaly: number,
+  ecc: number,
+): number {
+  return (
+    2.0 *
+    Math.atan(
+      Math.sqrt((ecc + 1.0) / (ecc - 1.0)) * Math.tanh(hyperbolicAnomaly / 2.0),
+    )
+  );
+}
+
+/**
  * Returns `orbit`'s anomalies and mean motion at `ut`, in UT seconds: the
- * same computation {@link solve} makes, for a caller that needs an angle or
- * the orbital period rather than a position. Throws a `RangeError` for an
- * orbit that is not elliptical.
+ * same computation {@link solve} makes, for a caller that needs an angle
+ * rather than a position. An open orbit (`ecc > 1`) is solved through the
+ * hyperbolic anomaly; see {@link Anomalies} for what each field holds then.
+ * Throws a `RangeError` for a parabolic orbit (`ecc` exactly 1) and for a
+ * negative eccentricity.
  *
  * @category Orbits and trajectories
  */
 export function solveAnomalies(orbit: OrbitElements, ut: number): Anomalies {
-  if (orbit.ecc < 0.0 || orbit.ecc >= 1.0) {
-    throw new RangeError(
-      `KeplerProvider only supports elliptical orbits (0 <= ecc < 1); got ecc=${orbit.ecc}`,
-    );
+  // Only the size of the semi-major axis is read on an open orbit, which the game reports as negative.
+  const sma = isOpenConic(orbit.ecc) ? Math.abs(orbit.sma) : orbit.sma;
+  const meanMotion = Math.sqrt(orbit.mu / (sma * sma * sma));
+  const advanced = orbit.meanAnomalyAtEpoch + meanMotion * (ut - orbit.epoch);
+  if (orbit.ecc > 1.0) {
+    const hyperbolicAnomaly = solveHyperbolicAnomaly(advanced, orbit.ecc);
+    return {
+      meanAnomaly: advanced,
+      eccentricAnomaly: hyperbolicAnomaly,
+      trueAnomaly: trueAnomalyFromHyperbolic(hyperbolicAnomaly, orbit.ecc),
+      meanMotion,
+    };
   }
 
-  const meanMotion = Math.sqrt(orbit.mu / (orbit.sma * orbit.sma * orbit.sma));
-  const meanAnomaly = wrapTwoPi(
-    orbit.meanAnomalyAtEpoch + meanMotion * (ut - orbit.epoch),
-  );
+  const meanAnomaly = wrapTwoPi(advanced);
 
   const eccentricAnomaly = solveEccentricAnomaly(meanAnomaly, orbit.ecc);
 
@@ -307,14 +358,14 @@ export function meanAnomalyAt(
 }
 
 /**
- * The shape and phase of a bound conic, as quantities.
+ * The shape and phase of a conic, closed or open, as quantities.
  *
  * @category Orbits and trajectories
  */
 export interface ConicShape {
-  /** Semi-major axis. */
+  /** Semi-major axis. Negative on an open orbit. */
   sma: Value<"m">;
-  /** Eccentricity, `0 <= ecc < 1`. */
+  /** Eccentricity: below 1 for a closed orbit, above 1 for an open one. */
   ecc: Value<"1">;
   /** Mean anomaly at `epoch`. */
   meanAnomalyAtEpoch: Value<"rad">;
@@ -329,13 +380,13 @@ export interface ConicShape {
  * @category Orbits and trajectories
  */
 export interface ConicSolution {
-  /** Mean anomaly at the solved instant, wrapped to `[0, 2π)`. */
+  /** Mean anomaly at the solved instant: wrapped to `[0, 2π)` on a closed orbit, any real number on an open one. */
   meanAnomaly: number;
-  /** Eccentric anomaly at the solved instant. */
+  /** Eccentric anomaly at the solved instant. On an open orbit this is the hyperbolic anomaly. */
   eccentricAnomaly: number;
   /** True anomaly at the solved instant. */
   trueAnomaly: number;
-  /** Distance from the body's centre, `sma·(1 − ecc·cos E)`. */
+  /** Distance from the body's centre. */
   radius: number;
 }
 
@@ -343,9 +394,11 @@ export interface ConicSolution {
  * Returns where an orbit is at `ut`, in its own plane: its anomalies and its
  * distance from the body's centre. For a position, use {@link solve}.
  *
- * Pass the mean motion yourself, in radians per second: `2π / period` for an
- * orbit from the game, which carries its period, or `√(mu / sma³)` for
- * elements alone. Throws a `RangeError` when `ecc` is not between 0 and 1.
+ * Pass the mean motion yourself, in radians per second: `2π / period` for a
+ * closed orbit from the game, which carries its period, or `√(mu / |sma|³)`
+ * for elements alone, which is the only source on an open orbit. Throws a
+ * `RangeError` for a parabolic orbit (`ecc` exactly 1) and for a negative
+ * eccentricity.
  *
  * @category Orbits and trajectories
  * @intent an Uplink drawing its own patch chain or manoeuvre preview advances a conic the same way the built-in widgets do, with the figure for the mean motion that suits its source
@@ -363,6 +416,15 @@ export function solveConic(
     conic.epoch,
     ut,
   );
+  if (isOpenConic(ecc)) {
+    const hyperbolicAnomaly = solveHyperbolicAnomaly(advanced, ecc);
+    return {
+      meanAnomaly: advanced,
+      eccentricAnomaly: hyperbolicAnomaly,
+      trueAnomaly: trueAnomalyFromHyperbolic(hyperbolicAnomaly, ecc),
+      radius: Math.abs(sma) * (ecc * Math.cosh(hyperbolicAnomaly) - 1),
+    };
+  }
   const eccentricAnomaly = solveEccentricAnomaly(advanced, ecc);
   return {
     meanAnomaly: wrapTwoPi(advanced),
@@ -374,18 +436,26 @@ export function solveConic(
 
 /**
  * Returns the position and velocity of `orbit` at `ut`, in UT seconds,
- * relative to its parent body. The same result as the mod's own propagation.
- * Throws a `RangeError` for an orbit that is not elliptical.
+ * relative to its parent body. On a closed orbit, the same result as the
+ * mod's own propagation. An open orbit (`ecc > 1`) is carried along its
+ * hyperbola, and only the size of `sma` is read for one. Throws a
+ * `RangeError` for a parabolic orbit (`ecc` exactly 1) and for a negative
+ * eccentricity.
  *
  * @category Orbits and trajectories
  */
 export function solve(orbit: OrbitElements, ut: number): StateVector {
   const { eccentricAnomaly, trueAnomaly } = solveAnomalies(orbit, ut);
 
-  const radius = orbit.sma * (1.0 - orbit.ecc * Math.cos(eccentricAnomaly));
+  const open = orbit.ecc > 1.0;
+  const radius = open
+    ? Math.abs(orbit.sma) * (orbit.ecc * Math.cosh(eccentricAnomaly) - 1.0)
+    : orbit.sma * (1.0 - orbit.ecc * Math.cos(eccentricAnomaly));
 
   // Specific angular momentum magnitude; for ecc=0 this reduces to sqrt(mu*sma), giving the expected circular speed sqrt(mu/sma) below.
-  const h = Math.sqrt(orbit.mu * orbit.sma * (1.0 - orbit.ecc * orbit.ecc));
+  const h = open
+    ? Math.sqrt(orbit.mu * Math.abs(orbit.sma) * (orbit.ecc * orbit.ecc - 1.0))
+    : Math.sqrt(orbit.mu * orbit.sma * (1.0 - orbit.ecc * orbit.ecc));
 
   const cosNu = Math.cos(trueAnomaly);
   const sinNu = Math.sin(trueAnomaly);
@@ -438,10 +508,7 @@ export function solveEccentricAnomaly(
   ecc: number,
 ): number {
   if (ecc < 0.0 || ecc >= 1.0) {
-    // The same refusal `solveAnomalies` and `solve` give, for the same reason: the
-    // elliptic form of Kepler's equation does not describe an unbound trajectory, so
-    // there is no answer to return. Returning one anyway is precisely the defect this
-    // function exists to have exactly one copy of.
+    // An open orbit has no eccentric anomaly to return; `solveHyperbolicAnomaly` solves the open form.
     throw new RangeError(
       `Kepler's equation is solved here only for elliptical orbits (0 <= ecc < 1); got ecc=${ecc}`,
     );
@@ -479,6 +546,51 @@ function solveWrappedEccentricAnomaly(
 
   // Never satisfying the tolerance simply returns the last iterate rather than throwing, the same non-convergence handling as the C# side.
   return eccentricAnomaly;
+}
+
+const MAX_HYPERBOLIC_ITERATIONS = 100;
+
+/**
+ * Returns the hyperbolic anomaly `H` that solves `M = e·sinh(H) − H` for a
+ * mean anomaly `M`, in radians, on an open orbit (`ecc > 1`). `M` is any real
+ * number: zero at periapsis, negative before it. Throws a `RangeError` when
+ * `ecc` is not above 1.
+ *
+ * @category Orbits and trajectories
+ * @intent an Uplink previewing a flyby or an escape of its own advances the open orbit with the same solver the built-in widgets use
+ */
+export function solveHyperbolicAnomaly(
+  meanAnomaly: number,
+  ecc: number,
+): number {
+  /*
+   * Newton-Raphson from above the root. The equation is odd in H, so it is
+   * solved for |M| and the sign restored. For H > 0 the function
+   * f(H) = e·sinh(H) − H − |M| is increasing and convex, and
+   * e·sinh(H) − H >= (e − 1)·sinh(H) puts asinh(|M| / (e − 1)) at or above the
+   * root. Newton on an increasing convex function from above its root steps
+   * down toward it and never past it, so this converges for every |M| and
+   * every e > 1, a grazing e included, where a start at M itself can diverge.
+   */
+  if (!(ecc > 1.0)) {
+    throw new RangeError(
+      `The hyperbolic form of Kepler's equation needs an open orbit (ecc > 1); got ecc=${ecc}`,
+    );
+  }
+  const target = Math.abs(meanAnomaly);
+  if (target === 0 || !Number.isFinite(target)) return meanAnomaly;
+
+  let hyperbolicAnomaly = Math.asinh(target / (ecc - 1.0));
+  for (let i = 0; i < MAX_HYPERBOLIC_ITERATIONS; i++) {
+    const f = ecc * Math.sinh(hyperbolicAnomaly) - hyperbolicAnomaly - target;
+    const fPrime = ecc * Math.cosh(hyperbolicAnomaly) - 1.0;
+    const delta = f / fPrime;
+    hyperbolicAnomaly -= delta;
+    if (Math.abs(delta) < NEWTON_TOLERANCE * Math.max(1.0, hyperbolicAnomaly)) {
+      break;
+    }
+  }
+  return meanAnomaly < 0 ? -hyperbolicAnomaly : hyperbolicAnomaly;
 }
 
 /**

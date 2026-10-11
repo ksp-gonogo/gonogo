@@ -18,7 +18,12 @@ export function overlayGeometry({
 }: {
   parentName: string | null;
   children: readonly CelestialBody[];
-  vesselOrbit: { parentName: string; sma: number; ecc: number } | null;
+  vesselOrbit: {
+    parentName: string;
+    sma: number;
+    ecc: number;
+    soi?: number | null;
+  } | null;
   size: { w: number; h: number };
   projection: Placement | null;
   /** What an entity needs of the model: the instant, a body's μ, where a body is. */

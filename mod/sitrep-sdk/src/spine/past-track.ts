@@ -77,13 +77,11 @@ export function pastTrack(
     }
 
     const elements = buildElements(sample.payload);
-    if (
-      !(elements.ecc < 1) ||
-      !(elements.sma > 0) ||
-      !Number.isFinite(elements.mu)
-    ) {
-      // An escape trajectory has no closed solution here, and a sample that
-      // arrived incomplete cannot be placed. Dropping the point keeps the trail
+    const closed = elements.ecc >= 0 && elements.ecc < 1 && elements.sma > 0;
+    const open = elements.ecc > 1 && elements.sma < 0;
+    if (!(closed || open) || !Number.isFinite(elements.mu)) {
+      // A parabolic orbit has no solution here, and a sample that arrived
+      // incomplete cannot be placed. Dropping the point keeps the trail
       // honest about which instants it can speak for.
       continue;
     }

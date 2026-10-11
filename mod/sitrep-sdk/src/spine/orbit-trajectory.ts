@@ -40,7 +40,7 @@ import {
   type OrbitElements,
   type PropagationHorizonLike,
   rotatePerifocalToInertial,
-  solveAnomalies,
+  solve,
   TrajectoryKindLike,
   type Vec3Tuple,
 } from "./kepler";
@@ -475,8 +475,11 @@ export function trajectoryFrameKindFor(
  * that is exactly what the osculating elements cannot promise. Where the
  * provider's horizon is shorter, the horizon wins, which is the point of it.
  *
- * For a provider that integrates, this is the ellipse the craft is tangent to
+ * For a provider that integrates, this is the conic the craft is tangent to
  * right now, bounded by the horizon that provider named.
+ *
+ * An open orbit never comes back round, so only a horizon ends its arc: with
+ * none stated there is no arc.
  */
 function sampleArc(
   elements: OrbitElements,
@@ -485,32 +488,24 @@ function sampleArc(
   samples: number | undefined,
   centreBodyIndex: number | undefined,
 ): TrajectoryArcAnswer | null {
-  // `solveAnomalies` refuses outside `[0, 1)`, so an unbound osculating set has no arc rather than a thrown render.
-  if (!(elements.ecc >= 0 && elements.ecc < 1)) return null;
+  // `solve` refuses a parabolic or negative eccentricity, so such a set has no arc rather than a thrown render.
+  const closed = elements.ecc >= 0 && elements.ecc < 1;
+  if (!closed && !(elements.ecc > 1)) return null;
   const period = orbitalPeriod(elements);
-  if (period === null) return null;
+  if (closed && period === null) return null;
 
   const horizonUt = horizon === undefined ? undefined : horizonUtOf(horizon);
-  const revolutionUt = viewUt + period;
+  const revolutionUt =
+    period === null ? Number.POSITIVE_INFINITY : viewUt + period;
   const toUt = Math.min(revolutionUt, horizonUt ?? Number.POSITIVE_INFINITY);
-  if (!(toUt > viewUt)) return null;
+  if (!(toUt > viewUt) || !Number.isFinite(toUt)) return null;
 
   const count = Math.max(2, Math.floor(samples ?? DEFAULT_ARC_SAMPLES));
   const points: TrajectoryPoint[] = [];
   for (let i = 0; i < count; i++) {
     const ut = viewUt + ((toUt - viewUt) * i) / (count - 1);
-    const { eccentricAnomaly, trueAnomaly } = solveAnomalies(elements, ut);
-    const radius =
-      elements.sma * (1 - elements.ecc * Math.cos(eccentricAnomaly));
-    if (!Number.isFinite(radius)) return null;
-    // A conic is flat in its own plane by construction, so the plane's normal component is a real zero rather than an unfilled field.
-    const [x, y, z] = rotatePerifocalToInertial(
-      radius * Math.cos(trueAnomaly),
-      radius * Math.sin(trueAnomaly),
-      elements.inc,
-      elements.lan,
-      elements.argPe,
-    );
+    const [x, y, z] = solve(elements, ut).position;
+    if (!Number.isFinite(x + y + z)) return null;
     points.push({ x, y, z, ut });
   }
   return {
@@ -675,8 +670,8 @@ export const ORBIT_RING_SAMPLES = 96;
  * axes, metres: `samples + 1` points, the last equal to the first.
  *
  * Sampled uniformly in eccentric anomaly so points spread along the curve
- * instead of piling up at apoapsis. Eccentricity is held below 1, so an
- * unbound set draws its widest ellipse rather than failing.
+ * instead of piling up at apoapsis. An open orbit (`ecc` of 1 or more) has no
+ * ring and answers with no points; {@link openOrbitArc} draws one.
  *
  * @category Frames of reference
  */
@@ -684,7 +679,8 @@ export function orbitRing(
   orbit: Pick<OrbitElements, "sma" | "ecc" | "inc" | "lan" | "argPe">,
   samples: number = ORBIT_RING_SAMPLES,
 ): Vec3Tuple[] {
-  const ecc = Math.min(Math.max(orbit.ecc, 0), 0.999);
+  if (orbit.ecc >= 1) return [];
+  const ecc = Math.max(orbit.ecc, 0);
   const semiMinor = orbit.sma * Math.sqrt(1 - ecc * ecc);
   const points: Vec3Tuple[] = [];
   for (let i = 0; i <= samples; i++) {
@@ -693,6 +689,50 @@ export function orbitRing(
       rotatePerifocalToInertial(
         orbit.sma * (Math.cos(anomaly) - ecc),
         semiMinor * Math.sin(anomaly),
+        orbit.inc,
+        orbit.lan,
+        orbit.argPe,
+      ),
+    );
+  }
+  return points;
+}
+
+/**
+ * The part of an open orbit (`ecc` above 1) that lies within `maxRadius`
+ * metres of its parent's centre, in the parent's inertial axes, metres:
+ * `samples + 1` points from the inbound end, through periapsis, to the
+ * outbound end, both ends at `maxRadius`. Useful for drawing a flyby or an
+ * escape inside the sphere of influence it happens in, which is where the
+ * orbit holds. Used by the system diagram for a craft on an open orbit.
+ *
+ * Sampled uniformly in hyperbolic anomaly, so points gather near periapsis
+ * where the path bends. Only the size of `sma` is read. No points when the
+ * orbit is not open, or when `maxRadius` is not a finite distance beyond its
+ * periapsis.
+ *
+ * @category Frames of reference
+ */
+export function openOrbitArc(
+  orbit: Pick<OrbitElements, "sma" | "ecc" | "inc" | "lan" | "argPe">,
+  maxRadius: number,
+  samples: number = ORBIT_RING_SAMPLES,
+): Vec3Tuple[] {
+  if (!(orbit.ecc > 1) || !Number.isFinite(maxRadius)) return [];
+  const size = Math.abs(orbit.sma);
+  if (!(size > 0) || !Number.isFinite(size)) return [];
+  // r = |a|·(e·cosh H − 1), so the anomaly at `maxRadius` is where cosh H reaches this.
+  const coshAtEdge = (1 + maxRadius / size) / orbit.ecc;
+  if (!(coshAtEdge > 1)) return [];
+  const edge = Math.acosh(coshAtEdge);
+  const semiMinor = size * Math.sqrt(orbit.ecc * orbit.ecc - 1);
+  const points: Vec3Tuple[] = [];
+  for (let i = 0; i <= samples; i++) {
+    const anomaly = edge * ((2 * i) / samples - 1);
+    points.push(
+      rotatePerifocalToInertial(
+        size * (orbit.ecc - Math.cosh(anomaly)),
+        semiMinor * Math.sinh(anomaly),
         orbit.inc,
         orbit.lan,
         orbit.argPe,

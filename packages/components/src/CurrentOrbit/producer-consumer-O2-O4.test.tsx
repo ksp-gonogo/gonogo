@@ -32,7 +32,7 @@ describe("CurrentOrbit: a hyperbolic orbit still counts as hasOrbit", () => {
         "vessel.orbit",
         {
           referenceBodyIndex: 1,
-          sma: -500_000,
+          sma: -2_000_000,
           ecc: 1.4,
           inc: 0,
           lan: 0,

@@ -505,7 +505,7 @@ function registerFlightReckoner(): void {
           declined: {
             reason: "model-inapplicable",
             input: "@vessel.orbit",
-            note: "hyperbolic elements: the elliptical solver has no answer for them",
+            note: "parabolic elements: neither the closed nor the open solve has an answer for them",
           },
         };
       }
@@ -754,7 +754,7 @@ function registerCommsDelayReckoner(): void {
  * It needs the active craft on a conic, by the same admissibility every other
  * conic here asks for, so a craft under thrust or in the air offers no ranges
  * and each such row falls back to saying only how old its news is. A row with
- * no orbit, a hyperbolic one, or one round a body the catalogue cannot weigh
+ * no orbit, a parabolic one, or one round a body the catalogue cannot weigh
  * is simply not named.
  */
 function registerTargetRosterReckoner(): void {
@@ -949,7 +949,7 @@ function registerOrbitTruthReckoner(): void {
           declined: {
             reason: "model-inapplicable",
             input: "@vessel.orbit",
-            note: "hyperbolic elements: the elliptical solver has no answer for them",
+            note: "parabolic elements: neither the closed nor the open solve has an answer for them",
           },
         };
       }
