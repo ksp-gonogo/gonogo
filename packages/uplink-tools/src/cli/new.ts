@@ -290,9 +290,16 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   }
 }
 
-// The unit of each field, from the [SitrepUnit] attributes in the contract slice. It is what lets <Unit> write a value with its unit.
-for (const [topic, units] of Object.entries(GENERATED_TOPIC_UNITS)) {
-  registerTopicUnits(topic, units, GENERATED_TOPIC_SHAPES[topic] ?? {});
+// The unit of each field, from the [SitrepUnit] attributes in the contract slice. It is what lets <Unit> write a value with its unit. A Topic whose only field is a list of another type has shapes and no units of its own, so the loop walks both maps.
+for (const topic of new Set([
+  ...Object.keys(GENERATED_TOPIC_UNITS),
+  ...Object.keys(GENERATED_TOPIC_SHAPES),
+])) {
+  registerTopicUnits(
+    topic,
+    GENERATED_TOPIC_UNITS[topic] ?? {},
+    GENERATED_TOPIC_SHAPES[topic] ?? {},
+  );
 }
 for (const [typeName, units] of Object.entries(GENERATED_TYPE_UNITS)) {
   registerTypeUnits(typeName, units, GENERATED_TYPE_SHAPES[typeName] ?? {});

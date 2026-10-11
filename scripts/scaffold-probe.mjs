@@ -918,6 +918,20 @@ console.log(
   "  ✓ the bundle, its sidecar, the DLL and the zip agree with each other",
 );
 
+// A Topic holding only a list of a contract type appears in the generated shapes map and not the units map; the scaffold's registration loop has to walk both or every <Unit> in that list draws a dash.
+{
+  const topicsSource = readFileSync(join(client, "src/topics.ts"), "utf8");
+  if (
+    !topicsSource.includes("Object.keys(GENERATED_TOPIC_SHAPES)") ||
+    topicsSource.includes("of Object.entries(GENERATED_TOPIC_UNITS)")
+  ) {
+    fail(
+      "the scaffolded topics.ts registers units only for Topics with a unit-bearing field of their own, so a Topic that is only a list of a contract type never registers its item shapes",
+    );
+  }
+  console.log("  ✓ topics.ts registers every Topic that has units or shapes");
+}
+
 // ── Plants in the author's own commands ─────────────────────────────────────
 
 console.log("scaffold-probe: plants");

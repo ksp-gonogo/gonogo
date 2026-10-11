@@ -73,6 +73,11 @@ describe("uplink-tools new", () => {
     expect(files.get("client/src/topics.ts")).toContain(
       '"widgets.heartbeat": WidgetsHeartbeat;',
     );
+    // A Topic holding only a list of a contract type has shapes and no units, so it reaches registration only through the shapes map.
+    const topics = files.get("client/src/topics.ts") ?? "";
+    expect(topics).toContain("Object.keys(GENERATED_TOPIC_SHAPES)");
+    expect(topics).toContain("Object.keys(GENERATED_TOPIC_UNITS)");
+    expect(topics).not.toContain("of Object.entries(GENERATED_TOPIC_UNITS)");
     for (const [path, content] of files) {
       if (path.endsWith(".json"))
         expect(() => JSON.parse(content)).not.toThrow();
