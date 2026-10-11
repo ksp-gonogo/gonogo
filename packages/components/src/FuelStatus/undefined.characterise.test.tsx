@@ -114,7 +114,7 @@ describe("FuelStatus: what undefined means today", () => {
   });
 
   it("hides the stage caption while vessel.structure has not arrived, even with a stage count in hand", async () => {
-    // `currentStage` gates the whole caption, so the known stage count is not shown either.
+    // `currentStage` is the caption's only input, so a budget that arrived does not stand in for it.
     const fixture = makeFixture();
     renderFuel(fixture);
 
@@ -129,8 +129,8 @@ describe("FuelStatus: what undefined means today", () => {
     expect(screen.queryByText(/^Stage /)).not.toBeInTheDocument();
   });
 
-  it("writes a bare 'Stage 0' with no stage count when dv.summary has not arrived", async () => {
-    // `stageCount !== undefined` gates only the " / N" suffix, so this half of the caption degrades in place rather than vanishing.
+  it("writes 'Stage 0' from vessel.structure alone when dv.summary has not arrived", async () => {
+    // The caption reads only `currentStage`, so it does not wait on the budget.
     const fixture = makeFixture();
     renderFuel(fixture);
 
@@ -141,7 +141,6 @@ describe("FuelStatus: what undefined means today", () => {
     await waitFor(() =>
       expect(screen.getByText("Stage 0")).toBeInTheDocument(),
     );
-    expect(screen.queryByText(/Stage 0 \//)).not.toBeInTheDocument();
   });
 
   it("highlights no stage at all when the current stage is unknown", async () => {

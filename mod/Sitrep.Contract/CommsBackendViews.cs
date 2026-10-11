@@ -226,12 +226,12 @@ public readonly struct CommsLinkState
     /// <summary>
     /// The backend's own strength for the whole path home, 0 to 1, published
     /// unchanged on <see cref="CommsSignal"/>. <see cref="Quantity"/> says what
-    /// it measures: under stock CommNet a range fraction, under RealAntennas a
-    /// fraction of data-rate headroom.
+    /// it measures: under stock CommNet the share of the link's range left,
+    /// under RealAntennas the share of data-rate headroom left.
     /// </summary>
     public double PathStrength { get; }
 
-    /// <summary>Which quantity <see cref="PathStrength"/> is: a backend names its own, since a fraction of range and a fraction of data-rate headroom are different figures.</summary>
+    /// <summary>Which quantity <see cref="PathStrength"/> is: a backend names its own, since the share of range left and the share of data-rate headroom left are different figures.</summary>
     public SignalQuantity Quantity { get; }
 }
 

@@ -218,10 +218,10 @@ public enum SignalQuantity
     /// <summary>Nothing says which: the hops of a worked-out path disagree, or a read failed.</summary>
     Unknown,
 
-    /// <summary>How far inside its range the link is, 0 at the edge of range and 1 at no distance: stock CommNet's.</summary>
+    /// <summary>The share of the link's range left: 0 at the edge of range and 1 at no distance. Stock CommNet's.</summary>
     RangeFraction,
 
-    /// <summary>How much headroom the link has over its data rate, 0 where the lowest rate fails and 1 at the top of the ladder: RealAntennas'.</summary>
+    /// <summary>The share of data-rate headroom left: 0 where the lowest rate fails and 1 at the top of the ladder. RealAntennas'.</summary>
     DataRateHeadroom,
 
     /// <summary>A stand-in: the save models no comms network, so there is no link to grade and the figure is 1.</summary>
