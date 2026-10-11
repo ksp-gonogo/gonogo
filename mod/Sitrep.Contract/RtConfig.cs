@@ -486,6 +486,7 @@ public static class RtConfig
                 typeof(Situation),
                 typeof(TargetKind),
                 typeof(TransitionType),
+                typeof(UnreachableReason),
                 typeof(PropagationCertification),
                 typeof(PropagationHorizonKind),
                 typeof(TrajectoryKind),

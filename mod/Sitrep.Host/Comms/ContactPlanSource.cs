@@ -1100,7 +1100,7 @@ namespace Sitrep.Host.Comms
                     memory = new RosterMemory();
                     _rosterMemory[centre] = memory;
                 }
-                memory.Observe(roster, looked.Ut);
+                memory.Observe(roster, looked.Ut, _hearing.HeardAt(centre));
                 var to = ToItself(centre);
 
                 var changed = !_rosterSent.TryGetValue(centre, out var sent) || !CentreRoster.Same(sent, roster);
