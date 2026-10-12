@@ -105,7 +105,29 @@ import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
  */
 const EMPTY_DASHBOARD: DashboardConfig = { items: [], layouts: {} };
 
-const BASE_DASHBOARD_KEY = "gonogo:dashboard:main";
+/** Builds its value on the first call and returns that same value from then on. */
+function once<T>(create: () => T): () => T {
+  let made: { value: T } | null = null;
+  return () => {
+    made ??= { value: create() };
+    return made.value;
+  };
+}
+
+/*
+ * The services that listen to the peer host for the app's lifetime. Each
+ * subscribes in its constructor and is never disposed, so there must be one of
+ * each per page: React may call a state initialiser more than once, and a
+ * second GO/NO-GO host would run a second countdown and stage twice at T-0.
+ */
+const goNoGoHostOnce = once(() => new GoNoGoHostService(peerHostService));
+const pushHostOnce = once(() => new PushHostService(peerHostService));
+const alarmHostOnce = once(() => createAlarmHost(peerHostService));
+const notesHostOnce = once(() => createNotesHost(peerHostService));
+const maneuverTriggerHostOnce = once(() =>
+  createManeuverTriggerHost(peerHostService),
+);
+
 const SCENE_SCOPED_KEYS = new Set([
   "SpaceCenter",
   "Editor",
@@ -113,10 +135,13 @@ const SCENE_SCOPED_KEYS = new Set([
   "TrackingStation",
 ]);
 
-function dashboardKeyForScene(scene: string | undefined): string {
-  return scene && SCENE_SCOPED_KEYS.has(scene)
-    ? `${BASE_DASHBOARD_KEY}:${scene}`
-    : BASE_DASHBOARD_KEY;
+/** Each screen keeps its own layouts: a pilot's dashboard is not the main screen's. */
+function dashboardKeyForScene(
+  screen: Screen,
+  scene: string | undefined,
+): string {
+  const base = `gonogo:dashboard:${screen}`;
+  return scene && SCENE_SCOPED_KEYS.has(scene) ? `${base}:${scene}` : base;
 }
 
 /**
@@ -241,20 +266,14 @@ export function MainScreen({
   );
   const [settingsService] = useState(() => new SettingsService());
   const [missionProfiles] = useState(() => new MissionProfilesService(screen));
-  // GoNoGoHostService lives for the app's lifetime. Intentionally no dispose
-  // cleanup: StrictMode's simulated unmount would run it and leave the
-  // second mount with a zombie service that no longer receives host events
-  // (the useState initializer only runs once per mount cycle).
-  const [goNoGoHost] = useState(() => new GoNoGoHostService(peerHostService));
-  const [pushHost] = useState(() => new PushHostService(peerHostService));
-  const [alarmHost] = useState(() => createAlarmHost(peerHostService));
-  const [notesHost] = useState(() => createNotesHost(peerHostService));
+  const [goNoGoHost] = useState(goNoGoHostOnce);
+  const [pushHost] = useState(pushHostOnce);
+  const [alarmHost] = useState(alarmHostOnce);
+  const [notesHost] = useState(notesHostOnce);
   const [commcastLog] = useState(() =>
     hostsThePeerMesh ? createCommcastLog() : null,
   );
-  const [maneuverTriggerHost] = useState(() =>
-    createManeuverTriggerHost(peerHostService),
-  );
+  const [maneuverTriggerHost] = useState(maneuverTriggerHostOnce);
   // Prime the module-scoped sound flag from the persisted setting and keep
   // it in sync. MAIN-ONLY: StationScreen never calls this, so station
   // tones stay structurally impossible. Default ON.
@@ -319,16 +338,22 @@ export function MainScreen({
        * the main screen's own picker owns it there.
        */}
       {screen === "pilot" && <PilotVantage />}
-      <ReplaySessionProvider>
-        <ScreenProvider value={screen}>
-          <SettingsProvider service={settingsService}>
-            <AnalyticsConsentHost
-              service={analyticsConsentService}
-              peerHost={peerHostService}
-            />
-            <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
-            <ConsoleSettingsFromHost service={settingsService} />
-            <AutoRecordControllerWithMissionHistory />
+      <ScreenProvider value={screen}>
+        <SettingsProvider service={settingsService}>
+          <AnalyticsConsentHost
+            service={analyticsConsentService}
+            peerHost={peerHostService}
+          />
+          <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
+          <ConsoleSettingsFromHost service={settingsService} />
+          {/*
+           * Above the replay provider, so it records the live stream. Below
+           * it, entering a replay would remount it, which saves the live
+           * recording early, and it would then record the replay itself as
+           * new missions.
+           */}
+          <AutoRecordControllerWithMissionHistory />
+          <ReplaySessionProvider>
             <AlarmHostProvider service={alarmHost}>
               {/*
                * So a deliberate press on this screen's own warp control does
@@ -366,9 +391,9 @@ export function MainScreen({
                 </NotesHostProvider>
               </WarpIntentProvider>
             </AlarmHostProvider>
-          </SettingsProvider>
-        </ScreenProvider>
-      </ReplaySessionProvider>
+          </ReplaySessionProvider>
+        </SettingsProvider>
+      </ScreenProvider>
     </SitrepTelemetryProvider>
   );
 }
@@ -390,7 +415,7 @@ function MainDashboard({
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
   const dashboard = useDashboardState(
-    dashboardKeyForScene(scene),
+    dashboardKeyForScene(screen, scene),
     EMPTY_DASHBOARD,
   );
 

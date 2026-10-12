@@ -3,6 +3,7 @@ import { StationConnectView } from "@ksp-gonogo/ui";
 import { Button, Text } from "@ksp-gonogo/ui-kit";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { StationSupersededNotice } from "../components/StationSupersededNotice";
 import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientService } from "../peer/PeerClientService";
 import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
@@ -160,6 +161,7 @@ export function PilotScreen() {
          * at a command centre and a pilot was indistinguishable from one.
          */}
         <StationInfoBroadcaster client={client} seat="pilot" />
+        <StationSupersededNotice client={client} />
         {!connected && !dismissed && (
           <PilotScreen__CommsBanner role="status" aria-live="polite">
             <Text size="xs" tone="warn">

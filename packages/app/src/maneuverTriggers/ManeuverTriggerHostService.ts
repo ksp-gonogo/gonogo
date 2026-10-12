@@ -22,7 +22,10 @@ import {
   getVesselOrbit,
   getVesselTarget,
   getViewUt,
+  holdActiveTopicRead,
   onActiveTimelineFrame,
+  resolveValueTopic,
+  sampleActiveReading,
   solveOrbit,
 } from "@ksp-gonogo/sitrep-client";
 import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
@@ -57,8 +60,9 @@ import type { PeerHostService } from "../peer/PeerHostService";
  * `useTelemetry` would read. An armed
  * trigger's own `dataKey` is operator-picked but never arbitrary: the widget's
  * `DataKeyPicker` only offers `@ksp-gonogo/data`'s `useNumericFields`, so the threshold read
- * (`getValue`) and the maneuver-node fire (`dispatchActiveCommand`) both ride
- * the stream, the same way `LocalManeuverTriggerService` does.
+ * and the maneuver-node fire (`dispatchActiveCommand`) both ride the stream.
+ * Each armed trigger holds its own subscription to the Topic its condition
+ * reads, and compares only a reading the stream is currently reporting.
  */
 
 const STORAGE_KEY = "gonogo.maneuverTriggers.list";
@@ -103,6 +107,12 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   private triggers: ArmedTrigger[] = [];
   private listeners = new Set<(snap: TriggerSnapshot) => void>();
   private fired = new Set<string>();
+  /**
+   * The wire subscription each armed trigger keeps on the Topic its condition
+   * reads, by trigger id. Without one the Topic arrives only while some widget
+   * happens to show it, and a condition on a field nothing shows never fires.
+   */
+  private holds = new Map<string, () => void>();
   private vesselUnsub: (() => void) | null = null;
   private host: PeerHostService | null;
   private store: LocalStorageStore<ArmedTrigger[]>;
@@ -131,6 +141,8 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
   dispose(): void {
     this.vesselUnsub?.();
     this.vesselUnsub = null;
+    for (const release of this.holds.values()) release();
+    this.holds.clear();
     this.listeners.clear();
   }
 
@@ -156,6 +168,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     const before = this.triggers.length;
     this.triggers = this.triggers.filter((t) => t.id !== id);
     this.fired.delete(id);
+    this.syncHolds();
     if (this.triggers.length !== before) {
       this.persist();
       this.emit();
@@ -239,7 +252,40 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     }
   }
 
+  /** Hold the Topic of every trigger still waiting on its condition, and let go of the rest. */
+  private syncHolds(): void {
+    const waiting = new Map(
+      this.triggers.filter((t) => !t.failure).map((t) => [t.id, t]),
+    );
+    for (const [id, release] of this.holds) {
+      if (waiting.has(id)) continue;
+      release();
+      this.holds.delete(id);
+    }
+    for (const [id, trigger] of waiting) {
+      if (this.holds.has(id)) continue;
+      const topic = resolveValueTopic(trigger.dataKey);
+      if (topic === undefined) continue;
+      this.holds.set(id, holdActiveTopicRead(topic, "maneuver-trigger"));
+    }
+  }
+
+  /**
+   * The condition's field as the stream reports it now, or `undefined` when
+   * there is no current report. A value the stream has stopped sending is not
+   * compared: a burn must not be commanded on a figure nothing is updating.
+   */
+  private readCondition(dataKey: string): number | undefined {
+    const topic = resolveValueTopic(dataKey);
+    if (topic === undefined) return undefined;
+    if (sampleActiveReading<unknown>(topic).state !== "observed") {
+      return undefined;
+    }
+    return getValue(dataKey);
+  }
+
   private evaluate(): void {
+    this.syncHolds();
     if (this.triggers.length === 0) {
       this.fired.clear();
       return;
@@ -256,7 +302,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
         continue;
       }
       if (this.fired.has(t.id) || t.failure) continue;
-      const value = getValue(t.dataKey);
+      const value = this.readCondition(t.dataKey);
       if (value === undefined) continue;
       if (!compareThreshold(value, t.op, t.value)) continue;
       this.fired.add(t.id);
@@ -267,6 +313,7 @@ export class ManeuverTriggerHostService implements ManeuverTriggerService {
     }
     this.pruneFired();
     if (mutated) {
+      this.syncHolds();
       this.persist();
       this.emit();
     }

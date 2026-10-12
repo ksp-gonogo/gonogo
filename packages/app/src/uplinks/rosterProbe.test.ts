@@ -1,3 +1,4 @@
+import { resetSettingsForTests, seedSetting } from "@ksp-gonogo/core";
 import { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -41,6 +42,45 @@ afterEach(() => {
 });
 
 describe("probeUplinkRoster", () => {
+  it("dials the host that is in effect once hostReady settles", async () => {
+    const dialled: string[] = [];
+    class RecordingSocket {
+      readyState = 0;
+      constructor(url: string) {
+        dialled.push(url);
+      }
+      addEventListener(): void {}
+      removeEventListener(): void {}
+      send(): void {}
+      close(): void {}
+    }
+    vi.stubGlobal("WebSocket", RecordingSocket);
+    try {
+      const hostReady = Promise.resolve().then(() => {
+        seedSetting("gameHost", "ksp-box");
+      });
+      await probeUplinkRoster({ hostReady, timeoutMs: 20 });
+      expect(dialled.length).toBeGreaterThan(0);
+      for (const url of dialled) expect(url).toContain("ksp-box");
+    } finally {
+      vi.unstubAllGlobals();
+      resetSettingsForTests();
+    }
+  });
+
+  it("stops waiting on a hostReady that never settles", async () => {
+    const stub = new StubTransport();
+    const pending = probeUplinkRoster({
+      transport: stub,
+      timeoutMs: 1000,
+      hostReady: new Promise(() => {}),
+      hostReadyTimeoutMs: 10,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    stub.emit("system.uplinks", rosterPayload());
+    expect(await pending).toHaveLength(2);
+  });
+
   it("resolves the decoded roster with expectedClientHash + clientSource carried", async () => {
     const stub = new StubTransport();
     const pending = probeUplinkRoster({ transport: stub, timeoutMs: 1000 });

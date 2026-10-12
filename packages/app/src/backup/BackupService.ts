@@ -47,6 +47,14 @@ const TRANSIENT_KEYS = new Set<string>([
 ]);
 
 /**
+ * Key families that are this browser's working state rather than something an
+ * operator configured. Commands still awaiting their outcome belong to the
+ * session that sent them: restored into another browser they would be reported
+ * as lost there.
+ */
+const TRANSIENT_PREFIXES = ["gonogo.sitrep.outstandingCommands."];
+
+/**
  * Per-device-instance identity: the station's stable key. Restoring it onto
  * another device clones the instance identity, which
  * is usually wrong, so they're excluded unless the operator opts in via the
@@ -69,6 +77,7 @@ export interface BuildBackupOptions {
 export function isBackupKey(key: string, includeIdentity: boolean): boolean {
   if (!GONOGO_KEY_PREFIX.test(key)) return false;
   if (TRANSIENT_KEYS.has(key)) return false;
+  if (TRANSIENT_PREFIXES.some((prefix) => key.startsWith(prefix))) return false;
   if (!includeIdentity && IDENTITY_KEYS.has(key)) return false;
   return true;
 }
@@ -134,7 +143,9 @@ export function validateBackup(parsed: unknown): BackupPayload {
 }
 
 /**
- * REPLACE-mode restore: overwrite every key in the payload's `data`. Keys not
+ * REPLACE-mode restore: overwrite every key in the payload's `data` that a
+ * backup may hold, so a file cannot write a key an export would never have
+ * produced. A device identity is restored when the file carries one. Keys not
  * present in the payload are left as-is. Pure aside from writing localStorage,
  * the caller is responsible for reloading the page so services re-read the
  * restored state.
@@ -142,6 +153,7 @@ export function validateBackup(parsed: unknown): BackupPayload {
 export function applyBackup(payload: BackupPayload): void {
   if (typeof localStorage === "undefined") return;
   for (const [key, value] of Object.entries(payload.data)) {
+    if (!isBackupKey(key, true)) continue;
     localStorage.setItem(key, value);
   }
 }

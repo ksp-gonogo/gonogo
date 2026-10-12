@@ -36,6 +36,15 @@ describe("sitrepRuntime host = core gameHost", () => {
     expect(getSitrepHostConfig().port).toBe(8090);
   });
 
+  it("saving the seeded host persists it past the seed", () => {
+    seedSetting("gameHost", "seeded-box");
+    setSitrepHostConfig({ host: "seeded-box", port: 8090 });
+    const stored = Array.from({ length: localStorage.length }, (_, i) =>
+      localStorage.getItem(localStorage.key(i) ?? ""),
+    ).join();
+    expect(stored).toContain("seeded-box");
+  });
+
   it("setSitrepHostConfig writes host to core and persists port locally", () => {
     setSitrepHostConfig({ host: "my-box", port: 8091 });
     expect(getGameHost()).toBe("my-box");

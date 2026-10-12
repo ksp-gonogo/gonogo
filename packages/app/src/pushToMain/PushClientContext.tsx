@@ -3,7 +3,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { usePeerClient } from "../peer/PeerClientContext";
@@ -29,18 +31,30 @@ const PushClientContext = createContext<PushClientValue | null>(null);
 
 export function PushClientProvider({ children }: { children: ReactNode }) {
   const client = usePeerClient();
-  const [pushed, setPushed] = useState<Set<string>>(() => new Set());
+  const [pushed, setPushed] = useState<ReadonlyMap<string, PushIntent>>(
+    () => new Map(),
+  );
+  const pushedRef = useRef(pushed);
+  pushedRef.current = pushed;
+
+  /* The main screen forgets a station's pushed widgets when the link drops,
+     and a restarted main screen never had them. Every hello is therefore
+     answered with the widgets this station still means to have pushed, which
+     also covers a push made while the link was down. */
+  useEffect(() => {
+    if (!client) return;
+    return client.onHostHello(() => {
+      for (const intent of pushedRef.current.values()) {
+        client.sendWidgetPush(intent);
+      }
+    });
+  }, [client]);
 
   const push = useCallback(
     (intent: PushIntent) => {
       if (!client) return;
       client.sendWidgetPush(intent);
-      setPushed((prev) => {
-        if (prev.has(intent.widgetInstanceId)) return prev;
-        const next = new Set(prev);
-        next.add(intent.widgetInstanceId);
-        return next;
-      });
+      setPushed((prev) => new Map(prev).set(intent.widgetInstanceId, intent));
     },
     [client],
   );
@@ -51,7 +65,7 @@ export function PushClientProvider({ children }: { children: ReactNode }) {
       client.sendWidgetRecall(widgetInstanceId);
       setPushed((prev) => {
         if (!prev.has(widgetInstanceId)) return prev;
-        const next = new Set(prev);
+        const next = new Map(prev);
         next.delete(widgetInstanceId);
         return next;
       });
