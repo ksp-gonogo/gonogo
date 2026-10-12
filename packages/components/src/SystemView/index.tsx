@@ -43,6 +43,7 @@ import type { SystemViewConfig } from "./config";
 import { nameMatches } from "./diagramGeometry";
 import { encounterDirectionOf } from "./encounter";
 import { frameCaption, resolveFrame } from "./frame";
+import { useFrameHandover } from "./frameHandover";
 import { overlayGeometry, viewedGeometry } from "./overlayGeometry";
 import {
   followControlFrameProjection,
@@ -240,10 +241,16 @@ function SystemViewComponent({
     return m;
   }, [systemBodies]);
 
+  /*
+   * The body the elements are about, where there are elements: the craft's identity and its orbit arrive on separate channels, and across a change of sphere of influence one names the new body before the other does.
+   * Taking the orbit's own keeps the frame, the drawn orbit and the scale that fits it changing together.
+   */
+  const vesselBodyIndex =
+    orbit?.referenceBodyIndex ?? identity?.parentBodyIndex ?? null;
   const vesselBody =
-    identity?.parentBodyIndex != null
-      ? (nameByIndex.get(identity.parentBodyIndex) ?? null)
-      : null;
+    vesselBodyIndex === null
+      ? null
+      : (nameByIndex.get(vesselBodyIndex) ?? null);
 
   // The orbit model's solve at the viewed instant, so a craft it refuses to advance is refused here too.
   const derived = useOrbitSolve();
@@ -531,30 +538,74 @@ function SystemViewComponent({
     }),
     [universalTime, bodies, poses, frameBodyIndex],
   );
-  const overlayContext = useMemo(
+  const fitGeometry = useMemo(
     () =>
-      viewedGeometry(
-        overlayGeometry({
-          parentName,
-          children,
-          vesselOrbit,
-          size,
-          projection,
-          places,
-        }),
-        panZoom.zoom,
-        panZoom.pan,
-      ),
-    [
-      parentName,
-      children,
-      vesselOrbit,
-      size,
-      projection,
-      places,
-      panZoom.zoom,
-      panZoom.pan,
-    ],
+      overlayGeometry({
+        parentName,
+        children,
+        vesselOrbit,
+        size,
+        projection,
+        places,
+      }),
+    [parentName, children, vesselOrbit, size, projection, places],
+  );
+  /*
+   * Where a body sits from the frame body as the diagram places it, for carrying the view across a change of frame.
+   * Only in a frame that draws plain metres: a frame that turns or pulsates places the two bodies by its own rule, and the view is then put back to the whole picture.
+   */
+  const placeOfBody = useCallback(
+    (bodyName: string) => {
+      if (projection !== null && projection.extent.kind !== "auto-fit-metres") {
+        return null;
+      }
+      if (utBucket == null) return null;
+      const offset = offsetAt(bodyName, utBucket);
+      if (offset === null) return null;
+      const placed = (projection ?? INERTIAL_PLACEMENT).place([
+        offset.x,
+        offset.y,
+        offset.z,
+      ]);
+      return { x: placed[0], y: placed[1] };
+    },
+    [projection, utBucket, offsetAt],
+  );
+  const leftFrame = useFrameHandover({
+    frameName: parentName,
+    craftBodyName: vesselBody,
+    plotScale: fitGeometry?.plotScale ?? null,
+    placeOf: placeOfBody,
+    view: panZoom,
+  });
+  /*
+   * The body the frame body orbits, kept on the picture or pointed to from its edge: a moon's planet.
+   * A planet's star is left out. No craft arrives in a planet's frame from the star's by leaving the star behind, and a pointer to it on every planet's diagram would be furniture.
+   */
+  const frameParentBody =
+    parentName === null
+      ? undefined
+      : bodies.find(
+          (b) =>
+            b.name === bodies.find((f) => f.name === parentName)?.referenceBody,
+        );
+  const frameParentName =
+    frameParentBody?.referenceBody == null
+      ? null
+      : (frameParentBody.name ?? null);
+  const frameParent = useMemo(() => {
+    if (frameParentName === null || utBucket == null) return null;
+    const offset = offsetAt(frameParentName, utBucket);
+    return offset === null
+      ? null
+      : {
+          name: frameParentName,
+          at: [offset.x, offset.y, offset.z] as const,
+        };
+  }, [frameParentName, utBucket, offsetAt]);
+  const overlayContext = useMemo(
+    () => viewedGeometry(fitGeometry, panZoom.zoom, panZoom.pan),
+    [fitGeometry, panZoom.zoom, panZoom.pan],
   );
   // What an overlay augment receives: the same geometry, plus the one call that lands a point where the bodies are drawn.
   const overlayProps = useMemo<SystemOverlayContext | null>(() => {
@@ -629,6 +680,7 @@ function SystemViewComponent({
                 parentName,
                 encounterDirection,
                 encounterBody,
+                leftFrame,
               })}
             </div>
             <ContactCaption
@@ -711,6 +763,7 @@ function SystemViewComponent({
                           : () => activateEntity(activeVesselEntityId)
                       }
                       patchChain={patchChain}
+                      frameParent={frameParent}
                       projection={projection}
                       width={size.w}
                       height={size.h}

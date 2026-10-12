@@ -29,6 +29,7 @@ import {
   ArcFarEndMark,
   DepthGradient,
   EncounterMarker,
+  FrameParentMark,
   PredictedPatchArc,
   VesselOrbitPath,
 } from "./diagramMarks";
@@ -91,6 +92,11 @@ export interface SystemDiagramProps {
     trajectory: OrbitTrajectory | null;
     encounter: TargetEncounter | null;
   } | null;
+  /** The body the frame body orbits and where it is from the frame body, in metres. Drawn at its place while that is on the picture and pointed to from the edge when it is not, so the body a craft just left the neighbourhood of stays findable. Null for the root star, or while the model has no place for it. */
+  frameParent?: {
+    name: string;
+    at: readonly [number, number, number];
+  } | null;
   /** The craft's predicted route about the frame body, in metres: the game's patch chain as arcs and sphere-of-influence crossings. */
   patchChain?: PatchChain | null;
   /** The instant a body's open arc is read from, held by the host to one real second so a ring is not re-placed on every frame; absent reads each pose's own instant. */
@@ -132,6 +138,7 @@ export function SystemDiagram({
   vesselSelected = false,
   onVesselActivate,
   vesselOrigin,
+  frameParent = null,
   patchChain,
   bucketUt,
   projection = null,
@@ -319,6 +326,18 @@ export function SystemDiagram({
           },
     [patchChain, plotScale, placement],
   );
+
+  const frameParentName = frameParent?.name;
+  const frameParentAt = frameParent?.at;
+  const frameParentPoint = useMemo(() => {
+    if (frameParentAt === undefined) return null;
+    const p = placement.place([
+      frameParentAt[0],
+      frameParentAt[1],
+      frameParentAt[2],
+    ]);
+    return { x: p[0] * plotScale, y: p[1] * plotScale };
+  }, [frameParentAt, placement, plotScale]);
 
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
   const tiltGradId = useId();
@@ -543,6 +562,16 @@ export function SystemDiagram({
             zoom={zoom}
           />
         ))}
+
+        {frameParentName !== undefined && frameParentPoint !== null && (
+          <FrameParentMark
+            name={frameParentName}
+            frameBodyName={parent.name ?? parentName}
+            at={frameParentPoint}
+            view={{ x: pan.x, y: pan.y, halfW, halfH }}
+            zoom={zoom}
+          />
+        )}
 
         {/* Drawn last so it stays on top. */}
         {placed.vessel && (

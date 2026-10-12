@@ -61,8 +61,12 @@ export function usePanZoom(
           ? // Zoom is about the diagram's centre, so the hook's pointer position is unused.
             (deltaY: number) => {
               const factor = deltaY < 0 ? 1.15 : 1 / 1.15;
+              // A view carried across a change of frame can sit outside the limits; a notch then moves it from where it is and never snaps it to one.
               setZoom((z) =>
-                Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * factor)),
+                Math.max(
+                  Math.min(MIN_ZOOM, z),
+                  Math.min(Math.max(MAX_ZOOM, z), z * factor),
+                ),
               );
             }
           : null,
@@ -91,6 +95,15 @@ export function usePanZoom(
     setPan({ x: 0, y: 0 });
   }, []);
 
+  /** Puts the view at a zoom and centre outright, leaving `following` as it is: for a view carried over from another frame, which the zoom limits do not bind. */
+  const setView = useCallback(
+    (view: { zoom: number; pan: { x: number; y: number } }) => {
+      setZoom(view.zoom);
+      setPan(view.pan);
+    },
+    [],
+  );
+
   /** Centres the view on a point in the diagram's own user units, keeping the zoom. While `following` is on, the diagram calls this each time the point moves. */
   const focusOn = useCallback((point: { x: number; y: number }) => {
     setPan({ x: point.x, y: point.y });
@@ -104,6 +117,7 @@ export function usePanZoom(
     setFollowing,
     handlePointerDown,
     resetView,
+    setView,
     focusOn,
   };
 }

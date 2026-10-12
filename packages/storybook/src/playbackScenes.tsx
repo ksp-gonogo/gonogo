@@ -10,7 +10,6 @@ import {
 import type { PlaybackFrame } from "../../components/scripts/playbackFrame";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
 import {
-  ENCOUNTER_UT,
   transferFirstScene,
   transferFrames,
 } from "../../components/scripts/systemTransferModel";
@@ -122,8 +121,8 @@ function pressButton(scene: HTMLElement, name: string): void {
     ?.click();
 }
 
-/** Following the craft and zooming in on it, as an operator would, so the burn's parking orbit and the climb away from it read at their own scale. */
-function followAndZoom(scene: HTMLElement): void {
+/** Following the craft and zooming in on it, as an operator would, so the burn's parking orbit and the climb away from it read at their own scale. Nothing is pressed again: where the craft becomes the Mun's, the widget carries the view across by itself. */
+function followTheCraft(scene: HTMLElement): undefined {
   pressButton(scene, "Focus vessel");
   const diagram = scene.querySelector("svg[viewBox]");
   for (let notch = 0; notch < FOLLOW_ZOOM_NOTCHES; notch++) {
@@ -141,21 +140,12 @@ function followAndZoom(scene: HTMLElement): void {
 /** Each notch is a 1.15 times zoom. Twelve put the craft at periapsis farther from Kerbin than the marker-crowding distance, so it sits on its orbit from the first frame. */
 const FOLLOW_ZOOM_NOTCHES = 12;
 
-/** Following the craft out to the Mun, then resetting the view when the craft becomes the Mun's and the frame re-centres on it. */
-function followThenFrameTheCapture(
-  scene: HTMLElement,
-): (frame: PlaybackFrame) => void {
-  followAndZoom(scene);
-  let framed = false;
-  return (frame: PlaybackFrame) => {
-    if (framed || frame.ut < ENCOUNTER_UT) return;
-    framed = true;
-    pressButton(scene, "Reset view");
-  };
-}
-
-/** System View following a craft from low Kerbin orbit to the Mun and into orbit about it, the Mun and the phase angle moving as the clock runs. */
-export function SystemTransferScene({ w = 20, h = 18 }: PlaybackSceneProps) {
+/** System View following a craft from low Kerbin orbit to the Mun and into orbit about it, the Mun and the phase angle moving as the clock runs. `follow` off leaves the view as it mounts, with Focus vessel never pressed. */
+export function SystemTransferScene({
+  w = 20,
+  h = 18,
+  follow = true,
+}: PlaybackSceneProps & { follow?: boolean }) {
   const model = useMemo(
     () => ({ first: transferFirstScene(), frames: transferFrames() }),
     [],
@@ -163,8 +153,8 @@ export function SystemTransferScene({ w = 20, h = 18 }: PlaybackSceneProps) {
   return (
     <FramePlayer
       widgetId="system-view"
-      name="transfer"
-      setup={followThenFrameTheCapture}
+      name={follow ? "transfer" : "transfer-unfollowed"}
+      setup={follow ? followTheCraft : undefined}
       first={model.first}
       frames={model.frames}
       w={w}

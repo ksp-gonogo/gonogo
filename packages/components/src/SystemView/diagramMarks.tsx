@@ -1,3 +1,4 @@
+import { getBody } from "@ksp-gonogo/core";
 import type { OrbitTrajectory, PatchChainArc } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
 import {
@@ -267,6 +268,94 @@ export function EncounterMarker({
         fontWeight={600}
       >
         {label}
+      </text>
+    </g>
+  );
+}
+
+/** Room kept between the picture's edge and a pointer to a body off it, screen pixels. */
+const EDGE_POINTER_INSET = 16;
+
+/**
+ * The body the frame body orbits: a dot and its name at its place while that is on the picture, and from the edge of the picture a pointer toward it when it is not.
+ * The diagram draws a frame body and what orbits it, so without this a frame centred on a moon shows nothing of its planet.
+ */
+export function FrameParentMark({
+  name,
+  frameBodyName,
+  at,
+  view,
+  zoom,
+}: Readonly<{
+  name: string;
+  frameBodyName: string;
+  /** Where the body is, in plot units. */
+  at: { x: number; y: number };
+  /** The picture's centre and half-extents, in plot units. */
+  view: { x: number; y: number; halfW: number; halfH: number };
+  zoom: number;
+}>) {
+  const colour = getBody(name)?.color ?? "var(--color-text-muted)";
+  const inset = EDGE_POINTER_INSET / zoom;
+  const dx = at.x - view.x;
+  const dy = at.y - view.y;
+  const reachX = view.halfW - inset;
+  const reachY = view.halfH - inset;
+  const title = `${name}, which ${frameBodyName} orbits`;
+  if (Math.abs(dx) <= reachX && Math.abs(dy) <= reachY) {
+    return (
+      <g data-frame-parent={name} pointerEvents="none">
+        <title>{title}</title>
+        <circle
+          cx={at.x}
+          cy={at.y}
+          r={4 / zoom}
+          fill={colour}
+          stroke="var(--color-text-inverse)"
+          strokeWidth={1 / zoom}
+        />
+        <text
+          x={at.x}
+          y={at.y + 15 / zoom}
+          fill="var(--color-text-muted)"
+          fontSize={9 / zoom}
+          textAnchor="middle"
+        >
+          {name}
+        </text>
+      </g>
+    );
+  }
+  // Where the line from the picture's centre to the body leaves the inset box.
+  const scale = Math.min(
+    dx === 0 ? Number.POSITIVE_INFINITY : reachX / Math.abs(dx),
+    dy === 0 ? Number.POSITIVE_INFINITY : reachY / Math.abs(dy),
+  );
+  const x = view.x + dx * scale;
+  const y = view.y + dy * scale;
+  const bearing = (Math.atan2(dy, dx) * 180) / Math.PI;
+  const tip = 6 / zoom;
+  // The name sits inward of the arrowhead, on whichever side has room.
+  const labelX = x - Math.sign(dx || 1) * (tip + 4 / zoom);
+  const labelY = y - Math.sign(dy) * (tip + 8 / zoom) + 3 / zoom;
+  return (
+    <g data-frame-parent-direction={name} pointerEvents="none">
+      <title>{title}</title>
+      <path
+        d={`M${tip},0 L${-tip},${tip * 0.7} L${-tip},${-tip * 0.7} Z`}
+        transform={`translate(${x} ${y}) rotate(${bearing})`}
+        fill={colour}
+        stroke="var(--color-text-inverse)"
+        strokeWidth={0.75 / zoom}
+      />
+      <text
+        x={labelX}
+        y={labelY}
+        fill="var(--color-text-muted)"
+        fontSize={9 / zoom}
+        textAnchor={dx >= 0 ? "end" : "start"}
+      >
+        {name}
       </text>
     </g>
   );

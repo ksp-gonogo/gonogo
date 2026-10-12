@@ -17,6 +17,7 @@ const view = {
   setFollowing: () => {},
   handlePointerDown: () => {},
   resetView: () => {},
+  setView: () => {},
   focusOn: () => {},
 };
 

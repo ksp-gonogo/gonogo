@@ -38,16 +38,21 @@ export function frameCaption({
   parentName,
   encounterDirection,
   encounterBody,
+  leftFrame = null,
 }: {
   haveBodies: boolean;
   parentName: string | null;
   encounterDirection: EncounterDirection | null;
   encounterBody: string | null;
+  /** The body the diagram was centred on until a moment ago, named while the change is fresh. */
+  leftFrame?: string | null;
 }): string {
   if (!haveBodies) return "Waiting for body data...";
   if (parentName === null) return "Pick a frame in the widget config.";
-  if (encounterDirection === null || encounterBody == null) {
-    return `Frame: ${parentName}`;
-  }
-  return `Frame: ${parentName} · next ${encounterDirection}: ${encounterBody}`;
+  const frame =
+    leftFrame === null || leftFrame === parentName
+      ? `Frame: ${parentName}`
+      : `Frame: ${parentName}, was ${leftFrame}`;
+  if (encounterDirection === null || encounterBody == null) return frame;
+  return `${frame} · next ${encounterDirection}: ${encounterBody}`;
 }
