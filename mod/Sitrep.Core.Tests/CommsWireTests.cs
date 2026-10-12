@@ -274,6 +274,15 @@ namespace Sitrep.Core.Tests
             Assert.Equal(0.0, el.GetProperty("oneWaySeconds").GetDouble());
         }
 
+        // RealAntennasOnlyPayloadsSerialize stood here, covering the three
+        // provider-private payloads (linkQuality/dataRate/linkMargin). Those types
+        // moved into GonogoRealAntennasUplink.Contract, and with them the
+        // hand-written serializer cases they needed: their producer flattens them
+        // at the publish boundary now, so core writes them through the plain
+        // dictionary path and has no type to name. Their assertions followed them
+        // to that Uplink's own RaWireTests, still going through this same real
+        // EnvelopeCodec route.
+
         [Fact]
         public void DefaultConstructedPayloadsDoNotThrow()
         {
