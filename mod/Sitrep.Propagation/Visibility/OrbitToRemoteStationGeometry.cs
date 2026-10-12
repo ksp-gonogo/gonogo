@@ -284,6 +284,22 @@ namespace Sitrep.Propagation.Visibility
         }
 
         /// <summary>
+        /// <see cref="SeparationAt"/> split into its two rotation-invariant terms,
+        /// for the first station: where the vessel is relative to the station's
+        /// body, and which way the station faces on that body.
+        /// </summary>
+        public SeparationAnatomy AnatomyAt(double ut)
+        {
+            var vessel = VesselAt(ut, new Vector3d[_occluders.Length]);
+            var station = _stations[0].PositionAt(ut);
+            var centreToVessel = vessel.Magnitude();
+            var towardVessel = centreToVessel > 0.0
+                ? Vector3d.Dot(station, vessel) / centreToVessel
+                : 0.0;
+            return new SeparationAnatomy(centreToVessel, station.Magnitude(), towardVessel);
+        }
+
+        /// <summary>
         /// The vessel's position in the station body's frame, and each occluding
         /// body's position in the same frame, all asked of the provider.
         ///

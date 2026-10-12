@@ -59,5 +59,29 @@ namespace Gonogo.KSP.Tests.SilenceTracking
                 SilenceTrace.DecomposeKey(1.48e11, 1.48e11, 0.0, 0.0, 1.5e11, 1.5e11),
                 SilenceTrace.DecomposeKey(1.48e11, 1.48e11, 0.0, 0.0, 1.5e11, 9.0e10));
         }
+
+        [Fact]
+        public void TheStationTermsPrintWhenOnlyTheStationsFacingDisagrees()
+        {
+            Assert.NotEqual(
+                SilenceTrace.StationDecomposeKey(2.4757e11, 2.4757e11, 5.6e6, 5.6e6, false),
+                SilenceTrace.StationDecomposeKey(2.4757e11, 2.4757e11, 5.6e6, -3.4e6, false));
+        }
+
+        [Fact]
+        public void TheStationTermsPrintWhenTheFrameRegimeFlips()
+        {
+            Assert.NotEqual(
+                SilenceTrace.StationDecomposeKey(2.4757e11, 2.4757e11, 5.6e6, 5.6e6, false),
+                SilenceTrace.StationDecomposeKey(2.4757e11, 2.4757e11, 5.6e6, 5.6e6, true));
+        }
+
+        [Fact]
+        public void TheStationTermsOfAMovingCraftKeepOneKeyFrameToFrame()
+        {
+            Assert.Equal(
+                SilenceTrace.StationDecomposeKey(2.47572460e11, 2.47566851e11, 5.60e6, 5.60e6, false),
+                SilenceTrace.StationDecomposeKey(2.47572451e11, 2.47566846e11, 5.60e6, 5.60e6, false));
+        }
     }
 }

@@ -528,7 +528,7 @@ namespace Gonogo.KSP.SilenceTracking
         /// know how KSP's world axes map onto the propagation frame's.
         /// </summary>
         private bool ReconcilesWithTheLiveScene(
-            IVisibilityGeometry geometry,
+            OrbitToRemoteStationGeometry geometry,
             SilenceSample sample,
             CommNode comm,
             CelestialBody stationBody,
@@ -561,7 +561,7 @@ namespace Gonogo.KSP.SilenceTracking
             var residual = Math.Abs(live - predicted);
             if (residual > FrameCheckToleranceMeters)
             {
-                DecomposeResidual(sample, vessel, stationBody, now);
+                DecomposeResidual(sample, vessel, stationBody, comm, geometry, now);
                 SilenceTrace.FrameCheckFailed(live, predicted, residual);
                 return false;
             }
@@ -818,7 +818,13 @@ namespace Gonogo.KSP.SilenceTracking
         /// so a wrong answer says which element set is wrong rather than only
         /// that the total does not reconcile.
         /// </summary>
-        private void DecomposeResidual(SilenceSample sample, Vessel vessel, CelestialBody stationBody, double now)
+        private void DecomposeResidual(
+            SilenceSample sample,
+            Vessel vessel,
+            CelestialBody stationBody,
+            CommNode comm,
+            OrbitToRemoteStationGeometry geometry,
+            double now)
         {
             try
             {
@@ -868,6 +874,35 @@ namespace Gonogo.KSP.SilenceTracking
 
                 SilenceTrace.Decompose(
                     liveVessel, predictedVessel, liveLink, predictedLink, liveStation, predictedStation);
+
+                // The three terms above are magnitudes of positions about a
+                // parent, so none of them sees a direction, and none contains the
+                // station's place on its own body. These two are the separation's
+                // own anatomy, measured from the station body's centre: where the
+                // vessel is, and how far the station sits toward it. Both survive
+                // a rotation of the whole frame, so the live world-axes value and
+                // the propagation-frame value compare directly.
+                var centre = stationBody.position;
+                var vesselFromCentre = vessel.orbitDriver.orbit.getPositionAtUT(now) - centre;
+                var stationFromCentre = comm.precisePosition - centre;
+                var liveCentreToVessel = vesselFromCentre.magnitude;
+                var liveToward = liveCentreToVessel > 0.0
+                    ? Vector3d.Dot(stationFromCentre, vesselFromCentre) / liveCentreToVessel
+                    : 0.0;
+                var predicted = geometry.AnatomyAt(now);
+
+                double offset;
+                var calibrated = StationLongitudeCalibration.TryGet(bodies != null ? bodies.IndexOf(stationBody) : -1, out offset);
+                SilenceTrace.DecomposeStation(
+                    liveCentreToVessel, predicted.CentreToVesselMeters,
+                    liveToward, predicted.StationTowardVesselMeters,
+                    stationFromCentre.magnitude, predicted.StationFromCentreMeters,
+                    stationBody.bodyName,
+                    stationBody.inverseRotation,
+                    Planetarium.InverseRotAngle,
+                    stationBody.rotationAngle,
+                    stationBody.directRotAngle,
+                    calibrated ? (double?)offset : null);
             }
             catch (Exception ex)
             {

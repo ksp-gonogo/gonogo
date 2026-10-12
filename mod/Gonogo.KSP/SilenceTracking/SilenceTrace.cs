@@ -165,6 +165,65 @@ namespace Gonogo.KSP.SilenceTracking
             Debug.Log(Prefix + line);
         }
 
+        private static string? _lastStationDecomp;
+
+        /// <summary>
+        /// The separation's own two terms beside the live ones, and the state of
+        /// the station body's rotation frame at that instant.
+        ///
+        /// <para><c>centreToVessel</c> is the vessel's distance from the station
+        /// body's centre: it carries the vessel, the chain and the body's own
+        /// place about its parent, directions included. <c>towardVessel</c> is
+        /// how far the station sits from that centre along the line to the
+        /// vessel: it is the station's rotation phase and nothing else. A residual
+        /// that sits in <c>towardVessel</c> with <c>centreToVessel</c> reconciled
+        /// is the station facing the wrong way on its body; one that sits in
+        /// <c>centreToVessel</c> is a composition error the magnitude-only terms
+        /// of <see cref="Decompose"/> could not show.</para>
+        ///
+        /// <para>The frame fields are what decide between a rotation model that
+        /// is wrong and a rotating world frame that the offset was measured
+        /// in: <c>inverseRotation</c> and <c>inverseRotAngle</c> are KSP's
+        /// own state for a frame that turns with a body, and
+        /// <c>rotationAngle</c> less <c>directRotAngle</c> is that frame's
+        /// offset from the body's own sidereal angle.</para>
+        /// </summary>
+        public static void DecomposeStation(
+            double liveCentreToVessel, double predictedCentreToVessel,
+            double liveToward, double predictedToward,
+            double liveStationRadius, double predictedStationRadius,
+            string bodyName, bool inverseRotation, double inverseRotAngleDeg,
+            double rotationAngleDeg, double directRotAngleDeg, double? longitudeOffsetDeg)
+        {
+            var line = "decompose: centreToVessel live=" + (long)liveCentreToVessel + " pred=" + (long)predictedCentreToVessel
+                + " | stationTowardVessel live=" + (long)liveToward + " pred=" + (long)predictedToward
+                + " | stationRadius live=" + (long)liveStationRadius + " pred=" + (long)predictedStationRadius
+                + " | frame: body=" + bodyName + " inverseRotation=" + inverseRotation
+                + " inverseRotAngle=" + inverseRotAngleDeg.ToString("F2", CultureInfo.InvariantCulture)
+                + " rotationAngle=" + rotationAngleDeg.ToString("F2", CultureInfo.InvariantCulture)
+                + " directRotAngle=" + directRotAngleDeg.ToString("F2", CultureInfo.InvariantCulture)
+                + " longitudeOffset=" + (longitudeOffsetDeg.HasValue
+                    ? longitudeOffsetDeg.Value.ToString("F1", CultureInfo.InvariantCulture)
+                    : "uncalibrated");
+            var key = StationDecomposeKey(
+                liveCentreToVessel, predictedCentreToVessel, liveToward, predictedToward, inverseRotation);
+            if (key == _lastStationDecomp) return;
+            _lastStationDecomp = key;
+            Debug.Log(Prefix + line);
+        }
+
+        /// <summary>
+        /// The station terms under the relative bucket the other keys use, plus
+        /// which regime the frame is in, so a flip of <c>inverseRotation</c>
+        /// prints even when the numbers have not moved.
+        /// </summary>
+        internal static string StationDecomposeKey(
+            double liveCentreToVessel, double predictedCentreToVessel,
+            double liveToward, double predictedToward, bool inverseRotation) =>
+            SignificantFigures(liveCentreToVessel) + "|" + SignificantFigures(predictedCentreToVessel)
+            + "|" + SignificantFigures(liveToward) + "|" + SignificantFigures(predictedToward)
+            + "|" + inverseRotation;
+
         /// <summary>
         /// What makes one frame-check failure a different one worth printing:
         /// the residual to three significant figures.
