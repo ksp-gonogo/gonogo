@@ -276,6 +276,19 @@ export function EncounterMarker({
 /** Room kept between the picture's edge and a pointer to a body off it, screen pixels. */
 export const EDGE_POINTER_INSET = 16;
 
+/** Whether a body at `at` is drawn as a dot, and not pointed to from the picture's edge, for a view centred at `view` with these half-extents. */
+export function onThePicture(
+  at: { x: number; y: number },
+  view: { x: number; y: number; halfW: number; halfH: number },
+  zoom: number,
+): boolean {
+  const inset = EDGE_POINTER_INSET / zoom;
+  return (
+    Math.abs(at.x - view.x) <= view.halfW - inset &&
+    Math.abs(at.y - view.y) <= view.halfH - inset
+  );
+}
+
 /**
  * The body the frame body orbits: a dot and its name at its place while that is on the picture, and from the edge of the picture a pointer toward it when it is not.
  * The diagram draws a frame body and what orbits it, so without this a frame centred on a moon shows nothing of its planet.
@@ -302,7 +315,7 @@ export function FrameParentMark({
   const reachX = view.halfW - inset;
   const reachY = view.halfH - inset;
   const title = `${name}, which ${frameBodyName} orbits`;
-  if (Math.abs(dx) <= reachX && Math.abs(dy) <= reachY) {
+  if (onThePicture(at, view, zoom)) {
     return (
       <g data-frame-parent={name} pointerEvents="none">
         <title>{title}</title>

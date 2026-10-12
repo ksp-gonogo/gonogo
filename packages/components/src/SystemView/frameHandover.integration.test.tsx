@@ -251,6 +251,14 @@ function planetIsOnThePicture(container: HTMLElement, name: string): boolean {
   return cx > x && cx < x + w && cy > y && cy < y + h;
 }
 
+/** The points of a drawn path, in plot units. */
+function pathPoints(path: Element): { x: number; y: number }[] {
+  const matches = (path.getAttribute("d") ?? "").matchAll(
+    /(-?[\d.]+(?:e-?\d+)?),(-?[\d.]+(?:e-?\d+)?)/g,
+  );
+  return [...matches].map((m) => ({ x: Number(m[1]), y: Number(m[2]) }));
+}
+
 describe("SystemView when the craft changes the body it orbits", () => {
   it("starts from the picture as it was: the body entered and the body left are where they were", async () => {
     // The ease is held before its first frame, which leaves the carried view.
@@ -469,6 +477,83 @@ describe("SystemView when the craft changes the body it orbits", () => {
       fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
 
       expect(svgOf(view.container).getAttribute("viewBox")).toBe(fitted);
+      await act(async () => {});
+    });
+  });
+  describe("the frame body's own orbit about its planet", () => {
+    async function inTheMunFrame(system?: unknown) {
+      const frames = holdFrames();
+      const { fixture, view } = mount();
+      await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
+      if (system !== undefined) {
+        act(() => {
+          fixture.emit("system.bodies", system);
+        });
+      }
+      enterTheMun(fixture);
+      await waitFor(() =>
+        expect(svgOf(view.container).getAttribute("aria-label")).toContain(
+          "Mun",
+        ),
+      );
+      frames.run(1000);
+      frames.run(2000);
+      return view;
+    }
+
+    it("is drawn about the planet once the planet is on the picture, through the moon", async () => {
+      const view = await inTheMunFrame();
+      expect(
+        view.container.querySelector("path[data-frame-body-orbit]"),
+      ).toBeNull();
+
+      zoomOut(view.container, 80);
+
+      const ring = view.container.querySelector(
+        'path[data-frame-body-orbit="Mun"]',
+      );
+      if (ring === null) throw new Error("the Mun's orbit is not drawn");
+      const kerbin = svgOf(view.container).querySelector(
+        '[data-frame-parent="Kerbin"] circle',
+      );
+      if (kerbin === null) throw new Error("Kerbin is not on the picture");
+      const about = {
+        x: Number(kerbin.getAttribute("cx")),
+        y: Number(kerbin.getAttribute("cy")),
+      };
+      const points = pathPoints(ring);
+      const radii = points.map((p) => Math.hypot(p.x - about.x, p.y - about.y));
+      const radius = radii[0];
+      // The path is the Mun's orbit about Kerbin, whatever size it is drawn at.
+      for (const r of radii) expect(r / radius).toBeCloseTo(1, 2);
+      // The Mun sits at the frame's centre, the origin, and the path passes through it.
+      const nearest = Math.min(...points.map((p) => Math.hypot(p.x, p.y)));
+      expect(nearest / radius).toBeLessThan(0.02);
+      await act(async () => {});
+    });
+
+    it("is left out while the planet is only pointed to from the edge", async () => {
+      const view = await inTheMunFrame();
+      zoomOut(view.container, 2);
+      expect(
+        view.container.querySelector("[data-frame-parent-direction]"),
+      ).not.toBeNull();
+      expect(
+        view.container.querySelector("path[data-frame-body-orbit]"),
+      ).toBeNull();
+      await act(async () => {});
+    });
+
+    it("is not drawn when the catalogue gives the moon no orbit", async () => {
+      const view = await inTheMunFrame({
+        bodies: SYSTEM.bodies.map((b) =>
+          b.name === "Mun" ? { ...b, orbit: null } : b,
+        ),
+      });
+      zoomOut(view.container, 80);
+      expect(
+        view.container.querySelector("path[data-frame-body-orbit]"),
+      ).toBeNull();
       await act(async () => {});
     });
   });

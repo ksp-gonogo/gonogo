@@ -159,6 +159,7 @@ function placedBodyRing(
   body: CelestialBody,
   parent: CelestialBody | null,
   viewUt: number,
+  origin: Metres = ORIGIN,
 ): PlacedRing {
   const curve = bodyOrbitCurve(body, parent, viewUt);
   if (curve === null || curve.shape === "withheld") return NO_RING;
@@ -171,11 +172,12 @@ function placedBodyRing(
       body.lan ?? 0,
       body.argumentOfPeriapsis ?? 0,
       body.inclination ?? 0,
+      origin,
     );
   }
   const metres = arcMetres(curve);
   if (metres === null) return NO_RING;
-  const points = metres.map((p) => placement.place(p));
+  const points = metres.map((p) => placement.place(shifted(p, origin)));
   return {
     ring: openPath(points, plotScale),
     ringDepth: depthGradientAxis(points, plotScale),
@@ -222,6 +224,36 @@ export function placeBodyRings({
 }): PlacedRing[] {
   return children.map((c) =>
     placedBodyRing(placement, plotScale, c, parent, viewUt),
+  );
+}
+
+/**
+ * The path the frame body itself travels about the body it orbits, drawn in the frame centred on it: the same path a frame centred on that body draws for it, moved by where that body now sits from the frame body.
+ * Nothing when the catalogue gives no path for it.
+ */
+export function placeFrameBodyRing({
+  frameBody,
+  planet,
+  planetAt,
+  placement,
+  plotScale,
+  viewUt,
+}: {
+  frameBody: CelestialBody;
+  planet: CelestialBody;
+  /** Where the planet is from the frame body, metres, as the diagram places the frame's bodies. */
+  planetAt: Metres;
+  placement: Placement;
+  plotScale: number;
+  viewUt: number;
+}): PlacedRing {
+  return placedBodyRing(
+    placement,
+    plotScale,
+    frameBody,
+    planet,
+    viewUt,
+    planetAt,
   );
 }
 

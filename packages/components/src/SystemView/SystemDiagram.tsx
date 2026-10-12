@@ -21,6 +21,7 @@ import {
   organise,
   placeBodies,
   placeBodyRings,
+  placeFrameBodyRing,
   placeVesselPoint,
   placeVesselRing,
   type VesselOrbit,
@@ -30,6 +31,7 @@ import {
   DepthGradient,
   EncounterMarker,
   FrameParentMark,
+  onThePicture,
   PredictedPatchArc,
   VesselOrbitPath,
 } from "./diagramMarks";
@@ -339,6 +341,33 @@ export function SystemDiagram({
     return { x: p[0] * plotScale, y: p[1] * plotScale };
   }, [frameParentAt, placement, plotScale]);
 
+  // The frame body's own path about its planet, which a moon-centred frame would otherwise show nothing of.
+  const frameBodyRing = useMemo(() => {
+    if (parent === null || frameParentName === undefined) return null;
+    if (frameParentAt === undefined) return null;
+    const planet = bodies.find((b) =>
+      nameMatches(b.name ?? "", frameParentName),
+    );
+    if (planet === undefined) return null;
+    const ring = placeFrameBodyRing({
+      frameBody: parent,
+      planet,
+      planetAt: frameParentAt,
+      placement,
+      plotScale,
+      viewUt: ringUt ?? 0,
+    });
+    return ring.ring === null ? null : ring;
+  }, [
+    parent,
+    bodies,
+    frameParentName,
+    frameParentAt,
+    placement,
+    plotScale,
+    ringUt,
+  ]);
+
   const [focusedBody, setFocusedBody] = useState<CelestialBody | null>(null);
   const tiltGradId = useId();
 
@@ -416,6 +445,13 @@ export function SystemDiagram({
               />
             ),
           )}
+          {frameBodyRing?.ringDepth && (
+            <DepthGradient
+              id={`${tiltGradId}-frame-body`}
+              axis={frameBodyRing.ringDepth}
+              zoom={zoom}
+            />
+          )}
           {placed.vessel?.ringDepth && (
             <DepthGradient
               id={`${tiltGradId}-vessel`}
@@ -424,6 +460,30 @@ export function SystemDiagram({
             />
           )}
         </defs>
+
+        {frameBodyRing !== null &&
+          frameParentPoint !== null &&
+          onThePicture(
+            frameParentPoint,
+            { x: pan.x, y: pan.y, halfW, halfH },
+            zoom,
+          ) && (
+            <path
+              data-frame-body-orbit={parent.name ?? ""}
+              d={frameBodyRing.ring ?? undefined}
+              fill="none"
+              stroke={
+                frameBodyRing.ringDepth === null
+                  ? DEPTH_LEVEL_COLOUR
+                  : `url(#${tiltGradId}-frame-body)`
+              }
+              strokeWidth={BODY_ORBIT_STROKE_WIDTH / zoom}
+              strokeOpacity={
+                frameBodyRing.ringDepth === null ? 0.45 : undefined
+              }
+              pointerEvents="none"
+            />
+          )}
 
         {/* Rings are sampled polylines: a projected orbit has a centre an ellipse cannot express, and in a rotating frame it is a rosette. */}
         {placed.bodies.map((p) =>
