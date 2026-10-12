@@ -47,7 +47,7 @@ function sourceLabel(source: string | null | undefined): string | null {
   return null;
 }
 
-/** Biome, slope, downrange distance and where the sample came from, on one line. */
+/** Biome, slope with its downhill heading, downrange distance and where the sample came from, on one line. */
 export function TerrainReadout({ model }: Model) {
   const { landing, landingReading, siteDrift } = model;
   const source = sourceLabel(landing?.sampleSource);
@@ -57,6 +57,13 @@ export function TerrainReadout({ model }: Model) {
       {landing?.predictedSlopeAngle != null ? (
         <>
           <Unit value={landingReading.predictedSlopeAngle} decimals={1} /> slope
+          {landing.predictedSlopeHeading != null ? (
+            <>
+              {" "}
+              downhill{" "}
+              <Unit value={landingReading.predictedSlopeHeading} decimals={0} />
+            </>
+          ) : null}
         </>
       ) : (
         NULL_DISPLAY

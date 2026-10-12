@@ -145,15 +145,13 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
   "field:robotics.servos.traverseVelocity":
     "kept: unit follows the servo kind and is undeclared, so no widget can draw it honestly",
   "field:vessel.landing.outcome":
-    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
-  "field:vessel.landing.predictedSlopeHeading":
-    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
+    "nothing an operator acts on during a landing: remove with the next contract Major",
   "field:vessel.landing.slopeAngleUnderVessel":
-    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
+    "never produced by the mod (always null); remove with the next contract Major",
   "field:vessel.landing.slopeSampleRadiusMeters":
-    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
+    "nothing an operator acts on during a landing: remove with the next contract Major",
   "field:vessel.landing.terrainElevationUnderVessel":
-    "reader owed by Landing Status (slope and terrain plots), the widget that owns the subject",
+    "never produced by the mod (always null); remove with the next contract Major",
 };
 
 /**
