@@ -397,20 +397,29 @@ jobs:
           # shows and the file CKAN reads share one constant.
           GAME_VERSION="$(jq -r '.KSP_VERSION | "\(.MAJOR).\(.MINOR).\(.PATCH)"' "GameData/${{ inputs.gamedata }}/${{ inputs.gamedata }}.version")"
 
-          login="$(curl -sS -F username="$SPACEDOCK_USERNAME" -F password="$SPACEDOCK_PASSWORD" -c ./sd-cookies https://spacedock.info/api/login)"
-          if printf '%s' "$login" | grep -q '"error"[[:space:]]*:[[:space:]]*true'; then
-            echo "::error::SpaceDock login failed: $login"; exit 1
-          fi
-          resp="$(curl -sS -b ./sd-cookies \
+          # A reply counts only when its status is 2xx and its body is JSON
+          # without "error": true. Bodies stay out of the log unless they are
+          # the failure, and the credentials never leave the form fields.
+          spacedock() {
+            local out="$1"; shift
+            local code
+            code="$(curl -sS -o "$out" -w '%{http_code}' "$@")" || { echo "::error::SpaceDock request failed to connect"; return 1; }
+            if [ "${code:0:1}" != "2" ]; then
+              echo "::error::SpaceDock answered HTTP ${code}: $(head -c 300 "$out")"; return 1
+            fi
+            if ! jq -e 'type == "object" and ((.error // false) == false)' "$out" >/dev/null; then
+              echo "::error::SpaceDock reply was not a JSON success: $(head -c 300 "$out")"; return 1
+            fi
+          }
+
+          spacedock ./sd-login.json -F username="$SPACEDOCK_USERNAME" -F password="$SPACEDOCK_PASSWORD" -c ./sd-cookies https://spacedock.info/api/login
+          spacedock ./sd-upload.json -b ./sd-cookies \
             -F version="$VERSION" \
             -F "changelog=<sd-changelog.md" \
             -F game-version="$GAME_VERSION" \
             -F notify-followers=yes \
             -F zipball=@"$ZIP" \
-            "https://spacedock.info/api/mod/${SPACEDOCK_MOD_ID}/update")"
-          if printf '%s' "$resp" | grep -q '"error"[[:space:]]*:[[:space:]]*true'; then
-            echo "::error::SpaceDock upload failed: $resp"; exit 1
-          fi
-          rm -f ./sd-cookies sd-changelog.md
+            "https://spacedock.info/api/mod/${SPACEDOCK_MOD_ID}/update"
+          rm -f ./sd-cookies ./sd-login.json ./sd-upload.json sd-changelog.md
           echo "SpaceDock mod ${SPACEDOCK_MOD_ID} (${{ inputs.id }}) updated to ${VERSION} (KSP ${GAME_VERSION})"
           echo "### SpaceDock updated: ${{ inputs.id }} ${VERSION} (KSP ${GAME_VERSION})" >> "$GITHUB_STEP_SUMMARY"
