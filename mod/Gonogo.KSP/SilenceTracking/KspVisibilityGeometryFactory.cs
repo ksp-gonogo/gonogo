@@ -153,8 +153,8 @@ namespace Gonogo.KSP.SilenceTracking
 
             SilenceTrace.Chain(parentBody.bodyName, stationBody.bodyName, occluders.Count);
 
-            double frameYaw;
-            if (!TryMeasureFrameYaw(stationBody, bodies, out frameYaw))
+            FrameFit frameFit;
+            if (!TryFitFrame(stationBody, bodies, out frameFit))
             {
                 SilenceTrace.NoGeometry("world frame not fitted yet for " + stationBody.bodyName);
                 return null;
@@ -179,7 +179,7 @@ namespace Gonogo.KSP.SilenceTracking
             var reachLimits = new List<double?>();
             var vesselNode = VesselNode(sample.VesselId);
             var reachModelId = CommsReachModels.UnknownModelId;
-            var chosenStation = StationOn(stationBody, comm, frameYaw);
+            var chosenStation = StationOn(stationBody, comm, frameFit);
             if (chosenStation != null)
             {
                 stations.Add(chosenStation.Value);
@@ -190,7 +190,7 @@ namespace Gonogo.KSP.SilenceTracking
             foreach (var node in stationNodes)
             {
                 if (ReferenceEquals(node, comm)) continue;
-                var on = StationOn(stationBody, node, frameYaw);
+                var on = StationOn(stationBody, node, frameFit);
                 if (on != null)
                 {
                     stations.Add(on.Value);
@@ -452,8 +452,8 @@ namespace Gonogo.KSP.SilenceTracking
         /// A station from where the game says the node is, turned into the
         /// propagation frame, plus the body's spin.
         /// </summary>
-        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, double frameYaw) =>
-            SurfacePointAt(body, comm.precisePosition, frameYaw);
+        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, FrameFit fit) =>
+            SurfacePointAt(body, comm.precisePosition, fit);
 
         /// <summary>
         /// The surface point under <paramref name="node"/> on <paramref name="body"/>,
@@ -469,15 +469,15 @@ namespace Gonogo.KSP.SilenceTracking
             {
                 return null;
             }
-            double frameYaw;
-            if (!TryMeasureFrameYaw(body, bodies, out frameYaw))
+            FrameFit fit;
+            if (!TryFitFrame(body, bodies, out fit))
             {
                 return null;
             }
-            return SurfacePointAt(body, node.precisePosition, frameYaw);
+            return SurfacePointAt(body, node.precisePosition, fit);
         }
 
-        private static RotatingGroundStation? SurfacePointAt(CelestialBody body, Vector3d world, double frameYaw)
+        private static RotatingGroundStation? SurfacePointAt(CelestialBody body, Vector3d world, FrameFit fit)
         {
             if (!(body.Radius > 0.0) || !(Math.Abs(body.rotationPeriod) > 0.0))
             {
@@ -485,7 +485,7 @@ namespace Gonogo.KSP.SilenceTracking
             }
 
             var rel = (world - body.position).xzy;
-            var position = FrameYaw.Rotate(new Sitrep.Contract.Vector3d(rel.x, rel.y, rel.z), frameYaw);
+            var position = FrameYaw.Rotate(new Sitrep.Contract.Vector3d(rel.x, rel.y, rel.z), fit.Yaw);
             if (!(position.Magnitude() > 0.0))
             {
                 return null;
@@ -506,7 +506,8 @@ namespace Gonogo.KSP.SilenceTracking
                 Planetarium.GetUniversalTime(),
                 body.rotationPeriod,
                 position.Magnitude(),
-                0.0);
+                0.0,
+                fit.SpinAxis);
         }
 
         /// <summary>
@@ -560,28 +561,41 @@ namespace Gonogo.KSP.SilenceTracking
         private readonly Dictionary<int, FrameFit> _frameFits = new Dictionary<int, FrameFit>();
         private readonly Dictionary<int, string> _frameFitReported = new Dictionary<int, string>();
 
+        /// <summary>
+        /// How the game's world axes map onto the propagation frame for one body: a
+        /// heading about +Z, and the direction the body spins about once that
+        /// heading is applied (+Z when the game keeps the body's axis along the
+        /// frame's up).
+        /// </summary>
         private struct FrameFit
         {
             public double Ut;
             public bool Ok;
             public double Yaw;
+            public Sitrep.Contract.Vector3d SpinAxis;
         }
 
         /// <summary>
-        /// The heading, in radians about the spin axis, that carries the game's
-        /// world axes onto the propagation frame's, read from the station body's
-        /// own position about its parent: a vector known in both, whose heading is
-        /// one unambiguous angle. Fitted once per game tick per body.
+        /// The frame fit for the station body: the heading, in radians about +Z,
+        /// that carries the game's world axes onto the propagation frame's, read
+        /// from the body's own position about its parent (a vector known in both,
+        /// whose heading is one unambiguous angle), and the body's spin axis in
+        /// the propagation frame, which is the axis the game reports for it turned
+        /// by that heading. Fitted once per game tick per body.
         ///
-        /// <para>False when the body has no parent to read it from, when the
-        /// two vectors do not differ by a turn about the spin axis, or when the
-        /// body's spin axis is not the frame's: no station is placed then, and no
-        /// prediction is made from a frame that is not understood. Each change of
-        /// outcome is logged once, never per tick.</para>
+        /// <para>The spin axis is read rather than assumed: stock keeps every
+        /// axis along the frame's up, and a physics mod can give bodies their real axial
+        /// tilt, so a station placed on a tilted body must turn about the tilted
+        /// axis or it drifts off its true position as the body spins.</para>
+        ///
+        /// <para>False when the body has no parent to read it from, or when the two
+        /// vectors do not differ by a turn about +Z: no station is placed then,
+        /// and no prediction is made from a frame that is not understood. Each
+        /// change of outcome is logged once, never per tick.</para>
         /// </summary>
-        private bool TryMeasureFrameYaw(CelestialBody stationBody, IList<CelestialBody> bodies, out double yaw)
+        private bool TryFitFrame(CelestialBody stationBody, IList<CelestialBody> bodies, out FrameFit fit)
         {
-            yaw = 0.0;
+            fit = new FrameFit { SpinAxis = new Sitrep.Contract.Vector3d(0.0, 0.0, 1.0) };
             var index = bodies.IndexOf(stationBody);
             if (index < 0)
             {
@@ -592,13 +606,15 @@ namespace Gonogo.KSP.SilenceTracking
             FrameFit cached;
             if (_frameFits.TryGetValue(index, out cached) && cached.Ut == now)
             {
-                yaw = cached.Yaw;
+                fit = cached;
                 return cached.Ok;
             }
 
             string report;
-            var ok = MeasureFrameYaw(stationBody, bodies, index, now, out yaw, out report);
-            _frameFits[index] = new FrameFit { Ut = now, Ok = ok, Yaw = yaw };
+            var ok = MeasureFrame(stationBody, bodies, index, now, out fit, out report);
+            fit.Ut = now;
+            fit.Ok = ok;
+            _frameFits[index] = fit;
 
             string previous;
             var outcome = ok ? "fitted" : report;
@@ -607,23 +623,26 @@ namespace Gonogo.KSP.SilenceTracking
                 _frameFitReported[index] = outcome;
                 SilenceTrace.Calibration(ok
                     ? stationBody.bodyName + " world frame fitted, heading "
-                        + (yaw * 180.0 / Math.PI).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
-                        + " deg"
+                        + Degrees(fit.Yaw) + " deg, spin axis tilted "
+                        + Degrees(Math.Acos(Math.Max(-1.0, Math.Min(1.0, fit.SpinAxis.Z)))) + " deg from the frame's up"
                     : stationBody.bodyName + " world frame not fitted: " + report
                         + "; no prediction is published for it until it fits");
             }
             return ok;
         }
 
-        private bool MeasureFrameYaw(
+        private static string Degrees(double radians) =>
+            (radians * 180.0 / Math.PI).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+
+        private bool MeasureFrame(
             CelestialBody stationBody,
             IList<CelestialBody> bodies,
             int index,
             double now,
-            out double yaw,
+            out FrameFit fit,
             out string report)
         {
-            yaw = 0.0;
+            fit = new FrameFit { SpinAxis = new Sitrep.Contract.Vector3d(0.0, 0.0, 1.0) };
             var parent = stationBody.referenceBody;
             var parentIndex = parent != null ? bodies.IndexOf(parent) : -1;
             if (parent == null || parent == stationBody || parentIndex < 0)
@@ -633,12 +652,10 @@ namespace Gonogo.KSP.SilenceTracking
             }
 
             var pole = stationBody.BodyFrame.LocalToWorld(new Vector3d(0.0, 0.0, 1.0));
-            if (pole.z < PoleAlignment)
+            var poleLength = pole.magnitude;
+            if (double.IsNaN(poleLength) || double.IsInfinity(poleLength) || !(poleLength > 0.0))
             {
-                report = "its spin axis is tilted "
-                    + (Math.Acos(Math.Max(-1.0, Math.Min(1.0, pole.z))) * 180.0 / Math.PI)
-                        .ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
-                    + " deg from the frame's";
+                report = "the game reports no spin axis for it";
                 return false;
             }
 
@@ -656,8 +673,12 @@ namespace Gonogo.KSP.SilenceTracking
 
             FrameYawRefusal refusal;
             double mismatch;
+            double yaw;
             if (FrameYaw.TryMeasure(inWorld, inPropagation, out yaw, out refusal, out mismatch))
             {
+                var axis = FrameYaw.Rotate(
+                    new Sitrep.Contract.Vector3d(pole.x / poleLength, pole.y / poleLength, pole.z / poleLength), yaw);
+                fit = new FrameFit { Yaw = yaw, SpinAxis = axis };
                 report = string.Empty;
                 return true;
             }
@@ -679,9 +700,6 @@ namespace Gonogo.KSP.SilenceTracking
             }
             return false;
         }
-
-        /// <summary>The least cosine between the body's polar axis and the frame's +Z for the body to spin about the frame's axis.</summary>
-        private const double PoleAlignment = 0.9999;
 
         private static Vessel FindVessel(string vesselId)
         {
@@ -823,8 +841,8 @@ namespace Gonogo.KSP.SilenceTracking
                     : 0.0;
                 var predicted = geometry.AnatomyAt(now);
 
-                double fittedYaw = 0.0;
-                var fitted = bodies != null && TryMeasureFrameYaw(stationBody, bodies, out fittedYaw);
+                FrameFit fit = default(FrameFit);
+                var fitted = bodies != null && TryFitFrame(stationBody, bodies, out fit);
                 SilenceTrace.DecomposeStation(
                     liveCentreToVessel, predicted.CentreToVesselMeters,
                     liveToward, predicted.StationTowardVesselMeters,
@@ -834,7 +852,7 @@ namespace Gonogo.KSP.SilenceTracking
                     Planetarium.InverseRotAngle,
                     stationBody.rotationAngle,
                     stationBody.directRotAngle,
-                    fitted ? (double?)(fittedYaw * 180.0 / Math.PI) : null);
+                    fitted ? (double?)(fit.Yaw * 180.0 / Math.PI) : null);
             }
             catch (Exception ex)
             {

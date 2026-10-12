@@ -13,7 +13,10 @@ namespace Sitrep.Propagation.Visibility
     /// elapsed fraction of a rotation, scaled out to the surface:
     /// <c>n(UT) = Rz(2*pi*(UT-UT0)/period) * n0</c>,
     /// <c>P(UT) = n(UT) * (radius + altitude)</c>. Every KSP body spins about +Z
-    /// (there is no axial tilt), so one axis covers every case.</para>
+    /// (there is no axial tilt), so +Z is the default axis. A body whose spin axis
+    /// is tilted from the frame's (an n-body physics mod gives bodies their real axial tilt)
+    /// supplies its axis, and the position is then the same normal turned about
+    /// that axis by Rodrigues' formula.</para>
     ///
     /// <para><b>The rotation period is a parameter, never a constant.</b> KSP
     /// overwrites <c>rotationPeriod</c> for tidally-locked bodies to match their
@@ -31,6 +34,7 @@ namespace Sitrep.Propagation.Visibility
         private readonly double _referenceUt;
         private readonly double _rotationPeriodSeconds;
         private readonly double _distanceFromCentreMeters;
+        private readonly Vector3d _spinAxis;
 
         /// <param name="surfaceNormalAtReferenceUt">Outward unit normal at the station, in the body-centred inertial frame, at <paramref name="referenceUt"/>. Normalised on construction; need not arrive normalised.</param>
         /// <param name="referenceUt">The UT at which <paramref name="surfaceNormalAtReferenceUt"/> was observed.</param>
@@ -43,7 +47,27 @@ namespace Sitrep.Propagation.Visibility
             double rotationPeriodSeconds,
             double bodyRadiusMeters,
             double altitudeMeters)
+            : this(surfaceNormalAtReferenceUt, referenceUt, rotationPeriodSeconds, bodyRadiusMeters, altitudeMeters, new Vector3d(0.0, 0.0, 1.0))
         {
+        }
+
+        /// <param name="spinAxis">The direction the body spins about, in the same frame as the normal; a positive period turns the body right-handed about it. Normalised on construction.</param>
+        public RotatingGroundStation(
+            Vector3d surfaceNormalAtReferenceUt,
+            double referenceUt,
+            double rotationPeriodSeconds,
+            double bodyRadiusMeters,
+            double altitudeMeters,
+            Vector3d spinAxis)
+        {
+            double axisMagnitude = spinAxis.Magnitude();
+            if (!(axisMagnitude > 0.0) || double.IsNaN(axisMagnitude) || double.IsInfinity(axisMagnitude))
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(spinAxis),
+                    "A body's spin axis must be a non-zero, finite vector; got " + spinAxis);
+            }
+
             double magnitude = surfaceNormalAtReferenceUt.Magnitude();
             if (!(magnitude > 0.0) || double.IsNaN(magnitude) || double.IsInfinity(magnitude))
             {
@@ -56,7 +80,11 @@ namespace Sitrep.Propagation.Visibility
             _referenceUt = referenceUt;
             _rotationPeriodSeconds = rotationPeriodSeconds;
             _distanceFromCentreMeters = bodyRadiusMeters + altitudeMeters;
+            _spinAxis = spinAxis * (1.0 / axisMagnitude);
         }
+
+        /// <summary>The unit direction the body spins about, in the body-centred inertial frame.</summary>
+        public Vector3d SpinAxis => _spinAxis;
 
         /// <summary>The outward unit normal at the station at <see cref="ReferenceUt"/>, in the body-centred inertial frame.</summary>
         public Vector3d NormalAtReference => _normalAtReference;
@@ -119,10 +147,21 @@ namespace Sitrep.Propagation.Visibility
             double cos = Math.Cos(angle);
             double sin = Math.Sin(angle);
 
+            if (_spinAxis.X == 0.0 && _spinAxis.Y == 0.0 && _spinAxis.Z == 1.0)
+            {
+                return new Vector3d(
+                    _normalAtReference.X * cos - _normalAtReference.Y * sin,
+                    _normalAtReference.X * sin + _normalAtReference.Y * cos,
+                    _normalAtReference.Z);
+            }
+
+            var n = _normalAtReference;
+            var a = _spinAxis;
+            double along = (a.X * n.X + a.Y * n.Y + a.Z * n.Z) * (1.0 - cos);
             return new Vector3d(
-                _normalAtReference.X * cos - _normalAtReference.Y * sin,
-                _normalAtReference.X * sin + _normalAtReference.Y * cos,
-                _normalAtReference.Z);
+                n.X * cos + (a.Y * n.Z - a.Z * n.Y) * sin + a.X * along,
+                n.Y * cos + (a.Z * n.X - a.X * n.Z) * sin + a.Y * along,
+                n.Z * cos + (a.X * n.Y - a.Y * n.X) * sin + a.Z * along);
         }
 
         private double RotationAngleAt(double ut)

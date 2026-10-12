@@ -123,6 +123,49 @@ namespace Sitrep.Propagation.Tests.Visibility
             Assert.True(gap > 50_000.0, "a heading 12.9 degrees off leaves " + gap + " m");
         }
 
+        private static Vector3d TiltedAxisInPropagation()
+        {
+            var tilt = 26.1 * Math.PI / 180.0;
+            return new Vector3d(Math.Sin(tilt) * Math.Cos(0.7), Math.Sin(tilt) * Math.Sin(0.7), Math.Cos(tilt));
+        }
+
+        [Fact]
+        public void AStationOnABodyWithATiltedSpinAxisStaysWhereTheTrueOneIsAsTheBodyTurns()
+        {
+            const double ut = 1_000.0;
+            var axis = TiltedAxisInPropagation();
+            var truth = TrueStation(ut);
+            var stationInWorld = FrameYaw.Rotate(truth, -WorldTurnedFromPropagation);
+            var poleInWorld = FrameYaw.Rotate(axis, -WorldTurnedFromPropagation);
+            var yaw = MeasuredYaw(ut);
+
+            var placed = new RotatingGroundStation(
+                FrameYaw.Rotate(stationInWorld, yaw), ut, SiderealDay, EarthRadius, 0.0, FrameYaw.Rotate(poleInWorld, yaw));
+            var real = new RotatingGroundStation(truth, ut, SiderealDay, EarthRadius, 0.0, axis);
+            var aboutUp = Station(FrameYaw.Rotate(stationInWorld, yaw), ut);
+
+            var worstAboutUp = 0.0;
+            foreach (var later in new[] { ut, ut + 600.0, ut + 7_200.0, ut + 40_000.0 })
+            {
+                var gap = Math.Abs(Separation(placed, later) - Separation(real, later));
+                Assert.True(gap < 1.0, "separation at +" + (later - ut) + " s differs by " + gap + " m");
+                worstAboutUp = Math.Max(worstAboutUp, Math.Abs(Separation(aboutUp, later) - Separation(real, later)));
+            }
+
+            Assert.True(worstAboutUp > FrameCheckTolerance, "spinning it about the frame's up instead misses by " + worstAboutUp + " m");
+        }
+
+        private const double FrameCheckTolerance = 50_000.0;
+
+        [Fact]
+        public void ATiltedSpinAxisDoesNotMakeTheWorldPositionOfThePlanetRefused()
+        {
+            var inPropagation = EarthFromSun(5_000.0);
+            var inWorld = FrameYaw.Rotate(inPropagation, -WorldTurnedFromPropagation);
+
+            Assert.True(FrameYaw.TryMeasure(inWorld, inPropagation, out _, out var refusal, out _), refusal.ToString());
+        }
+
         [Fact]
         public void AFrameTiltedAwayFromTheSpinAxisIsRefusedNotFitted()
         {

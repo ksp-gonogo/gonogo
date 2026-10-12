@@ -521,6 +521,9 @@ namespace Sitrep.Host.Comms
             ["referenceUt"] = station.ReferenceUt,
             ["rotationPeriodSeconds"] = station.RotationPeriodSeconds,
             ["distanceFromCentreMeters"] = station.DistanceFromCentreMeters,
+            ["axisX"] = station.SpinAxis.X,
+            ["axisY"] = station.SpinAxis.Y,
+            ["axisZ"] = station.SpinAxis.Z,
         };
 
         private static RotatingGroundStation SurfaceFrom(Dictionary<string, object?> s) => new RotatingGroundStation(
@@ -528,7 +531,10 @@ namespace Sitrep.Host.Comms
             (double)s["referenceUt"]!,
             (double)s["rotationPeriodSeconds"]!,
             (double)s["distanceFromCentreMeters"]!,
-            0.0);
+            0.0,
+            Get(s, "axisX") is double ax
+                ? new Vector3d(ax, (double)s["axisY"]!, (double)s["axisZ"]!)
+                : new Vector3d(0.0, 0.0, 1.0));
 
         private static object? Get(Dictionary<string, object?> map, string key) => map.TryGetValue(key, out var value) ? value : null;
 

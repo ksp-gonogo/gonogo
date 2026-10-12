@@ -146,5 +146,48 @@ namespace Sitrep.Propagation.Tests.Visibility
             Assert.Equal(1.0, normal.Magnitude(), 12);
             Assert.True(Math.Abs(normal.Magnitude() - 1.0) < Tolerance);
         }
+
+        [Fact]
+        public void AStationOnATiltedBodyTurnsAboutItsAxisAndKeepsItsAngleToIt()
+        {
+            var tilt = 26.1 * Math.PI / 180.0;
+            var axis = new Vector3d(Math.Sin(tilt), 0.0, Math.Cos(tilt));
+            var normal = new Vector3d(0.0, 1.0, 0.0);
+            var station = new RotatingGroundStation(normal, 0.0, 1000.0, 1000.0, 0.0, axis);
+
+            var quarter = station.NormalAt(250.0);
+            var half = station.NormalAt(500.0);
+            var full = station.NormalAt(1000.0);
+
+            Assert.True((full - normal).Magnitude() < 1e-12);
+            Assert.True(Math.Abs(Dot(quarter, axis) - Dot(normal, axis)) < 1e-12);
+            Assert.True(Math.Abs(quarter.Magnitude() - 1.0) < 1e-12);
+            Assert.True((half - Reflect(normal, axis)).Magnitude() < 1e-12);
+        }
+
+        [Fact]
+        public void AnAxisAlongZGivesTheSamePositionsAsNoAxis()
+        {
+            var normal = new Vector3d(0.6, 0.3, 0.74);
+            var plain = new RotatingGroundStation(normal, 5.0, 86164.0, 6.0e6, 100.0);
+            var withZ = new RotatingGroundStation(normal, 5.0, 86164.0, 6.0e6, 100.0, new Vector3d(0.0, 0.0, 1.0));
+
+            Assert.Equal(plain.PositionAt(40_000.0), withZ.PositionAt(40_000.0));
+        }
+
+        [Fact]
+        public void ASpinAxisThatIsNotARealDirectionIsRefused()
+        {
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new RotatingGroundStation(new Vector3d(1.0, 0.0, 0.0), 0.0, 1000.0, 1000.0, 0.0, new Vector3d(0.0, 0.0, 0.0)));
+        }
+
+        private static double Dot(Vector3d a, Vector3d b) => a.X * b.X + a.Y * b.Y + a.Z * b.Z;
+
+        private static Vector3d Reflect(Vector3d v, Vector3d axis)
+        {
+            var along = axis * (2.0 * Dot(v, axis));
+            return along - v;
+        }
     }
 }

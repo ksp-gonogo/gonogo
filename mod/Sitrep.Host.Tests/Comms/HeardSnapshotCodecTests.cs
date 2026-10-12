@@ -285,6 +285,19 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void ALandedCraftOnATiltedBodyKeepsItsSpinAxis()
+        {
+            var tilt = 26.1 * System.Math.PI / 180.0;
+            var surface = new RotatingGroundStation(
+                new Vector3d(0.0, 1.0, 0.0), 0.0, 86_164.0, 6_371_000.0, 0.0, new Vector3d(System.Math.Sin(tilt), 0.0, System.Math.Cos(tilt)));
+            var landed = CraftState.Landed("vessel:l", 5.0, 1, surface, new Dictionary<string, CraftLink>());
+
+            var back = RoundTrip(landed).Centres.Single().States.Single().Surface!.Value;
+
+            Assert.Equal(0.0, (back.PositionAt(30_000.0) - surface.PositionAt(30_000.0)).Magnitude(), 3);
+        }
+
+        [Fact]
         public void ASaveThisBuildCannotReadCarriesNothing()
         {
             Assert.Null(HeardSnapshotCodec.Decode(null));
