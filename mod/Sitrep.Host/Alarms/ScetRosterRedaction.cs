@@ -4,7 +4,7 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Alarms
 {
     /// <summary>
-    /// The <c>alarm.activeList</c> roster as one session may receive it: an alarm armed
+    /// The <c>alarm.scet</c> roster as one session may receive it: an alarm armed
     /// at another command centre keeps its id, who armed it and where it has got
     /// to, and loses what it watches. See <see cref="ScetAlarm.Withheld"/>.
     /// </summary>
@@ -33,21 +33,10 @@ namespace Sitrep.Host.Alarms
         /// Whether a session at <paramref name="vantage"/> is kept from what
         /// <paramref name="alarm"/> watches: every alarm armed elsewhere, except
         /// one on universal time.
-        ///
-        /// <para>A session at no command centre, or an alarm whose arming centre
-        /// is unknown, is outside the comparison and sees everything: both arrive
-        /// as the empty string, so comparing them would call two unknowns a
-        /// match and an unknown against a centre a mismatch.</para>
         /// </summary>
-        public static bool IsWithheldFrom(ScetAlarm alarm, string? vantage)
-        {
-            if (string.IsNullOrEmpty(vantage) || string.IsNullOrEmpty(alarm.ArmedBy))
-            {
-                return false;
-            }
-            return alarm.Condition?.Kind != ScetAlarmConditionKind.Time
-                && alarm.ArmedBy != vantage;
-        }
+        public static bool IsWithheldFrom(ScetAlarm alarm, string vantage) =>
+            alarm.Condition?.Kind != ScetAlarmConditionKind.Time
+            && alarm.ArmedBy != vantage;
 
         private static ScetAlarm Redacted(ScetAlarm alarm) => new ScetAlarm
         {

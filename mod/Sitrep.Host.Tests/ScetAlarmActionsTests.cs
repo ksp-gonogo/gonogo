@@ -256,7 +256,7 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void TheRosterAndTheNoticeCarryTheActionsOnTheWire()
         {
-            var row = Wire("alarm.activeList", new List<ScetAlarm> { new ScetAlarm
+            var row = Wire("alarm.scet", new List<ScetAlarm> { new ScetAlarm
             {
                 Id = "a1",
                 OnFire = new List<ScetAlarmAction>

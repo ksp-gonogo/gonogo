@@ -333,8 +333,6 @@ export interface ForeignScetAlarm {
   /** The vantage it was armed from, in the `"ground:<name>"` / `"vessel:<guid>"` vocabulary. */
   armedBy: string;
   state: "armed" | "fired" | "unreachable";
-  /** The UT it fired at, as the roster holds it for a fired alarm; null otherwise. */
-  firedAtUt?: number | null;
   /** What it watches, or null when the row carried a condition this side cannot read or was withheld. */
   condition: ForeignScetCondition | null;
   /**

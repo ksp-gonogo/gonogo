@@ -20,7 +20,7 @@ namespace Sitrep.Host.IntegrationTests
     /// </summary>
     internal sealed class ScetRosterTestUplink : ISitrepUplink
     {
-        internal const string Topic = "alarm.activeList";
+        internal const string Topic = "alarm.scet";
 
         private readonly object _gate = new object();
         private readonly List<ScetAlarm> _alarms = new List<ScetAlarm>();

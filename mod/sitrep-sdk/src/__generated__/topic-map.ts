@@ -114,8 +114,8 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
-  /** One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as the game holds it: the `alarm.activeList` Topic is a bare array of these. */
-  "alarm.activeList": ScetAlarm[];
+  /** One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as the game holds it: the `alarm.scet` Topic is a bare array of these. */
+  "alarm.scet": ScetAlarm[];
   /** The notice that an alarm judged on the craft's own clock (a SCET alarm, for spacecraft event time) has fired and the warp has been stopped. */
   "alarm.scet.fired": ScetAlarmFired;
   /** One Topic a SCET (spacecraft event time) threshold alarm may be armed against: a row of the `alarm.scet.topics` channel. */
@@ -289,7 +289,7 @@ export interface GeneratedTopicPayloadMap {
 }
 
 export const GENERATED_TOPIC_IDS = [
-  "alarm.activeList",
+  "alarm.scet",
   "alarm.scet.fired",
   "alarm.scet.topics",
   "career.facilities",
@@ -381,7 +381,7 @@ export const GENERATED_TOPIC_IDS = [
 // field path under one names a field of an element and not of the Topic.
 // The `[]` above says the same to the type system, and a type is erased.
 export const GENERATED_COLLECTION_TOPIC_IDS = [
-  "alarm.activeList",
+  "alarm.scet",
   "alarm.scet.topics",
   "commandCentre.roster",
   "commandCentre.unreachable",

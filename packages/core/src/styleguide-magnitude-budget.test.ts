@@ -306,7 +306,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // both has to accept either. Not arithmetic: the number is handed to the
   // caller and never computed with here.
   "packages/sitrep-client/src/wire-magnitude.ts": 1,
-  // `readWireUt`, the one read of a universal time off a raw `alarm.activeList` or
+  // `readWireUt`, the one read of a universal time off a raw `alarm.scet` or
   // `alarm.scet.fired` frame, taken straight off the arrival rather than
   // through the store: the fired notice has to reach the client with the warp
   // stop rather than a light-time later, and the store samples at the frozen

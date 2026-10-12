@@ -211,7 +211,7 @@ public static class RtConfig
                 typeof(SetTargetArgs),
                 typeof(SetThrottleArgs),
                 typeof(SetWarpIndexArgs),
-                // alarm.activeList / alarm.scet.fired: the SCET alarm roster rows,
+                // alarm.scet / alarm.scet.fired: the SCET alarm roster rows,
                 // their condition shape and the fire notice, plus the
                 // alarm.scet.arm and alarm.scet.disarm command args. Registered for AutoI(false) so the
                 // generated interfaces stay I-prefix-free like every other
@@ -1414,7 +1414,7 @@ public static class RtConfig
     internal static readonly string[] ReservedFieldNameDebt =
     {
         // The element's alarm state is unreachable as a field reading; its third value, Unreachable, is about the craft, so a rename belongs with the alarm roster.
-        "alarm.activeList.state",
+        "alarm.scet.state",
     };
 
     /// <summary>

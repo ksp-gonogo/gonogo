@@ -333,7 +333,7 @@ public class ScetAlarmAction
 
 /// <summary>
 /// One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as
-/// the game holds it: the <c>alarm.activeList</c> Topic is a bare array of these.
+/// the game holds it: the <c>alarm.scet</c> Topic is a bare array of these.
 ///
 /// <para>The roster exists so an operator can see which alarms are still set
 /// after a reconnect, and so a client can remove an entry it no longer
@@ -360,7 +360,7 @@ public class ScetAlarmAction
 /// has got, and which Topics a threshold may be set against.
 /// </categoryDescription>
 [SitrepContract]
-[SitrepTopic("alarm.activeList", isArray: true)]
+[SitrepTopic("alarm.scet", isArray: true)]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif

@@ -8448,7 +8448,7 @@
       },
       {
         "key": "sitrep-sdk . TOPIC_IDS",
-        "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean. The alarm roster Topic alarm.scet is now alarm.activeList, since it lists every kind of alarm"
+        "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean"
       },
       {
         "key": "sitrep-sdk . TargetingHudContext#held",

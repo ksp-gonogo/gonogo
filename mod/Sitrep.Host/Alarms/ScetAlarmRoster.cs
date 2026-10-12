@@ -125,15 +125,6 @@ namespace Sitrep.Host.Alarms
     /// tick it lands, and a condition that keeps holding cannot command the warp
     /// down again on every tick after.</para>
     ///
-    /// <para><b>An armed alarm never expires.</b> It survives every client
-    /// disconnecting, and only a disarm, a craft switch that cancels it or a
-    /// quickload ends it, so a roster nobody tends grows by one row and one
-    /// standing subscription (holder <c>scet-alarm:&lt;id&gt;</c>) per alarm for
-    /// the game session. A threshold row is about 440 bytes on the wire
-    /// (<c>ScetRosterGrowthTests</c> measures it), so a thousand forgotten
-    /// alarms are about 440 KB a keyframe and a thousand held subscriptions. That is deliberately left unbounded: the alarm exists to
-    /// stop a warp when nobody is watching.</para>
-    ///
     /// <para><b>What is decided here never reaches the wire.</b> The notice
     /// carries an id and an instant. The reading that caused it does not: the
     /// warp stops where the alarm came due, and the telemetry stays where it
@@ -647,7 +638,7 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// The roster as the <c>alarm.activeList</c> channel publishes it. A fresh
+        /// The roster as the <c>alarm.scet</c> channel publishes it. A fresh
         /// copy each call: the caller hands it to a publisher that carries it to
         /// another thread, and the entries here keep being mutated.
         /// </summary>

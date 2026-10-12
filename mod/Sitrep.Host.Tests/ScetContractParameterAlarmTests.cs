@@ -252,7 +252,7 @@ namespace Sitrep.Host.Tests
         {
             var json = EnvelopeCodec.WriteStreamData(new StreamData<object?>
             {
-                Topic = "alarm.activeList",
+                Topic = "alarm.scet",
                 Payload = new List<ScetAlarm> { new ScetAlarm { Id = "a1", Condition = Objective().Condition } },
             });
 
