@@ -6059,7 +6059,7 @@ export interface ScetAlarmAction
 }
 /**
 * One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as
-* the game holds it: the `alarm.scet` Topic is a bare array of these.
+* the game holds it: the `alarm.activeList` Topic is a bare array of these.
 *
 * The roster exists so an operator can see which alarms are still set after a
 * reconnect, and so a client can remove an entry it no longer remembers. The

@@ -50,7 +50,7 @@ const MAX_UNANSWERED_ARMS = 5;
  */
 const NOT_YET = Symbol("not-yet");
 
-export const SCET_ROSTER_TOPIC = "alarm.scet";
+export const SCET_ROSTER_TOPIC = "alarm.activeList";
 export const SCET_FIRED_TOPIC = "alarm.scet.fired";
 export const SCET_ARM_COMMAND = "alarm.scet.arm";
 export const SCET_DISARM_COMMAND = "alarm.scet.disarm";
@@ -569,6 +569,7 @@ export class ScetAlarmBridge {
       this.commandedSinceRoster.clear();
       const cancelled = readCancelledIds(payload);
       if (cancelled.length > 0) this.ctx.onCancelled(cancelled);
+      this.latchFiredRows();
       this.reconcile();
       this.ctx.onRoster();
     });
@@ -581,6 +582,24 @@ export class ScetAlarmBridge {
         this.ctx.onForeignFired(notice.id, notice.firedAtUt);
       }
     });
+  }
+
+  /**
+   * Latch every alarm of this list that the roster holds as fired.
+   *
+   * The fire notice is a sticky last value, so a screen that was away while
+   * several alarms fired is replayed only the latest of them. The roster keeps
+   * every fired row until it is disarmed, so reading the fire off it as well is
+   * what leaves no alarm of this list unannounced after a reconnect. An alarm
+   * owed an arm is skipped: the row describes the condition it replaced.
+   */
+  private latchFiredRows(): void {
+    const ours = new Set(this.ctx.getAlarms().map((alarm) => alarm.id));
+    for (const row of this.rosterAlarms) {
+      if (row.state !== "fired" || row.firedAtUt == null) continue;
+      if (!ours.has(row.id) || this.owed.has(row.id)) continue;
+      this.ctx.onFired(row.id, row.firedAtUt, false);
+    }
   }
 
   private unbindTopics(): void {
@@ -767,6 +786,7 @@ function readRosterAlarms(payload: unknown): readonly ForeignScetAlarm[] {
           : state === ScetAlarmState.Unreachable
             ? "unreachable"
             : "armed",
+      firedAtUt: readWireUt(Reflect.get(row, "firedAtUt")),
       condition: readRosterCondition(Reflect.get(row, "condition")),
       withheld: Reflect.get(row, "withheld") === true,
     });

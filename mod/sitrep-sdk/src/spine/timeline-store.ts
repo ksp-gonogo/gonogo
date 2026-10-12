@@ -3407,7 +3407,7 @@ export class TimelineStore {
    * topic and can carry a field path of its own:
    * `"alarm.scet.fired.firedAtUt"` is `alarm.scet.fired` plus `firedAtUt`,
    * where splitting after the second segment made it a `fired.firedAtUt` path
-   * into `alarm.scet`, which is an array and has no such field. `undefined`
+   * into `alarm.activeList`, which is an array and has no such field. `undefined`
    * when the key is a whole topic: fewer than 3 segments (`"vessel.orbit"`
    * itself is the raw topic), or a known topic id at full length; both are
    * left to the ordinary raw-literal path in `sample()`.

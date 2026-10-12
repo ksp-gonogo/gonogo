@@ -208,7 +208,7 @@ namespace Sitrep.Contract.Serialization
                     break;
                 // No case for the scripting Uplink's wire types: they flatten producer-side (see WirePayloadCoverageTests.FlattenedByProducer).
                 case Sitrep.Contract.ScetAlarm scetAlarm:
-                    // alarm.scet is a bare array of these, published raw, so each element reaches here through the IEnumerable case.
+                    // alarm.activeList is a bare array of these, published raw, so each element reaches here through the IEnumerable case.
                     AppendScetAlarm(sb, scetAlarm);
                     break;
                 case Sitrep.Contract.ScetAlarmCondition scetAlarmCondition:
@@ -2232,7 +2232,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// One set SCET alarm as <c>{ id, name, armedBy, vantage, subject,
-        /// condition, state, firedAtUt, onFire, actsOn }</c>, the element shape of the <c>alarm.scet</c>
+        /// condition, state, firedAtUt, onFire, actsOn }</c>, the element shape of the <c>alarm.activeList</c>
         /// array.
         /// </summary>
         ///

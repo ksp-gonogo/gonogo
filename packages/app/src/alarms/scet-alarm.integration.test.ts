@@ -356,7 +356,9 @@ function startSession(owlt: number): ModStandIn {
             ? 1
             : 0,
       withheld: false,
-      firedAtUt: null,
+      firedAtUt: fired.has(id)
+        ? (firedAtTrueUt.find((f) => f.id === id)?.ut ?? null)
+        : null,
       onFire: arm.onFire,
       actsOn: arm.actsOn,
     }));
@@ -369,14 +371,14 @@ function startSession(owlt: number): ModStandIn {
        set every tick, which makes a refused arm retry for ever here and never
        in a game. */
     const json = JSON.stringify(lastRoster);
-    if (!transport.isSubscribed("alarm.scet")) {
+    if (!transport.isSubscribed("alarm.activeList")) {
       rosterAnswered = false;
       return;
     }
     if (rosterAnswered && json === lastPublishedJson) return;
     rosterAnswered = true;
     lastPublishedJson = json;
-    transport.emit("alarm.scet", lastRoster, {
+    transport.emit("alarm.activeList", lastRoster, {
       validAt: trueUt,
       deliveredAt: trueUt,
       vantage: stampedVantage,
@@ -481,7 +483,7 @@ function startSession(owlt: number): ModStandIn {
       /* What a client sees when it comes back: the reliable lane replays the
          last value on each topic through keyframe-on-subscribe, so the roster
          and the fire notice are re-delivered rather than lost. */
-      transport.emit("alarm.scet", lastRoster, {
+      transport.emit("alarm.activeList", lastRoster, {
         validAt: trueUt,
         deliveredAt: trueUt,
         vantage: HOME,
@@ -818,6 +820,7 @@ describe("SCET alarms", () => {
             value: expect.any(Number),
           },
           withheld: false,
+          firedAtUt: null,
         },
       ]);
 
@@ -1128,6 +1131,54 @@ describe("SCET alarms", () => {
     // Replayed on the reliable lane rather than lost: the operator comes back to an alarm that fired, not to a warp that stopped for no stated reason.
     expect(row?.state).not.toBe("pending");
     expect(row?.eventUT).toBe(target);
+    reconnected.dispose();
+  });
+
+  it("learns of every alarm that fired while it was away, not only the last", async () => {
+    const storage = memoryStorage();
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+
+    const earlier = UT_START + 100;
+    const later = UT_START + 200;
+    const first = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage,
+      getOwltSeconds: () => OWLT,
+    });
+    const a = first.addAlarm({
+      name: "Earlier",
+      trigger: { kind: "time", ut: earlier, leadSeconds: 0 },
+    });
+    const b = first.addAlarm({
+      name: "Later",
+      trigger: { kind: "time", ut: later, leadSeconds: 0 },
+    });
+    await run(session, UT_START + 4 * DT);
+    first.dispose();
+    setActiveTelemetryClientForTests(undefined);
+
+    for (let ut = UT_START + 5 * DT; ut <= later + 2 * DT; ut += DT) {
+      session.emitAt(ut);
+      nowMs += DT * 1000;
+      await vi.advanceTimersByTimeAsync(DT * 1000);
+    }
+
+    session.attach();
+    const reconnected = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage,
+      getOwltSeconds: () => OWLT,
+    });
+    session.reconnect();
+    await vi.advanceTimersByTimeAsync(DT * 1000);
+
+    const rows = reconnected.snapshot().alarms;
+    // The fire notice replays only the later alarm; the roster is what carries the earlier one.
+    expect(rows.find((r) => r.id === a.id)?.eventUT).toBe(earlier);
+    expect(rows.find((r) => r.id === b.id)?.eventUT).toBe(later);
     reconnected.dispose();
   });
 

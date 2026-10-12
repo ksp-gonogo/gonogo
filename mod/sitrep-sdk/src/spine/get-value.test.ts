@@ -85,9 +85,9 @@ describe("getValue over a field of a published parent Topic", () => {
    */
   it("still reads a field the contract declares no unit for", () => {
     const publish = streamHarness();
-    publish("alarm.scet", { condition: { threshold: 7 } });
+    publish("alarm.activeList", { condition: { threshold: 7 } });
 
-    expect(getValue("alarm.scet.condition.threshold")).toBe(7);
+    expect(getValue("alarm.activeList.condition.threshold")).toBe(7);
   });
 
   it("answers undefined for a field that carries no number at all", () => {

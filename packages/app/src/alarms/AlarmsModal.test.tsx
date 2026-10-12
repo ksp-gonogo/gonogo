@@ -652,6 +652,9 @@ describe("AlarmsModal threshold trigger key picker", () => {
 
     await user.type(screen.getByLabelText(/^name$/i), "Crossed 70 km");
     await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
+    await user.click(
+      screen.getByRole("checkbox", { name: /include reckoned values/i }),
+    );
     await user.click(getDataKeyCombobox());
     // Names the subject rather than taking the first match on "altitude": the
     // catalogue offers several, and a test that picks whichever sorts first is
@@ -693,6 +696,9 @@ describe("AlarmsModal threshold trigger key picker", () => {
     await user.type(screen.getByLabelText(/^name$/i), "Above 100 km");
     await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
     await user.click(screen.getByRole("radio", { name: /^scet$/i }));
+    await user.click(
+      screen.getByRole("checkbox", { name: /include reckoned values/i }),
+    );
     await user.click(getDataKeyCombobox());
     const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
       o.textContent?.includes("Altitude ASL"),
@@ -710,6 +716,76 @@ describe("AlarmsModal threshold trigger key picker", () => {
       // And the flat key beside it, because it is what the row reads out and what a command-vantage copy of the same alarm would compare.
       dataKey: "vessel.flight.altitudeAsl",
     });
+  });
+
+  /**
+   * An alarm on a reckoned value fires on a model's estimate, so the picker
+   * leaves those out until the operator asks for them, and asking widens the
+   * list rather than swapping it.
+   */
+  it("offers observed values only until reckoned values are asked for", async () => {
+    const user = userEvent.setup();
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      240,
+    );
+    await user.click(screen.getByRole("radio", { name: /at telemetry/i }));
+
+    await user.click(getDataKeyCombobox());
+    const observed = (await screen.findAllByRole("option")).map(
+      (o) => o.textContent ?? "",
+    );
+    expect(observed.some((t) => t.includes("Altitude ASL"))).toBe(false);
+    expect(observed.some((t) => t.includes("Altitude terrain"))).toBe(true);
+
+    await user.click(
+      screen.getByRole("checkbox", { name: /include reckoned values/i }),
+    );
+    await user.click(getDataKeyCombobox());
+    const widened = (await screen.findAllByRole("option")).map(
+      (o) => o.textContent ?? "",
+    );
+    expect(widened.some((t) => t.includes("Altitude ASL"))).toBe(true);
+    expect(widened.some((t) => t.includes("Altitude terrain"))).toBe(true);
+  });
+
+  it("marks a listed alarm armed on a reckoned value", () => {
+    const armed = (fieldPath: string): Alarm => ({
+      id: fieldPath,
+      name: fieldPath,
+      trigger: {
+        kind: "threshold",
+        dataKey: `vessel.flight.${fieldPath}`,
+        op: ">=",
+        value: 1,
+        sustainSeconds: 0,
+        topic: "vessel.flight",
+        fieldPath,
+      },
+      state: "pending",
+      createdBy: "main",
+      createdAt: 0,
+    });
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() =>
+          makeSnapshot([armed("altitudeAsl"), armed("altitudeTerrain")])
+        }
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      240,
+    );
+
+    expect(screen.getAllByText("RECKONED")).toHaveLength(1);
   });
 
   /**
