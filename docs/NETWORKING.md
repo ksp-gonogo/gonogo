@@ -9,7 +9,7 @@ It is the browser, not the container, that opens that connection: it dials the G
 
 Running both on one machine works but is awkward, because KSP pauses when it isn't the focused window, so the dashboard stops getting data the moment you switch to it. Two computers avoids that.
 
-Station screens are different again. A station is any browser that joins the session: a tablet, a phone, a second laptop. A station never talks to KSP, and never needs to know your KSP computer's address or ports. It gets everything through the main screen's browser tab, so a station works only while that tab stays open and awake: close it, or let the computer sleep, and every station loses its data until it is back. On its first load a station also shows **Before you start** with a row per Uplink, answered separately from the main screen's. It needs two things: the share code from the main screen, and an internet connection (see [How a station finds the main screen](#how-a-station-finds-the-main-screen), the two ends meet on a broker that lives on the internet).
+Station screens are different again. A station is any browser that joins the session: a tablet, a phone, a second laptop. A station never talks to KSP, and never needs to know your KSP computer's address or ports. It gets everything through the main screen's browser tab, so a station works only while that tab stays open and awake: close it, or let the computer sleep, and every station loses its data until it is back. On its first load a station also shows **Before you start** with a row per Uplink, answered separately from the main screen's. It needs two things: the share code from the main screen, and an internet connection (under **Settings, Help**, **Adding a station screen**: the two ends meet on a broker that lives on the internet).
 
 Most of this page assumes you run gonogo the way the [README](../README.md#how-to-run-it) describes: the `ghcr.io/ksp-gonogo/gonogo` container (`:latest` after the first release, `:rc` before it), which serves the app on `:8080` and the relay on `:3002`. Where a setting differs between that and a source checkout running `pnpm dev`, both are given.
 
@@ -25,47 +25,9 @@ It usually looks like `192.168.x.x` or `10.x.x.x`. Give it to the main screen in
 
 If the main screen can't reach the KSP computer on the same WiFi, a firewall on the KSP computer is the usual cause (it must allow incoming connections on port 8090, and 8088 for cameras); Windows and macOS often block local network traffic by default. The check is made by the browser on the main screen computer, so that computer's own network is the other half. This is a main-screen-to-KSP problem only. Stations never contact the KSP computer, so no firewall or port on that machine can stop a station connecting.
 
-## Adding a station screen
+## Stations
 
-1. On the main screen, hover the **+** button (bottom-right), or Tab to it, to reveal the menu (it stays hidden otherwise; pressing **+** itself opens the Add component list instead), and press **Add station** (the broadcast symbol). The modal shows a six-character **share code**, the same code as a link and a QR code, and the TURN indicator described [below](#checking-the-relay-works)
-2. On the other device, open the station page. Any of these work:
-   - Scan the QR code, or open a link from the modal. Both carry the code as `?host=<code>`, so the station connects on landing with nothing to type. The modal lists the address of your own main screen, labelled **This app** (for a device on the same network, or another window on the main screen's computer), and, when the main screen is on localhost or a local address, the **Public build** beside it (for a device on another network, needs internet). The QR encodes the one a phone can reach: your own address on a local network, the public build when the main screen is on localhost
-   - Type [ksp-gonogo.github.io/app/station](https://ksp-gonogo.github.io/app/station) into the browser. This is the public build of the same app. It is a 404 until the first release is published, so before that use your own address
-   - On the same WiFi, `http://<main-screen-computer-ip>:8080/station`, served by your own container. Running from a checkout it is `http://<main-screen-computer-ip>:5173/station`
-3. If you didn't arrive by QR or link, the station shows a **Connect to Mission Control** screen. Type the six-character code and press **Connect**
-4. A new main screen or station starts empty: it says "No widgets on this dashboard" and offers an **Add a widget** button
-
-The station remembers the code, so it reconnects by itself on the next page load, provided the main screen's tab is open. To change or clear it, open the **Connection** FAB on a connected station: it shows the current code and status, takes a different code, and has a **Disconnect** that returns the device to the connect screen.
-
-Regenerating the code (the **New share code** button in Add Station) drops every connected station: they all need the new code.
-
-## How a station finds the main screen
-
-The main screen's peer claims a fixed identity derived from its share code, and a station derives the same identity from the code the operator types. Both ends meet at that identity on a **PeerJS broker** and connect directly, peer-to-peer. There is no lookup step and no relay in the path: the station never resolves the code against a server, it just computes where the host will be and connects there.
-
-The broker is a public internet service (`0.peerjs.com` by default, the PeerJS library's own). It carries no telemetry: its whole job is to let two browsers that know the same name exchange connection details. Two consequences:
-
-- **Both devices need internet access, even on the same WiFi.** An offline LAN, a guest network that blocks outbound, or a captive portal that hasn't been signed into will stop a station connecting to a main screen sitting a metre away
-- The broker is a dependency you don't control. A self-hosted broker can be pointed at with the `VITE_PEER_HOST` / `VITE_PEER_PORT` / `VITE_PEER_PATH` / `VITE_PEER_SECURE` build-time variables, which means building the app from a checkout; there is no runtime setting for it
-
-Once the two ends have found each other, the data goes directly between the browsers. On the same WiFi they exchange local network addresses and the connection stays on your LAN, so nothing but the initial introduction leaves the network.
-
-The relay is a separate thing from the broker and is **not** part of finding the main screen. It runs alongside the app, hosts the camera channel's TURN server and a diagnostics-only registry, and a same-WiFi station connects without it.
-
-A station out on the internet (a phone on cellular, a friend at their own house) is the harder case. The two browsers still meet at the same broker identity, but when they can't reach each other's local addresses they need a TURN relay to bridge the connection. The bundled relay's TURN server handles this, including from a containerized relay on macOS, as long as coturn advertises a reachable public IP and the TURN ports are forwarded to it. See [Cross-internet stations](#cross-internet-stations-cellular-remote-networks) below.
-
-## When a station won't connect
-
-Work down this list. The first three cover nearly every same-WiFi failure, and none of them involve the relay or TURN.
-
-1. **Read the station's own status line.** The connect screen says which of the three failures it hit, and they want different fixes:
-   - *"Can't reach the peer broker: this device needs internet access."* This device has no route to the broker. Nothing is wrong with the code or the main screen. Check that the device is genuinely online (load any website), that it isn't on a guest network or captive portal, and that outbound HTTPS isn't blocked
-   - *"Broker doesn't know that code."* The broker answered and nobody is holding that identity. Check the code against the Add Station modal, check the main screen tab is still open and awake, and check the code wasn't regenerated
-   - *"Host reconnecting: waiting for the main screen to come back..."*, *"Reconnecting: the host or broker may be briefly unavailable."* or *"No connection. Use Download logs if this persists."* (with *"Connection lost. Check the host ID and try again."* beneath it) after a working session. The host went away (refresh, sleep, restart). A station retries on its own for five minutes; a main screen that restarted uncleanly may spend a few seconds reclaiming its identity, which the Add Station modal says explicitly when it happens
-2. **Check the code is the one on screen now.** It is six characters, case-insensitive, and it changes only when someone presses **New share code** (a main screen that already had an older four-character code keeps it until then)
-3. **Check WiFi client isolation.** Guest and public networks often block device-to-device traffic. That does not stop the introduction at the broker, so the station gets past "connecting" and then fails to open a channel. Put both devices on the normal network, or fall back to the cross-internet path below, which relays through TURN instead of going device-to-device
-4. **Look at the logs.** The connect screen has a **Download logs** button, and every screen keeps the same ring buffer. The peer lines (`[PeerClient] ...`) name the identity being targeted and the reason for each retry
-5. **Only then look at TURN.** TURN is used only when the two browsers can't reach each other directly, which on the same WiFi they can. A red TURN indicator does not explain a same-WiFi station that won't connect
+Adding a station screen, how a station finds the main screen, and what to do when one will not connect are in the app, under **Settings, Help**: **Adding a station screen** and **A station will not connect**.
 
 ## Cross-internet stations (cellular, remote networks)
 
@@ -110,7 +72,7 @@ A relay containerized on a macOS host relays cross-internet traffic fine once bo
 
 ## Checking the relay works
 
-Open the **Add Station** modal on the main screen. An indicator at the bottom checks whether the relay's TURN server is reachable. This matters only for stations out on the internet, which need TURN to connect: green means a cross-internet station can be relayed, red usually means a missing port-forward or the wrong public address. A station on the same WiFi connects regardless of what this indicator says, because it doesn't use TURN; if one is failing, work through [When a station won't connect](#when-a-station-wont-connect) instead.
+Open the **Add Station** modal on the main screen. An indicator at the bottom checks whether the relay's TURN server is reachable. This matters only for stations out on the internet, which need TURN to connect: green means a cross-internet station can be relayed, red usually means a missing port-forward or the wrong public address. A station on the same WiFi connects regardless of what this indicator says, because it doesn't use TURN; if one is failing, work through When a station won't connect (**Settings, Help**, **A station will not connect**) instead.
 
 The probe runs in the main screen's browser and looks for the relay at `http://localhost:3002`, so run the main screen on the machine the relay is on. Open it from a second computer and the indicator reports no TURN even when the relay is healthy.
 

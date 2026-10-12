@@ -29,16 +29,10 @@ const list = (...items: string[]): HelpBlock => ({ kind: "list", items });
 export const HELP_TOPICS: readonly HelpTopic[] = [
   {
     id: "mods",
-    title: "Which mods you need",
+    title: "Which mod you need",
     blocks: [
       text(
         "Gonogo is built for KSP 1.12. One mod is required: the Gonogo mod, which streams the game's telemetry, career state, science and comms to this app over one WebSocket on port 8090.",
-      ),
-      text(
-        "Everything else is optional. Each add-on is an Uplink, a small mod that connects Gonogo to one other mod and adds that mod's widgets without touching the rest of the dashboard.",
-      ),
-      text(
-        "Start with the Gonogo mod, confirm telemetry is arriving, then add whichever of the others you want.",
       ),
     ],
   },
@@ -70,13 +64,13 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     title: "Connecting to KSP on another computer",
     blocks: [
       text(
-        "The browser you opened this screen in connects to the game directly, so the address you give it must be reachable from this computer, and the firewall that matters is the one on the KSP computer. It must accept incoming connections on port 8090, and on any other port an Uplink's page names.",
+        "The browser you opened this screen in connects to the game directly, so the address you give it must be reachable from this computer, and the firewall that matters is the one on the KSP computer. It must accept incoming connections on port 8090.",
       ),
       text(
         "KSP pauses when its window is not in front, so with both on one computer the dashboard stops getting data whenever you switch to it. A second computer avoids that.",
       ),
       text(
-        "Set the address under Connection, Game host: press the gear on the Telemetry stream row, set Host to the KSP computer's address and press Save. It takes effect at once. One host serves the telemetry stream and every Uplink. To find the KSP computer's address, run the command for its system on that computer:",
+        "Set the address under Connection, Game host: press the gear on the Telemetry stream row, set Host to the KSP computer's address and press Save. It takes effect at once. To find the KSP computer's address, run the command for its system on that computer:",
       ),
       {
         kind: "command",
@@ -122,7 +116,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
         'A working start prints a line beginning "[Gonogo] Started". No Gonogo lines at all means KSP never loaded the mod: check that GameData/Gonogo/Plugins exists and holds every DLL it shipped with. A line beginning "[Gonogo] Failed to start" is followed by the reason, and a port already in use is the usual one.',
       ),
       text(
-        "2. Does the app say it is connected? Under Connection, the Telemetry stream row reads CONNECTED once the browser has an open socket to the mod. Expect that from the main menu, before any save is loaded. DISCONNECTED, ERROR or RECONNECTING with a started mod means the problem is between the two computers: a wrong Host, or a firewall on the KSP computer. Windows and macOS both block incoming local-network connections by default. The Uplinks tab lists every Uplink the mod reports, so an empty one is itself a sign that nothing is arriving.",
+        "2. Does the app say it is connected? Under Connection, the Telemetry stream row reads CONNECTED once the browser has an open socket to the mod. Expect that from the main menu, before any save is loaded. DISCONNECTED, ERROR or RECONNECTING with a started mod means the problem is between the two computers: a wrong Host, or a firewall on the KSP computer. Windows and macOS both block incoming local-network connections by default.",
       ),
       text(
         "3. Does a widget draw? Load any save, then add System View from the Add a widget button. It draws from the bodies alone, with no vessel and no flight scene. If it draws, the stream is arriving.",
@@ -143,22 +137,39 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     ],
   },
   {
-    id: "uplinks",
-    title: "Installing Uplinks",
+    id: "stations",
+    title: "Adding a station screen",
     blocks: [
       text(
-        "An Uplink comes in two halves: a plugin that goes in GameData beside the Gonogo mod, and a client bundle that ships with this app. You install the plugin and the app fetches its own half. Install the mod it connects to the same way first.",
+        "A station is any other browser that joins the session: a tablet, a phone, a second laptop. It never talks to KSP. It gets everything through this screen's browser tab, so a station works only while this tab stays open and awake.",
       ),
       text(
-        "Download the Uplink's zip from the Uplinks releases page, unzip it and copy the folders inside its GameData into yours, as for the Gonogo mod. Its own page under Settings, Uplinks says whether it is working and what it needs. If the releases page has no zip for an Uplink, there is nothing to install yet. A missing Uplink costs you its widgets and nothing else.",
+        "Hover the + button in the bottom-right corner, or Tab to it, and press Add station. The window shows a six-character share code, as a link and as a QR code. On the other device scan the QR code or open the link and it connects with nothing to type. Otherwise open the station page and type the code on the Connect to Mission Control screen.",
       ),
-      {
-        kind: "link",
-        label: "Uplinks releases page",
-        href: SETUP_LINKS.uplinkReleases,
-      },
       text(
-        "An Uplink listed as \"Refused: contract mismatch\" was built for a different version of the Gonogo mod than the one running. The dashboard still works; only that mod's widgets are missing. Install an Uplink release built for your mod's version, or update the Gonogo mod to match, then reload the page. Each Uplink's health is on its page under Uplinks.",
+        "The station remembers the code and reconnects by itself while this tab is open. New share code in the same window drops every connected station, and they all need the new code.",
+      ),
+      text(
+        "Both devices need internet access, even on the same WiFi, because the two browsers meet through a public broker before they connect directly. The broker carries no telemetry.",
+      ),
+    ],
+  },
+  {
+    id: "station-trouble",
+    title: "A station will not connect",
+    blocks: [
+      text(
+        "Work down these in order. The station's own status line says which applies.",
+      ),
+      list(
+        "Can't reach the peer broker: the station has no internet route. Load any website on it, and check it is not on a guest network or a captive portal that blocks outbound connections",
+        "Broker doesn't know that code: check the code against the Add station window, that this tab is still open and awake, and that the code was not regenerated",
+        "Reconnecting after a working session: this screen went away, by refresh, sleep or restart. A station retries by itself for five minutes",
+        "Connects, then fails to open a channel: guest and public WiFi often block device-to-device traffic. Put both devices on your normal network",
+        "The station's connect screen has a Download logs button, and the lines beginning [PeerClient] name the code being targeted and the reason for each retry",
+      ),
+      text(
+        "A station on another network, such as a phone on cellular, also needs a relay with forwarded ports, described in the networking guide on the project page.",
       ),
     ],
   },
@@ -167,7 +178,7 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     title: "Running the app",
     blocks: [
       text(
-        `The app is served by the Gonogo container at ${LOCAL_APP_URL}. Settings, Connection, Run setup again re-opens the first-run checks for the container, the KSP connection and your Uplinks.`,
+        `The app is served by the Gonogo container at ${LOCAL_APP_URL}. Settings, Connection, Run setup again re-opens the first-run checks for the container and the KSP connection.`,
       ),
     ],
   },

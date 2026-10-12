@@ -118,7 +118,6 @@ export const SETUP_LINKS = {
   networking: `${DOCS}/NETWORKING.md`,
   relayPorts: `${DOCS}/NETWORKING.md#cross-internet-stations-cellular-remote-networks`,
   source: "https://github.com/ksp-gonogo/gonogo",
-  uplinkReleases: "https://github.com/ksp-gonogo/gonogo-uplinks/releases",
   uplinkDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/",
 } as const;
 
