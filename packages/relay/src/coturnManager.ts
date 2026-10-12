@@ -67,6 +67,12 @@ export interface CoturnHandle {
   externalIp: string;
   /** Listening port. */
   port: number;
+  /**
+   * Whether the coturn process is still there to serve an allocation. False
+   * once it has exited or failed to start, after which the credentials above
+   * name a server that is gone.
+   */
+  running(): boolean;
   /** Stop the underlying coturn process. */
   stop(): Promise<void>;
 }
@@ -153,11 +159,14 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     }
   });
 
+  let gone = false;
   proc.on("error", (err) => {
+    gone = true;
     opts.logger.error("[coturn] spawn failed", err);
   });
 
   proc.on("exit", (code, signal) => {
+    gone = true;
     opts.logger.error(`[coturn] exited code=${code} signal=${signal}`);
   });
 
@@ -166,6 +175,7 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     credential: secret,
     externalIp: opts.externalIp,
     port,
+    running: () => !gone,
     async stop(): Promise<void> {
       if (proc.exitCode !== null) return;
       proc.kill("SIGTERM");

@@ -40,6 +40,7 @@ import { HomeFallbackNotice } from "../components/HomeFallbackNotice";
 import { MissionBanner } from "../components/MissionBanner";
 import { SignalLossIndicator } from "../components/SignalLossIndicator";
 import { StationConnectionFab } from "../components/StationConnectionFab";
+import { StationSupersededNotice } from "../components/StationSupersededNotice";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { downloadLogs } from "../logs/downloadLogs";
 import { ManeuverTriggerClientService } from "../maneuverTriggers";
@@ -304,6 +305,7 @@ export function StationScreen() {
         <SettingsProvider service={settingsService}>
           <MissionProfilesProvider service={missionProfiles}>
             <ScopedStationIdentity>
+              <StationSupersededNotice client={client} />
               <StationConnectView
                 hostInput={hostInput}
                 connStatus={connStatus}
@@ -338,10 +340,10 @@ export function StationScreen() {
           <StationWakeLockBridge />
           <ScopedStationIdentity>
             <StationInfoBroadcaster client={client} seat="mission-control" />
+            <StationSupersededNotice client={client} />
             <PeerClientProvider client={client}>
               <SitrepTelemetryProvider transport={peerTransport}>
                 <AugmentAvailabilityFeeder />
-                <UplinkHealthRetry fetchBytes={bundleFetch} />
                 <ConsoleSettingsFromHost service={settingsService} />
                 <ManeuverTriggerProvider service={maneuverTriggerClient}>
                   <PushClientProvider>
@@ -363,6 +365,10 @@ export function StationScreen() {
                               <UplinkIntegrityBanner />
                               <MissionBanner />
                               <StationUplinkLoader>
+                                <UplinkHealthRetry
+                                  fetchBytes={bundleFetch}
+                                  bundlesFromHost
+                                />
                                 <RootProviders screen="station">
                                   <Dashboard
                                     items={dashboard.items}

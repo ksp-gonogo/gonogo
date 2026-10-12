@@ -177,3 +177,33 @@ describe("applyBackup (replace mode)", () => {
     expect(localStorage.getItem("gonogo.settings")).toBe("{new}");
   });
 });
+
+describe("what a backup may carry", () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("leaves out commands still awaiting their outcome", () => {
+    expect(
+      isBackupKey("gonogo.sitrep.outstandingCommands.v1.main", false),
+    ).toBe(false);
+  });
+
+  it("restores only keys an export could have produced", () => {
+    applyBackup({
+      metadata: { version: 1, exportedAt: "x" },
+      data: {
+        "gonogo.station.name": "CAPCOM",
+        LOG_LEVEL: "debug",
+        "gonogo.logs.ringBuffer": "[]",
+        "gonogo.sitrep.outstandingCommands.v1.main": "[]",
+      },
+    });
+    expect(localStorage.getItem("gonogo.station.name")).toBe("CAPCOM");
+    expect(localStorage.getItem("LOG_LEVEL")).toBeNull();
+    expect(localStorage.getItem("gonogo.logs.ringBuffer")).toBeNull();
+    expect(
+      localStorage.getItem("gonogo.sitrep.outstandingCommands.v1.main"),
+    ).toBeNull();
+  });
+});

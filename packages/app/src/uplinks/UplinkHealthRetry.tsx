@@ -2,24 +2,33 @@ import { logger } from "@ksp-gonogo/logger";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { useEffect, useMemo, useRef } from "react";
 import { VERSION } from "../version";
+import { loaderBootIdsOverride } from "./flag";
 import { hostCompat } from "./hostCompat";
-import { type LoaderContext, reloadHealthRefusals } from "./loader";
+import {
+  type LoaderContext,
+  loadFromLiveRoster,
+  type RosterEntry,
+} from "./loader";
 import { localRegistrySource } from "./registry";
 import { decodeRosterPayload } from "./rosterProbe";
 
 /**
- * Loads an Uplink's client again when the live roster stops reporting it
- * unavailable. The boot-time load reads the roster once, and an expansion-gated
- * Uplink reports unavailable until KSP has filled its expansion list, so a page
- * opened in that window would otherwise lose the client for good.
+ * Loads the Uplink clients the live roster makes loadable after startup. The
+ * startup load reads the roster once, so a page opened before the game is
+ * running attempts nothing, and an expansion-gated Uplink reports unavailable
+ * until KSP has filled its expansion list. Each roster this reads loads the
+ * clients startup never attempted and the ones whose health refusal has lifted.
  *
- * Renders nothing. Mount inside the telemetry provider; a station passes the
- * peer conduit's `fetchBytes`.
+ * Renders nothing. Mount inside the telemetry provider, and on a station below
+ * `StationUplinkLoader`, passing the peer conduit's `fetchBytes` and
+ * `bundlesFromHost`.
  */
 export function UplinkHealthRetry({
   fetchBytes,
+  bundlesFromHost,
 }: {
   fetchBytes?: LoaderContext["fetchBytes"];
+  bundlesFromHost?: boolean;
 }) {
   const reading = useStream<unknown>("system.uplinks");
   const roster = useMemo(
@@ -30,27 +39,42 @@ export function UplinkHealthRetry({
     [reading],
   );
   const running = useRef(false);
+  const waiting = useRef<RosterEntry[] | null>(null);
 
   useEffect(() => {
-    if (!roster || running.current) return;
-    running.current = true;
-    void reloadHealthRefusals({
-      registrySource: localRegistrySource(),
-      hostCompat,
-      appVersion: VERSION,
-      roster,
-      fetchBytes,
-    })
-      .catch((err) => {
-        logger.error(
-          "[uplink-loader] health retry threw",
-          err instanceof Error ? err : new Error(String(err)),
-        );
+    if (!roster) return;
+    /* A roster that arrives while a load is running is kept and read when that
+       load ends, because the stream may not send another one. */
+    if (running.current) {
+      waiting.current = roster;
+      return;
+    }
+    const run = (next: RosterEntry[]): void => {
+      running.current = true;
+      void loadFromLiveRoster({
+        registrySource: localRegistrySource(),
+        override: loaderBootIdsOverride(),
+        hostCompat,
+        appVersion: VERSION,
+        roster: next,
+        fetchBytes,
+        bundlesFromHost: bundlesFromHost ? true : undefined,
       })
-      .finally(() => {
-        running.current = false;
-      });
-  }, [roster, fetchBytes]);
+        .catch((err) => {
+          logger.error(
+            "[uplink-loader] live roster load threw",
+            err instanceof Error ? err : new Error(String(err)),
+          );
+        })
+        .finally(() => {
+          running.current = false;
+          const queued = waiting.current;
+          waiting.current = null;
+          if (queued) run(queued);
+        });
+    };
+    run(roster);
+  }, [roster, fetchBytes, bundlesFromHost]);
 
   return null;
 }

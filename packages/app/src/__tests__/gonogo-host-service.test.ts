@@ -293,6 +293,7 @@ describe("GoNoGoHostService", () => {
     host.fireConnect("peer-2");
     host.fireStationInfo("peer-1", "A");
     host.fireStationInfo("peer-2", "B");
+    host.fireVote("peer-2", "no-go");
     host.fireVote("peer-1", "go");
     expect(svc.getSnapshot().countdown).toBeNull();
     host.fireVote("peer-2", "go");
@@ -311,14 +312,48 @@ describe("GoNoGoHostService", () => {
     expect(cancel.reason).toContain("no-go");
   });
 
-  it("cancels the countdown when a new peer joins mid-countdown", () => {
+  it("is not blocked by a connected screen that has no GO/NO-GO widget", () => {
+    host.fireConnect("peer-1");
+    host.fireConnect("no-widget");
+    host.fireVote("no-widget", null);
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+  });
+
+  it("stops counting a screen that removes its widget mid-poll", () => {
+    host.fireConnect("peer-1");
+    host.fireConnect("peer-2");
+    host.fireVote("peer-1", "go");
+    host.fireVote("peer-2", "no-go");
+    expect(svc.getSnapshot().countdown).toBeNull();
+    host.fireVote("peer-2", null);
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+  });
+
+  it("never reads zero votes as all GO", () => {
+    host.fireConnect("peer-1");
+    host.fireConnect("peer-2");
+    host.fireVote("peer-1", null);
+    host.fireVote("peer-2", null);
+    expect(svc.getSnapshot().countdown).toBeNull();
+
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+    host.fireVote("peer-1", null);
+    expect(svc.getSnapshot().countdown).toBeNull();
+    expect(lastBroadcast(host, "gonogo-countdown-cancel").reason).toContain(
+      "withdrawn",
+    );
+  });
+
+  it("keeps counting down when a screen with no vote joins, and stops when that screen votes NO-GO", () => {
     host.fireConnect("peer-1");
     host.fireVote("peer-1", "go");
     expect(svc.getSnapshot().countdown).not.toBeNull();
     host.fireConnect("peer-2");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+    host.fireVote("peer-2", "no-go");
     expect(svc.getSnapshot().countdown).toBeNull();
-    const cancel = lastBroadcast(host, "gonogo-countdown-cancel");
-    expect(cancel.reason).toContain("new station");
   });
 
   it("cancels the countdown when a peer disconnects mid-countdown", () => {

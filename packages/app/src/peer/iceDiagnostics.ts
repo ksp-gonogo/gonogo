@@ -107,17 +107,17 @@ export function attachIceDiagnostics(
       iceLog.debug("icecandidate: end-of-candidates", ctx);
       return;
     }
-    // Strip the raw `candidate` SDP string to keep the entry compact, type, protocol, and address class are the diagnostic-grade fields.
+    /* The address itself never leaves the browser: a server-reflexive
+       candidate carries the player's public IP. Its class is what a diagnosis
+       needs, since that says whether the browser is publishing host
+       candidates the other side can use. */
     iceLog.debug("icecandidate", {
       ...ctx,
       type: c.type,
       protocol: c.protocol,
-      // address may be a .local mDNS hostname (Chrome / iOS Safari
-      // privacy default) or a real IP. The shape tells us whether the
-      // browser is publishing host candidates the other side can use.
-      address: c.address,
+      addressClass: iceAddressClass(c.address),
       port: c.port,
-      relatedAddress: c.relatedAddress,
+      relatedAddressClass: iceAddressClass(c.relatedAddress),
     });
   });
   pc.addEventListener("icecandidateerror", (ev) => {
@@ -137,4 +137,47 @@ export function attachIceDiagnostics(
     dead = true;
     clearGrace();
   });
+}
+
+export type IceAddressClass =
+  | "none"
+  | "mdns"
+  | "loopback"
+  | "private"
+  | "public"
+  | "hostname";
+
+/**
+ * Which kind of address an ICE candidate carries, without the address: a
+ * `.local` mDNS name, a loopback, a private or link-local range, or a public
+ * address. `none` when the candidate has no address.
+ */
+export function iceAddressClass(
+  address: string | null | undefined,
+): IceAddressClass {
+  if (!address) return "none";
+  const a = address.toLowerCase().replace(/^\[|\]$/g, "");
+  if (a.endsWith(".local")) return "mdns";
+  if (a.includes(":")) {
+    if (a === "::1") return "loopback";
+    // Unique local (fc00::/7) and link-local (fe80::/10).
+    if (/^f[cd]/.test(a) || /^fe[89ab]/.test(a)) return "private";
+    return "public";
+  }
+  const octets = a.split(".").map(Number);
+  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n))) {
+    return "hostname";
+  }
+  const [first, second] = octets;
+  if (first === 127) return "loopback";
+  if (
+    first === 10 ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 168) ||
+    (first === 169 && second === 254) ||
+    (first === 100 && second >= 64 && second <= 127)
+  ) {
+    return "private";
+  }
+  return "public";
 }

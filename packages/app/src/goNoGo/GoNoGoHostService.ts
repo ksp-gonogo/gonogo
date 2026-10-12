@@ -96,10 +96,8 @@ export class GoNoGoHostService {
   constructor(private host: GoNoGoHost) {
     this.unsubs.push(
       host.onPeerConnect((peerId) => {
+        // A screen that has just joined has no vote, and a screen with no vote is not in the poll: its first vote decides what it does to a countdown.
         this.connectedPeers.add(peerId);
-        // Rule: a new station can't have voted yet, so the "all green"
-        // condition is broken. Cancel any in-flight countdown.
-        this.cancelCountdownIfRunning("new station joined");
         this.emit();
       }),
     );
@@ -124,11 +122,13 @@ export class GoNoGoHostService {
     this.unsubs.push(
       host.onGonogoVote((peerId, status) => {
         this.peerIdToVote.set(peerId, status);
-        if (status === "go") {
+        if (this.pollIsGo()) {
           this.maybeStartCountdown();
         } else {
           this.cancelCountdownIfRunning(
-            `vote flipped to ${status ?? "missing"}`,
+            status === null
+              ? "the last GO vote was withdrawn"
+              : `vote flipped to ${status}`,
           );
         }
         this.emit();
@@ -263,13 +263,26 @@ export class GoNoGoHostService {
     this.listeners.clear();
   }
 
+  /**
+   * Whether the poll passes: at least one connected screen has voted "GO" and
+   * none has voted "NO-GO". A screen with no vote is not in the poll, whether
+   * it never showed the widget or has removed it, so it neither blocks a
+   * countdown nor counts towards one. No votes at all does not pass.
+   */
+  private pollIsGo(): boolean {
+    let go = 0;
+    for (const peerId of this.connectedPeers) {
+      const vote = this.peerIdToVote.get(peerId) ?? null;
+      if (vote === "no-go") return false;
+      if (vote === "go") go++;
+    }
+    return go > 0;
+  }
+
   private maybeStartCountdown(): void {
     if (this.launched) return;
     if (this.countdown) return;
-    if (this.connectedPeers.size === 0) return;
-    for (const peerId of this.connectedPeers) {
-      if (this.peerIdToVote.get(peerId) !== "go") return;
-    }
+    if (!this.pollIsGo()) return;
     const t0Ms = Date.now() + this.config.countdownLengthMs;
     const timer = setTimeout(() => {
       this.onCountdownReached();

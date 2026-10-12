@@ -15,12 +15,12 @@ import { ThemeProvider } from "styled-components";
 // extensions: themes (from @ksp-gonogo/ui), components (from @ksp-gonogo/components),
 // and data sources (from ./dataSources).
 import "@ksp-gonogo/components"; // triggers all component self-registration
-import "./dataSources"; // triggers all data source self-registration
 import "./commcast/CommcastComponent"; // app-level component: registers on import
 import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";
 import { analyticsConsentService } from "./analytics/AnalyticsConsentService";
+import { kspHostSeeded } from "./dataSources"; // importing it triggers all data source self-registration
 import { bootsWithoutDirectMod, currentRoute } from "./screens/isStationRoute";
 import { setConsentBatchPrompt } from "./uplinks/consent";
 import { promptForConsents } from "./uplinks/consentModal";
@@ -80,9 +80,11 @@ function renderApp(): void {
 // Render proceeds either way: a quarantined Uplink degrades to "widget not loaded (reason)" in Settings, never a blank dashboard.
 //
 // The roster probe and the loader run as one sequence because the loader needs
-// the roster. `probeUplinkRoster()`'s read is bounded by its own timeout
-// (default 3000ms), so a mod that never answers delays the first render by
-// that much and no more.
+// the roster. `probeUplinkRoster()` waits a bounded time for the `KSP_HOST`
+// seed (so it dials the seeded host, not the build default) and then a bounded
+// time for the roster (default 3000ms), so a mod that never answers delays the
+// first render by that much and no more. A roster that turns up after that is
+// picked up by `UplinkHealthRetry`.
 //
 // STATION BOOT: a station NEVER
 // talks to KSP or an Uplink author host directly, it gets everything from the
@@ -128,7 +130,7 @@ async function bootUplinksAndRender(): Promise<void> {
     // enforce the three-way mod-hash check; undefined when no mod is talking
     // (dev / offline first boot) → the loader records the mod-hash arm as
     // pending and degrades to the two-way index==bytes check.
-    const roster = await probeUplinkRoster();
+    const roster = await probeUplinkRoster({ hostReady: kspHostSeeded });
     await loadEnabledUplinks({
       registrySource: localRegistrySource(),
       // The roster is the only thing that says what to load; an explicit

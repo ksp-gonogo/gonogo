@@ -129,6 +129,8 @@ export class RetryPolicy {
     if (this.retryTimer !== null) return;
 
     this.deps.tearDown();
+    // Tearing down can report the close it causes, and that report has then already scheduled the retry.
+    if (this.retryTimer !== null) return;
     this.deps.rejectPending("peer connection closed");
 
     if (this.retryStart === null) this.retryStart = Date.now();
