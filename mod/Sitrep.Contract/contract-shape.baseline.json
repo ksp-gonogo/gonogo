@@ -73739,7 +73739,7 @@
     },
     {
       "Major": 39,
-      "Note": "Frozen at v39.0. REPLACE THIS NOTE: say why this break was worth a Major.",
+      "Note": "Frozen at v39.0. The alarm roster Topic alarm.scet is now alarm.activeList: the roster lists time, threshold and contract parameter alarms, so a name that says SCET promised less than it delivers. A Topic id rename, so it breaks any Uplink that reads the old id.",
       "Breaks": [
         "topic-removed:alarm.scet"
       ],
