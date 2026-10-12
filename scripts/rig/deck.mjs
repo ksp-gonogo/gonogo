@@ -207,13 +207,15 @@ function pixelDiffFraction(pathA, pathB) {
  * pixels differ with ZERO input effect, scene depending. A real escape-menu
  * toggle dims the whole screen and draws a large panel, far above that noise
  * floor. `MIN_REAL_EFFECT_FRACTION` sits well above the measured noise range.
+ * Measured on the rig's Deck: healthy toggles change 9.6% to 9.8% of the
+ * screen and failed ones 1.35% to 1.95%, so 5% sits clearly between them.
  *
  * Throws loudly (never returns false) when the before/during diff stays in
  * the noise floor, naming the measured fraction and pointing at the known
  * cause (see the module doc comment) so a scenario run fails clearly instead
  * of silently reporting steps that never did anything.
  */
-const MIN_REAL_EFFECT_FRACTION = 0.08;
+const MIN_REAL_EFFECT_FRACTION = 0.05;
 
 export async function verifyInputReaches(frameDir) {
   const before = `${frameDir}/input-check-before.png`;
@@ -244,31 +246,46 @@ export async function verifyInputReaches(frameDir) {
   return { openedFraction, before, during, after };
 }
 
+const STEAM_WINDOW_NAME = "Steam Big Picture Mode";
+
+/*
+ * `xdotool search --name` returns nothing for this window on the Deck (with
+ * or without --onlyvisible, --maxdepth or --all), while `--class steam` lists
+ * it and `getwindowname` names it. So candidates come from the class search,
+ * filtered by exact name, with the `xwininfo -root -tree` listing as the
+ * fallback when the class search finds no such window.
+ */
+const STEAM_FOCUS_PROBE = [
+  "export DISPLAY=:0",
+  "ids=''",
+  `for w in $(xdotool search --class steam 2>/dev/null); do [ "$(xdotool getwindowname $w 2>/dev/null)" = '${STEAM_WINDOW_NAME}' ] && ids="$ids $w"; done`,
+  `[ -z "$ids" ] && ids=$(xwininfo -root -tree 2>/dev/null | grep '"${STEAM_WINDOW_NAME}"' | awk '{print $1}')`,
+  'for w in $ids; do echo "$w $(xprop -id $w STEAM_INPUT_FOCUS 2>/dev/null)"; done',
+  "true",
+].join("; ");
+
 /**
  * Read `STEAM_INPUT_FOCUS` off Steam's Big Picture window on the Deck's `:0`
  * display. Resolves with one `{ window, value }` per matching window, or
  * `null` when the Deck could not be asked (no ssh, no xdotool or xprop).
+ * `run` is the command runner, `ssh` by default.
  */
-export async function readSteamInputFocus() {
+export async function readSteamInputFocus(run = ssh) {
   try {
-    const out = await ssh(
-      [
-        "export DISPLAY=:0",
-        `for w in $(xdotool search --name 'Steam Big Picture Mode' 2>/dev/null); do echo "$w $(xprop -id $w STEAM_INPUT_FOCUS 2>/dev/null)"; done`,
-      ].join("; "),
-      15_000,
-    );
-    return parseSteamInputFocus(out);
+    return parseSteamInputFocus(await run(STEAM_FOCUS_PROBE, 15_000));
   } catch {
     return null;
   }
 }
 
-/** Parse the probe's `<window> STEAM_INPUT_FOCUS(CARDINAL) = <n>` lines. */
+/** Parse the probe's `<window> STEAM_INPUT_FOCUS(CARDINAL) = <n>` lines, ids decimal or 0x hex. */
 export function parseSteamInputFocus(output) {
   const windows = [];
   for (const line of String(output).split("\n")) {
-    const match = /^(\d+)\s+STEAM_INPUT_FOCUS\(\w+\) = (\d+)/.exec(line.trim());
+    const match =
+      /^(0x[0-9a-fA-F]+|\d+)\s+STEAM_INPUT_FOCUS\(\w+\) = (\d+)/.exec(
+        line.trim(),
+      );
     if (match)
       windows.push({ window: Number(match[1]), value: Number(match[2]) });
   }
@@ -281,7 +298,10 @@ function describeSteamFocus(steamFocus) {
     return "STEAM_INPUT_FOCUS: could not be read (the Deck did not answer over ssh, or xdotool or xprop is missing).";
   }
   if (steamFocus.length === 0) {
-    return "STEAM_INPUT_FOCUS: no 'Steam Big Picture Mode' window found on DISPLAY=:0, so Steam is not holding input focus.";
+    return (
+      `STEAM_INPUT_FOCUS: no '${STEAM_WINDOW_NAME}' window found on DISPLAY=:0, so the cause is unknown (Steam may still hold focus). ` +
+      "Try: for w in $(DISPLAY=:0 xdotool search --class steam); do DISPLAY=:0 xprop -id $w -f STEAM_INPUT_FOCUS 32c -set STEAM_INPUT_FOCUS 0; done"
+    );
   }
   const holders = steamFocus.filter((w) => w.value === 1);
   if (holders.length === 0) {
