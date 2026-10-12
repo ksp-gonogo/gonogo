@@ -121,6 +121,7 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
         bundle: "uplink-tools bundle",
         bake: `uplink-tools bake --bundle dist/${id}/${id}.client.js`,
         release: "uplink-tools release",
+        check: "uplink-tools check",
         render: "uplink-tools render",
         page: "uplink-tools page",
         docs: `npm run bundle && uplink-tools docs --bundle dist/${id}/${id}.client.js`,
@@ -1608,6 +1609,12 @@ ${
       - name: Build both halves for release
         working-directory: client
         run: npm run release
+
+      # After the release, so the plugin's baked hash is the one the client
+      # now builds to, which is what the check compares.
+      - name: Check the Uplink
+        working-directory: client
+        run: npm run check
 
       - uses: actions/upload-artifact@v4
         with:

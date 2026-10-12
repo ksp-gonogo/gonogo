@@ -186,6 +186,7 @@ describe("uplink-tools new", () => {
       bundle: "uplink-tools bundle",
       bake: "uplink-tools bake --bundle dist/widgets/widgets.client.js",
       release: "uplink-tools release",
+      check: "uplink-tools check",
       page: "uplink-tools page",
     });
     expect(scripts.build).toBeUndefined();
@@ -602,6 +603,9 @@ describe("uplink-tools new", () => {
     expect(workflow(own)).toContain("npm run codegen:check");
     expect(workflow(own)).toContain("dotnet test mod-tests");
     expect(workflow(own)).toContain("npm run release");
+    expect(workflow(own).indexOf("npm run check")).toBeGreaterThan(
+      workflow(own).indexOf("npm run release"),
+    );
     expect(workflow(core)).not.toContain("codegen");
     const releaseWorkflow = readFileSync(
       join(own, ".github", "workflows", "release.yml"),
