@@ -12,6 +12,7 @@ import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import { orbitSpread } from "../shared/orbitSpread";
 import { useBodyName } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
@@ -147,6 +148,7 @@ function OrbitViewComponent({
       apoapsis={apoapsisR ?? 0}
       periapsis={periapsisR}
       craft={craftOnOrbit(orbitReading, orbitObserved, solve)}
+      spread={orbitSpread(orbitReading, orbitObserved)}
       argPe={argPe?.magnitude ?? 0}
       showMarkers={showMarkers}
       bodyColor={body?.color}
