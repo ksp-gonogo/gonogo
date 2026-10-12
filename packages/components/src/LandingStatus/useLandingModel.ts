@@ -60,6 +60,8 @@ export interface LandingModel {
   mayInstruct: boolean;
   /** What the solve's figures were computed from, so a readout of one is dated by its oldest input. */
   solveCurrency: readonly CarriedCurrency[];
+  /** The currency of `vessel.landing`, for figures read off the landing prediction. */
+  landingCurrency: readonly CarriedCurrency[];
   /** The comms delay behind the round-trip clock. */
   delayCurrency: readonly CarriedCurrency[];
   bodyName: string | null | undefined;
@@ -181,6 +183,7 @@ export function useLandingModel(): LandingModel {
       (r.reckoning.status === "available" &&
         (r.state !== "observed" || r.reckoning.beyondReceived)),
   );
+  const landingCurrency = [currencyOf(landingReading)];
   const delayCurrency = [currencyOf(commsDelayReading)];
 
   const { exhaustVelocity, burnoutMass } = deriveActiveBurnParams(
@@ -320,6 +323,7 @@ export function useLandingModel(): LandingModel {
     live,
     mayInstruct,
     solveCurrency,
+    landingCurrency,
     delayCurrency,
     bodyName,
     atmospheric,

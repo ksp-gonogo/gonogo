@@ -30,6 +30,8 @@ export interface AltitudeRailProps {
   suicideBurnCountdown: number | null;
   /** True while the engines are lit, from a reading of now: the footer says so instead of counting down to an ignition that has happened. */
   burning?: boolean;
+  /** The burn solve rests on a dated reading: no ignition band is drawn and the footer names nothing, since "no burn" would claim the solve found none. */
+  instructionWithheld?: boolean;
 }
 
 /** How far ahead the scale looks along the craft's vertical motion. */
@@ -56,6 +58,7 @@ export function AltitudeRail({
   ignitionAltitude,
   suicideBurnCountdown,
   burning = false,
+  instructionWithheld = false,
 }: Readonly<AltitudeRailProps>) {
   const ground = value("m", 0);
   const height = agl.value ?? ground;
@@ -143,7 +146,7 @@ export function AltitudeRail({
         />
       </div>
       {/* Panel.Body supplies the outer inset. */}
-      {!centreOfMass && (
+      {!centreOfMass && !instructionWithheld && (
         <div style={{ alignSelf: "stretch" }}>
           <Text tone={near ? "go" : undefined} level="muted" size="xs">
             {burning

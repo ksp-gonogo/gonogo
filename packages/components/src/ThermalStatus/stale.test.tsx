@@ -106,4 +106,21 @@ describe("ThermalStatus: a thermal record that has stopped arriving", () => {
     // One mark, on the temperature: the rated maximum is not marked a second time
     expect(root()?.querySelectorAll("[data-held-mark]")).toHaveLength(1);
   });
+
+  it("marks the heat shield's temperature and flux as held", async () => {
+    const { fixture, container } = mount("therm-stale-shield");
+    await waitFor(() =>
+      expect(visibleText(container)).toContain("Heat shield"),
+    );
+    const row = () => screen.getByText("Heat shield").parentElement;
+    expect(row()?.querySelectorAll("[data-held-mark]")).toHaveLength(0);
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+    });
+
+    await waitFor(() =>
+      expect(row()?.querySelectorAll("[data-held-mark]")).toHaveLength(2),
+    );
+  });
 });

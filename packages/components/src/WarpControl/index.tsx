@@ -123,7 +123,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   const togglePause = () => {
     const next = !effectivePaused;
     setPauseIntent(next);
-    void pauseCmd.send({ paused: next });
+    pauseCmd.send({ paused: next }).catch(() => setPauseIntent(null));
   };
 
   const armEventAction = (

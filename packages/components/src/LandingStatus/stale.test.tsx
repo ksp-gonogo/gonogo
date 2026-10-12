@@ -241,5 +241,46 @@ describe("LandingStatus when the solve inputs are held", () => {
         ),
       );
     });
+
+    it("gives no ignition cue on the altitude rail while the flight is held", async () => {
+      const { container } = renderWidget();
+      emitDescent();
+      act(() => {
+        stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+        stream.emit("vessel.surface", {
+          biome: "Highlands",
+          landedAt: null,
+          heightFromTerrain: 5000,
+        });
+      });
+      await waitFor(() =>
+        expect(visibleText(container)).toMatch(/ignite in|past ignition/i),
+      );
+      act(() => {
+        stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
+        stream.emit(
+          "vessel.flight",
+          {
+            latitude: 0,
+            longitude: 0,
+            altitudeAsl: 0,
+            altitudeTerrain: 4900,
+            verticalSpeed: -50,
+            surfaceSpeed: 60,
+            orbitalSpeed: 60,
+            atmDensity: 0,
+          },
+          { staleness: Staleness.Held },
+        );
+      });
+      await waitFor(() =>
+        expect(visibleText(container)).toContain(
+          "BURN TIMING NEEDS CURRENT TELEMETRY",
+        ),
+      );
+      expect(visibleText(container)).not.toMatch(
+        /ignite in|past ignition|no burn/i,
+      );
+    });
   });
 });

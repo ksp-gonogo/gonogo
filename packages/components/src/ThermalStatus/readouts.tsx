@@ -19,7 +19,7 @@ export function Temp({ kelvin }: { kelvin: number | undefined }) {
 }
 
 /** `Temp`, for a reading rather than a bare number. */
-function TempReading({
+export function TempReading({
   reading,
 }: {
   reading: Reading<Value<"K">> | undefined;
@@ -51,7 +51,11 @@ export function TempOverMax({
   );
 }
 
-export function Flux({ kw }: { kw: number | undefined }) {
-  if (kw === undefined || !Number.isFinite(kw)) return NULL_DISPLAY;
-  return <Unit value={value("kW", kw)} />;
+/** A heat flux, for a reading so a held figure is marked. */
+export function FluxReading({
+  reading,
+}: {
+  reading: Reading<Value<"kW">> | undefined;
+}) {
+  return <Unit value={reading} />;
 }

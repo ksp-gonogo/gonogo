@@ -9,6 +9,7 @@ import {
   type CommandButtonHandle,
   ExpandableText,
   Notice,
+  NULL_DISPLAY,
   Slider,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -39,7 +40,7 @@ export function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
   );
 }
 
-/** What activating this strategy costs, in each currency it charges, drawn against the career's balances; the factor scales the price. */
+/** What activating this strategy costs, in each currency it charges, drawn against the career's balances. The price is the one the record carries, at the slider's default factor. */
 export function StrategyCost({
   strategy: s,
   funds,
@@ -55,26 +56,29 @@ export function StrategyCost({
   rosterFrom: readonly CarriedCurrency[];
   factor: number;
 }>) {
-  // KSP costs scale linearly with the commitment factor; a zero default falls back to unscaled rather than divide by zero.
-  const factorScale =
-    s.factorSliderDefault > 0 ? factor / s.factorSliderDefault : 1;
-  const scaledFunds = s.initialCostFunds * factorScale;
+  /*
+   * The record carries each cost of an inactive strategy at the slider's default factor, and KSP prices a strategy by interpolating between a minimum and a maximum, which the record does not carry. A price at any other commitment is therefore unknown, and is drawn as the null token with no verdict.
+   */
+  const atRecordFactor = Math.abs(factor - s.factorSliderDefault) < 1e-9;
+  const priced = (cost: number): number | null =>
+    atRecordFactor ? cost : null;
+  const scaledFunds = priced(s.initialCostFunds);
   const noListedCost =
     s.initialCostFunds === 0 &&
     s.initialCostScience === 0 &&
     s.initialCostReputation === 0;
-  const scaledScience = s.initialCostScience * factorScale;
-  const scaledRep = s.initialCostReputation * factorScale;
+  const scaledScience = priced(s.initialCostScience);
+  const scaledRep = priced(s.initialCostReputation);
 
   // Fails closed: a non-finite cost and an absent or withheld balance are all unaffordable.
   const overBudget = (cost: number, balance: number | null) =>
     !Number.isFinite(cost) || balance === null || balance < cost;
   // The verdict a price draws: none without a current balance, since a held or absent one can say neither yes nor no.
   const affordVerdict = (
-    cost: number,
+    cost: number | null,
     balance: number | null,
   ): "yes" | "no" | undefined => {
-    if (balance === null) return undefined;
+    if (balance === null || cost === null) return undefined;
     return overBudget(cost, balance) ? "no" : "yes";
   };
 
@@ -92,9 +96,13 @@ export function StrategyCost({
               tone={costTone(affordVerdict(scaledFunds, funds))}
               data-afford={affordVerdict(scaledFunds, funds)}
             >
-              <Unit
-                value={datedFrom(rosterFrom, value("funds", scaledFunds))}
-              />
+              {scaledFunds === null ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit
+                  value={datedFrom(rosterFrom, value("funds", scaledFunds))}
+                />
+              )}
             </CostChip>
           )}
           {s.initialCostScience > 0 && (
@@ -103,9 +111,13 @@ export function StrategyCost({
               tone={costTone(affordVerdict(scaledScience, science))}
               data-afford={affordVerdict(scaledScience, science)}
             >
-              <Unit
-                value={datedFrom(rosterFrom, value("science", scaledScience))}
-              />
+              {scaledScience === null ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit
+                  value={datedFrom(rosterFrom, value("science", scaledScience))}
+                />
+              )}
             </CostChip>
           )}
           {s.initialCostReputation > 0 && (
@@ -114,7 +126,11 @@ export function StrategyCost({
               tone={costTone(affordVerdict(scaledRep, reputation))}
               data-afford={affordVerdict(scaledRep, reputation)}
             >
-              <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
+              {scaledRep === null ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={datedFrom(rosterFrom, value("rep", scaledRep))} />
+              )}
             </CostChip>
           )}
         </CostRow>

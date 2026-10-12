@@ -1,4 +1,5 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
+import type { Reading, Value } from "@ksp-gonogo/sitrep-sdk";
 import { BAND_RANK, type Band, bandFromRatio, isSentinelK } from "./bands";
 import type { MeterRow } from "./ThermalStatusView";
 
@@ -26,7 +27,12 @@ export interface ThermalState {
   hottest: MeterRow & { name: string | undefined };
   engine: MeterRow;
   /** Absent when the record carries neither heat shield figure. */
-  shield: { tempK: number | undefined; fluxKw: number | undefined } | undefined;
+  shield:
+    | {
+        temp: Reading<Value<"K">> | undefined;
+        flux: Reading<Value<"kW">> | undefined;
+      }
+    | undefined;
 }
 
 export function useThermal(): ThermalState {
@@ -134,7 +140,10 @@ export function useThermal(): ThermalState {
     },
     shield:
       shieldTempK !== undefined || shieldFluxKw !== undefined
-        ? { tempK: shieldTempK?.magnitude, fluxKw: shieldFluxKw?.magnitude }
+        ? {
+            temp: shieldSentinel ? undefined : thermalReading.heatShieldTemp,
+            flux: shieldSentinel ? undefined : thermalReading.heatShieldFlux,
+          }
         : undefined,
   };
 }

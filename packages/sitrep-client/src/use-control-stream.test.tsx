@@ -109,6 +109,60 @@ describe("useControlStream", () => {
     ]);
   });
 
+  it("sends a value equal to the last one sent once the value has been withdrawn and given again", async () => {
+    vi.useFakeTimers();
+    const fixture = setupFixture();
+    const { rerender } = render(
+      <fixture.Provider>
+        <Probe value={0} />
+      </fixture.Provider>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(1);
+
+    rerender(
+      <fixture.Provider>
+        <Probe value={null} />
+      </fixture.Provider>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    rerender(
+      <fixture.Provider>
+        <Probe value={0} />
+      </fixture.Provider>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(2);
+  });
+
+  it("sends the same value again after a send that was refused", async () => {
+    vi.useFakeTimers();
+    const fixture = setupFixture();
+    let refused = false;
+    fixture.transport.setCommandHandler(() => {
+      if (!refused) {
+        refused = true;
+        throw new Error("no path");
+      }
+      return {};
+    });
+    render(
+      <fixture.Provider>
+        <Probe value={0.5} />
+      </fixture.Provider>,
+    );
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+    });
+    expect(fixture.transport.sentCommands).toHaveLength(2);
+  });
+
   it("surfaces the channel label and the one-way delay from comms.delay", async () => {
     // Fake timers, as every sibling test does: a non-null value makes the hook's 100ms coalescing interval (use-control-stream.tsx) dispatch a command on its first tick, and left on the real clock that tick lands after this test body returns, updating Probe outside act().
     vi.useFakeTimers();

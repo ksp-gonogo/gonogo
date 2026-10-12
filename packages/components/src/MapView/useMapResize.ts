@@ -1,15 +1,17 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
+/**
+ * `outerRef` is a callback ref: the frame only exists in the layouts large enough to draw a map, so the observer follows the element rather than the first render.
+ */
 export function useMapResize() {
-  const outerRef = useRef<HTMLDivElement>(null);
+  const [outer, outerRef] = useState<HTMLDivElement | null>(null);
   const [containerSize, setContainerSize] = useState<{
     w: number;
     h: number;
   } | null>(null);
 
   useEffect(() => {
-    const el = outerRef.current;
-    if (!el) return;
+    if (!outer) return;
 
     const obs = new ResizeObserver((entries) => {
       const entry = entries[0];
@@ -19,9 +21,9 @@ export function useMapResize() {
       setContainerSize({ w: Math.floor(width), h: Math.floor(height) });
     });
 
-    obs.observe(el);
+    obs.observe(outer);
     return () => obs.disconnect();
-  }, []);
+  }, [outer]);
 
   return { outerRef, containerSize };
 }

@@ -302,10 +302,17 @@ function LandingStatusComponent({
                     seaLevel={seaLevelOnRail(flightReading, aglReading)}
                     verticalSpeed={solution.verticalSpeed}
                     centreOfMass={usingComDatum}
-                    ignitionAltitude={landed ? null : solution.ignitionAltitude}
-                    suicideBurnCountdown={
-                      landed ? null : solution.suicideBurnCountdown
+                    ignitionAltitude={
+                      landed || !model.mayInstruct
+                        ? null
+                        : solution.ignitionAltitude
                     }
+                    suicideBurnCountdown={
+                      landed || !model.mayInstruct
+                        ? null
+                        : solution.suicideBurnCountdown
+                    }
+                    instructionWithheld={!model.mayInstruct}
                     burning={model.burning}
                   />
                 </div>

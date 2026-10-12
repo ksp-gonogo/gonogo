@@ -1,6 +1,13 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { commandArgs } from "@ksp-gonogo/sitrep-sdk/testing";
-import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@ksp-gonogo/test-utils";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { perItemGateReport } from "../test/perItemGate";
@@ -255,6 +262,27 @@ describe("AdminBuildingComponent", () => {
     expect(
       within(locked).getByText(/Requires more reputation/i),
     ).toBeInTheDocument();
+  });
+
+  it("draws no price once the commitment moves off the factor the price was reported at", async () => {
+    const inactive = { ...SAMPLE_BLOCKED, canActivate: true };
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [inactive], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+    const slider = await screen.findByRole("slider", {
+      name: /Commitment factor for Fundraising Campaign/,
+    });
+    expect(screen.getByText(/7\.3/)).toBeInTheDocument();
+
+    fireEvent.change(slider, { target: { value: "1" } });
+
+    expect(screen.queryByText(/7\.3/)).toBeNull();
+    expect(document.querySelector("[data-afford]")).toBeNull();
   });
 
   it("fires strategies.activate with the chosen factor", async () => {

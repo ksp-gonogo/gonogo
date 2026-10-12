@@ -182,6 +182,15 @@ export function useControlStream(
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
   const lastSentRef = useRef<number | null>(null);
+  /*
+   * The latch compares against what the craft was last told, so it only holds
+   * while the value it describes is still the operator's live intent: a
+   * withdrawn value (a vessel switch re-arms the caller) must send again even
+   * when it equals the one sent before.
+   */
+  useEffect(() => {
+    if (value === null) lastSentRef.current = null;
+  }, [value]);
   const sendRef = useRef(command.send);
   sendRef.current = command.send;
   const onDispatchRef = useRef(options?.onDispatch);
@@ -251,7 +260,9 @@ export function useControlStream(
       ) {
         lastSentRef.current = raw;
         onDispatchRef.current?.();
-        void sendRef.current(dispatch(raw), { label });
+        sendRef.current(dispatch(raw), { label }).catch(() => {
+          if (lastSentRef.current === raw) lastSentRef.current = null;
+        });
       }
     }, COALESCE_MS);
     return () => clearInterval(id);

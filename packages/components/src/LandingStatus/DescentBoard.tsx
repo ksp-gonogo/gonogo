@@ -24,8 +24,15 @@ function airDensity({ flight, flightReading }: LandingModel): ReactNode {
 
 /** The atmospheric and unsolved boards; a vacuum solve reads from `SolutionReadouts` instead. */
 export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
-  const { board, landing, landingReading, flight, solution, solveCurrency } =
-    model;
+  const {
+    board,
+    landing,
+    landingReading,
+    landingCurrency,
+    flight,
+    solution,
+    solveCurrency,
+  } = model;
 
   if (board === "atmospheric-aware") {
     return (
@@ -33,10 +40,15 @@ export function DescentBoard({ model }: Readonly<{ model: LandingModel }>) {
         <SectionTitle>Atmospheric descent (estimate)</SectionTitle>
         <Grid cols="auto 1fr" gap="readout-row">
           <GridCellPair label="Terminal">
-            {<Mps v={landing?.terminalVelocity} />}
+            {<Mps v={landing?.terminalVelocity} from={landingCurrency} />}
           </GridCellPair>
           <GridCellPair label="Touchdown">
-            {<Mps v={landing?.projectedTouchdownSpeed} />}
+            {
+              <Mps
+                v={landing?.projectedTouchdownSpeed}
+                from={landingCurrency}
+              />
+            }
           </GridCellPair>
           <GridCellPair label="Impact in">
             {landing?.atmosphericTimeToImpact == null ? (

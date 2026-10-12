@@ -10,7 +10,7 @@ import {
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import { BAND_COLOR, BAND_LABEL, type Band, bandBadge } from "./bands";
-import { Flux, Temp, TempOverMax } from "./readouts";
+import { FluxReading, TempOverMax, TempReading } from "./readouts";
 import {
   bandTagStyle,
   MAX_TAG_STYLE,
@@ -37,7 +37,10 @@ export interface ThermalStatusViewProps {
   /** Each row is `null` when it is not drawn. */
   hottest: (MeterRow & { name: string | undefined }) | null;
   engine: MeterRow | null;
-  shield: { tempK: number | undefined; fluxKw: number | undefined } | null;
+  shield: {
+    temp: Reading<Value<"K">> | undefined;
+    flux: Reading<Value<"kW">> | undefined;
+  } | null;
 }
 
 export function ThermalStatusView({
@@ -112,10 +115,10 @@ export function ThermalStatusView({
                     <div style={ROW_BODY_STYLE}>
                       <div style={TEMP_READOUT_STYLE}>
                         <span style={TEMP_VALUE_STYLE}>
-                          <Temp kelvin={shield.tempK} />
+                          <TempReading reading={shield.temp} />
                         </span>
                         <span style={MAX_TAG_STYLE}>
-                          · flux <Flux kw={shield.fluxKw} />
+                          · flux <FluxReading reading={shield.flux} />
                         </span>
                       </div>
                     </div>

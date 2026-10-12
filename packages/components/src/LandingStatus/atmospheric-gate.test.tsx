@@ -181,6 +181,16 @@ describe("LandingStatus atmospheric site gate", () => {
     });
   });
 
+  it("marks the held touchdown speed once the link drops", async () => {
+    await settleAt(4_000);
+    await waitFor(() => expect(visibleText()).toContain("Touchdown"));
+    expect(heldFigure("7.5")).toBeNull();
+
+    dropLink();
+
+    await waitFor(() => expect(heldFigure("7.5")).not.toBeNull());
+  });
+
   it("marks the held air density once the link drops", async () => {
     renderWidget();
     await flushResizeObservers();
