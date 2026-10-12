@@ -42,6 +42,18 @@ describe("dotnet", () => {
     );
   });
 
+  it("adds the switches UPLINK_TOOLS_MSBUILD_ARGS names to a build", () => {
+    const log = fakeDotnet("Build FAILED. 0 Error(s)", "no detail");
+    vi.spyOn(process.stdout, "write").mockReturnValue(true);
+    expect(() =>
+      dotnet("compile", ["build", "p.csproj"], {
+        ...process.env,
+        UPLINK_TOOLS_MSBUILD_ARGS: "-m:1",
+      }),
+    ).toThrow();
+    expect(readFileSync(log, "utf8").split("\n")[0]).toContain("-m:1");
+  });
+
   it("explains a failure that reported no error from a more verbose run", () => {
     const log = fakeDotnet(
       "Build FAILED.\n    0 Warning(s)\n    0 Error(s)",

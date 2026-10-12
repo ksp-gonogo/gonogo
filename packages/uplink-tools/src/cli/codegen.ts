@@ -99,8 +99,19 @@ export function explainSilentFailure(
       : ["A more verbose run printed nothing that names a cause."]),
     "The usual reasons: MSBuild could not talk to its worker processes (a sandbox, container or security tool denying local sockets or pipes),",
     "a build server or file lock held by another run, or a disk or permission problem under obj/ and bin/.",
-    "Run the same `dotnet build` yourself with `-m:1 -nodeReuse:false -v:n` to see it.",
+    "-nodeReuse:false is already passed. To build in one process, set UPLINK_TOOLS_MSBUILD_ARGS=-m:1 and run the same command again;",
+    "`dotnet build -m:1 -nodeReuse:false -v:n` by hand shows the detail.",
   ].join("\n");
+}
+
+/**
+ * Extra MSBuild switches for every build and test this tool starts, from
+ * UPLINK_TOOLS_MSBUILD_ARGS (space separated, such as `-m:1`). For a machine
+ * where MSBuild's worker processes cannot talk to each other.
+ */
+function extraMsbuildArgs(env?: NodeJS.ProcessEnv): string[] {
+  const raw = (env ?? process.env).UPLINK_TOOLS_MSBUILD_ARGS ?? "";
+  return raw.split(/\s+/).filter(Boolean);
 }
 
 /**
@@ -115,7 +126,7 @@ export function dotnet(
   env?: NodeJS.ProcessEnv,
 ): void {
   const full = MSBUILD_VERBS.has(args[0] ?? "")
-    ? [...args, "-nodeReuse:false"]
+    ? [...args, "-nodeReuse:false", ...extraMsbuildArgs(env)]
     : [...args];
   const result = spawnSync("dotnet", full, {
     encoding: "utf8",

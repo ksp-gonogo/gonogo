@@ -221,9 +221,12 @@ export function bakeRule(build: BuildClient = buildClient): Rule {
         }
         const committed = readFileSync(path, "utf8");
         if (committed === content) continue;
+        const vouches = hashOf(committed);
         const detail =
           name === "ExpectedClientHash.g.cs"
-            ? ` The plugin vouches for ${hashOf(committed) || "no hash"} and the client now builds to ${hashOf(content)}, so the app would refuse the client as tampered with.`
+            ? vouches
+              ? ` The plugin vouches for ${vouches} and the client now builds to ${hashOf(content)}, so the app would refuse the client as tampered with.`
+              : ` The plugin carries no hash yet, which is expected until the first release; the client builds to ${hashOf(content)}.`
             : "";
         out.push({
           rule: "bake/stale",
@@ -232,7 +235,7 @@ export function bakeRule(build: BuildClient = buildClient): Rule {
           line: 1,
           message: `${name} is not what bake writes for this client as it builds now.${detail}`,
           fixable: true,
-          fix: "Run `uplink-tools bundle` then `uplink-tools bake --bundle <file>`, and commit what it writes.",
+          fix: "Run `uplink-tools release`, or `uplink-tools bundle` then `uplink-tools bake --bundle <file>`. The files bake writes are never committed: the scaffold's .gitignore lists them.",
           apply: () => writeAtomic(path, content),
         });
       }

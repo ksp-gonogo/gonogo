@@ -80,11 +80,13 @@ describe("bake/stale", () => {
     );
   });
 
-  it("fails a committed hash that is empty", () => {
+  it("fails a plugin with no hash yet, saying that is expected before the first release and the files are never committed", () => {
     const { clientDir, uplinkDir } = baked("x");
     bakeUplink({ uplinkDir });
     const [finding] = bakeRule(building("x")).check(ctx(clientDir));
-    expect(finding.message).toContain("vouches for no hash");
+    expect(finding.message).toContain("expected until the first release");
+    expect(finding.fix).toContain("never committed");
+    expect(finding.fix).not.toContain("and commit what it writes");
   });
 
   it("only warns about files that were never baked here", () => {

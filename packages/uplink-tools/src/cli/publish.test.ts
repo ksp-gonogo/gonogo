@@ -11,7 +11,13 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { copyRelease, planPublish, publish, tagFault } from "./publish";
+import {
+  copyRelease,
+  planPublish,
+  publish,
+  pushRelease,
+  tagFault,
+} from "./publish";
 
 const scratch: string[] = [];
 afterEach(() => {
@@ -201,6 +207,24 @@ describe("publish", () => {
     await publish(["--push"], root);
     await publish(["--push"], root);
     expect(git(origin, "rev-list", "--count", "releases")).toBe("1");
+  });
+
+  it("pushes a release an earlier run committed and could not send, instead of calling it published", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    const { root, origin } = uplink();
+    await publish(["--push", "--tag", "demo-v0.0.1"], root);
+    const checkout = join(root, ".releases");
+    // A second release is committed in the checkout, but the remote refuses it.
+    writeFileSync(join(checkout, "stranded.txt"), "x");
+    git(checkout, "add", "-A");
+    git(checkout, "commit", "-q", "-m", "stranded");
+    expect(git(origin, "rev-list", "--count", "releases")).toBe("1");
+    log.mockClear();
+    pushRelease(checkout, "releases", "release: demo-v0.0.1");
+    expect(git(origin, "rev-list", "--count", "releases")).toBe("2");
+    expect(log.mock.calls.flat().join("\n")).toContain(
+      "pushing the earlier commit",
+    );
   });
 
   it("publishes a later version beside the first and leaves the first alone", async () => {

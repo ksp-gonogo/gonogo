@@ -269,28 +269,49 @@ export function copyRelease(
   };
 }
 
-/** Commits what changed in `root` and pushes it to `ref`, then checks the remote holds the commit. */
+/**
+ * Commits what changed in `root` and pushes it to `ref`, then checks the remote holds the commit.
+ * With nothing new to commit it still pushes a commit an earlier run made and could not send,
+ * and says "already on" only when the remote holds the local head.
+ */
 export function pushRelease(root: string, ref: string, message: string): void {
   git(root, "add", "-A");
   if (git(root, "diff", "--cached", "--quiet").ok) {
-    console.log(`${message}: already on ${ref}, byte for byte.`);
-    return;
-  }
-  // A runner has no identity of its own; an author's configured one wins.
-  const identity = git(root, "config", "user.email").out
-    ? []
-    : [
-        "-c",
-        "user.name=uplink-tools",
-        "-c",
-        "user.email=uplink-tools@users.noreply.github.com",
-      ];
-  const committed = git(root, ...identity, "commit", "-q", "-m", message);
-  if (!committed.ok) {
-    throw new Error(`could not commit the release: ${committed.out}`);
+    const head = git(root, "rev-parse", "--verify", "HEAD");
+    const onRemote = git(
+      root,
+      "ls-remote",
+      "origin",
+      `refs/heads/${ref}`,
+    ).out.split("\t")[0];
+    if (!head.ok || head.out === onRemote) {
+      console.log(`${message}: already on ${ref}, byte for byte.`);
+      return;
+    }
+    console.log(
+      `${message}: committed here but not on origin/${ref}, so pushing the earlier commit.`,
+    );
+  } else {
+    // A runner has no identity of its own; an author's configured one wins.
+    const identity = git(root, "config", "user.email").out
+      ? []
+      : [
+          "-c",
+          "user.name=uplink-tools",
+          "-c",
+          "user.email=uplink-tools@users.noreply.github.com",
+        ];
+    const committed = git(root, ...identity, "commit", "-q", "-m", message);
+    if (!committed.ok) {
+      throw new Error(`could not commit the release: ${committed.out}`);
+    }
   }
   const pushed = git(root, "push", "origin", ref);
-  if (!pushed.ok) throw new Error(`could not push ${ref}: ${pushed.out}`);
+  if (!pushed.ok) {
+    throw new Error(
+      `could not push ${ref}: ${pushed.out}\nThe release is committed in ${root}; run the same command again once the remote is reachable, and it pushes that commit.`,
+    );
+  }
   const local = git(root, "rev-parse", "HEAD").out;
   const remote = git(
     root,
