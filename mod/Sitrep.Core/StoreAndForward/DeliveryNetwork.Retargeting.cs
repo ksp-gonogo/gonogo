@@ -364,7 +364,8 @@ namespace Sitrep.Core.StoreAndForward
                 // Ended while the actuator was working: put back what it turned.
                 if (restoreRecord != null)
                 {
-                    QueueRestore(restoreRecord, nowUt, RestoreAttempts);
+                    var actuator = _actuator!;
+                    _actuations.Add(() => actuator.Restore(restoreRecord, nowUt));
                 }
                 return;
             }
@@ -410,49 +411,13 @@ namespace Sitrep.Core.StoreAndForward
         {
             if (e.Record.Phase == RetargetPhase.Turned && e.Record.Record != null)
             {
-                QueueRestore(e.Record.Record, nowUt, RestoreAttempts);
+                var actuator = _actuator!;
+                var recordId = e.Record.Record;
+                _actuations.Add(() => actuator.Restore(recordId, nowUt));
                 Finish(e, RetargetPhase.Restored, nowUt);
                 return;
             }
             Finish(e, RetargetPhase.Ended, nowUt);
-        }
-
-        /// <summary>How many times a dish is asked to go back before it is left to the actuator's own backstop.</summary>
-        private const int RestoreAttempts = 12;
-
-        /// <summary>How long after a restore that did not settle it is asked again.</summary>
-        private const double RestoreRetrySeconds = 5.0;
-
-        /// <summary>
-        /// Puts a turned dish back. An actuator that could not write the old aim
-        /// says so, and one that could not reach the game throws; either way the
-        /// dish is still on loan, so it is asked again a little later rather than
-        /// left turned until the actuator notices on its own.
-        /// </summary>
-        private void QueueRestore(string recordId, double nowUt, int attemptsLeft)
-        {
-            var actuator = _actuator!;
-            _actuations.Add(() =>
-            {
-                bool settled;
-                try
-                {
-                    settled = actuator.Restore(recordId, nowUt);
-                }
-                catch (Exception)
-                {
-                    settled = false;
-                }
-                if (settled || attemptsLeft <= 1)
-                {
-                    return;
-                }
-                var retryUt = nowUt + RestoreRetrySeconds;
-                lock (_gate)
-                {
-                    _clock.Schedule(retryUt, () => Locked(() => QueueRestore(recordId, retryUt, attemptsLeft - 1)));
-                }
-            });
         }
 
         private void Finish(RetargetEvent e, RetargetPhase phase, double nowUt)

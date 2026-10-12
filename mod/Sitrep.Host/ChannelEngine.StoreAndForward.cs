@@ -922,119 +922,28 @@ namespace Sitrep.Host
             return byUt - travel;
         }
 
-        /// <summary>Runs a command that reached its craft on the held path.</summary>
+        /// <summary>
+        /// Runs a command that reached its craft. One sent to the active vessel
+        /// runs only if that craft is still the active one and is loaded: the
+        /// game applies it through the active vessel, so a craft on rails is
+        /// told it could not be applied.
+        /// </summary>
         private object? ExecuteDelivered(CommandMessage message, double atUt)
         {
-            var craft = string.Equals(message.ExecNode, NodeId, StringComparison.Ordinal) ? message.Lane.Craft : null;
-            if (string.Equals(message.Command, GroupCommandId, StringComparison.Ordinal))
-            {
-                return NotOnTheActiveCraft(craft, _activeCraftId, _activeCraftLoaded) ?? ExecuteGroupDelivered(message, craft);
-            }
-            return RunArrived(message.Command, message.Args, message.Lane.Vantage, craft);
-        }
-
-        /// <summary>
-        /// Runs a delayed command that has arrived, on either path. One sent to
-        /// the active vessel names that craft in <paramref name="craft"/>, and
-        /// runs only if it is still the active one and is loaded: the game
-        /// applies it through whatever craft is active, so a switch while it was
-        /// on the way would otherwise run it on the wrong one. Its gates are
-        /// checked again here, since the state they read may have moved since
-        /// the press. Both checks are made on the thread that runs the handler.
-        /// </summary>
-        private object? RunArrived(string command, object? args, string vantage, string? craft)
-        {
-            var refusal = NotOnTheActiveCraft(craft, _activeCraftId, _activeCraftLoaded);
-            if (refusal != null)
-            {
-                return refusal;
-            }
-            if (!_executeCommandsOnMainThread)
-            {
-                return RunArrivedHere(command, args, vantage, craft);
-            }
-            try
-            {
-                return RunOnMainThread(_ => RunArrivedHere(command, args, vantage, craft), null);
-            }
-            catch (CommandFaultException fault)
-            {
-                return new HandlerFault(fault.Code, fault.Message);
-            }
-            catch (Exception ex)
-            {
-                return new HandlerFault(FaultCode.CommandUnavailable, "the command could not reach the game's main thread: " + SafeExceptionMessage(ex));
-            }
-        }
-
-        private object? RunArrivedHere(string command, object? args, string vantage, string? craft)
-        {
-            var refusal = NotOnTheActiveCraftHere(craft);
-            if (refusal != null)
-            {
-                return refusal;
-            }
-            var gate = EvaluateGatesHere(command, new GateArguments(GateSubject(command, args)), null, vantage);
-            if (gate.Outcome == GateOutcome.Fail)
-            {
-                return GateRefusalResult(gate);
-            }
-            if (gate.Outcome != GateOutcome.Pass)
-            {
-                return new HandlerFault(FaultCode.CommandUnavailable, GateRefusalReason(command, gate));
-            }
-            return InvokeCommandHandler(command, args, vantage, onThisThread: true);
-        }
-
-        /// <summary>
-        /// Why a command sent to <paramref name="craft"/> as the active vessel
-        /// cannot run while <paramref name="active"/> is the active craft, or null
-        /// when it can. A null <paramref name="craft"/> named no craft and always can.
-        /// </summary>
-        private static CommandResult? NotOnTheActiveCraft(string? craft, string? active, bool loaded)
-        {
-            if (craft == null)
-            {
-                return null;
-            }
-            if (!string.Equals(craft, active, StringComparison.Ordinal))
+            if (string.Equals(message.ExecNode, NodeId, StringComparison.Ordinal)
+                && !string.Equals(message.Lane.Craft, _activeCraftId, StringComparison.Ordinal))
             {
                 return CommandResult.Fail(CommandErrorCode.WrongState, "the craft it was sent to is no longer the active vessel");
             }
-            return loaded
-                ? null
-                : CommandResult.Fail(CommandErrorCode.WrongState, "the craft it was sent to was not loaded when it arrived, so the game could not apply it");
-        }
-
-        /// <summary>
-        /// <see cref="NotOnTheActiveCraft"/> against the game's own active vessel,
-        /// on the main thread. The Courier's view is the tick's snapshot, and a
-        /// switch in the frames between that tick and this one is caught only
-        /// here. With no main thread to read, or no vessel capability published,
-        /// the snapshot's answer stands.
-        /// </summary>
-        private CommandResult? NotOnTheActiveCraftHere(string? craft)
-        {
-            if (craft == null || !_executeCommandsOnMainThread || !TryReadActiveVessel(out var activeId))
+            if (string.Equals(message.ExecNode, NodeId, StringComparison.Ordinal) && !_activeCraftLoaded)
             {
-                return null;
+                return CommandResult.Fail(CommandErrorCode.WrongState, "the craft it was sent to was not loaded when it arrived, so the game could not apply it");
             }
-            return NotOnTheActiveCraft(craft, activeId == null ? _activeCraftId : CraftPrefix + activeId, activeId != null);
-        }
-
-        /// <summary>The active vessel's id as the game reports it now, null outside flight. False when no vessel capability answers.</summary>
-        private bool TryReadActiveVessel(out string? activeId)
-        {
-            try
+            if (string.Equals(message.Command, GroupCommandId, StringComparison.Ordinal))
             {
-                activeId = _kernel.Query<IActiveVessel>(ActiveVesselCapability.Id).ReportedId;
-                return true;
+                return ExecuteGroupDelivered(message);
             }
-            catch (Exception)
-            {
-                activeId = null;
-                return false;
-            }
+            return InvokeCommandHandler(message.Command, message.Args, message.Lane.Vantage);
         }
 
         /// <summary>A journey report reached the centre that sent the command: record it, settle the client's request, and drop a settled pending entry.</summary>

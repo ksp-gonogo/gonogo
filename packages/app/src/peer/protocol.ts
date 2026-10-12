@@ -78,11 +78,6 @@ export type PeerMessage =
       v: unknown[];
       error?: string;
     }
-  /* Host → one station, just before the host closes its connection: another
-     page with the same stationKey has connected and now holds the station.
-     One station identity holds one live connection, so the page told this
-     stops reconnecting until its operator takes the station back. */
-  | { type: "station-superseded" }
   // Host → stations: the relay's TURN credentials, the payload the host
   // fetched from /ice-config, which a station cannot fetch itself because
   // that address is the host's loopback. Sent on connect and on every
@@ -156,16 +151,13 @@ export type PeerMessage =
       // that predates the pilot seat is at a command centre by construction.
       seat?: import("@ksp-gonogo/sitrep-sdk/spine").Seat;
     }
-  /* Station → host whenever the local GO/NO-GO vote changes. `null` means no
-     GO/NO-GO widget is mounted on that screen, which is also what a screen
-     sends when its widget is removed. A screen whose vote is null stays
-     listed but is not in the poll: it neither blocks a countdown nor counts
-     towards one. */
+  // Station → host whenever the local GO/NO-GO vote changes. `null` means
+  // "no widget mounted" so the station-info is still registered but the
+  // station doesn't contribute a vote.
   | { type: "gonogo-vote"; status: "go" | "no-go" | null }
-  /* Host → stations when the poll reads GO: at least one screen has voted GO
-     and none has voted NO-GO. `t0Ms` is a wall-clock (`Date.now()`) instant:
-     pre-synchronise to the host so the countdown display matches across
-     devices within a small skew. */
+  // Host → stations when all connected stations have voted GO. `t0Ms` is a
+  // wall-clock (`Date.now()`) instant: pre-synchronise to the host so the
+  // countdown display matches across devices within a small skew.
   | { type: "gonogo-countdown-start"; t0Ms: number }
   // Host → stations when a vote flips to NO-GO during an active countdown or when a station disconnects mid-countdown.
   | { type: "gonogo-countdown-cancel"; reason?: string }

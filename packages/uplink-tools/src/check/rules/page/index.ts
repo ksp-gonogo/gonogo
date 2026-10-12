@@ -20,13 +20,7 @@ export function runPageCheck(
 ): PageCheckRun {
   const result = spawnSync(
     "npx",
-    [
-      "vitest",
-      "run",
-      // A client config that passes with no tests would let a filter that matched nothing stand for a current page.
-      "--no-passWithNoTests",
-      ...files.map((file) => relative(clientDir, file)),
-    ],
+    ["vitest", "run", ...files.map((file) => relative(clientDir, file))],
     {
       cwd: clientDir,
       encoding: "utf8",

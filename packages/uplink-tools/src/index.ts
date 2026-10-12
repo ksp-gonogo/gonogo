@@ -8,13 +8,28 @@
  * message naming it rather than a resolution error.
  */
 
-export { gridToPixels } from "@ksp-gonogo/ui-kit/grid";
+/** The grid geometry a harness needs to size its mount box, re-exported here so
+ *  a Node-side driver never has to import the browser half of the kit for it. */
+export {
+  COL_WIDTH,
+  GRID_MARGIN,
+  gridToPixels,
+  ROW_HEIGHT,
+} from "@ksp-gonogo/ui-kit/grid";
 export { run } from "./cli";
 export {
   type ChannelDisposition,
   readChannelDispositions,
 } from "./render/channels";
-export { resolveUplinkPackage, type UplinkPackage } from "./render/context";
+export {
+  display,
+  type FontFace,
+  type FontMode,
+  jetbrainsMonoFace,
+  resolveUplinkPackage,
+  themeTokensCss,
+  type UplinkPackage,
+} from "./render/context";
 export {
   buildManifest,
   buildReadme,
@@ -29,8 +44,9 @@ export {
   type RenderResult,
   renderUplink,
 } from "./render/driver";
+export { encodeGif } from "./render/gif";
 export type { MinFitFinding } from "./render/minFit";
-export { buildProbePage } from "./render/page";
+export { buildProbePage, generateEntry } from "./render/page";
 /** The `globalThis` key the probe installs itself under. A driver that drives
  *  the probe from Node needs the name and nothing else from that module. */
 export { RENDER_PROBE_GLOBAL } from "./render/probe-global";

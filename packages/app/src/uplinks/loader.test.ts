@@ -7,9 +7,9 @@ import {
   descriptorFromClientSource,
   isThisComputer,
   loadEnabledUplinks,
-  loadFromLiveRoster,
   manifestUrlFor,
   type RosterEntry,
+  reloadHealthRefusals,
 } from "./loader";
 import { __resetUplinkOutcomes, getUplinkOutcomes } from "./loaderState";
 import type { RegistryIndex } from "./registry";
@@ -337,13 +337,13 @@ describe("loadEnabledUplinks", () => {
     expect(getUplinkOutcomes()[0].status).toBe("quarantined");
 
     expect(
-      await loadFromLiveRoster(
+      await reloadHealthRefusals(
         ctx({ index: indexWith(goodHash), roster: loading, importBundle }),
       ),
     ).toEqual([]);
     expect(importBundle).not.toHaveBeenCalled();
 
-    const outcomes = await loadFromLiveRoster(
+    const outcomes = await reloadHealthRefusals(
       ctx({
         index: indexWith(goodHash),
         roster: rosterWith({ state: "healthy", detail: null }),
@@ -353,47 +353,6 @@ describe("loadEnabledUplinks", () => {
     expect(outcomes[0].status).toBe("loaded");
     expect(getUplinkOutcomes()[0].status).toBe("loaded");
     expect(importBundle).toHaveBeenCalledTimes(1);
-  });
-
-  it("loads a client startup never attempted once a roster arrives, and loads it once", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    const noRoster = {
-      ...ctx({ index: indexWith(goodHash), importBundle }),
-      override: undefined,
-    };
-    expect(await loadEnabledUplinks(noRoster)).toEqual([]);
-    expect(getUplinkOutcomes()).toEqual([]);
-
-    const roster: RosterEntry[] = [
-      { id: "scansat", version: "1.0.0", available: true, reason: null },
-    ];
-    const live = ctx({ index: indexWith(goodHash), roster, importBundle });
-    // Two rosters read back to back, as the stream delivers them.
-    const [first, second] = await Promise.all([
-      loadFromLiveRoster(live),
-      loadFromLiveRoster(live),
-    ]);
-    expect(first[0].status).toBe("loaded");
-    expect(second).toEqual([]);
-    expect(importBundle).toHaveBeenCalledTimes(1);
-  });
-
-  it("attempts nothing new from a live roster when startup was told which ids to load", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    const roster: RosterEntry[] = [
-      { id: "scansat", version: "1.0.0", available: true, reason: null },
-    ];
-    expect(
-      await loadFromLiveRoster({
-        ...ctx({ index: indexWith(goodHash), roster, importBundle }),
-        override: [],
-      }),
-    ).toEqual([]);
-    expect(importBundle).not.toHaveBeenCalled();
   });
 
   it("does not revisit a refusal that was not about health", async () => {
@@ -413,7 +372,7 @@ describe("loadEnabledUplinks", () => {
     );
     const healthy: RosterEntry[] = [{ ...roster[0], available: true }];
     expect(
-      await loadFromLiveRoster(
+      await reloadHealthRefusals(
         ctx({ index: indexWith(goodHash), roster: healthy, importBundle }),
       ),
     ).toEqual([]);

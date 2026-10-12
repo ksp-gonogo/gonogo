@@ -157,8 +157,6 @@ export class SerialDeviceService {
    * the picker the device would silently stay disconnected.
    */
   private pendingChoices = new Map<string, SerialPort[]>();
-  /** Types this screen removed, so a copy still in shared storage is not read back in. */
-  private removedTypeIds = new Set<string>();
 
   /**
    * Single typed registry backing every `on*`/emit pair on the service. Each
@@ -350,19 +348,6 @@ export class SerialDeviceService {
         });
         continue;
       }
-      const saved = managed.instance.portInfo;
-      if (!saved?.vendorId) {
-        trace.debug("hot-plug skip: no saved VID/PID", {
-          deviceId: managed.instance.id,
-        });
-        continue;
-      }
-      if (
-        saved.vendorId !== info.usbVendorId ||
-        saved.productId !== info.usbProductId
-      ) {
-        continue;
-      }
       // If status is "connected" but the OS just told us this port
       // became available, our state is stale, neither the read-loop's
       // NetworkError catch nor the navigator.serial 'disconnect' event
@@ -381,6 +366,19 @@ export class SerialDeviceService {
             { err: String(err) },
           );
         }
+      }
+      const saved = managed.instance.portInfo;
+      if (!saved?.vendorId) {
+        trace.debug("hot-plug skip: no saved VID/PID", {
+          deviceId: managed.instance.id,
+        });
+        continue;
+      }
+      if (
+        saved.vendorId !== info.usbVendorId ||
+        saved.productId !== info.usbProductId
+      ) {
+        continue;
       }
 
       const adopt = (
@@ -441,13 +439,6 @@ export class SerialDeviceService {
       )
         continue;
       if (managed.transport.status === "disconnected") continue;
-      // Two identical panels share a VID/PID, so a transport that can say which port it holds is asked.
-      const holdsPort = (
-        managed.transport as DeviceTransport & {
-          holdsPort?: (port: SerialPort) => boolean;
-        }
-      ).holdsPort;
-      if (holdsPort && !holdsPort.call(managed.transport, port)) continue;
       void managed.transport.disconnect().catch(() => {});
     }
   }
@@ -477,7 +468,6 @@ export class SerialDeviceService {
   }
 
   upsertDeviceType(type: DeviceType): void {
-    this.removedTypeIds.delete(type.id);
     this.deviceTypes.set(type.id, type);
     this.saveDeviceTypes();
     this.emitDeviceTypesChange();
@@ -493,7 +483,6 @@ export class SerialDeviceService {
       }
     }
     this.deviceTypes.delete(id);
-    this.removedTypeIds.add(id);
     this.saveDeviceTypes();
     this.emitDeviceTypesChange();
   }
@@ -543,33 +532,16 @@ export class SerialDeviceService {
         : managed.deviceType;
     if (!nextType) throw new Error(`Unknown device type: ${updates.typeId}`);
 
-    // A changed transport, type, baud rate or filter needs a new transport; a rename or a new label pack does not.
-    const before = managed.instance;
+    // If transport or type changed we must rebuild the transport.
     const rebuild =
-      nextInstance.transport !== before.transport ||
-      nextInstance.typeId !== before.typeId ||
-      nextInstance.baudRate !== before.baudRate ||
-      JSON.stringify(nextInstance.filters) !== JSON.stringify(before.filters);
+      updates.transport !== undefined ||
+      updates.typeId !== undefined ||
+      updates.baudRate !== undefined ||
+      updates.filters !== undefined;
 
     if (rebuild) {
-      const wasConnected = managed.transport.status === "connected";
-      const port = (
-        managed.transport as DeviceTransport & {
-          currentPort?: () => SerialPort | null;
-        }
-      ).currentPort?.();
+      void this.teardown(managed);
       this.register(nextInstance, nextType);
-      void this.teardown(managed)
-        .then(() =>
-          wasConnected
-            ? this.connect(id, port ? { port } : undefined)
-            : undefined,
-        )
-        .catch((err) => {
-          logger.warn(`[SerialDeviceService] reconnect failed for ${id}`, {
-            err: String(err),
-          });
-        });
     } else {
       managed.instance = nextInstance;
     }
@@ -608,7 +580,6 @@ export class SerialDeviceService {
       )
     ) {
       this.deviceTypes.delete(orphanedTypeId);
-      this.removedTypeIds.add(orphanedTypeId);
       this.saveDeviceTypes();
       this.emitDeviceTypesChange();
     }
@@ -655,13 +626,6 @@ export class SerialDeviceService {
     // on a dev remount, with nothing on screen saying so.
     for (const managed of this.managed.values()) {
       if (managed.instance.transport !== "keyboard") continue;
-      if (managed.transport.status === "connected") continue;
-      await managed.transport.connect();
-    }
-
-    // A gamepad needs no permission either. Connecting adopts a pad the browser already shows, or waits for its first press.
-    for (const managed of this.managed.values()) {
-      if (managed.instance.transport !== "gamepad") continue;
       if (managed.transport.status === "connected") continue;
       await managed.transport.connect();
     }
@@ -955,19 +919,13 @@ export class SerialDeviceService {
     if (targetBase.authoredBy !== "device") typeChanged = true;
     if (targetTypeId !== current.id) typeChanged = true;
 
-    /* A device may repeat its inputs and its screen on every line, so each is
-       a change only when it differs from what the type already holds. */
-    if (update.inputs && !sameJson(update.inputs, targetBase.inputs)) {
+    if (update.inputs) {
       next.inputs = update.inputs;
       typeChanged = true;
     }
     if (update.screen) {
       const { type: screenType, ...rest } = update.screen;
-      if (
-        screenType === "txt" &&
-        (targetBase.renderStyleId !== "text-buffer" ||
-          !sameJson(rest, targetBase.renderStyleConfig))
-      ) {
+      if (screenType === "txt") {
         next.renderStyleId = "text-buffer";
         next.renderStyleConfig = rest;
         typeChanged = true;
@@ -1011,6 +969,7 @@ export class SerialDeviceService {
   }
 
   private async teardown(managed: ManagedDevice): Promise<void> {
+    managed.unsubInput();
     managed.unsubStatus();
     managed.unsubSchema?.();
     if (managed.renderTimer !== null) {
@@ -1025,8 +984,6 @@ export class SerialDeviceService {
         { err: String(err) },
       );
     }
-    // Last, so the releases a transport emits for inputs still held when it disconnects reach the actions holding them.
-    managed.unsubInput();
   }
 
   private scheduleRender(managed: ManagedDevice): void {
@@ -1078,40 +1035,7 @@ export class SerialDeviceService {
     }
   }
 
-  /**
-   * Device types are one list shared by every screen in the browser, and each
-   * screen holds its own copy. Before writing, take in any type another screen
-   * has saved since this one last read, so this write does not delete it. A
-   * type this screen removed itself stays removed.
-   */
-  private adoptTypesSavedElsewhere(): void {
-    let rows: unknown[];
-    try {
-      const raw = this.storage.getItem(DEVICE_TYPES_KEY);
-      if (!raw) return;
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return;
-      rows = parsed;
-    } catch {
-      return;
-    }
-    let adopted = false;
-    for (const row of rows) {
-      const type = asDeviceType(row);
-      if (!type) continue;
-      if (this.deviceTypes.has(type.id)) continue;
-      if (this.removedTypeIds.has(type.id)) continue;
-      this.deviceTypes.set(type.id, type);
-      adopted = true;
-    }
-    if (adopted) {
-      this.emitDeviceTypesChange();
-      this.retryUnavailable();
-    }
-  }
-
   private saveDeviceTypes(): void {
-    this.adoptTypesSavedElsewhere();
     try {
       this.storage.setItem(
         DEVICE_TYPES_KEY,
@@ -1235,8 +1159,4 @@ export class SerialDeviceService {
   private emitDevicesChange(): void {
     this.events.emit("devices");
   }
-}
-
-function sameJson(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a) === JSON.stringify(b);
 }

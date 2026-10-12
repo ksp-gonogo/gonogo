@@ -255,7 +255,7 @@ namespace Sitrep.Host
         /// before any member runs, and the members then run in order inside one
         /// hop to the game's main thread, so they land in one physics tick.
         /// </summary>
-        private object? ExecuteGroupDelivered(CommandMessage message, string? craft)
+        private object? ExecuteGroupDelivered(CommandMessage message)
         {
             var members = ReadGroupMembers(message.Args);
             if (members.Count == 0)
@@ -265,7 +265,7 @@ namespace Sitrep.Host
             try
             {
                 return _executeCommandsOnMainThread
-                    ? RunOnMainThread(_ => NotOnTheActiveCraftHere(craft) ?? (object)RunGroupHere(members, message.Lane.Vantage), null)
+                    ? RunOnMainThread(_ => RunGroupHere(members, message.Lane.Vantage), null)
                     : RunGroupHere(members, message.Lane.Vantage);
             }
             catch (CommandFaultException fault)

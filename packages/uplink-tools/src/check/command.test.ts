@@ -7,7 +7,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { run } from "../cli";
 import { check } from "./command";
@@ -131,27 +131,6 @@ describe("exit codes", () => {
     const { code, out } = await runIn(dir);
     expect(code).toBe(1);
     expect(out).toContain("error declarations/stale");
-  });
-
-  it("is 2 when the scan found no source files, since a scan that read nothing finds nothing", async () => {
-    const dir = client();
-    // The program has files, but none of them sit under the client, which is what a path the scan cannot match looks like.
-    mkdirSync(join(dir, "..", `${basename(dir)}-elsewhere`));
-    writeFileSync(
-      join(dir, "..", `${basename(dir)}-elsewhere`, "a.ts"),
-      "export const a = 1;\n",
-    );
-    scratch.push(join(dir, "..", `${basename(dir)}-elsewhere`));
-    writeFileSync(
-      join(dir, "tsconfig.json"),
-      JSON.stringify({
-        compilerOptions: { noEmit: true, types: [], skipLibCheck: true },
-        include: [`../${basename(dir)}-elsewhere`],
-      }),
-    );
-    const { code, err } = await runIn(dir, ["--only", "declarations"]);
-    expect(code).toBe(2);
-    expect(err).toContain("found no source files");
   });
 
   it("fails on a planted unresolved read, so a scan that sees nothing cannot pass", async () => {
@@ -279,7 +258,6 @@ describe("runCheck", () => {
     directives: [],
     augments: [],
     typeErrors: 0,
-    sourceFiles: 1,
   };
   const finding = (severity: "error" | "warning"): FixableFinding => ({
     rule: "g/r",

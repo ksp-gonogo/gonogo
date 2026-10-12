@@ -19,7 +19,7 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork();
             var courier = new Courier(clock, network);
             var seen = new List<string>();
-            courier.SetCommandHandler((command, args, node, vantage, _craft) =>
+            courier.SetCommandHandler((command, args, node, vantage) =>
             {
                 seen.Add(vantage);
                 return null;
@@ -42,7 +42,7 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork();
             var courier = new Courier(clock, network);
             var seen = new List<string>();
-            courier.SetCommandHandler((command, args, node, vantage, _craft) =>
+            courier.SetCommandHandler((command, args, node, vantage) =>
             {
                 seen.Add(vantage);
                 return null;

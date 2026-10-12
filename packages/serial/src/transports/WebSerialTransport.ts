@@ -5,7 +5,6 @@ import type { DeviceType } from "../types";
 import type {
   DeviceTransport,
   InputEvent,
-  InputValue,
   SchemaUpdate,
   TransportStatus,
 } from "./DeviceTransport";
@@ -52,14 +51,6 @@ export class WebSerialTransport implements DeviceTransport {
   private readableAbort: AbortController | null = null;
   private writableAbort: AbortController | null = null;
   private buffer = "";
-  /**
-   * The value each input last reported. A device sends every input on every
-   * line, so a line is a statement of state and only a difference from the one
-   * before is an event. The first value seen for an input is where it starts
-   * and emits nothing: a switch already on when the device connects is not a
-   * press.
-   */
-  private readonly lastValues = new Map<string, InputValue>();
 
   private inputListeners = new Set<(event: InputEvent) => void>();
   private schemaListeners = new Set<(update: SchemaUpdate) => void>();
@@ -244,8 +235,6 @@ export class WebSerialTransport implements DeviceTransport {
       this.readableClosed = port.readable.pipeTo(decoder.writable, {
         signal: this.readableAbort.signal,
       });
-      // Aborting a pipe rejects its promise at once, so the handler has to be on it before any abort can run.
-      this.readableClosed.catch(() => {});
       this.reader = decoder.readable.getReader();
 
       const encoder = new TextEncoderStream();
@@ -253,7 +242,6 @@ export class WebSerialTransport implements DeviceTransport {
       this.writableClosed = encoder.readable.pipeTo(port.writable, {
         signal: this.writableAbort.signal,
       });
-      this.writableClosed.catch(() => {});
       this.writer = encoder.writable.getWriter();
 
       this.setStatus("connected");
@@ -295,16 +283,6 @@ export class WebSerialTransport implements DeviceTransport {
     await this.cleanupTransport("disconnected");
   }
 
-  /** Whether `port` is the one this transport has open. */
-  holdsPort(port: SerialPort): boolean {
-    return this.port === port;
-  }
-
-  /** The port this transport has open, or null when it has none. */
-  currentPort(): SerialPort | null {
-    return this.port;
-  }
-
   /**
    * Shared cleanup path used by `disconnect()` and the read-loop's
    * error path. Each step runs independently so a single failure (e.g.
@@ -325,9 +303,6 @@ export class WebSerialTransport implements DeviceTransport {
     // and on a lost device pipeTo can hang indefinitely if not aborted.
     this.readableAbort?.abort();
     this.readableAbort = null;
-    // A half-received line and the last known state both belong to the session that just ended.
-    this.buffer = "";
-    this.lastValues.clear();
     this.writableAbort?.abort();
     this.writableAbort = null;
 
@@ -463,7 +438,11 @@ export class WebSerialTransport implements DeviceTransport {
         eventCount: events.length,
         inputCount: this.deviceType.inputs.length,
       });
-      this.emitChanged(events);
+      for (const event of events) {
+        this.inputListeners.forEach((cb) => {
+          cb(event);
+        });
+      }
       return;
     }
     if (this.deviceType.parser === "json-state") {
@@ -483,19 +462,11 @@ export class WebSerialTransport implements DeviceTransport {
           cb(update);
         });
       }
-      this.emitChanged(result.events);
-    }
-  }
-
-  private emitChanged(events: readonly InputEvent[]): void {
-    for (const event of events) {
-      const seen = this.lastValues.has(event.inputId);
-      const last = this.lastValues.get(event.inputId);
-      this.lastValues.set(event.inputId, event.value);
-      if (!seen || last === event.value) continue;
-      this.inputListeners.forEach((cb) => {
-        cb(event);
-      });
+      for (const event of result.events) {
+        this.inputListeners.forEach((cb) => {
+          cb(event);
+        });
+      }
     }
   }
 

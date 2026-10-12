@@ -1122,29 +1122,6 @@ function deriveEnabledIds(
 export async function loadEnabledUplinks(
   ctx: LoaderContext,
 ): Promise<UplinkLoadOutcome[]> {
-  return queueLoad(ctx, (ids) => ids);
-}
-
-/*
- * Every load waits for the one before it. A load decides what to attempt from
- * the outcomes already recorded, so two running side by side would both find a
- * client unattempted and import it twice.
- */
-let loadQueue: Promise<unknown> = Promise.resolve();
-
-function queueLoad(
-  ctx: LoaderContext,
-  pick: (ids: string[]) => string[],
-): Promise<UplinkLoadOutcome[]> {
-  const run = loadQueue.then(() => loadPicked(ctx, pick));
-  loadQueue = run.catch(() => undefined);
-  return run;
-}
-
-async function loadPicked(
-  ctx: LoaderContext,
-  pick: (ids: string[]) => string[],
-): Promise<UplinkLoadOutcome[]> {
   let index: Awaited<ReturnType<typeof fetchRegistry>>;
   try {
     index = await fetchRegistry(ctx.registrySource);
@@ -1159,9 +1136,7 @@ async function loadPicked(
       err instanceof Error ? err.message : String(err)
     }`;
     logger.warn(`[uplink-loader] ${reason}`);
-    const attempted = pick([
-      ...(ctx.override ?? ctx.roster?.map((r) => r.id) ?? []),
-    ]);
+    const attempted = ctx.override ?? ctx.roster?.map((r) => r.id) ?? [];
     return attempted.map((id) => {
       const outcome: UplinkLoadOutcome = {
         id,
@@ -1174,7 +1149,7 @@ async function loadPicked(
     });
   }
 
-  const effectiveIds = pick(deriveEnabledIds(ctx.roster, index, ctx.override));
+  const effectiveIds = deriveEnabledIds(ctx.roster, index, ctx.override);
   const round = new ConsentRound(effectiveIds.length, resolveConsents(ctx));
   const runs: Promise<UplinkLoadOutcome>[] = [];
   let turn: Promise<unknown> = Promise.resolve();
@@ -1221,37 +1196,25 @@ async function loadById(
 }
 
 /**
- * Load what a roster read after startup makes loadable: every Uplink it reports
- * installed that no load has attempted yet, and every Uplink whose client was
- * refused on its health report and whose entry no longer reports it
- * unavailable.
- *
- * The first covers a page opened before the game was running, where the startup
- * read found no roster and so attempted nothing. The second covers an
- * expansion-gated Uplink, which reads unavailable while KSP is still filling
- * its expansion list and healthy a moment later.
- *
- * An `override` in `ctx` is the list startup was told to load and nothing else,
- * so with one set only the health refusals are revisited.
+ * Load again every Uplink whose client was refused on its health report and
+ * whose roster entry no longer reports it unavailable. An expansion-gated
+ * Uplink reads unavailable while KSP is still filling its expansion list and
+ * healthy a moment later, and a page opened in that window would otherwise keep
+ * the refusal for its whole life.
  *
  * Returns the outcomes of the loads it made, empty when nothing was waiting.
  */
-export async function loadFromLiveRoster(
+export async function reloadHealthRefusals(
   ctx: LoaderContext,
 ): Promise<UplinkLoadOutcome[]> {
-  const roster = ctx.roster;
-  if (!roster) return [];
-  const pinned = ctx.override !== undefined;
-  return queueLoad({ ...ctx, override: undefined }, (ids) => {
-    const known = new Map(getUplinkOutcomes().map((o) => [o.id, o]));
-    return ids.filter((id) => {
-      const outcome = known.get(id);
-      if (!outcome) return !pinned;
-      if (outcome.status !== "quarantined" || !outcome.refusedOnHealth) {
-        return false;
-      }
+  const roster = ctx.roster ?? [];
+  const waiting = getUplinkOutcomes()
+    .filter((o) => o.status === "quarantined" && o.refusedOnHealth)
+    .map((o) => o.id)
+    .filter((id) => {
       const entry = roster.find((r) => r.id === id);
       return entry?.available && entry.health?.state !== "unavailable";
     });
-  });
+  if (waiting.length === 0) return [];
+  return loadEnabledUplinks({ ...ctx, override: waiting });
 }

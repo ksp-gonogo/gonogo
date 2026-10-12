@@ -283,152 +283,6 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A throttle goes to the active craft on the live path, and the game
-        /// switches to another craft before it lands. It is refused there rather
-        /// than run against the craft that is active now, and the centre hears why.
-        /// </summary>
-        [Fact]
-        public void AThrottleLandingAfterAVesselSwitchDoesNotRunOnTheNewCraft()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
-            var uplink = new ActiveCraftTestUplink();
-            engine.RegisterUplink(uplink);
-            engine.Start();
-            try
-            {
-                TickActive(engine, uplink, 0.0, loaded: true);
-                object? result = null;
-                engine.DispatchCommandAndWait(
-                    ActiveCraftTestUplink.ThrottleCommand,
-                    new Dictionary<string, object?> { ["value"] = 1.0 },
-                    Centre,
-                    r => result = r,
-                    TestBudgets.Op);
-                Assert.Empty(Journey(engine).Events);
-
-                foreach (var ut in new[] { 1.0, OneWaySeconds + 1.0, (2 * OneWaySeconds) + 1.0 })
-                {
-                    TickActive(engine, uplink, ut, loaded: true, craft: "H");
-                }
-
-                Assert.Equal(0, uplink.ThrottledCount);
-                var outcome = Assert.IsType<CommandResult>(result);
-                Assert.False(outcome.Success);
-                Assert.Equal(CommandErrorCode.WrongState, outcome.ErrorCode);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
-        /// A held command's gates are asked again where it lands: one that
-        /// passed at the press and fails by the time the command reaches the
-        /// craft is refused there, as a member of a group would be.
-        /// </summary>
-        [Fact]
-        public void AHeldCommandWhoseGateHasClosedByTheTimeItLandsIsRefused()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
-            var uplink = new ActiveCraftTestUplink();
-            engine.RegisterUplink(uplink);
-            engine.Start();
-            try
-            {
-                TickActive(engine, uplink, 0.0, loaded: true);
-                object? result = null;
-                engine.DispatchCommandAndWait(ActiveCraftTestUplink.GatedCommand, "x", Centre, r => result = r, TestBudgets.Op);
-                Assert.Single(Pending(engine));
-
-                uplink.GateOpen = false;
-                foreach (var ut in new[] { 1.0, OneWaySeconds + 1.0, (2 * OneWaySeconds) + 2.0 })
-                {
-                    TickActive(engine, uplink, ut, loaded: true);
-                }
-
-                Assert.Equal(0, uplink.HandledCount);
-                var outcome = Assert.IsType<CommandResult>(result);
-                Assert.False(outcome.Success);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
-        /// The tick's snapshot still names the craft the command was sent to, and
-        /// the game has switched away in the frames before the main thread runs
-        /// it. The check made on the main thread catches the switch.
-        /// </summary>
-        [Fact]
-        public void ACommandIsCheckedAgainstTheGamesActiveVesselOnTheThreadThatRunsIt()
-        {
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds, executeCommandsOnMainThread: true);
-            var uplink = new ActiveCraftTestUplink();
-            engine.RegisterUplink(uplink);
-            var reported = new ReportedVessel { Id = CraftId };
-            engine.Kernel.RegisterCapability(new CapabilityDescriptor { Id = ActiveVesselCapability.Id, Exclusive = true, Vanilla = _ => reported });
-            engine.ResolveCapabilities();
-            engine.Start();
-            using var stop = new ManualResetEventSlim(false);
-            var pump = new Thread(() =>
-            {
-                while (!stop.IsSet)
-                {
-                    engine.RunPendingCommands();
-                    Thread.Sleep(2);
-                }
-            })
-            { IsBackground = true, Name = "test-main-thread-pump" };
-            pump.Start();
-            try
-            {
-                TickActive(engine, uplink, 0.0, loaded: true);
-                object? result = null;
-                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op);
-                Assert.Single(Pending(engine));
-
-                reported.Id = "H";
-                foreach (var ut in new[] { 1.0, OneWaySeconds + 1.0, (2 * OneWaySeconds) + 2.0 })
-                {
-                    TickActive(engine, uplink, ut, loaded: true);
-                }
-
-                Assert.Equal(0, uplink.HandledCount);
-                var outcome = Assert.IsType<CommandResult>(result);
-                Assert.False(outcome.Success);
-                Assert.Equal(CommandErrorCode.WrongState, outcome.ErrorCode);
-            }
-            finally
-            {
-                stop.Set();
-                pump.Join(TestBudgets.Op);
-                engine.Stop();
-            }
-        }
-
-        private sealed class ReportedVessel : IActiveVessel
-        {
-            private volatile string? _id;
-
-            public string? Id
-            {
-                get => _id;
-                set => _id = value;
-            }
-
-            public string ProviderId => "test-active-vessel";
-
-            public object? Reported => _id;
-
-            public string? ReportedId => _id;
-
-            public bool SubstitutedForEva => false;
-        }
-
-        /// <summary>
         /// An order on its way to the active craft when the game goes to the
         /// Tracking Station is carried by light, not by the scene: it lands
         /// when it arrives. The craft is no longer loaded, so the game cannot
@@ -804,7 +658,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?>() }, TestBudgets.Op);
 
         /// <summary>A tick with the craft loaded as the active vessel, or with none loaded, as in the Tracking Station.</summary>
-        private static void TickActive(ChannelEngine engine, ActiveCraftTestUplink uplink, double ut, bool loaded, string craft = CraftId)
+        private static void TickActive(ChannelEngine engine, ActiveCraftTestUplink uplink, double ut, bool loaded)
         {
             uplink.Loaded = loaded;
             var values = new Dictionary<string, object?>();
@@ -812,7 +666,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 values["vessel"] = new Dictionary<string, object?>
                 {
-                    ["identity"] = new Dictionary<string, object?> { ["id"] = craft },
+                    ["identity"] = new Dictionary<string, object?> { ["id"] = CraftId },
                 };
             }
             engine.TickAndWait(ut, new KspSnapshot { Ut = ut, Values = values }, TestBudgets.Op);
@@ -827,43 +681,9 @@ namespace Sitrep.Host.IntegrationTests
         private sealed class ActiveCraftTestUplink : ISitrepUplink
         {
             public const string Command = "held.active";
-
-            /// <summary>A continuous input, which goes on the live path rather than being held.</summary>
-            public const string ThrottleCommand = "vessel.control.setThrottle";
             private const string Topic = "active-test.state";
 
-            /// <summary>A held command behind a gate the test opens and closes.</summary>
-            public const string GatedCommand = "held.gated";
-            private const string GateKind = "test-open";
-
             private int _handled;
-            private int _throttled;
-            private volatile bool _gateOpen = true;
-
-            public bool GateOpen
-            {
-                get => _gateOpen;
-                set => _gateOpen = value;
-            }
-
-            public int ThrottledCount => Volatile.Read(ref _throttled);
-
-            private sealed class OpenGate : ICommandGateEvaluator
-            {
-                private readonly ActiveCraftTestUplink _uplink;
-
-                public OpenGate(ActiveCraftTestUplink uplink)
-                {
-                    _uplink = uplink;
-                }
-
-                public string Kind => GateKind;
-
-                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments) =>
-                    _uplink.GateOpen
-                        ? GateVerdict.Pass()
-                        : GateVerdict.Fail(new LimitBreach { Facility = "LaunchPad", Quantity = "mass", Limit = 18.0, Actual = 19.4, Unit = "t" });
-            }
             private volatile bool _loaded = true;
             private volatile bool _link = true;
 
@@ -899,14 +719,6 @@ namespace Sitrep.Host.IntegrationTests
                 Commands = new List<CommandDeclaration>
                 {
                     new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed, Subject = Topic },
-                    new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed, Subject = Topic },
-                    new CommandDeclaration
-                    {
-                        Command = GatedCommand,
-                        Delay = DelayRole.Delayed,
-                        Subject = Topic,
-                        Requires = new[] { new CommandRequirement { Kind = GateKind } },
-                    },
                 },
             };
 
@@ -914,17 +726,6 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Register(IUplinkHost host)
             {
-                host.AddCommandHandler<Dictionary<string, object?>, string>(ThrottleCommand, _ =>
-                {
-                    Interlocked.Increment(ref _throttled);
-                    return "throttled";
-                });
-                host.AddCommandHandler<string, string>(GatedCommand, args =>
-                {
-                    Interlocked.Increment(ref _handled);
-                    return "done:" + args;
-                });
-                host.AddGateEvaluator(new OpenGate(this));
                 host.AddSampledSource(_ => true, _ =>
                 {
                     host.SetVesselDelay(CraftId, OneWaySeconds);

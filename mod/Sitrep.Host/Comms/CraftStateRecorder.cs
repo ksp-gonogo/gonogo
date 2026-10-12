@@ -55,9 +55,8 @@ namespace Sitrep.Host.Comms
         /// refresh that has come due, an orbit that drifted, one that has
         /// settled. Reading a craft asks the comms backend about its link to
         /// every other node, on the game's own thread, and under time warp
-        /// every craft comes due at every pass. A craft whose orbit moved goes
-        /// first, then the craft that has waited longest, so each comes round in
-        /// turn: see <see cref="RationedReads"/>. A craft seen for
+        /// every craft comes due at every pass. The craft that has waited
+        /// longest goes first, so each comes round in turn. A craft seen for
         /// the first time, one whose listing changed and one a new node has
         /// arrived beside are read at once and do not count.
         /// </summary>
@@ -373,56 +372,31 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>Whether enough game time has passed that the craft is read again with nothing else about it having changed.</summary>
-        private static bool TimeHasComeFor(Read last, bool moved, double ut) =>
-            moved
+        private static bool TimeHasComeFor(Read last, ContactGameNode node, double ut) =>
+            Moved(last, node, ut)
             || (!last.State.Settled && ut >= last.State.CapturedUt + ContactPlanSchedule.MinDriftReplanSeconds)
             || ut >= last.State.CapturedUt + LinkRefreshSeconds;
 
-        /// <summary>Whether the last pass gave its ration to a craft that moved ahead of one that had waited longer.</summary>
-        private bool _movedWentFirst;
-
-        /// <summary>
-        /// The craft this pass reads again because their time has come: the
-        /// <see cref="ReadsAgainPerPass"/> that have waited longest, except
-        /// that a craft whose orbit has moved goes ahead of the rest. Every
-        /// plan made of a moved craft is made of an orbit it has left, while a
-        /// refresh that comes late only leaves a plan less fresh.
-        ///
-        /// <para>A craft moves again as soon as the drift interval lets it, so
-        /// under warp a craft under thrust would win every pass. A moved craft
-        /// therefore goes first on alternate passes only, and the passes
-        /// between go by age alone: whatever moves, a craft waiting for its
-        /// refresh among <c>n</c> others is read within <c>2n + 2</c>
-        /// passes.</para>
-        /// </summary>
+        /// <summary>The craft this pass reads again because their time has come: the <see cref="ReadsAgainPerPass"/> that have waited longest.</summary>
         private HashSet<string> RationedReads(ContactGameLook look, double ut)
         {
-            var waiting = new List<(bool First, double CapturedUt, string Id)>();
-            var movedFirst = !_movedWentFirst;
+            var waiting = new List<(double CapturedUt, string Id)>();
             foreach (var node in look.Nodes)
             {
-                if (node.Station || !_read.TryGetValue(node.Id, out var last) || ut < last.State.CapturedUt)
+                if (!node.Station
+                    && _read.TryGetValue(node.Id, out var last)
+                    && ut >= last.State.CapturedUt
+                    && TimeHasComeFor(last, node, ut))
                 {
-                    continue;
-                }
-                var moved = Moved(last, node, ut);
-                if (TimeHasComeFor(last, moved, ut))
-                {
-                    waiting.Add((movedFirst && moved, last.State.CapturedUt, node.Id));
+                    waiting.Add((last.State.CapturedUt, node.Id));
                 }
             }
-            waiting.Sort((a, b) =>
-                a.First != b.First ? (a.First ? -1 : 1)
-                : a.CapturedUt != b.CapturedUt ? a.CapturedUt.CompareTo(b.CapturedUt)
-                : string.CompareOrdinal(a.Id, b.Id));
+            waiting.Sort((a, b) => a.CapturedUt != b.CapturedUt ? a.CapturedUt.CompareTo(b.CapturedUt) : string.CompareOrdinal(a.Id, b.Id));
             var chosen = new HashSet<string>(StringComparer.Ordinal);
-            var jumped = false;
             for (var i = 0; i < waiting.Count && i < ReadsAgainPerPass; i++)
             {
                 chosen.Add(waiting[i].Id);
-                jumped |= waiting[i].First;
             }
-            _movedWentFirst = jumped;
             return chosen;
         }
 
@@ -452,7 +426,7 @@ namespace Sitrep.Host.Comms
                 _read[node.Id] = new Read(node, moving);
                 return moving;
             }
-            var timeHasCome = itsTurn && TimeHasComeFor(last, Moved(last, node, ut), ut);
+            var timeHasCome = itsTurn && TimeHasComeFor(last, node, ut);
             if (!timeHasCome && !LacksALinkToANodeHere(last.State, look))
             {
                 if (!ListedDifferently(last.State.Roster, listed))

@@ -158,18 +158,15 @@ if (config.skipCoturn) {
 const relayId = randomUUID();
 logger.setIdentity({ role: "relay", id: relayId, peerId: relayId });
 
-/** The coturn this relay started, while it is still running. */
-function liveCoturn(): CoturnHandle | null {
-  return coturnHandle?.running() ? coturnHandle : null;
-}
-
-fastify.get("/health", async () => {
-  const turn = liveCoturn();
-  return {
-    status: "ok",
-    turn: turn ? { externalIp: turn.externalIp, port: turn.port } : null,
-  };
-});
+fastify.get("/health", async () => ({
+  status: "ok",
+  turn: coturnHandle
+    ? {
+        externalIp: coturnHandle.externalIp,
+        port: coturnHandle.port,
+      }
+    : null,
+}));
 
 fastify.get("/version", async () => ({
   version: VERSION,
@@ -224,11 +221,10 @@ function iceServersFor(
  * turn to work.
  */
 fastify.get("/ice-config", async (_req, reply) => {
-  const turn = liveCoturn();
-  if (!turn) {
+  if (!coturnHandle) {
     return reply.status(503).send({ error: "TURN not available" });
   }
-  return { iceServers: iceServersFor(turn) };
+  return { iceServers: iceServersFor(coturnHandle) };
 });
 
 // ──────────────────────────────────────────────────────────────────────

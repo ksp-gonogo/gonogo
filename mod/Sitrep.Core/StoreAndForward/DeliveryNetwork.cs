@@ -243,13 +243,6 @@ namespace Sitrep.Core.StoreAndForward
         private readonly HashSet<string> _leftSender = new HashSet<string>(StringComparer.Ordinal);
         private readonly List<(CommandMessage Command, double AtUt)> _toRun = new List<(CommandMessage, double)>();
         private bool _running;
-
-        /*
-         * The command whose handler is running now, outside the lock. Its
-         * collector counts it as run from the moment it was released, so a save
-         * taken before it returns has to be told otherwise.
-         */
-        private (CommandMessage Command, double AtUt)? _inRun;
         private ControlValueRelease _release;
         private long _nextId;
         private int _planVersion;
@@ -732,34 +725,28 @@ namespace Sitrep.Core.StoreAndForward
         }
 
         /// <summary>
-        /// Lets go of everything held at <paramref name="node"/>, a craft that no
-        /// longer exists and took what it carried with it, and returns the span
-        /// payloads that lost a carrier. A reply held aboard has no way home and
-        /// never expires, so left here it would be routed every tick and saved
-        /// with every game. What was already handed on stays with its holders.
+        /// Lets go of every span held at <paramref name="node"/>, a craft that no
+        /// longer exists and took its history with it, and returns the payloads
+        /// that lost a carrier. Spans already handed on stay with their holders.
         /// </summary>
-        public IReadOnlyList<SpanPayload> DiscardHeldAt(string node)
+        public IReadOnlyList<SpanPayload> DiscardSpansHeldAt(string node)
         {
             lock (_gate)
             {
                 var freed = new List<SpanPayload>();
-                _storedCancels.Remove(node);
                 if (!_held.TryGetValue(node, out var list))
                 {
                     return freed;
                 }
-                foreach (var held in list.Where(h => h.Away == null).ToList())
+                foreach (var held in list.Where(h => h.Away == null && h.Message is SpanMessage).ToList())
                 {
                     list.Remove(held);
                     held.EndWatch?.Invoke();
                     held.CancelWake?.Invoke();
-                    if (held.Message is SpanMessage span)
+                    foreach (var sample in ((SpanMessage)held.Message).Samples)
                     {
-                        foreach (var sample in span.Samples)
-                        {
-                            sample.Payload.Carriers--;
-                            freed.Add(sample.Payload);
-                        }
+                        sample.Payload.Carriers--;
+                        freed.Add(sample.Payload);
                     }
                 }
                 return freed;
@@ -819,44 +806,23 @@ namespace Sitrep.Core.StoreAndForward
                     }).ToList(),
                     StoredCancels = _storedCancels.SelectMany(n => n.Value.Select(c => new StoredCancelRecord { Node = n.Key, Cancel = c })).ToList(),
                     Senders = _senders.Select(s => new SenderRecord { Lane = s.Key, NextSeq = s.Value.NextSeq, Unresolved = s.Value.Unresolved.ToList() }).ToList(),
-                    Collectors = _collectors.Select(c => CollectorRecordOf(c.Key, c.Value)).ToList(),
+                    Collectors = _collectors.Select(c => new CollectorRecord
+                    {
+                        Lane = c.Key,
+                        Next = c.Value.Next,
+                        Cancelled = c.Value.Cancelled.ToList(),
+                        Ran = c.Value.Ran.ToList(),
+                        Waiting = c.Value.Waiting.Values.ToList(),
+                        Expired = c.Value.Expired.ToList(),
+                        Scheduled = c.Value.Scheduled.Select(d => new ScheduledRecord { Command = d.Command, AtUt = d.AtUt }).ToList(),
+                        LastRunUt = c.Value.Cadence.RunUt,
+                        LastSentUt = c.Value.Cadence.SentUt,
+                    }).ToList(),
                     SentCommands = _sentCommands.Values.ToList(),
                     NextId = _nextId,
                     Retargets = SnapshotRetargets(),
                 };
             }
-        }
-
-        /// <summary>
-        /// One collector as a save holds it. A command it has released whose
-        /// handler has not returned has done nothing the save can show, so it is
-        /// saved as due to run at the instant it was released rather than as run,
-        /// and a load runs it.
-        /// </summary>
-        private CollectorRecord CollectorRecordOf(LaneKey lane, LaneCollector collector)
-        {
-            var notYetRun = _toRun
-                .Concat(_inRun == null ? Enumerable.Empty<(CommandMessage Command, double AtUt)>() : new[] { _inRun.Value })
-                .Where(r => r.Command.Lane.Equals(lane))
-                .ToList();
-            var notYetRunSeqs = new HashSet<long>(notYetRun.Select(r => r.Command.LaneSeq));
-            return new CollectorRecord
-            {
-                Lane = lane,
-                Next = collector.Next,
-                Cancelled = collector.Cancelled.ToList(),
-                Ran = collector.Ran.Where(r => !notYetRunSeqs.Contains(r.Key)).ToList(),
-                Waiting = collector.Waiting.Values.ToList(),
-                Expired = collector.Expired.ToList(),
-                Scheduled = collector.Scheduled
-                    .Concat(notYetRun)
-                    .OrderBy(d => d.AtUt)
-                    .ThenBy(d => d.Command.LaneSeq)
-                    .Select(d => new ScheduledRecord { Command = d.Command, AtUt = d.AtUt })
-                    .ToList(),
-                LastRunUt = collector.Cadence.RunUt,
-                LastSentUt = collector.Cadence.SentUt,
-            };
         }
 
         /// <summary>Drops everything: a new timeline.</summary>
@@ -1087,7 +1053,6 @@ namespace Sitrep.Core.StoreAndForward
                     next = _toRun[0];
                     _toRun.RemoveAt(0);
                     _running = true;
-                    _inRun = next;
                 }
                 object? result;
                 try
@@ -1099,7 +1064,6 @@ namespace Sitrep.Core.StoreAndForward
                     lock (_gate)
                     {
                         _running = false;
-                        _inRun = null;
                     }
                 }
                 lock (_gate)
@@ -1826,10 +1790,6 @@ namespace Sitrep.Core.StoreAndForward
         /// </summary>
         private void Forget(double nowUt)
         {
-            foreach (var collector in _collectors.Values)
-            {
-                collector.Forget(nowUt, CommandLifetimeSeconds);
-            }
             List<string>? finished = null;
             foreach (var sent in _sentCommands.Values)
             {

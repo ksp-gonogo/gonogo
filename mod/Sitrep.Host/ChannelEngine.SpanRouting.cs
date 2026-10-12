@@ -357,15 +357,15 @@ namespace Sitrep.Host
             return (first.Craft, first.Topic, first.Ut, freed);
         }
 
-        /// <summary>A craft that no longer exists takes what it held with it: its spans and the replies waiting aboard go, and what it had already handed on stays where it is.</summary>
-        private void DiscardHeldAboard(string node)
+        /// <summary>A craft that no longer exists takes the history it held with it: its spans go, and what it had already handed on stays where it is.</summary>
+        private void DiscardSpansOf(string node)
         {
             var craft = CraftIdFor(node);
             if (craft == null || _delivery == null)
             {
                 return;
             }
-            foreach (var payload in _delivery.DiscardHeldAt(craft))
+            foreach (var payload in _delivery.DiscardSpansHeldAt(craft))
             {
                 if (payload.Carriers <= 0)
                 {

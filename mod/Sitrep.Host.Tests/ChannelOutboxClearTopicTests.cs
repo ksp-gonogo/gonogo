@@ -120,8 +120,6 @@ namespace Sitrep.Host.Tests
 
             public string Id { get; } = "gated-connection";
 
-            public bool IsBusy => false;
-
             public event Action<ArraySegment<byte>> MessageReceived = delegate { };
             public event Action Closed = delegate { };
 

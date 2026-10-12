@@ -173,17 +173,6 @@ describe("AxiomConsentController", () => {
 });
 
 describe("ConsoleLogger.removeTransport", () => {
-  it("disposes a transport it removes, and only then", () => {
-    const logger = new ConsoleLogger({ enabled: true });
-    const dispose = vi.fn();
-    const transport = { ...makeTransport(), dispose };
-    logger.addTransport(transport);
-    expect(dispose).not.toHaveBeenCalled();
-    logger.removeTransport(transport);
-    logger.removeTransport(transport);
-    expect(dispose).toHaveBeenCalledTimes(1);
-  });
-
   it("stops fanning entries to a removed transport", () => {
     const logger = new ConsoleLogger({ enabled: true });
     const transport = makeTransport();

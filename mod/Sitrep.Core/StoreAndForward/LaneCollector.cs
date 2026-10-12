@@ -32,8 +32,8 @@ namespace Sitrep.Core.StoreAndForward
     /// later number waits until every missing predecessor has arrived or been
     /// cancelled, or until its gap expiry passes, when the missing numbers are
     /// counted lost and the lane moves past them. A cancel marks the numbers it
-    /// names for as long as a copy of them can still arrive, so a cancelled
-    /// number never runs.</para>
+    /// names for the rest of the timeline, so a cancelled number never runs
+    /// whenever it arrives.</para>
     /// </summary>
     public sealed class LaneCollector
     {
@@ -41,9 +41,6 @@ namespace Sitrep.Core.StoreAndForward
         private readonly HashSet<long> _cancelled = new HashSet<long>();
         private readonly HashSet<long> _expired = new HashSet<long>();
         private readonly Dictionary<long, double> _ran = new Dictionary<long, double>();
-
-        // When each cancelled or expired number was first known settled here.
-        private readonly Dictionary<long, double> _settledUt = new Dictionary<long, double>();
         private readonly SortedDictionary<long, (CommandMessage Command, double AtUt, Action? Cancel)> _scheduled =
             new SortedDictionary<long, (CommandMessage, double, Action?)>();
         private readonly Func<double, Action, Action>? _schedule;
@@ -89,7 +86,7 @@ namespace Sitrep.Core.StoreAndForward
             {
                 if (!_ran.ContainsKey(settled) && !_waiting.ContainsKey(settled))
                 {
-                    Settled(_expired, settled, nowUt);
+                    _expired.Add(settled);
                 }
             }
             if (nowUt > command.DeleteAtUt)
@@ -161,20 +158,19 @@ namespace Sitrep.Core.StoreAndForward
                 {
                     _scheduled.Remove(seq);
                     due.Cancel?.Invoke();
-                    Settled(_cancelled, seq, nowUt);
+                    _cancelled.Add(seq);
                     Report(due.Command, JourneyKind.Cancelled, nowUt);
                     continue;
                 }
                 if (_waiting.TryGetValue(seq, out var waiting))
                 {
                     _waiting.Remove(seq);
-                    Settled(_cancelled, seq, nowUt);
+                    _cancelled.Add(seq);
                     Report(waiting, JourneyKind.Cancelled, nowUt);
                     continue;
                 }
-                if (!_cancelled.Contains(seq))
+                if (_cancelled.Add(seq))
                 {
-                    Settled(_cancelled, seq, nowUt);
                     ReportCancel(cancel, seq, JourneyKind.CancelStored, nowUt, null);
                 }
             }
@@ -189,7 +185,7 @@ namespace Sitrep.Core.StoreAndForward
                 _waiting.Remove(expired.LaneSeq);
                 Report(expired, JourneyKind.Expired, nowUt);
                 // Its number is settled: the sender counts it dead at the same instant.
-                Settled(_expired, expired.LaneSeq, nowUt);
+                _expired.Add(expired.LaneSeq);
             }
             if (_waiting.Count > 0)
             {
@@ -200,52 +196,6 @@ namespace Sitrep.Core.StoreAndForward
                 }
             }
             Drain(nowUt);
-        }
-
-        /// <summary>
-        /// Lets go of the numbers below <see cref="Next"/> settled more than
-        /// <paramref name="lifetimeSeconds"/> ago. Every copy of a number, and
-        /// every cancel naming it, dies within a command's lifetime of the number
-        /// being sent, so one arriving later is expired before any of this is
-        /// asked, and keeping the numbers would only grow every save.
-        /// </summary>
-        public void Forget(double nowUt, double lifetimeSeconds)
-        {
-            foreach (var seq in _ran.Where(r => r.Key < Next && nowUt > r.Value + lifetimeSeconds).Select(r => r.Key).ToList())
-            {
-                _ran.Remove(seq);
-            }
-            ForgetSettled(_cancelled, nowUt, lifetimeSeconds);
-            ForgetSettled(_expired, nowUt, lifetimeSeconds);
-            foreach (var seq in _settledUt.Keys.Where(seq => !_cancelled.Contains(seq) && !_expired.Contains(seq)).ToList())
-            {
-                _settledUt.Remove(seq);
-            }
-        }
-
-        private void ForgetSettled(HashSet<long> numbers, double nowUt, double lifetimeSeconds)
-        {
-            foreach (var seq in numbers.Where(seq => seq < Next).ToList())
-            {
-                if (!_settledUt.TryGetValue(seq, out var settled))
-                {
-                    // Restored from a save, which carries no time: counted from now.
-                    _settledUt[seq] = nowUt;
-                    continue;
-                }
-                if (nowUt > settled + lifetimeSeconds)
-                {
-                    numbers.Remove(seq);
-                }
-            }
-        }
-
-        private void Settled(HashSet<long> numbers, long seq, double nowUt)
-        {
-            if (numbers.Add(seq) && !_settledUt.ContainsKey(seq))
-            {
-                _settledUt[seq] = nowUt;
-            }
         }
 
         /// <summary>Restores the lane's state from a save.</summary>
@@ -259,7 +209,6 @@ namespace Sitrep.Core.StoreAndForward
             (double RunUt, double SentUt)? cadence = null)
         {
             Next = Math.Max(1, next);
-            _settledUt.Clear();
             _cancelled.Clear();
             _cancelled.UnionWith(cancelled);
             _expired.Clear();

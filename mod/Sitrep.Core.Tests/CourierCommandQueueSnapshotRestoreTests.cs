@@ -170,7 +170,7 @@ namespace Sitrep.Core.Tests
             network.SetDelay("KSC", "vessel", 5);
             var courier = new Courier(clock, network);
             var runs = new List<string>();
-            courier.SetCommandHandler((command, _, __, ___, ____) =>
+            courier.SetCommandHandler((command, _, __, ___) =>
             {
                 runs.Add(command);
                 return "ran:" + command;

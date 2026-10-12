@@ -31,7 +31,6 @@ import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { declinedState } from "../shared/declinedState";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
-import { orbitSpread } from "../shared/orbitSpread";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
@@ -263,7 +262,6 @@ function CurrentOrbitComponent({
                     apoapsis={apoapsisR ?? 0}
                     periapsis={periapsisR}
                     craft={craftOnOrbit(orbitReading, observedOrbit, solve)}
-                    spread={orbitSpread(orbitReading, observedOrbit)}
                     argPe={orbit?.argPe?.magnitude ?? 0}
                     bodyColor={body?.color}
                     bodyRadius={body?.radius}

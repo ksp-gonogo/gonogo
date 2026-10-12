@@ -1,5 +1,4 @@
-import { act, render, renderHook } from "@ksp-gonogo/sitrep-sdk/testing";
-import { createElement, useCallback, useEffect, useRef } from "react";
+import { act, renderHook } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { DashboardItem } from "./index";
 import { useDashboardState } from "./useDashboardState";
@@ -58,81 +57,5 @@ describe("useDashboardState: per-scene keys", () => {
     const ids = idsOf(result.current.items);
     expect(ids).toContain("f1");
     expect(ids).not.toContain("sc1");
-  });
-});
-
-describe("useDashboardState: a damaged saved layout", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  it("keeps the good items when one saved entry is not an item", () => {
-    localStorage.setItem(
-      "dash:base",
-      JSON.stringify({ items: [item("a"), null, item("b")], layouts: {} }),
-    );
-    const { result } = renderHook(() =>
-      useDashboardState("dash:base", INITIAL),
-    );
-    expect(idsOf(result.current.items)).toEqual(["a", "b"]);
-  });
-
-  it("reads items that are not a list as none, without throwing", () => {
-    localStorage.setItem(
-      "dash:base",
-      JSON.stringify({ items: "nope", layouts: { lg: [] } }),
-    );
-    const { result } = renderHook(() =>
-      useDashboardState("dash:base", INITIAL),
-    );
-    expect(result.current.items).toEqual([]);
-  });
-});
-
-describe("useDashboardState: a layout loaded because the scene changed", () => {
-  beforeEach(() => {
-    localStorage.clear();
-  });
-
-  /** Replaces the dashboard from a child's effect on a key change, as the auto-switch prompt does. */
-  function Child({
-    sceneKey,
-    replace,
-  }: {
-    sceneKey: string;
-    replace: () => void;
-  }) {
-    const previous = useRef(sceneKey);
-    useEffect(() => {
-      if (previous.current === sceneKey) return;
-      previous.current = sceneKey;
-      replace();
-    }, [sceneKey, replace]);
-    return null;
-  }
-
-  it("is not undone by the incoming scene's saved layout, and is saved under that scene", () => {
-    localStorage.setItem(
-      "dash:Flight",
-      JSON.stringify({ items: [item("saved")], layouts: { lg: [] } }),
-    );
-    const seen: { items: readonly DashboardItem[] } = { items: [] };
-    function Parent({ sceneKey }: { sceneKey: string }) {
-      const state = useDashboardState(sceneKey, INITIAL);
-      seen.items = state.items;
-      const { replaceState } = state;
-      const replace = useCallback(
-        () => replaceState([item("profile")], { lg: [] }),
-        [replaceState],
-      );
-      return createElement(Child, { sceneKey, replace });
-    }
-    const { rerender } = render(
-      createElement(Parent, { sceneKey: "dash:base" }),
-    );
-    rerender(createElement(Parent, { sceneKey: "dash:Flight" }));
-    expect(idsOf(seen.items)).toEqual(["profile"]);
-    expect(idsOf(stored("dash:Flight").items ?? [])).toEqual(["profile"]);
-    expect(idsOf(stored("dash:base").items ?? [])).not.toContain("profile");
   });
 });
