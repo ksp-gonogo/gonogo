@@ -561,8 +561,10 @@ namespace Gonogo.KSP
                 bool stopWarp;
                 List<ScetAlarmActionsDue> actionsDue;
                 var flown = ActiveVesselScope.Current;
+                var game = CommandDeliveryScenario.GameKey;
                 lock (_gate)
                 {
+                    _roster.ObserveGame(game);
                     _roster.ObserveFlownCraft(flown != null ? "vessel:" + flown.id : null);
                     tick = _roster.BeginTick(ut);
                     _roster.EvaluatePass(tick, ScetAlarmVantage.IsTheSubjectsOwn, _ => state);

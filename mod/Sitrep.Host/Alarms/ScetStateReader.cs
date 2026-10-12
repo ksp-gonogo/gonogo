@@ -86,6 +86,22 @@ namespace Sitrep.Host.Alarms
         IDictionary<string, object?>? ReadPayload(string subject, string topic);
     }
 
+    /// <summary>Where a contract objective stands against the state an alarm waits for.</summary>
+    internal enum ContractParameterMatch
+    {
+        /// <summary>Nothing could be read this tick, which says nothing about the objective.</summary>
+        Unread,
+
+        /// <summary>The objective is in the target state.</summary>
+        Holds,
+
+        /// <summary>The objective is not in the target state yet, and its contract is still active.</summary>
+        NotYet,
+
+        /// <summary>The objective will never be in the target state: its contract finished with it elsewhere, or left the career.</summary>
+        Never,
+    }
+
     /// <summary>
     /// Getting a provenance stamp and a number out of one wire payload.
     ///
@@ -148,18 +164,25 @@ namespace Sitrep.Host.Alarms
         }
 
         /// <summary>
-        /// Whether one objective of one active contract is in
+        /// Where one objective of one contract stands against
         /// <paramref name="target"/>, read out of a <c>career.status</c> payload.
         ///
-        /// <para>Three answers, the same three the client's own matcher gives.
-        /// Null when the list could not be read at all, which is a different
-        /// claim from an empty one, and for an objective found with no readable
-        /// ordinal, which says nothing about its state. False when the contract
-        /// is not active or has no objective of that title, which is a fact
-        /// about the career. True only on the ordinal, never the name, so a
-        /// renamed state cannot silently stop an alarm matching.</para>
+        /// <para>The contract is looked for among the active ones, then among the
+        /// recently completed and recently failed ones: completing or failing the last
+        /// objective takes the contract out of the active list in the same stock call,
+        /// so an objective that reached its target that way is only to be found
+        /// there.</para>
+        ///
+        /// <para><see cref="ContractParameterMatch.Unread"/> when the lists could not
+        /// be read at all, which is a different claim from an empty one, and for an
+        /// objective found with no readable ordinal, which says nothing about its
+        /// state. A match is decided on the ordinal, never the name, so a renamed
+        /// state cannot silently stop an alarm matching. An objective of a finished
+        /// contract can no longer change, so one not in its target state there, a
+        /// finished contract with no such objective, and a contract found in none of
+        /// the lists are all <see cref="ContractParameterMatch.Never"/>.</para>
         /// </summary>
-        internal static bool? MatchContractParameter(
+        internal static ContractParameterMatch MatchContractParameter(
             IDictionary<string, object?> career, string contractId, string parameterTitle, KspParameterState target)
         {
             if (!career.TryGetValue("contracts", out var rawContracts)
@@ -167,35 +190,64 @@ namespace Sitrep.Host.Alarms
                 || !contracts.TryGetValue("active", out var rawActive)
                 || rawActive is not IEnumerable<object?> active)
             {
-                return null;
+                return ContractParameterMatch.Unread;
             }
-            foreach (var rawContract in active)
+
+            if (FindContract(active, contractId) is { } live)
             {
-                if (rawContract is not IDictionary<string, object?> contract
-                    || !contract.TryGetValue("id", out var id)
-                    || !string.Equals(id as string, contractId, StringComparison.Ordinal))
+                return MatchParameter(live, parameterTitle, target, finished: false);
+            }
+            foreach (var finishedList in new[] { "completedRecent", "failedRecent" })
+            {
+                if (contracts.TryGetValue(finishedList, out var rawFinished)
+                    && rawFinished is IEnumerable<object?> finished
+                    && FindContract(finished, contractId) is { } done)
+                {
+                    return MatchParameter(done, parameterTitle, target, finished: true);
+                }
+            }
+            return ContractParameterMatch.Never;
+        }
+
+        private static IDictionary<string, object?>? FindContract(IEnumerable<object?> list, string contractId)
+        {
+            foreach (var rawContract in list)
+            {
+                if (rawContract is IDictionary<string, object?> contract
+                    && contract.TryGetValue("id", out var id)
+                    && string.Equals(id as string, contractId, StringComparison.Ordinal))
+                {
+                    return contract;
+                }
+            }
+            return null;
+        }
+
+        private static ContractParameterMatch MatchParameter(
+            IDictionary<string, object?> contract, string parameterTitle, KspParameterState target, bool finished)
+        {
+            var notYet = finished ? ContractParameterMatch.Never : ContractParameterMatch.NotYet;
+            if (!contract.TryGetValue("parameters", out var rawParameters)
+                || rawParameters is not IEnumerable<object?> parameters)
+            {
+                return ContractParameterMatch.Unread;
+            }
+            foreach (var rawParameter in parameters)
+            {
+                if (rawParameter is not IDictionary<string, object?> parameter
+                    || !parameter.TryGetValue("title", out var title)
+                    || !string.Equals(title as string, parameterTitle, StringComparison.Ordinal))
                 {
                     continue;
                 }
-                if (!contract.TryGetValue("parameters", out var rawParameters)
-                    || rawParameters is not IEnumerable<object?> parameters)
+                parameter.TryGetValue("stateOrdinal", out var ordinal);
+                if (AsFiniteNumber(ordinal) is not { } state)
                 {
-                    return null;
+                    return ContractParameterMatch.Unread;
                 }
-                foreach (var rawParameter in parameters)
-                {
-                    if (rawParameter is not IDictionary<string, object?> parameter
-                        || !parameter.TryGetValue("title", out var title)
-                        || !string.Equals(title as string, parameterTitle, StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-                    parameter.TryGetValue("stateOrdinal", out var ordinal);
-                    return AsFiniteNumber(ordinal) is { } state ? state == (int)target : null;
-                }
-                return false;
+                return state == (int)target ? ContractParameterMatch.Holds : notYet;
             }
-            return false;
+            return notYet;
         }
 
         private static double? AsFiniteNumber(object? value)

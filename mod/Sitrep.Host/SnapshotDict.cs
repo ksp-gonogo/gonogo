@@ -64,6 +64,8 @@ namespace Sitrep.Host
             {
                 int i => i,
                 long l => (int)l,
+                uint u => u <= int.MaxValue ? (int)u : (int?)null,
+                ulong ul => ul <= int.MaxValue ? (int)ul : (int?)null,
                 double d => IsFinite(d) ? (int)d : (int?)null,
                 float f => IsFinite(f) ? (int)f : (int?)null,
                 _ => (int?)null,
@@ -78,8 +80,9 @@ namespace Sitrep.Host
         /// value -- when the key is absent, explicitly <c>null</c>, or when
         /// the underlying number is <c>NaN</c>/<c>Infinity</c>/<c>-Infinity</c>
         /// (R1/F-1: see the class doc comment). Integral sources
-        /// (<c>int</c>/<c>long</c>) are always finite by construction and
-        /// never hit that branch.
+        /// (<c>int</c>/<c>long</c>/<c>uint</c>/<c>ulong</c>) are always finite by
+        /// construction and never hit that branch; a live <c>Part.flightID</c> is a
+        /// boxed <c>uint</c>.
         /// </summary>
         public static double? GetDouble(IDictionary<string, object?> raw, string key)
         {
@@ -94,6 +97,8 @@ namespace Sitrep.Host
                 float f => f,
                 int i => i,
                 long l => l,
+                uint u => u,
+                ulong ul => ul,
                 _ => (double?)null,
             };
 

@@ -782,5 +782,47 @@ namespace Sitrep.Host.Tests
 
             Assert.Equal("ksc", notice.Vantage);
         }
+
+        [Fact]
+        public void LoadingAnotherGameDropsTheAlarmsOfTheFirstBeforeItsFirstTick()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveGame("career-a#1");
+            roster.Evaluate(10_000_000);
+            roster.Arm(TimeAlarm("a", 10_500_000), "ksc");
+
+            roster.ObserveGame("career-b#2");
+            var first = roster.Evaluate(20_000_000);
+
+            Assert.Empty(first.Fired);
+            Assert.False(first.StopWarp);
+            Assert.True(first.RosterChanged);
+            Assert.Equal(0, roster.Count);
+        }
+
+        [Fact]
+        public void LoadingAnotherGameForgetsTheCraftTheFirstWasFlying()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveGame("career-a#1");
+            roster.ObserveFlownCraft("vessel:aaa");
+
+            roster.ObserveGame("career-b#2");
+
+            Assert.Null(roster.FlownCraft);
+            Assert.False(roster.NamesAnotherCraft("vessel:bbb"));
+        }
+
+        [Fact]
+        public void TheSameGameKeepsItsAlarms()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.ObserveGame("career-a#1");
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+
+            Assert.False(roster.ObserveGame("career-a#1"));
+            Assert.False(roster.ObserveGame(null));
+            Assert.Equal(1, roster.Count);
+        }
     }
 }

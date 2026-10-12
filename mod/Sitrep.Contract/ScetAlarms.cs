@@ -37,14 +37,16 @@ public enum ScetAlarmConditionKind
     Threshold,
 
     /// <summary>
-    /// One objective of one active contract reaching a state the operator
-    /// chose, as <c>career.status.contracts.active</c> reports it.
+    /// One objective of one contract reaching a state the operator chose, as
+    /// <c>career.status.contracts</c> reports it.
     ///
     /// <para>Level rather than edge, like the threshold: an objective already
     /// in its target state when the alarm is set is a condition that holds.
-    /// A contract no longer active leaves the condition unmet for ever, which
-    /// is the fail-safe outcome for a contract that was completed, failed or
-    /// withdrawn by some other route.</para>
+    /// An objective that finishes its contract, completing or failing it, is
+    /// read from the recently completed or failed contracts, so it still comes
+    /// due. A contract that finished with the objective in another state, or
+    /// that left the career any other way, makes the alarm
+    /// <see cref="ScetAlarmState.Unreachable"/>.</para>
     /// </summary>
     ContractParameter,
 
@@ -123,12 +125,13 @@ public enum ScetAlarmState
     Fired,
 
     /// <summary>
-    /// The craft the condition watches no longer exists, so the alarm can never
-    /// come due.
+    /// The condition can never be met: the craft a threshold or a followed
+    /// instant watches no longer exists, or a contract objective's contract
+    /// finished with it in another state or left the career.
     ///
-    /// <para>Only a threshold reaches this: a time condition has no subject to
-    /// lose, because universal time belongs to the game. Show such a row as
-    /// dead rather than as pending.</para>
+    /// <para>A time condition never reaches this: it has no subject to lose,
+    /// because universal time belongs to the game. Show such a row as dead
+    /// rather than as pending.</para>
     /// </summary>
     Unreachable,
 

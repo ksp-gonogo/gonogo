@@ -1,0 +1,216 @@
+{
+  "_meta": {
+    "shows": "One active contract with one of its three terms complete and one offered contract, with two contracts recently failed counted in the summary line.",
+    "scenario": "recently-failed-contracts",
+    "notes": "The same board as active-mission-partial, plus career.status contracts.failedRecent carrying two failed contracts, so the summary counts them."
+  },
+  "contracts.active": [
+    {
+      "id": "42",
+      "title": "Plant a flag on the Mun",
+      "agency": "Kerbin Space Program",
+      "state": "Active",
+      "fundsAdvance": 5000,
+      "fundsCompletion": 25000,
+      "scienceCompletion": 15,
+      "repCompletion": 5,
+      "deadlineUt": 233340,
+      "parameters": [
+        {
+          "title": "Reach orbit around Kerbin",
+          "state": "Complete",
+          "stateOrdinal": 1,
+          "optional": false,
+          "parameterType": "ReachSituation",
+          "situation": "Orbiting"
+        },
+        {
+          "title": "Reach altitude between 70 km and 100 km",
+          "state": "Incomplete",
+          "stateOrdinal": 0,
+          "optional": false,
+          "parameterType": "ReachAltitudeEnvelope"
+        },
+        {
+          "title": "Return to Kerbin",
+          "state": "Incomplete",
+          "stateOrdinal": 0,
+          "optional": true
+        }
+      ]
+    }
+  ],
+  "contracts.offered": [
+    {
+      "id": "77",
+      "title": "Survey the Shores of Kerbin",
+      "agency": "Experimental Engineering Group",
+      "state": "Offered",
+      "fundsAdvance": 1200,
+      "fundsCompletion": 8000,
+      "scienceCompletion": 0,
+      "repCompletion": 2,
+      "deadlineUt": 323340,
+      "parameters": [
+        {
+          "title": "Land on the Shores biome",
+          "state": "Incomplete",
+          "stateOrdinal": 0,
+          "optional": false
+        }
+      ]
+    }
+  ],
+  "contracts.completedRecent": [],
+  "t.universalTime": 125340,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "career.status",
+        "value": {
+          "balances": null,
+          "contracts": {
+            "active": [
+              {
+                "id": "42",
+                "title": "Plant a flag on the Mun",
+                "state": "Active",
+                "fundsAdvance": 5000,
+                "fundsCompletion": 25000,
+                "scienceCompletion": 15,
+                "parameters": [
+                  {
+                    "title": "Reach orbit around Kerbin",
+                    "state": "Complete",
+                    "stateOrdinal": 1
+                  },
+                  {
+                    "title": "Reach altitude between 70 km and 100 km",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0,
+                    "minAltitude": 70000,
+                    "maxAltitude": 100000
+                  },
+                  {
+                    "title": "Return to Kerbin",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 5,
+                "dateDeadline": 233340,
+                "fundsFailure": 10000,
+                "reputationFailure": 3.0
+              }
+            ],
+            "offered": [
+              {
+                "id": "77",
+                "title": "Survey the Shores of Kerbin",
+                "state": "Offered",
+                "fundsAdvance": 1200,
+                "fundsCompletion": 8000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Land on the Shores biome",
+                    "state": "Incomplete",
+                    "stateOrdinal": 0
+                  }
+                ],
+                "agent": "Experimental Engineering Group",
+                "reputationCompletion": 2,
+                "dateDeadline": 323340
+              }
+            ],
+            "completedRecent": [],
+            "failedRecent": [
+              {
+                "id": "51",
+                "title": "Test the RT-5 Flea in flight over Kerbin",
+                "state": "Failed",
+                "fundsAdvance": 800,
+                "fundsCompletion": 6000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Test the RT-5 Flea in flight over Kerbin",
+                    "state": "Failed",
+                    "stateOrdinal": 2
+                  }
+                ],
+                "agent": "Rockomax Conglomerate",
+                "reputationCompletion": 1,
+                "fundsFailure": 2000,
+                "reputationFailure": 2.0
+              },
+              {
+                "id": "58",
+                "title": "Rescue Jebediah from Kerbin orbit",
+                "state": "Failed",
+                "fundsAdvance": 3000,
+                "fundsCompletion": 18000,
+                "scienceCompletion": 0,
+                "parameters": [
+                  {
+                    "title": "Recover Jebediah Kerman on Kerbin",
+                    "state": "Failed",
+                    "stateOrdinal": 2
+                  }
+                ],
+                "agent": "Kerbin Space Program",
+                "reputationCompletion": 4,
+                "fundsFailure": 9000,
+                "reputationFailure": 6.0
+              }
+            ]
+          },
+          "strategies": null,
+          "tech": null
+        }
+      }
+    ],
+    "pinnedUt": 125340
+  },
+  "contracts.failedRecent": [
+    {
+      "id": "51",
+      "title": "Test the RT-5 Flea in flight over Kerbin",
+      "state": "Failed",
+      "fundsAdvance": 800,
+      "fundsCompletion": 6000,
+      "scienceCompletion": 0,
+      "parameters": [
+        {
+          "title": "Test the RT-5 Flea in flight over Kerbin",
+          "state": "Failed",
+          "stateOrdinal": 2
+        }
+      ],
+      "agent": "Rockomax Conglomerate",
+      "reputationCompletion": 1,
+      "fundsFailure": 2000,
+      "reputationFailure": 2.0
+    },
+    {
+      "id": "58",
+      "title": "Rescue Jebediah from Kerbin orbit",
+      "state": "Failed",
+      "fundsAdvance": 3000,
+      "fundsCompletion": 18000,
+      "scienceCompletion": 0,
+      "parameters": [
+        {
+          "title": "Recover Jebediah Kerman on Kerbin",
+          "state": "Failed",
+          "stateOrdinal": 2
+        }
+      ],
+      "agent": "Kerbin Space Program",
+      "reputationCompletion": 4,
+      "fundsFailure": 9000,
+      "reputationFailure": 6.0
+    }
+  ]
+}

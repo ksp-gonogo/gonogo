@@ -217,7 +217,7 @@ namespace Gonogo.KSP
         /// and publishes it. <see cref="IChannelPublisher.Publish"/> is
         /// main-thread-safe (it hands off to the engine job queue), so
         /// publishing straight from a GameEvents callback is correct, same
-        /// as <c>CrashUplink.HandleCrash</c>.
+        /// as <c>CrashUplink.PublishDeaths</c>.
         /// </summary>
         private void OnRecoveryComplete(ProtoVessel vessel, MissionRecoveryDialog dialog, float recoveryPercent)
         {

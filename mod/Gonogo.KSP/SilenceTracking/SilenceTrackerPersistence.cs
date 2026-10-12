@@ -31,7 +31,9 @@ namespace Gonogo.KSP.SilenceTracking
         public static void Save(SilenceTracker tracker, ConfigNode node)
         {
             var root = node.AddNode(RootNodeName);
-            foreach (var state in tracker.States.Values)
+            // A destroyed vessel never comes back under the same id, and its record
+            // would otherwise ride in the save, and be restored on every load, for good.
+            foreach (var state in tracker.LiveStates)
             {
                 var vesselNode = root.AddNode(VesselNodeName);
                 vesselNode.AddValue("vesselId", state.VesselId);

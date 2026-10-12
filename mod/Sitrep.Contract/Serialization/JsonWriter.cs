@@ -2922,7 +2922,15 @@ namespace Sitrep.Contract.Serialization
                 return "0";
             }
 
-            var s = value.ToString(CultureInfo.InvariantCulture);
+            /* Never the parameterless ToString: under Mono and .NET Framework, which is
+               what KSP runs, it is fifteen significant digits, so 0.1 + 0.2 is written as
+               0.3 and a value echoed back no longer equals the original. "R" round-trips
+               on every runtime but one known .NET Framework defect, which G17 covers. */
+            var s = value.ToString("R", CultureInfo.InvariantCulture);
+            if (double.Parse(s, NumberStyles.Float, CultureInfo.InvariantCulture) != value)
+            {
+                s = value.ToString("G17", CultureInfo.InvariantCulture);
+            }
 
             var eIndex = s.IndexOfAny(new[] { 'E', 'e' });
             if (eIndex < 0)
