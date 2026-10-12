@@ -4,6 +4,7 @@ import { GAP_VAR, type GapToken } from "./scales";
 
 /**
  * Vertical alignment of the cells in a {@link Grid} row.
+ * Useful for lining up cards or readouts of different heights in one row.
  *
  * @category Layout
  */
@@ -11,6 +12,8 @@ export type GridAlign = "center" | "start" | "baseline" | "stretch";
 
 /**
  * Props for {@link Grid}. Any other `div` attribute passes through.
+ * Useful for laying out cards or readouts that reflow with the width of the
+ * panel. Used by {@link Grid}.
  *
  * @category Layout
  */

@@ -189,6 +189,9 @@ const uplinkCommandRails = new Map<string, CommandRail>();
  * Without it the command is drawn on the delay rail as a single command that
  * gets a reply, the same as {@link UNDECLARED_COMMAND_RAIL_TAGS}.
  *
+ * Useful for letting the app send and describe the commands an Uplink adds. Used
+ * by the client module that `uplink-tools new` scaffolds.
+ *
  * @category Commands
  */
 export function registerUplinkCommand(id: string, rail?: CommandRail): void {

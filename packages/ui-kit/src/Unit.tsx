@@ -169,7 +169,9 @@ function hover(
 }
 
 /**
- * Props for {@link Unit}. The formatter options it extends (`decimals`, `scale` and the rest) apply to the number drawn.
+ * Props for {@link Unit}. The formatter options it extends (`decimals`, `scale`
+ * and the rest) apply to the number drawn. Useful for showing the operator a
+ * quantity with its unit. Taken by {@link Unit}.
  *
  * @category Unit
  */

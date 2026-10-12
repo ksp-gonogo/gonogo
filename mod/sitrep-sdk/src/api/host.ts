@@ -60,6 +60,7 @@ import type {
  * passing the members the code under test needs to `installTestHost`, or by
  * installing a whole one with `installRealTestHost`, both from
  * `@ksp-gonogo/sitrep-sdk/testing`.
+ * Useful for running an Uplink's code under test without the app.
  *
  * @category Host and runtime
  */
@@ -208,6 +209,8 @@ export function getHost(): GonogoHost {
  * Whether the app, or a test host, is installed. An sdk function that needs the
  * app throws without one, so check this first where that is expected, such as
  * at module load.
+ * Useful for skipping work that needs the app when none is installed. Used by
+ * ui-kit before it logs a registration problem.
  *
  * @category Host and runtime
  */

@@ -723,6 +723,8 @@ export const ATTACHED_SYMBOLS: ReadonlySet<string> = new Set([
 
 /**
  * A quantity as it is written: the value and the unit's symbol, `250.0 km`.
+ * Useful for showing the operator a figure in text a node cannot hold. Used by
+ * {@link JogWheel} for its caret label and by {@link MissionDateField}.
  *
  * For visible text that cannot take a node: an SVG `<text>`, a canvas label, a
  * chart annotation measured before it is drawn. Anywhere a node fits, use
@@ -835,7 +837,9 @@ function applyRegisteredUnit(unit: RegisteredUnit): void {
 }
 
 /**
- * How a quantity is written: the unit to pin, the number of decimals, and the scale to draw it against.
+ * How a quantity is written: the unit to pin, the number of decimals, and the
+ * scale to draw it against. Useful for fixing the unit and precision a figure
+ * is shown to the operator at. Taken by {@link writeQuantity} and {@link Unit}.
  *
  * @category Unit
  */
@@ -915,7 +919,8 @@ let locale: string | undefined;
 
 /**
  * Pin the locale every quantity is written in, or pass `undefined` to go back
- * to the reader's own. One call changes every readout at once.
+ * to the reader's own. One call changes every readout at once. Useful for
+ * writing every figure the operator reads in one locale.
  *
  * @category Unit
  */
@@ -1180,7 +1185,9 @@ export function formatQuantity(
 }
 
 /**
- * A scale: one rung, settled once, and every mark printed against it.
+ * A scale: one rung, settled once, and every mark printed against it. Useful
+ * for giving the operator marks that read against one unit. Used by
+ * {@link Tape}.
  *
  * For a moving-scale instrument (an altimeter strip, a chart axis): the marks
  * carry no symbol, the symbol is shown once at the head, and every mark sits
@@ -1205,7 +1212,9 @@ export interface QuantityScale {
 }
 
 /**
- * Build a {@link QuantityScale} whose rung is taken from `reference`.
+ * Build a {@link QuantityScale} whose rung is taken from `reference`. Useful
+ * for giving the operator marks that read against one unit. Used by
+ * {@link Tape}.
  *
  * `reference` is the value that defines the scale rather than a value on it:
  * the top of an altimeter strip, an axis maximum. `opts.format` pins the rung

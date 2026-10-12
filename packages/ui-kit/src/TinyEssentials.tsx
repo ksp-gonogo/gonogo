@@ -25,6 +25,8 @@ import { TINY_BELOW, TINY_SIZE } from "./widgetSize";
 
 /**
  * Props for {@link TinyEssentials}: a widget's tiny heading and its essentials.
+ * Useful for keeping the operator's most important figures in view when a tile
+ * is tiny. Taken by {@link TinyEssentials}.
  *
  * @category TinyEssentials
  */

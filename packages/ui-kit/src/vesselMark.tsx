@@ -124,7 +124,9 @@ function keylineStroke(
 
 /**
  * The props of {@link VesselMarkSvg}: the centre, the radius, how the position
- * is known and whether to draw the keyline.
+ * is known and whether to draw the keyline. Useful for showing the operator
+ * where a vessel is and how well its position is known. Taken by
+ * {@link VesselMarkSvg}.
  *
  * @category Unit
  */
@@ -251,7 +253,8 @@ function paintKeyline(
 
 /**
  * Options for {@link paintVesselMark} and {@link paintVesselPositions}: whether
- * to draw the keyline round the mark.
+ * to draw the keyline round the mark. Useful for keeping a vessel's mark
+ * legible on the operator's map. Taken by both.
  *
  * @category Unit
  */

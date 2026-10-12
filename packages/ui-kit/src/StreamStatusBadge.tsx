@@ -5,7 +5,9 @@ import { severityFromStreamStatus } from "./status/severity";
 import { formatStreamStatus } from "./status/streamStatusWord";
 
 /**
- * Props for {@link StreamStatusBadge}.
+ * Props for {@link StreamStatusBadge}. Useful for telling the operator that a
+ * figure comes from a recording or from before a blackout. Taken by
+ * {@link StreamStatusBadge}.
  *
  * @category Badge
  */

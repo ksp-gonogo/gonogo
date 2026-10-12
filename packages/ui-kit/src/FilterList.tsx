@@ -32,6 +32,8 @@ export interface FilterRow {
 /**
  * Props for {@link FilterList}: its rows, the contribution segment its toggle
  * terms come from, and the message shown when no row matches.
+ * Useful for letting the operator narrow a long list by contributed terms and
+ * typed text. Used by {@link FilterList}.
  *
  * @category FilterList
  */

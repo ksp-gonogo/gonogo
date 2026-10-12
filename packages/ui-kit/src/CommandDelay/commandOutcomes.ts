@@ -4,6 +4,8 @@ import type { InFlightCommandLike } from "./toInFlightListItems";
 /**
  * What became of a handle's dispatches, as the control that issued them echoes
  * it. Returned by {@link commandOutcomes}.
+ * Useful for showing the operator, beside the control they pressed, what
+ * became of its commands.
  *
  * @category CommandButton
  */

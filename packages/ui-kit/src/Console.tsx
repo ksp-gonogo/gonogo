@@ -12,6 +12,8 @@ export type { ConsoleTone };
 
 /**
  * Props for {@link Console}. Any other `div` attribute is passed to the frame.
+ * Useful for configuring a console the operator types commands into or reads
+ * messages from. Used by {@link Console}.
  *
  * @category Console
  */

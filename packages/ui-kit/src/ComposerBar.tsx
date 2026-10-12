@@ -7,6 +7,8 @@ import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
  * Props for {@link ComposerBar}. Any other `div` attribute is passed to the row.
+ * Useful for configuring the line the operator types into at the foot of a
+ * console. Used by {@link ComposerBar}.
  *
  * @category Console
  */

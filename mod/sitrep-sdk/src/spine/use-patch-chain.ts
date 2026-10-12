@@ -10,7 +10,8 @@ import {
 /**
  * What {@link usePatchChain} is asked: a chain you have already read, the body
  * to draw it about, the catalogue that places the bodies it passes, and the
- * instant on screen.
+ * instant on screen. Useful for drawing a vessel's predicted path through its
+ * encounters on a system diagram. Used by the system view.
  *
  * @category Orbits and trajectories
  */

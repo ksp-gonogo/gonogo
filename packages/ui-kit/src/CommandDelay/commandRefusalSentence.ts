@@ -11,6 +11,8 @@ import type { RailTags } from "./railTags";
  * One refused dispatch, as much of it as the sentence needs. The entries in
  * `useCommand`'s `refusals` satisfy it, and so does one built by hand. Taken by
  * {@link commandRefusalSentence} and {@link commandGateSentence}.
+ * Useful for writing the sentence that tells the operator a command was
+ * refused.
  *
  * @category CommandDelay
  */
@@ -58,6 +60,8 @@ export interface CommandRefusalEntry extends CommandRefusalLike {
  * One refused dispatch as the rail renders it: the refusal itself, plus the two
  * things only the registering handle knows, its stable id and the command's
  * rail axes. Taken by {@link CommandList}.
+ * Useful for telling the operator, on the panel's delay rail, which commands
+ * were refused and why.
  *
  * @category CommandDelay
  */

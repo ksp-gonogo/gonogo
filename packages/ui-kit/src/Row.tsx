@@ -5,7 +5,8 @@ import { statusFill } from "./tone";
 
 /**
  * Props for {@link Row}. Any other HTML attribute passes through to the
- * rendered element.
+ * rendered element. Useful for showing the operator a name and its state on one
+ * line. Taken by {@link Row}.
  *
  * @category Layout
  */

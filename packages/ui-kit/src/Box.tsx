@@ -7,6 +7,8 @@ import { INSET_NAME, type InsetToken, RADIUS_VAR } from "./scales";
  * widget, `panel` a widget's own body, `raised` something lifted off a panel
  * (a card, a popover) and `sunken` a well set into one. Set with the `surface`
  * prop of {@link Box}.
+ * Useful for matching a box's background to how far it sits above or below the
+ * panel around it.
  *
  * @category Layout
  */
@@ -17,6 +19,7 @@ export type BoxSurface = "app" | "panel" | "raised" | "sunken";
  * and cards, `floating` for something that sits above the app (a dialog, a
  * menu), and `pill` for a fully rounded stadium. {@link FramedDisplay} has a corner
  * of its own that a `Box` cannot take. Set with the `radius` prop of {@link Box}.
+ * Useful for matching a box's corners to what it is, a row, a menu or a pill.
  *
  * @category Layout
  */
@@ -25,6 +28,7 @@ export type BoxRadius = "regular" | "floating" | "pill";
 /**
  * The padding names {@link Box}'s `pad` prop accepts, the same set as
  * {@link InsetToken}. Set with the `pad` prop of {@link Box}.
+ * Useful for keeping the space inside a box to the kit's inset steps.
  *
  * @category Layout
  */
@@ -33,6 +37,8 @@ export type BoxPad = InsetToken;
 /**
  * Props for {@link Box}: its surface, padding, border and radius. Any other
  * `div` attribute passes through.
+ * Useful for giving a region the background, padding and corners of its place
+ * in the layout. Used by {@link Box}.
  *
  * @category Layout
  */

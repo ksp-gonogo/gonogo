@@ -5,6 +5,8 @@ import { focusRing } from "./focusRing";
 /**
  * Props for {@link FilterChip}: its label, whether it is selected, an optional
  * count and the toggle handler.
+ * Useful for letting the operator switch one filter term on or off. Used by
+ * {@link FilterChip}.
  *
  * @category FilterList
  */

@@ -38,7 +38,8 @@ export type TermSegment = {
 }[ComponentSlotSegment];
 
 /**
- * Options for {@link useRowFilter}.
+ * Options for {@link useRowFilter}. Useful for describing the rows and terms
+ * the operator filters by. Taken by {@link useRowFilter}.
  *
  * @category FilterList
  */
@@ -193,7 +194,8 @@ export function filterControlOf(filter: RowFilter): ReactNode {
 }
 
 /**
- * The props of {@link FilterRegion}.
+ * The props of {@link FilterRegion}. Useful for placing the filter control the
+ * operator types into above a list. Taken by {@link FilterRegion}.
  *
  * @category FilterList
  */

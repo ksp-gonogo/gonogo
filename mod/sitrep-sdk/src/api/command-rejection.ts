@@ -34,6 +34,10 @@ export const COMMAND_LOST = "E_LOST";
  *   mod's handler throwing. `code` names it: a {@link FaultCode}, or any
  *   string for an id this SDK does not know. Sending it again may work
  *
+ * Useful for telling the operator whether a command was refused, lost or failed,
+ * and whether sending it again is worth trying. Used by `CommandButton` from
+ * `@ksp-gonogo/ui-kit` to word a rejected command.
+ *
  * @category Commands
  */
 export type CommandRejection =

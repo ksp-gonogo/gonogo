@@ -11,6 +11,8 @@ import type { RailTags } from "./railTags";
  * as the sentence needs. The entries in `useCommand`'s `founds` satisfy it,
  * and so does one built by hand. `outcome` is required: every sentence turns on
  * it. Taken by {@link commandFoundSentence}.
+ * Useful for writing the sentence that tells the operator a command thought
+ * lost did reply.
  *
  * @category CommandDelay
  */
@@ -53,6 +55,8 @@ export interface CommandFoundEntry extends CommandFoundLike {
 /**
  * One found dispatch as the rail renders it, plus its command's rail axes.
  * Taken by {@link CommandList}.
+ * Useful for telling the operator, on the panel's delay rail, which lost
+ * commands replied after all.
  *
  * @category CommandDelay
  */

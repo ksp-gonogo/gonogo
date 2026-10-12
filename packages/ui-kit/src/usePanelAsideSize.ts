@@ -12,7 +12,8 @@ import {
 /**
  * How a panel header's aside is currently drawn: `full`, inline beside the
  * title, or `collapsed`, behind the status dots and the toggle that opens it.
- * Returned by {@link usePanelAsideSize}.
+ * Returned by {@link usePanelAsideSize}. Useful for drawing a panel's aside
+ * differently once it collapses.
  *
  * @category Panel
  */
@@ -284,7 +285,8 @@ export const PanelAsideSizeProvider = PanelAsideSizeContext.Provider;
  * Whether the panel header's aside is drawn `full` or `collapsed`, for content
  * inside `panelAside` that draws differently in each. The header decides and
  * this reads that decision, so the content always agrees with it. `full`
- * outside a `Panel.Header`.
+ * outside a `Panel.Header`. Useful for drawing a panel's aside differently once
+ * it collapses.
  *
  * @category Panel
  */

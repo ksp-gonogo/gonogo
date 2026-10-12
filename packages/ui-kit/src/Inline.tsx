@@ -3,7 +3,9 @@ import styled from "styled-components";
 import { GAP_VAR, type GapToken } from "./scales";
 
 /**
- * Props for {@link Inline}. Any other `span` attribute passes through.
+ * Props for {@link Inline}. Any other `span` attribute passes through. Useful
+ * for setting how the badges and buttons of an {@link Inline} run sit on the
+ * operator's row.
  *
  * @category Layout
  */

@@ -125,11 +125,13 @@ export function horizonUtOf(
 }
 
 /**
- * Returns whether an orbit with this horizon may be carried across
- * `fromUt` to `toUt`, both in UT seconds, or why not. An `Unbounded` horizon
- * allows any window. An `Until` horizon allows a window that ends by its
- * `untilUt`. A missing horizon, an `Unspecified` one, or an `Until` with no
- * UT is refused, since nothing says how far the orbit holds.
+ * Returns whether an orbit with this horizon may be carried across `fromUt` to
+ * `toUt`, both in UT seconds, or why not. An `Unbounded` horizon allows any
+ * window. An `Until` horizon allows a window that ends by its `untilUt`. A
+ * missing horizon, an `Unspecified` one, or an `Until` with no UT is refused,
+ * since nothing says how far the orbit holds. Useful for deciding whether a
+ * predicted orbit or impact point may be shown to the operator for a given
+ * time. Used by the orbit trajectory, the impact point and the orbit reckoning.
  *
  * @category Orbits and trajectories
  */

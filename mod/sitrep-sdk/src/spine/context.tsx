@@ -1225,9 +1225,10 @@ export function setActiveTimelineStoreForTests(
 }
 
 /**
- * Makes `client` the one commands are sent through, without mounting a
- * {@link TelemetryProvider}, for a test of code that sends commands outside
- * React. Pass `undefined` to clear it.
+ * Makes `client` the one commands are sent through, without mounting a {@link
+ * TelemetryProvider}, for a test of code that sends commands outside React.
+ * Pass `undefined` to clear it. Useful for testing the commands a widget sends
+ * when the operator presses a control outside React's own tree.
  *
  * @category Stream fixture
  */

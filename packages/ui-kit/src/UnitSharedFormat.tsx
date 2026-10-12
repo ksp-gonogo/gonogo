@@ -353,7 +353,10 @@ interface UnitSharedFormatBaseProps {
 }
 
 /**
- * A scope that pins one kind. `of` names the unit the pins are addressed to and types them: `of="m"` makes `as` a length and `format` a rung on the length ladder, and `of={v.unit}` needs no annotation.
+ * A scope that pins one kind. `of` names the unit the pins are addressed to and
+ * types them: `of="m"` makes `as` a length and `format` a rung on the length
+ * ladder, and `of={v.unit}` needs no annotation. Useful for keeping the figures
+ * the operator compares at one precision.
  *
  * Without `of` the pins are unaddressed: they reach every group and nothing checks them.
  * Taken by {@link UnitSharedFormat}.
@@ -368,7 +371,10 @@ export interface UnitSharedFormatProps<Unit extends string = string>
 }
 
 /**
- * A scope that pins several groups, each keyed by name, so a group is pinned at most once and one that needs nothing is simply absent: `pins={{ length: { as: "km" }, mass: { as: "t" } }}`.
+ * A scope that pins several groups, each keyed by name, so a group is pinned at
+ * most once and one that needs nothing is simply absent: `pins={{ length: { as:
+ * "km" }, mass: { as: "t" } }}`. Useful for keeping several groups of figures
+ * the operator compares at one precision each.
  *
  * Each value is typed by its own key, so `{ length: { as: "kg" } }` is a compile error at that entry. A laddered kind is keyed by its kind; a unit that climbs nothing keys itself, so `s` and `min` stay separate groups. See {@link UnitGroupKey}. Taken by {@link UnitSharedFormat}.
  *

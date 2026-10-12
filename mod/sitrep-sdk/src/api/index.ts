@@ -473,6 +473,8 @@ export {
  * through the handle's own `registerContribution`. A widget registered without
  * an `owner` is not tied to its Uplink, so searching the add-widget picker for
  * the Uplink's id does not find it.
+ * Useful for having the add-widget picker list an Uplink's widgets under its
+ * name. Used by each Uplink's client module when it loads.
  *
  * @category Registering
  */

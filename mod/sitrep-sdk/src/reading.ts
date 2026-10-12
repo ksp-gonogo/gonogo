@@ -148,7 +148,7 @@ export interface TopicReckoningAvailable<Payload> {
  * not want.
  *
  * Useful for showing the operator a current figure for a vessel that is behind
- * a signal delay, marked as modelled. Read by the kit's meter and dial.
+ * a signal delay, marked as modelled. Used by the kit's meter and dial.
  */
 export type TopicReckoning<Payload> =
   | TopicReckoningAvailable<Payload>

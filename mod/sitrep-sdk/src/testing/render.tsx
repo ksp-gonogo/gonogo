@@ -34,7 +34,8 @@ function withTheme(Extra?: Wrapper): Wrapper {
  * mounted, so a `@ksp-gonogo/ui-kit` component renders without a provider of
  * your own. A `wrapper` you pass is mounted inside the theme. It needs
  * `@testing-library/react` and `styled-components` installed, and a DOM test
- * environment such as jsdom.
+ * environment such as jsdom. Useful for testing what an operator sees of a
+ * ui-kit component or a widget.
  *
  * @example
  * ```tsx
@@ -62,8 +63,10 @@ export function render(
 }
 
 /**
- * The hook-rendering function of `@testing-library/react` with the kit's
- * theme always mounted. A `wrapper` you pass is mounted inside the theme.
+ * The hook-rendering function of `@testing-library/react` with the kit's theme
+ * always mounted. A `wrapper` you pass is mounted inside the theme. Useful for
+ * testing a hook that reads what the operator sees, such as a telemetry
+ * reading.
  *
  * @category Rendering
  */
@@ -81,9 +84,10 @@ export function renderHook<Result, Props>(
  * The text a test probe should print for a value. A probe is a small test
  * component that prints what a hook returned so a test can assert on it. A
  * quantity (a `Value`, which pairs a magnitude with its unit) prints as its
- * magnitude, and anything else as it is. For a test of whether a value arrived, not of how
- * it is drawn; use `visibleText` from `@ksp-gonogo/ui-kit/testing` for what a
- * reader sees.
+ * magnitude, and anything else as it is. For a test of whether a value arrived,
+ * not of how it is drawn; use `visibleText` from `@ksp-gonogo/ui-kit/testing`
+ * for what a reader sees. Useful for testing that a value reached a widget,
+ * such as a reading the operator is shown.
  *
  * @category Rendering
  */

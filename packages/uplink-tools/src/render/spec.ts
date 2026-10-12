@@ -18,7 +18,9 @@ import type {
 /**
  * Where `uplink-tools docs` and `uplink-tools page` write an Uplink's spec
  * sheet, relative to its client package. Committed beside the README and
- * checked with it.
+ * checked with it. Useful for showing an Uplink author where the spec sheet is
+ * committed. Used by `uplink-tools page` and `uplink-tools docs`, and by the
+ * check that the page is current.
  *
  * @category Uplink page
  */
@@ -26,7 +28,9 @@ export const SPEC_FILE = "docs/spec.json";
 
 /**
  * The version of the spec sheet's own shape. A reader that finds a number it
- * does not know should not guess at the fields.
+ * does not know should not guess at the fields. Useful for showing an Uplink
+ * author which shape of spec sheet a file holds. Used by {@link
+ * buildUplinkSpec}.
  *
  * @category Uplink page
  */
@@ -97,8 +101,10 @@ function byName(items: readonly WirePayload[]): WirePayload[] {
 
 /**
  * The Uplink's spec sheet, built from the same inventory and wire surface its
- * README is built from. Every list is ordered by id, so the file is the same
- * on every machine.
+ * README is built from. Every list is ordered by id, so the file is the same on
+ * every machine. Useful for showing an Uplink author a machine-readable
+ * description of their Uplink, beside the README. Used by `uplink-tools page`
+ * and `uplink-tools docs`, and by the check that the page is current.
  *
  * @category Uplink page
  */
@@ -146,7 +152,9 @@ export function buildUplinkSpec(
 
 /**
  * The spec sheet as the file holds it: two-space indented JSON ending in a
- * newline.
+ * newline. Useful for showing an Uplink author the spec sheet as it is
+ * committed. Used by `uplink-tools page` and `uplink-tools docs`, and by the
+ * check that the page is current.
  *
  * @category Uplink page
  */

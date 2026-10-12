@@ -60,6 +60,8 @@ interface CommandListCommonProps {
  * them. Each entry carries its dispatch's `requestId` as `id` and its command's rail axes as
  * `tags`; only the axes' mark is read, so a discrete command gets its
  * in-flight glyph tile and a continuous one its name in words.
+ * Useful for choosing which kind of outcome the operator reads about and the
+ * dispatches it covers. Used by {@link CommandList}.
  *
  * @category CommandDelay
  */

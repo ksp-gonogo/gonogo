@@ -5,6 +5,8 @@ import { GAP_VAR, type GapToken } from "./scales";
 /**
  * Props for {@link ButtonGroup}. Any other `div` attribute passes through, and
  * the ref reaches the root `div`.
+ * Useful for giving a row of related buttons one shared direction and spacing.
+ * Used by {@link ButtonGroup}.
  *
  * @category Button
  */

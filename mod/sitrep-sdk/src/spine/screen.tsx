@@ -74,6 +74,7 @@ export function useSeat(): Seat {
 
 /**
  * Whether the operator is aboard the craft rather than at mission control.
+ * Useful for showing a control only when the operator is aboard the craft.
  *
  * @category Host and runtime
  */

@@ -10,8 +10,10 @@ import { createPanelStore } from "./store/createPanelStore";
 
 /**
  * A store of which Domains are present, keyed by Domain id (the value an
- * augment or contribution names in `requires`). Augment slots read it to
- * decide what to render, and re-render only when it changes.
+ * augment or contribution names in `requires`). Augment slots read it to decide
+ * what to render, and re-render only when it changes. Useful for showing the
+ * operator only the extensions whose Domains are present. Read by the augment
+ * slots and fed by the app's augment availability feeder.
  *
  * @category Extensions
  */

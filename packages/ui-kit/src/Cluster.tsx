@@ -6,6 +6,8 @@ import { GAP_VAR, type GapToken } from "./scales";
  * Horizontal distribution for {@link Cluster}: `between` pushes the first and
  * last children to the edges, the others pack children to one side or the
  * middle. Set with the `justify` prop of {@link Cluster}.
+ * Useful for placing a row's controls at its ends, its start, its middle or
+ * its end.
  *
  * @category Layout
  */
@@ -13,6 +15,7 @@ export type ClusterJustify = "between" | "start" | "center" | "end";
 
 /**
  * Vertical alignment of {@link Cluster}'s children. Set with its `align` prop.
+ * Useful for lining up controls and readouts of different heights in one row.
  *
  * @category Layout
  */
@@ -21,6 +24,8 @@ export type ClusterAlign = "center" | "start" | "baseline";
 /**
  * Props for {@link Cluster}. Any other `div` attribute passes through, and the
  * ref reaches the root `div`.
+ * Useful for setting the spacing, alignment and wrapping of a row of controls
+ * or readouts. Used by {@link Cluster}.
  *
  * @category Layout
  */

@@ -62,6 +62,8 @@ import type { HeldGrade, Reading } from "../reading";
  * overlay sits over the reticle box and the camera slot behind it, as the video
  * backdrop. Positions are measured in pixels from the centre of the HUD's
  * frame.
+ * Useful for adding a camera feed or marks to the docking view. Used by the
+ * Targeting widget.
  *
  * @category Widget slots
  */
@@ -118,6 +120,8 @@ export interface TargetingHudContext {
 /**
  * The deploy or activation state of one part module, as the ship map carries it
  * on {@link ShipMapPart.partState}.
+ * Useful for showing whether a part's module is deployed or active. Used by the
+ * Ship Map.
  *
  * @category Widget slots
  */
@@ -148,6 +152,8 @@ export interface ShipMapPartStateModule {
 /**
  * The shape the ship map draws a part as. Every part that is none of the named
  * kinds is `"other"`.
+ * Useful for telling the operator what kind of part each shape stands for. Used
+ * by the Ship Map.
  *
  * @category Widget slots
  */
@@ -173,6 +179,8 @@ export type ShipMapPartType =
  * The diagram is a side view. `lat` runs across the screen and `axial` runs up
  * it along the vessel's long axis, both in metres from the vessel's own origin.
  * The optional fields are live readings and are absent until they arrive.
+ * Useful for telling the operator what each part of the vessel is and how it is
+ * doing. Used by the Ship Map.
  *
  * @category Widget slots
  */
@@ -228,6 +236,7 @@ export interface ShipMapPart {
 /**
  * The area the vessel covers in the ship map's metre space, which the diagram
  * fits to its canvas.
+ * Useful for placing an overlay on the Ship Map's diagram.
  *
  * @category Widget slots
  */
@@ -255,6 +264,8 @@ export interface ShipMapBounds {
  * the diagram. Draw what belongs to the whole diagram here, and use the
  * `ship-map.part-meters` contribution for something tied to one part. The slot
  * is not drawn until the vessel has parts.
+ * Useful for marking something that belongs to the whole diagram rather than to
+ * one part. Used by the Ship Map.
  *
  * @category Widget slots
  */
@@ -284,6 +295,7 @@ export interface ShipMapOverlayContext {
  * Props passed to every `crew-status.row-badges` augment, once for each kerbal
  * aboard the active vessel. The augment draws inline badges at the end of that
  * kerbal's row.
+ * Useful for marking a kerbal's row with a short status. Used by Crew Status.
  *
  * @category Widget slots
  */
@@ -299,6 +311,8 @@ export interface CrewBadgeContext {
  * aboard the active vessel. The augment fills a square cell at the start of
  * that kerbal's row. The cell is reserved only while an augment is bound, and
  * stays blank when the augment draws nothing.
+ * Useful for showing the operator a picture of each kerbal aboard. Used by Crew
+ * Status.
  *
  * @category Widget slots
  */
@@ -318,6 +332,8 @@ export interface CrewAvatarContext {
  * Uplink holds about that kerbal, such as a date. `astronaut-complex.crew-badge`
  * draws in the card's top-right corner, for a short mark read with the name,
  * such as a state of your own that KSP's roster does not know.
+ * Useful for showing the operator what an Uplink knows about a kerbal, on the
+ * card the Astronaut Complex draws for them.
  *
  * @category Widget slots
  */
@@ -334,6 +350,8 @@ export interface AstronautComplexCrewContext {
  * Props passed to every `launch-director.preflight` augment: the launch the
  * operator is setting up in the Launch & Recovery widget. The slot draws once, below
  * the list of pads, which the widget shows only outside a flight.
+ * Useful for showing the operator a check on the launch they are setting up.
+ * Used by the Launch & Recovery widget.
  *
  * @category Widget slots
  */
@@ -355,6 +373,8 @@ export interface LaunchDirectorSlotContext {
  * site in the Launch & Recovery widget's pad list. Use it to say something about one
  * pad from its own row, such as that a launch complex your Uplink tracks is
  * busy.
+ * Useful for telling the operator the state of a launch site before they choose
+ * it. Used by the Launch & Recovery widget.
  *
  * @category Widget slots
  */
@@ -379,6 +399,8 @@ export interface LaunchDirectorPadContext {
  * Where an objective stands. The Objectives widget draws each with its own
  * mark: `"pending"` is not yet met, `"active"` is under way, `"reached"` is met
  * and `"failed"` can no longer be met.
+ * Useful for showing the operator whether an objective is met. Used by the
+ * Objectives widget.
  *
  * @category Widget slots
  */
@@ -387,6 +409,8 @@ export type ObjectiveSlotState = "pending" | "active" | "reached" | "failed";
 /**
  * One objective, as an `objectives.source` augment passes it to the
  * Objectives widget's `Section`.
+ * Useful for showing the operator one objective and where it stands. Used by the
+ * Objectives widget.
  *
  * @category Widget slots
  */
@@ -410,6 +434,8 @@ export interface ObjectiveSlotItem {
 /**
  * The props of the `Section` an `objectives.source` augment renders: one
  * source's objectives. The widget draws nothing for a section with no items.
+ * Useful for grouping one source's objectives under a heading. Used by the
+ * Objectives widget.
  *
  * @category Widget slots
  */
@@ -425,6 +451,7 @@ export interface ObjectiveSlotSection {
  * no objectives of its own: every source, the built-in contract parameters
  * included, is an augment that renders `<Section items={...} />` with its
  * objectives, and the widget draws them all the same way.
+ * Useful for adding a source of objectives to the Objectives widget.
  *
  * @category Widget slots
  */
@@ -438,6 +465,8 @@ export interface ObjectiveSourceContext {
  * Administration Building screen, drawn below the strategy cards the screen
  * lists. Screens come from the `admin-building.screens` contribution slot, and the
  * slot is drawn only on a screen that is open for use.
+ * Useful for drawing a screen's own controls, such as accepting a program. Used
+ * by the Administration Building widget.
  *
  * @category Widget slots
  */
@@ -449,6 +478,8 @@ export interface AdminBuildingScreenBodyContext {
 /**
  * The name of an action group: one of the eight stock names, or any other
  * string for a custom group.
+ * Useful for telling an augment which group its widget controls. Carried by
+ * {@link ActionGroupSlotContext}.
  *
  * @category Widget slots
  */
@@ -467,6 +498,8 @@ export type ActionGroupSlotId =
  * Props passed to every `action-group.subsystem` augment: the one action group
  * an Action Group widget controls, and its current state. The slot draws below
  * the group's toggle.
+ * Useful for showing the operator how a subsystem relates to the group that
+ * controls it. Used by the Action Group widget.
  *
  * @category Widget slots
  */
@@ -509,6 +542,8 @@ export interface ActionGroupSlotContext {
  * body the diagram is centred on simply `d * plotScale` SVG units from
  * `center`; in a frame that turns or pulsates it is not. The layer passes pointer events through to the diagram, so an
  * element that needs clicks turns them back on itself.
+ * Useful for marking the system diagram with something that moves with the
+ * bodies. Used by the System View.
  *
  * @category Widget slots
  */
@@ -548,6 +583,8 @@ export interface SystemOverlayContext {
  * its own transform. A world point `(wx, wy)` lands at
  * `x = (wx - camera.panX) * camera.zoom + width / 2` and
  * `y = (wy - camera.panY) * camera.zoom + height / 2`.
+ * Useful for marking positions on the map, such as a waypoint. Used by the Map
+ * View.
  *
  * @category Widget slots
  * @categoryDescription Widget slots
@@ -603,6 +640,8 @@ export interface MapOverlayContext {
 /**
  * What the Map View is showing, read with `useWidgetScope("map-view")` from
  * `@ksp-gonogo/ui-kit`.
+ * Useful for letting an augment follow the body the operator is looking at. Used
+ * by the Map View.
  *
  * @category Widget slots
  */
@@ -615,6 +654,7 @@ export interface MapViewScope {
  * How much of the mapped body's surface is revealed, combined from every
  * registered coverage source, such as scanner coverage. A `map-view.base`
  * augment reads it to paint only what has been revealed.
+ * Useful for painting only the ground the operator has revealed.
  *
  * @category Widget slots
  */
@@ -642,6 +682,8 @@ export interface MapCoverageGate {
  * its bottom edge the south. Canvases are drawn in order over the stock
  * texture, and transparent pixels show what is beneath. An augment that declares `suppressesVanillaBase` removes the stock
  * texture.
+ * Useful for painting the body's surface with data such as coverage or terrain.
+ * Used by the Map View.
  *
  * @category Widget slots
  */
@@ -697,6 +739,8 @@ export interface TechSlotNode {
  * science subject on the Science Data widget's Aboard tab. The augment draws
  * under that subject's row, and reads its own data for it. A subject can have a
  * data file and a sample aboard at once.
+ * Useful for adding detail under a subject's row. Used by the Science Data
+ * widget.
  *
  * @category Widget slots
  */
@@ -725,6 +769,7 @@ export interface ScienceDataAboardRowContext {
  * the body's centre. Before rotating by `argPe`, positive x runs along the
  * line of apsides towards periapsis and positive y is up. The slot is drawn only
  * while there is an orbit.
+ * Useful for marking points on the vessel's orbit. Used by the Orbit View.
  *
  * @category Widget slots
  */
@@ -788,6 +833,8 @@ export interface ExperimentsInstrument {
  * instrument row in the Experiments widget. The augment draws directly after
  * the row inside a list, so render a list item. Instruments that come from the
  * `experiments.instruments` contribution slot get no augment.
+ * Useful for adding detail under an instrument's row. Used by the Experiments
+ * widget.
  *
  * @category Widget slots
  */
@@ -831,6 +878,8 @@ export interface DeployedScienceExperiment {
 /**
  * Props passed to every `deployed-science.experiment` augment, once for each
  * experiment card in the Deployed Science widget.
+ * Useful for adding detail to a deployed experiment's card. Used by the Deployed
+ * Science widget.
  *
  * @category Widget slots
  */
@@ -855,6 +904,8 @@ export interface DeployedExperimentContext {
 /**
  * What the Power Systems widget is showing, read with
  * `useWidgetScope("power-systems")` from `@ksp-gonogo/ui-kit`.
+ * Useful for showing figures for the resource the operator picked. Used by the
+ * Power Systems widget.
  *
  * @category Widget slots
  */
@@ -871,6 +922,8 @@ export interface PowerSystemsScope {
  * the Fleet Roster. The augment draws a line under the craft's name, for
  * something such as a health or alarm note, and the line takes no room when it
  * draws nothing.
+ * Useful for noting something about a craft in the roster. Used by the Fleet
+ * Roster.
  *
  * @category Widget slots
  */

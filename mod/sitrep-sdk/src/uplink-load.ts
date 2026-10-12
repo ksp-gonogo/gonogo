@@ -164,7 +164,9 @@ export function parseUplinkManifest(
 /**
  * What a host does with a client: `load` it, `refuse` it, or `warn-load` it,
  * which loads it and tells the operator the host is older than the client asks.
- * Held by {@link UplinkCompatVerdict}.
+ * Held by {@link UplinkCompatVerdict}. Useful for telling the operator whether
+ * an Uplink's client is loaded, loaded with a warning or refused. Used by the
+ * app's Uplink loader.
  *
  * @category Loading
  */
@@ -173,7 +175,9 @@ export type UplinkCompatVerdictKind = "load" | "refuse" | "warn-load";
 /**
  * The answer {@link checkUplinkCompat} gives for one manifest: what to do and,
  * in a sentence, why. A refusal's reason says which side is behind and what
- * closes the gap, so an operator or an author can act on it.
+ * closes the gap, so an operator or an author can act on it. Useful for telling
+ * the operator why an Uplink's client is refused or loaded with a warning. Used
+ * by the app's Uplink loader.
  *
  * @category Loading
  */
@@ -187,7 +191,9 @@ export interface UplinkCompatVerdict {
 /**
  * The numbers a host states about itself when a manifest is gated against it:
  * the extension API it provides, the wire contract it speaks, and its own
- * version. Passed to {@link checkUplinkCompat}.
+ * version. Passed to {@link checkUplinkCompat}. Useful for telling the operator
+ * whether an Uplink's client was built for a newer app than theirs. Used by the
+ * app's Uplink loader.
  *
  * @category Loading
  */
@@ -219,7 +225,8 @@ function compareSemverOrder(a: ParsedSemver, b: ParsedSemver): number {
  * `minAppVersion`; loaded otherwise. When several refusals apply, the first of
  * the extension API, the contract major and the contract minor is reported. The
  * bundle's `integrity` is not looked at here, since it needs the fetched bytes:
- * check it with {@link sha256Integrity}.
+ * check it with {@link sha256Integrity}. Useful for deciding whether the
+ * operator's app may load an Uplink's client. Used by the app's Uplink loader.
  *
  * @category Loading
  */

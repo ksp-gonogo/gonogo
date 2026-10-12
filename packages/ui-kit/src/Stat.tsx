@@ -4,7 +4,8 @@ import styled from "styled-components";
 import { TONE_TEXT } from "./tone";
 
 /**
- * Props for {@link Stat}.
+ * Props for {@link Stat}. Useful for giving the operator a key figure with its
+ * label. Taken by {@link Stat}.
  *
  * @category Readout
  */

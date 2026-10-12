@@ -6,7 +6,8 @@ import { Unit } from "./Unit";
 
 /**
  * The value a read-only field shows the operator. `null` and `undefined` show a
- * placeholder. Taken by {@link ReadOnlyField}.
+ * placeholder. Taken by {@link ReadOnlyField}. Useful for showing the operator
+ * a setting they can read but not edit.
  *
  * A quantity, or the whole `Reading` it arrived in, goes through {@link Unit},
  * so a held reading keeps its held mark. Not a bare number, which has lost the
@@ -24,7 +25,8 @@ export type ReadOnlyFieldValue =
   | undefined;
 
 /**
- * Props for {@link ReadOnlyField}.
+ * Props for {@link ReadOnlyField}. Useful for showing the operator a setting
+ * they can read but not edit. Taken by {@link ReadOnlyField}.
  *
  * @category Form
  */

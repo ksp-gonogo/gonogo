@@ -287,7 +287,8 @@ export interface RegisteredIdentity {
 /**
  * What {@link buildUplinkManifest} reads: the client directory, the client's
  * registrations if they were read, the compatibility numbers and the bundle's
- * hash.
+ * hash. Useful for producing the manifest the app reads before it loads an
+ * Uplink's client.
  *
  * @category Manifest
  */

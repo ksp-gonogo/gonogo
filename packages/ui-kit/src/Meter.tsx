@@ -94,7 +94,8 @@ interface MeterCommonProps
 }
 
 /**
- * The props of {@link Meter}.
+ * The props of {@link Meter}. Useful for showing the operator how full a
+ * resource or dose is. Taken by {@link Meter}.
  *
  * @category Meter
  */

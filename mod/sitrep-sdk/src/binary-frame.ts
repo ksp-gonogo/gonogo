@@ -72,6 +72,8 @@ export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
  * branch on `kind` to decide what to do, such as reading the frame as text
  * instead. A frame with zero segments decodes successfully, as a producer with
  * nothing to send. Carried by {@link BinaryFrameResult} when decoding fails.
+ * Useful for deciding whether to read a frame as text or to report why it was
+ * dropped.
  *
  * @category Binary lane
  */

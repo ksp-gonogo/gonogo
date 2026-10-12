@@ -5,8 +5,9 @@ import { GAP_VAR, type GapToken, RADIUS_VAR } from "./scales";
 import { statusFill } from "./tone";
 
 /**
- * Props for {@link SelectableRow}. Any other `button` attribute passes
- * through, except `type`, which is always `button`.
+ * Props for {@link SelectableRow}. Any other `button` attribute passes through,
+ * except `type`, which is always `button`. Useful for letting the operator
+ * choose one entry from a list. Taken by {@link SelectableRow}.
  *
  * @category FilterList
  */

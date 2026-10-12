@@ -3,7 +3,8 @@ import styled from "styled-components";
 import { focusRing } from "./focusRing";
 
 /**
- * Props for {@link Stepper}.
+ * Props for {@link Stepper}. Useful for letting the operator move one member at
+ * a time through a closed set. Taken by {@link Stepper}.
  *
  * @category Form
  */

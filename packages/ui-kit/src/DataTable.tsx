@@ -10,6 +10,7 @@ import { useKeyboardScrollable } from "./useScrollerMetric";
 /**
  * The fields every {@link DataTable} column carries, whatever it draws. Shared
  * by the columns the table's `columns` prop takes.
+ * Useful for giving every column of a table its heading and alignment.
  *
  * @category DataTable
  */
@@ -93,6 +94,8 @@ export interface DataTableSection<Row> {
 
 /**
  * Props for {@link DataTable}: its caption, columns, and rows or sections.
+ * Useful for giving a table of readings its caption, columns and rows. Used by
+ * {@link DataTable}.
  *
  * @category DataTable
  */

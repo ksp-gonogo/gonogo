@@ -262,13 +262,14 @@ export function defineProcessor<
 }
 
 /**
- * Returns a handle to a processor that another Uplink implements, so any
- * Uplink can read it with {@link useProcessor} without depending on the one
- * that implements it. Export the handle and its result type from a module
- * both Uplinks import: a small shared package of your own for two of your
- * Uplinks, as the SDK does for the ones it ships. The implementing Uplink
- * registers a processor under the same id and types its `compute` with the
- * same result type.
+ * Returns a handle to a processor that another Uplink implements, so any Uplink
+ * can read it with {@link useProcessor} without depending on the one that
+ * implements it. Export the handle and its result type from a module both
+ * Uplinks import: a small shared package of your own for two of your Uplinks,
+ * as the SDK does for the ones it ships. The implementing Uplink registers a
+ * processor under the same id and types its `compute` with the same result
+ * type. Useful for showing the operator data that one Uplink computes inside
+ * another Uplink's widget, without the second depending on the first.
  *
  * When nothing registers the processor, as when its mod is not installed,
  * `useProcessor` returns `undefined`.

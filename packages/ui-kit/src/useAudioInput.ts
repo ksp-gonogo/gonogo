@@ -20,9 +20,10 @@ export interface AudioInputDevice {
 }
 
 /**
- * Where the capture attempt stands. Each failure is its own status because
- * each has a different remedy, so the operator can be told what to fix. Returned
- * as `status` by {@link useAudioInput}:
+ * Where the capture attempt stands. Each failure is its own status because each
+ * has a different remedy, so the operator can be told what to fix. Returned as
+ * `status` by {@link useAudioInput}. Useful for telling the operator why a
+ * microphone is not working and what to fix. The statuses are:
  *
  * - `unasked`: nothing has been requested yet, the starting status
  * - `requesting`: a request is with the browser, which may be prompting
@@ -108,7 +109,9 @@ export interface AudioInputControls extends AudioInputState {
 }
 
 /**
- * Options for {@link useAudioInput} and {@link AudioInputPicker}.
+ * Options for {@link useAudioInput} and {@link AudioInputPicker}. Useful for
+ * configuring how the operator's microphone capture is requested. Taken by
+ * both.
  *
  * @category AudioInputPicker
  */

@@ -5,7 +5,9 @@ import type { RouteRow } from "./comms-route";
 /**
  * Whether the addressee can be reached now, and when that changes: in contact,
  * about to lose contact, out of contact until the plan has it back, or out of
- * contact with no return predicted.
+ * contact with no return predicted. Useful for telling the operator whether a
+ * command can reach its target now and when that changes. Held by {@link
+ * SendStatus}.
  *
  * @category Commands
  */
@@ -32,7 +34,9 @@ export type ContactStatus =
     };
 
 /**
- * What a send is expected to do, assuming nobody intervenes.
+ * What a send is expected to do, assuming nobody intervenes. Useful for telling
+ * the operator whether an order sent now is expected to reach the vessel. Held
+ * by {@link SendStatus}.
  *
  * @category Commands
  */
@@ -42,8 +46,10 @@ export type Arrival = "expected" | "likely-lost";
  * What a command control can say about an order sent now: whether it goes at
  * once or is held for a predicted contact, how long its signal takes, and
  * whether it is expected to arrive. A command routed from a command centre to
- * the active craft carries `sends`; a message to a group carries none.
- * Written out by `describeSendStatus` for a control's tooltip. Returned by {@link useCommand} as `sendStatus`.
+ * the active craft carries `sends`; a message to a group carries none. Written
+ * out by `describeSendStatus` for a control's tooltip. Returned by {@link
+ * useCommand} as `sendStatus`. Useful for warning the operator, in a command
+ * button's tooltip, that an order will be held or lost.
  *
  * @category Commands
  */

@@ -3,6 +3,8 @@ import styled from "styled-components";
 
 /**
  * Props for {@link Fill}.
+ * Useful for sizing the region that anchors an overlay on a graph or a map.
+ * Used by {@link Fill}.
  *
  * @category Layout
  */

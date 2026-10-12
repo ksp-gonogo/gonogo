@@ -9,6 +9,8 @@ import {
 /**
  * Props for {@link DivergingBar}: the signed value and the range it is drawn
  * against.
+ * Useful for showing the operator whether a signed quantity adds or takes
+ * away, and by how much. Used by {@link DivergingBar}.
  *
  * @category Meter
  */

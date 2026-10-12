@@ -88,7 +88,8 @@ export interface LineGraphThreshold {
 export type LineGraphThresholdStyle = "full" | "marker";
 
 /**
- * Props for {@link LineGraph}.
+ * Props for {@link LineGraph}. Useful for giving the operator the series and
+ * reference lines of a trend. Taken by {@link LineGraph}.
  *
  * @category LineGraph
  */

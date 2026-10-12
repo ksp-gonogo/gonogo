@@ -5,6 +5,8 @@ import { withDelayCurrency } from "./delayCurrency";
 
 /**
  * Props for {@link SignalDelayBadge}.
+ * Useful for giving the badge the one-way delay it shows the operator. Used by
+ * {@link SignalDelayBadge}.
  *
  * @category CommandDelay
  */

@@ -5,7 +5,9 @@ import {
 import { Field, FieldHint, FieldLabel, Select } from "./Form";
 
 /**
- * One frame a {@link ReadFrameControl} can offer, and what an operator calls it.
+ * One frame a {@link ReadFrameControl} can offer, and what an operator calls
+ * it. Useful for naming each frame the operator can pick between. Used by the
+ * current orbit widget's configuration form.
  *
  * @category Form
  */
@@ -17,7 +19,9 @@ export interface ReadFrameOption {
 }
 
 /**
- * Props for {@link ReadFrameControl}.
+ * Props for {@link ReadFrameControl}. Useful for letting the operator choose
+ * which body or vessel a drawing is centred on. Taken by
+ * {@link ReadFrameControl}.
  *
  * @category Form
  */

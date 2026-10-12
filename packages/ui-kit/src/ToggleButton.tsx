@@ -23,6 +23,8 @@ export type ToggleButtonSize = "sm" | "md";
 
 /**
  * Props for {@link ToggleButton}. Any other `button` attribute passes through.
+ * Useful for showing the operator which of several peer options is on. Taken by
+ * {@link ToggleButton}.
  *
  * @category Button
  */

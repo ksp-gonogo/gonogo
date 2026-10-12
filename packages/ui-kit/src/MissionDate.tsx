@@ -79,7 +79,8 @@ const MissionDate__Context = styled.span`
 `;
 
 /**
- * Props for {@link MissionDate}.
+ * Props for {@link MissionDate}. Useful for showing the operator when something
+ * happens, on the game's own calendar. Taken by {@link MissionDate}.
  *
  * @category MissionDate
  */

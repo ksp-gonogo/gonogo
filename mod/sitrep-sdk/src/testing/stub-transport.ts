@@ -6,7 +6,8 @@ import type { TopicId } from "../topics";
 import { wrapTopicPayload, wrapTypePayload } from "../wrap-units";
 
 /**
- * A valid, repeatable `Meta` for test data, with `overrides` applied.
+ * A valid, repeatable `Meta` for test data, with `overrides` applied. Useful
+ * for building the readings that a widget under test shows the operator.
  *
  * @category Stream fixture
  */
@@ -37,7 +38,8 @@ import type { WireOf } from "../wrap-units";
 
 /**
  * Turns a payload as the mod sends it into the typed payload, with every number
- * that has a declared unit wrapped in a `Value`.
+ * that has a declared unit wrapped in a `Value`. Useful for feeding a widget
+ * under test a payload as the mod would send it.
  *
  * @category Stream fixture
  */
@@ -51,7 +53,8 @@ export function wrapWire<Payload>(
 /**
  * The payload of the point a reckoner is handed. A reckoner is never handed a
  * null payload, so this returns it without the `null` its type allows, and
- * throws if one ever arrives.
+ * throws if one ever arrives. Useful for testing the models that carry a
+ * vessel's readings forward.
  *
  * @category Stream fixture
  */
@@ -70,7 +73,8 @@ type CommandHandler = (command: string, args: unknown) => unknown;
 
 /**
  * One command a {@link StubTransport} was sent, as it was sent. See
- * `StubTransport.sentCommands`.
+ * `StubTransport.sentCommands`. Useful for testing that a widget sends the
+ * command the operator asked for.
  *
  * @category Stream fixture
  */
@@ -91,7 +95,9 @@ export interface SentCommand {
 
 /**
  * A {@link Transport} held in memory, for faking the mod in tests. `emit` and
- * `setCommandHandler` drive it as the mod would.
+ * `setCommandHandler` drive it as the mod would. Useful for testing how a
+ * widget responds to what the mod would send and answer. Used by {@link
+ * StreamFixture}.
  *
  * @category Stream fixture
  */

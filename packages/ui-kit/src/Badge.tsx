@@ -9,6 +9,7 @@ import { TONE_MARK, TONE_TEXT } from "./tone";
 /**
  * Badge text size: `sm` for dense rows and table cells, `md` (the default)
  * elsewhere. Set with the `size` prop of {@link Badge}.
+ * Useful for fitting a badge into a dense table row or a roomier header.
  *
  * @category Badge
  */
@@ -17,6 +18,8 @@ export type BadgeSize = "sm" | "md";
 /**
  * Props for {@link Badge}: the label, its tone and its size. Any other `span`
  * attribute (`title`, `aria-label`) passes through to the pill.
+ * Useful for labelling a state or a count in a tone the operator reads at a
+ * glance. Used by {@link Badge}.
  *
  * @category Badge
  */

@@ -21,8 +21,8 @@ export interface LogContext {
  * which an operator does in the browser with
  * `localStorage.LOG_TAGS = "peer,camera"` (or `"*"` for every tag) and a
  * reload. Its `info`, `warn` and `error` entries always print. Every entry,
- * tagged or not, is kept in the log buffer and sent on either way. Use a tag
- * for tracing too chatty to print by default.
+ * tagged or not, is kept in the log buffer and sent on either way. Useful for
+ * tracing too chatty to print by default.
  *
  * @category Logging and performance
  */

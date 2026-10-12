@@ -16,6 +16,8 @@
  * (`text.muted`, `surface.raised`), not by hue, and each value is a CSS colour,
  * in the default theme a CSS variable string such as
  * `var(--color-text-muted)`.
+ * Useful for colouring text, surfaces and borders by role, so a widget follows
+ * the theme the operator has chosen.
  *
  * @category Theme
  */
@@ -59,6 +61,7 @@ export interface ThemeColors {
  * The type half of a {@link UiKitTheme}: the font family, a size scale, weights
  * and letter spacings. Sizes are CSS variable strings such as
  * `var(--font-size-base)`; weights are numbers.
+ * Useful for setting type in every widget from one scale.
  *
  * @category Theme
  */
@@ -102,6 +105,7 @@ export interface ThemeTypography {
 /**
  * Whole CSS `border` shorthands for a {@link UiKitTheme}, such as
  * `1px solid var(--color-border-subtle)`.
+ * Useful for outlining panels and controls the same way in every widget.
  *
  * @category Theme
  */
@@ -120,6 +124,8 @@ export interface ThemeBorders {
  * Spacing and corner radii are not part of a theme. They are CSS variables the
  * kit's layout primitives read directly, so a theme that wants different
  * geometry ships a stylesheet redefining those variables.
+ * Useful for giving an Uplink's widgets the same look as the rest of the
+ * dashboard, and for supplying a new theme.
  *
  * @category Theme
  */

@@ -2,7 +2,8 @@
  * The environment variable that turns {@link installActGateStretch} on. Set it
  * to the number of animation frames to hold each test's tree mounted, a
  * positive whole number such as `3`. There is no default: while it is unset,
- * nothing is held.
+ * nothing is held. Useful for finding the update warnings that appear after a
+ * test has finished. Used by {@link installActGateStretch}.
  *
  * @category Test hosts
  */
@@ -26,7 +27,9 @@ const FRAME_MS = 1000 / 60;
  * You need it only if a test run prints act warnings that land after a test
  * returns and a widget under test keeps updating (a timer, a socket reply).
  * Call it last in a vitest setup file, after Testing Library is imported, and
- * await it.
+ * await it. Useful for finding the update warnings that appear after a test has
+ * finished. Used by the test setup of the app and of each bundled Uplink's
+ * client.
  *
  * @example
  * ```ts

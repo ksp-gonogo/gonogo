@@ -44,6 +44,8 @@ import type { Screen } from "./screen";
 /**
  * The value each {@link SettingKind} carries. A {@link SettingKind.Number} row
  * may hold a `Value`, such as `value("m", 1)`, so it is drawn with its unit.
+ * Useful for showing the operator a setting in the control that suits its kind:
+ * a switch, a line of text or a number.
  *
  * @category Settings
  */
@@ -57,7 +59,8 @@ export interface SettingValueByType {
 }
 
 /**
- * Any value a registered row can carry.
+ * Any value a registered row can carry. Useful for showing the operator a
+ * setting's current value whatever its kind. Used by {@link SettingsService}.
  *
  * @category Settings
  */
@@ -65,6 +68,8 @@ export type SettingValue = SettingValueByType[SettingKind];
 
 /**
  * What every registered settings row carries, whatever its backing and type.
+ * Useful for giving every row of the settings panel the same label, description
+ * and place.
  *
  * @category Settings
  */
@@ -112,7 +117,8 @@ export interface SettingDefinitionBase {
 /**
  * A setting saved in this browser's `localStorage`, under its `id`. This is the
  * default: `backing` may be left out, and so may `type`, which then means
- * {@link SettingKind.Bool}.
+ * {@link SettingKind.Bool}. Useful for declaring a setting the operator changes
+ * and the browser remembers.
  *
  * @category Settings
  */
@@ -130,9 +136,10 @@ export interface ClientPrefSettingOf<ValueType extends SettingKind>
  * A setting whose value arrives on a Topic, which the row only shows: a mod's
  * own configuration, as its Uplink publishes it.
  *
- * It cannot be changed from the row whatever its `readOnly` says, so ask
- * {@link isReadOnlySetting} whether a row can be changed rather than reading
- * the flag.
+ * It cannot be changed from the row whatever its `readOnly` says, so ask {@link
+ * isReadOnlySetting} whether a row can be changed rather than reading the flag.
+ * Useful for showing the operator how the mod is configured, in the settings
+ * panel.
  *
  * @category Settings
  */
@@ -159,10 +166,11 @@ export interface StreamBackedSettingOf<
 
 /**
  * A stream-backed row as the settings registry holds it once registered: the
- * same fields as {@link StreamBackedSettingOf}, with `topic` a plain string
- * and `select` taking a payload of unknown type, since the registry holds rows
- * for every Topic at once. Write rows with {@link StreamBackedSettingOf}; this
- * is what reading them back gives.
+ * same fields as {@link StreamBackedSettingOf}, with `topic` a plain string and
+ * `select` taking a payload of unknown type, since the registry holds rows for
+ * every Topic at once. Write rows with {@link StreamBackedSettingOf}; this is
+ * what reading them back gives. Useful for listing, in the settings panel, the
+ * rows whose value the mod reports.
  *
  * @category Settings
  */
@@ -187,7 +195,8 @@ export interface StoredStreamBackedSettingOf<ValueType extends SettingKind>
  * it.
  *
  * Reading the rows back gives a {@link SettingDefinition}, which covers every
- * type.
+ * type. Useful for declaring one row of the settings panel that the operator
+ * sees.
  *
  * @category Settings
  */
@@ -197,7 +206,9 @@ export type SettingDefinitionOf<
 > = ClientPrefSettingOf<ValueType> | StreamBackedSettingOf<ValueType, Topic>;
 
 /**
- * A setting stored in this browser, of any value type.
+ * A setting stored in this browser, of any value type. Useful for listing, in
+ * the settings panel, the settings that the operator's browser remembers. Used
+ * by the app's settings panel.
  *
  * @category Settings
  */
@@ -208,7 +219,8 @@ export type ClientPrefSetting =
 
 /**
  * A setting the mod owns, of any value type, read from a Topic. The row shows
- * its value and cannot change it.
+ * its value and cannot change it. Useful for showing the operator a mod's own
+ * configuration in the settings panel. Used by the app's settings rows.
  *
  * @category Settings
  */
@@ -218,7 +230,9 @@ export type StreamBackedSetting =
   | StoredStreamBackedSettingOf<SettingKind.Number>;
 
 /**
- * Any registered row, whatever its backing and whatever its type.
+ * Any registered row, whatever its backing and whatever its type. Useful for
+ * listing every row of the settings panel that the operator sees. Used by the
+ * app's settings panel.
  *
  * @category Settings
  */

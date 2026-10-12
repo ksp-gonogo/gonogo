@@ -359,7 +359,9 @@ const barePrimitiveTopicIds = new Set<string>();
  * Register every Topic your Uplink adds through this function, whatever its
  * payload: the name is narrower than what it accepts, which is a Topic of any
  * payload shape and not only one whose payload is a bare boolean or number. A
- * Topic with numeric fields also needs {@link registerTopicUnits}.
+ * Topic with numeric fields also needs {@link registerTopicUnits}. Useful for
+ * letting the operator read and pick an Uplink's Topics as they do the SDK's
+ * own.
  *
  * @category Reading telemetry
  */
@@ -377,8 +379,10 @@ const BINARY_TOPIC_IDS: readonly string[] = ["commcast.radio"];
 
 /**
  * Every Topic id known now: {@link TOPIC_IDS}, the Topics carried as binary
- * data, and every id an Uplink has registered so far. An Uplink's Topics
- * appear once its client package has loaded.
+ * data, and every id an Uplink has registered so far. An Uplink's Topics appear
+ * once its client package has loaded. Useful for letting the operator choose
+ * from every Topic, including those an Uplink adds. Used by the Topic field
+ * catalogue and the replay recorder.
  *
  * @category Reading telemetry
  */
@@ -406,7 +410,9 @@ const collectionTopicIds = new Set<string>(GENERATED_COLLECTION_TOPIC_IDS);
  * package loads. Registering an id twice does nothing.
  *
  * The units and shapes registered for such a Topic describe one element, so
- * `<topic>.name` is a field of each element rather than of the Topic.
+ * `<topic>.name` is a field of each element rather than of the Topic. Useful
+ * for letting the operator pick a field of each element of a list Topic that an
+ * Uplink adds.
  *
  * @category Reading telemetry
  */
@@ -451,6 +457,7 @@ export const DERIVED_CHANNEL_IDS = [
 
 /**
  * One of the client-side derived channels. See {@link DERIVED_CHANNEL_IDS}.
+ * Useful for telling the Topics the app computes from the Topics the mod sends.
  *
  * @category Reading telemetry
  */
@@ -495,7 +502,8 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
  * write it: `vessel.partActions.<flightId>`, `fleet.<vessel>.contact`,
  * `<domain>.available`. Each `<name>` stands for exactly one dotted segment and
  * must fill a whole segment. A widget lists them in `channelFamilies` and
- * `optionalChannelFamilies`.
+ * `optionalChannelFamilies`. Useful for declaring that a widget mounts on a
+ * Topic per vessel or per part.
  *
  * @category Reading telemetry
  */
@@ -543,7 +551,8 @@ export function topicMatchesFamily(
  * It is separate from {@link WidgetChannelId}, which says what a widget mounts
  * on: a widget can mount on `vessel.flight` and draw three of its fields. A
  * bare channel means every field on it. A string that does not start with a
- * real channel id does not compile.
+ * real channel id does not compile. Useful for listing which readings a widget
+ * draws.
  *
  * @category Reading telemetry
  */

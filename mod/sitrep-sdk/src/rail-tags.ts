@@ -59,6 +59,10 @@ import type { SampleKind } from "./contract-tags";
  * delay: commands on their way out, and transmissions such as radio voice or a
  * science result on their way back.
  *
+ * Useful for showing the operator which marks on the delay rail are commands on
+ * their way out and which are transmissions coming back. Used by {@link
+ * CommandDelay}.
+ *
  * @category Commands
  */
 export type RailDirection = "command" | "telemetry";
@@ -68,7 +72,8 @@ export type RailDirection = "command" | "telemetry";
  * (acknowledged) entry is drawn with a return leg for its reply; a
  * `"fire-and-forget"` one gets no reply and ends when it arrives. Commands the
  * contract declares are `"acked"`; `"fire-and-forget"` is what telemetry coming
- * back from a craft is.
+ * back from a craft is. Useful for showing the operator which marks on the
+ * delay rail wait for a reply. Used by {@link CommandDelay}.
  *
  * @category Commands
  */
@@ -171,7 +176,8 @@ function railTags(
  * The tags of a command nothing has declared: a command whose id is built at
  * runtime, or one from an Uplink whose client has not loaded. It is drawn as a
  * single `"acked"` command, because a reply is what every declared command
- * gets.
+ * gets. Useful for drawing on the delay rail a command that nothing has
+ * declared. Used by {@link railTagsForCommand}.
  *
  * @category Commands
  */
@@ -183,8 +189,10 @@ export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
 
 /**
  * Returns the tags for a command from its {@link CommandRail}. The result is
- * always a single command going out to the craft: `"acked"` when
- * `rail.replies` is `true` and `"fire-and-forget"` otherwise.
+ * always a single command going out to the craft: `"acked"` when `rail.replies`
+ * is `true` and `"fire-and-forget"` otherwise. Useful for drawing a command on
+ * the delay rail the way its declaration says it is delivered. Used by {@link
+ * railTagsForCommand}.
  *
  * @category Commands
  */

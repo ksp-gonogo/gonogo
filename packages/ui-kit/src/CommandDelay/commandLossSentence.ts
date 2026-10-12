@@ -5,6 +5,8 @@ import type { RailTags } from "./railTags";
  * One dispatch that got no reply, as much of it as the sentence needs. The
  * entries in `useCommand`'s `losses` satisfy it. Taken by
  * {@link commandLossSentence}.
+ * Useful for writing the sentence that tells the operator a command got no
+ * reply.
  *
  * @category CommandDelay
  */
@@ -32,6 +34,8 @@ export interface CommandLossEntry extends CommandLossLike {
 /**
  * One lost dispatch as the rail renders it, plus its command's rail axes. Taken
  * by {@link CommandList}.
+ * Useful for telling the operator, on the panel's delay rail, which commands
+ * got no reply.
  *
  * @category CommandDelay
  */

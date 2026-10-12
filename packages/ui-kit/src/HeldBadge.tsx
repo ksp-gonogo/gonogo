@@ -6,6 +6,8 @@ import { Tooltip } from "./Tooltip";
 
 /**
  * Props for {@link HeldBadge}.
+ * Useful for telling the operator that one row or card shows a held figure.
+ * Used by {@link HeldBadge}.
  *
  * @category Badge
  */

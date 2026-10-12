@@ -108,6 +108,9 @@ export function subscribeRuntimeTopicRegistry(
  * {@link registerDynamicTopicPrefix} when its client package loads. The array
  * always holds every prefix registered so far.
  *
+ * Useful for letting the operator read each vessel's or part's data as a Topic
+ * of its own. Used by the telemetry provider when it opens the stream.
+ *
  * @category Reading telemetry
  */
 export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [

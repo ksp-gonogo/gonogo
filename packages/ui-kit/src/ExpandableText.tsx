@@ -22,6 +22,8 @@ const CUT_MARK = "...";
 
 /**
  * Props for {@link ExpandableText}.
+ * Useful for giving the text that is cut for the operator and the length it is
+ * cut to. Used by {@link ExpandableText}.
  *
  * @category Typography
  */

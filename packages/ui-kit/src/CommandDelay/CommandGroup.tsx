@@ -52,6 +52,8 @@ type CommandGroupCommitNaming =
 
 /**
  * Props for {@link CommandGroup}. A `commitLabel` that is not a string must come with a `commitAriaLabel`.
+ * Useful for giving a form of related inputs one value and one commit that
+ * sends them together. Used by {@link CommandGroup}.
  *
  * @category CommandDelay
  */

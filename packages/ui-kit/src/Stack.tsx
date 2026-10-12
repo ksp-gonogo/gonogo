@@ -4,7 +4,9 @@ import { GAP_VAR, type GapToken } from "./scales";
 import type { StaticElement } from "./staticElement";
 
 /**
- * Props for {@link Stack}. Any other `div` attribute passes through.
+ * Props for {@link Stack}. Any other `div` attribute passes through. Useful for
+ * stacking a widget's rows so the operator reads them in order. Taken by
+ * {@link Stack}.
  *
  * @category Layout
  */

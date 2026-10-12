@@ -33,7 +33,9 @@ export type TextSize = "xs" | "sm" | "base" | "lg";
 export type TextWeight = "regular" | "semibold";
 
 /**
- * Props for {@link Text}. Any other `span` attribute passes through.
+ * Props for {@link Text}. Any other `span` attribute passes through. Useful for
+ * colouring and sizing the words around a figure so the operator can tell a
+ * label from a value. Taken by {@link Text}.
  *
  * @category Typography
  */

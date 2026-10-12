@@ -5,6 +5,8 @@ import styled, { css } from "styled-components";
  * Where an {@link EmptyState} sits: `inline` where it is mounted, `fill`
  * centred in the available space. Set with the `layout` prop of
  * {@link EmptyState}.
+ * Useful for placing the empty message inline in a list or centred in a panel
+ * with nothing else in it.
  *
  * @category EmptyState
  */
@@ -12,6 +14,8 @@ export type EmptyStateLayout = "inline" | "fill";
 
 /**
  * Props for {@link EmptyState}. Any other `div` attribute passes through.
+ * Useful for telling the operator why a panel shows nothing and what to do
+ * next. Used by {@link EmptyState}.
  *
  * @category EmptyState
  */

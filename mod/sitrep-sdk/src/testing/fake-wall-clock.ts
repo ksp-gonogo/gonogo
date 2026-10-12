@@ -1,5 +1,7 @@
 /**
  * A wall clock a test moves forward itself, rather than waiting on real time.
+ * Useful for testing a widget that changes with time, such as a countdown or a
+ * delayed reading. Used by {@link StreamFixture}.
  *
  * @category Test doubles
  */
@@ -13,8 +15,10 @@ export interface FakeWallClock {
 /**
  * A {@link FakeWallClock} that reads `start` seconds, 0 when omitted, until it
  * is advanced. Pass its `now` wherever a clock takes `nowWall`, the real time
- * in seconds: the view clock's options and a media pipeline's
- * {@link FrameDelayPipeline.tickPacing} take one.
+ * in seconds: the view clock's options and a media pipeline's {@link
+ * FrameDelayPipeline.tickPacing} take one. Useful for testing a widget that
+ * changes with time, such as a countdown or a delayed reading. Used by {@link
+ * setupStreamFixture}.
  *
  * @example
  * ```ts

@@ -61,7 +61,9 @@ export {
 
 /**
  * Operations on a physical dimension: multiply and divide two, compare them,
- * key and format one, and the dimensionless dimension of a pure number.
+ * key and format one, and the dimensionless dimension of a pure number. Useful
+ * for working out the unit of a computed quantity, such as a distance divided
+ * by a time.
  *
  * @category Units and values
  */

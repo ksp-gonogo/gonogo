@@ -6,7 +6,8 @@ import type {
 } from "../api/types";
 
 /**
- * Options for a new `MockDataSource`.
+ * Options for a new `MockDataSource`. Useful for naming a mock source and
+ * choosing the keys it offers a widget under test.
  *
  * @category Test doubles
  */
@@ -30,7 +31,8 @@ export interface MockDataSourceOptions {
  * value to every subscriber of the key.
  *
  * Give two mocks different `id`s: the default is `"mock"`, so two defaults are
- * the same id.
+ * the same id. Useful for testing how a widget shows a value from a source that
+ * is not the Sitrep stream. Used by the test setup of the components package.
  *
  * @example Driving a subscriber from a test
  * ```ts

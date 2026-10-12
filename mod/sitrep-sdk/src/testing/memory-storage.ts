@@ -1,7 +1,8 @@
 /**
- * A `Storage` held in memory, for a test that needs a `localStorage` of its own.
- * It behaves as the browser's does: `length` and `key()` reflect what it holds,
- * in the order the keys were first set.
+ * A `Storage` held in memory, for a test that needs a `localStorage` of its
+ * own. It behaves as the browser's does: `length` and `key()` reflect what it
+ * holds, in the order the keys were first set. Useful for testing a setting or
+ * a layout that the operator's browser would remember.
  *
  * @example Giving a `SettingsService` storage of its own
  * ```ts

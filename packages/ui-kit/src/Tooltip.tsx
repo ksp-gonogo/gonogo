@@ -58,7 +58,9 @@ export interface TooltipAnchorProps {
 }
 
 /**
- * What {@link useTooltip} returns: props for the anchor, and the tip to render beside it.
+ * What {@link useTooltip} returns: props for the anchor, and the tip to render
+ * beside it. Useful for explaining a control or figure to the operator in a tip
+ * drawn where the caller chooses.
  *
  * @category Floating
  */
@@ -245,7 +247,8 @@ function TipBody({
 
 /**
  * The props of {@link Tooltip}: the tip's text and the one element it
- * describes.
+ * describes. Useful for explaining a control or figure to the operator without
+ * taking room on the tile. Taken by {@link Tooltip}.
  *
  * @category Floating
  */

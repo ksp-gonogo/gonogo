@@ -2,7 +2,8 @@ import { createElement, type ReactNode } from "react";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
- * Props of {@link LiveRegion}.
+ * Props of {@link LiveRegion}. Useful for setting the words announced to the
+ * operator and whether they interrupt. Taken by {@link LiveRegion}.
  *
  * @category Typography
  */

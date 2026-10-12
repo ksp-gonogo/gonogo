@@ -69,6 +69,8 @@ export function placeGraphNotice({
 
 /**
  * Props for {@link GraphNotice}.
+ * Useful for telling the operator why a graph is incomplete. Used by {@link
+ * GraphNotice}.
  *
  * @category LineGraph
  */

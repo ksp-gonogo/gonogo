@@ -20,10 +20,11 @@ export interface UnitRung {
 }
 
 /**
- * How a unit is shown to the operator: its decimal places, its notation, what is
- * printed beside the number and what a screen reader says. Every field is
+ * How a unit is shown to the operator: its decimal places, its notation, what
+ * is printed beside the number and what a screen reader says. Every field is
  * optional, and a unit that sets none is shown the way its kind is by default.
- * Arithmetic ignores all of it. Part of {@link UnitRegistration}.
+ * Arithmetic ignores all of it. Part of {@link UnitRegistration}. Useful for
+ * making a unit that an Uplink adds read the way the operator expects.
  *
  * @category Units and values
  */

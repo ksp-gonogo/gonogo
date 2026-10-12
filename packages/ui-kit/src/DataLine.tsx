@@ -5,6 +5,8 @@ import { TONE_TEXT } from "./tone";
 
 /**
  * Props for {@link DataLine}.
+ * Useful for describing one labelled reading in a list of readings. Used by
+ * {@link DataLine}.
  *
  * @category Readout
  */

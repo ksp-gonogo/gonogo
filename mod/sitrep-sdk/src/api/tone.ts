@@ -50,6 +50,9 @@ export const TONES: readonly Tone[] = [
  * The tones a contribution uses to say how alarming something it reports is,
  * such as each entry its `compute` returns. `go` is not among them: when all is
  * well, return no entry at all rather than one with a reassuring tone.
+ * Useful for letting the operator see at a glance how serious a contribution's
+ * report is. Used by entries such as {@link CrewRowToneEntry} and {@link
+ * SystemViewVesselStatusEntry}.
  *
  * @category Tone
  */

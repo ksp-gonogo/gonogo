@@ -67,7 +67,9 @@ export interface DelayClockLike {
 
 /**
  * Options for a new {@link DelayedPlayoutBuffer}: the clock to release frames
- * by, the callbacks that receive them, and the cap on what is held.
+ * by, the callbacks that receive them, and the cap on what is held. Useful for
+ * setting how a vessel's video is held back before the operator sees it, by the
+ * same delay as its telemetry.
  *
  * @category Delayed video
  */

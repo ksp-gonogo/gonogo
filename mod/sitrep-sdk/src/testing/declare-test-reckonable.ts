@@ -8,7 +8,8 @@ import { appendReckonableRows } from "../contract-tags";
  * marked, in a test as anywhere else.
  *
  * `fields` defaults to the whole payload, which suits a Topic whose payload is
- * one number.
+ * one number. Useful for testing how a widget shows a reckoned figure for a
+ * vessel that is behind a signal delay.
  *
  * @category Stream fixture
  */

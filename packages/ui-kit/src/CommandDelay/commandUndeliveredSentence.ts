@@ -8,6 +8,8 @@ import type {
 /**
  * One dispatch that never left this machine. It has the same fields as
  * {@link CommandLossLike}. Taken by {@link commandUndeliveredSentence}.
+ * Useful for writing the sentence that tells the operator a command never left
+ * this machine.
  *
  * @category CommandDelay
  */
@@ -25,6 +27,8 @@ export type CommandUndeliveredEntry = CommandLossEntry;
 /**
  * One undelivered dispatch as the rail renders it, plus its command's rail
  * axes. Taken by {@link CommandList}.
+ * Useful for telling the operator, on the panel's delay rail, which commands
+ * never left this machine.
  *
  * @category CommandDelay
  */

@@ -24,6 +24,8 @@ interface CacheOptions {
 /**
  * The width, in cells, of a new coverage mask: the cells across a body's 360
  * degrees of longitude.
+ * Useful for sizing a coverage mask to the map's resolution. Used by {@link
+ * CoverageMaskCache} when it is created without a width.
  *
  * @category Maps and coverage
  */
@@ -31,6 +33,8 @@ export const DEFAULT_MASK_WIDTH = 2048;
 
 /**
  * The height, in cells, of a new coverage mask: the cells from pole to pole.
+ * Useful for sizing a coverage mask to the map's resolution. Used by {@link
+ * CoverageMaskCache} when it is created without a height.
  *
  * @category Maps and coverage
  */

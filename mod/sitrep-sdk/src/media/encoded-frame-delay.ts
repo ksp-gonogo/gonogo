@@ -85,7 +85,9 @@ export interface EncodedTransformerLike {
 
 /**
  * Options for {@link attachEncodedFrameDelayTransform}: the delay clock, the
- * capture time to stamp each frame with, and the limits on what is held.
+ * capture time to stamp each frame with, and the limits on what is held. Useful
+ * for setting how a vessel's encoded video is held back before the operator
+ * sees it, by the same delay as its telemetry.
  *
  * @category Delayed video
  */

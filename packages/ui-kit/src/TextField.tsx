@@ -3,7 +3,8 @@ import { Field, FieldHint, FieldLabel, Input } from "./Form";
 import { Text } from "./Text";
 
 /**
- * Props for {@link TextField}.
+ * Props for {@link TextField}. Useful for letting the operator type a name.
+ * Taken by {@link TextField}.
  *
  * @category Form
  */

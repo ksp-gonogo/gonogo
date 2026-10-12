@@ -3,7 +3,8 @@ import { Cluster, type ClusterAlign } from "./Cluster";
 import type { GapToken } from "./scales";
 
 /**
- * Props for {@link SubjectHeading}.
+ * Props for {@link SubjectHeading}. Useful for showing the operator a node or
+ * vessel name with its status. Taken by {@link SubjectHeading}.
  *
  * @category Typography
  */

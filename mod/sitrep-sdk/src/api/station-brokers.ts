@@ -66,6 +66,8 @@ export function registerStationBroker(
 /**
  * Removes a registration, so a station that comes up later does not attach it.
  * No-op if none was registered.
+ * Useful for stopping an Uplink's station-side code from attaching on stations
+ * that start later.
  *
  * @category Registering
  */

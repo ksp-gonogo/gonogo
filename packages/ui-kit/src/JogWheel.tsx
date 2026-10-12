@@ -18,7 +18,9 @@ import { focusRing } from "./focusRing";
 export type JogWheelMode = "offset" | "rate";
 
 /**
- * The props every {@link JogWheel} takes, whichever its mode.
+ * The props every {@link JogWheel} takes, whichever its mode. Useful for naming
+ * and limiting the number the operator dials. Taken by both modes of
+ * {@link JogWheel}.
  *
  * @category Form
  */
@@ -58,7 +60,8 @@ export interface JogWheelCommon {
 
 /**
  * Props for {@link JogWheel}. In the default `offset` mode `min` and `max` are
- * required; in `rate` mode they are optional.
+ * required; in `rate` mode they are optional. Useful for choosing whether the
+ * operator dials an offset within a range or a rate. Taken by {@link JogWheel}.
  *
  * @category Form
  */

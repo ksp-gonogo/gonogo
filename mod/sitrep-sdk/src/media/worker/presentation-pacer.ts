@@ -74,7 +74,9 @@ export interface PacedFrame<Frame> {
 
 /**
  * Options for a new {@link PresentationPacer}: the callbacks that present and
- * skip frames, and the limits on backlog and playout rate.
+ * skip frames, and the limits on backlog and playout rate. Useful for keeping
+ * the video frames the operator sees at an even rate after a delay releases
+ * them together. Used by the video delay pipelines.
  *
  * @category Delayed video
  */

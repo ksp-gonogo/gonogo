@@ -4,7 +4,9 @@ import styled, { css, keyframes } from "styled-components";
 import { TONE_MARK, toneEdge } from "./tone";
 
 /**
- * Props for {@link StatusIndicator}. Other `div` attributes pass through to the row.
+ * Props for {@link StatusIndicator}. Other `div` attributes pass through to the
+ * row. Useful for telling the operator the state of a connection or source in a
+ * sentence. Taken by {@link StatusIndicator}.
  *
  * @category Badge
  */

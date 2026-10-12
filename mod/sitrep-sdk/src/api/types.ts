@@ -69,6 +69,8 @@ export type ComponentRequirement = "flight" | "career";
 /**
  * A reason a widget stays on screen although a game state it requires is not met.
  * `"crash-ending"` keeps it open while the crash that ended the last flight is on record, so a widget that shows how a flight ended is still there once the game leaves the flight scene.
+ * Useful for letting the operator still read how a flight ended after the game
+ * leaves the flight scene.
  *
  * @category Registering
  */
@@ -102,6 +104,8 @@ export interface ActionInputPayload {
 /**
  * One action a widget declares in {@link ComponentDefinition.actions}, which
  * an operator can bind to a key, button or axis.
+ * Useful for letting the operator drive a widget from a key, a button or an
+ * axis. Used by the Inputs tab of a widget's settings.
  *
  * @category Actions
  * @categoryDescription Actions
@@ -153,6 +157,8 @@ export interface ActionDefinition {
  * device decides what it can show: for the built-in text display, a flat object
  * of keys to values such as `{ ALT: "12.4 km" }`. Return nothing for a device
  * with no display.
+ * Useful for carrying out what an operator's input asks a widget to do. Used by
+ * {@link useActionInput}.
  *
  * @category Actions
  */
@@ -358,6 +364,8 @@ export interface TinyMode<Config = Record<string, unknown>> {
 /**
  * What {@link registerComponent} takes: a widget and everything the dashboard
  * needs to know to place it.
+ * Useful for making a widget available for the operator to place. Used by every
+ * widget, built in or from an Uplink.
  *
  * @category Registering
  */
@@ -1279,6 +1287,7 @@ export type {
  * a scanner's. The source writes its coverage into the
  * {@link CoverageMaskCache} under its own `id` as the layer id, and the map
  * reveals each cell as far as the most revealing source allows.
+ * Useful for revealing the map as a scanner covers it.
  *
  * @category Maps and coverage
  */
@@ -1667,6 +1676,7 @@ export interface DataSource<
  * stations; `"station"` is fed by the main screen; `"pilot"` connects to the
  * game from aboard the craft and hosts nothing. A widget can draw differently
  * on each, as the GO/NO-GO poll does.
+ * Useful for showing the operator what suits the screen they are on.
  *
  * @category Host and runtime
  *
@@ -1694,6 +1704,8 @@ export type Screen = "main" | "station" | "pilot";
  * Where the operator is sitting: at mission control, or aboard as the pilot.
  * Worked out from the {@link Screen}; a widget's availability and a message's
  * signal delay both depend on the seat.
+ * Useful for deciding which widgets the operator may place where they sit.
+ * Returned by {@link seatOf}.
  *
  * @category Host and runtime
  *
@@ -1944,6 +1956,7 @@ export interface UseCommandOptions {
  * The lists `refusals`, `losses`, `founds`, `undelivered` and `failures` each hold a
  * dispatch until it is dismissed with `dismiss`, and a dispatch is in at most
  * one of them at a time.
+ * Useful for showing the operator a command's delay and outcome.
  *
  * @category Commands
  */
@@ -2047,7 +2060,7 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
 
 /**
  * The handle {@link useCommand} returns for a named command, with its argument
- * and reply types. Use it to type a prop or a parameter that passes a handle
+ * and reply types. Useful for typing a prop or a parameter that passes a handle
  * on, so the handle keeps its types.
  *
  * It accepts a union of ids, for commands that take the same arguments, and
@@ -2112,6 +2125,8 @@ export interface HostIceServers {
  * the only thing a station talks to. `iceServers` carries the turn credentials
  * the main screen broadcasts, for a media connection the Uplink opens from the
  * station itself.
+ * Useful for letting an Uplink's station-side code reach the main screen and
+ * open media connections.
  *
  * @category Host and runtime
  */
@@ -2157,6 +2172,7 @@ export interface UseRouteCommandsResult {
 /**
  * How current a Topic is, as one word: `"live"`, one of the reasons it is
  * held (as in {@link HeldGrade}), `"absent"`, or `"resyncing"` after a rewind.
+ * Useful for telling the operator in one word whether a figure is current.
  *
  * @category Stream messages
  */
@@ -2195,6 +2211,7 @@ export type StreamStatusValue =
  * A {@link TopicId} gives the callback that Topic's payload type. For a Topic
  * id built at runtime, pass the payload type yourself:
  * `subscribe<MyPayload>(topic, onValue)`.
+ * Useful for reading a Topic's values from a callback instead of a render.
  *
  * @category Reading telemetry
  */

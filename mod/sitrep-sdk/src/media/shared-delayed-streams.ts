@@ -65,9 +65,10 @@ export interface BuiltDelayedStream<Result> {
 }
 
 /**
- * What the build function of a {@link SharedDelayedStreams} entry receives:
- * the contribution of the first lease still held. Passed to a
- * {@link DelayedStreamBuild}.
+ * What the build function of a {@link SharedDelayedStreams} entry receives: the
+ * contribution of the first lease still held. Passed to a {@link
+ * DelayedStreamBuild}. Useful for pointing a shared delayed video stream at
+ * whichever part of the screen is still showing it.
  *
  * @category Delayed video
  */
@@ -81,6 +82,8 @@ export interface DelayedStreamBuildContext<Contribution> {
 /**
  * Builds the delayed video stream that a {@link SharedDelayedStreams} entry
  * shares between its consumers. Passed to {@link SharedDelayedStreams.acquire}.
+ * Useful for building the one delayed video stream that every part of the
+ * screen showing the same vessel camera shares.
  *
  * @category Delayed video
  */

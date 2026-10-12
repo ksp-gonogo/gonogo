@@ -1,9 +1,10 @@
 import type { Logger } from "../api/logger-contract";
 
 /**
- * A {@link Logger} that writes every level straight to `console`, as
- * {@link installRealTestHost} installs it. `tag()` returns the same logger, so tagged entries are
- * always shown.
+ * A {@link Logger} that writes every level straight to `console`, as {@link
+ * installRealTestHost} installs it. `tag()` returns the same logger, so tagged
+ * entries are always shown. Useful for reading, in the test output, what a
+ * widget or Uplink under test logs.
  *
  * @example Seeing what code under test logs
  * ```ts

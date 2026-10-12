@@ -1,7 +1,8 @@
 import styled from "styled-components";
 
 /**
- * The props every {@link Switch} takes.
+ * The props every {@link Switch} takes. Useful for letting the operator turn a
+ * widget option on or off. Taken by every form of {@link Switch}.
  *
  * @category Form
  */
@@ -20,7 +21,8 @@ export interface SwitchBaseProps {
  * Props for {@link Switch}: `checked`, `onChange(next)`, optional `disabled`
  * and `id`, and exactly one name. A switch always has a name: a visible `label`
  * drawn beside it, or an `aria-label` where the row it sits in shows its own
- * label text.
+ * label text. Useful for letting the operator turn a widget option on or off.
+ * Taken by {@link Switch}.
  *
  * @category Form
  */

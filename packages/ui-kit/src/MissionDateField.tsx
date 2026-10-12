@@ -10,7 +10,8 @@ import { Text } from "./Text";
 import { writeQuantity } from "./units";
 
 /**
- * Props for {@link MissionDateField}.
+ * Props for {@link MissionDateField}. Useful for letting the operator enter an
+ * instant on the game's calendar. Taken by {@link MissionDateField}.
  *
  * @category Form
  */

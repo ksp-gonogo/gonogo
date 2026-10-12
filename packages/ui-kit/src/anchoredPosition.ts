@@ -1,6 +1,7 @@
 /**
  * A point in viewport (client) coordinates, such as where the operator's
  * pointer is. Taken by {@link Floating} as the place a layer attaches to.
+ * Useful for opening a floating layer at the operator's pointer.
  *
  * @category Floating
  */
@@ -19,7 +20,8 @@ export interface BoxSize {
 
 /**
  * Where an anchored layer's top-left corner goes, in viewport coordinates.
- * Returned by {@link anchoredPosition}.
+ * Returned by {@link anchoredPosition}. Useful for keeping a floating layer on
+ * screen beside what the operator is pointing at.
  *
  * @category Floating
  */

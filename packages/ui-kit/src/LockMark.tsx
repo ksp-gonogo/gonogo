@@ -8,7 +8,8 @@ import { writeLockQuantity } from "./lockQuantity";
 import { Tooltip } from "./Tooltip";
 
 /**
- * Props for {@link LockMark}.
+ * Props for {@link LockMark}. Useful for telling the operator what is still
+ * locked in the room of a small tile. Taken by {@link LockMark}.
  *
  * @category Panel
  */

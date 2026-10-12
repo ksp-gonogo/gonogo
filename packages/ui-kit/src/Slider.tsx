@@ -3,8 +3,9 @@ import styled from "styled-components";
 import { focusRing } from "./focusRing";
 
 /**
- * A native range input's attributes, less the `type`, which a slider always
- * is.
+ * A native range input's attributes, less the `type`, which a slider always is.
+ * Useful for letting the operator adjust a level without typing a number. Taken
+ * by {@link Slider}.
  *
  * @category Form
  */

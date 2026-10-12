@@ -41,7 +41,9 @@ const Readout__Box = styled.div<{ $size: ReadoutSize; $tone: Tone }>`
 `;
 
 /**
- * Props for {@link Readout}. Any other `div` attribute passes through.
+ * Props for {@link Readout}. Any other `div` attribute passes through. Useful
+ * for giving the operator the one value of a widget that matters most. Taken by
+ * {@link Readout}.
  *
  * @category Readout
  */

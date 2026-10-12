@@ -106,6 +106,8 @@ export interface InFlightListItem {
  * is measurable. {@link InFlightList} writes it to its root's `data-mode` attribute, for
  * styling, and draws nothing different for it: each command already shows its
  * own phase and countdown, and under `no-path` it shows "no ETA".
+ * Useful for styling the list of in-flight commands by how they reach the
+ * vessel.
  *
  * @category CommandDelay
  */
@@ -115,6 +117,8 @@ export type InFlightListMode = "live" | "staged" | "no-path";
  * How much of each in-flight command {@link InFlightList} draws, by the room
  * it has. Independent of `mode`, which describes how commands reach the vessel.
  * Set with the `density` prop of {@link InFlightList}.
+ * Useful for fitting the list of in-flight commands to a wide panel or a
+ * narrow one.
  *
  * - `full`: arrow, label and countdown per command, one per line
  * - `compact`: arrow and countdown only; the label moves to the accessible
@@ -131,6 +135,8 @@ export type InFlightListDensity = "auto" | "full" | "compact" | "badge";
 /**
  * Props for {@link InFlightList}: the commands in flight and how much of each to
  * draw.
+ * Useful for choosing which in-flight commands the operator sees and how much
+ * of each. Used by {@link InFlightList}.
  *
  * @category CommandDelay
  */

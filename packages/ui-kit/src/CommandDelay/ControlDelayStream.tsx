@@ -106,6 +106,8 @@ export interface ControlRibbonDatum {
 /**
  * The three sizes of {@link ControlDelayStream}. Set with the `variant` prop;
  * see {@link ControlDelayStreamProps.variant}.
+ * Useful for fitting the control delay stream into a line of text, the delay
+ * rail or a widget body.
  *
  * @category CommandDelay
  */
@@ -114,6 +116,8 @@ export type ControlDelayStreamVariant = "inline" | "rail" | "expanded";
 /**
  * Props for {@link ControlDelayStream}: the control axes and ribbons to draw,
  * and the one-way delay between the command centre and the vessel.
+ * Useful for choosing which control axes the operator sees travelling to the
+ * vessel and the delay they travel over. Used by {@link ControlDelayStream}.
  *
  * @category CommandDelay
  */

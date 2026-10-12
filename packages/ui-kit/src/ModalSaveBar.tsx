@@ -6,7 +6,9 @@ import { configEqual } from "./configEqual";
 /**
  * What a modal dialog offers the content inside it: a sticky footer and an
  * unsaved-changes flag. Read it through {@link useModalChrome} or
- * {@link useModalSaveBar} rather than directly.
+ * {@link useModalSaveBar} rather than directly. Useful for keeping Save within the
+ * operator's reach however far a form scrolls. Provided by {@link Modal} around
+ * every dialog's content.
  *
  * @category Modal
  */
@@ -18,9 +20,10 @@ export interface ModalChromeValue {
 }
 
 /**
- * The footer and unsaved-changes controls each open modal dialog provides to its
- * content, `null` outside a modal. Content uses {@link useModalChrome} or
- * {@link useModalSaveBar} rather than reading it.
+ * The footer and unsaved-changes controls each open modal dialog provides to
+ * its content, `null` outside a modal. Content uses {@link useModalChrome} or
+ * {@link useModalSaveBar} rather than reading it. Provided by {@link Modal}
+ * around every dialog's content.
  *
  * @intent Published so content that calls useModalChrome can be rendered under a stand-in modal in a test.
  * @category Modal
@@ -54,7 +57,8 @@ export function useModalChrome(footer: ReactNode, dirty: boolean): void {
 }
 
 /**
- * Options for {@link useModalSaveBar}.
+ * Options for {@link useModalSaveBar}. Useful for describing the edit the
+ * operator is making and how it is saved. Taken by {@link useModalSaveBar}.
  *
  * @category Modal
  */

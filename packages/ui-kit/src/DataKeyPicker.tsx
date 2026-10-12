@@ -31,6 +31,8 @@ export interface KeyOption extends ComboboxOption {
 /**
  * Props for {@link DataKeyPicker}: the keys on offer, the chosen key and the
  * change handler.
+ * Useful for giving the operator the data keys they can choose from. Used by
+ * {@link DataKeyPicker}.
  *
  * @category Form
  */

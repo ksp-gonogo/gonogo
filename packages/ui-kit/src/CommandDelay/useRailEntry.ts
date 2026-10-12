@@ -7,6 +7,8 @@ import { useDelayRailStore } from "./DelayRailContext";
  * ribbon. A command handle is registered by `useCommand` itself, so one passed
  * here is a type error rather than a second entry. Taken by
  * {@link useRailEntry}.
+ * Useful for showing the operator a transmission, such as an open microphone,
+ * on the panel's delay rail.
  *
  * @category CommandDelay
  */

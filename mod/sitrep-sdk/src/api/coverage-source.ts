@@ -98,6 +98,8 @@ export function registerCoverageSource(def: CoverageSourceDefinition): void {
 /**
  * Removes the coverage source registered under `id`, so its layer no longer
  * reveals ground on the body map. Does nothing if there is none.
+ * Useful for taking a scanner's layer off the map when the Uplink that supplied
+ * it stops.
  *
  * @category Maps and coverage
  */

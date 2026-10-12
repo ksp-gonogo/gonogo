@@ -8,6 +8,8 @@ import { useKeyboardScrollable } from "./useScrollerMetric";
 /**
  * Props for {@link Disclosure}: the trigger, the panel it shows and where the
  * panel opens.
+ * Useful for giving detail the operator can open on demand its trigger and its
+ * panel. Used by {@link Disclosure}.
  *
  * @category Disclosure
  */

@@ -8,6 +8,8 @@ import type { EventOccurrence } from "../event-timeline";
  * A source returns what the operator may see at the view UT it is given, not
  * everything that has happened, so the signal delay applies without the source
  * tracking it.
+ * Useful for letting an alarm fire on an Uplink's events only once the operator
+ * could have seen them.
  *
  * @category Delay and vantage
  */

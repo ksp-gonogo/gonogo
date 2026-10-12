@@ -48,7 +48,9 @@ export interface RateControl {
 
 /**
  * Props for {@link UnitInput}: the quantity being edited, its unit, a visible
- * name, and optionally rungs, a slider range and a rate wheel.
+ * name, and optionally rungs, a slider range and a rate wheel. Useful for
+ * letting the operator enter a figure with its unit. Taken by
+ * {@link UnitInput}.
  *
  * @category Form
  */

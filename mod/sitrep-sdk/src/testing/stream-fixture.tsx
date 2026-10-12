@@ -26,6 +26,9 @@ import { StubTransport } from "./stub-transport";
  *   and then `fixture.store.beginFrame()`. A mounted provider also starts a
  *   frame on every animation frame, whether or not anything arrived
  *
+ * Useful for choosing the instant and the signal delay that a widget under test
+ * sees.
+ *
  * @category Stream fixture
  */
 export interface StreamFixtureOptions {
@@ -37,7 +40,9 @@ export interface StreamFixtureOptions {
 
 /**
  * What `setupStreamFixture` returns: the stub transport, the real client and
- * store behind it, a fake wall clock, and a `Provider` to render widgets inside.
+ * store behind it, a fake wall clock, and a `Provider` to render widgets
+ * inside. Useful for testing how a widget responds as readings and replies
+ * arrive. Used by the test setup of the app and the components package.
  *
  * @category Stream fixture
  */
@@ -68,9 +73,11 @@ export interface StreamFixture {
 }
 
 /**
- * Builds a real telemetry pipeline over a `StubTransport`, for a test to feed by
- * hand. Render the widget under test inside `Provider`, then `emit` payloads to
- * it.
+ * Builds a real telemetry pipeline over a `StubTransport`, for a test to feed
+ * by hand. Render the widget under test inside `Provider`, then `emit` payloads
+ * to it. Useful for testing how a widget shows readings, commands and held
+ * values to the operator. Used by the test setup of the app and the components
+ * package.
  *
  * @category Stream fixture
  * @categoryDescription Stream fixture
@@ -126,8 +133,10 @@ export function setupStreamFixture(
 /**
  * Drops the connection to the mod, for a test of how a widget shows held
  * readings: the transport disconnects and a new frame starts, so every reading
- * the widget drew is held rather than current. What a fixture's `"_stream": { "stopsArriving": true }`
- * asks for. Call it after the scene's emits.
+ * the widget drew is held rather than current. What a fixture's `"_stream": {
+ * "stopsArriving": true }` asks for. Call it after the scene's emits. Useful
+ * for testing how a widget shows the operator that readings have stopped
+ * arriving. Used by the storybook's scenes.
  *
  * @category Stream fixture
  */

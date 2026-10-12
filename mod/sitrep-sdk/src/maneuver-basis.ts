@@ -1,8 +1,9 @@
 import { ManeuverFrame } from "./__generated__/contract";
 
 /**
- * The names of a burn's three delta-v components, in order, as
- * {@link maneuverBasisLabels} returns them.
+ * The names of a burn's three delta-v components, in order, as {@link
+ * maneuverBasisLabels} returns them. Useful for labelling the three delta-v
+ * fields of a burn shown to the operator. Used by the maneuver node editor.
  *
  * @category Orbits and trajectories
  */

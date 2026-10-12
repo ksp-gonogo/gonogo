@@ -180,6 +180,8 @@ export type CommandButtonPhase =
 /**
  * The tones a {@link CommandButton} can draw in; the same set as a plain
  * {@link Button}. Set with the `tone` prop of {@link CommandButton}.
+ * Useful for colouring a command button by how serious the command is for the
+ * operator.
  *
  * @category CommandButton
  */
@@ -187,6 +189,7 @@ export type CommandButtonTone = ButtonTone;
 
 /**
  * The two sizes of {@link CommandButton}. Set with its `size` prop.
+ * Useful for fitting a command button into a dense row or a roomier form.
  *
  * @category CommandButton
  */
@@ -195,6 +198,8 @@ export type CommandButtonSize = "sm" | "md";
 /**
  * Options for {@link useCommandButton}: the command handle to dispatch on and
  * the wording of the confirm step.
+ * Useful for building a command control of your own with the same dispatch and
+ * confirm behaviour as {@link CommandButton}. Used by {@link CommandButton}.
  *
  * @category CommandButton
  */
@@ -518,6 +523,8 @@ type NativeButtonProps = Omit<
 /**
  * Props for {@link CommandButton}: the command handle, the arguments to send
  * and the confirm wording. Any other native button attribute is passed through.
+ * Useful for naming the command a button sends, the arguments it carries and
+ * how the operator confirms it. Used by {@link CommandButton}.
  *
  * @category CommandButton
  */

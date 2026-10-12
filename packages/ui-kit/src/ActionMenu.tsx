@@ -7,6 +7,8 @@ import { focusRingInset } from "./focusRing";
 
 /**
  * One action in an {@link ActionMenu}. Taken in the menu's `items`.
+ * Useful for naming each command the operator can fire from a menu, with its
+ * grouping and whether it is currently available. Used by {@link ActionMenu}.
  *
  * @category Floating
  */
@@ -26,6 +28,8 @@ export interface ActionMenuItem {
 /**
  * Props for {@link ActionMenu}: the actions, the handlers for choosing one or
  * dismissing the menu, and the menu's accessible name.
+ * Useful for giving a menu its commands and its dismissal behaviour in one
+ * place. Used by {@link ActionMenu}.
  *
  * @category Floating
  */

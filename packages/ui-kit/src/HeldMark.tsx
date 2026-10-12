@@ -211,6 +211,8 @@ export const HeldHost = styled.span<{
 
 /**
  * The props of {@link HeldFigure}.
+ * Useful for showing the operator that a figure is held or modelled. Used by
+ * {@link HeldFigure}.
  *
  * @category Unit
  */

@@ -147,7 +147,7 @@ const PanelTitle__Box = styled.h3`
 /**
  * Props for `Panel.Title`, the heading of a panel, which shows the operator the
  * widget's name. Other `h3` attributes pass through. Taken by `Panel.Title` on
- * {@link Panel}.
+ * {@link Panel}. Useful for naming a widget on the operator's dashboard.
  *
  * @category Panel
  */
@@ -1222,7 +1222,9 @@ export type { PanelInactiveReason } from "./InactiveNotice";
 
 /**
  * Props for {@link Panel}. Any other `div` attribute passes through to the
- * panel's container.
+ * panel's container. Useful for giving a widget the same title, status and
+ * scrolling behaviour as every other on the operator's dashboard. Taken by
+ * {@link Panel}.
  *
  * @category Panel
  */

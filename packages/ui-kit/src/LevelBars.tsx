@@ -3,7 +3,8 @@ import styled from "styled-components";
 import { TONE_MARK } from "./tone";
 
 /**
- * Props for {@link LevelBars}.
+ * Props for {@link LevelBars}. Useful for setting how many bars show the
+ * operator a level. Taken by {@link LevelBars}.
  *
  * @category Meter
  */

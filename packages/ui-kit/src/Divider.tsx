@@ -4,6 +4,8 @@ import { GAP_VAR, type GapToken } from "./scales";
 
 /**
  * Props for {@link Divider}. Any other `hr` attribute passes through.
+ * Useful for separating stacked sections for the operator. Used by {@link
+ * Divider}.
  *
  * @category Layout
  */

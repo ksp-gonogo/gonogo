@@ -21,6 +21,8 @@ export const INTERVAL_DASH = "–";
 
 /**
  * Props for {@link Band}. `decimals`, `format` and `as` pin both ends at once.
+ * Useful for giving a range its two ends and how they are written. Used by
+ * {@link Band}.
  *
  * @category Unit
  */

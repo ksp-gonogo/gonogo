@@ -2,8 +2,9 @@ import { __setGonogoHost, type GonogoHost } from "../api/host";
 
 /**
  * Installs a host made of the members you pass, for a test that needs only a
- * few. Returns a function that removes it; call that in `afterEach`.
- * Prefer {@link installRealTestHost} for rendering widgets.
+ * few. Returns a function that removes it; call that in `afterEach`. Prefer
+ * {@link installRealTestHost} for rendering widgets. Useful for testing a
+ * widget that calls only a few members of the host.
  *
  * @param host - The members of {@link GonogoHost} the code under test calls.
  *
@@ -18,9 +19,10 @@ export function installTestHost(host: Partial<GonogoHost>): () => void {
 }
 
 /**
- * Removes any installed host, whichever of {@link installTestHost} or
- * {@link installRealTestHost} put it there. The function either returns removes
- * the host that call installed; this removes whatever is installed.
+ * Removes any installed host, whichever of {@link installTestHost} or {@link
+ * installRealTestHost} put it there. The function either returns removes the
+ * host that call installed; this removes whatever is installed. Useful for
+ * leaving no host installed between tests.
  *
  * @category Test hosts
  */

@@ -11,6 +11,8 @@ import styled from "styled-components";
 /**
  * Props for {@link FitLabelButton}. Any other `button` attribute passes
  * through; `children` is replaced by `label` and `icon`.
+ * Useful for giving a control in a panel the operator can narrow a label and
+ * an icon to fall back on. Used by {@link FitLabelButton}.
  *
  * @category Button
  */

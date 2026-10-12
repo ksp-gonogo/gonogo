@@ -5,6 +5,8 @@ import { GAP_VAR, type GapToken } from "./scales";
 /**
  * Props for {@link AutoEmptyState}. Any other `div` attribute passes through
  * to the content region.
+ * Useful for giving a content column its content and the message shown when
+ * nothing else rendered. Used by {@link AutoEmptyState}.
  *
  * @category EmptyState
  */

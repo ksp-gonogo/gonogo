@@ -308,6 +308,8 @@ export function deriveInFlight(
  * for the whole of `fromUt` to `toUt`, both in UT seconds. You supply it from
  * your own record of connectivity. Taken by {@link classifyRetained} to decide
  * whether a command is lost.
+ * Useful for deciding whether a command that got no reply was lost or is only
+ * delayed.
  *
  * @category Delay and vantage
  */

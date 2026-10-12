@@ -52,7 +52,9 @@ export const UPLINK_EXTERNAL_ENTRIES = [
 
 /**
  * The specifiers an Uplink's bundle leaves to the app, as a bundler's
- * `external` option takes them. Part of {@link UPLINK_BUNDLE_EXTERNALS}.
+ * `external` option takes them. Part of {@link UPLINK_BUNDLE_EXTERNALS}. Useful
+ * for building an Uplink's client so that the app supplies these packages. Used
+ * by {@link UPLINK_BUNDLE_EXTERNALS} and the app's table of provided packages.
  *
  * @category Bundling
  */
@@ -63,7 +65,9 @@ export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
  * Specifiers a bundler must also leave out of an Uplink's bundle, although the
  * app serves no file of its own for them: it provides each through another
  * entry, so a bundle that imports them still resolves. They are
- * `react-dom/client` and `react/jsx-dev-runtime`.
+ * `react-dom/client` and `react/jsx-dev-runtime`. Useful for building an
+ * Uplink's client so that the app supplies these packages. Used by {@link
+ * UPLINK_BUNDLE_EXTERNALS} and the app's table of provided packages.
  *
  * @category Bundling
  */
@@ -73,12 +77,15 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
 ];
 
 /**
- * Everything an Uplink's bundler marks `external`: {@link UPLINK_EXTERNAL_SPECIFIERS}
- * and {@link UPLINK_EXTERNAL_NO_CHUNK} together, and the one to use.
- * [`uplink-tools bundle`](/reference/tools/command-line#bundle) passes it for
- * you. A build of your own imports it from this package's `uplink-externals`
- * subpath and passes it as the bundler's list of externals: with esbuild,
- * `external: [...UPLINK_BUNDLE_EXTERNALS]`.
+ * Everything an Uplink's bundler marks `external`: {@link
+ * UPLINK_EXTERNAL_SPECIFIERS} and {@link UPLINK_EXTERNAL_NO_CHUNK} together,
+ * and the one to use. [`uplink-tools
+ * bundle`](/reference/tools/command-line#bundle) passes it for you. A build of
+ * your own imports it from this package's `uplink-externals` subpath and passes
+ * it as the bundler's list of externals: with esbuild, `external:
+ * [...UPLINK_BUNDLE_EXTERNALS]`. Useful for building an Uplink's client so that
+ * the app supplies the shared packages the operator's screen already holds.
+ * Used by `uplink-tools bundle` and by the app's own bundle build.
  *
  * @category Bundling
  * @categoryDescription Bundling

@@ -3,7 +3,8 @@ import styled, { keyframes } from "styled-components";
 
 /**
  * Props for {@link Spinner}. Any other `span` attribute passes through, except
- * `color` and `role`.
+ * `color` and `role`. Useful for telling the operator that a command is sent
+ * and not yet in effect. Taken by {@link Spinner}.
  *
  * @category EmptyState
  */

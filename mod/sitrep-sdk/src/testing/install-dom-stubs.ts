@@ -5,7 +5,9 @@
  * path), a `HTMLMediaElement.play` that resolves, a `matchMedia` that never
  * matches, a `WebSocket` that connects to nothing, and a `fetch` that answers
  * the app's `/ice-config` request with a 503 and passes everything else
- * through. Safe to call more than once. Call it from a test setup file.
+ * through. Safe to call more than once. Call it from a test setup file. Useful
+ * for testing how a widget mounts, as the operator sees it, in a jsdom test.
+ * Used by the test setup of the app and of each bundled Uplink's client.
  *
  * @category Rendering
  */

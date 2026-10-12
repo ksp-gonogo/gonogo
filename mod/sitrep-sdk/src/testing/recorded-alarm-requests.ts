@@ -4,7 +4,8 @@ import type { UplinkClientHandle } from "../api/types";
 /**
  * An alarm a widget asked for through `useAlarmRequest` under a test host,
  * recorded instead of created, so a test can check the request. Read them with
- * {@link getRequestedAlarms}.
+ * {@link getRequestedAlarms}. Useful for testing that pressing a widget's alarm
+ * control asks for the alarm the operator expects.
  *
  * @category Test doubles
  */
@@ -17,6 +18,8 @@ const recorded: RecordedAlarmRequest[] = [];
 
 /**
  * Every alarm requested since the last clear, in the order they were asked for.
+ * Useful for testing that pressing a widget's alarm control asks for the alarm
+ * the operator expects.
  *
  * @example
  * ```ts
@@ -38,7 +41,8 @@ export function getRequestedAlarms(): readonly RecordedAlarmRequest[] {
 }
 
 /**
- * Forgets every recorded request. Call it between tests.
+ * Forgets every recorded request. Call it between tests. Useful for starting
+ * each test of a widget's alarm control with no requests recorded.
  *
  * @category Test doubles
  */

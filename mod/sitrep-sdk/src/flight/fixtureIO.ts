@@ -132,7 +132,9 @@ export function fixtureDurationMs(fixture: FlightFixture): number {
 
 /**
  * What {@link exportFlightToFixture} captures: the keys and, optionally, their
- * schema. Taken by {@link exportFlightToFixture}.
+ * schema. Taken by {@link exportFlightToFixture}. Useful for choosing which
+ * readings of a recorded flight the operator saves to a file. Used by the
+ * recorder's flight export.
  *
  * @category Flight recording
  */

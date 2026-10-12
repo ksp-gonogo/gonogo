@@ -49,6 +49,8 @@ export interface DialTick<Unit extends string = string> {
 /**
  * Props for {@link Dial}: the value, the scale it sweeps, and its zones and
  * ticks.
+ * Useful for giving the operator a round gauge of a value against its scale.
+ * Used by {@link Dial}.
  *
  * @category Gauge
  */

@@ -3,6 +3,8 @@ import styled from "styled-components";
 
 /**
  * Props for {@link FramedDisplay}. Any other `div` attribute passes through.
+ * Useful for giving a diagram, plot or map a visible edge. Used by {@link
+ * FramedDisplay}.
  *
  * @category Layout
  */

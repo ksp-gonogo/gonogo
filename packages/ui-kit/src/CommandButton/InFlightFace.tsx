@@ -4,6 +4,8 @@ import { Spinner } from "../Spinner";
 
 /**
  * The props of {@link InFlightFace}.
+ * Useful for telling the operator, on the control they pressed, that its
+ * command is on its way. Used by {@link InFlightFace}.
  *
  * @category CommandButton
  */

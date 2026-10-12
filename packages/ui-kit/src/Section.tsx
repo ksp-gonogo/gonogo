@@ -20,7 +20,9 @@ export const SECTION_FILL_ATTR = "data-section-fill";
 
 /**
  * Props for {@link Section}. Any other `div` attribute passes through, except
- * the HTML `title`, whose name is taken by the heading.
+ * the HTML `title`, whose name is taken by the heading. Useful for grouping the
+ * figures of a widget under a heading the operator can scan. Taken by
+ * {@link Section}.
  *
  * @category Layout
  */

@@ -11,6 +11,8 @@ import {
 
 /**
  * Props for {@link Countdown}.
+ * Useful for giving the clock the duration it shows the operator. Used by
+ * {@link Countdown}.
  *
  * @category MissionDate
  */

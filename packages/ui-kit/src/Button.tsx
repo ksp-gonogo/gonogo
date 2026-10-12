@@ -12,6 +12,8 @@ import { TONE_MARK, TONE_ON_STATUS, TONE_STATUS, TONE_TEXT } from "./tone";
  * words that are themselves the control (a name that renames on click): it
  * takes its colour and type from the text around it. Set with the `variant`
  * prop of {@link Button}.
+ * Useful for telling the operator which control in a group is the main action
+ * and which are secondary.
  *
  * @category Button
  */
@@ -31,6 +33,7 @@ export type ButtonTone = Extract<Tone, "neutral" | "go" | "warn" | "nogo">;
  * `sm` for dense rows, `md` otherwise; both sizes keep the kit's one control
  * height, and only the type and padding change. Set with the `size` prop of
  * {@link Button}.
+ * Useful for fitting a button into a dense row or a roomier form.
  *
  * @category Button
  */
@@ -40,6 +43,8 @@ export type ButtonSize = "sm" | "md";
  * A native button's attributes, plus how prominent it is, what its action
  * does, how large it is and, for a toggle, whether it is pressed. Taken by
  * {@link Button}.
+ * Useful for describing a control the operator presses, with its prominence,
+ * tone and size.
  *
  * @category Button
  */
@@ -368,6 +373,8 @@ const IconButton__Body = styled.button`
 
 /**
  * Props for {@link IconButton}. Any other `button` attribute passes through.
+ * Useful for giving a control that is a glyph alone its accessible name and
+ * its press handler. Used by {@link IconButton}.
  *
  * @category Button
  */

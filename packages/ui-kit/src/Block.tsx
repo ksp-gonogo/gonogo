@@ -51,6 +51,8 @@ export interface BlockAnatomyProps {
  * Props for {@link Block}: the record anatomy (`title`, `titleLeft`,
  * `titleRight`, `left`, `right`, `top`, `bottom`, `footer`) plus any `div`
  * attribute. Taken by {@link Block}.
+ * Useful for laying out one record, such as a contract or an experiment, with
+ * its title, side marks and footer.
  *
  * @category Layout
  */
@@ -89,6 +91,7 @@ const Block__TitleLead = styled.div`
  * Props for `Block.TitleRow` (and `Card.TitleRow`): `left` is drawn before the
  * name, `right` is pushed to the end of the name's line. Taken by the title row
  * of {@link Block} and {@link Card}.
+ * Useful for adding a mark or an action beside the name of a record.
  *
  * @category Layout
  */

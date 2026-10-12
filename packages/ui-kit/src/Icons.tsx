@@ -47,6 +47,9 @@ import { forwardRef } from "react";
 
 /**
  * Props for every icon in the kit: the lucide-react SVG props plus `label`.
+ * Useful for sizing, colouring and naming an icon so the operator can tell what
+ * a control does at a glance. Taken by every icon in the kit, such as
+ * {@link PlusIcon}.
  *
  * `size` defaults to the standalone icon size token, which grows a step on a
  * coarse pointer; pass a number (pixels) or any CSS length to override it.

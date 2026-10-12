@@ -10,6 +10,9 @@ import { createContext, type ReactNode, useContext, useMemo } from "react";
 /**
  * What {@link AugmentSettingsProvider} publishes: the widget instance's saved
  * augment settings and a writer for them.
+ * Useful for letting an augment show and change what the operator chose for it
+ * on one widget. Used by {@link AugmentSettingsProvider} and read by {@link
+ * useAugmentSettings}.
  *
  * @category Extensions
  */

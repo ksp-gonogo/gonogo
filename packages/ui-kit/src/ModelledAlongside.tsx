@@ -12,7 +12,10 @@ const ModelledAlongside__Figure = styled.span`
 `;
 
 /**
- * Props for {@link ModelledAlongside} with a `Value` pair: a modelled quantity beside the quantity observed, drawn through {@link Unit}.
+ * Props for {@link ModelledAlongside} with a `Value` pair: a modelled quantity
+ * beside the quantity observed, drawn through {@link Unit}. Useful for showing
+ * the operator what a quantity is estimated to be now beside the last quantity
+ * received. Taken by {@link ModelledAlongside}.
  *
  * @category Unit
  */
@@ -26,7 +29,10 @@ export interface ModelledQuantityAlongsideProps<UnitSymbol extends string> {
 }
 
 /**
- * Props for {@link ModelledAlongside} with any other figure: a modelled figure beside the figure observed, both written by `write`.
+ * Props for {@link ModelledAlongside} with any other figure: a modelled figure
+ * beside the figure observed, both written by `write`. Useful for showing the
+ * operator what a figure is estimated to be now beside the last figure
+ * received. Taken by {@link ModelledAlongside}.
  *
  * @category Unit
  */

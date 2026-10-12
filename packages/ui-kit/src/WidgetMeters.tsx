@@ -5,7 +5,8 @@ import { Meter, MeterStack } from "./Meter";
 
 /**
  * Props for {@link WidgetMeters}: the row to show meters for and an inline
- * style for the stack.
+ * style for the stack. Useful for showing the operator the gauges an Uplink
+ * adds to a row. Taken by {@link WidgetMeters}.
  *
  * @category Meter
  */

@@ -7,7 +7,8 @@ import { toneEdge } from "./tone";
 
 /**
  * Props for {@link Notice}: everything {@link BlockProps} takes, plus the
- * banner's tone and how loudly it is announced.
+ * banner's tone and how loudly it is announced. Useful for telling the operator
+ * about a condition that affects the whole widget. Taken by {@link Notice}.
  *
  * @category EmptyState
  */

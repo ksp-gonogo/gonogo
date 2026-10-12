@@ -6,9 +6,10 @@ import { GENERATED_TEST_THEME } from "../__generated__/test-theme";
  * variable references, so a test asserts on `color: var(--color-text-primary)`
  * exactly as the app draws it.
  *
- * It has three groups: `colors` (the text, surface, border and accent roles
- * and the focus ring), `typography` (the font family, size, weight and letter
- * spacing scales) and `borders` (a subtle and a strong border).
+ * It has three groups: `colors` (the text, surface, border and accent roles and
+ * the focus ring), `typography` (the font family, size, weight and letter
+ * spacing scales) and `borders` (a subtle and a strong border). Useful for
+ * testing that a component draws in the colours and type the operator sees.
  *
  * @category Rendering
  */

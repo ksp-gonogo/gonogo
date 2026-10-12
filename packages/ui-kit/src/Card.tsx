@@ -12,6 +12,8 @@ import { toneEdge } from "./tone";
 /**
  * Props for {@link Card}: everything {@link BlockProps} takes, plus the
  * surface's own marks.
+ * Useful for describing one record drawn as a raised card, with its selection
+ * and attention marks. Used by {@link Card}.
  *
  * @category Layout
  */

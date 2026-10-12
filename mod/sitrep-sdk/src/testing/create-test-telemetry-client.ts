@@ -6,7 +6,8 @@ import { TelemetryClient } from "../spine";
  * the client itself.
  *
  * Try {@link setupStreamFixture} first: it gives a transport, a store, a fake
- * wall clock and a `Provider` together, and covers what most tests need.
+ * wall clock and a `Provider` together, and covers what most tests need. Useful
+ * for testing code that reads or sends through a telemetry client directly.
  *
  * @category Stream fixture
  */

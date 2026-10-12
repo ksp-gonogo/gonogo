@@ -7,7 +7,8 @@ import { Stat } from "./Stat";
 import { Unit } from "./Unit";
 
 /**
- * Props for {@link StatContributions}.
+ * Props for {@link StatContributions}. Useful for showing the operator figures
+ * an Uplink adds to a widget's stat strip. Taken by {@link StatContributions}.
  *
  * @category Readout
  */

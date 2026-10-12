@@ -4,7 +4,10 @@
  *
  * Take a magnitude only to compute or draw with a number, such as an SVG
  * coordinate or an orbit calculation. To show a quantity, pass it whole to
- * `<Unit>`, which formats it in its own unit.
+ * `<Unit>`, which formats it in its own unit. Useful for passing a quantity, a
+ * plain number or an absent value to a calculation without checking which it is
+ * first. Used by {@link magnitudeOf}, {@link magnitudeOr} and the models that
+ * carry a vessel's readings forward.
  *
  * @category Units and values
  */

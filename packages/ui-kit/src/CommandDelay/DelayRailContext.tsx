@@ -37,6 +37,7 @@ export interface DelayRailStore {
 
 /**
  * Create an empty delay-rail store, for a caller that owns its lifetime and provides it through {@link DelayRailContext}.
+ * Useful for a representation of the delay rail that owns its own store.
  *
  * @intent Published so a third party can own the lifetime of a rail store behind a representation of its own, as Console does.
  * @category CommandDelay
@@ -57,6 +58,7 @@ const DelayPanelStore = createPanelStore(createDelayRailStore);
  * Carries only the store handle, never the live registrations. `null` outside
  * a `Panel`, where `useRailEntry` and `useActiveHandles` degrade to no-ops.
  * Exported raw for a caller that owns the store's lifetime.
+ * Useful for a representation of the delay rail that owns its own store.
  *
  * @intent Published so a third party can provide a rail store it owns to a representation of its own, as Console does.
  * @category CommandDelay
@@ -92,6 +94,7 @@ function CommandRailBridge({ children }: { children?: ReactNode }) {
 
 /**
  * The nearest store, or `null` outside a `Panel`. Does not subscribe, so a registering widget does not re-render when a sibling registers.
+ * Useful for registering a command with the panel's delay rail.
  *
  * @intent Published so a third party can build a representation of the rail of its own, as Console does.
  * @category CommandDelay
@@ -107,6 +110,8 @@ const NO_HANDLES_SNAPSHOT = (): readonly CommandHandle[] => NO_HANDLES;
  * The panel's active command handles, or `[]` when the store is empty or there
  * is no store in the tree. A subscriber (`Panel.Delay`) re-renders only when
  * the active handle set changes.
+ * Useful for listing the commands the operator still has in flight on one
+ * panel.
  *
  * @intent Published so a third party can read the active handles to draw a representation of the rail of its own, as Console does.
  * @category CommandDelay

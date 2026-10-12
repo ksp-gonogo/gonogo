@@ -16,7 +16,9 @@ import { useElementSize } from "./useElementSize";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
- * One tab passed to {@link Tabs}: its label and the content shown when it is selected.
+ * One tab passed to {@link Tabs}: its label and the content shown when it is
+ * selected. Useful for naming each view the operator can switch a widget
+ * between.
  *
  * @category Tabs
  */
@@ -44,7 +46,8 @@ export interface TabDescriptor {
 }
 
 /**
- * Props for {@link Tabs}.
+ * Props for {@link Tabs}. Useful for letting the operator switch a widget's
+ * body between views. Taken by {@link Tabs}.
  *
  * @category Tabs
  */

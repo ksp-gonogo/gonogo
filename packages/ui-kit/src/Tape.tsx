@@ -60,7 +60,8 @@ export interface TapeMarker<Unit extends string = string> {
 }
 
 /**
- * Props for {@link Tape}.
+ * Props for {@link Tape}. Useful for showing the operator how far a vessel is
+ * along a range such as altitude. Taken by {@link Tape}.
  *
  * @category Gauge
  */

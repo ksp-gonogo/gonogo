@@ -30,6 +30,8 @@ import {
  * panel showing commands still crossing to the craft) read from a command: its
  * in-flight rows, its delay, and what became of its dispatches. Declared
  * structurally; {@link useCommand}'s return value satisfies it.
+ * Useful for drawing the delay display for a command without depending on how
+ * the command is sent.
  *
  * @category CommandDelay
  */
@@ -120,6 +122,8 @@ export interface CommandDelayHandle {
 
 /**
  * Props for {@link CommandDelay}. Pass `handle` or `handles`.
+ * Useful for choosing which commands the delay display shows, one handle or
+ * several. Used by {@link CommandDelay}.
  *
  * @category CommandDelay
  */

@@ -55,6 +55,8 @@ import type { BadgeEntry, MeterEntry, StatEntry } from "./types";
  * widget from `resource`; `status` is the only signal a contributor adds to it.
  * The first entry for a given `partId` and `resource` is drawn and any later one
  * is ignored.
+ * Useful for showing the operator a supply a part holds that the stock resource
+ * list does not carry.
  *
  * @category Widget slots
  */
@@ -91,6 +93,8 @@ export interface ShipMapPartMeterEntry {
  *
  * Drawn in the part's tooltip, after its resource meters. The first entry for a
  * given `partId` and `label` is drawn and any later one is ignored.
+ * Useful for showing the operator how a part's process is doing, such as a
+ * converter running or broken. Used by the Ship Map.
  *
  * @category Widget slots
  */
@@ -133,6 +137,8 @@ export type ShipMapPartMetaEntry = {
  * same `fromNodeId` and `toNodeId`, shows the rate beside it, and marks the
  * slowest hop once at least two hops carry a rate. An entry naming a hop that
  * is not on the route is not drawn.
+ * Useful for showing the operator how fast each hop of the comms route carries
+ * data.
  *
  * @category Widget slots
  */
@@ -155,6 +161,8 @@ export interface CommSignalHopRateEntry {
 /**
  * How strongly a System View entity is drawn when its style names no tone
  * or colour: `"faint"` is dim, `"normal"` is the default, `"bright"` stands out.
+ * Useful for dimming or highlighting an entity without choosing a colour. Used
+ * by the System View.
  *
  * @category Widget slots
  */
@@ -162,6 +170,8 @@ export type SystemEntityEmphasis = "faint" | "normal" | "bright";
 
 /**
  * How a System View entity is drawn. Every field is optional.
+ * Useful for making an entity read as quiet, important or alarming. Used by the
+ * System View.
  *
  * @category Widget slots
  */
@@ -181,6 +191,8 @@ export interface SystemEntityStyle {
  * Label and value rows for a System View entity, keyed by label. They are the
  * entity's accessible name, joined as `label: value`, and fall back to its `id`
  * when empty.
+ * Useful for telling the operator what a selected entity is. Used by the System
+ * View's info panel.
  *
  * @category Widget slots
  */
@@ -196,6 +208,7 @@ export type SystemEntityMeta = Readonly<
  *
  * A shape that draws only the whole orbit may leave both out, and then marks no
  * place on the ring. A point needs both, and is not drawn without them.
+ * Useful for placing a vessel or a relay on its orbit in the System View.
  *
  * @category Widget slots
  */
@@ -223,6 +236,7 @@ export interface SystemEntityOrbitPosition {
 /**
  * A place given as an offset from a named body's centre, for anything that is
  * not on an orbit.
+ * Useful for placing something that does not orbit in the System View.
  *
  * @category Widget slots
  */
@@ -244,6 +258,8 @@ export interface SystemEntityFixedPosition {
  * is at the instant on screen, in whatever frame the diagram draws in, and
  * marks it held when the body's place is. The body need not orbit the body the
  * diagram is centred on.
+ * Useful for putting a marker on a body without working out where it is. Used by
+ * the System View.
  *
  * @category Widget slots
  */
@@ -263,6 +279,7 @@ export interface SystemEntitySubjectPosition {
  * Where a System View entity is: on an orbit, at a fixed offset from a body, or
  * where a named body is. An entity whose position holds a non-finite number is
  * not drawn.
+ * Useful for saying where in the System View an entity goes.
  *
  * @category Widget slots
  */
@@ -282,6 +299,8 @@ export type SystemEntityPosition =
  *
  * Drawn back to front as orbit paths, then blobs and pulses, then lines, then
  * points, unless the entity sets `zHint`.
+ * Useful for choosing whether an entity shows as a marker, an orbit, a line, a
+ * disc or a moving front. Used by the System View.
  *
  * @category Widget slots
  */
@@ -329,6 +348,8 @@ export type SystemEntityShape =
  * A contribution returns plain positions and shapes; the widget projects them
  * into the frame it is drawing, at its own pan and zoom. An entity whose parent
  * is not the body the diagram is centred on is not drawn.
+ * Useful for showing the operator something the stock bodies and vessels do not,
+ * such as a relay link or a signal front. Used by the System View.
  *
  * @category Widget slots
  */
@@ -364,6 +385,8 @@ export interface SystemEntity {
  * followed by `label`, lower-cased. A `"nogo"` caption is announced to
  * screen readers at once, a `"warn"` one politely, and an `"info"` one not
  * at all.
+ * Useful for showing the operator that contact with a vessel is predicted,
+ * overdue or lost.
  *
  * @category Widget slots
  */
@@ -385,6 +408,7 @@ export interface SystemViewVesselStatusEntry {
  * the drawn orbits about the frame body, for coordinates in metres centred on
  * it; `"fixed-units"` holds a half-extent of `units` in the projection's own
  * coordinates.
+ * Useful for fitting the System View's picture to its frame.
  *
  * @category Widget slots
  */
@@ -404,6 +428,8 @@ export type SystemProjectionExtent =
  * One reference frame the System View can draw its whole picture in,
  * contributed to `system-view.projection`. The operator picks among the entries
  * offered for the body the diagram is centred on.
+ * Useful for letting the operator view the system in a frame a mod adds. Used by
+ * the System View's frame picker.
  *
  * @category Widget slots
  */
@@ -425,6 +451,8 @@ export interface SystemViewProjection {
  * Crew Status tints that kerbal's whole row by `tone`, and the first entry
  * for a name is the one drawn. Contribute nothing for a kerbal with nothing to
  * report, rather than an `"info"` entry.
+ * Useful for drawing the operator's eye to a kerbal who needs attention. Used by
+ * Crew Status.
  *
  * @category Widget slots
  */
@@ -452,6 +480,8 @@ export interface CrewRowToneEntry {
  * any strategy whose department no screen lists. The first entry for an `id` is
  * the one drawn. What a screen contains beyond its strategy cards is drawn by
  * augments on `admin-building.screen-body`, which receive the screen's `id`.
+ * Useful for sorting the Administration Building's strategies into tabs by
+ * department. Used by the Administration Building widget.
  *
  * @category Widget slots
  */
@@ -566,6 +596,8 @@ export interface MissionLogEventEntry {
  * `reading` is required too. A contribution receives each Topic's last value
  * even after samples stop, so the flags alone cannot say whether they are
  * current; the widget marks the row held from `reading`.
+ * Useful for letting the operator see and count science instruments that run on
+ * a mod's own module. Used by the Experiments widget.
  *
  * @category Widget slots
  */
@@ -601,6 +633,8 @@ export interface ExperimentsInstrumentEntry {
  * contributor passes the index through unchanged. Both tiers are required: a
  * building whose tier could not be read is left out, never sent at tier 0. The
  * first entry for a `facility` is the one drawn.
+ * Useful for showing the operator each building's tier and upgrade price. Used
+ * by Space Center Status.
  *
  * @category Widget slots
  */

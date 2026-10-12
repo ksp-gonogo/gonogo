@@ -58,8 +58,9 @@ export interface StatusBreakdownEntry {
  * The store of {@link StatusContribution}s for one dashboard tile, from which
  * the panel draws its summary badge and the collapsed header's status dots.
  * Components publish with {@link useStatusContribution} and read with
- * {@link useStatusSummary} and {@link useStatusBreakdown}; a change re-renders
- * only those subscribers.
+ * {@link useStatusSummary} and {@link useStatusBreakdown}; a change re-renders only
+ * those subscribers. Useful for telling the operator the state of a widget in
+ * its header. Used by {@link Panel}.
  *
  * @category Panel
  */

@@ -9,6 +9,8 @@ import type { RailTags } from "./railTags";
  * One dispatch that failed with an error rather than an answer: the fields of
  * {@link CommandLossLike}, plus the fault it was answered with. Taken by
  * {@link commandFailedSentence}.
+ * Useful for writing the sentence that tells the operator a command was
+ * answered with a fault.
  *
  * @category CommandDelay
  */
@@ -32,6 +34,8 @@ export interface CommandFailedEntry extends CommandFailedLike {
 /**
  * One failed dispatch as the rail renders it, plus its command's rail axes.
  * Taken by {@link CommandList}.
+ * Useful for telling the operator, on the panel's delay rail, which commands
+ * failed and why.
  *
  * @category CommandDelay
  */

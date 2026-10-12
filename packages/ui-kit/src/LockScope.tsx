@@ -10,7 +10,9 @@ import { writeLockQuantity } from "./lockQuantity";
 
 /**
  * What a locked {@link LockScope} hands its `fallback`: the sentence every lock
- * notice reads, and the locks behind it.
+ * notice reads, and the locks behind it. Useful for telling the operator which
+ * technology or building is still needed. Used by the guard that replaces a
+ * widget whose required Topics are locked.
  *
  * @category Panel
  */
@@ -24,7 +26,9 @@ export interface LockSummary {
 }
 
 /**
- * Props for {@link LockScope}.
+ * Props for {@link LockScope}. Useful for telling the operator what is still
+ * locked in place of a part of a widget that cannot work. Taken by
+ * {@link LockScope}.
  *
  * @category Panel
  */

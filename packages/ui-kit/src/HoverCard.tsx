@@ -12,6 +12,8 @@ import { focusRing } from "./focusRing";
 
 /**
  * The props of {@link HoverCard}.
+ * Useful for giving the operator detail on an item without leaving the list.
+ * Used by {@link HoverCard}.
  *
  * @category Floating
  */

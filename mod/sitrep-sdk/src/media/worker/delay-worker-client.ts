@@ -52,7 +52,9 @@ export interface SnapshottableDelayClock extends DelayClockLike {
 
 /**
  * Options for {@link createWorkerFrameDelayStream}: the clock to follow, the
- * capture clock sample to read, and the limits on what is held.
+ * capture clock sample to read, and the limits on what is held. Useful for
+ * setting how a vessel's video track is held back by a worker before the
+ * operator sees it, by the same delay as its telemetry.
  *
  * @category Delayed video
  */
@@ -241,7 +243,9 @@ export async function createWorkerFrameDelayStream(
 
 /**
  * Options for {@link attachEncodedWorkerFrameDelay}: the clock to follow, the
- * capture clock sample to read, and the limits on what is held.
+ * capture clock sample to read, and the limits on what is held. Useful for
+ * setting how a vessel's encoded video is held back by a worker before the
+ * operator sees it, by the same delay as its telemetry.
  *
  * @category Delayed video
  */

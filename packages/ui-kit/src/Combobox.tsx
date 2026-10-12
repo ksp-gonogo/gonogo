@@ -119,6 +119,9 @@ export function moveComboboxActiveIndex(
 
 /**
  * Props for {@link ComboboxListbox}.
+ * Useful for supplying the options, the highlighted option and the choice
+ * handler of a dropdown the operator searches and picks from. Used by {@link
+ * ComboboxListbox}.
  *
  * @category Form
  */

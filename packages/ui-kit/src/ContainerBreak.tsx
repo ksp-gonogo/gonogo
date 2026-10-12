@@ -3,6 +3,8 @@ import styled, { type CSSObject } from "styled-components";
 
 /**
  * Props for {@link ContainerBreak}.
+ * Useful for giving a region the two sets of styles it switches between as its
+ * panel narrows or widens. Used by {@link ContainerBreak}.
  *
  * @category Layout
  */

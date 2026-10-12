@@ -1706,9 +1706,11 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
 
 /**
  * The handle for one scene mounted into an element of its own, standing beside
- * any number of others on the page: a promise for its report, a way to emit onto
- * its stream, and a way to unmount it. Returned by {@link RenderProbeApi}'s
- * `mountScene`.
+ * any number of others on the page: a promise for its report, a way to emit
+ * onto its stream, and a way to unmount it. Returned by {@link
+ * RenderProbeApi}'s `mountScene`. Useful for showing an Uplink author several
+ * scenes of their widgets side by side on one page. Used by the storybook's
+ * Uplink scene.
  *
  * @category Probe setup
  */

@@ -16,6 +16,8 @@ import {
 
 /**
  * The props of {@link Floating}.
+ * Useful for placing a tooltip, hover card or menu against its anchor so no
+ * panel clips it. Used by {@link Floating}.
  *
  * @category Floating
  */

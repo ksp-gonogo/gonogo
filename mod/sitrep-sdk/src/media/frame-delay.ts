@@ -84,7 +84,8 @@ export type FrameSink<Frame extends FrameLike> = Pick<
 /**
  * Options for {@link runFrameDelayPipeline}: where frames come from and go to,
  * the delay clock, the capture time to stamp them with, and the limits on what
- * is held.
+ * is held. Useful for setting how a stream of a vessel's video frames is held
+ * back before the operator sees it, by the same delay as its telemetry.
  *
  * @category Delayed video
  */
@@ -315,7 +316,9 @@ const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
 
 /**
  * Options for {@link createFrameDelayStream}: the delay clock, the capture time
- * to stamp each frame with, and the limits on what is held.
+ * to stamp each frame with, and the limits on what is held. Useful for setting
+ * how a vessel's video track is held back before the operator sees it, by the
+ * same delay as its telemetry.
  *
  * @category Delayed video
  */

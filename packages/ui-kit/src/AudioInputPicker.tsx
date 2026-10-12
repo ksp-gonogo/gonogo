@@ -14,6 +14,8 @@ import {
 
 /**
  * Props for {@link AudioInputPicker}: the {@link UseAudioInputOptions} plus a label.
+ * Useful for configuring which microphone the operator can choose and what is
+ * done with its stream. Used by {@link AudioInputPicker}.
  *
  * @category AudioInputPicker
  */

@@ -35,8 +35,10 @@ import {
 } from "./orbit-patches";
 
 /**
- * A point of a sampled patch chain: metres from the frame body's centre, in
- * the catalogue's inertial axes.
+ * A point of a sampled patch chain: metres from the frame body's centre, in the
+ * catalogue's inertial axes. Useful for placing a point of a vessel's predicted
+ * path on a system diagram. Held by {@link PatchChainArc} and {@link
+ * SoiCrossing}.
  *
  * @category Orbits and trajectories
  */
@@ -51,7 +53,8 @@ export interface PatchChainPoint {
 
 /**
  * Which way a craft crosses a sphere of influence: `encounter` into a body's,
- * `escape` out of one.
+ * `escape` out of one. Useful for telling the operator whether a marked
+ * crossing is an encounter or an escape. Held by {@link SoiCrossing}.
  *
  * @category Orbits and trajectories
  */
@@ -94,8 +97,10 @@ export function soiCrossingKind(
 }
 
 /**
- * A patch as the chain samples it: its conic, its window, the body it is
- * around and how the craft enters it. An `OrbitPatch` off the wire is one.
+ * A patch as the chain samples it: its conic, its window, the body it is around
+ * and how the craft enters it. An `OrbitPatch` off the wire is one. Useful for
+ * passing the patches of a vessel's orbit, as read from its orbit Topic, to be
+ * sampled for drawing. Used by {@link patchChain} and {@link usePatchChain}.
  *
  * @category Orbits and trajectories
  */
@@ -103,7 +108,9 @@ export type PatchChainPatch = PatchSpan &
   Pick<OrbitPatch, "patchStartTransition">;
 
 /**
- * One patch of the chain as a sampled arc about the frame body.
+ * One patch of the chain as a sampled arc about the frame body. Useful for
+ * drawing one stretch of a vessel's predicted path around a body. Used by the
+ * system view's diagram.
  *
  * @category Orbits and trajectories
  */
@@ -122,7 +129,8 @@ export interface PatchChainArc {
 
 /**
  * Where and when a craft crosses a sphere of influence, as a point about the
- * frame body.
+ * frame body. Useful for marking on a system diagram where a vessel will enter
+ * or leave a body's sphere of influence. Held by {@link PatchChain}.
  *
  * @category Orbits and trajectories
  */
@@ -139,7 +147,9 @@ export interface SoiCrossing extends PatchChainPoint {
 
 /**
  * A craft's patch chain sampled about one frame body: an arc for each patch
- * that can be drawn there, and each crossing of a sphere of influence.
+ * that can be drawn there, and each crossing of a sphere of influence. Useful
+ * for drawing a vessel's predicted path through its encounters on a system
+ * diagram. Used by {@link usePatchChain} and the system view.
  *
  * @category Orbits and trajectories
  */
@@ -151,7 +161,9 @@ export interface PatchChain {
 }
 
 /**
- * What {@link patchChain} samples.
+ * What {@link patchChain} samples. Useful for handing a vessel's published
+ * patches to {@link patchChain} to be sampled for drawing. Used by {@link
+ * usePatchChain}.
  *
  * @category Orbits and trajectories
  */

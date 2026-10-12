@@ -5,7 +5,8 @@ import { Input } from "./Form";
 import { CloseIcon } from "./Icons";
 
 /**
- * The props of {@link SearchBox}.
+ * The props of {@link SearchBox}. Useful for letting the operator narrow a long
+ * list by typing. Taken by {@link SearchBox}.
  *
  * @category Form
  */

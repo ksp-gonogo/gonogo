@@ -5,6 +5,8 @@ import { Switch } from "./Switch";
 
 /**
  * Props for {@link AugmentSettingsPanel}.
+ * Useful for giving the settings form the augments' fields and the values the
+ * operator has saved. Used by {@link AugmentSettingsPanel}.
  *
  * @category Extensions
  */

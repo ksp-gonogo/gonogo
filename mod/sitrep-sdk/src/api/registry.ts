@@ -189,6 +189,7 @@ export function registerDataSource<
 
 /**
  * Removes the source registered under `id`. Does nothing if none is.
+ * Useful for dropping a data source the app should no longer offer.
  *
  * @category Registering
  */

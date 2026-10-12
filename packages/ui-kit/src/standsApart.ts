@@ -81,7 +81,10 @@ export function placedOnScale({
  * Whether a model's figure stands apart from the observation at the precision
  * both are drawn, so drawing it says something the observation beside it does
  * not. Several figures, such as a band's two ends, stand apart where any one
- * does. Beside no observation at all, every figure stands apart.
+ * does. Beside no observation at all, every figure stands apart. Useful for
+ * keeping a modelled figure off the screen when it says nothing the operator
+ * has not already read. Used by {@link ModelledAlongside}, {@link Meter} and
+ * {@link Tape}.
  *
  * @category Unit
  */

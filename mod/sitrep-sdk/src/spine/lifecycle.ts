@@ -194,6 +194,9 @@ export type CommandFoundOutcome =
  * `undelivered` (the connection gave up on it); every other phase after
  * `in-flight` is final.
  *
+ * Useful for showing the operator what became of a command they sent: waiting
+ * for a reply, confirmed, refused, lost or never sent.
+ *
  * @category Commands
  */
 // On the wire a refusal is a CommandResult.Fail on command-response; the "error" message type is the failed class.

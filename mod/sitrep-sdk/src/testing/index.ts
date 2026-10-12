@@ -133,6 +133,8 @@ export { harnessTheme } from "./theme";
  * A sent command's args, typed as the contract declares them for `command`. A
  * transport's command handler receives `args` as `unknown`; this types them, so
  * a test that asserts on a field stops compiling if the contract renames it.
+ * Useful for testing the order a widget sends when the operator presses a
+ * control.
  *
  * @category Stream fixture
  */

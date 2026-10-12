@@ -6,6 +6,8 @@ import { TONE_MARK, TONE_TEXT } from "./tone";
 
 /**
  * One person in an {@link AvatarStack}. Taken in the stack's `items`.
+ * Useful for naming each person the operator sees in a stack of avatars and
+ * whether pressing one does something. Used by {@link AvatarStack}.
  *
  * @category Badge
  */
@@ -22,6 +24,8 @@ export interface AvatarStackItem {
 
 /**
  * Props for {@link AvatarStack}: the people to show and how many places it has.
+ * Useful for choosing which people the operator sees and how much room the
+ * stack takes. Used by {@link AvatarStack}.
  *
  * @category Badge
  */
