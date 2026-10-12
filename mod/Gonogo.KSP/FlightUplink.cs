@@ -151,7 +151,7 @@ namespace Gonogo.KSP
                 }
                 _lastPublishedEndUt[vesselId] = ut;
 
-                _sampler.SignalEnd(vesselId, vessel.vesselName ?? "", reason, ut);
+                _sampler.SignalEnd(vesselId, GameWords.VesselName(vessel), reason, ut);
             }
             catch (Exception ex)
             {
@@ -191,7 +191,7 @@ namespace Gonogo.KSP
                 }
                 _lastPublishedEndUt[vesselId] = ut;
 
-                _sampler.SignalEnd(vesselId, vessel.vesselName ?? "", FlightEndReason.Recovered, ut);
+                _sampler.SignalEnd(vesselId, GameWords.VesselName(vessel), FlightEndReason.Recovered, ut);
             }
             catch (Exception ex)
             {

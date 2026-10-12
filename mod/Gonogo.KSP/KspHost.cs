@@ -1856,7 +1856,7 @@ namespace Gonogo.KSP
             var entry = new Dictionary<string, object?>
             {
                 ["kerbalVesselId"] = vessel.id.ToString(),
-                ["name"] = vessel.GetName(),
+                ["name"] = GameWords.VesselName(vessel),
                 ["situation"] = vessel.situation.ToString(),
             };
 
@@ -2182,7 +2182,7 @@ namespace Gonogo.KSP
                     var seen = new Dictionary<string, object?>
                     {
                         ["kind"] = "Vessel",
-                        ["name"] = v.GetName(),
+                        ["name"] = GameWords.VesselName(v),
                         ["vesselId"] = v.id.ToString(),
                         ["vesselType"] = v.vesselType.ToString(),
                         ["situation"] = v.situation.ToString(),
@@ -3327,7 +3327,7 @@ namespace Gonogo.KSP
 
             var result = new Dictionary<string, object?>
             {
-                ["name"] = target.GetName(),
+                ["name"] = GameWords.Name(target.GetName(), target.GetName()),
                 ["type"] = targetType,
                 ["targetVesselId"] = targetVesselId,
                 ["partId"] = partId,

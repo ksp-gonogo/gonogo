@@ -18,6 +18,9 @@ namespace Gonogo.KSP.Tests.Localisation
         [InlineData("KspHost.cs")]
         [InlineData("CrashUplink.cs")]
         [InlineData("RecoveryUplink.cs")]
+        [InlineData("FlightUplink.cs")]
+        [InlineData("CurrencyEventUplink.cs")]
+        [InlineData("KspCareerActuator.cs")]
         public void no_raw_vesselName_read_remains(string file)
         {
             var source = CurrencyDelaySourceText.ReadRelative(file);
@@ -31,6 +34,14 @@ namespace Gonogo.KSP.Tests.Localisation
             }
 
             Assert.True(lines.Count == 0, "raw vesselName read in " + file + ", route it through GameWords.VesselName: " + string.Join(", ", lines));
+        }
+
+        [Fact]
+        public void no_vessel_is_named_on_the_wire_by_its_raw_GetName()
+        {
+            var source = CurrencyDelaySourceText.ReadRelative("KspHost.cs");
+
+            Assert.DoesNotMatch(@"\[""name""\]\s*=\s*(?:v|vessel|target)\.GetName\(\)", source);
         }
 
         [Fact]

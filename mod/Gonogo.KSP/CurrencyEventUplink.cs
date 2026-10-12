@@ -329,7 +329,7 @@ namespace Gonogo.KSP
 
                 var payload = CurrencyEventBuilder.BuildScienceCredit(
                     vesselId,
-                    protoVessel.vesselName ?? string.Empty,
+                    GameWords.VesselName(protoVessel.vesselName),
                     amount,
                     subject?.id ?? string.Empty,
                     subject?.title ?? string.Empty,
@@ -440,7 +440,7 @@ namespace Gonogo.KSP
                     pending = new PendingLoss
                     {
                         VesselId = vesselId,
-                        VesselName = vessel.vesselName ?? string.Empty,
+                        VesselName = GameWords.VesselName(vessel),
                         Ut = ut,
                         Vessel = vessel,
                     };

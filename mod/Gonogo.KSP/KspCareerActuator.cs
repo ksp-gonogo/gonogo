@@ -449,8 +449,9 @@ namespace Gonogo.KSP
             if (found == null) return;
             foreach (var proto in found)
             {
-                if (proto == null || string.IsNullOrEmpty(proto.vesselName)) continue;
-                if (!into.Contains(proto.vesselName)) into.Add(proto.vesselName);
+                if (proto == null) continue;
+                var name = GameWords.VesselName(proto.vesselName);
+                if (!into.Contains(name)) into.Add(name);
             }
         }
 
