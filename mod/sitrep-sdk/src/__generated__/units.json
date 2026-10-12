@@ -250,13 +250,11 @@
       "longitude": "°"
     },
     "CommandGate": {
-      "command": "id"
+      "command": "id",
+      "itemArgument": "id"
     },
     "CommandGateItem": {
       "value": "id"
-    },
-    "CommandGateItemSet": {
-      "argument": "id"
     },
     "CommandGroupRequest": {
       "groupId": "id",
@@ -1486,8 +1484,10 @@
       "siteHeights": "m",
       "siteHeightsExtentMeters": "m",
       "siteHeightsSize": "count",
+      "slopeAngleUnderVessel": "°",
       "slopeSampleRadiusMeters": "m",
-      "terminalVelocity": "m/s"
+      "terminalVelocity": "m/s",
+      "terrainElevationUnderVessel": "m"
     },
     "VesselManeuver": {
       "planner": "id"
@@ -2146,8 +2146,10 @@
       "siteHeights": "m",
       "siteHeightsExtentMeters": "m",
       "siteHeightsSize": "count",
+      "slopeAngleUnderVessel": "°",
       "slopeSampleRadiusMeters": "m",
-      "terminalVelocity": "m/s"
+      "terminalVelocity": "m/s",
+      "terrainElevationUnderVessel": "m"
     },
     "vessel.maneuver": {
       "planner": "id"
@@ -2281,14 +2283,11 @@
       "requires": "CommandRequirement[]"
     },
     "CommandGate": {
-      "itemSets": "CommandGateItemSet[]",
+      "items": "CommandGateItem[]",
       "verdict": "GateVerdict"
     },
     "CommandGateItem": {
       "verdict": "GateVerdict"
-    },
-    "CommandGateItemSet": {
-      "items": "CommandGateItem[]"
     },
     "CommandGateReport": {
       "channels": "ChannelGate[]",

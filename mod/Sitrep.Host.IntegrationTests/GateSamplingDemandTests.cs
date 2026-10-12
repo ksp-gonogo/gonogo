@@ -99,8 +99,7 @@ namespace Sitrep.Host.IntegrationTests
                 var gate = Assert.Single(
                     Assert.IsType<List<object?>>(payload["gates"]).Cast<Dictionary<string, object?>>(),
                     g => (string?)g["command"] == ScaleProbeUplink.Command);
-                var set = Assert.Single(Assert.IsType<List<object?>>(gate["itemSets"]).Cast<Dictionary<string, object?>>());
-                var dear = Assert.Single(Assert.IsType<List<object?>>(set["items"]).Cast<Dictionary<string, object?>>());
+                var dear = Assert.Single(Assert.IsType<List<object?>>(gate["items"]).Cast<Dictionary<string, object?>>());
                 Assert.Equal(ScaleProbeUplink.DearItem(Items), dear["value"]);
             }
             finally

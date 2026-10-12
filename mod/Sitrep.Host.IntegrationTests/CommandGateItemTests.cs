@@ -29,10 +29,9 @@ namespace Sitrep.Host.IntegrationTests
 
             var verdict = Assert.IsType<Dictionary<string, object?>>(entry["verdict"]);
             Assert.Equal((double)(int)GateOutcome.Abstain, verdict["outcome"]);
-            var set = Assert.Single(Sets(entry));
-            Assert.Equal(ItemGateProbeUplink.Argument, set["argument"]);
+            Assert.Equal(ItemGateProbeUplink.Argument, entry["itemArgument"]);
 
-            var items = Items(set);
+            var items = Assert.IsType<List<object?>>(entry["items"]).Cast<Dictionary<string, object?>>().ToList();
             var dear = Assert.Single(items);
             Assert.Equal(ItemGateProbeUplink.DearItem, dear["value"]);
             var dearVerdict = Assert.IsType<Dictionary<string, object?>>(dear["verdict"]);
@@ -52,7 +51,8 @@ namespace Sitrep.Host.IntegrationTests
 
             var verdict = Assert.IsType<Dictionary<string, object?>>(entry["verdict"]);
             Assert.Equal((double)(int)GateOutcome.Fail, verdict["outcome"]);
-            Assert.Empty(Sets(entry));
+            Assert.Equal("", entry["itemArgument"]);
+            Assert.Empty(Assert.IsType<List<object?>>(entry["items"]));
             Assert.Equal(0, uplink.ItemsAsked);
         }
 
@@ -69,35 +69,37 @@ namespace Sitrep.Host.IntegrationTests
 
             var verdict = Assert.IsType<Dictionary<string, object?>>(entry["verdict"]);
             Assert.Equal((double)(int)GateOutcome.Fail, verdict["outcome"]);
-            Assert.Empty(Sets(entry));
+            Assert.Empty(Assert.IsType<List<object?>>(entry["items"]));
         }
 
-        /// <summary>
-        /// A launch is a site and a vehicle: two arguments of one command, each
-        /// with its own verdicts. Both sets are published, and each refuses only
-        /// the item its own requirement refuses.
-        /// </summary>
         [Fact]
-        public async Task TwoItemArgumentsOnOneCommandArePublishedAsTwoSets()
+        public void TwoItemArgumentsOnOneCommandRefuseTheirUplinkAndTheEngineStarts()
         {
-            var uplink = new ItemGateProbeUplink { SecondArgument = ItemGateProbeUplink.SecondArgumentName };
-            var entry = await SampleOnce(uplink);
-
-            var sets = Sets(entry).ToDictionary(s => (string)s["argument"]!);
-            Assert.Equal(2, sets.Count);
-            var first = Assert.Single(Items(sets[ItemGateProbeUplink.Argument]));
-            Assert.Equal(ItemGateProbeUplink.DearItem, first["value"]);
-            var second = Assert.Single(Items(sets[ItemGateProbeUplink.SecondArgumentName]));
-            Assert.Equal(ItemGateProbeUplink.SecondDearItem, second["value"]);
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new ItemGateProbeUplink { SecondArgument = "otherId" };
+            engine.RegisterUplink(uplink);
+            engine.RegisterUplink(new HealthyUplink());
+            engine.Start();
+            try
+            {
+                var refused = engine.AvailabilityOf(uplink.Manifest.Id);
+                Assert.False(refused.IsAvailable);
+                Assert.Contains("names its items by both", refused.Reason);
+                Assert.True(engine.AvailabilityOf(HealthyUplink.Id).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
         }
 
         /// <summary>
-        /// A requirement an Uplink contributes that nothing can evaluate refuses
-        /// that Uplink with a reason an operator can read, and the engine starts
-        /// with everything else.
+        /// A requirement an Uplink contributes to another's command that names
+        /// a different item argument refuses the contributor and leaves the
+        /// owner's gate working.
         /// </summary>
         [Fact]
-        public async Task AnUplinkContributingAnUnevaluableRequirementIsRefusedAloneAndTheEngineStarts()
+        public async Task AContributedItemArgumentThatClashesRefusesTheContributorAlone()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
             engine.RegisterUplink(new ItemGateProbeUplink());
@@ -107,7 +109,7 @@ namespace Sitrep.Host.IntegrationTests
             {
                 var refused = engine.AvailabilityOf(ClashingContributorUplink.Id);
                 Assert.False(refused.IsAvailable);
-                Assert.Contains("no-such-kind", refused.Reason);
+                Assert.Contains("names its items by both", refused.Reason);
                 Assert.True(engine.AvailabilityOf("item-gate-probe").IsAvailable);
 
                 await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
@@ -119,19 +121,13 @@ namespace Sitrep.Host.IntegrationTests
                 var gate = Assert.Single(
                     Assert.IsType<List<object?>>(payload["gates"]).Cast<Dictionary<string, object?>>(),
                     g => (string?)g["command"] == ItemGateProbeUplink.Command);
-                Assert.Single(Sets(gate));
+                Assert.Equal(ItemGateProbeUplink.Argument, gate["itemArgument"]);
             }
             finally
             {
                 engine.Stop();
             }
         }
-
-        private static List<Dictionary<string, object?>> Sets(Dictionary<string, object?> entry) =>
-            Assert.IsType<List<object?>>(entry["itemSets"]).Cast<Dictionary<string, object?>>().ToList();
-
-        private static List<Dictionary<string, object?>> Items(Dictionary<string, object?> set) =>
-            Assert.IsType<List<object?>>(set["items"]).Cast<Dictionary<string, object?>>().ToList();
 
         private static async Task<Dictionary<string, object?>> SampleOnce(ItemGateProbeUplink uplink)
         {
@@ -159,6 +155,19 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        private sealed class HealthyUplink : ISitrepUplink
+        {
+            public const string Id = "healthy";
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest => new UplinkManifest { Id = Id, Version = "1.0.0" };
+
+            public void Register(IUplinkHost host)
+            {
+            }
+        }
+
         private sealed class ClashingContributorUplink : ISitrepUplink
         {
             public const string Id = "clashing-contributor";
@@ -167,10 +176,24 @@ namespace Sitrep.Host.IntegrationTests
 
             public UplinkManifest Manifest => new UplinkManifest { Id = Id, Version = "1.0.0" };
 
-            public void Register(IUplinkHost host) =>
+            public void Register(IUplinkHost host)
+            {
+                host.AddGateEvaluator(new Gate());
                 host.AddCommandRequirement(
                     ItemGateProbeUplink.Command,
-                    new CommandRequirement { Kind = "no-such-kind", Needs = new[] { "shipName" } });
+                    new CommandRequirement { Kind = Gate.GateKind, Needs = new[] { "shipName" } });
+            }
+
+            private sealed class Gate : ICommandGateEvaluator, ICommandGateItems
+            {
+                public const string GateKind = "clashing-vehicle";
+
+                public string Kind => GateKind;
+
+                public IEnumerable<string> Items(CommandRequirement requirement) => new[] { "V-1" };
+
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments) => GateVerdict.Pass();
+            }
         }
 
         private sealed class ItemGateProbeUplink : ISitrepUplink
@@ -181,8 +204,6 @@ namespace Sitrep.Host.IntegrationTests
             public const string Argument = "itemId";
             public const string CheapItem = "cheap";
             public const string DearItem = "dear";
-            public const string SecondArgumentName = "otherId";
-            public const string SecondDearItem = "south";
             public const string DearDetail = "the dear one costs more than the career holds";
 
             public bool RefuseOutright { get; set; }
@@ -257,17 +278,13 @@ namespace Sitrep.Host.IntegrationTests
                 public IEnumerable<string> Items(CommandRequirement requirement)
                 {
                     _owner.ItemsAsked++;
-                    return requirement.Needs![0] == SecondArgumentName
-                        ? new[] { "north", SecondDearItem }
-                        : new[] { CheapItem, DearItem };
+                    return new[] { CheapItem, DearItem };
                 }
 
                 public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
                 {
-                    var argument = requirement.Needs![0];
-                    arguments.TryGet(argument, out var item);
-                    var dear = argument == SecondArgumentName ? SecondDearItem : DearItem;
-                    return (item as string) == dear
+                    arguments.TryGet(Argument, out var item);
+                    return (item as string) == DearItem
                         ? GateVerdict.Fail(CommandErrorCode.InsufficientFunds, DearDetail)
                         : GateVerdict.Pass();
                 }

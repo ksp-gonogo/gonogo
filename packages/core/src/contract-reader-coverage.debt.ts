@@ -146,8 +146,12 @@ export const CONTRACT_READER_DEBT: Record<string, string> = {
     "kept: unit follows the servo kind and is undeclared, so no widget can draw it honestly",
   "field:vessel.landing.outcome":
     "nothing an operator acts on during a landing: remove with the next contract Major",
+  "field:vessel.landing.slopeAngleUnderVessel":
+    "never produced by the mod (always null); remove with the next contract Major",
   "field:vessel.landing.slopeSampleRadiusMeters":
     "nothing an operator acts on during a landing: remove with the next contract Major",
+  "field:vessel.landing.terrainElevationUnderVessel":
+    "never produced by the mod (always null); remove with the next contract Major",
 };
 
 /**

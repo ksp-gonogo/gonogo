@@ -73,26 +73,23 @@ export function selectCommandGate(
 }
 
 /**
- * The verdict for the items a call names, when the gate depends on which item
- * that is and the mod published one. Each item set is keyed on its own
- * argument (a launch has a site and a vehicle), and the first set holding a
- * verdict for the value the call names under its argument decides. A call that
- * names no published item gets nothing here and falls back to the command's
- * own verdict, which is then an Abstain: a live control.
+ * The verdict for the item a call names, when the gate depends on which item
+ * that is and the mod published one for it. A call that names no item, or an
+ * item with no published verdict, gets nothing here and falls back to the
+ * command's own verdict, which is then an Abstain: a live control.
  */
 function itemVerdict(
   entry: CommandGate,
   args: unknown,
 ): GateVerdict | undefined {
+  // An older mod publishes neither field, which reads exactly as a gate with no items.
+  const argument = entry.itemArgument;
+  if (!argument || !entry.items?.length) return undefined;
   if (typeof args !== "object" || args === null) return undefined;
-  const named = args as Record<string, unknown>;
-  for (const set of entry.itemSets ?? []) {
-    const value = named[set.argument];
-    if (typeof value !== "string" && typeof value !== "number") continue;
-    const found = set.items.find((item) => item.value === String(value));
-    if (found) return found.verdict;
-  }
-  return undefined;
+  const named = (args as Record<string, unknown>)[argument];
+  if (typeof named !== "string" && typeof named !== "number") return undefined;
+  const value = String(named);
+  return entry.items.find((item) => item.value === value)?.verdict;
 }
 
 /** One verdict as the control reads it. Exported for the widget that holds a verdict directly. */

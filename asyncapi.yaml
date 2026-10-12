@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 40.0.0
+  version: 39.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -20781,6 +20781,26 @@ components:
             `"sub-vessel"` (directly under the vessel, when there is no touchdown
             prediction). Show it, so the operator knows whether they are seeing
             downrange or under-ship terrain. Null when no terrain was sampled.
+        terrainElevationUnderVessel:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: m
+          description: |-
+            Terrain elevation in metres above the body's mean radius directly beneath
+            the vessel. Not currently produced, so always null: when
+            `VesselLanding.sampleSource` is `"sub-vessel"`,
+            `VesselLanding.predictedTerrainElevation` carries the under-ship elevation.
+        slopeAngleUnderVessel:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: °
+          description: |-
+            Terrain slope directly beneath the vessel in degrees, 0 flat. Not currently
+            produced, so always null: when `VesselLanding.sampleSource` is
+            `"sub-vessel"`, `VesselLanding.predictedSlopeAngle` carries the under-ship
+            slope.
         predictedLatitude:
           type:
             - number

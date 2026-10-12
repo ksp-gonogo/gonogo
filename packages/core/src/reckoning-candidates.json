@@ -221,6 +221,11 @@
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
     "verdict": "coincidence"
   },
+  "VesselLanding.terrainElevationUnderVessel": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
   "VesselOrbit.epoch": {
     "rates": ["ecc"],
     "reason": "Dimensional degeneracy, not a pairing: `divide({s:1},{s:1})` is `{}` and `1`/`ratio`/`%` are all dimensionless, so EVERY dimensionless field is the dimensional rate of EVERY time field in its own type. `ecc` is not the rate of an epoch. This is what the algebra says and no vocabulary work fixes it; it is the single strongest argument against deriving a class from units.",
@@ -439,6 +444,11 @@
     "verdict": "coincidence"
   },
   "vessel.landing.slopeSampleRadiusMeters": {
+    "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
+    "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
+    "verdict": "coincidence"
+  },
+  "vessel.landing.terrainElevationUnderVessel": {
     "rates": ["projectedTouchdownSpeed", "terminalVelocity"],
     "reason": "A terrain-SAMPLING geometry constant (patch extent, slope radius, roughness) or a predicted elevation, none of which a touchdown speed is the rate of. The pairing exists because both are lengths in a payload that also carries speeds.",
     "verdict": "coincidence"

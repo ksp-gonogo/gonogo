@@ -225,8 +225,7 @@ namespace Sitrep.Host.IntegrationTests
             var gate = Assert.Single(
                 Assert.IsType<List<object?>>(report["gates"]).Cast<Dictionary<string, object?>>(),
                 g => (string?)g["command"] == command);
-            var set = Assert.Single(Assert.IsType<List<object?>>(gate["itemSets"]).Cast<Dictionary<string, object?>>());
-            return Assert.IsType<List<object?>>(set["items"]).Cast<Dictionary<string, object?>>().ToList();
+            return Assert.IsType<List<object?>>(gate["items"]).Cast<Dictionary<string, object?>>().ToList();
         }
 
         private static ChannelEngine StartEngine(InputProbeUplink probe)

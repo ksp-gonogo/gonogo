@@ -4153,24 +4153,19 @@ namespace Sitrep.Host
                 var gates = new List<CommandGate>(previous.Gates.Count);
                 foreach (var gate in previous.Gates)
                 {
-                    var states = _itemCommands.Values.Where(s => s.Command == gate.Command).ToList();
-                    if (states.Count == 0 || states.Any(s => !s.Driven))
+                    if (!_itemCommands.TryGetValue(gate.Command, out var state) || !state.Driven)
                     {
                         gates.Add(gate);
                         continue;
                     }
-                    var sets = new List<CommandGateItemSet>();
-                    foreach (var state in states)
-                    {
-                        var items = new List<CommandGateItem>();
-                        FillItems(state, items);
-                        sets.Add(new CommandGateItemSet { Argument = state.Argument, Items = items });
-                    }
+                    var items = new List<CommandGateItem>();
+                    FillItems(state, items);
                     gates.Add(new CommandGate
                     {
                         Command = gate.Command,
                         Verdict = gate.Verdict,
-                        ItemSets = sets,
+                        ItemArgument = gate.ItemArgument,
+                        Items = items,
                     });
                 }
                 _commandGateBudget?.Record(evaluated + (memo.Count - memoBefore), nowSec);
@@ -4269,13 +4264,14 @@ namespace Sitrep.Host
                     // requirement abstains rather than guessing, and the
                     // client renders an Abstain as "no answer in advance".
                     var verdict = EvaluateGatesHere(pair.Key, GateArguments.None, memo);
-                    var sets = new List<CommandGateItemSet>();
+                    var items = new List<CommandGateItem>();
+                    var itemArgument = "";
                     if (verdict.Outcome == GateOutcome.Abstain)
                     {
-                        foreach (var state in ItemCommandsFor(pair.Key))
+                        var state = ItemCommandFor(pair.Key);
+                        if (state != null)
                         {
-                            var items = new List<CommandGateItem>();
-                            sets.Add(new CommandGateItemSet { Argument = state.Argument, Items = items });
+                            itemArgument = state.Argument;
                             active.Add(state);
                             published.Add(new KeyValuePair<ItemCommand, List<CommandGateItem>>(state, items));
                         }
@@ -4284,11 +4280,12 @@ namespace Sitrep.Host
                     {
                         Command = pair.Key,
                         Verdict = verdict,
-                        ItemSets = sets,
+                        ItemArgument = itemArgument,
+                        Items = items,
                     });
                 }
 
-                foreach (var gone in _itemCommands.Keys.Where(k => active.All(a => a.Key != k)).ToList())
+                foreach (var gone in _itemCommands.Keys.Where(k => active.All(a => a.Command != k)).ToList())
                 {
                     _itemCommands.Remove(gone);
                 }
@@ -4468,16 +4465,19 @@ namespace Sitrep.Host
         /// <paramref name="command"/>'s requirements, in the order named and
         /// without repeats.
         /// </summary>
-        private void NameItems(string command, string argument, out List<string> values)
+        /// <returns>The argument the items are keyed on, or empty when the command names none.</returns>
+        private string NameItems(string command, out List<string> values)
         {
+            string? argument = null;
             values = new List<string>();
             var seen = new HashSet<string>(StringComparer.Ordinal);
             foreach (var requirement in RequirementsFor(command))
             {
                 if (requirement.Needs == null || requirement.Needs.Length != 1) continue;
-                if (requirement.Needs[0] != argument) continue;
                 if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator)) continue;
                 if (!(evaluator is ICommandGateItems itemSource)) continue;
+                // ValidateGateDeclarations refuses two item arguments on one command, so the first is the only one.
+                argument ??= requirement.Needs[0];
                 IEnumerable<string>? named;
                 try
                 {
@@ -4497,6 +4497,7 @@ namespace Sitrep.Host
                     if (!string.IsNullOrEmpty(value) && seen.Add(value)) values.Add(value);
                 }
             }
+            return argument ?? "";
         }
 
         /// <summary>
@@ -4507,18 +4508,10 @@ namespace Sitrep.Host
         /// </summary>
         private sealed class ItemCommand
         {
-            public ItemCommand(string command, string argument)
-            {
-                Command = command;
-                Argument = argument;
-            }
+            public ItemCommand(string command) => Command = command;
 
             public string Command { get; }
-
-            /// <summary>The argument whose value names an item. One state per command and argument, since a command's requirements may key on several.</summary>
-            public string Argument { get; }
-
-            public string Key => Command + "\n" + Argument;
+            public string Argument { get; set; } = "";
             public List<string> Values { get; set; } = new List<string>();
 
             /// <summary>True when every evaluator that names this command's items declares its inputs, so a verdict is re-asked only when one moves.</summary>
@@ -4542,65 +4535,55 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The remembered items of <paramref name="command"/>, one state per
-        /// argument its requirements name items by, created and classified when
-        /// first seen. Empty when none of its requirements names items.
+        /// The remembered items of <paramref name="command"/>, created and
+        /// classified when first seen, or null when none of its requirements
+        /// names items.
         /// </summary>
-        private List<ItemCommand> ItemCommandsFor(string command)
+        private ItemCommand? ItemCommandFor(string command)
         {
-            var arguments = new List<string>();
-            var driven = new Dictionary<string, bool>(StringComparer.Ordinal);
-            var inputs = new Dictionary<string, List<GateInput>>(StringComparer.Ordinal);
+            string? argument = null;
+            var driven = true;
+            var inputs = new List<GateInput>();
             foreach (var requirement in RequirementsFor(command))
             {
                 if (requirement.Needs == null || requirement.Needs.Length != 1) continue;
                 if (!_gateEvaluators.TryGetValue(requirement.Kind ?? "", out var evaluator)) continue;
                 if (!(evaluator is ICommandGateItems)) continue;
-                var argument = requirement.Needs[0];
-                if (!driven.ContainsKey(argument))
-                {
-                    arguments.Add(argument);
-                    driven[argument] = true;
-                    inputs[argument] = new List<GateInput>();
-                }
+                argument ??= requirement.Needs[0];
                 var declared = (evaluator as ICommandGateInputs)?.Inputs;
                 if (declared == null || declared.Count == 0)
                 {
-                    driven[argument] = false;
+                    driven = false;
                     continue;
                 }
-                inputs[argument].AddRange(declared);
+                inputs.AddRange(declared);
             }
+            if (argument == null) return null;
 
-            var states = new List<ItemCommand>();
-            foreach (var argument in arguments)
+            if (!_itemCommands.TryGetValue(command, out var state))
             {
-                var key = command + "\n" + argument;
-                if (!_itemCommands.TryGetValue(key, out var state))
-                {
-                    state = new ItemCommand(command, argument);
-                    _itemCommands[key] = state;
-                }
-                state.Driven = driven[argument];
-                state.Inputs.Clear();
-                state.Readers.Clear();
-                if (state.Driven)
-                {
-                    foreach (var input in inputs[argument])
-                    {
-                        state.Inputs.Add(input.Name);
-                        state.Readers.Add(input);
-                    }
-                }
-                states.Add(state);
+                state = new ItemCommand(command);
+                _itemCommands[command] = state;
             }
-            return states;
+            state.Argument = argument;
+            state.Driven = driven;
+            state.Inputs.Clear();
+            state.Readers.Clear();
+            if (driven)
+            {
+                foreach (var input in inputs)
+                {
+                    state.Inputs.Add(input.Name);
+                    state.Readers.Add(input);
+                }
+            }
+            return state;
         }
 
         /// <summary>Asks the evaluators for the items worth a verdict now, and forgets everything remembered about an item no longer named.</summary>
         private void Rename(ItemCommand state)
         {
-            NameItems(state.Command, state.Argument, out var values);
+            NameItems(state.Command, out var values);
             state.Values = values;
             state.Named = true;
             state.NamesStale = false;
@@ -4790,6 +4773,7 @@ namespace Sitrep.Host
             foreach (var pair in _commandDeclarations)
             {
                 _commandOwner.TryGetValue(pair.Key, out var commandOwner);
+                string? itemArgument = null;
                 var owned = new List<ContributedRequirement>();
                 foreach (var requirement in pair.Value.Requires ?? EmptyRequirements)
                 {
@@ -4804,10 +4788,24 @@ namespace Sitrep.Host
                 {
                     var requirement = entry.Requirement;
                     var kind = requirement.Kind ?? "";
-                    if (!_gateEvaluators.ContainsKey(kind))
+                    if (!_gateEvaluators.TryGetValue(kind, out var evaluator))
                     {
                         faults.Add(Fault(entry.Owner, $"command \"{pair.Key}\" requires gate kind \"{kind}\""));
+                        continue;
                     }
+
+                    // The gate report keys a command's items on ONE argument, so a second would publish verdicts a client cannot match to a call.
+                    if (!(evaluator is ICommandGateItems) || requirement.Needs == null || requirement.Needs.Length != 1)
+                    {
+                        continue;
+                    }
+                    var need = requirement.Needs[0];
+                    if (itemArgument != null && !string.Equals(itemArgument, need, StringComparison.Ordinal))
+                    {
+                        faults.Add(Fault(entry.Owner,
+                            $"command \"{pair.Key}\" names its items by both \"{itemArgument}\" and \"{need}\""));
+                    }
+                    itemArgument ??= need;
                 }
             }
 

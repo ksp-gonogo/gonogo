@@ -187,19 +187,15 @@
                 "outcome": 2,
                 "detail": ""
               },
-              "itemSets": [
+              "itemArgument": "strategyId",
+              "items": [
                 {
-                  "argument": "strategyId",
-                  "items": [
-                    {
-                      "value": "FundraisingCampaignCfg",
-                      "verdict": {
-                        "outcome": 1,
-                        "errorCode": "wrongState",
-                        "detail": "Another strategy in the same department is already running."
-                      }
-                    }
-                  ]
+                  "value": "FundraisingCampaignCfg",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "wrongState",
+                    "detail": "Another strategy in the same department is already running."
+                  }
                 }
               ]
             },
@@ -209,19 +205,15 @@
                 "outcome": 2,
                 "detail": ""
               },
-              "itemSets": [
+              "itemArgument": "strategyId",
+              "items": [
                 {
-                  "argument": "strategyId",
-                  "items": [
-                    {
-                      "value": "AgressiveNegotiations",
-                      "verdict": {
-                        "outcome": 1,
-                        "errorCode": "wrongState",
-                        "detail": "This strategy cannot be deactivated until it has been active for at least 30 days."
-                      }
-                    }
-                  ]
+                  "value": "AgressiveNegotiations",
+                  "verdict": {
+                    "outcome": 1,
+                    "errorCode": "wrongState",
+                    "detail": "This strategy cannot be deactivated until it has been active for at least 30 days."
+                  }
                 }
               ]
             }

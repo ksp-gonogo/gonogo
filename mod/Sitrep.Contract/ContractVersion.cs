@@ -39,7 +39,7 @@ namespace Sitrep.Contract
         /// the commit that moved it, not here.
         /// </internal>
         /// </summary>
-        public const int Major = 40;
+        public const int Major = 39;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It

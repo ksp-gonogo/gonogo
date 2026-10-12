@@ -1502,19 +1502,15 @@ describe("useCommand gate", () => {
             {
               command: "upgrade",
               verdict: { outcome: 2, detail: "" },
-              itemSets: [
+              itemArgument: "facilityId",
+              items: [
                 {
-                  argument: "facilityId",
-                  items: [
-                    {
-                      value: "LaunchPad",
-                      verdict: {
-                        outcome: 1,
-                        errorCode: "insufficientFunds",
-                        detail: "short of funds",
-                      },
-                    },
-                  ],
+                  value: "LaunchPad",
+                  verdict: {
+                    outcome: 1,
+                    errorCode: "insufficientFunds",
+                    detail: "short of funds",
+                  },
                 },
               ],
             },
