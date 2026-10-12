@@ -18,7 +18,6 @@ describe("DeviceEditor: gamepad transport", () => {
     render(
       <DeviceEditor
         types={[REAL_TYPE]}
-        usbEnabled
         onCancel={() => {}}
         onSave={() => {}}
       />,
@@ -28,56 +27,11 @@ describe("DeviceEditor: gamepad transport", () => {
     expect(values).toEqual(["virtual", "web-serial", "gamepad"]);
   });
 
-  it("does not offer USB serial while it is switched off", () => {
-    render(
-      <DeviceEditor
-        types={[REAL_TYPE]}
-        usbEnabled={false}
-        onCancel={() => {}}
-        onSave={() => {}}
-      />,
-    );
-    const select = screen.getByLabelText("Transport") as HTMLSelectElement;
-    expect(Array.from(select.options).map((o) => o.value)).toEqual([
-      "virtual",
-      "gamepad",
-    ]);
-  });
-
-  it("says what USB serial needs, in neutral words, once it is picked on a page that cannot run it", async () => {
-    const user = userEvent.setup();
-    Object.defineProperty(navigator, "serial", {
-      configurable: true,
-      value: undefined,
-    });
-    const { container } = render(
-      <DeviceEditor
-        types={[REAL_TYPE]}
-        usbEnabled
-        onCancel={() => {}}
-        onSave={() => {}}
-      />,
-    );
-    const needs =
-      "USB serial needs Chrome or Edge on an https or localhost address";
-    expect(screen.queryByText(needs)).toBeNull();
-    await user.selectOptions(screen.getByLabelText("Transport"), "web-serial");
-    const note = screen.getAllByText(needs)[0] as HTMLElement;
-    expect(note.textContent).not.toMatch(/blocked|secure context|flag/i);
-    expect(
-      (screen.getByRole("button", { name: "Save device" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
-    await expectNoA11yViolations(container);
-    delete (navigator as { serial?: unknown }).serial;
-  });
-
   it("hides the Type field and the baud field when gamepad is selected", async () => {
     const user = userEvent.setup();
     render(
       <DeviceEditor
         types={[REAL_TYPE]}
-        usbEnabled
         onCancel={() => {}}
         onSave={() => {}}
       />,
@@ -92,12 +46,7 @@ describe("DeviceEditor: gamepad transport", () => {
     const user = userEvent.setup();
     const onSave = vi.fn<ComponentProps<typeof DeviceEditor>["onSave"]>();
     render(
-      <DeviceEditor
-        types={[REAL_TYPE]}
-        usbEnabled
-        onCancel={() => {}}
-        onSave={onSave}
-      />,
+      <DeviceEditor types={[REAL_TYPE]} onCancel={() => {}} onSave={onSave} />,
     );
     await user.type(screen.getByLabelText("Name"), "My Pad");
     await user.selectOptions(screen.getByLabelText("Transport"), "gamepad");
@@ -115,12 +64,7 @@ describe("DeviceEditor: gamepad transport", () => {
     const user = userEvent.setup();
     const onSave = vi.fn<ComponentProps<typeof DeviceEditor>["onSave"]>();
     render(
-      <DeviceEditor
-        types={[REAL_TYPE]}
-        usbEnabled
-        onCancel={() => {}}
-        onSave={onSave}
-      />,
+      <DeviceEditor types={[REAL_TYPE]} onCancel={() => {}} onSave={onSave} />,
     );
     await user.type(screen.getByLabelText("Name"), "My Pad");
     await user.selectOptions(screen.getByLabelText("Transport"), "gamepad");
@@ -146,7 +90,6 @@ describe("DeviceEditor: gamepad transport", () => {
       <DeviceEditor
         initial={existing}
         types={[REAL_TYPE]}
-        usbEnabled
         onCancel={() => {}}
         onSave={onSave}
       />,
@@ -167,7 +110,6 @@ describe("DeviceEditor: gamepad transport", () => {
     const { container } = render(
       <DeviceEditor
         types={[REAL_TYPE]}
-        usbEnabled
         onCancel={() => {}}
         onSave={() => {}}
       />,

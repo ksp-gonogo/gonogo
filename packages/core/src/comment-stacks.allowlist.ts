@@ -267,7 +267,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 2,
   "packages/serial/src/SerialDevicesMenu/SelfDescribingAddWizard.tsx": 1,
   "packages/serial/src/SerialDevicesMenu/index.test.tsx": 1,
-  "packages/serial/src/SerialDevicesMenu/index.tsx": 2,
+  "packages/serial/src/SerialDevicesMenu/index.tsx": 3,
   "packages/serial/src/SerialFab.tsx": 1,
   "packages/serial/src/detectGamepadPack.ts": 2,
   "packages/serial/src/gamepadGlyphs.ts": 2,

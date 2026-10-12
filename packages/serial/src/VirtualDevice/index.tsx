@@ -166,7 +166,7 @@ registerComponent<VirtualDeviceConfig>({
   id: "virtual-device",
   name: "Virtual Device",
   description:
-    "On-screen buttons and sticks that drive a virtual controller so you can test mappings without hardware.",
+    "On-screen buttons and sticks that drive a virtual serial device so you can test mappings without hardware.",
   tags: ["input", "debug"],
   defaultSize: { w: 6, h: 8 },
   component: VirtualDeviceComponent,

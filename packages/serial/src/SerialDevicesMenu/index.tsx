@@ -1,7 +1,8 @@
 import { Button, Tabs, useModal } from "@ksp-gonogo/ui";
-import { Card, Switch, Tooltip } from "@ksp-gonogo/ui-kit";
+import { Card, Tooltip } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
+import { CHROMIUM_ONLY_SURFACES } from "../capabilities";
 import {
   CC_BY_3_LICENSE_URL,
   GAMEPAD_ART_CHANGES_NOTE,
@@ -15,35 +16,44 @@ import {
   useSerialDeviceTypes,
   useSerialPendingChoices,
   useSerialUnavailableDevices,
-  useSerialUsbEnabled,
 } from "../SerialDeviceContext";
 import type { DeviceInstance, DeviceType, UnavailableDevice } from "../types";
-import { getWebSerialSupport, USB_SERIAL_NEEDS } from "../webSerialSupport";
+import { getWebSerialSupport } from "../webSerialSupport";
 import { DeviceEditor } from "./DeviceEditor";
 import { DeviceTypeEditor } from "./DeviceTypeEditor";
 import { GamepadLearnWizard } from "./GamepadLearnWizard";
 import { SelfDescribingAddWizard } from "./SelfDescribingAddWizard";
 
+// The capability registry is the source of truth for "what's Chromium-only",
+// pull the feature label shown in the unsupported-browser banner from there
+// instead of hardcoding it a second time in this component.
+const foundWebSerialFeature = CHROMIUM_ONLY_SURFACES.find(
+  (s) => s.id === "web-serial",
+);
+if (!foundWebSerialFeature) {
+  throw new Error(
+    "capabilities registry is missing the web-serial entry SerialDevicesMenu depends on",
+  );
+}
+// Re-bind with the narrowed (non-undefined) type: the guard above narrows
+// `foundWebSerialFeature` only within this scope, not for the closures below
+// that reference it, so assign it once to a const whose inferred type
+// already excludes `undefined`.
+const WEB_SERIAL_FEATURE: (typeof CHROMIUM_ONLY_SURFACES)[number] =
+  foundWebSerialFeature;
+
 export function SerialDevicesMenu() {
   const [tab, setTab] = useState<"devices" | "types">("devices");
-  const usbEnabled = useSerialUsbEnabled();
-  /* Device types are authored for USB serial hardware (inputs by character
-     offset, a parser, a render style), so the tab goes with the switch, and a
-     tab strip of one tab goes with it. */
   return (
     <Wrap>
-      {usbEnabled ? (
-        <Tabs
-          activeId={tab}
-          onChange={(id) => setTab(id as "devices" | "types")}
-          tabs={[
-            { id: "devices", label: "Devices", content: <DevicesTab /> },
-            { id: "types", label: "Device Types", content: <TypesTab /> },
-          ]}
-        />
-      ) : (
-        <DevicesTab />
-      )}
+      <Tabs
+        activeId={tab}
+        onChange={(id) => setTab(id as "devices" | "types")}
+        tabs={[
+          { id: "devices", label: "Devices", content: <DevicesTab /> },
+          { id: "types", label: "Device Types", content: <TypesTab /> },
+        ]}
+      />
       <GamepadArtCredit />
     </Wrap>
   );
@@ -85,9 +95,9 @@ function DevicesTab() {
   const types = useSerialDeviceTypes();
   const pendingChoices = useSerialPendingChoices();
   const unavailable = useSerialUnavailableDevices();
-  const usbEnabled = useSerialUsbEnabled();
   const [editing, setEditing] = useState<DeviceInstance | "new" | null>(null);
   const [adding, setAdding] = useState<"self-describing" | null>(null);
+  const support = getWebSerialSupport();
 
   if (adding === "self-describing") {
     return <SelfDescribingAddWizard onClose={() => setAdding(null)} />;
@@ -99,7 +109,6 @@ function DevicesTab() {
       <DeviceEditor
         initial={initial}
         types={types}
-        usbEnabled={usbEnabled}
         onCancel={() => setEditing(null)}
         onSave={(device) => {
           if (initial) svc.updateDevice(device.id, device);
@@ -112,21 +121,13 @@ function DevicesTab() {
 
   return (
     <List>
+      {!support.supported && <WebSerialBanner reason={support.reason} />}
       <Toolbar>
         <Heading>
           Registered devices ({devices.length + unavailable.length})
         </Heading>
         <ToolbarButtons>
-          <Tooltip text="Show and run USB serial devices on this screen. Needs Chrome or Edge on an https or localhost address">
-            <Switch
-              checked={usbEnabled}
-              onChange={(on) => {
-                void svc.setUsbSerialEnabled(on);
-              }}
-              label="USB serial"
-            />
-          </Tooltip>
-          {usbEnabled && getWebSerialSupport().supported && (
+          {support.supported && (
             <Tooltip text="Pair a json-state controller without manually creating a device type">
               <Button
                 type="button"
@@ -160,6 +161,35 @@ function DevicesTab() {
   );
 }
 
+function WebSerialBanner({
+  reason,
+}: Readonly<{ reason: "insecure-context" | "unsupported-browser" }>) {
+  if (reason === "insecure-context") {
+    const origin =
+      typeof window !== "undefined" ? window.location.origin : "this page";
+    return (
+      <WebSerialUnavailableBanner role="status">
+        <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable: </BannerLabel> Web
+        Serial is blocked because <code>{origin}</code> isn't a secure context.
+        Chrome only exposes USB serial over HTTPS or{" "}
+        <code>http://localhost</code>. Either open the app via{" "}
+        <code>localhost</code>/HTTPS, or whitelist this origin at{" "}
+        <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code>{" "}
+        and relaunch. Virtual and gamepad devices work regardless, this only
+        affects USB serial hardware.
+      </WebSerialUnavailableBanner>
+    );
+  }
+  return (
+    <WebSerialUnavailableBanner role="status">
+      <BannerLabel>{WEB_SERIAL_FEATURE.label} unavailable: </BannerLabel> Web
+      Serial is not available in this browser. Virtual and gamepad devices still
+      work here, the Gamepad API is cross-browser; only USB serial hardware
+      needs a Chromium-based browser on desktop or Android.
+    </WebSerialUnavailableBanner>
+  );
+}
+
 function DeviceRow({
   device,
   type,
@@ -190,8 +220,6 @@ function DeviceRow({
   // the next load, which would make both controls lie. Connect/Disconnect
   // stay, they are the honest way to silence it for a screen.
   const isKeyboard = device.transport === "keyboard";
-  const usbCannotConnect =
-    device.transport === "web-serial" && !getWebSerialSupport().supported;
 
   const openLearnWizard = () => {
     if (!type) return;
@@ -245,14 +273,7 @@ function DeviceRow({
         {(device.transport === "web-serial" ||
           device.transport === "gamepad" ||
           isKeyboard) &&
-          status !== "connected" &&
-          (usbCannotConnect ? (
-            <Tooltip text={USB_SERIAL_NEEDS}>
-              <Button type="button" disabled>
-                Connect
-              </Button>
-            </Tooltip>
-          ) : (
+          status !== "connected" && (
             <Button
               type="button"
               onClick={() => {
@@ -261,7 +282,7 @@ function DeviceRow({
             >
               Connect
             </Button>
-          ))}
+          )}
         {status === "connected" && (
           <Button
             variant="ghost"
@@ -324,8 +345,6 @@ const UNAVAILABLE_DETAIL: Record<UnavailableDevice["reason"], string> = {
     "This saved device points at a device type that is not registered. It comes back when that type is added again, and its bindings stay on their widgets until then",
   "transport-error":
     "This saved device could not be started. It stays saved, and its bindings stay on their widgets, until you remove it",
-  "usb-serial-off":
-    "This saved device is a USB serial device and USB serial is switched off on this screen. It stays saved, and its bindings stay on their widgets, and it starts again when you switch USB serial on",
 };
 
 function UnavailableDeviceRow({
@@ -338,9 +357,7 @@ function UnavailableDeviceRow({
       ? `needs device type ${needs}`
       : reason === "unknown-transport"
         ? `needs ${needs} transport`
-        : reason === "usb-serial-off"
-          ? "USB serial is off"
-          : `${needs} transport failed to start`;
+        : `${needs} transport failed to start`;
   return (
     <DeviceCard
       title={instance.name}
@@ -477,6 +494,29 @@ const Empty = styled.div`
   color: var(--color-text-faint);
   font-size: var(--font-size-compact);
   padding: var(--inset-empty-note);
+`;
+
+const BannerLabel = styled.strong`
+  font-weight: 700;
+`;
+
+const WebSerialUnavailableBanner = styled.div`
+  background: var(--color-border-subtle);
+  border: 1px solid var(--color-warn-mark);
+  border-radius: var(--radius-regular);
+  color: var(--color-warn-text);
+  font-size: var(--font-size-compact);
+  line-height: var(--line-height-body);
+  padding: var(--inset-alert-band);
+
+  code {
+    font-family: var(--font-family-mono);
+    font-size: var(--font-size-compact);
+    word-break: break-all;
+    background: var(--color-surface-raised);
+    border-radius: var(--radius-regular);
+    padding: var(--inset-code-inline);
+  }
 `;
 
 /* Standalone for the same reason as InputMappingTab's binding card: this menu

@@ -144,11 +144,7 @@ export interface DeviceInstance {
  */
 export interface UnavailableDevice {
   instance: DeviceInstance;
-  reason:
-    | "unknown-transport"
-    | "missing-type"
-    | "transport-error"
-    | "usb-serial-off";
+  reason: "unknown-transport" | "missing-type" | "transport-error";
   needs: string;
 }
 

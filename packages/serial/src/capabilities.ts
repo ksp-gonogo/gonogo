@@ -13,7 +13,7 @@ export { isWebSerialSupported as hasWebSerial } from "./webSerialSupport";
 export const CHROMIUM_ONLY_SURFACES = [
   {
     id: "web-serial",
-    label: "USB serial",
+    label: "Serial input devices",
     reason:
       "Web Serial (navigator.serial) is implemented only in Chromium browsers.",
   },

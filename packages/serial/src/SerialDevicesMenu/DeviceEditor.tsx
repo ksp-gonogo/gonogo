@@ -8,19 +8,15 @@ import {
   Input,
   Select,
 } from "@ksp-gonogo/ui";
-import { Notice } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import styled from "styled-components";
 import type { LabelPack } from "../gamepadLabels";
 import { GAMEPAD_PLACEHOLDER_TYPE } from "../seeds";
 import type { DeviceInstance, DeviceTransportKind, DeviceType } from "../types";
-import { getWebSerialSupport, USB_SERIAL_NEEDS } from "../webSerialSupport";
 
 interface Props {
   initial?: DeviceInstance;
   types: DeviceType[];
-  /** Whether USB serial is switched on for this screen; the transport list offers it only then. */
-  usbEnabled: boolean;
   onCancel: () => void;
   onSave: (device: DeviceInstance) => void;
 }
@@ -28,7 +24,6 @@ interface Props {
 export function DeviceEditor({
   initial,
   types,
-  usbEnabled,
   onCancel,
   onSave,
 }: Readonly<Props>) {
@@ -48,8 +43,6 @@ export function DeviceEditor({
   );
   const isGamepad = transport === "gamepad";
   const isNewGamepadDevice = isGamepad && !initial;
-  const usbBlocked =
-    transport === "web-serial" && !getWebSerialSupport().supported;
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -123,11 +116,10 @@ export function DeviceEditor({
           onChange={(e) => setTransport(e.target.value as DeviceTransportKind)}
         >
           <option value="virtual">Virtual (in-app)</option>
-          {usbEnabled && <option value="web-serial">USB serial</option>}
+          <option value="web-serial">Web Serial (USB)</option>
           <option value="gamepad">Gamepad (Xbox / DualSense / any)</option>
         </Select>
       </Field>
-      {usbBlocked && <Notice tone="info">{USB_SERIAL_NEEDS}</Notice>}
       {transport === "web-serial" && (
         <Field>
           <FieldLabel htmlFor="device-baud">Baud rate</FieldLabel>
@@ -176,7 +168,7 @@ export function DeviceEditor({
         <Button variant="ghost" onClick={onCancel}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={handleSave} disabled={usbBlocked}>
+        <Button variant="primary" onClick={handleSave}>
           Save device
         </Button>
       </FormActions>

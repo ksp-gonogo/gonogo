@@ -29,22 +29,6 @@ describe("HelpSettings", () => {
     ).toHaveAttribute("href", expect.stringContaining("/releases"));
   });
 
-  it("explains physical controls, USB serial behind its switch and the browser's own prompt", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<HelpSettings />);
-    await user.click(screen.getByRole("button", { name: "Physical controls" }));
-    expect(
-      screen.getByText(/off until you switch USB serial on/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/That prompt is the browser's/),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/unsafely-treat-insecure-origin-as-secure/),
-    ).toBeInTheDocument();
-    await expectNoA11yViolations(container);
-  });
-
   it("never prints the engineering codename, an em-dash or a CKAN step", () => {
     const all = JSON.stringify(HELP_TOPICS);
     expect(all).not.toMatch(/sitrep/i);

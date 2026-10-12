@@ -6,7 +6,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { InputMappingTab } from "./InputMappingTab";
 import { SerialDeviceProvider } from "./SerialDeviceContext";
 import { SerialDeviceService } from "./SerialDeviceService";
@@ -229,40 +229,6 @@ describe("Inputs tab with a binding to an unavailable device", () => {
       "Launch Pad · pad-3 · unavailable",
     );
     await expectNoA11yViolations(container);
-    await svc.destroy();
-  });
-
-  it("names the input of a binding to a device that is not on this screen at all, and keeps it", async () => {
-    const svc = load(seed([virtual("first")]));
-    const onSave = vi.fn();
-    const user = userEvent.setup();
-
-    const { container } = render(
-      <ModalProvider>
-        <AutoOpen
-          content={
-            <SerialDeviceProvider service={svc}>
-              <InputMappingTab
-                actions={[fire]}
-                mappings={{ fire: { deviceId: "elsewhere", inputId: "btn-7" } }}
-                onSave={onSave}
-              />
-            </SerialDeviceProvider>
-          }
-        />
-      </ModalProvider>,
-    );
-
-    const select = (await screen.findByLabelText("Fire")) as HTMLSelectElement;
-    expect(select.selectedOptions[0]?.textContent).toBe(
-      "btn-7 · device not on this screen",
-    );
-    await expectNoA11yViolations(container);
-
-    await user.click(screen.getByRole("button", { name: /^save$/i }));
-    expect(onSave).toHaveBeenCalledWith({
-      fire: { deviceId: "elsewhere", inputId: "btn-7" },
-    });
     await svc.destroy();
   });
 });

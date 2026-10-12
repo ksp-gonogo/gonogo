@@ -39,11 +39,3 @@ export function getWebSerialSupport(): WebSerialSupport {
 export function isWebSerialSupported(): boolean {
   return getWebSerialSupport().supported;
 }
-
-/**
- * The one line shown wherever USB serial is offered on a page that cannot
- * run it. Both causes (a browser without Web Serial, a plain-http address)
- * read the same to the operator, who has nothing to fix in the app.
- */
-export const USB_SERIAL_NEEDS =
-  "USB serial needs Chrome or Edge on an https or localhost address";
