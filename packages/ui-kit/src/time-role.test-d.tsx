@@ -19,7 +19,8 @@ const viewUt = 1_000_000;
 // @ts-expect-error an instant is not a duration; subtract the frame's view time first
 <Countdown value={encounterUt} />;
 
-// UT arithmetic is on plain numbers at the unwrap boundary.
+// A bare number is not a duration: it carries no unit.
+// @ts-expect-error a duration is a Value<"s">, made with value("s", seconds)
 <Countdown value={encounterUt.magnitude - viewUt} />;
 
 <MissionDate value={encounterUt} />;

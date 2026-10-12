@@ -145,14 +145,20 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
     };
   }, [at, close]);
 
-  // WCAG 1.4.13: Escape dismisses the tip wherever focus or the pointer is.
+  /*
+   * WCAG 1.4.13: Escape dismisses the tip wherever focus or the pointer is. It
+   * listens in the capture phase on the document and stops the key there, so an
+   * enclosing dialog's own Escape handler does not also close the dialog.
+   */
   useEffect(() => {
     if (!open) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") close();
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      close();
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, [open, close]);
 
   if (shown === null) return { anchor: {}, tip: null };

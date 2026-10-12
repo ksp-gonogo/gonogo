@@ -87,11 +87,14 @@ export function HoverCard({
 
   useEffect(() => {
     if (!open) return;
+    // Capture phase and stopped there, so an enclosing dialog does not also close on the same Escape.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") hide();
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      hide();
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
   }, [open, hide]);
 
   const anchor = () => {

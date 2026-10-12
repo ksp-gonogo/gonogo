@@ -50,6 +50,22 @@ describe("useWheelGesture", () => {
     expect(e.defaultPrevented).toBe(true);
   });
 
+  it("binds a viewport that mounts after the hook first ran", () => {
+    const onZoom = vi.fn(() => true);
+    function Late({ show }: { show: boolean }) {
+      const ref = useRef<HTMLDivElement>(null);
+      useWheelGesture(ref, onZoom);
+      return show ? <div ref={ref} data-testid="late" /> : <div />;
+    }
+    const { rerender, getByTestId } = render(<Late show={false} />);
+    rerender(<Late show />);
+
+    const e = wheel(getByTestId("late"));
+
+    expect(onZoom).toHaveBeenCalledTimes(1);
+    expect(e.defaultPrevented).toBe(true);
+  });
+
   it("leaves a scroll that began outside alone when it reaches the diagram", () => {
     const { diagram, outside, onZoom } = setup();
     wheel(outside);

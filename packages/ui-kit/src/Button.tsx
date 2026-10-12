@@ -78,7 +78,8 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * the source offline banner and the command block. Write the label in sentence
  * case; uppercase belongs to headings and state tokens. It takes no alignment
  * of its own: where it sits in a row is the caller's layout. The ref reaches
- * the `button` element.
+ * the `button` element. Its `type` is `"button"` unless the caller passes
+ * `"submit"`, so a press inside a form submits nothing by default.
  *
  * Its content is a centred flex row, so an icon beside the word centres on it
  * rather than sitting on the text baseline.
@@ -114,6 +115,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       size = "md",
       pressed,
       predictedOutcome,
+      type = "button",
       ...rest
     },
     ref,
@@ -128,6 +130,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         aria-pressed={pressed}
         data-predicted={predictedOutcome}
         {...rest}
+        // After the caller's own props, so a button that passed a type keeps the attribute where it always sat.
+        type={type}
       />
     );
   },

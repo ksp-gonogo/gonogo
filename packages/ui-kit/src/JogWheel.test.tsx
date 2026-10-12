@@ -279,6 +279,58 @@ describe("JogWheel in rate mode", () => {
     }
   });
 
+  it("keeps ticking while the host re-renders faster than the tick", () => {
+    vi.useFakeTimers();
+    try {
+      const onChange = vi.fn();
+      const wheel = () => (
+        <JogWheel
+          mode="rate"
+          value={1000}
+          step={1}
+          stepsPerSecond={10}
+          aria-label="Ignition"
+          onChange={(v) => onChange(v)}
+        />
+      );
+      const { rerender } = render(wheel());
+      drag(screen.getByRole("slider", { name: "Ignition" }), 80);
+      for (let i = 0; i < 40; i++) {
+        vi.advanceTimersByTime(20);
+        rerender(wheel());
+      }
+      expect(onChange).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("holds the value inside min and max while held over", () => {
+    vi.useFakeTimers();
+    try {
+      const onChange = vi.fn();
+      render(
+        <JogWheel
+          mode="rate"
+          value={99}
+          min={0}
+          max={100}
+          step={1}
+          stepsPerSecond={50}
+          aria-label="Ignition"
+          onChange={onChange}
+        />,
+      );
+      drag(screen.getByRole("slider", { name: "Ignition" }), 80);
+      vi.advanceTimersByTime(1000);
+      for (const [next] of onChange.mock.calls) {
+        expect(next).toBeLessThanOrEqual(100);
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("springs back to centre and stops on release", () => {
     vi.useFakeTimers();
     try {

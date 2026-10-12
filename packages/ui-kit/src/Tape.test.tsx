@@ -61,14 +61,12 @@ describe("Tape", () => {
     expect(labels).toContain("4.0");
   });
 
-  it("treats a non-finite value as the minimum", () => {
+  it("draws a non-finite value as no figure, not as the minimum", () => {
     render(
       <Tape value={m(Number.NaN)} min={m(0)} max={m(5000)} aria-label="Alt" />,
     );
-    expect(screen.getByRole("meter", { name: "Alt" })).toHaveAttribute(
-      "aria-valuenow",
-      "0",
-    );
+    expect(screen.queryByRole("meter")).toBeNull();
+    expect(screen.getByRole("img", { name: /Alt/ })).toBeInTheDocument();
   });
 
   it("speaks zone and marker labels in the meter's value and draws none of them", () => {

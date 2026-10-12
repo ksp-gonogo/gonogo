@@ -295,6 +295,7 @@ export function PlotCrosshair({
   heading,
   rows: allRows,
   column,
+  traces,
 }: PlotCrosshairProps) {
   const { layout, place } = resolveCard({
     x,
@@ -302,6 +303,7 @@ export function PlotCrosshair({
     heading,
     rows: allRows,
     column,
+    traces,
   });
   const {
     full,

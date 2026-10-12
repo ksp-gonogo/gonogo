@@ -151,6 +151,8 @@ export function DataKeyPicker({
     }
     switch (e.key) {
       case "Escape":
+        // The picker used this Escape; an enclosing dialog must not also close on it.
+        e.stopPropagation();
         closePicker();
         break;
       case "ArrowDown":
@@ -166,9 +168,14 @@ export function DataKeyPicker({
         );
         break;
       case "Enter": {
-        // Falls back to the first filtered result, so a partial label plus Enter works.
+        // Falls back to the first filtered result when something is typed, so a partial label plus Enter works. With an empty query nothing was chosen, so the saved key stays.
+        const typed = query !== "";
         const opt =
-          activeIndex >= 0 ? flatOptions[activeIndex] : flatOptions[0];
+          activeIndex >= 0
+            ? flatOptions[activeIndex]
+            : typed
+              ? flatOptions[0]
+              : undefined;
         if (opt) selectOption(opt.key);
         break;
       }

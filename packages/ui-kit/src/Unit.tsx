@@ -346,7 +346,7 @@ export function Unit<UnitSymbol extends string = string>({
   const resolvedCurrency = resolveCurrency(value, { drawsReckoning: reckoned });
   // A bare quantity is current by construction, so a derived figure's mark comes from the caller.
   const currency =
-    marked != null && !resolvedCurrency.held
+    marked != null && !resolvedCurrency.held && resolvedCurrency.shown != null
       ? {
           ...resolvedCurrency,
           held: true,

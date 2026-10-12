@@ -1,6 +1,7 @@
 import { currentMode, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CSSProperties,
+  type MouseEvent,
   type RefObject,
   useEffect,
   useId,
@@ -13,6 +14,7 @@ import { Tooltip } from "../Tooltip";
 import { TONE_MARK, TONE_TEXT } from "../tone";
 import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
+import { focusBesideDismissed } from "./focusBesideDismissed";
 import { deriveGlyph, PHASE_PROGRESS } from "./toInFlightListItems";
 
 /**
@@ -328,6 +330,7 @@ export function InFlightList({
       ref={ref}
       role="list"
       aria-label={ariaLabel}
+      data-command-list=""
       data-mode={mode}
       data-density={resolved}
       $row={orientation === "row"}
@@ -453,7 +456,7 @@ const InFlightBadge = function InFlightBadge({
             {countdown !== null && (
               <>
                 {" · "}
-                <Countdown value={Math.max(0, countdown)} />
+                <Countdown value={value("s", Math.max(0, countdown))} />
               </>
             )}
           </InFlightList__Phase>
@@ -495,7 +498,7 @@ function InFlightRow({
         {countdown === null ? (
           PHASE_WORD[item.phase]
         ) : (
-          <Countdown value={Math.max(0, countdown)} />
+          <Countdown value={value("s", Math.max(0, countdown))} />
         )}
       </InFlightList__Phase>
     </InFlightList__Row>
@@ -599,7 +602,11 @@ function InFlightQueueCmd({
           {...(dismissable
             ? {
                 type: "button" as const,
-                onClick: () => onDismiss?.(item.id),
+                "data-dismiss": "",
+                onClick: (event: MouseEvent<HTMLElement>) => {
+                  focusBesideDismissed(event.currentTarget);
+                  onDismiss?.(item.id);
+                },
                 "aria-label": `Dismiss ${item.label}`,
               }
             : { "aria-hidden": true })}

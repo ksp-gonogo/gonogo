@@ -31,9 +31,11 @@ export interface DataTableColumnBase {
    */
   align?: "start" | "end";
   /**
-   * CSS width for the column, e.g. `"1fr"` or `"9ch"`. Omitted columns size
-   * to their content. A `ch` width on a numeric column keeps it from
-   * twitching as values change magnitude.
+   * CSS width for the column, e.g. `"100%"` or `"9ch"`. The table is not a
+   * grid, so `fr` units mean nothing here: a column given `"100%"` takes
+   * whatever width the others leave. Omitted columns size to their content. A
+   * `ch` width on a numeric column keeps it from twitching as values change
+   * magnitude.
    */
   width?: string;
   /**
@@ -150,7 +152,7 @@ export interface DataTableProps<Row> {
  * }
  *
  * const columns: ReadonlyArray<DataTableColumn<Subject>> = [
- *   { key: "subject", header: "Subject", rowHeader: true, width: "1fr", minWidth: "22ch", render: (s) => s.title },
+ *   { key: "subject", header: "Subject", rowHeader: true, width: "100%", minWidth: "22ch", render: (s) => s.title },
  *   { key: "data", header: "Data", align: "end", width: "9ch", value: (s) => value("Mit", s.dataMits) },
  *   { key: "remaining", header: "Remaining", align: "end", width: "10ch", value: (s) => value("science", s.remaining) },
  * ];

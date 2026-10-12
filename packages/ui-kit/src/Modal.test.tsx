@@ -55,6 +55,67 @@ function SaveBarOpener({ onSave }: { onSave: () => void }) {
   );
 }
 
+/* An inline onSave gets a new identity every render, so the footer is rebuilt on each keystroke. */
+function TypingContent({ onSave }: { onSave?: (text: string) => void }) {
+  const [text, setText] = useState("");
+  useModalSaveBar({
+    onSave: () => onSave?.(text),
+    value: { text },
+    saved: { text: "" },
+  });
+  return (
+    <input
+      aria-label="name"
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+    />
+  );
+}
+
+function TypingOpener({ onSave }: { onSave?: (text: string) => void }) {
+  const { open } = useModal();
+  return (
+    <button
+      type="button"
+      onClick={() => open(<TypingContent onSave={onSave} />, { title: "T" })}
+    >
+      open
+    </button>
+  );
+}
+
+describe("Modal focus while a form rebuilds its footer", () => {
+  it("keeps focus in the field being typed in", async () => {
+    const user = userEvent.setup();
+    render(
+      <ModalProvider>
+        <TypingOpener />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "open" }));
+    const input = screen.getByLabelText("name");
+    await user.click(input);
+    await user.keyboard("abc");
+    expect(input).toHaveValue("abc");
+    expect(input).toHaveFocus();
+  });
+
+  it("saves what is in the field at the press, not what it held when the footer was built", async () => {
+    const user = userEvent.setup();
+    const saved: string[] = [];
+    render(
+      <ModalProvider>
+        <TypingOpener onSave={(text) => saved.push(text)} />
+      </ModalProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "open" }));
+    await user.click(screen.getByLabelText("name"));
+    await user.keyboard("abc");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(saved).toEqual(["abc"]);
+  });
+});
+
 /*
  * A sparse persisted config ({}) that the form materialises into a dense one;
  * the baseline capture must keep a clean open clean.

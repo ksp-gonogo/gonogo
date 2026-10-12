@@ -209,6 +209,12 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
   // The latest value, so the interval does not close over the value the drag began at.
   const latest = useRef(value);
   latest.current = value;
+  // The tick calls whatever onChange the host last rendered with, so a host that re-renders every frame cannot keep resetting the interval.
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const stepsPerSecond =
+    (props.mode === "rate" ? props.stepsPerSecond : undefined) ??
+    DEFAULT_STEPS_PER_SECOND;
   const [displacement, setDisplacement] = useState(0);
 
   const label = format ? format(value) : String(Math.round(value));
@@ -228,17 +234,19 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
    */
   useEffect(() => {
     if (!rate || displacement === 0 || disabled) return;
-    const perSecond =
-      (props.mode === "rate" ? props.stepsPerSecond : undefined) ??
-      DEFAULT_STEPS_PER_SECOND;
     const timer = setInterval(() => {
-      const moved =
-        latest.current +
-        displacement * perSecond * step * (RATE_TICK_MS / 1000);
-      onChange(moved);
+      const moved = Math.max(
+        lo,
+        Math.min(
+          hi,
+          latest.current +
+            displacement * stepsPerSecond * step * (RATE_TICK_MS / 1000),
+        ),
+      );
+      if (moved !== latest.current) onChangeRef.current(moved);
     }, RATE_TICK_MS);
     return () => clearInterval(timer);
-  }, [rate, displacement, disabled, step, onChange, props]);
+  }, [rate, displacement, disabled, step, stepsPerSecond, lo, hi]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
     if (disabled) return;

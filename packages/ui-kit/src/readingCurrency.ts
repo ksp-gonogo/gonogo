@@ -224,12 +224,17 @@ export function resolveCurrency<Unit extends string>(
     const shown = input.reckoning.modelled;
     if (input.state === "held") {
       const held = heldCurrency(input);
-      // The figure drawn is the model's, so it is marked as modelled, from the instant the observation stopped.
+      // The figure drawn is the model's, so it is marked as modelled, from the instant the observation stopped; with no observation behind it the model stands alone and says only that.
+      const modelAlone = input.value === undefined;
+      const marked = held.held || modelAlone;
+      const said = held.caption ?? (modelAlone ? "" : null);
       return {
         ...held,
         shown,
-        mark: held.held ? "modelled" : null,
-        caption: held.caption === null ? null : `${held.caption}, modelled`,
+        held: marked,
+        mark: marked ? "modelled" : null,
+        caption:
+          said === null ? null : said === "" ? "modelled" : `${said}, modelled`,
         band,
       };
     }

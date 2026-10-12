@@ -18,12 +18,22 @@ import {
   commandGateSentence,
   commandRefusalSentence,
 } from "../CommandDelay/commandRefusalSentence";
+import { useRailAnnounces } from "../CommandDelay/railAnnouncer";
 import { FitLabel } from "../FitLabelButton";
 import { LiveRegion } from "../LiveRegion";
 import { describeSendStatus } from "../SendStatus/describeSendStatus";
 import { predictedOutcomeOf } from "../SendStatus/predictedOutcome";
 import { Tooltip } from "../Tooltip";
 import { InFlightFace } from "./InFlightFace";
+
+/** The dispatch's args as text, for telling whether an armed control is still pointed at what was armed; `null` for args that cannot be written. */
+function argsKey(args: unknown): string | null {
+  try {
+    return JSON.stringify(args) ?? "";
+  } catch {
+    return null;
+  }
+}
 
 /**
  * How long, in milliseconds, an armed {@link CommandButton} waits for its
@@ -38,6 +48,8 @@ export const ARM_TIMEOUT_MS = 4000;
  * How long, in milliseconds, a refusal stays on a command control before the
  * control returns to rest. Used by {@link CommandButton} and
  * {@link useCommandButton}.
+ *
+ * @category CommandButton
  */
 export const REFUSAL_TIMEOUT_MS = 8000;
 
@@ -46,6 +58,9 @@ export const REFUSAL_TIMEOUT_MS = 8000;
  * it was given never settles. Used by {@link useCommandButton}. A `send()`
  * promise from {@link useCommand} always settles, so this matters only for a
  * handle from another source.
+ *
+ * @intent Published so a control built on useCommandButton can show the same longest wait as CommandButton does.
+ * @category CommandButton
  */
 export const PENDING_BACKSTOP_MS = 30_000;
 
@@ -338,29 +353,45 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   // A late reply must not set state after unmount or overwrite a newer dispatch's pending.
   const mountedRef = useRef(true);
   const dispatchSeqRef = useRef(0);
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
-    },
-    [],
-  );
+    };
+  }, []);
 
   /*
    * A command THIS control lost, turning up answered. One handle often serves
    * many rows, so the phase is gated on `awaitingFoundRef` (set when this
-   * control's own dispatch settled lost). Watched off the handle, because the
-   * dispatch promise already rejected as lost and never settles again.
+   * control's own dispatch settled lost, and holding what that dispatch
+   * carried so a found for another row's command is not taken as this one's).
+   * Cleared when the outcome is cleared or times out and when a new dispatch
+   * starts. Watched off the handle, because the dispatch promise already
+   * rejected as lost and never settles again.
    */
   const founds = handle.founds;
-  const awaitingFoundRef = useRef(false);
+  const awaitingFoundRef = useRef<{ args: unknown; label?: string } | null>(
+    null,
+  );
   const foundsSeenRef = useRef(founds?.length ?? 0);
   useEffect(() => {
     const count = founds?.length ?? 0;
     const grew = count > foundsSeenRef.current;
     foundsSeenRef.current = count;
     const latest = founds?.[count - 1];
-    if (!grew || !latest || !awaitingFoundRef.current) return;
-    awaitingFoundRef.current = false;
+    const awaiting = awaitingFoundRef.current;
+    if (!grew || !latest || awaiting === null) return;
+    const otherLabel =
+      latest.label !== undefined &&
+      latest.label !== "" &&
+      awaiting.label !== undefined &&
+      latest.label !== awaiting.label;
+    const otherArgs =
+      latest.args !== undefined &&
+      awaiting.args !== undefined &&
+      JSON.stringify(latest.args) !== JSON.stringify(awaiting.args);
+    if (otherLabel || otherArgs) return;
+    awaitingFoundRef.current = null;
     setFound(latest);
     setRefusal(null);
     setPhase("found");
@@ -379,6 +410,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
     const id = setTimeout(() => {
       setPhase("idle");
       setRefusal(null);
+      awaitingFoundRef.current = null;
       // The rail holds a found until dismissed; this is only the echo on the control.
       setFound(null);
     }, REFUSAL_TIMEOUT_MS);
@@ -405,6 +437,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
   const dispatch = useCallback(() => {
     const seq = dispatchSeqRef.current + 1;
     dispatchSeqRef.current = seq;
+    awaitingFoundRef.current = null;
     setPhase("pending");
     setRefusal(null);
     const settle = (
@@ -424,7 +457,7 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
         const rejection = classifyCommandRejection(err);
         if (rejection.kind === "lost") {
           // From here on, a found landing on the handle is this control's.
-          awaitingFoundRef.current = true;
+          awaitingFoundRef.current = { args, label: commandLabel };
           settle("lost", null);
           return;
         }
@@ -462,17 +495,27 @@ export function useCommandButton<Result = CommandReplyLike, Args = unknown>({
       if (phase === "refused" || phase === "lost" || phase === "found") {
         setRefusal(null);
         setFound(null);
+        awaitingFoundRef.current = null;
         setPhase("idle");
         return;
       }
       if (armable && phase !== "armed") {
+        armedForRef.current = argsKey(args);
         setPhase("armed");
         return;
       }
       dispatch();
     },
-    [phase, gateBlocks, dispatch],
+    [phase, gateBlocks, dispatch, args],
   );
+
+  // One handle serves many rows, and a row keyed by position can be handed another item while armed; the confirming press must not send to it.
+  const armedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (phase === "armed" && argsKey(args) !== armedForRef.current) {
+      setPhase("idle");
+    }
+  }, [phase, args]);
 
   // A real outcome outranks a standing gate, and a command already travelling is not stopped by a gate that shut behind it.
   const effectivePhase: CommandButtonPhase =
@@ -630,10 +673,12 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * Called with the control's press while a click on it would do something
    * (not while it is in flight) and with `null` when it would not, for a
    * caller that lets an input (a key, a gamepad button or a serial device
-   * bound to this control) press it from elsewhere. The press
-   * takes whether the control has a confirm step.
+   * bound to this control) press it from elsewhere. The press takes no
+   * arguments and does what a click does: with a `confirmLabel` the first
+   * press arms and the second dispatches, and a control with none dispatches
+   * at once.
    */
-  onPressReady?: (press: ((armable: boolean) => void) | null) => void;
+  onPressReady?: (press: (() => void) | null) => void;
   /** Defaults to `md`. */
   size?: CommandButtonSize;
   /** Tone for the armed phase. Defaults to `go`: confirm reads as commit. */
@@ -732,11 +777,12 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     press,
   } = useCommandButton({ handle, args, commandLabel, onConfirmed });
 
+  const hasConfirmStep = confirmLabel !== undefined;
   useEffect(() => {
-    if (!onPressReady || isPending) return;
-    onPressReady(press);
+    if (!onPressReady || isPending || disabled) return;
+    onPressReady(() => press(hasConfirmStep));
     return () => onPressReady(null);
-  }, [onPressReady, isPending, press]);
+  }, [onPressReady, isPending, disabled, press, hasConfirmStep]);
 
   const resolveBody = (): ReactNode => {
     if (isPending)
@@ -776,13 +822,17 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     !isFound &&
     !isShowingReason;
 
-  const outcome = isRefused
-    ? refusalText
-    : isLost
-      ? lossText
-      : isFound
-        ? foundText
-        : null;
+  // A mounted rail announces every outcome of the commands it shows, so this control's own region stays quiet beside one.
+  const railed = useRailAnnounces();
+  const outcome = railed
+    ? null
+    : isRefused
+      ? refusalText
+      : isLost
+        ? lossText
+        : isFound
+          ? foundText
+          : null;
 
   const filled = pressed === true || isArmed || isRefused;
   const drawnTone = commandTone({

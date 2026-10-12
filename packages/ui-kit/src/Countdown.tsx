@@ -18,14 +18,14 @@ import {
  */
 export interface CountdownProps {
   /**
-   * A duration in seconds: how long until, or how long since. A bare number is
-   * accepted for client-computed durations.
+   * A duration in seconds: how long until, or how long since. A client-computed
+   * duration is made with `value("s", seconds)`.
    *
    * Not `Value<"ut">`: an instant is a type error here. Subtract the instant
    * the screen is showing, from `useViewUt`, to turn an instant into a
    * duration.
    */
-  value: Value<"s"> | Reading<Value<"s">> | number | null | undefined;
+  value: Value<"s"> | Reading<Value<"s">> | null | undefined;
   /**
    * Prefix the launch-clock sign: `T−` counting down to the event, `T+` once
    * it has passed. Off by default: a "how long until" readout is not a clock.
@@ -65,17 +65,9 @@ export function Countdown({
   clock = false,
   precise = false,
 }: CountdownProps) {
-  // A bare number never carries currency, so it is split off before the resolver.
-  const carried = typeof value === "number" ? undefined : value;
-  const format = (duration: Value<"s"> | number) =>
-    formatDuration(
-      typeof duration === "number" ? duration : duration.magnitude,
-      {
-        ms: precise,
-        sign: clock,
-      },
-    );
-  const reading = carried != null && "state" in carried ? carried : undefined;
+  const format = (duration: Value<"s">) =>
+    formatDuration(duration.magnitude, { ms: precise, sign: clock });
+  const reading = value != null && "state" in value ? value : undefined;
   const modelled = modelledBeyondReceived(reading);
   if (reading?.value !== undefined && modelled !== undefined) {
     return (
@@ -89,12 +81,11 @@ export function Countdown({
       </>
     );
   }
-  const currency = resolveCurrency(carried, { drawsReckoning: true });
+  const currency = resolveCurrency(value, { drawsReckoning: true });
   const { shown, held, mark, caption } = currency;
-  const drawn = typeof value === "number" ? value : shown;
-  if (drawn === undefined || drawn === null) return NULL_DISPLAY;
-  const text = format(drawn);
-  const figure = figureAttributes({ ...currency, shown: drawn });
+  if (shown === undefined || shown === null) return NULL_DISPLAY;
+  const text = format(shown);
+  const figure = figureAttributes(currency);
   if (!held) return <span data-figure={figure["data-figure"]}>{text}</span>;
   return (
     <HeldFigure {...figure} kind={mark ?? "held"} caption={caption}>

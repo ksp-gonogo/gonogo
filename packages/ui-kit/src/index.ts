@@ -131,6 +131,8 @@ export {
   type CommandButtonTone,
   type CommandGateLike,
   type CommandReplyLike,
+  PENDING_BACKSTOP_MS,
+  REFUSAL_TIMEOUT_MS,
   type UseCommandButtonOptions,
   useCommandButton,
 } from "./CommandButton/CommandButton";

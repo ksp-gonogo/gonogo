@@ -262,6 +262,8 @@ export function ComboboxListbox<Option extends ComboboxOption>({
       id={id}
       aria-label={ariaLabel}
       $placement={placement}
+      // A press anywhere in the list (a group header, the empty note, the scrollbar) must not move focus off the input, whose blur closes the list.
+      onMouseDown={(e) => e.preventDefault()}
     >
       {flatOptions.length === 0 ? (
         <EmptyState layout="fill">{emptyLabel}</EmptyState>
