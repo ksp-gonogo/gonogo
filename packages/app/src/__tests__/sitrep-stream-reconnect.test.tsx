@@ -72,7 +72,9 @@ function throttleFrame(throttle: number, epoch: number, validAt: number) {
 function Throttle() {
   const reading = useTelemetry("vessel.control");
   const throttle =
-    reading.state === "observed" ? reading.value.throttle : undefined;
+    reading.state === "observed" || reading.state === "held"
+      ? reading.value.throttle
+      : undefined;
   return (
     <div>throttle:{throttle == null ? NULL_DISPLAY : probeText(throttle)}</div>
   );
@@ -151,8 +153,8 @@ describe("Sitrep stream recovers across a game restart without a reload", () => 
     const connections: Connection[] = [];
     const { container } = await mountAndReceiveFirstGame(connections);
 
-    // 30 s of silence plus the 5 s unanswered probe drops the socket, one second ahead of its first retry.
-    await advance(35_000);
+    // 3 s of silence plus the 2 s unanswered probe drops the socket, one second ahead of its first retry.
+    await advance(5_000);
     expect(getSitrepTransportStatus()).toBe("reconnecting");
     expect(screen.getByText("throttle:0.75")).toBeTruthy();
 

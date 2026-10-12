@@ -387,6 +387,11 @@ export class TelemetryClient {
         ),
       ) ?? (() => undefined);
     this.unsubscribeFromTransportStatus = transport.onStatusChange((status) => {
+      /* Every attached store reads link-down from here: a reading's grade is
+         `disconnected` only while the transport says `connected` is false. */
+      for (const store of this.stores) {
+        store.setTransportConnected(status === "connected");
+      }
       if (!this.ownership) return;
       if (status === "connected") {
         // The transports re-send their whole subscription set on every connect,
@@ -636,6 +641,7 @@ export class TelemetryClient {
    */
   attachStore(store: TimelineStore): () => void {
     this.stores.add(store);
+    store.setTransportConnected(this.transport.status === "connected");
     for (const [topic, interval] of this.declaredKeyframeIntervals) {
       store.declareKeyframeInterval(topic, interval);
     }

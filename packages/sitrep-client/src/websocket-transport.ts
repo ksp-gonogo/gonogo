@@ -80,17 +80,20 @@ export interface WebSocketTransportOptions {
   maxRetryIntervalMs?: number;
   /**
    * How long a subscribed, open socket may deliver nothing before the transport
-   * asks the server something it must answer, ms (default 30000; 0 turns the
+   * asks the server something it must answer, ms (default 3000; 0 turns the
    * watchdog off).
    *
    * A tunnel or proxy can keep the TCP leg to the browser open after the
    * server behind it has gone, so no `close` ever fires. Silence alone proves
    * nothing, since a quiet scene may publish nothing for longer than this: the
    * transport sends a `ping`, and the socket is dropped only if no `pong` (or
-   * any other frame) arrives within {@link probeTimeoutMs}.
+   * any other frame) arrives within {@link probeTimeoutMs}. The mod answers a
+   * ping on the connection's own thread in every scene, so a quiet game costs
+   * one small frame each way per window and a dead peer is dropped within
+   * `silenceTimeoutMs + probeTimeoutMs` of its last frame.
    */
   silenceTimeoutMs?: number;
-  /** How long the answer to a liveness probe may take before the socket is dropped, ms (default 5000). */
+  /** How long the answer to a liveness probe may take before the socket is dropped, ms (default 2000). */
   probeTimeoutMs?: number;
   /**
    * How long a command may wait for a link that is down before it is handed
@@ -176,8 +179,8 @@ const DEFAULT_PORT = 8090;
 const DEFAULT_RETRY_INTERVAL_MS = 1_000;
 const DEFAULT_COMMAND_HOLD_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_RETRY_INTERVAL_MS = 5_000;
-const DEFAULT_SILENCE_TIMEOUT_MS = 30_000;
-const DEFAULT_PROBE_TIMEOUT_MS = 5_000;
+const DEFAULT_SILENCE_TIMEOUT_MS = 3_000;
+const DEFAULT_PROBE_TIMEOUT_MS = 2_000;
 
 /**
  * How many undelivered command-requests the transport holds for the next open.
