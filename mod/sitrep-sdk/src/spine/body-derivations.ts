@@ -18,7 +18,13 @@ function isPos(x: number | null | undefined): x is number {
   return typeof x === "number" && Number.isFinite(x) && x > 0;
 }
 
-/** Escape velocity from the surface, m/s: `v = √(2μ / r)`. */
+/**
+ * The speed a vessel needs at a body's surface to leave its gravity, in m/s:
+ * `v = √(2μ / r)`, from the body's gravitational parameter and radius. `null`
+ * when either input is missing or not positive. Useful for showing the operator
+ * the speed needed to escape a body, which the stream does not send. Used
+ * alongside the other derived almanac values for a celestial body.
+ */
 export function deriveEscapeVelocity(
   gravParameter: number | null | undefined,
   radius: number | null | undefined,
@@ -28,18 +34,20 @@ export function deriveEscapeVelocity(
 }
 
 /**
- * Orbital period, seconds, from the semi-major axis and the parent body's μ:
- * `T = 2π · √(a³ / μ_parent)`. `null` for a missing/non-positive input.
- *
- * Deliberately not taken off the wire, unlike mass / surface gravity / hill
- * sphere: KSP's own `Orbit.period` is `2π/meanMotion` over
- * `meanMotion = √(μ/|a|³)` (decompiled), so this is the game's expression
- * rather than a reconstruction of it.
+ * The time one orbit takes, in seconds, from the semi-major axis and the
+ * parent body's gravitational parameter: `T = 2π · √(a³ / μ_parent)`. `null`
+ * when either input is missing or not positive. Useful for showing the operator
+ * how long a body or vessel takes to circle its parent. Used alongside the
+ * other derived almanac values for a celestial body.
  */
 export function derivePeriod(
   semiMajorAxis: number | null | undefined,
   parentGravParameter: number | null | undefined,
 ): number | null {
+  /*
+   * Not taken off the wire: KSP's own Orbit.period is 2π/meanMotion over
+   * meanMotion = √(μ/|a|³), so this is the game's expression.
+   */
   if (!isPos(semiMajorAxis) || !isPos(parentGravParameter)) return null;
   return finite(
     2 * Math.PI * Math.sqrt(semiMajorAxis ** 3 / parentGravParameter),
@@ -61,9 +69,10 @@ function conicHasSize(
 }
 
 /**
- * True anomaly, degrees in `[0, 360)`, at universal time `ut`, reconstructed
- * from the mean anomaly at epoch via the shared Kepler solver (never a second
- * reimplementation of Kepler's equation). A closed orbit needs a positive
+ * Where a body or vessel is along its orbit, as the true anomaly in degrees in
+ * `[0, 360)`, at universal time `ut`, reconstructed from the mean anomaly at
+ * epoch. Useful for placing a body or vessel on its orbit at a chosen time.
+ * Used by the system view to place each body. A closed orbit needs a positive
  * semi-major axis; an open one (`ecc` above 1) is solved along its hyperbola
  * from the size of its semi-major axis, whichever sign it carries. Returns
  * `null` for a parabolic orbit (`ecc` exactly 1), a missing input, or a

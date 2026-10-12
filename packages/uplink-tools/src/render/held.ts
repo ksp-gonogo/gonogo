@@ -3,8 +3,8 @@ import { UNANNOUNCED_MARK } from "./probe-global";
 import type { Scene } from "./scenes";
 
 /**
- * Whether a subject says the link has gone, judged from two renders of one
- * scene: live, and with the link dropped.
+ * Whether a subject says its stream has stopped arriving, judged from two renders of one
+ * scene: live, and with the stream dropped.
  *
  * Every render the harness takes of a stream-fed scene gets a twin with the
  * other `stopsArriving` value, so an Uplink needs no held fixture for its
@@ -31,13 +31,13 @@ export interface HeldRenders {
 }
 
 export interface HeldVerdict {
-  /** The subject drew the same elements live and with the link dropped. */
+  /** The subject drew the same elements live and with the stream dropped. */
   unchanged: boolean;
   /** How many of the subject's elements differ between the two, counted both ways. */
   changed: number;
-  /** The differing elements, `-` drawn only live and `+` only with the link dropped. */
+  /** The differing elements, `-` drawn only live and `+` only with the stream dropped. */
   differences: string[];
-  /** How many elements the subject drew live, and with the link dropped, bare wrappers not counted. */
+  /** How many elements the subject drew live, and with the stream dropped, bare wrappers not counted. */
   drawn: { live: number; held: number };
   /** Elements the subject drew held with no caption saying so. */
   unannounced: string[];
@@ -126,7 +126,7 @@ export interface HeldStage {
   mount(payload: ScenePayload): Promise<SceneReport>;
   act(scene: Scene, missing: "throw" | "skip"): Promise<void>;
   refeed(): Promise<void>;
-  /** Drop the link if the payload stops arriving, then read the render. */
+  /** Drop the stream if the payload stops arriving, then read the render. */
   finish(): Promise<SceneReport>;
   read(): Promise<SceneReport>;
 }
@@ -136,9 +136,9 @@ export interface HeldStage {
  * payload says, in the state the scene pictures.
  *
  * The render in the scene's own state is the fed render again, so it drops
- * the link where the fed render does, before the presses. The twin with the
+ * the stream where the fed render does, before the presses. The twin with the
  * other state holds its drop until the presses have run: a scene driven by
- * presses is judged pressed, and a link that goes after them is the order an
+ * presses is judged pressed, and a stream that goes after them is the order an
  * operator meets it.
  *
  * A still is refed after the presses, as its picture is; a motion scene is

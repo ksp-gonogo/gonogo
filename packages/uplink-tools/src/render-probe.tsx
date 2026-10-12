@@ -77,39 +77,24 @@ import {
   sealSceneClock,
 } from "./render/sceneClock";
 
-/**
+/*
  * The browser half of the Uplink render harness: everything that has to run
- * inside the page.
+ * inside the page. The Node half is `@ksp-gonogo/uplink-tools`, and the two
+ * ship together because the generated entry, the page it is injected into and
+ * the `window` global it installs are one contract.
  *
- * It is here rather than in `@ksp-gonogo/sitrep-sdk` for the same structural
- * reason `renderWidget` is: a scene's mount is this package's providers
- * (`WidgetHost`, `Panel`, `AugmentSlot`, `DomainAvailabilityProvider`,
- * `harnessTheme`), ui-kit imports the sdk, and the sdk cannot import them back.
+ * It lives here rather than in `@ksp-gonogo/sitrep-sdk` because a scene's mount
+ * is this package's providers (`WidgetHost`, `Panel`, `AugmentSlot`,
+ * `DomainAvailabilityProvider`, `harnessTheme`), ui-kit imports the sdk, and
+ * the sdk cannot import them back.
  *
- * It exists because four Uplinks had hand-copied a probe entry each, and a copy
- * of a browser entry plus its driver is a pairing, which is the thing in this
- * repo that reliably drifts. Two of the four copies could not boot at all (no
- * host installed, no `ThemeProvider`), one driver read a repo-relative path into
- * `packages/theme/src`, and another read a `:root` block out of a file that
- * stopped having one. None of those is an import, so no import scanner could
- * report any of them. One harness, resolving everything through published
- * specifiers, is the fix that a fifth scanner is not.
- *
- * The Node half is `@ksp-gonogo/uplink-tools`, and the two are shipped together
- * deliberately: the generated entry, the page it is injected into and the
- * `window` global it installs are one contract.
- *
- * It reaches the kit through its own package name rather than relative paths,
- * and that is load-bearing rather than stylistic. Relative imports would put
- * `renderWidget` into a code-split chunk shared with `./testing`, and a chunk
- * reachable only through `dist/testing.js` does not evaluate under a consumer's
- * vitest: the namespace carries the export names with every value `undefined`,
- * so `renderWidget is not a function` in eight of an Uplink's tests while
- * `dist/index.js` (a real exports entry, so its chunk does load) works. Reaching
- * the kit as a consumer keeps `render-probe` self-contained and keeps exactly
- * one copy of the augment registry at probe-bundle time, which is the failure
- * the other direction produces: `registerAugment` writing to a Map that
- * `<AugmentSlot>` never reads.
+ * It reaches the kit through its own package name rather than relative paths.
+ * Relative imports would put `renderWidget` into a code-split chunk shared with
+ * `./testing`, and a chunk reachable only through `dist/testing.js` does not
+ * evaluate under a consumer's vitest: the namespace carries the export names
+ * with every value `undefined`. Reaching the kit as a consumer also keeps
+ * exactly one copy of the augment registry at probe-bundle time, so
+ * `registerAugment` and `<AugmentSlot>` share one Map.
  */
 
 export { RENDER_PROBE_GLOBAL } from "./render/probe-global";
@@ -127,7 +112,9 @@ export { auditMinFit };
 // The wire between the two halves
 
 /**
- * What a scene mounts. Exactly one of the three registration kinds.
+ * The kind of registration a scene mounts: exactly one of `"widget"`,
+ * `"augment"` or `"contribution"`. Useful for telling the renderer which
+ * registry to look an id up in. Used by {@link SceneTarget}.
  *
  * @category Scenes
  */
@@ -135,7 +122,8 @@ export type SceneTargetKind = "widget" | "augment" | "contribution";
 
 /**
  * What a scene mounts: a widget, an augment or a contribution, by its registered
- * id.
+ * id. Useful for pointing a fixture at the registration it pictures. Used by
+ * {@link ScenePayload} and by the renderer when it mounts a scene.
  *
  * @category Scenes
  */
@@ -147,7 +135,9 @@ export interface SceneTarget {
 }
 
 /**
- * One emission a fixture makes onto the stream.
+ * One sample a fixture sends on a Topic of the scene's stream. Useful for
+ * staging the readings a widget draws. Used by {@link ScenePayload} and
+ * {@link SceneStep}, and replayed by the renderer once the scene has subscribed.
  *
  * @category Scenes
  */
@@ -165,7 +155,10 @@ export interface SceneEmit {
 }
 
 /**
- * One frame-producing step in a motion scene.
+ * One step of a motion scene: an emission, a clock advance, a click, a held
+ * pointer or a wait, with the number of frames it spans. Useful for showing a
+ * widget changing over time in a rendered animation. Used by
+ * {@link ScenePayload}'s `steps` and by the renderer when it plays a motion scene.
  *
  * @category Scenes
  * @categoryDescription Scenes
@@ -183,29 +176,24 @@ export interface SceneStep {
   /**
    * Press the pointer on the control with this accessible name and drag it.
    *
-   * Driver-side, so it never reaches this module: a synthetic `click()` cannot
-   * express a `HELD` pointer, and a control whose displacement sets a rate rather
-   * than a value does nothing at all until one is held. Released by a later
-   * `release` step, or when the scene ends.
+   * Handled by the Node driver, so it never reaches this module. A control
+   * whose displacement sets a rate rather than a value does nothing until a
+   * pointer is held on it, which a synthetic `click()` cannot do. Released by a
+   * later `release` step, or when the scene ends.
    */
   hold?: { name: string; role?: string; dx?: number; dy?: number };
   /** Let go of whatever `hold` took. Driver-side. */
   release?: true;
   /**
-   * Milliseconds of the widget's own timers, spread over `frames`.
-   * Driver-side.
+   * Milliseconds of the widget's own timers, spread over `frames`. Handled by
+   * the Node driver.
    *
-   * The counterpart to `advanceUt` and not a substitute for it: that one steps
-   * the pinned clock, which is what keeps a countdown reproducible. This one is
-   * for a control ticking on its own `setInterval`, or a state the widget leaves
-   * behind on a `setTimeout`, neither of which the pinned clock reaches.
-   *
-   * Fired, not waited out. It used to be a real wait, and a real wait is a
-   * different number of ticks on every machine: `jogwheel-rate-mode` hashed
-   * differently on each of five consecutive regenerations before this was an
-   * amount rather than a duration. A scene that waits runs on its own clock for
-   * its whole length and this is how much of it a step spends, so the frame and
-   * its shape are both of one instant. See `./render/sceneClock`.
+   * Used alongside `advanceUt`, which steps the pinned clock and keeps a
+   * countdown reproducible. This one is for a control ticking on its own
+   * `setInterval`, or a state the widget leaves behind on a `setTimeout`, which
+   * the pinned clock does not reach. The timers are fired by that amount rather
+   * than waited out, so every machine sees the same number of ticks. See
+   * `./render/sceneClock`.
    */
   waitMs?: number;
   /** How many frames this step spans. Defaults to 1. */
@@ -214,7 +202,10 @@ export interface SceneStep {
 
 /**
  * One scene as the render probe receives it: the target, the fixture's emissions
- * and steps, and the clock to run it on.
+ * and steps, and the clock to run it on. Useful for describing a picture of a
+ * widget, augment or contribution fully enough to render it again identically.
+ * Built by `payloadFor` from a fixture and passed to {@link RenderProbeApi}'s
+ * `renderScene` by the renderer behind `uplink-tools docs`.
  *
  * @category Scenes
  */
@@ -229,7 +220,7 @@ export interface ScenePayload {
    */
   pinnedUt: number;
   /**
-   * The one-way signal delay, in seconds, between the vessel and the command centre screen.
+   * The one-way signal delay, in seconds, between the vessel and the command centre.
    *
    * Each reading is sent at its `validAt` and delivered `delaySeconds`
    * later, and the view clock is left live rather than pinned, so it sits at
@@ -248,25 +239,15 @@ export interface ScenePayload {
   /** Everything the fixture sends, replayed once the scene has subscribed. */
   emits: SceneEmit[];
   /**
-   * Stage the scene as `HELD`: once every emit has landed and the setup
-   * has run, drop the transport and mint a frame, so the shot is of a widget
-   * whose figures have stopped arriving.
+   * Stage the scene as held: once every emit has landed and the setup has run,
+   * the transport is dropped and a frame is minted, so the shot shows a widget
+   * whose figures have stopped arriving. It shows the mark on the figure, the
+   * held value and the caption naming which half is dated, none of which a live
+   * render draws.
    *
-   * Without it this harness can only picture a live scene, and what a widget
-   * draws when a figure is held is exactly the thing worth seeing: the
-   * mark on the figure, the held value where a null token used to be, the
-   * caption naming which half is dated. A field reading and a minted `Value` of
-   * the same magnitude draw identical pixels, so a held scene rendered live is
-   * byte-identical to its live twin and shows nothing.
-   *
-   * The drop is the lever rather than a clock advance because it is the one
-   * the widgets' own held tests use (`store.setTransportConnected(false)`), so
-   * a render and the test asserting on it are staging the same thing.
-   *
-   * The same field `packages/components/scripts/probe/probe-entry.tsx` and
-   * `packages/components/src/test/widgetDomSnapshot.tsx` read. It arrived here
-   * later: the commit adding it said "both harnesses" and there are three, this
-   * being the one every Uplink widget renders through.
+   * The drop is `store.setTransportConnected(false)`, the same one the widgets'
+   * own held tests use. The same field is read by the component library's probe
+   * entry and its DOM snapshot helper.
    */
   stopsArriving?: boolean;
   /** The target's saved settings for this scene, as its config form would save them. */
@@ -308,30 +289,34 @@ export interface ScenePayload {
   pxH: number;
   /**
    * Feed the scene nothing: mount it, then suppress every emission and every
-   * flat data-source key. The driver renders each scene twice and compares, because a
-   * render that is identical starved is a render of no data whatever the
-   * fixture is called.
+   * flat data-source key. The driver renders each scene twice, fed and starved,
+   * and compares them: a render that is identical starved draws no data
+   * whatever the fixture is called.
    */
   starve: boolean;
   /**
    * An augment or contribution to take out of its registry for this mount, so
-   * the render is of everything else. The held check reads a guest's
-   * response to the link dropping as the difference between the render with
-   * it and the render without it, because the host around it may mark its own
-   * held readings whatever the guest does.
+   * the render is of everything else. The held check reads a guest's response
+   * to the transport dropping as the difference between the render with it and
+   * the render without it, because the host around it may mark its own held
+   * readings whatever the guest does.
    */
   withhold?: SceneTarget;
   /**
-   * Leave the drop and the clock seal to {@link RenderProbeApi.finishScene}, so the driver can
-   * press through `_scene.before` while the link is still up.
+   * Leave the transport drop and the clock seal to
+   * {@link RenderProbeApi.finishScene}, so the driver can press through
+   * `_scene.before` while the transport is still up.
    */
   holdDrop?: boolean;
   /** The steps of a motion scene. Absent, the scene is a still. */
   steps?: SceneStep[];
 }
 
-/** The emitted topics still unread, and which of those the target never
- *  declared. What {@link SceneReport} carries, on its own, for a re-feed.
+/**
+ * The Topics a scene sent that nothing read, and which of those the target never
+ * declared. Useful for finding a fixture emission that a widget does not draw.
+ * Returned by {@link RenderProbeApi}'s `refeedScene` and carried in
+ * {@link SceneReport}.
  *
  * @category Scenes
  */
@@ -343,7 +328,10 @@ export interface UnreadTopics {
 }
 
 /**
- * What the driver reads back after a mount, to decide whether to keep the PNG.
+ * What the driver reads back after a mount: the visible text, the element count,
+ * a signature of the layout and the Topics left unread. Useful for deciding
+ * whether a rendered picture drew anything. Returned by {@link RenderProbeApi}'s
+ * `renderScene` and used by the renderer to decide whether to keep the PNG.
  *
  * @category Scenes
  */
@@ -368,7 +356,9 @@ export interface SceneReport {
 // The inventory: one read of the registries, shared by the renderer and the docs
 
 /**
- * A size the harness renders a widget at, in grid units and pixels.
+ * A size the harness renders a widget at, in grid units and pixels. Useful for
+ * showing how a widget looks at its default, minimum and responsive tile sizes.
+ * Used by {@link InventoryWidget} and by the generated page's size table.
  *
  * @category Inventory
  */
@@ -387,7 +377,9 @@ export interface InventoryMode {
 
 /**
  * One widget the Uplink registered, as the render probe reads it: its
- * {@link WidgetRecord} plus what the harness needs to render it.
+ * {@link WidgetRecord} plus the sizes the harness renders it at. Useful for
+ * listing an Uplink's widgets on its generated page. Used by
+ * {@link UplinkInventory}.
  *
  * @category Inventory
  */
@@ -397,7 +389,9 @@ export interface InventoryWidget extends WidgetRecord {
 }
 
 /**
- * One augment the Uplink registered, as the render probe reads it.
+ * One augment the Uplink registered, as the render probe reads it. Useful for
+ * listing the slots an Uplink adds to on its generated page. Used by
+ * {@link UplinkInventory}.
  *
  * @category Inventory
  */
@@ -419,7 +413,9 @@ export interface InventoryAugment {
 }
 
 /**
- * One contribution the Uplink registered, as the render probe reads it.
+ * One contribution the Uplink registered, as the render probe reads it. Useful
+ * for listing the slots an Uplink contributes to on its generated page. Used by
+ * {@link UplinkInventory}.
  *
  * @category Inventory
  */
@@ -439,7 +435,9 @@ export interface InventoryContribution {
 }
 
 /**
- * One model of this Uplink's that opted out of an input rule, and the reason given.
+ * One forward model of this Uplink's that opted out of an input rule, with the
+ * reason given. Useful for showing a reader the exceptions to the default reach
+ * and band rules. Used by {@link UplinkInventory}.
  *
  * @category Inventory
  */
@@ -454,7 +452,9 @@ export interface InventoryReckonerExemption {
 
 // Read in the page from the bundle itself, so the manifest states what the bundle was built against rather than what this tool resolved.
 /**
- * The compat numbers the Uplink's bundle was built against.
+ * The extension API version and wire contract version the Uplink's bundle was
+ * built against. Useful for telling a reader which Gonogo releases the Uplink
+ * works with. Used by {@link UplinkInventory} and the generated manifest.
  *
  * @category Inventory
  */
@@ -468,7 +468,9 @@ export interface UplinkCompat {
 }
 
 /**
- * One refusal refinement as the page lists it.
+ * One refusal code an Uplink declares, with the sentence an operator reads for
+ * it and what it means. Useful for documenting why a command was refused. Used
+ * by {@link UplinkInventory} and the generated page.
  *
  * @category Error codes
  * @categoryDescription Error codes
@@ -486,7 +488,10 @@ export interface InventoryErrorCode {
 }
 
 /**
- * Everything one Uplink registered, as `readInventory` returns it.
+ * Everything one Uplink registered, as `readInventory` returns it: its widgets,
+ * augments, contributions, processors, forward models, derived channels and
+ * refusal codes. Useful for generating the Uplink's page from what its client
+ * registers. Used by the renderer and by the page generator.
  *
  * @category Inventory
  */
@@ -500,8 +505,8 @@ export interface UplinkInventory {
   /**
    * What the Uplink does, from `defineUplinkClient`. The page's opening line.
    *
-   * Optional here because the SDK's field is, and `buildReadme` refuses a page
-   * without one: the enforcement belongs where the value is consumed.
+   * Optional because the SDK's field is; `buildReadme` refuses a page without
+   * one.
    */
   description?: string;
   /** The versions it was built against. */
@@ -517,24 +522,17 @@ export interface UplinkInventory {
   /**
    * Every registered Processor's own topic deps, keyed by processor id.
    *
-   * A contribution may depend on a Processor rather than on topics, and then
-   * the topics it ultimately needs are named nowhere in its own registration.
-   * A scene fed from that registration alone therefore declared none of them,
-   * the subscription-gated transport dropped every emit, and the render was of
-   * no data: the one case where a legitimate scene could not be expressed at
-   * all. Every processor is listed, not just this client's, because a
-   * contribution may reasonably depend on one the app declares.
+   * A contribution may depend on a Processor rather than on Topics, and then
+   * the Topics it needs are named nowhere in its own registration. Scenes use
+   * this map to declare them. Every processor is listed, not only this client's,
+   * because a contribution may depend on one the app declares.
    */
   processorTopicDeps: Record<string, string[]>;
   /** The Topics it registers a forward model for. */
   reckonedTopics: string[];
   /**
-   * This client's models that opted out of an input rule, and why.
-   *
-   * On the page because the rules are a default: an author gets a reach no
-   * further than their inputs and a band no wider than their inputs warrant
-   * without writing anything, so the only part anyone has to read is the
-   * exceptions, and an exception buried in a model file is not readable.
+   * This client's models that opted out of an input rule, and why. Listed on the
+   * page so a reader can see the exceptions to the default reach and band rules.
    */
   reckonerExemptions: InventoryReckonerExemption[];
   /** The ids of the derived channels it registers. */
@@ -554,11 +552,10 @@ export interface UplinkInventory {
   hosts: InventoryWidget[];
 }
 
-/**
+/*
  * The three responsive shapes every first-party widget is already rendered at,
  * appended to whatever the registration declares. Names match the existing
- * per-engine baselines so a reader comparing the two sets is comparing like
- * with like.
+ * per-engine baselines.
  */
 const RESPONSIVE_MODES: ReadonlyArray<{ name: string; w: number; h: number }> =
   [
@@ -599,11 +596,12 @@ function depTopic(dep: unknown): string {
 }
 
 /**
- * Everything one Uplink client registered, read off the live registries.
- *
- * The renderer reads it to know which scenes exist and what size to draw them
- * at, and the page generator reads the same object, so the page describes the
- * Uplink that was rendered.
+ * Everything one Uplink client registered, read off the live registries, as an
+ * {@link UplinkInventory}. Throws when no client is declared, or when several
+ * are and `uplinkId` names none. Useful for listing which scenes exist and what
+ * size to draw them at, and for generating the page from the same object, so the
+ * page describes the Uplink that was rendered. Used by the renderer, by
+ * `checkUplinkPage` and by {@link RenderProbeApi}.
  *
  * @category Inventory
  */
@@ -706,15 +704,15 @@ export function readInventory(uplinkId?: string): UplinkInventory {
 // The author's optional browser-side glue
 
 /**
- * What `client/gonogo-render.setup.ts` may do, for an Uplink that needs a fake
- * only it can write: a data source with its own status surface, a live WebRTC
- * session.
+ * The browser-side hooks `client/gonogo-render.setup.ts` may supply, for an
+ * Uplink that needs a fake only it can write, such as a data source with its
+ * own status surface or a live video session. Useful for rendering such an
+ * Uplink's widgets in the docs harness. Registered with {@link defineRenderSetup}
+ * and called by the renderer around each mount.
  *
- * The constraint that makes it safe: `beforeScene` is told whether the scene is
- * starved, and a setup that feeds data must honour it. The driver renders every
- * scene twice and fails when the fed and starved renders match, so a setup hook
- * that feeds regardless would defeat the one check that catches a picture of
- * nothing.
+ * `beforeScene` is told whether the scene is starved, and a setup that feeds
+ * data must honour it: the driver renders every scene twice and fails when the
+ * fed and starved renders match.
  *
  * @category Probe setup
  */
@@ -727,11 +725,9 @@ export interface RenderSetup {
   /**
    * Run once the tree is mounted and fed, before the shot is taken.
    *
-   * The place for anything that has to reach the mounted DOM. A `<video>` in
-   * headless Chromium does not paint a `captureStream`, so the one harness with
-   * a live feed puts a canvas behind the chrome here: it needs the video
-   * element to exist to find its stage, which `beforeScene` is too early for and
-   * `afterScene` is too late for.
+   * For anything that has to reach the mounted DOM, such as placing a canvas
+   * behind a `<video>` that headless Chromium does not paint. `beforeScene` is
+   * too early for that, and `afterScene` too late.
    */
   afterMount?: (ctx: {
     scene: ScenePayload;
@@ -740,14 +736,9 @@ export interface RenderSetup {
   /**
    * Unwind what `beforeScene` set up, once per mount.
    *
-   * It runs at the start of the next mount rather than the instant the shot is
-   * taken: the page has no end-of-scene call, and this way the pairing with
-   * `beforeScene` is structural (see `renderScene`). What that costs is the
-   * last mount of a run, which gets no `afterScene` because nothing follows it
-   * to carry one; the page closes there.
-   *
-   * The ctx names the scene being unwound, which is the previous one, not the
-   * one about to render.
+   * It runs at the start of the next mount, so the last mount of a run gets no
+   * `afterScene`; the page closes there. The ctx names the scene being unwound,
+   * which is the previous one, not the one about to render.
    */
   afterScene?: (ctx: { scene: ScenePayload }) => void | Promise<void>;
   /** Wrap the scene's tree in extra providers, inside the theme and stream. */
@@ -757,7 +748,9 @@ export interface RenderSetup {
 let activeSetup: RenderSetup = {};
 
 /**
- * Register the Uplink's own browser-side glue. Call once, at module scope.
+ * Registers the Uplink's own {@link RenderSetup}, returning it. Call once, at
+ * module scope. Useful for supplying fakes and providers the docs harness needs
+ * to mount an Uplink's widgets. Read by the renderer around each scene mount.
  *
  * @category Probe setup
  * @categoryDescription Probe setup
@@ -1712,8 +1705,10 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
 }
 
 /**
- * One scene mounted into an element of its own, standing beside any number of
- * others on the page.
+ * The handle for one scene mounted into an element of its own, standing beside
+ * any number of others on the page: a promise for its report, a way to emit onto
+ * its stream, and a way to unmount it. Returned by {@link RenderProbeApi}'s
+ * `mountScene`.
  *
  * @category Probe setup
  */
@@ -1766,7 +1761,10 @@ function mountScene(el: HTMLElement, scene: ScenePayload): SceneMount {
 // Installation
 
 /**
- * What `installRenderProbe` puts on the page for the Node driver to call.
+ * The functions `installRenderProbe` puts on the page under
+ * {@link RENDER_PROBE_GLOBAL}: reading the inventory, mounting a scene, stepping
+ * it and auditing its fit. Useful for a Node-side driver that renders an
+ * Uplink's scenes. Called by the renderer behind `uplink-tools docs`.
  *
  * @category Probe setup
  */
@@ -1775,36 +1773,38 @@ export interface RenderProbeApi {
   readInventory: (uplinkId?: string) => UplinkInventory;
   /** Mounts a scene and reports what it drew. */
   renderScene: (scene: ScenePayload) => Promise<SceneReport>;
-  /** Feed whatever a `_scene.before` press has just mounted, and report the
-   *  topics still unread. See {@link RenderProbeApi.refeedScene}. */
+  /** Feeds whatever a `_scene.before` press has just mounted, and reports the Topics still unread. */
   refeedScene: () => Promise<UnreadTopics>;
-  /** Complete a mount whose payload held the drop. See {@link RenderProbeApi.finishScene}. */
+  /** Completes a mount whose payload set `holdDrop`, and reports what it drew. */
   finishScene: () => Promise<SceneReport>;
-  /** The mounted render as it stands, with nothing done to it. */
+  /** Reports the mounted render as it stands, with nothing done to it. */
   readScene: () => SceneReport;
   /** Advances a mounted scene by `deltaUt` through one of its steps. */
   stepScene: (step: SceneStep, deltaUt: number) => Promise<void>;
   /**
-   * Unmount the scene last mounted and put back anything it took out, with the
-   * setup's `afterScene` run for it, for a page that mounts scenes one at a
-   * time and has to leave nothing behind between them.
+   * Unmounts the scene last mounted and puts back anything it took out, running
+   * the setup's `afterScene` for it. Useful for a page that mounts scenes one at
+   * a time and leaves nothing behind between them.
    */
   unmountScene: () => Promise<void>;
-  /** Mount a scene into an element of its own, beside the driver's and any other. See {@link RenderProbeApi.mountScene}. */
+  /** Mounts a scene into an element of its own, beside the driver's and any other. */
   mountScene: (el: HTMLElement, scene: ScenePayload) => SceneMount;
-  /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
-   *  Separate from `renderScene`'s report because the driver grows the mount
-   *  box before it screenshots, and an audit taken after that grow is an audit
-   *  of a tile nobody is running. */
+  /**
+   * Reports whether the render just mounted fits its tile. See {@link auditMinFit}.
+   * Called before the driver grows the mount box for its screenshot, so the
+   * audit is of the tile the widget runs in.
+   */
   auditMinFit: () => MinFitFinding[];
 }
 
 /**
- * Everything a page needs before an Uplink's own module is imported.
+ * Installs the host the render probe needs and publishes its
+ * {@link RenderProbeApi} under {@link RENDER_PROBE_GLOBAL}. Useful for booting a
+ * page that renders an Uplink's scenes. Used by the entry the renderer generates.
  *
  * Await it before the client bundle loads, and import the client dynamically
  * after it: a widget's `registerComponent` at module load throws "the gonogo
- * host has not been installed" until this has run. A static import would be
+ * host has not been installed" until this has run, and a static import would be
  * hoisted above it.
  *
  * @category Probe setup

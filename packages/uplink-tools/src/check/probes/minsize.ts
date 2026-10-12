@@ -128,9 +128,8 @@ export interface MinsizeResult {
  * Renders every widget the client registers at the `minSize` it declares, in a
  * real browser, and returns the ones an operator could not read there.
  *
- * Measured through a real layout because none of it exists in jsdom, and in
- * pixels, so the verdict is the rendering platform's: a clean macOS run does
- * not prove a Linux one.
+ * The measurement is in pixels through a real layout, so the verdict is the
+ * rendering platform's: a clean macOS run does not prove a Linux one.
  */
 export async function sweepMinSize(clientDir: string): Promise<MinsizeResult> {
   const pkg = resolveUplinkPackage(clientDir);

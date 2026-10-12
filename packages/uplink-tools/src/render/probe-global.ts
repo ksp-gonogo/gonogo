@@ -1,7 +1,8 @@
 // Its own module, importing nothing: the Node half needs this value, and importing it from `../render-probe` would pull React and the sdk into the Node bundle.
 /**
- * The `window` key the render probe installs itself under, for a Node driver
- * that talks to the page.
+ * The `window` key the render probe installs itself under (`__gonogoRenderProbe`).
+ * Useful for a Node-side driver that needs to reach the probe's API inside the
+ * rendered page. Used by the renderer behind `uplink-tools docs`.
  *
  * @category Rendering scenes
  */
@@ -11,15 +12,10 @@ export const RENDER_PROBE_GLOBAL = "__gonogoRenderProbe";
  * The attribute marking text the harness drew, not the subject.
  *
  * A stand-in host is a `Panel` with a title, and that title sits inside `#root`
- * like everything else, so every check that reads the page reads it too. Both of
- * the checks that exist to catch a scene rendering nothing were satisfiable by it
- * alone: `paints: ["FUEL"]` matched "FUEL STATUS (stand-in host)" while the
- * augment drew nothing whatever, and `expectsEmpty`'s "an empty state a reader
- * can see" was the stand-in's own title. A guard a stand-in can satisfy on its
- * own is a guard that passes on the thing it exists to catch.
- *
- * Here rather than in `render-probe.tsx` for the same reason as the global above:
- * the Node half needs the value and must not import the browser module.
+ * like everything else, so every check that reads the page reads it too. The
+ * attribute lets those checks skip it: without it, `paints: ["FUEL"]` matched
+ * "FUEL STATUS (stand-in host)" while the augment drew nothing, and
+ * `expectsEmpty` accepted the stand-in's own title as an empty state.
  */
 export const PROBE_CHROME_ATTR = "data-probe-chrome";
 
@@ -37,16 +33,10 @@ export const SUPPLIED_ATTR = "data-uplink-supplied";
  *
  * `Panel` renders every host's `<id>.badges` aside itself, through
  * `renderWidget`'s `WidgetBadges`, so a badge lands in a stand-in exactly as it
- * lands in the real widget. Measured, and the measurement is the reason this is
- * narrower than "any slot with a dot in it": a hostless
- * `ship-map.part-meters` scene renders a completely blank frame, because
- * `part-meters` is drawn by Ship Map's own body and a stand-in has none. Same
- * for the other two host-invariant segments, `meters` and `filters`: a widget
- * places `<WidgetMeters>` / `<FilterList>` in its body, the framework does not.
- *
- * Here rather than beside `FRAMEWORK_AUGMENT_SEGMENTS` in `Panel.tsx` for the
- * same reason as the two above: `scenes.ts` runs in Node and reaching into the
- * kit's browser module from there pulls React and the sdk into the Node bundle.
+ * lands in the real widget. Other segments are drawn by a widget's own body:
+ * a hostless `ship-map.part-meters` scene renders a blank frame, and `meters`
+ * and `filters` are placed by the widget (`<WidgetMeters>`, `<FilterList>`),
+ * not by the framework.
  */
 export const HOST_DRAWN_CONTRIBUTION_SEGMENTS = ["badges"] as const;
 

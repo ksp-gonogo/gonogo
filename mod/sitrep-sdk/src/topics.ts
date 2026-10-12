@@ -194,10 +194,10 @@ export interface SystemUplinkPendingTopicPayloadMap {
  * payload is a real reflected contract type, so this maps to the generated
  * interface rather than re-describing it.
  *
- * Not a permission. The snapshot is up to half a second old and the dispatch
- * re-evaluates the same gates against live state, so an out-of-date `Pass`
- * never lets a command through. It exists to say no in advance, never to say
- * yes.
+ * A `Pass` here does not permit a command. The snapshot is up to half a second
+ * old and the dispatch re-evaluates the same gates against live state, so an
+ * out-of-date `Pass` never lets a command through. Useful for disabling a
+ * control that would be refused.
  */
 export interface SystemUplinkGatesTopicPayloadMap {
   /** Each gated command and whether it would be accepted now. */
@@ -271,7 +271,9 @@ interface SdkOwnedTopicPayloadMap
 
 /**
  * Every Topic id mapped to the type of its payload. {@link TopicId} and
- * {@link TopicPayload} are read from it.
+ * {@link TopicPayload} are read from it. Useful for an Uplink that adds Topics
+ * of its own, so reads of them are typed. Used by {@link useTelemetry} to type
+ * the reading it returns.
  *
  * An Uplink whose Topics are not in the Gonogo contract adds them by
  * augmenting this interface from its client package, and registers each id
@@ -290,14 +292,19 @@ interface SdkOwnedTopicPayloadMap
 export interface TopicPayloadMap extends SdkOwnedTopicPayloadMap {}
 
 /**
- * Every Topic the mod declares, as a string-literal union.
+ * Every Topic the mod declares, as a string-literal union, plus those an Uplink
+ * adds to {@link TopicPayloadMap}. Useful for catching a misspelt Topic id when
+ * a widget lists its channels or reads a Topic. Used by {@link useTelemetry} to
+ * type its argument.
  *
  * @category Reading telemetry
  */
 export type TopicId = keyof TopicPayloadMap;
 
 /**
- * The payload interface carried by `stream-data` messages on Topic `Topic`.
+ * The payload carried by the readings of Topic `Topic`. Useful for typing a
+ * value taken from one Topic. Used by {@link useTelemetry} to type the payload
+ * of the reading it returns.
  *
  * @category Reading telemetry
  */
@@ -307,7 +314,8 @@ export type TopicPayload<Topic extends TopicId> = TopicPayloadMap[Topic];
  * A Topic is one named stream of values from the mod, such as `vessel.orbit`,
  * read by its id with {@link useTelemetry}. `TOPIC_IDS` is the array of every
  * Topic id the SDK itself declares, and {@link TopicPayloadMap} maps each id to
- * the type of its payload.
+ * the type of its payload. Useful for listing the Topics the operator can
+ * choose from without any Uplink loaded.
  *
  * Topics an Uplink adds at load are not in `TOPIC_IDS`;
  * {@link getAllKnownTopicIds} and {@link isTopicId} include them. Topics whose
@@ -380,7 +388,9 @@ export function getAllKnownTopicIds(): readonly string[] {
 
 /**
  * Returns whether `value` is a known {@link TopicId}: one the SDK declares, or
- * one an Uplink has registered with {@link registerUplinkTopic}.
+ * one an Uplink has registered with {@link registerUplinkTopic}. Useful for
+ * checking an id that arrives as text, such as one read from saved layout
+ * configuration, before treating it as a Topic.
  *
  * @category Reading telemetry
  */
@@ -409,7 +419,9 @@ export function registerCollectionTopic(id: string): void {
 /**
  * Whether `id`'s payload is a bare array of elements: an SDK-owned Topic the
  * contract marks as one, or an Uplink Topic registered through
- * {@link registerCollectionTopic}.
+ * {@link registerCollectionTopic}. Useful for knowing that a field path under
+ * the Topic can never carry a value. Used by the field picker's catalogue of
+ * Topic fields.
  *
  * A read of `<id>.<field>` walks into the array itself, which has no such
  * property, so a field path under a collection Topic never carries a value.
@@ -423,7 +435,8 @@ export function isCollectionTopic(id: string): boolean {
 /**
  * The derived channels: values Gonogo computes in the browser from other
  * Topics, rather than ones the game publishes. A widget declares and reads one
- * exactly as it does a Topic, but it is not a {@link TopicId}.
+ * exactly as it does a Topic, but it is not a {@link TopicId}. Useful for
+ * listing the channels the operator can read that no Uplink publishes.
  *
  * @category Reading telemetry
  */
@@ -448,7 +461,8 @@ const DERIVED_CHANNEL_ID_SET: ReadonlySet<string> = new Set(
 );
 
 /**
- * Returns whether `value` is a {@link DerivedChannelId}.
+ * Returns whether `value` is a {@link DerivedChannelId}. Useful for telling a
+ * channel the app computes in the browser from one the mod publishes.
  *
  * @category Reading telemetry
  */
@@ -460,14 +474,15 @@ export function isDerivedChannelId(value: string): value is DerivedChannelId {
  * What a widget may list in `channels` and `optionalChannels`: a
  * {@link TopicId} or a {@link DerivedChannelId}. Any other string does not
  * compile, and neither does a field path; list the channel that carries the
- * field.
+ * field. Useful for catching a misspelt channel in a widget's declaration.
  *
  * @category Reading telemetry
  */
 export type WidgetChannelId = TopicId | DerivedChannelId;
 
 /**
- * Returns whether `value` is a {@link WidgetChannelId}.
+ * Returns whether `value` is a {@link WidgetChannelId}. Useful for checking a
+ * channel id that arrives as text before a widget mounts on it.
  *
  * @category Reading telemetry
  */
@@ -489,7 +504,9 @@ export type ChannelFamily = `${string}<${string}>${string}`;
 /**
  * The literal text before the first placeholder of a family, such as
  * `"fleet."` for `fleet.<vessel>.contact`. It is empty when the pattern starts
- * with a placeholder, as `<domain>.available` does.
+ * with a placeholder, as `<domain>.available` does. Useful for narrowing which
+ * Topics could belong to a family before matching each one. Used when working out
+ * which Topics a widget's declared families cover.
  *
  * @category Reading telemetry
  */
@@ -500,7 +517,9 @@ export function familyPrefix(family: ChannelFamily): string {
 /**
  * Returns whether `topic` is a member of `family`: the same number of dotted
  * segments, every literal segment equal and every placeholder segment
- * non-empty.
+ * non-empty. Useful for deciding whether a Topic built at runtime, such as one
+ * vessel's contact, belongs to a family a widget declares. Used by the widget
+ * Topic declarations check and the alarm status bridge.
  *
  * @category Reading telemetry
  */

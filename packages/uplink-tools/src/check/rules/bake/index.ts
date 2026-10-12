@@ -27,13 +27,13 @@ const BAKED_FILES = [
   "ExpectedClientHash.g.cs",
 ];
 
-/**
+/*
  * Builds the client the way `bundle` builds it and writes the bytes to `outFile`.
  * It runs in a child process because esbuild's plugin API is asynchronous and a
- * rule answers synchronously; the options are the ones `bundle` passes, and
- * `bake.test.ts` holds the two to the same bytes. esbuild writes each module's
- * path, relative to the working directory, into the output, so the hash depends
- * on where the build runs: from the client directory, as the package scripts do.
+ * rule answers synchronously; the options are the ones `bundle` passes. esbuild
+ * writes each module's path, relative to the working directory, into the output,
+ * so the hash depends on where the build runs: from the client directory, as the
+ * package scripts do.
  */
 const BUILD_SCRIPT = `
 import { readFileSync, writeFileSync } from "node:fs";

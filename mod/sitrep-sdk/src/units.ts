@@ -76,14 +76,18 @@ const NO_ENUMS: EnumsByField = Object.freeze({});
  * list is a field of one element, so neither is reachable from the parent
  * Topic and a walk has to stop at the collection itself.
  *
- * The marker spelling lives here so the three readers of the shape maps agree
- * on it: the payload wrap, the field-path judgement, and the field enumeration.
+ * Useful for stopping a walk down a field path at a collection, since nothing
+ * under one is reachable from the Topic.
  */
 export function isPluralShape(entry: string): boolean {
   return entry.startsWith("*") || entry.endsWith("[]");
 }
 
-/** The element type named by a shape-map entry, with any plural marker removed. */
+/**
+ * The payload type a shape-map entry names, with any plural marker removed.
+ * Useful for looking up the units and fields of the elements a collection field
+ * holds.
+ */
 export function shapeTypeName(entry: string): string {
   const withoutMap = entry.startsWith("*") ? entry.slice(1) : entry;
   return withoutMap.endsWith("[]") ? withoutMap.slice(0, -2) : withoutMap;
@@ -129,7 +133,8 @@ const registeredTopicEnums = new Map<string, EnumsByField>();
 
 /**
  * Registers the units of an Uplink Topic's fields, so its payload's numbers
- * arrive as `Value`s and its fields can be listed. Call it when the Uplink's
+ * arrive as `Value`s and its fields can be listed. Useful for an Uplink whose
+ * Topics carry quantities the operator reads with their units. Call it when the Uplink's
  * client package loads, with the maps from the Uplink's own generated
  * `units.ts`, beside {@link registerUplinkTopic}.
  *
@@ -183,7 +188,7 @@ const registeredEnumMembers = new Map<
 
 /**
  * Registers the units of one of an Uplink's payload types, by its generated
- * type name. Needed for every type nested inside an Uplink Topic's payload,
+ * type name. Useful for an Uplink whose payloads nest other payloads. Needed for every type nested inside an Uplink Topic's payload,
  * whose numbers otherwise arrive as plain numbers. Call it when the Uplink's
  * client package loads, usually for every type in its generated
  * `GENERATED_TYPE_UNITS`. Registering a type again replaces what it registered
@@ -212,8 +217,9 @@ export function registerTypeUnits(
 /**
  * Registers the member names of one of an Uplink's enums, by the enum name
  * that the `enums` of {@link registerTopicUnits} and {@link registerTypeUnits}
- * refer to. Call it when the Uplink's client package loads. Gonogo's own enum
- * of the same name takes precedence.
+ * refer to. Useful for showing the operator an Uplink's enum fields as words.
+ * Call it when the Uplink's client package loads. Gonogo's own enum of the same
+ * name takes precedence.
  *
  * @category Units and values
  */
@@ -257,7 +263,8 @@ const registeredExtensionShapes = new Map<string, Map<string, string>>();
 /**
  * Registers the payload type that one provider puts under its own id in a
  * payload's `extensions` field, so the quantities in it arrive as `Value`s.
- * Call it when the provider's client package loads, after
+ * Useful for a provider of a shared capability whose figures the operator reads
+ * with their units. Call it when the provider's client package loads, after
  * {@link registerTypeUnits} has registered `typeName`.
  *
  * @param owner - The Topic id, such as `"isru.drills"`, or the type name of a
@@ -291,7 +298,8 @@ export function providerExtensionShapes(
  * Returns the declared unit of every field of `topic`, keyed by field name.
  * Fields with no unit are left out, and a Topic with none returns an empty
  * object. For a Topic whose payload is an array, the fields are those of one
- * element.
+ * element. Useful for labelling each number a Topic carries with its unit when
+ * the operator reads it. Used when the app lists a Topic's fields.
  *
  * Includes Topics an Uplink registered with {@link registerTopicUnits}.
  *
@@ -311,7 +319,7 @@ export function unitsForTopic(topic: TopicId): UnitsByField {
  * declares none. A field holding another payload declares no unit of its own.
  * `undefined` never means dimensionless: a dimensionless number declares
  * `"1"`, a fraction from 0 to 1 `"ratio"`, and a field with no unit at all
- * `"n/a"`.
+ * `"n/a"`. Useful for labelling one number with its unit.
  *
  * @category Units and values
  */
@@ -321,7 +329,7 @@ export function unitOf(topic: TopicId, field: string): SitrepUnit | undefined {
 
 /**
  * {@link unitsForTopic} for a payload type named by its generated type name,
- * such as `"ThermalHottestPart"`. Use it for a type that is only ever nested
+ * such as `"ThermalHottestPart"`. Useful for a type that is only ever nested
  * inside a Topic's payload.
  *
  * @category Units and values
@@ -335,7 +343,9 @@ export function unitsForType(typeName: string): UnitsByField {
 /**
  * Returns which fields of `topic` hold another payload type, and its type
  * name. A name starting with `*` is a map of that type keyed by name, and one
- * ending in `[]` is a list of it.
+ * ending in `[]` is a list of it. Useful for finding which fields of a Topic
+ * hold nested payloads, so their units can be found too. Used when the app lists
+ * a Topic's fields.
  *
  * @category Units and values
  */
@@ -350,6 +360,7 @@ export function shapesForTopic(topic: TopicId): ShapesByField {
 
 /**
  * {@link shapesForTopic} for a payload type named by its generated type name.
+ * Useful for following a nested payload one level down.
  *
  * @category Units and values
  */
@@ -360,7 +371,8 @@ export function shapesForType(typeName: string): ShapesByField {
 }
 
 /**
- * {@link unitOf} for a payload type named by its generated type name.
+ * {@link unitOf} for a payload type named by its generated type name. Useful for
+ * labelling one number inside a nested payload with its unit.
  *
  * @category Units and values
  */
@@ -375,7 +387,8 @@ export function unitOfTypeField(
  * How each of `topic`'s `enum` fields reads as a word: the enum its ordinal
  * indexes (see {@link enumMembersOf}), or `null` for a field that already
  * carries the member's name. A field absent here is an enum the schema cannot
- * name.
+ * name. Useful for showing the operator an enum field as a word instead of its
+ * number.
  */
 export function enumsForTopic(topic: TopicId): EnumsByField {
   const generated = GENERATED_TOPIC_ENUMS[topic];
@@ -386,7 +399,7 @@ export function enumsForTopic(topic: TopicId): EnumsByField {
   return handDeclared === undefined ? NO_ENUMS : enumsForType(handDeclared);
 }
 
-/** The same, keyed by generated interface name instead of Topic id. */
+/** {@link enumsForTopic} for a payload type named by its generated type name. */
 export function enumsForType(typeName: string): EnumsByField {
   return (
     GENERATED_TYPE_ENUMS[typeName] ??
@@ -395,7 +408,7 @@ export function enumsForType(typeName: string): EnumsByField {
   );
 }
 
-/** A contract enum's wire value to member name, or `undefined` for an enum the schema does not carry. */
+/** The member names of a contract enum, keyed by wire value, or `undefined` for an enum the schema does not carry. Useful for showing the operator an enum as a word instead of its number. */
 export function enumMembersOf(
   enumName: string,
 ): Readonly<Record<number, string>> | undefined {
@@ -407,7 +420,8 @@ export function enumMembersOf(
 /**
  * Returns the fields of `topic` declared static: facts that do not change
  * over time, such as a kerbal's courage. Their values arrive marked
- * `Value.static`. Empty when the Topic declares none.
+ * `Value.static`. Empty when the Topic declares none. Useful for not asking
+ * the operator to wait for a fact that never changes.
  *
  * @category Units and values
  */
@@ -426,7 +440,8 @@ const NO_GATES: Readonly<Record<string, string>> = Object.freeze({});
  * Returns the fields of `typeName` that are exact at any instant while the
  * payload's own horizon field says its orbit is fully known, each mapped to
  * the name of that horizon field. Their values then arrive marked
- * `Value.deterministic`. Empty when the type declares none.
+ * `Value.deterministic`. Empty when the type declares none. Useful for knowing
+ * which orbit values can be projected forward exactly.
  *
  * @category Units and values
  */
@@ -438,6 +453,7 @@ export function deterministicWhileForType(
 
 /**
  * {@link staticsForTopic} for a payload type named by its generated type name.
+ * Useful for the fields of a nested payload that never change.
  *
  * @category Units and values
  */

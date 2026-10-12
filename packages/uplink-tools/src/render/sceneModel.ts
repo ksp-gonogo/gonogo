@@ -26,7 +26,10 @@ function sceneName(file: string): string {
 
 /**
  * A fixture file, as an author writes it: one JSON file under a registration's
- * `__fixtures__/` folder, and one scene the harness mounts and draws.
+ * `__fixtures__/` folder, describing one scene the harness mounts and draws.
+ * Useful for staging the readings a widget, augment or contribution shows in the
+ * pictures of an Uplink's generated page. Read by `uplink-tools docs` and `page`
+ * through {@link sceneFromFixture}.
  *
  * The harness feeds a scene nothing by default, so everything its target reads
  * has to be sent in `_stream`.
@@ -56,7 +59,9 @@ export interface FixtureFile {
 /**
  * The `_scene` block of a {@link FixtureFile}: what the scene mounts, at which
  * sizes, and what its picture is held to. Exactly one of `widget`, `augment`
- * and `contribution` names the target.
+ * and `contribution` names the target. Useful for choosing which registration a
+ * fixture pictures and what the renderer checks about the picture. Read by
+ * {@link sceneFromFixture}.
  *
  * @category Rendering scenes
  */
@@ -69,17 +74,15 @@ export interface FixtureScene {
   contribution?: string;
   /**
    * A registered widget to mount this augment inside, rather than the stand-in
-   * `Panel`. The only way an overlay augment gets an honest picture: it draws
-   * in its host's projection, so with no host there is nothing to draw against.
-   * The scene is then sized and fed as the host, since that is what is on
-   * screen.
+   * `Panel`. An overlay augment draws in its host's projection, so it needs a
+   * host to draw against. The scene is then sized and fed as the host, since
+   * that is what is on screen.
    */
   hostWidget?: string;
   /**
    * Outline what this augment draws inside its host, so a picture of the whole
    * host shows which part the Uplink supplied. Only for an augment hosted by a
-   * real widget: a stand-in host holds nothing else to tell it from. Drawn as
-   * an outline, which moves no layout, and absent entirely when unset.
+   * real widget. Drawn as an outline, which moves no layout.
    */
   highlight?: true;
   /** What the picture shows, in a sentence. It is the image's alt text on the generated page. */
@@ -94,9 +97,7 @@ export interface FixtureScene {
    * The tile to render in, overriding what would be derived.
    *
    * For a stand-in augment or contribution scene it is the size, since a slot
-   * has no size of its own. For a hosted one it overrides the host's, because a
-   * host sized for itself alone is not the shape an operator who has added
-   * sections to it is running.
+   * has no size of its own. For a hosted one it overrides the host's size.
    */
   size?: { w: number; h: number };
   /** The data source id the fixture's bare top-level keys feed, for a widget still reading a `DataSource`. Absent, `data`. */
@@ -104,52 +105,42 @@ export interface FixtureScene {
   /**
    * This scene's subject is an empty state, with the reason.
    *
-   * The only escape from the starved-render comparison, and it takes prose
-   * rather than a boolean on purpose: asserting that a widget genuinely has
-   * nothing to draw here is a claim someone can check in a year, and `true`
-   * is not one. A scene with this set must still render some visible text,
-   * so it cannot be used to wave through a blank frame.
+   * This exempts the scene from the starved-render comparison. It takes a
+   * sentence and not a boolean, so the claim that the widget has nothing to draw
+   * can be checked later. A scene with this set must still render some visible
+   * text.
    */
   expectsEmpty?: string;
   /**
    * This scene is one of the README's picture(s) of its target.
    *
-   * Stackable: any number of a target's scenes may carry it, and every one
-   * that does is shown. `uplink-tools docs` refuses a target with scenes and
-   * none marked, because a hero silently defaulted to "whichever fixture
-   * sorts first" is a picture nobody chose.
+   * Any number of a target's scenes may carry it, and every one that does is
+   * shown. `uplink-tools docs` refuses a target with scenes and none marked.
    */
   hero?: true;
   /**
-   * Why this scene draws exactly the same with the link dropped, and why that
-   * is honest.
+   * Why this scene draws exactly the same once the stream stops arriving.
    *
-   * The only escape from the held comparison, and prose for the same
-   * reason `expectsEmpty` is. It is for a subject that draws no figure an
-   * operator could take for current: a vocabulary, a control, a label. A
-   * subject that draws a reading does not qualify, however small the reading.
+   * This exempts the scene from the held comparison, and takes a sentence for
+   * the same reason `expectsEmpty` does. It is for a subject that draws no
+   * figure an operator could take for current: a vocabulary, a control, a label.
+   * A subject that draws a reading does not qualify, however small the reading.
    *
-   * A scene carrying it whose held render does change fails, so the excuse
-   * comes off the moment it stops being needed.
+   * A scene carrying it whose held render does change fails, so the exemption
+   * has to come off once it is no longer needed.
    */
   unchangedWhenHeld?: string;
   /**
    * Text this scene must actually paint, each in a box wider and taller than
    * nothing.
    *
-   * The fed-versus-starved check asks whether the render depends on the fixture
-   * at all, which is a question about the whole picture. This asks whether one
-   * named thing survived the layout, which is a question about one element, and
-   * neither answers the other. A label squeezed to zero width by a neighbour
-   * that wrapped satisfies every `toBeInTheDocument` in a jsdom suite, passes
-   * the starve check because the rest of the picture still moved, and is
-   * invisible on screen. That is not hypothetical: it is the bug the check was
-   * first written for, a launch complex's own name rendered at nothing beside a
-   * detail sentence that took the whole row.
+   * The fed-versus-starved check covers the whole picture; this covers one named
+   * element. A label squeezed to zero width by a neighbour that wrapped passes
+   * the starve check because the rest of the picture still moved, yet is
+   * invisible on screen.
    *
-   * Checked at every mode the scene renders, because the narrow shapes are
-   * where a neighbour wraps. A widget that legitimately drops a label at one
-   * size narrows `_scene.modes`.
+   * Checked at every mode the scene renders. A widget that legitimately drops a
+   * label at one size narrows `_scene.modes`.
    */
   paints?: string[];
   /** Things done to the mounted target before it is photographed. */
@@ -161,16 +152,11 @@ export interface FixtureScene {
 }
 
 /**
- * One thing done to the mounted widget before it is photographed.
- *
- * Some surfaces have nothing to show until they are used. A plan composer
- * with no plan in it is a button; a video feed's controls are hover-gated and
- * invisible at rest. Feeding state in through the fixture instead would render a
- * composer that had never composed anything, which is the difference between a
- * picture of the mechanism and a picture of a shape.
- *
- * Driver-side, through real input events, because that is the only way a
- * hover reaches CSS and a click reaches a handler that reads the event.
+ * One thing done to the mounted widget before it is photographed: a press, a
+ * hover or a rest. Some surfaces have nothing to show until they are used, such
+ * as a plan composer with no plan in it or a video feed whose controls appear on
+ * hover. Performed by the Node driver through real input events, so a hover
+ * reaches CSS and a click reaches a handler that reads the event.
  */
 export interface SceneAct {
   /** Click the control with this accessible name. */
@@ -182,8 +168,10 @@ export interface SceneAct {
 }
 
 /**
- * The `_stream` block of a {@link FixtureFile}: the wire the scene is fed
- * from.
+ * The `_stream` block of a {@link FixtureFile}: the Topic samples the scene is
+ * fed, the instant it is drawn at and the delay between the vessel and the
+ * command centre. Useful for staging a widget's readings, live or held. Read by
+ * {@link sceneFromFixture}.
  *
  * @category Rendering scenes
  */
@@ -194,7 +182,7 @@ export interface FixtureStream {
    */
   pinnedUt?: number;
   /**
-   * The one-way signal delay between the vessel and the command centre screen, in seconds. Each
+   * The one-way signal delay between the vessel and the command centre, in seconds. Each
    * emit is delivered that long after its `validAt`, the view time is the
    * newest `validAt` delivered, and every reading is reckoned to the vessel's
    * present as it is in the app, so a scene can show a modelled figure beside
@@ -209,15 +197,17 @@ export interface FixtureStream {
    */
   emits?: SceneEmit[];
   /**
-   * Drop the link once every emit has landed, so the picture is of figures
+   * Drop the transport once every emit has landed, so the picture shows figures
    * that are held. Absent, the scene is live.
    */
   stopsArriving?: boolean;
 }
 
 /**
- * One scene of an Uplink: what to mount, the fixture to feed it, and the steps
- * to run.
+ * One scene of an Uplink, built from a fixture: what to mount, the Topic samples
+ * to feed it, the sizes to draw it at and the steps to run. Useful for listing
+ * the pictures an Uplink's page shows. Returned by {@link sceneFromFixture} and
+ * used by {@link payloadFor}, the page generator and the renderer.
  *
  * @category Rendering scenes
  * @categoryDescription Rendering scenes
@@ -238,7 +228,7 @@ export interface Scene {
   caption?: string;
   /** Why an empty state is this scene's subject, from `_scene.expectsEmpty`. */
   expectsEmpty?: string;
-  /** Why the scene draws the same with the link dropped, from `_scene.unchangedWhenHeld`. */
+  /** Why the scene draws the same once the stream stops arriving, from `_scene.unchangedWhenHeld`. */
   unchangedWhenHeld?: string;
   /** Whether the README shows this scene, from `_scene.hero`. */
   hero: boolean;
@@ -250,11 +240,11 @@ export interface Scene {
   before: SceneAct[];
   /** The instant the scene is drawn at, from `_stream.pinnedUt`. */
   pinnedUt: number;
-  /** The one-way signal delay staged between vessel and screen, from `_stream.delaySeconds`. */
+  /** The one-way signal delay staged between the vessel and the command centre, from `_stream.delaySeconds`. */
   delaySeconds?: number;
   /** What is sent on the stream, each with its `validAt` filled in. */
   emits: SceneEmit[];
-  /** Whether the link is dropped once every emit has landed, from `_stream.stopsArriving`. */
+  /** Whether the transport is dropped once every emit has landed, from `_stream.stopsArriving`. */
   stopsArriving?: boolean;
   /** The target's saved settings, from `_scene.config`. Empty when the fixture sets none. */
   config: Record<string, unknown>;
@@ -272,8 +262,7 @@ export interface Scene {
   motion: { fps: number; pingPong: boolean };
 }
 
-/** Matches the pinned instant the hand-copied harnesses used, so a fixture
- *  converted from one keeps meaning the same thing. Only its stability matters. */
+/** The pinned instant used when a fixture names none. Only its stability matters. */
 const DEFAULT_PINNED_UT = 1_000_000;
 
 /** The tile an augment or contribution scene is drawn in, absent `_scene.size`.
@@ -284,8 +273,10 @@ const STANDIN_SIZE = { w: 13, h: 12 } as const;
 const DEFAULT_FPS = 12;
 
 /**
- * The scene one fixture describes, or a failure naming the file when its
- * `_scene` block is missing or names no target the inventory holds.
+ * The {@link Scene} one fixture describes, or a failure naming the file when its
+ * `_scene` block is missing or names no target the inventory holds. Useful for
+ * turning a fixture file into something the renderer can mount. Used by
+ * `buildScenes`.
  *
  * @category Scenes
  */
@@ -813,7 +804,9 @@ function modesFor(
 }
 
 /**
- * The payload the page mounts for one scene at one mode.
+ * The {@link ScenePayload} the page mounts for one scene at one mode, with
+ * `starve` set for the render that is fed nothing. Useful for handing a scene to
+ * the render probe. Used by the renderer, which draws each scene fed and starved.
  *
  * @category Scenes
  */

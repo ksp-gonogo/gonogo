@@ -6,7 +6,12 @@
  * question `classifyRetained`'s `lost` branch needs.
  */
 
-/** The part of the `CommsLink` payload that {@link ConnectivityHistory} reads. */
+/**
+ * The part of the `comms.link` payload that {@link ConnectivityHistory} reads:
+ * whether the radio path between the command centre and the vessel is
+ * connected. Useful for feeding the history from the stream without passing the
+ * whole payload. Used by the delay-aware command hook.
+ */
 export interface CommsLinkLike {
   connected: boolean;
 }
@@ -16,15 +21,21 @@ interface ConnectivityTransition {
   connected: boolean;
 }
 
+/**
+ * A record of when the radio path between the command centre and a vessel was
+ * connected, stamped in universal time. Useful for deciding whether a command
+ * sent over that path was able to reach the vessel, since a disconnect at any
+ * moment in between loses it. Used by the delay-aware command hook to judge
+ * whether a command was lost in flight.
+ */
 export class ConnectivityHistory {
   private transitions: ConnectivityTransition[] = [];
 
   /**
-   * Record an observed connectivity state at `atUt`. Only appends when the
-   * state actually changed (or this is the first-ever observation), a
-   * flat run of "still connected" samples doesn't grow the history.
-   * Callers must record in non-decreasing `atUt` order (the real-time
-   * `useUtNow` clock this is fed from is monotonic outside a rewind).
+   * Records whether the path was connected at universal time `atUt`. A sample
+   * is kept only when the state changed or it is the first observation, so a
+   * run of unchanged samples adds nothing. Record in non-decreasing `atUt`
+   * order.
    */
   record(atUt: number, connected: boolean): void {
     const last = this.transitions[this.transitions.length - 1];
@@ -33,7 +44,9 @@ export class ConnectivityHistory {
   }
 
   /**
-   * Whether the path was continuously connected across `[fromUt, toUt]`. An
+   * Whether the path was continuously connected across `[fromUt, toUt]`. Useful
+   * for telling the operator whether a command sent at `fromUt` could have
+   * reached the vessel by `toUt`. An
    * unknown state reads as connected: no observation before `fromUt` counts as
    * connected, and only a confirmed disconnect returns false.
    */
@@ -53,7 +66,7 @@ export class ConnectivityHistory {
     return true;
   }
 
-  /** Drop transitions entirely before `beforeUt`: bounds memory growth over a long session. */
+  /** Drops the recorded changes that end before `beforeUt`, keeping the one in force at that time, so a long session does not grow the history without limit. */
   prune(beforeUt: number): void {
     let cut = 0;
     for (let i = 0; i < this.transitions.length - 1; i++) {

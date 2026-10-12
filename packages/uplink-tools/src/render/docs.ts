@@ -22,13 +22,10 @@ import type { WidgetRecord } from "./widgetRecord";
 import { commandSection, readWireSurface, wireSection } from "./wire";
 
 /**
- * What the page generator needs of an asset, which is less than a render.
- *
- * `page-check.ts` builds this list from the scenes alone, with no browser and so
- * no rendered files behind it, to compare the page's markdown against the code.
- * The generator writes image links, so a filename and a size are all it reads,
- * and asking it for a `shape` would either force that path to fabricate one or
- * put the freshness question somewhere that structurally cannot answer it.
+ * What the page generator needs of an asset: a filename and a size, without the
+ * rendered `shape`. `page-check.ts` builds this list from the scenes alone, with
+ * no browser and so no rendered files, to compare the page's markdown against
+ * the code.
  */
 export type PageAsset = Omit<RenderedAsset, "shape">;
 
@@ -71,43 +68,33 @@ export function committedIntegrity(manifestPath: string): string {
   return "";
 }
 
-/**
+/*
  * The manifest first, the page from it.
  *
  * The manifest is the primary output and the README is that manifest plus the
- * Uplink's own declared description. Build it the other way round, as a doc
- * generator that happens to emit a manifest, and it drifts: a wrong manifest is
- * parsed by the loader at install time and fails visibly, whereas a wrong
- * paragraph fails silently forever.
+ * Uplink's own declared description. A wrong manifest is parsed by the loader
+ * at install time and fails visibly, whereas a wrong paragraph fails silently,
+ * so the page is built from the manifest and not the other way round.
  *
- * ## What the page contains, and why it is so short
+ * The page holds the Uplink's description, each widget's own registered
+ * description, data in tables, and the screenshots. It leaves out what
+ * duplicates a registration (a rationale paragraph per widget), what belongs in
+ * the Uplink documentation once (presence-gating, the universal `badges`,
+ * `filters` and `meters` segments), repeated boilerplate about missing
+ * previews, a closing section of what the page could not say, and an image's
+ * alt text repeated as a caption.
  *
- * The Uplink's description, each widget's own registered description, data in
- * tables, and the screenshots. Nothing else.
- *
- * A rationale paragraph per widget duplicates the description its registration
- * already carries. Restating the rules of Uplinks as if specific to one of
- * them (presence-gating, the universal `badges`/`filters`/`meters` segments
- * every widget has) belongs in the Uplink documentation once, never per
- * Uplink. A repeated boilerplate explanation of why something has no preview
- * says no more than an empty table cell already does. A closing section
- * listing what the page could not tell the reader is not information. And an
- * image's alt text repeated as an italic caption beneath it states the same
- * sentence twice.
- *
- * The test to apply to anything added here: a reader should skim the whole page
- * in under a minute and come away with what the Uplink does, what its widgets
- * show, and what it puts on the wire. And: **if a thing repeats per item, it is a
- * table, not a section**, comparable at a glance in a way repeated sections
- * never are.
+ * A reader should be able to skim the whole page in under a minute and come
+ * away with what the Uplink does, what its widgets show, and what it puts on
+ * the wire. Anything that repeats per item is a table, not a section.
  */
 
 /**
- * The manifest's shape is `@ksp-gonogo/sitrep-sdk`'s, and so is the code that
- * builds it.
- *
- * Both `docs` and `uplink-tools bundle` call one writer, so an author who
- * runs either command gets the same file.
+ * The Uplink's `gonogo-uplink.json`: its id, version, compat numbers, bundle
+ * integrity and widget list, in the shape `@ksp-gonogo/sitrep-sdk` defines.
+ * Useful for telling the app which Gonogo releases an Uplink works with and
+ * which bundle file to fetch. Written by `uplink-tools docs`, `page` and
+ * `bundle`, which all call the same writer, and returned by {@link buildManifest}.
  *
  * @category Uplink page
  */
@@ -116,16 +103,12 @@ export type UplinkManifestJson = UplinkManifest;
 /**
  * The sha256 of the file the author distributes, and only when they name it.
  *
- * Deliberately no fallback to hashing `dist/index.js`, which is wrong twice
- * over. That file is a `tsc` output, not the bundle anyone ships (the shipped
- * one is an esbuild bundle built elsewhere), so the hash would describe a file
- * no consumer ever fetches. And because it is a gitignored build artifact,
- * `--check` would compare a committed hash against whatever the last local
- * build happened to produce, so a sibling branch adding a widget reports the
- * page stale over a number that is not the page's business. A gate that cries
- * wolf is a gate someone turns off.
+ * There is no fallback to hashing `dist/index.js`: that file is a `tsc` output,
+ * not the bundle anyone ships, and as a gitignored build artifact it would make
+ * `--check` compare a committed hash against whatever the last local build
+ * produced.
  *
- * So: no `--bundle`, no new integrity. A hash already in the manifest stays
+ * With no `--bundle` no new integrity is computed. A hash already in the manifest stays
  * there: it was stamped from a bundle by an earlier `--bundle` run, and writing
  * the page again must not blank it, since an empty one is refused by the app.
  * Only a manifest with no hash at all draws the warning saying what that costs.
@@ -157,7 +140,11 @@ function bundleIntegrity(
 }
 
 /**
- * What `buildReadme` and `buildManifest` build the page from.
+ * What `buildReadme` and `buildManifest` build the page from: the Uplink package,
+ * its inventory, its scenes, the pictures drawn for them and where they live.
+ * Useful for generating an Uplink's page without a browser, by passing the
+ * scenes with no rendered pictures. Used by the renderer behind
+ * `uplink-tools docs` and by the page check.
  *
  * @category Uplink page
  */
@@ -192,9 +179,11 @@ function declaredMod(pkgDir: string): DeclaredMod | undefined {
 }
 
 /**
- * The Uplink's manifest, written by the sdk's manifest writer, with the compat
- * numbers read from the bundle itself. `uplink-tools bundle` builds the same
- * manifest from the same files.
+ * Builds the Uplink's manifest with the sdk's manifest writer, with the compat
+ * numbers read from the bundle itself, and returns it with a warning when no
+ * bundle integrity is available. Useful for generating the manifest an app
+ * checks before it loads the Uplink. Used by `uplink-tools docs`, `page` and
+ * `bundle`, which build the same manifest from the same files.
  *
  * @category Uplink page
  */
@@ -222,13 +211,8 @@ export function buildManifest(inputs: DocsInputs): {
 /**
  * The first line of every generated `README.md`, and the thing `docs` and `page`
  * look for before they overwrite one. It names both because either writes it.
- *
- * Both write the README from the registrations, so overwriting the one written
- * last time is the whole job. Overwriting a README a person wrote is not,
- * and the two are indistinguishable to a `writeFile`: an author who ran the
- * command in a package that already had a hand-written readme lost it, with no
- * warning and no recovery outside git. The marker is what tells them apart, so
- * it is a constant rather than a line in a template.
+ * It tells a generated README, which may be overwritten, from one an author
+ * wrote, which may not.
  */
 export const README_GENERATED_MARKER =
   "<!-- Generated by `uplink-tools docs` or `uplink-tools page`.";
@@ -303,10 +287,8 @@ function altFor(asset: PageAsset): string {
  * under, so taking it here is what keeps a hero'd motion scene's picture a
  * film rather than the still of some other mode.
  *
- * Throws rather than silently showing nothing or guessing one: a target with
- * scenes and no hero among them is a target the author has not yet decided how
- * to picture, and defaulting to "whichever fixture sorts first" would be a
- * picture nobody chose standing in for one somebody did.
+ * Throws when a target has scenes and no hero among them, since the author has
+ * not yet chosen how to picture it; no fixture is picked by default.
  */
 function heroAssetsFor(
   inputs: DocsInputs,
@@ -338,11 +320,8 @@ function heroAssetsFor(
 
 /**
  * The scenes declared for one registration, as distinct from the assets rendered
- * from them.
- *
- * One scene becomes several assets (one per size), so counting assets answers
- * "how many pictures" and counting scenes answers "how many STATES somebody
- * thought worth showing". The second is the question review needs.
+ * from them. One scene becomes several assets (one per size), so counting scenes
+ * gives the number of states shown and counting assets the number of pictures.
  */
 function scenesFor(inputs: DocsInputs, kind: string, id: string): Scene[] {
   return inputs.scenes.filter(
@@ -351,12 +330,9 @@ function scenesFor(inputs: DocsInputs, kind: string, id: string): Scene[] {
 }
 
 /**
- * Scenes that assert nothing, which are pictures nobody has read.
- *
- * A warning rather than a failure: a scene with no `paints` still renders and
- * still gets looked at. But `paints` is what catches an expected string that
- * does not appear, and a scene without any is one where nobody wrote down what
- * the render should say.
+ * Scenes that assert nothing: those with no `paints`. This is a warning and not a
+ * failure, since such a scene still renders, but `paints` is what catches an
+ * expected string that does not appear.
  */
 export function scenesAssertingNothing(inputs: DocsInputs): string[] {
   return inputs.scenes
@@ -366,8 +342,9 @@ export function scenesAssertingNothing(inputs: DocsInputs): string[] {
 
 /**
  * The Uplink's widgets as {@link WidgetRecord}s, without the harness's own
- * fields. The README's widget sections and `docs/widgets.json` are both made
- * from this list.
+ * fields such as render sizes. Useful for describing the Uplink's widgets to a
+ * reader. Used to build the README's widget sections and `docs/widgets.json`,
+ * which both come from this list.
  *
  * @category Uplink page
  */
@@ -401,11 +378,8 @@ function widgetSection(inputs: DocsInputs, widget: WidgetRecord): string[] {
 }
 
 /**
- * Every augment in one table, with its images after it.
- *
- * As a table, each augment's facts are comparable at a glance, which is what
- * a reader is actually doing: seeing which host widgets this Uplink reaches
- * into.
+ * Every augment in one table, with its images after it, so a reader can compare
+ * which host widgets this Uplink reaches into.
  */
 function augmentTable(inputs: DocsInputs): string[] {
   const rows = inputs.inventory.augments.map((augment: InventoryAugment) => {
@@ -517,11 +491,9 @@ function modelTable(inputs: DocsInputs): string[] {
  * The input rules this Uplink's models opted out of, under the same heading the
  * models themselves are listed under.
  *
- * Absent entirely when there are none, which is the normal case and the one the
- * rules exist to make normal: the store holds every model to a reach no further
+ * Absent when there are none: the store holds every model to a reach no further
  * than its inputs and a band no wider than its inputs warrant, so a page with no
- * such table is saying its models take both defaults. A page that has one is
- * where the reason gets read.
+ * such table has models that take both defaults.
  */
 function inputRuleExemptions(inputs: DocsInputs): string[] {
   const rows = inputs.inventory.reckonerExemptions.map((exemption) => [
@@ -539,8 +511,11 @@ function inputRuleExemptions(inputs: DocsInputs): string[] {
 }
 
 /**
- * The Uplink's generated page as markdown. Throws when the client declares no
- * `description`, which opens the page, or a widget registers none.
+ * The Uplink's generated page as markdown, built from its description, widgets,
+ * augments, contributions, channels and error codes. Throws when the client
+ * declares no `description`, which opens the page, or a widget registers none.
+ * Useful for keeping an Uplink's README current with what its client registers.
+ * Used by `uplink-tools docs` and `page` and by the page check.
  *
  * @category Uplink page
  * @categoryDescription Uplink page

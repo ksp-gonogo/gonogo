@@ -227,7 +227,9 @@ export type SettingDefinition = ClientPrefSetting | StreamBackedSetting;
 /**
  * Whether the operator can change this row: false when it is declared
  * `readOnly`, and false for a setting read from a Topic, which has no way to
- * write it.
+ * write it. Useful for drawing a row as a labelled value rather than a control
+ * when the operator cannot change it. Used by the Settings window when it draws
+ * each row.
  *
  * @category Settings
  */
@@ -238,6 +240,8 @@ export function isReadOnlySetting(def: SettingDefinition): boolean {
 
 /**
  * The declared kind of a row, with the {@link SettingKind.Bool} default applied.
+ * Useful for choosing the control a row is drawn with. Used by the Settings
+ * window when it draws each row.
  *
  * @category Settings
  */
@@ -248,29 +252,32 @@ export function settingKindOf(def: SettingDefinition): SettingKind {
 const registry = new Map<string, SettingDefinition>();
 
 /**
- * The authoring overload: `ValueType` is pinned by `type` (absent means {@link SettingKind.Bool}),
- * which is what makes `defaultValue` and `select` agree with each other and
- * with the row's declared type.
+ * Adds a settings row to the Settings window, for an Uplink or a feature of the
+ * app. `type` pins the kind of value, with {@link SettingKind.Bool} when it is
+ * left out, so `defaultValue` and `select` must agree with it. Registering an
+ * `id` again replaces the earlier row. Useful for letting the operator view or
+ * change a setting without a custom tab. Used by the app's own features, such as
+ * the station wake lock, and by Uplink client packages.
  */
 export function registerSetting<
   ValueType extends SettingKind = SettingKind.Bool,
   Topic extends TopicId = TopicId,
 >(def: SettingDefinitionOf<ValueType, Topic>): void;
 /**
- * The forwarding overload: a host relaying an already-typed definition it did
- * not author (`GonogoHost.registerSetting`) has no `type` literal left to infer
- * from, only the union.
+ * Adds a row that is already typed as a {@link SettingDefinition}, for a host
+ * that passes on a definition it did not author and so has no `type` literal to
+ * check against.
  */
 export function registerSetting(def: SettingDefinition): void;
 export function registerSetting(def: SettingDefinition): void {
-  // Idempotent: hot module reload can re-execute registration modules.
+  // Registering an id again replaces the row, so hot module reload can re-run a registration module.
   registry.set(def.id, def);
 }
 
 /**
- * The registered definition for `id`, or `undefined`. Named `getSettingDefinition`
- * (not `getSetting`) to avoid colliding with the string-valued
- * `getSetting(key)` in `../settings/store.ts`: both are exported from core.
+ * The registered settings row for `id`, or `undefined` when none is registered.
+ * Useful for reading how a row is declared, such as its kind or whether it is
+ * read-only. Used by the Settings window when it draws a row.
  */
 export function getSettingDefinition(
   id: string,
@@ -278,16 +285,26 @@ export function getSettingDefinition(
   return registry.get(id);
 }
 
+/**
+ * Every registered settings row, in registration order. Useful for listing the
+ * operator's settings. Used by the Settings window.
+ */
 export function getAllSettings(): SettingDefinition[] {
   return [...registry.values()];
 }
 
+/**
+ * The registered settings rows relevant on `screen`: those with no `screens`
+ * list and those whose list includes it. Useful for showing the main screen and
+ * a station only the settings that apply to them. Used by the Settings window.
+ */
 export function getSettingsForScreen(screen: Screen): SettingDefinition[] {
   return getAllSettings().filter(
     (s) => !s.screens || s.screens.includes(screen),
   );
 }
 
+/** Removes every registered settings row, so a test starts from an empty registry. */
 export function __clearSettingsForTests(): void {
   registry.clear();
 }

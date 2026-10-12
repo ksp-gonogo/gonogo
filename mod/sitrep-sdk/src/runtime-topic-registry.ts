@@ -65,7 +65,10 @@ export function noteRuntimeTopicMetadata(): void {
 
 /**
  * Every Topic id a client package has registered with
- * {@link registerUplinkTopic}, in registration order.
+ * {@link registerUplinkTopic}, in registration order. Useful for listing the
+ * Topics an operator can pick a value from, including the ones an Uplink adds
+ * after the app has rendered. Used by the field picker's catalogue of Topic
+ * fields.
  *
  * The array is the same object until the next registration, so it can be a
  * `useSyncExternalStore` snapshot or a `useMemo` dependency. Pair it with
@@ -80,7 +83,9 @@ export function getRuntimeRegisteredTopicIds(): readonly string[] {
 /**
  * Calls `listener` whenever a registration changes
  * {@link getRuntimeRegisteredTopicIds}, including a registration of units for
- * a Topic already listed. Returns a function that unsubscribes.
+ * a Topic already listed. Returns a function that unsubscribes. Useful for
+ * keeping a list of Topics an operator can pick from current as Uplinks load.
+ * Used by the hook behind the field picker.
  *
  * @category Reading telemetry
  */
@@ -146,7 +151,9 @@ export function dynamicPrefixOf(topic: string): string | undefined {
 
 /**
  * Registers a prefix under which an Uplink builds Topic ids at runtime, so
- * every key under it is read as a Topic of its own. Call it when the client
+ * every key under it is read as a Topic of its own. Useful for an Uplink whose
+ * Topics are one per vessel, part or body, so the operator's widgets receive
+ * each one's readings. Call it when the client
  * package loads, with the same prefix the Uplink's mod passes to
  * `IUplinkHost.RegisterDynamicNamespace`. Registering a prefix twice does
  * nothing.

@@ -24,7 +24,10 @@ import { readWireSurface } from "./render/wire";
  */
 
 /**
- * Where `checkUplinkPage` and `writeUplinkPage` find the Uplink.
+ * Which Uplink client package, and which of its declared clients, the page
+ * functions read. Useful for pointing a page check at an Uplink other than the
+ * one in the working directory. Passed to `checkUplinkPage`, `writeUplinkPage`,
+ * `loadHostWidgets` and `expectUplinkPageCurrent`.
  *
  * @category Page check
  */
@@ -36,13 +39,15 @@ export interface PageCheckOptions {
 }
 
 /**
- * What `checkUplinkPage` found: one line per generated file that no longer
- * matches.
+ * What `checkUplinkPage` found: one entry per generated file that no longer
+ * matches the Uplink's registrations. Useful for telling an Uplink author which
+ * generated files to regenerate. Used by `expectUplinkPageCurrent` to build its
+ * failure message.
  *
  * @category Page check
  */
 export interface PageCheckResult {
-  /** One line for each way the committed page differs from what the client registers. */
+  /** One entry per generated file that differs from what the client registers, or that is missing; empty when the page is current. */
   differences: string[];
 }
 
@@ -131,8 +136,10 @@ function generatePage(options: PageCheckOptions): GeneratedPage {
 }
 
 /**
- * Regenerates the Uplink's README, manifest, `docs/widgets.json` and `docs/spec.json` and
- * compares them with the committed files, without writing anything.
+ * Regenerates the Uplink's README, manifest, `docs/widgets.json` and
+ * `docs/spec.json` and compares them with the committed files, without writing
+ * anything. Useful for telling an Uplink author whether the generated page still
+ * describes the client's registrations. Used by {@link expectUplinkPageCurrent}.
  *
  * @category Page check
  * @categoryDescription Page check
@@ -177,12 +184,12 @@ export function checkUplinkPage(
 }
 
 /**
- * Rewrites the Uplink's README, manifest, `docs/widgets.json` and `docs/spec.json` in place,
- * leaving `docs/assets` untouched: the counterpart to {@link checkUplinkPage},
- * for a change that moves the page's text but not its pictures, such as a new
- * contract version.
- * It needs no browser and writes the same bytes on any machine, where
- * `uplink-tools docs` would re-render every picture.
+ * Rewrites the Uplink's README, manifest, `docs/widgets.json` and
+ * `docs/spec.json` in place and leaves `docs/assets` untouched. Returns the
+ * files it changed. Useful for refreshing a page whose text moved but whose
+ * pictures did not, such as after a new contract version. It needs no browser
+ * and writes the same bytes on any machine. Used by {@link expectUplinkPageCurrent}
+ * when the update switch is set.
  *
  * @category Page check
  */
@@ -237,15 +244,13 @@ function compare(
 }
 
 /**
- * Import every module this Uplink's `gonogo.renderWith` names, so the scenes
- * that draw inside a host widget can find it.
- *
- * The renderer bundles that list into its page; a test has no bundler, so it
- * imports them through this, from the declaration rather than a path written
- * into the test.
+ * Imports every module the Uplink's `gonogo.renderWith` names, so the scenes
+ * that draw inside a host widget can find that widget. Useful in an Uplink's
+ * own test suite, which has no bundler to load the host widgets. It is a no-op
+ * for an Uplink that declares no hosts.
  *
  * Await it before {@link expectUplinkPageCurrent} in an Uplink whose fixtures
- * name `_scene.hostWidget`. It is a no-op for one that declares no hosts.
+ * name `_scene.hostWidget`.
  *
  * @category Page check
  */
@@ -255,12 +260,11 @@ export async function loadHostWidgets(
   const dir = options.root ?? process.cwd();
   const pkg = resolveUplinkPackage(dir);
   for (const host of pkg.renderWith) {
-    // Through `renderModuleUrl`, the same resolver the render path and `--with`
-    // use, because `renderWith` carries two shapes and this is the only
-    // consumer that has to turn the second one back into a file itself. It was
-    // a bare `pathToFileURL`, which is correct for a path and produces the
-    // client directory with the package name glued onto the end for a
-    // specifier.
+    /*
+     * Through `renderModuleUrl`, the same resolver the render path and `--with`
+     * use, because `renderWith` carries two shapes and this is the only
+     * consumer that has to turn the second one back into a file itself.
+     */
     await import(/* @vite-ignore */ renderModuleUrl(dir, host));
   }
 }
@@ -268,18 +272,17 @@ export async function loadHostWidgets(
 /**
  * The environment variable that makes {@link expectUplinkPageCurrent} rewrite
  * the page and manifest instead of failing, as updating a snapshot does. Set it
- * to `1`. On CI (with `CI` set) it is refused with an error, so a check run
- * can never heal itself.
+ * to `1`. With `CI` set it is refused with an error. Useful for an Uplink
+ * author regenerating the page from their own test run. Read by
+ * {@link expectUplinkPageCurrent}.
  *
  * @category Page check
  */
 export const PAGE_UPDATE_ENV = "GONOGO_UPLINK_PAGE_UPDATE";
 
-/**
+/*
  * A gate that rewrites the thing it is measuring reports success no matter what
  * the tree says, so the switch is refused where nobody is reading the output.
- * CI healing itself and printing green is the failure this repo has already
- * paid for twice.
  */
 function updateRequested(): boolean {
   // `uplink-tools page` asking for the page by name, which is a write and not a check healing itself.
@@ -297,11 +300,14 @@ function updateRequested(): boolean {
 }
 
 /**
- * Fails when the Uplink's committed README, manifest, `docs/widgets.json` or `docs/spec.json` no
- * longer matches what its registrations declare, listing each difference. For an Uplink's own test
- * suite: it needs no browser, and it cannot tell whether the committed images
- * are current, which `uplink-tools docs --check` does. With `PAGE_UPDATE_ENV`
- * set to `1` it rewrites the files instead of failing; on CI that is refused.
+ * Fails when the Uplink's committed README, manifest, `docs/widgets.json` or
+ * `docs/spec.json` no longer matches what its registrations declare, listing
+ * each difference. Useful for keeping an Uplink's generated page current from
+ * its own test suite: it needs no browser, and it cannot tell whether the
+ * committed images are current, which `uplink-tools docs --check` does. With
+ * `PAGE_UPDATE_ENV` set to `1` it rewrites the files instead of failing; with
+ * `CI` set that is refused. Used by a test the `uplink-tools new` scaffold
+ * writes into each new Uplink, and run by `uplink-tools page`.
  *
  * @example
  * ```ts
