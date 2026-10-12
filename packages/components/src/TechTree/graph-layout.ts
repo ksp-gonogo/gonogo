@@ -1,4 +1,4 @@
-import type { Tone, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import { TONE_TEXT } from "@ksp-gonogo/ui-kit";
 import type { TechNode } from "./wire";
 import { sortCost } from "./wire";
@@ -49,12 +49,9 @@ export function graphCardBorder(ds: DisplayState, dimmed: boolean): string {
 }
 
 /**
- * A node is researchable-now when it is not owned, every parent is unlocked, and its cost is affordable. The plugin only emits `Available` / `Unavailable`, so this is computed; an explicit `"Researchable"` state is also honoured.
+ * A node is researchable when it is not owned and every parent is unlocked. Whether the balance can pay for it is a separate verdict drawn on its Unlock control, so a node the career cannot afford yet stays researchable. The plugin only emits `Available` / `Unavailable`, so this is computed; an explicit `"Researchable"` state is also honoured.
  */
-export function computeResearchable(
-  nodes: TechNode[],
-  science: Value<"science"> | null | undefined,
-): Set<string> {
+export function computeResearchable(nodes: TechNode[]): Set<string> {
   const byId = new Map(nodes.map((n) => [n.id, n]));
   const out = new Set<string>();
   for (const n of nodes) {
@@ -67,14 +64,7 @@ export function computeResearchable(
     const parentsUnlocked = n.parents.every(
       (p) => byId.get(p)?.state === "Available",
     );
-    if (!parentsUnlocked) continue;
-    if (
-      science != null &&
-      n.scienceCost !== null &&
-      science.compare(n.scienceCost) < 0
-    )
-      continue;
-    out.add(n.id);
+    if (parentsUnlocked) out.add(n.id);
   }
   return out;
 }

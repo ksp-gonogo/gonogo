@@ -78,6 +78,23 @@ describe("TechTree spend truth", () => {
     expect(visibleText(document.body)).not.toMatch(/\b0\s*science/);
   });
 
+  it("offers Unlock with a no-afford verdict on a derived node whose parents are owned but whose price exceeds the balance", async () => {
+    mount();
+    act(() => {
+      // The live wire sends only unlocked or not, never "Researchable", so the state is derived from the parents.
+      stream.emit(
+        "career.status",
+        careerStatus(30, { ...PRICEY, scienceCost: 45, state: "Unavailable" }),
+      );
+    });
+    await openNode("Pricey Tech");
+
+    expect(screen.getAllByText("Researchable").length).toBeGreaterThan(0);
+    expect(
+      document.querySelector("[data-afford]")?.getAttribute("data-afford"),
+    ).toBe("no");
+  });
+
   it("draws a science verdict on the price, and darkens Unlock only on the node's own gate", async () => {
     mount();
     act(() => {

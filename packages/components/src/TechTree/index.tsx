@@ -75,7 +75,6 @@ function TechTreeComponent({ w }: Readonly<ComponentProps<TechTreeConfig>>) {
       allNodes={allNodes}
       unlockedCount={tech?.unlockedCount ?? null}
       sciAvailable={sciAvailable}
-      science={careerScience}
       scienceShown={scienceShown}
       chargesScience={chargesScience}
       unlockCmd={unlockCmd}
@@ -90,15 +89,20 @@ function useTechTreeEssentials(): readonly TinyEssential[] {
   return [
     {
       label: "Researchable",
-      value: readingOf(career, (c) =>
-        value(
-          "count",
-          computeResearchable(
-            parseTechNodes(c.tech?.nodes) ?? [],
-            c.balances?.science,
-          ).size,
-        ),
-      ),
+      value: readingOf(career, (c) => {
+        const science = c.balances?.science;
+        const nodes = parseTechNodes(c.tech?.nodes) ?? [];
+        const reachable = computeResearchable(nodes);
+        // The tile counts what the balance can buy now, so a reachable node it cannot pay for is left out.
+        const affordable = nodes.filter(
+          (n) =>
+            reachable.has(n.id) &&
+            (science == null ||
+              n.scienceCost === null ||
+              science.compare(n.scienceCost) >= 0),
+        );
+        return value("count", affordable.length);
+      }),
     },
     {
       label: "Science",

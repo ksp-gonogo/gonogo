@@ -36,8 +36,6 @@ export interface TechTreeViewProps {
   /** The mod's own count of unlocked nodes; `null` when it did not arrive. */
   unlockedCount?: Value<"count"> | null;
   sciAvailable: number | null;
-  /** The current balance the researchable count is judged against. */
-  science: Value<"science"> | null | undefined;
   /** The science balance as drawn, held included so Unit can mark it. */
   scienceShown: UnitValue<"science">;
   chargesScience: boolean;
@@ -100,7 +98,6 @@ export function TechTreeView({
   allNodes,
   unlockedCount = null,
   sciAvailable,
-  science,
   scienceShown,
   chargesScience,
   unlockCmd,
@@ -115,8 +112,8 @@ export function TechTreeView({
   });
 
   const researchable = useMemo(
-    () => computeResearchable(allNodes ?? [], science),
-    [allNodes, science],
+    () => computeResearchable(allNodes ?? []),
+    [allNodes],
   );
   const tiers = useMemo(() => computeTiers(allNodes ?? []), [allNodes]);
 

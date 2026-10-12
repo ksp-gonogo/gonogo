@@ -262,7 +262,7 @@ describe("TechTree: an absent balances.science", () => {
   });
 });
 
-describe("TechTree: computeResearchable's own science gate", () => {
+describe("TechTree: computeResearchable and the balance", () => {
   // The count is a claim about the tree's shape, not an offer to spend: a node with unlocked parents is reachable, and the Unlock button refuses the spend on its own.
   it("still counts a 500-science node as researchable while the balance is unknown", async () => {
     const fixture = newFixture();
@@ -284,7 +284,7 @@ describe("TechTree: computeResearchable's own science gate", () => {
     );
   });
 
-  it("stops counting it once a balance arrives and is too small", async () => {
+  it("keeps counting it once a balance arrives and is too small, the Unlock control carrying the verdict", async () => {
     const fixture = newFixture();
     renderTree(fixture);
 
@@ -302,7 +302,6 @@ describe("TechTree: computeResearchable's own science gate", () => {
     await waitFor(() =>
       expect(screen.getByText("Derived Tech")).toBeInTheDocument(),
     );
-    // The other side of the same gate.
-    expect(screen.getByRole("status").textContent).toContain("Researchable0");
+    expect(screen.getByRole("status").textContent).toContain("Researchable1");
   });
 });
