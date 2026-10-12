@@ -165,8 +165,8 @@ namespace Sitrep.Host.IntegrationTests
             Reckoned.True(result == null && refused == null, "the command settled before twice its light-time had passed");
 
             world.Tick(T0 + (2.0 * light) + 5.0);
-            var held = Assert.Single(Journey(world));
-            Assert.Equal(JourneyEventKind.Held, held.Kind);
+            Assert.Equal(new[] { JourneyEventKind.LostOnLanding, JourneyEventKind.Held }, Journey(world).Select(e => e.Kind).ToArray());
+            var held = Journey(world).Single(e => e.Kind == JourneyEventKind.Held);
             Assert.Equal(Home, held.At);
             Assert.Equal(T0 + (2.0 * light), held.AtUt, 3);
             Assert.Single(Pending(world));

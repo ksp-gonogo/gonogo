@@ -2556,7 +2556,15 @@ export enum JourneyEventKind {
 	/** A cancel reached a node after the command left it, and follows it on. */
 	CancelLateHere = 8,
 	/** The command ran at the craft; its result travels on the command's own reply. */
-	Ran = 9
+	Ran = 9,
+	/**
+	* A copy of the command was sent on and never landed, because the link it
+	* needed was gone when it arrived. The node still holds the command,
+	* `CommsJourneyEvent.detail` says which attempt was lost, and
+	* `CommsJourneyEvent.untilUt` is when that node tries again, or null when it
+	* waits for its plan to change.
+	*/
+	LostOnLanding = 10
 }
 /**
 * Journey reports for this vantage's commands in the current timeline: where

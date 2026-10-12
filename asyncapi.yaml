@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 40.4.0
+  version: 40.5.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -15470,6 +15470,14 @@ components:
         - const: 9
           title: Ran
           description: The command ran at the craft; its result travels on the command's own reply.
+        - const: 10
+          title: LostOnLanding
+          description: |-
+            A copy of the command was sent on and never landed, because the link it
+            needed was gone when it arrived. The node still holds the command,
+            `CommsJourneyEvent.detail` says which attempt was lost, and
+            `CommsJourneyEvent.untilUt` is when that node tries again, or null when it
+            waits for its plan to change.
     KspEditorFacility:
       type: integer
       description: |-

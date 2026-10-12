@@ -1117,6 +1117,7 @@ namespace Sitrep.Host
             JourneyKind.CancelStored => JourneyEventKind.CancelStored,
             JourneyKind.CancelLate => JourneyEventKind.CancelLate,
             JourneyKind.CancelLateHere => JourneyEventKind.CancelLateHere,
+            JourneyKind.LostOnLanding => JourneyEventKind.LostOnLanding,
             _ => JourneyEventKind.Ran,
         };
 

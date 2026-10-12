@@ -1726,7 +1726,24 @@ namespace Sitrep.Core.StoreAndForward
                 Report(node, command, JourneyKind.Cancelled, atUt);
                 return;
             }
+            if (held.Message is CommandMessage lostCommand)
+            {
+                ReportLostOnLanding(node, held, lostCommand, to, atUt);
+            }
             Depart(node, atUt);
+        }
+
+        /// <summary>
+        /// Tells the centre a copy it was sent on never landed. A node other than
+        /// the sending centre names the time its wait ends; a centre goes by its own
+        /// plan alone, so nothing but a new plan sends it again and no time is named.
+        /// </summary>
+        private void ReportLostOnLanding(string node, Held held, CommandMessage command, string to, double atUt)
+        {
+            var own = IsItsOwnCentre(node, command);
+            var detail = "copy " + held.Losses + " lost on its way to " + to
+                + (own ? "; it is sent again when its plan changes" : "");
+            Report(node, command, JourneyKind.LostOnLanding, atUt, detail: detail, until: own ? (double?)null : held.RetryExcludedUt);
         }
 
         private static bool IsExcluded(Held held, string to) => held.Excluded != null && held.Excluded.Contains(to);

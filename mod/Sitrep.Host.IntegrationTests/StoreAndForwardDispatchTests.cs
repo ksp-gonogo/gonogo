@@ -327,6 +327,40 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The craft's own link reads down while the centre's plan says the way is
+        /// open: every copy is caught on landing, and the centre is told so
+        /// instead of hearing nothing until the order expires.
+        /// </summary>
+        [Fact]
+        public void AnOrderCaughtOnLandingBecauseTheLedgerReadsTheCraftDownIsReportedLost()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op);
+                var sent = Assert.Single(Pending(engine));
+                uplink.Link = false;
+
+                foreach (var ut in new[] { 1.0, 2.0, OneWaySeconds + 0.5, OneWaySeconds + 2.0, (2 * OneWaySeconds) + 1.0 })
+                {
+                    TickActive(engine, uplink, ut, loaded: false);
+                }
+
+                Assert.Equal(0, uplink.HandledCount);
+                var lost = Assert.Single(Journey(engine).Events, e => e.About == sent.Id && e.Kind == JourneyEventKind.LostOnLanding);
+                Assert.Contains("copy 1", lost.Detail);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// The same order, with the game back in flight before it arrives: it
         /// lands on the craft it was sent to and runs there.
         /// </summary>
@@ -585,6 +619,14 @@ namespace Sitrep.Host.IntegrationTests
 
             private int _handled;
             private volatile bool _loaded = true;
+            private volatile bool _link = true;
+
+            /// <summary>What the fleet capture reports of the craft's own link.</summary>
+            public bool Link
+            {
+                get => _link;
+                set => _link = value;
+            }
 
             public int HandledCount => Volatile.Read(ref _handled);
 
@@ -621,7 +663,7 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddSampledSource(_ => true, _ =>
                 {
                     host.SetVesselDelay(CraftId, OneWaySeconds);
-                    host.SetVesselConnectivity(CraftId, true);
+                    host.SetVesselConnectivity(CraftId, _link);
                 });
                 host.AddChannelSource(Topic, _ => null);
                 host.SetConnectivitySource(_ => _loaded);

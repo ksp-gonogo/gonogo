@@ -42,6 +42,9 @@ public enum JourneyEventKind
 
     /// <summary>The command ran at the craft; its result travels on the command's own reply.</summary>
     Ran = 9,
+
+    /// <summary>A copy of the command was sent on and never landed, because the link it needed was gone when it arrived. The node still holds the command, <see cref="CommsJourneyEvent.Detail"/> says which attempt was lost, and <see cref="CommsJourneyEvent.UntilUt"/> is when that node tries again, or null when it waits for its plan to change.</summary>
+    LostOnLanding = 10,
 }
 
 /// <summary>

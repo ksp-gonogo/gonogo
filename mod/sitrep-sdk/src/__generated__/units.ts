@@ -3288,6 +3288,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     7: "CancelLate",
     8: "CancelLateHere",
     9: "Ran",
+    10: "LostOnLanding",
   },
   "KspEditorFacility": {
     0: "None",

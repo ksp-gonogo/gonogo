@@ -150,8 +150,8 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.Empty(rig.Reports);
 
             rig.Tick(20.5);
-            var held = Assert.Single(rig.Reports);
-            Assert.Equal(JourneyKind.Held, held.Kind);
+            Assert.Equal(new[] { JourneyKind.LostOnLanding, JourneyKind.Held }, rig.Reports.Select(r => r.Kind).ToArray());
+            var held = Assert.Single(rig.Reports, r => r.Kind == JourneyKind.Held);
             Assert.Equal(Ksc, held.At);
             Assert.Equal(20.0, held.AtUt);
         }
@@ -176,7 +176,7 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.Single(restored.Network.InCustody());
 
             restored.Tick(20.5);
-            Assert.Equal(JourneyKind.Held, Assert.Single(restored.Reports).Kind);
+            Assert.Equal(new[] { JourneyKind.LostOnLanding, JourneyKind.Held }, restored.Reports.Select(r => r.Kind).ToArray());
         }
 
         /// <summary>

@@ -137,8 +137,8 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             // Twice the light time it believed in, and nothing has come back.
             rig.RunTo(21.0);
-            var held = Assert.Single(rig.Reports);
-            Assert.Equal(JourneyKind.Held, held.Kind);
+            Assert.Equal(new[] { JourneyKind.LostOnLanding, JourneyKind.Held }, rig.Reports.Select(r => r.Kind).ToArray());
+            var held = Assert.Single(rig.Reports, r => r.Kind == JourneyKind.Held);
             Assert.Equal(Ksc, held.At);
             Assert.Equal(20.0, held.AtUt);
         }

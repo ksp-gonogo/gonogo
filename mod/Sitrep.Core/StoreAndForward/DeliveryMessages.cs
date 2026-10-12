@@ -191,6 +191,9 @@ namespace Sitrep.Core.StoreAndForward
 
         /// <summary>The command ran; the report carries its result.</summary>
         Reply,
+
+        /// <summary>A copy sent on never landed, because the live link it needed was gone when the light arrived; the node still holds the command and the report says when it will try again.</summary>
+        LostOnLanding,
     }
 
     /// <summary>A report on its way back to the command centre that sent a command.</summary>
