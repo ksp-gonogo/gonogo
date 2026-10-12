@@ -15,7 +15,7 @@ namespace Gonogo.KSP
     /// </summary>
     public static class FleetVesselContactBuilder
     {
-        public static Dictionary<string, object?> Build(bool connected, double? lastContactUt) =>
+        public static Dictionary<string, object?> Build(bool? connected, double? lastContactUt) =>
             new Dictionary<string, object?>
             {
                 ["connected"] = connected,

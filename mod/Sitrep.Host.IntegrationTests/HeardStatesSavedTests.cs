@@ -253,7 +253,7 @@ namespace Sitrep.Host.IntegrationTests
             }
             await world.SettleAsync();
             var quicksave = SavedAndReadBack(world);
-            Assert.Equal(0.4, quicksave!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength, 6);
+            Assert.Equal(0.4, quicksave!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength!.Value, 6);
             world.Engine.NoteSaved(new DeliverySnapshot(), quicksave, 1702.0);
             world.Tick(1704.0);
 
@@ -261,7 +261,7 @@ namespace Sitrep.Host.IntegrationTests
             world.Tick(1703.0);
             await world.SettleAsync();
 
-            Assert.Equal(0.4, world.Engine.HeardSnapshotNow()!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength, 6);
+            Assert.Equal(0.4, world.Engine.HeardSnapshotNow()!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength!.Value, 6);
         }
 
         /// <summary>
@@ -335,7 +335,7 @@ namespace Sitrep.Host.IntegrationTests
             }
             await world.SettleAsync();
             var saved = SavedAndReadBack(world);
-            Assert.Equal(0.9, saved!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength, 6);
+            Assert.Equal(0.9, saved!.Centres.Single(c => c.Centre == Home).Radios.Single().Strength!.Value, 6);
 
             world.Engine.NoteGameLoaded(new DeliverySnapshot(), saved);
             var (client, view) = await world.SitDownAtAsync(Home, ContactPlanSource.SignalTopic, ContactPlanSource.DegradeTopic);

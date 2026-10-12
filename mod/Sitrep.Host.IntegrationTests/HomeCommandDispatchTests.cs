@@ -35,7 +35,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                engine.SetHomeCommandDelay(Vessel, 3.0);
+                engine.SetHomeCommandDelays(new Dictionary<string, double> { [Vessel] = 3.0 });
                 engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>> { [Vessel] = new[] { ChannelEngine.HomeCommandNode } });
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: ActiveVesselDelay), Timeout);
 
@@ -76,7 +76,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                engine.SetHomeCommandDelay(Vessel, 3.0);
+                engine.SetHomeCommandDelays(new Dictionary<string, double> { [Vessel] = 3.0 });
                 engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>> { [Vessel] = new[] { ChannelEngine.HomeCommandNode } });
                 engine.SetUnroutable(new Dictionary<string, IReadOnlyCollection<string>>());
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: ActiveVesselDelay), Timeout);

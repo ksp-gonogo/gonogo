@@ -202,6 +202,7 @@ namespace Sitrep.Host.Tests
         {
             var tracker = new FlightStatsTracker();
             const string id = "v1";
+            tracker.Sample(id, ut: 1, altitude: 0, srfSpeed: 0, horizontalSrfSpeed: 0, missionTime: 0, geeForce: 1, splashed: false);
             tracker.RecordEvent(id, 0, "Liftoff!!");
             tracker.RecordEvent(id, 21, "Mk1 Command Pod splashed down hard and was destroyed.");
             tracker.RecordPartsLost(id, 3);
@@ -223,8 +224,45 @@ namespace Sitrep.Host.Tests
             tracker.Forget(id);
 
             var stats = tracker.Snapshot(id);
-            Assert.Equal(0, stats.HighestAltitude);
-            Assert.False(stats.LiftOff);
+            Assert.Null(stats.HighestAltitude);
+            Assert.Null(stats.LiftOff);
+        }
+
+        [Fact]
+        public void Tracker_ACraftNeverSampledHasNoFiguresButItsMissionTimeAtTheCrash()
+        {
+            // A booster that crashed while the upper stage was flown.
+            var tracker = new FlightStatsTracker();
+            tracker.RecordPartsLost("booster");
+
+            var stats = tracker.Snapshot("booster", missionTimeAtCrash: 140);
+
+            Assert.Null(stats.HighestAltitude);
+            Assert.Null(stats.HighestSpeed);
+            Assert.Null(stats.HighestSpeedOverLand);
+            Assert.Null(stats.HighestGee);
+            Assert.Null(stats.TotalDistance);
+            Assert.Null(stats.GroundDistance);
+            Assert.Null(stats.PartsLost);
+            Assert.Null(stats.KerbalsKilled);
+            Assert.Equal(140, stats.MissionTime);
+            Assert.True(stats.LiftOff);
+            Assert.True(stats.MissionEnd);
+        }
+
+        [Fact]
+        public void Tracker_AQuickloadStartsTheFiguresAgain()
+        {
+            var tracker = new FlightStatsTracker();
+            const string id = "v1";
+            tracker.Sample(id, ut: 500, altitude: 70_000, srfSpeed: 2200, horizontalSrfSpeed: 2000, missionTime: 400, geeForce: 4, splashed: false);
+
+            // F9 to before that climb.
+            tracker.Sample(id, ut: 200, altitude: 5000, srfSpeed: 300, horizontalSrfSpeed: 100, missionTime: 100, geeForce: 2, splashed: false);
+
+            var stats = tracker.Snapshot(id);
+            Assert.Equal(5000, stats.HighestAltitude);
+            Assert.Equal(300, stats.HighestSpeed);
         }
 
         [Theory]

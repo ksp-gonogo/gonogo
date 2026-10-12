@@ -66,11 +66,11 @@ function deriveTopologyPart(p: VesselPart): TopologyPart {
     manufacturer: "",
     category: p.category,
     categoryOrdinal: p.categoryOrdinal ?? null,
-    inverseStage: p.inverseStage,
+    inverseStage: p.inverseStage ?? null,
     crewCapacity: 0,
-    maxTemp: p.maxTemp.magnitude,
+    maxTemp: p.maxTemp?.magnitude ?? null,
     crashTolerance: 0,
-    dryMass: p.dryMass.magnitude,
+    dryMass: p.dryMass?.magnitude ?? null,
     orgPos: [
       p.position.x.magnitude,
       p.position.y.magnitude,
@@ -120,9 +120,10 @@ export function derivePartThermal(p: VesselPart): PartThermal | null {
   if (p.currentTemp == null) return null;
   return {
     temperature: kelvinToCelsius(p.currentTemp.magnitude),
-    maxTemperature: kelvinToCelsius(p.maxTemp.magnitude),
+    maxTemperature:
+      p.maxTemp == null ? null : kelvinToCelsius(p.maxTemp.magnitude),
     temperatureK: p.currentTemp.magnitude,
-    maxTemperatureK: p.maxTemp.magnitude,
+    maxTemperatureK: p.maxTemp?.magnitude ?? null,
   };
 }
 
@@ -148,16 +149,19 @@ export function buildThermalByFlightId(
  * see the same "field absent" shape the legacy `r.resourceFor[fid]` payload
  * had.
  */
-export function derivePartResources(p: VesselPart): PartResources {
+export function derivePartResources(
+  p: Pick<VesselPart, "resources">,
+): PartResources {
   const out: PartResources = {};
   for (const [name, row] of Object.entries(p.resources)) {
     out[name] = {
-      amount: row.amount.magnitude,
-      maxAmount: row.maxAmount.magnitude,
+      amount: row.amount?.magnitude ?? null,
+      maxAmount: row.maxAmount?.magnitude ?? null,
       ...(row.flow != null ? { flow: row.flow.magnitude } : {}),
       ...(row.nominalFlow != null
         ? { nominalFlow: row.nominalFlow.magnitude }
         : {}),
+      ...(row.unratedProcess === true ? { unratedProcess: true as const } : {}),
     };
   }
   return out;

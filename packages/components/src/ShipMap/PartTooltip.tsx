@@ -37,6 +37,7 @@ export function PartTooltip({
   const meteredResourceNames = new Set(meters.map((m) => m.resource));
   const otherResources =
     hovered.resources?.filter((r) => !meteredResourceNames.has(r.n)) ?? [];
+  const maxTemperatureK = hovered.maxTemperatureK ?? hovered.maxTemp;
   return (
     <Floating anchor={pointer} style={TOOLTIP}>
       <div style={TOOLTIP_TITLE}>{hovered.title || hovered.name}</div>
@@ -47,20 +48,21 @@ export function PartTooltip({
       <div style={TOOLTIP_ROW}>
         <span>mass</span>
         <span style={TOOLTIP_ROW_VALUE}>
-          <Unit value={value("t", hovered.dryMass)} decimals={3} />
+          <Unit
+            value={hovered.dryMass == null ? null : value("t", hovered.dryMass)}
+            decimals={3}
+          />
         </span>
       </div>
       {hovered.temperatureK !== undefined &&
-      (hovered.maxTemperatureK ?? hovered.maxTemp) > 0 ? (
+      maxTemperatureK != null &&
+      maxTemperatureK > 0 ? (
         <div style={TOOLTIP_ROW}>
           <span>temp</span>
           <span style={TOOLTIP_ROW_VALUE}>
             <Unit value={value("K", hovered.temperatureK)} decimals={0} />
             {" / "}
-            <Unit
-              value={value("K", hovered.maxTemperatureK ?? hovered.maxTemp)}
-              decimals={0}
-            />
+            <Unit value={value("K", maxTemperatureK)} decimals={0} />
           </span>
         </div>
       ) : null}

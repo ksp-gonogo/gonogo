@@ -25,7 +25,7 @@ namespace Gonogo.KSP
         /// <summary>
         /// Routed one-way signal delay (null = no measurable path) + connectivity
         /// for a single vessel. Fail-soft: any torn-down-state throw yields
-        /// (null, false), the correct "no live link" meaning.
+        /// (null, null), a link that could not be read.
         ///
         /// <para>A save with no comms model answers (0, connected) for every
         /// craft, without reading the CommNet graph at all: with the difficulty
@@ -33,13 +33,13 @@ namespace Gonogo.KSP
         /// for every vessel forever and each would freeze its own subject's
         /// Delayed channels for the session.</para>
         /// </summary>
-        internal static (double? OneWaySeconds, bool Connected) ReadVessel(Vessel vessel, SignalDelayConfig config)
+        internal static (double? OneWaySeconds, bool? Connected) ReadVessel(Vessel vessel, SignalDelayConfig config)
         {
             try
             {
                 if (vessel == null)
                 {
-                    return (null, false);
+                    return (null, null);
                 }
 
                 // No comms model in this save (the CommNet difficulty option is
@@ -70,8 +70,8 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVessel failed (treating as no path): " + ex.Message);
-                return (null, false);
+                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadVessel failed (link unread): " + ex.Message);
+                return (null, null);
             }
         }
 
@@ -145,15 +145,16 @@ namespace Gonogo.KSP
         /// A vessel's connectivity alone, by the same rules as
         /// <see cref="ReadVessel"/>'s flag, without walking its control path.
         /// Cheap enough to ask of every vessel in the save on every tick, which
-        /// is what the fleet's ungated link capture does.
+        /// is what the fleet's ungated link capture does. Null when the link
+        /// could not be read.
         /// </summary>
-        internal static bool ReadConnected(Vessel vessel, SignalDelayConfig config)
+        internal static bool? ReadConnected(Vessel vessel, SignalDelayConfig config)
         {
             try
             {
                 if (vessel == null)
                 {
-                    return false;
+                    return null;
                 }
                 if (config != null && config.CutForNoCommsModel)
                 {
@@ -163,8 +164,8 @@ namespace Gonogo.KSP
             }
             catch (Exception ex)
             {
-                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadConnected failed (treating as no link): " + ex.Message);
-                return false;
+                Debug.LogWarning("[Gonogo] FleetCommsReader.ReadConnected failed (link unread): " + ex.Message);
+                return null;
             }
         }
 

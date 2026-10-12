@@ -86,9 +86,9 @@ public class VesselCrew
     [SitrepUnit(Units.Count)]
     public int Count { get; set; }
 
-    /// <summary>How many crew seats the vessel has.</summary>
+    /// <summary>How many crew seats the vessel has. Null when the seats could not be read.</summary>
     [SitrepUnit(Units.Count)]
-    public int Capacity { get; set; }
+    public int? Capacity { get; set; }
 
     /// <summary>Each crew member aboard.</summary>
     public List<CrewMember> Crew { get; set; } = new();

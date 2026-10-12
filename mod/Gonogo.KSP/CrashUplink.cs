@@ -281,7 +281,7 @@ namespace Gonogo.KSP
                 Longitude = vessel.longitude,
                 PartsLost = ReadRemainingParts(vessel),
                 Body = vessel.mainBody?.bodyName ?? "",
-                FlightStats = _tracker.Snapshot(vesselId),
+                FlightStats = _tracker.Snapshot(vesselId, vessel.missionTime),
                 VesselName = GameWords.VesselName(vessel),
                 Events = new List<string>(_tracker.Events(vesselId)),
                 // Everyone aboard died in the crash.

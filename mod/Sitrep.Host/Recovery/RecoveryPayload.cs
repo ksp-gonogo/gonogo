@@ -88,8 +88,8 @@ namespace Sitrep.Host.Recovery
         public double? TotalScience;
         public double? FundsEarned;
         public double? TotalFunds;
-        public double ReputationEarned;
-        public double TotalReputation;
+        public double? ReputationEarned;
+        public double? TotalReputation;
         public bool DisplayReputation;
         public List<RecoveryScienceItem> ScienceBreakdown = new List<RecoveryScienceItem>();
         public List<RecoveryPartItem> PartBreakdown = new List<RecoveryPartItem>();

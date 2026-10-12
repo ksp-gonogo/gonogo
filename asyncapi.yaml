@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 40.6.0
+  version: 41.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -1340,10 +1340,8 @@ channels:
       believes in on `comms.path`.
 
       A save with the stock CommNet difficulty option off models no link budget at
-      all and reports 1 here: nothing weakens a link that is not modelled. To tell
-      that case from a real full-strength link, read
-      `CommsDelaySource.NoCommsModel` on `comms.delay`, which marks it for every
-      `comms.*` channel.
+      all, so `CommsSignal.strength` is null there and `CommsSignal.quantity` is
+      `SignalQuantity.NoModel`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -9820,7 +9818,9 @@ components:
             - number
             - "null"
           x-sitrep-unit: ut
-          description: When the contract was accepted, KSP's `Contract.DateAccepted`.
+          description: |-
+            When the contract was accepted, KSP's `Contract.DateAccepted`. `null` for a
+            contract not yet accepted.
         dateDeadline:
           type:
             - number
@@ -9828,8 +9828,8 @@ components:
           x-sitrep-unit: ut
           description: |-
             When an accepted contract must be completed by, KSP's
-            `Contract.DateDeadline`. Passed through as KSP holds it, so a contract with
-            no deadline carries `0` here rather than `null`.
+            `Contract.DateDeadline`. `null` for a contract with no deadline, and for an
+            offer whose deadline is set only on acceptance.
         dateExpire:
           type:
             - number
@@ -9837,7 +9837,7 @@ components:
           x-sitrep-unit: ut
           description: |-
             When an offered contract is withdrawn if not accepted, KSP's
-            `Contract.DateExpire`.
+            `Contract.DateExpire`. `null` for a contract that never expires.
         parameters:
           type: array
           items:
@@ -10223,6 +10223,94 @@ components:
             - "null"
           x-sitrep-unit: rep
           description: The reputation charged on activation, KSP's Strategy.InitialCostReputation.
+        requiredReputationMin:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: rep
+          description: |-
+            The reputation the career needs before the strategy can be activated at the
+            lowest commitment, KSP's Strategy.RequiredReputationMin. At a commitment
+            `CareerStrategy.factor` f the figure is requiredReputationMin plus f times
+            (requiredReputationMax minus requiredReputationMin), f held to 0..1, as
+            KSP's Strategy.FactorLerp computes it.
+        requiredReputationMax:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: rep
+          description: |-
+            The reputation the career needs before the strategy can be activated at the
+            highest commitment, KSP's Strategy.RequiredReputationMax. At a commitment
+            `CareerStrategy.factor` f the figure is requiredReputationMin plus f times
+            (requiredReputationMax minus requiredReputationMin), f held to 0..1, as
+            KSP's Strategy.FactorLerp computes it.
+        initialCostFundsMin:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: funds
+          description: |-
+            The funds charged on activation at the lowest commitment, KSP's
+            Strategy.InitialCostFundsMin. At a commitment `CareerStrategy.factor` f the
+            figure is initialCostFundsMin plus f times (initialCostFundsMax minus
+            initialCostFundsMin), f held to 0..1, as KSP's Strategy.FactorLerp computes
+            it.
+        initialCostFundsMax:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: funds
+          description: |-
+            The funds charged on activation at the highest commitment, KSP's
+            Strategy.InitialCostFundsMax. At a commitment `CareerStrategy.factor` f the
+            figure is initialCostFundsMin plus f times (initialCostFundsMax minus
+            initialCostFundsMin), f held to 0..1, as KSP's Strategy.FactorLerp computes
+            it.
+        initialCostScienceMin:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: |-
+            The science charged on activation at the lowest commitment, KSP's
+            Strategy.InitialCostScienceMin. At a commitment `CareerStrategy.factor` f
+            the figure is initialCostScienceMin plus f times (initialCostScienceMax
+            minus initialCostScienceMin), f held to 0..1, as KSP's Strategy.FactorLerp
+            computes it.
+        initialCostScienceMax:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: |-
+            The science charged on activation at the highest commitment, KSP's
+            Strategy.InitialCostScienceMax. At a commitment `CareerStrategy.factor` f
+            the figure is initialCostScienceMin plus f times (initialCostScienceMax
+            minus initialCostScienceMin), f held to 0..1, as KSP's Strategy.FactorLerp
+            computes it.
+        initialCostReputationMin:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: rep
+          description: |-
+            The reputation charged on activation at the lowest commitment, KSP's
+            Strategy.InitialCostReputationMin. At a commitment `CareerStrategy.factor` f
+            the figure is initialCostReputationMin plus f times
+            (initialCostReputationMax minus initialCostReputationMin), f held to 0..1,
+            as KSP's Strategy.FactorLerp computes it.
+        initialCostReputationMax:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: rep
+          description: |-
+            The reputation charged on activation at the highest commitment, KSP's
+            Strategy.InitialCostReputationMax. At a commitment `CareerStrategy.factor` f
+            the figure is initialCostReputationMin plus f times
+            (initialCostReputationMax minus initialCostReputationMin), f held to 0..1,
+            as KSP's Strategy.FactorLerp computes it.
         hasFactorSlider:
           type:
             - boolean
@@ -12086,7 +12174,6 @@ components:
         - id
         - about
         - craft
-        - laneSeq
         - kind
         - at
         - atUt
@@ -12108,11 +12195,15 @@ components:
           x-sitrep-unit: id
           description: The craft the command's lane runs to.
         laneSeq:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: count
           description: |-
             The command's place on its lane, the ordered run of delayed commands one
-            command centre sends to one craft, as `PendingUplink.laneSeq`.
+            command centre sends to one craft, as `PendingUplink.laneSeq`. Null for a
+            command that never took a place on a lane: a continuous input dropped where
+            it would have waited.
         kind:
           description: What happened.
           allOf:
@@ -12603,23 +12694,22 @@ components:
         believes in on `comms.path`.
 
         A save with the stock CommNet difficulty option off models no link budget at
-        all and reports 1 here: nothing weakens a link that is not modelled. To tell
-        that case from a real full-strength link, read
-        `CommsDelaySource.NoCommsModel` on `comms.delay`, which marks it for every
-        `comms.*` channel.
+        all, so `CommsSignal.strength` is null there and `CommsSignal.quantity` is
+        `SignalQuantity.NoModel`.
       required:
-        - strength
         - quantity
         - modelled
         - otherPath
       properties:
         strength:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: ratio
           description: |-
             Link strength from 0 to 1, in the backend's own terms (see this type's
-            summary), so compare values only within one install. 0 when no link state
-            could be read.
+            summary), so compare values only within one install. Null when no link state
+            could be read, and where no link budget is modelled.
         quantity:
           description: |-
             Which quantity `CommsSignal.strength` is: KSP's signal strength for the
@@ -12919,28 +13009,25 @@ components:
       description: |-
         Per-flight statistics accumulated across the whole flight up to the crash,
         `CrashReport.flightStats`. Maxima and distances are sampled from the active
-        vessel at the telemetry cadence, so they are approximate. A vessel that was
-        never sampled reports zero for every accumulated value.
+        vessel at the telemetry cadence, so they are approximate, and since the
+        flight was last loaded: a quickload or a revert starts them again. A vessel
+        that was never sampled, such as one that crashed while another was flown,
+        reports null for every accumulated value; its mission time and lift-off are
+        read at the crash.
       required:
-        - kerbalsKilled
-        - partsLost
         - flightEndMode
-        - highestSpeedOverLand
         - missionEnd
-        - highestGee
-        - highestAltitude
-        - totalDistance
-        - missionTime
-        - highestSpeed
-        - groundDistance
-        - liftOff
       properties:
         kerbalsKilled:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: count
           description: Kerbals killed earlier in the flight (before the final crash).
         partsLost:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: count
           description: Cumulative parts destroyed across the flight.
         flightEndMode:
@@ -12948,7 +13035,9 @@ components:
           x-sitrep-unit: text
           description: How the flight ended. Always `"CATASTROPHIC_FAILURE"` on a crash record.
         highestSpeedOverLand:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: m/s
           description: |-
             The highest surface speed (`Vessel.srfSpeed`) reached while not splashed
@@ -12959,47 +13048,61 @@ components:
           x-sitrep-unit: flag
           description: Whether the mission has ended. Always `true` on a crash record.
         highestGee:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: g
           description: The highest g-force (`Vessel.geeForce`) sampled during the flight, in g.
         highestAltitude:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: m
           description: |-
             The highest altitude above sea level (`Vessel.altitude`) sampled during the
             flight, in metres.
         totalDistance:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: m
           description: |-
             Distance travelled relative to the surface, in metres: surface speed
             integrated over UT between samples. A gap of more than 10 s between samples
             (a warp jump, a quickload) is skipped rather than integrated.
         missionTime:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: s
           description: |-
-            Mission time (seconds since launch) at the crash: the highest
-            `Vessel.missionTime` sampled.
+            Mission time (seconds since launch) at the crash, `Vessel.missionTime` read
+            as it was destroyed.
         highestSpeed:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: m/s
           description: |-
             The highest surface speed (`Vessel.srfSpeed`) sampled during the flight, in
             m/s.
         groundDistance:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: m
           description: |-
             Horizontal distance travelled over the surface, in metres: horizontal
             surface speed integrated over UT between samples, with the same 10 s gap
             rule as `CrashFlightStats.totalDistance`.
         liftOff:
-          type: boolean
+          type:
+            - boolean
+            - "null"
           x-sitrep-unit: flag
           description: |-
             `true` once the vessel's mission clock has started, i.e. it has left the
-            launch site.
+            launch site, as read at the crash.
     CrashPartLost:
       type: object
       description: "One part lost in a crash: an entry of `CrashReport.partsLost`."
@@ -16859,18 +16962,21 @@ components:
         fuel cells and drills report storage only, with no rate.
         `PartResourceFlow.nominalFlow` is `null` whenever it would equal
         `PartResourceFlow.flow`.
-      required:
-        - amount
-        - maxAmount
       properties:
         amount:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: units
-          description: "`PartResource.amount`: current stored amount."
+          description: |-
+            `PartResource.amount`: current stored amount. Null when it could not be
+            read.
         maxAmount:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: units
-          description: "`PartResource.maxAmount`: storage capacity."
+          description: "`PartResource.maxAmount`: storage capacity. Null when it could not be read."
         flow:
           type:
             - number
@@ -16888,6 +16994,17 @@ components:
             The rate at 100% efficiency, with the same sign as `PartResourceFlow.flow`
             (a solar panel's rated output). `null` when no module has a nominal rate, or
             when it would equal `PartResourceFlow.flow`.
+        unratedProcess:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            `true` when a running module on the part draws or yields this resource
+            through a process and no rate for it can be read: a resource converter, fuel
+            cell or ISRU unit, a drill's harvest, or a generator. Never true on a row
+            with a non-zero `PartResourceFlow.flow` or `PartResourceFlow.nominalFlow`,
+            nor for storage alone. Absent otherwise.
     PartsPower:
       type: object
       description: |-
@@ -17293,8 +17410,6 @@ components:
         - vesselName
         - recoveryLocation
         - recoveryFactor
-        - reputationEarned
-        - totalReputation
         - displayReputation
         - scienceBreakdown
         - partBreakdown
@@ -17355,17 +17470,23 @@ components:
             The career's funds balance as the recovery dialog reports it. Null in a save
             with no funds (Science or Sandbox).
         reputationEarned:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: rep
           description: |-
             Reputation this recovery earned, after any strategy modifiers KSP applies.
-            Show it only when `RecoveryReport.displayReputation` is true.
+            Null in a save with no reputation (Science or Sandbox), where
+            `RecoveryReport.displayReputation` is false.
         totalReputation:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: rep
           description: |-
-            The career's reputation as the recovery dialog reports it. Show it only when
-            `RecoveryReport.displayReputation` is true.
+            The career's reputation as the recovery dialog reports it. Null in a save
+            with no reputation (Science or Sandbox), where
+            `RecoveryReport.displayReputation` is false.
         displayReputation:
           type: boolean
           x-sitrep-unit: flag
@@ -19358,8 +19479,8 @@ components:
         - const: 3
           title: NoModel
           description: |-
-            A stand-in: the save models no comms network, so there is no link to grade
-            and the figure is 1.
+            The save models no comms network, so there is no link to grade and the
+            strength is null.
     Situation:
       type: integer
       description: |-
@@ -20960,7 +21081,6 @@ components:
         seats it has.
       required:
         - count
-        - capacity
         - crew
         - meta
       properties:
@@ -20969,9 +21089,11 @@ components:
           x-sitrep-unit: count
           description: How many crew are aboard.
         capacity:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: count
-          description: How many crew seats the vessel has.
+          description: How many crew seats the vessel has. Null when the seats could not be read.
         crew:
           type: array
           items:
@@ -21826,12 +21948,8 @@ components:
         - title
         - position
         - bounds
-        - dryMass
-        - inverseStage
-        - maxTemp
         - category
         - modules
-        - isRobotics
         - isPowerRelated
         - resources
         - moduleStates
@@ -21899,19 +22017,27 @@ components:
           allOf:
             - $ref: "#/components/schemas/PartBounds"
         dryMass:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: t
-          description: "`Part.mass`: dry mass (tonnes)."
+          description: "`Part.mass`: dry mass (tonnes). Null when it could not be read."
         inverseStage:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: id
           description: |-
             `Part.inverseStage`, in KSP's own inverted staging numbering, unchanged; see
-            `VesselStructure.currentStage`.
+            `VesselStructure.currentStage`. Null when it could not be read.
         maxTemp:
-          type: number
+          type:
+            - number
+            - "null"
           x-sitrep-unit: K
-          description: "`Part.maxTemp`: internal max temperature (K)."
+          description: |-
+            `Part.maxTemp`: internal max temperature (K). Null when it could not be
+            read.
         skinMaxTemp:
           type:
             - number
@@ -21965,9 +22091,13 @@ components:
             Each `PartModule`'s CLR class name (e.g. `"ModuleEngines"`,
             `"CModuleFuelLine"`), which is what a client classifies a part by.
         isRobotics:
-          type: boolean
+          type:
+            - boolean
+            - "null"
           x-sitrep-unit: flag
-          description: "`Part.isRobotic()`: a Breaking Ground robotic servo part."
+          description: |-
+            `Part.isRobotic()`: a Breaking Ground robotic servo part. Null when it could
+            not be read.
         isPowerRelated:
           type: boolean
           x-sitrep-unit: flag

@@ -90,7 +90,7 @@ namespace Sitrep.Contract.TestSupport
 
         public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) { }
 
-        public void SetHomeCommandDelay(string centreId, double oneWaySeconds) { }
+        public void SetHomeCommandDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) { }
 
         public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) { }
 

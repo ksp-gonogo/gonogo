@@ -74,6 +74,12 @@ namespace Sitrep.Host.Crash
             }
 
             var s = GetOrCreate(vesselId);
+            if (s.LastSampleUt.HasValue && ut < s.LastSampleUt.Value)
+            {
+                // A quickload or a revert: what was accumulated happened in the abandoned future.
+                s = new State();
+                _byVessel[vesselId] = s;
+            }
 
             if (altitude > s.HighestAltitude) s.HighestAltitude = altitude;
             if (srfSpeed > s.HighestSpeed) s.HighestSpeed = srfSpeed;
@@ -143,27 +149,36 @@ namespace Sitrep.Host.Crash
         /// The vessel's accumulated stats packaged for the crash record. Fills
         /// the crash-context fields (<see cref="FlightStats.MissionEnd"/> true,
         /// <see cref="FlightStats.FlightEndMode"/> catastrophic) that are true
-        /// of every published crash. Returns those crash defaults over zeroed
-        /// maxima for a vessel that was never sampled.
+        /// of every published crash.
+        ///
+        /// <para>Every accumulated figure is null for a vessel that was never
+        /// sampled: a craft that crashed while another was flown, or one loaded
+        /// since the last restart, has no maxima to report. The mission time and
+        /// lift-off are read off the vessel at the crash when
+        /// <paramref name="missionTimeAtCrash"/> is given, so they are known
+        /// either way.</para>
         /// </summary>
-        public FlightStats Snapshot(string vesselId)
+        public FlightStats Snapshot(string vesselId, double? missionTimeAtCrash = null)
         {
             _byVessel.TryGetValue(vesselId, out var s);
-            s ??= new State();
+            var sampled = s != null && s.LastSampleUt.HasValue;
+            var missionTime = missionTimeAtCrash ?? (sampled ? s!.MissionTime : (double?)null);
             return new FlightStats
             {
-                KerbalsKilled = s.KerbalsKilled,
-                PartsLost = s.PartsLost,
+                KerbalsKilled = sampled ? s!.KerbalsKilled : (int?)null,
+                PartsLost = sampled ? s!.PartsLost : (int?)null,
                 FlightEndMode = "CATASTROPHIC_FAILURE",
-                HighestSpeedOverLand = s.HighestSpeedOverLand,
+                HighestSpeedOverLand = sampled ? s!.HighestSpeedOverLand : (double?)null,
                 MissionEnd = true,
-                HighestGee = s.HighestGee,
-                HighestAltitude = s.HighestAltitude,
-                TotalDistance = s.TotalDistance,
-                MissionTime = s.MissionTime,
-                HighestSpeed = s.HighestSpeed,
-                GroundDistance = s.GroundDistance,
-                LiftOff = s.LiftOff,
+                HighestGee = sampled ? s!.HighestGee : (double?)null,
+                HighestAltitude = sampled ? s!.HighestAltitude : (double?)null,
+                TotalDistance = sampled ? s!.TotalDistance : (double?)null,
+                MissionTime = missionTime,
+                HighestSpeed = sampled ? s!.HighestSpeed : (double?)null,
+                GroundDistance = sampled ? s!.GroundDistance : (double?)null,
+                LiftOff = missionTimeAtCrash.HasValue
+                    ? missionTimeAtCrash.Value > 0 || (sampled && s!.LiftOff)
+                    : sampled ? s!.LiftOff : (bool?)null,
             };
         }
 

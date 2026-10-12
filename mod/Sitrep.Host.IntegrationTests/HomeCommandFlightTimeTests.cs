@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using Sitrep.Host;
 using Xunit;
@@ -38,7 +39,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                engine.SetHomeCommandDelay(Vessel, up);
+                engine.SetHomeCommandDelays(new Dictionary<string, double> { [Vessel] = up });
                 engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0, delay: ActiveVesselDelay), Timeout);
 
                 var resolved = 0;

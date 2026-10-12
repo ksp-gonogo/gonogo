@@ -57,7 +57,14 @@ export function computeBuiltinPartMeters(
   for (const [flightId, resources] of byFlightId) {
     for (const name of DRAINABLE_RESOURCES) {
       const slot = resources[name];
-      if (!slot || slot.maxAmount <= 0) continue;
+      // A tank whose figures could not be read has no meter to show.
+      if (
+        !slot ||
+        slot.amount == null ||
+        slot.maxAmount == null ||
+        slot.maxAmount <= 0
+      )
+        continue;
       entries.push({
         partId: String(flightId),
         resource: name,

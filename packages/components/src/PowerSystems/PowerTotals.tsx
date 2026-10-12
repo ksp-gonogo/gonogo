@@ -37,7 +37,8 @@ export function PowerTotals({
   totalConsumed: number;
   measuredTotalProduced: number | undefined;
   measuredDisagrees: boolean;
-  storage: { amount: number; maxAmount: number };
+  /** Null when a store aboard could not be read. */
+  storage: { amount: number; maxAmount: number } | null;
 }>) {
   return (
     <div style={TOTALS}>
@@ -84,7 +85,7 @@ export function PowerTotals({
           {totalConsumed.toFixed(2)}
         </Text>
       </div>
-      {storage.maxAmount > 0 && (
+      {storage && storage.maxAmount > 0 && (
         <div style={TOTALS_CELL}>
           <span style={CELL_LABEL}>STORED</span>
           <Text size="sm" style={STORED_VALUE}>

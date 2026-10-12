@@ -106,20 +106,20 @@ public class VesselPart
     /// <summary>The part's bounding box, in the part's own frame. Always present.</summary>
     public PartBounds Bounds { get; set; } = new();
 
-    /// <summary><c>Part.mass</c>: dry mass (tonnes).</summary>
+    /// <summary><c>Part.mass</c>: dry mass (tonnes). Null when it could not be read.</summary>
     [SitrepUnit(Units.Tonnes)]
-    public double DryMass { get; set; }
+    public double? DryMass { get; set; }
 
     /// <summary><c>Part.inverseStage</c>, in KSP's own inverted staging
     /// numbering, unchanged; see <see
-    /// cref="VesselStructure.CurrentStage"/>.</summary>
+    /// cref="VesselStructure.CurrentStage"/>. Null when it could not be read.</summary>
     [SitrepUnit(Units.Id)]
-    public int InverseStage { get; set; }
+    public int? InverseStage { get; set; }
 
-    /// <summary><c>Part.maxTemp</c>: internal max temperature (K).</summary>
+    /// <summary><c>Part.maxTemp</c>: internal max temperature (K). Null when it could not be read.</summary>
     [SitrepStatic]
     [SitrepUnit(Units.Kelvin)]
-    public double MaxTemp { get; set; }
+    public double? MaxTemp { get; set; }
 
     /// <summary><c>Part.skinMaxTemp</c>: maximum skin temperature (K);
     /// <c>null</c> where KSP reports <c>-1</c>, no skin-thermal model.</summary>
@@ -166,9 +166,9 @@ public class VesselPart
     public List<string> Modules { get; set; } = new();
 
     /// <summary><c>Part.isRobotic()</c>: a Breaking Ground robotic servo
-    /// part.</summary>
+    /// part. Null when it could not be read.</summary>
     [SitrepUnit(Units.Flag)]
-    public bool IsRobotics { get; set; }
+    public bool? IsRobotics { get; set; }
 
     /// <summary>True when the part carries a solar panel, alternator,
     /// EC-producing converter, or an ElectricCharge resource
@@ -274,13 +274,13 @@ public class ActionBinding
 #endif
 public class PartResourceFlow
 {
-    /// <summary><c>PartResource.amount</c>: current stored amount.</summary>
+    /// <summary><c>PartResource.amount</c>: current stored amount. Null when it could not be read.</summary>
     [SitrepUnit(Units.ResourceUnits)]
-    public double Amount { get; set; }
+    public double? Amount { get; set; }
 
-    /// <summary><c>PartResource.maxAmount</c>: storage capacity.</summary>
+    /// <summary><c>PartResource.maxAmount</c>: storage capacity. Null when it could not be read.</summary>
     [SitrepUnit(Units.ResourceUnits)]
-    public double MaxAmount { get; set; }
+    public double? MaxAmount { get; set; }
 
     /// <summary>Signed units per second: positive is producing, negative is
     /// consuming. <c>null</c> when no module with a readable rate
@@ -294,6 +294,16 @@ public class PartResourceFlow
     /// cref="Flow"/>.</summary>
     [SitrepUnit(Units.ResourceUnitsPerSecond)]
     public double? NominalFlow { get; set; }
+
+    /// <summary>
+    /// <c>true</c> when a running module on the part draws or yields this
+    /// resource through a process and no rate for it can be read: a resource
+    /// converter, fuel cell or ISRU unit, a drill's harvest, or a generator.
+    /// Never true on a row with a non-zero <see cref="Flow"/> or <see
+    /// cref="NominalFlow"/>, nor for storage alone. Absent otherwise.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? UnratedProcess { get; set; }
 }
 
 /// <summary>

@@ -1273,7 +1273,7 @@ namespace Sitrep.Host
             // count-only shape intact when it isn't present.
             if (TryGetGroup(vessel, "crew", out var crew))
             {
-                result.Capacity = GetInt(crew, "capacity") ?? 0;
+                result.Capacity = GetInt(crew, "capacity");
                 if (crew.TryGetValue("members", out var rawMembers)
                     && rawMembers is IEnumerable<object?> members)
                 {

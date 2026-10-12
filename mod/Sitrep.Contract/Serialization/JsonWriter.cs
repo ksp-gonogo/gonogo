@@ -428,6 +428,11 @@ namespace Sitrep.Contract.Serialization
                 case IDictionary<string, object?> obj:
                     AppendObject(sb, obj);
                     break;
+                // Any other string-keyed map, such as Dictionary<string, double>: generic
+                // invariance keeps it out of the case above, and it is enumerable too.
+                case IDictionary map:
+                    AppendMap(sb, map);
+                    break;
                 case IEnumerable enumerable:
                     AppendArray(sb, enumerable);
                     break;
@@ -2037,7 +2042,14 @@ namespace Sitrep.Contract.Serialization
             sb.Append(',');
             AppendString(sb, "laneSeq");
             sb.Append(':');
-            AppendInteger(sb, e.LaneSeq);
+            if (e.LaneSeq.HasValue)
+            {
+                AppendInteger(sb, e.LaneSeq.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
             sb.Append(',');
             AppendString(sb, "kind");
             sb.Append(':');
@@ -2534,7 +2546,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('{');
             AppendString(sb, "strength");
             sb.Append(':');
-            AppendNumber(sb, s.Strength);
+            AppendValue(sb, s.Strength);
             sb.Append(',');
             AppendString(sb, "quantity");
             sb.Append(':');
@@ -2867,6 +2879,30 @@ namespace Sitrep.Contract.Serialization
                 }
                 first = false;
                 AppendString(sb, pair.Key);
+                sb.Append(':');
+                AppendValue(sb, pair.Value);
+            }
+            sb.Append('}');
+        }
+
+        /// <summary>Writes a map whose keys are strings as a JSON object; any other key is refused.</summary>
+        private static void AppendMap(StringBuilder sb, IDictionary map)
+        {
+            sb.Append('{');
+            var first = true;
+            foreach (DictionaryEntry pair in map)
+            {
+                if (pair.Key is not string key)
+                {
+                    throw new System.NotSupportedException(
+                        $"JsonWriter.AppendValue: a map is written only with string keys, not {pair.Key.GetType()}");
+                }
+                if (!first)
+                {
+                    sb.Append(',');
+                }
+                first = false;
+                AppendString(sb, key);
                 sb.Append(':');
                 AppendValue(sb, pair.Value);
             }

@@ -14,7 +14,7 @@ namespace Gonogo.KSP
     /// </summary>
     public static class FleetVesselLinkBuilder
     {
-        public static Dictionary<string, object?> Build(double? oneWaySeconds, bool connected) =>
+        public static Dictionary<string, object?> Build(double? oneWaySeconds, bool? connected) =>
             new Dictionary<string, object?>
             {
                 ["oneWaySeconds"] = oneWaySeconds,

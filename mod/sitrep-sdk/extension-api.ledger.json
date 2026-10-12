@@ -8124,7 +8124,7 @@
       },
       {
         "key": "sitrep-sdk . CONTRACT_MAJOR",
-        "note": "Follows the contract to 30: the rotor limit commands take their own arguments and the hottest part's maximum skin temperature is nullable"
+        "note": "Follows the contract to 30: the rotor limit commands take their own arguments and the hottest part's maximum skin temperature is nullable; then to 41: fields that could not be read are null rather than 0 or false, and an Uplink's home delays are set as one call"
       },
       {
         "key": "sitrep-sdk . CONTRACT_MINOR",
@@ -8321,6 +8321,22 @@
       {
         "key": "sitrep-sdk . ShipMapOverlayContext#held",
         "note": "ShipMapOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#dryMass",
+        "note": "A ship-map part's dry mass is null when the mod could not read it, rather than 0 tonnes"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#maxTemp",
+        "note": "A ship-map part's maximum temperature is null when the mod could not read it, rather than 0 K"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#maxTemperatureK?",
+        "note": "The live maximum temperature is null, not 0 K, when the part's limit could not be read"
+      },
+      {
+        "key": "sitrep-sdk . ShipMapPart#stage",
+        "note": "A ship-map part's stage is null when the mod could not read it, rather than stage 0"
       },
       {
         "key": "sitrep-sdk . ShipMapPartMetaEntry",
@@ -9669,6 +9685,22 @@
       {
         "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#held",
         "note": "ShipMapOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#dryMass",
+        "note": "A ship-map part's dry mass is null when the mod could not read it, rather than 0 tonnes"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#maxTemp",
+        "note": "A ship-map part's maximum temperature is null when the mod could not read it, rather than 0 K"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#maxTemperatureK?",
+        "note": "The live maximum temperature is null, not 0 K, when the part's limit could not be read"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ShipMapPart#stage",
+        "note": "A ship-map part's stage is null when the mod could not read it, rather than stage 0"
       },
       {
         "key": "sitrep-sdk ./testing ~ShipMapPartMetaEntry",

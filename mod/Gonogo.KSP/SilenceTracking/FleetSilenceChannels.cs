@@ -135,7 +135,8 @@ namespace Gonogo.KSP.SilenceTracking
                 var orbit = BuildOrbitElements(vessel);
                 present.Add(new SilenceSample(
                     vessel.id.ToString(),
-                    FleetCommsReader.ReadConnected(vessel, config),
+                    // The tracker has no unknown: a link that could not be read counts as silent.
+                    FleetCommsReader.ReadConnected(vessel, config) == true,
                     orbit,
                     RestsOnSurface(vessel),
                     ReferenceBodyIndexOf(vessel)));

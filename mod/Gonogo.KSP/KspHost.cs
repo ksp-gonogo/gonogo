@@ -4940,6 +4940,14 @@ namespace Gonogo.KSP
                 ["initialCostFunds"] = (double)strategy.InitialCostFunds,
                 ["initialCostScience"] = (double)strategy.InitialCostScience,
                 ["initialCostReputation"] = (double)strategy.InitialCostReputation,
+                ["requiredReputationMin"] = (double)strategy.RequiredReputationMin,
+                ["requiredReputationMax"] = (double)strategy.RequiredReputationMax,
+                ["initialCostFundsMin"] = (double)strategy.InitialCostFundsMin,
+                ["initialCostFundsMax"] = (double)strategy.InitialCostFundsMax,
+                ["initialCostScienceMin"] = (double)strategy.InitialCostScienceMin,
+                ["initialCostScienceMax"] = (double)strategy.InitialCostScienceMax,
+                ["initialCostReputationMin"] = (double)strategy.InitialCostReputationMin,
+                ["initialCostReputationMax"] = (double)strategy.InitialCostReputationMax,
                 ["hasFactorSlider"] = strategy.HasFactorSlider,
                 ["factorSliderDefault"] = (double)strategy.FactorSliderDefault,
                 ["factorSliderSteps"] = strategy.FactorSliderSteps,
@@ -7090,6 +7098,10 @@ namespace Gonogo.KSP
                             {
                                 continue;
                             }
+                            if (converter.IsActivated)
+                            {
+                                MarkUnratedProcess(result, converter);
+                            }
                             foreach (var input in converter.inputList)
                             {
                                 if (input.ResourceName != "ElectricCharge")
@@ -7112,6 +7124,33 @@ namespace Gonogo.KSP
                 {
                     Debug.LogWarning("[Gonogo] vessel.parts resources converter read failed, skipping: " + ex);
                 }
+
+                try
+                {
+                    var generators = part.Modules.GetModules<ModuleGenerator>();
+                    if (generators != null)
+                    {
+                        foreach (var generator in generators)
+                        {
+                            if (generator == null || !(generator.generatorIsActive || generator.isAlwaysActive) || generator.resHandler == null)
+                            {
+                                continue;
+                            }
+                            foreach (var input in generator.resHandler.inputResources)
+                            {
+                                MarkUnratedProcess(result, input?.name);
+                            }
+                            foreach (var output in generator.resHandler.outputResources)
+                            {
+                                MarkUnratedProcess(result, output?.name);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning("[Gonogo] vessel.parts resources generator read failed, skipping: " + ex);
+                }
             }
 
             // nominalFlow is only meaningful when it disagrees with the live
@@ -7127,9 +7166,63 @@ namespace Gonogo.KSP
                 {
                     dict["nominalFlow"] = null;
                 }
+                // A row a module did give a rate for is not unrated, whatever else on the part runs.
+                var rated = (dict["flow"] is double flowRate && flowRate != 0)
+                    || (dict["nominalFlow"] is double nominalRate && nominalRate != 0);
+                if (rated)
+                {
+                    dict.Remove("unratedProcess");
+                }
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Marks every resource a running converter draws or yields, other than the
+        /// electric charge input it is given a rate for, and a drill's harvest.
+        /// </summary>
+        private static void MarkUnratedProcess(Dictionary<string, object?> result, BaseConverter converter)
+        {
+            foreach (var input in converter.inputList)
+            {
+                if (input.ResourceName != "ElectricCharge")
+                {
+                    MarkUnratedProcess(result, input.ResourceName);
+                }
+            }
+            if (converter.outputList != null)
+            {
+                foreach (var output in converter.outputList)
+                {
+                    MarkUnratedProcess(result, output.ResourceName);
+                }
+            }
+            if (converter is ModuleResourceHarvester harvester)
+            {
+                MarkUnratedProcess(result, harvester.ResourceName);
+            }
+        }
+
+        /// <summary>Marks <paramref name="resourceName"/>'s row as moved by a process with no readable rate.</summary>
+        private static void MarkUnratedProcess(Dictionary<string, object?> result, string? resourceName)
+        {
+            if (string.IsNullOrEmpty(resourceName))
+            {
+                return;
+            }
+            if (!result.TryGetValue(resourceName!, out var existing) || existing is not Dictionary<string, object?> row)
+            {
+                row = new Dictionary<string, object?>
+                {
+                    ["amount"] = 0.0,
+                    ["maxAmount"] = 0.0,
+                    ["flow"] = null,
+                    ["nominalFlow"] = null,
+                };
+                result[resourceName!] = row;
+            }
+            row["unratedProcess"] = true;
         }
 
         private static void ApplyResourceFlow(Dictionary<string, object?> result, string resourceName, double flow, float? nominalFlow)

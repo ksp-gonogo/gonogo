@@ -179,18 +179,17 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// Not zero. The honest answer is that signal strength is not modelled
-        /// at all, and the field cannot carry an absence (see
-        /// <see cref="NoCommsModelBackend.Signal"/>); of what it can
-        /// carry, a 0 is the one that lies, because it is exactly what the
-        /// app's own signal-loss verdict keys on.
+        /// No strength at all, and never zero: signal strength is not modelled,
+        /// and 0 is what the app's own signal-loss verdict keys on. The quantity
+        /// says why the strength is absent.
         /// </summary>
         [Fact]
-        public void ModelAbsent_NeverReportsAZeroSignalStrength()
+        public void ModelAbsent_ReportsNoSignalStrength()
         {
             var wrapped = Wrap(new StubBackend(connected: false), CommsControlSource.Full);
 
-            Assert.Equal(1.0, wrapped.Signal().Strength);
+            Assert.Null(wrapped.Signal().Strength);
+            Assert.Equal(SignalQuantity.NoModel, wrapped.Signal().Quantity);
         }
 
         [Fact]
@@ -222,14 +221,10 @@ namespace Sitrep.Host.Tests
         /// grading taken off the dead CommNet graph underneath would be a reading
         /// of something that is not there.
         ///
-        /// <para>The rated zero is also the one place this file can say outright
-        /// what <see cref="ModelAbsent_NeverReportsAZeroSignalStrength"/> next door
-        /// cannot: signal strength has no way to express an absence and has to
-        /// report 1 while explaining that the honest answer is "not graded", and
-        /// the rating can express one. It still does not, and that is a
-        /// judgement rather than a default: "nothing degrades this link" is a
-        /// positive fact about the save, exactly as the no-comms-model delay is a
-        /// measured zero rather than a null.</para>
+        /// <para>The rated zero is a judgement rather than a default: the strength
+        /// next door is absent because there is no link budget to read, while
+        /// "nothing degrades this link" is a positive fact about the save, exactly
+        /// as the no-comms-model delay is a measured zero rather than a null.</para>
         ///
         /// <para>Told apart from a refusal by the id, which is why the stub
         /// deliberately grades 0.75 under its own name: an assertion on the

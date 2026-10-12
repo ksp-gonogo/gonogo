@@ -209,16 +209,16 @@ export interface ShipMapPart {
   latHalfExtent: number;
   /** Half the part's extent along the long axis, in metres. */
   axialHalfExtent: number;
-  /** The part's dry mass in tonnes, without resources. */
-  dryMass: number;
-  /** The stage the part activates in, as KSP numbers stages (`Part.inverseStage`). */
-  stage: number;
-  /** The part's maximum internal temperature in kelvin, from its configuration. */
-  maxTemp: number;
+  /** The part's dry mass in tonnes, without resources. Null when it could not be read. */
+  dryMass: number | null;
+  /** The stage the part activates in, as KSP numbers stages (`Part.inverseStage`). Null when it could not be read. */
+  stage: number | null;
+  /** The part's maximum internal temperature in kelvin, from its configuration. Null when it could not be read. */
+  maxTemp: number | null;
   /** Current internal temperature in kelvin. Absent until thermal readings arrive. */
   temperatureK?: number;
-  /** Current maximum internal temperature in kelvin. Absent until thermal readings arrive. */
-  maxTemperatureK?: number;
+  /** Current maximum internal temperature in kelvin. Absent until thermal readings arrive, null when the limit could not be read. */
+  maxTemperatureK?: number | null;
   /** Resources the part holds, one entry each: the resource name, then the amount held, then the capacity, in the resource's own units. */
   resources?: { n: string; a: number; c: number }[];
   /** Whether the part produces or consumes electric charge. `null` when it has no electric charge flow. */

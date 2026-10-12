@@ -376,7 +376,7 @@ namespace Sitrep.Host.Comms
             return new ContactRadio(
                 (string)r["craftId"]!,
                 Get(r, "connected") is bool connected && connected,
-                (double)r["strength"]!,
+                Get(r, "strength") as double?,
                 degrade,
                 hops,
                 Get(r, "quantity") is double quantity ? (SignalQuantity)(int)quantity : SignalQuantity.Unknown)

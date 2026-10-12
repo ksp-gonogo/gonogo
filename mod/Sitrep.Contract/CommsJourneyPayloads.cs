@@ -108,9 +108,9 @@ public class CommsJourneyEvent
     [SitrepUnit(Units.Id)]
     public string Craft { get; set; } = "";
 
-    /// <summary>The command's place on its lane, the ordered run of delayed commands one command centre sends to one craft, as <see cref="PendingUplink.LaneSeq"/>.</summary>
+    /// <summary>The command's place on its lane, the ordered run of delayed commands one command centre sends to one craft, as <see cref="PendingUplink.LaneSeq"/>. Null for a command that never took a place on a lane: a continuous input dropped where it would have waited.</summary>
     [SitrepUnit(Units.Count)]
-    public long LaneSeq { get; set; }
+    public long? LaneSeq { get; set; }
 
     /// <summary>What happened.</summary>
     [SitrepUnit(Units.Enumeration)]

@@ -128,9 +128,11 @@ public class CrashPartLost
 /// <summary>
 /// Per-flight statistics accumulated across the whole flight up to the crash,
 /// <see cref="CrashReport.FlightStats"/>. Maxima and distances are sampled
-/// from the active vessel at the telemetry cadence, so they are approximate.
-/// A vessel that was never sampled reports zero for every accumulated
-/// value.
+/// from the active vessel at the telemetry cadence, so they are approximate,
+/// and since the flight was last loaded: a quickload or a revert starts them
+/// again. A vessel that was never sampled, such as one that crashed while
+/// another was flown, reports null for every accumulated value; its mission
+/// time and lift-off are read at the crash.
 /// </summary>
 /// <category>Flights</category>
 [SitrepContract]
@@ -141,11 +143,11 @@ public class CrashFlightStats
 {
     /// <summary>Kerbals killed earlier in the flight (before the final crash).</summary>
     [SitrepUnit(Units.Count)]
-    public int KerbalsKilled { get; set; }
+    public int? KerbalsKilled { get; set; }
 
     /// <summary>Cumulative parts destroyed across the flight.</summary>
     [SitrepUnit(Units.Count)]
-    public int PartsLost { get; set; }
+    public int? PartsLost { get; set; }
 
     /// <summary>How the flight ended. Always <c>"CATASTROPHIC_FAILURE"</c> on a crash record.</summary>
     [SitrepUnit(Units.Text)]
@@ -157,7 +159,7 @@ public class CrashFlightStats
     /// while splashed are excluded.
     /// </summary>
     [SitrepUnit(Units.MetresPerSecond)]
-    public double HighestSpeedOverLand { get; set; }
+    public double? HighestSpeedOverLand { get; set; }
 
     /// <summary>Whether the mission has ended. Always <c>true</c> on a crash record.</summary>
     [SitrepUnit(Units.Flag)]
@@ -165,11 +167,11 @@ public class CrashFlightStats
 
     /// <summary>The highest g-force (<c>Vessel.geeForce</c>) sampled during the flight, in g.</summary>
     [SitrepUnit(Units.GForce)]
-    public double HighestGee { get; set; }
+    public double? HighestGee { get; set; }
 
     /// <summary>The highest altitude above sea level (<c>Vessel.altitude</c>) sampled during the flight, in metres.</summary>
     [SitrepUnit(Units.Metres)]
-    public double HighestAltitude { get; set; }
+    public double? HighestAltitude { get; set; }
 
     /// <summary>
     /// Distance travelled relative to the surface, in metres: surface speed
@@ -177,15 +179,15 @@ public class CrashFlightStats
     /// samples (a warp jump, a quickload) is skipped rather than integrated.
     /// </summary>
     [SitrepUnit(Units.Metres)]
-    public double TotalDistance { get; set; }
+    public double? TotalDistance { get; set; }
 
-    /// <summary>Mission time (seconds since launch) at the crash: the highest <c>Vessel.missionTime</c> sampled.</summary>
+    /// <summary>Mission time (seconds since launch) at the crash, <c>Vessel.missionTime</c> read as it was destroyed.</summary>
     [SitrepUnit(Units.Seconds)]
-    public double MissionTime { get; set; }
+    public double? MissionTime { get; set; }
 
     /// <summary>The highest surface speed (<c>Vessel.srfSpeed</c>) sampled during the flight, in m/s.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
-    public double HighestSpeed { get; set; }
+    public double? HighestSpeed { get; set; }
 
     /// <summary>
     /// Horizontal distance travelled over the surface, in metres: horizontal
@@ -193,11 +195,11 @@ public class CrashFlightStats
     /// rule as <see cref="TotalDistance"/>.
     /// </summary>
     [SitrepUnit(Units.Metres)]
-    public double GroundDistance { get; set; }
+    public double? GroundDistance { get; set; }
 
-    /// <summary><c>true</c> once the vessel's mission clock has started, i.e. it has left the launch site.</summary>
+    /// <summary><c>true</c> once the vessel's mission clock has started, i.e. it has left the launch site, as read at the crash.</summary>
     [SitrepUnit(Units.Flag)]
-    public bool LiftOff { get; set; }
+    public bool? LiftOff { get; set; }
 }
 
 /// <summary>

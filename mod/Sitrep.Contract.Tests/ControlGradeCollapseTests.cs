@@ -65,11 +65,11 @@ namespace Sitrep.Contract.Tests
         }
 
         [Fact]
-        public void AnUnreadableLinkIsAZeroOfUnknownQuantity()
+        public void AnUnreadableLinkHasNoStrengthOfUnknownQuantity()
         {
             var signal = new UnreadableBackend().Signal();
 
-            Assert.Equal(0.0, signal.Strength);
+            Assert.Null(signal.Strength);
             Assert.Equal(SignalQuantity.Unknown, signal.Quantity);
         }
 

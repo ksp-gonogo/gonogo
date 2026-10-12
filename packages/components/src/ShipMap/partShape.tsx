@@ -261,9 +261,9 @@ export function colorFor(type: PartType): string {
  */
 export function heatTintFor(
   temp: number | undefined,
-  maxTemp: number,
+  maxTemp: number | null,
 ): { color: string; opacity: number } | null {
-  if (!temp || maxTemp <= 0) return null;
+  if (!temp || maxTemp == null || maxTemp <= 0) return null;
   const t = Math.max(0, Math.min(1, temp / maxTemp));
   if (t < 0.5) return null;
   if (t < 0.8) {

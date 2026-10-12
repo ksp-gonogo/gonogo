@@ -70,13 +70,13 @@ public class RecoveryReport
     [SitrepUnit(Units.Funds)]
     public double? TotalFunds { get; set; }
 
-    /// <summary>Reputation this recovery earned, after any strategy modifiers KSP applies. Show it only when <see cref="DisplayReputation"/> is true.</summary>
+    /// <summary>Reputation this recovery earned, after any strategy modifiers KSP applies. Null in a save with no reputation (Science or Sandbox), where <see cref="DisplayReputation"/> is false.</summary>
     [SitrepUnit(Units.Reputation)]
-    public double ReputationEarned { get; set; }
+    public double? ReputationEarned { get; set; }
 
-    /// <summary>The career's reputation as the recovery dialog reports it. Show it only when <see cref="DisplayReputation"/> is true.</summary>
+    /// <summary>The career's reputation as the recovery dialog reports it. Null in a save with no reputation (Science or Sandbox), where <see cref="DisplayReputation"/> is false.</summary>
     [SitrepUnit(Units.Reputation)]
-    public double TotalReputation { get; set; }
+    public double? TotalReputation { get; set; }
 
     /// <summary>Whether reputation applies to this save: false in Science and Sandbox, where the reputation fields carry nothing meaningful.</summary>
     [SitrepUnit(Units.Flag)]

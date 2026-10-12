@@ -52,7 +52,7 @@ namespace Sitrep.Host.Comms
         public ContactRadio(
             string craftId,
             bool connected,
-            double strength,
+            double? strength,
             CommsDegrade degrade,
             IReadOnlyList<RadioHop>? hops = null,
             SignalQuantity quantity = SignalQuantity.Unknown)
@@ -70,8 +70,8 @@ namespace Sitrep.Host.Comms
 
         public bool Connected { get; }
 
-        /// <summary>The link's strength, as <see cref="CommsSignal.Strength"/> carries it.</summary>
-        public double Strength { get; }
+        /// <summary>The link's strength, as <see cref="CommsSignal.Strength"/> carries it: null when none was read.</summary>
+        public double? Strength { get; }
 
         /// <summary>Which quantity <see cref="Strength"/> is, as the backend that took the reading declares it.</summary>
         public SignalQuantity Quantity { get; }
@@ -90,7 +90,8 @@ namespace Sitrep.Host.Comms
             if (other == null
                 || other.CraftId != CraftId
                 || other.Connected != Connected
-                || Math.Abs(other.Strength - Strength) >= Quantum
+                || other.Strength.HasValue != Strength.HasValue
+                || (Strength.HasValue && Math.Abs(other.Strength!.Value - Strength.Value) >= Quantum)
                 || other.Quantity != Quantity
                 || other.Degrade.ModelId != Degrade.ModelId
                 || other.Degrade.Level.HasValue != Degrade.Level.HasValue

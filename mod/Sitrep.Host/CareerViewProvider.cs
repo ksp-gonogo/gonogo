@@ -283,6 +283,15 @@ namespace Sitrep.Host
             };
         }
 
+        /// <summary>
+        /// A contract date, or null where stock holds its 0 sentinel: an offer has not
+        /// been accepted, and a contract with no deadline or no expiry carries 0 for
+        /// it. Read as a time, 0 is the start of the game, which a client would show
+        /// as long overdue.
+        /// </summary>
+        private static double? ContractDate(IDictionary<string, object?> entry, string key) =>
+            GetDouble(entry, key) is { } ut && ut > 0 ? ut : (double?)null;
+
         private static List<object?> BuildContractList(IDictionary<string, object?> raw, string key)
         {
             var result = new List<object?>();
@@ -310,9 +319,9 @@ namespace Sitrep.Host
                     ["scienceCompletion"] = GetDouble(entry, "scienceCompletion"),
                     ["reputationCompletion"] = GetDouble(entry, "reputationCompletion"),
                     ["reputationFailure"] = GetDouble(entry, "reputationFailure"),
-                    ["dateAccepted"] = GetDouble(entry, "dateAccepted"),
-                    ["dateDeadline"] = GetDouble(entry, "dateDeadline"),
-                    ["dateExpire"] = GetDouble(entry, "dateExpire"),
+                    ["dateAccepted"] = ContractDate(entry, "dateAccepted"),
+                    ["dateDeadline"] = ContractDate(entry, "dateDeadline"),
+                    ["dateExpire"] = ContractDate(entry, "dateExpire"),
                     ["parameters"] = BuildContractParameters(entry),
                 });
             }
@@ -399,6 +408,14 @@ namespace Sitrep.Host
                     ["initialCostFunds"] = GetDouble(entry, "initialCostFunds"),
                     ["initialCostScience"] = GetDouble(entry, "initialCostScience"),
                     ["initialCostReputation"] = GetDouble(entry, "initialCostReputation"),
+                    ["requiredReputationMin"] = GetDouble(entry, "requiredReputationMin"),
+                    ["requiredReputationMax"] = GetDouble(entry, "requiredReputationMax"),
+                    ["initialCostFundsMin"] = GetDouble(entry, "initialCostFundsMin"),
+                    ["initialCostFundsMax"] = GetDouble(entry, "initialCostFundsMax"),
+                    ["initialCostScienceMin"] = GetDouble(entry, "initialCostScienceMin"),
+                    ["initialCostScienceMax"] = GetDouble(entry, "initialCostScienceMax"),
+                    ["initialCostReputationMin"] = GetDouble(entry, "initialCostReputationMin"),
+                    ["initialCostReputationMax"] = GetDouble(entry, "initialCostReputationMax"),
                     ["hasFactorSlider"] = GetBool(entry, "hasFactorSlider"),
                     ["factorSliderDefault"] = GetDouble(entry, "factorSliderDefault"),
                     ["factorSliderSteps"] = GetInt(entry, "factorSliderSteps"),

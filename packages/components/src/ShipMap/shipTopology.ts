@@ -51,16 +51,16 @@ export interface ShipMapPart {
   latHalfExtent: number;
   /** Half-extent along the spine, in metres. */
   axialHalfExtent: number;
-  /** `Part.mass` from topology: dry mass, no resources. */
-  dryMass: number;
-  /** `Part.inverseStage` from topology. */
-  stage: number;
-  /** Internal-part max temperature (K) from topology. */
-  maxTemp: number;
+  /** `Part.mass` from topology: dry mass, no resources. Null when unread. */
+  dryMass: number | null;
+  /** `Part.inverseStage` from topology. Null when unread. */
+  stage: number | null;
+  /** Internal-part max temperature (K) from topology. Null when unread. */
+  maxTemp: number | null;
   /** Live temperature in Kelvin from `therm.part[flightId]`, if available. */
   temperatureK?: number;
-  /** Live max temperature in Kelvin. */
-  maxTemperatureK?: number;
+  /** Live max temperature in Kelvin, null when unread. */
+  maxTemperatureK?: number | null;
   /** Live resources, normalised to the `{n, a, c}` triplet the fuel-fill bars use. */
   resources?: { n: string; a: number; c: number }[];
   /** Net ElectricCharge flow sign on this part; `null` when it has no live EC flow. */
@@ -87,7 +87,14 @@ export function normaliseResources(
   if (!resources) return undefined;
   const out: { n: string; a: number; c: number }[] = [];
   for (const [name, slot] of Object.entries(resources)) {
-    if (!slot || slot.maxAmount <= 0) continue;
+    // A tank whose figures could not be read has no fill to draw.
+    if (
+      !slot ||
+      slot.amount == null ||
+      slot.maxAmount == null ||
+      slot.maxAmount <= 0
+    )
+      continue;
     out.push({ n: name, a: slot.amount, c: slot.maxAmount });
   }
   return out;

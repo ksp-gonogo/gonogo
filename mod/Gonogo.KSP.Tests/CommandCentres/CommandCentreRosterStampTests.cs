@@ -196,7 +196,7 @@ namespace Gonogo.KSP.Tests.CommandCentres
             public IDisposable RegisterDelayModifier(double factor, string reason) => throw new NotSupportedException();
             public void SetVesselDelay(string vesselId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw new NotSupportedException();
-            public void SetHomeCommandDelay(string centreId, double oneWaySeconds) => throw new NotSupportedException();
+            public void SetHomeCommandDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) => throw new NotSupportedException();
             public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) => throw new NotSupportedException();
             public void SetVesselConnectivity(string vesselId, bool connected) => throw new NotSupportedException();
             public void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread) => throw new NotSupportedException();

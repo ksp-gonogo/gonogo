@@ -36,12 +36,14 @@ export interface TopologyPart {
    * absence.
    */
   categoryOrdinal?: number | null;
-  inverseStage: number;
+  /** `Part.inverseStage`, or null when it could not be read. */
+  inverseStage: number | null;
   crewCapacity: number;
-  maxTemp: number;
+  /** `Part.maxTemp` in kelvin, or null when it could not be read. */
+  maxTemp: number | null;
   crashTolerance: number;
-  /** `Part.mass`: dry mass only, not including resources. */
-  dryMass: number;
+  /** `Part.mass`: dry mass only, not including resources. Null when it could not be read. */
+  dryMass: number | null;
   /** Vessel-local root-relative position `[x, y, z]`. */
   orgPos: [number, number, number];
   /**
@@ -112,10 +114,14 @@ export interface VesselTopology {
  */
 export interface PartResources {
   [resourceName: string]: {
-    amount: number;
-    maxAmount: number;
+    /** Null when it could not be read. */
+    amount: number | null;
+    /** Null when it could not be read. */
+    maxAmount: number | null;
     flow?: number;
     nominalFlow?: number;
+    /** True when a running process on the part moves this resource with no readable rate; absent otherwise. */
+    unratedProcess?: true;
   };
 }
 
@@ -126,9 +132,11 @@ export interface PartResources {
  */
 export interface PartThermal {
   temperature: number;
-  maxTemperature: number;
+  /** Null when the part's limit could not be read. */
+  maxTemperature: number | null;
   temperatureK: number;
-  maxTemperatureK: number;
+  /** Null when the part's limit could not be read. */
+  maxTemperatureK: number | null;
 }
 
 /**

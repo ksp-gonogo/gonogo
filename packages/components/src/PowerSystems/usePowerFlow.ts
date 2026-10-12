@@ -130,6 +130,8 @@ export function useResourceBreakdown(
     for (const slice of liveByFlightId.values()) {
       const row = slice.resources?.[resource];
       if (!row) continue;
+      // One store that could not be read leaves the total unknown, not short.
+      if (row.amount == null || row.maxAmount == null) return null;
       amt += row.amount;
       max += row.maxAmount;
     }

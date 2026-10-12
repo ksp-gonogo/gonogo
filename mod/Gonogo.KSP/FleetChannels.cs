@@ -145,7 +145,7 @@ namespace Gonogo.KSP
                 }
                 var id = vessel.id.ToString();
                 var connected = FleetCommsReader.ReadConnected(vessel, config);
-                _lastContact.Observe(id, connected, ut);
+                _lastContact.Observe(id, connected == true, ut);
                 live.Add(id);
                 links.Add(new VesselLinkCapture { Id = id, Connected = connected });
             }
@@ -166,7 +166,11 @@ namespace Gonogo.KSP
             }
             foreach (var link in links)
             {
-                _host?.SetVesselConnectivity(link.Id, link.Connected);
+                // A link that could not be read leaves the last reading standing.
+                if (link.Connected is { } connected)
+                {
+                    _host?.SetVesselConnectivity(link.Id, connected);
+                }
             }
         }
 
@@ -193,7 +197,7 @@ namespace Gonogo.KSP
                 var journey = FleetCommsReader.ReadVesselJourney(vessel, config);
                 var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
                 var id = vessel.id.ToString();
-                _lastContact.Observe(id, connected, ut);
+                _lastContact.Observe(id, connected == true, ut);
                 captures.Add(new FleetVesselCapture
                 {
                     Id = id,
@@ -308,7 +312,10 @@ namespace Gonogo.KSP
                 // order matters on a disconnect tick: after the delay, so the last
                 // connected light-time is kept, and before the publishes, so they
                 // freeze.
-                _host?.SetVesselConnectivity(v.Id, v.Connected);
+                if (v.Connected is { } connected)
+                {
+                    _host?.SetVesselConnectivity(v.Id, connected);
+                }
                 if (v.Orbit != null)
                 {
                     _orbitSource.Publisher(v.Id + ".orbit").Publish(v.Orbit, cap.Ut);
@@ -343,7 +350,7 @@ namespace Gonogo.KSP
         private sealed class VesselLinkCapture
         {
             public string Id { get; set; } = string.Empty;
-            public bool Connected { get; set; }
+            public bool? Connected { get; set; }
         }
 
         private sealed class FleetVesselCapture
@@ -351,7 +358,7 @@ namespace Gonogo.KSP
             public string Id { get; set; } = string.Empty;
             public double? OneWaySeconds { get; set; }
             public Journey? Journey { get; set; }
-            public bool Connected { get; set; }
+            public bool? Connected { get; set; }
             public object? Orbit { get; set; }
             public double? LastContactUt { get; set; }
             public Dictionary<string, object?>? Resources { get; set; }

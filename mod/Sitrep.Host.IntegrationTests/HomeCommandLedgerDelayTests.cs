@@ -109,6 +109,82 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(0.0, engine.LedgerDelayFor(ChannelEngine.MetaVantage, ChannelEngine.HomeCommandNode));
         }
 
+        /// <summary>
+        /// A centre the pass no longer names has no path home: it hears nothing
+        /// held there, never the ledger at zero, and is heard again once a pass
+        /// names it. A vantage that is no centre stays on the ground network.
+        /// </summary>
+        [Fact]
+        public async Task ADroppedCentreHearsNothingHeldAtHomeUntilItIsListedAgain()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new HomeLedgerTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, HomeLedgerTestUplink.LedgerTopic, Timeout);
+                engine.SetHomeCommandDelays(new Dictionary<string, double> { [Home] = 0.0, [Vessel] = 5.0 });
+                engine.TickAndWait(0.0, HomeLedgerTestUplink.Snapshot(0.0, ledger: 10.0), Timeout);
+                engine.TickAndWait(10.0, HomeLedgerTestUplink.Snapshot(10.0, ledger: 10.0), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Equal(10.0, Read(engine, Vessel, 10.0));
+
+                engine.SetHomeCommandDelays(new Dictionary<string, double> { [Home] = 0.0 });
+                engine.TickAndWait(20.0, HomeLedgerTestUplink.Snapshot(20.0, ledger: 30.0), Timeout);
+                await DrainAllStreamDataAsync(client, Quiet);
+
+                Assert.Equal(double.PositiveInfinity, engine.LedgerDelayFor(Vessel, ChannelEngine.HomeCommandNode));
+                Assert.Equal(10.0, Read(engine, Vessel, 20.0));
+                Assert.Equal(0.0, engine.LedgerDelayFor("ground:Unlisted", ChannelEngine.HomeCommandNode));
+
+                engine.SetHomeCommandDelays(new Dictionary<string, double> { [Home] = 0.0, [Vessel] = 7.0 });
+                Assert.Equal(7.0, engine.LedgerDelayFor(Vessel, ChannelEngine.HomeCommandNode));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// An active crewed centre with no route home gets no row, and reads the
+        /// ledger as silence rather than at zero.
+        /// </summary>
+        [Fact]
+        public void AnActiveCentreWithNoRouteHomeHearsNothingHeldAtHome()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterCommandCentreSource(new FixedSource(
+                new Centre(Home, CommandCentreKind.GroundStation),
+                new Centre(Vessel, CommandCentreKind.CrewedVessel)));
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, null, Timeout);
+                WriteHomeRows(engine, _ => null);
+                engine.TickAndWait(1.0, null, Timeout);
+
+                Assert.Equal(double.PositiveInfinity, engine.LedgerDelayFor(Vessel, ChannelEngine.HomeCommandNode));
+                Assert.Equal(0.0, engine.LedgerDelayFor(Home, ChannelEngine.HomeCommandNode));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private sealed class FixedSource : ICommandCentreSource
+        {
+            private readonly ICommandCentre[] _centres;
+
+            public FixedSource(params ICommandCentre[] centres) => _centres = centres;
+
+            public string ProviderId => "home-ledger-test";
+
+            public IEnumerable<ICommandCentre> Enumerate() => _centres;
+        }
+
         [Fact]
         public void AHeldAtHomeTopicRecordsUnderTheHomeCommandNodeAndNotTheActiveCrafts()
         {
@@ -161,7 +237,9 @@ namespace Sitrep.Host.IntegrationTests
             Assert.NotEqual(ChannelEngine.HomeCommandNode, engine.NodeFor(HomeLedgerTestUplink.LedgerTopic));
         }
 
-        private static void WriteHomeRows(ChannelEngine engine, Func<ICommandCentre, double?> secondsToHome) =>
+        private static void WriteHomeRows(ChannelEngine engine, Func<ICommandCentre, double?> secondsToHome)
+        {
+            var rows = new Dictionary<string, double>();
             new AuthorityMatrixPass().PopulateHomeCommand(
                 new ICommandCentre[]
                 {
@@ -171,7 +249,9 @@ namespace Sitrep.Host.IntegrationTests
                 },
                 Home,
                 secondsToHome,
-                engine.SetHomeCommandDelay);
+                (centre, seconds) => rows[centre] = seconds);
+            engine.SetHomeCommandDelays(rows);
+        }
 
         private static double? Read(ChannelEngine engine, string vantage, double nowUt)
         {

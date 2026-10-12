@@ -118,16 +118,9 @@ public class CommsConnectivity
 /// the path the centre believes in on <c>comms.path</c>.</para>
 ///
 /// <para>A save with the stock CommNet difficulty option off models no link
-/// budget at all and reports 1 here: nothing weakens a link that is not
-/// modelled. To tell that case from a real full-strength link, read
-/// <see cref="CommsDelaySource.NoCommsModel"/> on <c>comms.delay</c>, which
-/// marks it for every <c>comms.*</c> channel.</para>
+/// budget at all, so <see cref="Strength"/> is null there and
+/// <see cref="Quantity"/> is <see cref="SignalQuantity.NoModel"/>.</para>
 /// <internal>
-/// The accurate value in that case is an absence, and this field cannot carry
-/// one: nullable would be a retype, which the contract shape gate refuses
-/// without a Major bump. Of the two things a non-nullable double can say, 1 is
-/// the one that does not mislead, because 0 is what the app's own
-/// SignalLossIndicator keys its "Lost" verdict on.
 /// <para>RealAntennas' value is a position on its data-rate ladder
 /// (<c>CommsLinkState.PathStrength</c>), so the two backends put different
 /// curves behind one field, and <see cref="Quantity"/> is what says which curve a
@@ -144,11 +137,11 @@ public class CommsSignal
 {
     /// <summary>
     /// Link strength from 0 to 1, in the backend's own terms (see this type's
-    /// summary), so compare values only within one install. 0 when no link
-    /// state could be read.
+    /// summary), so compare values only within one install. Null when no link
+    /// state could be read, and where no link budget is modelled.
     /// </summary>
     [SitrepUnit(Units.Ratio)]
-    public double Strength { get; set; }
+    public double? Strength { get; set; }
 
     /// <summary>
     /// Which quantity <see cref="Strength"/> is: KSP's signal strength for the
@@ -237,7 +230,7 @@ public enum SignalQuantity
     /// </summary>
     DataRateHeadroom,
 
-    /// <summary>A stand-in: the save models no comms network, so there is no link to grade and the figure is 1.</summary>
+    /// <summary>The save models no comms network, so there is no link to grade and the strength is null.</summary>
     NoModel,
 }
 

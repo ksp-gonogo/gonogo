@@ -84,7 +84,7 @@ namespace Sitrep.Host
         /// topic's node is fixed at record and subscribe time, so a node named after
         /// the station would strand every stream bound before the answer moved.
         /// What the claimant decides is instead written into this node's rows through
-        /// <see cref="SetHomeCommandDelay"/>, one per active centre.</para>
+        /// <see cref="SetHomeCommandDelays"/>, one per centre with a path home.</para>
         ///
         /// <para>Nor is it <see cref="CommandCentres.AuthorityMatrixPass.CentreNode"/>'s <c>centre.&lt;home&gt;</c>. Those
         /// rows are a route to that one station, and a vessel talking to another
@@ -92,8 +92,9 @@ namespace Sitrep.Host
         /// station acts as home, so the ledger is as far away as the vessel's own path
         /// home and no further.</para>
         ///
-        /// <para>The node default is zero, pinned at construction: a vantage with no
-        /// row of its own is standing on the ground network.</para>
+        /// <para>The node default is zero, pinned at construction: a vantage that is
+        /// no command centre is standing on the ground network. A command centre
+        /// with no row has no path home and hears nothing from this node.</para>
         /// </summary>
         public const string HomeCommandNode = "home-command";
 
@@ -3324,12 +3325,45 @@ namespace Sitrep.Host
         public IReadOnlyList<CommsHop>? ActiveVesselRoute(string centre) =>
             System.Threading.Volatile.Read(ref _activeVesselRoutes).TryGetValue(centre, out var hops) ? hops : null;
 
-        public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
+        /*
+         * The command centres with a row against HomeCommandNode as of the last
+         * SetHomeCommandDelays, and those held silent there. Courier-thread-only,
+         * like every ledger write.
+         */
+        private readonly HashSet<string> _homeRowCentres = new HashSet<string>(StringComparer.Ordinal);
+        private HashSet<string> _homeSilentCentres = new HashSet<string>(StringComparer.Ordinal);
+
+        public void SetHomeCommandDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre)
         {
-            // The explicit (vantage, node) tier again, against the one node every
-            // held-at-home channel records under. The node default beneath it is
-            // pinned to zero, which is the ground network's answer.
-            _network.SetDelay(centreId, HomeCommandNode, oneWaySeconds);
+            /*
+             * The explicit (vantage, node) tier, against the one node every
+             * held-at-home channel records under. The node default beneath it is
+             * pinned to zero for a vantage that is no command centre, so a centre
+             * left out cannot simply lose its row: it would read the ledger at
+             * zero. It is held at an infinite delay instead, which nothing ever
+             * arrives across, until a pass names it again.
+             */
+            var silent = new HashSet<string>(_homeRowCentres, StringComparer.Ordinal);
+            silent.UnionWith(_homeSilentCentres);
+            silent.UnionWith(_activeCentreIds);
+            silent.ExceptWith(oneWaySecondsByCentre.Keys);
+            silent.Remove(MetaVantage);
+            foreach (var centre in silent)
+            {
+                _network.SetDelay(centre, HomeCommandNode, double.PositiveInfinity);
+            }
+            _homeSilentCentres = silent;
+
+            _homeRowCentres.Clear();
+            foreach (var row in oneWaySecondsByCentre)
+            {
+                if (row.Key == MetaVantage)
+                {
+                    continue;
+                }
+                _network.SetDelay(row.Key, HomeCommandNode, row.Value);
+                _homeRowCentres.Add(row.Key);
+            }
         }
 
         /*

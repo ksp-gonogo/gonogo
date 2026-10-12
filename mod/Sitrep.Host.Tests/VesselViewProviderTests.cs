@@ -2601,7 +2601,7 @@ namespace Sitrep.Host.Tests
 
             Assert.NotNull(crew);
             Assert.Equal(3, crew!.Count);
-            Assert.Equal(0, crew.Capacity);
+            Assert.Null(crew.Capacity);
             Assert.Empty(crew.Crew);
         }
 

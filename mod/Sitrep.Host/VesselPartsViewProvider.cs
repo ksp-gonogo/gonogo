@@ -97,16 +97,16 @@ namespace Sitrep.Host
                 Position = GetVec3(raw, "position") ?? new Vec3(),
                 Up = GetVec3(raw, "up"),
                 Bounds = MapBounds(raw),
-                DryMass = GetDouble(raw, "dryMass") ?? 0.0,
-                InverseStage = GetInt(raw, "inverseStage") ?? 0,
-                MaxTemp = GetDouble(raw, "maxTemp") ?? 0.0,
+                DryMass = GetDouble(raw, "dryMass"),
+                InverseStage = GetInt(raw, "inverseStage"),
+                MaxTemp = GetDouble(raw, "maxTemp"),
                 SkinMaxTemp = GetDouble(raw, "skinMaxTemp"),
                 CurrentTemp = GetDouble(raw, "currentTemp"),
                 SkinTemp = GetDouble(raw, "skinTemp"),
                 Category = GetString(raw, "category") ?? "",
                 CategoryOrdinal = (KspPartCategory?)GetInt(raw, "categoryOrdinal"),
                 Modules = MapModules(raw),
-                IsRobotics = GetBool(raw, "isRobotics") ?? false,
+                IsRobotics = GetBool(raw, "isRobotics"),
                 IsPowerRelated = GetBool(raw, "isPowerRelated") ?? false,
                 FuelLineTargetId = GetString(raw, "fuelLineTargetId"),
                 Resources = MapResources(raw),
@@ -157,10 +157,11 @@ namespace Sitrep.Host
                     {
                         result[kvp.Key] = new PartResourceFlow
                         {
-                            Amount = GetDouble(row, "amount") ?? 0.0,
-                            MaxAmount = GetDouble(row, "maxAmount") ?? 0.0,
+                            Amount = GetDouble(row, "amount"),
+                            MaxAmount = GetDouble(row, "maxAmount"),
                             Flow = GetDouble(row, "flow"),
                             NominalFlow = GetDouble(row, "nominalFlow"),
+                            UnratedProcess = GetBool(row, "unratedProcess") == true ? true : (bool?)null,
                         };
                     }
                 }
@@ -273,6 +274,7 @@ namespace Sitrep.Host
             ["maxAmount"] = row.MaxAmount,
             ["flow"] = row.Flow,
             ["nominalFlow"] = row.NominalFlow,
+            ["unratedProcess"] = row.UnratedProcess,
         };
 
         private static Dictionary<string, object?> ToWire(PartModuleState module) => new Dictionary<string, object?>

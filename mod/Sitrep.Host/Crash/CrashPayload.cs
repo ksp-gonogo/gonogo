@@ -40,18 +40,18 @@ namespace Sitrep.Host.Crash
     /// </summary>
     public struct FlightStats
     {
-        public int KerbalsKilled;
-        public int PartsLost;
+        public int? KerbalsKilled;
+        public int? PartsLost;
         public string FlightEndMode;
-        public double HighestSpeedOverLand;
+        public double? HighestSpeedOverLand;
         public bool MissionEnd;
-        public double HighestGee;
-        public double HighestAltitude;
-        public double TotalDistance;
-        public double MissionTime;
-        public double HighestSpeed;
-        public double GroundDistance;
-        public bool LiftOff;
+        public double? HighestGee;
+        public double? HighestAltitude;
+        public double? TotalDistance;
+        public double? MissionTime;
+        public double? HighestSpeed;
+        public double? GroundDistance;
+        public bool? LiftOff;
     }
 
     /// <summary>

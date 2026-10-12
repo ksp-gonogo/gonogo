@@ -1505,25 +1505,24 @@ namespace Sitrep.Contract
         void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds);
 
         /// <summary>
-        /// Set how long a change to a fact held at the home command takes to reach
-        /// <paramref name="centreId"/>: the delay every
-        /// <see cref="ChannelDeclaration.HeldAtHome"/> channel rides to that centre.
+        /// Replace every command centre's delay home: how long a change to a fact
+        /// held at the home command takes to reach each centre, the delay every
+        /// <see cref="ChannelDeclaration.HeldAtHome"/> channel rides to it.
         ///
-        /// <para>This is the centre's path home, not a route to the one station
+        /// <para>A row is the centre's path home, not a route to the one station
         /// the <see cref="IHomeCommandProvider"/> named. Every ground station reaches home
         /// over the ground network, so a ground centre's row is zero; a crewed
         /// vessel's row is its own control path to whichever station it
         /// reaches, which is the same number a currency award from that vessel
-        /// waits before it is booked. A centre with no row reads zero, so a
-        /// vessel that has never been measured must be written rather than left
-        /// out.</para>
+        /// waits before it is booked.</para>
         ///
-        /// <para>Populate it on each capture pass, one row per active
-        /// centre.</para>
+        /// <para>Pass the whole set on each capture pass, empty included. A
+        /// command centre left out has no path home: an active one with no route,
+        /// or one that is no longer active. It hears nothing held at home, and
+        /// never reads it at zero.</para>
         /// </summary>
-        /// <param name="centreId">The command centre's id.</param>
-        /// <param name="oneWaySeconds">One-way signal delay home, in seconds.</param>
-        void SetHomeCommandDelay(string centreId, double oneWaySeconds);
+        /// <param name="oneWaySecondsByCentre">One-way signal delay home, in seconds, by command centre id.</param>
+        void SetHomeCommandDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre);
 
         /// <summary> Replace every centre's delay to the active craft: the
         /// delay each ordinary channel (one with no per-vessel node and not

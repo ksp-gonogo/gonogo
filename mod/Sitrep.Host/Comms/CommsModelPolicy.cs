@@ -161,21 +161,12 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
-        /// Full. Nothing attenuates a link that is not modelled.
-        ///
-        /// <para>The honest answer is that there is no link budget to grade, so
-        /// the value is absent, and <see cref="CommsSignal.Strength"/>
-        /// cannot say that: it is not nullable, and making it nullable is a
-        /// retype the contract shape gate refuses without a Major bump. Of the
-        /// two things it can say, 1 is the one that does not lie: 0 is what the
-        /// app's own loss verdict keys on, so reporting it would announce total
-        /// signal loss on a board where every channel is arriving. A reader
-        /// that needs to know this is not a grading has
-        /// <see cref="CommsDelaySource.NoCommsModel"/> on <c>comms.delay</c>.</para>
+        /// No strength: there is no link budget to grade, and
+        /// <see cref="SignalQuantity.NoModel"/> says why.
         /// </summary>
         public CommsSignal Signal() => new CommsSignal
         {
-            Strength = 1.0,
+            Strength = null,
             Quantity = SignalQuantity.NoModel,
         };
 

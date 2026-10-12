@@ -167,7 +167,8 @@ export function partAriaLabel(
   meters: readonly ShipMapPartMeterEntry[] = NO_METERS,
 ): string {
   const name = p.title || p.name;
-  const bits: string[] = [name, p.type, `${p.dryMass.toFixed(2)} tonnes`];
+  const bits: string[] = [name, p.type];
+  if (p.dryMass != null) bits.push(`${p.dryMass.toFixed(2)} tonnes`);
   for (const m of meters) {
     const ratio = fillRatio(m);
     if (ratio === null) continue;
@@ -176,7 +177,7 @@ export function partAriaLabel(
     );
   }
   const maxK = p.maxTemperatureK ?? p.maxTemp;
-  if (p.temperatureK !== undefined && maxK > 0) {
+  if (p.temperatureK !== undefined && maxK != null && maxK > 0) {
     const ratio = p.temperatureK / maxK;
     if (ratio > 0.75) bits.push("hot");
   }

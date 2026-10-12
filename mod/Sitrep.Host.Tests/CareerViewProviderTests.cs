@@ -695,5 +695,99 @@ namespace Sitrep.Host.Tests
             var parsedWire = Assert.IsType<Dictionary<string, object?>>(parsed.Payload);
             Assert.Equal((double)(int)GameMode.Career, parsedWire["mode"]);
         }
+
+        [Fact]
+        public void StockZeroContractDatesAreAbsentNotTheStartOfTheGame()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 5000.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["contracts"] = new Dictionary<string, object?>
+                        {
+                            ["active"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "1",
+                                    ["dateAccepted"] = 1000.0,
+                                    ["dateDeadline"] = 0.0,
+                                    ["dateExpire"] = 0.0,
+                                },
+                            },
+                            ["offered"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "2",
+                                    ["dateAccepted"] = 0.0,
+                                    ["dateDeadline"] = 0.0,
+                                    ["dateExpire"] = 200000.0,
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+
+            var career = (IDictionary<string, object?>)CareerViewProvider.BuildCareer(snapshot)!;
+            var contracts = (IDictionary<string, object?>)career["contracts"]!;
+            var active = (IDictionary<string, object?>)((List<object?>)contracts["active"]!)[0]!;
+            var offered = (IDictionary<string, object?>)((List<object?>)contracts["offered"]!)[0]!;
+
+            Assert.Equal(1000.0, active["dateAccepted"]);
+            Assert.Null(active["dateDeadline"]);
+            Assert.Null(active["dateExpire"]);
+            Assert.Null(offered["dateAccepted"]);
+            Assert.Null(offered["dateDeadline"]);
+            Assert.Equal(200000.0, offered["dateExpire"]);
+        }
+
+        [Fact]
+        public void AStrategyCarriesItsPriceAtBothEndsOfTheCommitmentSlider()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 5000.0,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["strategies"] = new Dictionary<string, object?>
+                        {
+                            ["all"] = new List<object?>
+                            {
+                                new Dictionary<string, object?>
+                                {
+                                    ["id"] = "AppreciationCampaign",
+                                    ["initialCostFunds"] = 55_000.0,
+                                    ["initialCostFundsMin"] = 10_000.0,
+                                    ["initialCostFundsMax"] = 100_000.0,
+                                    ["initialCostScienceMin"] = 0.0,
+                                    ["initialCostScienceMax"] = 0.0,
+                                    ["initialCostReputationMin"] = 5.0,
+                                    ["initialCostReputationMax"] = 50.0,
+                                    ["requiredReputationMin"] = 0.0,
+                                    ["requiredReputationMax"] = 200.0,
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+
+            var career = (IDictionary<string, object?>)CareerViewProvider.BuildCareer(snapshot)!;
+            var strategies = (IDictionary<string, object?>)career["strategies"]!;
+            var strategy = (IDictionary<string, object?>)((List<object?>)strategies["all"]!)[0]!;
+
+            Assert.Equal(10_000.0, strategy["initialCostFundsMin"]);
+            Assert.Equal(100_000.0, strategy["initialCostFundsMax"]);
+            Assert.Equal(0.0, strategy["initialCostScienceMin"]);
+            Assert.Equal(50.0, strategy["initialCostReputationMax"]);
+            Assert.Equal(200.0, strategy["requiredReputationMax"]);
+        }
     }
 }

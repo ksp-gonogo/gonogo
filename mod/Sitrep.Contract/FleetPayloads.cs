@@ -34,9 +34,10 @@ public class FleetVesselLink
     public double? OneWaySeconds { get; set; }
 
     /// <summary>Whether this vessel is currently reachable
-    /// (<c>v.connection.IsConnected</c>).</summary>
+    /// (<c>v.connection.IsConnected</c>). Null when its link could not be
+    /// read.</summary>
     [SitrepUnit(Units.Flag)]
-    public bool Connected { get; set; }
+    public bool? Connected { get; set; }
 }
 
 /// <summary>
@@ -61,9 +62,10 @@ public class FleetVesselLink
 #endif
 public class FleetVesselContact
 {
-    /// <summary>Whether contact was observed on the most recent sample.</summary>
+    /// <summary>Whether contact was observed on the most recent sample. Null
+    /// when its link could not be read.</summary>
     [SitrepUnit(Units.Flag)]
-    public bool Connected { get; set; }
+    public bool? Connected { get; set; }
 
     /// <summary>Universal time of the last sample that observed contact. Null
     /// before the first contact.</summary>

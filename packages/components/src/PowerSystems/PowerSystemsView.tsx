@@ -126,8 +126,9 @@ export function PowerSystemsComponent({
   );
   // Anchored to capacity so a half-full battery reads as half-full.
   const sparkDomain = useMemo<[number, number] | undefined>(
-    () => (storage.maxAmount > 0 ? [0, storage.maxAmount] : undefined),
-    [storage.maxAmount],
+    () =>
+      storage && storage.maxAmount > 0 ? [0, storage.maxAmount] : undefined,
+    [storage],
   );
 
   const cols = w ?? 8;
@@ -246,7 +247,7 @@ export function PowerSystemsComponent({
               storage={storage}
             />
 
-            {storage.maxAmount > 0 && sparkValues.length >= 2 && (
+            {storage && storage.maxAmount > 0 && sparkValues.length >= 2 && (
               <ResourceTrend
                 resource={resource}
                 windowSec={SPARKLINE_WINDOW_SEC}

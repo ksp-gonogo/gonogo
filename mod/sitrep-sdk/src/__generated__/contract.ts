@@ -553,17 +553,20 @@ export interface CareerContract
 	reputationCompletion?: Value<"rep"> | null;
 	/** Reputation lost when the contract fails. */
 	reputationFailure?: Value<"rep"> | null;
-	/** When the contract was accepted, KSP's `Contract.DateAccepted`. */
+	/**
+	* When the contract was accepted, KSP's `Contract.DateAccepted`. `null` for a
+	* contract not yet accepted.
+	*/
 	dateAccepted?: Value<"ut"> | null;
 	/**
 	* When an accepted contract must be completed by, KSP's
-	* `Contract.DateDeadline`. Passed through as KSP holds it, so a contract with
-	* no deadline carries `0` here rather than `null`.
+	* `Contract.DateDeadline`. `null` for a contract with no deadline, and for an
+	* offer whose deadline is set only on acceptance.
 	*/
 	dateDeadline?: Value<"ut"> | null;
 	/**
 	* When an offered contract is withdrawn if not accepted, KSP's
-	* `Contract.DateExpire`.
+	* `Contract.DateExpire`. `null` for a contract that never expires.
 	*/
 	dateExpire?: Value<"ut"> | null;
 	/**
@@ -690,6 +693,70 @@ export interface CareerStrategy
 	initialCostScience?: Value<"science"> | null;
 	/** The reputation charged on activation, KSP's Strategy.InitialCostReputation. */
 	initialCostReputation?: Value<"rep"> | null;
+	/**
+	* The reputation the career needs before the strategy can be activated at the
+	* lowest commitment, KSP's Strategy.RequiredReputationMin. At a commitment
+	* `CareerStrategy.factor` f the figure is requiredReputationMin plus f times
+	* (requiredReputationMax minus requiredReputationMin), f held to 0..1, as
+	* KSP's Strategy.FactorLerp computes it.
+	*/
+	requiredReputationMin?: Value<"rep"> | null;
+	/**
+	* The reputation the career needs before the strategy can be activated at the
+	* highest commitment, KSP's Strategy.RequiredReputationMax. At a commitment
+	* `CareerStrategy.factor` f the figure is requiredReputationMin plus f times
+	* (requiredReputationMax minus requiredReputationMin), f held to 0..1, as
+	* KSP's Strategy.FactorLerp computes it.
+	*/
+	requiredReputationMax?: Value<"rep"> | null;
+	/**
+	* The funds charged on activation at the lowest commitment, KSP's
+	* Strategy.InitialCostFundsMin. At a commitment `CareerStrategy.factor` f the
+	* figure is initialCostFundsMin plus f times (initialCostFundsMax minus
+	* initialCostFundsMin), f held to 0..1, as KSP's Strategy.FactorLerp computes
+	* it.
+	*/
+	initialCostFundsMin?: Value<"funds"> | null;
+	/**
+	* The funds charged on activation at the highest commitment, KSP's
+	* Strategy.InitialCostFundsMax. At a commitment `CareerStrategy.factor` f the
+	* figure is initialCostFundsMin plus f times (initialCostFundsMax minus
+	* initialCostFundsMin), f held to 0..1, as KSP's Strategy.FactorLerp computes
+	* it.
+	*/
+	initialCostFundsMax?: Value<"funds"> | null;
+	/**
+	* The science charged on activation at the lowest commitment, KSP's
+	* Strategy.InitialCostScienceMin. At a commitment `CareerStrategy.factor` f
+	* the figure is initialCostScienceMin plus f times (initialCostScienceMax
+	* minus initialCostScienceMin), f held to 0..1, as KSP's Strategy.FactorLerp
+	* computes it.
+	*/
+	initialCostScienceMin?: Value<"science"> | null;
+	/**
+	* The science charged on activation at the highest commitment, KSP's
+	* Strategy.InitialCostScienceMax. At a commitment `CareerStrategy.factor` f
+	* the figure is initialCostScienceMin plus f times (initialCostScienceMax
+	* minus initialCostScienceMin), f held to 0..1, as KSP's Strategy.FactorLerp
+	* computes it.
+	*/
+	initialCostScienceMax?: Value<"science"> | null;
+	/**
+	* The reputation charged on activation at the lowest commitment, KSP's
+	* Strategy.InitialCostReputationMin. At a commitment `CareerStrategy.factor` f
+	* the figure is initialCostReputationMin plus f times
+	* (initialCostReputationMax minus initialCostReputationMin), f held to 0..1,
+	* as KSP's Strategy.FactorLerp computes it.
+	*/
+	initialCostReputationMin?: Value<"rep"> | null;
+	/**
+	* The reputation charged on activation at the highest commitment, KSP's
+	* Strategy.InitialCostReputationMax. At a commitment `CareerStrategy.factor` f
+	* the figure is initialCostReputationMin plus f times
+	* (initialCostReputationMax minus initialCostReputationMin), f held to 0..1,
+	* as KSP's Strategy.FactorLerp computes it.
+	*/
+	initialCostReputationMax?: Value<"rep"> | null;
 	/**
 	* Whether the strategy offers a commitment slider, so that
 	* `CareerStrategy.factor` can be chosen, KSP's Strategy.HasFactorSlider.
@@ -1872,10 +1939,8 @@ export interface CommsConnectivity
 * believes in on `comms.path`.
 *
 * A save with the stock CommNet difficulty option off models no link budget at
-* all and reports 1 here: nothing weakens a link that is not modelled. To tell
-* that case from a real full-strength link, read
-* `CommsDelaySource.NoCommsModel` on `comms.delay`, which marks it for every
-* `comms.*` channel.
+* all, so `CommsSignal.strength` is null there and `CommsSignal.quantity` is
+* `SignalQuantity.NoModel`.
 *
 * @category Comms
 */
@@ -1883,10 +1948,10 @@ export interface CommsSignal
 {
 	/**
 	* Link strength from 0 to 1, in the backend's own terms (see this type's
-	* summary), so compare values only within one install. 0 when no link state
-	* could be read.
+	* summary), so compare values only within one install. Null when no link state
+	* could be read, and where no link budget is modelled.
 	*/
-	strength: Value<"ratio">;
+	strength?: Value<"ratio"> | null;
 	/**
 	* Which quantity `CommsSignal.strength` is: KSP's signal strength for the
 	* path, a position on the data-rate ladder, or a stand-in where no link is
@@ -1953,8 +2018,8 @@ export enum SignalQuantity {
 	*/
 	DataRateHeadroom = 2,
 	/**
-	* A stand-in: the save models no comms network, so there is no link to grade
-	* and the figure is 1.
+	* The save models no comms network, so there is no link to grade and the
+	* strength is null.
 	*/
 	NoModel = 3
 }
@@ -2630,9 +2695,11 @@ export interface CommsJourneyEvent
 	craft: string;
 	/**
 	* The command's place on its lane, the ordered run of delayed commands one
-	* command centre sends to one craft, as `PendingUplink.laneSeq`.
+	* command centre sends to one craft, as `PendingUplink.laneSeq`. Null for a
+	* command that never took a place on a lane: a continuous input dropped where
+	* it would have waited.
 	*/
-	laneSeq: Value<"count">;
+	laneSeq?: Value<"count"> | null;
 	/** What happened. */
 	kind: JourneyEventKind;
 	/** The node that made the report, as a roster or vessel id. */
@@ -3142,17 +3209,20 @@ export interface CrashPartLost
 /**
 * Per-flight statistics accumulated across the whole flight up to the crash,
 * `CrashReport.flightStats`. Maxima and distances are sampled from the active
-* vessel at the telemetry cadence, so they are approximate. A vessel that was
-* never sampled reports zero for every accumulated value.
+* vessel at the telemetry cadence, so they are approximate, and since the
+* flight was last loaded: a quickload or a revert starts them again. A vessel
+* that was never sampled, such as one that crashed while another was flown,
+* reports null for every accumulated value; its mission time and lift-off are
+* read at the crash.
 *
 * @category Flights
 */
 export interface CrashFlightStats
 {
 	/** Kerbals killed earlier in the flight (before the final crash). */
-	kerbalsKilled: Value<"count">;
+	kerbalsKilled?: Value<"count"> | null;
 	/** Cumulative parts destroyed across the flight. */
-	partsLost: Value<"count">;
+	partsLost?: Value<"count"> | null;
 	/** How the flight ended. Always `"CATASTROPHIC_FAILURE"` on a crash record. */
 	flightEndMode: string;
 	/**
@@ -3160,43 +3230,43 @@ export interface CrashFlightStats
 	* down, in m/s. Flight over water counts; only samples taken while splashed
 	* are excluded.
 	*/
-	highestSpeedOverLand: Value<"m/s">;
+	highestSpeedOverLand?: Value<"m/s"> | null;
 	/** Whether the mission has ended. Always `true` on a crash record. */
 	missionEnd: boolean;
 	/** The highest g-force (`Vessel.geeForce`) sampled during the flight, in g. */
-	highestGee: Value<"g">;
+	highestGee?: Value<"g"> | null;
 	/**
 	* The highest altitude above sea level (`Vessel.altitude`) sampled during the
 	* flight, in metres.
 	*/
-	highestAltitude: Value<"m">;
+	highestAltitude?: Value<"m"> | null;
 	/**
 	* Distance travelled relative to the surface, in metres: surface speed
 	* integrated over UT between samples. A gap of more than 10 s between samples
 	* (a warp jump, a quickload) is skipped rather than integrated.
 	*/
-	totalDistance: Value<"m">;
+	totalDistance?: Value<"m"> | null;
 	/**
-	* Mission time (seconds since launch) at the crash: the highest
-	* `Vessel.missionTime` sampled.
+	* Mission time (seconds since launch) at the crash, `Vessel.missionTime` read
+	* as it was destroyed.
 	*/
-	missionTime: Value<"s">;
+	missionTime?: Value<"s"> | null;
 	/**
 	* The highest surface speed (`Vessel.srfSpeed`) sampled during the flight, in
 	* m/s.
 	*/
-	highestSpeed: Value<"m/s">;
+	highestSpeed?: Value<"m/s"> | null;
 	/**
 	* Horizontal distance travelled over the surface, in metres: horizontal
 	* surface speed integrated over UT between samples, with the same 10 s gap
 	* rule as `CrashFlightStats.totalDistance`.
 	*/
-	groundDistance: Value<"m">;
+	groundDistance?: Value<"m"> | null;
 	/**
 	* `true` once the vessel's mission clock has started, i.e. it has left the
-	* launch site.
+	* launch site, as read at the crash.
 	*/
-	liftOff: boolean;
+	liftOff?: boolean | null;
 }
 /**
 * The payload for the `crash.hasRecent` channel: one flag saying a notable
@@ -3302,11 +3372,14 @@ export interface ScienceCreditEvent
 	amount: Value<"science">;
 	/**
 	* The research subject's id (`ScienceSubject.id`), e.g. the
-	* experiment+body+biome key.
+	* experiment+body+biome key, or null when the credit names no subject.
 	*/
-	subjectId: string;
-	/** The research subject's human title, e.g. "Crew Report from Kerbin's Shores". */
-	subjectTitle: string;
+	subjectId?: string | null;
+	/**
+	* The research subject's human title, e.g. "Crew Report from Kerbin's Shores",
+	* or null when the credit names no subject.
+	*/
+	subjectTitle?: string | null;
 	/**
 	* Universal Time the credit happened at, the UT its reveal delay is measured
 	* from.
@@ -3908,8 +3981,11 @@ export interface FleetVesselLink
 	* path to it.
 	*/
 	oneWaySeconds?: Value<"s"> | null;
-	/** Whether this vessel is currently reachable (`v.connection.IsConnected`). */
-	connected: boolean;
+	/**
+	* Whether this vessel is currently reachable (`v.connection.IsConnected`).
+	* Null when its link could not be read.
+	*/
+	connected?: boolean | null;
 }
 /**
 * The core per-vessel contact facts on `fleet.<guid>.contact`: whether the
@@ -3927,8 +4003,11 @@ export interface FleetVesselLink
 */
 export interface FleetVesselContact
 {
-	/** Whether contact was observed on the most recent sample. */
-	connected: boolean;
+	/**
+	* Whether contact was observed on the most recent sample. Null when its link
+	* could not be read.
+	*/
+	connected?: boolean | null;
 	/**
 	* Universal time of the last sample that observed contact. Null before the
 	* first contact.
@@ -5626,14 +5705,16 @@ export interface RecoveryReport
 	totalFunds?: Value<"funds"> | null;
 	/**
 	* Reputation this recovery earned, after any strategy modifiers KSP applies.
-	* Show it only when `RecoveryReport.displayReputation` is true.
+	* Null in a save with no reputation (Science or Sandbox), where
+	* `RecoveryReport.displayReputation` is false.
 	*/
-	reputationEarned: Value<"rep">;
+	reputationEarned?: Value<"rep"> | null;
 	/**
-	* The career's reputation as the recovery dialog reports it. Show it only when
-	* `RecoveryReport.displayReputation` is true.
+	* The career's reputation as the recovery dialog reports it. Null in a save
+	* with no reputation (Science or Sandbox), where
+	* `RecoveryReport.displayReputation` is false.
 	*/
-	totalReputation: Value<"rep">;
+	totalReputation?: Value<"rep"> | null;
 	/**
 	* Whether reputation applies to this save: false in Science and Sandbox, where
 	* the reputation fields carry nothing meaningful.
@@ -9426,8 +9507,8 @@ export interface VesselCrew
 {
 	/** How many crew are aboard. */
 	count: Value<"count">;
-	/** How many crew seats the vessel has. */
-	capacity: Value<"count">;
+	/** How many crew seats the vessel has. Null when the seats could not be read. */
+	capacity?: Value<"count"> | null;
 	/** Each crew member aboard. */
 	crew: CrewMember[];
 	/** Which vessel this describes. */
@@ -10615,15 +10696,18 @@ export interface VesselPart
 	up?: Vec3Of<"1"> | null;
 	/** The part's bounding box, in the part's own frame. Always present. */
 	bounds: PartBounds;
-	/** `Part.mass`: dry mass (tonnes). */
-	dryMass: Value<"t">;
+	/** `Part.mass`: dry mass (tonnes). Null when it could not be read. */
+	dryMass?: Value<"t"> | null;
 	/**
 	* `Part.inverseStage`, in KSP's own inverted staging numbering, unchanged; see
-	* `VesselStructure.currentStage`.
+	* `VesselStructure.currentStage`. Null when it could not be read.
 	*/
-	inverseStage: number;
-	/** `Part.maxTemp`: internal max temperature (K). */
-	maxTemp: Value<"K">;
+	inverseStage?: number | null;
+	/**
+	* `Part.maxTemp`: internal max temperature (K). Null when it could not be
+	* read.
+	*/
+	maxTemp?: Value<"K"> | null;
 	/**
 	* `Part.skinMaxTemp`: maximum skin temperature (K); `null` where KSP reports
 	* `-1`, no skin-thermal model.
@@ -10660,8 +10744,11 @@ export interface VesselPart
 	* `"CModuleFuelLine"`), which is what a client classifies a part by.
 	*/
 	modules: string[];
-	/** `Part.isRobotic()`: a Breaking Ground robotic servo part. */
-	isRobotics: boolean;
+	/**
+	* `Part.isRobotic()`: a Breaking Ground robotic servo part. Null when it could
+	* not be read.
+	*/
+	isRobotics?: boolean | null;
 	/**
 	* True when the part carries a solar panel, alternator, EC-producing
 	* converter, or an ElectricCharge resource capacity.
@@ -10746,10 +10833,13 @@ export interface ActionBinding
 */
 export interface PartResourceFlow
 {
-	/** `PartResource.amount`: current stored amount. */
-	amount: Value<"units">;
-	/** `PartResource.maxAmount`: storage capacity. */
-	maxAmount: Value<"units">;
+	/**
+	* `PartResource.amount`: current stored amount. Null when it could not be
+	* read.
+	*/
+	amount?: Value<"units"> | null;
+	/** `PartResource.maxAmount`: storage capacity. Null when it could not be read. */
+	maxAmount?: Value<"units"> | null;
 	/**
 	* Signed units per second: positive is producing, negative is consuming.
 	* `null` when no module with a readable rate contributes.
@@ -10761,6 +10851,14 @@ export interface PartResourceFlow
 	* when it would equal `PartResourceFlow.flow`.
 	*/
 	nominalFlow?: Value<"units/s"> | null;
+	/**
+	* `true` when a running module on the part draws or yields this resource
+	* through a process and no rate for it can be read: a resource converter, fuel
+	* cell or ISRU unit, a drill's harvest, or a generator. Never true on a row
+	* with a non-zero `PartResourceFlow.flow` or `PartResourceFlow.nominalFlow`,
+	* nor for storage alone. Absent otherwise.
+	*/
+	unratedProcess?: boolean | null;
 }
 /**
 * One module's behavioural state in `VesselPart.moduleStates`.

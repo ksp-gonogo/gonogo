@@ -237,13 +237,14 @@ namespace Gonogo.KSP.CommandCentres
             // Handed over as sets on every pass, empty included, so a centre that
             // stopped being the active craft or lost its route to a craft loses its row.
             var activeVesselRows = new Dictionary<string, double>();
+            var homeRows = new Dictionary<string, double>();
             var fleetRows = new List<(string CentreId, string VesselId, double OneWaySeconds)>();
             var centreRoutes = new Dictionary<string, List<string>>();
             foreach (var row in cap.Rows)
             {
                 if (row.Node == ChannelEngine.HomeCommandNode)
                 {
-                    _host?.SetHomeCommandDelay(row.Vantage, row.Seconds);
+                    homeRows[row.Vantage] = row.Seconds;
                     continue;
                 }
 
@@ -276,6 +277,7 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             _host?.SetActiveVesselDelays(activeVesselRows);
+            _host?.SetHomeCommandDelays(homeRows);
             (_host as IActiveRouteHost)?.SetActiveVesselRoutes(cap.ActiveRoutes);
             var reach = _host as ICommandReachWriter;
             reach?.SetAuthorityDelays(fleetRows);

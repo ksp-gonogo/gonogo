@@ -185,10 +185,18 @@
       "hasFactorSlider": "flag",
       "id": "id",
       "initialCostFunds": "funds",
+      "initialCostFundsMax": "funds",
+      "initialCostFundsMin": "funds",
       "initialCostReputation": "rep",
+      "initialCostReputationMax": "rep",
+      "initialCostReputationMin": "rep",
       "initialCostScience": "science",
+      "initialCostScienceMax": "science",
+      "initialCostScienceMin": "science",
       "isActive": "flag",
       "requiredReputation": "rep",
+      "requiredReputationMax": "rep",
+      "requiredReputationMin": "rep",
       "title": "text"
     },
     "CareerTech": {
@@ -957,7 +965,8 @@
       "amount": "units",
       "flow": "units/s",
       "maxAmount": "units",
-      "nominalFlow": "units/s"
+      "nominalFlow": "units/s",
+      "unratedProcess": "flag"
     },
     "PartsPower": {
       "totalProductionEc": "units/s"

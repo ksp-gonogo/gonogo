@@ -113,6 +113,29 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
+        /// The rows home reach the engine as one set every pass, empty included,
+        /// so a centre a pass no longer names is known to have no path home.
+        /// </summary>
+        [Fact]
+        public void TheHomeCommandRowsAreHandedOverAsOneSetEveryPass()
+        {
+            var host = new RecordingUplinkHost();
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+            uplink.Register(host);
+
+            uplink.ApplyLedgerOnCourier(Capture(
+                ("vessel:G", ChannelEngine.HomeCommandNode, 12.0),
+                ("ground:gs1", ChannelEngine.HomeCommandNode, 0.0)));
+            uplink.ApplyLedgerOnCourier(Capture());
+
+            Assert.Equal(2, host.HomeCommandDelays.Count);
+            Assert.Equal(
+                new Dictionary<string, double> { ["vessel:G"] = 12.0, ["ground:gs1"] = 0.0 },
+                host.HomeCommandDelays[0]);
+            Assert.Empty(host.HomeCommandDelays[1]);
+        }
+
+        /// <summary>
         /// The pairs a pass found no route for reach the engine as one set every pass,
         /// empty included, so a centre that regains its route is no longer refused.
         /// </summary>
@@ -221,12 +244,15 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 new List<IReadOnlyDictionary<string, IReadOnlyCollection<string>>>();
             public List<Dictionary<string, double>> ActiveVesselDelays { get; } = new List<Dictionary<string, double>>();
 
+            public List<Dictionary<string, double>> HomeCommandDelays { get; } = new List<Dictionary<string, double>>();
+
             public void SetAuthorityDelays(IReadOnlyCollection<(string CentreId, string VesselId, double OneWaySeconds)> rows) =>
                 AuthorityDelays.Add(rows.Select(r => (r.CentreId, r.VesselId, r.OneWaySeconds)).ToList());
             public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre) =>
                 Unroutable.Add(nodesByCentre);
             public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw new NotSupportedException();
-            public void SetHomeCommandDelay(string centreId, double oneWaySeconds) => throw new NotSupportedException();
+            public void SetHomeCommandDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) =>
+                HomeCommandDelays.Add(new Dictionary<string, double>(oneWaySecondsByCentre));
             public void SetActiveVesselDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) =>
                 ActiveVesselDelays.Add(new Dictionary<string, double>(oneWaySecondsByCentre));
             public void SetVesselConnectivity(string vesselId, bool connected) => throw new NotSupportedException();

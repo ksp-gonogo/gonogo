@@ -249,7 +249,7 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
-        public void SetHomeCommandDelay(string centreId, double oneWaySeconds)
+        public void SetHomeCommandDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre)
         {
         }
 

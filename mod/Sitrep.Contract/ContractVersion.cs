@@ -5,8 +5,11 @@ namespace Sitrep.Contract
     /// <c>const int</c> values.
     /// <para><see cref="Major"/> changes on a breaking change: a wire-visible
     /// member removed, renamed or retyped, or an Uplink-facing interface
-    /// changed so an existing Uplink no longer compiles. <see cref="Minor"/>
-    /// changes on an additive change only (a new field or type), and never
+    /// changed so an existing Uplink no longer compiles or loads. A member added
+    /// to an interface an Uplink implements is such a change: an Uplink built
+    /// for net472 or netstandard2.0 has no default interface methods and fails to
+    /// load against it. <see cref="Minor"/> changes on an additive change only (a
+    /// new field or type, or a member on something Uplinks only call), and never
     /// breaks an Uplink built against an older Minor of the same Major.</para>
     /// <para>Both are constants, so the compiler inlines them into an Uplink at
     /// compile time: the values an Uplink reads (and the defaults of
@@ -39,7 +42,7 @@ namespace Sitrep.Contract
         /// the commit that moved it, not here.
         /// </internal>
         /// </summary>
-        public const int Major = 40;
+        public const int Major = 41;
 
         /// <summary>
         /// The contract's minor version within the current <see cref="Major"/>. It
@@ -47,6 +50,6 @@ namespace Sitrep.Contract
         /// Minor of the same Major stays compatible. The value is inlined into an
         /// Uplink at compile time, so it records the Minor that Uplink was built against.
         /// </summary>
-        public const int Minor = 6;
+        public const int Minor = 0;
     }
 }

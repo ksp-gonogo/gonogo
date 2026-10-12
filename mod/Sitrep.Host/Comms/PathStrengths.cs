@@ -140,7 +140,7 @@ namespace Sitrep.Host.Comms
         /// <summary>One centre's signal and grading, and whether they are worked out.</summary>
         public readonly struct Told
         {
-            public Told(double strength, SignalQuantity quantity, bool modelled, CommsDegrade? degrade, IReadOnlyList<RadioHop>? measuredOver = null)
+            public Told(double? strength, SignalQuantity quantity, bool modelled, CommsDegrade? degrade, IReadOnlyList<RadioHop>? measuredOver = null)
             {
                 Strength = strength;
                 Quantity = quantity;
@@ -155,7 +155,8 @@ namespace Sitrep.Host.Comms
             /// <summary>The hops the strength was measured over, where it is of another path; null otherwise.</summary>
             public IReadOnlyList<RadioHop>? MeasuredOver { get; }
 
-            public double Strength { get; }
+            /// <summary>The strength told, or null when the radio read none.</summary>
+            public double? Strength { get; }
 
             /// <summary>Which quantity <see cref="Strength"/> is: the heard radio's where it was measured, and the believed hops' where it was worked out.</summary>
             public SignalQuantity Quantity { get; }

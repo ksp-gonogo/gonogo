@@ -345,21 +345,23 @@ public class CareerContract
 
     /// <summary>
     /// When the contract was accepted, KSP's <c>Contract.DateAccepted</c>.
+    /// <c>null</c> for a contract not yet accepted.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DateAccepted { get; set; }
 
     /// <summary>
     /// When an accepted contract must be completed by, KSP's
-    /// <c>Contract.DateDeadline</c>. Passed through as KSP holds it, so a
-    /// contract with no deadline carries <c>0</c> here rather than <c>null</c>.
+    /// <c>Contract.DateDeadline</c>. <c>null</c> for a contract with no
+    /// deadline, and for an offer whose deadline is set only on acceptance.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DateDeadline { get; set; }
 
     /// <summary>
     /// When an offered contract is withdrawn if not accepted, KSP's
-    /// <c>Contract.DateExpire</c>.
+    /// <c>Contract.DateExpire</c>. <c>null</c> for a contract that never
+    /// expires.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? DateExpire { get; set; }
@@ -549,6 +551,78 @@ public class CareerStrategy
     /// </summary>
     [SitrepUnit(Units.Reputation)]
     public double? InitialCostReputation { get; set; }
+
+    /// <summary>
+    /// The reputation the career needs before the strategy can be activated at the lowest commitment, KSP's Strategy.RequiredReputationMin. At a
+    /// commitment <see cref="Factor"/> f the figure is requiredReputationMin plus
+    /// f times (requiredReputationMax minus requiredReputationMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? RequiredReputationMin { get; set; }
+
+    /// <summary>
+    /// The reputation the career needs before the strategy can be activated at the highest commitment, KSP's Strategy.RequiredReputationMax. At a
+    /// commitment <see cref="Factor"/> f the figure is requiredReputationMin plus
+    /// f times (requiredReputationMax minus requiredReputationMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? RequiredReputationMax { get; set; }
+
+    /// <summary>
+    /// The funds charged on activation at the lowest commitment, KSP's Strategy.InitialCostFundsMin. At a
+    /// commitment <see cref="Factor"/> f the figure is initialCostFundsMin plus
+    /// f times (initialCostFundsMax minus initialCostFundsMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? InitialCostFundsMin { get; set; }
+
+    /// <summary>
+    /// The funds charged on activation at the highest commitment, KSP's Strategy.InitialCostFundsMax. At a
+    /// commitment <see cref="Factor"/> f the figure is initialCostFundsMin plus
+    /// f times (initialCostFundsMax minus initialCostFundsMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? InitialCostFundsMax { get; set; }
+
+    /// <summary>
+    /// The science charged on activation at the lowest commitment, KSP's Strategy.InitialCostScienceMin. At a
+    /// commitment <see cref="Factor"/> f the figure is initialCostScienceMin plus
+    /// f times (initialCostScienceMax minus initialCostScienceMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Science)]
+    public double? InitialCostScienceMin { get; set; }
+
+    /// <summary>
+    /// The science charged on activation at the highest commitment, KSP's Strategy.InitialCostScienceMax. At a
+    /// commitment <see cref="Factor"/> f the figure is initialCostScienceMin plus
+    /// f times (initialCostScienceMax minus initialCostScienceMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Science)]
+    public double? InitialCostScienceMax { get; set; }
+
+    /// <summary>
+    /// The reputation charged on activation at the lowest commitment, KSP's Strategy.InitialCostReputationMin. At a
+    /// commitment <see cref="Factor"/> f the figure is initialCostReputationMin plus
+    /// f times (initialCostReputationMax minus initialCostReputationMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? InitialCostReputationMin { get; set; }
+
+    /// <summary>
+    /// The reputation charged on activation at the highest commitment, KSP's Strategy.InitialCostReputationMax. At a
+    /// commitment <see cref="Factor"/> f the figure is initialCostReputationMin plus
+    /// f times (initialCostReputationMax minus initialCostReputationMin), f
+    /// held to 0..1, as KSP's Strategy.FactorLerp computes it.
+    /// </summary>
+    [SitrepUnit(Units.Reputation)]
+    public double? InitialCostReputationMax { get; set; }
 
     /// <summary>
     /// Whether the strategy offers a commitment slider, so that

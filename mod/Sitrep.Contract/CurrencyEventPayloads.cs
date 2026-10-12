@@ -83,14 +83,14 @@ public class ScienceCreditEvent
     public double Amount { get; set; }
 
     /// <summary>The research subject's id (<c>ScienceSubject.id</c>), e.g. the
-    /// experiment+body+biome key.</summary>
+    /// experiment+body+biome key, or null when the credit names no subject.</summary>
     [SitrepUnit(Units.Id)]
-    public string SubjectId { get; set; } = string.Empty;
+    public string? SubjectId { get; set; }
 
     /// <summary>The research subject's human title, e.g. "Crew Report from
-    /// Kerbin's Shores".</summary>
+    /// Kerbin's Shores", or null when the credit names no subject.</summary>
     [SitrepUnit(Units.Text)]
-    public string SubjectTitle { get; set; } = string.Empty;
+    public string? SubjectTitle { get; set; }
 
     /// <summary>Universal Time the credit happened at, the UT its reveal delay
     /// is measured from.</summary>
