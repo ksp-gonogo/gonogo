@@ -15,7 +15,7 @@
     "typecheck": "pnpm generate && tsc --noEmit",
     "review-ledger": "tsx scripts/review-ledger.ts",
     "prose-apply": "tsx scripts/prose-apply.ts",
-    "test": "vitest run"
+    "test": "pnpm generate && vitest run"
   },
   "dependencies": {
     "@ksp-gonogo/components": "workspace:*",

@@ -105,6 +105,7 @@ const OUTCOMES: Record<SetupWorld, UplinkLoadOutcome[]> = {
       name: "Science lab",
       status: "quarantined",
       reason: "apiVersion incompatible: host 1.0.0, client built for 2.0.0",
+      summary: "Built for a newer Gonogo than this one",
     },
     {
       id: "tracking",

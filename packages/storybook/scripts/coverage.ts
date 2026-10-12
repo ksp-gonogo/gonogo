@@ -118,6 +118,13 @@ export const EXTENSION_SCENES: readonly ExtensionScene[] = [
     h: 16,
   },
   {
+    id: "core:vessel-view",
+    widgetId: "landing-status",
+    fixture: `${COMPONENTS}/LandingStatus/__render__/descent-final.json`,
+    w: 20,
+    h: 16,
+  },
+  {
     id: "core:ship-map-part-meters",
     widgetId: "ship-map",
     fixture: `${COMPONENTS}/ShipMap/__fixtures__/probe/fuel-tank-bars-only.json`,

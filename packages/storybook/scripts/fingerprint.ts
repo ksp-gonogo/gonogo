@@ -232,6 +232,66 @@ function uplinkClients(files: string[]): Map<string, string> {
   return out;
 }
 
+/** A function that registers on behalf of its callers, taking the id as one of its parameters. */
+interface Registrar {
+  kind: "widget" | "extension";
+  /** Which argument of a call to it carries the id. */
+  param: number;
+  client: string | undefined;
+}
+
+/**
+ * Each top-level function whose body registers a component, augment or
+ * contribution under one of its own parameters as the `id`, by the name its
+ * callers use. A call to one registers the literal it is given, from the
+ * calling file.
+ */
+function registrarFunctions(files: string[]): Map<string, Registrar> {
+  const clients = uplinkClients(files);
+  const out = new Map<string, Registrar>();
+  for (const file of files) {
+    if (!REGISTER_CALL.test(read(file))) continue;
+    const source = parse(file);
+    for (const fn of source.statements) {
+      if (!ts.isFunctionDeclaration(fn) || !fn.name || !fn.body) continue;
+      const params = fn.parameters.map((p) =>
+        ts.isIdentifier(p.name) ? p.name.text : "",
+      );
+      const body = fn.body;
+      const visit = (node: ts.Node) => {
+        if (ts.isCallExpression(node)) {
+          const { name, on } = callee(node);
+          const match = /^register(Component|Augment|Contribution)$/.exec(name);
+          const arg = node.arguments[0];
+          if (match && arg && ts.isObjectLiteralExpression(arg)) {
+            for (const prop of arg.properties) {
+              const key = prop.name;
+              if (!key || !ts.isIdentifier(key) || key.text !== "id") continue;
+              const value = ts.isShorthandPropertyAssignment(prop)
+                ? prop.name.text
+                : ts.isPropertyAssignment(prop) &&
+                    ts.isIdentifier(prop.initializer)
+                  ? prop.initializer.text
+                  : undefined;
+              const param = value === undefined ? -1 : params.indexOf(value);
+              if (param !== -1 && fn.name) {
+                out.set(fn.name.text, {
+                  kind: match[1] === "Component" ? "widget" : "extension",
+                  param,
+                  client: on ? clients.get(on) : undefined,
+                });
+              }
+            }
+          }
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(body);
+    }
+  }
+  return out;
+}
+
 /**
  * Every literal-id registration in the tree's non-test source, plus the
  * planted slot stubs, which register through {@link SLOT_STUB_HELPERS} under
@@ -251,12 +311,14 @@ function registrationSites(root: string): Site[] {
   }
   walk(join(root, "mod", "sitrep-sdk", "src"), keep, files);
   const clients = uplinkClients(files);
+  const registrars = registrarFunctions(files);
   const sites: Site[] = [];
   for (const file of files) {
     const text = read(file);
     if (
       !REGISTER_CALL.test(text) &&
-      ![...SLOT_STUB_HELPERS].some((h) => text.includes(`${h}(`))
+      ![...SLOT_STUB_HELPERS].some((h) => text.includes(`${h}(`)) &&
+      ![...registrars.keys()].some((r) => text.includes(`${r}(`))
     )
       continue;
     const source = parse(file);
@@ -270,6 +332,18 @@ function registrationSites(root: string): Site[] {
           kind: "extension",
           id: `${SLOT_STUB_PREFIX}${slot}`,
           full: true,
+          file,
+        });
+        return;
+      }
+      const wrapper = on === undefined ? registrars.get(name) : undefined;
+      if (wrapper) {
+        const wrapped = stringArg(call.arguments[wrapper.param]);
+        if (wrapped === undefined) return;
+        sites.push({
+          kind: wrapper.kind,
+          id: wrapper.client ? `${wrapper.client}:${wrapped}` : wrapped,
+          full: wrapper.client !== undefined,
           file,
         });
         return;
