@@ -34,7 +34,6 @@ import {
 } from "./types";
 
 const DEVICE_TYPES_KEY = "gonogo.serial.device-types";
-const USB_SERIAL_KEY_PREFIX = "gonogo.serial.usb-enabled.";
 const DEFAULT_RENDER_DEBOUNCE_MS = 100;
 
 export type TransportFactory = (
@@ -133,12 +132,6 @@ export class SerialDeviceService {
    */
   private unavailable = new Map<string, UnavailableDevice>();
   /**
-   * Whether this screen runs USB serial devices at all. Off until the
-   * operator turns it on, so a screen that never uses one never touches the
-   * serial API or shows anything about it.
-   */
-  private usbSerialEnabled = false;
-  /**
    * When true, the InputDispatcher skips dispatch on incoming events. Used
    * by the input-mapping UI's "press to bind" mode so the old binding for
    * a button doesn't fire while the user is trying to capture a new one.
@@ -192,7 +185,6 @@ export class SerialDeviceService {
     this.renderDebounceMs = opts.renderDebounceMs ?? DEFAULT_RENDER_DEBOUNCE_MS;
     this.storage = opts.storage ?? globalThis.localStorage;
 
-    this.usbSerialEnabled = this.loadUsbSerialEnabled();
     this.loadDeviceTypes();
     this.loadDevices();
     this.seedDefaultsIfEmpty();
@@ -1194,87 +1186,8 @@ export class SerialDeviceService {
       });
       return;
     }
-    if (inst.transport === "web-serial" && !this.usbSerialEnabled) {
-      this.unavailable.set(inst.id, {
-        instance: inst,
-        reason: "usb-serial-off",
-        needs: "USB serial",
-      });
-      return;
-    }
     this.unavailable.delete(inst.id);
     this.register(inst, type);
-  }
-
-  isUsbSerialEnabled(): boolean {
-    return this.usbSerialEnabled;
-  }
-
-  /**
-   * Turn USB serial on or off for this screen. Turning it off parks every
-   * saved USB serial device as unavailable (still saved, still bound), and
-   * turning it on starts them again.
-   */
-  async setUsbSerialEnabled(on: boolean): Promise<void> {
-    if (on === this.usbSerialEnabled) return;
-    this.usbSerialEnabled = on;
-    try {
-      this.storage.setItem(this.usbSerialKey(), on ? "1" : "0");
-    } catch {
-      // ignore quota/permission errors: in-memory state is authoritative
-    }
-    if (on) {
-      for (const entry of Array.from(this.unavailable.values())) {
-        if (entry.reason !== "usb-serial-off") continue;
-        try {
-          this.adopt(entry.instance);
-        } catch (err) {
-          logger.warn(
-            `[SerialDeviceService] failed to load device ${entry.instance.id}`,
-            { err: String(err) },
-          );
-          this.unavailable.set(entry.instance.id, {
-            instance: entry.instance,
-            reason: "transport-error",
-            needs: String(entry.instance.transport),
-          });
-        }
-      }
-      void this.autoReconnect();
-    } else {
-      const parked: ManagedDevice[] = [];
-      for (const managed of Array.from(this.managed.values())) {
-        if (managed.instance.transport !== "web-serial") continue;
-        this.managed.delete(managed.instance.id);
-        this.pendingChoices.delete(managed.instance.id);
-        this.unavailable.set(managed.instance.id, {
-          instance: managed.instance,
-          reason: "usb-serial-off",
-          needs: "USB serial",
-        });
-        parked.push(managed);
-      }
-      this.saveDevices();
-      this.emitDevicesChange();
-      /* The list has already changed, so listeners never see a state that
-         waits on a transport closing. */
-      await Promise.all(parked.map((managed) => this.teardown(managed)));
-      return;
-    }
-    this.saveDevices();
-    this.emitDevicesChange();
-  }
-
-  private usbSerialKey(): string {
-    return `${USB_SERIAL_KEY_PREFIX}${this.screenKey}`;
-  }
-
-  private loadUsbSerialEnabled(): boolean {
-    try {
-      return this.storage.getItem(this.usbSerialKey()) === "1";
-    } catch {
-      return false;
-    }
   }
 
   /** Give every unavailable row another go, after a device type arrived. */

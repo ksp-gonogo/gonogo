@@ -31,9 +31,8 @@ code-registered (see below).
      the *character offset + length* inside the incoming line where that
      input's value lives. For `analog` also set the raw `min..max` range.
    - Parser: `char-position` (the only parser today).
-3. Under **Devices**, switch **USB serial** on (it is off by default, and the
-   Device Types tab only shows while it is on), then add an instance: name,
-   pick the type, pick `USB serial` as the transport, set baud rate.
+3. Under **Devices**, add an instance: name, pick the type, pick
+   `Web Serial (USB)` as the transport, set baud rate.
 4. Save. The device appears in the list with status `disconnected`.
 5. Click **Connect** on the device row. **The browser fires
    `navigator.serial.requestPort()` here**: pick the port from the

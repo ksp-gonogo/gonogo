@@ -49,8 +49,6 @@ describe("SerialDevicesMenu", () => {
       </SerialDeviceProvider>,
     );
 
-    // The type editor belongs to USB serial, so the tab appears with the switch.
-    fireEvent.click(screen.getByRole("checkbox", { name: "USB serial" }));
     // Switch to Device Types tab, open the editor.
     fireEvent.click(screen.getByRole("tab", { name: /device types/i }));
     fireEvent.click(screen.getByRole("button", { name: /add type/i }));

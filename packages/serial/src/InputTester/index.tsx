@@ -235,7 +235,7 @@ registerComponent<InputTesterConfig>({
   id: "input-tester",
   name: "Input Tester",
   description:
-    "Live read-out of every button and axis on the selected input device, straight off the transport, no action mapping required. Pick a device from the dropdown, press a button or move an axis, and watch its row light up. Useful for checking that a device works before you start mapping its inputs to actions.",
+    "Live read-out of every button and axis on the selected serial device, straight off the transport, no action mapping required. Pick a device from the dropdown, press a button or move an axis, and watch its row light up. Useful for verifying wiring, offsets, and parser min/max before you start mapping inputs to actions.",
   tags: ["input", "debug"],
   defaultSize: { w: 6, h: 6 },
   /**
