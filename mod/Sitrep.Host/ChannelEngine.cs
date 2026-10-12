@@ -469,6 +469,8 @@ namespace Sitrep.Host
         private double _itemTokens;
         private double _itemTokensAtSec = double.NegativeInfinity;
         private bool _itemBacklog;
+        private int _passCost;
+        private double _itemTokenHold;
 
         /// <summary>
         /// How often <see cref="SampleCommandGates"/> actually re-reads the
@@ -518,7 +520,10 @@ namespace Sitrep.Host
          * bucket holds, and a change that touches more items than it holds
          * drains over the following frames, items never asked before first.
          * Any one-second window then holds at most the bucket plus a second's
-         * refill, which with the argument-free calls stays under the budget.
+         * refill, which with the argument-free calls stays under the budget
+         * when those are few. When they are many, the budget's own rolling
+         * total bounds the items as well: they spend only what the window has
+         * left after the next argument-free pass is set aside.
          */
         internal const int GateItemsPerSecond = (int)(GateEvaluationBudget * 0.5);
 
@@ -4075,7 +4080,11 @@ namespace Sitrep.Host
             // an input it reads moves, which a half-second cadence cannot do.
             var changed = reportWanted ? ReadGateInputs() : NoInputsChanged;
 
-            if (!due && nowSec - _lastGateSampleAtSec < GateSampleIntervalSec)
+            // The argument-free walk costs one call per distinct requirement the
+            // installed mods declare, whatever the save holds, so a pass waits for
+            // the window to have room for what the last one cost rather than
+            // running on the clock alone.
+            if (!due && (nowSec - _lastGateSampleAtSec < GateSampleIntervalSec || WindowHeadroom(nowSec) < _passCost))
             {
                 if (reportWanted && (changed.Count > 0 || _itemBacklog)) RefreshItemsBetweenPasses(changed, nowSec);
                 return;
@@ -4128,6 +4137,7 @@ namespace Sitrep.Host
             // this pass made, a repeated requirement being answered from the
             // memo without one; itemEvaluations is the per-item calls on top.
             _commandGateBudget?.Record(memo.Count + itemEvaluations, nowSec);
+            _passCost = memo.Count;
             _itemMemo = memo;
             if (reportWanted)
             {
@@ -4147,7 +4157,7 @@ namespace Sitrep.Host
                 var previous = Volatile.Read(ref _commandGateReport);
                 var memo = _itemMemo;
                 var memoBefore = memo.Count;
-                var evaluated = RefreshItems(_itemCommands.Values.ToList(), false, changed, memo, nowSec, out var moved);
+                var evaluated = RefreshItems(_itemCommands.Values.ToList(), false, changed, memo, nowSec, 0, out var moved);
                 if (!moved) return;
 
                 var gates = new List<CommandGate>(previous.Gates.Count);
@@ -4308,7 +4318,7 @@ namespace Sitrep.Host
                     changed = new HashSet<string>(changed, StringComparer.Ordinal);
                     changed.UnionWith(moved);
                 }
-                itemEvaluations = RefreshItems(active, true, changed, memo, nowSec, out _);
+                itemEvaluations = RefreshItems(active, true, changed, memo, nowSec, Math.Max(memo.Count, _passCost), out _);
                 foreach (var entry in published)
                 {
                     FillItems(entry.Key, entry.Value);
@@ -4624,6 +4634,17 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// What the budget's rolling window still has room for at
+        /// <paramref name="nowSec"/>, in evaluator calls, counting
+        /// <paramref name="pending"/> calls made but not yet recorded.
+        /// </summary>
+        private double WindowHeadroom(double nowSec, int pending = 0)
+        {
+            var budget = _commandGateBudget;
+            return budget == null ? GateEvaluationBudget : GateEvaluationBudget - budget.Rate(nowSec) - pending;
+        }
+
         private void RefillItemTokens(double nowSec)
         {
             if (double.IsNegativeInfinity(_itemTokensAtSec))
@@ -4675,9 +4696,16 @@ namespace Sitrep.Host
             HashSet<string> changed,
             Dictionary<string, GateVerdict> memo,
             double nowSec,
+            int pending,
             out bool moved)
         {
             RefillItemTokens(nowSec);
+            // Items spend only what is left of the window after the next
+            // argument-free pass is set aside, so the pass is never starved by
+            // an input that moves every frame and the window never overshoots.
+            // The tokens held back stay in the bucket.
+            var spare = Math.Max(0.0, WindowHeadroom(nowSec, pending) - _passCost);
+            _itemTokenHold = Math.Max(0.0, _itemTokens - spare);
             moved = false;
             foreach (var state in active)
             {
@@ -4702,7 +4730,7 @@ namespace Sitrep.Host
                     if (!state.Driven) continue;
                     var count = state.Values.Count;
                     var reached = -1;
-                    for (var i = 0; i < count && _itemTokens >= 1; i++)
+                    for (var i = 0; i < count && _itemTokens - _itemTokenHold >= 1; i++)
                     {
                         var value = state.Values[(state.Cursor + i) % count];
                         if (state.Fresh.Contains(value) || (onlyNew && state.Asked.Contains(value))) continue;
@@ -4733,7 +4761,7 @@ namespace Sitrep.Host
         private int AskPolledWindow(List<ItemCommand> polled, Dictionary<string, GateVerdict> memo)
         {
             var total = polled.Sum(s => s.Values.Count);
-            var windowSize = Math.Min(Math.Min(total, GateItemsPerPass), (int)Math.Floor(_itemTokens));
+            var windowSize = Math.Min(Math.Min(total, GateItemsPerPass), (int)Math.Floor(Math.Max(0.0, _itemTokens - _itemTokenHold)));
             var start = windowSize >= total ? 0 : _itemCursor % total;
             _itemCursor = total == 0 ? 0 : (start + windowSize) % total;
 
