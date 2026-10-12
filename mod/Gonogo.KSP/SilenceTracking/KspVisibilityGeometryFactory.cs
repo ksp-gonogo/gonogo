@@ -154,7 +154,8 @@ namespace Gonogo.KSP.SilenceTracking
             SilenceTrace.Chain(parentBody.bodyName, stationBody.bodyName, occluders.Count);
 
             double longitudeOffset;
-            if (!StationLongitudeCalibration.TryGet(stationBodyIndex, out longitudeOffset))
+            if (!StationLongitudeCalibration.TryGet(
+                stationBodyIndex, stationBody.inverseRotation, Planetarium.InverseRotAngle, out longitudeOffset))
             {
                 if (!TryCalibrate(stationBody, comm, occlusion, stationBodyIndex, out longitudeOffset))
                 {
@@ -478,7 +479,7 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
             double offset;
-            if (!StationLongitudeCalibration.TryGet(bodyIndex, out offset)
+            if (!StationLongitudeCalibration.TryGet(bodyIndex, body.inverseRotation, Planetarium.InverseRotAngle, out offset)
                 && !TryCalibrate(body, node, CommsElection.OcclusionModel(_kernel()), bodyIndex, out offset))
             {
                 return null;
@@ -627,36 +628,57 @@ namespace Gonogo.KSP.SilenceTracking
 
             var live = (reference.orbitDriver.orbit.getPositionAtUT(now) - comm.precisePosition).magnitude;
 
-            var best = double.MaxValue;
-            var bestOffset = 0.0;
-            for (var coarse = -180.0; coarse < 180.0; coarse += 2.0)
+            // One separation fixes the offset only up to a mirror about the line
+            // to the reference, so this gathers every offset that reconciles
+            // rather than the single least residual. The mirror one drops out
+            // once the body has turned, and no prediction is made until it has:
+            // both reconcile now and only one goes on to.
+            //
+            // Keyed on the body's frame regime, and in the rotating regime on the
+            // frame's angle: an offset measured against a rotating frame says
+            // nothing about the inertial one. See StationLongitudeCalibration.
+            var rotating = stationBody.inverseRotation;
+            var frameAngle = Planetarium.InverseRotAngle;
+            Func<double, double> residualAt = offset =>
+                ResidualAt(offset, refTarget, frame, refOccluders, stationBody, comm, occlusion, now, live);
+
+            IReadOnlyList<double> offsets = new double[0];
+            var pending = StationLongitudeCalibration.Pending(stationBodyIndex, rotating, frameAngle);
+            if (pending.Count > 0)
             {
-                var r = ResidualAt(coarse, refTarget, frame, refOccluders, stationBody, comm, occlusion, now, live);
-                if (r < best) { best = r; bestOffset = coarse; }
+                offsets = StationLongitudeSolve.Surviving(pending, residualAt, FrameCheckToleranceMeters);
             }
-            for (var fine = bestOffset - 2.0; fine <= bestOffset + 2.0; fine += 0.1)
+            if (offsets.Count == 0)
             {
-                var r = ResidualAt(fine, refTarget, frame, refOccluders, stationBody, comm, occlusion, now, live);
-                if (r < best) { best = r; bestOffset = fine; }
+                offsets = StationLongitudeSolve.Candidates(residualAt, FrameCheckToleranceMeters);
             }
 
             // Only accept a solve that actually reconciles. A minimum that is
             // still far off is not a calibration, it is the least-bad of a set
             // of wrong answers, and adopting it would hand the sweep a station
             // in the wrong place with no further warning.
-            if (best > FrameCheckToleranceMeters)
+            if (offsets.Count == 0)
             {
                 SilenceTrace.Calibration("FAILED for " + stationBody.bodyName
-                    + ": best offset " + bestOffset.ToString("F1") + " deg still leaves "
-                    + best.ToString("F0") + "m of " + live.ToString("F0") + "m");
+                    + ": no offset leaves less than " + FrameCheckToleranceMeters.ToString("F0")
+                    + "m of " + live.ToString("F0") + "m");
                 return false;
             }
 
-            StationLongitudeCalibration.Set(stationBodyIndex, bestOffset);
-            offsetDegrees = bestOffset;
+            StationLongitudeCalibration.Set(stationBodyIndex, rotating, frameAngle, offsets);
+            if (offsets.Count > 1)
+            {
+                SilenceTrace.Calibration(stationBody.bodyName + " longitude ambiguous between "
+                    + offsets.Count + " offsets ("
+                    + string.Join(", ", System.Linq.Enumerable.Select(offsets, o => o.ToString("F1")))
+                    + " deg); waiting for the body to turn");
+                return false;
+            }
+
+            offsetDegrees = offsets[0];
             SilenceTrace.Calibration(stationBody.bodyName + " longitude offset "
-                + bestOffset.ToString("F1") + " deg, residual " + best.ToString("F0")
-                + "m of " + live.ToString("F0") + "m");
+                + offsetDegrees.ToString("F1") + " deg, residual " + residualAt(offsetDegrees).ToString("F0")
+                + "m of " + live.ToString("F0") + "m, frame " + (rotating ? "rotating" : "inertial"));
             return true;
         }
 
@@ -689,6 +711,11 @@ namespace Gonogo.KSP.SilenceTracking
         /// <summary>
         /// Any vessel orbiting <paramref name="body"/>, loaded or not.
         ///
+        /// <para>A landed or splashed craft is never the reference: its orbit is
+        /// the body's own surface rotation expressed as a conic, in the frame
+        /// that turns with the body, so it measures that frame and not the
+        /// inertial one the prediction is made in.</para>
+        ///
         /// <para>Being unloaded is no obstacle: <c>getPositionAtUT</c> is the
         /// same propagation KSP itself uses for an on-rails craft, and the
         /// world-space position it yields is exactly what the calibration
@@ -705,7 +732,7 @@ namespace Gonogo.KSP.SilenceTracking
             {
                 if (v == null || v.orbitDriver == null || v.orbitDriver.orbit == null) continue;
                 if (v.orbitDriver.orbit.referenceBody != body) continue;
-                if (!IsPropagatable(v.orbitDriver.orbit)) continue;
+                if (v.LandedOrSplashed || !IsPropagatable(v.orbitDriver.orbit)) continue;
                 return v;
             }
             return null;
@@ -733,8 +760,8 @@ namespace Gonogo.KSP.SilenceTracking
             // propagatable orbit to calibrate against, and falls through to the whole
             // roster below when the first candidate will not do. It names no scope.
             var active = FlightGlobals.ActiveVessel;
-            if (active != null && active.orbitDriver != null && active.orbitDriver.orbit != null
-                && IsPropagatable(active.orbitDriver.orbit))
+            if (active != null && !active.LandedOrSplashed && active.orbitDriver != null
+                && active.orbitDriver.orbit != null && IsPropagatable(active.orbitDriver.orbit))
             {
                 return active;
             }
@@ -742,8 +769,8 @@ namespace Gonogo.KSP.SilenceTracking
             if (all == null) return null;
             foreach (var v in all)
             {
-                if (v != null && v.loaded && v.orbitDriver != null && v.orbitDriver.orbit != null
-                    && IsPropagatable(v.orbitDriver.orbit))
+                if (v != null && v.loaded && !v.LandedOrSplashed && v.orbitDriver != null
+                    && v.orbitDriver.orbit != null && IsPropagatable(v.orbitDriver.orbit))
                 {
                     return v;
                 }
@@ -892,7 +919,11 @@ namespace Gonogo.KSP.SilenceTracking
                 var predicted = geometry.AnatomyAt(now);
 
                 double offset;
-                var calibrated = StationLongitudeCalibration.TryGet(bodies != null ? bodies.IndexOf(stationBody) : -1, out offset);
+                var calibrated = StationLongitudeCalibration.TryGet(
+                    bodies != null ? bodies.IndexOf(stationBody) : -1,
+                    stationBody.inverseRotation,
+                    Planetarium.InverseRotAngle,
+                    out offset);
                 SilenceTrace.DecomposeStation(
                     liveCentreToVessel, predicted.CentreToVesselMeters,
                     liveToward, predicted.StationTowardVesselMeters,
