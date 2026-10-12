@@ -103,6 +103,10 @@ namespace Sitrep.Core
         private readonly Dictionary<string, Dictionary<string, double>> _cursors =
             new Dictionary<string, Dictionary<string, double>>();
 
+        // The (topic, vantage) cursors a read has moved since the last prune.
+        private readonly HashSet<(string Topic, string Vantage)> _readSincePrune =
+            new HashSet<(string, string)>();
+
         /// <summary>
         /// Ascending per-topic sample list (by ValidAt). Returns a fresh copy
         /// (not a reference to internal state), so callers can't mutate
@@ -180,6 +184,7 @@ namespace Sitrep.Core
             byVantage[vantage] = byVantage.TryGetValue(vantage, out var lastScene)
                 ? Math.Max(sceneUt, lastScene)
                 : sceneUt;
+            _readSincePrune.Add((topic, vantage));
         }
 
         /// <summary>
@@ -338,6 +343,7 @@ namespace Sitrep.Core
                 ? Math.Max(rawScene, lastScene)
                 : rawScene;
             byVantage[vantage] = scene;
+            _readSincePrune.Add((topic, vantage));
             sceneUt = scene;
 
             if (!_samplesByTopic.TryGetValue(topic, out var list) || list.Count == 0)
@@ -463,9 +469,23 @@ namespace Sitrep.Core
         /// newest scene read runs ahead of the oldest scene still owed, and pruning
         /// to the cursor alone would drop a sample a delivery is about to ask for.
         /// A missing entry (or <c>null</c>) means nothing is owed there.</para>
+        ///
+        /// <para>A cursor stands only while something still reads there. When
+        /// <paramref name="stillReading"/> is given, a cursor it does not name and
+        /// that no read has moved since the last prune is dropped first: its
+        /// vantage has gone, and left standing it would hold every later sample
+        /// on its topic for the rest of the timeline.</para>
         /// </summary>
-        public void PruneToVantageCursors(IDictionary<string, double>? owedFloorByTopic = null)
+        public void PruneToVantageCursors(
+            IDictionary<string, double>? owedFloorByTopic = null,
+            Func<string, string, bool>? stillReading = null)
         {
+            if (stillReading != null)
+            {
+                ForgetDepartedCursors(stillReading);
+            }
+            _readSincePrune.Clear();
+
             foreach (var entry in _samplesByTopic)
             {
                 if (!_cursors.TryGetValue(entry.Key, out var byVantage) || byVantage.Count == 0)
@@ -485,6 +505,34 @@ namespace Sitrep.Core
                 }
 
                 RetainFrom(entry.Value, oldest);
+            }
+        }
+
+        private void ForgetDepartedCursors(Func<string, string, bool> stillReading)
+        {
+            List<(string Topic, string Vantage)>? departed = null;
+            foreach (var topic in _cursors)
+            {
+                foreach (var vantage in topic.Value.Keys)
+                {
+                    if (!_readSincePrune.Contains((topic.Key, vantage)) && !stillReading(topic.Key, vantage))
+                    {
+                        (departed ??= new List<(string, string)>()).Add((topic.Key, vantage));
+                    }
+                }
+            }
+            if (departed == null)
+            {
+                return;
+            }
+            foreach (var (topic, vantage) in departed)
+            {
+                var byVantage = _cursors[topic];
+                byVantage.Remove(vantage);
+                if (byVantage.Count == 0)
+                {
+                    _cursors.Remove(topic);
+                }
             }
         }
 
@@ -532,6 +580,7 @@ namespace Sitrep.Core
             }
 
             _cursors.Clear();
+            _readSincePrune.Clear();
         }
 
         /// <summary>

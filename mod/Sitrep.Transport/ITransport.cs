@@ -33,10 +33,22 @@ namespace Sitrep.Transport
         /// </summary>
         bool TrySend(ArraySegment<byte> payload, SendClass cls);
 
+        /// <summary>
+        /// Whether a send handed off earlier has not yet been written. A caller
+        /// holding lossy-latest frames keeps them until it is not, so a peer that
+        /// has stopped reading costs one frame per topic rather than one per
+        /// publish.
+        /// </summary>
+        bool IsBusy { get; }
+
         /// <summary>Raised on a socket thread: never assume this runs on any particular thread.</summary>
         event Action<ArraySegment<byte>> MessageReceived;
 
-        /// <summary>Raised on a socket thread when the connection has gone away, for any reason.</summary>
+        /// <summary>
+        /// Raised once when the connection has gone away, for any reason, on
+        /// whatever thread noticed. A handler attached after that is called at
+        /// once, on the attaching thread.
+        /// </summary>
         event Action Closed;
 
         void Close(ushort code, string reason);
