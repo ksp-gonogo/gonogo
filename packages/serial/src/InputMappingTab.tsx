@@ -41,18 +41,27 @@ function decode(value: string): InputBinding | null {
   return deviceId && inputId ? { deviceId, inputId } : null;
 }
 
-/** The option a binding to a saved device this screen cannot run selects, so
- *  the select names the device where it would otherwise read "(unbound)". */
-function unavailableOption(
+/**
+ * The option a binding to a device this screen cannot use selects, so the
+ * select names what is bound where it would otherwise read "(unbound)": the
+ * saved device when it is listed as unavailable, otherwise the input alone
+ * (a binding carries no device name, and a device saved on another screen is
+ * not on this one).
+ */
+function heldOption(
   binding: InputBinding | null | undefined,
+  devices: DeviceInstance[],
   unavailable: UnavailableDevice[],
 ): PickerOption | null {
   if (!binding) return null;
+  if (devices.some((d) => d.id === binding.deviceId)) return null;
+  const value = encode(binding.deviceId, binding.inputId);
   const entry = unavailable.find((u) => u.instance.id === binding.deviceId);
-  if (!entry) return null;
   return {
-    value: encode(binding.deviceId, binding.inputId),
-    label: `${entry.instance.name} · ${binding.inputId} · unavailable`,
+    value,
+    label: entry
+      ? `${entry.instance.name} · ${binding.inputId} · unavailable`
+      : `${binding.inputId} · device not on this screen`,
   };
 }
 
@@ -231,7 +240,7 @@ export function InputMappingTab({
     <Wrap>
       {devices.length === 0 && unavailable.length === 0 && (
         <FieldHint>
-          No serial devices registered yet. Open the joystick FAB to add one.
+          No input devices registered yet. Open the joystick FAB to add one.
         </FieldHint>
       )}
       <List>
@@ -241,7 +250,7 @@ export function InputMappingTab({
             action,
             devices,
             typeById,
-            unavailableOption(current, unavailable),
+            heldOption(current, devices, unavailable),
           );
           const currentValue = current
             ? encode(current.deviceId, current.inputId)
