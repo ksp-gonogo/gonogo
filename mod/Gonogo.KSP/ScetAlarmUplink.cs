@@ -460,6 +460,24 @@ namespace Gonogo.KSP
             }
 
             if (condition != null
+                && condition.Kind == ScetAlarmConditionKind.TopicInstant
+                && !string.Equals(wanted, ScetAlarmVantage.SubjectOf(args), StringComparison.Ordinal))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Range,
+                    "an alarm that follows a Topic's instant is judged on its subject's own clock and takes no other vantage");
+            }
+
+            if (condition != null
+                && condition.Kind == ScetAlarmConditionKind.TopicInstant
+                && (string.IsNullOrEmpty(condition.FieldPath) || !_thresholds.Knows(condition.Topic)))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Range,
+                    "no instant can be followed on '" + (condition.Topic ?? "") + "' at '" + (condition.FieldPath ?? "") + "'");
+            }
+
+            if (condition != null
                 && condition.Kind == ScetAlarmConditionKind.ContractParameter
                 && (string.IsNullOrEmpty(condition.ContractId) || string.IsNullOrEmpty(condition.ParameterTitle)))
             {

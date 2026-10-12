@@ -1198,7 +1198,27 @@ function describeTrigger(
       </code>
     );
   }
-  // Threshold: narrow exhausted by the two `kind` checks above.
+  if (a.trigger.kind === "instant") {
+    const t = a.trigger;
+    /* The instant the simulation last read, on the craft's own clock, which is
+       what the alarm is waiting for; absent until it has read one. */
+    return (
+      <>
+        <code>
+          {t.topic}.{t.fieldPath}
+        </code>
+        {a.followedUT != null && (
+          <>
+            {" · "}
+            <MissionDate value={a.followedUT} context={contexts.scet} />
+          </>
+        )}
+        {" · lead "}
+        <Unit value={value("s", t.leadSeconds)} />
+      </>
+    );
+  }
+  // Threshold: narrow exhausted by the three `kind` checks above.
   const t = a.trigger;
   const scet = t.vantage === "scet";
   /* The window it is waiting for, never progress through it: the simulation

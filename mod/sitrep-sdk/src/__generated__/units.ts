@@ -3391,6 +3391,7 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     0: "Time",
     1: "Threshold",
     2: "ContractParameter",
+    3: "TopicInstant",
   },
   "ScetAlarmState": {
     0: "Armed",

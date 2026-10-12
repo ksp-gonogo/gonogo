@@ -459,6 +459,14 @@ namespace Sitrep.Host.Alarms
                             state.Tick,
                             readerFor == null ? null : readerFor(entry.Alarm));
                         break;
+                    case ScetAlarmConditionKind.TopicInstant:
+                        EvaluateTopicInstant(
+                            entry,
+                            condition,
+                            state.NowUt,
+                            state.Tick,
+                            readerFor == null ? null : readerFor(entry.Alarm));
+                        break;
                 }
             }
         }
@@ -528,6 +536,80 @@ namespace Sitrep.Host.Alarms
 
             Held(entry, condition, Matches(reading.Value, condition.Op, condition.Threshold), nowUt, tick);
         }
+
+        /// <summary>
+        /// A time condition whose instant is read off a Topic every tick instead
+        /// of being fixed when the alarm was armed.
+        ///
+        /// <para>The warp is stopped <c>LeadSeconds</c> before the instant the
+        /// Topic publishes now and the alarm fires when the clock reaches it,
+        /// exactly as a time alarm does, so it takes the same warp stop and the
+        /// same notice. What differs is that the instant can move: a shorter
+        /// project overtaking the one being followed brings it earlier, and a
+        /// slower rate pushes it later. The step-down is therefore taken back
+        /// when the instant moves out of the lead window, so the warp is
+        /// stopped again if it comes back in.</para>
+        ///
+        /// <para>The instant last read is kept on the condition's
+        /// <c>Ut</c>, so the roster shows what the alarm is currently waiting
+        /// for. A field that is absent or null leaves the condition unmet and
+        /// the alarm armed.</para>
+        /// </summary>
+        private static void EvaluateTopicInstant(
+            Entry entry,
+            ScetAlarmCondition condition,
+            double nowUt,
+            ScetAlarmTick tick,
+            IScetStateReader? state)
+        {
+            if (state == null)
+            {
+                return;
+            }
+
+            var reading = state.Read(
+                entry.Alarm.Subject ?? "", condition.Topic ?? "", condition.FieldPath ?? "");
+
+            if (reading.Status == ScetReadingStatus.SubjectGone)
+            {
+                entry.Alarm.State = ScetAlarmState.Unreachable;
+                tick.RosterChanged = true;
+                return;
+            }
+
+            if (reading.Status != ScetReadingStatus.Observed)
+            {
+                return;
+            }
+
+            var instant = reading.Value;
+            if (Math.Abs(instant - condition.Ut) >= InstantMovedSeconds)
+            {
+                condition.Ut = instant;
+                tick.RosterChanged = true;
+            }
+
+            var lead = condition.LeadSeconds > 0 ? condition.LeadSeconds : 0;
+            if (nowUt < instant - lead)
+            {
+                entry.SteppedDown = false;
+                return;
+            }
+
+            if (!entry.SteppedDown)
+            {
+                entry.SteppedDown = true;
+                tick.StopWarp = true;
+            }
+
+            if (nowUt >= instant)
+            {
+                Fire(entry, nowUt, tick);
+            }
+        }
+
+        /// <summary>The least a followed instant has to move before the roster is republished with it, seconds.</summary>
+        private const double InstantMovedSeconds = 0.5;
 
         /// <summary>
         /// One contract objective against the career the reader hands over, the
@@ -701,7 +783,8 @@ namespace Sitrep.Host.Alarms
                 && held.Condition != null
                 && incoming.Condition != null
                 && held.Condition.Kind == incoming.Condition.Kind
-                && held.Condition.Ut == incoming.Condition.Ut
+                && (held.Condition.Kind == ScetAlarmConditionKind.TopicInstant
+                    || held.Condition.Ut == incoming.Condition.Ut)
                 && held.Condition.LeadSeconds == incoming.Condition.LeadSeconds
                 && string.Equals(held.Condition.Topic, incoming.Condition.Topic, StringComparison.Ordinal)
                 && string.Equals(held.Condition.FieldPath, incoming.Condition.FieldPath, StringComparison.Ordinal)

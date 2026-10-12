@@ -322,6 +322,34 @@ describe("an Uplink's alarm request", () => {
     });
   });
 
+  it("creates an alarm that follows a Topic's instant, on the subject's own clock", async () => {
+    mountMainScreen(
+      <RequestingWidget
+        request={{
+          key: "next-project",
+          name: "Next project finishes",
+          trigger: {
+            kind: "instant",
+            topic: "vessel.maneuver",
+            fieldPath: "nextBurnUt",
+            leadSeconds: 30,
+          },
+        }}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Set alarm" }));
+
+    const [alarm] = host.snapshot().alarms;
+    expect(alarm.trigger).toEqual({
+      kind: "instant",
+      topic: "vessel.maneuver",
+      fieldPath: "nextBurnUt",
+      leadSeconds: 30,
+    });
+    expect(alarm.followedUT).toBeUndefined();
+  });
+
   it("survives a reload with its provenance intact", () => {
     const storage = memoryStorage();
     const first = new AlarmHostService(null, {

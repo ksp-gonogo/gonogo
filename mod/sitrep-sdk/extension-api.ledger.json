@@ -8467,6 +8467,10 @@
         "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
       },
       {
+        "key": "sitrep-sdk . UplinkAlarmTrigger",
+        "note": "UplinkAlarmTrigger gains the instant arm, so a caller that switches over trigger kinds names it"
+      },
+      {
         "key": "sitrep-sdk . UplinkClientHandle#description",
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
       },
@@ -9755,6 +9759,10 @@
         "note": "Gains an optional delivery argument, so a transport can mark a message as a replay of the past; a listener that ignores it is unchanged"
       },
       {
+        "key": "sitrep-sdk ./testing ~UplinkAlarmTrigger",
+        "note": "UplinkAlarmTrigger gains the instant arm, so a caller that switches over trigger kinds names it"
+      },
+      {
         "key": "sitrep-sdk ./testing ~UplinkClientHandle#description",
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
       },
@@ -11003,6 +11011,26 @@
       {
         "key": "sitrep-sdk . UplinkActionOutcome#throughSeq?",
         "note": "UplinkActionOutcome is exported from the root, since it is named in an author-facing signature"
+      },
+      {
+        "key": "sitrep-sdk . UplinkAlarmInstantTrigger",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk . UplinkAlarmInstantTrigger#fieldPath",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk . UplinkAlarmInstantTrigger#kind",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk . UplinkAlarmInstantTrigger#leadSeconds?",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk . UplinkAlarmInstantTrigger#topic",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
       },
       {
         "key": "sitrep-sdk . UplinkClientConfig",
@@ -13563,6 +13591,26 @@
       {
         "key": "sitrep-sdk ./testing ~UplinkActionOutcome#throughSeq?",
         "note": "Now reachable from the published CommandGroupHandle.cancel; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkAlarmInstantTrigger",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkAlarmInstantTrigger#fieldPath",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkAlarmInstantTrigger#kind",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkAlarmInstantTrigger#leadSeconds?",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkAlarmInstantTrigger#topic",
+        "note": "An alarm that follows a Topic's published instant, which the mod re-reads every tick"
       },
       {
         "key": "sitrep-sdk ./testing ~UplinkClientConfig",

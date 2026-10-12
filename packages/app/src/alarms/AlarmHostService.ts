@@ -253,7 +253,7 @@ export class AlarmHostService {
     });
 
     this.warpPlanner = new AlarmWarpPlanner(
-      () => this.alarms,
+      () => this.alarmsWithFollowedInstants(),
       () => this.observedUT,
       () => this.opts.getOwltSeconds(),
     );
@@ -330,9 +330,22 @@ export class AlarmHostService {
 
   // ── Public API ────────────────────────────────────────────────────────
 
+  /**
+   * The list with each alarm that follows a Topic carrying the instant the mod
+   * last read for it, which is what the warp ladder and the rows plan against.
+   */
+  private alarmsWithFollowedInstants(): Alarm[] {
+    const followed = this.scetBridge?.followedInstants();
+    if (!followed || followed.size === 0) return [...this.alarms];
+    return this.alarms.map((alarm) => {
+      const ut = followed.get(alarm.id);
+      return ut === undefined ? alarm : { ...alarm, followedUT: ut };
+    });
+  }
+
   snapshot(): AlarmSnapshot {
     return {
-      alarms: [...this.alarms],
+      alarms: this.alarmsWithFollowedInstants(),
       ut: this.observedUT,
       warp: this.warpObserver.getWarp(),
       unscheduledWarp: this.warpObserver.getUnscheduled(),

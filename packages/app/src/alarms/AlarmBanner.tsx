@@ -386,6 +386,8 @@ function CollapsedCPInline({
 
 function isWarpToCandidate(alarm: Alarm): boolean {
   if (alarm.trigger.kind === "time") return true;
+  // One that follows a Topic's instant has a ladder to plan toward once the simulation has read one.
+  if (alarm.trigger.kind === "instant") return alarm.followedUT !== undefined;
   // Every other kind is judged by the simulation, which stops the warp itself.
   return false;
 }
@@ -411,7 +413,9 @@ function pickNext(snap: AlarmSnapshot): Alarm | null {
     pending: 3,
   };
   const sortKey = (a: Alarm): number =>
-    a.trigger.kind === "time" ? a.trigger.ut : Number.POSITIVE_INFINITY;
+    a.trigger.kind === "time"
+      ? a.trigger.ut
+      : (a.followedUT ?? Number.POSITIVE_INFINITY);
   const sorted = [...snap.alarms].sort((a, b) => {
     const p = priority[a.state] - priority[b.state];
     if (p !== 0) return p;
@@ -455,6 +459,9 @@ function headlineLabel(state: Alarm["state"]): string {
 function formatNextLine(alarm: Alarm, utNow: number | null): string | null {
   if (alarm.trigger.kind === "time") {
     return formatTMinus(alarm.trigger.ut, utNow);
+  }
+  if (alarm.trigger.kind === "instant" && alarm.followedUT !== undefined) {
+    return formatTMinus(alarm.followedUT, utNow);
   }
   if (alarm.trigger.kind === "contract-parameter") {
     return `${alarm.trigger.parameterTitle} → ${alarm.trigger.targetState}`;

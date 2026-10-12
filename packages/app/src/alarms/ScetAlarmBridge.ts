@@ -269,6 +269,21 @@ export class ScetAlarmBridge {
     return [...this.rosterUnreachable];
   }
 
+  /**
+   * The instant each alarm that follows a Topic is currently waiting for, by
+   * alarm id, as the mod last read it. Absent for an alarm whose Topic has not
+   * given one yet.
+   */
+  followedInstants(): ReadonlyMap<string, number> {
+    const out = new Map<string, number>();
+    for (const row of this.rosterAlarms) {
+      if (row.condition?.kind === "instant" && row.condition.ut > 0) {
+        out.set(row.id, row.condition.ut);
+      }
+    }
+    return out;
+  }
+
   /** The roster's alarms that the client's own list does not hold. */
   foreignAlarms(): readonly ForeignScetAlarm[] {
     const ours = new Set(this.ctx.getAlarms().map((alarm) => alarm.id));
@@ -503,6 +518,29 @@ export class ScetAlarmBridge {
            With no craft to name they stay on this screen, which sends them from
            the ground; the alarm itself is armed either way. */
         ...(craft ? aboard(alarm, `vessel:${craft}`) : {}),
+      };
+    }
+    if (trigger.kind === "instant") {
+      const subject = subjectFor(trigger.topic);
+      if (subject === null) {
+        logger.warn("alarm-host: instant alarm has no subject yet", {
+          id: alarm.id,
+          topic: trigger.topic,
+        });
+        return NOT_YET;
+      }
+      return {
+        id: alarm.id,
+        name: alarm.name,
+        vantage,
+        subject,
+        ...aboard(alarm, subject),
+        condition: {
+          kind: ScetAlarmConditionKind.TopicInstant,
+          topic: trigger.topic,
+          fieldPath: trigger.fieldPath,
+          leadSeconds: trigger.leadSeconds,
+        },
       };
     }
     if (trigger.kind === "contract-parameter") {
@@ -824,6 +862,19 @@ function readRosterCondition(raw: unknown): ForeignScetCondition | null {
         return null;
       }
       return { kind: "threshold", topic, fieldPath, op, value };
+    }
+    case ScetAlarmConditionKind.TopicInstant: {
+      const topic = field("topic");
+      const fieldPath = field("fieldPath");
+      if (typeof topic !== "string" || typeof fieldPath !== "string") {
+        return null;
+      }
+      return {
+        kind: "instant",
+        topic,
+        fieldPath,
+        ut: readWireUt(field("ut")) ?? 0,
+      };
     }
     case ScetAlarmConditionKind.ContractParameter: {
       const parameterTitle = field("parameterTitle");

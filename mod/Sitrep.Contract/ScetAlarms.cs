@@ -47,6 +47,20 @@ public enum ScetAlarmConditionKind
     /// withdrawn by some other route.</para>
     /// </summary>
     ContractParameter,
+
+    /// <summary>
+    /// A Topic's own universal time, followed as it moves: the warp stops
+    /// <see cref="ScetAlarmCondition.LeadSeconds"/> before the instant the
+    /// Topic currently publishes and the alarm fires when the clock reaches it.
+    ///
+    /// <para>The instant is read again on every tick, so an alarm on "the next
+    /// project to finish" re-aims by itself when a shorter project overtakes
+    /// the one it was following, with nobody watching and no client to re-arm
+    /// it. While the field is absent or null the condition is unmet and the
+    /// alarm stays armed. Always judged on the craft's own clock, at the
+    /// subject's vantage.</para>
+    /// </summary>
+    TopicInstant,
 }
 
 /// <summary>
@@ -138,7 +152,11 @@ public enum ScetAlarmState
 /// <see cref="SustainSeconds"/>; for
 /// <see cref="ScetAlarmConditionKind.ContractParameter"/> it is
 /// <see cref="ContractId"/>, <see cref="ParameterTitle"/>,
-/// <see cref="TargetState"/> and <see cref="SustainSeconds"/>.</para>
+/// <see cref="TargetState"/> and <see cref="SustainSeconds"/>; for
+/// <see cref="ScetAlarmConditionKind.TopicInstant"/> it is <see cref="Topic"/>,
+/// <see cref="FieldPath"/> (a universal time) and <see cref="LeadSeconds"/>,
+/// and <see cref="Ut"/> is filled in by the simulation with the instant it last
+/// read.</para>
 /// </summary>
 /// <category>Alarms</category>
 [SitrepContract]
@@ -156,7 +174,9 @@ public class ScetAlarmCondition
 
     /// <summary>
     /// The instant the alarm is set for, as a universal time on the craft's
-    /// clock rather than on the clock the command centre is reading.
+    /// clock rather than on the clock the command centre is reading. For a
+    /// <see cref="ScetAlarmConditionKind.TopicInstant"/> it is the instant the
+    /// simulation last read from the Topic, written by it and ignored on arm.
     ///
     /// <para>The difference between the two is the one-way signal delay, which
     /// changes as the craft moves. This field is the instant itself, compared
@@ -178,7 +198,7 @@ public class ScetAlarmCondition
     public double LeadSeconds { get; set; }
 
     /// <summary>
-    /// Threshold only: the Topic whose payload carries the value to watch, as
+    /// Threshold and topic instant: the Topic whose payload carries the value to watch, as
     /// the client spells a Topic (<c>"vessel.flight"</c>).
     ///
     /// <para>A Topic and a path into it address a reading the way the wire
@@ -193,7 +213,7 @@ public class ScetAlarmCondition
     public string Topic { get; set; } = "";
 
     /// <summary>
-    /// Threshold only: the dotted path to the value inside
+    /// Threshold and topic instant: the dotted path to the value inside
     /// <see cref="Topic"/>'s payload (<c>"altitudeAsl"</c>,
     /// <c>"relativePosition.x"</c>). Empty addresses the payload itself, which
     /// is never a number, so it never matches.

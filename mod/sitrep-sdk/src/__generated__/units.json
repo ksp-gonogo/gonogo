@@ -3268,7 +3268,8 @@
     "ScetAlarmConditionKind": {
       "0": "Time",
       "1": "Threshold",
-      "2": "ContractParameter"
+      "2": "ContractParameter",
+      "3": "TopicInstant"
     },
     "ScetAlarmState": {
       "0": "Armed",

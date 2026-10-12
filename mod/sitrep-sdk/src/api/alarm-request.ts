@@ -14,7 +14,7 @@
 // station, where it travels to the host the way a station's own add already
 // does.
 //
-// Only the two trigger arms an Uplink can state honestly are published here.
+// Only the three trigger arms an Uplink can state honestly are published here.
 // `contract-parameter` addresses stock career contracts, which is the app's
 // vocabulary rather than an Uplink's, and publishing it would freeze an
 // app-internal shape as third-party API for no reachable use.
@@ -105,15 +105,42 @@ export interface UplinkAlarmThresholdTrigger {
 }
 
 /**
- * When a requested alarm fires: at a time, or when a value crosses a threshold.
- * Useful for telling the operator's alarm list what to watch. Used as the
- * `trigger` of an {@link UplinkAlarmRequest}.
+ * An alarm that fires at a universal time a Topic publishes, followed as it
+ * moves: the mod reads `fieldPath` on every tick, drops the warp `leadSeconds`
+ * before it and fires at it. Useful for an event whose time is recalculated,
+ * such as a project in progress completing, because the alarm keeps up with the
+ * change and works with nothing on screen. It is judged on the subject's own
+ * clock, so it has no command-centre form. Used as the `trigger` of an
+ * {@link UplinkAlarmRequest}.
+ *
+ * @category Alarms
+ */
+export interface UplinkAlarmInstantTrigger {
+  /** Always `"instant"`. */
+  kind: "instant";
+  /** The Topic carrying the universal time, e.g. `"career.status"`. */
+  topic: TopicId;
+  /** Dotted path into that Topic's payload to the universal time. */
+  fieldPath: string;
+  /**
+   * Seconds before the instant to drop out of time warp, so the operator has
+   * time to act. Omitted, Gonogo's default is used.
+   */
+  leadSeconds?: number;
+}
+
+/**
+ * When a requested alarm fires: at a time, when a value crosses a threshold, or
+ * at a time a Topic publishes and keeps recalculating. Useful for telling the
+ * operator's alarm list what to watch. Used as the `trigger` of an
+ * {@link UplinkAlarmRequest}.
  *
  * @category Alarms
  */
 export type UplinkAlarmTrigger =
   | UplinkAlarmTimeTrigger
-  | UplinkAlarmThresholdTrigger;
+  | UplinkAlarmThresholdTrigger
+  | UplinkAlarmInstantTrigger;
 
 /**
  * An alarm an Uplink asks Gonogo to create, with its key, name and trigger.

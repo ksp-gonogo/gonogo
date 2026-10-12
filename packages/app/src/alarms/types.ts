@@ -49,7 +49,7 @@ export function isAtSubjectVantage(trigger: AlarmTrigger): boolean {
   // A time alarm names no craft and no place. A universal time is the same
   // instant wherever it is watched from, so it is always read at its own
   // subject, the game, and there is no vantage to carry.
-  if (trigger.kind === "time") return true;
+  if (trigger.kind === "time" || trigger.kind === "instant") return true;
   return trigger.kind === "threshold" && trigger.vantage === "scet";
 }
 
@@ -99,7 +99,8 @@ export interface ThresholdTrigger {
  */
 export function actionsRunAboard(trigger: AlarmTrigger): boolean {
   if (trigger.kind === "time") return true;
-  if (trigger.kind !== "threshold" || !isAtSubjectVantage(trigger)) {
+  if (trigger.kind === "contract-parameter") return false;
+  if (trigger.kind === "threshold" && !isAtSubjectVantage(trigger)) {
     return false;
   }
   return trigger.topic.startsWith("vessel.");
@@ -131,10 +132,29 @@ export interface ContractParameterTrigger {
   sustainSeconds: number;
 }
 
+/**
+ * Follows a Topic's own universal time: the warp stops `leadSeconds` before the
+ * instant the Topic publishes now, and the alarm fires when the game's clock
+ * reaches it. The simulation reads the instant on every tick, so the alarm
+ * re-aims when the Topic's instant moves.
+ *
+ * Always judged on the subject's own clock, so it carries no vantage.
+ */
+export interface InstantTrigger {
+  kind: "instant";
+  /** The Topic that carries the instant, as the wire spells a Topic. */
+  topic: string;
+  /** The dotted path to the universal time inside {@link topic}'s payload. */
+  fieldPath: string;
+  /** Seconds before the instant to stop the warp. */
+  leadSeconds: number;
+}
+
 export type AlarmTrigger =
   | TimeTrigger
   | ThresholdTrigger
-  | ContractParameterTrigger;
+  | ContractParameterTrigger
+  | InstantTrigger;
 
 /**
  * Side-effect to dispatch when the alarm fires. Currently action-group only:
@@ -192,6 +212,12 @@ export interface Alarm {
    * wants. Undefined until the alarm fires.
    */
   eventUT?: number;
+  /**
+   * For a trigger that follows a Topic's instant: the instant the simulation
+   * last read, which is what the alarm is waiting for now. Undefined for every
+   * other kind and until the simulation has read one.
+   */
+  followedUT?: number;
   /**
    * Optional side effects fired in order when the alarm transitions to
    * `firing`. Errors are swallowed at the host boundary so one failed
@@ -360,7 +386,8 @@ export type ForeignScetCondition =
       op: ThresholdOp;
       value: number;
     }
-  | { kind: "contract-parameter"; parameterTitle: string };
+  | { kind: "contract-parameter"; parameterTitle: string }
+  | { kind: "instant"; topic: string; fieldPath: string; ut: number };
 
 export const DEFAULT_LEAD_SECONDS = 10;
 export const DEFAULT_SUSTAIN_SECONDS = 0;
@@ -453,6 +480,23 @@ export function parseTrigger(raw: unknown): AlarmTrigger | null {
       vantage: t.vantage === "scet" ? "scet" : "command",
       topic: t.topic,
       fieldPath: t.fieldPath,
+    };
+  }
+  if (t.kind === "instant") {
+    if (
+      typeof t.topic !== "string" ||
+      t.topic === "" ||
+      typeof t.fieldPath !== "string" ||
+      t.fieldPath === "" ||
+      typeof t.leadSeconds !== "number"
+    ) {
+      return null;
+    }
+    return {
+      kind: "instant",
+      topic: t.topic,
+      fieldPath: t.fieldPath,
+      leadSeconds: t.leadSeconds,
     };
   }
   if (t.kind === "contract-parameter") {

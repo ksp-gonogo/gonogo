@@ -84,6 +84,9 @@ function describe(alarm: Alarm): string {
   if (alarm.trigger.kind === "contract-parameter") {
     return `${alarm.trigger.parameterTitle} → ${alarm.trigger.targetState}`;
   }
+  if (alarm.trigger.kind === "instant") {
+    return `${alarm.trigger.topic}.${alarm.trigger.fieldPath} reached`;
+  }
   const t = alarm.trigger;
   return `${t.dataKey} ${t.op} ${t.value}`;
 }

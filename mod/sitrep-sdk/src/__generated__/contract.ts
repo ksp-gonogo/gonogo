@@ -5899,7 +5899,19 @@ export enum ScetAlarmConditionKind {
 	* outcome for a contract that was completed, failed or withdrawn by some other
 	* route.
 	*/
-	ContractParameter = 2
+	ContractParameter = 2,
+	/**
+	* A Topic's own universal time, followed as it moves: the warp stops
+	* `ScetAlarmCondition.leadSeconds` before the instant the Topic currently
+	* publishes and the alarm fires when the clock reaches it.
+	*
+	* The instant is read again on every tick, so an alarm on "the next project to
+	* finish" re-aims by itself when a shorter project overtakes the one it was
+	* following, with nobody watching and no client to re-arm it. While the field
+	* is absent or null the condition is unmet and the alarm stays armed. Always
+	* judged on the craft's own clock, at the subject's vantage.
+	*/
+	TopicInstant = 3
 }
 /**
 * How a threshold condition compares the reading to the operator's number.
@@ -5977,7 +5989,11 @@ export enum ScetAlarmState {
 * `ScetAlarmCondition.sustainSeconds`; for
 * `ScetAlarmConditionKind.ContractParameter` it is
 * `ScetAlarmCondition.contractId`, `ScetAlarmCondition.parameterTitle`,
-* `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`.
+* `ScetAlarmCondition.targetState` and `ScetAlarmCondition.sustainSeconds`;
+* for `ScetAlarmConditionKind.TopicInstant` it is `ScetAlarmCondition.topic`,
+* `ScetAlarmCondition.fieldPath` (a universal time) and
+* `ScetAlarmCondition.leadSeconds`, and `ScetAlarmCondition.ut` is filled in
+* by the simulation with the instant it last read.
 *
 * @category Alarms
 */
@@ -5990,7 +6006,9 @@ export interface ScetAlarmCondition
 	kind: ScetAlarmConditionKind;
 	/**
 	* The instant the alarm is set for, as a universal time on the craft's clock
-	* rather than on the clock the command centre is reading.
+	* rather than on the clock the command centre is reading. For a
+	* `ScetAlarmConditionKind.TopicInstant` it is the instant the simulation last
+	* read from the Topic, written by it and ignored on arm.
 	*
 	* The difference between the two is the one-way signal delay, which changes as
 	* the craft moves. This field is the instant itself, compared against the
@@ -6007,15 +6025,15 @@ export interface ScetAlarmCondition
 	*/
 	leadSeconds: Value<"s">;
 	/**
-	* Threshold only: the Topic whose payload carries the value to watch, as the
-	* client spells a Topic (`"vessel.flight"`).
+	* Threshold and topic instant: the Topic whose payload carries the value to
+	* watch, as the client spells a Topic (`"vessel.flight"`).
 	*
 	* A Topic and a path into it address a reading the way the wire does, so an
 	* operator can point at a value they can already see on screen.
 	*/
 	topic: string;
 	/**
-	* Threshold only: the dotted path to the value inside
+	* Threshold and topic instant: the dotted path to the value inside
 	* `ScetAlarmCondition.topic`'s payload (`"altitudeAsl"`,
 	* `"relativePosition.x"`). Empty addresses the payload itself, which is never
 	* a number, so it never matches.

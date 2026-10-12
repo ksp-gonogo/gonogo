@@ -66,6 +66,7 @@ namespace Sitrep.Host.Alarms
             switch (condition?.Kind)
             {
                 case ScetAlarmConditionKind.Threshold:
+                case ScetAlarmConditionKind.TopicInstant:
                     return condition.Topic;
                 case ScetAlarmConditionKind.ContractParameter:
                     return CareerViewProvider.Topic;

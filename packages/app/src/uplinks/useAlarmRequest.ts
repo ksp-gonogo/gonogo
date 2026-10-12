@@ -60,6 +60,14 @@ function toAlarmTrigger(trigger: UplinkAlarmTrigger): AlarmTrigger {
       leadSeconds: trigger.leadSeconds ?? DEFAULT_LEAD_SECONDS,
     };
   }
+  if (trigger.kind === "instant") {
+    return {
+      kind: "instant",
+      topic: trigger.topic,
+      fieldPath: trigger.fieldPath,
+      leadSeconds: trigger.leadSeconds ?? DEFAULT_LEAD_SECONDS,
+    };
+  }
   return {
     kind: "threshold",
     dataKey: `${trigger.topic}.${trigger.fieldPath}`,

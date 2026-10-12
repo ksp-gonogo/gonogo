@@ -113,7 +113,7 @@ export function pendingAlarmSummaries(
     .map((a) => ({
       id: a.id,
       name: a.name,
-      ut: a.trigger.kind === "time" ? a.trigger.ut : null,
+      ut: a.trigger.kind === "time" ? a.trigger.ut : (a.followedUT ?? null),
     }))
     .sort((a, b) => {
       if (a.ut === null) return b.ut === null ? 0 : 1;

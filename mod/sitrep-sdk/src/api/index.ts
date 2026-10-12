@@ -70,6 +70,7 @@ export type {
 // app owns the result. See `./alarm-request.ts` for why it cannot arm one for
 // itself.
 export type {
+  UplinkAlarmInstantTrigger,
   UplinkAlarmRequest,
   UplinkAlarmThresholdOp,
   UplinkAlarmThresholdTrigger,

@@ -50,6 +50,7 @@ const DT = 20;
 
 type ArmedCondition =
   | { kind: "time"; ut: number; leadSeconds: number }
+  | { kind: "instant"; topic: string; fieldPath: string; leadSeconds: number }
   | {
       kind: "contract-parameter";
       contractId: string;
@@ -192,6 +193,8 @@ function startSession(owlt: number): ModStandIn {
   const matchedSince = new Map<string, number>();
   let reading = 0;
   let lastRoster: unknown[] = [];
+  /** The instant the stand-in says a followed Topic last gave it. */
+  const instantNow = UT_START + 3_600;
   let lastPublishedJson: string | null = null;
   let rosterAnswered = false;
   let lastFired: {
@@ -229,6 +232,7 @@ function startSession(owlt: number): ModStandIn {
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
       const threshold = Number(condition.kind ?? 0) === 1;
       const contractParameter = Number(condition.kind ?? 0) === 2;
+      const instant = Number(condition.kind ?? 0) === 3;
       if (!centresKnown && String(bag.vantage ?? "") !== "") {
         /* The engine has not been told what places exist: the main menu, and
            the ticks before the first capture. NotClearToProceed rather than
@@ -265,28 +269,35 @@ function startSession(owlt: number): ModStandIn {
            read at its own subject, which is where every alarm was read before
            the field existed. */
         vantage: String(bag.vantage ?? "") || subject,
-        condition: contractParameter
+        condition: instant
           ? {
-              kind: "contract-parameter",
-              contractId: String(condition.contractId ?? ""),
-              parameterTitle: String(condition.parameterTitle ?? ""),
-              targetState: Number(condition.targetState ?? 0),
-              sustainSeconds: Number(condition.sustainSeconds ?? 0),
+              kind: "instant",
+              topic: String(condition.topic ?? ""),
+              fieldPath: String(condition.fieldPath ?? ""),
+              leadSeconds: Number(condition.leadSeconds ?? 0),
             }
-          : threshold
+          : contractParameter
             ? {
-                kind: "threshold",
-                topic: String(condition.topic ?? ""),
-                fieldPath: String(condition.fieldPath ?? ""),
-                op: Number(condition.op ?? 0),
-                threshold: Number(condition.threshold ?? 0),
+                kind: "contract-parameter",
+                contractId: String(condition.contractId ?? ""),
+                parameterTitle: String(condition.parameterTitle ?? ""),
+                targetState: Number(condition.targetState ?? 0),
                 sustainSeconds: Number(condition.sustainSeconds ?? 0),
               }
-            : {
-                kind: "time",
-                ut: Number(condition.ut ?? 0),
-                leadSeconds: Number(condition.leadSeconds ?? 0),
-              },
+            : threshold
+              ? {
+                  kind: "threshold",
+                  topic: String(condition.topic ?? ""),
+                  fieldPath: String(condition.fieldPath ?? ""),
+                  op: Number(condition.op ?? 0),
+                  threshold: Number(condition.threshold ?? 0),
+                  sustainSeconds: Number(condition.sustainSeconds ?? 0),
+                }
+              : {
+                  kind: "time",
+                  ut: Number(condition.ut ?? 0),
+                  leadSeconds: Number(condition.leadSeconds ?? 0),
+                },
       });
       steppedDown.delete(id);
       fired.delete(id);
@@ -332,22 +343,30 @@ function startSession(owlt: number): ModStandIn {
               ut: arm.condition.ut,
               leadSeconds: arm.condition.leadSeconds,
             }
-          : arm.condition.kind === "contract-parameter"
+          : arm.condition.kind === "instant"
             ? {
-                kind: 2,
-                contractId: arm.condition.contractId,
-                parameterTitle: arm.condition.parameterTitle,
-                targetState: arm.condition.targetState,
-                sustainSeconds: arm.condition.sustainSeconds,
-              }
-            : {
-                kind: 1,
+                kind: 3,
                 topic: arm.condition.topic,
                 fieldPath: arm.condition.fieldPath,
-                op: arm.condition.op,
-                threshold: arm.condition.threshold,
-                sustainSeconds: arm.condition.sustainSeconds,
-              },
+                leadSeconds: arm.condition.leadSeconds,
+                ut: instantNow,
+              }
+            : arm.condition.kind === "contract-parameter"
+              ? {
+                  kind: 2,
+                  contractId: arm.condition.contractId,
+                  parameterTitle: arm.condition.parameterTitle,
+                  targetState: arm.condition.targetState,
+                  sustainSeconds: arm.condition.sustainSeconds,
+                }
+              : {
+                  kind: 1,
+                  topic: arm.condition.topic,
+                  fieldPath: arm.condition.fieldPath,
+                  op: arm.condition.op,
+                  threshold: arm.condition.threshold,
+                  sustainSeconds: arm.condition.sustainSeconds,
+                },
       state: cancelled.has(id)
         ? 3
         : unreachable.has(id)
@@ -535,6 +554,9 @@ function startSession(owlt: number): ModStandIn {
           }
           case "contract-parameter":
             // The career is not modelled here; the verdict comes from `fireForVantage`.
+            continue;
+          case "instant":
+            // The followed Topic is not modelled either; the roster only states the instant it last read.
             continue;
           case "threshold": {
             /* The reading is the world's TRUE value, which is the whole claim:
@@ -1496,6 +1518,40 @@ describe("SCET alarms", () => {
       targetState: 2,
       sustainSeconds: 3,
     });
+  });
+
+  it("arms an alarm that follows a Topic's instant, and plans the ladder toward the instant the mod last read", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+    const alarm = svc.addAlarm({
+      name: "Next project",
+      trigger: {
+        kind: "instant",
+        topic: "career.status",
+        fieldPath: "nextCompletionUt",
+        leadSeconds: 30,
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+
+    const armed = session.armOf(alarm.id);
+    expect(armed?.subject).toBe("game");
+    expect(armed?.condition).toEqual({
+      kind: "instant",
+      topic: "career.status",
+      fieldPath: "nextCompletionUt",
+      leadSeconds: 30,
+    });
+    // The roster's row is where the followed instant comes from; the app keeps none of its own.
+    const [row] = svc.snapshot().alarms;
+    expect(row.followedUT).toBe(UT_START + 3_600);
+    svc.dispose();
   });
 
   it("says why an unreadable Topic was refused instead of sitting pending", async () => {

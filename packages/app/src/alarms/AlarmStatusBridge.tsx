@@ -43,6 +43,8 @@ export function alarmSubjectKey(alarm: Alarm): string | null {
       return alarm.trigger.dataKey;
     case "contract-parameter":
       return "career.status.contracts.active";
+    case "instant":
+      return `${alarm.trigger.topic}.${alarm.trigger.fieldPath}`;
     case "time":
       return null;
   }
