@@ -154,21 +154,4 @@ public class SilenceTrackerPersistenceTests
         Assert.Equal(SilenceState.Nominal, target.TryGetState("v1")!.State);
         Assert.Equal(SilenceState.Silent, target.TryGetState("v2")!.State);
     }
-
-    [Fact]
-    public void ADestroyedVesselIsNotWrittenIntoTheSave()
-    {
-        var source = NewTracker();
-        source.Tick(new[] { new SilenceSample("probe", true, null, false), new SilenceSample("debris", true, null, false) }, ut: 0);
-        source.Tick(new[] { new SilenceSample("probe", true, null, false) }, ut: 10);
-        Assert.True(source.TryGetState("debris")!.IsDestroyed);
-
-        var node = new ConfigNode("SCENARIO");
-        SilenceTrackerPersistence.Save(source, node);
-
-        var target = NewTracker();
-        SilenceTrackerPersistence.Load(target, node);
-        Assert.NotNull(target.TryGetState("probe"));
-        Assert.Null(target.TryGetState("debris"));
-    }
 }

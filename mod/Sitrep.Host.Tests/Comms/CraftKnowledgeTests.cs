@@ -259,32 +259,5 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Same(second, said.AsOf("vessel:b", 500.0));
             Assert.Null(said.AsOf("vessel:other", 500.0));
         }
-
-        [Fact]
-        public void WhatIsSaidIsBoundedWhenNothingAsks()
-        {
-            var said = new SaidByWhen();
-            for (var i = 0; i < SaidByWhen.MostKept + 10; i++)
-            {
-                said.Note("vessel:b", i, Craft("b", i, 700_000.0 + i));
-            }
-
-            // The oldest went first: the earliest instant still answered is the tenth.
-            Assert.Null(said.AsOf("vessel:b", 9.0));
-            Assert.Equal(10.0, said.AsOf("vessel:b", 10.0)!.CapturedUt);
-        }
-
-        [Fact]
-        public void WhatIsKnownOfALinkIsBoundedWhenNothingAsks()
-        {
-            var links = new LinkByWhen();
-            for (var i = 0; i < LinkByWhen.MostKept + 10; i++)
-            {
-                links.Note("vessel:b", i, i % 2 == 0);
-            }
-
-            Assert.Null(links.AsOf("vessel:b", 9.0));
-            Assert.True(links.AsOf("vessel:b", 10.0));
-        }
     }
 }

@@ -476,8 +476,7 @@ export interface CareerFacility
 	/**
 	* The price of upgrading to the next tier, as KSP's
 	* `UpgradeableFacility.GetUpgradeCost` prices it (the save's funds difficulty
-	* multiplier applied). `null` at the top tier, where there is no upgrade to
-	* price, and when it could not be read.
+	* multiplier applied). `null` when it could not be read.
 	*/
 	upgradeCost?: Value<"funds"> | null;
 }
@@ -505,19 +504,10 @@ export interface CareerContracts
 	* `State` is always `"Completed"` here.
 	*/
 	completedRecent: CareerContract[];
-	/**
-	* The most recently failed contracts, at most 10: `State.Failed` contracts
-	* from `ContractSystem.Instance.ContractsFinished`, sorted newest-first by
-	* `Contract.DateFinished`. Same `CareerContract` element shape as
-	* `CareerContracts.active`; `State` is always `"Failed"` here. A contract
-	* fails in the same stock call as the objective that failed it, so this is
-	* where that objective's final state is read.
-	*/
-	failedRecent: CareerContract[];
 }
 /**
-* One contract in `CareerContracts.active`, `CareerContracts.offered`,
-* `CareerContracts.completedRecent` or `CareerContracts.failedRecent`.
+* One contract in `CareerContracts.active`, `CareerContracts.offered` or
+* `CareerContracts.completedRecent`.
 *
 * @category Career
 */
@@ -5962,15 +5952,14 @@ export enum ScetAlarmConditionKind {
 	*/
 	Threshold = 1,
 	/**
-	* One objective of one contract reaching a state the operator chose, as
-	* `career.status.contracts` reports it.
+	* One objective of one active contract reaching a state the operator chose, as
+	* `career.status.contracts.active` reports it.
 	*
 	* Level rather than edge, like the threshold: an objective already in its
-	* target state when the alarm is set is a condition that holds. An objective
-	* that finishes its contract, completing or failing it, is read from the
-	* recently completed or failed contracts, so it still comes due. A contract
-	* that finished with the objective in another state, or that left the career
-	* any other way, makes the alarm `ScetAlarmState.Unreachable`.
+	* target state when the alarm is set is a condition that holds. A contract no
+	* longer active leaves the condition unmet for ever, which is the fail-safe
+	* outcome for a contract that was completed, failed or withdrawn by some other
+	* route.
 	*/
 	ContractParameter = 2,
 	/**
@@ -6034,13 +6023,12 @@ export enum ScetAlarmState {
 	/** The condition was met, warp was stopped, and the notice went out. */
 	Fired = 1,
 	/**
-	* The condition can never be met: the craft a threshold or a followed instant
-	* watches no longer exists, or a contract objective's contract finished with
-	* it in another state or left the career.
+	* The craft the condition watches no longer exists, so the alarm can never
+	* come due.
 	*
-	* A time condition never reaches this: it has no subject to lose, because
-	* universal time belongs to the game. Show such a row as dead rather than as
-	* pending.
+	* Only a threshold reaches this: a time condition has no subject to lose,
+	* because universal time belongs to the game. Show such a row as dead rather
+	* than as pending.
 	*/
 	Unreachable = 2,
 	/**
@@ -9744,8 +9732,8 @@ export interface VesselInventory
 {
 	/**
 	* Every part-hosted inventory on the active vessel this tick, in vessel
-	* part-list order. Always present (possibly empty); a vessel-less tick, or one
-	* whose holds could not be read, yields a `null` payload, not an empty list.
+	* part-list order. Always present (possibly empty); a vessel-less tick yields
+	* a `null` payload, not an empty list.
 	*/
 	stores: InventoryStore[];
 }
@@ -10006,8 +9994,7 @@ export interface VesselLanding
 	* `"semi-deployed"` (open as a streamer, slowing the craft a little),
 	* `"deployed"` (fully open) or `"cut"` (every one cut away). Unlike
 	* `VesselLanding.parachuteState` it tells semi-deployed from fully deployed,
-	* and a packed parachute from none. Null outside an atmosphere, and when a
-	* parachute whose arming could not be read might be the furthest along.
+	* and a packed parachute from none. Null outside an atmosphere.
 	*/
 	parachuteDeployment?: string | null;
 	/**

@@ -1588,44 +1588,41 @@ namespace Sitrep.Host
             BuildTarget(snapshot) is { } target ? ToWire(target) : null;
 
         /// <summary>
-        /// Part-hosted cargo holds. Null when there is no vessel or its holds
-        /// could not be read; an empty list is a real answer meaning "nothing
-        /// carries cargo here".
+        /// Part-hosted cargo holds. Absent vessel yields null, an empty list is
+        /// a real answer meaning "nothing carries cargo here".
         /// </summary>
         public static VesselInventory? BuildInventory(KspSnapshot? snapshot)
         {
             var vessel = GetVesselGroup(snapshot);
-            if (vessel == null || !TryGetSubjectId(vessel, out _))
-            {
-                return null;
-            }
-
-            if (!TryGetGroup(vessel, "inventories", out var group)
-                || !group.TryGetValue("stores", out var rawStores)
-                || rawStores is not IEnumerable<object?> stores)
+            if (vessel == null)
             {
                 return null;
             }
 
             var result = new VesselInventory();
-            foreach (var rawStore in stores)
+            if (TryGetGroup(vessel, "inventories", out var group)
+                && group.TryGetValue("stores", out var rawStores)
+                && rawStores is IEnumerable<object?> stores)
             {
-                if (rawStore is not IDictionary<string, object?> store)
+                foreach (var rawStore in stores)
                 {
-                    continue;
-                }
+                    if (rawStore is not IDictionary<string, object?> store)
+                    {
+                        continue;
+                    }
 
-                result.Stores.Add(new InventoryStore
-                {
-                    PartId = GetString(store, "partId") ?? "",
-                    PartName = GetString(store, "partName") ?? "",
-                    Items = BuildInventoryItems(store) ?? new List<InventoryItem>(),
-                    Slots = GetInt(store, "slots"),
-                    SlotsUsed = GetInt(store, "slotsUsed"),
-                    PackedVolumeLimit = GetDouble(store, "packedVolumeLimit"),
-                    PackedVolumeUsed = GetDouble(store, "packedVolumeUsed"),
-                    MassLimit = GetDouble(store, "massLimit"),
-                });
+                    result.Stores.Add(new InventoryStore
+                    {
+                        PartId = GetString(store, "partId") ?? "",
+                        PartName = GetString(store, "partName") ?? "",
+                        Items = BuildInventoryItems(store) ?? new List<InventoryItem>(),
+                        Slots = GetInt(store, "slots"),
+                        SlotsUsed = GetInt(store, "slotsUsed"),
+                        PackedVolumeLimit = GetDouble(store, "packedVolumeLimit"),
+                        PackedVolumeUsed = GetDouble(store, "packedVolumeUsed"),
+                        MassLimit = GetDouble(store, "massLimit"),
+                    });
+                }
             }
 
             return result;

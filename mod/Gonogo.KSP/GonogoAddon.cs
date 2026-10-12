@@ -477,24 +477,11 @@ namespace Gonogo.KSP
         /// Changes whenever a save is loaded or the scene changes, which is when
         /// a save's own mod settings are read again.
         /// </summary>
-        private static string SaveKey()
-        {
-            // Asked every frame, and it changes only on a load or a scene change, so
-            // the string is built only then.
-            var scene = HighLogic.LoadedScene;
-            var game = HighLogic.CurrentGame;
-            if (_saveKey == null || scene != _saveKeyScene || !ReferenceEquals(game, _saveKeyGame))
-            {
-                _saveKeyScene = scene;
-                _saveKeyGame = game;
-                _saveKey = scene + "/" + (game == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(game));
-            }
-            return _saveKey;
-        }
-
-        private static string? _saveKey;
-        private static GameScenes _saveKeyScene;
-        private static Game? _saveKeyGame;
+        private static string SaveKey() =>
+            HighLogic.LoadedScene + "/"
+            + (HighLogic.CurrentGame == null
+                ? 0
+                : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(HighLogic.CurrentGame));
 
         private void FixedUpdate() => SampleAndTick(paused: false);
 

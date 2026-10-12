@@ -32,8 +32,7 @@ public class VesselInventory
 {
     /// <summary>Every part-hosted inventory on the active vessel this tick, in
     /// vessel part-list order. Always present (possibly empty); a vessel-less
-    /// tick, or one whose holds could not be read, yields a <c>null</c> payload,
-    /// not an empty list.</summary>
+    /// tick yields a <c>null</c> payload, not an empty list.</summary>
     public List<InventoryStore> Stores { get; set; } = new();
 }
 

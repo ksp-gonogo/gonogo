@@ -78,39 +78,5 @@ namespace Sitrep.Host.Tests
             Assert.Null(SnapshotDict.GetInt(raw, "missing"));
             Assert.Null(SnapshotDict.GetInt(raw, "present"));
         }
-
-        [Fact]
-        public void GetDoubleReadsALivePartFlightIdBoxedAsUint()
-        {
-            // KspHost stores Part.flightID as it comes, a uint.
-            var raw = new Dictionary<string, object?> { ["partId"] = 4_000_000_000u };
-
-            Assert.Equal(4_000_000_000.0, SnapshotDict.GetDouble(raw, "partId"));
-            Assert.Equal(4_000_000_000u, (uint?)SnapshotDict.GetDouble(raw, "partId"));
-        }
-
-        [Fact]
-        public void GetDoubleReadsABoxedUlong()
-        {
-            var raw = new Dictionary<string, object?> { ["value"] = 12UL };
-
-            Assert.Equal(12.0, SnapshotDict.GetDouble(raw, "value"));
-        }
-
-        [Fact]
-        public void GetIntReadsABoxedUintThatFits()
-        {
-            var raw = new Dictionary<string, object?> { ["value"] = 7u };
-
-            Assert.Equal(7, SnapshotDict.GetInt(raw, "value"));
-        }
-
-        [Fact]
-        public void GetIntTreatsABoxedUintPastIntAsAbsentRatherThanWrapping()
-        {
-            var raw = new Dictionary<string, object?> { ["value"] = 4_000_000_000u };
-
-            Assert.Null(SnapshotDict.GetInt(raw, "value"));
-        }
     }
 }

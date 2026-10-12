@@ -30,20 +30,13 @@ namespace Gonogo.KSP
         public override string ProviderId => Id;
 
         /// <summary>
-        /// The reported vessel's stock CommNet connection, or null when there is
-        /// no live comms to read, no vessel, not in flight, or the vessel KSP is
-        /// flying is transiently unloaded (scene load/settle). That vessel has no
-        /// valid CommNet control graph while it settles: its <c>connection</c>/<c>ControlPath</c>/
+        /// The active vessel's stock CommNet connection, or null when there is
+        /// no live comms to read, no vessel, not in flight, or the active vessel
+        /// is transiently unloaded (scene load/settle). An unloaded vessel has no
+        /// valid CommNet control graph: its <c>connection</c>/<c>ControlPath</c>/
         /// <see cref="CommNet.CommNode"/> getters can dereference torn-down state
         /// and throw an NRE deep inside stock code (the "Vessel ... has been
         /// unloaded" transient).
-        ///
-        /// <para>The craft a kerbal on EVA left is read loaded or not. Past physics
-        /// range it is on rails for as long as the EVA lasts, and stock goes on solving
-        /// its link from the part snapshots as it does for every craft on rails, which
-        /// <see cref="ControlPath"/> and the fleet's own reads already rely on. A null
-        /// here would publish the craft as out of contact and freeze every delayed
-        /// channel for the rest of the walk.</para>
         ///
         /// <para>This gate is a guard, not a swallow, and that distinction is
         /// the whole of it. Declining to touch a torn graph yields a graceful
@@ -58,8 +51,8 @@ namespace Gonogo.KSP
         /// </summary>
         private static CommNetVessel? Connection()
         {
-            var vessel = ActiveVesselScope.CurrentFor(out var substitutedForEva);
-            if (vessel == null || (!vessel.loaded && !substitutedForEva))
+            var vessel = ActiveVesselScope.Current;
+            if (vessel == null || !vessel.loaded)
             {
                 return null;
             }

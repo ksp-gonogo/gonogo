@@ -17,11 +17,12 @@ namespace Gonogo.KSP
     /// station via keyframe-on-subscribe, which is exactly the "last crash"
     /// semantics.
     ///
-    /// <para>A death is <c>onVesselWillDestroy</c>, and only that: stock raises
-    /// <c>onCrash</c> / <c>onCrashSplashdown</c> once per part that breaks, on a craft
-    /// that may fly on, so those only name the cause of a death they coincide with
-    /// (see <see cref="VesselDeaths{TRecord, TImpact}"/>). A death is read as it
-    /// happens and published from the next tick, once per death.</para>
+    /// <para>Three destruction detectors are hooked on the main thread:
+    /// <c>onCrash</c> / <c>onCrashSplashdown</c> (collision / hard splashdown)
+    /// and <c>onVesselWillDestroy</c> (the catch-all for a non-collision death
+    /// such as a re-entry burn-up, which fires no <c>onCrash</c>). A single
+    /// death can raise more than one of them, so a per-vessel de-dupe on
+    /// <c>(id, ut)</c> guarantees one publish per death.</para>
     ///
     /// <para>The KSP-free record assembly, the debris filter, and the
     /// per-flight stats tracker all live in <c>Sitrep.Host.Crash</c> (mirroring
@@ -31,13 +32,14 @@ namespace Gonogo.KSP
     [SitrepUplink("crash")]
     public sealed class CrashUplink : ISitrepUplink
     {
-        // How far apart an impact and the death it caused can be: a hard splashdown
-        // reports the impact some frames before the part is killed.
-        private const double ImpactWindowUt = 2.0;
+        // A single death can raise onCrashSplashdown/onCrash AND
+        // onVesselWillDestroy within the same physics frame; the first detector
+        // for a given vessel wins and any further detector inside this UT
+        // window is suppressed, so one death publishes exactly once.
+        private const double DedupWindowUt = 2.0;
 
         private readonly FlightStatsTracker _tracker = new FlightStatsTracker();
-        private readonly VesselDeaths<CrashCapture, CrashImpact> _deaths =
-            new VesselDeaths<CrashCapture, CrashImpact>(ImpactWindowUt);
+        private readonly Dictionary<string, double> _lastPublishedUt = new Dictionary<string, double>();
 
         private IChannelPublisher? _lastCrash;
         private IChannelPublisher? _hasRecent;
@@ -84,21 +86,20 @@ namespace Gonogo.KSP
             // prefixes): the maxima and flight log must accumulate across the
             // whole flight regardless of whether any client is watching, so a
             // station that connects after launch still receives a complete
-            // crash record. The same tick publishes the deaths the GameEvents
-            // callbacks held since the last one.
+            // crash record. The capture publishes nothing itself (returns
+            // null): the crash publish happens from the GameEvents callbacks.
             host.AddSampledSource(CaptureFlightSample, _ => { });
 
             HookGameEvents();
         }
 
         /// <summary>
-        /// MAIN-THREAD capture: publishes the deaths held since the last tick, then
-        /// folds the active vessel's current flight state into the stats tracker.
-        /// Returns null: nothing goes through the off-thread handler.
+        /// MAIN-THREAD capture: folds the active vessel's current flight state
+        /// into the stats tracker. Reads live KSP (main-thread-only), returns
+        /// null so nothing is published on the tick path.
         /// </summary>
         private object? CaptureFlightSample(KspSnapshot? snapshot)
         {
-            PublishDeaths(snapshot?.Ut ?? Planetarium.GetUniversalTime());
             try
             {
                 var vessel = ActiveVesselScope.Current;
@@ -178,41 +179,21 @@ namespace Gonogo.KSP
             _tracker.RecordPartsLost(vessel.id.ToString());
         }
 
-        private void OnCrash(EventReport report) => NoteImpact(report, "Crash");
+        private void OnCrash(EventReport report) => HandleCrash(report?.origin?.vessel, report, "Crash");
 
-        private void OnCrashSplashdown(EventReport report) => NoteImpact(report, "CrashSplashdown");
+        private void OnCrashSplashdown(EventReport report) =>
+            HandleCrash(report?.origin?.vessel, report, "CrashSplashdown");
 
-        /// <summary>
-        /// MAIN-THREAD: one part broke on impact. Stock raises this per part, on a craft
-        /// that may fly on, so it is only noted; the craft's death, if this caused one,
-        /// arrives through <see cref="OnVesselWillDestroy"/>.
-        /// </summary>
-        private void NoteImpact(EventReport report, string eventKind)
-        {
-            try
-            {
-                var origin = report?.origin;
-                var vessel = origin?.vessel;
-                if (origin == null || vessel == null)
-                {
-                    return;
-                }
-                _deaths.Impact(
-                    vessel.id.ToString(),
-                    new CrashImpact(eventKind, GameWords.Text(report!.other), report.msg ?? "", FromPart(origin, report.msg ?? "")),
-                    Planetarium.GetUniversalTime());
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("[Gonogo] crash impact read failed: " + ex);
-            }
-        }
+        private void OnVesselWillDestroy(Vessel vessel) => HandleCrash(vessel, null, "Destroyed");
 
         /// <summary>
-        /// MAIN-THREAD: the vessel is about to be destroyed. Read now, while it is still
-        /// whole, and held until the next tick so an impact that caused it can name it.
+        /// MAIN-THREAD crash handler: filters debris, de-dupes co-firing
+        /// detectors, assembles the record from live KSP, and publishes it.
+        /// <see cref="IChannelPublisher.Publish"/> is main-thread-safe (it hands
+        /// off to the engine job queue), so publishing straight from a
+        /// GameEvents callback is correct.
         /// </summary>
-        private void OnVesselWillDestroy(Vessel vessel)
+        private void HandleCrash(Vessel? vessel, EventReport? report, string eventKind)
         {
             try
             {
@@ -228,7 +209,23 @@ namespace Gonogo.KSP
                 }
 
                 var ut = Planetarium.GetUniversalTime();
-                _deaths.Death(vessel.id.ToString(), BuildCapture(vessel, vesselType, ut), ut);
+                var vesselId = vessel.id.ToString();
+
+                if (_lastPublishedUt.TryGetValue(vesselId, out var previous)
+                    && Math.Abs(ut - previous) <= DedupWindowUt)
+                {
+                    return; // a co-firing detector already published this death
+                }
+                _lastPublishedUt[vesselId] = ut;
+
+                var capture = BuildCapture(vessel, report, eventKind, vesselType, ut);
+
+                _lastCrash?.Publish(CrashPayload.Build(capture), ut);
+                _hasRecent?.Publish(CrashPayload.ToWire(new CrashRecent { Recent = true }), ut);
+
+                // The flight is over; drop the tracker state so a re-used id
+                // (revert / new craft) starts clean.
+                _tracker.Forget(vesselId);
             }
             catch (Exception ex)
             {
@@ -236,50 +233,24 @@ namespace Gonogo.KSP
             }
         }
 
-        /// <summary>
-        /// MAIN-THREAD: publishes every death held since the last tick.
-        /// <see cref="IChannelPublisher.Publish"/> is main-thread-safe (it hands off to the
-        /// engine job queue).
-        /// </summary>
-        private void PublishDeaths(double nowUt)
-        {
-            foreach (var death in _deaths.Drain(nowUt))
-            {
-                try
-                {
-                    var capture = death.Record;
-                    var impact = death.Impact;
-                    if (impact != null)
-                    {
-                        capture.EventKind = impact.Kind;
-                        capture.What = impact.What;
-                        capture.Msg = impact.Msg;
-                        capture.PartsLost = new List<LostPart> { impact.Part };
-                    }
-                    capture.Events.Add(CrashLine(capture.VesselName, capture.EventKind));
-
-                    _lastCrash?.Publish(CrashPayload.Build(capture), death.Ut);
-                    _hasRecent?.Publish(CrashPayload.ToWire(new CrashRecent { Recent = true }), death.Ut);
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError("[Gonogo] crash publish failed: " + ex);
-                }
-            }
-        }
-
-        private CrashCapture BuildCapture(Vessel vessel, string vesselType, double ut)
+        private CrashCapture BuildCapture(Vessel vessel, EventReport? report, string eventKind, string vesselType, double ut)
         {
             var vesselId = vessel.id.ToString();
             var crew = ReadCrew(vessel);
-            var capture = new CrashCapture
+
+            // Log the crash line before snapshotting so it appears in events[].
+            _tracker.RecordEvent(vesselId, vessel.missionTime, CrashLine(vessel, eventKind));
+
+            return new CrashCapture
             {
                 VesselId = vesselId,
-                EventKind = "Destroyed",
+                EventKind = eventKind,
+                What = GameWords.Text(report?.other),
                 VesselType = vesselType,
+                Msg = report?.msg ?? "",
                 Latitude = vessel.latitude,
                 Longitude = vessel.longitude,
-                PartsLost = ReadRemainingParts(vessel),
+                PartsLost = ReadPartsLost(vessel, report),
                 Body = vessel.mainBody?.bodyName ?? "",
                 FlightStats = _tracker.Snapshot(vesselId),
                 VesselName = GameWords.VesselName(vessel),
@@ -291,15 +262,11 @@ namespace Gonogo.KSP
                 Altitude = vessel.altitude,
                 Ut = ut,
             };
-
-            // The flight is over; drop the tracker state so a re-used id
-            // (revert / new craft) starts clean.
-            _tracker.Forget(vesselId);
-            return capture;
         }
 
-        private static string CrashLine(string name, string eventKind)
+        private static string CrashLine(Vessel vessel, string eventKind)
         {
+            var name = GameWords.VesselName(vessel);
             switch (eventKind)
             {
                 case "CrashSplashdown":
@@ -335,32 +302,41 @@ namespace Gonogo.KSP
             return names;
         }
 
-        /// <summary>
-        /// A death with no impact (a burn-up) loses whatever remains of the vessel, which is
-        /// often nothing: every part cooked off before the vessel was destroyed.
-        /// </summary>
-        private static List<LostPart> ReadRemainingParts(Vessel vessel)
+        private static List<LostPart> ReadPartsLost(Vessel vessel, EventReport? report)
         {
             var lost = new List<LostPart>();
             try
             {
-                if (vessel.parts == null)
-                {
-                    return lost;
-                }
-                foreach (var part in vessel.parts)
-                {
-                    if (part != null)
-                    {
-                        lost.Add(FromPart(part, ""));
-                    }
-                }
+                AddPartsLost(lost, vessel, report);
             }
             catch (Exception)
             {
                 // A torn part read, publish whatever was gathered.
             }
             return lost;
+        }
+
+        private static void AddPartsLost(List<LostPart> lost, Vessel vessel, EventReport? report)
+        {
+            var origin = report?.origin;
+            if (origin != null)
+            {
+                // A collision / hard splashdown names the destroyed part.
+                lost.Add(FromPart(origin, report?.msg ?? ""));
+                return;
+            }
+            if (vessel.parts == null) return;
+
+            // A non-collision death (burn-up): whatever remains of the
+            // vessel at destruction (often already empty: every part
+            // cooked off before the vessel-destroy fired).
+            foreach (var part in vessel.parts)
+            {
+                if (part != null)
+                {
+                    lost.Add(FromPart(part, ""));
+                }
+            }
         }
 
         private static LostPart FromPart(Part part, string msg) => new LostPart
@@ -370,21 +346,5 @@ namespace Gonogo.KSP
             PartTitle = part.partInfo?.title ?? "",
             Msg = msg,
         };
-
-        private sealed class CrashImpact
-        {
-            public CrashImpact(string kind, string what, string msg, LostPart part)
-            {
-                Kind = kind;
-                What = what;
-                Msg = msg;
-                Part = part;
-            }
-
-            public string Kind { get; }
-            public string What { get; }
-            public string Msg { get; }
-            public LostPart Part { get; }
-        }
     }
 }

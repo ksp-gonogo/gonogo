@@ -215,9 +215,7 @@ public class VesselLanding
     /// as a streamer, slowing the craft a little), <c>"deployed"</c> (fully
     /// open) or <c>"cut"</c> (every one cut away). Unlike
     /// <see cref="ParachuteState"/> it tells semi-deployed from fully deployed,
-    /// and a packed parachute from none. Null outside an atmosphere, and when a
-    /// parachute whose arming could not be read might be the furthest
-    /// along.</summary>
+    /// and a packed parachute from none. Null outside an atmosphere.</summary>
     [SitrepUnit(Units.Text)]
     public string? ParachuteDeployment { get; set; }
 

@@ -72,25 +72,5 @@ namespace Sitrep.Host.Tests
                 new ParachuteReading("deployed", null, 5000));
             Assert.Equal(1200.0, fields["parachuteFullDeployAltitude"]);
         }
-
-        [Fact]
-        public void AParachuteWhoseArmingIsUnreadIsNeitherStowedNorNone()
-        {
-            Assert.Null(Of(new ParachuteReading(ParachuteSummary.Unknown, null, null))["parachuteDeployment"]);
-            Assert.Null(Of(
-                new ParachuteReading("stowed", null, null),
-                new ParachuteReading(ParachuteSummary.Unknown, null, null))["parachuteDeployment"]);
-        }
-
-        [Fact]
-        public void AParachuteKnownArmedOutranksOneWhoseArmingIsUnread()
-        {
-            Assert.Equal("armed", Of(
-                new ParachuteReading("armed", null, 1000),
-                new ParachuteReading(ParachuteSummary.Unknown, null, null))["parachuteDeployment"]);
-            Assert.Equal("deployed", Of(
-                new ParachuteReading("deployed", null, null),
-                new ParachuteReading(ParachuteSummary.Unknown, null, null))["parachuteDeployment"]);
-        }
     }
 }

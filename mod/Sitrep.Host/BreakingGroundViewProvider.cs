@@ -19,10 +19,11 @@ namespace Sitrep.Host
     /// <see cref="PartsViewProvider.BuildPower"/>'s <c>Values["parts"]["power"]</c>
     /// read: robotics and power are captured by the same sampler call and
     /// keep sharing that snapshot key rather than introduce a new sampler
-    /// seam). Deployed science reads the top-level
-    /// <c>Values["deployedScience"]</c> (<c>Gonogo.KSP.KspHost.BuildDeployedScience</c>),
-    /// captured in every game scene whether or not anything is flying, since
-    /// every base in the save is listed.</para>
+    /// seam), and deployed science still reads
+    /// <c>Values["science"]["deployed"]</c> (<c>Gonogo.KSP.KspHost.BuildScience</c>'s
+    /// raw dict, via <c>BuildDeployedScience</c>'s global
+    /// <c>FlightGlobals.Vessels</c> walk, shared with
+    /// <see cref="ScienceViewProvider"/>'s other <c>science.*</c> sub-groups).</para>
     ///
     /// <code>
     /// snapshot.Values["parts"]["robotics"] = [ { "partName", "partId", "type" ("rotor"|"hinge"|"rotationServo"|"piston"|"servo"),
@@ -32,13 +33,12 @@ namespace Sitrep.Host
     ///     "brakePercentage", "currentExtension", "targetExtension",
     ///     "counterClockwise", "maxTorque" (rotor entries only, null otherwise) }, ... ] | null
     /// snapshot.Values["parts"]["roboticsAvailable"] = bool?  // any BG servo on THIS vessel, null if a part could not be read
-    /// snapshot.Values["deployedScience"] = [ { "vesselName", "partName", "body", "situation",
+    /// snapshot.Values["science"]["deployed"] = [ { "vesselName", "partName", "body", "situation",
     ///     "biome", "experimentId", "scienceCompletedPercentage",
     ///     "scienceTransmittedPercentage", "scienceValue", "scienceLimit",
     ///     "powerState", "connectionState" (localised PROSE, display only),
     ///     "power" (int? DeployedPowerState, what a client branches on),
-    ///     "controllerConnected" (bool?), "powerAvailable", "powerRequired",
-    ///     "deployedOnGround" }, ... ] | null
+    ///     "controllerConnected" (bool?), "deployedOnGround" }, ... ] | null
     /// </code>
     ///
     /// <para><b>partId</b> is Gonogo.KSP's <c>Part.flightID</c>, stringified,
@@ -134,9 +134,13 @@ namespace Sitrep.Host
         };
 
         /// <summary>
-        /// Every deployed experiment in the save. <c>null</c> when the snapshot
-        /// has no <c>"deployedScience"</c> list (Breaking Ground absent, or not
-        /// read); an empty list is a complete roster with no experiments in it.
+        /// Shared "pull a list out of Values['science'][key]" walk, the same
+        /// shape as <see cref="ScienceViewProvider"/>'s own private
+        /// <c>BuildList</c> (kept as a separate copy here rather than shared:
+        /// the two providers are deliberately independent now that they
+        /// belong to different Uplinks). Returns <c>null</c> (never an empty
+        /// list) whenever the snapshot has no <c>"science"</c> key at all, or
+        /// the <c>"deployed"</c> sub-group key is itself absent.
         /// </summary>
         public static object? BuildDeployed(KspSnapshot? snapshot)
         {
@@ -145,7 +149,12 @@ namespace Sitrep.Host
                 return null;
             }
 
-            if (!snapshot.Values.TryGetValue("deployedScience", out var rawList) || rawList is not IEnumerable<object?> list)
+            if (!snapshot.Values.TryGetValue("science", out var raw) || raw is not IDictionary<string, object?> science)
+            {
+                return null;
+            }
+
+            if (!science.TryGetValue("deployed", out var rawList) || rawList is not IEnumerable<object?> list)
             {
                 return null;
             }

@@ -76,7 +76,6 @@ describe("enumerateTopicFields", () => {
     expect(contracts).toEqual([
       { path: "contracts.active", kind: "collection" },
       { path: "contracts.completedRecent", kind: "collection" },
-      { path: "contracts.failedRecent", kind: "collection" },
       { path: "contracts.offered", kind: "collection" },
     ]);
   });

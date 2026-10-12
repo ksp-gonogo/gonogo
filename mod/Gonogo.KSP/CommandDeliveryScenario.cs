@@ -33,15 +33,6 @@ namespace Gonogo.KSP
         private const string UtKey = "ut";
 
         private static string? _lastSavedToken;
-        private static int _gamesLoaded;
-
-        /// <summary>
-        /// The game being played: the save folder and how many games have been loaded
-        /// from disk this process, counting neither the round trip of a scene change nor
-        /// a quickload of this process's latest save. Main thread only. For state that
-        /// belongs to one game and must not carry into the next.
-        /// </summary>
-        internal static string GameKey => HighLogic.SaveFolder + "#" + _gamesLoaded;
 
         public override void OnLoad(ConfigNode node)
         {
@@ -49,11 +40,6 @@ namespace Gonogo.KSP
             try
             {
                 var token = node.GetValue(TokenKey);
-                var ownLatest = token != null && string.Equals(token, _lastSavedToken, StringComparison.Ordinal);
-                if (!ownLatest)
-                {
-                    _gamesLoaded++;
-                }
                 var carried = DeliverySnapshotCodec.Decode(node.GetValue(DeliveryKey));
                 var encodedHeard = node.GetValue(HeardKey);
                 var kernel = GonogoAddon.SharedEngine?.Kernel;
@@ -61,6 +47,7 @@ namespace Gonogo.KSP
                 var savedUt = double.TryParse(node.GetValue(UtKey), NumberStyles.Float, CultureInfo.InvariantCulture, out var ut)
                     ? ut
                     : double.NegativeInfinity;
+                var ownLatest = token != null && string.Equals(token, _lastSavedToken, StringComparison.Ordinal);
                 Debug.Log("[Gonogo] CommandDeliveryScenario loaded a save of UT " + savedUt.ToString("F2", CultureInfo.InvariantCulture)
                     + (ownLatest ? ", this process's own latest" : ", not this process's latest, so a new timeline")
                     + ", heard " + (encodedHeard?.Length ?? 0) + " chars" + (heard == null ? " (none read)" : ""));

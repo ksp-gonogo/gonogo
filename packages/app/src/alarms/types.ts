@@ -110,17 +110,16 @@ export type ContractParameterTargetState = "Complete" | "Failed";
 
 /**
  * Fires when a specific parameter on a specific contract reaches the
- * target state. The simulation judges it against `career.status.contracts`:
- * the active contracts, then the recently completed and recently failed
- * ones, since the objective that finishes a contract moves it out of the
- * active list in the same step. The parameter is identified by its title
- * (string-equal) within the contract whose `id` matches.
+ * target state. Reads `contracts.active`; the parameter is identified
+ * by its title (string-equal) within the contract whose `id` matches.
  *
  * The trigger ignores the underlying numeric value and works on a
  * discrete state transition: "Incomplete → Complete" is the canonical
- * use case ("ping me when this objective is met"). A contract that
- * finished with the objective in another state, or left the career any
- * other way, makes the alarm unreachable.
+ * use case ("ping me when this objective is met"). Picking a contract
+ * that's no longer Active (e.g. the operator already accepted, or it
+ * was cancelled) means the trigger sits perpetually pending; the host
+ * doesn't auto-prune. Same shape as a parameterTitle-typo alarm,
+ * fail safe rather than silently fire.
  */
 export interface ContractParameterTrigger {
   kind: "contract-parameter";

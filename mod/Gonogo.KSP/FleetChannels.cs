@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 using Sitrep.Core;
@@ -81,13 +80,14 @@ namespace Gonogo.KSP
         private IVesselJourneyWriter? _journeyWriter;
 
         // Main-thread-only bookkeeping: the last UT each vessel was observed
-        // connected. Written by both main-thread captures: the ungated
-        // CaptureLinksOnMain keeps it true while nobody is watching, and
-        // CaptureOnMain, which runs first in a tick, writes it too so its own
-        // report is not a tick behind. The cross-thread snapshot each
-        // FleetVesselCapture carries is what HandleOnCourier (Courier thread)
-        // actually reads.
-        private readonly LastContactBook _lastContact = new LastContactBook();
+        // connected. Trivial derived state (no hysteresis, no model), so it
+        // lives here rather than needing anything like SilenceTracker. Written
+        // by both main-thread captures: the ungated CaptureLinksOnMain keeps it
+        // true while nobody is watching, and CaptureOnMain, which runs first in
+        // a tick, writes it too so its own report is not a tick behind. The
+        // cross-thread snapshot each FleetVesselCapture carries is what
+        // HandleOnCourier (Courier thread) actually reads.
+        private readonly Dictionary<string, double> _lastContactUt = new Dictionary<string, double>();
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
         {
@@ -135,8 +135,6 @@ namespace Gonogo.KSP
             var ut = snapshot != null ? snapshot.Ut : 0.0;
             var config = CommsCoreUplink.SignalDelayConfig;
             var links = new List<VesselLinkCapture>(all.Count);
-            var live = new HashSet<string>(StringComparer.Ordinal);
-            _lastContact.BeginPass(CommandDeliveryScenario.GameKey, ut);
             foreach (var vessel in all)
             {
                 if (vessel == null)
@@ -145,11 +143,12 @@ namespace Gonogo.KSP
                 }
                 var id = vessel.id.ToString();
                 var connected = FleetCommsReader.ReadConnected(vessel, config);
-                _lastContact.Observe(id, connected, ut);
-                live.Add(id);
+                if (connected)
+                {
+                    _lastContactUt[id] = ut;
+                }
                 links.Add(new VesselLinkCapture { Id = id, Connected = connected });
             }
-            _lastContact.Keep(live);
             return links;
         }
 
@@ -182,7 +181,6 @@ namespace Gonogo.KSP
             var ut = snapshot != null ? snapshot.Ut : 0.0;
             var config = CommsCoreUplink.SignalDelayConfig;
             var captures = new List<FleetVesselCapture>(all.Count);
-            _lastContact.BeginPass(CommandDeliveryScenario.GameKey, ut);
             foreach (var vessel in all)
             {
                 if (vessel == null)
@@ -193,7 +191,10 @@ namespace Gonogo.KSP
                 var journey = FleetCommsReader.ReadVesselJourney(vessel, config);
                 var orbit = vessel.orbitDriver != null ? KspHost.BuildOrbit(vessel.orbitDriver.orbit) : null;
                 var id = vessel.id.ToString();
-                _lastContact.Observe(id, connected, ut);
+                if (connected)
+                {
+                    _lastContactUt[id] = ut;
+                }
                 captures.Add(new FleetVesselCapture
                 {
                     Id = id,
@@ -201,10 +202,7 @@ namespace Gonogo.KSP
                     Journey = journey,
                     Connected = connected,
                     Orbit = orbit,
-                    // The silence tracker's record rides in the save, so before this
-                    // session has seen the craft connected it is the one answer there is.
-                    LastContactUt = _lastContact.Of(id)
-                        ?? SilenceTracking.SilenceTrackerSink.Current?.TryGetState(id)?.LastContactUt,
+                    LastContactUt = _lastContactUt.TryGetValue(id, out var last) ? (double?)last : null,
                     // Gated PER VESSEL, not with the rest of the fleet read.
                     // Walking one craft's parts is cheap; walking every craft's
                     // parts every tick because something subscribed to one

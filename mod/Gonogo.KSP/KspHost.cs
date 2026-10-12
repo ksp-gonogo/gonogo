@@ -6,8 +6,6 @@ using System.Reflection;
 using Contracts;
 using Expansions;
 using Expansions.Serenity;
-using Expansions.Serenity.DeployedScience.Runtime;
-using DeployedScienceRegistry = Expansions.Serenity.DeployedScience.Runtime.DeployedScience;
 using Gonogo.KSP.Career;
 using Gonogo.KSP.Gates;
 using KSP.UI.Screens;
@@ -428,12 +426,6 @@ namespace Gonogo.KSP
                 // archive to walk).
                 TryBuildGroup(values, "scienceArchive", () => BuildScienceArchive());
 
-                // Breaking Ground's deployed bases are every surface base in the
-                // save, wherever they are and whatever is flying, so like the
-                // archive they are captured in every game scene rather than with
-                // the active vessel.
-                TryBuildGroup(values, "deployedScience", () => BuildDeployedScience());
-
                 // Game mode (SANDBOX / CAREER / SCIENCE_SANDBOX / ...) is a
                 // ground-side game-global fact, captured in ALL modes - unlike
                 // BuildCareer above, which returns null outside CAREER. A
@@ -608,34 +600,19 @@ namespace Gonogo.KSP
             var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
 
             var entry = new Dictionary<string, object?>();
-
-            /* A group read off the vessel's live parts is omitted while the vessel is
-               unloaded. Its part list is then empty and every sum over it reads as a zero,
-               so such a group would publish an empty craft rather than an unknown one. The
-               reported vessel is unloaded while a kerbal on EVA is past physics range of
-               the craft they left. */
-            var loaded = vessel.loaded;
-            void PartsGroup(string key, Func<object?> build)
-            {
-                if (loaded)
-                {
-                    TryBuildGroup(entry, key, build);
-                }
-            }
-
             TryBuildGroup(entry, "identity", () => BuildIdentity(vessel, orbit));
             TryBuildGroup(entry, "orbit", () => BuildOrbit(orbit));
             TryBuildGroup(entry, "flight", () => BuildFlight(vessel));
-            PartsGroup("attitude", () => BuildAttitude(vessel, orbit));
-            PartsGroup("resources", () => BuildResources(vessel));
-            PartsGroup("thermal", () => BuildThermal(vessel));
+            TryBuildGroup(entry, "attitude", () => BuildAttitude(vessel, orbit));
+            TryBuildGroup(entry, "resources", () => BuildResources(vessel));
+            TryBuildGroup(entry, "thermal", () => BuildThermal(vessel));
             TryBuildGroup(entry, "control", () => BuildControl(vessel, actionGroupsBackend));
             TryBuildGroup(entry, "physics", () => BuildPhysics(vessel));
             TryBuildGroup(entry, "comms", () => BuildComms(vessel, signalQuantity));
-            PartsGroup("crew", () => BuildCrew(vessel));
-            PartsGroup("inventories", () => BuildInventories(vessel));
-            PartsGroup("misc", () => BuildMisc(vessel));
-            PartsGroup("propulsion", () => BuildPropulsion(vessel, thrustObserver, ut));
+            TryBuildGroup(entry, "crew", () => BuildCrew(vessel));
+            TryBuildGroup(entry, "inventories", () => BuildInventories(vessel));
+            TryBuildGroup(entry, "misc", () => BuildMisc(vessel));
+            TryBuildGroup(entry, "propulsion", () => BuildPropulsion(vessel, thrustObserver, ut));
             // ONE Plan() call per capture: it reads live KSP, so asking twice
             // is both wasted work and an invitation for the two answers to
             // disagree within a single tick.
@@ -649,22 +626,22 @@ namespace Gonogo.KSP
                 entry["maneuverPlanner"] = maneuverPlanSource!.ProviderId;
             }
             TryBuildGroup(entry, "target", () => BuildTarget(vessel, closestApproach));
-            PartsGroup("dock", () => BuildDock(vessel));
-            // One walk of every part's geometry serves both groups that read it.
-            var lowestPoint = LowestPointHeightOrNull(vessel);
-            TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit, lowestPoint));
-            PartsGroup("landing", () => BuildLanding(vessel, orbit, lowestPoint));
-            // The full part tree the vessel.parts channel
-            // (VesselPartsViewProvider) maps. Per-part reads are individually
-            // guarded in BuildTopology so one bad part can't blank the list.
-            PartsGroup("topology", () => BuildTopology(vessel));
-            // KSP's STOCK VesselDeltaV stage simulation (dv.stages / dv.summary
-            // channels, StageDeltaVViewProvider). Heavier than a field read, so
-            // its own try/omit group. Omitted (BuildDeltaV returns null) until
-            // the stock sim is ready, the TryBuildGroup + null-return pattern
-            // already carries "not ready yet" through to the provider as a null
-            // payload.
-            PartsGroup("deltaV", () => BuildDeltaV(vessel));
+            TryBuildGroup(entry, "dock", () => BuildDock(vessel));
+            TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit));
+            TryBuildGroup(entry, "landing", () => BuildLanding(vessel, orbit));
+            // ---- P1b slice 2 topology capture-add: the full part tree the
+            // vessel.parts channel (VesselPartsViewProvider) maps. Same
+            // try/omit discipline; per-part reads are individually guarded in
+            // BuildTopology so one bad part can't blank the list.
+            TryBuildGroup(entry, "topology", () => BuildTopology(vessel));
+            // ---- P1b slice 2 stage-ΔV capture-add: KSP's STOCK VesselDeltaV
+            // stage simulation (dv.stages / dv.summary channels,
+            // StageDeltaVViewProvider). The new stage-simulation capture path;
+            // heavier than a field read, so its own try/omit group. Omitted
+            // (BuildDeltaV returns null) until the stock sim is ready, the
+            // TryBuildGroup + null-return pattern already carries "not ready yet"
+            // through to the provider as a null payload.
+            TryBuildGroup(entry, "deltaV", () => BuildDeltaV(vessel));
             return entry;
         }
 
@@ -1850,16 +1827,12 @@ namespace Gonogo.KSP
         /// </summary>
         /// <summary>
         /// One kerbal outside a craft, for the <c>eva.crew</c> channel, or null
-        /// when a loaded vessel carries no <c>KerbalEVA</c> to read.
+        /// when the vessel carries no <c>KerbalEVA</c> to read.
         ///
         /// <para>The suit state lives on the <c>KerbalEVA</c> PartModule, not on
         /// <c>Vessel</c>, so everything below goes through the root part. A
         /// kerbal mid-spawn has no module yet and yields null rather than a row
         /// of nulls that would read as a kerbal with an empty tank.</para>
-        ///
-        /// <para>A kerbal on an unloaded vessel, standing where an earlier flight
-        /// left them, has no parts to read but is still outside: the row carries who
-        /// and where, and every suit field is absent.</para>
         ///
         /// <para>Each read is its own try/catch for the same reason
         /// <see cref="BuildVesselRosterEntry"/>'s are: one bad kerbal must not
@@ -1868,22 +1841,19 @@ namespace Gonogo.KSP
         private static Dictionary<string, object?>? BuildEvaKerbalEntry(Vessel vessel)
         {
             KerbalEVA? eva = null;
-            if (vessel.loaded)
+            try
             {
-                try
-                {
-                    eva = vessel.rootPart != null
-                        ? vessel.rootPart.FindModuleImplementing<KerbalEVA>()
-                        : null;
-                }
-                catch
-                {
-                    eva = null;
-                }
-                if (eva == null)
-                {
-                    return null;
-                }
+                eva = vessel.rootPart != null
+                    ? vessel.rootPart.FindModuleImplementing<KerbalEVA>()
+                    : null;
+            }
+            catch
+            {
+                eva = null;
+            }
+            if (eva == null)
+            {
+                return null;
             }
 
             var entry = new Dictionary<string, object?>
@@ -1896,11 +1866,6 @@ namespace Gonogo.KSP
             if (ActiveVesselScope.Book.TryParentOf(vessel.id, out var parentId))
             {
                 entry["parentVesselId"] = parentId.ToString();
-            }
-
-            if (eva == null)
-            {
-                return entry;
             }
 
             TrySet(entry, "propellantAmount", () => (object?)eva.Fuel);
@@ -2423,7 +2388,7 @@ namespace Gonogo.KSP
         /// whatever the situation: KSP's orbiting is a periapsis-above-datum
         /// test, which an airless-body descent passes while inside the terrain.
         /// </summary>
-        private static Dictionary<string, object?>? BuildSurface(Vessel vessel, Orbit? orbit, double? lowestPointHeight)
+        private static Dictionary<string, object?>? BuildSurface(Vessel vessel, Orbit? orbit)
         {
             var body = orbit?.referenceBody;
             if (body == null)
@@ -2451,7 +2416,7 @@ namespace Gonogo.KSP
                 // named site" -- null it out rather than ship a wire value
                 // that's indistinguishable from "not present at all".
                 ["landedAt"] = string.IsNullOrEmpty(vessel.landedAt) ? null : vessel.landedAt,
-                ["heightFromTerrain"] = lowestPointHeight,
+                ["heightFromTerrain"] = LowestPointHeightFromTerrain(vessel, MeasuredHeightFromTerrain(vessel)),
             };
         }
 
@@ -2461,23 +2426,6 @@ namespace Gonogo.KSP
         /// </summary>
         private static double? MeasuredHeightFromTerrain(Vessel vessel) =>
             LandingModel.MeasuredHeightFromTerrain(vessel.loaded, vessel.packed, vessel.heightFromTerrain, vessel.altitude);
-
-        /// <summary>
-        /// <see cref="LowestPointHeightFromTerrain"/> off the measured root height, or
-        /// null when the geometry walk threw.
-        /// </summary>
-        private static double? LowestPointHeightOrNull(Vessel vessel)
-        {
-            try
-            {
-                return LowestPointHeightFromTerrain(vessel, MeasuredHeightFromTerrain(vessel));
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] lowest-point height read failed, omitting: " + ex);
-                return null;
-            }
-        }
 
         /// <summary>
         /// The height of the vessel's lowest point above the terrain: the root
@@ -2576,7 +2524,7 @@ namespace Gonogo.KSP
         /// PQS-backed surface within the closure horizon. Scalar results only,
         /// never an unverified 0.0.
         /// </summary>
-        private static Dictionary<string, object?>? BuildLanding(Vessel vessel, Orbit? orbit, double? lowestPointHeight)
+        private static Dictionary<string, object?>? BuildLanding(Vessel vessel, Orbit? orbit)
         {
             var body = orbit?.referenceBody;
             if (body == null)
@@ -2585,6 +2533,7 @@ namespace Gonogo.KSP
             }
 
             var rootHeight = MeasuredHeightFromTerrain(vessel);
+            var lowestPointHeight = LowestPointHeightFromTerrain(vessel, rootHeight);
             if (rootHeight == null || lowestPointHeight == null)
             {
                 return null;
@@ -2806,8 +2755,6 @@ namespace Gonogo.KSP
         private static double siteGridLat;
         private static double siteGridLon;
         private static long siteGridTicks;
-        private static Guid siteGridVessel;
-        private static CelestialBody? siteGridBody;
 
         /// <summary>
         /// Sample a square of terrain heights around the predicted site into
@@ -2834,12 +2781,6 @@ namespace Gonogo.KSP
             // The grid holds the whole window the touchdown plot draws, so it narrows as the vessel comes down and nears the site.
             double toSite = LandingGroundTrack.DistanceMeters(vessel.latitude, vessel.longitude, lat, lon, r);
             double halfExtent = LandingSiteGrid.HalfExtentMeters(toSite, heightAboveTerrain);
-
-            // A grid taken for another craft or over another body describes nowhere this one is going.
-            if (vessel.id != siteGridVessel || !ReferenceEquals(body, siteGridBody))
-            {
-                siteGridHeights = null;
-            }
 
             long now = System.Diagnostics.Stopwatch.GetTimestamp();
             double seconds = (now - siteGridTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
@@ -2871,8 +2812,6 @@ namespace Gonogo.KSP
                 siteGridLat = lat;
                 siteGridLon = lon;
                 siteGridTicks = now;
-                siteGridVessel = vessel.id;
-                siteGridBody = body;
             }
 
             if (siteGridHeights != null)
@@ -2888,8 +2827,6 @@ namespace Gonogo.KSP
         private static double horizonLat;
         private static double horizonLon;
         private static long horizonTicks;
-        private static Guid horizonVessel;
-        private static CelestialBody? horizonBody;
 
         /// <summary>
         /// Sample the skyline the vessel sees into <c>horizonAngles</c>:
@@ -2914,11 +2851,6 @@ namespace Gonogo.KSP
             double r = body.Radius;
             double lat = vessel.latitude;
             double lon = vessel.longitude;
-            // A skyline seen from another craft or over another body is not this one's.
-            if (vessel.id != horizonVessel || !ReferenceEquals(body, horizonBody))
-            {
-                horizonAngles = null;
-            }
             long now = System.Diagnostics.Stopwatch.GetTimestamp();
             double seconds = (now - horizonTicks) / (double)System.Diagnostics.Stopwatch.Frequency;
             double moved = horizonAngles == null
@@ -2942,8 +2874,6 @@ namespace Gonogo.KSP
                 horizonLat = lat;
                 horizonLon = lon;
                 horizonTicks = now;
-                horizonVessel = vessel.id;
-                horizonBody = body;
             }
 
             if (horizonAngles != null)
@@ -3132,7 +3062,7 @@ namespace Gonogo.KSP
                         continue;
                     }
                     var rcType = module.GetType();
-                    var armed = ReflectBool(rcType, module, "armed");
+                    var armed = ReflectBool(rcType, module, "armed") ?? false;
                     if (ReflectMemberValue(rcType, module, "parachutes") is System.Collections.IEnumerable canopies)
                     {
                         foreach (var canopy in canopies)
@@ -3185,13 +3115,13 @@ namespace Gonogo.KSP
             }
         }
 
-        /// <summary>A RealChute canopy's <c>depState</c> in the stock vocabulary: its low and pre-deployed stages are a streamer, like stock's semi-deployed. A stowed canopy whose module's <c>armed</c> could not be read is <c>"unknown"</c>. Null for a state it does not name.</summary>
-        private static string? RealChuteDeploymentOf(string? depState, bool? armed)
+        /// <summary>A RealChute canopy's <c>depState</c> in the stock vocabulary: its low and pre-deployed stages are a streamer, like stock's semi-deployed. Null for a state it does not name.</summary>
+        private static string? RealChuteDeploymentOf(string? depState, bool armed)
         {
             switch (depState)
             {
                 case "STOWED":
-                    return armed == null ? ParachuteSummary.Unknown : armed.Value ? "armed" : "stowed";
+                    return armed ? "armed" : "stowed";
                 case "LOWDEPLOYED":
                 case "PREDEPLOYED":
                     return "semi-deployed";
@@ -4221,13 +4151,14 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// How often, in real seconds, the saved-ship folders are walked again.
-        /// Enumerating them and parsing each <c>.craft</c> file is disk I/O, so it
-        /// is not done every tick.
+        /// The UT interval between saved-ship disk re-walks. <see cref="Sample"/>
+        /// runs on a ~1 UT cadence, but enumerating the craft folders + parsing
+        /// each <c>.craft</c> file is disk I/O, so it's rate-limited here to the
+        /// same 30 UT floor the uplink's keyframe uses rather than run every tick.
         /// </summary>
-        private const double SavedShipsRescanIntervalSeconds = 10.0;
+        private const double SavedShipsRescanIntervalUt = 30.0;
 
-        private static readonly RescanGate SavedShipsRescan = new RescanGate(SavedShipsRescanIntervalSeconds);
+        private static double _lastSavedShipsScanUt = double.NegativeInfinity;
         private static List<object?>? _cachedSavedShips;
 
         /// <summary>
@@ -4237,7 +4168,7 @@ namespace Gonogo.KSP
         /// metadata read via the stock <c>CraftProfileInfo</c> loader. Career-
         /// gated (the saved-ships widgets are career-facing; a sandbox has no
         /// funds affordance to spend on unlocking parts) and rate-limited to
-        /// <see cref="SavedShipsRescan"/> - between scans the cached
+        /// <see cref="SavedShipsRescanIntervalUt"/> - between scans the cached
         /// list is returned so the disk isn't touched every tick. Returns
         /// <c>null</c> - the whole list - outside career or before a save folder
         /// exists, so the provider reads "no data yet."
@@ -4248,20 +4179,23 @@ namespace Gonogo.KSP
             if (game == null || game.Mode != Game.Modes.CAREER)
             {
                 _cachedSavedShips = null;
-                SavedShipsRescan.Forget();
+                _lastSavedShipsScanUt = double.NegativeInfinity;
                 return null;
+            }
+
+            // Serve the cache unless the scan interval has elapsed; a UT that
+            // moved backward (revert/load) also forces a fresh scan.
+            if (_cachedSavedShips != null
+                && ut >= _lastSavedShipsScanUt
+                && ut - _lastSavedShipsScanUt < SavedShipsRescanIntervalUt)
+            {
+                return _cachedSavedShips;
             }
 
             var gameName = HighLogic.SaveFolder;
             if (string.IsNullOrEmpty(gameName))
             {
                 return null;
-            }
-
-            var wallSeconds = System.Diagnostics.Stopwatch.GetTimestamp() / (double)System.Diagnostics.Stopwatch.Frequency;
-            if (_cachedSavedShips != null && !SavedShipsRescan.Due(gameName, ut, wallSeconds))
-            {
-                return _cachedSavedShips;
             }
 
             var ships = new List<object?>();
@@ -4327,7 +4261,7 @@ namespace Gonogo.KSP
             }
 
             _cachedSavedShips = ships;
-            SavedShipsRescan.Scanned(gameName, ut, wallSeconds);
+            _lastSavedShipsScanUt = ut;
             return ships;
         }
 
@@ -4551,8 +4485,7 @@ namespace Gonogo.KSP
                     ["facilityOrdinal"] = (int)facility,
                     ["currentTier"] = live.FacilityLevel,
                     ["maxTier"] = live.MaxLevel,
-                    // Stock prices the tier above the top at 0, an upgrade that does not exist.
-                    ["upgradeCost"] = live.FacilityLevel >= live.MaxLevel ? null : (double?)live.GetUpgradeCost(),
+                    ["upgradeCost"] = live.GetUpgradeCost(),
                 };
             }
 
@@ -4572,7 +4505,7 @@ namespace Gonogo.KSP
         {
             if (proto.configNode == null || !FacilityLadder.TryGet(sanitizedId, out var rungs)) return null;
             var tier = OffSceneFacilityUpgrade.PersistedTier(proto.configNode, rungs.MaxLevel);
-            var raw = FacilityLadder.NextTierCost(rungs, tier);
+            var raw = FacilityLadder.NextTierCost(rungs, tier) ?? 0f;
             var multiplier = HighLogic.LoadedSceneIsGame && HighLogic.CurrentGame != null
                 ? HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier
                 : 1f;
@@ -4581,12 +4514,12 @@ namespace Gonogo.KSP
                 ["facilityOrdinal"] = (int)facility,
                 ["currentTier"] = tier,
                 ["maxTier"] = rungs.MaxLevel,
-                ["upgradeCost"] = raw.HasValue ? raw.Value * multiplier : (double?)null,
+                ["upgradeCost"] = raw * multiplier,
             };
         }
 
-        /// <summary>Bound on each recently-finished contracts list: the last N
-        /// contracts finished in that state, by finish date, newest-first.</summary>
+        /// <summary>Bound on the recently-completed contracts list: the last N
+        /// <c>State.Completed</c> contracts by finish date, newest-first.</summary>
         private const int CompletedRecentLimit = 10;
 
         /// <summary>
@@ -4604,10 +4537,9 @@ namespace Gonogo.KSP
         /// <c>ScienceCompletion</c>/<c>ReputationCompletion</c>/
         /// <c>ReputationFailure</c>) is a plain public field on
         /// <c>Contract</c>, confirmed via decompile - no getter indirection.
-        /// Recently-completed and recently-failed entries reuse the exact same
+        /// Recently-completed entries reuse the exact same
         /// <see cref="BuildContractEntry"/> mapping as active/offered - no extra
-        /// fields (their <c>state</c> is always <c>"Completed"</c> or
-        /// <c>"Failed"</c>).
+        /// fields (their <c>state</c> is always <c>"Completed"</c>).
         /// </summary>
         private static Dictionary<string, object?>? BuildCareerContracts()
         {
@@ -4645,17 +4577,17 @@ namespace Gonogo.KSP
             {
                 ["active"] = active,
                 ["offered"] = offered,
-                ["completedRecent"] = BuildFinishedRecent(system, Contract.State.Completed),
-                ["failedRecent"] = BuildFinishedRecent(system, Contract.State.Failed),
+                ["completedRecent"] = BuildCompletedRecent(system),
             };
         }
 
         /// <summary>
-        /// The last <see cref="CompletedRecentLimit"/> contracts from
-        /// <c>ContractSystem.ContractsFinished</c> that finished in
-        /// <paramref name="state"/>, newest-first by <c>DateFinished</c>.
+        /// The last <see cref="CompletedRecentLimit"/> completed contracts from
+        /// <c>ContractSystem.ContractsFinished</c>, newest-first by
+        /// <c>DateFinished</c>. Filters to <c>Contract.State.Completed</c> so
+        /// failed/expired/cancelled/withdrawn finished contracts are excluded.
         /// </summary>
-        private static List<object?> BuildFinishedRecent(ContractSystem system, Contract.State state)
+        private static List<object?> BuildCompletedRecent(ContractSystem system)
         {
             var result = new List<object?>();
             var finished = system.ContractsFinished;
@@ -4664,20 +4596,20 @@ namespace Gonogo.KSP
                 return result;
             }
 
-            var matching = new List<Contract>();
+            var completed = new List<Contract>();
             foreach (var contract in finished)
             {
-                if (contract != null && contract.ContractState == state)
+                if (contract != null && contract.ContractState == Contract.State.Completed)
                 {
-                    matching.Add(contract);
+                    completed.Add(contract);
                 }
             }
 
-            matching.Sort((a, b) => b.DateFinished.CompareTo(a.DateFinished));
+            completed.Sort((a, b) => b.DateFinished.CompareTo(a.DateFinished));
 
-            for (var i = 0; i < matching.Count && i < CompletedRecentLimit; i++)
+            for (var i = 0; i < completed.Count && i < CompletedRecentLimit; i++)
             {
-                result.Add(BuildContractEntry(matching[i]));
+                result.Add(BuildContractEntry(completed[i]));
             }
 
             return result;
@@ -5293,6 +5225,12 @@ namespace Gonogo.KSP
             TryBuildGroup(entry, "instruments", () => BuildScienceInstruments(vessel));
             TryBuildGroup(entry, "sensors", () => BuildScienceSensors(vessel));
             TryBuildGroup(entry, "lab", () => BuildScienceLab(vessel));
+            // Deployed science is captured GLOBALLY (across every loaded
+            // vessel), NOT off the active vessel this method receives -- see
+            // BuildDeployedScience's doc comment. Kept as a "science"
+            // sub-group for channel continuity even though its data comes
+            // from other vessels entirely.
+            TryBuildGroup(entry, "deployed", () => BuildDeployedScience());
             TryBuildGroup(entry, "experimentBreakdown", () => BuildScienceExperimentBreakdown(vessel));
             return entry;
         }
@@ -5805,35 +5743,44 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Every Breaking Ground deployed experiment in the save, loaded or not.
+        /// Breaking Ground deployed-experiment modules
+        /// (<c>ModuleGroundExperiment</c>), captured globally across every
+        /// loaded vessel <c>FlightGlobals.Vessels</c> knows about - Not off
+        /// the active vessel.
         ///
-        /// <para>Once deployed, each cluster is its own ground vessel, not part
-        /// of the craft being flown, so this walks the game rather than the
-        /// active vessel. A loaded experiment is read off its
-        /// <c>ModuleGroundExperiment</c>, which alone carries the game's own
-        /// power and connection sentences. Breaking Ground keeps every cluster in
-        /// <c>DeployedScience.Instance</c> whether its vessel is loaded or not,
-        /// and goes on generating science for the unloaded ones, so an experiment
-        /// whose vessel is not loaded is read from there, with those two
-        /// sentences absent.</para>
+        /// <para><b>Why global (the bug this fixes):</b> a Breaking Ground
+        /// deployed experiment does not live on the vessel the player is
+        /// flying - once deployed, KSP spawns each cluster as its own
+        /// separate ground vessel (vessel type <c>DeployedSciencePart</c> /
+        /// <c>DeployedScienceController</c>). The original version of this
+        /// method walked only <c>FlightGlobals.ActiveVessel</c>'s parts, so
+        /// it never saw a single deployed experiment and this group always
+        /// came back null even with science actively deploying. Iterating
+        /// <c>FlightGlobals.Vessels</c> and walking each vessel's parts is
+        /// the fix - the deployed cluster is a peer vessel, found the same
+        /// way <see cref="BuildVesselRosterEntry"/> enumerates the roster.
+        /// (loaded vessels only: an unloaded/packed cluster far from the
+        /// active vessel has no live <c>parts</c> list - reading it would
+        /// need <c>ProtoPartSnapshot</c> walking, a documented follow-up.)</para>
         ///
-        /// <para>Null when Breaking Ground is not installed and nothing loaded
-        /// carries one of its experiments: the whole group omitted. With it
-        /// installed the list is complete, so an empty one says there are no
-        /// deployed experiments.</para>
-        ///
-        /// <para><b>Reflection guard.</b> The loaded walk matches the module by
-        /// <c>GetType().Name == "ModuleGroundExperiment"</c> and reads every
-        /// field/property via <see cref="ReflectString"/>/
-        /// <see cref="ReflectDouble"/>/<see cref="ReflectBool"/>.
-        /// Decompile-confirmed members (<c>ModuleGroundExperiment :
+        /// <para><b>Reflection guard (absent-DLC → null):</b> the type is
+        /// matched by <c>GetType().Name == "ModuleGroundExperiment"</c> and
+        /// every field/property read via <see cref="ReflectString"/>/
+        /// <see cref="ReflectDouble"/>/<see cref="ReflectBool"/> rather than
+        /// a static reference, so an install without Breaking Ground (where
+        /// the type simply never appears on any part) yields an empty walk
+        /// and this returns null - the whole group omitted, same convention
+        /// as every other <c>Build*</c> here. Decompile-confirmed members
+        /// (<c>Assembly-CSharp.dll</c>, <c>ModuleGroundExperiment :
         /// ModuleGroundSciencePart</c>): <c>experimentId</c> (string field),
         /// <c>ScienceCompletedPercentage</c>/<c>ScienceTransmittedPercentage</c>
         /// (float fields), <c>ScienceValue</c>/<c>ScienceLimit</c> (float
         /// get-properties); inherited from <c>ModuleGroundSciencePart</c>:
         /// <c>PowerState</c>/<c>ConnectionState</c> (string fields - the
         /// "has power / has comms" readout) and <c>DeployedOnGround</c>
-        /// (bool get-property). Off the cluster
+        /// (bool get-property). <c>Type.GetField(Public|Instance)</c> reaches
+        /// inherited public fields/properties, so all are read straight off
+        /// the concrete module instance. Off the cluster
         /// (<c>ScienceClusterData</c> -> <c>DeployedScienceCluster</c>):
         /// <c>PowerAvailable</c>/<c>PowerRequired</c> (int get-properties,
         /// Breaking Ground's own power units) alongside the booleans
@@ -5841,13 +5788,22 @@ namespace Gonogo.KSP
         /// </summary>
         private static List<object?>? BuildDeployedScience()
         {
-            var registry = DeployedScienceRegistry.Instance;
-            List<object?>? list = registry != null ? new List<object?>() : null;
-
-            var vessels = FlightGlobals.fetch != null ? FlightGlobals.Vessels : null;
-            foreach (var vessel in vessels ?? new List<Vessel>())
+            if (!FlightGlobals.ready || FlightGlobals.fetch == null)
             {
-                if (vessel == null || !vessel.loaded)
+                return null;
+            }
+
+            var vessels = FlightGlobals.Vessels;
+            if (vessels == null)
+            {
+                return null;
+            }
+
+            List<object?>? list = null;
+
+            foreach (var vessel in vessels)
+            {
+                if (vessel == null)
                 {
                     continue;
                 }
@@ -5939,110 +5895,7 @@ namespace Gonogo.KSP
                 }
             }
 
-            if (registry != null)
-            {
-                AddUnloadedDeployedScience(registry, list!);
-            }
-
             return list;
-        }
-
-        /// <summary>
-        /// The experiments of every cluster whose vessel is not loaded, from Breaking
-        /// Ground's own registry: the figures its <c>ModuleGroundExperiment</c> would
-        /// show, computed the way that module computes them, and the cluster's power
-        /// facts. The module's own power and connection sentences are absent.
-        /// </summary>
-        private static void AddUnloadedDeployedScience(DeployedScienceRegistry registry, List<object?> list)
-        {
-            var clusters = registry.DeployedScienceClusters;
-            if (clusters == null)
-            {
-                return;
-            }
-
-            foreach (var cluster in clusters.Values)
-            {
-                if (cluster?.DeployedScienceParts == null)
-                {
-                    continue;
-                }
-
-                foreach (var sciencePart in cluster.DeployedScienceParts)
-                {
-                    var experiment = sciencePart?.Experiment;
-                    if (sciencePart == null || experiment == null)
-                    {
-                        continue;
-                    }
-
-                    var vessel = experiment.ExperimentVessel;
-                    if (vessel != null && vessel.loaded)
-                    {
-                        // Read off its module by the loaded walk.
-                        continue;
-                    }
-
-                    try
-                    {
-                        list.Add(UnloadedDeployedEntry(cluster, sciencePart, experiment, vessel));
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.LogWarning("[Gonogo] deployed-science read of an unloaded experiment failed, skipping: " + ex);
-                    }
-                }
-            }
-        }
-
-        private static Dictionary<string, object?> UnloadedDeployedEntry(
-            DeployedScienceCluster cluster,
-            DeployedSciencePart sciencePart,
-            DeployedScienceExperiment experiment,
-            Vessel? vessel)
-        {
-            var orbit = vessel?.orbitDriver != null ? vessel.orbitDriver.orbit : null;
-            var body = cluster.DeployedBody ?? orbit?.referenceBody;
-            var limit = (double)experiment.ScienceLimit;
-            return new Dictionary<string, object?>
-            {
-                ["vesselName"] = vessel != null ? GameWords.VesselName(vessel) : null,
-                ["partName"] = vessel != null ? ProtoPartTitle(vessel, sciencePart.PartId) : null,
-                ["body"] = body != null ? body.bodyName : null,
-                ["situation"] = vessel?.situation.ToString(),
-                ["biome"] = vessel != null ? ResolveBiome(vessel, body) : null,
-                ["experimentId"] = string.IsNullOrEmpty(experiment.ExperimentId) ? null : experiment.ExperimentId,
-                // The same two ratios ModuleGroundExperiment shows, from the same figures.
-                ["scienceCompletedPercentage"] = limit > 0 ? experiment.TotalScienceGenerated / limit * 100.0 : 0.0,
-                ["scienceTransmittedPercentage"] = experiment.TransmittedScienceData > 0 && limit > 0
-                    ? experiment.TransmittedScienceData / limit * 100.0
-                    : 0.0,
-                ["scienceValue"] = (double)experiment.ScienceValue,
-                ["scienceLimit"] = limit,
-                ["power"] = (int?)DerivePowerState(sciencePart.Enabled, sciencePart.DeployedOnGround, cluster.IsPowered, cluster.ControllerPartEnabled),
-                ["controllerConnected"] = true,
-                ["powerAvailable"] = cluster.PowerAvailable,
-                ["powerRequired"] = cluster.PowerRequired,
-                ["deployedOnGround"] = sciencePart.DeployedOnGround,
-            };
-        }
-
-        /// <summary>The display title of the vessel's part snapshot with <paramref name="persistentId"/>, or null when it has none.</summary>
-        private static string? ProtoPartTitle(Vessel vessel, uint persistentId)
-        {
-            var snapshots = vessel.protoVessel?.protoPartSnapshots;
-            if (snapshots == null)
-            {
-                return null;
-            }
-            foreach (var snapshot in snapshots)
-            {
-                if (snapshot != null && snapshot.persistentId == persistentId)
-                {
-                    return snapshot.partInfo != null ? snapshot.partInfo.title : snapshot.partName;
-                }
-            }
-            return null;
         }
 
         /// <summary>
@@ -6062,23 +5915,6 @@ namespace Gonogo.KSP
         /// unpowered - so this reports what the game's own readout would say,
         /// in a form that survives translation.</para>
         /// </summary>
-        /// <summary>
-        /// <see cref="DerivePowerState(Type, object, object?)"/> for an experiment in a
-        /// cluster, from the four facts already read.
-        /// </summary>
-        private static DeployedPowerState DerivePowerState(bool enabled, bool deployed, bool isPowered, bool controllerEnabled)
-        {
-            if (!enabled || !deployed)
-            {
-                return DeployedPowerState.Disabled;
-            }
-            if (isPowered)
-            {
-                return DeployedPowerState.Powered;
-            }
-            return controllerEnabled ? DeployedPowerState.Unpowered : DeployedPowerState.ControllerDisabled;
-        }
-
         private static DeployedPowerState? DerivePowerState(Type type, object module, object? cluster)
         {
             if (cluster == null)
@@ -6152,16 +5988,23 @@ namespace Gonogo.KSP
                     continue;
                 }
 
-                var fields = ArchiveSubjectFields(subject.id);
+                var experimentId = subject.id.Split('@')[0];
+                var experiment = ResearchAndDevelopment.GetExperiment(experimentId);
+                var experimentTitle = experiment != null && !string.IsNullOrEmpty(experiment.experimentTitle)
+                    ? experiment.experimentTitle
+                    : experimentId;
+
+                var body = ScienceUtil.GetExperimentBodyName(subject.id);
+                ScienceUtil.GetExperimentFieldsFromScienceID(subject.id, out _, out string situation, out string biome);
 
                 list.Add(new Dictionary<string, object?>
                 {
                     ["subjectId"] = subject.id,
-                    ["experimentId"] = fields.ExperimentId,
-                    ["experimentTitle"] = fields.ExperimentTitle,
-                    ["body"] = fields.Body,
-                    ["situation"] = fields.Situation,
-                    ["biome"] = fields.Biome,
+                    ["experimentId"] = experimentId,
+                    ["experimentTitle"] = experimentTitle,
+                    ["body"] = body,
+                    ["situation"] = situation,
+                    ["biome"] = biome,
                     ["title"] = subject.title,
                     ["science"] = (double)subject.science,
                     ["scienceCap"] = (double)subject.scienceCap,
@@ -6171,61 +6014,6 @@ namespace Gonogo.KSP
             }
 
             return list;
-        }
-
-        /// <summary>What a subject id names, parsed once per id.</summary>
-        private sealed class SubjectFields
-        {
-            public SubjectFields(string experimentId, string experimentTitle, string? body, string? situation, string? biome)
-            {
-                ExperimentId = experimentId;
-                ExperimentTitle = experimentTitle;
-                Body = body;
-                Situation = situation;
-                Biome = biome;
-            }
-
-            public string ExperimentId { get; }
-            public string ExperimentTitle { get; }
-            public string? Body { get; }
-            public string? Situation { get; }
-            public string? Biome { get; }
-        }
-
-        private static readonly Dictionary<string, SubjectFields> ArchiveSubjectFieldsById =
-            new Dictionary<string, SubjectFields>(StringComparer.Ordinal);
-
-        /// <summary>
-        /// The experiment, body, situation and biome a subject id names. A subject id
-        /// never changes and neither do the installed experiment definitions, so each
-        /// id is parsed once: <c>GetExperiment</c> logs a line for every subject whose
-        /// experiment is no longer installed, every time it is asked. A part stock
-        /// cannot parse comes back as an empty string, which is absence and is null
-        /// here.
-        /// </summary>
-        private static SubjectFields ArchiveSubjectFields(string subjectId)
-        {
-            if (ArchiveSubjectFieldsById.TryGetValue(subjectId, out var cached))
-            {
-                return cached;
-            }
-
-            var experimentId = subjectId.Split('@')[0];
-            var experiment = ResearchAndDevelopment.GetExperiment(experimentId);
-            var experimentTitle = experiment != null && !string.IsNullOrEmpty(experiment.experimentTitle)
-                ? experiment.experimentTitle
-                : experimentId;
-            var body = ScienceUtil.GetExperimentBodyName(subjectId);
-            ScienceUtil.GetExperimentFieldsFromScienceID(subjectId, out _, out string situation, out string biome);
-
-            var fields = new SubjectFields(
-                experimentId,
-                experimentTitle,
-                string.IsNullOrEmpty(body) ? null : body,
-                string.IsNullOrEmpty(situation) ? null : situation,
-                string.IsNullOrEmpty(biome) ? null : biome);
-            ArchiveSubjectFieldsById[subjectId] = fields;
-            return fields;
         }
 
         /// <summary>
@@ -6272,20 +6060,9 @@ namespace Gonogo.KSP
                 return value;
             }
 
-            // Once per member: a renamed member fails on every part, every sample.
-            bool first;
-            lock (ReportedReflectiveFailures)
-            {
-                first = ReportedReflectiveFailures.Add(type.FullName + "." + name);
-            }
-            if (first)
-            {
-                Debug.LogWarning("[Gonogo] reflective read failed, omitting: " + failure);
-            }
+            Debug.LogWarning("[Gonogo] reflective read failed, omitting: " + failure);
             return null;
         }
-
-        private static readonly HashSet<string> ReportedReflectiveFailures = new HashSet<string>(StringComparer.Ordinal);
 
         private static string? ReflectString(Type type, object instance, string name) =>
             ReflectMemberValue(type, instance, name) as string;
@@ -6406,11 +6183,9 @@ namespace Gonogo.KSP
         /// panel's live <c>flowRate</c> and each alternator's live
         /// <c>outputRate</c>. Fuel-cell output and consumption are not cheaply
         /// derivable here and are left to the consumer. Each part's read is
-        /// individually try/caught so one bad part can't blank the whole group,
-        /// and a producer whose read threw leaves the total null rather than
-        /// short. Null when the vessel carries no solar panel, battery,
-        /// electric-charge converter or alternator at all, and every part was
-        /// read.
+        /// individually try/caught so one bad part can't blank the whole group.
+        /// Null when the vessel carries no solar panel, battery, electric-charge
+        /// converter or alternator at all.
         /// </summary>
         private static Dictionary<string, object?>? BuildPartsPower(Vessel vessel)
         {
@@ -6421,10 +6196,6 @@ namespace Gonogo.KSP
             }
 
             var anyPowerPart = false;
-            // A part whose read threw may or may not carry power, and when it is
-            // a producer the total is short by an unknown amount.
-            var anyPartUnreadable = false;
-            var productionUnreadable = false;
             double totalProduction = 0;
 
             foreach (var part in parts)
@@ -6455,8 +6226,6 @@ namespace Gonogo.KSP
                 catch (Exception ex)
                 {
                     Debug.LogWarning("[Gonogo] parts.power solar read failed on \"" + partName + "\", skipping: " + ex);
-                    anyPartUnreadable = true;
-                    productionUnreadable = true;
                 }
 
                 try
@@ -6474,7 +6243,6 @@ namespace Gonogo.KSP
                 catch (Exception ex)
                 {
                     Debug.LogWarning("[Gonogo] parts.power battery read failed on \"" + partName + "\", skipping: " + ex);
-                    anyPartUnreadable = true;
                 }
 
                 try
@@ -6507,7 +6275,6 @@ namespace Gonogo.KSP
                 catch (Exception ex)
                 {
                     Debug.LogWarning("[Gonogo] parts.power fuel cell read failed on \"" + partName + "\", skipping: " + ex);
-                    anyPartUnreadable = true;
                 }
 
                 try
@@ -6529,19 +6296,17 @@ namespace Gonogo.KSP
                 catch (Exception ex)
                 {
                     Debug.LogWarning("[Gonogo] parts.power alternator read failed on \"" + partName + "\", skipping: " + ex);
-                    anyPartUnreadable = true;
-                    productionUnreadable = true;
                 }
             }
 
-            if (!anyPowerPart && !anyPartUnreadable)
+            if (!anyPowerPart)
             {
                 return null;
             }
 
             return new Dictionary<string, object?>
             {
-                ["totalProductionEc"] = productionUnreadable ? null : (double?)totalProduction,
+                ["totalProductionEc"] = totalProduction,
             };
         }
 
@@ -6710,10 +6475,12 @@ namespace Gonogo.KSP
                 // null, never a fabricated sub-zero-Kelvin reading.
                 ["skinMaxTemp"] = part.skinMaxTemp > 0 ? part.skinMaxTemp : (double?)null,
                 ["currentTemp"] = part.temperature >= 0 ? part.temperature : (double?)null,
-                // Part leaves skinTemperature at 0 rather than -1 until physics
-                // runs, and no real part sits at absolute zero, so 0 K is the
-                // unsimulated reading here.
-                ["skinTemp"] = part.skinTemperature > 0 ? part.skinTemperature : (double?)null,
+                // skinTemp needs no such guard and the asymmetry is deliberate:
+                // Part declares `skinMaxTemp = -1.0` but leaves skinTemperature
+                // at 0, so -1 is never its value. Its uninitialised reading is
+                // 0 K, which PASSES the >= 0 guard used above, so a 0 here is an
+                // unsimulated part rather than a cold one.
+                ["skinTemp"] = part.skinTemperature,
                 ["category"] = part.partInfo != null ? part.partInfo.category.ToString() : null,
                 // The ordinal is what the client branches on; the name is its
                 // display label. `PartCategories.none` is -1, a real value.
@@ -7328,7 +7095,7 @@ namespace Gonogo.KSP
                     }
 
                     var rcType = module.GetType();
-                    var armed = ReflectBool(rcType, module, "armed");
+                    var armed = ReflectBool(rcType, module, "armed") ?? false;
                     if (ReflectMemberValue(rcType, module, "parachutes") is System.Collections.IEnumerable canopies)
                     {
                         foreach (var canopy in canopies)
@@ -7475,12 +7242,12 @@ namespace Gonogo.KSP
         /// mirroring stock active -> "armed"; the pre/low/full deployed stages
         /// all collapse to "extended" like stock SEMIDEPLOYED/DEPLOYED.
         /// </summary>
-        private static string MapRealChuteState(string? depState, bool? armed)
+        private static string MapRealChuteState(string? depState, bool armed)
         {
             switch (depState)
             {
                 case "STOWED":
-                    return armed == null ? "unknown" : armed.Value ? "armed" : "stowed";
+                    return armed ? "armed" : "stowed";
                 case "LOWDEPLOYED":
                 case "PREDEPLOYED":
                 case "DEPLOYED":
@@ -7546,19 +7313,16 @@ namespace Gonogo.KSP
         /// precision concern); the <c>Total*</c> rollups are already
         /// <c>double</c>.</para>
         ///
-        /// <para><b>Readiness.</b> When the stock sim is not yet ready it is
-        /// asked to calculate once per craft (<c>SetCalcsDirty</c>) so a later
-        /// sample reads a clean result, and the group is omitted this tick
+        /// <para><b>Readiness.</b> In the flight scene the stock sim can be
+        /// dormant. When it is not yet ready we kick it once
+        /// (<c>EnableStockSimluation</c> + <c>SetCalcsDirty</c>) so a subsequent
+        /// sample reads a clean result, and omit the group this tick
         /// (return null) rather than block <c>Sample()</c> on it, the
         /// <c>TryBuildGroup</c> + null-return pattern carries "not ready yet"
-        /// straight through to the provider as a null payload. A sim that is
-        /// switched off is left off and the group omitted: the switch is the
-        /// player's ΔV setting or a mod that replaces the calculation, and
-        /// turning it back on overrides either.</para>
+        /// straight through to the provider as a null payload. Whether the
+        /// flight-scene sim is live by default is not decompile-resolvable, so
+        /// this self-heals either way.</para>
         /// </summary>
-        /// <summary>The craft whose stock ΔV sim was last asked to calculate and has not answered yet.</summary>
-        private static Guid _deltaVAskedFor;
-
         private static Dictionary<string, object?>? BuildDeltaV(Vessel vessel)
         {
             var dv = vessel.VesselDeltaV;
@@ -7569,14 +7333,14 @@ namespace Gonogo.KSP
 
             if (!dv.IsReady)
             {
-                if (dv.DoStockSimulation && vessel.id != _deltaVAskedFor)
+                // Stock sim dormant: request it, then read on a later tick.
+                if (!dv.DoStockSimulation)
                 {
-                    dv.SetCalcsDirty(false);
-                    _deltaVAskedFor = vessel.id;
+                    dv.EnableStockSimluation();
                 }
+                dv.SetCalcsDirty(false);
                 return null;
             }
-            _deltaVAskedFor = Guid.Empty;
 
             var stages = dv.OperatingStageInfo;
             var stageList = new List<object?>();

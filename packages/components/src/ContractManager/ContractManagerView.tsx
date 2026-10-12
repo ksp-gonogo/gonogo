@@ -46,7 +46,6 @@ export function ContractManagerComponent({
   const activeRaw = contracts?.active;
   const offeredRaw = contracts?.offered;
   const recentRaw = contracts?.completedRecent;
-  const failedRaw = contracts?.failedRecent;
   const universalTime = useViewUt()?.magnitude;
   // Career actions dispatch at the meta-vantage, with no vessel signal delay.
   const acceptCmd = useCommand("career.contract.accept", {
@@ -61,7 +60,6 @@ export function ContractManagerComponent({
   const active = parseContracts(activeRaw);
   const offered = parseContracts(offeredRaw);
   const recent = parseContracts(recentRaw);
-  const failed = parseContracts(failedRaw);
 
   const rows = h ?? 8;
   const showSubtitle = rows >= 4;
@@ -88,7 +86,6 @@ export function ContractManagerComponent({
   const activeCount = active.length;
   const offeredCount = offered?.length ?? 0;
   const recentCount = recent?.length ?? 0;
-  const failedCount = failed?.length ?? 0;
 
   return (
     <Panel
@@ -100,7 +97,6 @@ export function ContractManagerComponent({
             <div style={SUMMARY_STYLE} role="status" aria-live="polite">
               {activeCount} active · {offeredCount} offered · {recentCount}{" "}
               recent
-              {failedCount > 0 && ` · ${failedCount} failed`}
             </div>
           )}
           {activeCount === 0 && offeredCount === 0 && (

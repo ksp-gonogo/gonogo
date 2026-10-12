@@ -1548,7 +1548,7 @@ namespace Sitrep.Host.IntegrationTests
     /// a coarse keyframe-on-change <see cref="EmissionPolicy"/> (a discrete
     /// one-shot "last event" channel, not a cadence stream), published via
     /// <see cref="PublishEvent"/> (an event-driven <see cref="IChannelPublisher.Publish"/>
-    /// call, exactly like <c>CrashUplink.PublishDeaths</c>'s
+    /// call, exactly like <c>CrashUplink.HandleCrash</c>'s
     /// <c>_lastCrash?.Publish(...)</c>), not a tick-mapped
     /// <see cref="IUplinkHost.AddChannelSource"/>: so a test can publish an
     /// event at an arbitrary UT independent of the tick snapshot, the same

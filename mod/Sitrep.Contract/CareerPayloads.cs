@@ -227,8 +227,7 @@ public class CareerFacility
     /// <summary>
     /// The price of upgrading to the next tier, as KSP's
     /// <c>UpgradeableFacility.GetUpgradeCost</c> prices it (the save's funds
-    /// difficulty multiplier applied). <c>null</c> at the top tier, where there
-    /// is no upgrade to price, and when it could not be read.
+    /// difficulty multiplier applied). <c>null</c> when it could not be read.
     /// </summary>
     [SitrepUnit(Units.Funds)]
     public double? UpgradeCost { get; set; }
@@ -266,25 +265,11 @@ public class CareerContracts
     /// </internal>
     /// </summary>
     public List<CareerContract> CompletedRecent { get; set; } = new();
-
-    /// <summary>The most recently failed contracts, at most 10:
-    /// <c>State.Failed</c> contracts from
-    /// <c>ContractSystem.Instance.ContractsFinished</c>, sorted newest-first by
-    /// <c>Contract.DateFinished</c>. Same <see cref="CareerContract"/> element
-    /// shape as <see cref="Active"/>; <c>State</c> is always <c>"Failed"</c>
-    /// here. A contract fails in the same stock call as the objective that
-    /// failed it, so this is where that objective's final state is read.
-    /// <internal>
-    /// Filled by <c>Gonogo.KSP.KspHost.BuildCareerContracts</c>.
-    /// </internal>
-    /// </summary>
-    public List<CareerContract> FailedRecent { get; set; } = new();
 }
 
 /// <summary>One contract in <see cref="CareerContracts.Active"/>, <see
-/// cref="CareerContracts.Offered"/>, <see
-/// cref="CareerContracts.CompletedRecent"/> or <see
-/// cref="CareerContracts.FailedRecent"/>.</summary>
+/// cref="CareerContracts.Offered"/> or <see
+/// cref="CareerContracts.CompletedRecent"/>.</summary>
 /// <category>Career</category>
 [SitrepContract]
 #if SITREP_CODEGEN

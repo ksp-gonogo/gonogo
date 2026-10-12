@@ -9,7 +9,7 @@ namespace Sitrep.Host
     /// </summary>
     public readonly struct ParachuteReading
     {
-        /// <summary><c>stowed</c> / <c>armed</c> / <c>semi-deployed</c> / <c>deployed</c> / <c>cut</c>, or <see cref="ParachuteSummary.Unknown"/> for a stowed canopy whose arming could not be read.</summary>
+        /// <summary><c>stowed</c> / <c>armed</c> / <c>semi-deployed</c> / <c>deployed</c> / <c>cut</c>.</summary>
         public string Deployment { get; }
 
         /// <summary><c>safe</c> / <c>risky</c> / <c>unsafe</c>, or null where the game gives no rating.</summary>
@@ -33,9 +33,6 @@ namespace Sitrep.Host
     /// </summary>
     public static class ParachuteSummary
     {
-        /// <summary>A stowed parachute that may or may not be armed: its mod's arming flag could not be read.</summary>
-        public const string Unknown = "unknown";
-
         /// <summary>How far along each deployment is: the furthest along speaks for the craft.</summary>
         private static int Stage(string deployment)
         {
@@ -73,8 +70,7 @@ namespace Sitrep.Host
         /// <summary>
         /// The fields for these parachutes. <c>parachuteDeployment</c> is the
         /// furthest along among those not cut, <c>"cut"</c> when every one is,
-        /// and <c>"none"</c> for a craft with none; null when a parachute whose
-        /// arming could not be read might be the furthest along. <c>parachuteDeploySafety</c>
+        /// and <c>"none"</c> for a craft with none. <c>parachuteDeploySafety</c>
         /// is the worst rating among those not yet open. <c>parachuteFullDeployAltitude</c>
         /// is the greatest height among those armed or semi-deployed, since that
         /// one opens first. A field nothing speaks for is null.
@@ -87,17 +83,11 @@ namespace Sitrep.Host
             int worstDanger = -1;
             double? opensAt = null;
             bool anyCut = false;
-            bool anyUnknown = false;
             foreach (var chute in chutes)
             {
                 if (chute.Deployment == "cut")
                 {
                     anyCut = true;
-                    continue;
-                }
-                if (chute.Deployment == Unknown)
-                {
-                    anyUnknown = true;
                     continue;
                 }
                 int stage = Stage(chute.Deployment);
@@ -117,11 +107,7 @@ namespace Sitrep.Host
                     opensAt = chute.FullDeployAltitude.Value;
                 }
             }
-            // An unknown canopy is stowed and possibly armed, so it is outranked
-            // only by one known to be armed or further along.
-            string? deployment = anyUnknown && furthestStage < Stage("armed")
-                ? null
-                : furthest ?? (anyCut ? "cut" : "none");
+            string deployment = furthest ?? (anyCut ? "cut" : "none");
             return new Dictionary<string, object?>
             {
                 ["parachuteDeployment"] = deployment,

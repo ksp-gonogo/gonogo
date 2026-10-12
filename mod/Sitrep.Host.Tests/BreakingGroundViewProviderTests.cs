@@ -361,39 +361,42 @@ namespace Sitrep.Host.Tests
                 Ut = 0.0,
                 Values = new Dictionary<string, object?>
                 {
-                    ["deployedScience"] = new List<object?>
+                    ["science"] = new Dictionary<string, object?>
                     {
-                        new Dictionary<string, object?>
+                        ["deployed"] = new List<object?>
                         {
-                            ["vesselName"] = "Probodobodyne Experiment Control Station",
-                            ["partName"] = "Atmospheric Fluid Spectro-Variometer",
-                            ["body"] = "Mun",
-                            ["situation"] = "LANDED",
-                            ["biome"] = "Highlands",
-                            ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
-                            ["scienceCompletedPercentage"] = 42.5,
-                            ["scienceTransmittedPercentage"] = 10.0,
-                            ["scienceValue"] = 8.0,
-                            ["scienceLimit"] = 20.0,
-                            ["powerState"] = "Powered",
-                            ["connectionState"] = "Connected",
-                            ["deployedOnGround"] = true,
-                        },
-                        new Dictionary<string, object?>
-                        {
-                            ["vesselName"] = "Deployed Seismometer Site",
-                            ["partName"] = "Seismic Accelerometer",
-                            ["body"] = "Mun",
-                            ["situation"] = "LANDED",
-                            ["biome"] = "Midlands",
-                            ["experimentId"] = "surfaceExperimentSeismicAccelerometer",
-                            ["scienceCompletedPercentage"] = 0.0,
-                            ["scienceTransmittedPercentage"] = 0.0,
-                            ["scienceValue"] = 12.0,
-                            ["scienceLimit"] = 30.0,
-                            ["powerState"] = "NoPower",
-                            ["connectionState"] = "NotConnected",
-                            ["deployedOnGround"] = true,
+                            new Dictionary<string, object?>
+                            {
+                                ["vesselName"] = "Probodobodyne Experiment Control Station",
+                                ["partName"] = "Atmospheric Fluid Spectro-Variometer",
+                                ["body"] = "Mun",
+                                ["situation"] = "LANDED",
+                                ["biome"] = "Highlands",
+                                ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
+                                ["scienceCompletedPercentage"] = 42.5,
+                                ["scienceTransmittedPercentage"] = 10.0,
+                                ["scienceValue"] = 8.0,
+                                ["scienceLimit"] = 20.0,
+                                ["powerState"] = "Powered",
+                                ["connectionState"] = "Connected",
+                                ["deployedOnGround"] = true,
+                            },
+                            new Dictionary<string, object?>
+                            {
+                                ["vesselName"] = "Deployed Seismometer Site",
+                                ["partName"] = "Seismic Accelerometer",
+                                ["body"] = "Mun",
+                                ["situation"] = "LANDED",
+                                ["biome"] = "Midlands",
+                                ["experimentId"] = "surfaceExperimentSeismicAccelerometer",
+                                ["scienceCompletedPercentage"] = 0.0,
+                                ["scienceTransmittedPercentage"] = 0.0,
+                                ["scienceValue"] = 12.0,
+                                ["scienceLimit"] = 30.0,
+                                ["powerState"] = "NoPower",
+                                ["connectionState"] = "NotConnected",
+                                ["deployedOnGround"] = true,
+                            },
                         },
                     },
                 },
@@ -442,20 +445,6 @@ namespace Sitrep.Host.Tests
             };
 
             Assert.Null(BreakingGroundViewProvider.BuildDeployed(snapshot));
-        }
-
-        [Fact]
-        public void BuildDeployed_AnEmptyRosterIsAnEmptyListNotNull()
-        {
-            // Breaking Ground installed and nothing deployed: a complete answer.
-            var snapshot = new KspSnapshot
-            {
-                Ut = 0.0,
-                Values = new Dictionary<string, object?> { ["deployedScience"] = new List<object?>() },
-            };
-
-            var list = Assert.IsType<List<object?>>(BreakingGroundViewProvider.BuildDeployed(snapshot));
-            Assert.Empty(list);
         }
     }
 }

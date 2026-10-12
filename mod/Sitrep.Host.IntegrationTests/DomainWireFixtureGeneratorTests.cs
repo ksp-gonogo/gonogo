@@ -919,7 +919,10 @@ namespace Sitrep.Host.IntegrationTests
                         // identical.
                         Values = new Dictionary<string, object?>
                         {
-                            ["deployedScience"] = BuildSyntheticDeployedScienceRaw(),
+                            ["science"] = new Dictionary<string, object?>
+                            {
+                                ["deployed"] = BuildSyntheticDeployedScienceRaw(),
+                            },
                         },
                     },
                 });

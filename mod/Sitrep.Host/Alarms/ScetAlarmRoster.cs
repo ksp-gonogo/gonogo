@@ -171,8 +171,6 @@ namespace Sitrep.Host.Alarms
 
         private double? _lastEvaluatedUt;
 
-        private string? _game;
-
         /// <summary>
         /// Whether an <see cref="Arm"/> or a <see cref="Disarm"/> has moved the
         /// roster since the last <see cref="Evaluate"/> reported on it.
@@ -198,36 +196,6 @@ namespace Sitrep.Host.Alarms
 
         /// <summary>How many alarms are held, armed or fired. For a health report and for tests.</summary>
         public int Count => _entries.Count;
-
-        /// <summary>
-        /// Tell the roster which game is loaded, <paramref name="game"/> naming the
-        /// save and the load. A change from one game to another drops every alarm and
-        /// forgets the craft being flown: they belong to the game they were armed in,
-        /// and a later save's clock can stand anywhere relative to theirs, so the
-        /// rewind check cannot be relied on to clear them. Call it before
-        /// <see cref="ObserveFlownCraft"/> and <see cref="BeginTick"/>, or the first tick
-        /// of the new game evaluates the old one's alarms. Null names no game and
-        /// changes nothing. Returns whether the roster changed.
-        /// </summary>
-        public bool ObserveGame(string? game)
-        {
-            if (string.IsNullOrEmpty(game))
-            {
-                return false;
-            }
-            var previous = _game;
-            _game = game;
-            if (previous == null || string.Equals(previous, game, StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            FlownCraft = null;
-            _lastEvaluatedUt = null;
-            var cleared = Clear();
-            _pendingChange |= cleared;
-            return cleared;
-        }
 
         /// <summary>
         /// Tell the roster which craft is being flown, <paramref name="craft"/>
@@ -651,9 +619,8 @@ namespace Sitrep.Host.Alarms
         ///
         /// <para>Career bookkeeping belongs to the save rather than to a craft, so
         /// it is read at the <c>"game"</c> subject whatever the alarm names, and
-        /// a craft being lost says nothing about it. The alarm goes
-        /// <see cref="ScetAlarmState.Unreachable"/> when its contract has finished
-        /// with the objective in another state, or has left the career.</para>
+        /// a craft being lost says nothing about it: there is no
+        /// <see cref="ScetAlarmState.Unreachable"/> here.</para>
         /// </summary>
         private static void EvaluateContractParameter(
             Entry entry,
@@ -668,21 +635,9 @@ namespace Sitrep.Host.Alarms
             }
             var matched = ScetPayload.MatchContractParameter(
                 career, condition.ContractId ?? "", condition.ParameterTitle ?? "", condition.TargetState);
-            switch (matched)
+            if (matched is { } holds)
             {
-                case ContractParameterMatch.Holds:
-                    Held(entry, condition, holds: true, nowUt, tick);
-                    return;
-                case ContractParameterMatch.NotYet:
-                    Held(entry, condition, holds: false, nowUt, tick);
-                    return;
-                case ContractParameterMatch.Never:
-                    entry.Alarm.State = ScetAlarmState.Unreachable;
-                    entry.MatchSinceUt = null;
-                    tick.RosterChanged = true;
-                    return;
-                default:
-                    return;
+                Held(entry, condition, holds, nowUt, tick);
             }
         }
 

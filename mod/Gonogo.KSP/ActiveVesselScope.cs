@@ -84,19 +84,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// <see cref="Current"/> and <see cref="SubstitutedForEva"/> off one walk of the
-        /// book, for a reader whose rule differs for the craft a kerbal left: that craft
-        /// stays reported after it falls out of physics range, so it can be unloaded
-        /// while it is the vessel being reported.
-        /// </summary>
-        internal static Vessel? CurrentFor(out bool substitutedForEva)
-        {
-            var reported = Resolve(out var kspActive);
-            substitutedForEva = !ReferenceEquals(reported, null) && !ReferenceEquals(reported, kspActive);
-            return reported;
-        }
-
-        /// <summary>
         /// Both answers off one walk of the book, so
         /// <see cref="SubstitutedForEva"/> cannot come to disagree with
         /// <see cref="Current"/> about which craft is being reported.

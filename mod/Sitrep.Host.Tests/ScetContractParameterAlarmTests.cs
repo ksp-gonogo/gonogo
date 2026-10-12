@@ -112,7 +112,7 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void AContractThatLeftTheCareerGoesUnreachable()
+        public void AContractNoLongerActiveNeverComesDue()
         {
             var roster = new ScetAlarmRoster();
             roster.Arm(Objective(), "");
@@ -121,74 +121,7 @@ namespace Sitrep.Host.Tests
 
             Assert.Empty(tick.Fired);
             Assert.False(tick.StopWarp);
-            Assert.True(tick.RosterChanged);
-            Assert.Equal(ScetAlarmState.Unreachable, roster.Snapshot().Single().State);
         }
-
-        /// <summary>
-        /// Completing the last objective completes the contract in the same stock call,
-        /// so the objective is never seen Complete in the active list.
-        /// </summary>
-        [Fact]
-        public void TheLastObjectiveCompletingItsContractFires()
-        {
-            var roster = new ScetAlarmRoster();
-            roster.Arm(Objective(), "");
-            var reader = new CareerReader { Career = Career(("c-42", "Orbit the Mun", 0)) };
-            roster.Evaluate(10, reader);
-
-            reader.Career = Finished("completedRecent", "c-42", "Orbit the Mun", 1);
-            var tick = roster.Evaluate(11, reader);
-
-            Assert.Single(tick.Fired);
-        }
-
-        [Fact]
-        public void AnObjectiveFailingItsContractFiresAnAlarmWaitingForFailed()
-        {
-            var roster = new ScetAlarmRoster();
-            roster.Arm(Objective(target: KspParameterState.Failed), "");
-            var reader = new CareerReader { Career = Career(("c-42", "Orbit the Mun", 0)) };
-            roster.Evaluate(10, reader);
-
-            reader.Career = Finished("failedRecent", "c-42", "Orbit the Mun", 2);
-            var tick = roster.Evaluate(11, reader);
-
-            Assert.Single(tick.Fired);
-        }
-
-        [Fact]
-        public void AFinishedContractWithTheObjectiveElsewhereGoesUnreachable()
-        {
-            var roster = new ScetAlarmRoster();
-            roster.Arm(Objective(target: KspParameterState.Failed), "");
-
-            var tick = roster.Evaluate(10, new CareerReader { Career = Finished("completedRecent", "c-42", "Orbit the Mun", 1) });
-
-            Assert.Empty(tick.Fired);
-            Assert.Equal(ScetAlarmState.Unreachable, roster.Snapshot().Single().State);
-        }
-
-        private static IDictionary<string, object?> Finished(string list, string id, string title, int ordinal) =>
-            new Dictionary<string, object?>
-            {
-                ["meta"] = new Dictionary<string, object?> { ["source"] = "game" },
-                ["contracts"] = new Dictionary<string, object?>
-                {
-                    ["active"] = new List<object?>(),
-                    [list] = new List<object?>
-                    {
-                        new Dictionary<string, object?>
-                        {
-                            ["id"] = id,
-                            ["parameters"] = new List<object?>
-                            {
-                                new Dictionary<string, object?> { ["title"] = title, ["stateOrdinal"] = ordinal },
-                            },
-                        },
-                    },
-                },
-            };
 
         [Fact]
         public void MatchesOnTheOrdinalAndNotTheName()

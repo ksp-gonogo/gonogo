@@ -90,49 +90,6 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// An assembly that loads only some of its types can have lost the Uplink
-        /// itself, which then has no other trace: the scan names the assembly and
-        /// every reason a type failed, and still keeps the types that loaded.
-        /// </summary>
-        [Fact]
-        public void APartlyLoadedAssemblyIsReportedWithItsLoaderExceptions()
-        {
-            var lines = new List<string>();
-            var partial = new PartlyLoadedAssembly(
-                new[] { typeof(NormalDiscoverableUplink), null },
-                new Exception?[] { new TypeLoadException("Method 'Health' does not have an implementation."), null });
-
-            var found = UplinkDiscovery.Discover(new System.Reflection.Assembly[] { partial }, lines.Add);
-
-            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
-            var line = Assert.Single(lines, l => l.Contains(PartlyLoadedAssembly.Name));
-            Assert.Contains("Method 'Health' does not have an implementation.", line);
-        }
-
-        private sealed class PartlyLoadedAssembly : System.Reflection.Assembly
-        {
-            public const string Name = "PartlyLoadedUplinks, Version=1.0.0.0";
-
-            private readonly Type?[] _types;
-            private readonly Exception?[] _reasons;
-
-            public PartlyLoadedAssembly(Type?[] types, Exception?[] reasons)
-            {
-                _types = types;
-                _reasons = reasons;
-            }
-
-            public override string FullName => Name;
-
-            public override AssemblyName GetName() => new AssemblyName(Name);
-
-            public override AssemblyName[] GetReferencedAssemblies() =>
-                new[] { typeof(ISitrepUplink).Assembly.GetName() };
-
-            public override Type[] GetTypes() => throw new ReflectionTypeLoadException(_types, _reasons);
-        }
-
-        /// <summary>
         /// A registered Uplink says so through the engine's diagnostic sink, with its
         /// id and version, so a load that worked is as visible in KSP.log as one that
         /// was refused.
