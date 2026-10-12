@@ -1279,11 +1279,6 @@ namespace Sitrep.Host.Comms
                     }
                     vessels.Add(entry);
                 }
-                if (looked.VesselsUnread && vessels.Count == 0)
-                {
-                    // The game still holds its craft where its list cannot be read, so a centre that heard of none has nothing to say, which is not a list of none.
-                    continue;
-                }
                 _streams!.PublishAddressedTo(
                     VesselsTopic, new Dictionary<string, object?> { ["vessels"] = vessels }, looked.Ut, ToItself(centre));
                 sent++;

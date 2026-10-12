@@ -106,8 +106,6 @@ export interface CommitLayerProps {
   centreOfMass?: boolean;
   /** True once the vessel has touched down: the descent clocks are void and the hero shows landed. */
   landed?: boolean;
-  /** True while the flight's crash is on record: whatever the wreck still reports, the hero says the vessel was destroyed, never landed. */
-  crashed?: boolean;
   /** True when even an optimal burn cannot arrest the vessel in the remaining altitude; distinct from a nominal committed burn. */
   noLandingVector?: boolean;
   /** The touchdown speed of the best burn started now (`bestSpeedAtImpact`, m/s); the row holds the absent-value token when there is none. */
@@ -136,7 +134,6 @@ function resolveHero({
   committed,
   centreOfMass = false,
   landed = false,
-  crashed = false,
   noLandingVector = false,
   burning = false,
 }: Readonly<CommitLayerProps>): Hero {
@@ -147,7 +144,6 @@ function resolveHero({
     urgent = false,
   ): Hero => ({ value, caption, tone, urgent });
 
-  if (crashed) return hero("CRASHED", "VESSEL DESTROYED", "nogo");
   if (landed) return hero("LANDED", "TOUCHDOWN CONFIRMED", "go");
   // Committed to a hard impact whatever it does now.
   if (noLandingVector) return hero("NO LANDING VECTOR", "", "nogo");
@@ -193,9 +189,7 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
     // One row in every state: the parachutes on the way down, LANDED once down, blank while nothing is known, so no change of state moves what sits below the block.
     return (
       <Section role="status" aria-live="polite">
-        {props.crashed ? (
-          <Readout tone="nogo">CRASHED</Readout>
-        ) : props.landed ? (
+        {props.landed ? (
           <Readout tone="go">LANDED</Readout>
         ) : (
           (parachuteLine(props.parachute) ?? (
@@ -215,8 +209,7 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
   } = resolveHero(props);
 
   // A figure from the burn solve is withheld like the hero's instruction while any input to it is dated.
-  const showImpact =
-    impactSpeed != null && !props.landed && !props.crashed && props.mayInstruct;
+  const showImpact = impactSpeed != null && !props.landed && props.mayInstruct;
 
   // The ignition cue and a no-landing-vector are ABORT-class, so assertive; every other state is polite.
   const alarmed = urgent || noLandingVector;

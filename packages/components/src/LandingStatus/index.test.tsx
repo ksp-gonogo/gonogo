@@ -158,9 +158,8 @@ describe("LandingStatusComponent", () => {
     act(() => {
       emitVessel(stream, { body: MUN, quality: Quality.OnRails });
     });
-    expect(
-      await screen.findByText("No landing in progress"),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/vacuum/i)).toBeInTheDocument();
+    expect(screen.getByText("No landing in progress")).toBeInTheDocument();
   });
 
   it("does NOT report a survivable burn-now touchdown when horizontal velocity dominates", async () => {

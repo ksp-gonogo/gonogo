@@ -1,4 +1,11 @@
-import { Stack, Text, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  Readout,
+  ReadoutCaption,
+  Section,
+  Stack,
+  Text,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import type { LandingModel } from "./useLandingModel";
 
 type CrashReport = NonNullable<LandingModel["crash"]>;
@@ -16,7 +23,7 @@ function placeOf(crash: CrashReport): string {
 }
 
 /**
- * The crash that ended the flight, from the crash report alone: the vessel's own readings go with it, or what is left of it reports as if it had landed. The hero above says the vessel crashed; this says which vessel, where and what was lost.
+ * What stands in the descent's place once the vessel is gone: the crash that ended the flight. After impact the vessel's own readings are gone with it, so this is built from the crash report alone.
  */
 export function CrashOutcome({ crash }: Readonly<{ crash: CrashReport }>) {
   const lost = Array.isArray(crash.partsLost) ? crash.partsLost.length : 0;
@@ -26,6 +33,12 @@ export function CrashOutcome({ crash }: Readonly<{ crash: CrashReport }>) {
   const place = placeOf(crash);
   return (
     <Stack>
+      <Section role="alert" aria-live="assertive">
+        <Readout tone="nogo">
+          CRASHED
+          <ReadoutCaption>VESSEL DESTROYED</ReadoutCaption>
+        </Readout>
+      </Section>
       <Text level="muted">
         {[crash.vesselName, crash.body].filter(Boolean).join(" \u00b7 ")}
       </Text>

@@ -116,11 +116,11 @@ const HAND_DECLARED_PAYLOAD_TYPES: Readonly<Record<string, string>> =
  * of `Sitrep.Contract`; once a type's Topic moves to its owning Uplink's own
  * contract slice, this SDK's generated map has nothing for it, and
  * `wrapTopicPayload` would silently stop hydrating that Topic's quantities
- * into `Value`s. Mirrors `registerUplinkTopic`'s self-registration
+ * into `Value`s. Mirrors `registerBarePrimitiveTopic`'s self-registration
  * idiom (see `topics.ts`) for the numeric half of the same problem: each
  * relocated Uplink's own client package calls `registerTopicUnits` at module
  * load (fed from its own generated `units.ts`), alongside its
- * `registerUplinkTopic`/`declare module TopicPayloadMap` augmentation.
+ * `registerBarePrimitiveTopic`/`declare module TopicPayloadMap` augmentation.
  */
 const registeredTopicUnits = new Map<string, UnitsByField>();
 const registeredTopicShapes = new Map<string, ShapesByField>();
@@ -131,7 +131,7 @@ const registeredTopicEnums = new Map<string, EnumsByField>();
  * Registers the units of an Uplink Topic's fields, so its payload's numbers
  * arrive as `Value`s and its fields can be listed. Call it when the Uplink's
  * client package loads, with the maps from the Uplink's own generated
- * `units.ts`, beside {@link registerUplinkTopic}.
+ * `units.ts`, beside {@link registerBarePrimitiveTopic}.
  *
  * `shapes` names the fields that hold another payload type, `statics` the
  * fields whose values never change, and `enums` how each enum field reads as a
@@ -154,7 +154,7 @@ export function registerTopicUnits(
   registeredTopicEnums.set(topic, enums);
   // Changes what the Topic ENUMERATES without vouching that anything sends it:
   // a client-derived channel declares its fields here too, and nothing puts one
-  // on the wire. Which Topics are real is `registerUplinkTopic`'s
+  // on the wire. Which Topics are real is `registerBarePrimitiveTopic`'s
   // answer; see `runtime-topic-registry.ts`.
   noteRuntimeTopicMetadata();
 }

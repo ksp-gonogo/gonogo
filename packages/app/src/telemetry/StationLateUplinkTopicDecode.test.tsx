@@ -6,8 +6,8 @@ import {
 import {
   getRuntimeRegisteredTopicIds,
   isValue,
+  registerBarePrimitiveTopic,
   registerTopicUnits,
-  registerUplinkTopic,
   subscribeRuntimeTopicRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
 import { StubTransport } from "@ksp-gonogo/sitrep-sdk/testing";
@@ -112,7 +112,7 @@ function Probe({ topic = TOPIC }: { topic?: string }) {
 function LateLoader({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
-    registerUplinkTopic(TOPIC);
+    registerBarePrimitiveTopic(TOPIC);
     registerTopicUnits(TOPIC, { depth: UNIT });
     setLoaded(true);
   }, []);
@@ -192,7 +192,7 @@ describe("a station's Uplink registers its wire Topic after the store is built",
 
     // Registering now is what the real client module load does.
     act(() => {
-      registerUplinkTopic(EARLY_TOPIC);
+      registerBarePrimitiveTopic(EARLY_TOPIC);
       registerTopicUnits(EARLY_TOPIC, { depth: UNIT });
     });
     await waitFor(() =>

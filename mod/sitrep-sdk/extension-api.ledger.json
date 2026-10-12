@@ -8491,10 +8491,6 @@
         "note": "Takes an optional owner and returns each row with the owner whose contract declared it, so a decline is explained from the elected model's marks"
       },
       {
-        "key": "sitrep-sdk . registerBarePrimitiveTopic",
-        "note": "Renamed to registerUplinkTopic: it takes a Topic of any payload shape, not only a bare primitive"
-      },
-      {
         "key": "sitrep-sdk . registerErrorCodes",
         "note": "an Uplink's error code table is typed as refusals only"
       },
@@ -10939,10 +10935,6 @@
       {
         "key": "sitrep-sdk . poseAtIndex",
         "note": "Looks one body's pose up by its index, null when the instant has none"
-      },
-      {
-        "key": "sitrep-sdk . registerUplinkTopic",
-        "note": "Replaces registerBarePrimitiveTopic under a name that matches what it accepts, beside registerUplinkCommand and registerUplinkHandle"
       },
       {
         "key": "sitrep-sdk . rotatePerifocalToInertial",

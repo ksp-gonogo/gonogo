@@ -104,7 +104,7 @@ function LandingStatusComponent({
   const descending = !(board === "not-descending" && !landed);
 
   // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
-  const idle = crash ? "Crashed" : landed ? "Landed" : "Awaiting data";
+  const idle = landed ? "Landed" : "Awaiting data";
   const reservedPlots: PlotSlot[] = [
     // The view and the map that projects it sit side by side, so a point is matched across a gutter and not a row.
     { subject: "vessel-view", title: "Touchdown view", note: idle },
@@ -153,7 +153,6 @@ function LandingStatusComponent({
       commitInSeconds={clocks.commitInSeconds}
       committed={clocks.committed}
       landed={landed}
-      crashed={crash !== undefined}
       noLandingVector={noLandingVector}
       impactSpeed={solution.bestSpeedAtImpact}
       burning={model.burning}
@@ -197,22 +196,14 @@ function LandingStatusComponent({
     <Panel
       panelTitle="LANDING"
       // The link regime is the widget's state, so it sits in the header with the other state badges rather than in the body, where its width would move the rows.
-      // A live link is the ordinary state and says nothing; only a staged, autonomous or missing one does.
-      panelBadges={
-        clocks.regime === "live"
-          ? []
-          : [
-              {
-                id: "landing-regime",
-                label: REGIME_LABEL[clocks.regime],
-                tone: REGIME_TONE[clocks.regime],
-                title:
-                  "How the vessel's link to the ground is carrying this descent",
-              },
-            ]
-      }
-      // Nothing descending and no crash on record: the panel has nothing to present, so it gives its body over to the reason.
-      inactive={!descending && !crash ? "No landing in progress" : undefined}
+      panelBadges={[
+        {
+          id: "landing-regime",
+          label: REGIME_LABEL[clocks.regime],
+          tone: REGIME_TONE[clocks.regime],
+          title: "How the vessel's link to the ground is carrying this descent",
+        },
+      ]}
       // Planted sections go beside the altitude rail, in the readouts column, never under it.
       panelSections={false}
       // Host-derived: the panel watches every topic this widget declares.
@@ -222,7 +213,6 @@ function LandingStatusComponent({
         <Section key="link" full>
           <Stack>
             {commitLayerEl}
-            {crash && <CrashOutcome crash={crash} />}
             {descending && (
               <Text level="muted">
                 RT{" "}
@@ -252,6 +242,11 @@ function LandingStatusComponent({
         <Section key="descent" full>
           {!descending ? (
             <Stack>
+              {crash ? (
+                <CrashOutcome crash={crash} />
+              ) : (
+                <EmptyState>No landing in progress</EmptyState>
+              )}
               <WidgetSections />
             </Stack>
           ) : (

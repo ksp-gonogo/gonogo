@@ -127,42 +127,30 @@ describe("LandingStatus: what undefined means today", () => {
     });
   }
 
-  /** With nothing arrived the panel has nothing to present and says so; its header still says the link is unknown. */
-  it("gives the panel over to the empty state, with a NO LINK badge, when nothing has arrived", async () => {
+  /** With nothing arrived, no link and a closed real-time loop must not share a hero: the hero asks for a link. */
+  it("shows the empty state, a NO LINK regime and a hero that asks for a link when nothing has arrived", async () => {
     const { container } = renderWidget();
     await flushResizeObservers();
 
-    // The body: `solveSuicideBurn` returns "not-descending" for an undefined height, so `deriveBoard` suppresses every readout and the panel is inactive.
+    // The body: `solveSuicideBurn` returns "not-descending" for an undefined height, so `deriveBoard` suppresses every readout.
     expect(visibleText(container)).toContain("No landing in progress");
     // The header keeps talking: `classifyRegime` refuses to call an unknown link live.
     expect(screen.getByText("NO LINK")).toBeInTheDocument();
-    // Nothing of the descent stands beside the reason: no burn hero, no round trip, no body caption.
-    expect(visibleText(container)).not.toContain("BURN TIMING");
-    expect(screen.queryByText(/^RT /)).toBeNull();
-    expect(visibleText(container)).not.toContain("vacuum");
-    expect(visibleText(container)).not.toContain("atmospheric");
-  });
-
-  /** With a descent on the board and no link, no link and a closed real-time loop must not share a hero: the hero asks for a link. */
-  it("asks for a link in the hero when a descent has arrived and the link has not", async () => {
-    renderWidget();
-    act(() => {
-      emitMunDescent({
-        altitudeTerrain: 2000,
-        verticalSpeed: 40,
-        surfaceSpeed: 45,
-      });
-    });
-    const hero = await screen.findByRole("status");
-    expect(screen.getByText("NO LINK")).toBeInTheDocument();
+    // The hero agrees: no claim about burn timing, and it names the link as missing.
+    const hero = screen.getByRole("status");
     expect(hero).toHaveTextContent("BURN TIMING NEEDS A LINK");
     expect(hero).toHaveTextContent(NULL_DISPLAY);
     // Both the ignition countdown and the burn-GO clock assert a link state nothing has established.
     expect(hero).not.toHaveTextContent("SUICIDE BURN");
     expect(hero).not.toHaveTextContent("BURN GO IN");
+    // Nothing is descending, so there is no round trip to time and the empty state keeps the room.
+    expect(screen.queryByText(/^RT /)).toBeNull();
+    // No body caption: the widget declines to guess between atmospheric and vacuum.
+    expect(visibleText(container)).not.toContain("vacuum");
+    expect(visibleText(container)).not.toContain("atmospheric");
   });
 
-  it("drops the NO LINK badge the moment comms.delay arrives saying there is no delay, and shows no badge for a live link", async () => {
+  it("flips NO LINK to LIVE the moment comms.delay arrives saying there is no delay", async () => {
     // The two states differ only by whether the record exists: the same numbers, different words.
     renderWidget();
     expect(screen.getByText("NO LINK")).toBeInTheDocument();
@@ -171,8 +159,8 @@ describe("LandingStatus: what undefined means today", () => {
       stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
     });
 
-    await waitFor(() => expect(screen.queryByText("NO LINK")).toBeNull());
-    expect(screen.queryByText("LIVE")).toBeNull();
+    await waitFor(() => expect(screen.getByText("LIVE")).toBeInTheDocument());
+    expect(screen.queryByText("NO LINK")).toBeNull();
   });
 
   /**
@@ -188,11 +176,6 @@ describe("LandingStatus: what undefined means today", () => {
     await waitFor(() => expect(screen.getByText("STAGED")).toBeInTheDocument());
 
     act(() => {
-      emitMunDescent({
-        altitudeTerrain: 2000,
-        verticalSpeed: 40,
-        surfaceSpeed: 45,
-      });
       stream.emit("comms.delay", { source: 1, oneWaySeconds: null });
     });
     await waitFor(() =>
@@ -232,11 +215,6 @@ describe("LandingStatus: what undefined means today", () => {
     await waitFor(() => expect(screen.getByText("STAGED")).toBeInTheDocument());
 
     act(() => {
-      emitMunDescent({
-        altitudeTerrain: 2000,
-        verticalSpeed: 40,
-        surfaceSpeed: 45,
-      });
       stream.emit("comms.delay", { source: 0, oneWaySeconds: null });
     });
     await waitFor(() =>
@@ -248,7 +226,7 @@ describe("LandingStatus: what undefined means today", () => {
     expect(hero).not.toHaveTextContent("SUICIDE BURN");
   });
 
-  it("still reads a CommsDelaySource.None record as a live zero-delay link, which has no badge", async () => {
+  it("still reads a CommsDelaySource.None record as a LIVE zero-delay link", async () => {
     // Source None with value 0 is a LAN loop with genuinely no delay, so it stays live.
     renderWidget();
     expect(screen.getByText("NO LINK")).toBeInTheDocument();
@@ -257,8 +235,7 @@ describe("LandingStatus: what undefined means today", () => {
       stream.emit("comms.delay", { source: 0, oneWaySeconds: 0 });
     });
 
-    await waitFor(() => expect(screen.queryByText("NO LINK")).toBeNull());
-    expect(screen.queryByText("LIVE")).toBeNull();
+    await waitFor(() => expect(screen.getByText("LIVE")).toBeInTheDocument());
   });
 
   it("degrades to the root-part datum WITH a note when vessel.surface never arrives", async () => {

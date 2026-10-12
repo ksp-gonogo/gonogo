@@ -40,7 +40,7 @@
 // kill, so such Topics do NOT live here. Instead each owning Uplink's own client package
 // augments `TopicPayloadMap` (a `declare module "@ksp-gonogo/sitrep-sdk"` block, colocated
 // with the Uplink) for the TYPE, and self-registers the id at module load via
-// `registerUplinkTopic(...)` (mirrors the `registerComponent` idiom) for the
+// `registerBarePrimitiveTopic(...)` (mirrors the `registerComponent` idiom) for the
 // RUNTIME. `isTopicId`/`getAllKnownTopicIds` read that registry, so the SDK stays correct
 // without ever naming the string. Trade-off (accepted, matches the `SlotRegistry`
 // precedent): a dynamically-loaded Uplink never statically imported by a type-checking
@@ -275,7 +275,7 @@ interface SdkOwnedTopicPayloadMap
  *
  * An Uplink whose Topics are not in the Gonogo contract adds them by
  * augmenting this interface from its client package, and registers each id
- * at load with {@link registerUplinkTopic}:
+ * at load with {@link registerBarePrimitiveTopic}:
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -335,7 +335,7 @@ const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);
  * Runtime registry of bare-primitive Topic ids, the ids that carry a naked JSON
  * boolean and so have no named C# payload type for the codegen to reflect. Each
  * is owned by a single Uplink rather than the shared SDK, and each owning
- * Uplink's client package calls `registerUplinkTopic` at module load
+ * Uplink's client package calls `registerBarePrimitiveTopic` at module load
  * (mirrors the `registerComponent` self-registration idiom), so the SDK can
  * narrow/enumerate them without ever naming the mod token in this file. See the
  * file header's "Bare-primitive Uplink Topics" note.
@@ -355,7 +355,7 @@ const barePrimitiveTopicIds = new Set<string>();
  *
  * @category Reading telemetry
  */
-export function registerUplinkTopic(id: string): void {
+export function registerBarePrimitiveTopic(id: string): void {
   barePrimitiveTopicIds.add(id);
   // The runtime registry is what the field catalogue reads, so this call is also what makes an Uplink's Topic pickable. See `runtime-topic-registry.ts`.
   noteRuntimeTopic(id);
@@ -380,7 +380,7 @@ export function getAllKnownTopicIds(): readonly string[] {
 
 /**
  * Returns whether `value` is a known {@link TopicId}: one the SDK declares, or
- * one an Uplink has registered with {@link registerUplinkTopic}.
+ * one an Uplink has registered with {@link registerBarePrimitiveTopic}.
  *
  * @category Reading telemetry
  */

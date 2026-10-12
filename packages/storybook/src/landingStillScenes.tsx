@@ -5,7 +5,6 @@ import {
   STORY_RELIEF,
   streamFixture,
 } from "../../components/scripts/landingDescentModel";
-import { RequiresGuard } from "../../components/src/shared/RequiresGuard";
 import { DEFAULT_SIZE } from "../scripts/landingStorySize";
 import { WidgetScene } from "./WidgetScene";
 
@@ -64,43 +63,6 @@ export function LandingStill({
       fixture={fixture}
       w={w}
       h={h}
-    />
-  );
-}
-
-/** Landing Status on a dashboard whose game is in a scene other than the flight: the gate every flight widget stands behind. */
-export function LandingOutsideFlight({
-  scene,
-  w = DEFAULT_SIZE.w,
-  h = DEFAULT_SIZE.h,
-}: {
-  scene: "SpaceCenter" | "Editor" | "TrackingStation" | "MainMenu";
-  w?: number;
-  h?: number;
-}) {
-  return (
-    <WidgetScene
-      key={scene}
-      widgetId="landing-status"
-      fixture={{
-        _meta: { scenario: `the game is in ${scene}`, synthetic: true },
-        _stream: {
-          pinnedUt: 10,
-          emits: [
-            {
-              channel: "spaceCenter.scene",
-              value: { scene, launchSite: null },
-            },
-          ],
-        },
-      }}
-      w={w}
-      h={h}
-      wrap={(tree) => (
-        <RequiresGuard requires={["flight"]} title="LANDING">
-          {tree}
-        </RequiresGuard>
-      )}
     />
   );
 }

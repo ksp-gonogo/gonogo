@@ -3,7 +3,7 @@ import {
   type ContributionDefinition,
   type ContributionDep,
   registerAugment,
-  registerUplinkTopic,
+  registerBarePrimitiveTopic,
 } from "@ksp-gonogo/sitrep-sdk";
 import { registerContribution } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { ComponentType, ReactNode } from "react";
@@ -39,7 +39,7 @@ export function plantedSlots(): readonly string[] {
 function notePlanted(slot: string): void {
   if (planted.includes(slot)) return;
   planted.push(slot);
-  registerUplinkTopic(plantedSlotAvailableTopic(slot));
+  registerBarePrimitiveTopic(plantedSlotAvailableTopic(slot));
 }
 
 /** A dashed, labelled box naming the slot it fills, for a slot drawn in HTML. */
