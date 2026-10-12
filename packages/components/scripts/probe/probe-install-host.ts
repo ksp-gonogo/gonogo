@@ -20,24 +20,37 @@
  */
 import {
   AugmentSlot,
+  clearAugments,
+  clearContributions,
   defineUplinkClient,
+  getAugmentsForSlot,
+  getContributionsForSlot,
+  onContributionsChange,
   PerfBudget,
   registerAugment,
+  registerSetting,
+  registerSettingsTab,
   useActionInput,
+  useDataSources,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   getActiveTelemetryClient,
+  sendTogether,
   useCommand,
   useLatestValue,
+  useLateTelemetrySubscribe,
   useProcessor,
   useRouteCommands,
   useStream,
   useStreamEvent,
   useTelemetryClientOptional,
+  useTelemetryStoreOptional,
   useUtNow,
+  useViewClock,
+  useViewClockOptional,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
@@ -45,19 +58,42 @@ import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installTestHost({
   AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
+  clearAugments: () => {
+    clearAugments();
+  },
+  clearContributions: () => {
+    clearContributions();
+  },
   createPerfBudget: (opts) => new PerfBudget(opts),
   defineUplinkClient,
+  getAugmentsForSlot: (slot) =>
+    getAugmentsForSlot(slot) as ReturnType<GonogoHost["getAugmentsForSlot"]>,
+  getContributionsForSlot: (slot) =>
+    getContributionsForSlot(slot) as ReturnType<
+      GonogoHost["getContributionsForSlot"]
+    >,
   getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
     typeof installTestHost
   >[0]["getActiveTelemetryClient"],
   logger,
+  onContributionsChange: (cb) => onContributionsChange(cb),
   registerAugment: registerAugment as Parameters<
     typeof installTestHost
   >[0]["registerAugment"],
+  registerSetting: (def) =>
+    registerSetting(def as Parameters<typeof registerSetting>[0]),
+  registerSettingsTab: (def) =>
+    registerSettingsTab(def as Parameters<typeof registerSettingsTab>[0]),
+  sendTogether,
   useActionInput: (handlers) =>
     useActionInput(handlers as Parameters<typeof useActionInput>[0]),
   useCommand: ((command: string, options?: { vantage?: string }) =>
     useCommand(command, options)) as GonogoHost["useCommand"],
+  useDataSources: () => useDataSources(),
+  useLateTelemetrySubscribe: () =>
+    useLateTelemetrySubscribe() as ReturnType<
+      GonogoHost["useLateTelemetrySubscribe"]
+    >,
   useLatestValue,
   useProcessor: useProcessor as GonogoHost["useProcessor"],
   useRouteCommands: (topic) =>
@@ -71,6 +107,9 @@ installTestHost({
   useTelemetryClientOptional: useTelemetryClientOptional as Parameters<
     typeof installTestHost
   >[0]["useTelemetryClientOptional"],
+  useTelemetryStoreOptional: () => useTelemetryStoreOptional(),
   useUtNow,
+  useViewClock: () => useViewClock(),
+  useViewClockOptional: () => useViewClockOptional(),
   useViewUt: () => useViewUt(),
 });
