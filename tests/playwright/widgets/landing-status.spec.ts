@@ -1,7 +1,6 @@
 /**
  * Widget DOM mirror: LandingStatus. Asserts the panel header and the
- * "no landing in progress" empty state on host and station, and the
- * body-name subtitle on the host.
+ * "no landing in progress" notice on host and station.
  *
  * The fixture (`sitrep-stream-server.mjs`) has the vessel in a stable
  * Kerbin orbit:
@@ -10,22 +9,18 @@
  *
  * A positive vertical speed means the craft is not falling, so the
  * suicide-burn solve returns `not-descending` and, with the craft not
- * landed, the widget renders the "No landing in progress" EmptyState. An
- * absent vertical speed takes the same branch, so this text renders
- * identically with or without live data and is safe to check on both
- * screens.
- *
- * The "Kerbin · atmospheric" subtitle is different: it's gated on
- * `bodyName !== undefined` (`packages/components/src/LandingStatus/index.tsx`),
- * and only the main screen mounts `SitrepTelemetryProvider` today (station
- * stream forwarding over PeerJS is a documented pending gap, see that
- * provider's own doc comment): so it's checked on the host only.
+ * landed, the panel gives its whole body over to the "No landing in
+ * progress" notice (`Panel`'s `inactive`), with the header kept. An absent
+ * vertical speed takes the same branch, so this text renders identically
+ * with or without live data and is safe to check on both screens. The body
+ * line ("Kerbin · atmospheric") belongs to the descent board the notice
+ * replaces, so it is not drawn here.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 test.describe("widget DOM mirror: LandingStatus", () => {
-  test("orbit-state empty readout mirrors across host and station; subtitle on host", async ({
+  test("orbit-state idle notice mirrors across host and station", async ({
     browser,
   }) => {
     const pair = await bootstrapPair(browser, "landing-status", {
@@ -47,7 +42,7 @@ test.describe("widget DOM mirror: LandingStatus", () => {
 
     await expect(
       pair.main.getByText("Kerbin · atmospheric", { exact: true }),
-    ).toBeVisible({ timeout: 15_000 });
+    ).toHaveCount(0);
 
     await teardownPair(pair);
   });

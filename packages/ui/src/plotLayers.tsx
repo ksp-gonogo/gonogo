@@ -801,7 +801,7 @@ function MarkerLayer({
         strokeWidth={1.5}
         strokeLinecap="round"
       />
-    ) : (
+    ) : shape === "chevron-up" || shape === "chevron-down" ? (
       // An open chevron: a filled arrowhead would read as a direction of travel.
       <polyline
         {...common}
@@ -816,7 +816,7 @@ function MarkerLayer({
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    );
+    ) : null;
 
   return (
     <>
