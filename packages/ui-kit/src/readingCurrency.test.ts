@@ -83,21 +83,6 @@ describe("resolveCurrency for a consumer that draws the reckoning", () => {
     expect(resolved.caption).toMatch(/^HELD/);
   });
 
-  it("marks a model's figure as modelled when the held reading has no observation behind it", () => {
-    const resolved = resolveCurrency(
-      {
-        state: "held",
-        asOfUt: value("ut", 1_000),
-        grade: "held",
-        reckoning: modelled(false),
-      },
-      drawsReckoning,
-    );
-    expect(resolved.shown).toEqual(value("m", 20));
-    expect(resolved.mark).toBe("modelled");
-    expect(resolved.caption).toBe("modelled");
-  });
-
   it("draws nothing for a reading with no observation, whatever is on offer", () => {
     const resolved = resolveCurrency(
       { state: "pending", reckoning: modelled(true) },

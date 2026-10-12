@@ -183,7 +183,7 @@ function resolveHero({
     if (countdown <= 0) return hero("IGNITE", "SUICIDE BURN", "nogo", true);
     const urgent = countdown <= 5;
     return hero(
-      <Countdown value={value("s", countdown)} clock precise />,
+      <Countdown value={countdown} clock precise />,
       "SUICIDE BURN",
       urgent ? "nogo" : "warn",
       urgent,
@@ -194,7 +194,7 @@ function resolveHero({
   if (commitInSeconds == null)
     return hero(NULL_DISPLAY, "BURN GO IN", "neutral");
   return hero(
-    <Countdown value={value("s", commitInSeconds)} clock precise />,
+    <Countdown value={commitInSeconds} clock precise />,
     "BURN GO IN",
     "warn",
   );

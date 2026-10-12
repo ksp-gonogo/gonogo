@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import styled, { css } from "styled-components";
 import { focusRingInset } from "../focusRing";
 import { LiveRegion } from "../LiveRegion";
@@ -20,12 +20,7 @@ import {
   commandUndeliveredSentence,
   type RailUndelivered,
 } from "./commandUndeliveredSentence";
-import {
-  type CommandHandle,
-  useActiveHandles,
-  useDelayRailStore,
-} from "./DelayRailContext";
-import { claimRailAnnouncer } from "./railAnnouncer";
+import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
 import { railMark } from "./railTags";
 
 /**
@@ -75,8 +70,6 @@ function handleHasContent(handle: CommandHandle): boolean {
  */
 export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
   const handles = useActiveHandles();
-  const store = useDelayRailStore();
-  useEffect(() => (store ? claimRailAnnouncer(store) : undefined), [store]);
   const visible = handles.filter(handleHasContent);
   // Outcomes come from EVERY registered handle: a settled command has nothing in flight, so `handleHasContent` would hide it.
   const refusals: RailRefusal[] = handles.flatMap((h) =>
@@ -114,13 +107,6 @@ export function PanelDelayRail({ tiny }: { tiny?: boolean } = {}) {
    */
   const [suppressHoverPreview, setSuppressHoverPreview] = useState(false);
   const grown = pinned || (previewing && !suppressHoverPreview);
-  // With nothing left to show the rail unmounts, so a pin or preview left set would grow the next command's rail before anyone asked.
-  useEffect(() => {
-    if (hasContent) return;
-    setPinned(false);
-    setPreviewing(false);
-    setSuppressHoverPreview(false);
-  }, [hasContent]);
   const detailId = useId();
 
   // Growing the rail moves the title and body by ordinary flow; there is no height to measure or publish.

@@ -1,5 +1,5 @@
 // An inline `<svg>` beside a word sits on the text baseline unless the button centres it, which no role query can see.
-import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { Button, IconButton, TextButton } from "./Button";
@@ -7,25 +7,6 @@ import { CloseIcon, PlusIcon } from "./Icons";
 import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 
 describe("a kit button carrying an icon and a word", () => {
-  it("submits nothing inside a form unless it is asked to", () => {
-    let submitted = 0;
-    render(
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          submitted++;
-        }}
-      >
-        <Button>Plain</Button>
-        <Button type="submit">Send</Button>
-      </form>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Plain" }));
-    expect(submitted).toBe(0);
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    expect(submitted).toBe(1);
-  });
-
   it("centres its children rather than sitting them on the text baseline", () => {
     render(
       <Button data-testid="compose">

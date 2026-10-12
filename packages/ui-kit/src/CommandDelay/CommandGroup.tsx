@@ -25,7 +25,7 @@ interface CommandGroupOwnProps<GroupValue extends Record<string, unknown>> {
    * Always the action, never the glyph ("Commit framing", not "Return arrow").
    */
   commitAriaLabel?: string;
-  /** Why a gated commit is unavailable: the button's description, and its hover title. Absent, a gated commit states no reason. */
+  /** Why a gated commit is unavailable: the button's description, and its hover title. */
   gatedReason?: string;
   /**
    * Where the commit control sits relative to the inputs. `"column"` (default)
@@ -76,7 +76,7 @@ export function CommandGroup<GroupValue extends Record<string, unknown>>({
   children,
   commitLabel = "Commit",
   commitAriaLabel,
-  gatedReason,
+  gatedReason = "No path: command dispatch is disabled",
   orientation = "column",
   wrap = true,
 }: CommandGroupProps<GroupValue>) {
@@ -97,14 +97,12 @@ export function CommandGroup<GroupValue extends Record<string, unknown>>({
   return (
     <CommandGroup__Root data-gated={gated} $orientation={orientation}>
       <CommandGroup__Inputs $wrap={wrap}>{children}</CommandGroup__Inputs>
-      {gated && gatedReason && (
-        <VisuallyHidden id={reasonId}>{gatedReason}</VisuallyHidden>
-      )}
+      {gated && <VisuallyHidden id={reasonId}>{gatedReason}</VisuallyHidden>}
       <Tooltip text={gated ? gatedReason : undefined} announce={false}>
         <CommandGroup__CommitButton
           type="button"
           aria-disabled={gated || undefined}
-          aria-describedby={gated && gatedReason ? reasonId : undefined}
+          aria-describedby={gated ? reasonId : undefined}
           $gated={gated}
           $orientation={orientation}
           $icon={!named}

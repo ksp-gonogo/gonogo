@@ -371,7 +371,6 @@ function SlotAggregator({
     () => presenceKey(contribs, availability),
   );
   const budget = useMemo(() => getSlotPerfBudget(slot), [slot]);
-  const deregisterRef = useRef<(() => void) | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: `presence` is an intentional trigger, since the store keeps its identity when a Domain comes or goes.
   useEffect(() => {
@@ -408,19 +407,8 @@ function SlotAggregator({
     budget.record();
     store.update(slot, { entries: collected });
     // update() returns early on an unknown id, so the first write registers.
-    if (!current) {
-      deregisterRef.current = store.register({ id: slot, entries: collected });
-    }
+    if (!current) store.register({ id: slot, entries: collected });
   }, [contribs, topicValues, slot, store, budget, availability, presence]);
-
-  // The aggregator is keyed by its slot, so unmounting is the slot leaving the list; its entries go with it so a reader never sees what nothing is computing.
-  useEffect(
-    () => () => {
-      deregisterRef.current?.();
-      deregisterRef.current = null;
-    },
-    [],
-  );
 
   return null;
 }

@@ -45,7 +45,7 @@ const breakdownColumns = (
   {
     key: "subject",
     header: "Subject",
-    width: "100%",
+    width: "1fr",
     // KSP subject titles are whole sentences, so without a floor this column wraps a word per line.
     minWidth: "14ch",
     render: (b) => b.expTitle,
@@ -83,7 +83,7 @@ const experimentColumns = (
   {
     key: "subject",
     header: "Subject",
-    width: "100%",
+    width: "1fr",
     // KSP subject titles are whole sentences, so without a floor this column wraps a word per line.
     minWidth: "14ch",
     render: (e) => e.title,

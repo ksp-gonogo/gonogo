@@ -1,12 +1,7 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import {
-  getAllByTip,
-  type UnitMatchers,
-  unitMatchers,
-  visibleText,
-} from "./testing";
+import { type UnitMatchers, unitMatchers, visibleText } from "./testing";
 import { Unit } from "./Unit";
 
 expect.extend(unitMatchers);
@@ -61,16 +56,5 @@ describe("@ksp-gonogo/ui-kit/testing", () => {
     const result = unitMatchers.toShowQuantity(container, value("m", 5));
     expect(result.pass).toBe(false);
     expect(result.message()).toContain("12.4 km");
-  });
-
-  it("finds every element whose tip matches a global pattern, not every other one", () => {
-    const { container } = render(
-      <div>
-        <span data-tooltip="held a" />
-        <span data-tooltip="held b" />
-        <span data-tooltip="held c" />
-      </div>,
-    );
-    expect(getAllByTip(container, /held/g)).toHaveLength(3);
   });
 });

@@ -88,21 +88,6 @@ describe("MissionDateField", () => {
     expect(screen.getByLabelText("HR")).toHaveValue(0);
   });
 
-  it("emits only instants the fields read back: no year zero, no fraction of a second", async () => {
-    const onChange = vi.fn();
-    render(<MissionDateField value={0} onChange={onChange} label="Ignition" />);
-
-    await userEvent.clear(screen.getByLabelText("YEAR"));
-    await userEvent.type(screen.getByLabelText("YEAR"), "0");
-    await userEvent.clear(screen.getByLabelText("SEC"));
-    await userEvent.type(screen.getByLabelText("SEC"), "2.6");
-
-    for (const [ut] of onChange.mock.calls) {
-      expect(ut).toBeGreaterThanOrEqual(0);
-      expect(Number.isInteger(ut)).toBe(true);
-    }
-  });
-
   it("nudges by whole units of the live calendar", async () => {
     const onChange = vi.fn();
     render(

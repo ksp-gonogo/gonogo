@@ -45,7 +45,7 @@ export interface UsePanZoomOptions {
   ) => PanZoomCamera;
   /** Pixels a pointer must travel before a press counts as a pan rather than a click. */
   panThreshold?: number;
-  /** `false` leaves every gesture unbound (wheel, drag, pinch and keys), for a diagram that has nothing to move yet. */
+  /** `false` leaves the wheel unbound, for a diagram that has nothing to zoom yet. */
   enabled?: boolean;
   /** Element that takes the gestures, when the caller already holds a ref to it (for a size measurement); otherwise the hook makes its own. */
   elementRef?: RefObject<HTMLDivElement | null>;
@@ -222,7 +222,6 @@ export function usePanZoom(options: UsePanZoomOptions = {}): UsePanZoomResult {
   const [isDragging, setIsDragging] = useState(false);
 
   const onPointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
-    if (live.current.options.enabled === false) return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
     if (pointers.current.size === 2) {
@@ -241,21 +240,6 @@ export function usePanZoom(options: UsePanZoomOptions = {}): UsePanZoomResult {
   const onPointerMove = useCallback(
     (e: ReactPointerEvent<HTMLDivElement>) => {
       if (!pointers.current.has(e.pointerId)) return;
-      /*
-       * A mouse released outside the element while a press was still under the
-       * drag threshold never reports its release here. A move with no button
-       * down says the press is over.
-       */
-      if (e.pointerType === "mouse" && e.buttons === 0) {
-        pointers.current.delete(e.pointerId);
-        if (pointers.current.size === 0) {
-          lastPan.current = null;
-          pressStart.current = null;
-          lastPinch.current = null;
-          setIsDragging(false);
-        }
-        return;
-      }
       pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
       if (pointers.current.size >= 2) {
         const [a, b] = [...pointers.current.values()];
@@ -320,7 +304,6 @@ export function usePanZoom(options: UsePanZoomOptions = {}): UsePanZoomResult {
 
   const onKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLDivElement>) => {
-      if (live.current.options.enabled === false) return;
       if (e.target !== e.currentTarget) return;
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       const prev = live.current.camera;

@@ -106,12 +106,12 @@ export function ComposerBar({
       )}
       {children}
       {onSend !== undefined && (
+        /* The anchor is the wrapper, not the button: a disabled button raises no pointer events. */
         <ComposerBar__SendAnchor {...anchor}>
-          {/* aria-disabled rather than disabled, so the button keeps focus after the draft it sent empties and its tooltip stays reachable by keyboard. */}
           <ComposerBar__Send
             type="button"
-            aria-disabled={sendDisabled || undefined}
-            onClick={sendDisabled ? undefined : onSend}
+            disabled={sendDisabled}
+            onClick={onSend}
             $icon={sendVariant === "icon"}
             {...(sendTooltip ? { "aria-describedby": described } : {})}
             {...(sendVariant === "icon" ? { "aria-label": sendLabel } : {})}
@@ -120,7 +120,7 @@ export function ComposerBar({
           </ComposerBar__Send>
           {sendTooltip && (
             <VisuallyHidden id={described}>
-              {sendTooltip.replaceAll("\n", ". ")}
+              {sendTooltip.replace("\n", ". ")}
             </VisuallyHidden>
           )}
           {tip}
@@ -168,17 +168,16 @@ const ComposerBar__Prompt = styled.span`
 const ComposerBar__SendAnchor = styled.span`
   display: inline-flex;
 
+  /* A disabled button swallows pointer events, so they go to the anchor instead. */
+  > button:disabled {
+    pointer-events: none;
+  }
 `;
 
 const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
   flex: 0 0 auto;
   margin-left: auto;
   font-size: var(--font-size-compact);
-
-  &[aria-disabled="true"] {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
 
   ${({ $icon }) =>
     $icon &&

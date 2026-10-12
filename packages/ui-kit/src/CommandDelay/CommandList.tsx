@@ -17,7 +17,6 @@ import {
   commandUndeliveredSentence,
   type RailUndelivered,
 } from "./commandUndeliveredSentence";
-import { focusBesideDismissed } from "./focusBesideDismissed";
 import { railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
 
@@ -204,11 +203,7 @@ export function CommandList(props: Readonly<CommandListProps>) {
       {onDismiss && (
         <CommandList__Dismiss
           type="button"
-          data-dismiss=""
-          onClick={(event) => {
-            focusBesideDismissed(event.currentTarget);
-            onDismiss(box.id);
-          }}
+          onClick={() => onDismiss(box.id)}
           aria-label={box.dismissLabel}
         >
           ✕
@@ -222,7 +217,6 @@ export function CommandList(props: Readonly<CommandListProps>) {
       <CommandList__Region
         forwardedAs="div"
         aria-label={ariaLabel}
-        data-command-list=""
         additionsOnly
       >
         {boxes}
@@ -230,7 +224,7 @@ export function CommandList(props: Readonly<CommandListProps>) {
     );
   }
   return (
-    <CommandList__Root role="list" aria-label={ariaLabel} data-command-list="">
+    <CommandList__Root role="list" aria-label={ariaLabel}>
       {boxes}
     </CommandList__Root>
   );

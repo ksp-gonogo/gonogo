@@ -105,51 +105,6 @@ describe("usePanZoom", () => {
     expect(latest.camera.panX).toBe(0);
   });
 
-  it("lets go of a press the mouse released outside the element", () => {
-    render(<Diagram panThreshold={4} />);
-    const el = viewport();
-    fireEvent.pointerDown(el, {
-      pointerId: 1,
-      pointerType: "mouse",
-      clientX: 100,
-      clientY: 100,
-      button: 0,
-      buttons: 1,
-    });
-    // Released outside the element: no pointerup ever arrives here.
-    fireEvent.pointerMove(el, {
-      pointerId: 1,
-      pointerType: "mouse",
-      clientX: 101,
-      clientY: 100,
-      buttons: 0,
-    });
-    fireEvent.pointerMove(el, {
-      pointerId: 1,
-      pointerType: "mouse",
-      clientX: 160,
-      clientY: 100,
-      buttons: 0,
-    });
-    expect(latest.camera.panX).toBe(0);
-    expect(latest.isDragging).toBe(false);
-  });
-
-  it("takes no drag or key while it is disabled", () => {
-    render(<Diagram enabled={false} />);
-    const el = viewport();
-    fireEvent.pointerDown(el, {
-      pointerId: 1,
-      clientX: 100,
-      clientY: 100,
-      button: 0,
-    });
-    fireEvent.pointerMove(el, { pointerId: 1, clientX: 140, clientY: 90 });
-    fireEvent.keyDown(el, { key: "ArrowRight" });
-    expect(latest.camera.panX).toBe(0);
-    expect(latest.didPan()).toBe(false);
-  });
-
   it("zooms on a two-finger pinch", () => {
     render(<Diagram />);
     const el = viewport();

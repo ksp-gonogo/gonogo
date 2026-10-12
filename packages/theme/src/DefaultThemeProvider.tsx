@@ -13,16 +13,13 @@ export interface DefaultThemeProviderProps {
 
 /**
  * Mounts {@link defaultDarkTheme} in a styled-components `ThemeProvider`, the
- * same theme the app mounts. Useful for rendering a component outside the app
- * (a test, a story, a standalone page) whose own styles read `theme.colors`
- * through a styled-components callback.
+ * same theme the app mounts.
  *
- * The kit's components draw from the CSS variables that
- * `@ksp-gonogo/ui-kit/tokens.css` defines and read nothing off the theme
- * context, so import that sheet once: without it every colour and size is
- * unset, whichever theme is mounted. The theme's values are those same
- * variables, so a styled-components callback reading `theme.colors` gets
- * `var(--color-...)` strings.
+ * Kit components read `theme.colors` and throw without a theme in scope, so
+ * wrap anything that renders them outside the app (a test, a story, a
+ * standalone page) in this. The theme's values are CSS variables, which
+ * `@ksp-gonogo/ui-kit/tokens.css` defines: import that sheet once, or every
+ * colour and size is unset.
  *
  * @example
  * ```tsx

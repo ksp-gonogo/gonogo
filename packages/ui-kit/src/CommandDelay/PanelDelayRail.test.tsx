@@ -928,30 +928,6 @@ describe("PanelDelayRail", () => {
     });
   });
 
-  it("does not start the next command's rail already pinned", async () => {
-    const user = userEvent.setup();
-    const store = createDelayRailStore();
-    const deregister = store.register(handle("cmd"));
-    const { container } = inPanel(<PanelDelayRail />, store);
-    await user.click(
-      screen.getByRole("button", { name: /signal-delay detail/i }),
-    );
-    expect(container.querySelector("[data-panel-rail]")).toHaveAttribute(
-      "data-pinned",
-      "true",
-    );
-    act(() => deregister());
-    expect(container.querySelector("[data-panel-rail]")).toBeNull();
-
-    act(() => {
-      store.register(handle("next"));
-    });
-    expect(container.querySelector("[data-panel-rail]")).toHaveAttribute(
-      "data-pinned",
-      "false",
-    );
-  });
-
   it("keeps the band when the last command completes under an open rail, and gives the detail back", async () => {
     const user = userEvent.setup();
     const store = createDelayRailStore();

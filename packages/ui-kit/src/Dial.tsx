@@ -227,9 +227,7 @@ export function Dial<Unit extends string = string>({
   const { anchor, tip } = useTooltip(caption);
 
   // The axis, unwrapped once into the face's angular geometry; every figure a reader sees goes back out through the unit layer.
-  // A present but non-finite magnitude is no figure at all, the same as a null reading.
   const current = shown?.magnitude ?? Number.NaN;
-  const finite = Number.isFinite(current) ? shown : null;
   const axisMin = min.magnitude;
   const axisMax = max.magnitude;
   const span = axisMax - axisMin;
@@ -240,21 +238,16 @@ export function Dial<Unit extends string = string>({
         ? axisMin + ((((safe - axisMin) % span) + span) % span)
         : Math.max(axisMin, Math.min(axisMax, safe))
       : axisMin;
-  // No number, no needle. A compass wraps its figure onto the axis; every other face writes the reading as it is and only pins the needle.
-  const hasFigure = finite != null;
-  const face =
-    finite == null
-      ? null
-      : { magnitude: wrap ? display : current, unit: finite.unit };
+  // No number, no needle; a present but non-finite number still falls back to the start of the scale.
+  const hasFigure = shown != null;
+  const face = shown == null ? null : { magnitude: display, unit: shown.unit };
   // An SVG `<text>` cannot contain a `<span>`, so this uses `writeQuantity`, with `speakQuantity` for `aria-valuetext`.
   const centreLabel =
     valueLabel ?? (face === null ? null : writeQuantity(face, { format }));
   const spoken = face === null ? NULL_DISPLAY : speakQuantity(face, { format });
   // The model's interval, narrowed to the figure's own unit.
   const interval =
-    finite == null || band === null
-      ? null
-      : (bandIn(band, finite.unit) ?? null);
+    shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
 
   const raised = readout !== undefined && sweep <= 180;
   const trackThickness = raised ? RAISED.track : TRACK_THICKNESS;

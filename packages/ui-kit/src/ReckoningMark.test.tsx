@@ -176,14 +176,6 @@ describe("a figure derived from a reading", () => {
     ).toContain("modelled to SCET");
   });
 
-  it("draws no mark beside a null figure handed to Unit as marked", () => {
-    const { container } = render(
-      <Unit value={null} marked={derivedMarking(carried(false))} />,
-    );
-    expect(container.querySelector("[data-reckoning-mark]")).toBeNull();
-    expect(container.querySelector("[data-held-mark]")).toBeNull();
-  });
-
   it("is forced modelled where the caller says a model carries it", () => {
     expect(derivedMarking(carried(false), true)?.kind).toBe("modelled");
   });

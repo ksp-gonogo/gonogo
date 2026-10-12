@@ -525,7 +525,7 @@ function Countdowns() {
     [
       "To a known instant",
       "computed each frame, so it moves whatever the link does",
-      <Countdown key="a" value={value("s", 90)} clock />,
+      <Countdown key="a" value={90} clock />,
     ],
     [
       "A reported remaining, carried",

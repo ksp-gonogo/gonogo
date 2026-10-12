@@ -6,14 +6,8 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
-import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { commandLossSentence } from "../CommandDelay/commandLossSentence";
-import {
-  createDelayRailStore,
-  DelayRailContext,
-} from "../CommandDelay/DelayRailContext";
-import { PanelDelayRail } from "../CommandDelay/PanelDelayRail";
 import { expectNoA11yViolations } from "../expectNoA11yViolations";
 import { emittedStateRuleFor } from "../test/emittedRule";
 import {
@@ -93,82 +87,6 @@ describe("CommandButton: single-click dispatch", () => {
     expect(send).toHaveBeenCalledTimes(1);
     expect(send).toHaveBeenCalledWith({ id: "x" }, undefined);
     await act(async () => {});
-  });
-
-  it("settles a dispatch under StrictMode's mount, unmount, mount", async () => {
-    const user = userEvent.setup();
-    const reply = deferred();
-    render(
-      <StrictMode>
-        <CommandButton handle={makeHandle(() => reply.promise)} label="Go" />
-      </StrictMode>,
-    );
-
-    await user.click(screen.getByRole("button", { name: "Go" }));
-    expect(screen.getByRole("button")).toHaveAttribute("aria-busy", "true");
-    await act(async () => reply.resolve(OK));
-
-    expect(screen.getByRole("button")).not.toHaveAttribute("aria-busy", "true");
-  });
-
-  it("disarms when its args change under it, so the confirm never sends to another item", async () => {
-    const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(OK));
-    const handle = makeHandle(send);
-    const { rerender } = render(
-      <CommandButton
-        handle={handle}
-        args={{ id: "a" }}
-        label="Fire"
-        confirmLabel="Confirm"
-      />,
-    );
-    await user.click(screen.getByRole("button", { name: "Fire" }));
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "armed",
-    );
-
-    rerender(
-      <CommandButton
-        handle={handle}
-        args={{ id: "b" }}
-        label="Fire"
-        confirmLabel="Confirm"
-      />,
-    );
-
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "idle",
-    );
-    expect(send).not.toHaveBeenCalled();
-  });
-
-  it("stays armed across a re-render that hands it equal args", async () => {
-    const user = userEvent.setup();
-    const handle = makeHandle(() => Promise.resolve(OK));
-    const { rerender } = render(
-      <CommandButton
-        handle={handle}
-        args={{ id: "a" }}
-        label="Fire"
-        confirmLabel="Confirm"
-      />,
-    );
-    await user.click(screen.getByRole("button", { name: "Fire" }));
-    rerender(
-      <CommandButton
-        handle={handle}
-        args={{ id: "a" }}
-        label="Fire"
-        confirmLabel="Confirm"
-      />,
-    );
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "armed",
-    );
   });
 
   it("passes commandLabel through as the dispatch label, so a refusal can name it", async () => {
@@ -451,29 +369,6 @@ describe("CommandButton: outcomes are announced, not only relabelled", () => {
 
     expect(announcer(container)).toBe(region);
     expect(region).toHaveTextContent(/Upgrade Launch Pad refused/);
-  });
-
-  describe.each([
-    { rail: true, region: "stays quiet beside a mounted rail" },
-    { rail: false, region: "still says it with no rail drawn" },
-  ])("a lost command, $region", ({ rail }) => {
-    it("announces from the control only when no rail will", async () => {
-      const user = userEvent.setup();
-      const d = deferred();
-      const store = createDelayRailStore();
-      const { container } = render(
-        <DelayRailContext.Provider value={store}>
-          {rail && <PanelDelayRail />}
-          <CommandButton handle={makeHandle(() => d.promise)} label="Go" />
-        </DelayRailContext.Provider>,
-      );
-      await user.click(screen.getByRole("button", { name: "Go" }));
-      await act(async () => {
-        d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
-      });
-      if (rail) expect(announcer(container)).toBeEmptyDOMElement();
-      else expect(announcer(container)).not.toBeEmptyDOMElement();
-    });
   });
 
   it("says a loss", async () => {
@@ -1254,77 +1149,6 @@ describe("CommandButton: a lost command that answered after all", () => {
     );
   });
 
-  it("does not claim a later found once the operator has cleared the loss", async () => {
-    const user = userEvent.setup();
-    const d = deferred();
-    const send = vi.fn(() => d.promise);
-    const { rerender } = render(
-      <CommandButton handle={makeHandle(send)} label="SAS" />,
-    );
-    await user.click(screen.getByRole("button", { name: "SAS" }));
-    await act(async () => {
-      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
-    });
-    // Clears the loss; the control is back at rest.
-    await user.click(screen.getByRole("button"));
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "idle",
-    );
-    // Another row's lost command is found on the shared handle.
-    await act(async () => {
-      rerender(
-        <CommandButton
-          handle={makeHandle(send, { founds: RAN })}
-          label="SAS"
-        />,
-      );
-    });
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "idle",
-    );
-  });
-
-  it("ignores a found whose label names a different command", async () => {
-    const user = userEvent.setup();
-    const d = deferred();
-    const send = vi.fn(() => d.promise);
-    const { rerender } = render(
-      <CommandButton
-        handle={makeHandle(send)}
-        label="Hire"
-        commandLabel="Hire Valentina Kerman"
-      />,
-    );
-    await user.click(screen.getByRole("button", { name: "Hire" }));
-    await act(async () => {
-      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
-    });
-    await act(async () => {
-      rerender(
-        <CommandButton
-          handle={makeHandle(send, {
-            founds: [
-              {
-                id: "c9",
-                command: "career.crew.hire",
-                label: "Hire Bill Kerman",
-                outcome: "ran",
-              },
-            ],
-          })}
-          label="Hire"
-          commandLabel="Hire Valentina Kerman"
-        />,
-      );
-    });
-    expect(screen.getByRole("button")).toHaveAttribute(
-      "data-command-phase",
-      "lost",
-    );
-  });
-
   it("clears on a press, so the operator can send again from rest", async () => {
     const { user, send } = await loseThenFind();
     await user.click(screen.getByRole("button", { name: /ran\./i }));
@@ -1418,7 +1242,7 @@ describe("useCommandButton's loss sentence", () => {
   });
 });
 
-type PressReady = (press: (() => void) | null) => void;
+type PressReady = (press: ((armable: boolean) => void) | null) => void;
 
 describe("CommandButton onPressReady", () => {
   it("lists a press while a click would act and withdraws it while the command is in flight", async () => {
@@ -1445,19 +1269,6 @@ describe("CommandButton onPressReady", () => {
     expect(onPressReady.mock.calls.at(-1)?.[0]).toBeTypeOf("function");
   });
 
-  it("lists no press while the control is disabled", () => {
-    const onPressReady = vi.fn<PressReady>();
-    render(
-      <CommandButton
-        handle={makeHandle(() => Promise.resolve(OK))}
-        label="Stage"
-        disabled
-        onPressReady={onPressReady}
-      />,
-    );
-    expect(onPressReady).not.toHaveBeenCalledWith(expect.any(Function));
-  });
-
   it("presses the control from the listed press, arming before it dispatches", async () => {
     const send = vi.fn(() => Promise.resolve(OK));
     const onPressReady = vi.fn<PressReady>();
@@ -1474,25 +1285,10 @@ describe("CommandButton onPressReady", () => {
       if (!press) throw new Error("no press listed");
       return press;
     };
-    act(() => listed()());
+    act(() => listed()(true));
     expect(send).not.toHaveBeenCalled();
     expect(screen.getByRole("button")).toHaveTextContent("Confirm recover");
-    act(() => listed()());
-    expect(send).toHaveBeenCalledOnce();
-    await act(async () => {});
-  });
-
-  it("dispatches at once from the listed press of a control with no confirm step", async () => {
-    const send = vi.fn(() => Promise.resolve(OK));
-    const onPressReady = vi.fn<PressReady>();
-    render(
-      <CommandButton
-        handle={makeHandle(send)}
-        label="Stage"
-        onPressReady={onPressReady}
-      />,
-    );
-    act(() => onPressReady.mock.calls.at(-1)?.[0]?.());
+    act(() => listed()(true));
     expect(send).toHaveBeenCalledOnce();
     await act(async () => {});
   });

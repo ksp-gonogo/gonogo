@@ -366,34 +366,6 @@ function vertices(d: string): { x: number; y: number }[] {
   }));
 }
 
-describe("when the entries disagree about what they know", () => {
-  it("draws from the first entry that knows its delay, not only the first entry", () => {
-    const { container } = render(
-      <ControlDelayStream
-        streams={[stream({ oneWaySeconds: null }), stream({ id: "b" })]}
-      />,
-    );
-    expect(container.querySelector("svg")).not.toBeNull();
-  });
-
-  it("lists in the legend only the streams it draws", () => {
-    const { container } = render(
-      <ControlDelayStream
-        variant="expanded"
-        streams={[stream({ oneWaySeconds: 0.01 })]}
-        ribbons={[ribbon({ oneWaySeconds: 0.01 })]}
-      />,
-    );
-    expect(
-      container.querySelector('[data-role="legend-ribbon"]'),
-    ).not.toBeNull();
-    expect(
-      container.querySelector('[data-role="legend-deviation"]'),
-    ).toBeNull();
-    expect(container.textContent).not.toContain("Throttle");
-  });
-});
-
 // The RIBBON mark is drawn on the one rail, never a second one.
 describe("the ribbon mark", () => {
   it("draws a continuous entry with no readback on the ONE graph", () => {

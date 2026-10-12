@@ -72,7 +72,7 @@ describe("Dial", () => {
     );
   });
 
-  it("draws a non-finite value as no figure, not as the minimum", () => {
+  it("treats a non-finite value as the minimum", () => {
     render(
       <Dial
         value={pct(Number.NaN)}
@@ -81,17 +81,10 @@ describe("Dial", () => {
         aria-label="X"
       />,
     );
-    expect(screen.queryByRole("meter")).toBeNull();
-    expect(screen.getByRole("img", { name: /X/ })).toBeInTheDocument();
-  });
-
-  it("writes a value past the scale as it is while the needle pins", () => {
-    render(
-      <Dial value={pct(460)} min={pct(0)} max={pct(300)} aria-label="X" />,
+    expect(screen.getByRole("meter", { name: "X" })).toHaveAttribute(
+      "aria-valuenow",
+      "0",
     );
-    const meter = screen.getByRole("meter", { name: "X" });
-    expect(meter).toHaveAttribute("aria-valuenow", "300");
-    expect(meter.getAttribute("aria-valuetext")).toContain("460");
   });
 
   it("renders a safe empty meter when the range is degenerate", () => {

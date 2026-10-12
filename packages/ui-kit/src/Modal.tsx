@@ -223,10 +223,15 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
   /*
    * Trap focus inside the dialog. The focusable set is read on every Tab, so a
    * control that renders late or becomes disabled is judged as it is now.
+   * Re-runs when the form and confirmation views swap, to move focus into
+   * whichever is shown.
    */
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `confirming` and `footer` are intentional triggers, they change the set of focusable elements.
   useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+
     function handleTab(e: KeyboardEvent) {
-      const el = dialogRef.current;
       if (e.key !== "Tab" || !isTopRef.current || !el) return;
       const focusable = el.querySelectorAll<HTMLElement>(FOCUSABLE);
       const first = focusable[0];
@@ -248,19 +253,9 @@ function ModalDialog({ entry, isTop, onClose }: Readonly<ModalDialogProps>) {
       }
     }
     document.addEventListener("keydown", handleTab);
+    if (!confirming) el.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     return () => document.removeEventListener("keydown", handleTab);
-  }, []);
-
-  /*
-   * Focus enters the dialog on mount and again when the discard confirmation
-   * closes. It must not follow `footer`: a form that rebuilds its footer on
-   * every keystroke would otherwise pull focus out of the field being typed in.
-   */
-  useEffect(() => {
-    if (!confirming) {
-      dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
-    }
-  }, [confirming]);
+  }, [confirming, footer]);
 
   return (
     <>

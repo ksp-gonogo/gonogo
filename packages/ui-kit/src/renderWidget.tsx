@@ -31,11 +31,7 @@ export interface RenderWidgetOptions {
    * `DashboardItemContext`'s `instanceId` and as its own `id` prop.
    */
   instanceId?: string;
-  /**
-   * Per-instance config, the widget's `config` prop.
-   *
-   * @defaultValue the widget's registered `defaultConfig`, as the dashboard gives it, else `{}`
-   */
+  /** Per-instance config, the widget's `config` prop. */
   config?: Record<string, unknown>;
   /** Grid units, the `w`/`h` props a responsive widget reads. */
   w?: number;
@@ -219,7 +215,7 @@ export function renderWidget(
   const def = requireComponent(widgetId);
   const {
     instanceId = `${widgetId}-test`,
-    config = def.defaultConfig ?? {},
+    config = {},
     w,
     h,
     onConfigChange = NOOP,

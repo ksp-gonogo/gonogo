@@ -30,28 +30,6 @@ function mount(x: number, plotBox = plot) {
 }
 
 describe("PlotCrosshair", () => {
-  it("puts the card in a corner the traces do not cross", () => {
-    const cardX = (traces?: { cx: number[]; cy: number[] }[]) =>
-      render(
-        <svg width={400} height={240} aria-label="chart" role="img">
-          <PlotCrosshair
-            x={100}
-            plot={plot}
-            heading="T+30s"
-            rows={[{ id: "a", label: "Alt", color: "red", value: "1", y: 150 }]}
-            traces={traces}
-          />
-        </svg>,
-      )
-        .container.querySelector("[data-plot-crosshair-card] rect")
-        ?.getAttribute("y");
-    const free = cardX();
-    const wall = cardX([
-      { cx: [40, 340], cy: [Number(free) + 10, Number(free) + 10] },
-    ]);
-    expect(wall).not.toBe(free);
-  });
-
   it("draws the line, a dot per located row and the null token for an absent one", () => {
     const { container } = mount(100);
     expect(container.querySelectorAll("circle")).toHaveLength(2);

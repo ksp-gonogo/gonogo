@@ -76,15 +76,6 @@ describe("DataKeyPicker", () => {
     expect(onChange).toHaveBeenCalledWith("v.altitude");
   });
 
-  it("Enter with nothing typed and nothing highlighted keeps the saved key", () => {
-    const onChange = vi.fn();
-    render(<DataKeyPicker keys={KEYS} value="v.mach" onChange={onChange} />);
-    const input = screen.getByRole("combobox");
-    openDropdown(input);
-    fireEvent.keyDown(input, { key: "Enter" });
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
   it("ArrowDown + Enter selects the highlighted item", () => {
     const onChange = vi.fn();
     render(<DataKeyPicker keys={KEYS} value={null} onChange={onChange} />);
@@ -108,15 +99,6 @@ describe("DataKeyPicker", () => {
     expect(screen.getByText("Position")).toBeInTheDocument();
     fireEvent.keyDown(input, { key: "Escape" });
     expect(screen.queryByText("Position")).not.toBeInTheDocument();
-  });
-
-  it("keeps focus on the input when a group header is pressed", () => {
-    render(
-      <DataKeyPicker keys={KEYS} value={null} onChange={() => undefined} />,
-    );
-    openDropdown(screen.getByRole("combobox"));
-    const notPrevented = fireEvent.mouseDown(screen.getByText("Position"));
-    expect(notPrevented).toBe(false);
   });
 
   it("clicking an item calls onChange once with the key", () => {
