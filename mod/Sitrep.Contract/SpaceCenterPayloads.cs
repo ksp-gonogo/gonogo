@@ -17,10 +17,11 @@ namespace Sitrep.Contract;
 /// when no sample has arrived yet, which tells "no data yet" apart from "zero
 /// sites". It carries no <c>meta</c> of its own.</para>
 ///
-/// <para>Held at the home command, the command centre that holds the career
-/// ledger (see <see cref="CommandCentreEntry"/>): each vantage, a command
-/// centre the operator observes from, receives a change after its own delay to
-/// home, at once on the ground network.</para>
+/// <para>Kept at the home command centre, the one that holds the career ledger
+/// (see <see cref="CommandCentreEntry"/>). A screen working from another
+/// command centre, which is its vantage, sees a change after the signal delay
+/// from home to that centre, and at once when both are on the ground
+/// network.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildLaunchSites</c>.
 /// Typing-only mirror of the per-site dict the provider emits;
@@ -125,7 +126,7 @@ public class SpaceCenterScene
 /// is <c>null</c> (not an empty array) when no sample has arrived yet, which
 /// tells "no data yet" apart from "zero crew".</para>
 ///
-/// <para>Held at the home command, like <see cref="LaunchSiteEntry"/>.</para>
+/// <para>Kept at the home command centre, like <see cref="LaunchSiteEntry"/>.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildCrewRoster</c> /
 /// <c>BuildAstronautComplex</c>. Typing-only mirror: the provider hand-builds
@@ -375,7 +376,7 @@ public class SavedShipEntry
 ///
 /// <para>A wrapper object, because a bare scalar has no Topic shape: read
 /// <c>spaceCenter.partsAvailable.count</c>. The whole payload is <c>null</c>
-/// when no sample has arrived yet. Held at the home command.</para>
+/// when no sample has arrived yet. Kept at the home command centre.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildPartsAvailable</c>;
 /// typing-only mirror. The SpaceCenterStatus widget is the reader.
@@ -407,7 +408,7 @@ public class SpaceCenterPartsAvailable
 /// applicant pool exists; a career save whose pool is empty sends a non-null
 /// payload with an empty <see cref="Applicants"/> list.</para>
 ///
-/// <para>Held at the home command, like <see cref="CrewRosterEntry"/>.</para>
+/// <para>Kept at the home command centre, like <see cref="CrewRosterEntry"/>.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildAstronautComplex</c>.
 /// Typing-only mirror: the provider hand-builds the dict and <c>JsonWriter</c>
@@ -448,7 +449,7 @@ public class AstronautComplexInfo
 /// <para>The channel is a bare array of these entries, one per POI keyed by
 /// <see cref="Id"/>. The whole payload is <c>null</c> (not an empty array)
 /// when no sample has arrived yet, which tells "no data yet" apart from "zero
-/// POIs". Held at the home command, like <see cref="LaunchSiteEntry"/>.</para>
+/// POIs". Kept at the home command centre, like <see cref="LaunchSiteEntry"/>.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildPois</c>;
 /// typing-only mirror, the provider hand-builds the dict.

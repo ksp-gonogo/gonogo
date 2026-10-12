@@ -16,7 +16,7 @@
 
 import type { ReactElement } from "react";
 import { createElement } from "react";
-import type { ModSettingsModel } from "../__generated__/contract";
+import type { ModSettingsModel, SettingKind } from "../__generated__/contract";
 import type {
   AnyCommandReply,
   CommandArgs,
@@ -54,7 +54,6 @@ import type {
   SettingDefinition,
   SettingDefinitionOf,
   SettingsTabDefinition,
-  SettingType,
   SlotProps,
   TelemetryClient,
   UplinkClientHandle,
@@ -239,7 +238,6 @@ export type {
   SettingDefinitionBase,
   SettingDefinitionOf,
   SettingsTabDefinition,
-  SettingType,
   SettingValue,
   SettingValueByType,
   SizeDelta,
@@ -499,7 +497,7 @@ export const registerSettingsTab = (def: SettingsTabDefinition): void =>
  * instead, as a {@link SettingsModel} row.
  */
 export function registerSetting<
-  ValueType extends SettingType = "boolean",
+  ValueType extends SettingKind = SettingKind.Bool,
   Topic extends TopicId = TopicId,
 >(def: SettingDefinitionOf<ValueType, Topic>): void;
 /**
@@ -510,7 +508,7 @@ export function registerSetting<
  */
 export function registerSetting(def: SettingDefinition): void;
 export function registerSetting(
-  def: SettingDefinitionOf<SettingType, TopicId> | SettingDefinition,
+  def: SettingDefinitionOf<SettingKind, TopicId> | SettingDefinition,
 ): void {
   // The cast collapses an unresolved T to the union the host takes. Every
   // instantiation of T IS a member of that union, but TypeScript will not
@@ -520,11 +518,11 @@ export function registerSetting(
 
 /**
  * Whether a registered row is one the operator cannot change (`isReadOnlySetting`),
- * and the type of a row's value (`settingTypeOf`). A `stream-backed` row is
+ * and the kind of a row's value (`settingKindOf`). A `stream-backed` row is
  * read-only whether or not it said so. Useful for showing the operator a
  * control only when the row can be changed. Used by the app's settings rows.
  */
-export { isReadOnlySetting, settingTypeOf } from "../spine/settings-registry";
+export { isReadOnlySetting, settingKindOf } from "../spine/settings-registry";
 
 /**
  * Subscribes to a Topic and returns its latest {@link TopicReading}: the

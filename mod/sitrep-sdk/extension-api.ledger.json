@@ -8115,6 +8115,10 @@
         "note": "ActionGroupSlotContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
+        "key": "sitrep-sdk . AugmentSettingField#type",
+        "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
+      },
+      {
         "key": "sitrep-sdk . COMMAND_IDS",
         "note": "robotics.servo.setTarget is replaced by robotics.servo.setAngle and robotics.servo.setExtension, each with the unit it carries"
       },
@@ -8133,6 +8137,10 @@
       {
         "key": "sitrep-sdk . ClientMessage",
         "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
+      },
+      {
+        "key": "sitrep-sdk . ClientPrefSetting",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
       },
       {
         "key": "sitrep-sdk . ClientPrefSettingOf",
@@ -8275,6 +8283,38 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
+        "key": "sitrep-sdk . SettingType",
+        "note": "SettingType is removed: a registered setting names its kind with SettingKind, the enum a mod settings row already carries"
+      },
+      {
+        "key": "sitrep-sdk . SettingValue",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk . SettingValueByType#[SettingKind.Bool]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk . SettingValueByType#[SettingKind.Number]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk . SettingValueByType#[SettingKind.Text]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk . SettingValueByType#boolean",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk . SettingValueByType#number",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk . SettingValueByType#text",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
         "key": "sitrep-sdk . SettingsService#subscribe",
         "note": "subscribe takes its callback type inline, so the unexported Listener alias is gone"
       },
@@ -8371,6 +8411,10 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk . StreamBackedSetting",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
+      },
+      {
         "key": "sitrep-sdk . StreamBackedSettingOf",
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
@@ -8453,6 +8497,10 @@
       {
         "key": "sitrep-sdk . registerSetting",
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk . settingTypeOf",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
       },
       {
         "key": "sitrep-sdk . useDataSources",
@@ -8803,6 +8851,10 @@
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
       {
+        "key": "sitrep-sdk ./registry ~AugmentSettingField#type",
+        "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ComponentBehavior",
         "note": "the inert behaviors field and its one value are removed"
       },
@@ -8939,6 +8991,10 @@
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
       {
+        "key": "sitrep-sdk ./spine ClientPrefSetting",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
+      },
+      {
         "key": "sitrep-sdk ./spine ClientPrefSettingOf",
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
@@ -9015,6 +9071,38 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
+        "key": "sitrep-sdk ./spine SettingType",
+        "note": "SettingType is removed: a registered setting names its kind with SettingKind, the enum a mod settings row already carries"
+      },
+      {
+        "key": "sitrep-sdk ./spine SettingValue",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk ./spine SettingValueByType#[SettingKind.Bool]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk ./spine SettingValueByType#[SettingKind.Number]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk ./spine SettingValueByType#[SettingKind.Text]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk ./spine SettingValueByType#boolean",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk ./spine SettingValueByType#number",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk ./spine SettingValueByType#text",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
         "key": "sitrep-sdk ./spine StateVector#position",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -9033,6 +9121,10 @@
       {
         "key": "sitrep-sdk ./spine StoredStreamBackedSettingOf#type?",
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamBackedSetting",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
       },
       {
         "key": "sitrep-sdk ./spine StreamBackedSettingOf",
@@ -9167,12 +9259,20 @@
         "note": "Gains an optional trailing zPf (the part along the orbit normal, default 0). Callers passing five arguments are unaffected, and with zPf at 0 the result is bit-identical to before"
       },
       {
+        "key": "sitrep-sdk ./spine settingTypeOf",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
+      },
+      {
         "key": "sitrep-sdk ./spine surfacePositionAt",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
         "key": "sitrep-sdk ./spine toFrame",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~AugmentSettingField#type",
+        "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
       },
       {
         "key": "sitrep-sdk ./spine ~ClientMessage",
@@ -9331,8 +9431,16 @@
         "note": "ActionGroupSlotContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
+        "key": "sitrep-sdk ./testing ~AugmentSettingField#type",
+        "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ClientMessage",
         "note": "Gains the command-group and ping frames. A caller that switches over client messages without a default stops compiling until it names them; the transports are the only ones, and all handle them"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ClientPrefSetting",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
       },
       {
         "key": "sitrep-sdk ./testing ~ClientPrefSettingOf",
@@ -9443,6 +9551,34 @@
         "note": "Gains the game-state, hello and pong frames. A caller that switches over server messages without a default stops compiling until it names them; the transports and the spine client are the only ones, and all handle them"
       },
       {
+        "key": "sitrep-sdk ./testing ~SettingType",
+        "note": "SettingType is removed: a registered setting names its kind with SettingKind, the enum a mod settings row already carries"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SettingValueByType#[SettingKind.Bool]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SettingValueByType#[SettingKind.Number]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SettingValueByType#[SettingKind.Text]",
+        "note": "SettingValueByType is keyed by SettingKind members"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SettingValueByType#boolean",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SettingValueByType#number",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SettingValueByType#text",
+        "note": "SettingValueByType is keyed by SettingKind members rather than the words boolean, text and number"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ShipMapOverlayContext#held",
         "note": "ShipMapOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -9539,6 +9675,10 @@
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
       {
+        "key": "sitrep-sdk ./testing ~StreamBackedSetting",
+        "note": "the setting kind in this type is SettingKind, where it was the words boolean, text and number"
+      },
+      {
         "key": "sitrep-sdk ./testing ~StreamStatusValue",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
@@ -9613,6 +9753,10 @@
       {
         "key": "ui-kit . ActionMenuProps#ariaLabel",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . AugmentSettingField#type",
+        "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
       },
       {
         "key": "ui-kit . ComboboxListbox",
@@ -10799,6 +10943,10 @@
       {
         "key": "sitrep-sdk . sendTogether",
         "note": "New: sends the commands made inside its callback as one message"
+      },
+      {
+        "key": "sitrep-sdk . settingKindOf",
+        "note": "settingTypeOf is renamed settingKindOf, and returns the one SettingKind a row is declared with"
       },
       {
         "key": "sitrep-sdk . solveConic",
@@ -12279,6 +12427,10 @@
       {
         "key": "sitrep-sdk ./spine sendUplinkAction",
         "note": "New spine helper behind a held command's cancel, shared by the hook and by a group"
+      },
+      {
+        "key": "sitrep-sdk ./spine settingKindOf",
+        "note": "settingTypeOf is renamed settingKindOf, and returns the one SettingKind a row is declared with"
       },
       {
         "key": "sitrep-sdk ./spine solveConic",

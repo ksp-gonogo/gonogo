@@ -1,3 +1,4 @@
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -389,14 +390,18 @@ describe("augment settings merge (spec §4.7)", () => {
       augments: "power-systems.sections",
       component: () => null,
       priority: 20,
-      settings: [{ key: "showPerConverter", type: "boolean", default: false }],
+      settings: [
+        { key: "showPerConverter", type: SettingKind.Bool, default: false },
+      ],
     });
     registerAugment({
       id: "near-future",
       augments: "power-systems.sections",
       component: () => null,
       priority: 10,
-      settings: [{ key: "reactorUnits", type: "text", default: "MW" }],
+      settings: [
+        { key: "reactorUnits", type: SettingKind.Text, default: "MW" },
+      ],
     });
     registerAugment({
       id: "no-settings",
@@ -410,12 +415,16 @@ describe("augment settings merge (spec §4.7)", () => {
       {
         augmentId: "near-future",
         namespace: "near-future",
-        fields: [{ key: "reactorUnits", type: "text", default: "MW" }],
+        fields: [
+          { key: "reactorUnits", type: SettingKind.Text, default: "MW" },
+        ],
       },
       {
         augmentId: "powermod",
         namespace: "powermod",
-        fields: [{ key: "showPerConverter", type: "boolean", default: false }],
+        fields: [
+          { key: "showPerConverter", type: SettingKind.Bool, default: false },
+        ],
       },
     ]);
   });
@@ -425,13 +434,13 @@ describe("augment settings merge (spec §4.7)", () => {
       id: "aug-a",
       augments: "s",
       component: () => null,
-      settings: [{ key: "enabled", type: "boolean", default: true }],
+      settings: [{ key: "enabled", type: SettingKind.Bool, default: true }],
     });
     registerAugment({
       id: "aug-b",
       augments: "s",
       component: () => null,
-      settings: [{ key: "enabled", type: "boolean", default: false }],
+      settings: [{ key: "enabled", type: SettingKind.Bool, default: false }],
     });
 
     const merged = getAugmentSettings("s");

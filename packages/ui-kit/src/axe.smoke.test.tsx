@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { SettingKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, it } from "vitest";
@@ -42,9 +42,9 @@ describe("a11y smoke (jest-axe)", () => {
         augmentId: "example-augment",
         namespace: "example-augment",
         fields: [
-          { key: "show", type: "boolean", label: "Show overlay" },
-          { key: "label", type: "text", label: "Overlay label" },
-          { key: "count", type: "number", label: "Count" },
+          { key: "show", type: SettingKind.Bool, label: "Show overlay" },
+          { key: "label", type: SettingKind.Text, label: "Overlay label" },
+          { key: "count", type: SettingKind.Number, label: "Count" },
         ],
       },
     ];

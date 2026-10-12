@@ -141,13 +141,14 @@ public static class CommandErrorCode
     /// the <c>GameParameters</c> flags for leaving to the space center and to
     /// the tracking station.</internal></para>
     ///
-    /// <para>Also returned by the SCET alarm command for a vantage it cannot
-    /// check because the game has not yet reported any command centre: at the
-    /// main menu, and in the first moments after a save loads. The same command
-    /// refuses a vantage that
-    /// is known and inactive with <see cref="Range"/> instead, because that one
-    /// does not resolve by waiting. Any other command naming an inactive
-    /// vantage fails with the <c>unknownVantage</c> fault.</para>
+    /// <para>Also returned by the command that sets a SCET alarm (an alarm on the
+    /// craft's own clock, spacecraft event time) when the command centre it names
+    /// as its vantage cannot be checked, because the game has not yet reported
+    /// any command centre: at the main menu, and in the first moments after a
+    /// save loads. The same command refuses a vantage that is known and inactive
+    /// with <see cref="Range"/> instead, because that one does not resolve by
+    /// waiting. Any other command naming an inactive vantage fails with the
+    /// <c>unknownVantage</c> fault.</para>
     ///
     /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
     /// and does not resolve by waiting.

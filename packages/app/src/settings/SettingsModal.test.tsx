@@ -18,7 +18,7 @@ import {
   TimelineStore,
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { SettingKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   createFakeWallClock,
   StubTransport,
@@ -569,7 +569,7 @@ describe("SettingsModal: dependsOn (nested/inert sub-toggle)", () => {
   beforeEach(() => {
     registerSetting({
       id: PARENT_ID,
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Parent toggle",
       category: "Test",
       defaultValue: true,
@@ -577,7 +577,7 @@ describe("SettingsModal: dependsOn (nested/inert sub-toggle)", () => {
     });
     registerSetting({
       id: CHILD_ID,
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Child toggle",
       category: "Test",
       defaultValue: false,
@@ -605,7 +605,7 @@ describe("SettingsModal: dependsOn (nested/inert sub-toggle)", () => {
   it("child switch starts disabled when the parent's default is off", () => {
     registerSetting({
       id: PARENT_ID,
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Parent toggle",
       category: "Test",
       defaultValue: false,
@@ -652,7 +652,7 @@ function registerStreamBackedRows() {
   registerSetting({
     id: "example.frame",
     backing: "stream-backed",
-    type: "text",
+    type: SettingKind.Text,
     topic: "example.settings",
     select: (p) => p.frameName,
     category: "Example",
@@ -663,7 +663,7 @@ function registerStreamBackedRows() {
   registerSetting({
     id: "example.tolerance",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: "example.settings",
     select: (p) => value("m", p.tolerance),
     category: "Example",
@@ -674,7 +674,7 @@ function registerStreamBackedRows() {
   registerSetting({
     id: "example.maxSteps",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: "example.settings",
     select: (p) => p.maxSteps,
     category: "Example",
@@ -751,7 +751,7 @@ describe("SettingsModal: stream-backed read-only rows", () => {
     registerStreamBackedRows();
     registerSetting({
       id: "example.pref",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "A writable preference",
       category: "Example",
       defaultValue: true,
@@ -771,7 +771,7 @@ describe("SettingsModal: grouping inside a category", () => {
   it("puts ungrouped rows above the named groups", async () => {
     registerSetting({
       id: "example.ungrouped",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "An ungrouped row",
       category: "Example",
       defaultValue: true,
@@ -835,7 +835,7 @@ describe("SettingsModal: typed writable rows", () => {
   it("renders a number preference as a spinbutton and persists what is typed", () => {
     registerSetting({
       id: "example.historyLength",
-      type: "number",
+      type: SettingKind.Number,
       label: "History length",
       category: "Example",
       defaultValue: 30,
@@ -854,7 +854,7 @@ describe("SettingsModal: typed writable rows", () => {
   it("ignores an emptied or part-typed box rather than persisting a zero", () => {
     registerSetting({
       id: "example.historyLength",
-      type: "number",
+      type: SettingKind.Number,
       label: "History length",
       category: "Example",
       defaultValue: 30,
@@ -876,7 +876,7 @@ describe("SettingsModal: typed writable rows", () => {
   it("renders a text preference as a textbox", () => {
     registerSetting({
       id: "example.callsign",
-      type: "text",
+      type: SettingKind.Text,
       label: "Callsign",
       category: "Example",
       defaultValue: "Houston",
@@ -897,7 +897,7 @@ describe("SettingsModal: a row that cannot be written", () => {
   it("renders its value instead of a disabled switch", () => {
     registerSetting({
       id: "build.version",
-      type: "text",
+      type: SettingKind.Text,
       readOnly: true,
       defaultValue: "1.4.2",
       category: "Test",
@@ -1064,7 +1064,7 @@ describe("SettingsModal: the Uplinks tab", () => {
   it("draws a row registered for an Uplink on its page, not under General", async () => {
     registerSetting({
       id: "streamer.embeddedFacecams",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Embedded facecams",
       category: "Streamer",
       uplink: "streamer",

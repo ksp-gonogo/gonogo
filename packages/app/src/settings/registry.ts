@@ -17,10 +17,9 @@ export {
   type SettingDefinition,
   type SettingDefinitionBase,
   type SettingDefinitionOf,
-  type SettingType,
   type SettingValue,
   type SettingValueByType,
   type StreamBackedSetting,
   type StreamBackedSettingOf,
-  settingTypeOf,
+  settingKindOf,
 } from "@ksp-gonogo/core";

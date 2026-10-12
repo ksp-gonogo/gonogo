@@ -1,4 +1,4 @@
-import { isValue, value } from "@ksp-gonogo/sitrep-sdk";
+import { isValue, SettingKind, value } from "@ksp-gonogo/sitrep-sdk";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   __clearSettingsForTests,
@@ -7,7 +7,7 @@ import {
   getSettingsForScreen,
   isReadOnlySetting,
   registerSetting,
-  settingTypeOf,
+  settingKindOf,
 } from "./registry";
 
 afterEach(() => {
@@ -32,7 +32,7 @@ describe("settings registry: two backings", () => {
   it("stores a client-pref setting (backing omitted defaults to client-pref)", () => {
     registerSetting({
       id: "feat.flag",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Flag",
       category: "Test",
       defaultValue: true,
@@ -46,7 +46,7 @@ describe("settings registry: two backings", () => {
   it("filters by screen, treating an omitted `screens` as both", () => {
     registerSetting({
       id: "main.only",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Main only",
       category: "Test",
       defaultValue: false,
@@ -54,7 +54,7 @@ describe("settings registry: two backings", () => {
     });
     registerSetting({
       id: "both.screens",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Both",
       category: "Test",
       defaultValue: false,
@@ -71,14 +71,14 @@ describe("settings registry: two backings", () => {
   it("registerSetting is idempotent per id (last write wins)", () => {
     registerSetting({
       id: "dupe",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "First",
       category: "Test",
       defaultValue: false,
     });
     registerSetting({
       id: "dupe",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Second",
       category: "Test",
       defaultValue: true,
@@ -99,14 +99,14 @@ describe("settings registry: read-only, typed and grouped rows", () => {
     const def = getSettingDefinition("legacy.implicit");
     expect(def?.type).toBeUndefined();
     // The renderer never reads `type` raw, so an omitted one is a boolean everywhere it matters.
-    expect(def && settingTypeOf(def)).toBe("boolean");
+    expect(def && settingKindOf(def)).toBe(SettingKind.Bool);
   });
 
   it("stores a stream-backed row with its topic and selector", () => {
     registerSetting({
       id: "example.frame",
       backing: "stream-backed",
-      type: "text",
+      type: SettingKind.Text,
       topic: "example.settings",
       select: (p) => p.frameName,
       label: "Selected frame",
@@ -128,7 +128,7 @@ describe("settings registry: read-only, typed and grouped rows", () => {
     registerSetting({
       id: "example.tolerance",
       backing: "stream-backed",
-      type: "number",
+      type: SettingKind.Number,
       topic: "example.settings",
       select: (p) => value("m", p.tolerance),
       label: "Prediction tolerance",
@@ -147,7 +147,7 @@ describe("isReadOnlySetting: one rule for two ways of having no writer", () => {
   it("says so when the row declares it", () => {
     registerSetting({
       id: "ro.declared",
-      type: "text",
+      type: SettingKind.Text,
       readOnly: true,
       defaultValue: "1.4.2",
       label: "Build",
@@ -161,7 +161,7 @@ describe("isReadOnlySetting: one rule for two ways of having no writer", () => {
     registerSetting({
       id: "ro.stream",
       backing: "stream-backed",
-      type: "text",
+      type: SettingKind.Text,
       topic: "example.settings",
       select: () => "x",
       label: "Frame",
@@ -177,7 +177,7 @@ describe("isReadOnlySetting: one rule for two ways of having no writer", () => {
   it("says no for the ordinary writable row", () => {
     registerSetting({
       id: "rw.pref",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Pref",
       category: "Test",
       defaultValue: true,

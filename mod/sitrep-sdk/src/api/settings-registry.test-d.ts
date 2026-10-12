@@ -5,7 +5,7 @@
 //
 // The rows below are the shapes a mod's settings actually take, and the
 // `@ts-expect-error` blocks are the point of the file. A registry that accepted
-// `type: "number"` beside `defaultValue: true` would render a `Switch` over a
+// `type: SettingKind.Number` beside `defaultValue: true` would render a `Switch` over a
 // tolerance and say nothing, which is the failure mode the typed union exists
 // to make impossible at the call site rather than in the panel.
 
@@ -13,15 +13,15 @@ import {
   isReadOnlySetting,
   registerSetting,
   type SettingDefinition,
-  type SettingType,
-  settingTypeOf,
+  SettingKind,
+  settingKindOf,
   value,
 } from "../index";
 
 // A boolean row still needs no `type` at all
 //
 // The back-compat guarantee, stated as a compile: every row registered before
-// there was more than one type omitted `type` or wrote `"boolean"`, and both
+// there was more than one type omitted `type` or wrote `SettingKind.Bool`, and both
 // still land on a boolean row with a boolean `defaultValue`.
 
 registerSetting({
@@ -33,7 +33,7 @@ registerSetting({
 
 registerSetting({
   id: "legacy.explicit",
-  type: "boolean",
+  type: SettingKind.Bool,
   label: "Explicit boolean",
   category: "Test",
   defaultValue: false,
@@ -60,7 +60,7 @@ declare module "../topics" {
 registerSetting({
   id: "example.tolerance",
   backing: "stream-backed",
-  type: "number",
+  type: SettingKind.Number,
   topic: "example.settings",
   // A `Value`, not a bare number, so the row renders "1 m" and announces "metres" rather than showing a naked 1.
   select: (p) => value("m", p.tolerance),
@@ -72,7 +72,7 @@ registerSetting({
 registerSetting({
   id: "example.maxSteps",
   backing: "stream-backed",
-  type: "number",
+  type: SettingKind.Number,
   topic: "example.settings",
   select: (p) => p.maxSteps,
   label: "Max steps",
@@ -83,7 +83,7 @@ registerSetting({
 registerSetting({
   id: "example.frame",
   backing: "stream-backed",
-  type: "text",
+  type: SettingKind.Text,
   topic: "example.settings",
   select: (p) => p.frameName,
   label: "Plotting frame",
@@ -94,7 +94,7 @@ registerSetting({
 registerSetting({
   id: "example.declutter",
   backing: "stream-backed",
-  type: "boolean",
+  type: SettingKind.Bool,
   topic: "example.settings",
   select: (p) => p.declutter,
   label: "Declutter",
@@ -106,7 +106,7 @@ registerSetting({
 
 registerSetting({
   id: "example.buildId",
-  type: "text",
+  type: SettingKind.Text,
   readOnly: true,
   defaultValue: "0.1.0",
   label: "Build",
@@ -124,7 +124,7 @@ registerSetting({
 // @ts-expect-error a number row's default is a number, not a flag
 registerSetting({
   id: "wrong.numberDefault",
-  type: "number",
+  type: SettingKind.Number,
   label: "Tolerance",
   category: "Test",
   defaultValue: true,
@@ -133,7 +133,7 @@ registerSetting({
 // @ts-expect-error a text row's default is a string
 registerSetting({
   id: "wrong.textDefault",
-  type: "text",
+  type: SettingKind.Text,
   label: "Frame",
   category: "Test",
   defaultValue: 3,
@@ -145,7 +145,7 @@ registerSetting({
   id: "wrong.sourceBacked",
   // @ts-expect-error source-backed is not a backing
   backing: "source-backed",
-  type: "boolean",
+  type: SettingKind.Bool,
   sourceId: "some-uplink",
   read: () => true,
   subscribe: () => () => {},
@@ -160,7 +160,7 @@ registerSetting({
 registerSetting({
   id: "wrong.streamWritable",
   backing: "stream-backed",
-  type: "text",
+  type: SettingKind.Text,
   topic: "example.settings",
   select: () => "x",
   label: "Frame",
@@ -187,7 +187,7 @@ const rows: SettingDefinition[] = [
   {
     id: "list.frame",
     backing: "stream-backed",
-    type: "text",
+    type: SettingKind.Text,
     topic: "example.settings",
     select: (p) => predictionSettings(p)?.frameName,
     label: "Frame",
@@ -196,7 +196,7 @@ const rows: SettingDefinition[] = [
   {
     id: "list.tolerance",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: "example.settings",
     select: (p) => predictionSettings(p)?.tolerance,
     label: "Tolerance",
@@ -212,6 +212,6 @@ declare const registered: SettingDefinition;
 
 // Both predicates take the widened union a registry read hands back, which is the only shape a renderer ever has.
 const writable: boolean = !isReadOnlySetting(registered);
-const kind: SettingType = settingTypeOf(registered);
+const kind: SettingKind = settingKindOf(registered);
 void writable;
 void kind;

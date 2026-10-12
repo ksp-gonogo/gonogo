@@ -1,3 +1,4 @@
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearAugments,
@@ -37,12 +38,14 @@ describe("getMergedSlotSettings", () => {
       id: "aug-with-settings",
       augments: "test.slot",
       component: () => null,
-      settings: [{ key: "showAug", type: "boolean", default: true }],
+      settings: [{ key: "showAug", type: SettingKind.Bool, default: true }],
     });
     registerContribution({
       id: "contrib-with-settings",
       contributes: "test.slot",
-      settings: [{ key: "showContrib", type: "boolean", default: false }],
+      settings: [
+        { key: "showContrib", type: SettingKind.Bool, default: false },
+      ],
       compute: () => null,
     });
 
@@ -58,12 +61,12 @@ describe("getMergedSlotSettings", () => {
       id: "aug",
       augments: "s",
       component: () => null,
-      settings: [{ key: "a", type: "text", default: "x" }],
+      settings: [{ key: "a", type: SettingKind.Text, default: "x" }],
     });
     registerContribution({
       id: "contrib",
       contributes: "s",
-      settings: [{ key: "b", type: "number", default: 1 }],
+      settings: [{ key: "b", type: SettingKind.Number, default: 1 }],
       compute: () => null,
     });
 
@@ -72,12 +75,12 @@ describe("getMergedSlotSettings", () => {
       {
         augmentId: "aug",
         namespace: "aug",
-        fields: [{ key: "a", type: "text", default: "x" }],
+        fields: [{ key: "a", type: SettingKind.Text, default: "x" }],
       },
       {
         augmentId: "contrib",
         namespace: "contrib",
-        fields: [{ key: "b", type: "number", default: 1 }],
+        fields: [{ key: "b", type: SettingKind.Number, default: 1 }],
       },
     ]);
   });

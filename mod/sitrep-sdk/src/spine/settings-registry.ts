@@ -1,3 +1,4 @@
+import { SettingKind } from "../__generated__/contract";
 import type { TopicId, TopicPayloadMap } from "../topics";
 import type { Value } from "../unit-system";
 import type { Screen } from "./screen";
@@ -25,12 +26,10 @@ import type { Screen } from "./screen";
  *     rather than preference: a plugin's own configuration, read off the wire,
  *     which the operator needs in order to know what every other number means.
  *
- * **Type**: `boolean`, `text` or `number`, the same three words
- * `AugmentSettingField` already uses. One vocabulary, deliberately: a second
- * union meaning the same thing is how this codebase got a `Panel` in two
- * packages that silently drifted. A `number` row may hand back a `Value`
- * instead of a bare number, and then it renders through `Unit` and announces
- * its unit as a word.
+ * **Type**: a {@link SettingKind}, `Bool`, `Text` or `Number`: the same one the
+ * mod's own settings rows and `AugmentSettingField` use. A `Number` row may
+ * hand back a `Value` instead of a bare number, and then it renders through
+ * `Unit` and announces its unit as a word.
  *
  * **Writability**: `readOnly` renders the value instead of a control. A row
  * whose underlying `Set*` is refused, or which has no writer at all, must
@@ -43,28 +42,18 @@ import type { Screen } from "./screen";
  */
 
 /**
- * What a row's value is: the same three words {@link AugmentSettingField}
- * uses for its `type`. The mod's settings file rows name the same three
- * kinds as {@link SettingKind} (`Bool`, `Number`, `Text`), a wire enum a
- * client reads rather than writes; a row you register here uses these words.
- *
- * @category Settings
- */
-export type SettingType = "boolean" | "text" | "number";
-
-/**
- * The value each {@link SettingType} carries. A `"number"` row may hold a
- * `Value`, such as `value("m", 1)`, so it is drawn with its unit.
+ * The value each {@link SettingKind} carries. A {@link SettingKind.Number} row
+ * may hold a `Value`, such as `value("m", 1)`, so it is drawn with its unit.
  *
  * @category Settings
  */
 export interface SettingValueByType {
   /** A switch. */
-  boolean: boolean;
+  [SettingKind.Bool]: boolean;
   /** A line of text. */
-  text: string;
+  [SettingKind.Text]: string;
   /** A number, bare or as a `Value` with its unit. */
-  number: number | Value;
+  [SettingKind.Number]: number | Value;
 }
 
 /**
@@ -72,7 +61,7 @@ export interface SettingValueByType {
  *
  * @category Settings
  */
-export type SettingValue = SettingValueByType[SettingType];
+export type SettingValue = SettingValueByType[SettingKind];
 
 /**
  * What every registered settings row carries, whatever its backing and type.
@@ -123,15 +112,15 @@ export interface SettingDefinitionBase {
 /**
  * A setting saved in this browser's `localStorage`, under its `id`. This is the
  * default: `backing` may be left out, and so may `type`, which then means
- * `"boolean"`.
+ * {@link SettingKind.Bool}.
  *
  * @category Settings
  */
-export interface ClientPrefSettingOf<ValueType extends SettingType>
+export interface ClientPrefSettingOf<ValueType extends SettingKind>
   extends SettingDefinitionBase {
   /** Where the value is kept: `"client-pref"`, this browser. The default, so it may be left out. */
   backing?: "client-pref";
-  /** The kind of value: `"boolean"` (the default when left out), `"text"` or `"number"`. Sets the control drawn. */
+  /** The kind of value: {@link SettingKind.Bool} (the default when left out), {@link SettingKind.Text} or {@link SettingKind.Number}. Sets the control drawn. */
   type?: ValueType;
   /** The value the row holds until the operator changes it. */
   defaultValue: SettingValueByType[ValueType];
@@ -148,12 +137,12 @@ export interface ClientPrefSettingOf<ValueType extends SettingType>
  * @category Settings
  */
 export interface StreamBackedSettingOf<
-  ValueType extends SettingType,
+  ValueType extends SettingKind,
   Topic extends TopicId = TopicId,
 > extends SettingDefinitionBase {
   /** Where the value comes from: `"stream-backed"`, a Topic. */
   backing: "stream-backed";
-  /** The kind of value: `"boolean"` (the default when left out), `"text"` or `"number"`. Sets how the value is drawn. */
+  /** The kind of value: {@link SettingKind.Bool} (the default when left out), {@link SettingKind.Text} or {@link SettingKind.Number}. Sets how the value is drawn. */
   type?: ValueType;
   /** The Topic id whose payload carries this row's value. */
   topic: Topic;
@@ -177,7 +166,7 @@ export interface StreamBackedSettingOf<
  *
  * @category Settings
  */
-export interface StoredStreamBackedSettingOf<ValueType extends SettingType>
+export interface StoredStreamBackedSettingOf<ValueType extends SettingKind>
   extends SettingDefinitionBase {
   /** Always `"stream-backed"`: the value is read from a Topic rather than stored. */
   backing: "stream-backed";
@@ -193,7 +182,7 @@ export interface StoredStreamBackedSettingOf<ValueType extends SettingType>
 }
 
 /**
- * One row, of one {@link SettingType}: what {@link registerSetting} takes. The
+ * One row, of one {@link SettingKind}: what {@link registerSetting} takes. The
  * type is inferred from `type`, so `defaultValue` and `select` must agree with
  * it.
  *
@@ -203,7 +192,7 @@ export interface StoredStreamBackedSettingOf<ValueType extends SettingType>
  * @category Settings
  */
 export type SettingDefinitionOf<
-  ValueType extends SettingType,
+  ValueType extends SettingKind,
   Topic extends TopicId = TopicId,
 > = ClientPrefSettingOf<ValueType> | StreamBackedSettingOf<ValueType, Topic>;
 
@@ -213,9 +202,9 @@ export type SettingDefinitionOf<
  * @category Settings
  */
 export type ClientPrefSetting =
-  | ClientPrefSettingOf<"boolean">
-  | ClientPrefSettingOf<"text">
-  | ClientPrefSettingOf<"number">;
+  | ClientPrefSettingOf<SettingKind.Bool>
+  | ClientPrefSettingOf<SettingKind.Text>
+  | ClientPrefSettingOf<SettingKind.Number>;
 
 /**
  * A setting the mod owns, of any value type, read from a Topic. The row shows
@@ -224,9 +213,9 @@ export type ClientPrefSetting =
  * @category Settings
  */
 export type StreamBackedSetting =
-  | StoredStreamBackedSettingOf<"boolean">
-  | StoredStreamBackedSettingOf<"text">
-  | StoredStreamBackedSettingOf<"number">;
+  | StoredStreamBackedSettingOf<SettingKind.Bool>
+  | StoredStreamBackedSettingOf<SettingKind.Text>
+  | StoredStreamBackedSettingOf<SettingKind.Number>;
 
 /**
  * Any registered row, whatever its backing and whatever its type.
@@ -248,23 +237,23 @@ export function isReadOnlySetting(def: SettingDefinition): boolean {
 }
 
 /**
- * The declared type of a row, with the boolean default applied.
+ * The declared kind of a row, with the {@link SettingKind.Bool} default applied.
  *
  * @category Settings
  */
-export function settingTypeOf(def: SettingDefinition): SettingType {
-  return def.type ?? "boolean";
+export function settingKindOf(def: SettingDefinition): SettingKind {
+  return def.type ?? SettingKind.Bool;
 }
 
 const registry = new Map<string, SettingDefinition>();
 
 /**
- * The authoring overload: `ValueType` is pinned by `type` (absent means `"boolean"`),
+ * The authoring overload: `ValueType` is pinned by `type` (absent means {@link SettingKind.Bool}),
  * which is what makes `defaultValue` and `select` agree with each other and
  * with the row's declared type.
  */
 export function registerSetting<
-  ValueType extends SettingType = "boolean",
+  ValueType extends SettingKind = SettingKind.Bool,
   Topic extends TopicId = TopicId,
 >(def: SettingDefinitionOf<ValueType, Topic>): void;
 /**

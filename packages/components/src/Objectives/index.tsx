@@ -5,6 +5,7 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { AutoEmptyState, EmptyState, Panel, Section } from "@ksp-gonogo/ui-kit";
 import {
   ContractsObjectiveSource,
@@ -82,7 +83,7 @@ registerAugment({
   settings: [
     {
       key: "show",
-      type: "boolean",
+      type: SettingKind.Bool,
       label: "Show contract objectives",
       default: true,
     },

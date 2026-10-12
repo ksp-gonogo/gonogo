@@ -1431,8 +1431,10 @@ export interface CommandResultOf<Payload> extends CommandResult
 	payload?: Payload | null;
 }
 /**
-* Who is speaking, as the speaking client describes itself. Shown to listeners
-* and trusted for nothing else: the vantage a thing was said from is always
+* Who is speaking, as the speaking client describes itself. A speaker is the
+* screen sending a message, and a listener is a command centre in the group it
+* is sent to. Shown to listeners and trusted for nothing else: the vantage a
+* thing was said from, the command centre its connection works from, is always
 * the one the mod resolved for the connection that said it, never a field
 * here.
 *
@@ -1455,8 +1457,9 @@ export interface CommcastAuthor
 }
 /**
 * `commcast.group.open`'s args: start a group, a set of command centres
-* sharing one thread for messages and radio. The speaker is always a member,
-* named here or not.
+* sharing one thread for messages and radio. A centre is a command centre, as
+* listed on `commandCentre.roster`. The speaker, the screen sending, is always
+* a member through its own centre, named here or not.
 *
 * Never delayed on the way up. What is said crosses once, from the speaker to
 * each listener at that pair's signal delay, and the mod times that crossing
@@ -2562,7 +2565,10 @@ export interface CommsJourneyEvent
 	about: string;
 	/** The craft the command's lane runs to. */
 	craft: string;
-	/** The lane number it concerns. */
+	/**
+	* The command's place on its lane, the ordered run of delayed commands one
+	* command centre sends to one craft, as `PendingUplink.laneSeq`.
+	*/
 	laneSeq: Value<"count">;
 	/** What happened. */
 	kind: JourneyEventKind;
@@ -2579,8 +2585,9 @@ export interface CommsJourneyEvent
 	/** A short reason, for a discard or a late cancel. Null otherwise. */
 	detail?: string | null;
 	/**
-	* For a waiting report, the lane numbers the craft is still missing. Empty
-	* otherwise.
+	* For a waiting report, the places on the lane (see
+	* `CommsJourneyEvent.laneSeq`) of the earlier commands the craft is still
+	* missing. Empty otherwise.
 	*/
 	missing: Value<"count">[];
 }
@@ -2610,7 +2617,10 @@ export interface UplinkCancelRequest
 	epoch: Value<"count">;
 	/** The craft its lane runs to, as `PendingUplink.craft`. */
 	craft: string;
-	/** Its lane number, as `PendingUplink.laneSeq`. */
+	/**
+	* Its place on its lane, the ordered run of delayed commands one command
+	* centre sends to one craft, as `PendingUplink.laneSeq`.
+	*/
 	laneSeq: Value<"count">;
 	/**
 	* Whether to cancel every later number on the lane too, up to the newest this
@@ -2635,7 +2645,10 @@ export interface UplinkResendRequest
 	epoch: Value<"count">;
 	/** The craft its lane runs to. */
 	craft: string;
-	/** Its lane number. */
+	/**
+	* Its place on its lane, the ordered run of delayed commands one command
+	* centre sends to one craft, as `PendingUplink.laneSeq`.
+	*/
 	laneSeq: Value<"count">;
 }
 /**
@@ -7143,10 +7156,10 @@ export interface SettingsChange
 * when no sample has arrived yet, which tells "no data yet" apart from "zero
 * sites". It carries no `meta` of its own.
 *
-* Held at the home command, the command centre that holds the career ledger
-* (see `CommandCentreEntry`): each vantage, a command centre the operator
-* observes from, receives a change after its own delay to home, at once on the
-* ground network.
+* Kept at the home command centre, the one that holds the career ledger (see
+* `CommandCentreEntry`). A screen working from another command centre, which
+* is its vantage, sees a change after the signal delay from home to that
+* centre, and at once when both are on the ground network.
 *
 * @category Space center
 */
@@ -7250,7 +7263,7 @@ export interface SpaceCenterScene
 * (not an empty array) when no sample has arrived yet, which tells "no data
 * yet" apart from "zero crew".
 *
-* Held at the home command, like `LaunchSiteEntry`.
+* Kept at the home command centre, like `LaunchSiteEntry`.
 *
 * @category Crew
 * @categoryDescription Crew
@@ -7456,7 +7469,7 @@ export interface SavedShipEntry
 *
 * A wrapper object, because a bare scalar has no Topic shape: read
 * `spaceCenter.partsAvailable.count`. The whole payload is `null` when no
-* sample has arrived yet. Held at the home command.
+* sample has arrived yet. Kept at the home command centre.
 *
 * @category Space center
 */
@@ -7481,7 +7494,7 @@ export interface SpaceCenterPartsAvailable
 * career save whose pool is empty sends a non-null payload with an empty
 * `AstronautComplexInfo.applicants` list.
 *
-* Held at the home command, like `CrewRosterEntry`.
+* Kept at the home command centre, like `CrewRosterEntry`.
 *
 * @category Crew
 */
@@ -7527,7 +7540,7 @@ export interface AstronautComplexInfo
 * The channel is a bare array of these entries, one per POI keyed by
 * `SpaceCenterPoiEntry.id`. The whole payload is `null` (not an empty array)
 * when no sample has arrived yet, which tells "no data yet" apart from "zero
-* POIs". Held at the home command, like `LaunchSiteEntry`.
+* POIs". Kept at the home command centre, like `LaunchSiteEntry`.
 *
 * @category Space center
 */

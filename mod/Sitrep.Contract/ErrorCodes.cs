@@ -210,7 +210,7 @@ public sealed class FaultCode : IEquatable<FaultCode>
     /// <summary>A topic whose payload could not be written.</summary>
     public static readonly FaultCode PayloadSerializationError = Mod("payloadSerializationError", "its value could not be sent");
 
-    /// <summary>A <c>set-vantage</c>, or a command's <c>vantage</c>, naming a command centre that is not active. The alarm command for a SCET alarm (an alarm on the craft's own clock, spacecraft event time) is the exception: it refuses an inactive vantage with the <c>range</c> refusal instead.</summary>
+    /// <summary>A <c>set-vantage</c>, or a command's <c>vantage</c>, naming a command centre that is not active. A vantage is the command centre a view is taken from or a command is sent from. The command that sets a SCET alarm (an alarm on the craft's own clock, spacecraft event time) is the exception: it refuses an inactive vantage with the <c>range</c> refusal instead.</summary>
     public static readonly FaultCode UnknownVantage = Mod("unknownVantage", "that command centre is not active");
 
     /// <summary>A held command reached its expiry, or its place on the lane passed, before it could run. A lane is the numbered sequence of commands to one craft, which the craft settles in number order.</summary>

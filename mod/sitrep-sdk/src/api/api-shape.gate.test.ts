@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SettingKind } from "../__generated__/contract";
 import { installTestHost, resetTestHost } from "../testing";
 import * as barrel from "./index";
 
@@ -76,7 +77,7 @@ describe("sitrep-sdk author-facing barrel: shims without a host", () => {
     barrel.clearCoverageSources();
     const source = {
       id: "gate:coverage",
-      settings: [{ key: "enabled", type: "boolean" as const }],
+      settings: [{ key: "enabled", type: SettingKind.Bool as const }],
     };
     expect(() => barrel.registerCoverageSource(source)).not.toThrow();
     expect(barrel.getCoverageSources()).toEqual([source]);

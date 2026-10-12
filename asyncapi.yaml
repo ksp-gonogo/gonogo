@@ -780,8 +780,9 @@ channels:
       **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
 
       `commcast.group.open`'s args: start a group, a set of command centres
-      sharing one thread for messages and radio. The speaker is always a member,
-      named here or not.
+      sharing one thread for messages and radio. A centre is a command centre, as
+      listed on `commandCentre.roster`. The speaker, the screen sending, is always
+      a member through its own centre, named here or not.
 
       Never delayed on the way up. What is said crosses once, from the speaker to
       each listener at that pair's signal delay, and the mod times that crossing
@@ -2586,7 +2587,7 @@ channels:
       career save whose pool is empty sends a non-null payload with an empty
       `AstronautComplexInfo.applicants` list.
 
-      Held at the home command, like `CrewRosterEntry`.
+      Kept at the home command centre, like `CrewRosterEntry`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -2615,7 +2616,7 @@ channels:
       (not an empty array) when no sample has arrived yet, which tells "no data
       yet" apart from "zero crew".
 
-      Held at the home command, like `LaunchSiteEntry`.
+      Kept at the home command centre, like `LaunchSiteEntry`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -2643,10 +2644,10 @@ channels:
       when no sample has arrived yet, which tells "no data yet" apart from "zero
       sites". It carries no `meta` of its own.
 
-      Held at the home command, the command centre that holds the career ledger
-      (see `CommandCentreEntry`): each vantage, a command centre the operator
-      observes from, receives a change after its own delay to home, at once on the
-      ground network.
+      Kept at the home command centre, the one that holds the career ledger (see
+      `CommandCentreEntry`). A screen working from another command centre, which
+      is its vantage, sees a change after the signal delay from home to that
+      centre, and at once when both are on the ground network.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -2670,7 +2671,7 @@ channels:
 
       A wrapper object, because a bare scalar has no Topic shape: read
       `spaceCenter.partsAvailable.count`. The whole payload is `null` when no
-      sample has arrived yet. Held at the home command.
+      sample has arrived yet. Kept at the home command centre.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -2697,7 +2698,7 @@ channels:
       The channel is a bare array of these entries, one per POI keyed by
       `SpaceCenterPoiEntry.id`. The whole payload is `null` (not an empty array)
       when no sample has arrived yet, which tells "no data yet" apart from "zero
-      POIs". Held at the home command, like `LaunchSiteEntry`.
+      POIs". Kept at the home command centre, like `LaunchSiteEntry`.
     servers:
       - $ref: "#/servers/mod"
     x-sitrep-delivery: lossy-latest
@@ -9072,7 +9073,7 @@ components:
         career save whose pool is empty sends a non-null payload with an empty
         `AstronautComplexInfo.applicants` list.
 
-        Held at the home command, like `CrewRosterEntry`.
+        Kept at the home command centre, like `CrewRosterEntry`.
       required:
         - applicants
       properties:
@@ -10573,12 +10574,14 @@ components:
             change can also be switched off by the save's own difficulty settings. The
             game's reason is on `CommandResult.detail`.
 
-            Also returned by the SCET alarm command for a vantage it cannot check
-            because the game has not yet reported any command centre: at the main menu,
-            and in the first moments after a save loads. The same command refuses a
-            vantage that is known and inactive with `CommandErrorCode.Range` instead,
-            because that one does not resolve by waiting. Any other command naming an
-            inactive vantage fails with the `unknownVantage` fault.
+            Also returned by the command that sets a SCET alarm (an alarm on the craft's
+            own clock, spacecraft event time) when the command centre it names as its
+            vantage cannot be checked, because the game has not yet reported any command
+            centre: at the main menu, and in the first moments after a save loads. The
+            same command refuses a vantage that is known and inactive with
+            `CommandErrorCode.Range` instead, because that one does not resolve by
+            waiting. Any other command naming an inactive vantage fails with the
+            `unknownVantage` fault.
 
             Distinct from `CommandErrorCode.WrongState`, which is about the entity and
             does not resolve by waiting.
@@ -10883,8 +10886,10 @@ components:
     CommcastAuthor:
       type: object
       description: |-
-        Who is speaking, as the speaking client describes itself. Shown to listeners
-        and trusted for nothing else: the vantage a thing was said from is always
+        Who is speaking, as the speaking client describes itself. A speaker is the
+        screen sending a message, and a listener is a command centre in the group it
+        is sent to. Shown to listeners and trusted for nothing else: the vantage a
+        thing was said from, the command centre its connection works from, is always
         the one the mod resolved for the connection that said it, never a field
         here.
       required:
@@ -10939,8 +10944,9 @@ components:
       type: object
       description: |-
         `commcast.group.open`'s args: start a group, a set of command centres
-        sharing one thread for messages and radio. The speaker is always a member,
-        named here or not.
+        sharing one thread for messages and radio. A centre is a command centre, as
+        listed on `commandCentre.roster`. The speaker, the screen sending, is always
+        a member through its own centre, named here or not.
 
         Never delayed on the way up. What is said crosses once, from the speaker to
         each listener at that pair's signal delay, and the mod times that crossing
@@ -11873,7 +11879,9 @@ components:
         laneSeq:
           type: number
           x-sitrep-unit: count
-          description: The lane number it concerns.
+          description: |-
+            The command's place on its lane, the ordered run of delayed commands one
+            command centre sends to one craft, as `PendingUplink.laneSeq`.
         kind:
           description: What happened.
           allOf:
@@ -11908,8 +11916,9 @@ components:
             type: number
             x-sitrep-unit: count
           description: |-
-            For a waiting report, the lane numbers the craft is still missing. Empty
-            otherwise.
+            For a waiting report, the places on the lane (see
+            `CommsJourneyEvent.laneSeq`) of the earlier commands the craft is still
+            missing. Empty otherwise.
     CommsLink:
       type: object
       description: |-
@@ -12961,7 +12970,7 @@ components:
         (not an empty array) when no sample has arrived yet, which tells "no data
         yet" apart from "zero crew".
 
-        Held at the home command, like `LaunchSiteEntry`.
+        Kept at the home command centre, like `LaunchSiteEntry`.
       properties:
         name:
           type:
@@ -14071,9 +14080,10 @@ components:
           title: UnknownVantage
           description: |-
             A `set-vantage`, or a command's `vantage`, naming a command centre that is
-            not active. The alarm command for a SCET alarm (an alarm on the craft's own
-            clock, spacecraft event time) is the exception: it refuses an inactive
-            vantage with the `range` refusal instead.
+            not active. A vantage is the command centre a view is taken from or a
+            command is sent from. The command that sets a SCET alarm (an alarm on the
+            craft's own clock, spacecraft event time) is the exception: it refuses an
+            inactive vantage with the `range` refusal instead.
           x-sitrep-sentence: that command centre is not active
         - const: commandExpired
           title: CommandExpired
@@ -15389,10 +15399,10 @@ components:
         when no sample has arrived yet, which tells "no data yet" apart from "zero
         sites". It carries no `meta` of its own.
 
-        Held at the home command, the command centre that holds the career ledger
-        (see `CommandCentreEntry`): each vantage, a command centre the operator
-        observes from, receives a change after its own delay to home, at once on the
-        ground network.
+        Kept at the home command centre, the one that holds the career ledger (see
+        `CommandCentreEntry`). A screen working from another command centre, which
+        is its vantage, sees a change after the signal delay from home to that
+        centre, and at once when both are on the ground network.
       properties:
         name:
           type:
@@ -18955,7 +18965,7 @@ components:
 
         A wrapper object, because a bare scalar has no Topic shape: read
         `spaceCenter.partsAvailable.count`. The whole payload is `null` when no
-        sample has arrived yet. Held at the home command.
+        sample has arrived yet. Kept at the home command centre.
       properties:
         count:
           type:
@@ -18977,7 +18987,7 @@ components:
         The channel is a bare array of these entries, one per POI keyed by
         `SpaceCenterPoiEntry.id`. The whole payload is `null` (not an empty array)
         when no sample has arrived yet, which tells "no data yet" apart from "zero
-        POIs". Held at the home command, like `LaunchSiteEntry`.
+        POIs". Kept at the home command centre, like `LaunchSiteEntry`.
       properties:
         id:
           type:
@@ -20164,7 +20174,9 @@ components:
         laneSeq:
           type: number
           x-sitrep-unit: count
-          description: Its lane number, as `PendingUplink.laneSeq`.
+          description: |-
+            Its place on its lane, the ordered run of delayed commands one command
+            centre sends to one craft, as `PendingUplink.laneSeq`.
         andBehind:
           type: boolean
           x-sitrep-unit: flag
@@ -20196,7 +20208,9 @@ components:
         laneSeq:
           type: number
           x-sitrep-unit: count
-          description: Its lane number.
+          description: |-
+            Its place on its lane, the ordered run of delayed commands one command
+            centre sends to one craft, as `PendingUplink.laneSeq`.
     VesselAttitude:
       type: object
       description: |-

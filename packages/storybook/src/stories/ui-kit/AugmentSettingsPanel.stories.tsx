@@ -1,4 +1,5 @@
 import type { NamespacedAugmentSettings } from "@ksp-gonogo/sitrep-sdk";
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSettingsPanel,
   type AugmentSettingsPanelProps,
@@ -21,19 +22,19 @@ const CREW_STATUS_SETTINGS: NamespacedAugmentSettings[] = [
     fields: [
       {
         key: "showRadiation",
-        type: "boolean",
+        type: SettingKind.Bool,
         label: "Show radiation dose",
         default: true,
       },
       {
         key: "showStress",
-        type: "boolean",
+        type: SettingKind.Bool,
         label: "Show stress",
         default: false,
       },
       {
         key: "warnAt",
-        type: "number",
+        type: SettingKind.Number,
         label: "Warn at dose (rad)",
         default: 25,
       },
@@ -45,13 +46,13 @@ const CREW_STATUS_SETTINGS: NamespacedAugmentSettings[] = [
     fields: [
       {
         key: "caption",
-        type: "text",
+        type: SettingKind.Text,
         label: "Portrait caption",
         default: "Kerbal X crew",
       },
       {
         key: "hideVeterans",
-        type: "boolean",
+        type: SettingKind.Bool,
         label: "Hide veterans' stars",
         default: false,
       },
@@ -134,7 +135,7 @@ export const SameKeyTwoAugments: Story = {
           fields: [
             {
               key: "enabled",
-              type: "boolean",
+              type: SettingKind.Bool,
               label: "Coverage overlay",
               default: true,
             },
@@ -146,7 +147,7 @@ export const SameKeyTwoAugments: Story = {
           fields: [
             {
               key: "enabled",
-              type: "boolean",
+              type: SettingKind.Bool,
               label: "Biome boundaries overlay",
               default: false,
             },
@@ -165,7 +166,9 @@ export const UnlabelledField: Story = {
         {
           augmentId: "crew-radiation-meter",
           namespace: "crew-radiation-meter",
-          fields: [{ key: "showRadiation", type: "boolean", default: true }],
+          fields: [
+            { key: "showRadiation", type: SettingKind.Bool, default: true },
+          ],
         },
       ]}
     />

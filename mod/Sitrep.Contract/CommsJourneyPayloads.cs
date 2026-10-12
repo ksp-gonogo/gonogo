@@ -105,7 +105,7 @@ public class CommsJourneyEvent
     [SitrepUnit(Units.Id)]
     public string Craft { get; set; } = "";
 
-    /// <summary>The lane number it concerns.</summary>
+    /// <summary>The command's place on its lane, the ordered run of delayed commands one command centre sends to one craft, as <see cref="PendingUplink.LaneSeq"/>.</summary>
     [SitrepUnit(Units.Count)]
     public long LaneSeq { get; set; }
 
@@ -129,7 +129,7 @@ public class CommsJourneyEvent
     [SitrepUnit(Units.Text)]
     public string? Detail { get; set; }
 
-    /// <summary>For a waiting report, the lane numbers the craft is still missing. Empty otherwise.</summary>
+    /// <summary>For a waiting report, the places on the lane (see <see cref="LaneSeq"/>) of the earlier commands the craft is still missing. Empty otherwise.</summary>
     [SitrepUnit(Units.Count)]
     public List<long> Missing { get; set; } = new List<long>();
 }
@@ -169,7 +169,7 @@ public class UplinkCancelRequest
     [SitrepUnit(Units.Id)]
     public string Craft { get; set; } = "";
 
-    /// <summary>Its lane number, as <see cref="PendingUplink.LaneSeq"/>.</summary>
+    /// <summary>Its place on its lane, the ordered run of delayed commands one command centre sends to one craft, as <see cref="PendingUplink.LaneSeq"/>.</summary>
     [SitrepUnit(Units.Count)]
     public long LaneSeq { get; set; }
 
@@ -203,7 +203,7 @@ public class UplinkResendRequest
     [SitrepUnit(Units.Id)]
     public string Craft { get; set; } = "";
 
-    /// <summary>Its lane number.</summary>
+    /// <summary>Its place on its lane, the ordered run of delayed commands one command centre sends to one craft, as <see cref="PendingUplink.LaneSeq"/>.</summary>
     [SitrepUnit(Units.Count)]
     public long LaneSeq { get; set; }
 }

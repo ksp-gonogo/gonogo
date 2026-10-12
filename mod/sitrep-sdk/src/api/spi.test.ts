@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { SettingKind } from "../__generated__/contract";
 import { installTestHost, resetTestHost } from "../testing";
 import * as barrel from "./index";
 
@@ -222,13 +223,13 @@ describe("sitrep-sdk author-facing barrel: SPI gap shims", () => {
       barrel.registerCoverageSource({ id: "a:plain" });
       barrel.registerCoverageSource({
         id: "b:tunable",
-        settings: [{ key: "enabled", type: "boolean", default: true }],
+        settings: [{ key: "enabled", type: SettingKind.Bool, default: true }],
       });
       expect(barrel.getCoverageSourceSettings()).toEqual([
         {
           augmentId: "b:tunable",
           namespace: "b:tunable",
-          fields: [{ key: "enabled", type: "boolean", default: true }],
+          fields: [{ key: "enabled", type: SettingKind.Bool, default: true }],
         },
       ]);
       barrel.clearCoverageSources();

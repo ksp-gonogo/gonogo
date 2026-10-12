@@ -1,3 +1,4 @@
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import type { NamespacedAugmentSettings } from "./augments";
 import { Field, FieldLabel, FieldRow, Input } from "./Form";
 import { Switch } from "./Switch";
@@ -62,7 +63,7 @@ export function AugmentSettingsPanel({
           const label = field.label ?? field.key;
           const fieldId = `augment-setting-${block.namespace}-${field.key}`;
 
-          if (field.type === "boolean") {
+          if (field.type === SettingKind.Bool) {
             return (
               <FieldRow key={`${block.namespace}.${field.key}`}>
                 <Switch
@@ -81,11 +82,11 @@ export function AugmentSettingsPanel({
               <FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
               <Input
                 id={fieldId}
-                type={field.type === "number" ? "number" : "text"}
+                type={field.type === SettingKind.Number ? "number" : "text"}
                 value={current === undefined ? "" : String(current)}
                 onChange={(e) => {
                   const raw = e.target.value;
-                  if (field.type !== "number") {
+                  if (field.type !== SettingKind.Number) {
                     onChange(block.namespace, field.key, raw);
                     return;
                   }

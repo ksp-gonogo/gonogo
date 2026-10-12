@@ -6,9 +6,12 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Who is speaking, as the speaking client describes itself. Shown to listeners
-/// and trusted for nothing else: the vantage a thing was said from is always the
-/// one the mod resolved for the connection that said it, never a field here.
+/// Who is speaking, as the speaking client describes itself. A speaker is the
+/// screen sending a message, and a listener is a command centre in the group it
+/// is sent to. Shown to listeners and trusted for nothing else: the vantage a
+/// thing was said from, the command centre its connection works from, is always
+/// the one the mod resolved for the connection that said it, never a field
+/// here.
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -32,8 +35,9 @@ public class CommcastAuthor
 
 /// <summary>
 /// <c>commcast.group.open</c>'s args: start a group, a set of command centres
-/// sharing one thread for messages and radio. The speaker is always a member,
-/// named here or not.
+/// sharing one thread for messages and radio. A centre is a command centre, as
+/// listed on <c>commandCentre.roster</c>. The speaker, the screen sending, is
+/// always a member through its own centre, named here or not.
 ///
 /// <para>Never delayed on the way up. What is said crosses once, from the
 /// speaker to each listener at that pair's signal delay, and the mod times that

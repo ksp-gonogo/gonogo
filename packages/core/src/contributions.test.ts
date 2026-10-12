@@ -1,4 +1,5 @@
 import { clearProcessors, defineProcessor } from "@ksp-gonogo/sitrep-client";
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   type ContributionDefinition,
@@ -134,7 +135,7 @@ describe("getContributionSettings", () => {
     registerContribution({
       id: "with-settings",
       contributes: "test.slot",
-      settings: [{ key: "showExtra", type: "boolean", default: false }],
+      settings: [{ key: "showExtra", type: SettingKind.Bool, default: false }],
       compute: () => null,
     });
     registerContribution({
@@ -148,7 +149,7 @@ describe("getContributionSettings", () => {
       {
         augmentId: "with-settings",
         namespace: "with-settings",
-        fields: [{ key: "showExtra", type: "boolean", default: false }],
+        fields: [{ key: "showExtra", type: SettingKind.Bool, default: false }],
       },
     ]);
   });

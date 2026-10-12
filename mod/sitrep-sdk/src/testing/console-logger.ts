@@ -5,6 +5,14 @@ import type { Logger } from "../api/logger-contract";
  * {@link installRealTestHost} installs it. `tag()` returns the same logger, so tagged entries are
  * always shown.
  *
+ * @example Seeing what code under test logs
+ * ```ts
+ * import { consoleLogger } from "@ksp-gonogo/sitrep-sdk/testing";
+ *
+ * consoleLogger.info("heartbeat started", { uplink: "example" });
+ * consoleLogger.tag("heartbeat").warn("late sample");
+ * ```
+ *
  * @category Test doubles
  */
 export const consoleLogger: Logger = {

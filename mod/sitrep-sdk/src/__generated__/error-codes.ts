@@ -139,12 +139,14 @@ export const CommandErrorCode = {
    * change can also be switched off by the save's own difficulty settings. The
    * game's reason is on `CommandResult.detail`.
    *
-   * Also returned by the SCET alarm command for a vantage it cannot check
-   * because the game has not yet reported any command centre: at the main menu,
-   * and in the first moments after a save loads. The same command refuses a
-   * vantage that is known and inactive with `CommandErrorCode.Range` instead,
-   * because that one does not resolve by waiting. Any other command naming an
-   * inactive vantage fails with the `unknownVantage` fault.
+   * Also returned by the command that sets a SCET alarm (an alarm on the craft's
+   * own clock, spacecraft event time) when the command centre it names as its
+   * vantage cannot be checked, because the game has not yet reported any command
+   * centre: at the main menu, and in the first moments after a save loads. The
+   * same command refuses a vantage that is known and inactive with
+   * `CommandErrorCode.Range` instead, because that one does not resolve by
+   * waiting. Any other command naming an inactive vantage fails with the
+   * `unknownVantage` fault.
    *
    * Distinct from `CommandErrorCode.WrongState`, which is about the entity and
    * does not resolve by waiting.
@@ -299,9 +301,10 @@ export const FaultCode = {
   PayloadSerializationError: "payloadSerializationError",
   /**
    * A `set-vantage`, or a command's `vantage`, naming a command centre that is
-   * not active. The alarm command for a SCET alarm (an alarm on the craft's own
-   * clock, spacecraft event time) is the exception: it refuses an inactive
-   * vantage with the `range` refusal instead.
+   * not active. A vantage is the command centre a view is taken from or a
+   * command is sent from. The command that sets a SCET alarm (an alarm on the
+   * craft's own clock, spacecraft event time) is the exception: it refuses an
+   * inactive vantage with the `range` refusal instead.
    */
   UnknownVantage: "unknownVantage",
   /**
@@ -491,7 +494,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the flight is not clear for it yet",
-    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the SCET alarm command for a vantage it cannot check because the game has not yet reported any command centre: at the main menu, and in the first moments after a save loads. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
+    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the command that sets a SCET alarm (an alarm on the craft's own clock, spacecraft event time) when the command centre it names as its vantage cannot be checked, because the game has not yet reported any command centre: at the main menu, and in the first moments after a save loads. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
   },
   {
     id: "capabilityMismatch",
@@ -635,7 +638,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: "mod",
     sentence: "that command centre is not active",
-    meaning: "A `set-vantage`, or a command's `vantage`, naming a command centre that is not active. The alarm command for a SCET alarm (an alarm on the craft's own clock, spacecraft event time) is the exception: it refuses an inactive vantage with the `range` refusal instead.",
+    meaning: "A `set-vantage`, or a command's `vantage`, naming a command centre that is not active. A vantage is the command centre a view is taken from or a command is sent from. The command that sets a SCET alarm (an alarm on the craft's own clock, spacecraft event time) is the exception: it refuses an inactive vantage with the `range` refusal instead.",
   },
   {
     id: "commandExpired",

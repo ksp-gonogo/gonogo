@@ -1,3 +1,4 @@
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 import { registerSetting } from "./registry";
 import { useSetting } from "./SettingsContext";
@@ -6,7 +7,7 @@ export const STATION_WAKE_LOCK_SETTING = "station.keepScreenAwake";
 
 registerSetting({
   id: STATION_WAKE_LOCK_SETTING,
-  type: "boolean",
+  type: SettingKind.Bool,
   label: "Keep screen awake while connected",
   description:
     "Requests the browser keep this screen on while the station is connected to the main screen. Some browsers ignore the request, behaviour is best-effort.",

@@ -9,7 +9,7 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { MockDataSource } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import {
@@ -693,7 +693,7 @@ describe("MapViewComponent", () => {
         settings: [
           {
             key: "show",
-            type: "boolean",
+            type: SettingKind.Bool,
             label: "Show section",
             default: true,
           },

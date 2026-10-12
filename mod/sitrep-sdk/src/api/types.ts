@@ -17,6 +17,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
+import type { SettingKind } from "../__generated__/contract";
 import type {
   DelayMode,
   InFlightCommand,
@@ -1051,8 +1052,8 @@ export type AnyContribution = Omit<
 export interface AugmentSettingField {
   /** The setting's key, unique within the augment or contribution. */
   key: string;
-  /** `"boolean"` draws a toggle, `"text"` a text field and `"number"` a number field. */
-  type: "boolean" | "text" | "number";
+  /** {@link SettingKind.Bool} draws a toggle, {@link SettingKind.Text} a text field and {@link SettingKind.Number} a number field. */
+  type: SettingKind;
   /** What the operator reads beside the control. Defaults to the setting's key. */
   label?: string;
   /** The value before the operator sets one, and again after they clear a number field. */
@@ -1269,9 +1270,11 @@ export interface MapPoi {
   /** One more line on the point's card. */
   detail?: string;
   /**
-   * For a `"contractTarget"`, whether the contract is `"active"` or
-   * `"available"`. `"info"` is accepted and drawn the same as `"available"`.
-   * Ignored for every other kind.
+   * For a `"contractTarget"`, whether the contract is `"active"` (accepted) or
+   * `"available"` (offered, not yet accepted). `"info"` marks a target of a
+   * contract that is neither, such as one the map lists only so the operator
+   * can see where it is; it is drawn the same as `"available"`. Ignored for
+   * every other kind.
    */
   status?: "active" | "available" | "info";
   /** Extra details, each shown on the point's card as a row of key and value. */
@@ -1682,7 +1685,6 @@ export type {
   SettingDefinition,
   SettingDefinitionBase,
   SettingDefinitionOf,
-  SettingType,
   SettingValue,
   SettingValueByType,
   StreamBackedSetting,

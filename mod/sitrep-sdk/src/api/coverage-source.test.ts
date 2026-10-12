@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { SettingKind } from "../__generated__/contract";
 import {
   clearCoverageSources,
   getCoverageSourceSettings,
@@ -66,14 +67,14 @@ describe("coverage source registry", () => {
   it("collects settings namespaced by source id, ordered like registration", () => {
     registerCoverageSource({
       id: "example-uplink:AltimetryHiRes",
-      settings: [{ key: "show", type: "boolean", default: true }],
+      settings: [{ key: "show", type: SettingKind.Bool, default: true }],
     });
     registerCoverageSource({ id: "example-uplink:Biome" }); // no settings, excluded
     expect(getCoverageSourceSettings()).toEqual([
       {
         augmentId: "example-uplink:AltimetryHiRes",
         namespace: "example-uplink:AltimetryHiRes",
-        fields: [{ key: "show", type: "boolean", default: true }],
+        fields: [{ key: "show", type: SettingKind.Bool, default: true }],
       },
     ]);
   });

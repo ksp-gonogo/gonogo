@@ -1,3 +1,4 @@
+import { SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it, vi } from "vitest";
 import { AugmentSettingsPanel } from "./AugmentSettingsPanel";
@@ -11,7 +12,7 @@ const SETTINGS: NamespacedAugmentSettings[] = [
     fields: [
       {
         key: "show",
-        type: "boolean",
+        type: SettingKind.Bool,
         label: "Show example overlay",
         default: true,
       },
@@ -21,7 +22,12 @@ const SETTINGS: NamespacedAugmentSettings[] = [
     augmentId: "some-provider",
     namespace: "some-provider",
     fields: [
-      { key: "label", type: "text", label: "Overlay label", default: "" },
+      {
+        key: "label",
+        type: SettingKind.Text,
+        label: "Overlay label",
+        default: "",
+      },
     ],
   },
 ];
@@ -110,7 +116,12 @@ describe("AugmentSettingsPanel", () => {
             augmentId: "example-augment",
             namespace: "example-augment",
             fields: [
-              { key: "count", type: "number", label: "Count", default: 1 },
+              {
+                key: "count",
+                type: SettingKind.Number,
+                label: "Count",
+                default: 1,
+              },
             ],
           },
         ]}
@@ -141,7 +152,9 @@ describe("AugmentSettingsPanel number fields", () => {
     {
       augmentId: "example-augment",
       namespace: "example-augment",
-      fields: [{ key: "count", type: "number", label: "Count", default: 3 }],
+      fields: [
+        { key: "count", type: SettingKind.Number, label: "Count", default: 3 },
+      ],
     },
   ];
 

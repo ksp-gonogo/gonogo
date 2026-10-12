@@ -1,5 +1,5 @@
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
+import { value as quantity, SettingKind } from "@ksp-gonogo/sitrep-sdk";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   ReadOnlyField,
@@ -14,7 +14,7 @@ import type {
 import {
   getSettingDefinition,
   isReadOnlySetting,
-  settingTypeOf,
+  settingKindOf,
 } from "./registry";
 import { useSetting } from "./SettingsContext";
 import {
@@ -80,7 +80,7 @@ export function CategoryRows({ items }: { items: SettingDefinition[] }) {
  * What a read-only row hands to `ReadOnlyField`, which does not take a bare
  * number.
  *
- * A registered row may declare `type: "number"` and answer with a plain number,
+ * A registered row may declare `type: SettingKind.Number` and answer with a plain number,
  * and a plain number has lost the one thing that says how to write it. The row
  * still has to render, so the number is wrapped in a value whose unit is the
  * empty one, which is the model's way of saying nobody declared a unit: `Unit`
@@ -205,8 +205,8 @@ function SettingControl({
   disabled: boolean;
   onChange: (next: SettingValue) => void;
 }) {
-  const type = settingTypeOf(def);
-  if (type === "boolean") {
+  const type = settingKindOf(def);
+  if (type === SettingKind.Bool) {
     return (
       <Switch
         checked={value === true}
@@ -216,7 +216,7 @@ function SettingControl({
       />
     );
   }
-  if (type === "number") {
+  if (type === SettingKind.Number) {
     return (
       <SettingInput
         type="number"

@@ -1,11 +1,11 @@
 import type {
   SettingDefinition,
   SettingDefinitionOf,
-  SettingType,
   TopicId,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerSetting,
+  SettingKind,
   type SitrepUnit,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -67,7 +67,7 @@ function asValue(unit: SitrepUnit, magnitude: number | undefined) {
 }
 
 const row = <
-  ValueType extends SettingType = "boolean",
+  ValueType extends SettingKind = SettingKind.Bool,
   Topic extends TopicId = TopicId,
 >(
   def: SettingDefinitionOf<ValueType, Topic>,
@@ -77,7 +77,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.status",
     backing: "stream-backed",
-    type: "text",
+    type: SettingKind.Text,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => p?.status,
     category: CATEGORY,
@@ -88,7 +88,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.build",
     backing: "stream-backed",
-    type: "text",
+    type: SettingKind.Text,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => p?.build,
     category: CATEGORY,
@@ -98,7 +98,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.frameName",
     backing: "stream-backed",
-    type: "text",
+    type: SettingKind.Text,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => p?.frameName,
     category: CATEGORY,
@@ -110,7 +110,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.frameCentre",
     backing: "stream-backed",
-    type: "text",
+    type: SettingKind.Text,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => p?.frameCentre,
     category: CATEGORY,
@@ -121,7 +121,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.frameHasApsides",
     backing: "stream-backed",
-    type: "boolean",
+    type: SettingKind.Bool,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => p?.frameHasApsides,
     category: CATEGORY,
@@ -132,7 +132,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.tolerance",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => asValue("m", p?.toleranceMetres),
     category: CATEGORY,
@@ -144,7 +144,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.maxSteps",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => asValue("count", p?.maxSteps),
     category: CATEGORY,
@@ -156,7 +156,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.window",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => asValue("s", p?.windowSeconds),
     category: CATEGORY,
@@ -167,7 +167,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.history",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => asValue("s", p?.historySeconds),
     category: CATEGORY,
@@ -178,7 +178,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.markersHidden",
     backing: "stream-backed",
-    type: "number",
+    type: SettingKind.Number,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => asValue("count", p?.markersHidden),
     category: CATEGORY,
@@ -189,7 +189,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.logThreshold",
     backing: "stream-backed",
-    type: "text",
+    type: SettingKind.Text,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => p?.logThreshold,
     category: CATEGORY,
@@ -201,7 +201,7 @@ const ROWS: readonly SettingDefinition[] = [
   row({
     id: "planted.settings.journaling",
     backing: "stream-backed",
-    type: "boolean",
+    type: SettingKind.Bool,
     topic: PLANTED_SETTINGS_TOPIC,
     select: (p) => p?.journaling,
     category: CATEGORY,
@@ -221,7 +221,7 @@ export const PLANTED_PARENT_SETTING = "planted.settings.parent";
 const DEPENDENT_ROWS: readonly SettingDefinition[] = [
   row({
     id: PLANTED_PARENT_SETTING,
-    type: "boolean",
+    type: SettingKind.Bool,
     category: "Planted Dependency",
     label: "Record",
     description: "The parent both rows below depend on.",
@@ -230,7 +230,7 @@ const DEPENDENT_ROWS: readonly SettingDefinition[] = [
   }),
   row({
     id: "planted.settings.childAll",
-    type: "boolean",
+    type: SettingKind.Bool,
     category: "Planted Dependency",
     label: "Record everything",
     description: "Has no effect while Record is off.",
@@ -240,7 +240,7 @@ const DEPENDENT_ROWS: readonly SettingDefinition[] = [
   }),
   row({
     id: "planted.settings.childVideo",
-    type: "boolean",
+    type: SettingKind.Bool,
     category: "Planted Dependency",
     label: "Record video",
     defaultValue: false,
@@ -254,7 +254,7 @@ for (const def of [...DEPENDENT_ROWS, ...ROWS]) registerSetting(def);
 /** A screen preference an Uplink's client keeps, which the Uplinks tab draws on that Uplink's page. */
 registerSetting({
   id: "planted.streamer.embeddedFacecams",
-  type: "boolean",
+  type: SettingKind.Bool,
   label: "Show crew facecams inside the flight camera",
   category: "Streamer",
   uplink: "streamer",
