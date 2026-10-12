@@ -730,7 +730,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host.Tests/CommsHopContractShapeTests.cs",
 
       // -- TEST-only --
-      "mod/Sitrep.Core.Tests/CommsWireTests.cs",
       "mod/Sitrep.Host.IntegrationTests/FoundationChannelsEndToEndTests.cs",
       "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
     ],

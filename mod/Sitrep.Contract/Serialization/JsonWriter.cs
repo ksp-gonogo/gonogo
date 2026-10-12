@@ -347,7 +347,7 @@ namespace Sitrep.Contract.Serialization
                     AppendCommsOcclusionBody(sb, occlusionBody);
                     break;
                 /*
-                 * No case for comms.linkQuality, comms.dataRate or comms.linkMargin: their types live in
+                 * No case for comms.dataRate or comms.linkMargin: their types live in
                  * an Uplink's own contract, which a core serializer may not reference, so the producer
                  * flattens them to a dictionary before Publish.
                  */
@@ -2828,7 +2828,7 @@ namespace Sitrep.Contract.Serialization
             sb.Append('}');
         }
 
-        // RaWire, beside the Uplink that publishes comms.linkQuality / dataRate / linkMargin, mirrors AppendPayloadMeta for its nested meta object; the two must agree.
+        // RaWire, beside the Uplink that publishes comms.dataRate / linkMargin, mirrors AppendPayloadMeta for its nested meta object; the two must agree.
 
         private static void AppendObject(StringBuilder sb, IDictionary<string, object?> obj)
         {

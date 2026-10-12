@@ -28,7 +28,7 @@ namespace Sitrep.Host.Comms
     /// <c>Kernel.Query&lt;ICommsBackend&gt;("comms")</c> at map time: neither
     /// CommNet nor RA declares those channels itself (§2.2, the
     /// shared-namespace-multi-provider rule §5). RA-only channels
-    /// (linkQuality/dataRate/linkMargin) are declared in the RA uplink's own
+    /// (dataRate/linkMargin) are declared in the RA uplink's own
     /// manifest and bypass the election entirely.</para>
     /// </summary>
     public static class CommsElection
