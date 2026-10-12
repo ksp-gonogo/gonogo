@@ -49,7 +49,11 @@ import {
   LATE_ARRIVAL_DETAIL,
   LATE_ARRIVAL_ERROR_CODE,
 } from "./arrival-deadline";
-import { type CommandGateStatus, selectCommandGate } from "./command-gate";
+import {
+  type CommandGateStatus,
+  selectCommandGate,
+  toGateStatus,
+} from "./command-gate";
 import { openCommandGroup } from "./command-group";
 import {
   type CommsLinkLike,
@@ -59,6 +63,12 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
+import {
+  GATE_CHECK_COMMAND,
+  GATE_CHECK_DEBOUNCE_MS,
+  gateCheckKey,
+  readGateCheckReply,
+} from "./gate-check";
 import { CommandError } from "./lifecycle";
 import { useClaimCapability } from "./lock-scope";
 import { commandDelayed } from "./map-command";
@@ -327,6 +337,28 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   // A method rather than a function-valued property, so a typed handle stays assignable to the bare one.
   gateFor(args: Args): CommandGateStatus | undefined;
+  /**
+   * Asks the mod what this command's gate says about a call with these
+   * arguments, from this hook's command centre, without sending it. Answers
+   * what {@link gate} and {@link gateFor} cannot: a verdict that depends on a
+   * choice the operator is making (a launch site, a time warp rate) or on the
+   * centre they send from.
+   *
+   * Call it when the choice changes. It waits for a pause before asking, so a
+   * form can call it on every keystroke and the mod is asked once about the
+   * last value. The answer lands in {@link gateFor} for those same arguments
+   * and for nothing else, so a verdict never outlives the choice it was about;
+   * until it arrives, and whenever the mod cannot answer, `gateFor` says what it
+   * said before. A `blocked` answer is drawn like any other gate, dark with the
+   * mod's own reason. The dispatch remains the authority.
+   *
+   * Resolves with the verdict, or `undefined` when a later call replaced this
+   * one or the mod could not answer.
+   *
+   * Every handle `useCommand` returns carries it. It is optional so that a
+   * handle written by hand, such as a test double, need not supply one.
+   */
+  check?(args?: Args): Promise<CommandGateStatus | undefined>;
 }
 
 type TrackedResolution =
@@ -537,10 +569,73 @@ export function useCommand(
   // Read by `send`, which is keyed on the command alone and so cannot close over the render's report.
   const gateReportRef = useRef(gateReport);
   gateReportRef.current = gateReport;
+  const [checked, setChecked] = useState<
+    { key: string; status: CommandGateStatus } | undefined
+  >();
+  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>();
+  const checkSeqRef = useRef(0);
+  const checkSupersededRef = useRef<(() => void) | undefined>();
   const gateFor = useCallback(
-    (args: unknown) => selectCommandGate(gateReport, command, args),
-    [gateReport, command],
+    (args: unknown) => {
+      const published = selectCommandGate(gateReport, command, args);
+      const answered =
+        checked && checked.key === gateCheckKey(args)
+          ? checked.status
+          : undefined;
+      return answered?.blocked ? answered : (published ?? answered);
+    },
+    [gateReport, command, checked],
   );
+  const check = useCallback(
+    (args?: unknown): Promise<CommandGateStatus | undefined> => {
+      checkSeqRef.current += 1;
+      const seq = checkSeqRef.current;
+      clearTimeout(checkTimerRef.current);
+      checkSupersededRef.current?.();
+      return new Promise((resolve) => {
+        if (!client) {
+          resolve(undefined);
+          return;
+        }
+        checkSupersededRef.current = () => resolve(undefined);
+        checkTimerRef.current = setTimeout(() => {
+          checkSupersededRef.current = undefined;
+          const { result } = client.dispatch(
+            GATE_CHECK_COMMAND,
+            { command, args: args ?? {} },
+            undefined,
+            undefined,
+            vantage,
+          );
+          result
+            .then(readGateCheckReply, () => undefined)
+            .then((verdict) => {
+              if (seq !== checkSeqRef.current) {
+                resolve(undefined);
+                return;
+              }
+              const status = verdict && toGateStatus(verdict, command);
+              setChecked(
+                status ? { key: gateCheckKey(args), status } : undefined,
+              );
+              resolve(status);
+            });
+        }, GATE_CHECK_DEBOUNCE_MS);
+      });
+    },
+    [client, command, vantage],
+  );
+  // An answer is about one command from one centre, and a pending ask is about the same.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the identity of the asker is the trigger
+  useEffect(() => {
+    setChecked(undefined);
+    return () => {
+      checkSeqRef.current += 1;
+      clearTimeout(checkTimerRef.current);
+      checkSupersededRef.current?.();
+      checkSupersededRef.current = undefined;
+    };
+  }, [client, command, vantage]);
   const localRefusalSeqRef = useRef(0);
   // Whether a tracked dispatch has actually been ANSWERED, which is what
   // separates a command that arrived from one nobody ever heard. Read straight
@@ -1131,7 +1226,7 @@ export function useCommand(
     rail.update(railId, outcome);
   });
 
-  return { send, gateFor, ...outcome };
+  return { send, gateFor, check, ...outcome };
 }
 
 /** The one-way delay off a `comms.delay` reading, with its currency; `null` where there is no finite one to draw. */

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Contracts;
 using Gonogo.KSP.Career;
 using Sitrep.Contract;
+using Sitrep.Host;
 using Strategies;
 
 namespace Gonogo.KSP.Gates
@@ -44,8 +45,10 @@ namespace Gonogo.KSP.Gates
     /// </summary>
     internal static class KspGateEvaluators
     {
-        public static IEnumerable<ICommandGateEvaluator> All(ICareerItemJudge careerItems)
+        public static IEnumerable<ICommandGateEvaluator> All(
+            ICareerItemJudge careerItems, Func<string, string, LaunchReach> launchReach)
         {
+            yield return new LaunchAuthorityGate(launchReach);
             yield return new GameModeGate();
             yield return new SceneGate();
             yield return new FacilityLimitGate();

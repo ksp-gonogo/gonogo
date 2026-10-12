@@ -122,7 +122,7 @@ namespace Sitrep.Host
                     RefuseGroup(group, job, "\"" + job.Command + "\" could not be read");
                     return;
                 }
-                var gate = EvaluateGates(job.Command, new GateArguments(job.Args));
+                var gate = EvaluateGates(job.Command, new GateArguments(GateSubject(job.Command, job.Args)), job.Vantage);
                 if (gate.Outcome == GateOutcome.Fail)
                 {
                     job.OnResult(GateRefusalResult(gate));
@@ -310,7 +310,7 @@ namespace Sitrep.Host
                     results[i] = new HandlerFault(FaultCode.CommandUnavailable, RefusalReason(command));
                     return Refused(results, members, i, "\"" + command + "\" is not available");
                 }
-                var gate = EvaluateGatesHere(command, new GateArguments(args));
+                var gate = EvaluateGatesHere(command, new GateArguments(GateSubject(command, args)), null, vantage);
                 if (gate.Outcome == GateOutcome.Fail)
                 {
                     results[i] = GateRefusalResult(gate);

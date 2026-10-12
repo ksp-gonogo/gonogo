@@ -1746,6 +1746,7 @@ namespace Sitrep.Host
             // swap is the whole synchronisation, since each report is built
             // fresh and never mutated after publication.
             _channelSources[UplinkGatesTopic] = _ => Volatile.Read(ref _commandGateReport);
+            DeclareGateCheck();
             _commandGateBudget = new PerfBudget(
                 "ChannelEngine gate evaluations/sec",
                 threshold: GateEvaluationBudget,
@@ -3879,15 +3880,15 @@ namespace Sitrep.Host
         /// cannot be evaluated would have refused its command for ever, and
         /// looked deliberate doing it.</para>
         /// </summary>
-        internal GateVerdict EvaluateGates(string command, IGateArguments arguments)
+        internal GateVerdict EvaluateGates(string command, IGateArguments arguments, string? vantage = null)
         {
             if (RequirementsFor(command).Length == 0) return GateVerdict.Pass();
 
-            if (!_executeCommandsOnMainThread) return EvaluateGatesHere(command, arguments);
+            if (!_executeCommandsOnMainThread) return EvaluateGatesHere(command, arguments, null, vantage);
 
             try
             {
-                return RunOnMainThread(_ => EvaluateGatesHere(command, arguments), null) as GateVerdict
+                return RunOnMainThread(_ => EvaluateGatesHere(command, arguments, null, vantage), null) as GateVerdict
                     ?? GateVerdict.Unknown("the gate evaluation returned nothing");
             }
             catch (Exception ex)
@@ -3906,7 +3907,7 @@ namespace Sitrep.Host
         /// arranged to be the right one.
         /// </summary>
         private GateVerdict EvaluateGatesHere(string command, IGateArguments arguments) =>
-            EvaluateGatesHere(command, arguments, null);
+            EvaluateGatesHere(command, arguments, null, null);
 
         /// <summary>
         /// <paramref name="memo"/> caches one evaluator answer per distinct
@@ -3919,8 +3920,11 @@ namespace Sitrep.Host
         /// the answer changes.
         /// </summary>
         private GateVerdict EvaluateGatesHere(
-            string command, IGateArguments arguments, Dictionary<string, GateVerdict>? memo) =>
-            EvaluateRequirementsHere(command, RequirementsFor(command), arguments, memo);
+            string command,
+            IGateArguments arguments,
+            Dictionary<string, GateVerdict>? memo,
+            string? vantage = null) =>
+            EvaluateRequirementsHere(command, RequirementsFor(command), arguments, memo, vantage);
 
         /// <summary>
         /// <see cref="EvaluateGatesHere(string, IGateArguments, Dictionary{string, GateVerdict}?)"/>'s
@@ -3932,7 +3936,8 @@ namespace Sitrep.Host
             string subject,
             CommandRequirement[] requirements,
             IGateArguments arguments,
-            Dictionary<string, GateVerdict>? memo)
+            Dictionary<string, GateVerdict>? memo,
+            string? vantage = null)
         {
             if (requirements.Length == 0) return GateVerdict.Pass();
 
@@ -3950,7 +3955,7 @@ namespace Sitrep.Host
                 // can still refuse in advance (a career mod's "use my own
                 // command" contributed behind a per-item price), and an Abstain
                 // returned here would hide that refusal behind "no answer".
-                if (!HasAllNeeds(requirement, arguments))
+                if (!HasAllNeeds(requirement, arguments) || (requirement.NeedsVantage && vantage == null))
                 {
                     abstained = true;
                     continue;
@@ -3965,7 +3970,9 @@ namespace Sitrep.Host
                 }
 
                 // A requirement that reads arguments answers differently per item, so it is never remembered across them.
-                var memoKey = memo == null || (requirement.Needs?.Length ?? 0) > 0 ? null : RequirementKey(requirement);
+                var memoKey = memo == null || requirement.NeedsVantage || (requirement.Needs?.Length ?? 0) > 0
+                    ? null
+                    : RequirementKey(requirement);
                 if (memoKey != null && memo!.TryGetValue(memoKey, out var remembered))
                 {
                     if (remembered.Outcome != GateOutcome.Pass) return remembered;
@@ -3975,7 +3982,15 @@ namespace Sitrep.Host
                 GateVerdict verdict;
                 try
                 {
-                    verdict = evaluator.Evaluate(requirement, arguments)
+                    if (requirement.NeedsVantage && !(evaluator is IVantageGateEvaluator))
+                    {
+                        return GateVerdict.Unknown(
+                            $"gate kind \"{requirement.Kind}\" needs the sender but its evaluator does not read one");
+                    }
+
+                    verdict = (requirement.NeedsVantage
+                            ? ((IVantageGateEvaluator)evaluator).Evaluate(requirement, arguments, vantage!)
+                            : evaluator.Evaluate(requirement, arguments))
                         ?? GateVerdict.Unknown($"gate kind \"{requirement.Kind}\" returned nothing");
                 }
                 catch (Exception ex)
@@ -9054,6 +9069,11 @@ namespace Sitrep.Host
                 return;
             }
 
+            if (TryHandleGateCheck(job))
+            {
+                return;
+            }
+
             // IMPORTANT-A: an unknown command AND a command whose owning
             // uplink has gone Unavailable are treated identically at the WIRE
             // level, one "unknown/unavailable command" refusal code. They are
@@ -9102,7 +9122,7 @@ namespace Sitrep.Host
             //
             // Inert until a command declares a requirement: Requires defaults
             // empty, so EvaluateGates returns Pass on the first check.
-            var gate = EvaluateGates(job.Command, new GateArguments(GateSubject(job.Command, job.Args)));
+            var gate = EvaluateGates(job.Command, new GateArguments(GateSubject(job.Command, job.Args)), job.Vantage);
             if (gate.Outcome == GateOutcome.Fail)
             {
                 // A DECIDED refusal: the gate looked at live state and the answer

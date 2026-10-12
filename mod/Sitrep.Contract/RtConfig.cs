@@ -408,6 +408,7 @@ public static class RtConfig
                 typeof(UplinkCancelRequest),
                 typeof(UplinkResendRequest),
                 typeof(UplinkActionReply),
+                typeof(GateCheckRequest),
                 // commcast.traffic, and the descriptor that opens every
                 // commcast.radio frame on the binary lane
                 typeof(CommcastTraffic),

@@ -1,5 +1,6 @@
 using System.Linq;
 using Gonogo.KSP.Gates;
+using Sitrep.Host;
 using Xunit;
 
 namespace Gonogo.KSP.Tests.Career
@@ -26,7 +27,7 @@ namespace Gonogo.KSP.Tests.Career
         [Fact]
         public void EveryDeclaredGateKindHasAnEvaluator()
         {
-            var kinds = KspGateEvaluators.All(new NoJudge()).Select(e => e.Kind).ToList();
+            var kinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach()).Select(e => e.Kind).ToList();
 
             var orphans = GateDeclarations.All()
                 .SelectMany(entry => entry.Value.Select(r => new { Command = entry.Key, r.Kind }))
@@ -47,7 +48,7 @@ namespace Gonogo.KSP.Tests.Career
             // ChannelEngine.AddGateEvaluator throws on this, and it would throw
             // at startup rather than here. Which of two evaluators wins would
             // otherwise depend on registration order.
-            var kinds = KspGateEvaluators.All(new NoJudge()).Select(e => e.Kind).ToList();
+            var kinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach()).Select(e => e.Kind).ToList();
             Assert.Equal(kinds.Count, kinds.Distinct().Count());
             Assert.DoesNotContain(kinds, string.IsNullOrWhiteSpace);
         }
@@ -127,6 +128,16 @@ namespace Gonogo.KSP.Tests.Career
                     && r.Quantity == KspGateEvaluators.Quantities.FacilityOperational);
         }
 
+        [Fact]
+        public void ALaunchIsJudgedFromTheCentreSendingIt()
+        {
+            var launch = GateDeclarations.All().ToDictionary(e => e.Key, e => e.Value)["ksp.launch"];
+
+            var authority = Assert.Single(launch, r => r.Kind == Sitrep.Host.LaunchAuthorityGate.GateKind);
+            Assert.True(authority.NeedsVantage);
+            Assert.Equal(new[] { "site" }, authority.Needs);
+        }
+
         /// <summary>
         /// A launch is refused for the site it names. Declared without that
         /// need, the requirement judged the pad alone, and a craft parked there
@@ -155,7 +166,7 @@ namespace Gonogo.KSP.Tests.Career
         public void EveryDeclaredRequirementIsAskableInAdvance()
         {
             var requirements = GateDeclarations.All().SelectMany(e => e.Value).ToList();
-            var itemKinds = KspGateEvaluators.All(new NoJudge())
+            var itemKinds = KspGateEvaluators.All(new NoJudge(), (_, _) => new LaunchReach())
                 .Where(e => e is Sitrep.Contract.ICommandGateItems)
                 .Select(e => e.Kind)
                 .ToList();
@@ -165,9 +176,11 @@ namespace Gonogo.KSP.Tests.Career
                 $"only {requirements.Count} requirements are declared; the gate framework spent "
                     + "months with exactly zero and a scan that finds none reads as a pass");
 
+            // A requirement that reads the sender has no per-item answer to
+            // publish, so it is asked with system.gate.check instead.
             Assert.All(requirements, r =>
             {
-                if (r.Needs.Length == 0) return;
+                if (r.Needs.Length == 0 || r.NeedsVantage) return;
                 Assert.Single(r.Needs);
                 Assert.Contains(r.Kind, itemKinds);
             });

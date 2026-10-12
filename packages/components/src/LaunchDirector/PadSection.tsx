@@ -1,10 +1,12 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
+import type { UseCommandResult } from "@ksp-gonogo/sitrep-client";
 import type { VesselRosterEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
   SelectableRow,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import { useEffect } from "react";
 import { ArmedButton } from "./ArmedButton";
 import { CrewPicker } from "./CrewPicker";
 import { type CrewMember, crewReading } from "./crew";
@@ -57,7 +59,7 @@ interface PadSectionProps {
   letterbox: boolean;
   /** Too narrow for a pad's name and its occupancy on one line, so the occupancy sits beneath. */
   narrow: boolean;
-  launchCmd: CommandButtonHandle;
+  launchCmd: CommandButtonHandle & Pick<UseCommandResult, "check">;
   recoverCmd: CommandButtonHandle;
   revertEditorCmd: CommandButtonHandle;
   switchCmd: CommandButtonHandle;
@@ -237,9 +239,7 @@ function OpenPad({
             rows={rows}
           />
           <LaunchControls>
-            <ArmedButton
-              bindAs="launch"
-              kind="launch"
+            <LaunchAction
               handle={launchCmd}
               args={{
                 shipName: ship.file,
@@ -247,18 +247,53 @@ function OpenPad({
                 site: site.name,
                 crew: manifest,
               }}
-              commandLabel={`Launch ${ship.name}`}
-              label={
-                manifest.length > 0
-                  ? `Launch ${ship.name} (${manifest.length} crew)`
-                  : `Launch ${ship.name} unmanned`
-              }
-              confirmLabel="Confirm launch"
-              pendingLabel="Launching..."
+              shipName={ship.name}
+              crewCount={manifest.length}
             />
           </LaunchControls>
         </PadColumn>
       )}
     </CraftAndCrew>
+  );
+}
+
+/**
+ * The launch control. It asks the mod whether this launch would be refused
+ * whenever the craft, the pad or the crew changes, so a centre that may not
+ * launch from this pad sees the control dark with the mod's reason before it
+ * presses anything.
+ */
+function LaunchAction({
+  handle,
+  args,
+  shipName,
+  crewCount,
+}: {
+  handle: PadSectionProps["launchCmd"];
+  args: { shipName: string; facility: string; site: string; crew: string[] };
+  shipName: string;
+  crewCount: number;
+}) {
+  const { check } = handle;
+  const choice = JSON.stringify(args);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the choice, serialised, is the trigger
+  useEffect(() => {
+    void check?.(args);
+  }, [check, choice]);
+  return (
+    <ArmedButton
+      bindAs="launch"
+      kind="launch"
+      handle={handle}
+      args={args}
+      commandLabel={`Launch ${shipName}`}
+      label={
+        crewCount > 0
+          ? `Launch ${shipName} (${crewCount} crew)`
+          : `Launch ${shipName} unmanned`
+      }
+      confirmLabel="Confirm launch"
+      pendingLabel="Launching..."
+    />
   );
 }

@@ -1280,6 +1280,35 @@ export interface CommandGateItem
 	verdict: GateVerdict;
 }
 /**
+* Asks what a command's gate says about one particular call, from the command
+* centre asking, without sending it. The reply is the `GateVerdict` a dispatch
+* of the same call would meet.
+*
+* This answers what `system.uplink.gates` cannot: a verdict that depends on
+* the arguments the operator has chosen (a launch site, a time warp rate) or
+* on the command centre they are sending from. A control asks when the
+* operator's choice changes, not on every tick, and draws a `GateOutcome.Fail`
+* dark with the verdict's own reason. The dispatch remains the authority:
+* nothing here is a permission, and the answer can be out of date by the time
+* the operator presses.
+*
+* A command with no declared gate answers `GateOutcome.Pass`. An argument the
+* gate needs and the call leaves out answers `GateOutcome.Abstain`. A command
+* the host does not know is refused as not found.
+*
+* @category Command arguments
+*/
+export interface GateCheckRequest
+{
+	/** The command whose gate is asked about, e.g. `ksp.launch`. */
+	command: string;
+	/**
+	* The arguments the call would carry, keyed by their wire names. Empty asks
+	* about the command with nothing chosen yet.
+	*/
+	args: { [key:string]: any };
+}
+/**
 * Wire wrapper for `system.uplink.gates`: every command that declares a
 * requirement, with its current verdict. Resampled at the gate sampling
 * interval and republished whole.

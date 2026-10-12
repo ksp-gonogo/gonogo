@@ -17,6 +17,7 @@ namespace Gonogo.KSP.Tests.Career
         private const string Command = "ksp.launch";
         private const string Vehicle = "shipName";
         private const string VehicleKind = "test-vehicle-rolled-out";
+        private const string Centre = "ground:KSC";
 
         [Fact]
         public void TheSiteGateAndAVehicleGateOnTheSameLaunchAreBothEnforced()
@@ -30,15 +31,15 @@ namespace Gonogo.KSP.Tests.Career
                 Assert.True(engine.AvailabilityOf(CoreLaunchStandIn.Id).IsAvailable);
                 Assert.True(engine.AvailabilityOf(VehicleGateUplink.Id).IsAvailable);
 
-                var occupiedPad = engine.EvaluateGates(Command, new Args("LaunchPad", "Ready"));
+                var occupiedPad = engine.EvaluateGates(Command, new Args("LaunchPad", "Ready"), Centre);
                 Assert.Equal(GateOutcome.Fail, occupiedPad.Outcome);
                 Assert.Equal(CommandErrorCode.SiteOccupied, occupiedPad.ErrorCode);
 
-                var unrolled = engine.EvaluateGates(Command, new Args("Runway", "Unrolled"));
+                var unrolled = engine.EvaluateGates(Command, new Args("Runway", "Unrolled"), Centre);
                 Assert.Equal(GateOutcome.Fail, unrolled.Outcome);
                 Assert.Equal(CommandErrorCode.WrongState, unrolled.ErrorCode);
 
-                Assert.Equal(GateOutcome.Pass, engine.EvaluateGates(Command, new Args("Runway", "Ready")).Outcome);
+                Assert.Equal(GateOutcome.Pass, engine.EvaluateGates(Command, new Args("Runway", "Ready"), Centre).Outcome);
             }
             finally
             {
@@ -88,6 +89,13 @@ namespace Gonogo.KSP.Tests.Career
             {
                 host.AddGateEvaluator(new SceneStandIn());
                 host.AddGateEvaluator(new SiteStandIn());
+                host.AddGateEvaluator(new LaunchAuthorityGate((_, _) => new LaunchReach
+                {
+                    CentreName = "KSC",
+                    SiteName = "Launch Pad",
+                    CentreSystem = new SystemRoot(1, "Kerbin", isStar: false),
+                    SiteSystem = new SystemRoot(1, "Kerbin", isStar: false),
+                }));
                 host.AddCommandHandler<object?, CommandResult>(Command, _ => CommandResult.Ok());
             }
         }

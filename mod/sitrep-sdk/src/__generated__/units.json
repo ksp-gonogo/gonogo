@@ -279,6 +279,7 @@
       "facility": "id",
       "kind": "id",
       "needs": "id",
+      "needsVantage": "flag",
       "quantity": "id"
     },
     "CommandResponse": {
@@ -718,6 +719,9 @@
       "scene": "id",
       "state": "id",
       "type": "id"
+    },
+    "GateCheckRequest": {
+      "command": "id"
     },
     "GateVerdict": {
       "detail": "text",

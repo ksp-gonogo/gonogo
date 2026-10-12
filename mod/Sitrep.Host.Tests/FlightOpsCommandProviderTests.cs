@@ -17,8 +17,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class FlightOpsCommandProviderTests
     {
-        private const string Ksc = "ground:KSC";
-
         [Fact]
         public void HandleRevertToLaunchCallsTheActuatorExactlyOnce()
         {
@@ -189,7 +187,7 @@ namespace Sitrep.Host.Tests
                 Facility = "VAB",
                 Site = "LaunchPad",
                 Crew = new List<string> { "Jebediah Kerman", "Bill Kerman" },
-            }, Ksc);
+            });
 
             Assert.True(result.Success);
             Assert.Equal("Kerbal X", actuator.LastLaunchShipName);
@@ -209,7 +207,7 @@ namespace Sitrep.Host.Tests
             {
                 ShipName = shipName!,
                 Facility = "VAB",
-            }, Ksc);
+            });
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.NotFound, result.ErrorCode);
@@ -228,7 +226,7 @@ namespace Sitrep.Host.Tests
             {
                 ShipName = "Kerbal X",
                 Facility = facility,
-            }, Ksc);
+            });
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
@@ -246,7 +244,7 @@ namespace Sitrep.Host.Tests
             {
                 ShipName = "Kerbal X",
                 Facility = facility,
-            }, Ksc);
+            });
 
             Assert.Equal(expected, actuator.LastLaunchFacility);
         }
@@ -261,7 +259,7 @@ namespace Sitrep.Host.Tests
                 ShipName = "Kerbal X",
                 Facility = "VAB",
                 Crew = null!,
-            }, Ksc);
+            });
 
             Assert.NotNull(actuator.LastLaunchCrew);
             Assert.Empty(actuator.LastLaunchCrew!);
@@ -276,66 +274,10 @@ namespace Sitrep.Host.Tests
             {
                 ShipName = "Kerbal X",
                 Facility = "VAB",
-            }, Ksc);
+            });
 
             Assert.False(result.Success);
             Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
-        }
-
-        [Fact]
-        public void HandleLaunchAsksWhereTheSenderIsWithTheVantageItEnteredWith()
-        {
-            var actuator = new FakeFlightOpsActuator();
-
-            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
-            {
-                ShipName = "Kerbal X",
-                Facility = "VAB",
-                Site = "LaunchPad",
-            }, Ksc);
-
-            Assert.Equal(Ksc, actuator.LastReachVantage);
-            Assert.Equal("Kerbal X", actuator.LastLaunchShipName);
-        }
-
-        [Fact]
-        public void HandleLaunchRefusesACentreOnAnotherWorldWithoutTouchingTheGame()
-        {
-            var actuator = new FakeFlightOpsActuator
-            {
-                Reach = new LaunchReach
-                {
-                    CentreName = "Duna Base",
-                    SiteName = "Launch Pad",
-                    CentreSystem = new SystemRoot(6, "Duna", isStar: false),
-                    SiteSystem = new SystemRoot(1, "Kerbin", isStar: false),
-                },
-            };
-
-            var result = FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
-            {
-                ShipName = "Kerbal X",
-                Facility = "VAB",
-                Site = "LaunchPad",
-            }, "vessel:duna-base");
-
-            Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.OutOfReach, result.ErrorCode);
-            Assert.Null(actuator.LastLaunchShipName);
-        }
-
-        [Fact]
-        public void HandleLaunchChecksTheArgsBeforeAskingWhereTheSenderIs()
-        {
-            var actuator = new FakeFlightOpsActuator();
-
-            FlightOpsCommandProvider.HandleLaunch(actuator, new LaunchArgs
-            {
-                ShipName = "",
-                Facility = "VAB",
-            }, Ksc);
-
-            Assert.Equal(0, actuator.ReachOfCallCount);
         }
     }
 }

@@ -131,6 +131,43 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
+    /// Asks what a command's gate says about one particular call, from the
+    /// command centre asking, without sending it. The reply is the
+    /// <see cref="GateVerdict"/> a dispatch of the same call would meet.
+    ///
+    /// <para>This answers what <c>system.uplink.gates</c> cannot: a verdict that
+    /// depends on the arguments the operator has chosen (a launch site, a time
+    /// warp rate) or on the command centre they are sending from. A control asks
+    /// when the operator's choice changes, not on every tick, and draws a
+    /// <see cref="GateOutcome.Fail"/> dark with the verdict's own reason. The
+    /// dispatch remains the authority: nothing here is a permission, and the
+    /// answer can be out of date by the time the operator presses.</para>
+    ///
+    /// <para>A command with no declared gate answers <see cref="GateOutcome.Pass"/>.
+    /// An argument the gate needs and the call leaves out answers
+    /// <see cref="GateOutcome.Abstain"/>. A command the host does not know is
+    /// refused as not found.</para>
+    /// </summary>
+    /// <category>Command arguments</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    [SitrepCommand(
+        "system.gate.check",
+        Result = typeof(GateVerdict),
+        Delay = DelayRole.TrueNow)]
+    public class GateCheckRequest
+    {
+        /// <summary>The command whose gate is asked about, e.g. <c>ksp.launch</c>.</summary>
+        [SitrepUnit(Units.Id)]
+        public string Command { get; set; } = "";
+
+        /// <summary>The arguments the call would carry, keyed by their wire names. Empty asks about the command with nothing chosen yet.</summary>
+        public Dictionary<string, object?> Args { get; set; } = new Dictionary<string, object?>();
+    }
+
+    /// <summary>
     /// Wire wrapper for <c>system.uplink.gates</c>: every command that declares
     /// a requirement, with its current verdict. Resampled at the gate sampling
     /// interval and republished whole.

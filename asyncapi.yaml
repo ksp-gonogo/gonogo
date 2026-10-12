@@ -1,10 +1,10 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 40.3.0
+  version: 40.4.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
-    channels a client subscribes to, and 61 commands it dispatches, with the payload
+    channels a client subscribes to, and 62 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -199,7 +199,7 @@ info:
     - name: spaceCenter
       description: 7 telemetry channels, 0 commands
     - name: system
-      description: 3 telemetry channels, 4 commands
+      description: 3 telemetry channels, 5 commands
     - name: target
       description: 1 telemetry channel, 0 commands
     - name: time
@@ -2911,6 +2911,36 @@ channels:
         $ref: "#/components/messages/commandRequest.system.frame.set"
       commandResponse:
         $ref: "#/components/messages/commandResponse.system.frame.set"
+  system.gate.check:
+    address: system.gate.check
+    description: |-
+      Takes `GateCheckRequest`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      Asks what a command's gate says about one particular call, from the command
+      centre asking, without sending it. The reply is the `GateVerdict` a dispatch
+      of the same call would meet.
+
+      This answers what `system.uplink.gates` cannot: a verdict that depends on
+      the arguments the operator has chosen (a launch site, a time warp rate) or
+      on the command centre they are sending from. A control asks when the
+      operator's choice changes, not on every tick, and draws a `GateOutcome.Fail`
+      dark with the verdict's own reason. The dispatch remains the authority:
+      nothing here is a permission, and the answer can be out of date by the time
+      the operator presses.
+
+      A command with no declared gate answers `GateOutcome.Pass`. An argument the
+      gate needs and the call leaves out answers `GateOutcome.Abstain`. A command
+      the host does not know is refused as not found.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.system.gate.check"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.system.gate.check"
   system.uplink.cancel:
     address: system.uplink.cancel
     description: |-
@@ -4643,6 +4673,20 @@ operations:
         $ref: "#/channels/system.frame.set"
       messages:
         - $ref: "#/channels/system.frame.set/messages/commandResponse"
+  dispatch:system.gate.check:
+    action: send
+    channel:
+      $ref: "#/channels/system.gate.check"
+    title: Dispatch system.gate.check
+    tags:
+      - name: system
+    messages:
+      - $ref: "#/channels/system.gate.check/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/system.gate.check"
+      messages:
+        - $ref: "#/channels/system.gate.check/messages/commandResponse"
   dispatch:system.uplink.cancel:
     action: send
     channel:
@@ -6540,6 +6584,21 @@ components:
                 const: system.frame.set
               args:
                 $ref: "#/components/schemas/SetControlFrameArgs"
+    commandRequest.system.gate.check:
+      name: command-request
+      title: Dispatch system.gate.check
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `system.gate.check`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: system.gate.check
+              args:
+                $ref: "#/components/schemas/GateCheckRequest"
     commandRequest.system.uplink.cancel:
       name: command-request
       title: Dispatch system.uplink.cancel
@@ -7390,6 +7449,19 @@ components:
           - properties:
               result:
                 $ref: "#/components/schemas/CommandResult"
+    commandResponse.system.gate.check:
+      name: command-response
+      title: Reply to system.gate.check
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `system.gate.check`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/GateVerdict"
     commandResponse.system.uplink.cancel:
       name: command-response
       title: Reply to system.uplink.cancel
@@ -14745,6 +14817,133 @@ components:
           description: |-
             Any other KSP mode (a scenario or a mission), which has no player-career
             surface.
+    GateCheckRequest:
+      type: object
+      description: |-
+        Asks what a command's gate says about one particular call, from the command
+        centre asking, without sending it. The reply is the `GateVerdict` a dispatch
+        of the same call would meet.
+
+        This answers what `system.uplink.gates` cannot: a verdict that depends on
+        the arguments the operator has chosen (a launch site, a time warp rate) or
+        on the command centre they are sending from. A control asks when the
+        operator's choice changes, not on every tick, and draws a `GateOutcome.Fail`
+        dark with the verdict's own reason. The dispatch remains the authority:
+        nothing here is a permission, and the answer can be out of date by the time
+        the operator presses.
+
+        A command with no declared gate answers `GateOutcome.Pass`. An argument the
+        gate needs and the call leaves out answers `GateOutcome.Abstain`. A command
+        the host does not know is refused as not found.
+      required:
+        - command
+        - args
+      properties:
+        command:
+          type: string
+          x-sitrep-unit: id
+          description: The command whose gate is asked about, e.g. `ksp.launch`.
+        args:
+          type: object
+          additionalProperties:
+            description: "Opaque at this layer: the contract declares no shape for it, so nothing here constrains it."
+          description: |-
+            The arguments the call would carry, keyed by their wire names. Empty asks
+            about the command with nothing chosen yet.
+    GateOutcome:
+      type: integer
+      description: |-
+        What a command gate concluded about one precondition: passed, failed, could
+        not be decided from the arguments supplied, or could not be decided from the
+        game's state.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Pass
+          description: Nothing blocks this.
+        - const: 1
+          title: Fail
+          description: Blocked, with the comparison that says why.
+        - const: 2
+          title: Abstain
+          description: |-
+            Cannot be decided from the arguments supplied, because one it needs is
+            missing. Not a refusal: a client that treats this as blocked disables every
+            argument-dependent control permanently.
+        - const: 3
+          title: Unknown
+          description: |-
+            Decidable in principle, but the live state needed is missing, e.g. a
+            facility KSP does not track under the name declared. Distinct from
+            `GateOutcome.Abstain` because nothing further the caller supplies will
+            resolve it, and distinct from `GateOutcome.Pass` because an unreadable limit
+            is not the same as no limit.
+    GateVerdict:
+      type: object
+      description: |-
+        The verdict of a command gate on one call or one command, plus its evidence:
+        the `GateOutcome`, and for a refusal which refusal it is and why.
+      required:
+        - outcome
+        - detail
+      properties:
+        outcome:
+          description: What the gate concluded. Defaults to `GateOutcome.Pass`.
+          allOf:
+            - $ref: "#/components/schemas/GateOutcome"
+              x-sitrep-unit: enum
+        errorCode:
+          description: |-
+            Which refusal, for a `GateOutcome.Fail`: the same error code a command
+            handler's own refusal carries, so one client sentence serves a declared gate
+            and a handler that got far enough to look.
+
+            Set by the evaluator, because only the evaluator knows what it checked: a
+            full pad and an un-upgraded Tracking Station are both a gate saying no, and
+            they are not the same refusal. `CommandErrorCode.ModeUnavailable` is what
+            GateVerdict.Fail names for an evaluator that says nothing more. Null on
+            every outcome but a Fail.
+
+            On the wire the root's id, with a refinement's own id beside it as
+            `GateVerdict.reason`, as on `CommandResult`.
+          anyOf:
+            - $ref: "#/components/schemas/CommandErrorCode"
+              x-sitrep-unit: enum
+            - type: "null"
+        reason:
+          type:
+            - string
+            - "null"
+          x-sitrep-unit: id
+          description: |-
+            The refinement's id when `GateVerdict.errorCode` is more specific than its
+            root; absent otherwise.
+        breach:
+          description: |-
+            Set only for a numeric `GateOutcome.Fail`. Null is the shape a client keys
+            on: an Abstain or an Unknown has nothing to compare, so it must not arrive
+            carrying zeroes that render as a real limit of 0.
+          anyOf:
+            - $ref: "#/components/schemas/LimitBreach"
+            - type: "null"
+        detail:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            Why, when the outcome carries no numeric comparison: a
+            `GateOutcome.Unknown`'s cause, or a discrete prerequisite's name. Prose for
+            a human, never parsed.
+        missing:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/MissingUnlock"
+          description: |-
+            For a `CommandErrorCode.NotUnlocked` Fail, each unlock this save is missing:
+            a tech node not researched, or a building below the level it needs. Absent
+            on every other outcome, and on a refusal whose evaluator could not say which
+            unlock it was.
     Hello:
       type: object
       description: |-

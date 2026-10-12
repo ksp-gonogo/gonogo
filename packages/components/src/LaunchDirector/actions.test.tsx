@@ -214,6 +214,39 @@ describe("LaunchDirector actions", () => {
     await act(async () => {});
   });
 
+  it("launch goes dark with the mod's reason for this pad before anything is pressed", async () => {
+    const reason =
+      "KSC is in the Kerbin system, and a launch from the Duna pad needs a centre there";
+    stream.transport.setCommandHandler((command) =>
+      command === "system.gate.check"
+        ? {
+            success: true,
+            payload: {
+              outcome: GateOutcome.Fail,
+              errorCode: CommandErrorCode.OutOfReach,
+              detail: reason,
+            },
+          }
+        : { success: true },
+    );
+    const user = userEvent.setup();
+    renderWidget();
+    emitPad();
+    await user.click(await screen.findByText(/Mun Hopper/));
+
+    await screen.findByRole("button", {
+      name: /Launch Mun Hopper.*unavailable/,
+    });
+
+    const asked = sent("system.gate.check");
+    expect(asked).toHaveLength(1);
+    expect(asked[0]?.args).toMatchObject({
+      command: "ksp.launch",
+      args: { site: "LaunchPad" },
+    });
+    expect(sent("ksp.launch")).toEqual([]);
+  });
+
   it("recover sends nothing while its gate refuses, and says why on the control", async () => {
     renderWidget();
     emitFlight({ name: "Doomed Probe" });

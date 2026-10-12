@@ -190,6 +190,7 @@ namespace Gonogo.KSP.Gates
                 CareerGates.PreFlight(
                     SpaceCenterFacility.LaunchPad.ToString(),
                     KspGateEvaluators.Quantities.LaunchSiteClear),
+                LaunchAuthorityGate.Requirement(),
             };
 
             // Writing a node plans, and planning is two buildings: the Tracking

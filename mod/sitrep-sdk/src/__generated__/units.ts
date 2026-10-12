@@ -319,6 +319,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     facility: "id",
     kind: "id",
     needs: "id",
+    needsVantage: "flag",
     quantity: "id",
   },
   "CommandResponse": {
@@ -758,6 +759,9 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     scene: "id",
     state: "id",
     type: "id",
+  },
+  "GateCheckRequest": {
+    command: "id",
   },
   "GateVerdict": {
     detail: "text",

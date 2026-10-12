@@ -12949,6 +12949,10 @@
         "note": "The config defineUplinkClient takes, named so the host and the facade share it; tags carries the Uplink's generated value tags"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandResult#check?",
+        "note": "Asks the mod what a command's gate says about a call with these arguments from this centre, debounced; the answer lands in gateFor for the same arguments"
+      },
+      {
         "key": "sitrep-sdk ./spine UsePatchChainInput",
         "note": "New: what usePatchChain is asked"
       },

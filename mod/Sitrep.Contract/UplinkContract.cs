@@ -563,6 +563,19 @@ namespace Sitrep.Contract
         /// </summary>
         [SitrepUnit(Units.Id)]
         public string[] Needs { get; set; } = new string[0];
+
+        /// <summary>
+        /// Whether the answer depends on which command centre sent the call, so
+        /// the evaluator must be an <see cref="IVantageGateEvaluator"/>. A
+        /// requirement that needs the sender is decided only where a sender is
+        /// known: a dispatch, and a <c>system.gate.check</c> asked from a
+        /// centre. Evaluated with no sender, as the published
+        /// <c>system.uplink.gates</c> set is, it abstains exactly as one whose
+        /// <see cref="Needs"/> are missing does, without its evaluator being
+        /// called. False for a requirement that does not read the sender.
+        /// </summary>
+        [SitrepUnit(Units.Flag)]
+        public bool NeedsVantage { get; set; }
     }
 
     /// <summary>What a command gate concluded about one precondition: passed,
@@ -868,6 +881,35 @@ namespace Sitrep.Contract
         /// <param name="arguments">The call's decoded arguments; empty when a client is asking whether the command can be sent at all.</param>
         /// <returns>A <see cref="GateOutcome.Pass"/>, <see cref="GateOutcome.Fail"/> or <see cref="GateOutcome.Unknown"/> verdict.</returns>
         GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments);
+    }
+
+    /// <summary>
+    /// An <see cref="ICommandGateEvaluator"/> whose answer depends on the
+    /// command centre that sent the call, such as a launch that only a centre
+    /// in the launch site's planetary system may send. Implemented beside
+    /// <see cref="ICommandGateEvaluator"/> by an evaluator that serves a
+    /// requirement with <see cref="CommandRequirement.NeedsVantage"/> set.
+    /// </summary>
+    ///
+    /// <remarks>
+    /// The host calls <see cref="Evaluate(CommandRequirement, IGateArguments, string)"/>
+    /// for such a requirement, and the two-argument form never. It is
+    /// separate from <see cref="ICommandGateEvaluator"/> so that an evaluator
+    /// written before the sender mattered still compiles: neither target
+    /// framework has default interface members.
+    /// </remarks>
+    /// <category>Commands</category>
+    public interface IVantageGateEvaluator : ICommandGateEvaluator
+    {
+        /// <summary>Decide whether <paramref name="requirement"/> is met for a call sent from <paramref name="vantage"/>.
+        ///
+        /// <para>Called only once the host has established that every argument in <see cref="CommandRequirement.Needs"/> is present, and never with no vantage. <see cref="GateOutcome.Abstain"/> is never a legal return.</para>
+        /// </summary>
+        /// <param name="requirement">The requirement to decide.</param>
+        /// <param name="arguments">The call's decoded arguments.</param>
+        /// <param name="vantage">The sending command centre's id; empty when the save has no active command centre.</param>
+        /// <returns>A <see cref="GateOutcome.Pass"/>, <see cref="GateOutcome.Fail"/> or <see cref="GateOutcome.Unknown"/> verdict.</returns>
+        GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments, string vantage);
     }
 
     /// <summary>
