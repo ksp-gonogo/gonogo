@@ -57,6 +57,35 @@ namespace Sitrep.Host.IntegrationTests
             Assert.True(view.Vessel(ScriptedContactGame.RelayGuid) != null, "a centre was told nothing of a craft it knew of, because the game listed no craft to read");
         }
 
+        /// <summary>
+        /// A save that carried nothing a centre had heard, loaded where the list cannot be
+        /// read, does not mean the game holds no craft. The screen is sent no list, which
+        /// reads as unknown, where an empty list would say there are none.
+        /// </summary>
+        [Fact]
+        public async Task AScreenIsSentNoListWhenTheSaveCarriedNothingAndTheListCannotBeRead()
+        {
+            await using var world = await ReckonedVantageWorld.StartAsync();
+            foreach (var ut in new[] { 1.0, 2.0, 700.0, 702.0 })
+            {
+                world.Tick(ut);
+            }
+            await world.SettleAsync();
+
+            world.Game.ListNotStanding = true;
+            world.Game.OutOfFlight = true;
+            world.Engine.NoteGameLoaded(new DeliverySnapshot(), new HeardSnapshot(new HeardAtCentre[0]));
+            world.Tick(702.0);
+            world.Tick(702.0);
+
+            var (client, view) = await world.SitDownAtAsync(Home, SystemViewProvider.VesselsTopic);
+            await using var seated = client;
+            world.Tick(702.0);
+            world.Tick(702.0);
+            await client.AssertNoMessageArrivesAsync(TestBudgets.Quiet);
+            Assert.Null(view.Vessels);
+        }
+
         [Fact]
         public async Task AScreenAtACentreIsToldItsRosterOfCentres()
         {
