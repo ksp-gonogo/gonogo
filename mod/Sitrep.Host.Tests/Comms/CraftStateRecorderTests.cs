@@ -142,6 +142,60 @@ namespace Sitrep.Host.Tests.Comms
         }
 
         [Fact]
+        public void UnderWarpACraftWhoseOrbitMovedIsReadOnTheNextPassAheadOfEveryRefresh()
+        {
+            var recorder = new CraftStateRecorder();
+            var fleet = Enumerable.Range(0, 12).Select(i => Craft("c" + i, Orbit(700_000.0 + (i * 10_000.0)))).ToArray();
+            recorder.Capture(Look(fleet), 0.0, null);
+            for (var pass = 1; pass <= 6; pass++)
+            {
+                recorder.Capture(Look(fleet), pass * 1_000.0, null);
+            }
+
+            // The one read most recently, so the last a refresh would come round to.
+            fleet[5] = Craft("c5", Orbit(2_000_000.0, 0.2));
+            var batch = recorder.Capture(Look(fleet), 7_000.0, null);
+
+            var state = Assert.Single(batch.States);
+            Assert.Equal("vessel:c5", state.Id);
+            Assert.Equal(2_000_000.0, state.Orbit!.Value.Sma);
+        }
+
+        /// <summary>
+        /// A craft under thrust under warp has moved again by every pass. It
+        /// takes no more than every other pass, so every other craft's refresh
+        /// still comes round within twice the fleet's size.
+        /// </summary>
+        [Fact]
+        public void UnderWarpACraftUnderThrustDoesNotStarveTheOthersRefreshes()
+        {
+            var recorder = new CraftStateRecorder();
+            const int fleetSize = 12;
+            var fleet = Enumerable.Range(0, fleetSize).Select(i => Craft("c" + i, Orbit(700_000.0 + (i * 10_000.0)))).ToArray();
+            recorder.Capture(Look(fleet), 0.0, null);
+
+            var lastRead = fleet.ToDictionary(c => c.Id, _ => 0);
+            var longestWait = fleet.ToDictionary(c => c.Id, _ => 0);
+            for (var pass = 1; pass <= 120; pass++)
+            {
+                fleet[0] = Craft("c0", Orbit(700_000.0 + (pass * 5_000.0)));
+                foreach (var state in recorder.Capture(Look(fleet), pass * 1_000.0, null).States)
+                {
+                    longestWait[state.Id] = System.Math.Max(longestWait[state.Id], pass - lastRead[state.Id]);
+                    lastRead[state.Id] = pass;
+                }
+            }
+            foreach (var id in lastRead.Keys.ToList())
+            {
+                longestWait[id] = System.Math.Max(longestWait[id], 120 - lastRead[id]);
+            }
+
+            Assert.InRange(longestWait["vessel:c0"], 1, 2);
+            var bound = (2 * (fleetSize - 1)) + 2;
+            Assert.All(fleet.Skip(1), craft => Assert.InRange(longestWait[craft.Id], 1, bound));
+        }
+
+        [Fact]
         public void ACraftSeenForTheFirstTimeIsReadAtOnceWhateverElseIsDue()
         {
             var recorder = new CraftStateRecorder();
