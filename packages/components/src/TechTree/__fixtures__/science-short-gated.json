@@ -124,41 +124,45 @@
                 "outcome": 2,
                 "detail": ""
               },
-              "itemArgument": "techId",
-              "items": [
+              "itemSets": [
                 {
-                  "value": "stability",
-                  "verdict": {
-                    "outcome": 1,
-                    "errorCode": "insufficientScience",
-                    "detail": "",
-                    "breach": {
-                      "facility": "ResearchAndDevelopment",
-                      "facilityName": "Research and Development",
-                      "facilityLevel": 0,
-                      "quantity": "science",
-                      "limit": 30,
-                      "actual": 45,
-                      "unit": "science"
+                  "argument": "techId",
+                  "items": [
+                    {
+                      "value": "stability",
+                      "verdict": {
+                        "outcome": 1,
+                        "errorCode": "insufficientScience",
+                        "detail": "",
+                        "breach": {
+                          "facility": "ResearchAndDevelopment",
+                          "facilityName": "Research and Development",
+                          "facilityLevel": 0,
+                          "quantity": "science",
+                          "limit": 30,
+                          "actual": 45,
+                          "unit": "science"
+                        }
+                      }
+                    },
+                    {
+                      "value": "advRocketry",
+                      "verdict": {
+                        "outcome": 1,
+                        "errorCode": "insufficientScience",
+                        "detail": "",
+                        "breach": {
+                          "facility": "ResearchAndDevelopment",
+                          "facilityName": "Research and Development",
+                          "facilityLevel": 0,
+                          "quantity": "science",
+                          "limit": 30,
+                          "actual": 45,
+                          "unit": "science"
+                        }
+                      }
                     }
-                  }
-                },
-                {
-                  "value": "advRocketry",
-                  "verdict": {
-                    "outcome": 1,
-                    "errorCode": "insufficientScience",
-                    "detail": "",
-                    "breach": {
-                      "facility": "ResearchAndDevelopment",
-                      "facilityName": "Research and Development",
-                      "facilityLevel": 0,
-                      "quantity": "science",
-                      "limit": 30,
-                      "actual": 45,
-                      "unit": "science"
-                    }
-                  }
+                  ]
                 }
               ]
             }

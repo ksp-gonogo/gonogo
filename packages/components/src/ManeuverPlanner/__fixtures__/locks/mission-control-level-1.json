@@ -195,8 +195,7 @@
                   }
                 ]
               },
-              "itemArgument": "",
-              "items": []
+              "itemSets": []
             },
             {
               "command": "vessel.maneuver.update",
@@ -213,8 +212,7 @@
                   }
                 ]
               },
-              "itemArgument": "",
-              "items": []
+              "itemSets": []
             }
           ]
         }

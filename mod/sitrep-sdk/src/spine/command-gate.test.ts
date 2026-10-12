@@ -20,8 +20,7 @@ function report(
         errorCode: g.errorCode ?? CommandErrorCode.ModeUnavailable,
         detail: g.detail ?? "",
       },
-      itemArgument: "",
-      items: [],
+      itemSets: [],
     })),
     channels: [],
   };
@@ -34,15 +33,19 @@ function perItem(command: string, refusedItem: string): CommandGateReport {
       {
         command,
         verdict: { outcome: GateOutcome.Abstain, detail: "" },
-        itemArgument: "facilityId",
-        items: [
+        itemSets: [
           {
-            value: refusedItem,
-            verdict: {
-              outcome: GateOutcome.Fail,
-              errorCode: CommandErrorCode.InsufficientFunds,
-              detail: "short of funds",
-            },
+            argument: "facilityId",
+            items: [
+              {
+                value: refusedItem,
+                verdict: {
+                  outcome: GateOutcome.Fail,
+                  errorCode: CommandErrorCode.InsufficientFunds,
+                  detail: "short of funds",
+                },
+              },
+            ],
           },
         ],
       },
@@ -78,8 +81,67 @@ describe("selectCommandGate per item", () => {
     }
   });
 
-  it("reads a gate from a mod that publishes no items as the command's own verdict", () => {
-    // Parsed off the wire, as the client meets it: an older mod sends neither item field.
+  it("blocks on either argument of a call that names two, each from its own set", () => {
+    const launch: CommandGateReport = {
+      gates: [
+        {
+          command: "ksp.launch",
+          verdict: { outcome: GateOutcome.Abstain, detail: "" },
+          itemSets: [
+            {
+              argument: "site",
+              items: [
+                {
+                  value: "LaunchPad",
+                  verdict: {
+                    outcome: GateOutcome.Fail,
+                    errorCode: CommandErrorCode.SiteOccupied,
+                    detail: "pad occupied",
+                  },
+                },
+              ],
+            },
+            {
+              argument: "shipName",
+              items: [
+                {
+                  value: "Unrolled",
+                  verdict: {
+                    outcome: GateOutcome.Fail,
+                    errorCode: CommandErrorCode.WrongState,
+                    detail: "not rolled out",
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      channels: [],
+    };
+
+    expect(
+      selectCommandGate(launch, "ksp.launch", {
+        site: "LaunchPad",
+        shipName: "Ok",
+      }),
+    ).toMatchObject({ blocked: true, detail: "pad occupied" });
+    expect(
+      selectCommandGate(launch, "ksp.launch", {
+        site: "Runway",
+        shipName: "Unrolled",
+      }),
+    ).toMatchObject({ blocked: true, detail: "not rolled out" });
+    expect(
+      selectCommandGate(launch, "ksp.launch", {
+        site: "Runway",
+        shipName: "Ok",
+      }),
+    ).toMatchObject({ blocked: false });
+  });
+
+  it("reads a gate that publishes no item sets as the command's own verdict", () => {
+    // Parsed off the wire, as the client meets it.
     const older: CommandGateReport = JSON.parse(
       `{"gates":[{"command":"career.facility.upgrade","verdict":{"outcome":${GateOutcome.Abstain},"detail":""}}]}`,
     );

@@ -1386,7 +1386,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens one <see cref="Sitrep.Contract.CommandGate"/> to
-        /// <c>{ command, verdict, itemArgument, items }</c>, each verdict through the same
+        /// <c>{ command, verdict, itemSets: [{ argument, items }] }</c>, each verdict through the same
         /// <see cref="AppendGateVerdict"/> a refused dispatch uses, so a client
         /// reads one shape whether the gate ruled in advance or at dispatch.
         /// </summary>
@@ -1401,21 +1401,35 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendGateVerdict(sb, gate.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
             sb.Append(',');
-            AppendString(sb, "itemArgument");
-            sb.Append(':');
-            AppendString(sb, gate.ItemArgument ?? "");
-            sb.Append(',');
-            AppendString(sb, "items");
+            AppendString(sb, "itemSets");
             sb.Append(':');
             sb.Append('[');
-            var items = gate.Items;
-            for (var i = 0; items != null && i < items.Count; i++)
+            var sets = gate.ItemSets;
+            for (var i = 0; sets != null && i < sets.Count; i++)
             {
                 if (i > 0)
                 {
                     sb.Append(',');
                 }
-                AppendCommandGateItem(sb, items[i]);
+                sb.Append('{');
+                AppendString(sb, "argument");
+                sb.Append(':');
+                AppendString(sb, sets[i].Argument ?? "");
+                sb.Append(',');
+                AppendString(sb, "items");
+                sb.Append(':');
+                sb.Append('[');
+                var items = sets[i].Items;
+                for (var j = 0; items != null && j < items.Count; j++)
+                {
+                    if (j > 0)
+                    {
+                        sb.Append(',');
+                    }
+                    AppendCommandGateItem(sb, items[j]);
+                }
+                sb.Append(']');
+                sb.Append('}');
             }
             sb.Append(']');
             sb.Append('}');

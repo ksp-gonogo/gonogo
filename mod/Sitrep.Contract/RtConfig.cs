@@ -305,6 +305,7 @@ public static class RtConfig
                 // system.uplink.pending above.
                 typeof(CommandGate),
                 typeof(CommandGateItem),
+                typeof(CommandGateItemSet),
                 typeof(CommandGateReport),
                 typeof(ChannelGate),
                 typeof(MissingUnlock),
