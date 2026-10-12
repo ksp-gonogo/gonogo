@@ -11,20 +11,32 @@
  * A frame comes from `gamescopectl screenshot`, which is what the operator
  * would see, overlays and dialogs included.
  *
- * HARD, found 2026-10-01 (#759): the XTest path above can silently stop
- * reaching the game. `xin.py`'s X11 calls still succeed (no exception, and
- * `xdotool getmouselocation` even reports the moved position), but the
- * compositor never sees them. The confirmed cause on that date: Xwayland
- * forwards XTest as libei events to gamescope, and gamescope's handler logs
- * `gamescope_ei: Unhandled libei event!` / `Unhandled event EI_EVENT_SYNC
- * (91)` (`journalctl --user -u gamescope-session*`) instead of acking the
- * device-setup sync frame; once that happens, no further click or key from
- * that gamescope session visibly reaches KSP, proven by sending the same
- * input against a freshly booted, dialog-free Space Center and diffing two
- * screenshots. There is no known workaround from the Deck side (no gamescope
- * flag disables EI in favour of a legacy path); it needs a gamescope/libei
- * package fix. `verifyInputReaches` below is the fails-loudly guard for this:
- * run it before trusting any `input()` step in a scenario.
+ * Input can silently stop reaching the game. `xin.py`'s X11 calls still
+ * succeed (no exception, and `xdotool getmouselocation` reports the moved
+ * position), but KSP never acts on them. Two causes are confirmed, and they
+ * give the same symptom:
+ *
+ * - Another X client selects XI2 key or button events on the KSP window. The
+ *   X server tries XI2 delivery before core delivery, and Unity reads core
+ *   events, so the game gets nothing. Measured: with such a client 1 of 12
+ *   keys toggled the game against 5 of 6 without, and 0 of 2 clicks against
+ *   4 of 5. Selecting on the root window (raw events) does not block, so an
+ *   observer must select on root only. The Deck has no `xinput` or `xev`;
+ *   a Python XI2 listener is the way to see who holds a selection.
+ * - Steam Big Picture holds `STEAM_INPUT_FOCUS=1` on its window on `:0`, so
+ *   gamescope keeps keyboard and mouse focus on Steam's display instead of the
+ *   game's. Reset it with
+ *   `DISPLAY=:0 xprop -id <Steam Big Picture Mode window> -f STEAM_INPUT_FOCUS 32c -set STEAM_INPUT_FOCUS 0`.
+ *
+ * Three rules for any driver: observers select on the root window only, close
+ * KSP's inventory panel (toolbar icon near 1259,252) before sending keys
+ * because it swallows every key, and resend the first input after idle
+ * because it is sometimes dropped.
+ *
+ * `verifyInputReaches` is the fails-loudly guard: run it before trusting any
+ * `input()` step in a scenario. It sends a key, so it cannot tell a lost click
+ * from a lost key, and it cannot read XI2 selections on the game window from
+ * here.
  */
 import { execFile } from "node:child_process";
 import { readFileSync } from "node:fs";
@@ -222,12 +234,84 @@ export async function verifyInputReaches(frameDir) {
   const openedFraction = pixelDiffFraction(before, during);
   if (openedFraction < MIN_REAL_EFFECT_FRACTION) {
     throw new Error(
-      `#759 input self-check FAILED: pressing Escape changed only ${(openedFraction * 100).toFixed(2)}% ` +
-        `of the screen (need >=${(MIN_REAL_EFFECT_FRACTION * 100).toFixed(0)}% for a real pause-menu toggle). ` +
-        `XTest input is not reaching the game. Check 'journalctl --user -u gamescope-session* | grep -i libei' ` +
-        `on the Deck for 'Unhandled libei event' / 'EI_EVENT_SYNC' (the known cause as of 2026-10-01, see deck.mjs's ` +
-        `module doc comment); no input()-driven step in this run can be trusted. Frames: ${before}, ${during}, ${after}`,
+      describeInputFailure({
+        openedFraction,
+        steamFocus: await readSteamInputFocus(),
+        frames: [before, during, after],
+      }),
     );
   }
   return { openedFraction, before, during, after };
+}
+
+/**
+ * Read `STEAM_INPUT_FOCUS` off Steam's Big Picture window on the Deck's `:0`
+ * display. Resolves with one `{ window, value }` per matching window, or
+ * `null` when the Deck could not be asked (no ssh, no xdotool or xprop).
+ */
+export async function readSteamInputFocus() {
+  try {
+    const out = await ssh(
+      [
+        "export DISPLAY=:0",
+        `for w in $(xdotool search --name 'Steam Big Picture Mode' 2>/dev/null); do echo "$w $(xprop -id $w STEAM_INPUT_FOCUS 2>/dev/null)"; done`,
+      ].join("; "),
+      15_000,
+    );
+    return parseSteamInputFocus(out);
+  } catch {
+    return null;
+  }
+}
+
+/** Parse the probe's `<window> STEAM_INPUT_FOCUS(CARDINAL) = <n>` lines. */
+export function parseSteamInputFocus(output) {
+  const windows = [];
+  for (const line of String(output).split("\n")) {
+    const match = /^(\d+)\s+STEAM_INPUT_FOCUS\(\w+\) = (\d+)/.exec(line.trim());
+    if (match)
+      windows.push({ window: Number(match[1]), value: Number(match[2]) });
+  }
+  return windows;
+}
+
+/** One line saying what the `STEAM_INPUT_FOCUS` reading means for the failure. */
+function describeSteamFocus(steamFocus) {
+  if (steamFocus === null) {
+    return "STEAM_INPUT_FOCUS: could not be read (the Deck did not answer over ssh, or xdotool or xprop is missing).";
+  }
+  if (steamFocus.length === 0) {
+    return "STEAM_INPUT_FOCUS: no 'Steam Big Picture Mode' window found on DISPLAY=:0, so Steam is not holding input focus.";
+  }
+  const holders = steamFocus.filter((w) => w.value === 1);
+  if (holders.length === 0) {
+    return "STEAM_INPUT_FOCUS: 0 on every Steam window, so Steam is not the cause.";
+  }
+  const ids = holders.map((w) => `0x${w.window.toString(16)}`);
+  return (
+    `STEAM_INPUT_FOCUS: 1 on ${ids.join(", ")}. Steam holds input focus, which keeps gamescope's keyboard and mouse focus off the game. ` +
+    `Fix: DISPLAY=:0 xprop -id ${ids[0]} -f STEAM_INPUT_FOCUS 32c -set STEAM_INPUT_FOCUS 0`
+  );
+}
+
+/**
+ * The self-check failure message: what was measured, what could not be, and
+ * the cause each observation points at. `steamFocus` is the result of
+ * `readSteamInputFocus`.
+ */
+export function describeInputFailure({ openedFraction, steamFocus, frames }) {
+  const lines = [
+    `Input self-check FAILED: the key press (Escape) changed only ${(openedFraction * 100).toFixed(2)}% ` +
+      `of the screen (need >=${(MIN_REAL_EFFECT_FRACTION * 100).toFixed(0)}% for a real pause-menu toggle).`,
+    "Click: not tested, the check sends a key only, so a lost click is not distinguished from a lost key.",
+  ];
+  lines.push(describeSteamFocus(steamFocus));
+  lines.push(
+    "XI2 selectors on the game window: not observable from here (the Deck has no xinput or xev). " +
+      "If STEAM_INPUT_FOCUS is not 1, suspect another X client selecting XI2 key or button events on the KSP window " +
+      "(it pre-empts core events); find it with a Python XI2 listener on DISPLAY=:1 and have observers select on the root window only.",
+    "Also check that KSP's inventory panel (toolbar icon near 1259,252) is closed, and resend once after idle.",
+    `No input()-driven step in this run can be trusted. Frames: ${frames.join(", ")}`,
+  );
+  return lines.join("\n");
 }
