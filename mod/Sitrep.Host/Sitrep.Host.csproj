@@ -39,5 +39,6 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Sitrep.Host.Tests" />
     <InternalsVisibleTo Include="Sitrep.Host.IntegrationTests" />
+    <InternalsVisibleTo Include="Gonogo.KSP.Tests" />
   </ItemGroup>
 </Project>

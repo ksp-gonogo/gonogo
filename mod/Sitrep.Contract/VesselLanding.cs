@@ -51,23 +51,6 @@ public class VesselLanding
     [SitrepUnit(Units.Text)]
     public string? SampleSource { get; set; }
 
-    // KSP exposes no cheap terrain normal, so the two under-vessel fields are unpopulated; the sub-vessel fallback of the plane fit covers that case.
-
-    /// <summary>Terrain elevation in metres above the body's mean radius
-    /// directly beneath the vessel. Not currently produced, so always null:
-    /// when <see cref="SampleSource"/> is <c>"sub-vessel"</c>,
-    /// <see cref="PredictedTerrainElevation"/> carries the under-ship
-    /// elevation.</summary>
-    [SitrepUnit(Units.Metres)]
-    public double? TerrainElevationUnderVessel { get; set; }
-
-    /// <summary>Terrain slope directly beneath the vessel in degrees, 0 flat.
-    /// Not currently produced, so always null: when <see cref="SampleSource"/>
-    /// is <c>"sub-vessel"</c>, <see cref="PredictedSlopeAngle"/> carries the
-    /// under-ship slope.</summary>
-    [SitrepUnit(Units.Degrees)]
-    public double? SlopeAngleUnderVessel { get; set; }
-
     /// <summary>Latitude in degrees of the point the terrain fields were
     /// sampled at: the predicted touchdown point, or the vessel's own latitude
     /// when <see cref="SampleSource"/> is <c>"sub-vessel"</c>.</summary>

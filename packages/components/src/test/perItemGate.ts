@@ -21,12 +21,16 @@ export function perItemGateReport(
         command,
         // GateOutcome.Abstain: nothing is said about the command until an item is named.
         verdict: { outcome: 2, detail: "" },
-        itemArgument,
-        items: Object.entries(refused).map(([value, refusal]) => ({
-          value,
-          // GateOutcome.Fail.
-          verdict: { outcome: 1, detail: "", ...refusal },
-        })),
+        itemSets: [
+          {
+            argument: itemArgument,
+            items: Object.entries(refused).map(([value, refusal]) => ({
+              value,
+              // GateOutcome.Fail.
+              verdict: { outcome: 1, detail: "", ...refusal },
+            })),
+          },
+        ],
       },
     ],
   };

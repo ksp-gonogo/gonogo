@@ -70,18 +70,37 @@ namespace Sitrep.Contract
         public GateVerdict Verdict { get; set; } = new GateVerdict();
 
         /// <summary>
-        /// The argument whose value picks the item a per-item verdict is about,
-        /// e.g. <c>facilityId</c>. Empty when the command's gate does not depend
-        /// on which item is chosen, and then <see cref="Items"/> is empty too.
+        /// The per-item verdicts of this command, one set for each argument
+        /// whose value picks the item a verdict is about (a launch has two: the
+        /// site and the vehicle). Empty when the command's gate does not depend
+        /// on which item is chosen.
+        ///
+        /// <para>A call is refused when any set holds a verdict for the value the
+        /// call names under that set's argument. Sets are sampled only while
+        /// <see cref="Verdict"/> is <see cref="GateOutcome.Abstain"/>: a command
+        /// refused or unreadable for every item has nothing to add per item.</para>
         /// </summary>
+        public List<CommandGateItemSet> ItemSets { get; set; } = new List<CommandGateItemSet>();
+    }
+
+    /// <summary>
+    /// The verdicts a <see cref="CommandGate"/> holds for the items one argument
+    /// can name, e.g. every <c>site</c> of a launch.
+    /// </summary>
+    /// <category>System diagnostics</category>
+    [SitrepContract]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
+    public class CommandGateItemSet
+    {
+        /// <summary>The command argument whose value picks the item, e.g. <c>facilityId</c>.</summary>
         [SitrepUnit(Units.Id)]
-        public string ItemArgument { get; set; } = "";
+        public string Argument { get; set; } = "";
 
         /// <summary>
         /// The verdict for each item that a call naming it would not pass, keyed
-        /// by the value of <see cref="ItemArgument"/>. Sampled only while
-        /// <see cref="Verdict"/> is <see cref="GateOutcome.Abstain"/>: a command
-        /// refused or unreadable for every item has nothing to add per item.
+        /// by the value of <see cref="Argument"/>.
         ///
         /// <para>An item with no entry has nothing said about it in advance,
         /// which a client draws exactly as an Abstain: a live control. That
@@ -93,8 +112,8 @@ namespace Sitrep.Contract
 
     /// <summary>
     /// One item's verdict in a <see cref="CommandGate"/>: what the gate says
-    /// about a call whose <see cref="CommandGate.ItemArgument"/> is
-    /// <see cref="Value"/>.
+    /// about a call whose argument, the one its <see cref="CommandGateItemSet"/>
+    /// names, is <see cref="Value"/>.
     /// </summary>
     /// <category>System diagnostics</category>
     [SitrepContract]

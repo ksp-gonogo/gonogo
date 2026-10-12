@@ -1184,8 +1184,6 @@ namespace Sitrep.Host
             {
                 Outcome = GetString(landing, "outcome"),
                 SampleSource = GetString(landing, "sampleSource"),
-                TerrainElevationUnderVessel = GetDouble(landing, "terrainElevationUnderVessel"),
-                SlopeAngleUnderVessel = GetDouble(landing, "slopeAngleUnderVessel"),
                 PredictedLatitude = GetDouble(landing, "predictedLatitude"),
                 PredictedLongitude = GetDouble(landing, "predictedLongitude"),
                 PredictedTerrainElevation = GetDouble(landing, "predictedTerrainElevation"),
@@ -1913,8 +1911,6 @@ namespace Sitrep.Host
         {
             ["outcome"] = landing.Outcome,
             ["sampleSource"] = landing.SampleSource,
-            ["terrainElevationUnderVessel"] = landing.TerrainElevationUnderVessel,
-            ["slopeAngleUnderVessel"] = landing.SlopeAngleUnderVessel,
             ["predictedLatitude"] = landing.PredictedLatitude,
             ["predictedLongitude"] = landing.PredictedLongitude,
             ["predictedTerrainElevation"] = landing.PredictedTerrainElevation,

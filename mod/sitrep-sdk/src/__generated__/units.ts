@@ -291,10 +291,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "CommandGate": {
     command: "id",
-    itemArgument: "id",
   },
   "CommandGateItem": {
     value: "id",
+  },
+  "CommandGateItemSet": {
+    argument: "id",
   },
   "CommandGroupRequest": {
     groupId: "id",
@@ -1524,10 +1526,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     siteHeights: "m",
     siteHeightsExtentMeters: "m",
     siteHeightsSize: "count",
-    slopeAngleUnderVessel: "°",
     slopeSampleRadiusMeters: "m",
     terminalVelocity: "m/s",
-    terrainElevationUnderVessel: "m",
   },
   "VesselManeuver": {
     planner: "id",
@@ -2191,10 +2191,8 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     siteHeights: "m",
     siteHeightsExtentMeters: "m",
     siteHeightsSize: "count",
-    slopeAngleUnderVessel: "°",
     slopeSampleRadiusMeters: "m",
     terminalVelocity: "m/s",
-    terrainElevationUnderVessel: "m",
   },
   "vessel.maneuver": {
     planner: "id",
@@ -2357,11 +2355,14 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     requires: "CommandRequirement[]",
   },
   "CommandGate": {
-    items: "CommandGateItem[]",
+    itemSets: "CommandGateItemSet[]",
     verdict: "GateVerdict",
   },
   "CommandGateItem": {
     verdict: "GateVerdict",
+  },
+  "CommandGateItemSet": {
+    items: "CommandGateItem[]",
   },
   "CommandGateReport": {
     channels: "ChannelGate[]",

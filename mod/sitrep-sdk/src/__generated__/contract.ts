@@ -1226,16 +1226,31 @@ export interface CommandGate
 	*/
 	verdict: GateVerdict;
 	/**
-	* The argument whose value picks the item a per-item verdict is about, e.g.
-	* `facilityId`. Empty when the command's gate does not depend on which item is
-	* chosen, and then `CommandGate.items` is empty too.
+	* The per-item verdicts of this command, one set for each argument whose value
+	* picks the item a verdict is about (a launch has two: the site and the
+	* vehicle). Empty when the command's gate does not depend on which item is
+	* chosen.
+	*
+	* A call is refused when any set holds a verdict for the value the call names
+	* under that set's argument. Sets are sampled only while `CommandGate.verdict`
+	* is `GateOutcome.Abstain`: a command refused or unreadable for every item has
+	* nothing to add per item.
 	*/
-	itemArgument: string;
+	itemSets: CommandGateItemSet[];
+}
+/**
+* The verdicts a `CommandGate` holds for the items one argument can name, e.g.
+* every `site` of a launch.
+*
+* @category System diagnostics
+*/
+export interface CommandGateItemSet
+{
+	/** The command argument whose value picks the item, e.g. `facilityId`. */
+	argument: string;
 	/**
 	* The verdict for each item that a call naming it would not pass, keyed by the
-	* value of `CommandGate.itemArgument`. Sampled only while
-	* `CommandGate.verdict` is `GateOutcome.Abstain`: a command refused or
-	* unreadable for every item has nothing to add per item.
+	* value of `CommandGateItemSet.argument`.
 	*
 	* An item with no entry has nothing said about it in advance, which a client
 	* draws exactly as an Abstain: a live control. That covers an item that passed
@@ -1246,7 +1261,8 @@ export interface CommandGate
 }
 /**
 * One item's verdict in a `CommandGate`: what the gate says about a call whose
-* `CommandGate.itemArgument` is `CommandGateItem.value`.
+* argument, the one its `CommandGateItemSet` names, is
+* `CommandGateItem.value`.
 *
 * @category System diagnostics
 */
@@ -9700,20 +9716,6 @@ export interface VesselLanding
 	* downrange or under-ship terrain. Null when no terrain was sampled.
 	*/
 	sampleSource?: string | null;
-	/**
-	* Terrain elevation in metres above the body's mean radius directly beneath
-	* the vessel. Not currently produced, so always null: when
-	* `VesselLanding.sampleSource` is `"sub-vessel"`,
-	* `VesselLanding.predictedTerrainElevation` carries the under-ship elevation.
-	*/
-	terrainElevationUnderVessel?: Value<"m"> | null;
-	/**
-	* Terrain slope directly beneath the vessel in degrees, 0 flat. Not currently
-	* produced, so always null: when `VesselLanding.sampleSource` is
-	* `"sub-vessel"`, `VesselLanding.predictedSlopeAngle` carries the under-ship
-	* slope.
-	*/
-	slopeAngleUnderVessel?: Value<"°"> | null;
 	/**
 	* Latitude in degrees of the point the terrain fields were sampled at: the
 	* predicted touchdown point, or the vessel's own latitude when

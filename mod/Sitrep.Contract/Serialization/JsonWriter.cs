@@ -372,6 +372,9 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommandGate commandGate:
                     AppendCommandGate(sb, commandGate);
                     break;
+                case Sitrep.Contract.CommandGateItemSet commandGateItemSet:
+                    AppendCommandGateItemSet(sb, commandGateItemSet);
+                    break;
                 case Sitrep.Contract.CommandGateItem commandGateItem:
                     AppendCommandGateItem(sb, commandGateItem);
                     break;
@@ -1386,7 +1389,7 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>
         /// Flattens one <see cref="Sitrep.Contract.CommandGate"/> to
-        /// <c>{ command, verdict, itemArgument, items }</c>, each verdict through the same
+        /// <c>{ command, verdict, itemSets: [{ argument, items }] }</c>, each verdict through the same
         /// <see cref="AppendGateVerdict"/> a refused dispatch uses, so a client
         /// reads one shape whether the gate ruled in advance or at dispatch.
         /// </summary>
@@ -1401,14 +1404,34 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendGateVerdict(sb, gate.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
             sb.Append(',');
-            AppendString(sb, "itemArgument");
+            AppendString(sb, "itemSets");
             sb.Append(':');
-            AppendString(sb, gate.ItemArgument ?? "");
+            sb.Append('[');
+            var sets = gate.ItemSets;
+            for (var i = 0; sets != null && i < sets.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendCommandGateItemSet(sb, sets[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>Flattens one <see cref="Sitrep.Contract.CommandGateItemSet"/> to <c>{ argument, items }</c>.</summary>
+        private static void AppendCommandGateItemSet(StringBuilder sb, Sitrep.Contract.CommandGateItemSet set)
+        {
+            sb.Append('{');
+            AppendString(sb, "argument");
+            sb.Append(':');
+            AppendString(sb, set.Argument ?? "");
             sb.Append(',');
             AppendString(sb, "items");
             sb.Append(':');
             sb.Append('[');
-            var items = gate.Items;
+            var items = set.Items;
             for (var i = 0; items != null && i < items.Count; i++)
             {
                 if (i > 0)
