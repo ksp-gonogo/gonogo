@@ -1,7 +1,4 @@
-import {
-  registerAugment,
-  registerBarePrimitiveTopic,
-} from "@ksp-gonogo/sitrep-sdk";
+import { registerAugment, registerUplinkTopic } from "@ksp-gonogo/sitrep-sdk";
 import { useCommand, useStream } from "@ksp-gonogo/sitrep-sdk/spine";
 import { Button, Section, Text } from "@ksp-gonogo/ui-kit";
 import { PLANTED_UPLINK } from "./plantedUplink";
@@ -22,7 +19,7 @@ export const PLANTED_LOCKS_AVAILABLE_TOPIC = `${PLANTED_LOCKS_DOMAIN}.available`
 
 const EXECUTOR_TOPIC = `${PLANTED_LOCKS_DOMAIN}.executor`;
 
-registerBarePrimitiveTopic(PLANTED_LOCKS_AVAILABLE_TOPIC);
+registerUplinkTopic(PLANTED_LOCKS_AVAILABLE_TOPIC);
 
 function BurnExecutorSection() {
   const executor = useStream<{ cpu: string; script: string }>(EXECUTOR_TOPIC);

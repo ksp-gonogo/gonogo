@@ -15,7 +15,7 @@
  * Uplink can source, which makes this file a second proof that an outside
  * author can register a model for a Topic the SDK has never heard of.
  *
- * Type only, with no `registerBarePrimitiveTopic` call: the augmentation is
+ * Type only, with no `registerUplinkTopic` call: the augmentation is
  * erased at runtime and the store is keyed by plain strings, so nothing here
  * puts a fake Topic into `getAllKnownTopicIds()` where another suite could
  * enumerate it.

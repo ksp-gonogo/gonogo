@@ -5,8 +5,8 @@ import {
   ViewClock,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  registerBarePrimitiveTopic,
   registerTopicUnits,
+  registerUplinkTopic,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   createFakeWallClock,
@@ -29,7 +29,7 @@ import { useDataSeries } from "./useDataSeries";
  */
 const REACTOR = "acme.reactor";
 
-registerBarePrimitiveTopic(REACTOR);
+registerUplinkTopic(REACTOR);
 registerTopicUnits(REACTOR, { coreTempK: "K" });
 
 function Probe() {

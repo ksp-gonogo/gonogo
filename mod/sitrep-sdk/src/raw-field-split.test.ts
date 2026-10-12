@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { splitRawFieldSubtopic } from "./raw-field-split";
 import { registerDynamicTopicPrefix } from "./runtime-topic-registry";
-import { registerBarePrimitiveTopic } from "./topics";
+import { registerUplinkTopic } from "./topics";
 
 describe("splitRawFieldSubtopic", () => {
   it("leaves a whole Topic whole, at two segments or at three", () => {
@@ -51,7 +51,7 @@ describe("splitRawFieldSubtopic", () => {
   });
 
   it("leaves a three-segment Topic a client package registered whole, and splits its fields off it", () => {
-    registerBarePrimitiveTopic("planted.reliability.parts");
+    registerUplinkTopic("planted.reliability.parts");
     expect(splitRawFieldSubtopic("planted.reliability.parts")).toBeUndefined();
     expect(splitRawFieldSubtopic("planted.reliability.parts.worst")).toEqual({
       rawTopic: "planted.reliability.parts",
@@ -78,7 +78,7 @@ describe("splitRawFieldSubtopic", () => {
       rawTopic: "planted.late",
       fieldPath: ["figure"],
     });
-    expect(() => registerBarePrimitiveTopic("planted.late.figure")).toThrow(
+    expect(() => registerUplinkTopic("planted.late.figure")).toThrow(
       /registered after "planted\.late\.figure" had already been read as a field of "planted\.late"/,
     );
     expect(() => registerDynamicTopicPrefix("planted.late.")).toThrow(
@@ -88,7 +88,7 @@ describe("splitRawFieldSubtopic", () => {
 
   it("accepts a registration that leaves every key already read where it was", () => {
     splitRawFieldSubtopic("planted.settled.a.b");
-    expect(() => registerBarePrimitiveTopic("planted.settled")).not.toThrow();
+    expect(() => registerUplinkTopic("planted.settled")).not.toThrow();
     expect(() =>
       registerDynamicTopicPrefix("planted.elsewhere."),
     ).not.toThrow();

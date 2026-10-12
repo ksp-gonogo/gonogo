@@ -147,7 +147,7 @@ const COMMAND_ID_SET: ReadonlySet<string> = new Set(COMMAND_IDS);
  * Runtime registry of Uplink-owned command ids, the commands whose args types
  * live in an Uplink's own contract slice rather than in `Sitrep.Contract`. Each
  * owning Uplink's client package calls `registerUplinkCommand` at module load,
- * mirroring `registerBarePrimitiveTopic` on the read side, so the SDK can
+ * mirroring `registerUplinkTopic` on the read side, so the SDK can
  * enumerate and narrow them without naming a single mod token in this file.
  */
 const uplinkCommandIds = new Set<string>();
