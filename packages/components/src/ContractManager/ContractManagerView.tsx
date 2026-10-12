@@ -110,7 +110,8 @@ export function ContractManagerComponent({
                 title={c.title}
                 titleRight={
                   <ContractDeadline
-                    deadlineUt={c.deadlineUt}
+                    contract={c}
+                    offered={false}
                     universalTime={universalTime}
                     boardHeld={boardHeld}
                   />
@@ -145,7 +146,8 @@ export function ContractManagerComponent({
                 title={c.title}
                 titleRight={
                   <ContractDeadline
-                    deadlineUt={c.deadlineUt}
+                    contract={c}
+                    offered
                     universalTime={universalTime}
                     boardHeld={boardHeld}
                   />

@@ -215,6 +215,29 @@ describe("ContractManagerComponent", () => {
     expect(screen.getByText(/\(optional\)/)).toBeInTheDocument();
   });
 
+  it("shows when an offer is withdrawn, never 'no deadline' for a contract with none yet", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [],
+        offered: [
+          {
+            id: 6,
+            title: "Fly by Minmus",
+            dateDeadline: 0,
+            dateExpire: 3 * 3600,
+            parameters: [],
+          },
+        ],
+      });
+    });
+
+    await screen.findByText("Fly by Minmus");
+    await waitFor(() => expect(visibleText()).toMatch(/offer ends in\s*3\s*h/));
+    expect(screen.queryByText("no deadline")).toBeNull();
+  });
+
   it("requires arm-then-confirm before declining an offered contract", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
@@ -358,6 +381,10 @@ describe("ContractManagerComponent cancel cost", () => {
 });
 
 describe("formatDeadline", () => {
+  it("is unknown when the wire carried no deadline", () => {
+    expect(formatDeadline(null, 100)).toBe(NULL_DISPLAY);
+  });
+
   it("is unknown, not the whole deadline, when the view UT is unknown", () => {
     expect(formatDeadline(6 * 3600 * 5, undefined)).toBe(NULL_DISPLAY);
     expect(formatDeadline(0, undefined)).toBe("no deadline");

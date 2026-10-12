@@ -35,8 +35,10 @@ export interface ContractEntry {
   fundsCompletion: number;
   scienceCompletion: number;
   repCompletion: number;
-  /** UT seconds at which the contract expires; zero when no deadline. */
-  deadlineUt: number;
+  /** UT seconds by which an accepted contract must be completed; zero when it has none, null when the wire did not say (an offer has not been given one yet). */
+  deadlineUt: number | null;
+  /** UT seconds at which an offered contract is withdrawn if not accepted; null when the wire did not say. */
+  expireUt: number | null;
   /** Funds taken when the contract fails or is cancelled; null when the wire did not say. */
   fundsFailure: number | null;
   /** Reputation lost when the contract fails or is cancelled; null when the wire did not say. */
@@ -86,8 +88,8 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
     const repCompletion =
       magnitudeOf(asQuantityish(e.repCompletion ?? e.reputationCompletion)) ??
       0;
-    const deadlineUt =
-      magnitudeOf(asQuantityish(e.deadlineUt ?? e.dateDeadline)) ?? 0;
+    const deadlineUt = utOf(e.deadlineUt ?? e.dateDeadline);
+    const expireUt = utOf(e.dateExpire);
     out.push({
       id,
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
@@ -98,12 +100,18 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
       scienceCompletion: magnitudeOr(asQuantityish(e.scienceCompletion), 0),
       repCompletion,
       deadlineUt,
+      expireUt,
       fundsFailure: magnitudeOf(asQuantityish(e.fundsFailure)),
       repFailure: magnitudeOf(asQuantityish(e.reputationFailure)),
       parameters: parseParameters(e.parameters),
     });
   }
   return out;
+}
+
+/** A UT instant off the wire, or null when the field is absent. */
+function utOf(raw: unknown): number | null {
+  return magnitudeOf(asQuantityish(raw));
 }
 
 /** A numeric id is stringified so downstream has one type. */
@@ -145,10 +153,11 @@ function parseParameters(raw: unknown): ContractParameter[] {
  * sizes a day by the game's own calendar.
  */
 export function formatDeadline(
-  deadlineUt: number,
+  deadlineUt: number | null,
   universalTime: number | undefined,
 ): string {
-  if (!deadlineUt || deadlineUt <= 0) return "no deadline";
+  if (deadlineUt === null) return NULL_DISPLAY;
+  if (deadlineUt <= 0) return "no deadline";
   // Without a confirmed view UT the remaining time is unknown, not the whole deadline.
   if (universalTime === undefined) return NULL_DISPLAY;
   const remaining = deadlineUt - universalTime;

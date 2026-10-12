@@ -1,5 +1,6 @@
 import { formatCompactCurrency } from "@ksp-gonogo/core";
-import { HeldBadge } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { HeldBadge, NULL_DISPLAY, Unit } from "@ksp-gonogo/ui-kit";
 import type { heldGrade } from "../shared/heldGrade";
 import { type ContractEntry, formatDeadline } from "./contracts";
 import {
@@ -12,20 +13,47 @@ import {
   REWARDS_STYLE,
 } from "./styles";
 
-/** A card's title-row trailer: the deadline, and the held mark while the board is held. */
+/** The time left to accept an offered contract before it is withdrawn, against the confirmed view UT. */
+function OfferExpiry({
+  expireUt,
+  universalTime,
+}: Readonly<{ expireUt: number | null; universalTime: number | undefined }>) {
+  if (expireUt === null || expireUt <= 0 || universalTime === undefined) {
+    return NULL_DISPLAY;
+  }
+  const remaining = expireUt - universalTime;
+  if (remaining <= 0) return "offer withdrawn";
+  return (
+    <>
+      offer ends in <Unit value={value("s", Math.max(60, remaining))} />
+    </>
+  );
+}
+
+/** A card's title-row trailer: the deadline of an accepted contract or the expiry of an offer, and the held mark while the board is held. */
 export function ContractDeadline({
-  deadlineUt,
+  contract,
+  offered,
   universalTime,
   boardHeld,
 }: Readonly<{
-  deadlineUt: number;
+  contract: ContractEntry;
+  /** The contract is an offer: its trailer is the time left to accept it. */
+  offered: boolean;
   universalTime: number | undefined;
   boardHeld: ReturnType<typeof heldGrade>;
 }>) {
   return (
     <>
       <span style={DEADLINE_STYLE}>
-        {formatDeadline(deadlineUt, universalTime)}
+        {offered ? (
+          <OfferExpiry
+            expireUt={contract.expireUt}
+            universalTime={universalTime}
+          />
+        ) : (
+          formatDeadline(contract.deadlineUt, universalTime)
+        )}
       </span>
       {boardHeld !== undefined && (
         /* On the card, in the operator's eyeline while they look at its Cancel. */

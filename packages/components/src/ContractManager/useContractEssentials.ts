@@ -29,7 +29,9 @@ function dueEssential(
   const held = stillTrue(career, undefined);
   const active = parseContracts(held?.contracts?.active);
   if (active === null || nowUt === undefined) return { label, value: null };
-  const deadlines = active.map((c) => c.deadlineUt).filter((ut) => ut > 0);
+  const deadlines = active
+    .map((c) => c.deadlineUt)
+    .filter((ut): ut is number => ut !== null && ut > 0);
   if (deadlines.length === 0) return { label, word: "NONE" };
   const remaining = value("ut", Math.min(...deadlines)).minus(nowUt);
   if (!remaining.isPositive()) return { label, word: "EXPIRED", tone: "nogo" };

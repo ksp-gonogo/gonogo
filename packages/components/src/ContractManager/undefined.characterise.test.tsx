@@ -164,7 +164,7 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
 
-  it("renders a deadline of `no deadline` when the contract's own deadline field is absent", async () => {
+  it("renders the null token, not `no deadline`, when the contract's own deadline field is absent", async () => {
     const fixture = newFixture();
     renderManager(fixture);
 
@@ -174,10 +174,10 @@ describe("ContractManager: partial payloads inside an arrived record", () => {
       });
     });
 
-    // An absent deadline becomes a hard 0, which reads as "no deadline" rather than unknown.
+    // Absent is unknown: only a deadline the wire reports as 0 reads "no deadline".
     await waitFor(() =>
       expect(screen.getByText("Undated job")).toBeInTheDocument(),
     );
-    expect(visibleText()).toContain("no deadline");
+    expect(visibleText()).not.toContain("no deadline");
   });
 });

@@ -133,7 +133,8 @@
                 ],
                 "agent": "Kerbin Space Program",
                 "reputationCompletion": 15,
-                "dateDeadline": 500000
+                "dateDeadline": 0,
+                "dateExpire": 600000
               }
             ],
             "completedRecent": []
