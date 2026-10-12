@@ -32,6 +32,9 @@
  * `listed` flag is read instead. `withdrawn-versions.json` repeats the same
  * answer in the repository, one reason per version, so the rule does not rest on
  * a registry quirk. A withdrawn number is never reused: planning it is refused.
+ * npm refuses a number it has ever taken, so a version unpublished without an
+ * entry here is still refused: the full packument's `time` keeps every version
+ * the registry has seen, after `versions` has dropped it.
  *
  * ## A release candidate
  *
@@ -170,6 +173,7 @@ export function plan({
   release,
   run,
   npmVersions,
+  npmSpent = () => [],
   nugetVersions,
   tags,
   withdrawn = withdrawnVersions(),
@@ -200,6 +204,14 @@ export function plan({
   const registries = [];
   for (const pkg of publishedPackages(root)) {
     const published = live(npmVersions(pkg.name));
+    if (
+      npmSpent(pkg.name).includes(version) &&
+      !npmVersions(pkg.name).includes(version)
+    ) {
+      throw new Error(
+        `${pkg.name} had ${version} published and withdrawn, and npm never takes a number twice: pick another, and record it in ${WITHDRAWN_VERSIONS_FILE}`,
+      );
+    }
     packages[pkg.name] = { dir: pkg.dir, firstVersion: published.length === 0 };
     registries.push({ name: pkg.name, published });
   }
@@ -402,17 +414,45 @@ export function listedNugetVersions(leaves) {
     .map((leaf) => leaf.catalogEntry.version);
 }
 
-async function npmVersionsFromRegistry(name) {
-  const response = await fetch(
-    `https://registry.npmjs.org/${name.replace("/", "%2F")}`,
-    { headers: { accept: "application/vnd.npm.install-v1+json" } },
+/** Every version npm has ever taken for a package, unpublished ones included, read from the full packument's `time`. */
+export function spentNpmVersions(packument) {
+  const time = packument.time ?? {};
+  const keys = Object.keys(time).filter(
+    (key) => key !== "created" && key !== "modified" && key !== "unpublished",
   );
-  // Only a 404 means "never published": reading an outage as absence would plan a first publish.
-  if (response.status === 404) return [];
-  if (!response.ok) {
-    throw new Error(`npm answered ${response.status} for ${name}`);
+  return [...new Set([...keys, ...(time.unpublished?.versions ?? [])])];
+}
+
+const packuments = new Map();
+
+/** The full packument, which carries `time`; the abbreviated install document does not. */
+function npmPackument(name) {
+  if (!packuments.has(name)) {
+    packuments.set(
+      name,
+      (async () => {
+        const response = await fetch(
+          `https://registry.npmjs.org/${name.replace("/", "%2F")}`,
+          { headers: { accept: "application/json" } },
+        );
+        // Only a 404 means "never published": reading an outage as absence would plan a first publish.
+        if (response.status === 404) return {};
+        if (!response.ok) {
+          throw new Error(`npm answered ${response.status} for ${name}`);
+        }
+        return response.json();
+      })(),
+    );
   }
-  return liveNpmVersions(await response.json());
+  return packuments.get(name);
+}
+
+async function npmVersionsFromRegistry(name) {
+  return liveNpmVersions(await npmPackument(name));
+}
+
+async function npmSpentFromRegistry(name) {
+  return spentNpmVersions(await npmPackument(name));
 }
 
 async function nugetVersions(id) {
@@ -488,6 +528,7 @@ export async function main(
   {
     root = REPO_ROOT,
     npm = npmVersionsFromRegistry,
+    npmSpent = npmSpentFromRegistry,
     nuget = nugetVersions,
     tags = () => releaseTags(root),
     log = () => logSinceRelease(root),
@@ -514,14 +555,17 @@ export async function main(
           : nextRelease(current, bump === "auto" ? bumpFromLog(log()) : bump));
       const runFlag = flag(rest, "--rc");
       const npmByName = {};
+      const spentByName = {};
       for (const pkg of publishedPackages(root)) {
         npmByName[pkg.name] = await npm(pkg.name);
+        spentByName[pkg.name] = await npmSpent(pkg.name);
       }
       const result = plan({
         root,
         release,
         run: runFlag === undefined ? undefined : Number(runFlag),
         npmVersions: (name) => npmByName[name],
+        npmSpent: (name) => spentByName[name],
         nugetVersions: await nuget(NUGET_ID),
         tags: tags(),
       });

@@ -17,10 +17,13 @@
  * does one job move `rc` or `latest` for all of them, seconds apart. A tag it
  * cannot move makes it put back the ones it already moved.
  *
+ * A release moves `rc` with `latest`, in the same set, so `@rc` never names a
+ * candidate older than the release it led to.
+ *
  * Usage:
  *   release-tags.mjs nuget-listed <id> <version> [--wait-minutes <n>] [--dry-run]
  *   release-tags.mjs npm-present <version> <name>... [--wait-minutes <n>] [--dry-run]
- *   release-tags.mjs move <tag> <version> <name>... [--dry-run]
+ *   release-tags.mjs move <tag>[,<tag>...] <version> <name>... [--dry-run]
  *   release-tags.mjs probe <name>...
  *
  * `--dry-run` reads everything and changes nothing: an absent version is
@@ -57,23 +60,29 @@ export function nugetLists(index, version) {
 }
 
 /**
- * What moving `tag` to `version` means for each package, from the tags they
- * carry now: where the tag points today, and whether it has to move.
+ * What moving `tag` (one tag, or several moved as one set) to `version` means
+ * for each package, from the tags they carry now: where each tag points
+ * today, and whether it has to move. Every package's first tag comes before
+ * any package's second.
  */
 export function planMoves(tagsByName, tag, version) {
-  return Object.entries(tagsByName).map(([name, tags]) => ({
-    name,
-    from: tags?.[tag],
-    to: version,
-    needed: tags?.[tag] !== version,
-  }));
+  return [tag].flat().flatMap((each) =>
+    Object.entries(tagsByName).map(([name, tags]) => ({
+      name,
+      tag: each,
+      from: tags?.[each],
+      to: version,
+      needed: tags?.[each] !== version,
+    })),
+  );
 }
 
 /** The command that puts one package's tag back where a move found it. */
 export function restoreCommand(move, tag) {
+  const which = move.tag ?? tag;
   return move.from === undefined
-    ? ["dist-tag", "rm", move.name, tag]
-    : ["dist-tag", "add", `${move.name}@${move.from}`, tag];
+    ? ["dist-tag", "rm", move.name, which]
+    : ["dist-tag", "add", `${move.name}@${move.from}`, which];
 }
 
 /**
@@ -84,30 +93,33 @@ export function restoreCommand(move, tag) {
 export function moveTogether(moves, tag, npm, log = console.log) {
   const moved = [];
   for (const move of moves) {
+    const which = move.tag ?? tag;
     if (!move.needed) {
-      log(`${move.name}: ${tag} is already ${move.to}`);
+      log(`${move.name}: ${which} is already ${move.to}`);
       continue;
     }
     try {
-      npm(["dist-tag", "add", `${move.name}@${move.to}`, tag]);
+      npm(["dist-tag", "add", `${move.name}@${move.to}`, which]);
       moved.push(move);
-      log(`${move.name}: ${tag} ${move.from ?? "(unset)"} -> ${move.to}`);
+      log(`${move.name}: ${which} ${move.from ?? "(unset)"} -> ${move.to}`);
     } catch (err) {
       const stuck = [];
       for (const undo of moved.reverse()) {
+        const back = undo.tag ?? tag;
         try {
           npm(restoreCommand(undo, tag));
-          log(`${undo.name}: ${tag} put back to ${undo.from ?? "(unset)"}`);
+          log(`${undo.name}: ${back} put back to ${undo.from ?? "(unset)"}`);
         } catch {
           stuck.push(`npm ${restoreCommand(undo, tag).join(" ")}`);
         }
       }
       const reason = err instanceof Error ? err.message : String(err);
+      const named = [tag].flat().join(" and ");
       throw new Error(
-        `could not move ${tag} for ${move.name}: ${reason}\n` +
+        `could not move ${which} for ${move.name}: ${reason}\n` +
           (stuck.length === 0
-            ? `Every tag this run had moved is back where it was, so ${tag} names the previous set.`
-            : `These could NOT be put back, so ${tag} is mixed until someone runs them:\n  ${stuck.join("\n  ")}`),
+            ? `Every tag this run had moved is back where it was, so ${named} name the previous set.`
+            : `These could NOT be put back, so ${named} are mixed until someone runs them:\n  ${stuck.join("\n  ")}`),
       );
     }
   }
@@ -243,7 +255,8 @@ export async function main(argv, { npm = realNpm } = {}) {
       );
     }
     case "move": {
-      const [tag, version, ...names] = rest;
+      const [tagArg, version, ...names] = rest;
+      const tag = tagArg.split(",");
       const tagsByName = {};
       for (const name of names) tagsByName[name] = await distTags(name);
       const moves = planMoves(tagsByName, tag, version);
@@ -251,8 +264,8 @@ export async function main(argv, { npm = realNpm } = {}) {
         for (const move of moves) {
           console.log(
             move.needed
-              ? `would run: npm dist-tag add ${move.name}@${move.to} ${tag}   (now ${move.from ?? "unset"}; to undo: npm ${restoreCommand(move, tag).join(" ")})`
-              : `${move.name}: ${tag} is already ${move.to}`,
+              ? `would run: npm dist-tag add ${move.name}@${move.to} ${move.tag}   (now ${move.from ?? "unset"}; to undo: npm ${restoreCommand(move, tag).join(" ")})`
+              : `${move.name}: ${move.tag} is already ${move.to}`,
           );
         }
         console.log(
@@ -264,19 +277,20 @@ export async function main(argv, { npm = realNpm } = {}) {
       const settled = await until(
         async () => {
           for (const name of names) {
-            if ((await distTags(name))[tag] !== version) return false;
+            const tags = await distTags(name);
+            if (tag.some((each) => tags[each] !== version)) return false;
           }
           return true;
         },
         5,
-        `waiting for the registry to show ${tag} at ${version} for all of ${names.join(", ")}`,
+        `waiting for the registry to show ${tagArg} at ${version} for all of ${names.join(", ")}`,
       );
       if (!settled) {
         throw new Error(
-          `every move was accepted, and the registry still does not show ${tag} at ${version} for all of ${names.join(", ")} after 5 minutes.`,
+          `every move was accepted, and the registry still does not show ${tagArg} at ${version} for all of ${names.join(", ")} after 5 minutes.`,
         );
       }
-      console.log(`${tag} is ${version} for ${names.join(", ")}.`);
+      console.log(`${tagArg} is ${version} for ${names.join(", ")}.`);
       return;
     }
     case "probe": {
@@ -295,7 +309,7 @@ export async function main(argv, { npm = realNpm } = {}) {
     }
     default:
       throw new Error(
-        "usage: release-tags.mjs nuget-listed <id> <version> | npm-present <version> <name>... | move <tag> <version> <name>... | probe <name>...",
+        "usage: release-tags.mjs nuget-listed <id> <version> | npm-present <version> <name>... | move <tag>[,<tag>...] <version> <name>... | probe <name>...",
       );
   }
 }

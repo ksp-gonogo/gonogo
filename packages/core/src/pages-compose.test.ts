@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
@@ -8,7 +9,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   compose,
@@ -175,5 +177,68 @@ describe("a redirect from an old project-page URL", () => {
   it("stays put on a path that was never under /gonogo/, so the root 404 page cannot loop", () => {
     expect(follow("https://x.test/nowhere")).toBeNull();
     expect(follow("https://x.test/app/missing")).toBeNull();
+  });
+});
+
+describe("deploy.yml's channel check", () => {
+  const STEP = "- name: Check the channel and the deploy token";
+
+  /** The step's `run: |` script, read from the workflow so the test runs what CI runs. */
+  function checkScript(): string {
+    const lines = readFileSync(
+      join(
+        dirname(fileURLToPath(import.meta.url)),
+        "../../../.github/workflows/deploy.yml",
+      ),
+      "utf8",
+    ).split("\n");
+    const start = lines.findIndex((line) => line.trim() === STEP);
+    expect(start, "the channel check step").toBeGreaterThan(-1);
+    const run = lines.findIndex(
+      (line, i) => i > start && line.trim() === "run: |",
+    );
+    const indent = lines[run].search(/\S/);
+    const body: string[] = [];
+    for (const line of lines.slice(run + 1)) {
+      if (line.trim() !== "" && line.search(/\S/) <= indent) break;
+      body.push(line);
+    }
+    return body.join("\n");
+  }
+
+  const check = (env: Record<string, string>) =>
+    spawnSync("bash", ["-c", checkScript()], {
+      env: { PATH: process.env.PATH, PAGES_DEPLOY_TOKEN: "x", ...env },
+      encoding: "utf8",
+    }).status;
+
+  it("refuses a hand dispatch of the rc channel from any branch but staging", () => {
+    expect(
+      check({
+        CHANNEL: "rc",
+        EVENT: "workflow_dispatch",
+        REF: "refs/heads/fleet/x",
+      }),
+    ).toBe(1);
+  });
+
+  it("lets rc.yml's call through, which runs on a dispatch of staging", () => {
+    expect(
+      check({
+        CHANNEL: "rc",
+        EVENT: "workflow_dispatch",
+        REF: "refs/heads/staging",
+      }),
+    ).toBe(0);
+  });
+
+  it("leaves the release channel to release.yml's dispatch on main", () => {
+    expect(
+      check({
+        CHANNEL: "release",
+        EVENT: "workflow_dispatch",
+        REF: "refs/heads/main",
+      }),
+    ).toBe(0);
   });
 });

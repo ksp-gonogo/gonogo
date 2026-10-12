@@ -42,9 +42,42 @@ function fakeNpm(failing: (args: string[]) => boolean = () => false) {
 describe("planning the move", () => {
   it("moves the tag for every package, noting where each pointed", () => {
     expect(planMoves(before, "rc", "1.0.0-rc.16")).toEqual([
-      { name: SDK, from: "1.0.0-rc.14", to: "1.0.0-rc.16", needed: true },
-      { name: KIT, from: "1.0.0-rc.14", to: "1.0.0-rc.16", needed: true },
-      { name: TOOLS, from: undefined, to: "1.0.0-rc.16", needed: true },
+      {
+        name: SDK,
+        tag: "rc",
+        from: "1.0.0-rc.14",
+        to: "1.0.0-rc.16",
+        needed: true,
+      },
+      {
+        name: KIT,
+        tag: "rc",
+        from: "1.0.0-rc.14",
+        to: "1.0.0-rc.16",
+        needed: true,
+      },
+      {
+        name: TOOLS,
+        tag: "rc",
+        from: undefined,
+        to: "1.0.0-rc.16",
+        needed: true,
+      },
+    ]);
+  });
+
+  it("plans a release's latest and rc as one set, every latest first", () => {
+    expect(
+      planMoves(before, ["latest", "rc"], "1.0.0").map(
+        (move) => `${move.name} ${move.tag} ${move.from ?? "-"}`,
+      ),
+    ).toEqual([
+      `${SDK} latest 0.0.1`,
+      `${KIT} latest 0.1.0`,
+      `${TOOLS} latest 0.0.0`,
+      `${SDK} rc 1.0.0-rc.14`,
+      `${KIT} rc 1.0.0-rc.14`,
+      `${TOOLS} rc -`,
     ]);
   });
 
@@ -110,6 +143,28 @@ describe("moving the tags together", () => {
     );
   });
 
+  it("puts a release's latest back too when its rc cannot be moved", () => {
+    const { calls, npm } = fakeNpm((args) =>
+      args.join(" ").includes(`add ${KIT}@1.0.0 rc`),
+    );
+    expect(() =>
+      moveTogether(
+        planMoves(before, ["latest", "rc"], "1.0.0"),
+        ["latest", "rc"],
+        npm,
+        () => {},
+      ),
+    ).toThrow(
+      /could not move rc for @ksp-gonogo\/ui-kit[\s\S]*latest and rc name the previous set/,
+    );
+    expect(calls.slice(5)).toEqual([
+      `dist-tag add ${SDK}@1.0.0-rc.14 rc`,
+      `dist-tag add ${TOOLS}@0.0.0 latest`,
+      `dist-tag add ${KIT}@0.1.0 latest`,
+      `dist-tag add ${SDK}@0.0.1 latest`,
+    ]);
+  });
+
   it("makes no call at all when nothing needs moving", () => {
     const there = Object.fromEntries(
       Object.keys(before).map((name) => [name, { rc: "1.0.0-rc.16" }]),
@@ -170,6 +225,10 @@ describe("release.yml publishes the packages as a set", () => {
       .filter((line) => /release-tags\.mjs move /.test(line));
     expect(movers).toHaveLength(1);
     expect(job("move-tags")).toContain(movers[0]);
+    // A release moves rc with latest, so @rc never names an older version.
+    expect(job("move-tags")).toMatch(
+      /TAG: \$\{\{ inputs\.rc && 'rc' \|\| 'latest,rc' \}\}/,
+    );
     expect(workflow).not.toMatch(/^\s+(run: )?npm dist-tag (add|rm) /m);
   });
 

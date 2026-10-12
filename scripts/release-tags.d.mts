@@ -1,5 +1,7 @@
 export interface TagMove {
   name: string;
+  /** The tag this move sets, when the plan moves more than one. */
+  tag?: string;
   /** Where the tag points now, or `undefined` when the package does not carry it. */
   from: string | undefined;
   to: string;
@@ -13,13 +15,13 @@ export const PROBE_TAG: string;
 export function nugetLists(index: unknown, version: string): boolean;
 export function planMoves(
   tagsByName: Record<string, Record<string, string> | undefined>,
-  tag: string,
+  tag: string | readonly string[],
   version: string,
 ): TagMove[];
 export function restoreCommand(move: TagMove, tag: string): string[];
 export function moveTogether(
   moves: readonly TagMove[],
-  tag: string,
+  tag: string | readonly string[],
   npm: Npm,
   log?: (line: string) => void,
 ): TagMove[];

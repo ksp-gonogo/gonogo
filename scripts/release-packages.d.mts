@@ -28,6 +28,8 @@ export function plan(input: {
   release: string;
   run?: number;
   npmVersions: (name: string) => string[];
+  /** Every version npm has ever taken for the package, unpublished ones included. */
+  npmSpent?: (name: string) => string[];
   nugetVersions: string[];
   tags: string[];
   withdrawn?: Withdrawn[];
@@ -40,6 +42,9 @@ export const WITHDRAWN_VERSIONS_FILE: string;
 export function withdrawnVersions(root?: string): Withdrawn[];
 export function liveNpmVersions(packument: {
   versions?: Record<string, { deprecated?: string }>;
+}): string[];
+export function spentNpmVersions(packument: {
+  time?: Record<string, unknown> & { unpublished?: { versions?: string[] } };
 }): string[];
 export function listedNugetVersions(
   leaves: { catalogEntry: { version: string; listed?: boolean } }[],
@@ -74,6 +79,7 @@ export function main(
   options?: {
     root?: string;
     npm?: (name: string) => string[] | Promise<string[]>;
+    npmSpent?: (name: string) => string[] | Promise<string[]>;
     nuget?: (id: string) => Promise<string[]>;
     tags?: () => string[];
     log?: () => string;

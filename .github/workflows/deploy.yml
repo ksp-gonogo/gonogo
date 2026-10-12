@@ -69,15 +69,25 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # The rc channel builds the ref it runs on, so a dispatch from any branch
+      # but staging would put a tree no CI run validated on /rc/. rc.yml's call
+      # passes: its jobs run only on a dispatch of refs/heads/staging, and a
+      # called workflow sees its caller's event and ref.
       - name: Check the channel and the deploy token
         env:
           CHANNEL: ${{ inputs.channel }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
           PAGES_DEPLOY_TOKEN: ${{ secrets.PAGES_DEPLOY_TOKEN }}
         run: |
           case "$CHANNEL" in
             rc|release) ;;
             *) echo "::error::channel must be rc or release (got '$CHANNEL')"; exit 1 ;;
           esac
+          if [ "$CHANNEL" = rc ] && [ "$EVENT" = workflow_dispatch ] && [ "$REF" != refs/heads/staging ]; then
+            echo "::error::channel=rc is built from refs/heads/staging only, got $REF: gh workflow run rc.yml --ref staging"
+            exit 1
+          fi
           if [ -z "$PAGES_DEPLOY_TOKEN" ]; then
             echo "::error::PAGES_DEPLOY_TOKEN is not set, so there is no way to write to $SITE_REPO"
             exit 1

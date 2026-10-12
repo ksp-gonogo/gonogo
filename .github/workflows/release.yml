@@ -677,7 +677,7 @@ jobs:
           elif [ '${{ inputs.dry_run }}' = 'true' ]; then
             echo "🧪 $NAME@$VERSION: packed and verified, not published (dry run)." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "📦 Published $NAME@$VERSION with provenance under the pending dist-tag; move-tags moves $([ "$RC" = true ] && echo rc || echo latest) for the set." >> "$GITHUB_STEP_SUMMARY"
+            echo "📦 Published $NAME@$VERSION with provenance under the pending dist-tag; move-tags moves $([ "$RC" = true ] && echo rc || echo "latest and rc") for the set." >> "$GITHUB_STEP_SUMMARY"
             echo "https://www.npmjs.com/package/$NAME/v/$VERSION" >> "$GITHUB_STEP_SUMMARY"
           fi
 
@@ -727,7 +727,8 @@ jobs:
       contents: read
       id-token: write
     env:
-      TAG: ${{ inputs.rc && 'rc' || 'latest' }}
+      # A release moves `rc` with `latest`, so `@rc` never names an older version.
+      TAG: ${{ inputs.rc && 'rc' || 'latest,rc' }}
       VERSION: ${{ needs.publish-packages.outputs.version }}
       NAMES: ${{ needs.packages-present.outputs.names }}
     steps:

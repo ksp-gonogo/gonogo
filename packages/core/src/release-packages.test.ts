@@ -20,6 +20,7 @@ import {
   main,
   nextRelease,
   plan,
+  spentNpmVersions,
   stampManifest,
   withdrawnVersions,
 } from "../../../scripts/release-packages.mjs";
@@ -169,8 +170,10 @@ describe("plan", () => {
   let npm: Record<string, string[]>;
   let nuget: string[];
   let tags: string[];
+  let spent: Record<string, string[]>;
   const registries = () => ({
     npmVersions: (name: string) => npm[name] ?? [],
+    npmSpent: (name: string) => spent[name] ?? npm[name] ?? [],
     nugetVersions: nuget,
     tags,
   });
@@ -206,6 +209,7 @@ describe("plan", () => {
       manifest({ name: "@ksp-gonogo/theme", version: "0.0.0", private: true }),
     );
     npm = { [SDK]: ["0.0.1"], [KIT]: ["0.1.0"] };
+    spent = {};
     nuget = [];
     tags = ["v1.0.0", "rc-abc1234"];
   });
@@ -313,6 +317,16 @@ describe("plan", () => {
     });
   });
 
+  it("refuses a number npm took once and no longer lists, even when nobody recorded it", () => {
+    spent[KIT] = ["0.1.0", "0.2.0-rc.7"];
+    expect(() =>
+      plan({ root, release: "0.2.0", run: 7, ...registries() }),
+    ).toThrow(/ui-kit had 0\.2\.0-rc\.7 published and withdrawn/);
+    expect(
+      plan({ root, release: "0.2.0", run: 8, ...registries() }).version,
+    ).toBe("0.2.0-rc.8");
+  });
+
   it("refuses a release whose tag is already spent, RC or not", () => {
     expect(() => plan({ root, release: "1.0.0", ...registries() })).toThrow(
       /the tag v1\.0\.0 already exists/,
@@ -364,6 +378,7 @@ describe("main", () => {
     const result = await main(argv, {
       root,
       npm: (name: string) => (name === KIT ? ["0.1.0"] : []),
+      npmSpent: () => [],
       nuget: async () => [],
       tags: () => tags,
       log: () => log,
@@ -493,6 +508,25 @@ describe("what the registries say is still published", () => {
       }),
     ).toEqual(["1.0.0"]);
     expect(liveNpmVersions({})).toEqual([]);
+  });
+
+  it("reads every version npm ever took from the full packument's time", () => {
+    expect(
+      spentNpmVersions({
+        time: {
+          created: "t",
+          modified: "t",
+          "1.0.0": "t",
+          "2.0.0-rc.23": "t",
+        },
+      }).sort(),
+    ).toEqual(["1.0.0", "2.0.0-rc.23"]);
+    expect(
+      spentNpmVersions({
+        time: { unpublished: { versions: ["0.0.1"] } },
+      }),
+    ).toEqual(["0.0.1"]);
+    expect(spentNpmVersions({})).toEqual([]);
   });
 
   it("drops a nuget version whose registration says it is unlisted", () => {
