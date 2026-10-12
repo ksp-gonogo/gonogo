@@ -18,6 +18,7 @@ namespace Gonogo.KSP.Tests.Career
         private const string Vehicle = "shipName";
         private const string VehicleKind = "test-vehicle-rolled-out";
         private const string Centre = "ground:KSC";
+        private const string FarCentre = "vessel:duna-base";
 
         [Fact]
         public void TheSiteGateAndAVehicleGateOnTheSameLaunchAreBothEnforced()
@@ -40,6 +41,29 @@ namespace Gonogo.KSP.Tests.Career
                 Assert.Equal(CommandErrorCode.WrongState, unrolled.ErrorCode);
 
                 Assert.Equal(GateOutcome.Pass, engine.EvaluateGates(Command, new Args("Runway", "Ready"), Centre).Outcome);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A centre outside the site's system is refused for that, not for the
+        /// pad a craft is parked on: clearing the pad would not let it launch.
+        /// </summary>
+        [Fact]
+        public void ACentreOutOfReachIsToldSoBeforeAnOccupiedPadIsMentioned()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new CoreLaunchStandIn());
+            engine.Start();
+            try
+            {
+                var verdict = engine.EvaluateGates(Command, new Args("LaunchPad", "Ready"), FarCentre);
+
+                Assert.Equal(GateOutcome.Fail, verdict.Outcome);
+                Assert.Equal(CommandErrorCode.OutOfReach, verdict.ErrorCode);
             }
             finally
             {
@@ -89,11 +113,13 @@ namespace Gonogo.KSP.Tests.Career
             {
                 host.AddGateEvaluator(new SceneStandIn());
                 host.AddGateEvaluator(new SiteStandIn());
-                host.AddGateEvaluator(new LaunchAuthorityGate((_, _) => new LaunchReach
+                host.AddGateEvaluator(new LaunchAuthorityGate((vantage, _) => new LaunchReach
                 {
                     CentreName = "KSC",
                     SiteName = "Launch Pad",
-                    CentreSystem = new SystemRoot(1, "Kerbin", isStar: false),
+                    CentreSystem = vantage == FarCentre
+                        ? new SystemRoot(6, "Duna", isStar: false)
+                        : new SystemRoot(1, "Kerbin", isStar: false),
                     SiteSystem = new SystemRoot(1, "Kerbin", isStar: false),
                 }));
                 host.AddCommandHandler<object?, CommandResult>(Command, _ => CommandResult.Ok());

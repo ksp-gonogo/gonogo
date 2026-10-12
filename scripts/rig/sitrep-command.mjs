@@ -16,6 +16,13 @@
  *   node scripts/rig/sitrep-command.mjs ksp.launch \
  *     '{"shipName":"Sally-Hut 1","facility":"VAB","site":"LaunchPad","crew":["Jebediah Kerman"]}'
  *
+ * Asking what a launch would meet from another command centre, with nothing run
+ * (`--vantage` is any active centre id from `commandCentre.roster`; the reply's
+ * meta names the connection's own vantage, not the one the command used):
+ *
+ *   node scripts/rig/sitrep-command.mjs system.gate.check \
+ *     '{"command":"ksp.launch","args":{"site":"Runway"}}' --vantage vessel:<guid>
+ *
  * Every line printed is one server message as JSON: a `command-accepted` when
  * the uplink has taken the order, then the `command-response` or `error` that
  * settles it. The exit status is 0 only for a response, 1 for an error or a

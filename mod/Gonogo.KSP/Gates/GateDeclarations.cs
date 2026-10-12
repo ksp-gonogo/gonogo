@@ -176,6 +176,10 @@ namespace Gonogo.KSP.Gates
              * the space centre or an editor and no reference that would come
              * back null anywhere else.
              *
+             * The sending centre's authority is asked before the pad tests: a
+             * centre outside the site's system cannot launch whatever the pad
+             * holds, so a busy pad must not be the reason it reads first.
+             *
              * What the arm holds the command to is the game's own launch flow:
              * a craft goes to the pad from the place a player would send it
              * from. Widening it is a question about that flow, to be answered
@@ -184,13 +188,13 @@ namespace Gonogo.KSP.Gates
             table[FlightOpsCommandProvider.LaunchCommand] = new[]
             {
                 CareerGates.Scene(GameScenes.SPACECENTER, GameScenes.EDITOR),
+                LaunchAuthorityGate.Requirement(),
                 CareerGates.PreFlight(
                     SpaceCenterFacility.LaunchPad.ToString(),
                     KspGateEvaluators.Quantities.FacilityOperational),
                 CareerGates.PreFlight(
                     SpaceCenterFacility.LaunchPad.ToString(),
                     KspGateEvaluators.Quantities.LaunchSiteClear),
-                LaunchAuthorityGate.Requirement(),
             };
 
             // Writing a node plans, and planning is two buildings: the Tracking

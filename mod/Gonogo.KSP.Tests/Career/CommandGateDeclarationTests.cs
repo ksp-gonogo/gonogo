@@ -138,6 +138,17 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Equal(new[] { "site" }, authority.Needs);
         }
 
+        [Fact]
+        public void ALaunchAsksTheSendingCentreBeforeThePadTests()
+        {
+            var kinds = GateDeclarations.All().ToDictionary(e => e.Key, e => e.Value)["ksp.launch"]
+                .Select(r => r.Kind)
+                .ToList();
+
+            Assert.True(
+                kinds.IndexOf(Sitrep.Host.LaunchAuthorityGate.GateKind) < kinds.IndexOf(KspGateEvaluators.Kinds.PreFlight));
+        }
+
         /// <summary>
         /// A launch is refused for the site it names. Declared without that
         /// need, the requirement judged the pad alone, and a craft parked there
