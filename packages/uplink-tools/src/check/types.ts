@@ -128,4 +128,6 @@ export interface ClientScan {
   augments: AugmentRegistration[];
   /** Type errors in the program, which can hide a read. */
   typeErrors: number;
+  /** How many of the client's own source files the scan read. None means it looked in the wrong place. */
+  sourceFiles: number;
 }

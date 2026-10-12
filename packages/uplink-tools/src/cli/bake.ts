@@ -25,7 +25,7 @@
  */
 
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { parseFlags } from "./flags";
 
@@ -187,6 +187,13 @@ namespace ${namespace}
   // A mod-only Uplink has no client to point at, and an empty URL is not the same statement as none.
   const url = text(asRecord(declared.client).url) || undefined;
   if (url === undefined) {
+    // Left behind, these would keep announcing the client the Uplink no longer declares.
+    for (const file of ["ClientSource.g.cs", "ExpectedClientHash.g.cs"]) {
+      const path = join(modDir, file);
+      if (existsSync(path) && readFileSync(path, "utf8").startsWith(header)) {
+        rmSync(path);
+      }
+    }
     return { id, written, url, hash: "", devPath: "" };
   }
 

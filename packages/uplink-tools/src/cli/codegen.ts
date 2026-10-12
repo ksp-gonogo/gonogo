@@ -333,6 +333,22 @@ export interface CodegenInputs {
  */
 export type CodegenResult = "none" | "written" | "current";
 
+/**
+ * Removes from the generated folder every file the contract no longer produces.
+ * `codegen --check` reports such a file as a fault and names `codegen` as the
+ * fix, so the write has to clear it.
+ */
+export function removeStrayGenerated(
+  dir: string,
+  expected: readonly string[],
+): string[] {
+  const stray = readdirSync(dir).filter((file) => !expected.includes(file));
+  for (const file of stray) {
+    rmSync(join(dir, file), { recursive: true, force: true });
+  }
+  return stray;
+}
+
 export function generate(inputs: CodegenInputs): CodegenResult {
   const uplinkDir = resolve(inputs.uplinkDir);
   const declared = readCodegenBlock(uplinkDir);
@@ -423,6 +439,7 @@ export function generate(inputs: CodegenInputs): CodegenResult {
     }
 
     if (!inputs.check) {
+      removeStrayGenerated(committed, expected);
       console.log(`${id}: generated ${expected.join(", ")} in ${committed}`);
       return "written";
     }

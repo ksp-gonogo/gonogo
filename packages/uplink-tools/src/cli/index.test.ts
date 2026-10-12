@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { removeStrayGenerated } from "./codegen";
 import {
   declaredVersionFault,
   urlVersionFault,
@@ -312,6 +313,30 @@ describe("uplink-tools package", () => {
     ).toBe(true);
   });
 
+  it.each([
+    "../..",
+    "..",
+    "a/b",
+    ".",
+    "/abs",
+  ])("refuses a gamedata of %s, which is not a folder name and is emptied before packaging", (gamedata) => {
+    const dir = builtMod();
+    writeFileSync(
+      join(dir, "uplink.json"),
+      JSON.stringify({
+        id: "x",
+        client: { url: "https://cdn.example.test/x/x.client.js" },
+        gamedata,
+        dll: "GonogoXUplink.dll",
+      }),
+    );
+    const { code, out } = runBin(["package"], dir);
+    expect(code).toBe(1);
+    expect(out).toContain("not a plain folder name");
+    expect(existsSync(join(dir, "uplink.json"))).toBe(true);
+    expect(existsSync(join(dir, "mod"))).toBe(true);
+  });
+
   it("refuses to zip a mod that was not built", () => {
     const dir = uplinkDir({
       gamedata: "GonogoXUplink",
@@ -576,6 +601,103 @@ describe("uplink-tools bundle", () => {
       contractMinor: expect.any(Number),
     });
     expect(sidecar).not.toHaveProperty("uiKitVersion");
+  });
+});
+
+/** A client with a bundleable entry, for the bundle command. */
+const bundleClient = (entry: string, extra: Record<string, string> = {}) => {
+  const dir = workdir();
+  writeFileSync(
+    join(dir, "uplink.json"),
+    JSON.stringify({ id: "fixture", name: "Fixture", minAppVersion: "0.0.0" }),
+  );
+  writeFileSync(
+    join(dir, "package.json"),
+    JSON.stringify({ name: "fixture-client", version: "1.2.3" }),
+  );
+  mkdirSync(join(dir, "src"));
+  writeFileSync(join(dir, "src", "index.ts"), entry);
+  for (const [file, text] of Object.entries(extra)) {
+    writeFileSync(join(dir, "src", file), text);
+  }
+  return dir;
+};
+
+describe("uplink-tools bundle, where it is run from", () => {
+  it("gives identical bytes whichever folder the command runs in", () => {
+    const dir = bundleClient(
+      'import { a } from "./a";\nexport const b = a + 1;\n',
+      {
+        "a.ts": "export const a = 1;\n",
+      },
+    );
+    const outFrom = (cwd: string, out: string) => {
+      execFileSync(
+        process.execPath,
+        [BIN, "bundle", "--client", dir, "--out", out],
+        {
+          cwd,
+          stdio: "pipe",
+        },
+      );
+      return readFileSync(join(out, "fixture", "fixture.client.js"));
+    };
+    const fromClient = outFrom(dir, join(dir, "out-a"));
+    const fromElsewhere = outFrom(workdir(), join(dir, "out-b"));
+    expect(fromElsewhere.equals(fromClient)).toBe(true);
+    expect(fromClient.toString("utf8")).toContain("// src/a.ts");
+  });
+});
+
+describe("uplink-tools bundle, an import the app's import map does not carry", () => {
+  it.each([
+    ["a side-effect import", 'import "@ksp-gonogo/ui-kit/not-a-subpath";\n'],
+    [
+      "a dynamic import",
+      'export const load = () => import("@ksp-gonogo/ui-kit/not-a-subpath");\n',
+    ],
+    [
+      "a named import",
+      'import { x } from "@ksp-gonogo/ui-kit/not-a-subpath";\nexport { x };\n',
+    ],
+  ])("refuses %s", (_name, entry) => {
+    const dir = bundleClient(entry);
+    const { code, out } = runBin(["bundle", "--client", dir], dir);
+    expect(code).toBe(1);
+    expect(out).toContain("@ksp-gonogo/ui-kit/not-a-subpath");
+    expect(existsSync(join(dir, "dist", "fixture", "fixture.client.js"))).toBe(
+      false,
+    );
+  });
+});
+
+describe("uplink-tools codegen, files the contract no longer generates", () => {
+  it("removes them and keeps what is still generated", () => {
+    const dir = workdir();
+    writeFileSync(join(dir, "contract.ts"), "kept");
+    writeFileSync(join(dir, "old-map.ts"), "gone");
+    expect(removeStrayGenerated(dir, ["contract.ts"])).toEqual(["old-map.ts"]);
+    expect(existsSync(join(dir, "old-map.ts"))).toBe(false);
+    expect(readFileSync(join(dir, "contract.ts"), "utf8")).toBe("kept");
+  });
+});
+
+describe("uplink-tools bake, an Uplink that stops declaring a client", () => {
+  it("removes the client files it wrote earlier and nothing it did not", () => {
+    const dir = uplinkDir();
+    runBin(["bake"], dir);
+    expect(existsSync(join(dir, "mod", "ClientSource.g.cs"))).toBe(true);
+
+    const declared = JSON.parse(readFileSync(join(dir, "uplink.json"), "utf8"));
+    declared.client = undefined;
+    writeFileSync(join(dir, "uplink.json"), JSON.stringify(declared));
+    writeFileSync(join(dir, "mod", "Mine.cs"), "// the author's");
+    runBin(["bake"], dir);
+
+    expect(existsSync(join(dir, "mod", "ClientSource.g.cs"))).toBe(false);
+    expect(existsSync(join(dir, "mod", "ExpectedClientHash.g.cs"))).toBe(false);
+    expect(existsSync(join(dir, "mod", "Provenance.g.cs"))).toBe(true);
+    expect(existsSync(join(dir, "mod", "Mine.cs"))).toBe(true);
   });
 });
 
