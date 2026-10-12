@@ -1,10 +1,11 @@
 import type { ComponentDefinition } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * Everything an author declared about a widget in `registerComponent`, as
- * data: the one source the Uplink's README and the docs site's widget page
- * both read. Fields the registration leaves out are empty lists, `false` or
- * `null`, never missing.
+ * Everything an author declared about a widget in `registerComponent`, as data.
+ * Fields the registration leaves out are empty lists, `false` or `null`, never
+ * missing. Useful for describing a widget to an operator the same way on the
+ * Uplink's README and on a docs site. Built by the render probe's inventory and
+ * written by {@link widgetRecordsJson}.
  *
  * @category Inventory
  * @categoryDescription Inventory
@@ -58,9 +59,9 @@ export interface WidgetRecord {
 }
 
 /**
- * The record of one registered widget. The only place a registration is turned
- * into a {@link WidgetRecord}, so the README, the docs-site file and the
- * render harness agree on every field.
+ * The {@link WidgetRecord} of one registered widget. Useful for keeping the
+ * README, the widget records file and the render harness in agreement on every
+ * field. Used by the render probe when it reads the inventory.
  */
 export function widgetRecordOf(def: ComponentDefinition): WidgetRecord {
   return {
@@ -92,7 +93,9 @@ export function widgetRecordOf(def: ComponentDefinition): WidgetRecord {
 
 /**
  * Where `uplink-tools docs` writes an Uplink's widget records, relative to its
- * client package. Committed beside the README and checked with it.
+ * client package. It is committed beside the README and checked with it. Useful
+ * for letting a docs site list the Uplink's widgets. Used by the `docs` command
+ * and the page check.
  *
  * @category Uplink page
  */
@@ -101,7 +104,8 @@ export const WIDGET_RECORDS_FILE = "docs/widgets.json";
 /**
  * Widget records as the JSON file holds them: `{ "widgets": [...] }`, ordered
  * by id, two-space indented, ending in a newline. Each entry may carry extra
- * fields after the record's own.
+ * fields after the record's own. Useful for writing the widget records file.
+ * Used by the `docs` command and the page check.
  *
  * @category Uplink page
  */

@@ -18,11 +18,11 @@ import { heldWord } from "./status/streamStatusWord";
 import { formatQuantity } from "./units";
 
 /**
- * What a figure prop accepts: the quantity on its own, or the whole `Reading`
- * it arrived in.
- *
- * One type across every primitive that draws a figure, so a call site holding
- * a reading can fill a readout, a bar and an instrument with the same thing.
+ * A quantity on its own, or the whole `Reading` it arrived in. Useful for
+ * drawing a figure for the operator, with its held mark when the reading is
+ * held. Taken by the figure props of the primitives that draw a figure, such as
+ * {@link Unit} and {@link Meter}, so a call site holding a reading can fill a
+ * readout, a bar and an instrument with the same thing.
  *
  * @category Unit
  */
@@ -31,7 +31,9 @@ export type UnitValue<Unit extends string = string> =
   | Reading<Value<Unit>>;
 
 /**
- * What {@link resolveCurrency} returns: the number to draw, and whether it is current.
+ * The number to draw and whether it is current. Useful for a primitive that
+ * must show the operator a figure together with how current it is. Returned by
+ * {@link resolveCurrency}.
  *
  * @category Unit
  */
@@ -97,7 +99,9 @@ function sayCurrency(caption: string, asOfUt: Value<"ut"> | undefined): string {
 }
 
 /**
- * How a primitive reads a {@link Reading}.
+ * How a primitive reads a {@link Reading}: whether it draws the model's carried
+ * figure in place of the observation. Useful for the primitives that show the
+ * operator a figure and its currency. Taken by {@link resolveCurrency}.
  *
  * @category Unit
  */
@@ -114,9 +118,10 @@ export interface CurrencyOptions {
 }
 
 /**
- * The mark's words for a current reading whose figure the model carried
- * forward by the signal delay, to the craft's own present: SCET, spacecraft
- * event time.
+ * The words that mark a current reading whose figure the model carried forward
+ * by the signal delay to the vessel's own present: SCET, spacecraft event time.
+ * Useful for telling the operator in words that a figure is an estimate. Used by
+ * {@link ModelledAlongside}.
  *
  * @category Unit
  */
@@ -126,7 +131,9 @@ export const MODELLED_TO_SCET = "modelled to SCET";
  * What the model says a current reading's figure is at the instant it was
  * carried to, where that is later than the newest data received: the figure a
  * widget draws beside the observation with {@link ModelledAlongside}.
- * `undefined` everywhere else.
+ * `undefined` everywhere else. Useful for showing the operator what a vessel's
+ * state is estimated to be now. Used by {@link Countdown} and
+ * {@link ModelledAlongside}.
  *
  * @category Unit
  */
@@ -173,7 +180,10 @@ function heldCurrency<Unit extends string>(
 }
 
 /**
- * Split what was handed in into the number and the statement about it.
+ * Splits a quantity or a reading into the number to draw and how current it is.
+ * Useful for any primitive that shows the operator a figure and must mark it
+ * when it is held. Used by {@link MissionDate}, the graph widget and the
+ * panel's essentials.
  *
  * A bare `Value` (and `null`, and nothing at all) is current by construction.
  * A `Reading` in `observed` state is current, one in `held` state with a value
@@ -263,7 +273,10 @@ export function resolveCurrency<Unit extends string>(
  * carries its figure: `data-figure` names it as a figure, `"static"` for a fact
  * the contract declares static and `"deterministic"` for one exact at any
  * instant, and `data-held` marks one that is not a reading of now. A render sweep reads the pair to find a held figure drawn as current.
- * No `data-figure` where there is no number to draw.
+ * No `data-figure` where there is no number to draw. Useful for checking that
+ * the operator is never shown a held figure as current. Used by the primitives
+ * that draw a figure, such as {@link Unit}, {@link Countdown} and
+ * {@link MissionDate}.
  */
 export function figureAttributes(resolved: {
   readonly shown: unknown;
@@ -291,8 +304,11 @@ export function figureAttributes(resolved: {
 }
 
 /**
- * The mark a derived figure takes, and its words: what a widget hands `<Unit marked>` for a number it computed from a reading's
- * payload (an apoapsis solved from an orbit) rather than read off a field.
+ * The mark a derived figure takes, and its words: what a widget hands
+ * `<Unit marked>` for a number it computed from a reading's payload (an
+ * apoapsis solved from an orbit) rather than read off a field. Useful for
+ * showing the operator that a computed figure is held or modelled. Returned by
+ * {@link derivedMarking} and {@link heldMarking}.
  *
  * @category Unit
  */
@@ -304,10 +320,15 @@ export interface ReckoningMarking {
 }
 
 /**
- * How a figure derived from this reading should be marked, or null where the reading is a current observation of now.
+ * How a figure derived from this reading should be marked, or null where the
+ * reading is a current observation of now. Useful for showing the operator that
+ * a computed figure rests on a held or modelled reading. Used by the maneuver
+ * planner's telemetry and the craft-on-orbit calculations.
  *
- * A current reading a model carried past the newest data received marks `modelled`; a held one marks `held`, or `modelled` where a model
- * carries it. Use it for every displayed figure computed from a reading's payload, a plan's included.
+ * A current reading a model carried past the newest data received marks
+ * `modelled`; a held one marks `held`, or `modelled` where a model carries it.
+ * Use it for every displayed figure computed from a reading's payload, a plan's
+ * included.
  *
  * @category Unit
  */
@@ -339,6 +360,9 @@ export function derivedMarking(
  * from, or just its grade, as a contributed entry or an augment slot's props
  * carry it. `null` unless that reading is held or modelled, so the reading can
  * be passed unconditionally. The same marking {@link derivedMarking} gives.
+ * Useful for showing the operator that an entry contributed to a widget rests
+ * on a held reading. Used by the comm signal widget and the ship map's part
+ * tooltip.
  *
  * @category Unit
  */
@@ -354,7 +378,9 @@ export function heldMarking(
  * The held grade of a `held` field, for something drawn as a verdict (a tone,
  * a badge) rather than a figure: `undefined` unless the reading it names is
  * held. A held reading derived from several, which may carry no single grade,
- * reads as plain `"held"`.
+ * reads as plain `"held"`. Useful for showing the operator that a verdict
+ * rests on a held reading. Used by the crew status widget and the space centre
+ * status widget.
  *
  * @category Unit
  */
@@ -370,7 +396,8 @@ export function heldGradeOf(
  * A figure as the reading its `held` field says it came from: the figure
  * itself while that reading is current, and a held reading of it, dated by the
  * reading's `asOfUt` where it has one, while it is held. Hand the result to
- * any primitive that takes a {@link UnitValue}.
+ * any primitive that takes a {@link UnitValue}. Useful for showing the operator
+ * a figure with its held mark. Used by the ship map's part tooltip.
  *
  * @category Unit
  */

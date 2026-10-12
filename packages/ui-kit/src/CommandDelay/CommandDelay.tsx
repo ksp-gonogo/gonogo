@@ -174,7 +174,7 @@ export interface CommandDelayProps {
  *
  * @category CommandDelay
  * @categoryDescription CommandDelay
- * A command crossing the link, drawn inside a widget body: the list of commands
+ * A command on its way to the vessel, drawn inside a widget body: the list of commands
  * in flight, the continuous stream for a held control, command groups, and the
  * sentence for a command that failed. The panel's delay rail already shows the
  * same commands above the widget.

@@ -27,9 +27,10 @@ function slot(): Slot {
 }
 
 /**
- * Ask to be handed a {@link StationBroker} whenever this screen is a station,
+ * Asks to be handed a {@link StationBroker} whenever this screen is a station,
  * so an Uplink's object can reach the main screen through the station's own
- * connection to it.
+ * connection to it. Useful for letting a station show the operator something
+ * the main screen holds, such as a media stream.
  *
  * For an Uplink whose client keeps a long-lived object outside React, such as a
  * media connection, and so cannot use `useUplinkRelay` or `useHostIceServers`.
@@ -38,7 +39,7 @@ function slot(): Slot {
  * It receives a {@link StationBroker}: `relay` calls a method of the Uplink's
  * registered handle on the main screen, and `iceServers` gives the turn and
  * STUN servers for a connection the station opens itself. The broker can
- * arrive before the link to the main screen does, and `relay` rejects until it
+ * arrive before the connection to the main screen does, and `relay` rejects until it
  * is up, so a caller retries rather than giving up.
  *
  * ```ts
@@ -63,7 +64,7 @@ export function registerStationBroker(
 }
 
 /**
- * Remove a registration, so a station that comes up later does not attach it.
+ * Removes a registration, so a station that comes up later does not attach it.
  * No-op if none was registered.
  *
  * @category Registering
@@ -73,7 +74,7 @@ export function unregisterStationBroker(uplinkId: string): void {
 }
 
 /**
- * Remove every registration, and stop the screen's own watch for them. For
+ * Removes every registration, and stops the screen's own watch for them. For
  * tests; a running app never calls it.
  *
  * @category Registering

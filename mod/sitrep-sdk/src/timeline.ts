@@ -17,10 +17,12 @@ import type { Meta } from "./__generated__/contract";
 
 /**
  * One received sample of a Topic: its value, when it is valid, and what is
- * known about where it came from. A reckoner (the model that carries a Topic
- * forward between samples, registered with
+ * known about where it came from. Useful for working out a figure for the
+ * operator from what the vessel last sent. A reckoner (the model that carries a
+ * Topic forward between samples, registered with
  * {@link UplinkClientHandle.registerReckoner}) and a derived channel
- * ({@link DerivedChannelDefinition}) receive these.
+ * ({@link DerivedChannelDefinition}) receive these, and the plotted data hooks
+ * read them.
  *
  * @typeParam Payload - The Topic's payload type, as the reader expects it.
  *
@@ -31,18 +33,23 @@ export interface TimelinePoint<Payload = unknown> {
   validAt: number;
   /** The value, or `null` when the game confirmed there is none. */
   payload: Payload | null;
-  /** Where the sample came from and how good it is, such as its source craft. */
+  /** Where the sample came from and how good it is, such as its source vessel. */
   meta: Meta;
   /** The timeline generation it was received in; loading a save starts a new one. */
   epoch: number;
 }
 
 /**
- * How a derived channel's `derive` reads its inputs: `get(topic)` returns that
- * Topic's sample at the same view time `derive` was called for, including its
- * `meta`. `Payload` is the input Topic's payload type, which the caller names:
- * `get<VesselOrbit>("vessel.orbit")`. There is no way to ask for any other time, so every input is from
- * one instant. Another derived channel can be read the same way.
+ * The function a derived channel's `derive` reads its inputs with.
+ * `get(topic)` returns that Topic's sample at the view time `derive` was called
+ * for, including its `meta`, so a derived figure is built from inputs of one
+ * instant. Useful for combining several Topics into a figure shown to the
+ * operator. Used by the first-party derived channels, such as the one that
+ * computes stage delta-v.
+ *
+ * `Payload` is the input Topic's payload type, which the caller names:
+ * `get<VesselOrbit>("vessel.orbit")`. A time other than the view time cannot be
+ * asked for. Another derived channel can be read the same way.
  *
  * @category Processors
  */
@@ -52,11 +59,13 @@ export type DerivedGet = <Payload = unknown>(
 
 /**
  * A Topic computed on the client from other Topics, registered with
- * {@link UplinkClientHandle.registerDerivedChannel}. It joins the timeline
- * store, the app's record of every Topic's samples over game time, so a
- * widget reads it like any other Topic.
+ * {@link UplinkClientHandle.registerDerivedChannel}. Useful for showing the
+ * operator a figure that needs more than one Topic, such as a state worked out
+ * from several readings. It joins the timeline store, the app's record of every
+ * Topic's samples over game time, so a widget reads it like any other Topic.
+ * The provider registers the first-party channels from a list of these.
  *
- * @example A channel that says whether the craft is descending
+ * @example A channel that says whether the vessel is descending
  * ```ts
  * import {
  *   defineUplinkClient,
@@ -67,7 +76,7 @@ export type DerivedGet = <Payload = unknown>(
  *   id: "descent",
  *   version: "1.0.0",
  *   name: "Descent",
- *   description: "Derives descent facts from the craft's flight state.",
+ *   description: "Derives descent facts from the vessel's flight state.",
  * });
  *
  * DESCENT.registerDerivedChannel<{ descending: boolean }>({
@@ -93,8 +102,8 @@ export interface DerivedChannelDefinition<Payload> {
   inputs: string[];
   /**
    * Computes the channel's value at `viewUt`, the game time the screen is
-   * showing, which trails the game by the signal delay. The same inputs must give the
-   * same result, so a replay draws the same thing. Return `undefined` while an
+   * showing, which trails the game by the signal delay. The same inputs must give
+   * the same result, so a replay draws the same thing. Return `undefined` while an
    * input has not arrived yet, and `null` when the value is confirmed absent;
    * never a made-up zero.
    */

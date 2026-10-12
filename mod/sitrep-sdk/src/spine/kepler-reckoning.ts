@@ -31,7 +31,9 @@ import {
 
 /**
  * The fields of `vessel.orbit` that {@link keplerAdmissibility} reads. A
- * `vessel.orbit` payload can be passed as it is.
+ * `vessel.orbit` payload can be passed as it is. Useful for deciding whether
+ * the operator's displayed orbit can be carried forward in time. Taken by
+ * {@link keplerAdmissibility} and by the powered-flight reckoner.
  *
  * @category Reckoners
  */
@@ -62,7 +64,10 @@ export interface ConicOrbitInput {
 
 /**
  * The fields of `system.bodies` used to find where a body's atmosphere starts.
- * A `system.bodies` payload can be passed as it is.
+ * A `system.bodies` payload can be passed as it is. Useful for deciding whether
+ * a vessel's orbit passes through the atmosphere. Taken by
+ * {@link entryInterfaceRadius}, {@link atmosphereDepthOf} and the atmospheric
+ * reckoner.
  *
  * @category Reckoners
  */
@@ -78,6 +83,9 @@ export interface ConicBodiesInput {
 
 /**
  * The fields of `vessel.propulsion` that say whether the engines are firing.
+ * Useful for deciding whether a vessel's path can be predicted without
+ * following a burn. Taken by {@link isUnderThrust} and the powered-flight
+ * reckoner.
  *
  * @category Reckoners
  */
@@ -92,7 +100,9 @@ export interface ConicThrustInput {
 
 /**
  * The fields of `system.uplink.pending` that say when each travelling command
- * reaches the craft: its `dispatchedAt` plus its `oneWaySeconds`.
+ * reaches the vessel: its `dispatchedAt` plus its `oneWaySeconds`. Useful for
+ * telling whether a command could change a vessel's path before the view time.
+ * Taken by {@link loadedCoastEvidence} and the powered-flight reckoner.
  *
  * @category Reckoners
  */
@@ -106,9 +116,11 @@ export interface ConicPendingInput {
 }
 
 /**
- * What {@link keplerAdmissibility} needs to carry forward the orbit of a craft
+ * What {@link keplerAdmissibility} needs to carry forward the orbit of a vessel
  * the game is fully simulating: whether its engines are firing, and which
- * commands will reach it. Build it with {@link loadedCoastEvidence}.
+ * commands will reach it. Useful for deciding whether the operator's displayed
+ * orbit stays valid while the vessel is simulated in full. Build it with
+ * {@link loadedCoastEvidence}.
  *
  * @category Reckoners
  */
@@ -122,8 +134,9 @@ export interface LoadedCoastEvidence {
 /**
  * Returns a {@link LoadedCoastEvidence} from the `vessel.propulsion` and
  * `system.uplink.pending` readings a reckoner declared as `{ reading }`
- * dependencies. A held reading counts: its last value is still the current
- * one.
+ * dependencies. Useful for deciding whether the operator's displayed orbit
+ * stays valid while the vessel is simulated in full. Used by the orbit
+ * reckoner. A held reading counts: its last value is still the current one.
  *
  * @category Reckoners
  */
@@ -144,8 +157,10 @@ export function loadedCoastEvidence(
 }
 
 /**
- * Orbital elements as a payload carries them, which {@link buildElements}
- * takes. Each angle may be a `Value` or a plain number.
+ * Orbital elements as a payload carries them. Each angle may be a `Value` or a
+ * plain number. Useful for solving a vessel's position from the elements a
+ * `vessel.orbit` payload carries. Taken by {@link buildElements} and
+ * {@link propagateVesselOrbit}.
  *
  * @category Reckoners
  */
@@ -169,10 +184,9 @@ export interface WireOrbitElements {
 }
 
 /**
- * A wire quantity as the bare number the conic and the burn compute on, `NaN`
- * for anything absent. The one place either model leaves the unit algebra:
- * Kepler's equation and a Runge-Kutta step are arithmetic on plain numbers,
- * and every input crosses into them here.
+ * A wire quantity as the bare number the orbit and the burn models compute on,
+ * `NaN` for anything absent. Useful for feeding a payload field into the orbit
+ * solver. Used by the reckoners that compute on plain numbers.
  */
 export function mag(v: Quantityish): number {
   return magnitudeOr(v, Number.NaN);
@@ -187,7 +201,8 @@ function degToRad(deg: number): number {
  * converting the inclination, ascending node and argument of periapsis from
  * degrees to radians (the mean anomaly already arrives in radians). An
  * ascending node or argument of periapsis that is `null`, as on an equatorial
- * or circular orbit, becomes 0.
+ * or circular orbit, becomes 0. Useful for solving a vessel's position from a
+ * `vessel.orbit` payload. Used by the orbit reckoners.
  *
  * @category Reckoners
  */
@@ -207,8 +222,10 @@ export function buildElements(o: WireOrbitElements): OrbitElements {
 /**
  * Returns whether an orbit with eccentricity `ecc` is open: 1 or more, as on
  * an escape or a flyby. An open orbit has no apoapsis and no period, and its
- * periapsis is passed once. {@link solve} carries one with `ecc` above 1
- * along its hyperbola and throws for `ecc` exactly 1.
+ * periapsis is passed once. Useful for choosing what to show the operator for
+ * an escape or flyby orbit. Used by the powered-flight reckoner. {@link solve}
+ * carries one with `ecc` above 1 along its hyperbola and throws for `ecc`
+ * exactly 1.
  *
  * @category Reckoners
  */
@@ -218,7 +235,8 @@ export function isHyperbolic(ecc: number): boolean {
 
 /**
  * Returns the same as {@link solve}, or `null` for a parabolic orbit (`ecc`
- * exactly 1) instead of throwing.
+ * exactly 1) instead of throwing. Useful for placing a vessel or a relay on its
+ * orbit at a view time. Used by the comms delay and target range reckoners.
  *
  * @category Reckoners
  */
@@ -231,8 +249,9 @@ export function trySolve(
 
 /**
  * Returns the same as {@link solveAnomalies}, or `null` for a parabolic
- * orbit (`ecc` exactly 1) instead of throwing. On an open orbit the answer's
- * mean motion is not a period; see {@link Anomalies}.
+ * orbit (`ecc` exactly 1) instead of throwing. Useful for showing the operator
+ * the vessel's anomalies at a view time. Used by the orbit reckoner. On an open
+ * orbit the answer's mean motion is not a period; see {@link Anomalies}.
  *
  * @category Reckoners
  */
@@ -244,10 +263,11 @@ export function trySolveAnomalies(
 }
 
 /**
- * Returns a craft's position and velocity relative to its parent body at
+ * Returns a vessel's position and velocity relative to its parent body at
  * `ut`, from its orbital elements as a payload carries them, closed or open,
- * or `null` for a parabolic orbit (`ecc` exactly 1). The same computation
- * Gonogo uses for the active craft.
+ * or `null` for a parabolic orbit (`ecc` exactly 1). Useful for showing where a
+ * vessel is between samples. It is the computation used for the active vessel,
+ * by the orbit reckoner.
  *
  * @category Reckoners
  */
@@ -262,8 +282,9 @@ export function propagateVesselOrbit(
  * Returns the distance from the body's centre, in metres, below which an
  * orbit model stops holding: the top of the atmosphere, or the surface of a
  * body with none. Drag at the atmosphere changes the path within minutes.
- * `undefined` when the body is not in `bodies`, which callers treat as no
- * evidence either way.
+ * Useful for telling the operator where a vessel's predicted orbit ends. Used
+ * by the atmospheric and powered-flight reckoners. `undefined` when the body is
+ * not in `bodies`, which callers treat as no evidence either way.
  *
  * @category Reckoners
  */
@@ -287,8 +308,8 @@ export function entryInterfaceRadius(
 /**
  * Returns how high the parent body's atmosphere reaches, in metres above sea
  * level, or `undefined` for a body with no atmosphere or one not in `bodies`.
- * {@link entryInterfaceRadius} is built on the same figure, so the two never
- * disagree about where the air ends.
+ * Useful for showing the operator where the air ends. Used by the atmospheric
+ * reckoner. {@link entryInterfaceRadius} is built on the same figure.
  *
  * @category Reckoners
  */
@@ -358,8 +379,9 @@ function trajectoryAuthority(
 
 /**
  * Returns whether an orbit may be carried forward to `viewUt` by a two-body
- * model, or a {@link ReckoningDecline} naming the input that rules it out. It
- * declines when:
+ * model, or a {@link ReckoningDecline} naming the input that rules it out.
+ * Useful for deciding whether the operator can be shown a predicted orbit for a
+ * view time. Used by the orbit reckoner. It declines when:
  *
  * - the propagation provider says the orbit holds forever but is not a fixed
  *   ellipse, or does not say what it is
@@ -503,7 +525,8 @@ function loadedCoastDecline(
 /**
  * Returns whether `vessel.propulsion` shows the engines firing, now or in a
  * burn still in progress. A thrust figure that is not a number counts as
- * firing.
+ * firing. Useful for deciding whether a vessel's path can be carried forward
+ * without following a burn. Used by the orbit reckoner.
  *
  * @category Reckoners
  */
@@ -512,11 +535,13 @@ export function isUnderThrust(thrust: ConicThrustInput): boolean {
 }
 
 /**
- * Returns a decline for a craft the game is fully simulating when either of
- * two conditions fails, or `null` when both hold: the craft is above the
+ * Returns a decline for a vessel the game is fully simulating when either of
+ * two conditions fails, or `null` when both hold: the vessel is above the
  * atmosphere when its elements were taken, and no command reaches it between
- * then and `viewUt`. A command arriving in that gap can change the throttle,
- * the attitude or the stage, which no model follows.
+ * then and `viewUt`. A command arriving in that interval can change the
+ * throttle, the attitude or the stage, which no model follows. Useful for
+ * deciding whether the operator's displayed orbit stays valid. Used by the
+ * powered-flight reckoner.
  *
  * @category Reckoners
  */
@@ -563,9 +588,10 @@ export function loadedRegimeDecline(
 
 /**
  * Returns a {@link ReckoningDecline} with reason `"under-physics"`, naming
- * `input` and with `note` for the operator: the craft is being fully simulated,
- * so its motion is not carried forward. Its current orbit can still be solved
- * at its own epoch.
+ * `input` and with `note` for the operator: the vessel is being fully
+ * simulated, so its motion is not carried forward. Its current orbit can still
+ * be solved at its own epoch. Useful for telling the operator why a prediction
+ * is withdrawn. Used by the powered-flight reckoner.
  *
  * @category Reckoners
  */
@@ -573,14 +599,19 @@ export function underPhysics(input: string, note: string): ReckoningDecline {
   return { reason: "under-physics", input, note };
 }
 
-/** The length of a bare three-component vector. */
+/**
+ * The length of a bare three-component vector. Useful for turning a position or
+ * velocity vector into a distance or a speed. Used by the comms delay
+ * reckoner.
+ */
 export function magnitude(v: Vec3Tuple): number {
   return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
 }
 
 /**
  * Returns `position` moved at `velocity` for `dt` seconds, all as plain
- * numbers: the whole of the `linear-dead-reckoning` model.
+ * numbers: the whole of the `linear-dead-reckoning` model. Useful for placing a
+ * vessel between samples when no orbit applies. Used by the core reckoners.
  *
  * @category Reckoners
  */

@@ -19,10 +19,12 @@ export interface ParsedFlags {
 }
 
 /**
- * One verb's arguments, refusing any flag the verb does not read.
- *
- * A flag that belongs to another verb is the likeliest typo there is, and
- * ignoring it runs a command that looks right and silently does something else.
+ * One `uplink-tools` verb's arguments, split into flag values, switches and
+ * positional words. It throws on any flag the verb does not read: a flag that
+ * belongs to another verb is the likeliest typo, and ignoring it would run a
+ * command that looks right and does something else. Useful for telling the
+ * author at once that they typed the wrong flag. Used by every `uplink-tools`
+ * command that takes flags.
  */
 export function parseFlags(
   argv: readonly string[],

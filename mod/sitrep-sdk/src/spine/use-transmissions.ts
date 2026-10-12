@@ -11,7 +11,10 @@ import { type Value, value } from "../unit-system";
 import { useTelemetryStoreOptional } from "./context";
 import { useLatestValue } from "./use-stream";
 
-/** A transmission the craft has sent, as the caller learned of it. */
+/**
+ * A transmission the vessel has sent, as the caller learned of it. Passed to
+ * `expect` on the result of `useTransmissions`.
+ */
 export interface SentTransmission {
   /** What the rail row calls it, e.g. the result's title. */
   label: string;
@@ -22,9 +25,10 @@ export interface SentTransmission {
 }
 
 /**
- * The delay-rail entry for transmissions: hand it to ui-kit's `useRailEntry`
- * and the rail draws each transmission as a row through the same derivation a
- * command's row comes from.
+ * The transmissions crossing from the vessel to the command centre, in the
+ * shape of a delay-rail entry. Hand it to ui-kit's `useRailEntry` and the rail
+ * draws each transmission as a row, the same as for a command. Returned by
+ * `useTransmissions`.
  */
 export interface UseTransmissionsResult {
   inFlight: InFlightCommand[];
@@ -45,8 +49,13 @@ const NO_IN_FLIGHT: InFlightCommand[] = [];
 const REREAD_MS = 1000;
 
 /**
- * Transmissions crossing home, as rail entries. A transmission is sent, not
- * answered, so its row ends at arrival and never becomes an outcome.
+ * The transmissions the vessel has sent that have not yet reached the command
+ * centre, as delay-rail entries. Useful for showing the operator how long a
+ * sent result, such as a science report, still has to travel. Used by the
+ * experiments widget.
+ *
+ * A transmission is sent and never answered, so its row ends at arrival and
+ * does not become an outcome.
  */
 export function useTransmissions(): UseTransmissionsResult {
   // gonogo:reads none

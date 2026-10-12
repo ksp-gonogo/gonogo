@@ -1,7 +1,9 @@
 import type { ClientMessage, ServerMessage } from "../envelope";
 
 /**
- * Connection status of a Transport's underlying pipe.
+ * Connection status of a {@link Transport}'s underlying pipe. Useful for
+ * telling the operator whether the stream from the game is up. Read from
+ * `Transport.status`.
  *
  * @category Stream messages
  */
@@ -13,7 +15,8 @@ export type TransportStatus =
 
 /**
  * A command a transport accepted and will now never send, with the
- * transport's own reason. It never reached the mod.
+ * transport's own reason. It never reached the mod. Useful for telling the
+ * operator that a command did not run. Reported by `Transport.onUndelivered`.
  *
  * @category Stream messages
  */
@@ -27,7 +30,9 @@ export interface UndeliveredCommand {
 /**
  * A command that the machine a transport relays for, such as the main screen
  * for a station, has stopped waiting for. Nobody knows whether it ran, unlike
- * an {@link UndeliveredCommand}, which certainly did not.
+ * an {@link UndeliveredCommand}, which certainly did not. Useful for warning
+ * the operator that a command may or may not have run. Reported by
+ * `Transport.onLost`.
  *
  * @category Stream messages
  */
@@ -41,7 +46,8 @@ export interface LostCommand {
 /**
  * A typed message pipe between the app and a telemetry source, such as a
  * WebSocket to the mod. It carries the SDK's messages and knows nothing about
- * Topics, subscriptions or commands beyond that.
+ * Topics, subscriptions or commands beyond that. Useful for connecting the app
+ * to a different source of the game's telemetry.
  *
  * @category Stream messages
  */

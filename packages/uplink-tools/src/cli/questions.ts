@@ -37,7 +37,13 @@ export interface Answers {
   ksp: string | null;
 }
 
-/** What a question can read besides the flags: where the command ran, and what earlier questions settled. */
+/**
+ * What a `new` question can read besides the flags: the directory the command
+ * ran in, the author and repository a sibling Uplink already declares, and the
+ * answers earlier questions settled. Useful for offering the author defaults
+ * that match their project. Passed to each question's fallback and prompt by
+ * `resolveAnswers`.
+ */
 export interface AskContext {
   cwd: string;
   /** What a sibling Uplink in the same repo already declares, when there is one. */
@@ -45,7 +51,12 @@ export interface AskContext {
   settled: Partial<Answers>;
 }
 
-/** The part of `@clack/prompts` the questions use, so it is loaded only when one is asked. */
+/**
+ * The part of `@clack/prompts` the questions use: a free-text prompt and a
+ * choice prompt. Useful for asking the author what the Uplink is called and
+ * where it lives. Loaded by the `new` command only when a question is really
+ * asked.
+ */
 export interface Prompter {
   text(options: {
     message: string;
@@ -93,7 +104,12 @@ export function validateUplinkId(id: string): string | undefined {
 
 export const pascal = (id: string): string => id[0].toUpperCase() + id.slice(1);
 
-/** `owner/name`, from that or from a GitHub URL of the repository; `undefined` for anything else. */
+/**
+ * The `owner/name` of a GitHub repository, read from that form or from the
+ * repository's GitHub URL; `undefined` for anything else. Useful for
+ * recognising the repository an author names or the one their git remote
+ * points at. Used by the repository question of the `new` command.
+ */
 export function parseRepository(value: string): Repository | undefined {
   const match =
     /^(?:https?:\/\/github\.com\/|git@github\.com:)?([A-Za-z0-9][A-Za-z0-9-]*)\/([A-Za-z0-9._-]+?)(?:\.git)?\/?$/.exec(
@@ -116,7 +132,12 @@ function git(cwd: string, args: readonly string[]): string | undefined {
   }
 }
 
-/** The folder inside a KSP install that holds the game's assemblies, or `undefined` when `root` is not one. */
+/**
+ * The folder inside a KSP install that holds the game's assemblies, or
+ * `undefined` when `root` is not an install. Useful for telling the author
+ * whether the folder they named can be built against. Used by the game
+ * install question of the `new` command.
+ */
 export function kspManagedDir(root: string): string | undefined {
   return [
     join(root, "KSP_Data", "Managed"),
@@ -172,7 +193,12 @@ const defaultRepo = ({ cwd, inherited }: AskContext): Repository | null =>
     : (parseRepository(git(cwd, ["remote", "get-url", "origin"]) ?? "") ??
       null);
 
-/** Every question, in the order it is asked. */
+/**
+ * Every question `new` asks an author, in the order it is asked, each with the
+ * flag that answers it. Useful for letting an author scaffold an Uplink from
+ * a prompt or from flags alone. Used by `resolveAnswers` and the
+ * `new` command's flag parser and help.
+ */
 export const QUESTIONS = [
   question({
     key: "id",
@@ -348,7 +374,10 @@ export const QUESTIONS = [
   }),
 ] as const;
 
-/** Every flag the questions read, for the command's flag parser. */
+/**
+ * Every flag that carries a value which the questions read. Used by the `new`
+ * command's flag parser, so a flag the questions do not read is refused.
+ */
 export const QUESTION_VALUES: readonly string[] = QUESTIONS.flatMap(
   (q) => q.values ?? [],
 );
@@ -356,7 +385,11 @@ export const QUESTION_SWITCHES: readonly string[] = QUESTIONS.flatMap(
   (q) => q.switches ?? [],
 );
 
-/** The questions as `--help` lists them, wrapped under their flags. */
+/**
+ * The questions as `--help` lists them, each flag followed by its explanation
+ * wrapped beneath it. Useful for showing the author what each flag answers.
+ * Used by the `new` command's usage text.
+ */
 export function questionHelp(): string {
   const wrap = (text: string, width: number): string[] => {
     const lines: string[] = [];
@@ -380,10 +413,17 @@ export function questionHelp(): string {
   ).join("\n");
 }
 
-/** Thrown when answers are missing and nothing can be asked. The command exits 2 on it. */
+/**
+ * Thrown when answers are missing and nothing can be asked, because there is
+ * no terminal to ask on. The `new` command exits 2 on it. Useful for telling
+ * the author which flags to pass. Thrown by `resolveAnswers`.
+ */
 export class MissingAnswers extends Error {}
 
-/** Thrown when the person at the terminal cancels a prompt. Nothing has been written. */
+/**
+ * Thrown when the person at the terminal cancels a prompt. Nothing has been
+ * written. Thrown by `resolveAnswers`.
+ */
 export class Cancelled extends Error {}
 
 export interface ResolveOptions {
@@ -399,8 +439,10 @@ export interface ResolveOptions {
 }
 
 /**
- * The answer to every question: from the flags, then from `--yes` or from a
- * prompt. Fails naming every flag still missing when neither can supply one.
+ * The answer to every `new` question: from the flags, then from `--yes` or
+ * from a prompt. It throws `MissingAnswers` naming every flag still
+ * missing when neither can supply one. Useful for scaffolding an Uplink from
+ * answers however the author gives them. Used by the `new` command.
  */
 export async function resolveAnswers(
   options: ResolveOptions,

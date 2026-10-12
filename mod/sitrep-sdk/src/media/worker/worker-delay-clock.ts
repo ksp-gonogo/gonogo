@@ -70,7 +70,8 @@ export interface WorkerDelayClock extends DelayClockLike {
  * Builds the worker-side clock. Starts with a "cold" snapshot (no anchor,
  * no sample ever observed): `confirmedEdgeUt()` reads `-Infinity`,
  * matching `ViewClock`'s own pre-first-sample state, until the first real
- * snapshot arrives.
+ * snapshot arrives. Useful for letting the delay worker follow the same
+ * delay clock the main thread reads telemetry by. Used by the delay worker.
  */
 export function createWorkerDelayClock(
   opts: WorkerDelayClockOptions,

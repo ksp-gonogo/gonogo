@@ -7,14 +7,17 @@ import {
 } from "./replay-session-controller";
 
 /**
- * Mount once, wrapping the whole dashboard tree. When a mission replay is
- * active, this shadows whatever live `TelemetryProvider` wraps it (nested
- * providers: nearest wins) with the replay session's own client/store, so
- * every widget below keeps reading through the exact same
- * `useTelemetry`/`useDataValue` surface it always does, no widget-side
- * replay awareness needed. Renders `children` untouched when idle (the
- * common case): zero overhead, matching `SitrepTelemetryProvider`'s own
- * "disabled -> pass through" contract.
+ * Shows a mission replay in place of the live stream. Useful for letting the
+ * operator replay a recorded flight on the same widgets as a live one. Used by
+ * the main screen and the flights manager.
+ *
+ * Mount it once, wrapping the whole dashboard tree. When a mission replay is
+ * active, it shadows whatever live `TelemetryProvider` wraps it (nested
+ * providers: nearest wins) with the replay session's own client and store, so
+ * every widget below keeps reading through the same `useTelemetry` surface with no
+ * replay awareness of its own. When idle, which is the common case, it renders
+ * `children` untouched, matching `SitrepTelemetryProvider`'s pass-through when
+ * disabled.
  */
 export function ReplaySessionProvider({ children }: { children: ReactNode }) {
   const controller = getReplaySessionController();
@@ -35,8 +38,10 @@ export function ReplaySessionProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * Whether a mission replay is currently active. A kOS terminal reads it to
- * refuse command dispatch during replay (a replayed session has no live kOS CPU to run scripts against).
+ * Whether a mission replay is currently active. Useful for refusing an action
+ * that needs the live game while the operator is watching a recording. Read by
+ * the app's Uplink host, so a script terminal can refuse command dispatch during
+ * replay: a replayed session has no live script processor to run scripts against.
  */
 export function useReplaySessionActive(): boolean {
   const controller = getReplaySessionController();

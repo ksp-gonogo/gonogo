@@ -16,8 +16,9 @@
 
 /**
  * Each specifier the app resolves for a loaded Uplink, paired with the name of
- * the file the app serves it from. Mark every specifier `external` when
- * bundling an Uplink's client, so it uses the app's own copy of each package.
+ * the file the app serves it from. Used by the app to write its import map.
+ * Mark every specifier `external` when bundling an Uplink's client, so it uses
+ * the app's own copy of each package.
  * A bundled copy brings its own `registerComponent`, `registerAugment` and the
  * other registries, so whatever it registers lands in a copy the dashboard
  * never reads.
@@ -51,7 +52,7 @@ export const UPLINK_EXTERNAL_ENTRIES = [
 
 /**
  * The specifiers an Uplink's bundle leaves to the app, as a bundler's
- * `external` option takes them.
+ * `external` option takes them. Part of {@link UPLINK_BUNDLE_EXTERNALS}.
  *
  * @category Bundling
  */

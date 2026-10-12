@@ -45,6 +45,8 @@ import { PresentationPacer } from "./worker/presentation-pacer";
  * A frame the delay can hold. A decoded `VideoFrame` holds browser resources
  * and must be closed exactly once, so the delay calls `close` on every frame it
  * is done with. An encoded frame has nothing to close, so `close` is optional.
+ * Useful for delaying video frame by frame, decoded or encoded. Taken by
+ * {@link runFrameDelayPipeline}.
  *
  * @category Delayed video
  */
@@ -55,7 +57,9 @@ export interface FrameLike {
 
 /**
  * Where the delay reads frames from: a `ReadableStreamDefaultReader`, such as
- * the one `MediaStreamTrackProcessor.readable.getReader()` returns.
+ * the one `MediaStreamTrackProcessor.readable.getReader()` returns. Useful for
+ * feeding a camera's frames into the video delay. Taken by
+ * {@link runFrameDelayPipeline}.
  *
  * @category Delayed video
  */
@@ -66,7 +70,9 @@ export type FrameSource<Frame extends FrameLike> = Pick<
 
 /**
  * Where the delay writes frames to: a `WritableStreamDefaultWriter`, such as
- * the one `MediaStreamTrackGenerator.writable.getWriter()` returns.
+ * the one `MediaStreamTrackGenerator.writable.getWriter()` returns. Useful for
+ * showing the operator the delayed frames. Taken by
+ * {@link runFrameDelayPipeline}.
  *
  * @category Delayed video
  */
@@ -76,7 +82,9 @@ export type FrameSink<Frame extends FrameLike> = Pick<
 >;
 
 /**
- * Options for `runFrameDelayPipeline`.
+ * Options for {@link runFrameDelayPipeline}: where frames come from and go to,
+ * the delay clock, the capture time to stamp them with, and the limits on what
+ * is held.
  *
  * @category Delayed video
  */
@@ -130,7 +138,10 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
 }
 
 /**
- * A running frame delay pipeline, as `runFrameDelayPipeline` returns it.
+ * A running frame delay pipeline: the controls for emptying it, stopping it and
+ * driving its pacing. Useful for ending a delayed video when the operator
+ * switches camera or leaves the screen. Returned by
+ * {@link runFrameDelayPipeline}.
  *
  * @category Delayed video
  */
@@ -156,7 +167,9 @@ const DEFAULT_MAX_BUFFERED_FRAMES = 300; // ~10s @ 30fps; see module docstring
  * Reads frames from `source`, holds each until the clock reaches its UT, and
  * writes it to `sink`. Every frame read is closed exactly once: after it is
  * written, when it is dropped (over the buffer's cap, on `flush()`, or still
- * held at `dispose()`), or at once if it arrives after `dispose()`.
+ * held at `dispose()`), or at once if it arrives after `dispose()`. Useful for
+ * showing the operator video held back by the signal delay. Used by
+ * {@link attachEncodedFrameDelayTransform} and {@link createFrameDelayStream}.
  *
  * @category Delayed video
  */
@@ -249,7 +262,8 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
 /**
  * Calls `tickPacing` about 60 times a second until the returned function is
  * called: on each animation frame where there is one, and every 16 ms where
- * there is not, as in a worker.
+ * there is not, as in a worker. Useful for keeping a paced video delay moving
+ * smoothly. Used by the delay worker and by {@link createFrameDelayStream}.
  *
  * @category Delayed video
  */
@@ -278,7 +292,9 @@ export function startPacingTicker(
 /**
  * Whether this browser has the WebCodecs track APIs
  * (`MediaStreamTrackProcessor` and `MediaStreamTrackGenerator`) that
- * {@link createFrameDelayStream} needs.
+ * {@link createFrameDelayStream} needs. Useful for choosing a delay backend
+ * before building one. Used by the radio support check and the delay worker
+ * client.
  *
  * @category Delayed video
  */
@@ -298,7 +314,8 @@ export function isFrameDelaySupported(): boolean {
 const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
 
 /**
- * Options for `createFrameDelayStream`.
+ * Options for {@link createFrameDelayStream}: the delay clock, the capture time
+ * to stamp each frame with, and the limits on what is held.
  *
  * @category Delayed video
  */
@@ -311,16 +328,15 @@ export interface CreateFrameDelayStreamOptions {
   maxBufferedFrames?: number;
   /** Called with a non-fatal pipeline error. */
   onError?(error: unknown): void;
-  /** Override the presentation pacer's backlog threshold: see
-   *  `DEFAULT_PACING_MAX_BACKLOG_SECONDS`. Pacing itself can't be disabled
-   *  here: this backend always paces (that's the actual jank fix; see
-   *  `worker/presentation-pacer.ts`'s module doc), only the threshold is
-   *  tunable. */
+  /** Overrides the presentation pacer's backlog threshold, in seconds. Pacing
+   *  is always on; only the threshold can be changed. */
   maxPacingBacklogSeconds?: number;
 }
 
 /**
- * A delayed copy of a video stream, as `createFrameDelayStream` returns it.
+ * A delayed copy of a video stream. Useful for showing the operator a camera
+ * picture held back by the signal delay, by setting `stream` as a video
+ * element's source. Returned by {@link createFrameDelayStream}.
  *
  * @category Delayed video
  */
@@ -334,9 +350,9 @@ export interface FrameDelayStream {
 }
 
 /**
- * The whole of `MediaStream` this reads. Narrower than the DOM type on purpose:
- * a `MediaStream` cannot be constructed outside a browser, so a test standing in
- * for one would otherwise have to be minted through an assertion.
+ * The one method of `MediaStream` that {@link createFrameDelayStream} reads, so
+ * a stand-in can be passed where a `MediaStream` cannot be constructed, as in a
+ * test.
  */
 export interface VideoTrackSource {
   getVideoTracks(): MediaStreamTrack[];
@@ -348,7 +364,9 @@ export interface VideoTrackSource {
  * throws, when that cannot be built here: the browser lacks the APIs, `raw`
  * has no video track, or building the track pipeline threw. Show no video in
  * that case, and say the delay is unavailable. Never show `raw`: it is the
- * live picture, ahead of everything else the operator is looking at.
+ * live picture, ahead of everything else the operator is looking at. Useful for
+ * showing the operator a camera picture held back by the signal delay. Used by
+ * the delay worker client as its main-thread backend.
  *
  * @category Delayed video
  */

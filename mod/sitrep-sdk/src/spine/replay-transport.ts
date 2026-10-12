@@ -5,17 +5,19 @@ import type { ServerMessage } from "../envelope";
 import type { Clock } from "./clock";
 
 /**
- * The subset of the real `reference-wire-fixture.json` shape (see
- * `reference-wire-fixture.test.ts`'s own `WireFixture` interface, the C#
- * `WireFixtureGeneratorTests` producer) this transport actually needs.
- * Structurally compatible with the full fixture: a caller can `JSON.parse`
- * the real file and pass it straight in; extra fields (`generatedAtUtc`,
- * `recordingFile`, `frameCount`, `epochsSeen`, ...) are simply ignored.
+ * A captured wire recording: the topics subscribed and the raw frames received.
+ * Useful for replaying a recorded flight, or a test fixture, through
+ * `ReplayTransport`. Produced by `StreamRecorder` and stored with a mission's
+ * history.
+ *
+ * It is the subset of the `reference-wire-fixture.json` shape that this transport
+ * needs, and structurally compatible with the full fixture: a caller can
+ * `JSON.parse` the real file and pass it straight in, and extra fields
+ * (`generatedAtUtc`, `recordingFile`, `frameCount`, `epochsSeen`, ...) are
+ * ignored.
  *
  * `frames` are each the exact raw wire text of one captured frame (a
- * `JSON.stringify`'d `ServerMessage`: `stream-data` or `event`), same
- * convention as the C# generator and
- * `reference-wire-fixture.test.ts`'s own driver loop.
+ * `JSON.stringify`'d `ServerMessage`: `stream-data` or `event`).
  */
 export interface ReplayFixture {
   /** The topics this recording session subscribed to. Optional. */
@@ -58,28 +60,23 @@ function isDataOrEventFrame(
 
 /**
  * A `Transport` that replays a captured wire recording (the
- * `reference-wire-fixture.json` shape) into a `TelemetryClient`, honoring
- * each frame's own `meta.deliveredAt` cadence under an injected clock. This is
- * the no-KSP iteration engine: it lets the whole dashboard run off a recording
- * headlessly, with no KSP restarts and no deployed mod.
+ * `reference-wire-fixture.json` shape) into a `TelemetryClient`, honouring each
+ * frame's own `meta.deliveredAt` cadence under an injected clock. Useful for
+ * running the whole dashboard off a recording headlessly, with no KSP restarts
+ * and no deployed mod, and for replaying a recorded mission to the operator. Used
+ * by the replay session controller.
  *
- * A reusable, production-shaped class rather than the test-only
- * `FixtureTransport` shape in `reference-wire-fixture.test.ts`:
- * - **Delivery order** always follows `meta.deliveredAt` ascending, even if
- *   `fixture.frames` itself isn't sorted that way (a defensive sort at
- *   construction: never trust caller ordering for the one invariant this
- *   whole class exists to honor).
- * - **Timing** is anchored, not absolute: the first frame's `deliveredAt` is
- *   offset zero, and every later frame is scheduled at
- *   `clock.now() (at construction) + (frame.deliveredAt - firstDeliveredAt)`,
- *   so a fixture recorded against an arbitrary in-game UT replays correctly
- *   against a test clock that starts at 0, or a production clock that starts
- *   at "now".
+ * - Delivery order always follows `meta.deliveredAt` ascending, even if
+ *   `fixture.frames` is not sorted that way
+ * - Timing is anchored, not absolute: the first frame's `deliveredAt` is offset
+ *   zero, and every later frame is scheduled at `clock.now()` at construction plus
+ *   the frame's `deliveredAt` minus the first, so a fixture recorded at any in-game
+ *   UT replays correctly against a test clock that starts at 0 or a production
+ *   clock that starts at the current time
  *
- * `send()` is a no-op, same rationale as `FixtureTransport`: the fixture is
- * already scoped to exactly the topics the original recording session
- * subscribed to, so there is no real subscribe/unsubscribe bookkeeping for
- * this transport to honor.
+ * `send()` does nothing: the fixture is already scoped to exactly the topics the
+ * original recording subscribed to, so there is no subscribe or unsubscribe
+ * bookkeeping for this transport to honour.
  */
 export class ReplayTransport implements Transport {
   readonly status: TransportStatus = "connected";

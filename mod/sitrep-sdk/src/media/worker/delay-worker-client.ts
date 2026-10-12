@@ -38,7 +38,10 @@ import type {
 
 /**
  * A {@link DelayClockLike} that can also hand over its state to copy into a
- * worker about 60 times a second. The app's view clock is one.
+ * worker about 60 times a second. The app's view clock is one. Useful for
+ * delaying video off the main thread by the same clock telemetry is read by.
+ * Taken by {@link createWorkerFrameDelayStream} and
+ * {@link attachEncodedWorkerFrameDelay}.
  *
  * @category Delayed video
  */
@@ -48,7 +51,8 @@ export interface SnapshottableDelayClock extends DelayClockLike {
 }
 
 /**
- * Options for `createWorkerFrameDelayStream`.
+ * Options for {@link createWorkerFrameDelayStream}: the clock to follow, the
+ * capture clock sample to read, and the limits on what is held.
  *
  * @category Delayed video
  */
@@ -152,7 +156,9 @@ function startPipelineTicker(
 /**
  * A delayed copy of the first video track of `raw`, with the delay running in
  * a worker. Resolves `null`, and never throws, when it cannot be built,
- * including when the browser refuses to move the track to a worker.
+ * including when the browser refuses to move the track to a worker. Useful for
+ * showing the operator a camera picture held back by the signal delay while the
+ * work runs off the main thread.
  *
  * @category Delayed video
  */
@@ -234,7 +240,8 @@ export async function createWorkerFrameDelayStream(
 // ---------------------------------------------------------------------------
 
 /**
- * Options for `attachEncodedWorkerFrameDelay`.
+ * Options for {@link attachEncodedWorkerFrameDelay}: the clock to follow, the
+ * capture clock sample to read, and the limits on what is held.
  *
  * @category Delayed video
  */
@@ -253,7 +260,9 @@ export interface AttachEncodedFrameDelayOptions {
 }
 
 /**
- * What `attachEncodedWorkerFrameDelay` returns.
+ * The controls for an encoded video delay that is running in a worker. Useful
+ * for ending the delay when the operator switches camera or leaves the screen.
+ * Returned by {@link attachEncodedWorkerFrameDelay}.
  *
  * @category Delayed video
  */
@@ -277,7 +286,8 @@ export interface EncodedFrameDelayHandle {
  * `RTCRtpScriptTransform` threw, as it does when the receiver already has a
  * transform. Check `typeof RTCRtpScriptTransform !== "undefined"` first to
  * skip the attempt on a browser without it. Treat `null` as the delay being
- * unavailable, never as permission to show the live stream.
+ * unavailable, never as permission to show the live stream. Useful for holding
+ * a camera picture back by the signal delay before it is decoded.
  *
  * @category Delayed video
  */

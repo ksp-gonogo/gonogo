@@ -29,6 +29,9 @@ import { deriveGlyph } from "./toInFlightListItems";
  * - `found`: a lost dispatch replied after all
  * - `failed`: the machinery broke, so there is no verdict either way
  *
+ * Useful for telling the operator which kind of outcome a box reports. Used by
+ * {@link CommandList} to choose a box's tone and wording.
+ *
  * @category CommandDelay
  */
 export type CommandListKind =
@@ -53,8 +56,8 @@ interface CommandListCommonProps {
 }
 
 /**
- * Props for {@link CommandList}: the entries it draws, keyed by what became of them. Each entry
- * carries its dispatch's `requestId` as `id` and its command's rail axes as
+ * Props for {@link CommandList}: the entries it draws, keyed by what became of
+ * them. Each entry carries its dispatch's `requestId` as `id` and its command's rail axes as
  * `tags`; only the axes' mark is read, so a discrete command gets its
  * in-flight glyph tile and a continuous one its name in words.
  *

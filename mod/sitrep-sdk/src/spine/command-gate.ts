@@ -13,7 +13,8 @@ import { CommandErrorCode } from "../__generated__/error-codes";
  *
  * It carries the same `errorCode`, `breach` and `detail` a refusal does, so a
  * control can say "the game will refuse this" in the same words it uses for
- * "the game refused this".
+ * "the game refused this". Useful for showing the operator that a command will
+ * be refused before they press it. Returned by `selectCommandGate`.
  *
  * @category Commands
  */
@@ -57,6 +58,9 @@ export interface CommandGateStatus {
  * knows nothing about this command in advance, so the fallback is to behave as
  * though there were no gate channel at all rather than to guess.
  *
+ * Useful for disabling a control and saying why before the operator presses it.
+ * Used by {@link useCommand}.
+ *
  * Never treat a Pass as permission. The snapshot is up to one sampling
  * interval old and the dispatch re-evaluates the same gates against live state;
  * this exists to say no in advance, never to say yes.
@@ -95,7 +99,11 @@ function itemVerdict(
   return undefined;
 }
 
-/** One verdict as the control reads it. Exported for the widget that holds a verdict directly. */
+/**
+ * Returns one gate verdict as a {@link CommandGateStatus}, the form a control
+ * reads. Useful for a widget that holds a verdict directly, such as one of a
+ * gate's items, and wants to tell the operator the game will refuse it.
+ */
 export function toGateStatus(
   verdict: GateVerdict,
   command: string,

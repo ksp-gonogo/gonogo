@@ -18,7 +18,8 @@ import {
 import { focusRing } from "./focusRing";
 
 /**
- * One key a {@link DataKeyPicker} offers.
+ * One key a {@link DataKeyPicker} offers. Useful for listing the data the
+ * operator can choose from. Taken in the picker's `keys`.
  *
  * @category Form
  */
@@ -28,7 +29,8 @@ export interface KeyOption extends ComboboxOption {
 }
 
 /**
- * Props for {@link DataKeyPicker}.
+ * Props for {@link DataKeyPicker}: the keys on offer, the chosen key and the
+ * change handler.
  *
  * @category Form
  */

@@ -6,7 +6,9 @@
  */
 /**
  * The lengths of a minute, hour, day and year in the game being watched, in
- * seconds, and the real-world date of UT 0 where the game has one.
+ * seconds, and the real-world date of UT 0 where the game has one. Useful for
+ * showing the operator mission durations and dates in the game's own days and
+ * years. Returned by {@link kspCalendar} and taken by {@link setKspCalendar}.
  *
  * @category Units and values
  */
@@ -29,8 +31,10 @@ export interface KspCalendar {
 }
 
 /**
- * Stock KSP's calendar on Kerbin time: a 6-hour day and a 426-day year. Used
- * until the game reports its own.
+ * Stock KSP's calendar on Kerbin time: a 6-hour day and a 426-day year. Useful
+ * for showing the operator durations before the game has reported its own
+ * calendar, and for restoring it afterwards. {@link kspCalendar} returns it
+ * until the game reports one.
  *
  * @category Units and values
  */
@@ -44,9 +48,11 @@ export const STOCK_KERBIN_CALENDAR: KspCalendar = {
 let current: KspCalendar = STOCK_KERBIN_CALENDAR;
 
 /**
- * Returns the calendar of the game being watched, or
- * {@link STOCK_KERBIN_CALENDAR} until the game has reported one. Call it each
- * time you need it rather than keeping the result, which can change.
+ * The calendar of the game being watched, or {@link STOCK_KERBIN_CALENDAR}
+ * until the game has reported one. Useful for showing the operator durations
+ * and dates in the length of day and year the game uses. Used by the duration
+ * and date formatters, the mission date field and the transfer window labels.
+ * Call it each time you need it, because the result can change.
  *
  * @category Units and values
  */
@@ -56,8 +62,9 @@ export function kspCalendar(): KspCalendar {
 
 /**
  * Sets the calendar every duration, date and unit conversion uses, or
- * restores {@link STOCK_KERBIN_CALENDAR} when called with nothing. Gonogo calls
- * it when the game reports its calendar.
+ * restores {@link STOCK_KERBIN_CALENDAR} when called with nothing. Useful for
+ * making every figure the operator sees follow the length of day and year of the
+ * game being watched. The app calls it when the game reports its calendar.
  *
  * A calendar with a length that is not a positive finite number is refused,
  * and the stock calendar used instead. An `epochMs` that is not finite is
@@ -85,8 +92,9 @@ export function setKspCalendar(next?: Partial<KspCalendar>): void {
 }
 
 /**
- * Returns the number of days in a year: 426 in stock KSP, 365 on an Earth
- * calendar.
+ * The number of days in a year of the game being watched: 426 in stock KSP, 365
+ * on an Earth calendar. Useful for showing the operator a duration as years and
+ * days. Used by the transfer window labels and the burn clock.
  *
  * @category Units and values
  */
@@ -122,9 +130,11 @@ const CALENDAR_RATIO: Record<string, (calendar: KspCalendar) => number> = {
 };
 
 /**
- * Returns a calendar unit's ratio to its base unit in the game being watched,
- * such as 21,600 seconds for `"d"` in stock KSP, or `undefined` for a unit
- * whose size does not depend on the calendar.
+ * A calendar unit's ratio to its base unit in the game being watched, such as
+ * 21,600 seconds for `"d"` in stock KSP, or `undefined` for a unit whose size
+ * does not depend on the calendar. Useful for converting a value in days or
+ * years to seconds with the game's own calendar. Used when a value is converted
+ * between units.
  *
  * @category Units and values
  */
@@ -134,9 +144,10 @@ export function calendarRatio(symbol: string): number | undefined {
 }
 
 /**
- * Returns whether a unit's size depends on the game's calendar: `y`, `d`,
- * `h` and `min` as durations, and `science/day`. A speed in `km/h` does not,
- * and neither do the real-world `irl:` units.
+ * Whether a unit's size depends on the game's calendar: `y`, `d`, `h` and `min`
+ * as durations, and `science/day`. A speed in `km/h` does not, and neither do
+ * the real-world `irl:` units. Useful for deciding whether a conversion has to
+ * be redone when the game reports a different calendar.
  *
  * @category Units and values
  */

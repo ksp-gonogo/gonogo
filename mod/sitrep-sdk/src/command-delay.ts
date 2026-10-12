@@ -12,13 +12,16 @@ import { type Value, value } from "./unit-system";
 
 /**
  * Where a command on the delay rail is expected to be now, from the time it
- * was sent and the signal delay:
+ * was sent and the signal delay. Useful for showing the operator whether a
+ * command is still travelling to the vessel, waiting for its reply, or late.
+ * Carried by {@link InFlightCommand} and shown by {@link InFlightList}. The
+ * phases are:
  *
  * - `in-transit`: on its way to the craft
  * - `awaiting-reply`: arrived, with its reply on the way back
  * - `due`: its reply is expected now
  * - `overdue`: its reply is late
- * - `lost`: the link broke while it was travelling, so no reply is coming
+ * - `lost`: the signal path broke while it was travelling, so no reply is coming
  *
  * @category Delay and vantage
  */
@@ -30,16 +33,21 @@ export type PredictedPhase =
   | "lost";
 
 /**
- * How a command sent now would travel: `live` when the one-way delay is a second
- * or less, `staged` when it is longer, and `no-path` when there is no path home.
+ * How a command sent now would travel from the command centre to the vessel:
+ * `live` when the one-way delay is a second or less, `staged` when it is
+ * longer, and `no-path` when there is no route. Useful for showing the operator
+ * whether a control acts at once or waits. Returned by {@link currentMode} and
+ * used by {@link useCommand}.
  *
  * @category Delay and vantage
  */
 export type DelayMode = "live" | "staged" | "no-path";
 
 /**
- * One command travelling to a craft, as the `system.uplink.pending` Topic
- * lists it.
+ * One command travelling from the command centre to a vessel, as the
+ * `system.uplink.pending` Topic lists it. Useful for showing the operator which
+ * of their commands have not yet reached the vessel. Taken by
+ * {@link deriveInFlight}, {@link pendingCrossing} and {@link classifyRetained}.
  *
  * @category Delay and vantage
  */
@@ -86,6 +94,8 @@ export interface PendingEntry {
 
 /**
  * The one field of a `comms.delay` payload that {@link currentMode} reads.
+ * Useful for passing a `comms.delay` reading, or a stand-in with the same
+ * field, to {@link currentMode}.
  *
  * @category Delay and vantage
  */
@@ -95,8 +105,10 @@ export interface CommsDelayLike {
 }
 
 /**
- * One row of the delay rail: a command on its way to a craft, or a
- * transmission on its way home. {@link deriveRailEntry} makes one.
+ * One row of the delay rail: a command on its way to a vessel, or a
+ * transmission on its way home to the command centre. Useful for showing the
+ * operator what is in transit and when it is expected to arrive. Made by
+ * {@link deriveRailEntry} and listed by {@link InFlightList}.
  *
  * Times here are plain numbers of seconds.
  *
@@ -111,7 +123,7 @@ export interface InFlightCommand {
   command: string;
   /** The part or route it is addressed to. */
   topic: string;
-  /** Which way the entry crosses the link: `command` up to the craft, `telemetry` down from it. */
+  /** Which way the entry travels: `command` up to the vessel, `telemetry` down from it. */
   direction: RailDirection;
   /** When it was sent, as a UT. */
   dispatchedAt: number;
@@ -126,11 +138,14 @@ export interface InFlightCommand {
 }
 
 /**
- * Something sent across the link, which {@link deriveRailEntry} places on the
- * delay rail: sent at `sentAt`, it arrives one delay later. An acked crossing
+ * A command or transmission in transit between the command centre and a vessel,
+ * which {@link deriveRailEntry} places on the delay rail: sent at `sentAt`, it
+ * arrives one delay later. An acked crossing
  * then waits one delay more for its reply; a fire-and-forget one ends when it
  * arrives. Set `tags` with {@link railTagsForCommand},
- * {@link railTagsForControlAxis} or {@link railTagsForTelemetry}.
+ * {@link railTagsForControlAxis} or {@link railTagsForTelemetry}. Useful for putting a transmission of your own,
+ * such as a radio call, on the delay rail beside commands. Used by the push to
+ * talk control and the transmissions list.
  *
  * @category Delay and vantage
  */
@@ -161,6 +176,8 @@ const STAGED_THRESHOLD_SECONDS = 1;
  * Returns how a command sent now would travel, from a `comms.delay` payload:
  * `"live"` for a one-way delay of a second or less, `"staged"` for a longer
  * one, and `"no-path"` when `oneWaySeconds` is `null` or there is no payload.
+ * Useful for showing the operator whether a control acts at once or waits. Used
+ * by {@link InFlightList}.
  *
  * @category Delay and vantage
  */
@@ -171,9 +188,11 @@ export function currentMode(commsDelay: CommsDelayLike | undefined): DelayMode {
 }
 
 /**
- * The live one-way delay a `comms.delay` reading states, or `null` when it
- * states none: no path home, a malformed or non-finite value, or no reading at
- * all. Never 0 for those, since a 0 says the entry arrives now.
+ * The live one-way delay a `comms.delay` reading states, in seconds, or `null`
+ * when it states none: no route to the vessel, a malformed or non-finite value,
+ * or no reading at all. Never 0 for those, since a 0 says the entry arrives
+ * now. Useful for fixing the delay a command was sent under. Used by
+ * {@link useCommand}.
  */
 export function liveOneWaySeconds(
   commsDelay: CommsDelayLike | undefined,
@@ -187,7 +206,8 @@ export function liveOneWaySeconds(
 /**
  * Returns the delay rail row for a crossing at `nowUt`, in UT seconds. A
  * fire-and-forget crossing returns `undefined` once it has arrived, since
- * nothing more will happen to it.
+ * nothing more will happen to it. Useful for showing the operator where a
+ * command or transmission is expected to be now.
  *
  * @category Delay and vantage
  */
@@ -247,7 +267,8 @@ function ackedPhase(
 
 /**
  * Returns a {@link PendingEntry} as a {@link RailCrossing}, sent when it was
- * dispatched.
+ * dispatched. Useful for placing a pending command on the delay rail with
+ * {@link deriveRailEntry}.
  *
  * @category Delay and vantage
  */
@@ -267,8 +288,9 @@ export function pendingCrossing(entry: PendingEntry): RailCrossing {
 
 /**
  * Returns the delay rail row of each pending entry at `nowUt`, in UT seconds.
- * It knows nothing of whether a reply came back or the link broke; use
- * {@link classifyRetained} for that.
+ * It knows nothing of whether a reply came back or the signal path broke; use
+ * {@link classifyRetained} for that. Useful for listing for the operator every
+ * command still on its way to the vessel.
  *
  * @category Delay and vantage
  */
@@ -282,8 +304,10 @@ export function deriveInFlight(
 }
 
 /**
- * Returns whether the link to the craft was up for the whole of `fromUt` to
- * `toUt`, both in UT seconds. You supply it from your own record of the link.
+ * Returns whether the signal path from the command centre to the vessel was up
+ * for the whole of `fromUt` to `toUt`, both in UT seconds. You supply it from
+ * your own record of connectivity. Taken by {@link classifyRetained} to decide
+ * whether a command is lost.
  *
  * @category Delay and vantage
  */
@@ -291,16 +315,17 @@ export type PathConnectedDuring = (fromUt: number, toUt: number) => boolean;
 
 /**
  * Returns the delay rail row for a command you sent, including whether it is
- * `"overdue"` or `"lost"`, which {@link deriveRailEntry} cannot say. Use it for
- * a command you keep showing after it has left `system.uplink.pending`.
+ * `"overdue"` or `"lost"`, which {@link deriveRailEntry} cannot say. Useful for
+ * showing the operator a command after it has left `system.uplink.pending`.
+ * Used by {@link useCommand}.
  *
  * - `present`: whether the entry is still in `system.uplink.pending`
  * - `acknowledged`: whether a reply came back. Defaults to `!present`
  * - `overdueMarginSeconds`: how long past the expected reply before it is
  *   overdue
- * - `pathConnectedDuring`: your record of the link. Defaults to a link that
- *   never broke. A command whose link broke while it travelled is lost, except
- *   one held at a relay, which waits there
+ * - `pathConnectedDuring`: your record of connectivity. Defaults to a signal
+ *   path that never broke. A command whose signal path broke while it travelled
+ *   is lost, except one held at a relay, which waits there
  *
  * Returns `undefined` for a fire-and-forget command that has arrived.
  *
@@ -370,7 +395,8 @@ const PHASE_ORDER: Record<PredictedPhase, number> = {
 /**
  * Returns `items` with each `predictedPhase` kept from moving backwards since
  * the last call, so a row does not flicker when the view time steps back
- * slightly for one frame.
+ * slightly for one frame. Useful for keeping the operator's delay rail steady.
+ * Used by the stream's route commands hook.
  *
  * `memory` holds each row's last phase between calls, usually in a `useRef`.
  * It is updated in place, and rows no longer in `items` are removed from it.

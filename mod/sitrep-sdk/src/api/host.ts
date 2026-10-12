@@ -184,9 +184,11 @@ declare global {
 }
 
 /**
- * Returns the installed {@link GonogoHost}. Throws an error naming the package
- * and the fix (mark the specifier `external` so it resolves to the host) when
- * none is installed. Used by every sdk function that needs the app.
+ * Returns the {@link GonogoHost} the app installed when it started. Throws an
+ * error naming the package and the fix (mark the specifier `external` so it
+ * resolves to the host) when none is installed. Useful for failing loudly where
+ * a registry would otherwise be silently empty. Called by every sdk hook and
+ * register function that needs the app.
  */
 export function getHost(): GonogoHost {
   const host = globalThis[GONOGO_HOST_KEY];

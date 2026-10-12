@@ -41,11 +41,12 @@ export interface ReadFrameControlProps {
  * keyboard-operable `<select>` over `options`, with an optional hint below.
  * Useful for letting the operator choose which body or vessel a drawing is
  * centred on. Used by the configuration forms of the current orbit and system
- * view widgets. A
- * read frame is the frame of reference a widget draws positions in, such as
+ * view widgets.
+ *
+ * A read frame is the frame of reference a widget draws positions in, such as
  * centred on a body; it changes only the drawing. The Control Frame is the
- * frame the game itself is set to, reported on the `system.frame` Topic.
- * The selected option is found by frame equality with `value`
+ * frame the game itself is set to, reported on the `system.frame` Topic. The
+ * selected option is found by frame equality with `value`
  * (`readFrameChoicesEqual` from `@ksp-gonogo/sitrep-sdk/frames`), so options
  * need no ids of their own.
  *

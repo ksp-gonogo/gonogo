@@ -5,6 +5,8 @@ import type { ContributionSlotId } from "./contributions";
  * The identity and declared contribution slots of the widget the caller is
  * rendered inside. {@link ContributionsProvider} reads it to know which slots
  * to serve, and segment slots complete to `${componentId}.<segment>` from it.
+ * Useful for letting an Uplink's additions reach the widget they were meant
+ * for. Held by {@link WidgetMetaContext} and returned by {@link useWidgetMeta}.
  *
  * @category Extensions
  */
@@ -30,7 +32,9 @@ export const WidgetMetaContext = createContext<WidgetMetaContextValue | null>(
 /**
  * The current widget's identity and declared contribution slots, or `null`
  * outside a {@link WidgetMetaContext} provider (a widget rendered bare, a panel
- * outside the dashboard).
+ * outside the dashboard). Useful for letting a part of a widget find the
+ * contributions an Uplink added to it. Used by {@link useWidgetBadges}
+ * and by the slots that serve an Uplink's additions.
  *
  * @category Extensions
  */

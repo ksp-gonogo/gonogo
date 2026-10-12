@@ -45,7 +45,10 @@ export const REFUSAL_TIMEOUT_MS = 8000;
 export const PENDING_BACKSTOP_MS = 30_000;
 
 /**
- * What the mod says about a command before it is pressed. Declared structurally; `useCommand`'s `gate` satisfies it.
+ * What the mod says about a command before it is pressed: whether the game would
+ * refuse it. Useful for darkening a control the operator cannot usefully press
+ * and saying why. Declared structurally; `useCommand`'s `gate` satisfies it.
+ * Read by {@link CommandButton} through {@link CommandButtonHandle}.
  *
  * @category CommandButton
  */
@@ -65,7 +68,9 @@ export interface CommandGateLike extends CommandRefusalLike {
  * What a command reply is known to be before you know which command produced
  * it: the result envelope, carrying the command's own value on `payload`. The
  * default {@link CommandButtonHandle} reply, so a reader cannot treat the
- * envelope as the payload; `payload` stays `unknown` until narrowed.
+ * envelope as the payload; `payload` stays `unknown` until narrowed. Useful for
+ * reading the game's answer to a command the operator sent. Taken by
+ * {@link CommandButtonHandle}.
  *
  * @category CommandButton
  */
@@ -78,7 +83,10 @@ export interface CommandReplyLike {
 
 /**
  * The command handle a {@link CommandButton} dispatches on: the delay-rail handle plus a
- * way to send. Declared structurally; {@link useCommand}'s return value satisfies it.
+ * way to send. Useful for connecting a control to a command so it can show the
+ * operator what became of a press. Declared structurally; {@link useCommand}'s
+ * return value satisfies it. Taken by {@link CommandButton} and
+ * {@link useCommandButton}.
  *
  * @category CommandButton
  */
@@ -125,7 +133,9 @@ export function standingGate<Args>(
 }
 
 /**
- * Where a {@link CommandButton} is in the command lifecycle.
+ * Where a {@link CommandButton} is in the command lifecycle. Useful for telling
+ * the operator whether a command is waiting, on its way, refused, lost or
+ * found. Returned by {@link useCommandButton} as `phase`.
  *
  * - `idle`: at rest
  * - `armed`: the operator has asked, and is being asked to mean it. Only
@@ -156,21 +166,23 @@ export type CommandButtonPhase =
   | "blocked";
 
 /**
- * The tones a {@link CommandButton} can draw in; the same set as a plain `Button`.
+ * The tones a {@link CommandButton} can draw in; the same set as a plain
+ * {@link Button}. Set with the `tone` prop of {@link CommandButton}.
  *
  * @category CommandButton
  */
 export type CommandButtonTone = ButtonTone;
 
 /**
- * The two sizes of {@link CommandButton}.
+ * The two sizes of {@link CommandButton}. Set with its `size` prop.
  *
  * @category CommandButton
  */
 export type CommandButtonSize = "sm" | "md";
 
 /**
- * Options for {@link useCommandButton}.
+ * Options for {@link useCommandButton}: the command handle to dispatch on and
+ * the wording of the confirm step.
  *
  * @category CommandButton
  */
@@ -190,7 +202,8 @@ export interface UseCommandButtonOptions<
 
 /**
  * What {@link useCommandButton} returns: the current phase, a flag per phase,
- * the composed sentences to show, and `press`.
+ * the composed sentences to show, and `press`. Useful for drawing a command
+ * control that looks different from {@link CommandButton}.
  *
  * @category CommandButton
  */
@@ -253,7 +266,9 @@ export interface CommandButtonState {
  * The {@link CommandButton} lifecycle with no rendering attached, for a control
  * that looks different. The hook keeps the phase, the arm timeout and the
  * reply handling; the caller draws each phase and wires its own click to
- * `press`. `CommandButton` is this hook plus the default rendering.
+ * `press`. `CommandButton` is this hook plus the default rendering. Useful for
+ * a control that must look different but still show the operator what became
+ * of the command. Returns a {@link CommandButtonState}.
  *
  * @example
  * ```tsx
@@ -489,7 +504,8 @@ type NativeButtonProps = Omit<
 >;
 
 /**
- * Props for {@link CommandButton}. Any other native button attribute is passed through.
+ * Props for {@link CommandButton}: the command handle, the arguments to send
+ * and the confirm wording. Any other native button attribute is passed through.
  *
  * @category CommandButton
  */

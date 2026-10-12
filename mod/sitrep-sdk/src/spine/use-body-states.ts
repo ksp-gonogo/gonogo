@@ -5,7 +5,11 @@ import type {
 } from "../__generated__/contract";
 import { useCommand } from "./use-command";
 
-/** The command the engine registers for this. Not an Uplink's. */
+/**
+ * The id of the command the engine registers to return the position of every body
+ * at an instant. Useful for dispatching that query by name. It belongs to the
+ * engine and not to an Uplink.
+ */
 export const BODY_STATES_COMMAND = "system.bodies.statesAt";
 
 export interface BodyStatesQuery {
@@ -28,11 +32,14 @@ export interface BodyStatesQuery {
 }
 
 /**
- * The client half of `system.bodies.statesAt`.
+ * Returns a function that asks the mod for the position of every body at one or
+ * more instants, over `system.bodies.statesAt`. Useful for placing bodies on a
+ * transfer plot at instants other than the one on screen. Used by the transfer
+ * window widget.
  *
- * Plainly typed in both directions: `TelemetryClient.dispatch` dehydrates args
- * and `handleCommandResponse` wraps the reply, so the generated types are true
- * at runtime and no wire-term lifting is needed here.
+ * Arguments and reply are typed as generated, with no wire-term lifting:
+ * `TelemetryClient.dispatch` dehydrates args and `handleCommandResponse` wraps the
+ * reply.
  */
 export function useBodyStates(): BodyStatesQuery {
   const command = useCommand(BODY_STATES_COMMAND);

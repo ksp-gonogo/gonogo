@@ -34,7 +34,11 @@ import type { TimelineStore } from "./timeline-store";
 // default is a no-op so the spine stays standalone and testable.
 let recordEvaluation: () => void = () => {};
 
-/** Wire the evaluation-rate PerfBudget recorder (called once per compute run). */
+/**
+ * Wires the recorder that counts processor evaluations, called once per compute
+ * run. Useful for catching a processor that runs far more often than its inputs
+ * change. Used by the processor performance budget.
+ */
 export function setProcessorEvaluationRecorder(fn: () => void): void {
   recordEvaluation = fn;
 }
@@ -47,17 +51,23 @@ export function setProcessorEvaluationRecorder(fn: () => void): void {
 // their audience is wrong.
 let recordNotification: () => void = () => {};
 
-/** Wire the notification-rate PerfBudget recorder (called once per listener told). */
+/**
+ * Wires the recorder that counts processor notifications, called once per
+ * listener told. Useful for catching a result that wakes subscribers more often
+ * than it changes. Used by the processor performance budget.
+ */
 export function setProcessorNotificationRecorder(fn: () => void): void {
   recordNotification = fn;
 }
 
 /**
- * Counts processor results the notify guard cannot compare, such as a `Map`, a
- * `Date`, a class hiding its state behind methods, or a closure in the
- * payload. The threshold is zero, so the test gate fails any test in which a
- * processor returns one. A test that plants one on purpose resets this budget
- * at the end.
+ * The performance budget that counts processor results the notify guard cannot
+ * compare, such as a `Map`, a `Date`, a class hiding its state behind methods, or
+ * a closure in the payload. Useful for catching a processor whose subscribers
+ * would be woken on every frame. Used by the processor performance budget.
+ *
+ * The threshold is zero, so the test gate fails any test in which a processor
+ * returns one. A test that plants one on purpose resets this budget at the end.
  */
 export const PROCESSOR_UNCOMPARABLE_BUDGET = new PerfBudget({
   /*
@@ -115,10 +125,11 @@ function reportUncomparable(id: string, shape: string): void {
 let recordUncomparable: (id: string, shape: string) => void = () => {};
 
 /**
- * Wire the report for a processor result the notify guard cannot read
- * (`Comparison`'s `uncomparable` arm). Called at most once per evaluation, with
- * the processor's id and a short description of the shape that stopped it, and
- * never with a value. Pass `undefined` to clear it.
+ * Wires the report for a processor result the notify guard cannot read (the
+ * `uncomparable` arm of `Comparison`). Useful for naming the processor and the
+ * shape that stopped it. Called at most once per evaluation, with the processor's
+ * id and a short description of the shape, and never with a value. Pass
+ * `undefined` to clear it.
  */
 export function setProcessorUncomparableRecorder(
   fn: ((id: string, shape: string) => void) | undefined,
@@ -436,12 +447,14 @@ type TopicSubscriber = (topic: string) => () => void;
 /**
  * The evaluated state of every Processor against one `TimelineStore`: values,
  * ref-counts, listeners, the store's frame subscription and the raw Topic
- * subscriptions its active processors hold up.
+ * subscriptions its active processors hold up. Useful for keeping derived values
+ * current as the operator's telemetry arrives. Created by the telemetry context
+ * provider through {@link processorRuntimeFor}.
  *
- * One per store, reached through `processorRuntimeFor`, so two providers on one
- * page each evaluate against their own data and unmounting one leaves the other
- * evaluating. Definitions stay page-wide (`processors.ts`): what a processor
- * computes is the same everywhere, only what it computes from differs.
+ * There is one per store, so two providers on one page each evaluate against
+ * their own data and unmounting one leaves the other evaluating. Definitions stay
+ * page-wide (`processors.ts`): what a processor computes is the same everywhere,
+ * only what it computes from differs.
  */
 export class ProcessorRuntime {
   private readonly entries = new Map<string, ProcessorRuntimeEntry>();
@@ -678,6 +691,8 @@ const runtimes = new WeakMap<TimelineStore, ProcessorRuntime>();
 
 /**
  * The Processor runtime that evaluates against `store`, created on first use.
+ * Useful for reading or subscribing to processor results for one telemetry
+ * store. Used by {@link useProcessor} and the contributions provider.
  *
  * @category Stream fixture
  */

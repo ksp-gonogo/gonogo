@@ -1,22 +1,18 @@
 /**
- * Grow `#root` until nothing it can reveal is clipped, and no further.
+ * Grows `#root` until nothing it can reveal is clipped, and no further. Useful
+ * for taking a picture of a widget that shows all of its content instead of a
+ * scrolled part of it. Used by the render driver before it takes a screenshot.
  *
- * Passed to `tab.evaluate`, so it closes over nothing and declares no named
- * function inside: tsx's `keepNames` wraps one in a `__name(...)` helper that
- * exists in the module scope and not the serialised page context.
+ * Every clipping box under the root is measured, and the root grows by the
+ * largest overflow, then the tree is measured again because growing can reveal
+ * more. A box of a fixed height clips the same amount at any root height, such
+ * as a screen-reader-only label or a list with its own `max-height`; after a
+ * growth in which its overflow did not shrink it is set aside, and the growth
+ * made for it is undone.
  *
- * Every clipping box under the root is measured, found rather than listed: a
- * `Panel`'s body is the scroller in this kit and carries no marker, so a
- * hand-kept list of the ways content hides goes stale silently. The root grows
- * by the largest overflow and the tree is measured again, because growing can
- * reveal a little more.
- *
- * Only an overflow the root's height governs is worth growing for. A box of a
- * fixed height clips the same amount at any root height: a screen-reader-only
- * label clipped to 1px, or a list with its own `max-height`. After each growth
- * a box whose overflow did not shrink is set aside for good, and a growth made
- * on behalf of such a box is undone, so the root grows no taller than the
- * content it reveals.
+ * It is passed to `tab.evaluate`, so it closes over nothing and declares no
+ * named function inside: tsx's `keepNames` wraps one in a `__name(...)` helper
+ * that does not exist in the serialised page context.
  */
 export const growRootToContent = (): void => {
   const el = document.getElementById("root");

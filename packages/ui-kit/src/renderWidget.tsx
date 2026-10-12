@@ -19,7 +19,9 @@ import { useWidgetBadges } from "./useWidgetBadges";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
 /**
- * Options for {@link renderWidget}.
+ * The dashboard context a widget is drawn with in a test: its instance id,
+ * config, tile size and wrapper. Useful for drawing a widget as the operator's
+ * dashboard would at a given size. Taken by {@link renderWidget}.
  *
  * @category Testing
  */
@@ -176,9 +178,10 @@ const NOOP = () => {};
  * Renders a widget the way the dashboard does: by its registered id, inside the
  * provider stack the dashboard puts around one ({@link WidgetHost}). Useful for
  * showing what the operator sees of a widget, in a test or a picture. Used by
- * the built-in library's widget render harness. A bare
- * `render` omits that stack, so for instance a `Panel` status badge would never
- * appear. The widget must already be registered, which a widget's module does
+ * the built-in library's widget render harness.
+ *
+ * A bare `render` omits that stack, so for instance a `Panel` status badge
+ * would never appear. The widget must already be registered, which a widget's module does
  * when it is loaded by calling the sdk's `registerComponent`, so import that
  * module first; an unknown id throws and lists the registered ones.
  *

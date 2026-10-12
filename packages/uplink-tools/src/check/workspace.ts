@@ -91,11 +91,13 @@ function sourceOf(packageDir: string, target: string): string | undefined {
 }
 
 /**
- * When `clientDir` is inside the gonogo workspace, the TypeScript `paths` that
- * send each private workspace package's import specifiers to its source rather
- * than its built `.d.ts`, so the scan can read the hooks those packages export.
- * Elsewhere there is no such workspace and the result is empty: an Uplink sees
- * only what the published packages ship in their reads index.
+ * The TypeScript `paths` that send each private workspace package's import
+ * specifiers to its source rather than its built `.d.ts`, when `clientDir` is
+ * inside the gonogo workspace. Elsewhere there is no such workspace and the
+ * result is empty: an Uplink sees only what the published packages ship in
+ * their reads index. Useful for letting the telemetry-read scan see the hooks
+ * those packages export. Used by the program the `uplink-tools` check builds
+ * over an Uplink's client.
  */
 export function workspaceSourcePaths(
   clientDir: string,

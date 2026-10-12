@@ -21,7 +21,9 @@ import { createContext, type ReactNode, useContext } from "react";
 const SubscriberLabelContext = createContext<string | undefined>(undefined);
 
 /**
- * Name the widget that the telemetry reads inside `children` belong to. Mount
+ * Names the widget that the telemetry reads inside `children` belong to. Useful
+ * for telling which widget is responsible for a subscription when diagnosing
+ * telemetry load. Used by the widget renderer and the dashboard grid. Mount it
  * beside `WidgetMetaContext`, with the same `ComponentDefinition.id`.
  */
 export function TelemetrySubscriberLabel({
@@ -38,7 +40,11 @@ export function TelemetrySubscriberLabel({
   );
 }
 
-/** The mounting widget's id, or `undefined` outside one. */
+/**
+ * The id of the widget this component is mounted in, or `undefined` outside one.
+ * Useful for labelling a telemetry subscription with the widget that asked for it.
+ * Used by `useTelemetry`.
+ */
 export function useTelemetrySubscriberLabel(): string | undefined {
   return useContext(SubscriberLabelContext);
 }

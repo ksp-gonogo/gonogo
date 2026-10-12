@@ -35,13 +35,15 @@ const contributed = new Map<
 >();
 
 /**
- * Contribute `owner`'s derived channel. Prefer the bound
- * `defineUplinkClient(...).registerDerivedChannel`, which supplies the owner.
+ * Adds the derived channel `def` on behalf of `owner`, so a Topic computed from
+ * other Topics reads like any other. Useful for an Uplink that shows the
+ * operator a value joined from two Topics. Used by the Uplink client handle's
+ * `registerDerivedChannel`, which supplies the owner and is the call to prefer.
  *
- * Takes effect for stores built after this call, which is the ordinary case:
- * an Uplink client's module graph is imported before a provider mounts. A
- * store already built is not retrofitted, because a channel appearing
- * mid-session would change what a topic means underneath a mounted widget.
+ * It takes effect for stores built after this call, which is the ordinary case
+ * because an Uplink client is imported before a provider mounts. A store
+ * already built is left unchanged, so a Topic never changes meaning under a
+ * mounted widget.
  */
 export function contributeDerivedChannel<Payload>(
   def: DerivedChannelDefinition<Payload>,
@@ -58,17 +60,21 @@ export function contributeDerivedChannel<Payload>(
 const listeners = new Set<() => void>();
 
 /**
- * Fires whenever the set of contributed channels changes. A station's Uplink
- * bundles load only once it has a peer-backed client to read the roster off,
- * which is after its store exists, so a provider that reads this registry once
- * at construction sees an empty one. Returns an unsubscribe.
+ * Calls `listener` whenever the set of contributed channels changes, and returns
+ * a function that stops it. Useful for a screen whose Uplink bundles load after
+ * its store exists, as on a station, so that the Topics they add appear once
+ * loaded. Used by the hook that lists a Topic's fields.
  */
 export function onContributedChannelsChange(listener: () => void): () => void {
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
 
-/** A topic two or more Uplinks both contribute a channel for. */
+/**
+ * A Topic that two or more Uplinks both contribute a derived channel for, with
+ * the owners that disagree. Useful for telling the operator which Uplinks
+ * conflict. Returned by `getContributedChannelConflicts`.
+ */
 export interface ContributedChannelConflict {
   topic: string;
   /** The competing owners, sorted, all of them withheld. */
@@ -76,8 +82,9 @@ export interface ContributedChannelConflict {
 }
 
 /**
- * Every contested topic, for a host that wants to tell the operator which
- * Uplinks disagree. Mirrors `getReckonerConflicts` exactly.
+ * Every Topic that more than one Uplink contributes a derived channel for.
+ * Useful for telling the operator which Uplinks disagree. It works the same way
+ * as `getReckonerConflicts`.
  */
 export function getContributedChannelConflicts(): ContributedChannelConflict[] {
   const conflicts: ContributedChannelConflict[] = [];
@@ -90,9 +97,10 @@ export function getContributedChannelConflicts(): ContributedChannelConflict[] {
 }
 
 /**
- * The channels to actually register: every uncontested contribution. A
- * contested topic is registered by nobody, so reads of it stay `pending`
- * rather than resolving through a model chosen by import order.
+ * The derived channels to register on a store: every uncontested contribution.
+ * A contested Topic is registered by nobody, so reads of it stay `pending`.
+ * Useful for building the store a `TelemetryProvider` reads from. Used when the
+ * provider builds its default store.
  */
 export function getContributedDerivedChannels(): DerivedChannelDefinition<unknown>[] {
   const out: DerivedChannelDefinition<unknown>[] = [];
@@ -105,10 +113,10 @@ export function getContributedDerivedChannels(): DerivedChannelDefinition<unknow
 }
 
 /**
- * Every topic anyone contributes a channel for, with its owners. The
- * enumeration twin of {@link getContributedDerivedChannels}, which withholds
- * the contested ones and so cannot report that a topic was claimed at all.
- * Same shape and same reason as `getReckonedTopics`.
+ * Every Topic anyone contributes a derived channel for, with its owners,
+ * including the contested ones that {@link getContributedDerivedChannels}
+ * withholds. Useful for listing which Topics Uplinks add. It works the same way
+ * as `getReckonedTopics`.
  */
 export function getContributedChannelTopics(): {
   topic: string;

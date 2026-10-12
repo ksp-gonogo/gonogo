@@ -2,19 +2,24 @@ import { useCallback, useEffect, useRef } from "react";
 import type { TopicId, TopicPayload } from "../topics";
 import { useTelemetryClientOptional } from "./context";
 
-/** Ends one subscription started through `LateTelemetrySubscribe`. Safe to call more than once. */
+/**
+ * Ends one subscription started through `LateTelemetrySubscribe`. Useful for
+ * stopping a subscription before its component unmounts. Returned by
+ * `LateTelemetrySubscribe`. Safe to call more than once.
+ */
 export type Unsubscribe = () => void;
 
 /**
- * The imperative subscribe function `useLateTelemetrySubscribe` returns.
- * Two overloads, mirroring `useTelemetry`'s canonical/fallback split:
+ * The imperative subscribe function that {@link useLateTelemetrySubscribe}
+ * returns. Useful for subscribing to a Topic after some asynchronous setup
+ * completes. Used by the app's Uplink host. It has two overloads, matching
+ * `useTelemetry`:
  *
- * - a `TopicId` argument infers the payload type from `TopicPayloadMap`,
- *   the same canonical typing `useTelemetry(topic)` gives a static topic.
- * - a plain `string` argument (for a runtime-templated topic like
- *   `scansat.mask.${body}.${scanType}`, which has no fixed member in the
- *   `TopicId` union) falls back to an explicit `Payload` type argument at the
- *   call site.
+ * - a `TopicId` argument infers the payload type from `TopicPayloadMap`, the same
+ *   typing `useTelemetry(topic)` gives a static topic
+ * - a plain `string` argument (for a topic templated at runtime, such as
+ *   `scansat.mask.${body}.${scanType}`, which has no fixed member in the `TopicId`
+ *   union) takes an explicit `Payload` type argument at the call site
  */
 export interface LateTelemetrySubscribe {
   <Topic extends TopicId>(
@@ -28,32 +33,32 @@ export interface LateTelemetrySubscribe {
 }
 
 /**
- * Returns one stable `subscribe(topic, callback)` function, for subscribing
- * to Topics that are known only after some async setup resolves, in a number
- * decided at runtime. Useful where `useTelemetry` and `useStream` cannot
- * serve, since each of their call sites names its Topic on every render.
+ * Returns one stable `subscribe(topic, callback)` function, for subscribing to
+ * Topics that are known only after some async setup resolves, in a number decided
+ * at runtime. Useful where `useTelemetry` and `useStream` cannot serve, since each
+ * of their call sites names its Topic on every render. Used by the app's Uplink
+ * host.
  *
- * `subscribe` reads through the nearest `TelemetryProvider`'s
- * `TelemetryClient`: the last value is replayed synchronously on subscribe
- * and every later arrival is delivered as it lands, with no delay gating and
- * no per-frame coalescing.
+ * `subscribe` reads through the nearest `TelemetryProvider`'s `TelemetryClient`:
+ * the last value is replayed synchronously on subscribe and every later arrival is
+ * delivered as it lands, with no delay gating and no per-frame coalescing.
  *
  * The returned function:
- * - is stable across renders (safe to put in a `useCallback`/`useEffect`
- *   dependency array, or to close over once and call later),
- * - resolves the current client at call time, not the one seen at the
- *   render that produced it, so it keeps working when called from inside
- *   an async `.then()` well after this hook's own render,
- * - can be called any number of times, including zero,
- * - returns an idempotent `Unsubscribe`: calling it more than once, or
- *   after this hook's owner has already unmounted, is a no-op.
  *
- * Every subscription still open when the calling component unmounts is
- * torn down automatically. Call the returned `Unsubscribe` only to end a
- * subscription before unmount.
+ * - is stable across renders (safe in a dependency array, or to close over once and
+ *   call later)
+ * - resolves the current client at call time, so it keeps working when called from
+ *   inside an async callback well after this hook's own render
+ * - can be called any number of times, including zero
+ * - returns an idempotent `Unsubscribe`: calling it more than once, or after this
+ *   hook's owner has unmounted, does nothing
  *
- * With no `TelemetryProvider` mounted at call time it is a no-op that
- * returns a no-op `Unsubscribe`, and it does not throw.
+ * Every subscription still open when the calling component unmounts is torn down
+ * automatically. Call the returned `Unsubscribe` only to end a subscription before
+ * unmount.
+ *
+ * With no `TelemetryProvider` mounted at call time it does nothing and returns an
+ * `Unsubscribe` that does nothing. It does not throw.
  */
 export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
   // gonogo:reads none

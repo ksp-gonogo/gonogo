@@ -46,24 +46,20 @@ import {
  */
 
 /**
- * The browser engine a render runs in.
+ * The browser engine a render runs in. Useful for drawing pictures in the
+ * engine the committed pictures were generated with. Taken by
+ * {@link RenderOptions}.
  *
  * @category Rendering scenes
  */
 export type Engine = "chromium" | "firefox" | "webkit";
 
 /**
- * playwright, imported when an engine is actually launched.
- *
- * It is an optional peer of this package and this module's own header promises
- * that "a missing one fails with a named message rather than a resolution error".
- * That promise was false while the import sat at module scope: Node threw
- * ERR_MODULE_NOT_FOUND out of `dist/render.js` before a line of ours ran, which
- * is what an author copying the template met when they ran `npm run docs`, naming
- * a package they had never heard of and a file inside somebody else's dist.
- *
- * Only the values move. `Page` and `Locator` stay type-only imports, which erase,
- * so the signatures throughout this file keep their real types.
+ * The Playwright browser type for `name`, imported only when an engine is
+ * launched. Playwright is an optional peer, so a missing install fails with a
+ * message naming it. Useful for letting an author run the other `uplink-tools`
+ * commands without installing a browser. Used by the render driver before it
+ * launches a browser.
  */
 export async function engine(name: Engine) {
   let playwright: typeof import("playwright");
@@ -138,7 +134,10 @@ async function pinTheClock(page: Page): Promise<void> {
 }
 
 /**
- * Options for `renderUplink`.
+ * Options for {@link renderUplink}: the engine, the output directory, which
+ * scenes to draw and whether to keep a motion scene's frames. Useful for
+ * drawing one scene or one Uplink. Set from the flags of the `render` and
+ * `docs` commands.
  *
  * @category Rendering scenes
  */
@@ -170,7 +169,10 @@ export interface RenderOptions {
 }
 
 /**
- * One image or animation `renderUplink` wrote.
+ * One image or animation {@link renderUplink} wrote: its scene, size mode, file
+ * and shape. Useful for telling the author which pictures a render produced and
+ * whether they changed. Returned in {@link RenderResult} and read by the
+ * `docs` command's check.
  *
  * @category Rendering scenes
  */
@@ -188,8 +190,9 @@ export interface RenderedAsset {
 }
 
 /**
- * What `renderUplink` returns: what the Uplink registered, its scenes, and every
- * asset written.
+ * What {@link renderUplink} returns: what the Uplink registered, its scenes, and
+ * every picture written. Useful for writing the generated page from the
+ * pictures just drawn. Used by the `docs` command.
  *
  * @category Rendering scenes
  */
@@ -198,7 +201,12 @@ export interface RenderResult extends UplinkScenes {
   assets: RenderedAsset[];
 }
 
-/** What a probe page knows before any scene is mounted. */
+/**
+ * What a probe page knows before any scene is mounted: what the Uplink
+ * registered, its scenes, the registrations that have no scene and the font
+ * mode. Useful for building the page's text without drawing anything. Returned
+ * by {@link readUplinkScenes} and extended by {@link RenderResult}.
+ */
 export interface UplinkScenes {
   inventory: UplinkInventory;
   scenes: Scene[];
@@ -298,9 +306,11 @@ async function withProbe<Result>(
 }
 
 /**
- * Everything the page's prose is built from, with no scene mounted and no file
- * written. The registrations only exist once the client has run, which is why
- * this still opens a browser, but it renders nothing.
+ * Everything the page's text is built from, with no scene mounted and no file
+ * written. It still opens a browser, because the registrations only exist once
+ * the client has run, but it draws nothing. Useful for finding out whether the
+ * generated page is current without drawing pictures. Used by the `docs`
+ * command's check.
  */
 export async function readUplinkScenes(
   pkg: UplinkPackage,
@@ -311,7 +321,9 @@ export async function readUplinkScenes(
 
 /**
  * Renders every scene of an Uplink in a real browser and writes a PNG for each
- * still scene and a GIF for each animated one.
+ * still scene and a GIF for each animated one. Useful for showing an operator
+ * how each widget looks at each size it supports. Used by the `render` and
+ * `docs` commands.
  *
  * @category Rendering scenes
  */

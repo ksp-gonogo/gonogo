@@ -2,7 +2,10 @@ import type { KnownSitrepUnit } from "../__generated__/units";
 import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 
 /**
- * One unit's entry in {@link UnitDeclarations}.
+ * One unit's entry in {@link UnitDeclarations}: what it measures, its dimension,
+ * its size against the base unit and its ladder. Useful for declaring a unit of
+ * an Uplink's own so the compiler checks values in it. Checked against by
+ * {@link registerUnit}.
  *
  * Units with no dimension, such as `text`, `flag` and `id`, are declared so a
  * formatter knows what they are; they take no part in arithmetic.
@@ -56,10 +59,11 @@ type FirstPartyNonQuantities = {
 };
 
 /**
- * Every unit the type system knows. An Uplink declares its own units by
- * augmenting this interface, and from then on they are checked everywhere
- * Gonogo's are: `<Unit format>`, `<UnitSharedFormat>`, `<Band>`, `<Meter>`
- * and {@link registerUnit}.
+ * Every unit the type system knows. Useful for letting an Uplink show the
+ * operator its own units with the same checks as Gonogo's. An Uplink declares
+ * its own units by augmenting this interface, and from then on they are checked
+ * everywhere Gonogo's are: `<Unit format>`, `<UnitSharedFormat>`, `<Band>`,
+ * `<Meter>` and {@link registerUnit}.
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -76,7 +80,7 @@ type FirstPartyNonQuantities = {
  * @category Units and values
  */
 /*
- * It must stay an INTERFACE. `declare module` can only augment an interface,
+ * It must stay an interface. `declare module` can only augment an interface,
  * never a type alias, so biome's autofix to a `type` silently turns every
  * consumer's augmentation into a duplicate-identifier error. It extends the
  * first-party table rather than listing it, so an augmentation redeclaring a
@@ -89,7 +93,9 @@ export interface UnitDeclarations
     FirstPartyNonQuantities {}
 
 /**
- * Every declared unit symbol, first-party or merged in by an Uplink.
+ * Every declared unit symbol, first-party or merged in by an Uplink. Useful for
+ * naming a unit with a compile-time check that it is declared. Taken by
+ * {@link registerUnit}.
  *
  * @category Units and values
  */

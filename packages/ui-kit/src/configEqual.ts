@@ -1,7 +1,8 @@
 /**
- * Value equality for widget config objects, as {@link useModalSaveBar} uses
- * it to decide whether a draft differs from the saved config. Call it yourself
- * only to build a dirty check of your own.
+ * Value equality for widget config objects. Useful for deciding whether the
+ * operator has changed a widget's configuration since it was saved. Used by
+ * {@link useModalSaveBar} to decide whether a draft differs from the saved
+ * config; call it yourself only to build a dirty check of your own.
  *
  * - `undefined` and a missing key are treated the same
  * - object key order is ignored

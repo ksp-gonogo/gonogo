@@ -25,14 +25,17 @@ import { getHost } from "./host";
 import type { UplinkClientHandle } from "./types";
 
 /**
- * Which clock a threshold alarm is judged on:
+ * Which clock a threshold alarm is judged on, the command centre's or the
+ * vessel's. Useful for letting an alarm fire when the operator learns of a
+ * condition, or when the condition is true at the vessel. Set through the
+ * `vantage` of {@link UplinkAlarmThresholdTrigger}:
  *
  * - `"command"`, the default when a threshold names no vantage: what the
- *   command centre this screen commands
- *   from has been told. A craft's value reaches it one signal delay late, so
- *   the alarm stops time warp when the centre learns of the condition
- * - `"scet"`: the craft's own clock. The alarm stops time warp when the
- *   condition is true at the craft
+ *   command centre this screen commands from has been told. A vessel's value
+ *   reaches it one signal delay late, so the alarm stops time warp when the
+ *   centre learns of the condition
+ * - `"scet"`: the vessel's own clock. The alarm stops time warp when the
+ *   condition is true at the vessel
  *
  * This is only what the request asks for. The alarm the mod then holds records
  * the place it is judged at as `ScetAlarm.vantage`, a `commandCentre.roster`
@@ -47,7 +50,9 @@ import type { UplinkClientHandle } from "./types";
 export type UplinkAlarmVantage = "command" | "scet";
 
 /**
- * Fires at a fixed universal time.
+ * An alarm that fires at a fixed universal time. Useful for warning the
+ * operator before a known event, such as a facility upgrade finishing. Used as
+ * the `trigger` of an {@link UplinkAlarmRequest}.
  *
  * @category Alarms
  */
@@ -57,22 +62,25 @@ export interface UplinkAlarmTimeTrigger {
   /** KSP universal time to fire at, seconds. */
   ut: number;
   /**
-   * Seconds before `ut` to drop out of time warp, so the player has time to
+   * Seconds before `ut` to drop out of time warp, so the operator has time to
    * act. Omitted, Gonogo's default is used.
    */
   leadSeconds?: number;
 }
 
 /**
- * The comparison a threshold makes.
+ * The comparison a threshold alarm makes between a Topic field and its value.
+ * Used as the `op` of {@link UplinkAlarmThresholdTrigger}.
  *
  * @category Alarms
  */
 export type UplinkAlarmThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
 
 /**
- * Fires while a numeric field of a Topic compares true against `value`. The
- * Topic and the path inside its payload are given separately.
+ * An alarm that fires while a numeric field of a Topic compares true against
+ * `value`. The Topic and the path inside its payload are given separately.
+ * Useful for warning the operator when a reading, such as altitude, crosses a
+ * limit. Used as the `trigger` of an {@link UplinkAlarmRequest}.
  *
  * @category Alarms
  */
@@ -98,6 +106,8 @@ export interface UplinkAlarmThresholdTrigger {
 
 /**
  * When a requested alarm fires: at a time, or when a value crosses a threshold.
+ * Useful for telling the operator's alarm list what to watch. Used as the
+ * `trigger` of an {@link UplinkAlarmRequest}.
  *
  * @category Alarms
  */
@@ -106,7 +116,9 @@ export type UplinkAlarmTrigger =
   | UplinkAlarmThresholdTrigger;
 
 /**
- * An alarm an Uplink asks Gonogo to create, through {@link useAlarmRequest}.
+ * An alarm an Uplink asks Gonogo to create, with its key, name and trigger.
+ * Useful for adding a warning to the operator's alarm list. Passed to the
+ * function {@link useAlarmRequest} returns.
  *
  * @category Alarms
  */
@@ -115,11 +127,11 @@ export interface UplinkAlarmRequest {
    * Your Uplink's name for what the alarm is about, such as
    * `"facility-upgrade:LaunchPad"`. Other Uplinks' keys never clash with yours.
    * A request with a key you already have an alarm for updates that alarm
-   * rather than adding another. If the player deleted the alarm, the next
+   * rather than adding another. If the operator deleted the alarm, the next
    * request with that key creates a new one.
    */
   key: string;
-  /** The alarm's name, as the player reads it. Name the event, not the Uplink. */
+  /** The alarm's name, as the operator reads it. Name the event, not the Uplink. */
   name: string;
   /** Optional longer note on the row. */
   notes?: string;

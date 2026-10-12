@@ -15,7 +15,10 @@ import {
 } from "./units";
 
 /**
- * What kind of value a field holds, worked out from its declared unit.
+ * What kind of value a field holds, worked out from its declared unit. Useful
+ * for offering the operator only the fields that suit a control, such as the
+ * quantities that can be plotted or compared with a threshold. Used by the
+ * catalogue of fields a data picker offers.
  *
  * - `quantity`: a measured or counted number, including dimensionless ones
  * - `flag`: a true or false
@@ -38,6 +41,8 @@ export type TopicFieldKind =
 /**
  * How an `enum` field's value reads as a word: by looking its ordinal up in
  * `names`, or as it is when the payload already carries the member's name.
+ * Useful for showing the operator the name of a mode or state and not its
+ * number. Used by the catalogue of fields a data picker offers.
  *
  * @category Reading telemetry
  */
@@ -54,7 +59,9 @@ export type EnumEncoding =
     };
 
 /**
- * One field of a Topic, as {@link enumerateTopicFields} lists it.
+ * One field of a Topic, with its path, unit and kind. Useful for offering the
+ * operator a list of the fields a Topic carries. Returned by
+ * {@link enumerateTopicFields}.
  *
  * @category Reading telemetry
  */
@@ -174,9 +181,13 @@ function walk(
 }
 
 /**
- * Returns every field declared under `topic`, as paths dotted from the Topic
- * root and sorted by path. Nested types are listed field by field, and a
- * `collection` field is listed but not entered.
+ * Every field declared under `topic`, as paths dotted from the Topic root and
+ * sorted by path. Useful for building a picker that lets the operator choose
+ * which field of a Topic to show or plot. Used by the catalogue of fields a
+ * data picker offers.
+ *
+ * Nested types are listed field by field, and a `collection` field is listed
+ * but not entered.
  *
  * Includes the fields of Topics an Uplink has registered. A Topic with no
  * declared units or shapes returns an empty array, which means the Topic is

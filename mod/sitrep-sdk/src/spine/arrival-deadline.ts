@@ -3,17 +3,27 @@ import { commandRail } from "../commands";
 import { isValue } from "../unit-system/value";
 import type { ViewClockView } from "./context";
 
-/** Why a command was refused for arriving too late, in the words its refusal carries. */
+/**
+ * Why a command was refused for arriving too late, in the words its refusal
+ * carries. Useful for telling the operator that a command would reach the vessel
+ * after the time it acts at. Used by {@link useCommand}.
+ */
 export const LATE_ARRIVAL_DETAIL =
   "it would reach the craft at or after the time it acts at";
 
-/** The code a late-arrival refusal carries: the argument is out of the range the command can still act on. */
+/**
+ * The code a late-arrival refusal carries: the argument is out of the range the
+ * command can still act on. Useful for telling a command refused for arriving
+ * too late from other refusals. Used by {@link useCommand}.
+ */
 export const LATE_ARRIVAL_ERROR_CODE = CommandErrorCode.Range;
 
 /**
- * When a command sent now reaches the craft: the send time plus the one-way
+ * When a command sent now reaches the vessel: the send time plus the one-way
  * signal delay, or the send time itself for a command that does not ride the
- * delay. `undefined` before the clock has anything to say.
+ * delay. `undefined` before the clock has anything to say. Useful for checking a
+ * command against the time it acts at before it leaves the command centre. Used
+ * by {@link useCommand}.
  */
 export function arrivalUtOf(
   clock: Pick<ViewClockView, "viewUt" | "scetUt" | "commandArrivalUt">,
@@ -25,10 +35,12 @@ export function arrivalUtOf(
 }
 
 /**
- * Whether `command` would reach the craft at or after the UT it acts at, read
+ * Whether `command` would reach the vessel at or after the UT it acts at, read
  * off the args field its declaration names. A command that declares no such
  * field, args that do not carry it, or an unknown arrival judge nothing: the
- * mod stays the authority there.
+ * mod stays the authority there. Useful for refusing a command that would
+ * arrive too late before the operator waits out the delay. Used by
+ * {@link useCommand}.
  */
 export function arrivesTooLate(
   command: string,

@@ -3,7 +3,8 @@ import { fitBox } from "./fitBox";
 import { focusRing } from "./focusRing";
 
 /**
- * Props for {@link FilterChip}.
+ * Props for {@link FilterChip}: its label, whether it is selected, an optional
+ * count and the toggle handler.
  *
  * @category FilterList
  */

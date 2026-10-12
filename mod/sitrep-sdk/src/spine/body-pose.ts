@@ -25,6 +25,9 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  * - `withdrawn`: there is no place to draw it, because its elements or its
  *   parent's are missing
  *
+ * Useful for drawing a body differently when the operator's picture of it is
+ * modelled or out of date. Held by {@link BodyPose}; used by the system view.
+ *
  * @category Solar system and fleet
  */
 export type BodyPoseCurrency = "exact" | "modelled" | "held" | "withdrawn";
@@ -32,7 +35,8 @@ export type BodyPoseCurrency = "exact" | "modelled" | "held" | "withdrawn";
 /**
  * Where one body is at the instant on screen, and how that is known. Positions
  * and velocities are relative to the root body, in metres and m/s, in the
- * catalogue's axes.
+ * catalogue's axes. Useful for drawing a body on a solar system diagram or
+ * measuring the angle between two bodies. Held by {@link SystemPoses}.
  *
  * @category Solar system and fleet
  */
@@ -56,7 +60,9 @@ export interface BodyPose {
 }
 
 /**
- * Every body's {@link BodyPose} at the instant on screen.
+ * Every body's {@link BodyPose} at the instant on screen. Useful for drawing the
+ * whole solar system at once. Returned by {@link systemPosesAt}; used by the
+ * system view, the transfer window planner and the kit's ephemeris figure.
  *
  * @category Solar system and fleet
  */
@@ -89,7 +95,9 @@ function withdrawnPose(body: CelestialBody): BodyPose {
  * instant, cut back to the end of its own horizon, to its parent's instant (a
  * moon hangs off wherever its planet is placed), and, for a body whose position
  * is not a fixed fact, to the instant the catalogue was last current:
- * `catalogueAsOfUt`, which is null while the catalogue is arriving.
+ * `catalogueAsOfUt`, which is null while the catalogue is arriving. Useful for
+ * placing the bodies of the solar system for the operator at one instant. Used
+ * by the system view and by the phase angle hook.
  *
  * @category Solar system and fleet
  */
@@ -208,7 +216,8 @@ export function systemPosesAt(
 
 /**
  * Returns the pose of the body with this index, or `null` when the instant has
- * none for it.
+ * none for it. Useful for finding one body on a solar system diagram. Used by
+ * the system view and the kit's ephemeris figure.
  *
  * @category Solar system and fleet
  */
@@ -226,6 +235,7 @@ const NO_POSES: SystemPoses = { ut: Number.NaN, poseByIndex: {} };
  * Where every body is at the instant on screen, computed once per frame and
  * shared by every reader. Read it with {@link useSystemInstant} or
  * `useProcessor(SYSTEM_POSES)`. Do not register a processor with the same id.
+ * Useful for drawing the solar system with every body where it is now.
  *
  * The catalogue's orbits are facts, so a body on a fixed orbit is `exact` at
  * any instant. Where the elements are only the conic tangent to an integrated

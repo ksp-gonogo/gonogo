@@ -2,18 +2,23 @@ import { rotateInertialToPerifocal, solve } from "./kepler";
 import { buildElements, type WireOrbitElements } from "./kepler-reckoning";
 import type { TrajectoryPoint } from "./orbit-trajectory";
 
-/** One `vessel.orbit` sample and the instant it was true; a `null` payload is a tombstone, the craft having no orbit then (on the pad). */
+/**
+ * One `vessel.orbit` sample and the instant it was true. Useful for rebuilding
+ * where the vessel has been. Taken by {@link pastTrack}. A `null` payload is a
+ * tombstone: the vessel had no orbit then (on the pad).
+ */
 export interface OrbitSample {
   payload: (WireOrbitElements & { referenceBodyIndex?: number }) | null;
   validAt: number;
 }
 
 /**
- * Where the craft has been, as points solved from the orbit samples received
- * for each instant. It is a record of what was reported, never the current
- * elements run backwards. Used by the orbit diagram to draw the trail behind
- * the craft, which it draws differently from the predicted arc ahead.
+ * Where the vessel has been, as points solved from the orbit samples received
+ * for each instant. Useful for showing the operator the trail behind the vessel.
+ * Used by the orbit diagram, which draws it differently from the predicted arc
+ * ahead.
  *
+ * It is a record of what was reported, never the current elements run backwards.
  * The points are expressed in the perifocal frame of `frame`, the elements the
  * diagram was drawn from. `frame` is required and has no default.
  */

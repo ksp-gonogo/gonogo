@@ -60,6 +60,8 @@
 
 /**
  * One frame handed to the pacer: its capture UT (for spacing) and payload.
+ * Useful for presenting video or audio at the intervals it was captured at.
+ * Taken by {@link PresentationPacer.submit}.
  *
  * @category Delayed video
  */
@@ -71,7 +73,8 @@ export interface PacedFrame<Frame> {
 }
 
 /**
- * Options for a new `PresentationPacer`.
+ * Options for a new {@link PresentationPacer}: the callbacks that present and
+ * skip frames, and the limits on backlog and playout rate.
  *
  * @category Delayed video
  */
@@ -118,7 +121,9 @@ const DEFAULT_MAX_RATE_DEPARTURE = 0.2;
  * Spaces out frames that were released together, so they are shown at the
  * intervals they were captured at rather than all at once. It only ever delays a
  * frame, never shows one early. Drive it by calling `tick` with the wall-clock
- * time.
+ * time. Useful for keeping delayed video and radio audio smooth when the
+ * telemetry clock releases them in bursts. Used by the radio session and by the
+ * video delay pipeline.
  *
  * @category Delayed video
  */

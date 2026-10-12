@@ -18,7 +18,9 @@ import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
  * One slot's row in a widget's contribution store: the full slot id and the
- * entries its contributions produced, in render order.
+ * entries its contributions produced, in render order. Useful for showing the
+ * operator what Uplinks contribute to a widget. Held in the store behind
+ * {@link useContributions}.
  *
  * @category Extensions
  */
@@ -98,11 +100,11 @@ function useAllContributionSlots(): readonly ContributionSlotEntry[] {
 }
 
 /**
- * The entries contributed to the slot with the full id `slot`, untyped. Used by
- * {@link StatContributions}. Empty
- * when nothing contributes or no contribution store is mounted. Prefer
- * {@link useContributions}, which types the entries from the slot's
- * declaration; use this for a slot id built at runtime.
+ * The entries contributed to the slot with the full id `slot`, untyped. Empty
+ * when nothing contributes or no contribution store is mounted. Useful for
+ * showing the operator what Uplinks add to a slot whose id is built at runtime.
+ * Used by {@link StatContributions}. Prefer {@link useContributions}, which
+ * types the entries from the slot's declaration.
  *
  * @category Extensions
  */

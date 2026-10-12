@@ -20,7 +20,9 @@ export type Quantityish =
 
 /**
  * Returns the number inside a quantity, or `null` when it is absent or not
- * finite. A plain number is returned as it is.
+ * finite. A plain number is returned as it is. Useful for computing with a
+ * quantity or drawing from it (an orbit calculation, a coordinate). Used by the
+ * kit's band and unit-formatting components.
  *
  * @category Units and values
  */
@@ -31,8 +33,9 @@ export function magnitudeOf(v: Quantityish): number | null {
 
 /**
  * Returns the number inside a quantity, or `fallback` when it is absent or
- * not finite. Only for a calculation that needs a number either way: to show a
- * missing value, show it as missing rather than as `fallback`.
+ * not finite. Useful only for a calculation that needs a number either way: to
+ * show a missing value, show it as missing rather than as `fallback`. Used by
+ * the kit's meter.
  *
  * @category Units and values
  */
@@ -43,7 +46,8 @@ export function magnitudeOr(v: Quantityish, fallback: number): number {
 /**
  * Returns `value` as a {@link Quantityish} when it is one, and `undefined` when
  * it is not, such as a string where a number was expected. Use it on data
- * whose type is not known before passing it to {@link magnitudeOf}.
+ * whose type is not known before passing it to {@link magnitudeOf}. Used when
+ * a widget parses a value of unknown type, such as the admin building's fields.
  *
  * @category Units and values
  */

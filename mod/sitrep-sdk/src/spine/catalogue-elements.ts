@@ -2,7 +2,11 @@ import { PropagationHorizonKind } from "../__generated__/contract";
 import type { CelestialBody, CelestialFacts } from "./celestial-facts";
 import type { OrbitElements } from "./kepler";
 
-/** How far up a parent chain a walk goes before giving up. Star, planet, moon, submoon is four. */
+/**
+ * How far up a parent chain a walk goes before giving up. Star, planet, moon,
+ * submoon is four. Useful for placing moons of moons on a solar system diagram
+ * without looping on a bad catalogue. Used by the body poses.
+ */
 export const MAX_PARENT_DEPTH = 8;
 
 export function finite(x: number | null | undefined): x is number {
@@ -18,7 +22,8 @@ function degToRad(deg: number): number {
  * solver wants, or null when the catalogue has not filled them.
  *
  * The root star has no elements and is not a failure: it is the origin of
- * everything here, and null is how it says so.
+ * everything here, and null is how it says so. Useful for placing a body on its
+ * orbit around its parent. Used by the body poses.
  */
 export function elementsOf(
   body: CelestialBody,
@@ -66,7 +71,8 @@ export function parentOf(
  * fault empties the system diagram rather than making it honest. A caller that
  * wants to know the shape has `body.horizon.trajectoryKind` beside this and can
  * refuse a conic renderer on it; what this function will not do is invent a
- * number nobody stated, in either direction.
+ * number nobody stated, in either direction. Useful for telling the operator how
+ * far ahead a body's position can be trusted. Used by the body poses.
  */
 export function horizonUt(body: CelestialBody): number | null {
   const horizon = body.horizon;

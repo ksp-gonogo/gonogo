@@ -46,24 +46,23 @@ import {
 import type { SystemInstant } from "./reference-frame";
 
 /**
- * The slice of a `fleet.<guid>.orbit` payload a peer's position needs: the
- * elements, and the body they are measured about. Structural rather than the
- * generated `VesselOrbit`, on the same terms as `ConicOrbitInput`: a payload
- * passes without a cast, and a caller holding only the elements need not
- * manufacture a patch chain and a horizon to be allowed to place a relay.
+ * The orbit elements of a relay vessel and the body they are measured about,
+ * the part of a `fleet.<guid>.orbit` payload needed to place that relay. Useful
+ * for finding where the far end of a comms hop is. Taken by `locateCommsPeer`
+ * and by the `comms.delay` reckoner.
  */
 export type CommsPeerOrbit = WireOrbitElements & { referenceBodyIndex: number };
 
 const DEG = Math.PI / 180;
 
 /**
- * The body's rotation angle at `ut`, degrees, in KSP's own definition:
- * `initialRotation + 360 · ut / rotationPeriod`, the expression
- * `CelestialBody.updateBody` evaluates every frame. Unwrapped, because every
- * caller feeds it to a sine and a cosine.
+ * The body's rotation angle at the UT `ut`, in degrees, as
+ * `initialRotation + 360 · ut / rotationPeriod`. The angle is not wrapped to a
+ * single turn. Useful for turning a point fixed to a body's surface into a
+ * position in space. Used by `surfacePositionAt`.
  *
- * Null when the body does not rotate, or when either half of the pair is
- * missing: half a phase places nothing.
+ * Null when the body does not rotate, or when its initial rotation or rotation
+ * period is missing.
  */
 export function bodyRotationAngleDegAt(
   body: CelestialBody,
@@ -76,16 +75,15 @@ export function bodyRotationAngleDegAt(
 }
 
 /**
- * A body-fixed surface point as a body-centred inertial position at `ut`.
+ * A point on a body's surface as a position relative to the body's centre at
+ * the UT `ut`, in metres. Useful for placing a ground station in the same frame
+ * as a propagated vessel. Used by `commsPeerPositionAt`.
  *
- * `latitudeDeg`/`longitudeDeg` are the wire's geographic pair; `altitudeMetres`
+ * `latitudeDeg` and `longitudeDeg` are the wire's geographic pair. `altitudeMetres`
  * is height above the body's mean radius, and 0 is the right value for a ground
- * station, whose altitude the roster does not carry (KSC sits some tens of
- * metres up, a signal delay well under a microsecond).
+ * station, whose altitude the roster does not carry.
  *
- * Null when the body carries no radius or no rotation phase. Returning the
- * body-fixed vector unturned would be a confidently wrong position where a
- * refusal is the honest answer.
+ * Null when the body carries no radius or no rotation phase.
  */
 export function surfacePositionAt(
   body: CelestialBody,
@@ -118,8 +116,10 @@ export function surfacePositionAt(
 }
 
 /**
- * A hop endpoint located well enough to be propagated: a point turning with a
- * body's surface, or a craft on an orbit about one.
+ * The far end of a comms hop, placed well enough to be propagated: a ground
+ * station turning with a body's surface, or a vessel on an orbit about a body.
+ * Useful for working out how far the vessel is from its first-hop peer. Returned
+ * by `locateCommsPeer` and taken by `commsPeerPositionAt`.
  */
 export type CommsPeerLocation =
   | {
@@ -131,19 +131,23 @@ export type CommsPeerLocation =
     }
   | { kind: "orbiting"; bodyIndex: number; elements: OrbitElements };
 
-/** The far end of a hop: its node id, and whether that node is a ground station. */
+/**
+ * The far end of a comms hop: its node id, and whether that node is a ground
+ * station. Returned by `firstHopPeer` and taken by `locateCommsPeer`.
+ */
 export interface CommsPeerEndpoint {
   id: string;
   isHome: boolean;
 }
 
 /**
- * The far end of the first hop, or null when there is no path home.
+ * The far end of the vessel's first comms hop, or null when there is no path
+ * home. Useful for finding which node the vessel talks to first. Used by the
+ * `comms.delay` reckoner.
  *
- * `hops` is ordered craft-to-centre (`CommsBackendBase.Path` preserves the
- * backend's own order onto `from`/`to`), so the craft is `hops[0].from` and its
- * peer is `hops[0].to`. The last hop's far end is the command centre, which on a
- * multi-hop path is a different node entirely.
+ * `hops` is ordered from the vessel to the command centre, so the vessel is
+ * `hops[0].from` and its peer is `hops[0].to`. On a multi-hop path the last
+ * hop's far end is the command centre, a different node.
  */
 export function firstHopPeer(
   hops: readonly CommsHop[] | undefined,
@@ -154,13 +158,15 @@ export function firstHopPeer(
 }
 
 /**
- * Locate a hop endpoint against the two channels that can say where it is.
+ * Places a comms hop endpoint using the two channels that can say where it is,
+ * or returns null when neither does. Useful for finding the position of the
+ * ground station or relay at the far end of a hop. Used by the `comms.delay`
+ * reckoner.
  *
  * A ground-station endpoint joins to `commandCentre.roster` by display name,
- * because the two id spaces differ: a hop carries the station's own name
- * (`CommNetBackend.NodeId`) where a roster entry carries `"ground:<name>"`.
- * Two stations sharing a name collapse to one hop id, so this join cannot tell
- * them apart, and neither can the hop: the ambiguity starts upstream of here.
+ * because a hop carries the station's own name where a roster entry carries
+ * `"ground:<name>"`. Two stations sharing a name have one hop id, so they
+ * cannot be told apart.
  *
  * A relay endpoint joins to `fleet.<guid>.orbit` directly, both keying on the
  * bare vessel guid.
@@ -196,15 +202,17 @@ export function locateCommsPeer(
 }
 
 /**
- * A located peer's root-centred position at `ut`.
+ * A placed peer's position at the UT `ut`, in metres relative to the system's
+ * root body rather than the peer's own body, so a station on one body and a
+ * vessel about another can be subtracted directly. Useful for measuring the
+ * distance from the vessel to its first-hop peer. Used by the `comms.delay`
+ * reckoner.
  *
- * Root-centred rather than body-centred so a station on one body and a craft
- * about another subtract directly. `system` is the whole catalogue solved at the
- * same `ut`: one instant serves every peer in a frame, where re-solving a body's
- * parent chain per peer is the usual way this gets slow.
+ * `system` is every body of the catalogue solved at that same `ut`, so one
+ * instant serves every peer in a frame.
  *
- * Null when the peer's body is not in the instant (its parent chain would not
- * solve) or the peer's own solve refuses, as it does for a parabolic orbit.
+ * Null when the peer's body is not in the instant or the peer's own solve
+ * refuses, as it does for a parabolic orbit.
  */
 export function commsPeerPositionAt(
   peer: CommsPeerLocation,

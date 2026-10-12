@@ -31,11 +31,10 @@ export interface ZipEntry {
 }
 
 /**
- * The bytes of a zip holding `entries`, deflated.
- *
- * Every entry carries the same fixed timestamp, so the same files give the same
- * archive: a zip that differs on every build cannot be compared with the one
- * that was released.
+ * The bytes of a deflated zip holding `entries`. Every entry carries the same
+ * fixed timestamp, so the same files give the same archive. Useful for
+ * building the GameData zip of an Uplink's mod half so it can be compared with
+ * the one that was released. Used by the `package` command.
  */
 export function zipArchive(entries: readonly ZipEntry[]): Buffer {
   // 1980-01-01 00:00, the earliest date the format can state.

@@ -8,7 +8,9 @@ const NULL_SUMMARY = (): StatusSummary | null => null;
 /**
  * The panel's winning status contribution (see {@link StatusSummary}), or
  * `null` when nothing has contributed or there is no {@link PanelStatusStore}
- * above. Re-renders only when the winner changes.
+ * above. Useful for drawing the one summary badge the operator reads in a
+ * panel's header. Used by {@link Panel}. Re-renders only when the winner
+ * changes.
  *
  * @category Panel
  */

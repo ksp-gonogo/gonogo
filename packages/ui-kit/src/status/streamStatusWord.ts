@@ -27,8 +27,12 @@ const STREAM_STATUS_WORD: Readonly<Record<StreamStatusValue, string | null>> = {
 };
 
 /**
- * The short uppercase word a badge or caption prints for a `StreamStatusValue`,
- * or `null` for `"live"`, which shows nothing:
+ * The short word a badge or caption prints for a `StreamStatusValue`, or `null`
+ * for `"live"`, which shows nothing. Useful for telling the operator in a word
+ * why a figure is not a live reading. Used by {@link StreamStatusBadge} and
+ * {@link Panel}.
+ *
+ * The words:
  *
  * - `"held"`: `HELD`
  * - `"disconnected"`: offline
@@ -50,7 +54,9 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
 /**
  * The word for a held reading's grade, the same word {@link formatStreamStatus}
  * gives the status of that name, or `HELD` when no grade is given, as for a
- * value combined from several readings.
+ * value combined from several readings. Useful for telling the operator in a
+ * word why a figure is held. Used by {@link HeldBadge} and the target picker's
+ * rows.
  *
  * @category Badge
  */

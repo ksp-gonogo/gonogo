@@ -2,19 +2,13 @@ import { hasHost } from "../api/host";
 import { logger } from "../api/logger";
 
 /**
- * The mod refused something about the connection itself: not a reply to any
- * command, and not about any one channel.
+ * The warning text for an `error` frame in which the mod refused something about
+ * the connection itself: one that is neither a reply to a command nor about any
+ * one channel. Useful for telling a developer why a frame sent to the mod was
+ * dropped. Used by `warnConnectionError`.
  *
- * Third sibling of `warnChannelError` and `installUnownedTopicWarning`, for the
- * frames that belong to neither. An `error` carrying a requestId is a command's
- * reply and an `error` carrying a topic is a channel that broke at the wire;
- * what was left over reached the command correlator, which returns immediately
- * on a missing requestId, and died there. The mod had already written the
- * sentence that explains the fault and the author never saw it.
- *
- * Two live producers today, both of them useful and both of them otherwise
- * invisible: `binaryFrameNotAccepted` (a binary-lane frame sent up the
- * socket, which nothing accepts) and the `unknownVantage` refusal of a
+ * Two refusals reach it: `binaryFrameNotAccepted` (a binary-lane frame sent up
+ * the socket, which nothing accepts) and the `unknownVantage` refusal of a
  * `set-vantage`, whose envelope carries no requestId to correlate by.
  */
 export function connectionErrorMessage(code: string, message: string): string {
@@ -28,13 +22,13 @@ export function connectionErrorMessage(code: string, message: string): string {
 }
 
 /**
- * Reported at the point the client would otherwise discard the frame: an error
- * carrying neither a requestId nor a topic correlates to nothing, so the
- * command correlator drops it and there is nothing else downstream to notice.
+ * Logs the connection-error warning for an `error` frame that carries neither a
+ * requestId nor a topic, which would otherwise be dropped unreported. Useful for
+ * telling a developer why a frame sent to the mod was refused. Used by the
+ * stream client when it receives such a frame.
  *
- * Once per code per session, the same budget `warnChannelError` keeps: a client
- * that sends one bad binary frame usually sends many, and reprinting the same
- * sentence per frame buries it.
+ * Each `code` is logged once, then recorded in `warned`. Nothing is logged when
+ * no host is installed.
  */
 export function warnConnectionError(
   warned: Set<string>,

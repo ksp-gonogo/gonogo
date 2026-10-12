@@ -9,9 +9,11 @@ import { subscribeTopicRead } from "./subscribe-read";
 
 /**
  * Reactively reads `topic`, raw or derived, as a {@link TopicReading}: the
- * latest value together with how current it is. Used for a Topic with no
- * `TopicId` member, such as a per-subject dynamic Topic. A typed Topic is read
- * with `useTelemetry`.
+ * latest value together with how current it is. Useful for showing the operator
+ * a Topic that has no `TopicId` member, such as a per-subject dynamic Topic
+ * (a vessel's contact or link state). Used by the fleet hooks that read a
+ * vessel's contact, delay and resources. A typed Topic is read with
+ * `useTelemetry`.
  *
  * The caller branches on the reading first: `observed` is current, `held` is
  * the last real observation (with its instant and grade), and `pending`,
@@ -93,11 +95,13 @@ const NO_PROVIDER = topicReading<never>({
 
 /**
  * Reactively reads the latest raw value received for `topic`, with no
- * view-time gating: the value is shown the moment it arrives. Used for Topics
- * that describe the command centre's own present, such as
+ * view-time gating: the value is shown the moment it arrives. Useful for
+ * showing the operator Topics that describe the command centre's own present,
+ * such as
  * `system.uplink.pending` and `system.uplink.gates`, and for `comms.delay` and
- * `comms.path`. Telemetry from a craft is read with `useStream`, which shows
- * it at the view time.
+ * `comms.path`. Telemetry from a vessel is read with `useStream`, which shows
+ * it at the view time. Used by the signal delay readout and the command stream
+ * controls.
  *
  * Raw Topics only: a derived channel is never visible here. `undefined` with
  * no `TelemetryProvider` mounted, or before anything has arrived for `topic`.

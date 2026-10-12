@@ -159,32 +159,18 @@ export function registerTopicUnits(
   noteRuntimeTopicMetadata();
 }
 
-/**
- * The TYPE-keyed half of the same registry, and it is not optional the moment a
- * relocated payload has any nesting.
- *
- * `registerTopicUnits` above covers a Topic's own fields, which is the whole of
- * the problem for a flat relocated type and none of it for a nested one:
- * `wrapTopicPayload` reads `shapesForTopic` to learn that a field holds
- * another shape, then recurses through `wrapTypePayload`, which resolves that
- * shape by name through `unitsForType`/`shapesForType`. Those read the
- * type-keyed generated maps, so a relocated nested type is unreachable from the
- * topic registration alone and its quantities arrive bare while the generated
+/*
+ * The type-keyed half of the registry above. A Topic's own registration covers
+ * its own fields only: the payload wrap learns from `shapesForTopic` that a field
+ * holds another shape and then resolves that shape by name through
+ * `unitsForType` and `shapesForType`, which read the type-keyed maps. A nested
+ * type registered only by topic arrives with bare numbers while the generated
  * type still says `Value<"m">`.
  *
- * `scansat.scanningVessels` is the case that forced it (the fourth relocation,
- * the first with nesting): its `sensors` field holds `ScanSensorEntry[]`, whose
- * its minimum, maximum and best altitude and field of view are the deepest declared quantities on the
- * SCANsat surface, and `trackColor` holds a nested colour shape. Registering only
- * the topic would hydrate the vessel's own latitude/longitude/altitude and
- * silently drop every sensor altitude.
- *
- * Last write wins for a given type name, same as the topic registry, so a
- * double import of the same Uplink client is harmless. Type names live in one
- * flat namespace across Uplinks, the same way the generated maps already do;
- * an Uplink should keep its contract type names distinctive (a
- * per-Uplink prefix), which every relocated slice
- * already does.
+ * Last write wins for a given type name, as for topics, so a double import of
+ * the same Uplink client is harmless. Type names share one flat namespace across
+ * Uplinks, like the generated maps, so an Uplink keeps its contract type names
+ * distinctive with a prefix.
  */
 const registeredTypeUnits = new Map<string, UnitsByField>();
 const registeredTypeShapes = new Map<string, ShapesByField>();

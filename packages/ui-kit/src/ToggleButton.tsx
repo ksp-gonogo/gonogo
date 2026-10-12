@@ -5,14 +5,17 @@ import { Button } from "./Button";
 
 /**
  * The fill a pressed {@link ToggleButton} takes: `go`, or `nogo` / `warn` when
- * being on is destructive or needs attention.
+ * being on is destructive or needs attention. Useful for telling the operator
+ * at a glance how serious an active option is. Taken by the `tone` prop of
+ * {@link ToggleButton}.
  *
  * @category Button
  */
 export type ToggleButtonTone = Extract<Tone, "go" | "nogo" | "warn">;
 
 /**
- * {@link ToggleButton}'s size, the same steps as {@link ButtonSize}.
+ * The size of a {@link ToggleButton}, the same steps as {@link ButtonSize}.
+ * Taken by the `size` prop of {@link ToggleButton}.
  *
  * @category Button
  */

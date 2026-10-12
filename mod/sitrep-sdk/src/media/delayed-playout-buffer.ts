@@ -20,7 +20,9 @@
  */
 
 /**
- * One UT-stamped media frame (or still) entering the buffer.
+ * One media frame, or a still image, stamped with the universal time it was
+ * captured at. Useful for holding video back until the telemetry from the same
+ * instant is shown. Taken by {@link DelayedPlayoutBuffer}.
  *
  * @category Delayed video
  */
@@ -43,7 +45,8 @@ export interface StampedFrame<Frame = unknown> {
 /**
  * The two methods of the app's view clock that delaying video needs:
  * `confirmedEdgeUt` and `onFrame`. Pass the app's clock, or a stand-in in a
- * test.
+ * test. Useful for releasing video on the same delay clock the telemetry is
+ * read by. Taken by the delayed video buffer and by the radio session.
  *
  * @category Delayed video
  */
@@ -63,7 +66,8 @@ export interface DelayClockLike {
 }
 
 /**
- * Options for a new `DelayedPlayoutBuffer`.
+ * Options for a new {@link DelayedPlayoutBuffer}: the clock to release frames
+ * by, the callbacks that receive them, and the cap on what is held.
  *
  * @category Delayed video
  */
@@ -110,7 +114,9 @@ export interface DelayedPlayoutBufferOptions<Frame = unknown> {
 /**
  * Holds UT-stamped frames and releases each once the clock's
  * `confirmedEdgeUt()` reaches its `ut`, never earlier. A frame is therefore
- * never shown before telemetry from the same instant would be.
+ * never shown before telemetry from the same instant would be. Useful for
+ * showing the operator video that arrives with the telemetry that describes it.
+ * Used by the radio session and by the commcast feed.
  *
  * @category Delayed video
  * @categoryDescription Delayed video

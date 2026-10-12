@@ -10,7 +10,9 @@
  *
  * A widget that declares a tiny mode is drawn by the kit in `tiny`; every other
  * bucket, and every bucket of a widget without one, is the widget's own to lay
- * out.
+ * out. Useful for deciding how much detail to show the operator in a tile.
+ * Returned by {@link getSizeBucket}, which a graph and an action group widget
+ * call.
  *
  * @category Layout
  */
@@ -19,7 +21,9 @@ export type SizeBucket = "tiny" | "small" | "normal";
 export { TINY_SIZE } from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * A tile narrower or shorter than this is `tiny`.
+ * A tile narrower or shorter than this is `tiny`. Useful for judging whether
+ * the operator sees a widget's tiny form. Used by {@link getSizeBucket} and the
+ * kit's tiny form.
  *
  * @category Layout
  */
@@ -35,7 +39,9 @@ const SMALL_H = 7;
 /**
  * The {@link SizeBucket} a `w` by `h` tile falls in: `tiny` below
  * {@link TINY_BELOW} on either axis, `small` below 8 columns wide or 7 rows tall, `normal`
- * otherwise. Returns `normal` while either dimension is `undefined`.
+ * otherwise. Returns `normal` while either dimension is `undefined`. Useful for
+ * choosing how much a widget shows the operator at the tile's size. Used by the
+ * graph and action group widgets.
  *
  * This is the bucket by size alone, for a widget arranging its own body.
  * Whether the dashboard draws a widget's tiny form in place of that body is a
@@ -66,12 +72,17 @@ export function getSizeBucket(
  * - `square`: neither axis dominates; the default near-1:1 layout, and the
  *   value before the grid has measured the tile
  *
+ * Useful for choosing which way a widget flows its content in the operator's
+ * tile. Returned by {@link getWidgetShape}.
+ *
  * @category Layout
  */
 export type WidgetShape = "portrait" | "landscape" | "square";
 
 /**
- * A tile's {@link WidgetShape} and the aspect ratio it was read from.
+ * A tile's {@link WidgetShape} and the aspect ratio it was read from. Useful
+ * for sizing a widget's columns continuously rather than in three steps.
+ * Returned by {@link getWidgetShape}.
  *
  * @category Layout
  */
@@ -115,7 +126,8 @@ const PORTRAIT_ASPECT = 1 / LANDSCAPE_ASPECT; // ≈ 0.625
  * The {@link WidgetShape} of a `w` by `h` tile, with its aspect ratio.
  * `landscape` from an aspect of 1.6 up, `portrait` at 1/1.6 (0.625) and below,
  * `square` between. Returns `square` with aspect `1` while either dimension is
- * `undefined` or `h` is 0.
+ * `undefined` or `h` is 0. Useful for flowing a widget's content to suit the
+ * operator's tile. Used by the fuel status and power systems widgets.
  *
  * @category Layout
  */

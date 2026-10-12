@@ -13,9 +13,11 @@ import { createContext, useContext } from "react";
 export type Screen = "main" | "station" | "pilot";
 
 /**
- * Where the operator is physically sitting. Every widget rule that cares about
- * signal delay is a rule about the seat, never about the screen: a pilot on a
- * peer-fed page is a different screen and the same seat.
+ * Where the operator is physically sitting: `"mission-control"` or `"pilot"`.
+ * Useful for deciding what a widget offers, since every rule about signal delay
+ * is a rule about the seat and never about the screen: a pilot on a peer-fed
+ * page is a different screen and the same seat. Used by the seat guard that
+ * hides widgets unavailable to a seat.
  */
 export type Seat = "mission-control" | "pilot";
 
@@ -34,8 +36,10 @@ export function ScreenProvider({
 }
 
 /**
- * The screen this component is on. With no screen provider above it, as in a
- * test that mounts a widget on its own, it is `"main"`.
+ * The screen this component is on. Useful for drawing a different interface on
+ * the main screen than on a station. Used by the settings panel. With no screen
+ * provider above it, as in a test that mounts a widget on its own, it is
+ * `"main"`.
  *
  * @category Host and runtime
  * @categoryDescription Host and runtime
@@ -48,8 +52,8 @@ export function useScreen(): Screen {
 }
 
 /**
- * The seat a screen puts the operator in. Declare a widget's availability
- * against the seat, not the screen.
+ * The seat a screen puts the operator in. Useful for declaring a widget's
+ * availability against the seat rather than the screen. Used by {@link useSeat}.
  *
  * @category Host and runtime
  */
@@ -58,7 +62,9 @@ export function seatOf(screen: Screen): Seat {
 }
 
 /**
- * The seat the current screen puts the operator in.
+ * The seat the current screen puts the operator in. Useful for showing or hiding
+ * a control depending on where the operator sits. Used by the seat guard that
+ * hides widgets unavailable to a seat.
  *
  * @category Host and runtime
  */

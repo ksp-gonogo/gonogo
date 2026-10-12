@@ -79,7 +79,10 @@ export type RailDelivery = "acked" | "fire-and-forget";
  * in time, and whether anything replies. {@link CommandDelay} chooses how to draw
  * an entry from these. `kind` is the same sample kind a channel declares: a
  * continuous entry is drawn as a ribbon along the rail, a discrete one or an
- * event as a dot travelling it.
+ * event as a dot travelling it. Useful for showing the operator what is in
+ * transit between the command centre and the vessel. Returned by
+ * {@link railTagsForCommand}, {@link railTagsForControlAxis} and
+ * {@link railTagsForTelemetry}, and read by `<CommandDelay>`.
  *
  * | direction | kind | delivery | example |
  * | --- | --- | --- | --- |
@@ -100,8 +103,11 @@ export interface RailTags {
 }
 
 /**
- * How one command travels, as an Uplink's generated command map declares it.
- * Pass an entry from that map to {@link registerUplinkCommand}.
+ * How one command travels, as an Uplink's generated command map declares it:
+ * whether it is answered, whether the mod holds it for the signal delay, and
+ * the argument that names the time it acts at. Useful for drawing the command on
+ * the delay rail and for refusing one that would arrive too late. Pass an entry
+ * from that map to {@link registerUplinkCommand}.
  *
  * @category Commands
  */
@@ -193,7 +199,8 @@ export function railTagsFromCommandRail(rail: CommandRail): RailTags {
 /**
  * Returns the tags for one press of a command, from what its mod or Uplink
  * declared, or {@link UNDECLARED_COMMAND_RAIL_TAGS} when nothing has declared
- * it.
+ * it. Useful for drawing a command the operator has sent on the delay rail. Used
+ * by the kit's command list.
  *
  * @category Commands
  */
@@ -207,7 +214,9 @@ export function railTagsForCommand(command: string): RailTags {
 /**
  * Returns the tags for a control the operator holds, such as pitch or
  * throttle, sent as a stream of settings and echoed back by the craft.
- * `writeCommand` is the command that sets it.
+ * `writeCommand` is the command that sets it. Useful for drawing a held control
+ * on the delay rail while the operator moves it. Used by the control stream
+ * hook.
  *
  * The result is continuous, unlike {@link railTagsForCommand}, because what
  * crosses the delay is the held control rather than one press. Whether it is
@@ -224,7 +233,9 @@ export function railTagsForControlAxis(writeCommand: string): RailTags {
  * Returns the tags for data coming back from a craft, such as a radio
  * transmission or a science result. It is always fire-and-forget, since nothing
  * replies to telemetry. Pass `"continuous"` for a stream such as an open
- * microphone, and `"event"` for a single result.
+ * microphone, and `"event"` for a single result. Useful for drawing a
+ * transmission from the vessel on the delay rail. Used by the kit's command
+ * delay display.
  *
  * @category Commands
  */

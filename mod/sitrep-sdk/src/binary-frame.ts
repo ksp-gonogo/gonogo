@@ -24,7 +24,9 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
  */
 
 /**
- * First byte of every binary-lane frame.
+ * First byte of every binary-lane frame, the value that tells it from a JSON
+ * text frame. Useful for code that reads the socket itself and must route each
+ * received frame to the right decoder. Used by {@link isBinaryFrame}.
  *
  * @category Binary lane
  */
@@ -32,7 +34,9 @@ export const BINARY_LANE_MAGIC = 0x9e;
 
 /**
  * The lane byte of a `stream-binary` frame, the only lane in use. The other
- * values of that byte are left free for lanes to come.
+ * values of that byte are left free for lanes to come. Used by
+ * {@link decodeBinaryFrame} to refuse a frame whose lane this build does not
+ * know.
  *
  * @category Binary lane
  */
@@ -42,7 +46,8 @@ export const BINARY_LANE_STREAM_BINARY = 0x01;
  * The length of a binary frame's fixed prefix, in bytes. A frame is laid out
  * as the magic byte, the lane byte, the header's length as a big-endian
  * unsigned 16-bit number, the header as UTF-8 JSON of that length, and then
- * the segments one after another, each as long as the header says.
+ * the segments one after another, each as long as the header says. Useful for
+ * code that slices a received frame by hand. Used by {@link decodeBinaryFrame}.
  *
  * @category Binary lane
  */
@@ -51,7 +56,9 @@ export const BINARY_LANE_PREFIX_BYTES = 4;
 /**
  * One binary frame, decoded: the fields of its {@link StreamBinary} header,
  * with `segments` holding the segments' bytes in place of their lengths. Each
- * segment is a `Uint8Array`.
+ * segment is a `Uint8Array`. Useful for handing a received binary payload, such
+ * as radio audio, to the code that plays or stores it. Returned by
+ * {@link decodeBinaryFrame}.
  *
  * @category Binary lane
  */
@@ -64,7 +71,7 @@ export type StreamBinaryMessage = Omit<StreamBinary, "segments"> & {
  * Why a frame could not be decoded. Every case carries a `reason` to log;
  * branch on `kind` to decide what to do, such as reading the frame as text
  * instead. A frame with zero segments decodes successfully, as a producer with
- * nothing to send.
+ * nothing to send. Carried by {@link BinaryFrameResult} when decoding fails.
  *
  * @category Binary lane
  */
@@ -94,8 +101,9 @@ export type BinaryFrameFailure =
     };
 
 /**
- * What `decodeBinaryFrame` returns: the decoded message, or the reason the bytes
- * are not one.
+ * What {@link decodeBinaryFrame} returns: the decoded message, or the reason the
+ * bytes are not one. Useful for code that reads the socket itself and must
+ * either deliver the message or log why a frame was refused.
  *
  * @category Binary lane
  */
@@ -113,7 +121,9 @@ export type BinaryFrameResult =
 
 /**
  * Whether `bytes` start with the binary frame's magic byte. A text frame never
- * does, since it starts with `{`.
+ * does, since it starts with `{`. Useful for choosing, per received frame,
+ * between reading it as JSON text and calling {@link decodeBinaryFrame}. Used
+ * by the stream's WebSocket transport.
  *
  * @category Binary lane
  */
@@ -124,7 +134,9 @@ export function isBinaryFrame(bytes: Uint8Array): boolean {
 const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
 
 /**
- * Decodes one binary frame, or says why it could not.
+ * Decodes one binary frame into a {@link StreamBinaryMessage}, or says why it
+ * could not. Useful for code that reads the socket itself and receives opaque
+ * payloads such as radio audio. Used by the stream's WebSocket transport.
  *
  * Each segment is a view onto `bytes`, not a copy, so decoding is cheap. Copy a
  * segment you keep after `bytes` may be reused.
@@ -295,7 +307,9 @@ export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {
 /**
  * The bytes of a frame, from an `ArrayBuffer` (a socket with
  * `binaryType = "arraybuffer"`) or a view. A `Blob` is not accepted: reading
- * one is asynchronous, which would put frames out of order.
+ * one is asynchronous, which would put frames out of order. Useful for turning
+ * what the socket delivered into the input {@link isBinaryFrame} and
+ * {@link decodeBinaryFrame} take. Used by the stream's WebSocket transport.
  *
  * @category Binary lane
  */

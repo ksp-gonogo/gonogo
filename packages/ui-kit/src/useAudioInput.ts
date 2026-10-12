@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { audioCaptureSupport } from "./audioCaptureSupport";
 
 /**
- * One selectable capture device.
+ * One selectable capture device. Useful for letting the operator choose which
+ * microphone a voice channel uses. Listed in `devices` of
+ * {@link AudioInputState} and drawn by {@link AudioInputPicker}.
  *
  * @category AudioInputPicker
  */
@@ -19,7 +21,8 @@ export interface AudioInputDevice {
 
 /**
  * Where the capture attempt stands. Each failure is its own status because
- * each has a different remedy:
+ * each has a different remedy, so the operator can be told what to fix. Returned
+ * as `status` by {@link useAudioInput}:
  *
  * - `unasked`: nothing has been requested yet, the starting status
  * - `requesting`: a request is with the browser, which may be prompting
@@ -47,7 +50,9 @@ export type AudioInputStatus =
   | "ready";
 
 /**
- * An attempt to open an input that did not work.
+ * An attempt to open an input that did not work. Useful for telling the
+ * operator which microphone failed and why. Returned as `failure` by
+ * {@link useAudioInput}.
  *
  * @category AudioInputPicker
  */
@@ -59,7 +64,9 @@ export interface AudioInputFailure {
 }
 
 /**
- * Everything {@link useAudioInput} knows about capture at one moment.
+ * Everything {@link useAudioInput} knows about capture at one moment. Useful
+ * for showing the operator whether a microphone is open and which devices are
+ * available. Used by {@link AudioInputPicker}.
  *
  * @category AudioInputPicker
  */
@@ -86,6 +93,8 @@ export interface AudioInputState {
 
 /**
  * What {@link useAudioInput} returns: the current state and the three actions.
+ * Useful for letting the operator open, switch or release a microphone. Used by
+ * {@link AudioInputPicker}.
  *
  * @category AudioInputPicker
  */
@@ -115,7 +124,8 @@ export interface UseAudioInputOptions {
 
 /**
  * Option text for a device: its label, or `Input <n>, name withheld` (one-based)
- * while the browser withholds the name.
+ * while the browser withholds the name. Useful for naming each microphone in
+ * the operator's list. Used by {@link AudioInputPicker}.
  *
  * @category AudioInputPicker
  */
@@ -195,8 +205,9 @@ function initialState(): AudioInputState {
 
 /**
  * The permission-and-selection half of microphone capture, with no opinion
- * about how it is drawn. {@link AudioInputPicker} is the drawn form and the
- * usual entry point.
+ * about how it is drawn. Useful for letting the operator allow, choose and
+ * release a microphone for a voice channel. Used by {@link AudioInputPicker},
+ * the drawn form and the usual entry point.
  *
  * Nothing is requested until `request()` or `select()` is called. Every outcome
  * is a named {@link AudioInputStatus} rather than a boolean plus an error: a

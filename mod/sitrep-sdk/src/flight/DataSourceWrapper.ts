@@ -9,7 +9,10 @@ import type {
  * A base class for a {@link DataSource} that passes every call on to another
  * source, `real`, and adds behaviour of its own, such as recording. Override
  * only what you change. It keeps no listeners of its own; use
- * {@link ListenerSet} or {@link KeyedListenerSet} for those.
+ * {@link ListenerSet} or {@link KeyedListenerSet} for those. Useful for adding
+ * a feature, such as recording the operator's flights, to a source without
+ * changing it. Extended by {@link BufferedDataSource} and by the source that
+ * broadcasts the main screen's data to stations.
  *
  * `id` and `name` can be given to the constructor, so a wrapper can register
  * under its own id.

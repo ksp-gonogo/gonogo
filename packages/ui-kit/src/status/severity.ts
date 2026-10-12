@@ -3,7 +3,9 @@ import type { StreamStatusValue, Tone } from "@ksp-gonogo/sitrep-sdk";
 /**
  * The tones that take part in a panel's summary: every `Tone` but `neutral`,
  * which carries no state. From best to worst: `go`, `info`, `caution`, `warn`,
- * `nogo`, `offline`.
+ * `nogo`, `offline`. Useful for ranking the states a panel reports so the
+ * operator sees the worst. Taken by {@link StatusContribution} and
+ * {@link Badge}.
  *
  * @category Panel
  */
@@ -31,7 +33,9 @@ export function severityRank(s: Severity): number {
 
 /**
  * The worst severity among `severities`, in the order `go`, `info`, `caution`,
- * `warn`, `nogo`, `offline` (worst). `go` for an empty list.
+ * `warn`, `nogo`, `offline` (worst). `go` for an empty list. Useful for
+ * choosing the one status a panel shows the operator when several are
+ * reported. Used by the panel status store.
  *
  * @category Panel
  */
@@ -46,8 +50,10 @@ export function worstSeverity(severities: readonly Severity[]): Severity {
 /**
  * The {@link Severity} a stream status reads as: `live` is `go`, `resyncing`
  * is `caution`, `recorded` is `info` (the reading is exact, for an earlier
- * instant), `held`, `last-before-blackout`, `loading` and `no-game` are `warn`, and `disconnected`
- * and `absent` are `offline`.
+ * instant), `held`, `last-before-blackout`, `loading` and `no-game` are `warn`,
+ * and `disconnected` and `absent` are `offline`. Useful for colouring a stream
+ * status the way the operator reads its severity. Used by
+ * {@link StreamStatusBadge} and {@link HeldBadge}.
  *
  * @category Panel
  */

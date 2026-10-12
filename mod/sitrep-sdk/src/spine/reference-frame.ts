@@ -71,10 +71,12 @@ import type { CelestialBody, CelestialFacts } from "./celestial-facts";
 import { solve, type Vec3Tuple } from "./kepler";
 
 /**
- * The reference frames a widget may draw in:
+ * The reference frames a widget may draw in. Useful for letting the operator
+ * choose the frame a path or position is shown in. Offered by
+ * {@link ReadFrameControl}.
  *
- * - `follow-control-frame`: whatever frame the player has selected in game,
- *   where a mod reports one. With no such mod, there is none to follow
+ * - `follow-control-frame`: whatever frame is selected in the game, where a mod
+ *   reports one. With no such mod, there is none to follow
  * - `body-centred-inertial`: centred on a body, not rotating
  * - `parent-direction`: centred on a body, turning to keep its parent in one
  *   direction
@@ -91,16 +93,19 @@ export const READ_FRAME_KINDS = [
 ] as const;
 
 /**
- * One of {@link READ_FRAME_KINDS}.
+ * One of {@link READ_FRAME_KINDS}. Useful for typing the kind of frame the
+ * operator has chosen. Used by {@link ReadFrameControl}.
  *
  * @category Frames of reference
  */
 export type ReadFrameKind = (typeof READ_FRAME_KINDS)[number];
 
 /**
- * A frame a widget draws in: a {@link ReadFrameKind} and the body it is built
- * on. The centred frames are centred on that body; the rotating frames turn
- * with that body and its parent, as the game's own frame selector does.
+ * A frame a widget draws in: a {@link ReadFrameKind} and the body it is built on.
+ * Useful for remembering which frame the operator picked. Used by
+ * {@link ReadFrameControl}, the current orbit widget and the system diagram. The
+ * centred frames are centred on that body; the rotating frames turn with that
+ * body and its parent, as the game's own frame selector does.
  *
  * @category Frames of reference
  */
@@ -112,7 +117,8 @@ export interface ReadFrameChoice {
 }
 
 /**
- * What a coordinate in a frame is measured in.
+ * What a coordinate in a frame is measured in. Useful for deciding whether a
+ * coordinate may be read as metres. Used by the system diagram's projection.
  *
  * @category Frames of reference
  */
@@ -124,7 +130,8 @@ export const TRAJECTORY_SCALE_CONVENTIONS = {
 } as const;
 
 /**
- * One of {@link TRAJECTORY_SCALE_CONVENTIONS}.
+ * One of {@link TRAJECTORY_SCALE_CONVENTIONS}. Useful for typing what a frame's
+ * coordinates are measured in, so a readout can tell metres from a ratio.
  *
  * @category Frames of reference
  */
@@ -133,10 +140,11 @@ export type TrajectoryScaleConvention =
 
 /**
  * A frame's state at one instant: where it is, how it is turned and how it is
- * scaled. Compute it once with {@link frameInstantAt} and pass it to
- * {@link toFrame} and {@link fromFrame} for every point at that instant.
- * Positions and velocities are relative to the root body, in metres and
- * metres per second, not turning.
+ * scaled. Useful for converting every point drawn at that instant into the
+ * frame the operator chose. Used by the system diagram's projection. Compute it
+ * once with {@link frameInstantAt} and pass it to {@link toFrame} and
+ * {@link fromFrame} for every point at that instant. Positions and velocities are
+ * relative to the root body, in metres and metres per second, not turning.
  *
  * @category Frames of reference
  */
@@ -164,7 +172,9 @@ export interface FrameInstant {
 }
 
 /**
- * A point and, when the caller had one, its velocity, both in a frame's coordinates.
+ * A point and, when the caller had one, its velocity, both in a frame's
+ * coordinates. Useful for drawing a position the operator sees in the frame they
+ * chose. Returned by {@link toFrame}.
  *
  * @category Frames of reference
  */
@@ -251,7 +261,9 @@ function normalisedRate(v: Vec3Tuple, vDot: Vec3Tuple): Vec3Tuple | null {
 
 /**
  * Why a body has no position at an instant: its propagation provider says its
- * orbit holds only until `untilUt`, and the instant is later.
+ * orbit holds only until `untilUt`, and the instant is later. Useful for telling
+ * the operator why a body is missing from a diagram. Listed in
+ * `withdrawnByIndex` of a {@link SystemInstant}.
  *
  * @category Frames of reference
  */
@@ -266,8 +278,9 @@ export interface BodyWithdrawal {
 }
 
 /**
- * Every body's position and velocity relative to the root body at one
- * instant, as {@link systemInstantAt} returns it, in metres and m/s.
+ * Every body's position and velocity relative to the root body at one instant, in
+ * metres and m/s. Useful for placing every body on a diagram at the instant on
+ * screen. Returned by {@link systemInstantAt}; used by the system diagram.
  *
  * @category Frames of reference
  */
@@ -289,15 +302,15 @@ export interface SystemInstant {
 }
 
 /**
- * Returns every body's position and velocity relative to the root body at
- * `ut`, computed for that instant from the catalogue's orbits. Call it for
- * the instant you are drawing; nothing needs advancing each frame.
+ * Every body's position and velocity relative to the root body at `ut`, computed
+ * for that instant from the catalogue's orbits. Useful for placing every body on
+ * a diagram at the instant on screen. Used by the system diagram's projection.
+ * Call it for the instant you are drawing; nothing needs advancing each frame.
  *
- * In stock KSP every body is on a fixed orbit, so every body is returned for
- * any UT. In an n-body game a body past the horizon its provider states is
- * left out and listed in `withdrawnByIndex`, and so is any body orbiting it.
- * A body whose parent chain cannot be solved is left out too, never placed at
- * the origin.
+ * In stock KSP every body is on a fixed orbit, so every body is returned for any
+ * UT. In an n-body game a body past the horizon its provider states is left out
+ * and listed in `withdrawnByIndex`, and so is any body orbiting it. A body whose
+ * parent chain cannot be solved is left out too, never placed at the origin.
  *
  * @category Frames of reference
  */
@@ -396,17 +409,18 @@ export function systemInstantAt(
 
 /**
  * The gravitational acceleration at a point, summed over every body in the
- * catalogue as a point mass.
+ * catalogue as a point mass. Useful for finding how a rotating frame turns when
+ * the operator picks one.
  *
- * Point masses and no field terms, deliberately. The oblateness this drops
- * reaches a frame's angular velocity only through the component of the
- * acceleration orthogonal to the pair's orbit plane, and there it is some eight
- * orders of magnitude below the angular velocity itself. The bodies this
- * keeps are the ones that matter: for the Earth-Moon pair the Sun's pull is
- * four orders of magnitude larger than the Earth's own bulge.
+ * Point masses and no field terms. The oblateness this drops reaches a frame's
+ * angular velocity only through the component of the acceleration orthogonal to
+ * the pair's orbit plane, and there it is some eight orders of magnitude below
+ * the angular velocity itself. The bodies this keeps are the ones that matter:
+ * for the Earth-Moon pair the Sun's pull is four orders of magnitude larger than
+ * the Earth's own bulge.
  *
- * `exclude` drops a body from the sum, which is how a body's own acceleration
- * is computed without dividing by its own zero separation.
+ * `exclude` drops a body from the sum, which is how a body's own acceleration is
+ * computed without dividing by its own zero separation.
  */
 export function pointMassAccelerationAt(
   system: SystemInstant,
@@ -427,14 +441,16 @@ export function pointMassAccelerationAt(
 }
 
 /**
- * The two sides of a rotating frame, as the sets they really are.
+ * The two sides of a rotating frame, as the sets they really are. Useful for
+ * finding the two mass centres a rotating frame turns about. Returned by
+ * {@link frameSides}.
  *
  * A pulsating frame turns about two mass centres, and the sides are subtrees
- * rather than bodies: the primary side is the parent's system up to the
- * selected body, so a Sun-Earth frame's primary side is the Sun with Mercury and
- * Venus, and everything orbiting further out is excluded. Replicated rather than
- * simplified because a plausible-looking pair is a different frame from the one
- * the player can switch to, and the difference shows in where the origin sits.
+ * rather than bodies: the primary side is the parent's system up to the selected
+ * body, so a Sun-Earth frame's primary side is the Sun with Mercury and Venus,
+ * and everything orbiting further out is excluded. A plausible-looking pair
+ * would be a different frame from the one the game can switch to, and the
+ * difference shows in where the origin sits.
  */
 export interface FrameSides {
   primary: readonly number[];
@@ -466,19 +482,19 @@ function collectSystem(
 }
 
 /**
- * The primary and secondary sides for a frame parameterised by one body.
+ * The primary and secondary sides for a frame parameterised by one body. Useful
+ * for finding the mass centres a rotating frame turns about. Used by the system
+ * diagram's projection.
  *
  * The centred and parent-direction frames have one body a side; only the
  * pulsating frame widens them, and it is the only caller that needs the sets.
  *
- * **The two rotating kinds put the parent on opposite sides, and that is
- * faithful rather than a slip.** A parent-direction frame is centred on the
- * selected body with the parent held out in front of it, so the selected body is
- * the primary. A pulsating frame is named for the pair in the other order, so
- * the parent's system is the primary and the selected body's is the secondary.
- * The visible consequence is that the first axis points at the parent in one
- * frame and away from it in the other; making them agree would mean drawing a
- * frame the player cannot switch to.
+ * The two rotating kinds put the parent on opposite sides, matching the game. A
+ * parent-direction frame is centred on the selected body with the parent held out
+ * in front of it, so the selected body is the primary. A pulsating frame is named
+ * for the pair in the other order, so the parent's system is the primary and the
+ * selected body's is the secondary. The first axis therefore points at the parent
+ * in one frame and away from it in the other.
  */
 export function frameSides(
   facts: CelestialFacts,
@@ -561,9 +577,10 @@ function barycentreOf(
 }
 
 /**
- * Returns a frame's state at `ut`, or `null` when the catalogue cannot form
- * it: the body is not in the catalogue, the frame needs a parent the body does
- * not have, or the two bodies are in the same place. Show `null` as "cannot
+ * A frame's state at `ut`, or `null` when the catalogue cannot form it: the body
+ * is not in the catalogue, the frame needs a parent the body does not have, or
+ * the two bodies are in the same place. Useful for drawing in the frame the
+ * operator chose. Used by the system diagram's projection. Show `null` as "cannot
  * draw in this frame". Pass a `system` from {@link systemInstantAt} when you
  * already have one for this instant.
  *
@@ -668,8 +685,9 @@ export function frameInstantAt(
 }
 
 /**
- * Returns a position relative to the root body, and optionally a velocity, in
- * a frame's coordinates. Converting only a position is cheaper.
+ * A position relative to the root body, and optionally a velocity, in a frame's
+ * coordinates. Useful for drawing a point in the frame the operator chose. Used
+ * by the system diagram's projection. Converting only a position is cheaper.
  *
  * @category Frames of reference
  */
@@ -710,10 +728,11 @@ export function toFrame(
 }
 
 /**
- * Returns a frame choice with `follow-control-frame` replaced by the frame
- * the player has selected, or `null` when there is none to follow, which is
- * usual: draw in the frame the data arrived in then. Any other choice is
- * returned as it is.
+ * A frame choice with `follow-control-frame` replaced by the frame selected in
+ * the game, or `null` when there is none to follow, which is usual: draw in the
+ * frame the data arrived in then. Any other choice is returned as it is. Useful
+ * for turning the operator's choice into a frame that can be drawn. Used by the
+ * system diagram's projection.
  *
  * @category Frames of reference
  * @categoryDescription Frames of reference
@@ -735,10 +754,10 @@ export function resolveReadFrame(
 }
 
 /**
- * Returns a position given in a frame's coordinates as a position relative to
- * the root body, in metres: the reverse of {@link toFrame}, for positions
- * only. Use it for a point fixed in a frame, such as a libration point, to
- * measure distances to it or draw it in another frame.
+ * A position given in a frame's coordinates as a position relative to the root
+ * body, in metres: the reverse of {@link toFrame}, for positions only. Useful for
+ * measuring distances to a point fixed in a frame, such as a libration point, or
+ * drawing it in another frame. Used by the system diagram's projection.
  *
  * @category Frames of reference
  */

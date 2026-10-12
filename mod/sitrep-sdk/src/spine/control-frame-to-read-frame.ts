@@ -18,7 +18,11 @@ import type { CelestialFacts } from "./celestial-facts";
 import type { ReadFrameChoice } from "./reference-frame";
 
 /**
- * The Topic {@link controlFrameToReadFrameChoice} reads its argument off.
+ * The Topic (`system.frame`) that carries the frame of reference the operator
+ * has selected in the game. Useful for offering a "follow the Control Frame"
+ * choice to a widget that draws in a frame. Read by the current orbit and
+ * system view widgets, which pass its reading to
+ * {@link controlFrameToReadFrameChoice}.
  *
  * @category Frames of reference
  */
@@ -35,8 +39,10 @@ function indexFor(
 }
 
 /**
- * Returns the player's selected frame, from the `system.frame` reading, as a
- * {@link ReadFrameChoice} to pass to {@link resolveReadFrame}.
+ * The frame of reference the operator selected in the game, from the
+ * `system.frame` reading, as a {@link ReadFrameChoice} to pass to
+ * {@link resolveReadFrame}. Useful for drawing a widget in the same frame the
+ * operator is flying in. Used by the current orbit and system view widgets.
  *
  * Only three frame kinds have a matching choice: body-centred inertial,
  * body-centred with the body direction, and rotating-pulsating. Every other
@@ -76,9 +82,10 @@ export function controlFrameToReadFrameChoice(
 }
 
 /**
- * Returns whether two frame choices would draw the same picture. Use it to
- * hide a "follow the Control Frame" option when it matches a frame already
- * offered, so the player does not see two entries that do the same thing.
+ * Whether two frame choices would draw the same picture. Useful for hiding a
+ * "follow the Control Frame" option when it matches a frame already offered, so
+ * the operator does not see two entries that do the same thing. Used by the
+ * read-frame control and the current orbit and system view widgets.
  *
  * @category Frames of reference
  */

@@ -42,15 +42,22 @@ export const RELEASE_USAGE = `uplink-tools release [options]
                         (default: found by walking up from the current directory)`;
 
 /**
- * The GitHub owner \`new\` writes when it was told no repository. A URL under it serves nothing.
- * It is a name nobody types as their own, so a repository an author names is never mistaken for it.
+ * The GitHub owner `new` writes when it was told no repository. A client URL
+ * under it serves nothing. Useful for recognising an Uplink whose address the
+ * author has not yet replaced. Used by the `new` command when it writes the
+ * Uplink and by the release's placeholder check.
  */
 export const PLACEHOLDER_OWNER = "your-github-owner";
 
 const isPlaceholderUrl = (url: string): boolean =>
   url.includes(`/gh/${PLACEHOLDER_OWNER}/`);
 
-/** Why a client URL cannot be released, or nothing when it is a real address. */
+/**
+ * Why a client URL cannot be released because it still holds the placeholder
+ * owner, or `undefined` when it is a real address. Useful for stopping a
+ * plugin that would tell every install to fetch its client from a place that
+ * serves nothing. Used by the `release` command and by the manifest check.
+ */
 export function placeholderUrlFault(url: string): string | undefined {
   if (!url || !isPlaceholderUrl(url)) return undefined;
   return (
@@ -61,9 +68,10 @@ export function placeholderUrlFault(url: string): string | undefined {
 }
 
 /**
- * The versions written in a URL's path, such as the `0.0.1` folder a release is
- * published under or the `v0.0.1` of a tag. The host is not read, so an address
- * of four numbers is never taken for one.
+ * The versions written in a URL's path, such as the `0.0.1` folder a release
+ * is published under or the `v0.0.1` of a tag. The host is not read, so an
+ * address of four numbers is never taken for a version. Useful for comparing
+ * a client URL with the Uplink's version. Used by `urlVersionFault`.
  */
 export function versionsInUrlPath(url: string): string[] {
   let path = url;
@@ -77,7 +85,12 @@ export function versionsInUrlPath(url: string): string[] {
   );
 }
 
-/** Why a client URL cannot be released at this version, or nothing. A URL that names no version is not judged. */
+/**
+ * Why a client URL cannot be released at this version, or `undefined`. A URL
+ * that names no version is not judged. Useful for stopping a plugin that would
+ * send every install to another release's bundle. Used by the `release`
+ * command and by the manifest check.
+ */
 export function urlVersionFault(
   url: string,
   version: string,
@@ -94,7 +107,12 @@ export function urlVersionFault(
   );
 }
 
-/** Why the built client's own version cannot be released beside package.json's, or nothing. */
+/**
+ * Why the version the built client declares cannot be released beside the one
+ * in `package.json`, or `undefined` when they match or the client declares
+ * none. Useful for stopping a release that would carry two versions. Used by
+ * the `release` command and by the manifest check.
+ */
 export function declaredVersionFault(
   declared: string,
   version: string,

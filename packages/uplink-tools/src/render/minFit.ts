@@ -83,7 +83,10 @@ const FIT_BOX = "--fit-box";
 const FIT_MASK = "--fit-mask";
 
 /**
- * One thing an operator cannot read at this size.
+ * One thing an operator cannot read at a widget's smallest size: what kind of
+ * problem it is and how many pixels of it are unreachable. Useful for telling
+ * the author which widget content is cut off at its declared minimum size.
+ * Returned by {@link auditMinFit} and read by the render driver.
  *
  * @category Rendering scenes
  */
@@ -856,10 +859,13 @@ function maskFindings(tile: HTMLElement): MinFitFinding[] {
 }
 
 /**
- * Every way this tile's content is unreachable at the size it is mounted at.
+ * Every way a tile's content is unreachable at the size it is mounted at.
+ * `tile` is the mount box, sized to the widget's declared `minSize`. Useful for
+ * telling the author that an operator cannot read part of a widget at its
+ * smallest size. Called through {@link RenderProbeApi.auditMinFit} by the
+ * render driver.
  *
- * `tile` is the mount box, sized to the widget's declared `minSize`. Nothing
- * here mutates the page, so a caller may audit and then go on to screenshot the
+ * It does not change the page, so a caller may audit and then screenshot the
  * same render.
  *
  * @category Probe setup

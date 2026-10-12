@@ -47,9 +47,10 @@
  */
 
 /**
- * What we can say about whether anything will ever publish a topic.
+ * Whether anything will ever publish a topic: `"owned"`, `"unowned"` or
+ * `"undecided"`. Useful for telling an Uplink author why a widget is blank.
+ * Returned by the telemetry client.
  *
- * Three values rather than two, and the third is the important one:
  * `"undecided"` is a real answer that a caller must not collapse into either
  * neighbour. Not yet asked, asked too recently to know, asked over a transport
  * that cannot tell, and asked while disconnected are all `"undecided"`.
@@ -57,14 +58,13 @@
 export type TopicOwnership = "owned" | "unowned" | "undecided";
 
 /**
- * How long to wait for a `subscribed` ack before calling a topic unowned.
- *
- * The ack is minted synchronously inside `ProcessSubscribe` and rides the
- * reliable lane, so on a healthy link it arrives in milliseconds. This is sized
- * for an unhealthy one instead: a courier thread busy behind a scene load, a
- * relay hop, a station's PeerJS round trip. Generous on purpose, because the
- * cost of waiting too long is a diagnostic arriving late and the cost of not
- * waiting long enough is telling an author their working code is broken.
+ * How long, in milliseconds, to wait for a `subscribed` ack before calling a
+ * topic unowned. Useful for avoiding a false report that a topic has no
+ * publisher. On a healthy connection the ack arrives in milliseconds; the window
+ * is sized for an unhealthy one (a courier thread busy behind a scene load, a
+ * relay hop, a station's PeerJS round trip), because waiting too long delays a
+ * diagnostic and not waiting long enough tells an author their working code is
+ * broken.
  */
 export const OWNERSHIP_ACK_WINDOW_MS = 10_000;
 
@@ -74,11 +74,13 @@ interface Armed {
 }
 
 /**
- * Tracks the `subscribed` acks for one connection.
+ * Tracks the `subscribed` acks for one connection. Useful for deciding whether a
+ * topic has a publisher. Used by the telemetry client and the unowned topic
+ * warning.
  *
- * One instance per {@link TelemetryClient}, and its whole state is scoped to a
- * single connection: {@link handleDisconnected} throws all of it away, because
- * a verdict reached against one mod session says nothing about the next.
+ * There is one instance per {@link TelemetryClient}, and all its state is scoped to
+ * a single connection: {@link handleDisconnected} discards it, because a verdict
+ * reached against one mod session says nothing about the next.
  */
 export class TopicOwnershipTracker {
   private readonly owned = new Set<string>();

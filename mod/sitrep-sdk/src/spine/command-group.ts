@@ -14,7 +14,8 @@ import {
 
 /**
  * One `send` captured by {@link sendTogether}: everything the frame needs, and
- * the hook's own bookkeeping to run once the frame has gone.
+ * the hook's own bookkeeping to run once the frame has gone. Used by
+ * {@link useCommand} when a send joins a group.
  *
  * @internal
  */
@@ -32,7 +33,10 @@ export interface CapturedSend {
 }
 
 /**
- * Where a group sent with {@link sendTogether} has got to, folded over its members.
+ * Where a group sent with {@link sendTogether} has got to, folded over its
+ * members. Useful for showing the operator whether a group of commands to a
+ * vessel is still travelling, was confirmed, failed or was lost. Held by
+ * {@link CommandGroupHandle}.
  *
  * @category Commands
  */
@@ -40,7 +44,9 @@ export type CommandGroupPhase = "in-flight" | "confirmed" | "failed" | "lost";
 
 /**
  * Commands sent together with {@link sendTogether}: one message, one place in
- * the craft's command order, delivered whole or not at all.
+ * the vessel's command order, delivered whole or not at all. Useful for
+ * following or cancelling a group of commands the operator has sent. Returned by
+ * {@link sendTogether}.
  *
  * @category Commands
  */
@@ -118,8 +124,8 @@ class OpenGroup {
 }
 
 /**
- * The group a send should join, or null when none is open. The hook behind
- * `useCommand` asks this on every send.
+ * The group a send should join, or null when none is open. Used by
+ * {@link useCommand}, which asks on every send.
  *
  * @internal
  */
@@ -141,7 +147,9 @@ function isThenable(value: unknown): boolean {
 /**
  * The implementation behind `sendTogether` on the SDK root, which holds its
  * author-facing account. Callbacks that return a promise, nest, or break the
- * one-craft, one-centre, delayed-only rules throw, with nothing sent.
+ * one-vessel, one-command-centre, delayed-only rules throw, with nothing sent.
+ * Useful for sending several commands to a vessel as one message, so they are
+ * delivered whole or not at all. Offered to Uplinks by the app's Uplink host.
  */
 export function sendTogether(build: () => void): CommandGroupHandle {
   if (openGroup !== null) {

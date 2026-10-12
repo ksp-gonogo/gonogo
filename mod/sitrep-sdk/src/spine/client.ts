@@ -41,7 +41,9 @@ type StoreListener = () => void;
  * before silence is read as loss. It absorbs scheduling jitter around the
  * predicted round trip and models no delay of its own. `classifyRetained`'s
  * `overdueMarginSeconds` is the same number, so the client and the queue judge
- * one silence alike.
+ * one silence alike. Useful for telling the operator a command was lost only
+ * after it is certain no reply is coming. Used by the command delay
+ * classification and the commcast reveal logic.
  */
 export const LOSS_MARGIN = 3;
 
@@ -221,7 +223,11 @@ function refusalOf(result: unknown): {
   };
 }
 
-/** One command of a group sent with {@link TelemetryClient.dispatchGroup}. */
+/**
+ * One command of a group sent together to a vessel: its command id, arguments,
+ * the label the operator sees and the Topic it acts on. Useful for sending
+ * several commands as one message. Taken by `TelemetryClient.dispatchGroup`.
+ */
 export interface GroupMember {
   command: string;
   args?: unknown;
@@ -231,7 +237,10 @@ export interface GroupMember {
   requestId?: string;
 }
 
-/** Construction options for {@link TelemetryClient}. */
+/**
+ * Construction options for the Sitrep client: the prefix of the request ids it
+ * mints. Taken by `TelemetryClient`.
+ */
 export interface TelemetryClientOptions {
   /** Prefix of every request id this client mints. Random per client unless a test pins it. */
   idPrefix?: string;

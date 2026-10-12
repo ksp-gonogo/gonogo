@@ -44,7 +44,9 @@ export interface MissionDateFieldProps {
 }
 
 /**
- * The five components of an instant on the game's own calendar.
+ * The five components of an instant on the game's own calendar: year, day,
+ * hour, minute and second. Useful for the fields the operator types an instant
+ * into. Used by {@link MissionDateField}.
  *
  * @category Form
  */
@@ -65,7 +67,7 @@ export interface MissionDateParts {
  * The calendar components of a UT (seconds since the game's epoch). Years and
  * days are one-based, as in every other date this kit renders: UT zero is Year
  * 1 Day 1. Useful for showing the operator a UT as year, day, hour, minute and
- * second.
+ * second. Used by {@link MissionDateField}.
  *
  * A non-finite or negative UT gives the epoch. Check for an absent instant
  * before calling this rather than showing it as the epoch.
@@ -102,7 +104,7 @@ const EPOCH_PARTS: MissionDateParts = {
 /**
  * The UT (seconds since the game's epoch) of a set of calendar components.
  * Useful for turning the year, day, hour, minute and second the operator typed
- * into an instant.
+ * into an instant. Used by {@link MissionDateField}.
  *
  * Does not clamp an out-of-range component: an hour of 30 rolls into the next
  * day, so the operator never does the carry.

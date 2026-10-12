@@ -62,11 +62,11 @@ import { join } from "node:path";
  */
 
 /**
- * Computed properties whose value is a fact about the stylesheet.
- *
- * Add to this list freely and only after `uplink-shape-engines.mjs` agrees
- * across all three engines. Anything whose value can be traced back to the width
- * of a glyph belongs in the doc comment above as an exclusion, not here.
+ * The computed style properties a picture's shape records: those whose value is
+ * a fact about the stylesheet and not about the width of a glyph. Useful for
+ * telling a restyled widget from an unchanged one without comparing pixels.
+ * Read by the render driver when it captures a shape. Add a property only after
+ * `uplink-shape-engines.mjs` agrees across all three engines.
  */
 export const ADMISSIBLE_PROPERTIES = [
   "color",
@@ -123,42 +123,31 @@ export const ADMISSIBLE_PROPERTIES = [
 ] as const;
 
 /**
- * Attributes worth recording, as a regex source so it survives the trip into the
- * page.
- *
- * `style` and the SVG geometry attributes are here because that is where a
- * widget puts the numbers it means: a coverage bar's length is
- * `style="width: 42%"` and a gauge needle is a `d` or a `transform`, and both are
- * silent in `textContent`. They are authored numbers, which is what makes them
- * admissible where a measured box is not.
- *
- * The `aria-`/`data-` prefixes are a second alternative with its own anchor, and
- * that is not tidiness. Inside the first group they sat in front of a `$`, so
- * only an attribute named exactly `data-` matched and every real `data-x` and
- * `aria-x` was silently dropped: `data-section-full`, which is how a panel marks
- * a section spanning every column, and `aria-expanded`, which flips with the
- * layout decision the shape is trying to see. A unit test on `data-x=1` found it;
- * the cross-engine harness could not, because both engines dropped it equally and
- * agreed.
- *
- * `title` is here because a kit primitive reaches for it whenever text can be
- * truncated, so it appears and disappears with a layout decision: `RowName` and
- * `Panel`'s compacted title both carry the full string in one when the visible
- * text is an ellipsis. A change that alters what fits therefore shows up in this
- * attribute before it shows up anywhere else that is admissible.
+ * The attributes a picture's shape records, as a regular expression source so
+ * it can be passed into the page. They are `style` and the SVG geometry
+ * attributes, where a widget puts the numbers it means (a coverage bar's width,
+ * a gauge needle's transform), `title`, which a kit primitive carries whenever
+ * text can be truncated, and every `aria-` and `data-` attribute. Useful for
+ * telling a widget whose layout changed from one that did not. Read by the
+ * render driver when it captures a shape.
  */
 export const RECORDED_ATTRIBUTES =
   "^(style|title|role|type|disabled|hidden|open|checked|d|points|cx|cy|r|x|y|x1|y1|x2|y2|rx|ry|transform|viewBox|fill|stroke|stroke-width|stroke-dasharray|offset|stop-color)$|^(aria|data)-";
 
 /**
- * Committed beside the assets it describes.
+ * The name of the shape record file, committed beside the pictures it
+ * describes. Useful for finding the record the page check compares a fresh
+ * render against. Used by the `docs` command and {@link readShapeRecord}.
  *
  * @category Shape records
  */
 export const SHAPE_RECORD_FILE = "render-shape.json";
 
-/** One reading of the mounted widget. A still folds one, a film folds one per
- *  frame. */
+/**
+ * One reading of the mounted widget: its shape text, element count and visible
+ * text. A still folds one reading, a motion scene one per frame. Useful for
+ * building the shape of a picture. Taken by {@link foldShape}.
+ */
 export interface ShapeCapture {
   text: string;
   elements: number;
@@ -166,7 +155,10 @@ export interface ShapeCapture {
 }
 
 /**
- * What one asset's render reduces to.
+ * What one picture's render reduces to: a hash of its shape, how many elements
+ * it holds and a hash of its visible text. Useful for telling a content change
+ * from a styling change without keeping the text. Returned by the shape folding
+ * step, held in {@link ShapeRecord} and compared by {@link compareShapes}.
  *
  * @category Shape records
  */
@@ -181,8 +173,10 @@ export interface AssetShape {
 }
 
 /**
- * The committed shape of every rendered asset, which the page check compares a
- * fresh render against.
+ * The committed shape of every rendered picture, with the engine and format
+ * version it was taken in. Useful for telling a page that no longer matches the
+ * code without comparing pixels. Read by {@link readShapeRecord} and compared
+ * against a fresh render by {@link compareShapes}.
  *
  * @category Shape records
  * @categoryDescription Shape records
@@ -190,9 +184,7 @@ export interface AssetShape {
  * a page that no longer matches the code without comparing pixels.
  */
 export interface ShapeRecord {
-  /** Bumped when the admissible set changes, so an old record is not compared
-   *  against a new walk and reported as staleness that is really a schema
-   *  change. */
+  /** Changes when the recorded properties change, so an old record is not compared against a new walk. */
   version: number;
   /** The engine the shapes were taken in. A record from another engine is not
    *  comparable and the check refuses rather than failing. */
@@ -202,24 +194,22 @@ export interface ShapeRecord {
 }
 
 /**
- * The version of the `ShapeRecord` format this package writes.
+ * The version of the {@link ShapeRecord} format this package writes. Useful for
+ * refusing to compare a record made by a different set of recorded properties.
+ * Used by {@link compareShapes} and the `docs` command when it writes a record.
  *
  * @category Shape records
  */
 export const SHAPE_RECORD_VERSION = 1;
 
 /**
- * Read the mounted widget, in the page.
+ * Reads the mounted widget in the page and returns its shape text, element
+ * count and visible text. Useful for recording what a picture is made of. Used
+ * by the render driver.
  *
- * Passed to `tab.evaluate` and so must close over nothing: the whitelists arrive
- * as arguments. It returns the shape text rather than a hash, because hashing in
- * the page would mean a mismatch could only ever say "different", and the caller
- * derives the counts a message can act on.
- *
- * `#root` itself is walked past rather than included. `growToFullContent` writes
- * a measured `height` into its inline style before the shot, so recording the
- * host's own attributes would carry a content measurement into the one place
- * that must not have one.
+ * It is passed to `tab.evaluate`, so it closes over nothing and takes the
+ * property and attribute lists as arguments. `#root` itself is walked past and
+ * not recorded, because its inline height is a measurement of the content.
  */
 export const readShapeText = (args: {
   properties: readonly string[];
@@ -303,32 +293,15 @@ export const readShapeText = (args: {
 };
 
 /**
- * Stop the tree moving, so a computed style is a fact about the stylesheet
- * rather than a reading off a clock.
+ * Finishes every finite animation and transition in the page, and returns how
+ * many it finished and a description of each animation that never ends. Useful
+ * for reading a computed style that is the settled value the picture shows and
+ * not a point on a transition. Used by the render driver before it captures a
+ * shape.
  *
- * The shape read was the one capture in a render taken while animations were
- * still running. The picture beside it is not: `shoot` passes playwright's
- * `animations: "disabled"`, which fast-forwards a finite animation to its end
- * before the shutter. Nothing did the same for the walk, and
- * `getComputedStyle` on an element mid-transition returns the interpolated
- * value, which depends on how many milliseconds elapsed between the act that
- * started it and the read.
- *
- * That is not theoretical. `_scene.before` presses a control with
- * `locator.click()`, which parks the pointer on it, and the kit's `Button`
- * transitions `color` and `border-color` over 120ms on `:hover`. Seventeen of
- * one Uplink's 105 assets hashed differently on two runs of identical source,
- * every one of them a button the scene had pressed, every difference a few
- * units of grey: `rgb(150, 150, 150)` against `rgb(153, 153, 153)`, the same
- * colour caught at two points on the same ramp. A hash that moves on unchanged
- * source cannot tell a stale page from noise, which is the whole job.
- *
- * Finite animations are finished rather than cancelled, to match what the
- * screenshot does: the settled value is the one the picture shows. An animation
- * with no end cannot be finished and is reported instead, because a silent skip
- * here is how the next version of this defect would arrive.
- *
- * Passed to `tab.evaluate` and so closes over nothing.
+ * Finite animations are finished and not cancelled, to match the screenshot. An
+ * animation with no end cannot be finished and is reported. It is passed to
+ * `tab.evaluate`, so it closes over nothing.
  */
 export const settleAnimations = (): { finished: number; endless: string[] } => {
   // `transitionProperty` is on CSSTransition, `animationName` on CSSAnimation
@@ -378,9 +351,12 @@ export const settleAnimations = (): { finished: number; endless: string[] } => {
 const digest = (input: string, chars: number): string =>
   createHash("sha256").update(input).digest("hex").slice(0, chars);
 
-/** Fold one or more captures into the shape of a single asset. A still has one
- *  capture; a motion scene has one per frame, and the film's shape is the
- *  sequence, so a step that stopped firing changes it. */
+/**
+ * Folds one or more captures into the shape of a single picture. A still has
+ * one capture; a motion scene has one per frame, so a step that stopped firing
+ * changes its shape. Useful for recording what a picture is made of. Used by
+ * the render driver.
+ */
 export function foldShape(captures: readonly ShapeCapture[]): AssetShape {
   return {
     hash: digest(captures.map((c) => c.text).join("\n--frame--\n"), 16),
@@ -390,7 +366,9 @@ export function foldShape(captures: readonly ShapeCapture[]): AssetShape {
 }
 
 /**
- * The shape record in `assetDir`, or `undefined` when there is none.
+ * The shape record in `assetDir`, or `undefined` when there is none. Useful for
+ * finding out how the committed pictures looked when they were generated. Used
+ * by the `docs` command's check.
  *
  * @category Shape records
  */
@@ -426,8 +404,10 @@ export async function writeShapeRecord(
 }
 
 /**
- * What `compareShapes` found: the assets that changed, and the ones with no
- * recorded shape.
+ * What {@link compareShapes} found: the pictures that changed, the ones with no
+ * recorded shape and, when the record cannot be compared at all, the reason.
+ * Useful for telling the author which committed pictures are stale. Returned by
+ * `compareShapes` and read by the `docs` command's check.
  *
  * @category Shape records
  */
@@ -441,8 +421,10 @@ export interface ShapeVerdict {
 }
 
 /**
- * Compares today's render against the committed shape record. An asset with no
- * recorded shape is listed as `unrecorded`, never as `stale`.
+ * Compares today's render against the committed shape record. A picture with no
+ * recorded shape is listed as `unrecorded`, never as `stale`. Useful for
+ * telling the author which pictures no longer match the code. Used by the
+ * `docs` command's check.
  *
  * @category Shape records
  */
@@ -490,8 +472,10 @@ export function compareShapes(
 }
 
 /**
- * Why one asset's render no longer matches its recorded shape, in terms a
- * person can act on.
+ * Why one picture's render no longer matches its recorded shape: the element
+ * count that changed, the visible text that changed, or styling alone. Useful
+ * for telling the author what to look at in a stale picture. Used by the `docs`
+ * command's check for each entry of a {@link ShapeVerdict}.
  *
  * @category Shape records
  */

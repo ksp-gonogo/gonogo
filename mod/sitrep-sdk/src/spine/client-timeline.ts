@@ -46,29 +46,22 @@ export interface ClientTimelineOptions {
 const DEFAULT_MAX_POINTS = 1500;
 
 /**
- * Per-topic buffer of delivered samples, insert-sorted by `validAt` (samples
- * can arrive out of order, per-topic delays differ once comms modelling
- * lands, and the server's `Archive.Record` makes the same allowance).
+ * The buffer of delivered samples for one Topic, kept sorted by `validAt`
+ * because samples can arrive out of order. Useful for showing the operator a
+ * Topic's recent history and for carrying a value forward between samples. Used
+ * by the timeline store and the delay authority.
  *
- * Bounded by point count so a long-running client doesn't grow this
- * unboundedly, dropping the oldest and reporting the edge it dropped through:
- * see `ClientTimelineOptions.maxPoints` and `droppedThroughUt`. A UT window is
- * available on top (`retentionSeconds`) and nothing sets it; that option's own
- * doc has the history of why it stopped being the bound.
+ * It is bounded by point count: at most `maxPoints` are kept, the oldest are
+ * dropped, and `droppedThroughUt` reports the edge dropped through. A UT window
+ * is available on top with `retentionSeconds`.
  *
- * Epoch-aware ("client-side ghost avoidance"): a
- * quickload rewind is detected per-topic from the incoming sample's own
- * `epoch` field (no separate reset message needed at this layer),
+ * A quickload rewind is detected from the epoch of each incoming sample:
  *
- * - a sample from a lower epoch than the timeline currently holds is a
- *   stale straggler (e.g. queued behind the rewind) and is discarded on
- *   arrival;
- * - a sample from a higher epoch is a rewind: every existing point is
- *   dropped atomically and the timeline adopts the new epoch before the
- *   incoming point is appended. This is the client analog of the server's
- *   `Archive.ResetTimeline`: get it wrong and stale pre-rewind data can be
- *   read forever after the epoch bump (the "stale ghost" defect the server
- *   side already fixed).
+ * - a sample from a lower epoch than the timeline holds is a straggler queued
+ *   behind the rewind, and is discarded on arrival
+ * - a sample from a higher epoch is a rewind: every existing point is dropped
+ *   at once and the timeline adopts the new epoch before the incoming point is
+ *   appended, so data from before the rewind is never read afterwards
  */
 export class ClientTimeline<Payload = unknown> {
   private points: TimelinePoint<Payload>[] = [];

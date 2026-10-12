@@ -9,7 +9,9 @@ import { RECKONING_MARK } from "./reckoningMarkSpec";
  * How the position a vessel is drawn at is known: `current` is a reading of
  * now, `held` is the last observation kept past its time, `modelled` is where a
  * model carries the craft to now, and `lost` is the last place of a craft that
- * has been given up on.
+ * has been given up on. Useful for telling the operator how far to trust a
+ * vessel's drawn position. Taken by the `state` prop of {@link VesselMarkSvg}
+ * and the positions given to {@link paintVesselPositions}.
  *
  * @category Unit
  */
@@ -121,7 +123,8 @@ function keylineStroke(
 }
 
 /**
- * The props of {@link VesselMarkSvg}.
+ * The props of {@link VesselMarkSvg}: the centre, the radius, how the position
+ * is known and whether to draw the keyline.
  *
  * @category Unit
  */
@@ -247,7 +250,8 @@ function paintKeyline(
 }
 
 /**
- * Options for {@link paintVesselMark} and {@link paintVesselPositions}.
+ * Options for {@link paintVesselMark} and {@link paintVesselPositions}: whether
+ * to draw the keyline round the mark.
  *
  * @category Unit
  */
@@ -303,7 +307,8 @@ export function paintVesselMark(
 
 /**
  * Where a vessel is drawn, in canvas pixels, one point for each way its
- * position is known.
+ * position is known. Useful for showing the operator an observed and a
+ * modelled position together. Taken by {@link paintVesselPositions}.
  *
  * @category Unit
  */

@@ -63,7 +63,8 @@ export const LAGRANGE_POINT_NAMES = ["L1", "L2", "L3", "L4", "L5"] as const;
 /**
  * One of a pair's five libration points: `L1` between the two bodies, `L2`
  * beyond the secondary, `L3` opposite it, and `L4` and `L5` leading and trailing
- * it by sixty degrees.
+ * it by sixty degrees. Useful for labelling a point on a diagram of a pair of
+ * bodies for the operator. Held in each {@link LibrationPoint}.
  *
  * @category Frames of reference
  */
@@ -71,7 +72,8 @@ export type LagrangePointName = (typeof LAGRANGE_POINT_NAMES)[number];
 
 /**
  * Why a pair has no five points, or that it has them, as {@link LibrationAnswer}'s
- * `refusal`.
+ * `refusal`. Useful for telling the operator what to pick or why a pair cannot
+ * be drawn.
  *
  * Zero is `NotAttempted`, "no pair was named": the state before an operator
  * picks one, and while the catalogue has not arrived. It is not a refusal, so
@@ -104,7 +106,8 @@ export const LIBRATION_REFUSALS = {
 } as const;
 
 /**
- * One value of {@link LIBRATION_REFUSALS}.
+ * One value of {@link LIBRATION_REFUSALS}. Useful for branching on why a pair has
+ * no libration points. Held in the `refusal` of a {@link LibrationAnswer}.
  *
  * @category Frames of reference
  */
@@ -114,7 +117,8 @@ export type LibrationRefusal =
 /**
  * A body and its parent, the pair whose five libration points are wanted. Named
  * for the secondary, the smaller body: choosing the Mun means the Kerbin-Mun
- * pair. {@link librationPairsOf} lists the ones a catalogue can form.
+ * pair. Useful for letting the operator pick the pair to draw. Returned in a list
+ * by {@link librationPairsOf}.
  *
  * @category Frames of reference
  */
@@ -131,7 +135,8 @@ export interface LibrationPair {
 
 /**
  * One libration point of an answered pair, in the pair's own frame and in
- * inertial metres.
+ * inertial metres. Useful for drawing the point on a diagram of the pair. Held
+ * in a {@link LibrationAnswer}.
  *
  * @category Frames of reference
  */
@@ -150,6 +155,7 @@ export interface LibrationPoint {
 /**
  * What {@link lagrangePointsAt} found for a pair at one instant: the five points
  * and the frame they stand still in, or a refusal saying why there are none.
+ * Useful for showing the operator where the libration points of a pair are.
  *
  * Branch on `refusal` before reading anything else. Every field below it is
  * empty, `NaN` or null unless it is `NotRefused`.
@@ -198,28 +204,40 @@ const LIBRATION_BUDGET = new PerfBudget({
   unit: "sets",
 });
 
-/** How close to a point counts as holding station, as a multiple of the pair's separation. */
+/**
+ * How close to a point counts as holding station, as a multiple of the pair's
+ * separation (0.02). Useful for telling the operator whether a vessel is
+ * station-keeping on a libration point. Used by {@link librationOffsetOf}.
+ */
 export const LIBRATION_ON_STATION_UNITS = 0.02;
 
-/** Beyond this multiple of the separation a craft is not station-keeping on the point at all. */
+/**
+ * The distance, as a multiple of the pair's separation (0.15), beyond which a
+ * vessel is not station-keeping on the point at all. Useful for telling the
+ * operator whether a vessel is drifting from a libration point. Used by
+ * {@link librationOffsetOf}.
+ */
 export const LIBRATION_DRIFTING_UNITS = 0.15;
 
 /**
- * What a craft's offset from the nearest point means: holding station on it,
- * drifting off it, or not station-keeping on it at all. A meaning rather than a
- * colour, so a widget picks the tone.
+ * What a vessel's offset from the nearest point means: holding station on it,
+ * drifting off it, or not station-keeping on it at all. Useful for showing the
+ * operator how well a vessel holds its libration point, with the widget picking
+ * the colour. Held in a {@link LibrationOffset}.
  *
- * `elsewhere` is not a fault. A craft in low orbit is nearest to some libration
- * point in the arithmetic sense and is not station-keeping on it, so draw it as
- * neutral rather than as an alarm.
+ * `elsewhere` is not a fault. A vessel in low orbit is nearest to some
+ * libration point in the arithmetic sense and is not station-keeping on it, so
+ * draw it as neutral and not as an alarm.
  *
  * @category Frames of reference
  */
 export type LibrationStationKeeping = "on-station" | "drifting" | "elsewhere";
 
 /**
- * Where a craft sits against an answered pair's points: which one it is nearest,
- * how far off it, and what that distance means. From {@link librationOffsetOf}.
+ * Where a vessel sits against an answered pair's points: which one it is nearest,
+ * how far off it, and what that distance means. Useful for showing the operator
+ * how far a vessel is from a libration point. Returned by
+ * {@link librationOffsetOf}.
  *
  * @category Frames of reference
  */
@@ -333,11 +351,8 @@ const COLLINEAR_BRACKET_GAP = 1e-9;
 
 /**
  * The five equilibria for a mass ratio, in the pair's frame, or null when the
- * collinear roots do not bracket.
- *
- * Exported because the mass ratio is the whole of the input: a test can pin the
- * five positions against the ratio alone, with no catalogue, no instant and no
- * frame in the way.
+ * collinear roots do not bracket. Useful for finding the libration points of
+ * any pair of bodies from their masses alone. Used by {@link lagrangePointsAt}.
  */
 export function librationPositionsFor(
   massRatio: number,
@@ -378,11 +393,11 @@ export function librationPositionsFor(
 
 /**
  * The five libration points of the pair the given body belongs to, at `ut`.
+ * Useful for showing the operator where the points of a pair of bodies are.
  *
- * `secondaryIndex` names the body, and its parent completes the pair: one
- * argument, because the pair is one choice. Pass the `system` when the caller
- * already solved the whole catalogue at this instant, which is the ordinary case
- * for a widget also placing a craft.
+ * `secondaryIndex` names the body, and its parent completes the pair. Pass the
+ * `system` when the caller already solved the whole catalogue at this instant,
+ * which is the ordinary case for a widget also placing a vessel.
  *
  * The points stand still only in the pair's rotating-pulsating frame, the
  * answer's `frame`, whose coordinates are multiples of the bodies' separation.
@@ -497,9 +512,10 @@ export function lagrangePointsAt(
 }
 
 /**
- * Which point a craft is nearest, how far off it is, and what that means.
+ * Which point a vessel is nearest, how far off it is, and what that means.
+ * Useful for showing the operator how close a vessel is to a libration point.
  *
- * Pass the craft's root-centred inertial position, in metres, at the answer's
+ * Pass the vessel's root-centred inertial position, in metres, at the answer's
  * own instant. `null` when the answer is a refusal or the position is not
  * finite. The metre distance is measured between inertial positions, so it is a
  * real distance even though the frame's coordinates are ratios.
@@ -548,12 +564,12 @@ export function librationOffsetOf(
 }
 
 /**
- * Every pair the catalogue can form, in the catalogue's body order.
+ * Every pair the catalogue can form, in the catalogue's body order. Useful for
+ * building the control with which the operator picks a pair.
  *
- * Build a pair control from this rather than from the body list: a pair needs a
- * body with a parent and a gravitational parameter on both sides, and this
- * leaves out every body {@link lagrangePointsAt} would refuse, so a control
- * never offers a choice that cannot be drawn.
+ * A pair needs a body with a parent and a gravitational parameter on both sides.
+ * The list leaves out every body {@link lagrangePointsAt} would refuse, so a
+ * control built from it never offers a choice that cannot be drawn.
  *
  * @category Frames of reference
  */
@@ -580,7 +596,8 @@ export function librationPairsOf(
 
 /**
  * A pair's name as an operator reads it, primary first ("Kerbin-Mun"), the way
- * libration pairs are written. `"no pair"` for null.
+ * libration pairs are written. `"no pair"` for null. Useful for labelling the
+ * pair the operator picked.
  *
  * @category Frames of reference
  */

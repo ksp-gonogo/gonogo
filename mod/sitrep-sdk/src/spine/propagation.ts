@@ -17,7 +17,12 @@ const TWO_PI = 2 * Math.PI;
 /** Re-exported for this module's long-standing importers; declared in the unit system. */
 export { STANDARD_GRAVITY } from "../unit-system/definitions";
 
-/** Orbital period (seconds) of an ellipse: `2π·sqrt(sma³/mu)`. `null` for an open orbit (ecc ≥ 1 or sma ≤ 0), which has no period, and for a non-finite one. */
+/**
+ * The orbital period in seconds of an ellipse: `2π·sqrt(sma³/mu)`. Useful for
+ * showing the operator how long one lap takes. Used by the Kepler period widget
+ * and the orbit trajectory solver. `null` for an open orbit (`ecc` of 1 or more,
+ * or `sma` of 0 or less), which has no period, and for a non-finite one.
+ */
 export function orbitalPeriod(elements: OrbitElements): number | null {
   if (elements.ecc >= 1) return null;
   if (elements.sma <= 0 || !Number.isFinite(elements.sma)) return null;

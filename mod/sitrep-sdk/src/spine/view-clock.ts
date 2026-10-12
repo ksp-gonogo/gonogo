@@ -13,27 +13,34 @@ export type {
 } from "../view-clock-formula";
 
 /**
- * The signal delay below which SCET and the received clock are the same instant as
- * far as anything on screen can show: instants are printed to the whole second.
+ * The signal delay, in seconds, below which SCET (the instant a vessel sent a
+ * reading) and the received clock (the instant the command centre gets it) are
+ * the same instant as far as anything on screen can show, because instants are
+ * printed to the whole second. Useful for deciding whether to show the operator
+ * both clocks or only one. Used by the time-context hook and by the check that
+ * decides when a reading is shown beyond what has been received.
  *
  * @category Stream fixture
  */
 export const VISIBLE_GAP_SECONDS = 1;
 
 /**
- * Whether a read sits at-or-before the certainty horizon (`"confirmed"`: a
- * delivered sample or an honest interpolation between two of them) or past
- * it (`"predicted"`: a propagated/held-last estimate). Rides
- * alongside a value/status the same way `StreamStatusValue` does; see
- * `TimelineStore.sampleCertainty`.
+ * Whether a reading sits at or before the certainty horizon (`"confirmed"`: a
+ * delivered sample, or an interpolation between two of them) or past it
+ * (`"predicted"`: a propagated or held-last estimate). Useful for showing the
+ * operator whether a figure on screen was delivered by the vessel or is
+ * estimated. Used by the certainty hook, and returned by the timeline store's
+ * `sampleCertainty`.
  */
 export type Certainty = "confirmed" | "predicted";
 
 /**
- * Estimator health, used to widen hold margins; never to gate
- * confirmation itself. Only the `"locked"`/`"coasting"` split
- * (silence-based) is implemented today; `"degraded"` (a warp-rate change
- * detected during silence) is deferred.
+ * How well the view clock can currently estimate game time: `"locked"` while
+ * samples keep arriving, `"coasting"` after a stretch of silence from the
+ * vessel, and `"degraded"` when a warp-rate change was detected during silence.
+ * Useful for showing the operator how far to trust a time estimate. Used by the
+ * heartbeat tracker, which widens its hold margins with it. Only `"locked"` and
+ * `"coasting"` are reported today.
  */
 export type ViewClockConfidence = "locked" | "coasting" | "degraded";
 
@@ -59,10 +66,15 @@ type FrameTickHandle =
   | { kind: "timer"; id: ReturnType<typeof setTimeout> };
 
 /**
- * The instant the dashboard is showing, one per client. It estimates game time
- * from the wall clock, but never shows past what has arrived:
- * `confirmedEdgeUt()` is held at the latest sample instant actually observed,
- * so a wrong estimate can only make the view lag, never run ahead of the data.
+ * The instant the dashboard is showing, one per client: an estimate of game time
+ * in UT, advanced by the wall clock, and held back to the delay between the
+ * vessel and the command centre. Useful for keeping every widget on screen at
+ * the same moment of the mission. Created by `TelemetryProvider`, which hands it
+ * to widgets through the hooks that read the view time.
+ *
+ * It never shows past what has arrived: `confirmedEdgeUt()` is held at the
+ * latest sample instant actually observed, so a wrong estimate makes the view
+ * lag and never run ahead of the data.
  *
  * A rewind, seen as a new `epoch` passed to `observeSample`, starts the
  * estimate afresh and drops samples from before it.

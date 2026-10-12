@@ -2,9 +2,11 @@ import type { CommsDegrade } from "./__generated__/contract";
 import type { TopicCurrency } from "./reading";
 
 /**
- * How degraded the link to a craft is, from 0 (nothing wrong) to 1 (nothing
- * usable getting through), and which grading rule said so. Comms mods grade a
- * link differently, so the rule is named.
+ * How degraded the signal path between the command centre and a vessel is, from
+ * 0 (nothing wrong) to 1 (nothing usable getting through), and which grading
+ * rule said so. Comms mods grade a signal path differently, so the rule is
+ * named. Useful for showing the operator how well data and commands are getting
+ * through. Returned by {@link degradeRatingOf} and {@link degradeRating}.
  *
  * @category Comms
  */
@@ -18,10 +20,10 @@ export interface DegradeRating {
 }
 
 /**
- * Returns the link grading in one `comms.degrade` payload, or `undefined` when
- * nothing graded the link. `undefined` is not a good rating: it means nobody
- * rated the link, so keep doing what you were doing rather than sending
- * everything.
+ * Returns the signal path grading in one `comms.degrade` payload, or `undefined`
+ * when nothing graded it. `undefined` is not a good rating: it means nobody
+ * rated the signal path, so keep doing what you were doing rather than sending
+ * everything. Useful for deciding how much telemetry to ask the vessel for.
  *
  * Build a quality decision on this, not on `1 - signalStrength`: what
  * `comms.signal` measures differs between comms mods, and nothing on the wire
@@ -48,10 +50,12 @@ export function degradeRatingOf(
 }
 
 /**
- * Returns the link grading from a `useTelemetry("comms.degrade")` reading, or
- * `undefined` when nothing has arrived or nothing graded the link. A held
+ * Returns the signal path grading from a `useTelemetry("comms.degrade")`
+ * reading, or `undefined` when nothing has arrived or nothing graded it. A held
  * reading still returns its last grading, which is the last thing known about
- * the link. To know whether the link is down, read `comms.link` as well.
+ * the signal path. To know whether the signal path is down, read `comms.link`
+ * as well. Useful for showing the operator the current grading beside a comms
+ * readout.
  *
  * @category Comms
  */

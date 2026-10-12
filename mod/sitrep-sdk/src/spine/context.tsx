@@ -110,7 +110,9 @@ export interface TelemetryProviderProps {
 /**
  * Supplies a {@link TelemetryClient} to the tree below it, and the store every
  * Topic is read from, fed by that client. Derived Topics are registered on the
- * store, so they read like any other.
+ * store, so they read like any other. Useful for giving every widget below it a
+ * stream of the vessel's telemetry to read. Used by the app's telemetry
+ * provider, which mounts it over the connection to the game.
  *
  * Pass `store` to supply the store yourself; otherwise one is built per
  * `client`. Every message that arrives is applied, and readers re-render at
@@ -360,7 +362,12 @@ export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
     dvCurrentStageResourceMaxChannel as DerivedChannelDefinition<unknown>,
   ];
 
-/** Reads the `TelemetryClient` supplied by the nearest `TelemetryProvider`. */
+/**
+ * The `TelemetryClient` supplied by the nearest `TelemetryProvider`, the
+ * connection to the game that telemetry and commands travel over. Useful for
+ * code that has to subscribe or send a command itself. Throws when no
+ * `TelemetryProvider` is mounted.
+ */
 export function useTelemetryClient(): TelemetryClient {
   const client = useContext(TelemetryClientContext);
   if (!client) {
@@ -372,34 +379,32 @@ export function useTelemetryClient(): TelemetryClient {
 }
 
 /**
- * Non-throwing variant of `useTelemetryClient`: `undefined` when no
- * `TelemetryProvider` is mounted, instead of throwing.
+ * The `TelemetryClient` supplied by the nearest `TelemetryProvider`, or
+ * `undefined` when none is mounted. Useful for showing the operator a panel
+ * that has to render whether or not a stream exists, such as a station screen
+ * before its provider is up. Used by the hooks that follow the observed
+ * vantage and the currency events.
  *
- * For a caller that must render whether or not a stream exists: a widget in
- * a probe harness, a station screen before its provider is up, an augment
- * whose panel is there either way. Ordinary SDK-native call sites should
- * keep using `useTelemetryClient` so a missing provider fails loudly.
+ * A caller that needs the stream uses `useTelemetryClient`, which throws when
+ * no provider is mounted.
  */
 export function useTelemetryClientOptional(): TelemetryClient | undefined {
   return useContext(TelemetryClientContext);
 }
 
 /**
- * Sibling hook to `TelemetryProvider`: the mission-recording tap point
- * (`StreamRecorder`, `./replay-recorder.ts`). Builds (and memoizes) a
- * `StreamRecorder` bound to the nearest `TelemetryProvider`'s client;
- * `undefined` when no provider is mounted, matching every other
- * `*Optional`-shaped read in this file.
+ * A `StreamRecorder` bound to the nearest `TelemetryProvider`'s client, kept
+ * across renders, or `undefined` when no provider is mounted. Useful for
+ * recording a flight's telemetry so the operator can replay it. Used by the
+ * controller that records flights automatically.
  *
- * Zero overhead when unused: a `StreamRecorder` registers no listener on the
- * client until its own `start()` is called, so a caller that never presses
- * "record" (or has mission history disabled) pays nothing beyond the one
- * object allocation: no wire subscription, no message tap.
+ * The recorder registers no listener on the client until its own `start()` is
+ * called, so a caller that never starts it adds no wire subscription and no
+ * message tap.
  *
- * `recordAllTopics` is read once at construction (like
- * `viewClockOptions` on `TelemetryProvider` itself): flip it by
- * `stop()`ping any in-progress recording and letting this hook rebuild a
- * fresh recorder on the next render with the new option.
+ * `recordAllTopics` is read once, when the recorder is built. To change it,
+ * call `stop()` on any recording in progress; the next render builds a fresh
+ * recorder with the new option.
  */
 export function useStreamRecorder(
   options?: StreamRecorderOptions,
@@ -415,10 +420,11 @@ export function useStreamRecorder(
 }
 
 /**
- * Reads the `TimelineStore` supplied by the nearest `TelemetryProvider`.
- * Always mounted alongside the client by `TelemetryProvider` (auto-built
- * if the `store` prop was omitted), throws if no provider is in
- * the tree, matching `useTelemetryClient`'s contract.
+ * The `TimelineStore` supplied by the nearest `TelemetryProvider`, the record
+ * of every Topic's samples that telemetry is read from. Useful for code that
+ * has to sample or subscribe to the store itself. `TelemetryProvider` always
+ * mounts one with the client, building it when the `store` prop is omitted.
+ * Throws when no provider is mounted.
  */
 export function useTelemetryStore(): TimelineStore {
   const store = useContext(TimelineStoreContext);
@@ -431,10 +437,13 @@ export function useTelemetryStore(): TimelineStore {
 }
 
 /**
- * Non-throwing variant of `useTelemetryStore`: `undefined` when no
- * `TelemetryProvider` is mounted. Same rationale as
- * `useTelemetryClientOptional`, and a caller usually wants both: the client
- * says whether a stream exists, the store says what it is carrying.
+ * The `TimelineStore` supplied by the nearest `TelemetryProvider`, or
+ * `undefined` when none is mounted. Useful for a panel that has to render
+ * whether or not a stream exists and that shows what the stream is carrying.
+ * Used by the hook that reads the game status.
+ *
+ * A caller that needs the store uses `useTelemetryStore`, which throws when no
+ * provider is mounted.
  */
 export function useTelemetryStoreOptional(): TimelineStore | undefined {
   return useContext(TimelineStoreContext);
@@ -538,12 +547,13 @@ export function useViewClock(): ViewClockView {
 }
 
 /**
- * Non-throwing variant of `useViewClock`: `undefined` when no
- * `TelemetryProvider` is mounted. The natural call shape for an optional
- * consumer like a camera widget: it wires delayed playout onto the shared
- * clock when streaming is live and falls back to strict passthrough (the
- * `delaySeconds() === 0` case) otherwise, with no hard dependency on a
- * provider being in the tree.
+ * The shared view clock of the nearest `TelemetryProvider`, which says what UT
+ * the frame on screen is drawn for, or `undefined` when none is mounted. Useful
+ * for a widget such as a camera feed that delays its playout by the one-way
+ * delay when a stream is live and plays straight through otherwise. Used by the
+ * hook that reads the time contexts.
+ *
+ * A caller that requires the clock uses `useViewClock`.
  */
 export function useViewClockOptional(): ViewClockView | undefined {
   // gonogo:reads none
@@ -668,15 +678,14 @@ export function useUtNow(): number | undefined {
 }
 
 /**
- * Non-React `useViewUt()` equivalent: for callers that can't use hooks, the
- * plain classes behind the maneuver-trigger and alarm host services among
- * them. Reads `viewUt()` off whichever `TelemetryProvider`
- * most recently mounted (`activeViewClock`), the same method `onFrame`
- * hands `useViewUt`'s per-frame callback: so it follows the exact same
- * delay-consistent, scrub-respecting clock, just polled on demand instead of
- * per-frame. `undefined` when no provider has ever mounted, or before any
- * live/scrubbed value is available, the same "no stream / not synced"
- * contract `useViewUt` returns before its first frame.
+ * The current view time in UT seconds, read on demand by a caller that cannot
+ * use hooks. Useful for a service that must judge times against the instant the
+ * frame on screen is drawn for. Used by the alarm host service.
+ *
+ * It reads the clock of the `TelemetryProvider` that mounted most recently, so
+ * it follows the same delayed, scrub-respecting clock as `useViewUt`.
+ * `undefined` when no provider has ever mounted or before any live or scrubbed
+ * value is available.
  */
 export function getViewUt(): Value<"ut"> | undefined {
   noteUndeclaredRead("getViewUt");
@@ -685,15 +694,14 @@ export function getViewUt(): Value<"ut"> | undefined {
 }
 
 /**
- * Test-only escape hatch: registers `clock` as `getViewUt()`'s source, and the
- * clock `dispatchActiveCommandTopic` judges arrival by, without mounting a `TelemetryProvider`: for
- * a host-service unit test (`AlarmHostService`, `ManeuverTriggerHostService`)
- * that drives its own fake telemetry reader and has no React tree to render at
- * all. A fake with no `scetUt` answers SCET as its view time, and one with no
+ * Makes `clock` the source of `getViewUt()` and the clock that
+ * `dispatchActiveCommandTopic` judges arrival by, without mounting a
+ * `TelemetryProvider`. Useful for a test of a service that has no React tree.
+ *
+ * A fake with no `scetUt` answers SCET as its view time, and one with no
  * `commandArrivalUt` answers arrival as its SCET, which is what a clock with no
- * signal delay does. Pass `undefined` to clear; a test's
- * `afterEach` should always do this so a later, unrelated suite's `getViewUt()`
- * call can't see a stale clock left over from this one.
+ * signal delay does. Pass `undefined` to clear it, and do so in the test's
+ * `afterEach` so a later test cannot read a stale clock.
  */
 export function setActiveViewClockForTests(
   clock:
@@ -849,30 +857,20 @@ function notifyActiveTelemetryClientListeners(): void {
 }
 
 /**
- * Reads `topic` off whichever `TelemetryProvider` most recently mounted
- * (`activeTimelineStore`), the same `store.sample(topic, store.currentFrame())`
- * call `useStream`/`useTelemetry`'s canonical overload make: so a non-hook
- * caller sees the exact same value a widget's `useTelemetry(topic)` would on
- * the same frame, just polled on demand instead of reactively. Returns
- * `undefined` when no provider has ever mounted, or before any point has
- * landed for `topic`: the same "not synced yet" contract `useStream`
- * returns before its first frame. Does not itself ensure `topic` is
- * subscribed on the wire (unlike `useStream`'s `subscribe`, which ref-counts
- * a `client.subscribe` for the resolved raw inputs), a plain-class caller
- * relies on some other live subscriber (typically a mounted widget reading
- * the same topic) already keeping the data flowing, exactly like
- * `getViewUt()` relies on the provider's own `ViewClock` ticking regardless
- * of subscribers.
+ * The latest payload of `topic`, read on demand by a caller that cannot use
+ * hooks, from the `TelemetryProvider` that mounted most recently. It is the
+ * value a widget's `useTelemetry(topic)` would show on the same frame. Useful
+ * for a service that needs a Topic chosen at call time. Used by the alarm host
+ * service.
  *
- * Exported (beyond the fixed `getVesselOrbit`/`getVesselTarget`/
- * `getVesselIdentity` wrappers below, each just this function bound to one
- * Topic) for plain-class callers that need an arbitrary topic decided at call
- * time, the same "dynamic topic" shape `useTelemetry`'s own doc comment
- * documents for the hook case.
+ * `undefined` when no provider has ever mounted or before any sample has
+ * arrived for `topic`. It does not subscribe to `topic` on the wire, so some
+ * other live subscriber, typically a mounted widget reading the same Topic, has
+ * to keep the data flowing.
  *
- * Answers a display value, and a hold-last one: this cannot say how old it is,
- * or whether anything is still feeding the topic. Anything acting on the
- * answer rather than drawing it wants {@link sampleActiveReading} instead.
+ * The payload is a display value held from the last sample: it cannot say how
+ * old it is or whether anything still feeds the Topic. A caller that acts on
+ * the answer rather than draws it uses {@link sampleActiveReading}.
  */
 export function sampleActiveTopic<Payload>(topic: string): Payload | undefined {
   noteUndeclaredRead("sampleActiveTopic", topic);
@@ -894,25 +892,20 @@ const NO_PROVIDER_READING = topicReading<never>({
 });
 
 /**
- * `sampleActiveTopic`'s currency-carrying twin: the same on-demand read off
- * whichever `TelemetryProvider` mounted last, answering the whole
- * `TopicReading` a widget's `useTelemetry(topic)` would get on the same frame
- * rather than the bare payload.
+ * The whole `TopicReading` of `topic`, read on demand by a caller that cannot
+ * use hooks, from the `TelemetryProvider` that mounted most recently. It is the
+ * reading a widget's `useTelemetry(topic)` would get on the same frame, with
+ * how current it is, where `sampleActiveTopic` returns the bare payload. Useful
+ * for a service that acts on telemetry on the operator's behalf. Used by the
+ * alarm host service.
  *
- * A bare payload is a display value. The store is hold-last by design, and a
- * timeline is never dropped when its last subscriber lets go, so
- * `sampleActiveTopic` answers a released topic's final payload for as long as
- * the epoch stands. That is the right answer for a readout under a staleness
- * mark and the wrong one for a headless caller deciding something: a decision
- * taken on a payload has no way to ask how old it is, and the last holder's
- * unmount is not an event the caller sees.
+ * A caller acting on a reading branches on `state` and treats `held` as a
+ * reason to stop. A bare payload is held from the last sample for as long as the
+ * epoch stands, even after the last subscriber of the Topic has gone, so it
+ * cannot show that nothing is feeding it.
  *
- * So anything acting on a reading rather than drawing it reads here, branches
- * on `state`, and treats `held` as a reason to stop. One store call, the same
- * `sampleReading` the hook path uses, so the two cannot drift.
- *
- * Answers `pending` when no provider has ever mounted, matching what
- * `useTelemetry` returns outside a provider.
+ * Answers `pending` when no provider has ever mounted, as `useTelemetry` does
+ * outside a provider.
  */
 export function sampleActiveReading<Payload>(
   topic: string,
@@ -925,55 +918,55 @@ export function sampleActiveReading<Payload>(
 }
 
 /**
- * Non-React equivalent of `useTelemetry("vessel.orbit")`: the vessel's own
- * Keplerian orbit elements (`sma`/`ecc`/`inc`/`lan`/`argPe`/`mu`/...). For
- * plain-class callers (the maneuver-trigger host service among them), which get
- * the whole record in one read rather than a field at a time off
- * `getDataSource(...)`.
+ * The vessel's own Keplerian orbit elements (`sma`, `ecc`, `inc`, `lan`,
+ * `argPe`, `mu` and the rest) from `vessel.orbit`, as a single read for a caller
+ * that cannot use hooks. Useful for a service that plans against the orbit the
+ * operator is flying. Used by the maneuver-trigger host service.
  */
 export function getVesselOrbit(): VesselOrbit | undefined {
   return sampleActiveTopic<VesselOrbit>("vessel.orbit");
 }
 
 /**
- * Non-React equivalent of `useTelemetry("vessel.target")`: the current
- * target's identity, relative kinematics, and (when it has one) orbit. The
- * replacement for the legacy `tar.o.*` keys' per-field reads.
+ * The vessel's current target from `vessel.target`: its identity, relative
+ * kinematics and, when it has one, its orbit. A single read for a caller that
+ * cannot use hooks. Useful for a service that acts on the target the operator
+ * has picked. Used by the maneuver-trigger host service.
  */
 export function getVesselTarget(): VesselTarget | undefined {
   return sampleActiveTopic<VesselTarget>("vessel.target");
 }
 
 /**
- * Non-React equivalent of `useTelemetry("vessel.identity")`: vessel name,
- * type, situation, parent body index. The replacement for the legacy
- * `v.name` read.
+ * The vessel's name, type, situation and parent body index from
+ * `vessel.identity`, as a single read for a caller that cannot use hooks.
+ * Useful for a service that names the vessel to the operator. Used by the SCET
+ * alarm bridge and the go/no-go host service.
  */
 export function getVesselIdentity(): VesselIdentity | undefined {
   return sampleActiveTopic<VesselIdentity>("vessel.identity");
 }
 
 /**
- * Non-React equivalent of `useTelemetry("system.bodies")`: the body tree, by
- * stable index.
- *
- * Wanted by anything turning an orbital radius into an altitude, which needs
- * the reference body's own radius, and by the body-name display maps.
+ * The body tree from `system.bodies`, keyed by stable body index, as a single
+ * read for a caller that cannot use hooks. Useful for turning an orbital radius
+ * into an altitude, which needs the reference body's own radius, and for naming
+ * bodies to the operator. Used by the maneuver-trigger host service.
  */
 export function getSystemBodies(): SystemBodies | undefined {
   return sampleActiveTopic<SystemBodies>("system.bodies");
 }
 
 /**
- * The self vessel's apsides, their altitudes, the apsis countdowns, true
- * anomaly, period and orbital radius at the frame's view time, or `null` where
- * the conic behind them has withdrawn. For a caller that cannot use hooks.
+ * The vessel's apsides, their altitudes, the apsis countdowns, true anomaly,
+ * period and orbital radius at the frame's view time, or `null` where the orbit
+ * model has withdrawn. A single read for a caller that cannot use hooks. Useful
+ * for a service that plans a maneuver against the orbit the operator sees. Used
+ * by the maneuver-trigger host service.
  *
- * The other non-hook accessors here hand back a payload, which carries no
- * model, and the model's refusal is the whole of when these figures may be
- * drawn. This samples the reading instead and applies the same rule a hook
- * would, so a maneuver plan and the panel drawing the orbit it plans against
- * cannot disagree about whether there is an orbit to plan against.
+ * It samples the reading and applies the same withdrawal rule a hook would, so
+ * a plan and the panel drawing the orbit agree on whether there is an orbit.
+ * Without a mounted provider it returns `null`.
  */
 export function getOrbitSolve(): OrbitalSolve | null {
   if (!activeTimelineStore) return null;
@@ -996,21 +989,17 @@ export function getOrbitSolve(): OrbitalSolve | null {
 }
 
 /**
- * Non-hook, Value-restricted read of an operator-picked key, for a plain-class
- * caller (alarm/maneuver-trigger threshold evaluation) whose key is not one of
- * a fixed set decided at call time. `key` is a field path or a dynamic-namespace
- * key, resolved through `resolveValueTopic`, and the resulting Topic is sampled
- * off the active `TimelineStore`. Answers a
- * magnitude: the one type every threshold comparison needs, taken off the
- * `Value` a unit-carrying field arrives as, so a non-numeric or not-yet-arrived
- * read is a plain `undefined`.
+ * The current magnitude of a field the operator picked, read on demand by a
+ * caller that cannot use hooks. Useful for comparing a telemetry field against
+ * a threshold set by the operator. Used by the maneuver-trigger host service.
  *
- * Deliberately restricted to keys the routing actually resolves: the alarm and
- * trigger pickers (see `@ksp-gonogo/data`'s `useNumericFields`) only ever offer keys
- * in that resolvable set, so an unresolvable key here is a stale persisted
- * `dataKey` naming a retired subject. `undefined` is the correct answer, and the
- * surface that stored it is responsible for showing the operator that its
- * subject no longer resolves rather than drawing a reading it never got.
+ * `key` is a field path or a dynamic-namespace key, resolved through
+ * `resolveValueTopic`, and the resulting Topic is sampled from the active
+ * `TimelineStore`. The answer is the number inside the `Value` a unit-carrying
+ * field arrives as. It is `undefined` for a non-numeric field, a read not yet
+ * arrived, and a key that does not resolve, such as a stored key that names a
+ * retired subject. The caller that stored the key shows the operator that its
+ * subject no longer resolves.
  */
 export function getValue(key: string): number | undefined {
   const topic = resolveValueTopic(key);
@@ -1035,38 +1024,42 @@ function pickedKeyMagnitude(payload: unknown): number | undefined {
 }
 
 /**
- * Non-React equivalent of `useTelemetry("time.warp")`: the whole `WarpState`
- * record (`warpRate`/`warpRateIndex`/`warpMode`/`paused`). `WarpObserver` reads
- * it here, in one go, rather than four per-field reads against the `"data"`
- * `DataSource`.
+ * The whole `WarpState` record from `time.warp` (`warpRate`, `warpRateIndex`,
+ * `warpMode` and `paused`), as a single read for a caller that cannot use hooks.
+ * Useful for a service that reacts when the operator changes time warp. Used by
+ * the warp observer.
  */
 export function getWarpState(): WarpState | undefined {
   return sampleActiveTopic<WarpState>("time.warp");
 }
 
 /**
- * Non-React equivalent of `useTelemetry("career.status.contracts.active")`: the
- * career mode's currently-active contract list, off `career.status`'s
- * `contracts.active` raw-field subtopic.
+ * The contracts currently active in the career, from the `contracts.active`
+ * field of `career.status`, as a single read for a caller that cannot use hooks.
+ * Useful for a service that names the contracts the operator has accepted.
  */
 export function getContractsActive(): CareerContract[] | undefined {
   return sampleActiveTopic<CareerContract[]>("career.status.contracts.active");
 }
 
 /**
- * Non-hook equivalent of `useTelemetryClientOptional()`: the currently
- * mounted `TelemetryProvider`'s `TelemetryClient`, or `undefined` when none
- * is mounted. See `activeTelemetryClient`'s doc comment.
+ * The `TelemetryClient` of the `TelemetryProvider` that is mounted now, or
+ * `undefined` when none is, for a caller that cannot use hooks. Useful for a
+ * service that sends commands or subscribes to Topics outside React. Used by
+ * the SCET alarm bridge and the peer host service.
+ *
+ * It reads once and never updates. A component that may render before a
+ * provider mounts uses `useActiveTelemetryClient`.
  */
 export function getActiveTelemetryClient(): TelemetryClient | undefined {
   return activeTelemetryClient;
 }
 
 /**
- * Registers `listener` to fire whenever `activeTelemetryClient` changes.
- * Backs `useActiveTelemetryClient`; exported directly for any non-React
- * subscriber that needs the same live notification. Returns an unsubscribe
- * function.
+ * Calls `listener` whenever the mounted `TelemetryProvider`'s client changes,
+ * and returns a function that stops it. Useful for a service outside React that
+ * has to follow the stream's connection as it comes and goes. Used by the SCET
+ * alarm bridge and by `useActiveTelemetryClient`.
  */
 export function subscribeActiveTelemetryClient(
   listener: () => void,
@@ -1078,14 +1071,13 @@ export function subscribeActiveTelemetryClient(
 }
 
 /**
- * Reactive equivalent of `getActiveTelemetryClient()`: re-renders the
- * calling component whenever the active `TelemetryProvider` mounts,
- * unmounts, or swaps its `client`. Use this (instead of the plain getter)
- * from any component that might render before a `TelemetryProvider` mounts,
- * the plain getter reads once and never updates, so a component like
- * `ModalTelemetryBridge` that opens during the app's connect-in-progress
- * window would otherwise be stuck rendering its children with no telemetry
- * context for its entire lifetime, even after the real client connects.
+ * The `TelemetryClient` of the mounted `TelemetryProvider`, or `undefined` when
+ * none is, re-rendering its caller whenever a provider mounts, unmounts or
+ * swaps its client. Useful for a component that may render before a provider
+ * mounts, such as a modal that opens while the connection to the game is still
+ * being made. Used by the bridge that carries telemetry into modals.
+ *
+ * `getActiveTelemetryClient` reads once and never updates.
  */
 export function useActiveTelemetryClient(): TelemetryClient | undefined {
   return useSyncExternalStore(
@@ -1129,7 +1121,12 @@ export interface DispatchCommandRefusal {
   detail?: string;
 }
 
-/** Outcome of {@link dispatchActiveCommandTopic}: see its doc comment. */
+/**
+ * The result of {@link dispatchActiveCommandTopic}: whether the command was put
+ * on the stream, and when it was, a promise of the simulation's refusal or
+ * `undefined` once it succeeded. Useful for telling the operator at once that a
+ * command did not go. Returned by `dispatchActiveCommandTopic`.
+ */
 export type DispatchActiveCommandResult =
   | { routed: true; settled: Promise<DispatchCommandRefusal | undefined> }
   | { routed: false };
@@ -1215,11 +1212,11 @@ export function dispatchActiveCommandTopic(
 }
 
 /**
- * Test-only escape hatch: registers `store` as
- * `getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`'s source
- * directly, without mounting a `TelemetryProvider`: mirrors `setActiveViewClockForTests`. Pass
- * `undefined` to clear; a test's `afterEach` should always do this so a
- * later, unrelated suite can't see a stale store left over from this one.
+ * Makes `store` the source of `getVesselOrbit()`, `getVesselTarget()`,
+ * `getVesselIdentity()` and the other on-demand reads, without mounting a
+ * `TelemetryProvider`. Useful for a test of a service that has no React tree.
+ * Pass `undefined` to clear it, and do so in the test's `afterEach` so a later
+ * test cannot read a stale store.
  */
 export function setActiveTimelineStoreForTests(
   store: (ActiveTimelineStore & Partial<ReadTopicResolver>) | undefined,
@@ -1243,24 +1240,15 @@ export function setActiveTelemetryClientForTests(
 }
 
 /**
- * Non-React equivalent of subscribing to `store.subscribeFrame`: for a
- * plain-class caller that needs to re-run its own on-demand reads
- * (`getVesselOrbit()`/`getVesselTarget()`/`getVesselIdentity()`) whenever the active `TelemetryProvider` ingests a new
- * frame, the same "vessel/orbit data changed" signal a widget's
- * `useTelemetry` re-render would ride. Unlike `getViewUt()`/the sample
- * accessors above (pure point-in-time reads), this one does need a live
- * subscription: a plain class has no render loop to poll on.
+ * Calls `cb` each time the mounted `TelemetryProvider` takes in a new frame,
+ * and returns a function that stops it. Useful for a service outside React that
+ * has to re-run its on-demand reads, such as `getVesselOrbit()`, whenever the
+ * vessel's telemetry changes. Used by the go/no-go host service and the
+ * maneuver-trigger host service.
  *
- * The subscription is against whichever store is active at each frame rather
- * than the one active at call time, so it may be taken out before any
- * provider is mounted and it follows a provider that unmounts and remounts.
- * This is what lets a caller own its own lifetime: a service built once for
- * the app's lifetime keeps its frames across a provider rebuild, and one built
- * in a `useState` initialiser, which React runs before any effect in the tree,
- * starts receiving frames when the provider's registration effect runs.
- *
- * Unlike `getViewUt()` and the sample accessors above, therefore, there is no
- * "read at construction" limitation here.
+ * The subscription follows whichever store is active at each frame, so it can
+ * be taken out before any provider is mounted and survives a provider that
+ * unmounts and remounts.
  */
 export function onActiveTimelineFrame(cb: () => void): () => void {
   timelineFrameListeners.add(cb);
@@ -1272,22 +1260,21 @@ export function onActiveTimelineFrame(cb: () => void): () => void {
 }
 
 /**
- * Holds `topic` up on the wire for a caller with no component to mount: a
- * standing subscription through the same seam every read path uses, so a
- * derived topic or a field path holds the raw topics that feed it. Returns the
- * release.
+ * Subscribes to `topic` on the wire for a caller with no component to mount,
+ * and returns a function that releases it. A derived Topic or a field path
+ * holds the raw Topics that feed it. Useful for a service outside React that
+ * samples a Topic nothing else is subscribed to.
  *
- * The non-hook twin of what `useTelemetry` does while mounted, and the answer
- * to a headless service that samples a topic nothing else is holding: without
- * it the read is `pending` for ever, or after a widget lets go, the widget's
- * last payload. Like `onActiveTimelineFrame` it outlives the provider: taken
- * before one mounts it subscribes when one does, and it follows a provider
- * that unmounts and remounts.
+ * It does what `useTelemetry` does while mounted. Without a hold, a sample of
+ * that Topic stays `pending`, or returns the last payload of a widget that has
+ * since let go. The hold outlives the provider: taken before one mounts, it
+ * subscribes when one does, and it follows a provider that unmounts and
+ * remounts.
  *
- * A hold makes the topic arrive; it says nothing about how current the next
- * read is. Until the first frame lands after subscribing, a sample still
- * answers the previous holder's point, so a caller deciding anything reads
- * through `sampleActiveReading` and branches on `state`.
+ * A hold makes the Topic arrive and says nothing about how current the next
+ * read is. Until the first frame lands after subscribing, a sample still returns
+ * the previous holder's point, so a caller acting on it reads through
+ * `sampleActiveReading` and branches on `state`.
  */
 export function holdActiveTopicRead(
   topic: string,

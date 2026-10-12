@@ -13,25 +13,31 @@ import { namesOf } from "./enum-names";
 
 /**
  * The name of a `Situation` member, such as `Orbiting`. Comparing a name with
- * a string that is not a member does not compile.
+ * a string that is not a member does not compile. Useful for showing the operator
+ * a vessel's situation by name. Used by the science data widget with
+ * {@link SITUATION_NAMES}.
  *
  * @category Enum names
  */
 export type SituationName = keyof typeof Situation;
 /**
- * The name of a `SasMode` member, such as `Prograde`.
+ * The name of a `SasMode` member, such as `Prograde`. Useful for showing the
+ * operator which autopilot mode a vessel is holding. Used by the navball widget.
  *
  * @category Enum names
  */
 export type SasModeName = keyof typeof SasMode;
 /**
- * The name of a `TargetKind` member.
+ * The name of a `TargetKind` member. Useful for showing the operator what kind
+ * of object the vessel has targeted.
  *
  * @category Enum names
  */
 export type TargetKindName = keyof typeof TargetKind;
 /**
- * The name of a `ControlState` member.
+ * The name of a `ControlState` member. Useful for showing the operator how much
+ * control the command centre has over a vessel. Used by the signal verdict of
+ * the comms signal widget.
  *
  * @category Enum names
  */
@@ -40,6 +46,8 @@ export type ControlStateName = keyof typeof ControlState;
 /**
  * The name of each `Situation` value, by its number, as
  * `vessel.identity.situation` carries it. Read it with {@link enumNameOf}.
+ * Useful for showing the operator a vessel's situation by name. Used by the
+ * science data widget.
  *
  * @category Enum names
  */
@@ -47,7 +55,9 @@ export const SITUATION_NAMES = namesOf(Situation);
 
 /**
  * The name of each `SasMode` value, by its number, as `vessel.control.sasMode`
- * carries it: KSP's autopilot modes, plus `Unknown`.
+ * carries it: KSP's autopilot modes, plus `Unknown`. Read it with
+ * {@link enumNameOf}. Useful for showing the operator the autopilot mode by
+ * name. Used by the navball widget.
  *
  * @category Enum names
  */
@@ -55,7 +65,8 @@ export const SAS_MODE_NAMES = namesOf(SasMode);
 
 /**
  * The name of each `TargetKind` value, by its number, as `vessel.target.kind`
- * carries it.
+ * carries it. Read it with {@link enumNameOf}. Useful for showing the operator
+ * what kind of object the vessel has targeted.
  *
  * @category Enum names
  */
@@ -63,14 +74,17 @@ export const TARGET_KIND_NAMES = namesOf(TargetKind);
 
 /**
  * The name of each `ControlState` value, by its number, as
- * `vessel.comms.controlState` carries it.
+ * `vessel.comms.controlState` carries it. Read it with {@link enumNameOf}.
+ * Useful for showing the operator how much control the command centre has over
+ * a vessel. Used by the comms signal widget.
  *
  * @category Enum names
  */
 export const CONTROL_STATE_NAMES = namesOf(ControlState);
 
 /**
- * Every name table in this group, each with the enum it names.
+ * Every name table in this group, each with the enum it names. Useful for code
+ * that checks or lists all the tables at once.
  *
  * @category Enum names
  */
@@ -93,7 +107,9 @@ export const ENUM_NAME_TABLES: ReadonlyArray<{
 /**
  * Returns the name at `ordinal` in a name table, or `undefined` for a number
  * the table does not have, such as a member added in a newer mod version.
- * Show nothing for `undefined`, as for a value that has not arrived.
+ * Show nothing for `undefined`, as for a value that has not arrived. Useful for
+ * showing the operator a numbered enum from the stream by name. Used by the
+ * navball and science data widgets.
  *
  * @category Enum names
  * @categoryDescription Enum names
@@ -111,7 +127,8 @@ export function enumNameOf<EnumName extends string>(
 /**
  * The control level of each `ControlState` value, by its number: 2 for full
  * control, 1 for partial, 0 for none, and `undefined` for `Unknown`. Read it
- * with {@link collapseControlStateLevel}.
+ * with {@link collapseControlStateLevel}. Useful for reducing the eleven
+ * control states to the three levels the operator acts on.
  *
  * @category Enum names
  */
@@ -133,7 +150,9 @@ export const CONTROL_STATE_LEVEL: readonly (number | undefined)[] = [
 /**
  * Returns the control level for a `vessel.comms.controlState` value: 2 for
  * full control, 1 for partial, 0 for none, or `undefined` for `Unknown` or a
- * number this version does not know.
+ * number this version does not know. Useful for showing the operator whether the
+ * command centre can control a vessel fully, partly or not at all. Used by the
+ * navball widget and the signal loss indicator.
  *
  * @category Enum names
  */

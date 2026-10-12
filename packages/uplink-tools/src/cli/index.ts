@@ -385,6 +385,8 @@ async function bundle(argv: readonly string[]): Promise<number> {
 
 /**
  * Runs the `uplink-tools` command line with `argv` and returns the exit code.
+ * Useful for letting an author scaffold, check, page, release and publish an
+ * Uplink from one command. Used by the `uplink-tools` executable.
  *
  * @category Rendering scenes
  */

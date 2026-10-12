@@ -10,7 +10,9 @@
 /**
  * The spacing names a layout primitive's `gap`, `rowGap` or `space` prop
  * accepts. Each names what the space is for, and resolves to the `--gap-*`
- * CSS variable of the same name.
+ * CSS variable of the same name. Useful for spacing a widget's content the same
+ * way on every tile the operator reads. Taken by {@link Stack}, {@link Grid}
+ * and the other layout primitives.
  *
  * - `related` and `section`: between related items, and between sections:
  *   8px and 16px on a panel, 6px and 12px inside a {@link Card}
@@ -59,8 +61,9 @@ export const GAP_VAR = {
 
 /**
  * The padding names {@link Box}'s `pad` prop accepts, each resolving to the
- * `--inset-*` CSS variable of the same name, given here as vertical then
- * horizontal padding in the default sheet:
+ * `--inset-*` CSS variable of the same name. Useful for padding a pill, a block
+ * or a floating card the same way everywhere the operator sees one. Given here
+ * as vertical then horizontal padding in the default sheet:
  *
  * - `chip` (1px 6px), `chip-roomy` (1px 8px) and `chip-readout` (2px 8px):
  *   small pills
@@ -91,12 +94,11 @@ export const INSET_NAME = {
 } as const satisfies Record<InsetToken, `--inset-${string}`>;
 
 /**
- * The corner handles a surface primitive accepts.
- *
- * Three, and they name a role rather than a size: an ordinary corner, a corner
- * on something floating above the app, and a stadium. The display-frame
- * corner is not here because it belongs to `FramedDisplay` alone, and `circle` is
- * not a corner at all.
+ * The corner roundings a surface primitive accepts: `regular` for an ordinary
+ * corner, `floating` for a corner on something floating above the app, and
+ * `pill` for a stadium. Useful for rounding a surface the same way everywhere
+ * the operator sees one. The corner of {@link FramedDisplay} belongs to it
+ * alone, and `circle` is not a corner.
  */
 export type RadiusToken = "regular" | "floating" | "pill";
 

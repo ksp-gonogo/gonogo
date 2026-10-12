@@ -2,14 +2,15 @@ import { useCallback, useSyncExternalStore } from "react";
 import { useTelemetryClientOptional } from "./context";
 
 /**
- * The selected command-centre vantage (Plan 3), reactively: the component
- * re-renders when `client.setVantage` changes it, so a widget can reflect
- * "viewing from: <centre>" without owning the selection itself.
+ * The command centre the operator has selected to view from, updating when the
+ * selection changes. Useful for showing the operator which command centre the
+ * screen is viewing from. Used by the vantage control and the signal delay
+ * readout.
  *
- * `undefined` until the client chooses a centre, and when no
- * `TelemetryProvider` is mounted. Until then the mod has put the connection at
- * the home command, which only the mod can name: pair this with
- * `useObservedVantage` to learn where that is.
+ * `undefined` until a command centre is chosen, and when no `TelemetryProvider`
+ * is mounted. Until then the mod has put the connection at the home command
+ * centre, which only the mod can name: pair this with `useObservedVantage` to
+ * learn which that is.
  */
 export function useSelectedVantage(): string | undefined {
   // gonogo:reads none

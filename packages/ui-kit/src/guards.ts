@@ -37,9 +37,11 @@ import { join, relative, sep } from "node:path";
  */
 
 /**
- * The unit symbols the check looks for by default. It is a chosen list and
- * not every unit: a symbol nobody types beside a number, or one short enough
- * to turn up in ordinary prose, is left out.
+ * The unit symbols {@link findHandTypedUnits} looks for by default (`m/s`,
+ * `kPa`, `kg`, `%` and so on). Useful for catching a widget that types a unit
+ * beside a value the operator reads. The list is a chosen set and not every
+ * unit: a symbol nobody types beside a number, or one short enough to turn up
+ * in ordinary prose, is left out.
  *
  * Pass your own through `symbols` when your Uplink registers a unit of its own.
  *
@@ -103,7 +105,9 @@ const CSS_PROPERTY =
   /(width|height|left|top|right|bottom|transform|translate|inset|margin|padding|gap|flex|stroke|offset|dasharray|dashoffset|hsl|hsla|rgb|rgba)\s*[:(={]/i;
 
 /**
- * Somewhere a unit symbol was typed next to a number.
+ * One place in a client's source where a unit symbol is typed next to a number.
+ * Useful for reporting to the author where a value the operator reads has its
+ * unit typed by hand. Returned by {@link findHandTypedUnits}.
  *
  * @category Testing
  */
@@ -119,7 +123,9 @@ export interface HandTypedUnit {
 }
 
 /**
- * Options for {@link findHandTypedUnits} and {@link expectNoHandTypedUnits}.
+ * The directory, symbols, allowances and exclusions for a scan for hand-typed
+ * units. Useful for adapting the scan to an Uplink's own layout and units.
+ * Taken by {@link findHandTypedUnits} and {@link expectNoHandTypedUnits}.
  *
  * @category Testing
  */
@@ -219,10 +225,13 @@ function patternFor(symbols: readonly string[]): RegExp {
 }
 
 /**
- * Every place a unit symbol is typed next to a number, under `dir`.
+ * Every place under `dir` where a unit symbol is typed next to a number, in the
+ * source of the widgets that show values to the operator. Useful for reporting
+ * hand-typed units in a form of the author's choosing. Comments and test files
+ * are not scanned.
  *
- * Returns findings rather than throwing, so a caller can report them their own
- * way. {@link expectNoHandTypedUnits} is the assertion built on top.
+ * It returns the findings and never throws. {@link expectNoHandTypedUnits} is
+ * the assertion built on it.
  *
  * @category Testing
  */
@@ -256,10 +265,11 @@ export function findHandTypedUnits(
 }
 
 /**
- * Throws when a unit symbol is typed next to a number, with the fix in the
- * message. Silent for a file at its `baseline` entry; a file below its entry
- * throws, so an allowance left higher than needed cannot let the symbol come
- * back unnoticed.
+ * Fails a test when a widget's source types a unit symbol next to a number,
+ * with the fix in the error message. Useful for keeping every unit the operator
+ * reads rendered from the value it describes. A file at its `baseline` entry
+ * passes, and a file below its entry throws, so an allowance left higher than
+ * needed is reported.
  *
  * @example
  * ```ts

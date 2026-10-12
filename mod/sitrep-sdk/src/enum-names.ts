@@ -4,7 +4,9 @@
  * does: with the SDK's {@link Situation}, `namesOf(Situation)[0]` is
  * `"Landed"`. It is built from the enum, so it covers every member. The
  * contract's mirrors of KSP's own enums (the `Ksp*` enums) may start at -1 or
- * be bitmasks; use {@link namesByValue} for those.
+ * be bitmasks; use {@link namesByValue} for those. Useful for showing the
+ * operator a numbered enum from the stream by name. Used to build
+ * {@link SITUATION_NAMES} and the other name tables.
  *
  * @category Enum names
  */
@@ -20,7 +22,8 @@ export function namesOf(members: object): readonly string[] {
 /**
  * Returns the names of a numeric enum's members, keyed by value, for an enum
  * whose values do not run 0, 1, 2: one with negative values, gaps, or bit
- * flags, as KSP's `PartCategories` and `KSPActionGroup` have.
+ * flags, as KSP's `PartCategories` and `KSPActionGroup` have. Useful for showing
+ * the operator a KSP enum from the stream by name. Used to build {@link CREW_STANDING_NAMES}.
  *
  * @category Enum names
  */

@@ -4,7 +4,8 @@ import { useContributions } from "./contributionsRead";
 import { Meter, MeterStack } from "./Meter";
 
 /**
- * Props for {@link WidgetMeters}.
+ * Props for {@link WidgetMeters}: the row to show meters for and an inline
+ * style for the stack.
  *
  * @category Meter
  */

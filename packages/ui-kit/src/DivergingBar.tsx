@@ -7,7 +7,8 @@ import {
 } from "./readingCurrency";
 
 /**
- * Props for {@link DivergingBar}.
+ * Props for {@link DivergingBar}: the signed value and the range it is drawn
+ * against.
  *
  * @category Meter
  */
@@ -31,8 +32,10 @@ export interface DivergingBarProps<Unit extends string = string> {
 
 /**
  * A small bar centred on zero, for a signed quantity whose direction matters
- * as much as its size (a ledger term that produces or consumes). Decorative
- * and `aria-hidden`: pair it with the number, which carries the reading.
+ * as much as its size (a ledger term that produces or consumes). Useful for
+ * letting the operator see at a glance which terms add and which take away.
+ * Decorative and `aria-hidden`: pair it with the number, which carries the
+ * reading.
  *
  * A held figure fades the bar and nothing more; the number beside it says how
  * current it is.

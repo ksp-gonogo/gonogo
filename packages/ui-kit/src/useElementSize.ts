@@ -2,6 +2,7 @@ import { type RefObject, useEffect, useRef, useState } from "react";
 
 /**
  * Pixel dimensions of an observed element, rounded down to whole pixels.
+ * Returned as `size` by {@link useElementSize}.
  *
  * @category Layout
  */
@@ -13,7 +14,9 @@ export interface ElementSize {
 }
 
 /**
- * Observe an element's content box and track its `{ w, h }` size.
+ * Observe an element's content box and track its `{ w, h }` size. Useful for
+ * choosing what a widget draws from the room the operator has given it. Used by
+ * {@link Tabs} and {@link Panel}.
  *
  * Attach `ref` to the element to measure. Zero-size measurements are ignored
  * and the result is rounded down to whole pixels. The element may come and go,

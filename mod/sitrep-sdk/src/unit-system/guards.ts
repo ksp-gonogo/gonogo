@@ -2,9 +2,9 @@ import { lookupUnit } from "./registry";
 import type { Value } from "./value";
 
 /**
- * Returns a type guard that checks whether a {@link Value} is in exactly
- * `symbol`, and narrows it to `Value<symbol>` when it is. Use it to compute
- * with a value whose unit is an {@link UnknownUnit}, such as a resource an
+ * A type guard that checks whether a {@link Value} is in exactly `symbol`, and
+ * narrows it to `Value<symbol>` when it is. Useful for computing with a figure
+ * the operator sees whose unit is an {@link UnknownUnit}, such as a resource an
  * Uplink registers at runtime.
  *
  * The check is on the symbol alone, so a guard for `"kg"` does not match a
@@ -34,9 +34,10 @@ export function unitGuard<const Unit extends string>(symbol: Unit) {
 }
 
 /**
- * Returns whether `candidate` is in exactly `unit`, and narrows it to
- * `Value<unit>` when it is. The same check as {@link unitGuard}, for a unit
- * passed in as a parameter rather than written in the code.
+ * Whether `candidate` is in exactly `unit`, narrowing it to `Value<unit>` when
+ * it is. Useful for checking a figure the operator sees is in the unit
+ * expected. The same check as {@link unitGuard}, for a unit passed in as a
+ * parameter and not written in the code.
  *
  * The check is on the symbol alone, so `isUnit(v, "kg")` is `false` for a
  * value in tonnes.
@@ -51,10 +52,11 @@ export function isUnit<Unit extends string>(
 }
 
 /**
- * Throws when any of `symbols` is not a registered unit. A guard from
- * {@link unitGuard} for a misspelt symbol is always `false` and raises no
- * error, so call this when your client package loads, after registering your
- * units, with every symbol your guards check.
+ * Throws when any of `symbols` is not a registered unit. Useful for catching a
+ * misspelt unit before it hides a figure from the operator: a guard from
+ * {@link unitGuard} for a misspelt symbol is always `false` and raises no error,
+ * so call this when your client package loads, after registering your units,
+ * with every symbol your guards check.
  *
  * Gonogo cannot check this for you: an unregistered symbol looks the same as a
  * resource the player's game legitimately lacks.

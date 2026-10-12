@@ -10,9 +10,11 @@
  * treatment": see that design's Clock seam section).
  */
 
-/** A capture-clock sample: the last mission-time UT the sidecar reported for
- *  the video, the warp rate at that sample, and the wall-clock instant (ms,
- *  `performance.now()` basis) we observed it.
+/**
+ * A capture-clock sample: the last universal time the camera mod reported for
+ * the video, the warp rate at that sample, and the wall-clock instant (ms,
+ * `performance.now()` basis) it was observed. Useful for knowing when a delayed
+ * video frame was captured. Taken by {@link interpolateCaptureUt}.
  *
  * @category Delayed video
  */
@@ -29,7 +31,8 @@ export interface CaptureClockSample {
  * The UT a video frame is being captured at now, carried forward from the last
  * sample of the capture clock, which updates about once a second, by the
  * wall-clock time since multiplied by the warp rate. `null` when there is no
- * clock sample.
+ * clock sample. Useful for stamping each delayed video frame with the time it
+ * was captured. Used by the delayed video playout in this package.
  *
  * @category Delayed video
  */

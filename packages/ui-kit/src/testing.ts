@@ -20,9 +20,9 @@ import { writeQuantity } from "./units";
  */
 
 /**
- * What a sighted reader sees, with the screen-reader words removed:
- * `textContent` of a `<Unit>` reads "12.4 km kilometres", this reads
- * "12.4 km". Assert on `textContent`, or `getByText("kilometres")`, when the
+ * The text the operator sees in a container, with the screen-reader words
+ * removed: `textContent` of a `<Unit>` reads "12.4 km kilometres", this reads
+ * "12.4 km". Useful for asserting on the figures a widget shows. Assert on `textContent`, or `getByText("kilometres")`, when the
  * announcement is under test.
  *
  * Defaults to `document.body`. The thin space between a number and its symbol
@@ -50,7 +50,9 @@ interface MatcherResult {
 /**
  * `expect(container).toShowQuantity(value("m", 12400))`.
  *
- * Asserts that a quantity is on screen without naming how it is spelled: it
+ * Asserts that a quantity is on the operator's screen without naming how it is
+ * spelled. Useful for testing a widget's figures without tying the test to
+ * where metres hand off to kilometres: it
  * formats through `writeQuantity`, the same ladder `<Unit>` renders with, so it
  * survives a change to where metres hand off to kilometres. For the same
  * reason it cannot catch a formatting bug. To pin the exact spelling, assert
@@ -92,8 +94,8 @@ export const unitMatchers = {
 };
 
 /**
- * Type augmentation for the matcher above, for a Vitest consumer to merge
- * explicitly (importing this module never changes `expect` types on its own):
+ * Type augmentation for the matcher in {@link unitMatchers}, for a Vitest
+ * consumer to merge explicitly (importing this module never changes `expect` types on its own):
  *
  * ```ts
  * declare module "vitest" {
@@ -126,9 +128,10 @@ export { expectNoA11yViolations } from "./expectNoA11yViolations";
 
 /**
  * Every element under `container` that carries the kit's {@link Tooltip} with
- * this text, a string matched whole or a pattern matched anywhere. The tip is
- * the `data-tooltip` attribute, present whether or not the tip is open, so a
- * test reads what an element would say without hovering it.
+ * this text, a string matched whole or a pattern matched anywhere. Useful for
+ * testing the words the operator gets on hover. The tip is the `data-tooltip`
+ * attribute, present whether or not the tip is open, so a test reads what an
+ * element would say without hovering it.
  *
  * @category Testing
  */
@@ -146,7 +149,8 @@ export function getAllByTip(
 
 /**
  * The one element under `container` carrying this tip, or `null`; throws when
- * more than one does.
+ * more than one does. Useful for testing that the operator gets no tip on an
+ * element.
  *
  * @category Testing
  */
@@ -165,7 +169,8 @@ export function queryByTip(
 
 /**
  * The one element under `container` carrying this tip; throws when there is
- * none or more than one.
+ * none or more than one. Useful for testing the words the operator gets on
+ * hover.
  *
  * @category Testing
  */
@@ -192,7 +197,8 @@ export {
 
 /**
  * One observation of `target` at the given size, as a complete
- * `ResizeObserverEntry` with every box filled. jsdom lays nothing out, so a
+ * `ResizeObserverEntry` with every box filled. Useful for testing how a
+ * widget draws at the size of the operator's tile. jsdom lays nothing out, so a
  * self-sizing component otherwise renders at zero.
  *
  * @category Testing
@@ -254,7 +260,8 @@ function releaseResizeObserver(): void {
 
 /**
  * Install a `ResizeObserver` that reports one fixed size to everything observed,
- * and return the uninstall. `deliver` fires the callback during `observe`
+ * and return the uninstall. Useful for testing a widget at the size of the
+ * operator's tile. `deliver` fires the callback during `observe`
  * (`"sync"`, the default), or on a macrotask for a component that must not see
  * a size during its own mount.
  *
@@ -296,7 +303,8 @@ export function installFixedSizeResizeObserver(options: {
 }
 
 /**
- * A `ResizeObserver` a test drives by hand: see {@link installDrivableResizeObserver}.
+ * A `ResizeObserver` a test drives by hand: see
+ * {@link installDrivableResizeObserver}, which returns it.
  *
  * @category Testing
  */
@@ -308,8 +316,8 @@ export interface DrivableResizeObservers {
 }
 
 /**
- * Install a `ResizeObserver` whose observations a test delivers itself, for a
- * component whose behaviour is the response to a size change. `resize` reaches
+ * Install a `ResizeObserver` whose observations a test delivers itself. Useful
+ * for testing how a widget responds when the operator resizes its tile. `resize` reaches
  * only observers watching the element, so a component that never subscribed
  * cannot pass. Installing either observer while one is live throws; call
  * `uninstall` when done, or install once at module scope.

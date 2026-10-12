@@ -5,8 +5,9 @@ import { TONE_TEXT } from "./tone";
 
 /**
  * How far plain text recedes: `muted` for secondary text, `faint` the quietest
- * tier below it, for a readout that should recede rather than compete, like
- * the numeric echo beside an analog stick.
+ * tier below it, for a readout that should recede, like the numeric echo beside
+ * an analog stick. Useful for letting the operator's eye pass over words that
+ * support a figure. Taken by the `level` prop of {@link Text}.
  *
  * @category Typography
  */
@@ -15,7 +16,8 @@ export type TextLevel = "muted" | "faint";
 /**
  * The type-scale steps {@link Text}'s `size` accepts, smallest to largest:
  * `xs` for dense rows, `sm` for values, `base` for prose, `lg` for a headline
- * figure.
+ * figure. Useful for sizing words so the operator can tell a label from a
+ * value. Taken by the `size` prop of {@link Text}.
  *
  * @category Typography
  */
@@ -23,7 +25,8 @@ export type TextSize = "xs" | "sm" | "base" | "lg";
 
 /**
  * The font weights {@link Text}'s `weight` accepts: `regular` (400) and
- * `semibold` (600).
+ * `semibold` (600). Useful for marking the key figure in a line of words for
+ * the operator. Taken by the `weight` prop of {@link Text}.
  *
  * @category Typography
  */

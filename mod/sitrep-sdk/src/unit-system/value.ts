@@ -5,18 +5,13 @@ import type { KnownUnit, UNIT_DEFINITIONS } from "./definitions";
 import * as Dim from "./dimension";
 import { affineVectorUnitFor, declaredUnitFor, lookupUnit } from "./registry";
 
-/**
- * Two units are interchangeable for `plus` when their dimensions match.
- *
- * The gate is dimension, not kind. An earlier draft gated on kind so torque
- * could not be added to energy, and it could not be made to work: a computed
- * value has no kind to check. `force.times(distance)` is `{kg:1, m:2, s:-2}`,
- * which is torque or energy with nothing to distinguish them, so kind gating
- * needed either a canonical kind per dimension (wrong half the time) or a
- * "kind unknown" state that adds to nothing.
- *
- * Adding a torque to an energy is meaningless but harmless, and essentially
- * never written. The ambiguity it was meant to prevent is structural.
+/*
+ * Two units are interchangeable for `plus` when their dimensions match. The gate
+ * is dimension and not kind: a computed value has no kind to check.
+ * `force.times(distance)` is `{kg:1, m:2, s:-2}`, which is torque or energy with
+ * nothing to distinguish them, so gating on kind needs either a canonical kind
+ * per dimension (wrong half the time) or a "kind unknown" state that adds to
+ * nothing.
  */
 type Equal<Left, Right> =
   (<Probe>() => Probe extends Left ? 1 : 2) extends <
@@ -35,7 +30,8 @@ declare const UnknownUnitBrand: unique symbol;
 
 /**
  * A unit this build does not know: one an Uplink declared, read without that
- * Uplink's type declarations in scope.
+ * Uplink's type declarations in scope. Useful for typing a figure shown to the
+ * operator whose unit only the Uplink knows.
  *
  * A `Value<UnknownUnit>` still has its `magnitude` and `unit`, but none of its
  * arithmetic or comparisons compile, even against another `UnknownUnit`, since
@@ -48,7 +44,8 @@ export type UnknownUnit = string & { readonly [UnknownUnitBrand]: true };
 
 /**
  * Every declared unit with the same dimension as the unit given, including
- * units an Uplink declared. `SameDimensionAs<"W">` includes `"J/s"`, so
+ * units an Uplink declared. Useful for letting a figure be combined or compared
+ * only with figures it can be: `SameDimensionAs<"W">` includes `"J/s"`, so
  * `Value<"W">.plus(Value<"J/s">)` compiles, and `Value<"m">.plus(Value<"s">)`
  * does not. `never` for a unit nothing declares.
  *
@@ -69,28 +66,17 @@ export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
  * What `U` can be paired with in `plus`, `minus`, `in`, a comparison, or
  * `min`/`max`: itself, plus anything sharing its dimension.
  *
- * The usable counterpart to {@link SameDimensionAs}, which is the raw computed
- * set and collapses to `never` for a unit outside the catalog. `never` is
- * correct as an intermediate answer but useless as a parameter type: nothing
- * would ever satisfy it, and `Value<string>.plus` would take no argument at
- * all. `CombinableWith` is that set with the `never` case replaced by `Unit`
- * itself, so an out-of-catalog unit still combines with an exact match.
+ * The usable counterpart to {@link SameDimensionAs}, which collapses to `never`
+ * for a unit outside the catalog and so cannot be a parameter type. `CombinableWith`
+ * replaces that `never` case with `Unit` itself, so an out-of-catalog unit still
+ * combines with an exact match.
  *
- * Named for combination rather than addition, because `plus` is not its only
- * caller: `in` is a conversion and the comparisons are orderings, and a name
- * like `Addend` reads as nonsense on those.
- *
- * `UnknownUnit` is checked first and short-circuits to `never`, BEFORE the
- * generic fallback below gets a chance to answer `U`. Left to the generic
- * rule, `UnknownUnit` would combine with itself: `SameDimensionAs<UnknownUnit>`
- * is `never` (it matches no `KnownUnit`), and the fallback exists precisely to
- * let an out-of-catalog unit like `"widgets"` combine with an exact match of
- * itself. That fallback is right for a THIRD PARTY'S literal symbol, which is
- * at least a symbol two values can be checked against each other. It is wrong
- * for `UnknownUnit`, which carries no symbol at all, so two unknowns are not
- * known to match one another either. Hence the separate branch: unknown blocks
- * everything, including itself, the same way TypeScript's own `unknown`
- * blocks `x + x`.
+ * `UnknownUnit` is checked first and short-circuits to `never`, before the
+ * generic fallback answers `U`. The fallback is right for a third party's literal
+ * symbol, which two values can be checked against each other, and wrong for
+ * `UnknownUnit`, which carries no symbol at all, so two unknowns are not known to
+ * match one another either. Unknown blocks everything, including itself, as
+ * TypeScript's own `unknown` blocks `x + x`.
  */
 /*
  * The affine layer: point-like units and the vector units they pair with.
@@ -102,10 +88,12 @@ export type SameDimensionAs<Unit> = [DimensionOf<Unit>] extends [never]
  */
 
 /**
- * The units that name an instant rather than an amount, such as `"ut"`. An
- * instant can be moved by a duration and two instants subtracted, but two
- * instants cannot be added and an instant cannot be multiplied. A UT may be
- * years away, so no slider range suits one.
+ * The units that name an instant rather than an amount, such as `"ut"`. Useful
+ * for stopping the operator being shown a sum of two instants or a scaled
+ * instant, which mean nothing. An instant can be moved by a duration and two
+ * instants subtracted, but two instants cannot be added and an instant cannot be
+ * multiplied. A UT may be years away, so no slider range suits one. Used by the
+ * kit's unit input.
  *
  * @category Units and values
  */
@@ -268,7 +256,9 @@ type CombinableWith<Unit extends string> = [Unit] extends [UnknownUnit]
 
 /**
  * A number with its unit, such as `Value<"m">`. Every quantity in a payload
- * arrives as one. Show it with `<Unit value={altitude} />`.
+ * arrives as one. Useful for showing the operator a measurement with the right
+ * unit and for computing with it without mixing units. Show it with
+ * `<Unit value={altitude} />`.
  *
  * Arithmetic and comparison are methods, and they convert between units of
  * the same dimension: `value("h", 1).greaterThan(value("min", 90))` is
@@ -767,7 +757,8 @@ const prototype = {
 };
 
 /**
- * Returns a {@link Value} of `magnitude` in `unit`: `value("m/s", 12)`.
+ * A {@link Value} of `magnitude` in `unit`: `value("m/s", 12)`. Useful for
+ * making a figure to show the operator or to compare with telemetry.
  *
  * Any string is accepted as a unit, since an Uplink may declare its own, and
  * declared units autocomplete. A misspelt unit is a unit of its own that
@@ -787,8 +778,10 @@ export function value<Unit extends string>(
 }
 
 /**
- * Returns a {@link Value} marked static, a fact that never changes. See
- * {@link Value.static}.
+ * A {@link Value} marked static, a fact that never changes, such as a body's
+ * radius. Useful for figures that are never shown to the operator as held. Used
+ * to wrap the static fields of telemetry payloads and by the widgets that show a
+ * fixed figure. See {@link Value.static}.
  *
  * @category Units and values
  */
@@ -802,9 +795,10 @@ export function staticValue<Unit extends string>(
 }
 
 /**
- * Returns `figure` marked static. Use it on a value computed from a static
- * one where the result is still a fact, such as its absolute value or the same
- * value in another unit. Arithmetic never marks a result static by itself.
+ * `figure` marked static. Useful for a value computed from a static one where
+ * the result is still a fact, such as its absolute value or the same value in
+ * another unit, so it is never shown to the operator as held. Arithmetic never
+ * marks a result static by itself.
  *
  * @category Units and values
  */
@@ -815,8 +809,9 @@ export function asStatic<Unit extends string>(
 }
 
 /**
- * Returns `figure` marked deterministic, exact at any instant. See
- * {@link Value.deterministic}. To mark a computed value, use
+ * `figure` marked deterministic, exact at any instant. Useful for a figure such
+ * as a body's position on its fixed orbit, which the operator sees as neither
+ * held nor modelled. See {@link Value.deterministic}. To mark a computed value, use
  * {@link carryDeterminism}, which checks the inputs first.
  *
  * @category Units and values
@@ -834,7 +829,9 @@ export function asDeterministic<Unit extends string>(
 }
 
 /**
- * Returns whether `candidate` is a {@link Value} marked deterministic.
+ * Whether `candidate` is a {@link Value} marked deterministic. Useful for
+ * deciding whether to show the operator a figure as exact. Used by the kit's
+ * reading currency.
  *
  * @category Units and values
  */
@@ -843,8 +840,9 @@ export function isDeterministicValue(candidate: unknown): boolean {
 }
 
 /**
- * Returns whether `candidate` is a {@link Value} known exactly without a new
- * reading: one marked static or deterministic.
+ * Whether `candidate` is a {@link Value} known exactly without a new reading:
+ * one marked static or deterministic. Useful for deciding that a figure the
+ * operator sees needs no reading currency. Used by {@link carryDeterminism}.
  *
  * @category Units and values
  */
@@ -856,8 +854,9 @@ export function isExactValue(candidate: unknown): boolean {
 }
 
 /**
- * Returns `figure` marked deterministic when every one of `inputs` is static
- * or deterministic, and unchanged otherwise. Pass the values `figure` was
+ * `figure` marked deterministic when every one of `inputs` is static or
+ * deterministic, and unchanged otherwise. Useful for keeping a computed figure
+ * shown to the operator as exact when it is built only from exact figures. Pass the values `figure` was
  * computed from; the current time needs no entry. An empty `inputs` marks
  * nothing.
  *
@@ -880,7 +879,9 @@ export function carryDeterminism<Unit extends string>(
 }
 
 /**
- * Returns whether `candidate` is a {@link Value} marked static.
+ * Whether `candidate` is a {@link Value} marked static. Useful for deciding
+ * whether to show the operator a figure as held. Used by the kit's reading
+ * currency and meter.
  *
  * @category Units and values
  */
@@ -889,8 +890,9 @@ export function isStaticValue(candidate: unknown): boolean {
 }
 
 /**
- * Returns whether `candidate` is a {@link Value}: an object with a numeric
- * `magnitude` and a string `unit`. A value that has lost its methods crossing
+ * Whether `candidate` is a {@link Value}: an object with a numeric `magnitude`
+ * and a string `unit`. Useful for telling a measurement from other payload
+ * fields before showing it to the operator. A value that has lost its methods crossing
  * JSON counts; restore them with {@link hydrate}.
  *
  * @category Units and values
@@ -905,8 +907,11 @@ export function isValue(candidate: unknown): candidate is Value {
 }
 
 /**
- * Returns a {@link Value} with its methods restored, after it crossed JSON or
- * a structured clone and arrived as a plain `{ magnitude, unit }`. Anything
+ * A {@link Value} with its methods restored, after it crossed JSON or a
+ * structured clone and arrived as a plain `{ magnitude, unit }`. Useful for
+ * showing the operator a measurement that was sent between screens. Used by
+ * {@link hydratePayload}, which the peer transport applies to what a station
+ * receives. Anything
  * that is not a value, or already has its methods, is returned as it is.
  * {@link hydratePayload} does this for a whole payload.
  *
@@ -932,8 +937,9 @@ export function hydrate<Candidate>(candidate: Candidate): Candidate {
 
 /**
  * A vector whose three components are `Value`s in one unit, as a position or
- * velocity arrives in a payload. It has no methods; {@link vectorMagnitude}
- * returns its length.
+ * velocity arrives in a payload. Useful for showing the operator a position or
+ * velocity with its unit. It has no methods; {@link vectorMagnitude} returns its
+ * length.
  *
  * @category Orbits and trajectories
  */
@@ -947,8 +953,9 @@ export interface Vector3<Unit extends string = string> {
 }
 
 /**
- * Returns the length of a vector, in the unit its components share:
- * `vectorMagnitude(target.relativePosition)` is a distance in metres.
+ * The length of a vector, in the unit its components share:
+ * `vectorMagnitude(target.relativePosition)` is a distance in metres. Useful for
+ * showing the operator how far away a target is, or how fast the vessel moves.
  *
  * @category Units and values
  */

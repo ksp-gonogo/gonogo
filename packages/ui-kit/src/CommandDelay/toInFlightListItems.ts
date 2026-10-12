@@ -2,7 +2,9 @@ import type { RailDirection } from "@ksp-gonogo/sitrep-sdk";
 import type { InFlightListItem } from "./InFlightList";
 
 /**
- * The structural subset of an in-flight command that this mapping reads.
+ * The structural subset of an in-flight command that this mapping reads. Useful
+ * for passing the commands a widget has sent to the display that shows the
+ * operator what is still on its way. Taken by {@link toInFlightListItems}.
  *
  * @category CommandDelay
  */
@@ -30,6 +32,8 @@ export interface InFlightCommandLike {
 /**
  * Fallback queue glyph: the significant word of the label, upper-cased and cut
  * to 4 chars ("SAS Prograde" -> "PROG"). An identity, never a status word.
+ * Useful for labelling a command's tile in the operator's queue. Used by
+ * {@link InFlightList} and {@link CommandList}.
  */
 export function deriveGlyph(label: string): string {
   const words = label.trim().split(/\s+/).filter(Boolean);
@@ -38,7 +42,10 @@ export function deriveGlyph(label: string): string {
   return (letters || label).slice(0, 4).toUpperCase();
 }
 
-/** Progress anchored by phase, for when the eta geometry is missing (overdue, lost, zero delay, or a hand-built item). */
+/**
+ * Progress anchored by phase, for when the eta geometry is missing (overdue,
+ * lost, zero delay, or a hand-built item). Used by {@link InFlightList}.
+ */
 export const PHASE_PROGRESS: Record<InFlightListItem["phase"], number> = {
   "in-transit": 0.18,
   "awaiting-reply": 0.5,
@@ -52,7 +59,8 @@ export const PHASE_PROGRESS: Record<InFlightListItem["phase"], number> = {
  * end of the 3T span). `T = replyEtaSeconds - reachEtaSeconds`, which holds even once
  * `reachEtaSeconds` goes negative, or the sent-under delay for an entry with no reply
  * leg; elapsed is `T - reachEtaSeconds`. Falls back to a phase anchor when `T` or the
- * reach eta is absent.
+ * reach eta is absent. Useful for showing the operator how far a command has
+ * travelled.
  */
 export function journeyProgress(item: InFlightCommandLike): number {
   const reach = item.reachEtaSeconds;
@@ -76,8 +84,10 @@ function oneWayOf(item: InFlightCommandLike): number | null {
 /**
  * Maps a handle's in-flight commands (`useCommand().inFlight`) to
  * {@link InFlightListItem}s for {@link InFlightList}. While `in-transit` a row
- * counts down to the command reaching the craft; after that, to the
- * acknowledgement coming back. `label` falls back to the command id.
+ * counts down to the command reaching the vessel; after that, to the
+ * acknowledgement coming back. `label` falls back to the command id. Useful for
+ * showing the operator the commands a widget has sent and when each arrives.
+ * Used by {@link CommandDelay}.
  *
  * @category CommandDelay
  */

@@ -3,15 +3,27 @@ import { isUnit } from "../unit-system/guards";
 import { isValue, type Value, value } from "../unit-system/value";
 
 /**
- * The `comms.journey` channel topic: journey reports for this vantage's held
- * commands, each arriving when this centre could first know it.
+ * The `comms.journey` channel topic: journey reports for the commands held for
+ * this command centre, each arriving when the centre could first know it.
+ * Useful for showing the operator where a command sent to a vessel is. Read by
+ * the command group that follows a batch of sends.
  */
 export const JOURNEY_TOPIC = "comms.journey";
 
-/** The pending queue topic, read here for the store-and-forward facts its entries carry. */
+/**
+ * The `system.uplink.pending` topic: the queue of commands sent from the
+ * command centre that have not yet run on the vessel. Useful for showing the
+ * operator which commands are held and what is predicted for them. Read by the
+ * command group that follows a batch of sends.
+ */
 export const PENDING_TOPIC = "system.uplink.pending";
 
-/** One journey report. */
+/**
+ * One report on a command's journey from the command centre to the vessel:
+ * what happened to it, at which node, and at what UT. Useful for showing the
+ * operator where a command has got to. Returned inside a `Journey` by
+ * `readJourney` and filtered by `journeyOf`.
+ */
 export interface JourneyEvent {
   id: string;
   /** The pending entry id of the command it is about, or a cancel's id. */
@@ -30,7 +42,11 @@ export interface JourneyEvent {
   missing: readonly Value<"count">[];
 }
 
-/** A journey payload, read. */
+/**
+ * The journey reports of a `comms.journey` payload, with the timeline they
+ * belong to. Useful for showing the operator the state of every command sent
+ * to a vessel. Returned by `readJourney`.
+ */
 export interface Journey {
   /** The timeline its events belong to: what a cancel or a send again must name. */
   epoch: Value<"count">;
@@ -101,7 +117,12 @@ function readEvent(raw: unknown): JourneyEvent | null {
   };
 }
 
-/** A `comms.journey` payload as events, or `null` for a payload that is not one. A malformed event is left out. */
+/**
+ * A `comms.journey` payload as a `Journey`, or `null` for a payload that is not
+ * one. A malformed event is left out. Useful for reading the journey reports
+ * of the commands sent to a vessel. Used by the command group that follows a
+ * batch of sends and by the held-command actions that cancel or resend.
+ */
 export function readJourney(payload: unknown): Journey | null {
   if (typeof payload !== "object" || payload === null) return null;
   if (!("events" in payload) || !Array.isArray(payload.events)) return null;
@@ -115,9 +136,10 @@ export function readJourney(payload: unknown): Journey | null {
 }
 
 /**
- * Every event about one command, by its lane, in the order things happened
- * at their nodes rather than the order the reports arrived: two reports from
- * different nodes travel different routes.
+ * Every event about one command, found by its vessel and lane number, ordered
+ * by when each happened at its node. Reports from different nodes travel
+ * different routes, so arrival order is not the order of events. Useful for
+ * showing the operator the history of one command.
  */
 export function journeyOf(
   journey: Journey,
@@ -131,7 +153,11 @@ export function journeyOf(
     );
 }
 
-/** How a command's journey ended, once a report from a place that settles it has arrived. */
+/**
+ * How a command's journey ended, once a report from a node that settles it has
+ * arrived. Useful for showing the operator whether a command ran, expired or
+ * was cancelled. Returned by `outcomeOf`.
+ */
 export type JourneyOutcome =
   | "ran"
   | "expired"
@@ -141,9 +167,12 @@ export type JourneyOutcome =
 
 /**
  * The outcome a command's events settle on, or undefined while nothing has
- * settled it. A cancel only counts once a place that stopped or will stop
- * the command says so, never because a cancel was sent; and once settled, an
- * earlier event arriving late never undoes it.
+ * settled it. Useful for showing the operator whether a command ran, expired
+ * or was cancelled.
+ *
+ * A cancel counts only once a node that stopped or will stop the command
+ * reports it, and sending a cancel is not enough. Once settled, an earlier
+ * event arriving late does not change the outcome.
  */
 export function outcomeOf(
   events: readonly JourneyEvent[],
@@ -190,10 +219,11 @@ function waitingAfter(
 }
 
 /**
- * Where a command is known to be waiting, for drawing a cancel chasing it:
- * the node of its latest hold that no later departure has followed, or the
- * craft once it is waiting there behind a gap. Undefined when no report says
- * it is waiting anywhere.
+ * Where a command is known to be waiting: the node of its latest hold that no
+ * later departure has followed, or the vessel once the command is waiting
+ * there behind a missing lane number. Undefined when no report says it is
+ * waiting anywhere. Useful for showing the operator where a cancel has to
+ * reach a held command.
  */
 export function heldAt(
   events: readonly JourneyEvent[],
@@ -205,7 +235,13 @@ export function heldAt(
   return at;
 }
 
-/** The store-and-forward facts a pending entry carries, all of them the sending centre's own predictions. */
+/**
+ * The store-and-forward facts of one pending command: its lane number, expiry,
+ * predicted hold and cancel deadline, all of them the sending command centre's
+ * own predictions. Useful for showing the operator where a command is expected
+ * to wait. Returned by `heldCommandOf` and taken by the held-command actions
+ * that cancel or resend a command.
+ */
 export interface HeldCommand {
   laneSeq: Value<"count">;
   craft: string;
@@ -217,7 +253,11 @@ export interface HeldCommand {
   members: readonly string[];
 }
 
-/** The held-command facts of a `system.uplink.pending` entry, or undefined for an entry on no lane. */
+/**
+ * The held-command facts of a `system.uplink.pending` entry, or undefined for
+ * an entry on no lane. Useful for showing the operator which commands are held
+ * for a vessel and for how long.
+ */
 export function heldCommandOf(entry: unknown): HeldCommand | undefined {
   if (typeof entry !== "object" || entry === null) return undefined;
   const laneSeq = readCount("laneSeq" in entry ? entry.laneSeq : undefined);
@@ -256,9 +296,11 @@ export function heldCommandOf(entry: unknown): HeldCommand | undefined {
 }
 
 /**
- * The craft and lane number of the pending entry a request belongs to, matched
- * on the `requestId` the sending client gave it, or on the members a group
- * entry lists. Null when no entry names it or the entry is on no lane.
+ * The vessel and lane number of the pending command a request belongs to,
+ * matched on the `clientRequestId` the sending client gave it, or on the
+ * members a group entry lists. Null when no entry names it or the entry is on
+ * no lane. Useful for following a command the operator just sent along its
+ * journey. Used by the command group that follows a batch of sends.
  */
 export function readPendingLane(
   payload: unknown,

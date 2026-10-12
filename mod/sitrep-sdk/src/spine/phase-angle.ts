@@ -13,15 +13,17 @@ function dot(a: Vec3Tuple, b: Vec3Tuple): number {
 }
 
 /**
- * Returns how far `to` leads `from` about their common centre, in degrees in
- * (-180, 180]: positive when `to` is ahead in the direction `from` is moving.
+ * How far `to` leads `from` about their common centre, in degrees in (-180,
+ * 180]: positive when `to` is ahead in the direction `from` is moving. Useful for
+ * showing the operator the phase angle to a target when planning a rendezvous.
+ * Called by the phase angle hook.
  *
- * Both are positions relative to that centre, in metres. The angle is measured
- * in the plane of `from`'s own motion (its position crossed with its velocity),
- * with `to` projected onto it, so it is the true angle between the two position
+ * Both are positions relative to that centre, in metres. The angle is measured in
+ * the plane of `from`'s own motion (its position crossed with its velocity), with
+ * `to` projected onto it, so it is the true angle between the two position
  * vectors and agrees with a difference of longitudes only when the orbits are
- * coplanar. Null when `from` has no motion to give a plane, or either position
- * is the centre itself.
+ * coplanar. Null when `from` has no motion to give a plane, or either position is
+ * the centre itself.
  *
  * @category Orbits and trajectories
  */

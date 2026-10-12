@@ -2,7 +2,7 @@ import type { FlightRecord, SeriesRange } from "../types";
 
 /**
  * Sorts flights most recently launched first, as every {@link FlightStore}
- * lists them.
+ * lists them. Useful for showing the operator their flights newest first.
  *
  * @category Flight recording
  */
@@ -12,6 +12,9 @@ export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
 /**
  * Where flights and their samples are saved. The app uses IndexedDB;
  * {@link MemoryStore} keeps them in memory. Every method returns a promise.
+ * Useful for keeping the operator's recorded flights available to review later.
+ * Taken by {@link BufferedDataSource}, {@link exportFlightToFixture} and
+ * {@link importFixtureToStore}.
  *
  * @category Flight recording
  * @categoryDescription Flight recording

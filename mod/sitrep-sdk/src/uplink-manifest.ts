@@ -19,17 +19,20 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 /**
- * The manifest's file name, which sits beside the Uplink's bundle. Gonogo
- * finds it from the bundle's own URL, so the name is fixed.
+ * The manifest's file name, which sits beside the Uplink's bundle. Useful for
+ * writing or locating the manifest in an Uplink's build. The app's loader finds
+ * it from the bundle's own URL, so the name is fixed.
  *
  * @category Manifest
  */
 export const UPLINK_MANIFEST_FILE = "gonogo-uplink.json";
 
 /**
- * What an author writes in `uplink.json` about the Uplink as a distribution.
- * The id and name also appear in the code, and {@link buildUplinkManifest}
- * throws when the two disagree.
+ * What an author writes in `uplink.json` about the Uplink as a distribution: its
+ * id, name, author, repository and where its files install. Useful for telling
+ * the app and the `uplink-tools` commands who made the Uplink and how to
+ * package it. Read by {@link readUplinkDeclaration}. The id and name also appear
+ * in the code, and {@link buildUplinkManifest} throws when the two disagree.
  *
  * An Uplink of your own always has this file: `uplink-tools new` writes it and
  * every `uplink-tools` command reads it. Only an Uplink bundled inside the
@@ -161,7 +164,9 @@ export interface UplinkDeclaration {
 }
 
 /**
- * The KSP mod an Uplink wraps, as `uplink.json` names it.
+ * The KSP mod an Uplink wraps, as `uplink.json` names it. Useful for showing the
+ * operator which game mod an Uplink connects, and which version of it was
+ * tested. Part of {@link UplinkDeclaration}.
  *
  * @category Manifest
  */
@@ -175,7 +180,9 @@ export interface UplinkWrappedMod {
 }
 
 /**
- * The `codegen` block of `uplink.json`.
+ * The `codegen` block of `uplink.json`: which assembly and method generate the
+ * client's TypeScript from the contract slice. Useful for `uplink-tools codegen`
+ * to find the slice. Part of {@link UplinkDeclaration}.
  *
  * @category Manifest
  */
@@ -195,7 +202,10 @@ export interface UplinkCodegenDeclaration {
 }
 
 /**
- * Every field `gonogo-uplink.json` carries, in the order it is written.
+ * Every field `gonogo-uplink.json` carries, in the order it is written. Useful
+ * for letting the app check a client before loading it: who wrote it, which
+ * versions it was built against and the hash of its bundle. Built by
+ * {@link buildUplinkManifest} and read by the app's Uplink loader.
  *
  * @category Manifest
  * @categoryDescription Manifest
@@ -257,7 +267,9 @@ export interface UplinkManifest {
 }
 
 /**
- * What the client's registrations say, for a caller that has read them.
+ * What the client's registrations say about its id, name, version and
+ * description. Useful for checking the manifest against the code. Passed to
+ * {@link buildUplinkManifest} by a caller that has read them.
  *
  * @category Manifest
  */
@@ -273,7 +285,9 @@ export interface RegisteredIdentity {
 }
 
 /**
- * What `buildUplinkManifest` reads.
+ * What {@link buildUplinkManifest} reads: the client directory, the client's
+ * registrations if they were read, the compatibility numbers and the bundle's
+ * hash.
  *
  * @category Manifest
  */
@@ -335,8 +349,10 @@ function readJsonFile(path: string, what: string): Record<string, unknown> {
 }
 
 /**
- * Returns the Uplink's `uplink.json` and its path, found by searching up from
- * `clientDir`, or `undefined` when there is none. An Uplink of your own always
+ * The Uplink's `uplink.json` and its path, found by searching up from
+ * `clientDir`, or `undefined` when there is none. Useful for a build script that
+ * needs the author's distribution declaration. Used by
+ * {@link buildUplinkManifest}. An Uplink of your own always
  * has one; only an Uplink bundled inside the app's own repository does not.
  *
  * @category Manifest
@@ -396,7 +412,8 @@ function wrappedMod(
 }
 
 /**
- * The manifest, from the files an Uplink already has.
+ * The manifest, from the files an Uplink already has. Useful for writing the
+ * `gonogo-uplink.json` the app reads before it loads the Uplink.
  *
  * Deterministic: given the same client directory, declaration and compat block
  * it produces the same object every time, and `serialiseUplinkManifest` the same
@@ -504,7 +521,9 @@ export function buildUplinkManifest(
 }
 
 /**
- * The manifest's bytes: two-space JSON with a trailing newline, always.
+ * The manifest's bytes: two-space JSON with a trailing newline, always. Useful
+ * for writing the manifest to disk so the same manifest always gives the same
+ * file. Takes the result of {@link buildUplinkManifest}.
  *
  * @category Manifest
  */
@@ -514,8 +533,9 @@ export function serialiseUplinkManifest(manifest: UplinkManifest): string {
 
 /**
  * The warning to print when a manifest is written with an empty `integrity`
- * because no bundle was named. Gonogo will refuse to load such an Uplink until
- * the manifest is written again from the bundle you distribute.
+ * because no bundle was named. Useful for telling an Uplink author why the app
+ * refuses the Uplink. The app will not load such an Uplink until the manifest is
+ * written again from the bundle you distribute.
  *
  * @category Manifest
  */

@@ -5,14 +5,14 @@ import { GAP_VAR, type GapToken } from "./scales";
 /**
  * Horizontal distribution for {@link Cluster}: `between` pushes the first and
  * last children to the edges, the others pack children to one side or the
- * middle.
+ * middle. Set with the `justify` prop of {@link Cluster}.
  *
  * @category Layout
  */
 export type ClusterJustify = "between" | "start" | "center" | "end";
 
 /**
- * Vertical alignment of {@link Cluster}'s children.
+ * Vertical alignment of {@link Cluster}'s children. Set with its `align` prop.
  *
  * @category Layout
  */

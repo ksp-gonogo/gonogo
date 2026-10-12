@@ -6,7 +6,9 @@ import type { CommandDelayHandle } from "./CommandDelay";
 
 /**
  * One entry registered on a panel's delay rail: the handle plus an `id` that
- * stays the same for as long as the registering component is mounted.
+ * stays the same for as long as the registering component is mounted. Useful
+ * for listing the commands a widget has sent. Returned by
+ * {@link useActiveHandles}.
  *
  * @category CommandDelay
  */
@@ -19,7 +21,8 @@ export interface CommandHandle extends CommandDelayHandle {
  * A per-panel, off-tree registry of active command handles. `update` keeps a
  * registered handle current in place. The live data lives in the store, never
  * in a context value, so a registration change re-renders only the rail's
- * subscribers.
+ * subscribers. Useful for holding the commands whose delay the operator sees on
+ * a panel. Returned by {@link createDelayRailStore} and {@link useDelayRailStore}.
  */
 export interface DelayRailStore {
   /** Add or replace a handle (keyed on `handle.id`). Returns its deregister function. */

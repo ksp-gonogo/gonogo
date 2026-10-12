@@ -45,10 +45,14 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // ---------------------------------------------------------------------------
 
 /**
- * One stage of the active craft's delta-v, from `dv.stages`, as plain numbers
- * for drawing and arithmetic. A field is `NaN` when the game gave no figure,
- * so check with `Number.isFinite`: a stage with no engine has no delta-v, while
- * a spent stage has 0.
+ * One stage of the active vessel's delta-v, from `dv.stages`, as plain numbers
+ * for drawing and arithmetic. Useful for showing the operator what each stage
+ * can still deliver. Held in the stages of a {@link DeltaVBudget}, which the
+ * fuel status widget draws.
+ *
+ * A field is `NaN` when the game gave no figure, so check with
+ * `Number.isFinite`: a stage with no engine has no delta-v, while a spent stage
+ * has 0.
  *
  * @category Orbits and trajectories
  */
@@ -86,7 +90,9 @@ export interface DeltaVStage {
 }
 
 /**
- * How current a {@link DeltaVBudget} is, from its `dv.summary` reading.
+ * How current a {@link DeltaVBudget} is, from its `dv.summary` reading. Useful
+ * for showing the operator whether the delta-v figures are live or held. Held in
+ * the provenance of a {@link DeltaVBudget}, which the fuel status widget draws.
  *
  * @category Orbits and trajectories
  */
@@ -106,8 +112,10 @@ export interface BudgetProvenance {
 }
 
 /**
- * The active vessel's delta-v, in total and per stage, as `deriveDeltaVBudget`
- * builds it from the game's own figures.
+ * The active vessel's delta-v, in total and per stage, built from the game's own
+ * figures. Useful for showing the operator how much delta-v the vessel has left
+ * and when it was last measured. Returned by {@link DELTA_V_BUDGET} and
+ * `deriveDeltaVBudget`, and drawn by the fuel status widget.
  *
  * @category Orbits and trajectories
  */
@@ -174,8 +182,9 @@ function field(entry: StageWireEntry, key: string): number {
 }
 
 /**
- * Returns one `dv.stages` entry as a {@link DeltaVStage}, or `null` when it is
- * not one.
+ * One `dv.stages` entry as a {@link DeltaVStage}, or `null` when it is not one.
+ * Useful for reading the stages of the active vessel's delta-v from the raw
+ * payload. Used by `deriveDeltaVBudget`.
  *
  * @category Orbits and trajectories
  */
@@ -236,10 +245,11 @@ const NO_BUDGET: DeltaVBudget = {
 };
 
 /**
- * Returns a {@link DeltaVBudget} from the `dv.summary` reading, the raw
- * `dv.stages` payload, the craft's current stage and the view time: the same
- * computation {@link DELTA_V_BUDGET} runs each frame, for use without a
- * running telemetry stream, such as in a test.
+ * A {@link DeltaVBudget} built from the `dv.summary` reading, the raw
+ * `dv.stages` payload, the vessel's current stage and the view time. It is the
+ * computation {@link DELTA_V_BUDGET} runs each frame, available without a
+ * running telemetry stream, such as in a test. Useful for showing the operator
+ * how much delta-v the vessel has left.
  *
  * @category Orbits and trajectories
  */
@@ -303,9 +313,12 @@ export function deriveDeltaVBudget(
 }
 
 /**
- * The processor that computes the active craft's {@link DeltaVBudget} once per
- * frame. Read it with `useProcessor(DELTA_V_BUDGET)`, or list it in a
- * contribution's `deps`. Do not register a processor with the same id.
+ * The processor that computes the active vessel's {@link DeltaVBudget} once per
+ * frame. Useful for showing the operator how much delta-v the vessel has left.
+ * Used by the maneuver planner.
+ *
+ * Read it with `useProcessor(DELTA_V_BUDGET)`, or list it in a contribution's
+ * `deps`. Do not register a processor with the same id.
  *
  * @category Orbits and trajectories
  */

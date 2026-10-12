@@ -21,7 +21,9 @@
  * The version of the surface an Uplink's client compiles against: every export
  * of `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit`. A removed or changed
  * export moves the major, and an added one moves the minor. The app refuses an
- * Uplink built against another major, or a newer minor than its own.
+ * Uplink built against another major, or a newer minor than its own. Useful for
+ * an Uplink author writing the `gonogo-uplink.json` manifest that claims which
+ * surface the Uplink was built against. Used by the app's compatibility gate.
  *
  * @category Host and runtime
  */
@@ -30,6 +32,8 @@ export const EXTENSION_API_VERSION: string = "6.0.0";
 /**
  * The major version of the game data contract: the shape of every payload the
  * mod sends. The app refuses an Uplink built against another major.
+ * Useful for an Uplink author writing the `gonogo-uplink.json` manifest. Used
+ * by the app's compatibility gate.
  *
  * @category Host and runtime
  */
@@ -38,7 +42,8 @@ export const CONTRACT_MAJOR = 40;
 /**
  * The minor version of the game data contract. A minor only adds, so an Uplink
  * built against an older minor loads, and one built against a newer minor than
- * the app's is refused.
+ * the app's is refused. Useful for an Uplink author writing the
+ * `gonogo-uplink.json` manifest. Used by the app's compatibility gate.
  *
  * @category Host and runtime
  */

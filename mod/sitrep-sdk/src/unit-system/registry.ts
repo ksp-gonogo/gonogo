@@ -4,7 +4,9 @@ import * as Dim from "./dimension";
 
 /**
  * One step of a unit ladder: the unit a value is shown in once it reaches a
- * size, such as `km` from 1,000 metres.
+ * size, such as `km` from 1,000 metres. Useful for showing the operator a
+ * distance or mass in a unit that suits its size. Used by the kit when it
+ * builds the ladder a registered unit climbs.
  *
  * @category Units and values
  */
@@ -18,8 +20,10 @@ export interface UnitRung {
 }
 
 /**
- * How a unit is shown. Every field is optional, and a unit that sets none is
- * shown the way its kind is by default. Arithmetic ignores all of it.
+ * How a unit is shown to the operator: its decimal places, its notation, what is
+ * printed beside the number and what a screen reader says. Every field is
+ * optional, and a unit that sets none is shown the way its kind is by default.
+ * Arithmetic ignores all of it. Part of {@link UnitRegistration}.
  *
  * @category Units and values
  */
@@ -39,7 +43,8 @@ type DeclarationOf<Unit extends DeclaredUnit> = UnitDeclarations[Unit];
 /**
  * The argument to {@link registerUnit}: the unit's symbol, kind, dimension and
  * ratio, which must match its entry in {@link UnitDeclarations}, and how it is
- * shown. A symbol with no declaration, or a field that differs from it, does
+ * shown. Useful for teaching the app a unit of an Uplink's own, so the operator
+ * sees its values with the right symbol. A symbol with no declaration, or a field that differs from it, does
  * not compile.
  *
  * `rungs` sets the steps of the unit's ladder, which the declaration does not
@@ -68,8 +73,9 @@ export type UnitRegistration<Unit extends DeclaredUnit = DeclaredUnit> = {
   UnitPresentation;
 
 /**
- * A unit as {@link registerUnit} accepted it, without its declared types: what
- * an {@link onUnitRegistered} listener receives.
+ * A unit as {@link registerUnit} accepted it, without its declared types.
+ * Useful for deciding how to show the operator a registered unit. Received by
+ * an {@link onUnitRegistered} listener, as the kit's unit formatting does.
  *
  * @category Units and values
  */
@@ -90,13 +96,11 @@ export interface RegisteredUnit extends UnitPresentation {
   readonly rungs?: readonly UnitRung[];
 }
 
-/**
- * Symbols whose meaning is settled and must not be re-declared.
- *
- * SI already resolved the metres/minutes collision, and it resolved it in
- * favour of metres: minutes are `min`. Without this, a mod registering `m` for
- * minutes would silently make every altitude on the dashboard a duration,
- * which is the one collision severe enough to be worth a hard error.
+/*
+ * Symbols whose meaning is settled and must not be re-declared. SI resolved the
+ * metres and minutes collision in favour of metres: minutes are `min`. Without
+ * this, a mod registering `m` for minutes would silently make every altitude on
+ * the dashboard a duration.
  */
 const RESERVED: ReadonlyArray<{
   symbol: string;
@@ -111,9 +115,11 @@ const RESERVED: ReadonlyArray<{
 ];
 
 /**
- * Returns the symbol a unit is shown with: `"g"` for the unit `"snacks:g"`.
- * A unit may carry a namespace before a colon, so two mods can each have a
- * `g` that means different things; the namespace is never shown.
+ * The symbol a unit is shown with: `"g"` for the unit `"snacks:g"`. Useful for
+ * printing a unit beside a number the operator reads. A unit may carry a
+ * namespace before a colon, so two mods can each have a `g` that means
+ * different things; the namespace is never shown. Used by the kit's unit
+ * component and unit formatting.
  *
  * @category Units and values
  */
@@ -123,8 +129,8 @@ export function displaySymbol(token: string): string {
 }
 
 /**
- * Returns a unit's namespace, `"snacks"` for `"snacks:g"`, or `undefined` for
- * a unit with none.
+ * A unit's namespace, `"snacks"` for `"snacks:g"`, or `undefined` for a unit
+ * with none. Useful for telling which Uplink a unit belongs to.
  *
  * @category Units and values
  */
@@ -159,7 +165,8 @@ function index(symbol: string, definition: UnitDefinition): void {
 
 /**
  * Removes every unit registered with {@link registerUnit}, leaving Gonogo's
- * own. For tests.
+ * own. Useful for a test that registers units and needs a clean registry for the
+ * next test.
  *
  * @category Units and values
  */
@@ -212,9 +219,11 @@ function composeToken(
 }
 
 /**
- * Returns the definition of a unit, Gonogo's own or registered, or
- * `undefined` for a unit nothing defines. A rate such as `"kg/s"` is built
- * from its two parts when both are defined.
+ * The definition of a unit, Gonogo's own or registered, or `undefined` for a
+ * unit nothing defines. Useful for converting a value to another unit or
+ * choosing how to show it to the operator. A rate such as `"kg/s"` is built from
+ * its two parts when both are defined. Used when a Topic's numbers are wrapped
+ * in values and when a value is converted.
  *
  * @category Units and values
  */
@@ -236,9 +245,11 @@ export function lookupUnit(symbol: string): UnitDefinition | undefined {
 }
 
 /**
- * Returns the unit a computed value of this dimension is shown in, or
- * `undefined` when none is declared. A force times a distance over a time is
- * shown as `W` rather than `kg·m²/s³`. Only a base unit is returned, never a
+ * The unit a computed value of this dimension is shown in, or `undefined` when
+ * none is declared. Useful for showing the operator a computed quantity in a
+ * familiar unit: a force times a distance over a time is shown as `W` and not as
+ * `kg·m²/s³`. Used by `Value` when it works out the unit of a product or
+ * quotient. Only a base unit is returned, never a
  * scaled one such as `kW`; where several share a dimension, the first
  * registered is used.
  *
@@ -253,9 +264,11 @@ export function declaredUnitFor(dimensionKey: string): string | undefined {
 }
 
 /**
- * Returns the unit the difference of two values in an instant unit is in,
- * such as `"s"` for `"ut"`, or `undefined` for a unit that is not an instant.
- * See {@link PointUnit}.
+ * The unit the difference of two values in an instant unit is in, such as `"s"`
+ * for `"ut"`, or `undefined` for a unit that is not an instant. Useful for
+ * showing the operator the time between two instants as a duration. Used by the
+ * kit's unit input and by `Value` when it subtracts two instants. See
+ * {@link PointUnit}.
  *
  * @category Units and values
  */
@@ -282,8 +295,9 @@ function sameDefinition(a: UnitDefinition, b: UnitDefinition): boolean {
 
 /**
  * Calls `listener` for every unit {@link registerUnit} accepts, starting with
- * those already accepted, and returns a function that unsubscribes. The kit
- * reads how to show each unit this way; an Uplink does not need it.
+ * those already accepted, and returns a function that unsubscribes. Useful for
+ * learning how to show the operator each unit as Uplinks register them. The
+ * kit reads how to show each unit this way; an Uplink does not need it.
  *
  * @category Units and values
  */
@@ -297,7 +311,8 @@ export function onUnitRegistered(listener: UnitListener): () => void {
 
 /**
  * Registers a unit an Uplink declared, so values in it convert, combine and
- * show correctly. Declare the unit in {@link UnitDeclarations} first: the
+ * show correctly to the operator. Used by the kit to register its own units.
+ * Declare the unit in {@link UnitDeclarations} first: the
  * registration is checked against that declaration, and a unit with none does
  * not compile.
  *

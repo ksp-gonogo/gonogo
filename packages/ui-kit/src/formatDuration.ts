@@ -27,8 +27,10 @@ function tiers(): readonly Tier[] {
 }
 
 /**
- * The game-time ladder's own symbols, kind `"time"`, for the symbol collision
- * guard to read rather than copy.
+ * The unit symbols of the game-time duration scale (`y`, `d`, `h`, `min`, `s`),
+ * the symbols of the `"time"` kind. Useful for checking that no other unit
+ * symbol collides with one the operator reads in a duration. Used by the
+ * symbol collision check inside the kit.
  */
 export function durationTierSymbols(): readonly string[] {
   return tiers().map((tier) => tier.symbol);
@@ -46,7 +48,12 @@ const IRL_TIERS: readonly Tier[] = [
   { symbol: "s", size: SECOND },
 ];
 
-/** `IRL_TIERS`' own symbols, kind `"irlTime"`; see `durationTierSymbols`. */
+/**
+ * The unit symbols of the real-time duration scale (`d`, `h`, `min`, `s`), the
+ * symbols of the `"irlTime"` kind. Useful for checking that no other unit
+ * symbol collides with one the operator reads in a real-time duration. The
+ * game-time counterpart is `durationTierSymbols`.
+ */
 export function irlDurationTierSymbols(): readonly string[] {
   return IRL_TIERS.map((tier) => tier.symbol);
 }
@@ -62,13 +69,15 @@ export interface FormatDurationOptions {
 }
 
 /**
- * Formats a duration in seconds as the largest two significant KSP-time
- * units, space-separated and suffixed (`45s`, `1min 20s`, `2h 15min`, `3d 4h`,
- * `1y 200d`). The smaller unit is only shown when non-zero at that scale
- * (exactly 2h renders as `2h`, not `2h 0min`).
+ * A duration in game seconds as the largest two game-time units, space-separated
+ * and suffixed (`45s`, `1min 20s`, `2h 15min`, `3d 4h`, `1y 200d`). The smaller
+ * unit is shown only when it is non-zero (exactly 2h renders as `2h`). Useful
+ * for showing the operator how long a vessel event takes or how long until it
+ * happens, in the length of day and year the running game reports. Used by
+ * {@link Countdown}.
  *
  * The smaller unit is truncated, not rounded, so a countdown never shows
- * progress that has not happened: `89.9` -> `1min 29s`. Non-finite values
+ * progress that has not happened: `89.9` becomes `1min 29s`. Non-finite values
  * render as `NULL_DISPLAY`.
  */
 export function formatDuration(
@@ -79,10 +88,12 @@ export function formatDuration(
 }
 
 /**
- * The wall-clock twin of {@link formatDuration}: same shape, real days.
- *
- * For seconds measured by a clock on the desk rather than by the game (the
- * `irlTime` kind). Collapsing the two is a silent factor-of-four error.
+ * A duration in real seconds as the largest two real-time units, in the same
+ * shape as `formatDuration` but with 24-hour days and no years. Useful
+ * for showing the operator how long ago a reading was seen or how long a
+ * recording ran, measured by the clock at the command centre rather than by the
+ * game. Passing game seconds here, or real seconds to `formatDuration`,
+ * misstates the duration by the ratio of the two day lengths.
  */
 export function formatIrlDuration(
   seconds: number,
@@ -134,9 +145,9 @@ function format(
 }
 
 /**
- * Countdown convenience for an in-transit / time-remaining strip: never
- * negative, never sub-second noise, no sign prefix (a countdown is always
- * "time remaining", not a launch-clock T+/T− reading).
+ * The time remaining until an event, as `formatDuration` text clamped at
+ * zero: a negative value reads `0s`, and there is no sign prefix. Useful for
+ * showing the operator how long until a command arrives or an event happens.
  */
 export function formatCountdown(seconds: number): string {
   return formatDuration(Math.max(0, seconds));

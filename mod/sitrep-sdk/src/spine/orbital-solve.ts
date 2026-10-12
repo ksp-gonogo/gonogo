@@ -13,17 +13,18 @@ import {
 } from "./kepler-reckoning";
 
 /**
- * An orbit solved at one instant: its period, the craft's anomaly, and the
- * apsides with the times to them, computed from the orbit's elements, the
- * instant asked about and the reference body's radius. Used for the craft's
- * orbit (`vessel.orbit`) and its target's (`vessel.target.orbit`) alike.
+ * An orbit solved at one instant: its period, the vessel's anomaly, and the
+ * apsides with the times to them, computed from the orbit's elements, the instant
+ * asked about and the reference body's radius. Useful for showing the operator
+ * where the vessel is on its orbit and when it next reaches each apsis. Used for
+ * the vessel's orbit (`vessel.orbit`) and its target's (`vessel.target.orbit`)
+ * alike, and read by the current orbit widget and the orbit view.
  *
- * Pass `undefined` for a body radius that cannot be resolved yet and `null`
- * for a confirmed absence, and the two altitude fields answer the same way. On
- * an open orbit (`ecc` of 1 or more) a field with no value is `null`, never a
- * wrong number: there is no period and no apoapsis, and no time to periapsis
- * once the craft has passed it. The anomaly, the radius and the periapsis
- * stay valid.
+ * Pass `undefined` for a body radius that cannot be resolved yet and `null` for a
+ * confirmed absence, and the two altitude fields answer the same way. On an open
+ * orbit (`ecc` of 1 or more) a field with no value is `null`, never a wrong
+ * number: there is no period and no apoapsis, and no time to periapsis once the
+ * vessel has passed it. The anomaly, the radius and the periapsis stay valid.
  */
 export interface OrbitalSolve {
   /*
@@ -177,8 +178,10 @@ function nextApsis(
 
 /**
  * The apsides of a conic, which depend on its shape alone and not on where the
- * craft is on it. An open orbit has no apoapsis. `referenceBodyRadius` follows
- * {@link solveOrbit}'s rule, and only the altitudes read it.
+ * vessel is on it. Useful for showing the operator the highest and lowest points
+ * of an orbit. Used by the current orbit widget and the orbit view. An open orbit
+ * has no apoapsis. `referenceBodyRadius` follows {@link solveOrbit}'s rule, and
+ * only the altitudes read it.
  */
 export function conicApsides(
   orbit: Pick<WireOrbitElements, "sma" | "ecc">,
@@ -207,12 +210,15 @@ export function conicApsides(
 }
 
 /**
- * Solve `orbit` for `viewUt`.
+ * Solves `orbit` for `viewUt`, giving an {@link OrbitalSolve}. Useful for showing
+ * the operator the vessel's or a target's position on its orbit at the instant on
+ * screen. Used by the orbit hook, the maneuver planner and the maneuver trigger
+ * services.
  *
  * `referenceBodyRadius` is the mean radius of the body the orbit is about,
  * already resolved by the caller: `undefined` where it cannot be resolved yet,
- * `null` where its channel is a confirmed tombstone. Only the two altitude
- * fields read it, and they answer with whichever of those they were given.
+ * `null` where its channel is a confirmed tombstone. Only the two altitude fields
+ * read it, and they answer with whichever of those they were given.
  */
 export function solveOrbit(
   orbit: WireOrbitElements,
@@ -266,7 +272,11 @@ function solveOrbitAt(
   };
 }
 
-/** What {@link solveSelfOrbit} reads off a `VesselOrbit`, and nothing else. */
+/**
+ * The orbital elements {@link solveSelfOrbit} reads off a `VesselOrbit`, and
+ * nothing else. Useful for passing a vessel's orbit sample to that function
+ * without the rest of the payload.
+ */
 export type SelfOrbitElements = WireOrbitElements &
   Pick<VesselOrbit, "referenceBodyIndex"> & {
     timeToAp?: Quantityish;
@@ -275,21 +285,21 @@ export type SelfOrbitElements = WireOrbitElements &
 
 /**
  * The active vessel's orbital solve at `viewUt`, or `null` where the caller is
- * not entitled to one. Used by the orbit hook and by plain-class callers, so
- * both agree on when an apoapsis exists.
+ * not entitled to one. Useful for showing the operator the vessel's own orbit.
+ * Used by the orbit hook and by plain-class callers, so both agree on when an
+ * apoapsis exists.
  *
  * `elements` are whatever the caller's reading carries, `observed` or `held`.
- * `reckoning` is that reading's whole reckoning: where its model is available
- * the orbit is advanced to `viewUt`. `null` with no elements or no `viewUt`.
+ * `reckoning` is that reading's whole reckoning: where its model is available the
+ * orbit is advanced to `viewUt`. `null` with no elements or no `viewUt`.
  *
- * Under physics the model declines to advance the orbit. A current reading,
- * which passes `observedAtUt` (the instant it was observed), is still answered
- * in full: the apsides, their altitudes and the period from the elements as
- * they stand, the craft's anomaly and radius at the elements' own epoch, and
- * the countdowns from the sample's `timeToAp` and `timeToPe` less the time
- * elapsed since `observedAtUt` (see {@link countdownAt}). A sample that
- * carries neither leaves both, and the next apsis, `null`. A held reading
- * answers `null` under physics.
+ * Under physics the model declines to advance the orbit. A current reading, which
+ * passes `observedAtUt` (the instant it was observed), is still answered in full:
+ * the apsides, their altitudes and the period from the elements as they stand,
+ * the vessel's anomaly and radius at the elements' own epoch, and the countdowns
+ * from the sample's `timeToAp` and `timeToPe` less the time elapsed since
+ * `observedAtUt` (see {@link countdownAt}). A sample that carries neither leaves
+ * both, and the next apsis, `null`. A held reading answers `null` under physics.
  */
 export function solveSelfOrbit(
   elements: SelfOrbitElements | undefined,
@@ -395,14 +405,15 @@ function declinedUnderPhysics(
 }
 
 /**
- * The `system.bodies` shape this needs: the stable-index body list, nothing
- * else.
+ * The part of `system.bodies` an orbit solve needs: the stable-index body list
+ * and nothing else. Useful for resolving the radius of the body an orbit is
+ * about. Taken by {@link bodyRadiusOf}, and passed by the orbit hook and the
+ * maneuver planner.
  *
- * `radius` is `Quantityish` rather than a number because the same field has two
- * shapes in this tree. The store wraps every declared quantity on decode, so a
- * topic read hands back a `Value<"m">`; the client-side `SystemBodiesPayload`
- * the derived channel is typed against declares a plain `number`. Accepting
- * both is honest about that, and `magnitudeOf` is the one place that decides
+ * `radius` is `Quantityish` because the same field has two shapes in this tree.
+ * The store wraps every declared quantity on decode, so a topic read hands back a
+ * `Value<"m">`; the client-side `SystemBodiesPayload` the derived channel is typed
+ * against declares a plain `number`. `magnitudeOf` is the one place that decides
  * what an absent or non-finite magnitude means.
  */
 export interface BodyRadiusTable {
@@ -410,18 +421,19 @@ export interface BodyRadiusTable {
 }
 
 /**
- * The mean radius of the body at `index`, with the three-way discipline every
- * `system.bodies` lookup in this tree follows.
+ * The mean radius of the body at `index`, with the three-way rule every
+ * `system.bodies` lookup follows. Useful for converting an orbit's radius into an
+ * altitude above the surface the operator knows. Used by the orbit hook, the
+ * maneuver planner and the maneuver trigger services.
  *
- * - `undefined` where it cannot be resolved yet: no index to resolve, the
- *   channel has not arrived, or it has arrived and this body (or its radius
- *   specifically) is not in it. None of those is a confirmed absence
+ * - `undefined` where it cannot be resolved yet: no index to resolve, the channel
+ *   has not arrived, or it has arrived and this body (or its radius specifically)
+ *   is not in it. None of those is a confirmed absence
  * - `null` only when the channel itself is a confirmed tombstone
  *
- * Pure, and deliberately takes the payload rather than reading the topic:
- * {@link solveOrbit} wants it for an altitude, and the caller is the only one
- * that knows which of the two absences it is looking at. Indexed by
- * `SystemBodyPayload.index`, the stable id, never array position.
+ * Pure, and takes the payload rather than reading the topic, because the caller
+ * is the only one that knows which of the two absences it is looking at. Indexed
+ * by `SystemBodyPayload.index`, the stable id, never array position.
  */
 export function bodyRadiusOf(
   bodies: BodyRadiusTable | null | undefined,

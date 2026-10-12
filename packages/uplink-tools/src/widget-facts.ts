@@ -1,7 +1,9 @@
 import type { WidgetRecord } from "./render/widgetRecord";
 
 /**
- * Which fact of a widget a {@link WidgetFact} row states.
+ * Which fact of a widget a {@link WidgetFact} row states. Useful for letting a
+ * page style or reorder the rows of a widget's fact table. Carried by
+ * `WidgetFact`.
  *
  * @category Inventory
  */
@@ -21,7 +23,9 @@ export type WidgetFactId =
 
 /**
  * One entry in a fact row: an identifier shown as code, optionally under the
- * label an operator reads, or a plain phrase.
+ * label an operator reads, or a plain phrase. Useful for showing the operator
+ * what a widget reads, needs and offers. Held by {@link WidgetFact} and turned
+ * into a table cell by {@link widgetFactValueMd}.
  *
  * @category Inventory
  */
@@ -39,7 +43,8 @@ export type WidgetFactItem =
 
 /**
  * One row of a widget's fact table: the label a reader sees and what the
- * registration says under it.
+ * registration says under it. Useful for describing a widget the same way on
+ * the Uplink's README and on a docs site. Returned by {@link widgetFactsOf}.
  *
  * @category Inventory
  */
@@ -53,7 +58,8 @@ export interface WidgetFact {
 }
 
 /**
- * Options for {@link widgetFactsOf}.
+ * Options for {@link widgetFactsOf}. Useful for leaving a row's content out of
+ * the fact table when a page lists it elsewhere. Taken by `widgetFactsOf`.
  *
  * @category Inventory
  */
@@ -72,10 +78,12 @@ const codes = (values: readonly string[]): WidgetFactItem[] =>
   values.map((code) => ({ code }));
 
 /**
- * The facts of a widget's registration as table rows, in the order both the
- * Uplink README and the docs site's widget page show them. Rows with nothing
- * to say are left out. A page may add to these rows, never restate them
- * differently.
+ * The facts of a widget's registration as table rows, in the order the Uplink
+ * README and a docs site's widget page show them. Rows with nothing to say are
+ * left out. A page may add to these rows and must not restate them differently.
+ * Useful for showing the operator what a widget needs and reads before they add
+ * it to a dashboard. Used by the page generator for the README's widget
+ * sections.
  *
  * @category Inventory
  */
@@ -165,7 +173,9 @@ export function widgetFactsOf(
 
 /**
  * A fact row's items as one Markdown table cell: code spans, comma separated,
- * with `|` escaped for the table and, in prose, angle brackets too.
+ * with `|` escaped for the table and, in prose, angle brackets too. Useful for
+ * writing a {@link WidgetFact} row into a README table. Used by the page
+ * generator.
  *
  * @category Inventory
  */

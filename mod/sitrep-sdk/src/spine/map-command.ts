@@ -13,12 +13,12 @@
 import { commandRail } from "../commands";
 
 /**
- * Whether a command rides signal delay at all.
+ * Whether a command is held back by the signal delay between the command centre
+ * and the vessel. Useful for showing the operator whether a command takes
+ * effect at once or after the delay. Used by `useCommand`.
  *
- * An id no generated map carries reads as delayed, matching what the host does
- * with one (`ChannelEngine.ResolveCommandDelay`) and erring in the safe
- * direction: a delayed command drawn instant has already crossed a gap the
- * operator was never shown.
+ * A command id that the generated maps do not carry counts as delayed, as the
+ * host treats it, so a delayed command is never shown as instant.
  */
 export function commandDelayed(command: string): boolean {
   return commandRail(command)?.delayed ?? true;

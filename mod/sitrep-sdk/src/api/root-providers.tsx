@@ -5,8 +5,9 @@ import type { Screen } from "../spine/screen";
 /**
  * A React provider the app mounts around a whole screen, for an Uplink whose
  * widgets share state: the provider sets the state up once, above every
- * widget. Register one with the `registerRootProvider` of the handle
- * {@link defineUplinkClient} returns.
+ * widget. Useful for keeping one set of state per screen for the operator.
+ * Passed to {@link registerRootProvider}, or to the `registerRootProvider` of
+ * the handle {@link defineUplinkClient} returns.
  *
  * @category Registering
  */

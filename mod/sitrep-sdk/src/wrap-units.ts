@@ -33,7 +33,9 @@ import {
 /**
  * A payload type as the mod sends it: every `Value` replaced by the plain
  * number that crosses the wire, at any depth, with the structure otherwise
- * the same. A `Vec3Of` becomes three numbers.
+ * the same. A `Vec3Of` becomes three numbers. Useful for typing the arguments
+ * of a command as they leave the command centre for the vessel. Returned by
+ * {@link dehydrateArgs}.
  *
  * @category Units and values
  */
@@ -51,10 +53,12 @@ export type WireOf<Shape> = Shape extends {
         : Shape;
 
 /**
- * Turns a payload as the mod sends it into the payload a reader sees: every
+ * Turns a payload as the mod sends it into the payload a widget reads: every
  * number whose field declares a unit becomes a `Value` in that unit, including
  * inside nested objects, lists and maps. Fields with no unit, such as names
- * and flags, are left as they are.
+ * and flags, are left as they are. Useful for giving the operator's widgets
+ * quantities that carry their unit. Used by the Sitrep client on each frame it
+ * receives for a Topic.
  *
  * Changes `payload` in place and returns it, so pass a payload nothing else
  * holds. Wrapping a payload twice changes nothing.
@@ -76,8 +80,8 @@ export function wrapTopicPayload<Payload>(
 
 /**
  * {@link wrapTopicPayload} for a payload named by its type, such as
- * `"ThermalHottestPart"`, rather than by a Topic. Use it for a type that is
- * only ever nested inside a Topic's payload.
+ * `"ThermalHottestPart"`, rather than by a Topic. Useful for a type that is
+ * only ever nested inside a Topic's payload, such as the reply to a command.
  *
  * @category Units and values
  */
@@ -292,7 +296,9 @@ function wrapScalarOrList(
 /**
  * Returns command arguments as the mod expects them: every `Value` replaced by
  * its number, at any depth. The mod refuses an argument sent as a `Value`
- * object where it expects a number.
+ * object where it expects a number. Useful for sending the operator's quantities
+ * to the vessel in a command. Used by the Sitrep client when it sends a
+ * command, and by the maneuver planner when it edits a node.
  *
  * It copies rather than changing `args`, since they are often a widget's own
  * state. Objects and arrays holding no `Value` are returned as they are.
@@ -334,9 +340,13 @@ function dehydrate(args: unknown): unknown {
 
 /**
  * Restores every `Value` in a payload that lost its methods crossing JSON or a
- * structured clone, such as on the way to a station screen. Changes `payload`
- * in place and returns it; anything that is not a `Value` is left as it is,
- * and restoring a payload twice changes nothing.
+ * structured clone, such as on the way to a station screen. Useful for giving
+ * the operator at a station screen the same quantities the command centre
+ * reads. Used by the station screen's peer transport on each frame and command
+ * reply it receives.
+ *
+ * Changes `payload` in place and returns it; anything that is not a `Value` is
+ * left as it is, and restoring a payload twice changes nothing.
  *
  * @category Units and values
  */

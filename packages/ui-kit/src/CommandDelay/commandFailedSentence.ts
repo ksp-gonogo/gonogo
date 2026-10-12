@@ -7,7 +7,8 @@ import type { RailTags } from "./railTags";
 
 /**
  * One dispatch that failed with an error rather than an answer: the fields of
- * {@link CommandLossLike}, plus the fault it was answered with.
+ * {@link CommandLossLike}, plus the fault it was answered with. Taken by
+ * {@link commandFailedSentence}.
  *
  * @category CommandDelay
  */
@@ -17,7 +18,9 @@ export interface CommandFailedLike extends CommandLossLike {
 }
 
 /**
- * A failed dispatch a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes.
+ * A failed dispatch a surface can render: the text's inputs plus the dispatch's
+ * `requestId`, which keys the box and is what `dismiss` takes. Used by the
+ * panel delay rail and {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -28,6 +31,7 @@ export interface CommandFailedEntry extends CommandFailedLike {
 
 /**
  * One failed dispatch as the rail renders it, plus its command's rail axes.
+ * Taken by {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -43,6 +47,9 @@ export interface RailFailed extends CommandFailedEntry {
  * cancelled, or a game load undid it. Anything else, the machinery breaking
  * or the client going away while it waited, gets no verdict. Never "refused",
  * which is the game's verdict, and it does not quote the error's own message.
+ * Useful for telling the operator what became of a command that got a fault
+ * instead of an answer. Used by {@link CommandList}, the panel delay rail and
+ * the maneuver planner.
  *
  * @category CommandDelay
  */

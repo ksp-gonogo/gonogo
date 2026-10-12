@@ -22,8 +22,10 @@ import type { ActionInputPayload } from "./types";
 const ACTION_HANDLERS_KEY = "__GONOGO_ACTION_HANDLERS__" as const;
 
 /**
- * Handles one action for one widget instance. What it returns is written back to
- * the device that fired it.
+ * The function that runs when an input bound to one action of one placed widget
+ * fires, and what it returns is written back to the device that fired it.
+ * Useful for letting the operator drive a widget from a serial device or
+ * keyboard key. Taken by {@link registerActionHandler}.
  *
  * @category Actions
  */

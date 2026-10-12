@@ -1,5 +1,7 @@
 /**
- * What {@link placePlotReadouts} reads: the chart's measured size.
+ * The measured size of a chart, in CSS pixels. Useful for deciding where the
+ * chart's readouts sit without covering the data the operator is reading. Taken
+ * by {@link placePlotReadouts}.
  *
  * @category LineGraph
  */
@@ -13,8 +15,9 @@ export interface PlotReadoutSpace {
 }
 
 /**
- * Where a chart's reading furniture stands: the crosshair card, the legend and
- * the limit or target captions.
+ * Where a chart's readouts stand: the crosshair card, the legend and the limit
+ * or target captions. Useful for keeping them off the traces the operator is
+ * reading. Returned by {@link placePlotReadouts}.
  *
  * `beside` gives them a column to the right of the plot, so none covers a
  * trace or a dot. `overlay` keeps them inside the plot, drawn only where they
@@ -48,8 +51,11 @@ const COLUMN_MAX_SHARE = 0.4;
 const PLOT_KEEPS_PX = 300;
 
 /**
- * Where the kit puts a chart's card, legend and captions, decided from
- * measured space. A chart with room gives them a column beside the plot, as
+ * The placement for a chart's card, legend and captions, decided from the
+ * chart's measured space. Useful for keeping readouts off the data the operator
+ * reads. Used by the line chart.
+ *
+ * A chart with room gives them a column beside the plot, as
  * wide as its widest line needs so nothing is cut; one that cannot spare that
  * width, or is smaller, keeps them over the plot.
  *

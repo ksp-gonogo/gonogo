@@ -11,7 +11,7 @@ import {
 import { useUtNow } from "./context";
 import { useLatestValue } from "./use-stream";
 
-/** Structural subset of the `PendingUplinkQueue` wire payload this hook reads. */
+/** The part of the `PendingUplinkQueue` wire payload that `useRouteCommands` reads. */
 export interface PendingUplinkQueueLike {
   pending: PendingEntry[];
 }
@@ -22,21 +22,18 @@ export interface UseRouteCommandsResult {
 }
 
 /**
- * Cross-origin route reader: every currently-pending command addressed to
- * `topic` (e.g. `kos/7`), regardless of which command centre dispatched it
- * (`PendingUplink.vantage`): the one thing `useCommand`'s own-dispatch
- * memory can't see. Queue-only, no memory of its own: an entry that ages
- * out of `system.uplink.pending` simply stops appearing here (a caller that
- * needs failure detection after age-out wants `useCommand`'s `inFlight`
- * instead, for its own dispatches).
+ * Every command still on its way to `topic` (for example `kos/7`), whichever
+ * command centre sent it, with the delay mode in force. Useful for showing the
+ * operator the commands in flight to a device, including ones sent from
+ * another command centre, which the command's own dispatch history cannot see.
+ * Offered to Uplink widgets through the host.
  *
- * Reads `system.uplink.pending` (real-time command-centre bookkeeping) and
- * `comms.delay` (a Delayed readout, read off the wire rather than through the
- * horizon it sizes) via `useLatestValue`, and
- * `nowUt` via `useUtNow`: the same real-time clock reads the kOS terminal's
- * original hand-rolled strip used, for the same reason (see `useLatestValue`'s
- * own doc). `latchForward` guards the returned phases against a transient
- * `nowUt` judder.
+ * It keeps no history: a command that ages out of the pending queue stops
+ * appearing. A caller that needs to detect a failure after that point reads
+ * `inFlight` from `useCommand` for its own dispatches.
+ *
+ * It reads `system.uplink.pending` and `comms.delay` straight off the wire,
+ * and times the commands against the real-time clock.
  */
 export function useRouteCommands(topic: string): UseRouteCommandsResult {
   const queue = useLatestValue<PendingUplinkQueueLike>("system.uplink.pending");

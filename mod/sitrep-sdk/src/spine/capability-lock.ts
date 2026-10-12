@@ -15,7 +15,9 @@ import {
 import { useLatestValue } from "./use-stream";
 
 /**
- * Why a capability is locked: the unlocks it is missing, and the evaluator's prose for when it named none.
+ * Why a capability is locked: the unlocks it is missing, and the evaluator's
+ * prose for when it named none. Useful for telling the operator what the save
+ * has not unlocked yet. Used by the kit's lock scope.
  *
  * @category Readings
  */
@@ -56,7 +58,11 @@ function channelVerdict(
   return best?.verdict;
 }
 
-/** The lock on one capability, or `undefined` when the report says nothing locks it. */
+/**
+ * Returns the lock on one capability, or `undefined` when the report says
+ * nothing locks it. Useful for telling the operator that a Topic or command is
+ * unavailable until the save unlocks it.
+ */
 export function capabilityLock(
   report: CommandGateReport | undefined,
   capability: Capability,
@@ -76,7 +82,8 @@ export function capabilityLock(
 
 /**
  * Writes one quantity for a lock sentence: a value off the wire, or a plain
- * number a caller supplied, in the unit the field declares.
+ * number a caller supplied, in the unit the field declares. Useful for writing
+ * the cost of an unlock in the operator's units. Taken by `lockSentence`.
  */
 export type LockQuantityWriter = (
   quantity: { magnitude: number; unit: string } | number,
@@ -87,7 +94,9 @@ export type LockQuantityWriter = (
  * The sentence a locked scope draws. A missing tech node reads "Missing tech:
  * <node>" over what it costs to research; a building reads as its own name over
  * the level it needs, so the two kinds of unlock never read alike. Quantities
- * are written by `write`, so the kit's own unit formatting draws them.
+ * are written by `write`, so the kit's own unit formatting draws them. Useful
+ * for telling the operator what must be unlocked before a control works. Used by
+ * the kit's lock mark and lock scope.
  */
 export function lockSentence(
   locks: readonly CapabilityLock[],
@@ -152,7 +161,9 @@ function keyOf(capability: Capability): string {
 /**
  * The scope half: what a `Section` or the dashboard's widget guard runs to
  * learn whether anything used inside it is locked. Returns the scope to
- * provide and the locks that currently hold it shut.
+ * provide and the locks that currently hold it shut. Useful for showing the
+ * operator one lock message for a whole section instead of one per control.
+ * Used by the kit's lock scope.
  *
  * A locked scope stops rendering what claimed the lock, which releases the
  * claim, which would reopen the scope, which would claim again. So a

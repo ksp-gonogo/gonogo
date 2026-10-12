@@ -73,13 +73,15 @@ interface RawSystemUplinksPayload {
 }
 
 /**
- * `Sitrep.Contract.UplinkHealthState` in declaration order (Healthy 0 /
- * Degraded 1 / Unavailable 2), lowercased. The mod serializes every enum as
- * its integer ordinal rather than its name, so the wire value resolves here by
- * a plain array index.
+ * The names of an Uplink's health states, in the order of the mod's
+ * `Sitrep.Contract.UplinkHealthState` (`healthy`, `degraded`, `unavailable`).
+ * Useful for turning the number on the wire into a name the operator can read.
+ * Used by the app's Uplink roster probe. The mod serializes every enum as its
+ * integer ordinal rather than its name, so the wire value resolves here by a plain
+ * array index.
  *
- * Its literal tuple type gives {@link UplinkHealthStateName} a closed union,
- * which you can key a `Record` on.
+ * Its literal tuple type gives {@link UplinkHealthStateName} a closed union, which
+ * you can key a `Record` on.
  *
  * @category Host and runtime
  */
@@ -92,7 +94,8 @@ export const HEALTH_STATE_NAMES = [
 /**
  * An Uplink's health, as a widget reads it: `"healthy"`, `"degraded"` (running
  * with a problem its `detail` names) or `"unavailable"` (not running, with a
- * reason).
+ * reason). Useful for showing the operator whether an Uplink is working. Used by
+ * the Uplink status in the settings panel.
  *
  * @category Host and runtime
  */
@@ -100,8 +103,9 @@ export type UplinkHealthStateName = (typeof HEALTH_STATE_NAMES)[number];
 
 /**
  * One labelled detail an Uplink reports about what it depends on: a file, a
- * build, a hash. The Uplink writes both the label and the value, so a client
- * lists them as they are.
+ * build, a hash. Useful for showing the operator what an Uplink is running
+ * against. Listed on an {@link UplinkHealthEntry}. The Uplink writes both the
+ * label and the value, so a client lists them as they are.
  *
  * @category Host and runtime
  */
@@ -113,7 +117,9 @@ export interface UplinkHealthFact {
 }
 
 /**
- * A contract version, as a major and a minor that can be compared.
+ * A contract version, as a major and a minor that can be compared. Useful for
+ * telling the operator when an Uplink and the app disagree about the wire
+ * contract. Used by the first-run Uplink readiness check.
  *
  * @category Host and runtime
  */
@@ -125,7 +131,10 @@ export interface ContractVersionReading {
 }
 
 /**
- * One Uplink's report on its own health, as a widget reads it.
+ * One Uplink's report on its own health, as a widget reads it. Useful for
+ * showing the operator whether an Uplink is working and why not. Used by the
+ * Uplink status and Uplinks settings in the settings panel and by the first-run
+ * Uplink readiness check.
  *
  * @category Host and runtime
  */
@@ -175,10 +184,11 @@ export interface UplinkHealthEntry {
 }
 
 /**
- * Every Uplink's health: the value of `system.uplinkHealth`. That is a derived
- * channel, one of {@link DERIVED_CHANNEL_IDS}, which the app works out from
- * the `system.uplinks` Topic, so it is not in the list of Topics. Read it with
- * `useStream("system.uplinkHealth")`.
+ * Every Uplink's health: the value of `system.uplinkHealth`. Useful for listing
+ * which Uplinks are working. Used by the Uplinks settings in the settings panel.
+ * It is a derived channel, one of {@link DERIVED_CHANNEL_IDS}, which the app works
+ * out from the `system.uplinks` Topic, so it is not in the list of Topics. Read it
+ * with `useStream("system.uplinkHealth")`.
  *
  * @category Host and runtime
  */
@@ -206,12 +216,13 @@ function readContractVersion(
 }
 
 /**
- * `system.uplinkHealth` derivation. `undefined` while `system.uplinks`
- * hasn't arrived yet ("still resyncing"); `null` when it's a confirmed
- * tombstone; otherwise the decoded per-Uplink array. Never throws, an
- * out-of-range `health.state` ordinal (a future `UplinkHealthState` member
- * this client doesn't know about yet) falls back to `"unavailable"` rather
- * than producing `undefined` for the whole array.
+ * Derives `system.uplinkHealth` from `system.uplinks`. Useful for turning the
+ * mod's health report into a list a widget can read. Used by
+ * {@link systemUplinkHealthChannel}. The result is `undefined` while
+ * `system.uplinks` has not arrived (still resyncing), `null` when it is a
+ * confirmed tombstone, and otherwise the decoded per-Uplink array. Never throws:
+ * an out-of-range `health.state` ordinal (a health state added by a newer mod)
+ * becomes `"unavailable"` rather than making the whole array `undefined`.
  */
 export function deriveSystemUplinkHealth(
   get: DerivedGet,
@@ -247,9 +258,11 @@ export function deriveSystemUplinkHealth(
 }
 
 /**
- * Ready-to-register definition: `store.registerDerivedChannel(systemUplinkHealthChannel)`.
- * `fields: true` exposes `system.uplinkHealth.uplinks`. Its status is its
- * single `system.uplinks` input's.
+ * The derived channel definition for `system.uplinkHealth`, ready to register with
+ * `store.registerDerivedChannel(systemUplinkHealthChannel)`. Useful for making
+ * Uplink health readable by widgets. Registered by the telemetry context provider.
+ * `fields: true` exposes `system.uplinkHealth.uplinks`. Its status is its single
+ * `system.uplinks` input's.
  */
 export const systemUplinkHealthChannel: DerivedChannelDefinition<SystemUplinkHealth> =
   {

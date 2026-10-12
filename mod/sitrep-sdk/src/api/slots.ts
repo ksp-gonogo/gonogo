@@ -668,10 +668,10 @@ export interface MapBaseLayerContext {
   ) => void;
 }
 
-/** Mirrors `TechNodeState` (TechTree/index.tsx). */
+/** Whether a node of the technology tree can be researched yet, for showing the operator its standing. */
 export type TechNodeSlotState = "Available" | "Researchable" | "Unavailable";
 
-/** Mirrors `TechPart` (TechTree/index.tsx). */
+/** One part a technology tree node unlocks, for showing the operator what research buys. */
 export interface TechSlotPart {
   name: string;
   title: string;
@@ -681,7 +681,7 @@ export interface TechSlotPart {
   purchased: boolean;
 }
 
-/** Mirrors `TechNode` (TechTree/index.tsx). */
+/** One node of the technology tree with its science cost and parts, for showing the operator what it would take to research. */
 export interface TechSlotNode {
   id: string;
   title: string;
@@ -760,7 +760,9 @@ export interface OrbitOverlayContext {
 
 /**
  * One stock science instrument aboard the active vessel, as the Experiments
- * widget draws its row.
+ * widget draws its row. Useful for showing the operator which instruments can
+ * run and hold data. Passed to augments in
+ * {@link ExperimentsInstrumentSlotContext}.
  *
  * @category Widget slots
  */
@@ -795,8 +797,9 @@ export interface ExperimentsInstrumentSlotContext {
 }
 
 /**
- * One Breaking Ground deployed experiment, as the Deployed Science widget draws
- * its card.
+ * One deployed science experiment, as the Deployed Science widget draws its
+ * card. Useful for showing the operator how much science an experiment has
+ * collected and sent.
  *
  * Each science figure is `null` when the mod does not report it, rather than
  * 0, because 0 is a real reading: a newly placed experiment reports 0%. Branch

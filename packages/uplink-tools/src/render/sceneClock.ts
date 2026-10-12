@@ -93,19 +93,28 @@ let nextId = 1_000_000_001;
 const scheduled = new Map<number, Scheduled>();
 const live = new Map<number, Live>();
 
-/** Whether the clock owns every timer, i.e. the film has started. */
+/**
+ * Whether the scene clock owns every timer, which is true once the setup hooks
+ * have returned and the motion scene has started. Useful for telling setup
+ * code that still waits on real time from the scene itself.
+ */
 export function sceneClockIsSealed(): boolean {
   return sealed;
 }
 
-/** The scene clock's current instant, ms since the first frame. */
+/**
+ * The scene clock's current instant, in milliseconds since the first frame.
+ * Useful for reading how much of a motion scene's own time has passed.
+ */
 export function sceneClockNow(): number {
   return now;
 }
 
 /**
- * Take the page's timers for the length of one scene. Call before the mount:
- * the widget's own timers have to register here rather than on the page's.
+ * Takes the page's timers for the length of one scene. Call before the mount,
+ * so the widget's own timers register on the scene clock rather than the
+ * page's. Useful for making a motion scene produce the same frames on every
+ * machine. Used by the render probe for a scene with a waiting step.
  */
 export function openSceneClock(): void {
   if (real) return;
@@ -162,14 +171,12 @@ export function openSceneClock(): void {
 }
 
 /**
- * End the setup phase: every timer from here on is the scene's, and every
- * timeout the setup left pending is rebased onto the first frame.
- *
- * Rebasing at the nominal delay rather than at what is left of it is the whole
- * point. "Release the stick in 1400ms", asked for while the page was still
- * settling, is a statement about the film and not about the machine, so the
- * remainder a real clock would have counted down is exactly the quantity that
- * has to be thrown away.
+ * Ends the setup phase: every timer from here on is the scene's, and every
+ * timeout the setup left pending is rebased onto the first frame at its full
+ * requested delay, not at what remained of it. A setup that asks to release a
+ * control in 1400 ms therefore means 1400 ms of the scene. Useful for making a
+ * motion scene independent of how long the page took to load. Used by the
+ * render probe once the setup hooks have returned.
  */
 export function sealSceneClock(): void {
   if (!real || sealed) return;
@@ -187,7 +194,11 @@ export function sealSceneClock(): void {
   live.clear();
 }
 
-/** Give the page its timers back, before the next scene mounts under them. */
+/**
+ * Gives the page its own timers back, before the next scene mounts under them.
+ * Useful for leaving nothing of one scene's clock behind for the next. Used by
+ * the render probe when a scene is unmounted.
+ */
 export function closeSceneClock(): void {
   if (!real) return;
   // A live timer outlives the scene that registered it and would fire into whatever mounts next, which is a frame nobody can account for.
@@ -205,12 +216,11 @@ export function closeSceneClock(): void {
 }
 
 /**
- * Move the scene clock `ms` forward, firing exactly the callbacks that fall due
- * and no others.
- *
- * Ties go to the older registration, so two timers due at the same instant fire
- * in the order the page created them rather than in whatever order a hash map
- * happens to yield.
+ * Moves the scene clock `ms` forward, firing exactly the callbacks that fall due
+ * and no others. Timers due at the same instant fire in the order the page
+ * created them. Useful for advancing a control that ticks on its own timer
+ * between the frames of a motion scene. Used by the render probe for a step
+ * with `waitMs`.
  */
 export function advanceSceneClock(ms: number): void {
   if (!real) return;

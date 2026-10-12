@@ -2,7 +2,9 @@ import { NULL_DISPLAY } from "./NullValue";
 import { ReckoningMarkSvg } from "./reckoningMarkDraw";
 
 /**
- * One line of a {@link PlotCrosshair} readout.
+ * One line of a plot crosshair's readout: a series, its colour and the value
+ * read there. Useful for showing the operator the exact figure of each trace at
+ * the instant the line stands on. Passed in the rows of {@link PlotCrosshair}.
  *
  * @category LineGraph
  */
@@ -26,8 +28,9 @@ export interface PlotCrosshairRow {
 }
 
 /**
- * What a {@link PlotCrosshair} draws: where the line stands, the plot it
- * spans, the instant it names and the rows it reads.
+ * What a plot crosshair draws: where the line stands, the plot it spans, the
+ * instant it names and the rows it reads. Useful for reading values off a
+ * chart at a moment the operator points to. Taken by {@link PlotCrosshair}.
  *
  * @category LineGraph
  */

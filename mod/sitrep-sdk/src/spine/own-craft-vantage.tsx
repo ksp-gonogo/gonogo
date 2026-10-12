@@ -8,19 +8,19 @@ import { useStream } from "./use-stream";
 
 /**
  * Whether a session observing from `selectedVantage` is standing on the very
- * craft it is watching, which is the one case the mod delivers at zero delay.
+ * vessel it is watching, which is the one case the mod delivers at zero delay.
+ * Useful for deciding when the operator's clock needs no signal delay. Used by
+ * the delay authority.
  *
  * Both arguments are ids in the `commandCentre.roster` vocabulary
  * (`"vessel:<guid>"` / `"ground:<name>"`), so the comparison is a plain string
- * equality and never a format this file restates. `subjectId` is the active
- * craft's own id as the orbit sample names it; a vantage that equals it is a
- * crewed centre aboard that craft.
+ * equality. `subjectId` is the active vessel's own id as the orbit sample names
+ * it; a vantage that equals it is a crewed centre aboard that vessel.
  *
- * The empty string is not a vantage. `Meta.Vantage` is `""` while the
- * connection sits at no command centre because none is active, and an absent
- * subject arrives the same way, so a bare `===` would call two unknowns a
- * match and hand a ground operator a zero-delay clock on a craft they are
- * nowhere near.
+ * The empty string is not a vantage. `Meta.Vantage` is `""` while the connection
+ * sits at no command centre because none is active, and an absent subject
+ * arrives the same way, so a bare `===` would call two unknowns a match and hand
+ * a ground operator a zero-delay clock on a vessel they are nowhere near.
  */
 export function isOwnCraftVantage(
   selectedVantage: string | undefined,
@@ -48,25 +48,26 @@ function subjectOf(reading: TopicReading<VesselOrbit>): string | undefined {
 }
 
 /**
- * Whether this session's selected vantage is the craft its own telemetry is
- * about: true for a pilot strapped into the active craft, false for a ground
- * operator whatever centre they picked.
+ * Whether this session's selected vantage is the vessel its own telemetry is
+ * about: true for a pilot aboard the active vessel, false for a ground operator
+ * whatever command centre they picked. Useful for showing the operator that the
+ * frames they are reading are live. Used by the signal delay readout.
  *
  * Gated on the selected vantage, never the observed one. Observed lags a whole
  * signal delay behind the request that moved it, so a clock keyed on it would
  * stay ground-delayed for exactly as long as the delay it is meant to remove,
  * and `PilotVantage` (which sets the vantage) keys on selected for the same
  * reason. The cost is a transient at the moment of the request: `setVantage`
- * tracks optimistically, so between asking and the mod agreeing the clock
- * reads zero while frames are still arriving ground-delayed. That window is
- * bounded by one round trip and errs towards the live reading, where the
- * inverse (holding the ground's signal delay over live frames) blanks the page
- * outright once the delay exceeds the timeline's retention.
+ * tracks optimistically, so between asking and the mod agreeing the clock reads
+ * zero while frames are still arriving ground-delayed. That window is bounded by
+ * one round trip and errs towards the live reading, where the inverse (holding
+ * the ground's signal delay over live frames) blanks the page outright once the
+ * delay exceeds the timeline's retention.
  *
- * Screen-independent on purpose. The mod's zero row is written for whichever
- * centre is the active craft (`AuthorityMatrixPass.PopulateActiveVessel`), not
- * for a route, so a main-screen operator who selects the active craft's own
- * vantage is reading live frames too and must be told so.
+ * Independent of which screen it runs on. The mod's zero row is written for
+ * whichever command centre is the active vessel, not for a route, so a
+ * main-screen operator who selects the active vessel's own vantage is reading
+ * live frames too and must be told so.
  */
 export function useOwnCraftVantage(): boolean {
   // gonogo:reads none
@@ -80,13 +81,14 @@ export function useOwnCraftVantage(): boolean {
 
 /**
  * Keeps the auto-built clock's `DelayAuthority` told whether this session is
- * watching the craft it is aboard, the one case the mod streams at no delay
- * (see `DelayAuthority.setOwnCraftVantage`). Draws nothing. Rendered only
- * alongside an auto-built authority: a caller who supplies its own `store`
- * owns its clock's delay wiring.
+ * watching the vessel it is aboard, the one case the mod streams at no delay (see
+ * `DelayAuthority.setOwnCraftVantage`). Draws nothing. Useful for keeping every
+ * delayed readout on screen consistent with the operator's vantage. Used by the
+ * signal delay readout and the telemetry context provider.
  *
- * `vessel.orbit` is read, and so subscribed, only once a vantage has been
- * chosen.
+ * Rendered only alongside an auto-built authority: a caller who supplies its own
+ * `store` owns its clock's delay wiring. `vessel.orbit` is read, and so
+ * subscribed, only once a vantage has been chosen.
  */
 export function OwnCraftDelayGate({
   authority,

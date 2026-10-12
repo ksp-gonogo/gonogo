@@ -6,6 +6,8 @@ import { CommandErrorCode, FaultCode } from "../__generated__/error-codes";
  * rejection carries a {@link FaultCode}, except {@link COMMAND_LOST}. Useful
  * for telling a refusal from a fault, though {@link classifyCommandRejection}
  * does that for you.
+ *
+ * @category Commands
  */
 export const COMMAND_REFUSED = "E_REFUSED";
 /**
@@ -28,7 +30,7 @@ export const COMMAND_LOST = "E_LOST";
  *   reason
  * - `lost`: no reply arrived in time. The command may still have run, so
  *   sending it again may run it twice
- * - `failed`: something broke on the way, such as the link dropping or the
+ * - `failed`: something broke on the way, such as the connection dropping or the
  *   mod's handler throwing. `code` names it: a {@link FaultCode}, or any
  *   string for an id this SDK does not know. Sending it again may work
  *

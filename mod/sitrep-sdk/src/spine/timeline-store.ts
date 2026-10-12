@@ -68,12 +68,11 @@ import type { Certainty, ViewClock } from "./view-clock";
 export type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 
 /**
- * The frozen view-time token for one frame / read cycle, enforces the
- * "single-view-time invariant". There is deliberately no method
- * anywhere in this file that reads "the current time" and hands back a
- * fresh UT per call: every read goes through a `FrameToken`, and a token's
- * `viewUt` never changes after it's minted. That's what makes the
- * invariant structural rather than a convention callers have to remember.
+ * The frozen view-time token for one frame or read cycle. Useful for making every
+ * reading drawn in one frame show the same instant. Taken by the stream hooks and
+ * the view clock. Every read goes through a `FrameToken`, and a token's `viewUt`
+ * never changes after it is minted: no method reads "the current time" and hands
+ * back a fresh UT per call.
  */
 export interface FrameToken {
   readonly viewUt: number;
@@ -248,15 +247,14 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
 }
 
 /**
- * One instant a model answered for, and what answered. Never an observation:
- * see `TimelineStore.sampleReckonedTail`, which is the only thing that mints
- * one and hands it straight to the boundary that draws it.
+ * One instant a model answered for, and what answered. Useful for drawing a
+ * modelled tail beyond the last observation. Minted only by
+ * `TimelineStore.sampleReckonedTail` and handed straight to the boundary that
+ * draws it. Never an observation.
  *
- * Not a `TimelinePoint`, on purpose. A `TimelinePoint` is what the craft sent,
- * it carries a `Meta` full of the wire's own claims about provenance and
- * staleness, and there is no honest thing to put in those fields for an instant
- * nothing arrived at. Substituting plausible ones is exactly how a projection
- * becomes indistinguishable from a reading.
+ * It is not a `TimelinePoint`. A `TimelinePoint` is what the vessel sent and
+ * carries a `Meta` full of the wire's own claims about provenance and staleness;
+ * there is nothing true to put in those fields for an instant nothing arrived at.
  */
 export interface ReckonedSample<Payload> {
   /** The UT the model answered for. */
@@ -295,31 +293,33 @@ export interface ReckonedSample<Payload> {
 
 /**
  * The quantity one end of a {@link ReckonedSample}'s band is in: whatever the
- * sample's own value is in.
+ * sample's own value is in. Useful for drawing the range a modelled value may fall
+ * in.
  *
  * A sample whose value is a bare magnitude still gets a wrapped end, because a
- * band is only ever minted from an {@link UncertaintyBand} and that type's ends
- * are `Value`s whatever the payload holds. `Value` with its unit left open is
- * the honest answer there: nothing in the payload says what the number measures,
- * so nothing here can promise the end agrees with it.
+ * band is only ever minted from an {@link UncertaintyBand} and that type's ends are
+ * `Value`s whatever the payload holds. `Value` with its unit left open is the
+ * answer there: nothing in the payload says what the number measures, so nothing
+ * here can promise the end agrees with it.
  */
 export type ReckonedBound<Payload> =
   Payload extends Value<infer Unit> ? Value<Unit> : Value;
 
 /**
  * What a topic's own model says happened across the part of a gap between two
- * samples that nothing observed. See {@link TimelineStore.gapModel}.
+ * samples that nothing observed. Useful for drawing a chart line across a gap
+ * only where a model vouches for it. Returned by {@link TimelineStore.gapModel} and
+ * used by the series hook that feeds charts.
  *
- * `carried: false` is a model that claimed the plotted path at the earlier
- * sample and withdrew before the span ended, so nothing can say what the value
- * did there. `carried: false, unclaimed: true` is the same answer reached with
- * no model at all: nothing claims the plotted path, and the span is wider than
- * the mod samples at when warp is not thinning it, so the part beyond that is
- * one the sampling skipped and a chord across it is a path nothing observed.
- * `carried: true` holds the model's answers at instants strictly inside the
- * span, for a chart to hold its own chord against: this type says what the
- * model claims, and only the chart knows whether a difference is one it can
- * draw.
+ * `carried: false` is a model that claimed the plotted path at the earlier sample
+ * and withdrew before the span ended, so nothing can say what the value did there.
+ * `carried: false, unclaimed: true` is the same answer reached with no model at
+ * all: nothing claims the plotted path, and the span is wider than the mod samples
+ * at when warp is not thinning it, so the part beyond that is one the sampling
+ * skipped and a chord across it is a path nothing observed. `carried: true` holds
+ * the model's answers at instants strictly inside the span, for a chart to hold
+ * its own chord against: this type says what the model claims, and only the chart
+ * knows whether a difference is one it can draw.
  */
 export type GapModel =
   | { readonly carried: false }
@@ -363,16 +363,17 @@ const RECKONED_EDGE_BISECTIONS = 12;
 const UPLINK_ROSTER_TOPIC = "system.uplinks";
 
 /**
- * How long a load must run before it is shown. A scene change that takes under
- * this long is never seen, where showing it would flash every reading held and
- * back. A property of what an operator will tolerate on screen, so it lives
- * here and not in the contract.
+ * How long, in milliseconds, a load must run before it is shown. Useful for
+ * keeping a brief scene change from flashing every reading as held and back. A
+ * scene change that takes less than this is never shown. It is a property of what
+ * an operator will tolerate on screen, so it lives here and not in the contract.
  */
 export const GAME_LOADING_ONSET_MS = 750;
 
 /**
- * What the game is doing as the operator is shown it, with the scene being
- * loaded or the one that stands.
+ * What the game is doing as the operator is shown it, with the scene being loaded
+ * or the one that stands. Useful for telling the operator the game is loading.
+ * Returned by the game status hook and read by the mission banner.
  */
 export interface GameStatus {
   readonly state: "ready" | "loading" | "no-game";
@@ -633,21 +634,20 @@ function lerpFieldValue(
 }
 
 /**
- * Linearly interpolate between two payloads of matching shape at `t` in
- * `[0, 1]`: the confirmed-range interpolation primitive.
- * Numeric payloads lerp directly. A plain (non-array, non-null) object
- * lerps field-by-field via `lerpFieldValue`: a genuinely continuous numeric
- * field lerps straight-line, an angular field (`ANGULAR_DEGREE_FIELD_NAMES`)
- * wraps the short way instead of blending through the far side of the
- * wrap, a field `holds` names (one whose kind is not continuous) stays at
- * `before` rather than fractionalizing, a non-numeric field that is
- * identical on both sides passes through unchanged (e.g. an unchanged
- * string/enum field), and a non-numeric field that actually differs makes
- * the whole interpolation refuse (`undefined`): there is no honest halfway
- * point between two different strings, and a caller asking for a lerp
- * should never get a silently-wrong blended object back. Anything else
- * (arrays, non-number/non-object primitives, mismatched key sets) also
- * returns `undefined`, signalling "fall back to hold-last" to the caller.
+ * Linearly interpolates between two payloads of matching shape at `t` in
+ * `[0, 1]`. Useful for drawing a value between two confirmed samples.
+ *
+ * - Numeric payloads interpolate directly
+ * - A plain object (not an array, not null) interpolates field by field. A
+ *   continuous numeric field interpolates in a straight line; an angular field
+ *   (`ANGULAR_DEGREE_FIELD_NAMES`) wraps the short way; a field `holds` names
+ *   (one whose kind is not continuous) stays at `before`; a non-numeric field
+ *   identical on both sides passes through
+ * - A non-numeric field that differs makes the whole interpolation refuse,
+ *   because there is no halfway point between two different strings
+ *
+ * Anything else (arrays, other primitives, mismatched key sets) also returns
+ * `undefined`, meaning the caller should hold the last value.
  */
 export function lerpPayload<Payload>(
   before: Payload,
@@ -726,7 +726,9 @@ function interpolatedRead<Payload>(
 
 /**
  * Holds every Topic's recent samples, and answers what each one reads at the
- * instant the dashboard is showing.
+ * instant the dashboard is showing. Useful for keeping every widget on screen
+ * showing the same instant. Used by the telemetry context provider and the stream
+ * hooks.
  *
  * Reads go through a frame token, so every component reading in the same frame
  * sees the same instant:

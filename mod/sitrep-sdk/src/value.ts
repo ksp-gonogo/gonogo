@@ -5,10 +5,10 @@ import type { Value as ModelValue, Vector3 } from "./unit-system";
 export type Value<Unit extends SitrepUnit = SitrepUnit> = ModelValue<Unit>;
 
 /**
- * A vector whose three components are `Value`s in one unit:
- * `Vec3Of<"m">` for a position, `Vec3Of<"m/s">` for a velocity. A position
- * cannot be passed where a velocity is expected. {@link vectorMagnitude}
- * returns its length.
+ * A vector whose three components are `Value`s in one unit: `Vec3Of<"m">` for a
+ * position, `Vec3Of<"m/s">` for a velocity. Useful for carrying a position or
+ * velocity read from telemetry with its unit, so a position cannot be passed
+ * where a velocity is expected. {@link vectorMagnitude} returns its length.
  *
  * @category Units and values
  */

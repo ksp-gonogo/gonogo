@@ -1,15 +1,13 @@
 /**
- * The program-meta vantage: a command sent from `"meta"` is instant
- * (`DelayTo("meta", *) = 0` server-side, `ChannelEngine.MetaVantage`). Program
- * acts with no physical vantage (tech unlock, strategy, contract accept) pass
- * this so they stay instant regardless of the operator's selected command
- * centre. Kept in sync with the C# `MetaVantage` constant.
+ * The vantage id `"meta"`, which stands for the program itself and not for any
+ * command centre: a command sent from it reaches the vessel with no delay.
+ * Useful for commands that have no physical origin, such as a tech unlock, a
+ * strategy change or a contract accept, so they stay instant whichever command
+ * centre the operator has selected. Used by the time warp control and the space
+ * centre widgets.
  *
- * The same id comes back down the wire on `meta.vantage`: instant-class topics
- * are routed onto it at subscribe time, so a frame stamped with it is telling
- * you the topic is exempt from the delay, not where the session is observing
- * from. `TelemetryClient.observedVantage` reads it for exactly that reason,
- * which is why this lives in its own module: `client.ts` sits below
- * `use-command.ts` in the import graph and cannot reach up to it.
+ * The same id comes back on `meta.vantage` for topics exempt from the delay: a
+ * frame stamped with it says the topic is not delayed, and does not say where
+ * the session is observing from. Matches the C# `MetaVantage` constant.
  */
 export const META_VANTAGE = "meta";

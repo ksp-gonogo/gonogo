@@ -6,7 +6,11 @@ import type { Page } from "playwright";
 import { type Engine, engine } from "./driver";
 import { encodeGif } from "./gif";
 
-/** The tag that marks a story as one that plays over time, so it renders as a GIF. */
+/**
+ * The tag that marks a Storybook story as one that plays over time, so it
+ * renders as a GIF. Useful for showing a widget changing over time, such as a
+ * descent, in an animated picture. Read by the `story` command.
+ */
 export const PLAYBACK_TAG = "playback";
 
 const ENGINES = new Set(["chromium", "firefox", "webkit"]);
@@ -82,7 +86,11 @@ function numberFlag(
   return n;
 }
 
-/** Everything the command line says, and the first thing it says wrong. */
+/**
+ * The `story` command's arguments, read from `argv`. It throws on the first
+ * flag or value that is wrong. Useful for telling the author at once what they
+ * mistyped. Used by the `story` command.
+ */
 export function parseStoryArgs(argv: readonly string[]): StoryArgs {
   const args: StoryArgs = {
     list: false,
@@ -196,7 +204,11 @@ export interface StoryEntry {
   tags: string[];
 }
 
-/** The stories of an `index.json`, refusing one of any other shape. */
+/**
+ * The stories listed in a Storybook `index.json`, or an error naming `source`
+ * when the index has any other shape. Useful for finding the story an id names.
+ * Used by the `story` command.
+ */
 export function storiesOfIndex(index: unknown, source: string): StoryEntry[] {
   const entries =
     typeof index === "object" && index !== null
@@ -228,7 +240,11 @@ export function storiesOfIndex(index: unknown, source: string): StoryEntry[] {
   return out;
 }
 
-/** The story an id names, or an error naming the ids it was nearest to. */
+/**
+ * The story an id names, or an error naming the ids it was nearest to. Useful
+ * for helping the author correct a mistyped story id. Used by the `story`
+ * command.
+ */
 export function findStory(
   entries: readonly StoryEntry[],
   id: string,
@@ -255,13 +271,22 @@ export function findStory(
   );
 }
 
-/** Whether this run draws a GIF. */
+/**
+ * Whether this run draws a GIF: the `--gif` and `--png` flags decide it, and
+ * otherwise the story's playback tag does. Useful for choosing between a still
+ * picture and an animated one. Used by the `story` command.
+ */
 export function isAnimated(entry: StoryEntry, args: StoryArgs): boolean {
   if (args.format !== "auto") return args.format === "gif";
   return entry.tags.includes(PLAYBACK_TAG);
 }
 
-/** Where the picture goes: a file as named, or `<dir>/<id>.<ext>` for a directory. */
+/**
+ * Where the picture goes: the file as named, or `<dir>/<id>.<ext>` for a
+ * directory. It throws when a named file's extension does not match the kind of
+ * picture. Useful for telling the author where the picture was written. Used by
+ * the `story` command.
+ */
 export function outputPath(
   cwd: string,
   out: string | undefined,
@@ -288,9 +313,8 @@ export function outputPath(
 /**
  * The frames a uniform `fps` grid over `seconds` picks from frames captured at
  * irregular instants: each tick takes the latest frame taken at or before it.
- *
- * Capturing as fast as the browser can and resampling, rather than waiting for
- * each tick, keeps the animation's pace true when a screenshot is slow.
+ * Useful for keeping an animation's pace true when a screenshot is slow. Used
+ * by the `story` command.
  */
 export function resample<Frame>(
   captured: readonly { at: number; frame: Frame }[],
@@ -400,8 +424,12 @@ const LISTEN_FOR_RENDER = `
 /** What a story marks its widget with, so the picture can be just the widget. */
 const WIDGET_SELECTOR = "[data-story-widget]";
 /**
- * Refuses a picture that is not exactly one loop of its story: first frame to last, with no wrap.
- * A frame equal to the first, coming back after the picture has moved on, means the story started over inside it; a length other than the one the story states means it holds more or less than a run.
+ * Throws when a picture is not exactly one loop of its story, from first frame
+ * to last. A frame equal to the first, coming back after the picture has moved
+ * on, means the story started over inside it. A length more than half a second
+ * from the one the story states means it holds more or less than a run. Useful
+ * for keeping an animated picture from cutting a story short or repeating it.
+ * Used by the `story` command.
  */
 export function assertOneLoop(
   frames: readonly Buffer[],
@@ -430,7 +458,11 @@ export function assertOneLoop(
 /** What a playback story marks its running time with, in seconds. */
 const SECONDS_SELECTOR = "[data-story-seconds]";
 
-/** The part of a page `statedSeconds` reads: a locator that can hand back an attribute. */
+/**
+ * The part of a browser page that {@link statedSeconds} reads: a locator that
+ * can hand back an attribute. Useful for reading a story's running time from
+ * the page or from a stand-in. Taken by `statedSeconds`.
+ */
 export interface SecondsPage {
   locator(selector: string): {
     first(): {
@@ -442,7 +474,11 @@ export interface SecondsPage {
   };
 }
 
-/** The running time a story states for itself, within what a GIF may be, or `fallback` when it states none. */
+/**
+ * The running time a story states for itself, in seconds, when it is between
+ * half a second and a minute, and `fallback` otherwise. Useful for making a GIF
+ * exactly as long as the story. Used by the `story` command.
+ */
 export async function statedSeconds(
   page: SecondsPage,
   fallback: number,
@@ -471,7 +507,11 @@ export interface Clip {
   height: number;
 }
 
-/** The smallest whole-pixel rectangle holding every box, or nothing when there are none or all are empty. */
+/**
+ * The smallest whole-pixel rectangle holding every box, or `undefined` when
+ * there are none or all are empty. Useful for cropping a picture to the widget
+ * alone. Used by the `story` command.
+ */
 export function unionClip(boxes: readonly Clip[]): Clip | undefined {
   const drawn = boxes.filter((box) => box.width > 0 && box.height > 0);
   if (drawn.length === 0) return undefined;
@@ -504,7 +544,11 @@ async function measure(page: Page, selector: string): Promise<Clip[]> {
 
 const START_PATTERN = /^(replay|play)\b/i;
 
-/** Renders the story an argument list names, and returns the path it wrote. */
+/**
+ * Renders the story an argument list names, as a PNG or a GIF, and returns the
+ * path it wrote. Useful for showing the operator a widget as it looks in a
+ * Storybook story. Used by the `story` command.
+ */
 export async function renderStory(
   args: StoryArgs,
   cwd: string = process.cwd(),
@@ -633,7 +677,11 @@ export async function renderStory(
   }
 }
 
-/** `uplink-tools story`: `--list` prints ids, anything else renders one story. */
+/**
+ * Runs `uplink-tools story`: `--list` prints story ids, anything else renders
+ * one story. Useful for turning a Storybook story into a picture for a README.
+ * Used by the `uplink-tools` command line.
+ */
 export async function storyCommand(argv: readonly string[]): Promise<void> {
   if (argv.includes("--help") || argv.includes("-h")) {
     console.log(STORY_USAGE);

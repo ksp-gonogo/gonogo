@@ -112,8 +112,10 @@ export function Section({
 /**
  * The uppercase, tracked-out heading {@link Section} draws for its `title`,
  * usable on its own. Useful for headings outside a panel that should look like
- * a panel's. Used by the settings and alarms dialogs. Use `as="h3"` (or another heading tag) for a real heading;
- * `$rule` draws a hairline under it.
+ * a panel's. Used by the settings and alarms dialogs.
+ *
+ * Use `as="h3"` (or another heading tag) for a real heading; `$rule` draws a
+ * hairline under it.
  *
  * @category Layout
  */

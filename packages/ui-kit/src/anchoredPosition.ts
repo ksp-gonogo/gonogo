@@ -1,5 +1,6 @@
 /**
- * A point in viewport (client) coordinates.
+ * A point in viewport (client) coordinates, such as where the operator's
+ * pointer is. Taken by {@link Floating} as the place a layer attaches to.
  *
  * @category Floating
  */
@@ -18,6 +19,7 @@ export interface BoxSize {
 
 /**
  * Where an anchored layer's top-left corner goes, in viewport coordinates.
+ * Returned by {@link anchoredPosition}.
  *
  * @category Floating
  */
@@ -34,12 +36,13 @@ const GAP = 12;
 const EDGE = 8;
 
 /**
- * Where to put a `layer`-sized box anchored at `anchor` inside `viewport`, as
- * the position {@link Floating} uses. It goes 12px below and right of the
- * anchor by preference; on an axis where that runs past the edge it flips to
- * the anchor's other side rather than sliding, so it still reads as attached.
- * If neither side fits, it is clamped to stay 8px inside the viewport, and the
- * layer's own scroll box must carry the rest.
+ * Where to put a `layer`-sized box anchored at `anchor` inside `viewport`. It
+ * goes 12px below and right of the anchor by preference; on an axis where that
+ * runs past the edge it flips to the anchor's other side, so it still reads as
+ * attached. If neither side fits, it is clamped to stay 8px inside the
+ * viewport, and the layer's own scroll box must carry the rest. Useful for
+ * keeping a tooltip or menu on screen beside what the operator pointed at. Used
+ * by {@link Floating}.
  *
  * @category Floating
  */

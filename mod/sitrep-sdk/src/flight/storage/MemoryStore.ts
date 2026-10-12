@@ -8,7 +8,8 @@ interface SampleRow {
 
 /**
  * A {@link FlightStore} held in memory, for tests and for a browser with no
- * IndexedDB. Nothing survives a reload.
+ * IndexedDB. Nothing survives a reload. Useful for recording flights the
+ * operator can review until the page closes.
  *
  * @category Flight recording
  */

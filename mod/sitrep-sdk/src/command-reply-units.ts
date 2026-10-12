@@ -27,11 +27,12 @@ const COMMAND_REPLY_TYPES: Record<string, string> =
   GENERATED_COMMAND_REPLY_TYPES;
 
 /**
- * Give a command reply's declared quantities their units, in place.
- *
- * The write-side twin of what `parseServerMessage` does to a `stream-data`
- * frame: a `BodyState.ut` typed `Value<"ut">` is one at runtime as well, so a
- * caller reaching a `Value` method on it does not throw.
+ * Gives a command reply's declared quantities their units, in place, so a field
+ * typed `Value<"ut">` is a `Value` at runtime as well and a caller reaching a
+ * `Value` method on it does not throw. Useful for handing the operator's code a
+ * command's reply with its quantities usable. Used by the stream client when a
+ * `command-response` arrives. It does for a reply what `parseServerMessage` does
+ * for a `stream-data` frame.
  *
  * A command the map has never heard of, a primitive result, and a payload of
  * a type with no declared units all pass straight through: the walk is

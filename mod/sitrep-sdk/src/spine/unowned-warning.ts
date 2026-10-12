@@ -3,18 +3,16 @@ import { logger } from "../api/logger";
 import type { TelemetryClient } from "./client";
 
 /**
- * The one line that changes a third-party author's day.
+ * Logs one warning when a widget is subscribed to a topic nothing publishes.
+ * Useful for telling an Uplink author why a widget renders blank, where otherwise
+ * there would be no error, banner or health row and a `pending` reading looks
+ * like data on its way. Installed by the telemetry context provider.
  *
- * A widget subscribed to a topic nothing publishes renders blank, and before
- * this there was nothing anywhere to say why: no error, no banner, no health
- * row, and a `pending` reading that looks exactly like data on its way. This
- * logs the topic, the widget that asked for it, and what to do about it, at the
- * moment the mod's silence becomes an answer.
- *
- * Once per topic per session, and the session bound is deliberate. The verdict
- * is re-earned on every reconnect (see `TopicOwnershipTracker`), so a flapping
- * link would otherwise reprint the same paragraph on every retry and bury the
- * one line an author has not read yet.
+ * The log names the topic, the widget that asked for it, and what to do about it,
+ * at the moment the mod's silence becomes an answer. It fires once per topic per
+ * session: the verdict is re-earned on every reconnect (see
+ * `TopicOwnershipTracker`), so a flapping connection would otherwise reprint the
+ * same paragraph on every retry.
  */
 export function installUnownedTopicWarning(
   client: TelemetryClient,
@@ -36,11 +34,10 @@ export function installUnownedTopicWarning(
 }
 
 /**
- * The message text, separately so a test can assert on it without a host.
- *
- * Written for someone who does not already know this mechanism exists: it says
- * what was observed, what it means, and the three things that actually cause
- * it, in the order they are worth checking.
+ * The text of the unowned topic warning, exported so a test can assert on it
+ * without a host. Useful for an Uplink author who meets the warning without
+ * knowing the mechanism: it says what was observed, what it means, and the three
+ * causes in the order they are worth checking.
  */
 export function unownedTopicMessage(
   topic: string,

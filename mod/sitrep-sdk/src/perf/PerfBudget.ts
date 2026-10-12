@@ -16,7 +16,9 @@ declare global {
 }
 
 /**
- * What {@link createPerfBudget} and `new PerfBudget` take.
+ * What {@link createPerfBudget} and `new PerfBudget` take: a label, the rolling
+ * window, and the threshold that triggers a warning. Useful for capping how
+ * often a widget or data feed may do work, such as updates per second.
  *
  * @category Logging and performance
  */
@@ -47,7 +49,9 @@ interface Event {
  * never throws or slows anything down. In a test run that has called
  * `PerfBudget.installTestGate()`, a test that pushes a budget over its
  * threshold fails. `windowTotal()` returns the current total, for a test that asserts
- * on steady-state cost.
+ * on steady-state cost. Useful for noticing a runaway update loop before it
+ * slows the operator's dashboard. Used by the app's commcast log and by the
+ * trajectory calculation.
  *
  * An Uplink calls {@link createPerfBudget}, which makes one of these in the
  * app's own copy of the SDK and returns a handle to it. `new PerfBudget(...)`

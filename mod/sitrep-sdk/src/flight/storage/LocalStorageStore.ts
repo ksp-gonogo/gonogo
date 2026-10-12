@@ -2,7 +2,8 @@ import { logger } from "../../api/logger";
 
 /**
  * Where a `LocalStorageStore` keeps its value and what it holds before anything
- * is saved.
+ * is saved. Useful for saving an operator's setting in the browser. Taken by
+ * {@link LocalStorageStore}.
  *
  * @category Flight recording
  */
@@ -23,7 +24,8 @@ export interface LocalStorageStoreOptions<Stored> {
 /**
  * One typed value saved in `localStorage`. A missing or unreadable value reads
  * as the defaults (and an unreadable one calls `onCorruption`), and a
- * `localStorage` that throws, as a private window's can, is ignored.
+ * `localStorage` that throws, as a private window's can, is ignored. Useful for keeping an operator's setting, such as a layout or an
+ * alarm, across reloads. Used by the app's alarm and mission profile services.
  *
  * Every read parses afresh. For an object value, a read returns the defaults
  * with the saved fields over them, so a field added later reads as its

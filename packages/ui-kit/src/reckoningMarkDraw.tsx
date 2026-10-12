@@ -68,7 +68,10 @@ function resolvedColor(
 }
 
 /**
- * Options for {@link paintReckoningMark}.
+ * Whether a reckoning mark painted on a canvas is drawn faint, and its scale.
+ * Useful for showing a held position beside a modelled one at the size of the
+ * canvas the operator reads. Taken by
+ * {@link paintReckoningMark}.
  *
  * @category Unit
  */
@@ -117,7 +120,9 @@ export function paintReckoningMark(
 }
 
 /**
- * Where a craft was last observed and where a model puts it now, in canvas pixels.
+ * Where a vessel was last observed and where a model puts it now, in canvas
+ * pixels. Useful for drawing both for the operator on one canvas. Taken by
+ * {@link paintReckonedPosition}.
  *
  * @category Unit
  */

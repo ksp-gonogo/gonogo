@@ -15,7 +15,8 @@ import { FilterRegion, type TermSegment, useRowFilter } from "./useRowFilter";
 
 /**
  * One row of a {@link FilterList}: its key, the text it is matched against,
- * and the node to draw.
+ * and the node to draw. Useful for making each row of a long list searchable by
+ * the operator. Taken in the `rows` of a {@link FilterList}.
  *
  * @category FilterList
  */
@@ -29,7 +30,8 @@ export interface FilterRow {
 }
 
 /**
- * Props for {@link FilterList}.
+ * Props for {@link FilterList}: its rows, the contribution segment its toggle
+ * terms come from, and the message shown when no row matches.
  *
  * @category FilterList
  */

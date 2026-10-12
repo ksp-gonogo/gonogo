@@ -145,7 +145,9 @@ const PanelTitle__Box = styled.h3`
 `;
 
 /**
- * Props for `Panel.Title`, the panel heading. Other `h3` attributes pass through.
+ * Props for `Panel.Title`, the heading of a panel, which shows the operator the
+ * widget's name. Other `h3` attributes pass through. Taken by `Panel.Title` on
+ * {@link Panel}.
  *
  * @category Panel
  */
@@ -930,8 +932,10 @@ export const ScrollArea = forwardRef<
 /**
  * Where a panel's sidebar sits relative to the body, in logical terms: `end` is
  * the right edge in LTR and the left in RTL, and the bottom when the sidebar
- * sits under the body. {@link Panel} defaults to `end`. The sidebar always
- * follows the body in the DOM, whichever side it is drawn on.
+ * sits under the body. Useful for choosing which side the detail pane the
+ * operator reads sits on. The sidebar side of {@link Panel} defaults to `end`,
+ * and the sidebar always follows the body in the DOM, whichever side it is
+ * drawn on.
  *
  * @category Panel
  */
@@ -1376,7 +1380,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
 
 /**
  * A widget's own header badge: a standard badge entry, optionally with a
- * tooltip saying why it shows.
+ * tooltip saying why it shows. Useful for showing the operator a state of the
+ * widget beside its title. Passed in the `panelBadges` prop of {@link Panel}.
  *
  * @category Panel
  */

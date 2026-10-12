@@ -7,14 +7,16 @@ import { useStatusContribution } from "./status/useStatusContribution";
 import { TONE_MARK, TONE_TEXT } from "./tone";
 
 /**
- * Badge text size: `sm` for dense rows and table cells, `md` (the default) elsewhere.
+ * Badge text size: `sm` for dense rows and table cells, `md` (the default)
+ * elsewhere. Set with the `size` prop of {@link Badge}.
  *
  * @category Badge
  */
 export type BadgeSize = "sm" | "md";
 
 /**
- * Props for {@link Badge}. Any other `span` attribute (`title`, `aria-label`) passes through to the pill.
+ * Props for {@link Badge}: the label, its tone and its size. Any other `span`
+ * attribute (`title`, `aria-label`) passes through to the pill.
  *
  * @category Badge
  */

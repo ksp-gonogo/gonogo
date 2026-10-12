@@ -9,7 +9,8 @@ import { TONE_MARK, TONE_ON_STATUS, TONE_STATUS, TONE_TEXT } from "./tone";
  * control, `primary` the one commit action of a group, filled in its tone,
  * `ghost` the quiet secondary one beside it, and `text` no chrome at all, for
  * words that are themselves the control (a name that renames on click): it
- * takes its colour and type from the text around it.
+ * takes its colour and type from the text around it. Set with the `variant`
+ * prop of {@link Button}.
  *
  * @category Button
  */
@@ -17,7 +18,9 @@ export type ButtonVariant = "default" | "primary" | "ghost" | "text";
 
 /**
  * The state a button's action puts things in. `nogo` is the destructive tone,
- * `warn` an action that needs attention; `neutral` has no state.
+ * `warn` an action that needs attention; `neutral` has no state. Useful for
+ * telling the operator how serious pressing a button is. Set with the `tone`
+ * prop of {@link Button}.
  *
  * @category Button
  */
@@ -25,7 +28,8 @@ export type ButtonTone = Extract<Tone, "neutral" | "go" | "warn" | "nogo">;
 
 /**
  * `sm` for dense rows, `md` otherwise; both sizes keep the kit's one control
- * height, and only the type and padding change.
+ * height, and only the type and padding change. Set with the `size` prop of
+ * {@link Button}.
  *
  * @category Button
  */
@@ -33,7 +37,8 @@ export type ButtonSize = "sm" | "md";
 
 /**
  * A native button's attributes, plus how prominent it is, what its action
- * does, how large it is and, for a toggle, whether it is pressed.
+ * does, how large it is and, for a toggle, whether it is pressed. Taken by
+ * {@link Button}.
  *
  * @category Button
  */

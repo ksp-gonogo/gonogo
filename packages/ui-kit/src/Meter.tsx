@@ -28,7 +28,9 @@ import {
 } from "./units";
 
 /**
- * Where a meter's label and figure sit relative to its bar.
+ * Where a meter's label and figure sit relative to its bar. Useful for choosing
+ * a single readout or a column of meters the operator reads down. The `layout`
+ * prop of {@link Meter} takes it.
  *
  * - `stacked`: the label and the figure on a line, the bar beneath them. The
  *   default, for a meter that is a readout in its own right

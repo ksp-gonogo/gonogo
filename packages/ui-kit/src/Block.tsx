@@ -7,7 +7,9 @@ import type { StaticElement } from "./staticElement";
  * A record's anatomy, as props: a name, badges on the name's line, a body of
  * figures, asides and a footer of actions. Use the props where they fit; the
  * parts (`Block.Title` and the rest) are for a record that needs its own
- * arrangement with the same type and spacing.
+ * arrangement with the same type and spacing. Useful for laying out one record
+ * of a list for the operator. Taken by {@link Block}, {@link Card} and
+ * {@link Notice}.
  */
 export interface BlockAnatomyProps {
   /**
@@ -48,7 +50,7 @@ export interface BlockAnatomyProps {
 /**
  * Props for {@link Block}: the record anatomy (`title`, `titleLeft`,
  * `titleRight`, `left`, `right`, `top`, `bottom`, `footer`) plus any `div`
- * attribute.
+ * attribute. Taken by {@link Block}.
  *
  * @category Layout
  */
@@ -85,7 +87,8 @@ const Block__TitleLead = styled.div`
 
 /**
  * Props for `Block.TitleRow` (and `Card.TitleRow`): `left` is drawn before the
- * name, `right` is pushed to the end of the name's line.
+ * name, `right` is pushed to the end of the name's line. Taken by the title row
+ * of {@link Block} and {@link Card}.
  *
  * @category Layout
  */

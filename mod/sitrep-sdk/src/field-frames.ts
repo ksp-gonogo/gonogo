@@ -17,7 +17,8 @@ export type { GeneratedFrameDeclaration };
 
 /**
  * The reference frame a vector field is expressed in, as {@link frameOf}
- * returns it.
+ * returns it. Useful for showing the operator which axes a vector, such as a
+ * position or a velocity, is measured along.
  *
  * @category Units and values
  */
@@ -40,7 +41,8 @@ const TYPE_FRAMES: Readonly<
 /**
  * Returns the reference frame of the field at `path` under `topic`, or
  * `undefined` when the field declares none. Every vector in Gonogo's own
- * Topics declares one.
+ * Topics declares one. Useful for labelling or converting a vector the operator
+ * is shown.
  *
  * `path` is dotted from the payload root, or from one element for a Topic
  * whose payload is an array. It may pass through nested objects and lists, so

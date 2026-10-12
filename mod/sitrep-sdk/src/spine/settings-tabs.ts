@@ -2,16 +2,14 @@ import type { ComponentType } from "react";
 import type { Screen } from "./screen";
 
 /**
- * Global registry of full custom Settings-modal tabs. Mirrors the
- * `registerSetting` pattern for individual boolean settings: an Uplink
- * co-locates a whole tab's registration with the code that owns it, and
- * `SettingsModal` renders whatever's registered, generically, with no
- * per-mod knowledge.
+ * A whole custom tab of the settings panel. Useful for an Uplink that needs a
+ * settings interface a declarative row cannot express. Taken by
+ * {@link registerSettingsTab}, and drawn by the settings panel with no knowledge
+ * of which Uplink supplied it.
  *
- * Prefer `registerSetting` (see `./settings-registry.ts`): declarative rows
- * render + persist with no bespoke UI. Reach for a whole custom tab only when
- * a setting's UI genuinely can't be a declarative row, this is the rare
- * escape hatch, not a co-equal default.
+ * Prefer {@link registerSetting}: declarative rows render and persist with no
+ * bespoke interface. Use a whole tab only when a setting's interface cannot be a
+ * row.
  */
 export interface SettingsTabDefinition {
   /** Stable id: React key and tab id. */
@@ -33,17 +31,28 @@ export interface SettingsTabDefinition {
 
 const tabs = new Map<string, SettingsTabDefinition>();
 
-/** Register (or replace) a Settings-modal tab. Last write wins per id. */
+/**
+ * Registers (or replaces) a settings panel tab. Useful for an Uplink to put a
+ * whole tab of its own settings in front of the operator, next to the code that
+ * owns it. Used by the app's Uplink host. The last registration for an id wins.
+ */
 export function registerSettingsTab(def: SettingsTabDefinition): void {
   tabs.set(def.id, def);
 }
 
-/** Every registered tab, in registration order. */
+/**
+ * Every registered settings tab, in registration order. Useful for listing all
+ * tabs regardless of screen.
+ */
 export function getSettingsTabs(): SettingsTabDefinition[] {
   return [...tabs.values()];
 }
 
-/** Tabs applicable to `screen`: no `screens` means "both". */
+/**
+ * The settings tabs that apply to `screen`; a tab with no `screens` applies to
+ * both. Useful for showing the operator only the tabs that make sense on the
+ * screen they are using. Used by the settings panel.
+ */
 export function getSettingsTabsForScreen(
   screen: Screen,
 ): SettingsTabDefinition[] {

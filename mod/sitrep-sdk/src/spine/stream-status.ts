@@ -47,11 +47,11 @@ const STATUS_SEVERITY: Record<StreamStatusValue, number> = {
 };
 
 /**
- * The worst (highest-severity) status among a set of inputs: derived
- * channels propagate the worst input staleness into their own status. An
- * empty list is vacuously `"live"`, no
- * `DerivedChannelDefinition` should actually declare zero inputs and rely on
- * this default in practice.
+ * The worst (highest-severity) status among a set of inputs. Useful for showing
+ * the operator the least current of the inputs a value was built from, since
+ * derived channels take the worst input staleness as their own status. Used by the
+ * widget stream status hook and the timeline store. An empty list is `"live"`,
+ * though no derived channel should declare zero inputs and rely on that.
  */
 export function worstStatus(statuses: StreamStatusValue[]): StreamStatusValue {
   let worst: StreamStatusValue = "live";

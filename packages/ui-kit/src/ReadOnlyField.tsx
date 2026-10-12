@@ -5,7 +5,8 @@ import type { UnitValue } from "./readingCurrency";
 import { Unit } from "./Unit";
 
 /**
- * What a read-only field can be handed. `null`/`undefined` show a placeholder.
+ * The value a read-only field shows the operator. `null` and `undefined` show a
+ * placeholder. Taken by {@link ReadOnlyField}.
  *
  * A quantity, or the whole `Reading` it arrived in, goes through {@link Unit},
  * so a held reading keeps its held mark. Not a bare number, which has lost the

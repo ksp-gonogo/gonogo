@@ -6,7 +6,9 @@ import type { ReadFrameChoice } from "./spine/reference-frame";
  * A reference frame to check a quantity against: the Control Frame as
  * `system.frame` reports it, or a widget's own read frame. Resolve a read
  * frame of `follow-control-frame` with `resolveReadFrame` first; unresolved,
- * it counts as unknown.
+ * it counts as unknown. Useful for deciding whether an orbital readout means
+ * anything in the frame the operator chose. Taken by {@link lengthsAreLengths}
+ * and {@link apsidesExist}, and used by the current orbit widget.
  *
  * @category Orbits and trajectories
  */
@@ -20,6 +22,8 @@ function isReadFrame(frame: QualifiedFrame): frame is ReadFrameChoice {
  * Whether a quantity has a meaning in a reference frame: `"valid"`,
  * `"invalid"`, or `"unknown"` when no frame has been reported yet. Treat
  * `"unknown"` apart from `"invalid"`: the frame may simply not have arrived.
+ * Useful for deciding whether to show, hide or caveat an orbital readout.
+ * Returned by {@link lengthsAreLengths} and {@link apsidesExist}.
  *
  * @category Orbits and trajectories
  */
@@ -30,6 +34,8 @@ export type FrameValidity = "valid" | "invalid" | "unknown";
  * rotating-pulsating frame the unit of length changes over time, since the
  * frame holds the distance between its two bodies fixed, so a distance there
  * is `"invalid"`: hide it, or label it as a distance in that frame's units.
+ * Useful for deciding whether to show the operator a distance such as a
+ * semi-major axis. Used by the semi-major axis widget.
  *
  * @category Orbits and trajectories
  */
@@ -52,7 +58,9 @@ export function lengthsAreLengths(
 /**
  * Returns whether periapsis and apoapsis exist in this frame. They need a
  * single central body, so they are `"invalid"` in the rotating frames, which
- * turn about a pair of bodies, and in a frame relative to the target.
+ * turn about a pair of bodies, and in a frame relative to the target. Useful for deciding whether to show the
+ * operator periapsis and apoapsis. Used by the current orbit widget and the
+ * maneuver planner.
  *
  * @category Orbits and trajectories
  */
@@ -100,7 +108,9 @@ const FRAME_NAMES: Readonly<Record<number, string>> = {
  *
  * A frame kind this version has no name for is shown by its number, and a body
  * the frame did not report keeps its placeholder, such as
- * `"<centre>-Centred Inertial"`, so a gap is visible rather than guessed at.
+ * `"<centre>-Centred Inertial"`, so a gap is visible rather than guessed at. Useful for telling the operator
+ * which frame a readout is measured in. Used by the current orbit and semi-major
+ * axis widgets and by the app's control frame settings.
  *
  * @category Orbits and trajectories
  */
@@ -131,9 +141,9 @@ export function controlFrameLabel(
 /**
  * Returns the text to show in place of a quantity that has no meaning in the
  * current frame, such as `"No apoapsis in this frame"`, or `undefined` when
- * the quantity is valid and should be shown. Showing a reason, rather than
- * leaving the readout blank, tells the operator it comes from the frame they
- * chose and not from a lost signal.
+ * the quantity is valid and should be shown. Useful for telling the operator that a
+ * blank readout comes from the frame they chose and not from a lost signal.
+ * Used by the current orbit widget and the maneuver planner.
  *
  * @param validity - From {@link lengthsAreLengths} or {@link apsidesExist}.
  * @param quantity - The quantity's name, such as `"apoapsis"`.

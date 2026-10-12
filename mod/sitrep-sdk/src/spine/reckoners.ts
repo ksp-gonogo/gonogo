@@ -49,22 +49,26 @@ import type { Dep } from "./processors";
 const reckoners = new Map<string, Map<string, AnyReckonerDefinition>>();
 
 /**
- * The owner core's own vanilla models register under. An Uplink cannot use it:
- * `defineUplinkClient` stamps the client's own id, and `CORE_UPLINK_CLIENT` is
- * the one handle carrying this one.
+ * The owner the SDK's own vanilla forward models register under. Useful for
+ * telling a model that ships with the SDK from one an Uplink supplies. Used by the
+ * SDK's built-in reckoners. An Uplink cannot use it: `defineUplinkClient` stamps
+ * the client's own id, and `CORE_UPLINK_CLIENT` is the one handle carrying this
+ * one.
  */
 export const CORE_RECKONER_OWNER = CORE_CONTRACT_OWNER;
 
 /**
- * Registers `owner`'s forward model for `topic`. `owner` names the Uplink that
- * owns the model and is required. An Uplink client calls its handle's bound
- * `registerReckoner`, which supplies it.
+ * Registers `owner`'s forward model for `topic`. Useful for carrying a reading
+ * forward between samples so the operator sees a current value rather than the
+ * last one received. Used by the maneuver planner, the transfer window and the
+ * system diagram. `owner` names the Uplink that owns the model and is required;
+ * an Uplink client calls its handle's bound `registerReckoner`, which supplies it.
  *
  * `topic` is a `TopicId`, and the payload type is resolved from it
- * (`TopicPayload<Topic>`). `Deps` and `Projection` are inferred, so a
- * definition annotates neither. An Uplink-owned Topic is in the union once the
- * Uplink's client augments `TopicPayloadMap` in a
- * `declare module "@ksp-gonogo/sitrep-sdk"` block.
+ * (`TopicPayload<Topic>`). `Deps` and `Projection` are inferred, so a definition
+ * annotates neither. An Uplink-owned Topic is in the union once the Uplink's
+ * client augments `TopicPayloadMap` in a `declare module "@ksp-gonogo/sitrep-sdk"`
+ * block.
  */
 export function registerReckoner<
   const Topic extends TopicId,
@@ -170,7 +174,11 @@ export function registerReckoner<
   reckoners.set(topic, byOwner);
 }
 
-/** One model's declared opt-out from one input rule, and who declared it. */
+/**
+ * One model's declared opt-out from one input rule, and who declared it. Useful
+ * for listing the exceptions to the input rules in one place. Returned by
+ * {@link getReckonerExemptions}.
+ */
 export interface ReckonerExemption {
   readonly topic: string;
   readonly owner: string;
@@ -184,18 +192,13 @@ export interface ReckonerExemption {
 
 /**
  * Every input-rule opt-out any registered model declared, sorted by topic, then
- * owner, then rule.
+ * owner, then rule. Useful for reviewing the exceptions to the input rules in one
+ * place, since a model gets the rules without writing anything and only its
+ * exceptions need reading. Used by the Uplink page generator.
  *
- * The point of the rules is that a model gets them without writing anything, so
- * the exceptions are the only part anyone has to read, and they have to be
- * readable in one place rather than found by grepping twelve Uplinks. An
- * Uplink's generated page lists its own off this, and the ledger suite pins the
- * whole set so a new exemption arrives as a reviewed diff rather than as a line
- * inside a model nobody re-reads.
- *
- * Sorted rather than in registration order for the same reason
- * `getReckonedTopics` is: a generated page whose rows depend on module import
- * order churns on every bundler change.
+ * The ledger suite pins the whole set so a new exemption arrives as a reviewed
+ * diff. The order is fixed because a generated page whose rows depend on module
+ * import order changes on every bundler change.
  */
 export function getReckonerExemptions(): ReckonerExemption[] {
   const rows: ReckonerExemption[] = [];
@@ -231,32 +234,28 @@ export function getReckonerExemptions(): ReckonerExemption[] {
   );
 }
 
-/** The elected model for a topic, and which owner it belongs to. */
+/**
+ * The elected model for a topic, and which owner it belongs to. Useful for
+ * knowing whose forward model is carrying a reading. Returned by
+ * {@link getReckoner}.
+ */
 export interface ElectedReckoner {
   readonly owner: string;
   readonly definition: AnyReckonerDefinition;
 }
 
 /**
- * The model to actually use for `topic`, and who owns it.
+ * The model to use for `topic`, and who owns it, or `undefined` when none is
+ * elected. Useful for carrying a reading forward past its last sample. Used by
+ * the timeline store.
  *
- * ## The election, and why a contest does not withhold everything
+ * The election order is: the sole non-core owner (an Uplink that owns the physics
+ * beats the vanilla), else core's own registration (which is what a contest falls
+ * back to, and what an uncontested core-only topic uses), else nothing. A contest
+ * that core cannot cover answers with nothing, and `TimelineStore` reports that as
+ * `declined: { reason: "contested" }`.
  *
- * Two Uplinks claiming one topic should be served by neither. That stops
- * holding once core ships a vanilla: withholding then serves nothing while a
- * working model sits registered, which is a silent outage rather than a
- * withheld opinion, and on a value the contract declares reckonable the type
- * has already promised a model is on offer.
- *
- * So the ladder is: the sole non-core owner (an Uplink that owns the physics
- * beats the vanilla), else core's own registration (which is what a contest
- * falls back to, and what an uncontested core-only topic uses), else nothing.
- * A contest that core cannot cover still answers with nothing, and
- * `TimelineStore` turns that into `declined: { reason: "contested" }` rather
- * than a silence.
- *
- * {@link getReckonerConflicts} names every contested topic, because "these two Uplinks disagree" is worth telling an operator
- * whether or not core covered for them.
+ * {@link getReckonerConflicts} names every contested topic.
  */
 export function getReckoner(topic: string): ElectedReckoner | undefined {
   const byOwner = reckoners.get(topic);
@@ -272,7 +271,11 @@ export function getReckoner(topic: string): ElectedReckoner | undefined {
   return core ? { owner: CORE_RECKONER_OWNER, definition: core } : undefined;
 }
 
-/** A topic two or more non-core owners have both registered a model for. */
+/**
+ * A topic two or more non-core owners have both registered a model for. Useful
+ * for telling the operator which Uplinks disagree. Returned by
+ * {@link getReckonerConflicts}.
+ */
 export interface ReckonerConflict {
   topic: string;
   /**
@@ -284,15 +287,15 @@ export interface ReckonerConflict {
 }
 
 /**
- * Every contested topic in the registry, for a host that wants to tell the
- * operator which Uplinks disagree. Mirrors `getReplacementConflicts`, and its
- * emptiness is the normal case.
+ * Every contested topic in the registry. Useful for telling the operator which
+ * Uplinks disagree about a model. Used by the timeline store and the contributed
+ * channels list. Mirrors `getReplacementConflicts`, and an empty result is the
+ * normal case.
  *
  * Core is not counted as a party to the contest. Core ships a vanilla for every
- * marked Topic, so counting it would make one Uplink electing itself over the
- * vanilla read as a disagreement, which is the normal and intended case and the
- * one {@link getReckoner} serves without hesitating. A contest is two owners who
- * both think they own the physics.
+ * marked Topic, so an Uplink electing itself over the vanilla is the intended
+ * case, which {@link getReckoner} serves without hesitating. A contest is two
+ * owners who both think they own the physics.
  */
 export function getReckonerConflicts(): ReckonerConflict[] {
   const conflicts: ReckonerConflict[] = [];
@@ -308,13 +311,11 @@ export function getReckonerConflicts(): ReckonerConflict[] {
 }
 
 /**
- * Every topic anyone has registered a model for, with its owners.
- *
- * `getReckoner` answers with the model and `getReckonerConflicts` with the
- * contested subset, and neither can tell you that one owner models six topics,
- * which is what a docs surface enumerating an Uplink's contributions needs.
- * Sorted by topic so a generated page's ordering does not depend on module
- * import order.
+ * Every topic anyone has registered a model for, with its owners. Useful for
+ * listing everything one Uplink models, which {@link getReckoner} and
+ * {@link getReckonerConflicts} cannot answer. Used by the contributed channels
+ * list and the Uplink page generator. Sorted by topic so a generated page's
+ * ordering does not depend on module import order.
  */
 export function getReckonedTopics(): { topic: string; owners: string[] }[] {
   return [...reckoners.entries()]

@@ -24,7 +24,9 @@ type SizedWidget = Pick<
  * the `sizeDelta` of every augment bound to a slot the widget declares in
  * `augmentSlots`, and of every contribution in the winning priority band of a
  * slot it declares in `contributionSlots` or carries as `badges`, `filters` or
- * `meters`, summed.
+ * `meters`, summed. Useful for growing a widget's tile so the sections and badges an Uplink
+ * adds still fit the operator's view. Used by the dashboard grid when it sizes
+ * and normalises tiles.
  *
  * An extension counts only while it renders, so one whose `requires` Domain is
  * not present adds nothing. A contribution in an absent Domain still holds its
@@ -68,7 +70,9 @@ export function sizeDeltaFor(
  * The definition with its `minSize` and `defaultSize` grown by `delta`: a
  * missing `minSize` counts from 1x1 and a missing `defaultSize` from the
  * dashboard's 3x3. The definition itself, unchanged, for a zero delta, so a
- * widget nothing extends keeps one identity.
+ * widget nothing extends keeps one identity. Useful for giving a tile the room
+ * the extensions in it ask for. Used by the dashboard grid and the component
+ * overlay.
  *
  * @category Extensions
  */
@@ -91,7 +95,9 @@ export function withSizeDelta<
  * A function reading {@link sizeDeltaFor} against the live Domain presence of
  * the nearest store, whose identity changes whenever an augment or a
  * contribution registers or a Domain's presence changes, so a memo keyed on it
- * recomputes exactly then. Outside a store every Domain reads as absent.
+ * recomputes exactly then. Outside a store every Domain reads as absent. Useful
+ * for keeping tile sizes current as an Uplink's Domain appears or leaves. Used
+ * by the dashboard grid and the component overlay.
  *
  * @category Extensions
  */

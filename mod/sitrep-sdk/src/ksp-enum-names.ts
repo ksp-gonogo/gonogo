@@ -39,13 +39,15 @@ import { namesByValue } from "./enum-names";
  * table does not know gives `undefined`. A roster entry's value is its
  * `situationOrdinal`, which reads `Available` for a kerbal standing down, so
  * do not branch on it to decide whether a kerbal can fly: use
- * `CrewRosterEntry.standing`.
+ * `CrewRosterEntry.standing`. Useful for showing the operator a kerbal's
+ * roster status by name.
  *
  * @category Enum names
  */
 export const KSP_ROSTER_STATUS_NAMES = namesByValue(KspRosterStatus);
 /**
- * The name of a `KspRosterStatus` member.
+ * The name of a `KspRosterStatus` member. Useful for typing a comparison against
+ * a kerbal's roster status so a name KSP never emits does not compile.
  *
  * @category Enum names
  */
@@ -53,13 +55,15 @@ export type KspRosterStatusName = keyof typeof KspRosterStatus;
 
 /**
  * KSP's `Contracts.ParameterState`, as a contract's objective rows carry it. A map from each
- * value to its member name.
+ * value to its member name. Useful for showing the operator whether each objective
+ * of a contract is complete, failed or still open.
  *
  * @category Enum names
  */
 export const KSP_PARAMETER_STATE_NAMES = namesByValue(KspParameterState);
 /**
- * The name of a `KspParameterState` member.
+ * The name of a `KspParameterState` member. Useful for typing a comparison
+ * against a contract objective's state.
  *
  * @category Enum names
  */
@@ -67,13 +71,15 @@ export type KspParameterStateName = keyof typeof KspParameterState;
 
 /**
  * KSP's `PartCategories`, as `vessel.parts[]` entries carry it. A map from each value
- * to its member name; it includes `none = -1`.
+ * to its member name; it includes `none = -1`. Useful for showing the operator which category a part
+ * of the vessel belongs to.
  *
  * @category Enum names
  */
 export const KSP_PART_CATEGORY_NAMES = namesByValue(KspPartCategory);
 /**
- * The name of a `KspPartCategory` member.
+ * The name of a `KspPartCategory` member. Useful for typing a comparison against
+ * a part's category.
  *
  * @category Enum names
  */
@@ -81,13 +87,15 @@ export type KspPartCategoryName = keyof typeof KspPartCategory;
 
 /**
  * KSP's `KSPActionGroup`, as a part action's bindings carry it. A bitmask, so read a
- * value with {@link actionGroupNames} rather than looking it up here.
+ * value with {@link actionGroupNames} rather than looking it up here. Useful for showing the operator the name of an
+ * action group. Used by the alarms editor.
  *
  * @category Enum names
  */
 export const KSP_ACTION_GROUP_NAMES = namesByValue(KspActionGroup);
 /**
- * The name of a `KspActionGroup` member.
+ * The name of a `KspActionGroup` member. Useful for typing a comparison against
+ * the action groups a part action is bound to.
  *
  * @category Enum names
  */
@@ -95,13 +103,16 @@ export type KspActionGroupName = keyof typeof KspActionGroup;
 
 /**
  * KSP's `EditorFacility`, as `spaceCenter.savedShips[]` entries carry it. A map
- * from each value to its member name.
+ * from each value to its member name. Useful for showing the operator which
+ * building, the vehicle assembly or the spaceplane hangar, a saved ship was
+ * built in. Used by the launch director widget.
  *
  * @category Enum names
  */
 export const KSP_EDITOR_FACILITY_NAMES = namesByValue(KspEditorFacility);
 /**
- * The name of a `KspEditorFacility` member.
+ * The name of a `KspEditorFacility` member. Useful for typing a comparison
+ * against the building a saved ship was built in.
  *
  * @category Enum names
  */
@@ -109,7 +120,8 @@ export type KspEditorFacilityName = keyof typeof KspEditorFacility;
 
 /**
  * KSP's `SpaceCenterFacility`, as the career facilities map is keyed. A map from each
- * value to its member name.
+ * value to its member name. Useful for showing the operator the name of each
+ * space centre building.
  *
  * @category Enum names
  */
@@ -117,7 +129,8 @@ export const KSP_SPACE_CENTER_FACILITY_NAMES = namesByValue(
   KspSpaceCenterFacility,
 );
 /**
- * The name of a `KspSpaceCenterFacility` member.
+ * The name of a `KspSpaceCenterFacility` member. Useful for typing a comparison
+ * against a space centre building.
  *
  * @category Enum names
  */
@@ -125,20 +138,23 @@ export type KspSpaceCenterFacilityName = keyof typeof KspSpaceCenterFacility;
 
 /**
  * KSP's `ResourceFlowMode`, as resource definitions carry it. A map from each value to
- * its member name.
+ * its member name. Useful for showing the operator how a resource flows between
+ * the parts of a vessel.
  *
  * @category Enum names
  */
 export const KSP_RESOURCE_FLOW_MODE_NAMES = namesByValue(KspResourceFlowMode);
 /**
- * The name of a `KspResourceFlowMode` member.
+ * The name of a `KspResourceFlowMode` member. Useful for typing a comparison
+ * against a resource's flow mode.
  *
  * @category Enum names
  */
 export type KspResourceFlowModeName = keyof typeof KspResourceFlowMode;
 
 /**
- * Every KSP enum name table in this group, each with the enum it names.
+ * Every KSP enum name table in this group, each with the enum it names. Useful for code that checks or lists all the
+ * tables at once.
  *
  * @category Enum names
  */
@@ -192,7 +208,8 @@ export const KSP_ENUM_NAME_TABLES: ReadonlyArray<{
  * Returns the names of the action groups set in a `KSPActionGroup` bitmask, in
  * KSP's order. `None` and `REPLACEWITHDEFAULT` are KSP's placeholder values,
  * not action groups, and are never included. Returns an
- * empty array for no mask.
+ * empty array for no mask. Useful for showing the operator which action groups
+ * a part action is bound to.
  *
  * @category Enum names
  */

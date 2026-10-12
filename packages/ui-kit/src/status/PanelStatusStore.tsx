@@ -4,9 +4,10 @@ import { type Severity, severityRank, worstSeverity } from "./severity";
 
 /**
  * One statement about a panel's state, as published to its
- * {@link PanelStatusStore}. A {@link Badge} with `report`, the panel's stream
- * status and the dashboard's alarms all publish this shape, and the panel
- * summarises them together.
+ * {@link PanelStatusStore}. Useful for letting the operator see the worst state
+ * a widget reports in its header. A {@link Badge} with `report`, the panel's
+ * stream status and the dashboard's alarms all publish this shape, and the
+ * panel summarises them together. Taken by {@link useStatusContribution}.
  *
  * @category Panel
  */
@@ -23,7 +24,8 @@ export interface StatusContribution {
  * The contribution that wins a panel's summary: the worst severity, and the
  * earliest registered among equals. `id` is the winner's own contribution id,
  * so a caller already drawing that contribution (as a badge pill, say) can
- * skip drawing it twice.
+ * skip drawing it twice. Useful for showing the operator one summary badge for
+ * the panel. Returned by {@link useStatusSummary}.
  *
  * @category Panel
  */
@@ -39,7 +41,9 @@ export interface StatusSummary {
 /**
  * One row of a panel's per-severity breakdown: how many contributions sit at
  * one severity. Two cautions are one `{ severity: "caution", count: 2 }` row;
- * severities are never folded into a worse one.
+ * severities are never folded into a worse one. Useful for drawing one status
+ * dot per severity in a collapsed header. Returned by
+ * {@link useStatusBreakdown}.
  *
  * @category Panel
  */
@@ -172,8 +176,9 @@ export function createPanelStatusStore(): PanelStatusStore {
 }
 
 /**
- * The empty status breakdown, the same object every time. Used by the panel
- * status hooks when no provider is mounted.
+ * The empty status breakdown, the same object every time. Useful for telling a
+ * panel with nothing to report from one outside a dashboard tile. Used by
+ * {@link useStatusBreakdown} when no provider is mounted.
  */
 export const NO_STATUS_BREAKDOWN = EMPTY_BREAKDOWN;
 
@@ -192,8 +197,7 @@ export const PanelStatusStoreProvider = StatusPanelStore.Provider;
 
 /**
  * The nearest {@link PanelStatusStore}, or `null` outside a dashboard tile.
- * Useful for reading the states a tile reports. Used by the panel status
- * hooks.
+ * Useful for reading the states a tile reports. Used by the panel status hooks.
  * {@link Badge}'s `report` and {@link Panel} read it for you, so a widget
  * rarely calls this directly.
  *

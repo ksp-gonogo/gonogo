@@ -18,9 +18,9 @@ export interface MockDataSourceOptions {
   /** The keys `schema()` reports. Absent, none. */
   keys?: DataKey[];
   /**
-   * Whether the app drops this source's values while the craft has no
-   * signal, as it does for telemetry from a craft. Set it in a test of how something
-   * behaves across a loss of signal.
+   * Whether the app drops this source's values while the vessel has
+   * no signal, as it does for telemetry from a vessel. Set it in a test of how
+   * something behaves across a loss of signal.
    */
   affectedBySignalLoss?: boolean;
 }

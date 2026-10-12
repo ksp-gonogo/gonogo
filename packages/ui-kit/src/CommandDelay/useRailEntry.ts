@@ -5,7 +5,8 @@ import { useDelayRailStore } from "./DelayRailContext";
 /**
  * Something the rail draws that is not a command, such as an open microphone's
  * ribbon. A command handle is registered by `useCommand` itself, so one passed
- * here is a type error rather than a second entry.
+ * here is a type error rather than a second entry. Taken by
+ * {@link useRailEntry}.
  *
  * @category CommandDelay
  */
@@ -14,7 +15,9 @@ export type RailEntry = CommandDelayHandle & { send?: never };
 /**
  * Put a non-command entry on the nearest panel's delay rail for the life of the
  * calling component, updating it in place as it changes. `null` contributes
- * nothing, so an entry can come and go; outside a rail it is a no-op.
+ * nothing, so an entry can come and go; outside a rail it is a no-op. Useful for
+ * showing the operator a transmission, such as an open microphone, on the
+ * panel's delay rail. Used by the radio push-to-talk control.
  *
  * @category CommandDelay
  */

@@ -253,17 +253,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/topics.test-d.ts",
       /*
-       * units.ts (the hand-written accessor, not the generated map): its
-       * registerTypeUnits doc comment names scansat.scanningVessels as the case
-       * that forced a TYPE-keyed runtime registry alongside the Topic-keyed one.
-       * wrapTopicPayload resolves a nested shape (sensors: ScanSensorEntry[],
-       * trackColor: ScanTrackColor) by TYPE NAME, so the registry needs the
-       * second half. Prose in a
-       * mod-agnostic file explaining a general mechanism, nothing
-       * scansat-specific is imported.
-       */
-      "mod/sitrep-sdk/src/units.ts",
-      /*
        * scansat-coverage-roundtrip.test.tsx: the app-level MSW acceptance gate
        * for the dynamic-topic fix: drives the real client stack and
        * asserts the mod's canonical scansat.coverage.<body>.<typeBit> string surfaces
@@ -407,21 +396,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/command-delay.test.ts",
       /*
-       * use-route-commands.ts's doc-comment cites the kOS terminal's
-       * original hand-rolled strip as the precedent it generalizes; its
-       * test fixture uses "kos/7"/"kos.run" as sample topic/command
-       * strings. Same class as command-delay.ts above: mod-agnostic,
-       * imports nothing kOS-specific.
+       * use-route-commands.test.tsx: its fixture uses "kos/7"/"kos.run" as sample
+       * topic/command strings. Mod-agnostic, imports nothing kOS-specific.
        */
-      "mod/sitrep-sdk/src/spine/use-route-commands.ts",
       "packages/sitrep-client/src/use-route-commands.test.tsx",
-      /*
-       * connectivity-history.ts's doc-comment cites the kOS terminal's own
-       * noPath gate convention ("undefined/unknown = connected") as the
-       * precedent its own unknown-history default follows: doc-mention
-       * only, no kOS import or coupling.
-       */
-      "mod/sitrep-sdk/src/spine/connectivity-history.ts",
       /*
        * -- comment/doc + pending-topic mentions (no kOS coupling) --
        * CameraFeed's doc-comment references the kOS terminal's command-response
@@ -495,7 +473,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/alarms/types.ts",
       "packages/app/src/components/ComponentOverlay.tsx",
       "packages/app/src/dataSources/seedKspHost.ts",
-      "mod/sitrep-sdk/src/spine/replay-session.tsx",
       "packages/relay/src/bootstrapConfig.ts",
       "packages/ui/src/VersionMismatchBanner.tsx",
     ],

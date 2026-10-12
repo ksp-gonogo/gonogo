@@ -4,7 +4,9 @@ import styled from "styled-components";
 import { focusRing } from "./focusRing";
 
 /**
- * What displacement means.
+ * What the position of a jog wheel's handle means. Useful for choosing between
+ * a wheel that sets a value and one that sets how fast the value changes. The
+ * `mode` prop of {@link JogWheel} takes it.
  *
  * - `offset`: where the handle sits is the value. Needs bounds
  * - `rate`: where the handle sits is the speed the value changes at, and it

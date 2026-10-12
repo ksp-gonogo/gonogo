@@ -2,7 +2,9 @@ import { LocalStorageStore } from "./storage/LocalStorageStore";
 
 /**
  * How many unstarred flights auto-delete keeps when it is switched on. Starred
- * flights and the current flight are never deleted and do not count.
+ * flights and the current flight are never deleted and do not count. Useful for
+ * offering the operator a sensible starting value in the flights manager. Used
+ * by the flights manager.
  *
  * @category Flight recording
  */
@@ -19,7 +21,8 @@ const store = new LocalStorageStore<Prefs>({
 });
 
 /**
- * How many unstarred flights auto-delete keeps; 0 when auto-delete is off.
+ * How many unstarred flights auto-delete keeps; 0 when auto-delete is off. Useful for showing the operator the current setting. Used
+ * by the flights manager and by the recorder when it prunes old flights.
  *
  * @category Flight recording
  */
@@ -32,7 +35,8 @@ export function getKeepCount(): number {
 
 /**
  * Sets how many unstarred flights auto-delete keeps. 0, a negative number or a
- * non-number turns it off.
+ * non-number turns it off. Useful for letting the operator choose how many
+ * flights to keep. Used by the flights manager.
  *
  * @category Flight recording
  */
@@ -44,7 +48,8 @@ export function setKeepCount(keepCount: number): void {
 
 /**
  * Calls `cb` whenever the auto-delete setting changes. Returns the function
- * that stops it.
+ * that stops it. Useful for keeping a displayed setting in step when the
+ * operator changes it elsewhere.
  *
  * @category Flight recording
  */

@@ -9,7 +9,11 @@ import { type Value, value } from "../unit-system/value";
 import { rotatePerifocalToInertial, solveConic } from "./kepler";
 import { mag } from "./kepler-reckoning";
 
-/** The elements of a patch a propagation reads. */
+/**
+ * The orbital elements of one patch of a vessel's predicted path: the shape,
+ * orientation, epoch and period a propagation reads. Useful for solving where the
+ * vessel is on that patch at a given instant.
+ */
 export type PatchConic = Pick<
   OrbitPatch,
   | "sma"
@@ -39,7 +43,12 @@ export type PropagablePatch = Omit<
   >;
 };
 
-/** A patch's conic with the window it holds for and the body it is around. */
+/**
+ * A patch's elements with the window of universal time it holds for and the body
+ * it is around. Useful for choosing which patch of the predicted path covers a
+ * given instant. Taken by the ground-track prediction and by the system
+ * diagram's predicted trajectory.
+ */
 export type PatchSpan = PatchConic &
   Pick<OrbitPatch, "startUt" | "endUt" | "referenceBody">;
 
@@ -87,7 +96,11 @@ function radToDeg(rad: number): number {
   return (rad * 180) / Math.PI;
 }
 
-/** Wrap a degree value to (-180, 180], preferring +180 for continuity. */
+/**
+ * Wrap an angle in degrees to (-180, 180], preferring +180 for continuity. Useful
+ * for keeping a longitude or an angle difference in a range the operator can
+ * read. Used by the ground-track prediction.
+ */
 export function wrap180(deg: number): number {
   let x = ((((deg + 180) % 360) + 360) % 360) - 180;
   if (x <= -180) x = 180;
@@ -140,7 +153,11 @@ export function patchStateAt(
   return { x, y, z, radius };
 }
 
-/** Latitude, inertial longitude and altitude of an inertial state over a body of `bodyRadius`. */
+/**
+ * The latitude, inertial longitude and altitude of an inertial state over a body
+ * of radius `bodyRadius`. Useful for turning a predicted position into the point
+ * on the surface below it.
+ */
 export function geoFromInertial(
   state: InertialState,
   bodyRadius: number,
@@ -179,15 +196,21 @@ export function canPropagatePatch<Patch extends PatchConic>(
   );
 }
 
-/** Whether `ut` falls inside the patch's window, ends included. */
+/**
+ * Whether `ut` falls inside the patch's window, ends included. Useful for
+ * choosing which patch of the predicted path applies at an instant. Used by the
+ * system diagram's predicted trajectory.
+ */
 export function patchHolds(patch: PatchSpan, ut: number): boolean {
   const { start, end } = windowOf(patch);
   return ut >= start && ut <= end;
 }
 
 /**
- * `samples + 1` evenly spaced states across the patch's window, beginning no
- * earlier than `notBeforeUt`. Empty when nothing of the window is left.
+ * `samples + 1` evenly spaced states across a patch's window, beginning no
+ * earlier than `notBeforeUt`. Useful for drawing the part of a predicted patch
+ * still ahead of the vessel. Used by the system diagram's predicted trajectory.
+ * The result is empty when nothing of the window is left.
  */
 export function patchArc(
   patch: PatchSpan & PropagablePatch,
@@ -206,14 +229,17 @@ export function patchArc(
 }
 
 /**
- * Ground points along the chain from `ref.ut`, every `stepSec`, out to
- * `horizonSec` ahead. The walk stays on `bodyId`: it ends at the first patch
- * around another body or on an orbit the elliptical solve cannot propagate.
- * Every sample is yielded, below the surface included, so where a walk stops
- * short of its horizon is the consumer's to say.
+ * Points on the surface below the vessel's predicted path, from `ref.ut`, every
+ * `stepSec`, out to `horizonSec` ahead. Useful for drawing the operator the
+ * ground track the vessel will follow. Used by the ground-track prediction.
+ *
+ * The walk stays on `bodyId`: it ends at the first patch around another body or
+ * on an orbit the elliptical solve cannot propagate. Every sample is yielded,
+ * below the surface included, so where a walk stops short of its horizon is the
+ * consumer's to say.
  *
  * Body-fixed longitude is calibrated against the observed ground position: the
- * inertial longitude the craft has at `ref.ut` is `ref.lon`, and the surface
+ * inertial longitude the vessel has at `ref.ut` is `ref.lon`, and the surface
  * turns under it at the sidereal rate from there. The calibrating patch is the
  * one of `calibrationPatches` around `bodyId` that holds `ref.ut`, or the first
  * around it; a future chain that does not contain `ref.ut` (a node's post-burn

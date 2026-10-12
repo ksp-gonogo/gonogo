@@ -7,17 +7,14 @@ import { forwardRef, type SVGProps } from "react";
  */
 
 /**
- * Props for the navball marker icons ({@link ProgradeIcon} and the rest).
+ * Props for the navball marker icons ({@link ProgradeIcon} and the rest). Useful
+ * for sizing and labelling a marker that shows the operator a direction.
  *
- * The markers follow the standard spaceflight notation, with hues matching
- * KSP's navball through the `--color-marker-*` tokens. Shape carries the
- * meaning and hue only confirms it: every "towards" marker has a centre dot
- * and every "away" marker a centre cross (⊙ and ⊗), so the two halves of a
- * pair, which share a hue, stay distinct in greyscale. Each marker is drawn
- * first as a wider keyline in `currentColor` (the text colour, which
- * contrasts with the surface) and then as the coloured stroke on top. The
- * drawing is on a 24-unit viewBox. Any other SVG attribute passes through, and
- * the ref reaches the `svg` element.
+ * The markers follow the standard spaceflight notation, with hues matching the
+ * game's navball through the `--color-marker-*` tokens. Every "towards" marker
+ * has a centre dot and every "away" marker a centre cross, so the two halves of
+ * a pair, which share a hue, stay distinct in greyscale. Any other SVG
+ * attribute passes through, and the ref reaches the `svg` element.
  *
  * @category Icons
  */
@@ -158,7 +155,8 @@ const SHAPES = {
  * The id of a navball marker: `prograde`, `retrograde`, `normal`,
  * `antiNormal`, `radialOut`, `radialIn`, `maneuver`, `target`, `antiTarget`,
  * `relativePlus`, `relativeMinus`, `parallelPlus` or `parallelMinus`. The
- * rendered `svg` carries it as `data-marker`.
+ * rendered `svg` carries it as `data-marker`. Useful for naming a marker in
+ * data. Used as the key of {@link MARKER_ICONS}.
  *
  * @category Icons
  */

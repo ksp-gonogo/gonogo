@@ -9,7 +9,8 @@ import type { RailTags } from "./railTags";
 /**
  * One dispatch that was called lost and then replied after all, as much of it
  * as the sentence needs. The entries in `useCommand`'s `founds` satisfy it,
- * and so does one built by hand. `outcome` is required: every sentence turns on it.
+ * and so does one built by hand. `outcome` is required: every sentence turns on
+ * it. Taken by {@link commandFoundSentence}.
  *
  * @category CommandDelay
  */
@@ -38,7 +39,9 @@ export interface CommandFoundLike {
 }
 
 /**
- * A found a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes.
+ * A found dispatch a surface can render: the text's inputs plus the dispatch's
+ * `requestId`, which keys the box and is what `dismiss` takes. Used by the panel
+ * delay rail and {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -49,6 +52,7 @@ export interface CommandFoundEntry extends CommandFoundLike {
 
 /**
  * One found dispatch as the rail renders it, plus its command's rail axes.
+ * Taken by {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -69,7 +73,9 @@ export interface RailFound extends CommandFoundEntry {
  *   over there; a retry may work
  *
  * Never "confirmed": the operator may already have re-sent it. No imperative:
- * the rail says what happened and lets the operator decide.
+ * the rail says what happened and lets the operator decide. Useful for telling
+ * the operator how a command they were told was lost actually ended. Used by
+ * {@link CommandList}, the panel delay rail and {@link CommandButton}.
  *
  * @category CommandDelay
  */

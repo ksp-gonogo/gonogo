@@ -86,9 +86,10 @@ function useAugmentsFor(slotName: string | undefined): AnyAugment[] {
 /**
  * Whether anything would render in the current widget's
  * `${componentId}.<segment>` slot, for a widget deciding whether to draw
- * chrome around it. Counts only augments whose `requires` Domain is present,
- * so an Uplink whose mod is not running changes no layout. False outside a
- * widget.
+ * chrome around it. Useful for showing the operator a panel section only when
+ * an Uplink has something to put in it. Used by {@link Panel}. Counts only
+ * augments whose `requires` Domain is present, so an Uplink whose mod is not
+ * running changes no layout. False outside a widget.
  *
  * @category Extensions
  */

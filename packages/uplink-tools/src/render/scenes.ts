@@ -6,9 +6,10 @@ export type { Scene, SceneAct } from "./sceneModel";
 
 /**
  * One scene per fixture file found under the client package's
- * `src/**\/__fixtures__/`. A fixture does not carry the Topics its
- * target reads or the size to render at: both come from the target's own
- * registration.
+ * `src/**\/__fixtures__/`. A fixture does not carry the Topics its target reads
+ * or the size to render at: both come from the target's own registration.
+ * Useful for drawing every widget of an Uplink in a known state. Used by the
+ * render driver and the page check.
  *
  * @category Rendering scenes
  */
@@ -25,8 +26,9 @@ export function buildScenes(
 }
 
 /**
- * Throws when a registered widget has no scene, naming each one, since the
- * page would otherwise leave it out without saying so.
+ * Throws, naming each one, when a registered widget has no scene. Useful for
+ * stopping the generated page from leaving a widget out without saying so.
+ * Used by the render driver and the page check.
  *
  * Augments and contributions need no scene, because some cannot be pictured
  * outside their host (an overlay drawn in a map's projection renders blank in a

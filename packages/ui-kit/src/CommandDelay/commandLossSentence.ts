@@ -2,7 +2,9 @@ import { commandRefusalSubject } from "@ksp-gonogo/sitrep-sdk";
 import type { RailTags } from "./railTags";
 
 /**
- * One dispatch that got no reply, as much of it as the sentence needs. The entries in `useCommand`'s `losses` satisfy it.
+ * One dispatch that got no reply, as much of it as the sentence needs. The
+ * entries in `useCommand`'s `losses` satisfy it. Taken by
+ * {@link commandLossSentence}.
  *
  * @category CommandDelay
  */
@@ -16,7 +18,9 @@ export interface CommandLossLike {
 }
 
 /**
- * A loss a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes.
+ * A loss a surface can render: the text's inputs plus the dispatch's
+ * `requestId`, which keys the box and is what `dismiss` takes. Used by the panel
+ * delay rail and {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -26,7 +30,8 @@ export interface CommandLossEntry extends CommandLossLike {
 }
 
 /**
- * One lost dispatch as the rail renders it, plus its command's rail axes.
+ * One lost dispatch as the rail renders it, plus its command's rail axes. Taken
+ * by {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -37,9 +42,11 @@ export interface RailLoss extends CommandLossEntry {
 
 /**
  * What the operator is told about a command that went quiet. "May have run":
- * a dropped command and a reply lost on the way home look the same from here,
- * so pressing again may do the thing twice. Never "refused", which is the
- * game's verdict.
+ * a dropped command and a reply lost on the way back look the same to the
+ * command centre, so pressing again may do the thing twice. Never "refused",
+ * which is the game's verdict. Useful for telling the operator a command got no
+ * reply and may still have run. Used by {@link CommandList}, the panel delay
+ * rail and {@link CommandButton}.
  *
  * @category CommandDelay
  */

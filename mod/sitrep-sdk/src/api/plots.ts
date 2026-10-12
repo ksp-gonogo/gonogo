@@ -45,7 +45,9 @@ import type { PlotLayer } from "./plot-layers";
  *
  * A subject is an open string, so a misspelt one is not an error: it makes a
  * second plot rather than adding to the first. An Uplink whose plot other
- * Uplinks might add to should declare its subject here.
+ * Uplinks might add to should declare its subject here. Useful for letting
+ * several Uplinks draw onto the one plot the operator sees. Keys the `subject`
+ * of a {@link PlotEntry}.
  *
  * @category Plots
  */
@@ -54,7 +56,8 @@ export interface PlotSubjectRegistry {}
 
 /**
  * What a plot is of: a subject from {@link PlotSubjectRegistry}, or any other
- * string for a plot nobody has drawn before.
+ * string for a plot nobody has drawn before. Useful for naming which plot a
+ * contribution draws onto. The `subject` of a {@link PlotEntry}.
  *
  * @category Plots
  */
@@ -63,6 +66,8 @@ export type PlotSubject = keyof PlotSubjectRegistry | (string & {});
 /**
  * A plot's coordinate frame: the axes it is drawn against. The plot sets it;
  * the widget arranging plots decides how much room each gets, never its axes.
+ * Useful for giving the operator axes in the units they read. The `frame` of a
+ * {@link PlotEntry}.
  *
  * Both domains are required. A plot that cannot state its frame returns `null`
  * from `compute` rather than drawing against guessed axes.
@@ -118,7 +123,10 @@ export interface PlotFrame {
 }
 
 /**
- * One contributed plot, stated as data.
+ * One contributed plot: its subject, its axes and the layers drawn on them.
+ * Useful for showing the operator a picture of a vessel's situation, such as
+ * its descent. Returned by a contribution to the `plots` slot, which the
+ * landing status widget hosts.
  *
  * A plot is contributed with `registerContribution` on your Uplink's handle
  * (see {@link ContributionDefinition}), whose `compute` returns an array of

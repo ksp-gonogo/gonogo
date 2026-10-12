@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * Observe the registered scroller and derive a value from it, recomputed on
- * scroll and on any size or child-list change to the scroller. Drivable in
- * jsdom by dispatching a `scroll` event.
+ * scroll and on any size or child-list change to the scroller. Useful for
+ * showing the operator that more content lies beyond the visible edge. Used by
+ * {@link Panel}, {@link Disclosure} and the kit's data table. Drivable in jsdom
+ * by dispatching a `scroll` event.
  */
 export function useScrollerMetric<Metric>(
   el: HTMLElement | null,
@@ -51,7 +53,10 @@ export function useScrollerMetric<Metric>(
   return value;
 }
 
-/** Whether a scroller's content runs past its box on either axis. */
+/**
+ * Whether a scroller's content runs past its box on either axis. Useful for
+ * deciding whether the operator needs a scroll cue.
+ */
 export function overflowsBox(el: HTMLElement): boolean {
   return el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth;
 }
@@ -60,7 +65,8 @@ export function overflowsBox(el: HTMLElement): boolean {
  * The `tabIndex` a scroll body takes: 0 while its content overflows, so it can
  * be scrolled from the keyboard in WebKit, which never focuses a scroller on
  * its own; none while everything fits, so a body with nothing to scroll adds
- * no tab stop.
+ * no tab stop. Useful for letting an operator who uses the keyboard scroll a
+ * body. Used by {@link Panel}, {@link Disclosure} and the kit's data table.
  */
 export function useKeyboardScrollable(el: HTMLElement | null): 0 | undefined {
   const overflows = useScrollerMetric(el, overflowsBox, Object.is, false);

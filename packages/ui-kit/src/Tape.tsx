@@ -24,7 +24,9 @@ import {
 } from "./units";
 
 /**
- * A shaded band on a {@link Tape}'s scale, such as an ignition band.
+ * A shaded band across a range of a {@link Tape}'s scale, such as an ignition
+ * band. Useful for showing the operator which altitudes or speeds are in or
+ * out of a working range. Taken by the `zones` prop of {@link Tape}.
  *
  * @category Gauge
  */
@@ -40,7 +42,9 @@ export interface TapeZone<Unit extends string = string> {
 }
 
 /**
- * A point marker on a {@link Tape}'s scale, such as a gear-deploy altitude.
+ * A point marker at one value on a {@link Tape}'s scale, such as a gear-deploy
+ * altitude. Useful for showing the operator where a planned event falls on the
+ * scale. Taken by the `markers` prop of {@link Tape}.
  *
  * @category Gauge
  */

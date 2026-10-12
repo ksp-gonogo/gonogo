@@ -20,7 +20,9 @@ import type { StreamBinaryMessage } from "./binary-frame";
 
 /**
  * Every frame the mod sends, told apart by its `type`. A binary-lane frame
- * arrives already decoded.
+ * arrives already decoded. Useful for code that reads the socket itself and
+ * must handle each kind of message the mod sends to the command centre. Taken
+ * by the stream's WebSocket transport.
  *
  * @category Stream messages
  */
@@ -40,7 +42,9 @@ export type ServerMessage =
   | StreamBinaryMessage;
 
 /**
- * Every frame a client sends, told apart by its `type`.
+ * Every frame a client sends, told apart by its `type`. Useful for code that
+ * writes to the socket itself, such as a subscription, a vantage change or a
+ * command to a vessel. Taken by the stream's WebSocket transport.
  *
  * @category Stream messages
  */

@@ -25,7 +25,8 @@ export interface StatContributionsProps {
  * stat strip. Used by the astronaut complex.
  *
  * It renders a fragment: the cells land in the host's own `Grid` of stats as
- * siblings of its built-in ones. Renders nothing when nothing is contributed, so a host can place it unconditionally. An entry's
+ * siblings of its built-in ones. It renders nothing when nothing is
+ * contributed, so a host can place it unconditionally. An entry's
  * quantity is drawn through {@link Unit}, else its text, else the null token;
  * a held figure is drawn with the held mark either way.
  *

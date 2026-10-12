@@ -3,16 +3,20 @@ import styled, { css } from "styled-components";
 import { RADIUS_VAR } from "./scales";
 
 /**
- * Where a {@link GraphNotice} sits: `"overlay"` over the graph's bottom-left
- * corner, `"center"` over its middle, `"inline"` as a row below it, `"beside"` as a column to its right.
+ * Where a {@link GraphNotice} sits relative to its graph: `"overlay"` over the
+ * graph's bottom-left corner, `"center"` over its middle, `"inline"` as a row
+ * below it, `"beside"` as a column to its right. Useful for keeping a notice
+ * from covering what the operator is reading on the graph. Returned by
+ * {@link placeGraphNotice} and taken by {@link GraphNotice}.
  *
  * @category LineGraph
  */
 export type GraphNoticePlacement = "overlay" | "center" | "inline" | "beside";
 
 /**
- * What {@link placeGraphNotice} reads: the space the graph and its notice
- * share, as measured, and whether the plot has anything a notice could cover.
+ * The measured space a graph and its notice share, and whether the plot draws
+ * anything a notice could cover. Useful for choosing where a notice sits
+ * without hiding the operator's data. Taken by {@link placeGraphNotice}.
  *
  * @category LineGraph
  */
@@ -35,8 +39,9 @@ const BESIDE_ASPECT = 2.5;
 const BESIDE_MIN_WIDTH = 420;
 
 /**
- * Where the kit puts a graph's notice, decided from measured space. Used by the
- * graph widget.
+ * The placement for a graph's notice, decided from the measured space the graph
+ * and notice share. Useful for keeping a degraded-state message from covering
+ * the operator's data. Used by the graph widget.
  *
  * An empty plot with room takes it over its middle, since nothing is underneath
  * to cover. Otherwise it goes beside a wide, short graph, where a row below

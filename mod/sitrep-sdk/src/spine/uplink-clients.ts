@@ -31,8 +31,10 @@ import { registerReckoner } from "./reckoners";
 
 /**
  * An Uplink client's identity and its registration methods, returned by
- * {@link defineUplinkClient}. Declare one per client, in one module, and import
- * it wherever the client registers something.
+ * {@link defineUplinkClient}. Useful for putting an Uplink's widgets and
+ * contributions in front of the operator under the Uplink's own name. Declare
+ * one per client, in one module, and import it wherever the client registers
+ * something.
  *
  * Every `register...` method on the handle prefixes the id it is given with
  * the Uplink's own, `my-uplink:<id>`, so two Uplinks can use the same local ids
@@ -192,7 +194,8 @@ function clients(): Map<string, UplinkClientHandle> {
 
 /**
  * What a client declares about itself: its identity, and the value tags its
- * contract's codegen wrote.
+ * contract's codegen wrote. Useful for naming the Uplink in the operator's widget
+ * picker and settings. Taken by {@link defineUplinkClient}.
  *
  * @category Registering
  */
@@ -217,19 +220,16 @@ export interface UplinkClientConfig {
 }
 
 /**
- * Declare a client's identity and record it in the client registry. Returns
- * a frozen handle: stamp it as `owner` on every `registerComponent`/
- * `registerAugment` call the client makes, or call its bound
- * `registerContribution` for the contributions path (auto-stamped, no manual
- * `owner` field needed there).
+ * Declares a client's identity and records it in the client registry, returning a
+ * frozen {@link UplinkClientHandle}. Useful for giving an Uplink's widgets and
+ * contributions a name the operator sees. Stamp the handle as `owner` on every
+ * `registerComponent` and `registerAugment` call the client makes, or call its
+ * bound `registerContribution`, which stamps it for you.
  *
- * Best-effort on re-declaration under the same id: last-write-wins (a plain
- * `Map.set`), matching `registerUplinkHandle`'s overwrite semantics rather
- * than `registerComponent`'s throw-on-collision. A client's own `uplink.ts`
- * re-evaluating (HMR, a test re-importing the module after `resetModules`)
- * is a benign, common case for a single-owner declaration, there is no
- * cross-package collision risk to guard against the way there is for widget
- * ids shared across a flat namespace.
+ * Declaring the same id again replaces the earlier declaration, as
+ * `registerUplinkHandle` does, and does not throw as `registerComponent` does on
+ * a collision. A client's own module re-evaluating (hot reload, a test
+ * re-importing the module) is therefore harmless.
  */
 export function defineUplinkClient(
   cfg: UplinkClientConfig,
@@ -297,7 +297,12 @@ export function defineUplinkClient(
   return handle;
 }
 
-/** Reserved handle for built-in (packages/core, packages/components) contributions. */
+/**
+ * The reserved handle for the built-in contributions of the app itself. Useful
+ * for registering a contribution that belongs to no Uplink. Used by the built-in
+ * widgets' contributions, such as the comm signal badge and the system diagram's
+ * vessel orbits.
+ */
 export const CORE_UPLINK_CLIENT: UplinkClientHandle = defineUplinkClient({
   id: "core",
   version: "0.0.0",
@@ -305,7 +310,11 @@ export const CORE_UPLINK_CLIENT: UplinkClientHandle = defineUplinkClient({
   description: "The widgets and contributions that ship with Gonogo itself.",
 });
 
-/** Every declared Uplink client, in registration order. */
+/**
+ * Every declared Uplink client, in registration order. Useful for listing which
+ * Uplinks have a client and what each registers. Used by the Uplink page
+ * generator.
+ */
 export function getUplinkClients(): UplinkClientHandle[] {
   return Array.from(clients().values());
 }

@@ -64,7 +64,9 @@ function orNaN(q: Quantityish | null | undefined): number {
 
 /**
  * The fields of `vessel.propulsion` the powered-flight model reads: those
- * {@link ConicThrustInput} has, plus the craft's mass and how fast it falls.
+ * {@link ConicThrustInput} has, plus the vessel's mass and how fast it falls.
+ * Useful for describing a burn in progress to the model that carries the vessel's
+ * state forward while the engines fire.
  *
  * @category Reckoners
  */
@@ -76,9 +78,10 @@ export interface PoweredThrustInput extends ConicThrustInput {
 }
 
 /**
- * What the powered-flight model needs beyond the craft's orbit: the engines'
- * state, the fuel left in the firing stage, and the commands on their way.
- * Build it with {@link poweredFlightEvidence}.
+ * What the powered-flight model needs beyond the vessel's orbit: the engines'
+ * state, the fuel left in the firing stage, and the commands on their way. Useful
+ * for carrying the operator's view of a burn forward between readings. Build it
+ * with {@link poweredFlightEvidence}.
  *
  * @category Reckoners
  */
@@ -109,9 +112,11 @@ function heldOrObserved<Payload>(
 }
 
 /**
- * Returns a {@link PoweredFlightEvidence} from the `vessel.propulsion`,
- * `dv.stages`, `vessel.structure` and `system.uplink.pending` readings. The
- * firing stage is the `dv.stages` entry for the structure's `currentStage`.
+ * A {@link PoweredFlightEvidence} built from the `vessel.propulsion`, `dv.stages`,
+ * `vessel.structure` and `system.uplink.pending` readings. The firing stage is
+ * the `dv.stages` entry for the structure's `currentStage`. Useful for handing the
+ * powered-flight model what it needs to advance a burn. Used by the powered-flight
+ * reckoner.
  *
  * @category Reckoners
  */
@@ -145,11 +150,12 @@ export function poweredFlightEvidence(
 }
 
 /**
- * Returns the orbital elements for a position and velocity relative to the
- * body, the reverse of {@link solve}: `solve(elementsFromState(s, mu, t), t)`
- * gives `s` back. Angles are in radians. Works for escape orbits as well as
- * elliptical ones. On an equatorial or circular orbit, where the ascending node
- * or periapsis does not exist, that angle is 0.
+ * The orbital elements for a position and velocity relative to the body, the
+ * reverse of {@link solve}: `solve(elementsFromState(s, mu, t), t)` gives `s`
+ * back. Useful for turning a vessel's state back into an orbit after a burn.
+ * Angles are in radians. Works for escape orbits as well as elliptical ones. On
+ * an equatorial or circular orbit, where the ascending node or periapsis does not
+ * exist, that angle is 0.
  *
  * @category Reckoners
  */
@@ -439,7 +445,8 @@ const SPREAD_FRACTION = 0.01;
 
 /**
  * The orbital elements the powered-flight model moves, in the units
- * `vessel.orbit` uses.
+ * `vessel.orbit` uses. Useful for showing the operator the orbit a burn is
+ * carrying the vessel onto. Carried by {@link PoweredFlight}.
  *
  * @category Reckoners
  */
@@ -472,7 +479,9 @@ const POWERED_PATHS = [
 ] as const;
 
 /**
- * The two `vessel.flight` fields the powered-flight model moves.
+ * The two `vessel.flight` fields the powered-flight model moves. Useful for
+ * showing the operator altitude and speed while the engines fire. Carried by
+ * {@link PoweredFlight}.
  *
  * @category Reckoners
  */
@@ -484,8 +493,9 @@ export interface PoweredFlightFields {
 }
 
 /**
- * A burn carried forward: the craft's state at any instant up to the model's
- * horizon, and how well it is known. {@link poweredFlight} returns one.
+ * A burn carried forward: the vessel's state at any instant up to the model's
+ * horizon, and how well it is known. Useful for showing the operator where the
+ * vessel is during a burn between readings. Returned by {@link poweredFlight}.
  *
  * @category Reckoners
  */
@@ -513,10 +523,10 @@ export interface PoweredFlight {
 }
 
 /**
- * Returns a {@link PoweredFlight} carrying a craft under thrust forward to
- * `reckonUt`, or a decline with reason `"under-physics"` saying why it cannot.
- * `history` is `vessel.orbit`'s recent samples, oldest first, ending with
- * `point`.
+ * A {@link PoweredFlight} carrying a vessel under thrust forward to `reckonUt`,
+ * or a decline with reason `"under-physics"` saying why it cannot. Useful for
+ * keeping readings moving during a burn. Used by the powered-flight reckoner.
+ * `history` is `vessel.orbit`'s recent samples, oldest first, ending with `point`.
  *
  * @category Reckoners
  */

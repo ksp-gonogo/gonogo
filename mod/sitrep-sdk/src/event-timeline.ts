@@ -1,7 +1,10 @@
 /**
  * One thing that happened at a moment, such as a part failing or a storm
  * arriving, as an {@link EventTimeline} holds it. Unlike a Topic's value, an
- * occurrence does not stay true afterwards: it happens once.
+ * occurrence does not stay true afterwards: it happens once. Useful for showing
+ * the operator a log of events such as part failures. Held by an
+ * {@link EventTimeline} and returned by a source registered for an alarm's
+ * event trigger.
  *
  * @typeParam Kind - The names of what can happen, such as `"part-failed"`.
  * @typeParam Payload - The detail each occurrence carries.
@@ -27,9 +30,10 @@ export interface EventOccurrence<
 }
 
 /**
- * Returns whether the link to the craft was up at `ut`. An occurrence that
- * happened while the link was down is never revealed, even after the link
- * returns.
+ * Returns whether the signal path from the command centre to the vessel was up
+ * at `ut`. An occurrence that happened while it was down is never revealed, even
+ * after it returns. Useful for keeping from the operator events the command
+ * centre could not have received. Taken by {@link EventRevealOptions}.
  *
  * @category Delay and vantage
  */
@@ -37,8 +41,9 @@ export type ConnectivityAt = (ut: number) => boolean;
 
 /**
  * When {@link EventTimeline.revealed} shows an occurrence: once the view time
- * has passed its UT plus the signal delay, and only if the link was up when it
- * happened.
+ * has passed its UT plus the signal delay, and only if the signal path was up
+ * when it happened. Useful for showing the operator only the events the command
+ * centre could have received by now. Taken by {@link EventTimeline.revealed}.
  *
  * @category Delay and vantage
  */
@@ -47,12 +52,13 @@ export interface EventRevealOptions {
   now: number;
   /** The one-way signal delay, in seconds. Defaults to 0. */
   delaySeconds?: number;
-  /** Whether the link was up at a given UT. Defaults to a link that is always up. */
+  /** Whether the signal path was up at a given UT. Defaults to one that is always up. */
   connectivityAt?: ConnectivityAt;
 }
 
 /**
- * Options for a new {@link EventTimeline}.
+ * Options for a new {@link EventTimeline}. Useful for choosing how long
+ * occurrences are kept. Taken by the {@link EventTimeline} constructor.
  *
  * @category Delay and vantage
  */
@@ -69,7 +75,10 @@ const DEFAULT_RETENTION_SECONDS = 300;
 /**
  * The occurrences received on one event Topic, sorted by UT, with
  * {@link EventTimeline.revealed} returning those the operator may see yet under
- * the signal delay. Occurrences may be appended out of order.
+ * the signal delay. Occurrences may be appended out of order. Useful for holding
+ * the events of one Topic, such as part failures, and showing the operator only
+ * those the command centre could have received. Used by a source an Uplink
+ * registers for an alarm's event trigger.
  *
  * Appending an occurrence from a newer generation (`epoch`) clears everything
  * held first, and one from an older generation is ignored, so nothing from
@@ -120,8 +129,8 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
 
   /**
    * Returns the occurrences the operator may see at `now`, oldest first: those
-   * whose UT plus the delay has passed, and which happened while the link was
-   * up.
+   * whose UT plus the delay has passed, and which happened while the signal path
+   * was up.
    */
   revealed(options: EventRevealOptions): EventOccurrence<Kind, Payload>[] {
     const { now } = options;

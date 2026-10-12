@@ -57,18 +57,20 @@ import {
 } from "./reference-frame";
 
 /**
- * A point on a drawable trajectory: where, and when.
+ * One point on a drawable trajectory: a position in three dimensions and the
+ * universal time the vessel or body is there. Useful for drawing a predicted or
+ * past path and for telling the operator when along it a point falls. Used by the
+ * map's past-track and trajectory painting and by the system diagram.
  *
- * **Three dimensions and an instant, never a flat `{x, y}`.** A point in the
- * orbit's own plane with periapsis on +x is what a sampled conic has, and a
- * curve re-expressed in a read frame leaves that plane: in a rotating frame it
- * has no central body to be measured from at all. `z` is the out-of-plane
- * component and is zero exactly while the curve is still in its own plane.
- * `ut` is on the point because a reader interpolating between two of them needs
- * to know which side of a burn it is on.
+ * A point is never a flat {x, y}: a curve re-expressed in a read frame leaves
+ * the orbit's own plane, and in a rotating frame it has no central body to be
+ * measured from at all. `z` is the out-of-plane component and is zero exactly
+ * while the curve is still in its own plane. `ut` is on the point because a
+ * reader interpolating between two of them needs to know which side of a burn it
+ * is on.
  *
- * `x`/`y` stay first and stay in the same units and orientation, so a diagram
- * that only knows how to draw a plane keeps working against it unedited.
+ * `x` and `y` come first and keep the same units and orientation, so a diagram
+ * that only draws a plane works against it unedited.
  */
 export interface TrajectoryPoint {
   x: number;
@@ -78,8 +80,10 @@ export interface TrajectoryPoint {
 }
 
 /**
- * Which frame a set of points is expressed in. A client-side vocabulary: the
- * points are sampled and re-expressed here, never read off the wire.
+ * Which frame a set of trajectory points is expressed in. Useful for naming that
+ * frame next to a drawn path. Used by the system diagram's geometry. A
+ * client-side vocabulary: the points are sampled and re-expressed here, never
+ * read off the wire.
  *
  * @category Frames of reference
  */
@@ -96,8 +100,10 @@ export type TrajectoryFrameKindLike =
 
 /**
  * The frame a drawn curve is in, carried on an arc so a widget names it rather
- * than assuming it. Build one yourself for a frame your own drawing sets, and
- * name it with {@link trajectoryFrameLabel}.
+ * than assuming it. Useful for captioning a drawn path with the frame it is in.
+ * Used by the system diagram's projection and the trajectory frame caption. Build
+ * one yourself for a frame your own drawing sets, and name it with
+ * {@link trajectoryFrameLabel}.
  *
  * @category Frames of reference
  */
@@ -130,13 +136,11 @@ export interface TrajectoryFrame {
 }
 
 /**
- * The reason a drawn trajectory arc ends where it does: at the last instant
- * the propagation provider vouched for, or after one full revolution. Useful
- * for labelling the mark a renderer draws at the end of the arc. Used by the
- * orbit diagram.
- *
- * Always present, because an arc cut short at the provider's horizon and one
- * that completes its revolution look the same on a diagram.
+ * The reason a drawn trajectory arc ends where it does: at the last instant the
+ * propagation provider vouched for, or after one full revolution. Useful for
+ * labelling the mark a renderer draws at the end of the arc, since an arc cut
+ * short at the provider's horizon and one that completes its revolution look the
+ * same on a diagram. Used by the orbit diagram. Always present on an arc.
  */
 export type ArcFarEnd =
   /** The last instant the provider vouched for. */
@@ -144,7 +148,11 @@ export type ArcFarEnd =
   /** One full revolution, past which a second lap would assert a closure osculating elements cannot promise. */
   | "revolution";
 
-/** Why nothing may be drawn. Each is a distinct sentence a readout can say; collapsing them would hide which one happened. */
+/**
+ * Why a trajectory may not be drawn. Useful for telling the operator which of
+ * the distinct reasons applied, so the readout says what happened. Carried by
+ * the withheld arm of {@link OrbitTrajectory}.
+ */
 export type TrajectoryWithheldReason =
   /** No provider stated a horizon. Silence must not render as health. */
   | "no-horizon-stated"
@@ -167,9 +175,11 @@ export type TrajectoryWithheldReason =
   | "frame-unavailable";
 
 /**
- * How a craft's path may be drawn at the instant on screen, from
+ * How a vessel's path may be drawn at the instant on screen, returned by
  * {@link useOrbitTrajectory}: as a conic from its elements, as the sampled arc
- * the provider vouched for, or not at all.
+ * the provider vouched for, or not at all. Useful for deciding what to draw for
+ * the vessel's orbit. Used by the maneuver planner's preview and conformance
+ * plot, the current orbit widget and {@link TrajectoryWithheldNote}.
  *
  * A `withheld` answer carries its reason. Show it where the curve would be: it
  * is a statement about what the provider vouched for, not a missing value.
@@ -215,7 +225,11 @@ export type OrbitTrajectory =
       trajectoryKind?: TrajectoryKindLike;
     };
 
-/** The arc arm of {@link OrbitTrajectory}, named so the functions that only ever produce one can say so. */
+/**
+ * The arc arm of {@link OrbitTrajectory}: an answer that carries sampled points.
+ * Useful for typing the result of a function that only ever produces an arc. Used
+ * by the impact-point prediction.
+ */
 export type TrajectoryArcAnswer = Extract<OrbitTrajectory, { shape: "arc" }>;
 
 export interface OrbitTrajectoryInput {
@@ -277,13 +291,14 @@ const TRAJECTORY_TRANSFORM_BUDGET = new PerfBudget({
 
 /**
  * The trajectory the propagation provider vouches for, in a form that can be
- * drawn. Used by the orbit diagram.
+ * drawn. Useful for choosing between drawing a conic, drawing a sampled arc and
+ * telling the operator nothing can be drawn. Called by {@link useOrbitTrajectory}.
  *
  * The window put to `canPropagate` is the view instant on both ends, matching
- * the gate's other callers. The horizon is an absolute UT bound, so the check
- * is whether these elements can answer for the view instant. `elements.epoch`
- * is the mean-anomaly reference and is never when the sample was taken, so it
- * is not used to build the window.
+ * the gate's other callers. The horizon is an absolute UT bound, so the check is
+ * whether these elements can answer for the view instant. `elements.epoch` is the
+ * mean-anomaly reference and is never when the sample was taken, so it is not
+ * used to build the window.
  */
 export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
   const { orbit, viewUt } = input;
@@ -441,11 +456,9 @@ function reframeArc(
 }
 
 /**
- * The `TrajectoryFrame` kind a read-frame choice draws in.
- *
- * Exported because a widget that does its own framing still has to caption the
- * frame it drew in, and building the same switch beside the caption is how two
- * mappings of one enum drift apart.
+ * The `TrajectoryFrame` kind a read-frame choice draws in. Useful for captioning
+ * the frame a widget drew in when it does its own framing, so the caption and the
+ * drawing agree. Used by the system diagram's projection.
  */
 export function trajectoryFrameKindFor(
   kind: ReadFrameChoice["kind"],
@@ -523,13 +536,14 @@ function sampleArc(
 }
 
 /**
- * What frame a curve was drawn in, as a phrase to put beside it, in the words
- * the game uses for its own frames.
+ * What frame a curve was drawn in, as a phrase to put beside it, in the words the
+ * game uses for its own frames. Useful for telling the operator which frame a
+ * path is drawn in, since the same points are a different path in every frame.
+ * Used by the system diagram and the trajectory frame caption.
  *
- * Name the frame on every drawing of a path: the same points are a different
- * path in every frame. Use this rather than wording your own, so every widget
- * names one frame the same way. Pass the catalogue for the body names; a body it
- * has not named shows as its index.
+ * Name the frame on every drawing of a path, and use this rather than wording your
+ * own, so every widget names one frame the same way. Pass the catalogue for the
+ * body names; a body it has not named shows as its index.
  *
  * @category Frames of reference
  */
@@ -568,12 +582,13 @@ export function trajectoryFrameLabel(
 }
 
 /**
- * True when a coordinate in this frame must not be quoted as a distance.
+ * Whether a coordinate in this frame must not be quoted as a distance. Useful for
+ * deciding whether a readout may print a length for a point.
  *
  * A pulsating frame's length unit is the pair's own separation, so a coordinate
  * in it is a ratio. `unitLength` on the frame is what turns one back into
- * metres, and a readout that has neither says so rather than printing the
- * ratio with a metre sign after it.
+ * metres, and a readout that has neither says so rather than printing the ratio
+ * with a metre sign after it.
  */
 export function frameCoordinatesArePulsating(
   frame: TrajectoryFrame | null | undefined,
@@ -586,17 +601,14 @@ export function frameCoordinatesArePulsating(
 }
 
 /**
- * The frame a widget actually drew in, which is not always a field on the
- * answer.
+ * The frame a widget actually drew in, which is not always a field on the answer.
+ * Useful for captioning a drawing of the vessel's orbit with the frame it is in.
+ * Used by the trajectory frame caption.
  *
- * A conic answer carries no frame because it carries no points: the caller
- * builds the ellipse itself from the elements, and the frame that lands in is
- * the orbit's own plane about the body the elements are measured against. That
- * is a real frame and it has to be nameable, or the widgets that draw a conic
- * would be the only ones unable to say what they drew.
- *
- * Null for a refusal, because nothing was drawn and a frame named for an absent
- * curve is a caption with no picture.
+ * A conic answer carries no frame because it carries no points: the caller builds
+ * the ellipse itself from the elements, and the frame that lands in is the
+ * orbit's own plane about the body the elements are measured against. The result
+ * is null for a refusal, because nothing was drawn to caption.
  */
 export function drawnFrame(
   trajectory: OrbitTrajectory | null | undefined,
@@ -615,15 +627,15 @@ export function drawnFrame(
 }
 
 /**
- * An arc re-expressed in the plane of the orbit it was sampled from, periapsis
- * on `+x` and motion toward `+y`, for a diagram that draws that plane flat.
+ * An arc re-expressed in the plane of the orbit it was sampled from, periapsis on
+ * `+x` and motion toward `+y`. Useful for a diagram that draws that plane flat.
+ * Used by the orbit plane trajectory hook.
  *
  * `z` is the part along the orbit normal: zero for a conic, nonzero where an
  * integrated path leaves the plane. The frame on the answer is named the orbit
- * plane, so the picture and its caption agree.
- *
- * Null when the arc is not in a body-centred inertial frame, because the plane
- * of an orbit is only defined against the axes it was measured in.
+ * plane, so the picture and its caption agree. The result is null when the arc is
+ * not in a body-centred inertial frame, because the plane of an orbit is only
+ * defined against the axes it was measured in.
  *
  * @category Frames of reference
  */
@@ -659,7 +671,8 @@ export function arcInOrbitPlane(
 }
 
 /**
- * How many points a closed orbit ring is sampled into.
+ * How many points a closed orbit ring is sampled into. Useful for drawing a
+ * body's orbit as a smooth closed curve.
  *
  * @category Frames of reference
  */
@@ -667,7 +680,9 @@ export const ORBIT_RING_SAMPLES = 96;
 
 /**
  * The whole closed ring of an orbit about its parent, in the parent's inertial
- * axes, metres: `samples + 1` points, the last equal to the first.
+ * axes, metres: `samples + 1` points, the last equal to the first. Useful for
+ * drawing a body's orbit around its parent. Used by the system diagram's orbit
+ * geometry.
  *
  * Sampled uniformly in eccentric anomaly so points spread along the curve
  * instead of piling up at apoapsis. An open orbit (`ecc` of 1 or more) has no
@@ -699,17 +714,16 @@ export function orbitRing(
 }
 
 /**
- * The part of an open orbit (`ecc` above 1) that lies within `maxRadius`
- * metres of its parent's centre, in the parent's inertial axes, metres:
- * `samples + 1` points from the inbound end, through periapsis, to the
- * outbound end, both ends at `maxRadius`. Useful for drawing a flyby or an
- * escape inside the sphere of influence it happens in, which is where the
- * orbit holds. Used by the system diagram for a craft on an open orbit.
+ * The part of an open orbit (`ecc` above 1) that lies within `maxRadius` metres
+ * of its parent's centre, in the parent's inertial axes, metres: `samples + 1`
+ * points from the inbound end, through periapsis, to the outbound end, both ends
+ * at `maxRadius`. Useful for showing the operator a flyby or an escape inside the
+ * sphere of influence it happens in, which is where the orbit holds. Used by the
+ * system diagram for a vessel on an open orbit.
  *
- * Sampled uniformly in hyperbolic anomaly, so points gather near periapsis
- * where the path bends. Only the size of `sma` is read. No points when the
- * orbit is not open, or when `maxRadius` is not a finite distance beyond its
- * periapsis.
+ * Sampled uniformly in hyperbolic anomaly, so points gather near periapsis where
+ * the path bends. Only the size of `sma` is read. No points when the orbit is
+ * not open, or when `maxRadius` is not a finite distance beyond its periapsis.
  *
  * @category Frames of reference
  */
@@ -743,15 +757,17 @@ export function openOrbitArc(
 }
 
 /**
- * A catalogue body's orbit about `parent` as an `OrbitTrajectoryInput`
- * `orbit`, carrying the horizon its own provider stated, or null for a body with
- * no orbit about anything: the root star, or one whose size and shape the
- * catalogue has not filled.
+ * A catalogue body's orbit about `parent` as an `OrbitTrajectoryInput` `orbit`,
+ * carrying the horizon its own provider stated. Useful for drawing a moon or
+ * planet's path with the same trajectory code as the vessel's. Used by
+ * {@link bodyOrbitCurve}. The result is null for a body with no orbit about
+ * anything: the root star, or one whose size and shape the catalogue has not
+ * filled.
  *
  * The anchor of the orbit in time (mean anomaly, epoch) and the parent's pull
  * are filled with `NaN` when the catalogue lacks them. That is enough to answer
- * the shape question and to draw a closed conic, which needs neither, and an
- * arc that has to place the body in time refuses instead of guessing.
+ * the shape question and to draw a closed conic, which needs neither, and an arc
+ * that has to place the body in time refuses instead of guessing.
  *
  * @category Frames of reference
  */
@@ -775,10 +791,11 @@ export function bodyOrbitInput(
 }
 
 /**
- * How a catalogue body's path may be drawn at `viewUt`, as
- * `orbitTrajectory` answers it for a craft: a conic where its provider
- * says the elements are the curve, the arc to its horizon where it integrates,
- * a refusal where it vouches for nothing.
+ * How a catalogue body's path may be drawn at `viewUt`, as `orbitTrajectory`
+ * answers it for a vessel: a conic where its provider says the elements are the
+ * curve, the arc to its horizon where it integrates, a refusal where it vouches
+ * for nothing. Useful for drawing the orbits of the bodies around a parent. Used
+ * by the system diagram's geometry.
  *
  * Null where {@link bodyOrbitInput} is. Not a hook, so a diagram can ask for
  * every child body in one pass.

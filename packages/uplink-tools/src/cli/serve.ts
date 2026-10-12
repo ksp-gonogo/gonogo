@@ -24,7 +24,12 @@ const TYPES: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
 };
 
-/** Serve the files directly under `dir` on the loopback address. Resolves once it is listening. */
+/**
+ * Serves the files directly under `dir` on the loopback address, uncached, and
+ * resolves once it is listening. Useful for letting a running game load a
+ * client bundle that is rebuilt in place. Used by the `bundle` command's
+ * `--serve` option.
+ */
 export function serveDir(dir: string, port: number): Promise<Server> {
   const server = createServer((req, res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");

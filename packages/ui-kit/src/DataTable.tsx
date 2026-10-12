@@ -8,7 +8,8 @@ import { Unit } from "./Unit";
 import { useKeyboardScrollable } from "./useScrollerMetric";
 
 /**
- * The fields every {@link DataTable} column carries, whatever it draws.
+ * The fields every {@link DataTable} column carries, whatever it draws. Shared
+ * by the columns the table's `columns` prop takes.
  *
  * @category DataTable
  */
@@ -45,7 +46,9 @@ export interface DataTableColumnBase {
  * One column of a {@link DataTable}: what each cell draws, from a `render` of
  * the caller's own, or from a `value` the table draws through {@link Unit}.
  * `value` takes a whole `Reading`, so a held figure keeps its mark, and a
- * `null` or `undefined` draws the null token.
+ * `null` or `undefined` draws the null token. Useful for laying out the
+ * figures the operator compares down a table. Taken in the `columns` of a
+ * {@link DataTable}.
  *
  * @category DataTable
  */
@@ -74,7 +77,8 @@ function cellContent<Row>(col: DataTableColumn<Row>, row: Row): ReactNode {
 
 /**
  * A run of rows under a heading, for a table whose rows arrive already
- * grouped (by body, by vessel, by stage).
+ * grouped (by body, by vessel, by stage). Useful for helping the operator find
+ * a row within a long table. Taken by {@link DataTable}.
  *
  * @category DataTable
  */
@@ -88,7 +92,7 @@ export interface DataTableSection<Row> {
 }
 
 /**
- * Props for {@link DataTable}.
+ * Props for {@link DataTable}: its caption, columns, and rows or sections.
  *
  * @category DataTable
  */

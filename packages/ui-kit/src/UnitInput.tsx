@@ -22,7 +22,8 @@ const INSTANT_WHEEL_PX = 112;
 /**
  * Bounds for a position slider, refused on a point-like unit: an instant can be
  * years out, and no range wide enough to reach it leaves useful precision. Use
- * {@link RateControl} for instants.
+ * {@link RateControl} for instants. Useful for letting the operator drag a
+ * value between two limits. Taken by the `range` prop of {@link UnitInput}.
  *
  * @category Form
  */
@@ -33,7 +34,8 @@ export type SlidableRange<Unit extends string> = Unit extends PointUnit
 /**
  * A rate wheel beside the field, on any unit. The handle's displacement is the
  * speed the value changes at, and it springs back to centre on release, so it
- * needs no bounds.
+ * needs no bounds. Useful for letting the operator nudge a quantity such as a
+ * node time by holding the wheel. Taken by the `rate` prop of {@link UnitInput}.
  *
  * @category Form
  */
@@ -45,7 +47,8 @@ export interface RateControl {
 }
 
 /**
- * Props for {@link UnitInput}.
+ * Props for {@link UnitInput}: the quantity being edited, its unit, a visible
+ * name, and optionally rungs, a slider range and a rate wheel.
  *
  * @category Form
  */

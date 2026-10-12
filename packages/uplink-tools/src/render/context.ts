@@ -22,7 +22,10 @@ const require = createRequire(import.meta.url);
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 /**
- * An Uplink client package as `resolveUplinkPackage` reads it.
+ * An Uplink client package: its directory, name, version, entry, render setup
+ * and fixtures. Useful for telling the renderer and the page check what to
+ * mount and where its fixtures are. Returned by {@link resolveUplinkPackage}
+ * and taken by the render driver.
  *
  * @category Rendering scenes
  */
@@ -44,10 +47,10 @@ export interface UplinkPackage {
 }
 
 /**
- * A JSON file's top-level object, or a failure naming the file and what it held
- * instead. Every caller narrows the fields it reads off the result; a generic
- * `readJson<T>` would hand each one a typed view of whatever happened to be on
- * disk.
+ * A JSON file's top-level object, or an error naming the file and what it held
+ * instead. Every caller narrows the fields it reads off the result. Useful for
+ * telling the author which file is malformed. Used when reading an Uplink's
+ * `package.json` and its scene fixtures.
  */
 export function readJsonObject(file: string): Record<string, unknown> {
   const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
@@ -198,17 +201,13 @@ function packageNameOf(specifier: string): string {
 
 /**
  * One `renderWith` entry or one `--with` value, as esbuild should receive it.
+ * Useful for naming the declaration when a host widget module is not
+ * installed. Used for the `gonogo.renderWith` entries of an Uplink package and
+ * for the `--with` flag of the `render` and `docs` commands.
  *
- * Shared by both so the two cannot drift: a flag that accepted a shape the
- * declaration refused would be a render that works once, for whoever ran it.
- *
- * A specifier is returned as written, for esbuild to resolve from the client's
- * own directory when it builds the page. Resolving it to a file here would pick
- * whatever condition a Node `require` picks, and every package in play
- * publishes an `import`-only `exports` map. So the check below is for the
- * package's presence, which is enough to turn a missing install into an error
- * naming the declaration rather than an esbuild failure naming a generated file
- * nobody wrote.
+ * A bare specifier is returned as written, for esbuild to resolve from the
+ * client's own directory when it builds the page, after a check that the
+ * package is installed. A relative entry is returned as an absolute path.
  */
 export function resolveRenderModule(
   dir: string,
@@ -253,7 +252,8 @@ export function resolveRenderModule(
 /**
  * Reads the Uplink client package in `dir`: its name, version, entry, render
  * setup and fixtures. Throws with a message saying what to fix when the package
- * is not one.
+ * is not one. Useful for finding what to render without the author listing it.
+ * Used by the `render` and `docs` commands and by the page check.
  *
  * @category Rendering scenes
  */
@@ -296,7 +296,8 @@ export function resolveUplinkPackage(
 /**
  * The installed ui-kit's `tokens.css`, whole: the design tokens plus the
  * box-sizing reset and form-control styles the kit's components are drawn
- * against, as the app loads them.
+ * against, as the app loads them. Useful for drawing a widget in the same theme
+ * the operator sees. Used by the page the renderer builds for each Uplink.
  *
  * @category Rendering scenes
  */
@@ -336,15 +337,20 @@ export function themeTokensCss(): string {
 }
 
 /**
- * Which font a run used: `locked` is JetBrains Mono, the app's own font;
- * `fallback` is the machine's own monospace.
+ * Which font a render used: `locked` is JetBrains Mono, the app's own font;
+ * `fallback` is the machine's own monospace. Useful for telling the author
+ * whether a picture can be compared pixel for pixel. Carried by
+ * {@link FontFace}.
  *
  * @category Rendering scenes
  */
 export type FontMode = "locked" | "fallback";
 
 /**
- * The font a render uses, as CSS to inject into the page.
+ * The font a render uses, as CSS to inject into the page, with the
+ * {@link FontMode} it is in. Useful for drawing pictures in the app's font.
+ * Returned by {@link jetbrainsMonoFace} and injected into the page the renderer
+ * builds for each Uplink.
  *
  * @category Rendering scenes
  */
@@ -359,17 +365,19 @@ export interface FontFace {
 
 /**
  * The JetBrains Mono weights the app self-hosts. Each names an @fontsource
- * `<weight>.css`, which declares one face per subset it ships with that
- * subset's `unicode-range`, so Greek, Cyrillic and Latin Extended text is drawn
- * in the locked font too rather than in a system fallback.
+ * `<weight>.css`, which declares one face per subset with that subset's
+ * `unicode-range`, so Greek, Cyrillic and Latin Extended text is drawn in the
+ * locked font. Useful for drawing pictures with every weight the app uses.
+ * Used by {@link jetbrainsMonoFace}.
  */
 export const JETBRAINS_MONO_WEIGHTS = [400, 600, 700] as const;
 
 /**
- * JetBrains Mono, the app's font, inlined as data URIs. It is an optional
- * peer: without it the result is `mode: "fallback"` with `advice` saying what
- * to install, and renders use the machine's own monospace. That is fine for a
- * docs picture and not for a pixel comparison.
+ * JetBrains Mono, the app's font, inlined as data URIs. It is an optional peer:
+ * without it the result is `mode: "fallback"` with `advice` saying what to
+ * install, and renders use the machine's own monospace, which suits a docs
+ * picture and not a pixel comparison. Useful for drawing pictures in the font
+ * the operator sees. Used by the page the renderer builds for each Uplink.
  *
  * @category Rendering scenes
  */
@@ -418,7 +426,9 @@ export function jetbrainsMonoFace(): FontFace {
 }
 
 /**
- * A path as it should appear in a message: relative to the package, POSIX.
+ * A path as it should appear in a message: relative to the package, with
+ * forward slashes. Useful for naming a file to the author the same way on every
+ * machine. Used by the page check and the scene reader.
  *
  * @category Rendering scenes
  */
@@ -427,27 +437,15 @@ export function display(dir: string, file: string): string {
 }
 
 /**
- * A resolved `renderWith` value as a URL something can `import()`.
+ * A resolved `renderWith` value as a URL that `import()` can load. A relative
+ * entry arrives as an absolute path; a bare specifier arrives as written and is
+ * resolved from `dir`, the client, through the package's `exports` map. Useful
+ * for letting a test import the host widget modules an Uplink declares, where
+ * there is no bundler to resolve them. Used by {@link loadHostWidgets}.
  *
- * `renderWith` carries two shapes, and this is where the second one has to be
- * turned back into a file. A relative entry arrived here already resolved to an
- * absolute path; a bare specifier was deliberately left as written, because the
- * render path hands it to esbuild, which resolves it from the client directory.
- *
- * **`page-check` has no bundler**, so it resolves the specifier itself, and
- * `pathToFileURL` alone is wrong for it: given `@ksp-gonogo/uplink-tools/widgets`
- * it produces `<client dir>/@ksp-gonogo/uplink-tools/widgets`, the client
- * directory with the package name glued on the end. That was the defect, and it
- * only appeared once a specifier became legal.
- *
- * Resolved from `dir`, the client, and never from this module: a bare
- * `import()` here would resolve against the tools package's own directory,
- * which is right by accident for this package's own `/hosts` and wrong for
- * everything else.
- *
- * The exports map is read rather than guessed, and `require.resolve` is not
- * used, for the reason stated throughout this file: these packages publish an
- * `import`-only map and a CJS resolver refuses it outright.
+ * It resolves from `dir` and never from this module, and it reads the
+ * `exports` map without `require.resolve`, because these packages publish an
+ * `import`-only map that a CommonJS resolver refuses.
  */
 export function renderModuleUrl(dir: string, entry: string): string {
   if (!isBareSpecifier(entry)) return pathToFileURL(entry).href;

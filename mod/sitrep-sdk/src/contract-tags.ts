@@ -16,8 +16,10 @@ import type {
 import { GENERATED_CONTRACT_TAGS } from "./__generated__/units";
 
 /**
- * The owner core's own contract registers its tags under, and core's own
- * forward models register under.
+ * The owner id that Gonogo's own contract registers its value tags under, and
+ * that its own forward models register under. Useful for telling the tags and
+ * models the mod ships from those an Uplink adds. Used when the app registers
+ * the forward models of the vessel.
  *
  * @category Reckoners
  */
@@ -27,6 +29,8 @@ export const CORE_CONTRACT_OWNER = "core";
  * How a channel's samples relate in time: `continuous` moves between samples
  * and may be drawn as a line, `discrete` stands until the next sample and is
  * drawn as a step, `event` is one occurrence per sample and is drawn as points.
+ * Useful for deciding how to plot or hold a value the operator watches. Used by
+ * the delay rail's tags and by the stream's timeline store.
  *
  * @category Registering
  */
@@ -36,6 +40,8 @@ export type SampleKind = "continuous" | "discrete" | "event";
  * The tags a contract declares on one value. A kind declared here overrides
  * the channel's own for the value and everything beneath it; `event` is never
  * one, since whether a sample is an occurrence is a fact about the whole sample.
+ * Useful for telling readers of the stream how one value inside a payload
+ * behaves in time. Returned by the value-tags reader.
  *
  * @category Registering
  */
@@ -49,7 +55,8 @@ export interface ValueTags {
 /**
  * One value a contract declares a model carries forward, as its codegen writes
  * it. `field` is the path from the payload root, `*` for each list or
- * dictionary it crosses.
+ * dictionary it crosses. Useful for telling the stream client which values it
+ * may extrapolate while a reading is held. Carried by {@link ContractTagTable}.
  *
  * @category Reckoners
  */
@@ -66,7 +73,8 @@ export interface ContractReckonableRow {
 
 /**
  * The table a contract's codegen writes into its generated units file: value
- * tags by Topic then path, and the values its models carry forward.
+ * tags by Topic then path, and the values its models carry forward. Useful for
+ * an Uplink that registers its own tags. Taken by the contract-tag registration.
  *
  * @category Registering
  */
@@ -80,7 +88,9 @@ export interface ContractTagTable {
 }
 
 /**
- * A reckonable value and the owner whose contract declared it.
+ * A value a model carries forward, and the owner whose contract declared it.
+ * Useful for working out which contract supplies the model behind a held
+ * reading. Returned by the reckonable-rows reader.
  *
  * @category Reckoners
  */
@@ -121,8 +131,10 @@ const reckonableByOwner = new Map<string, readonly OwnedReckonableValue[]>();
 let generation = 0;
 
 /**
- * Register the tags `owner`'s contract declares. An Uplink passes its
- * generated table to `defineUplinkClient` instead of calling this.
+ * Registers the tags `owner`'s contract declares, so readers of the stream know
+ * how each value behaves in time and which values a model carries forward. An
+ * Uplink passes its generated table to `defineUplinkClient` instead of calling
+ * this.
  *
  * Throws when another owner has already described one of the same Topics,
  * naming both, and when a row names a model outside the closed vocabulary.
@@ -168,6 +180,7 @@ export function registerContractTags(
 /**
  * Every value a declared model carries forward on `topic`, from every owner,
  * or only `owner`'s when one is named. A value with two models appears twice.
+ * Useful for finding which values of a held reading the stream can still model.
  *
  * @category Reckoners
  */
@@ -186,7 +199,8 @@ export function reckonableRowsOf(
 /**
  * The value tags declared on `topic`, by path (`*` for a list or dictionary
  * level), with the owner that declared them, or `undefined` when no contract
- * declares any.
+ * declares any. Useful for finding out how a value in a payload behaves in
+ * time. Used by the stream's timeline store.
  *
  * @category Registering
  */

@@ -3,19 +3,22 @@
  * `{ m: 1, s: -1 }`. Two dimensions are equal when their powers are, so a
  * pascal and a kilogram-metre per second squared per square metre are the
  * same dimension. Base names are never shown; `irlS`, for real-world seconds,
- * keeps them apart from game seconds.
+ * keeps them apart from game seconds. Useful for checking that two quantities
+ * can be added or compared. Used by the unit registry and by `Value`.
  */
 export type Dimension = Readonly<Record<string, number>>;
 
-/** The dimension of a pure number, such as a ratio, a Mach number or a percentage. */
+/**
+ * The dimension of a pure number, such as a ratio, a Mach number or a
+ * percentage. Useful for typing a figure that has no unit to show the operator.
+ */
 export const DIMENSIONLESS: Dimension = Object.freeze({});
 
-/**
- * Drops zero exponents so equality is structural.
- *
- * `{ m: 1, s: 0 }` and `{ m: 1 }` are the same dimension and must not compare
- * unequal, which they would as raw objects. Every operation below normalises
- * its result, so a `Dimension` in hand is always canonical.
+/*
+ * Drops zero exponents so equality is structural: `{ m: 1, s: 0 }` and
+ * `{ m: 1 }` are the same dimension and must not compare unequal, which they
+ * would as raw objects. Every operation below normalises its result, so a
+ * `Dimension` in hand is always canonical.
  */
 function normalise(exponents: Record<string, number>): Dimension {
   const out: Record<string, number> = {};
@@ -27,7 +30,10 @@ function normalise(exponents: Record<string, number>): Dimension {
   return Object.freeze(out);
 }
 
-/** Returns the dimension of a product: the powers added. */
+/**
+ * The dimension of a product: the powers added. Useful for working out the unit
+ * of a quantity multiplied by another. Used by `Value.times`.
+ */
 export function multiply(a: Dimension, b: Dimension): Dimension {
   const out: Record<string, number> = { ...a };
   for (const [base, exponent] of Object.entries(b)) {
@@ -36,7 +42,11 @@ export function multiply(a: Dimension, b: Dimension): Dimension {
   return normalise(out);
 }
 
-/** Returns the dimension of a quotient: the powers subtracted. */
+/**
+ * The dimension of a quotient: the powers subtracted. Useful for working out
+ * the unit of a quantity divided by another. Used by `Value.per` and
+ * `Value.dividedBy`.
+ */
 export function divide(a: Dimension, b: Dimension): Dimension {
   const out: Record<string, number> = { ...a };
   for (const [base, exponent] of Object.entries(b)) {
@@ -45,7 +55,10 @@ export function divide(a: Dimension, b: Dimension): Dimension {
   return normalise(out);
 }
 
-/** Returns whether two dimensions are the same. */
+/**
+ * Whether two dimensions are the same. Useful for checking that two quantities
+ * can be added or compared before showing the result to the operator.
+ */
 export function equal(a: Dimension, b: Dimension): boolean {
   const aKeys = Object.keys(a);
   if (aKeys.length !== Object.keys(b).length) {
@@ -55,8 +68,9 @@ export function equal(a: Dimension, b: Dimension): boolean {
 }
 
 /**
- * Returns a string that is the same for equal dimensions, for use as a `Map`
- * key. To show a dimension, use {@link formatDimension}.
+ * A string that is the same for equal dimensions, for use as a `Map` key.
+ * Useful for looking up the unit declared for a dimension. To show a dimension
+ * to the operator, use {@link formatDimension}.
  */
 export function key(dimension: Dimension): string {
   return Object.keys(dimension)
@@ -79,8 +93,10 @@ function withExponent(base: string, exponent: number): string {
 }
 
 /**
- * Returns a dimension written out in base units, as a value is shown when no
- * unit is declared for its dimension: `{ m: 1, s: -2 }` is `m/s²`, and
+ * A dimension written out in base units, as a value is shown when no unit is
+ * declared for its dimension. Useful for showing the operator a computed
+ * quantity that has no unit of its own. Used by the unit registry and by
+ * `Value` when it formats such a quantity: `{ m: 1, s: -2 }` is `m/s²`, and
  * `{ kg: 1, m: -1, s: -2 }` is `kg/(m·s²)`. Where a unit is declared, such as
  * `W`, that is shown instead.
  */

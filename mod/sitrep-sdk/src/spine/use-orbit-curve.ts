@@ -9,12 +9,13 @@ import {
 import { useOrbitTrajectory } from "./use-orbit-trajectory";
 
 /**
- * Whose path to ask for:
+ * Whose path to ask for. Useful for drawing the orbit of either a catalogue body
+ * or elements you already hold. Taken by {@link useOrbitCurve}.
  *
  * - `body`: a catalogue body's orbit about its parent, with the horizon its own
  *   provider stated
- * - `orbit`: elements you already hold, whole `vessel.orbit`-shaped payload
- *   with its horizon, as {@link useOrbitTrajectory} takes them
+ * - `orbit`: elements you already hold, a whole `vessel.orbit`-shaped payload with
+ *   its horizon, as {@link useOrbitTrajectory} takes them
  *
  * @category Frames of reference
  */
@@ -35,13 +36,13 @@ export type OrbitCurveSubject =
     };
 
 /**
- * How a subject's path may be drawn at the instant on screen: a conic, the arc
- * its provider vouched for, or a refusal with its reason, exactly as
- * {@link useOrbitTrajectory} answers for a craft, and held the same way for each
- * whole second of the view instant.
+ * How a subject's path may be drawn at the instant on screen: a conic, the arc its
+ * provider vouched for, or a refusal with its reason, as {@link useOrbitTrajectory}
+ * answers for a vessel. Useful for drawing the orbit of a body or of elements you
+ * already hold. The answer is held for each whole second of the view instant.
  *
- * `null` means the question could not be put: no clock, no catalogue yet, the
- * root star, or a body whose elements are not filled.
+ * `null` means the question could not be put: no clock, no catalogue yet, the root
+ * star, or a body whose elements are not filled.
  *
  * @category Frames of reference
  */

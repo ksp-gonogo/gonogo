@@ -29,6 +29,7 @@ import {
 
 /**
  * What a group settles, and what every member inside it is written at. The fields are the formatter's own, so applying one is a spread.
+ * Returned by the shared-format hook and applied by {@link Unit}.
  *
  * An absent field is a group with no opinion: the member's own props fill it.
  *
@@ -54,6 +55,9 @@ interface Report {
 
 /**
  * What a scope pins for one group, typed by the unit it is addressed to: `of="m" as="kg"` is a compile error.
+ * Useful for fixing the unit and digit count of a group of figures the operator
+ * compares. Taken by the `format`, `as` and `decimals` props of
+ * {@link UnitSharedFormat}.
  *
  * @category Unit
  */
@@ -68,6 +72,8 @@ export interface UnitPins<Unit extends string = string> {
 
 /**
  * {@link UnitPins} addressed to a whole group, checked against what that group measures.
+ * Useful for fixing the unit and digit count of one group inside a scope that
+ * holds several. Held by each entry of {@link UnitPinsByGroup}.
  *
  * @category Unit
  */
@@ -82,6 +88,8 @@ export interface UnitGroupPins<Group extends UnitGroupKey> {
 
 /**
  * What each named group of a mixed scope is pinned to. Every entry is optional and a key that is not a group is a compile error. An Uplink's units reach this type by merging into `UnitDeclarations`.
+ * Useful for fixing the unit of several kinds of figure at once. Taken by the
+ * `pins` prop of {@link UnitSharedFormat}.
  *
  * @category Unit
  */
@@ -328,7 +336,7 @@ const ScopeContext = createContext<Scope>(NO_SCOPE);
  * Whether there is a real {@link UnitSharedFormat} above this point. Used by
  * {@link Unit}.
  *
- * Membership cannot be read off {@link useSharedFormat}: a group over a unit with no ladder (`rpm`) legitimately settles an empty format.
+ * Membership cannot be read off the shared-format hook: a group over a unit with no ladder (`rpm`) legitimately settles an empty format.
  */
 export function useInSharedFormat(): boolean {
   return useContext(ScopeContext) !== NO_SCOPE;
@@ -348,6 +356,7 @@ interface UnitSharedFormatBaseProps {
  * A scope that pins one kind. `of` names the unit the pins are addressed to and types them: `of="m"` makes `as` a length and `format` a rung on the length ladder, and `of={v.unit}` needs no annotation.
  *
  * Without `of` the pins are unaddressed: they reach every group and nothing checks them.
+ * Taken by {@link UnitSharedFormat}.
  *
  * @category Unit
  */
@@ -361,7 +370,7 @@ export interface UnitSharedFormatProps<Unit extends string = string>
 /**
  * A scope that pins several groups, each keyed by name, so a group is pinned at most once and one that needs nothing is simply absent: `pins={{ length: { as: "km" }, mass: { as: "t" } }}`.
  *
- * Each value is typed by its own key, so `{ length: { as: "kg" } }` is a compile error at that entry. A laddered kind is keyed by its kind; a unit that climbs nothing keys itself, so `s` and `min` stay separate groups. See {@link UnitGroupKey}.
+ * Each value is typed by its own key, so `{ length: { as: "kg" } }` is a compile error at that entry. A laddered kind is keyed by its kind; a unit that climbs nothing keys itself, so `s` and `min` stay separate groups. See {@link UnitGroupKey}. Taken by {@link UnitSharedFormat}.
  *
  * @category Unit
  */
@@ -503,7 +512,7 @@ export function useSharedFormat<Unit extends string = string>(
  * settled on. Only a scope asked to `separate` answers true. Useful for
  * deciding whether members of a group may be drawn apart. Used by {@link Band}.
  *
- * Read-only, unlike {@link useSharedFormat}: a caller that decides what to draw from this must keep reporting as before, or membership becomes a function of the verdict.
+ * Read-only, unlike the shared-format hook: a caller that decides what to draw from this must keep reporting as before, or membership becomes a function of the verdict.
  */
 export function useReadsAsOneFigure<Unit extends string = string>(
   value: Value<Unit> | null | undefined,

@@ -23,7 +23,13 @@ interface VesselStructureWirePayload {
   currentStage?: number | null;
 }
 
-/** A resource-name-keyed map of a single amount (current or max). */
+/**
+ * The amount of each resource in the active stage, keyed by resource name, as
+ * either the current or the maximum amount. Useful for showing the operator how
+ * much of each resource the stage holds. Returned by
+ * `deriveCurrentStageResourceCurrent` and `deriveCurrentStageResourceMax`, and
+ * read by the fuel status widget.
+ */
 export type ResourceAmountMap = Record<string, Value<"units">>;
 
 /**
@@ -71,11 +77,13 @@ function currentStageResources(
 }
 
 /**
- * `dv.currentStageResource` derivation: the current amount per resource name
- * for the active stage, behind the legacy `r.resourceCurrent[X]`.
- * Entries whose `current` isn't a finite number are omitted (same
- * "absent, not fabricated" discipline every other raw-dict reader in this
- * codebase follows), never a `0` standing in for "not reported".
+ * The current amount of each resource in the active stage, keyed by resource
+ * name, derived for the `dv.currentStageResource` channel. Useful for showing
+ * the operator what the stage has left to burn. Used by
+ * `dvCurrentStageResourceChannel`.
+ *
+ * An entry whose `current` is not a finite number is left out, never replaced
+ * by a `0`.
  */
 export function deriveCurrentStageResourceCurrent(
   get: DerivedGet,
@@ -93,9 +101,13 @@ export function deriveCurrentStageResourceCurrent(
 }
 
 /**
- * `dv.currentStageResourceMax` derivation: the max amount per resource name
- * for the active stage, behind the legacy `r.resourceCurrentMax[X]`.
- * Same omission discipline as {@link deriveCurrentStageResourceCurrent}.
+ * The maximum amount of each resource in the active stage, keyed by resource
+ * name, derived for the `dv.currentStageResourceMax` channel. Useful for showing
+ * the operator how full the stage's tanks were. Used by
+ * `dvCurrentStageResourceChannel`.
+ *
+ * An entry whose `max` is not a finite number is left out, as in
+ * {@link deriveCurrentStageResourceCurrent}.
  */
 export function deriveCurrentStageResourceMax(
   get: DerivedGet,
@@ -113,12 +125,14 @@ export function deriveCurrentStageResourceMax(
 }
 
 /**
- * Ready-to-register definitions:
- * `store.registerDerivedChannel(dvCurrentStageResourceChannel)` /
- * `...(dvCurrentStageResourceMaxChannel)`. `fields: true` on each exposes
- * `dv.currentStageResource.<name>` / `dv.currentStageResourceMax.<name>`.
- * The channel's status is the worst across `dv.stages` and
- * `vessel.structure`, both genuinely consulted every call.
+ * The derived channel for `dv.currentStageResource`, ready to register with
+ * `store.registerDerivedChannel`. Useful for showing the operator the resources
+ * of the active stage. Registered on the default store of `TelemetryProvider`
+ * through `PRODUCTION_DERIVED_CHANNELS`.
+ *
+ * Its `fields: true` exposes `dv.currentStageResource.<name>` for each
+ * resource. The channel's status is the worst across `dv.stages` and
+ * `vessel.structure`, both of which are read on every call.
  */
 export const dvCurrentStageResourceChannel: DerivedChannelDefinition<ResourceAmountMap> =
   {

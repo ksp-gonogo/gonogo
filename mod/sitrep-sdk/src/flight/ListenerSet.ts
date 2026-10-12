@@ -1,6 +1,8 @@
 /**
  * A set of callbacks: `add` returns the function that removes one, and `fire`
- * calls them all.
+ * calls them all. Useful for any class that notifies subscribers, such as the
+ * operator's screen refreshing when a source changes. Used by the peer
+ * connection services in the app.
  *
  * @category Flight recording
  */
@@ -35,7 +37,8 @@ export class ListenerSet<Args extends readonly unknown[] = []> {
 
 /**
  * A {@link ListenerSet} per key. A key's set is created when its first callback
- * is added and removed when its last one goes.
+ * is added and removed when its last one goes. Useful for notifying only the
+ * subscribers of one telemetry key. Used by {@link BufferedDataSource}.
  *
  * @category Flight recording
  */

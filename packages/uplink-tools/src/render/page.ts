@@ -166,50 +166,23 @@ function nearestPackageDir(dir: string, pkg: string): string | undefined {
 }
 
 /**
- * Everything else that must be one copy in the page, pinned to the Uplink's
- * own resolution of it.
- *
- * The kit was not the only package that can arrive twice, only the first one
- * noticed. A `--with` module lives outside the Uplink's package, so esbuild
- * resolves its imports from that module's own `node_modules` rather than the
- * Uplink's, and when the two are separate installs (a published Uplink beside a
- * checkout of this repo, which is the case `--with` exists for) every shared
- * package is bundled twice.
- *
- * React is the one that bites, and it bites in a way that reads as a bug in the
- * widget: an augment mounted inside a cross-package host threw "Cannot read
- * properties of null (reading 'useEffect')" from its first hook, because the
- * copy it called had no current dispatcher, the copy rendering it did. A
- * contribution scene survives this, which is why it went unnoticed: a
- * contribution is data its host draws, so no module from the Uplink ever
- * renders and no second React is ever entered. An augment supplies a component,
- * and is the first thing to run hooks from both sides at once.
- *
- * styled-components duplicates into two theme contexts and two stylesheets, so
- * one side of the page renders unthemed.
- *
- * The sdk is deliberately not on this list. Its registries live on `globalThis`
- * and are already shared, which is what makes a cross-package host resolvable
- * at all; its `createContext` spine is not, so a second copy would read no
- * telemetry. Pinning it needs a resolver that honours an `import`-only exports
- * map, which the one here is not, and nothing has yet been seen to break for
- * want of it. It belongs on this list the day something does.
- *
- * Pinned to the uplink's copy, for the same reason the kit is pinned to `dist`:
- * an Uplink is what the render is of, so its resolution is the honest one. With
- * one install in play every entry resolves to what esbuild would have chosen
- * anyway and the whole map is inert.
- *
- * Each value is the package directory, never the entry file, and both halves of
- * that were measured. esbuild substitutes an alias at the start of the import
- * path, so a file value turns `react-dom/test-utils` into
- * `.../react-dom/index.js/test-utils` and fails the build; and a file value
- * picked by a CJS resolver is the package's CJS half, which for
- * styled-components pulled in Node's `stream` and failed the build a second
- * way. A directory leaves the subpath and the export condition to esbuild,
- * which is the half of resolution that was never the problem.
+ * The packages that must be bundled once into the render page, React, React DOM
+ * and styled-components, each mapped to the copy the Uplink itself resolves.
+ * Useful for keeping a widget mounted inside a host from another install on one
+ * copy of React and one theme. With a single install in play the map changes
+ * nothing. Used by {@link buildProbePage}.
  */
 export function oneCopyPerPage(dir: string): Record<string, string> {
+  /*
+   * Each value is the package directory, never the entry file. esbuild
+   * substitutes an alias at the start of the import path, so a file value turns
+   * `react-dom/test-utils` into `.../react-dom/index.js/test-utils`, and a file
+   * picked by a CommonJS resolver is the package's CommonJS half.
+   *
+   * The sdk is not on this list: its registries live on `globalThis` and are
+   * already shared. Pinning it needs a resolver that honours an import-only
+   * exports map, which this one does not.
+   */
   const from = createRequire(join(dir, "noop.js"));
   const alias: Record<string, string> = {};
   for (const specifier of ["react", "react-dom", "styled-components"]) {
@@ -225,7 +198,11 @@ export function oneCopyPerPage(dir: string): Record<string, string> {
 }
 
 /**
- * The generated browser entry. Awaited imports, never static ones.
+ * The source of the generated browser entry that loads the render probe, the
+ * Uplink's client and its render setup. It uses awaited imports, never static
+ * ones, so the probe is installed before the client registers anything. Useful
+ * for building the page a browser opens to draw an Uplink's widgets. Used by
+ * {@link buildProbePage}.
  *
  * @category Rendering scenes
  */
@@ -267,7 +244,9 @@ export interface ProbePage {
 
 /**
  * Bundles the Uplink's client, its render setup and the render probe into one
- * page on disk, ready for a browser to open.
+ * page on disk, ready for a browser to open. Useful for drawing the Uplink's
+ * widgets as the operator sees them. Used by the render driver and the `check`
+ * command's minimum size probe.
  *
  * @category Rendering scenes
  */

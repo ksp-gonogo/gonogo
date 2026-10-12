@@ -32,7 +32,8 @@ const PART_ACTIONS_DYNAMIC = /^vessel\.partActions\.\d+$/;
  * The Topic a dynamic key is read from, or `undefined` when the key is under
  * no registered prefix. A dynamic key, such as one per body or per part, is its
  * own Topic; what this checks is that some code registered its prefix with
- * `registerDynamicTopicPrefix`.
+ * `registerDynamicTopicPrefix`. Useful for reading a value the operator picked
+ * from a per-body or per-part namespace. Used by `resolveValueTopic`.
  *
  * @category Stream fixture
  */
@@ -106,17 +107,13 @@ function isEmpty(record: Readonly<Record<string, unknown>>): boolean {
 }
 
 /**
- * Whether the contract declares `topic` as a Topic at all.
+ * Whether the contract declares `topic` as a Topic at all, including a Topic
+ * registered at module load such as an Uplink's own or a client-derived channel.
+ * Useful for checking a Topic the operator or a widget names before reading it.
  *
- * Read off the generated metadata through `unitsForTopic`/`shapesForTopic` for
- * the same reason {@link isKnownFieldPath} does: that indirection is what sees
- * a Topic registered at module load, which an Uplink's own payload type and
- * every client-derived channel only ever are.
- *
- * Distinct from {@link isKnownFieldPath}, and the distinction is a real one for
- * a caller: the reads keyed by a whole Topic (a status, a plotted window) and
- * the reads keyed by a field path within one are different vocabularies, and a
- * key valid in one is not valid in the other.
+ * It differs from {@link isKnownFieldPath}: reads keyed by a whole Topic (a
+ * status, a plotted window) and reads keyed by a field path within one are
+ * different vocabularies, and a key valid in one is not valid in the other.
  */
 export function isKnownTopic(topic: string): boolean {
   return !(
@@ -126,14 +123,11 @@ export function isKnownTopic(topic: string): boolean {
 }
 
 /**
- * Whether `path` names a field the contract declares under one of its Topics.
- *
- * Read entirely off the contract's own generated metadata, through
- * `unitsForTopic`/`shapesForTopic` rather than the generated maps directly. That
- * indirection is what lets it see a Topic registered at module load: an Uplink's
- * own payload type, and every client-derived channel, which is computed here
- * and appears in no contract type at all. Reading the maps directly is blind to
- * both.
+ * Whether `path` names a field the contract declares under one of its Topics,
+ * including a Topic registered at module load such as an Uplink's own payload
+ * type or a client-derived channel. Useful for checking a field path the
+ * operator picked before reading it. Used by the core when it classifies what a
+ * widget declares it reads.
  */
 export function isKnownFieldPath(path: string): boolean {
   // Topic ids contain dots, so the split point is found rather than assumed: the longest prefix the contract knows as a topic wins.
@@ -147,14 +141,14 @@ export function isKnownFieldPath(path: string): boolean {
 }
 
 /**
- * The Topic a picked key reads from. A key in a dynamic namespace is vouched
- * for by {@link mapTopic}; a field path is the path it reads, so it needs no
- * translation and only needs vouching for: the picker offers paths the contract
- * declares, and a path it does not declare resolves to nothing rather than to a
- * subscription no channel serves.
+ * The Topic that a key the operator picked reads from, or `undefined` when the
+ * key resolves to none. Useful for reading a field the operator chose, such as
+ * for a threshold or a note tag. Used by the note tag values hook and by the
+ * threshold evaluators.
  *
- * One function so that the readers of a picked key (the threshold evaluators
- * and the note-tag resolver) agree on what a key means.
+ * A key in a dynamic namespace resolves through {@link mapTopic}. A field path
+ * is its own Topic path and needs no translation: it resolves when the contract
+ * declares it, and a path it does not declare resolves to `undefined`.
  */
 export function resolveValueTopic(key: string): string | undefined {
   const mapped = mapTopic(key);

@@ -5,7 +5,9 @@
  * The `Clock` injected into `TelemetryClient` must share the time domain of
  * the transport's `predictConfirmEta()`. If the two disagree, such as a
  * wall-clock `now()` paired with a process-relative `etaConfirm`, loss is
- * inferred at once or never. Nothing checks this at runtime.
+ * inferred at once or never. Nothing checks this at runtime. Useful for
+ * deciding when to tell the operator that a sample has not arrived. Taken by the
+ * Sitrep client and implemented by `RealTimeClock`.
  */
 export interface Clock {
   /*
@@ -31,13 +33,11 @@ export interface Clock {
 }
 
 /**
- * Default `Clock`. `TelemetryClient` falls back to this when no `Clock` is
- * injected: i.e. every real, non-test transport. Backed by
- * `performance.now() / 1000`: process-relative seconds, not wall-clock epoch
- * time: this must match sitrep-server's `RealClock`, since that's the same
- * UT domain the courier/transport layer predicts `etaConfirm` in. Tests that
- * need deterministic timing inject their own `Clock` instead (or a
- * structurally compatible one, like sitrep-server's `ManualClock`).
+ * The `Clock` the Sitrep client uses when none is injected, which is every real
+ * transport. It reads `performance.now() / 1000`: seconds since the page
+ * started, not wall-clock time, so it matches the time domain the transport
+ * predicts confirmation in. Useful for scheduling loss inference in the running
+ * app. A test that needs deterministic timing injects its own `Clock`.
  */
 export class RealTimeClock implements Clock {
   now(): number {

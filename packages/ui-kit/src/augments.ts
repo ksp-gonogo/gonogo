@@ -29,8 +29,9 @@ export type {
  * mapped to the props its augments receive. A segment is bound as
  * `"<widget-id>.<segment>"`. Both pass no props (`Record<string, never>`): an
  * augment reads its own Topics, and reads what the widget is focused on
- * through {@link useWidgetScope}. Where each renders is under Standard slots
- * on {@link Panel}.
+ * through {@link useWidgetScope}. Useful for typing an augment that adds
+ * content or controls to a widget's panel. Where each renders is under
+ * Standard slots on {@link Panel}.
  *
  * @category Panel
  */
@@ -44,7 +45,9 @@ export interface AugmentSegmentRegistry {
 /**
  * The props an augment bound to a standard segment receives, looked up in
  * {@link AugmentSegmentRegistry}: `Record<string, never>` for `sections` and
- * `actions`, and `never` for a name that is not a standard segment.
+ * `actions`, and `never` for a name that is not a standard segment. Useful for typing the
+ * props of an augment bound to a widget's `sections` or `actions` segment. Used
+ * by {@link AugmentSlot} for a slot named by `segment`.
  *
  * @category Panel
  */
@@ -74,6 +77,8 @@ export type {
  * An augment as the registry holds it, whatever slot it binds: an
  * `AugmentDefinition` whose component takes a loose props object. The lookup
  * functions ({@link getAugmentsForSlot}, {@link getAugments}) return this.
+ * Useful for code that lists what Uplinks have added to a widget. Used by
+ * {@link AugmentSlot} and {@link useAugmentAvailable}.
  *
  * @category Extensions
  */
@@ -111,7 +116,9 @@ function registry(): AugmentRegistry {
  * Slot ids that no widget mounts any more, each mapped to the slot that
  * replaced it. {@link registerAugment} logs an error naming the replacement
  * when an augment binds one of these; the augment is stored but never renders.
- * A misspelled slot id is not detected at runtime.
+ * A misspelled slot id is not detected at runtime. Useful for telling an
+ * Uplink author that a slot they bind no longer exists and which slot to use
+ * instead.
  *
  * @category Extensions
  */
@@ -142,7 +149,9 @@ function notifyAugmentChange(): void {
 
 /**
  * Calls `cb` whenever an augment is registered or the registry is cleared.
- * Returns a function that unsubscribes.
+ * Returns a function that unsubscribes. Useful for a widget that must redraw
+ * when an Uplink adds content after the widget has mounted. Used by
+ * {@link AugmentSlot} and by the map view's base layer list.
  *
  * @category Extensions
  */
@@ -158,6 +167,8 @@ export function onAugmentsChange(cb: () => void): () => void {
  * `registerComponent`. Several augments may bind one slot; they all render,
  * ordered by `priority`. Registering an id again replaces the earlier augment.
  * `component` is typed against the slot's props in {@link SlotRegistry}.
+ * Useful for adding content from an Uplink to a widget the operator already
+ * has on the dashboard.
  *
  * An Uplink calls the `registerAugment` exported by `@ksp-gonogo/sitrep-sdk`,
  * which reaches this registry through the host. For binding a widget's
@@ -183,7 +194,9 @@ export function registerAugment<Slot extends string>(
  * Every augment bound to `slotName`, in render order: ascending `priority`
  * (default 0), ties in registration order. It includes augments whose
  * `requires` Domain is absent; {@link AugmentSlot} applies that gate when it
- * renders.
+ * renders. Useful for a widget that needs to know what Uplinks add to a slot
+ * before it draws. Used by {@link AugmentSlot} and by the map view when it
+ * paints its base layers.
  *
  * @category Extensions
  */
@@ -200,7 +213,9 @@ export function getAugmentsForSlot(slotName: string): AnyAugment[] {
 }
 
 /**
- * Every registered augment, in no particular order.
+ * Every registered augment, in no particular order. Useful for listing what
+ * Uplinks have added across all widgets. Used by the app's feeder that reports
+ * which Domains an augment needs.
  *
  * @category Extensions
  */
@@ -213,7 +228,9 @@ export function getAugments(): AnyAugment[] {
  * `settings`, in render order. The host widget's settings panel shows these
  * after its own settings; each block's `namespace` (the augment id) scopes its
  * fields in the widget instance's config. An Uplink that is not loaded adds no
- * block.
+ * block. Useful for showing the operator the settings Uplinks add to a widget.
+ * Used by the map view's configuration form, which hands the result to
+ * {@link AugmentSettingsPanel}.
  *
  * @category Extensions
  */

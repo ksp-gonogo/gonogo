@@ -52,7 +52,8 @@ export function useSettingsService(): SettingsService {
 /**
  * The value of one client setting and a function that sets it, re-rendering
  * when it changes. A new value is saved and every other reader of the setting
- * sees it. This is the one to use in a component, for a setting your Uplink
+ * sees it. Useful for a widget option the operator can change in Settings.
+ * This is the one to use in a component, for a setting your Uplink
  * registers with `registerSetting`: the key is that row's id. For client
  * settings only: a setting the mod publishes is read from its Topic.
  *

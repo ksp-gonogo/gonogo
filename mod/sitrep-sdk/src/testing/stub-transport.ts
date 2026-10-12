@@ -26,9 +26,9 @@ export function makeMeta(overrides: Partial<Meta> = {}): Meta {
 }
 
 /**
- * Re-exported from `../wrap-units`, where it moved when it became the declared
- * input type of the wrap functions themselves. Kept here because every fixture
- * in the tree imports it from this module.
+ * A payload as the mod sends it: numbers with a declared unit are plain numbers
+ * and not yet wrapped in a `Value`. Useful for typing the payload a test hands
+ * to the stub transport. Taken by {@link wrapWire}.
  */
 export type { WireOf } from "../wrap-units";
 

@@ -13,15 +13,15 @@ interface LaunchSiteWireEntry {
 }
 
 /**
- * The `spaceCenter.state` derived channel: the pad-occupancy scalars behind
- * the legacy `kc.padOccupied` / `kc.padVesselTitle` keys. The mod
- * already carries per-site occupancy on `spaceCenter.launchSites`
- * (`LaunchSiteEntry.padOccupied` is non-null only on the stock KSC pad, there
- * is no clean stock per-site occupancy API, so it rides the one pad), so this
- * derives the two vessel-independent scalars off that array rather than the mod
- * duplicating them onto a second channel. Vessel-independent, ground-side facts,
- * the same lifetime as `spaceCenter.launchSites` itself, matching the legacy
- * keys' scope.
+ * The `spaceCenter.state` derived channel: the two pad-occupancy facts, whether
+ * the launch pad is occupied and the title of the vessel on it. Useful for
+ * showing the operator whether the pad is clear at the space centre. Used by the
+ * space centre status widget and the game context hook.
+ *
+ * Both are ground-side and independent of the active vessel, with the same
+ * lifetime as `spaceCenter.launchSites`. They are derived from that array because
+ * the mod carries per-site occupancy there, and `LaunchSiteEntry.padOccupied` is
+ * non-null only on the stock pad: stock KSP has no per-site occupancy.
  */
 export interface SpaceCenterState {
   /**
@@ -40,12 +40,15 @@ export interface SpaceCenterState {
 }
 
 /**
- * `spaceCenter.state` derivation. `undefined` while `spaceCenter.launchSites`
- * hasn't arrived (still resyncing); `null` when it's a confirmed tombstone;
- * otherwise the pad-occupancy pair pulled from the stock-pad entry (the one
- * carrying a non-null `padOccupied`). A pad reported clear reads as
- * `{ padOccupied: false, padVesselTitle: null }`; a list carrying no
- * occupancy at all reads `padOccupied: null`. Never throws.
+ * Derives `spaceCenter.state` from `spaceCenter.launchSites`. Useful for showing
+ * the operator whether the pad is occupied. Used by {@link spaceCenterStateChannel}.
+ *
+ * The result is `undefined` while `spaceCenter.launchSites` has not arrived (still
+ * resyncing) and `null` when it is a confirmed tombstone; otherwise it is the
+ * pad-occupancy pair from the stock-pad entry (the one carrying a non-null
+ * `padOccupied`). A pad reported clear reads as `{ padOccupied: false,
+ * padVesselTitle: null }`; a list carrying no occupancy at all reads `padOccupied:
+ * null`. Never throws.
  */
 export function deriveSpaceCenterState(
   get: DerivedGet,
@@ -69,8 +72,10 @@ export function deriveSpaceCenterState(
 }
 
 /**
- * Ready-to-register definition: `store.registerDerivedChannel(spaceCenterStateChannel)`.
- * `fields: true` exposes `spaceCenter.state.padOccupied` /
+ * The derived channel definition for `spaceCenter.state`, ready to register with
+ * `store.registerDerivedChannel(spaceCenterStateChannel)`. Useful for making
+ * pad occupancy readable by widgets. Registered by the telemetry context
+ * provider. `fields: true` exposes `spaceCenter.state.padOccupied` and
  * `spaceCenter.state.padVesselTitle`. Its status is its single
  * `spaceCenter.launchSites` input's.
  */

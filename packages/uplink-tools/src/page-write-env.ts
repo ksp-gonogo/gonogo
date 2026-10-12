@@ -1,10 +1,11 @@
 /**
- * Set to `1` by `uplink-tools page`, and by nothing else, for the one test run
- * in which the page check writes the page instead of comparing it.
+ * The environment variable that makes the page check write the page instead of
+ * comparing it. `uplink-tools page` sets it to `1` for the one test run in
+ * which it writes, and nothing else sets it. Useful for letting a scaffold
+ * made inside CI write its first page. Read by the page check in
+ * `page-check.ts`.
  *
- * It is separate from the update switch a person sets by hand, which is refused
- * under CI so that a check run can never heal itself. This one is a write that
- * was asked for by name, so it is honoured anywhere: a scaffold made inside CI
- * needs its first page as much as one made on a laptop.
+ * Unlike the update switch a person sets by hand, which is refused under CI,
+ * this one is honoured on any machine.
  */
 export const PAGE_WRITE_ENV = "GONOGO_UPLINK_PAGE_WRITE";

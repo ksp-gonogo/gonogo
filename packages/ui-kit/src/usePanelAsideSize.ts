@@ -12,6 +12,7 @@ import {
 /**
  * How a panel header's aside is currently drawn: `full`, inline beside the
  * title, or `collapsed`, behind the status dots and the toggle that opens it.
+ * Returned by {@link usePanelAsideSize}.
  *
  * @category Panel
  */
@@ -27,7 +28,9 @@ const REEXPAND_MARGIN_PX = 24;
 /**
  * Whether the aside should be collapsed, given the row's available width and
  * the width the title and aside need side by side. The two directions have
- * different thresholds (see `REEXPAND_MARGIN_PX`).
+ * different thresholds (see `REEXPAND_MARGIN_PX`). Useful for keeping the
+ * operator's header aside from flickering between inline and collapsed. Used by
+ * {@link Panel}'s header.
  *
  * A `0` (unmeasured) width holds the previous state rather than deciding
  * anything.
@@ -126,9 +129,9 @@ function px(value: string): number {
 
 /**
  * The measured-fit collapse `Panel.Header` runs to decide whether its aside
- * belongs inline or behind the dots and expand box. Measured rather than a
- * width breakpoint, which is content-blind and would collapse a short title's
- * aside that has room.
+ * belongs inline or behind the dots and expand box. Useful for keeping an
+ * aside visible to the operator whenever it fits. Used by {@link Panel}'s
+ * header.
  *
  * `rowRef` is the header row: its content width is the room available.
  * `titleRef` is the rendered `Panel.Title`, and `asideRef` the
@@ -272,8 +275,8 @@ const PanelAsideSizeContext = createContext<PanelAsideSize>("full");
 
 /**
  * Carries `Panel.Header`'s collapse decision down to content inside
- * `panelAside`. Content never measures independently, so it cannot disagree
- * with the chrome about which state the aside is in.
+ * `panelAside`, so the content and the header agree on which state the aside
+ * is in. Used by {@link Panel}'s header and read by {@link usePanelAsideSize}.
  */
 export const PanelAsideSizeProvider = PanelAsideSizeContext.Provider;
 

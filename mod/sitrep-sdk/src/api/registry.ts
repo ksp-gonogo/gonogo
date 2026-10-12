@@ -43,13 +43,16 @@ const REGISTRY_KEY = "__GONOGO_COMPONENT_REGISTRY__" as const;
 // `registerDataSource`); the internal Map just needs to hold anything.
 /**
  * A registered widget's definition, whatever its config type: the same type
- * as {@link ComponentDefinition}.
+ * as {@link ComponentDefinition}. Useful for listing the widgets the operator
+ * can add to a screen. Returned by {@link getComponent}.
  *
  * @category Registering
  */
 export type AnyDef = ComponentDefinition;
 /**
- * A registered data source: the same type as {@link DataSource}.
+ * A registered data source: the same type as {@link DataSource}. Useful for
+ * listing the connections the operator can configure. Returned by
+ * {@link getDataSources}.
  *
  * @category Registering
  */
@@ -230,15 +233,14 @@ export function getComponent(id: string): AnyDef | undefined {
 }
 
 /**
- * A widget-replacement conflict: two or more registered widgets
- * declare `replaces` the same `targetId`. Two full replacements are
- * fundamentally not composable, so this is surfaced (for a user config pick /
- * explicit priority) rather than silently merged.
+ * Two or more registered widgets that declare `replaces` for the same widget.
+ * Useful for asking the operator which replacement to use, since two full
+ * replacements cannot be combined. Returned by {@link getReplacementConflicts}.
  */
 export interface ReplacementConflict {
   /** The widget id both replacers target. */
   targetId: string;
-  /** The ids of the widgets competing to replace it (≥2). */
+  /** The ids of the widgets competing to replace it (two or more). */
   replacerIds: string[];
 }
 

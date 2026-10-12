@@ -3,12 +3,15 @@ import { join, resolve } from "node:path";
 
 /**
  * How one channel is sent, as the Uplink's C# `ChannelDeclaration` sets it: its
- * `Delivery` and its `DelayRole`. Read from the C# sources by
- * {@link readChannelDispositions}, which understands both a plain declaration
- * and a factory method that returns one. When there is C# beside the client
- * and it declares no channel the generated contract names, page generation
- * fails naming it. When there is no C# to read, the page lists every channel
- * without its delivery or delay.
+ * `Delivery` and its `DelayRole`. Useful for showing the operator how each
+ * Topic of the Uplink reaches the command centre and whether the signal delay
+ * applies to it. Returned by {@link readChannelDispositions}, which reads both
+ * a plain declaration and a factory method that returns one, and used by the
+ * page generator.
+ *
+ * When there is C# beside the client and it declares no channel the generated
+ * contract names, page generation fails naming it. When there is no C# to
+ * read, the page lists every channel without its delivery or delay.
  *
  * @category Uplink page
  */
@@ -88,14 +91,19 @@ function enumMember(raw: string | undefined): string | undefined {
   return kebab(member);
 }
 
-/** Whether there is any C# for {@link readChannelDispositions} to read near `pkgDir`. */
+/**
+ * Whether there is any C# for {@link readChannelDispositions} to read near
+ * `pkgDir`. Useful for telling a missing declaration from an Uplink that ships
+ * no C# at all. Used by the page generator.
+ */
 export function channelSourcesFound(pkgDir: string): boolean {
   return candidateSources(pkgDir).length > 0;
 }
 
 /**
  * How each channel an Uplink's C# declares is sent, read from the C# sources
- * under `pkgDir`, keyed by channel id.
+ * under `pkgDir`, keyed by channel id. Useful for showing the operator how each
+ * Topic of the Uplink is delivered and delayed. Used by the page generator.
  *
  * @category Uplink page
  */

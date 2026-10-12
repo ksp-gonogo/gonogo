@@ -6,7 +6,9 @@ import styled from "styled-components";
 import { reckoningBasisPhrase } from "./reckoningBasisPhrase";
 
 /**
- * One line on a {@link LineGraph}.
+ * One line on a graph: its points, colour and label. Useful for showing the
+ * operator how one reading has moved over time. Passed in the `series` prop of
+ * {@link LineGraph}.
  *
  * @category LineGraph
  */
@@ -52,7 +54,9 @@ export interface LineGraphSeries {
 }
 
 /**
- * A horizontal reference level on a {@link LineGraph}, such as a safe limit.
+ * A horizontal reference level on a graph, such as a safe limit. Useful for
+ * showing the operator how far a reading is from the level that matters. Passed
+ * in the `thresholds` prop of {@link LineGraph}.
  *
  * @category LineGraph
  */
@@ -74,8 +78,10 @@ export interface LineGraphThreshold {
 }
 
 /**
- * How a {@link LineGraph} draws its thresholds: `"full"` is a dashed rule
- * across the frame, `"marker"` a short tick at the left edge.
+ * How a graph draws its thresholds: `"full"` is a dashed rule across the frame,
+ * `"marker"` a short tick at the left edge. Useful for choosing a tick where a
+ * rule would crowd a small graph. The `thresholdStyle` prop of
+ * {@link LineGraph} takes it.
  *
  * @category LineGraph
  */

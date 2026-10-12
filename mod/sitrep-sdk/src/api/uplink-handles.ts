@@ -59,7 +59,9 @@ export function getUplinkHandle<Handle = unknown>(
 }
 
 /**
- * Removes the object stored under `uplinkId`. Does nothing if there is none.
+ * Removes the object stored under `uplinkId`, so {@link getUplinkHandle} no
+ * longer finds it. Does nothing if there is none. Useful for an Uplink that
+ * shuts down and should stop answering a station's calls.
  *
  * @category Registering
  */
@@ -68,7 +70,9 @@ export function unregisterUplinkHandle(uplinkId: string): void {
 }
 
 /**
- * Remove every registered handle. For tests; a running app never calls it.
+ * Removes every object stored with {@link registerUplinkHandle}. Useful for
+ * resetting between tests; a running app never calls it. Re-exported by the
+ * SDK's testing helpers.
  *
  * @category Registering
  */

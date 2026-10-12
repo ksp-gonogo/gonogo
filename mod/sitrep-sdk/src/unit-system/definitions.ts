@@ -1,7 +1,9 @@
 import type { Dimension } from "./dimension";
 
 /**
- * What the runtime knows about one unit, as {@link lookupUnit} returns it.
+ * What the runtime knows about one unit: its dimension, its size against the
+ * base unit and what it measures. Useful for converting a value for the operator
+ * and choosing how to show it. Returned by {@link lookupUnit}.
  *
  * @category Units and values
  */
@@ -46,15 +48,18 @@ export interface UnitDefinition {
  */
 /**
  * Standard gravity, 9.80665 m/s²: the value KSP uses for thrust-to-weight,
- * delta-v and g-force.
+ * delta-v and g-force. Useful for working out a figure the operator sees, such
+ * as a thrust-to-weight ratio, with the same constant the game uses. Used by
+ * the thrust-to-weight gauge.
  *
  * @category Units and values
  */
 export const STANDARD_GRAVITY = 9.80665;
 
 /**
- * Every unit Gonogo itself defines, keyed by symbol. Units an Uplink
- * registers are not here; {@link lookupUnit} covers both.
+ * Every unit Gonogo itself defines, keyed by symbol. Useful for listing the
+ * units a figure can be shown in. Units an Uplink registers are not here;
+ * {@link lookupUnit} covers both.
  *
  * @category Units and values
  */
@@ -447,7 +452,8 @@ export const UNIT_DEFINITIONS = {
 } as const satisfies Record<string, UnitDefinition>;
 
 /**
- * The symbol of a unit Gonogo itself defines.
+ * The symbol of a unit Gonogo itself defines. Useful for naming one of the
+ * built-in units with a compile-time check. Used by the type of `Value`.
  *
  * @category Units and values
  */

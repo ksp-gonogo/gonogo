@@ -27,8 +27,8 @@ const NO_PROVIDER = topicReading<never>({
 
 /**
  * Subscribes to a Topic and returns its `Reading`: the latest value together
- * with how current it is. The read hook for every Topic with a typed
- * `TopicId`:
+ * with how current it is. Useful for showing the operator any Topic with a typed
+ * `TopicId`, and called by widgets to read their telemetry:
  *
  *   const orbit = useTelemetry("vessel.orbit");
  *

@@ -35,6 +35,8 @@ const words = (text: string): string =>
 
 /**
  * The handlers and data attribute to spread onto the element the tip describes.
+ * Useful for opening a tip when the operator points at or focuses the element.
+ * Returned as `anchor` by {@link useTooltip}.
  *
  * @category Floating
  */
@@ -242,7 +244,8 @@ function TipBody({
 }
 
 /**
- * The props of {@link Tooltip}.
+ * The props of {@link Tooltip}: the tip's text and the one element it
+ * describes.
  *
  * @category Floating
  */

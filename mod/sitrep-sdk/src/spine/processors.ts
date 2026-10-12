@@ -18,16 +18,16 @@ import type { TopicReading } from "./client-reading";
 
 /**
  * A handle to a processor, as {@link UplinkClientHandle.registerProcessor} or
- * {@link defineProcessorContract} returns it. Pass it to {@link useProcessor},
- * or list it in a contribution's `deps`. Its type carries the processor's
- * result type.
+ * {@link defineProcessorContract} returns it. Useful for reading a computed value
+ * shared by several widgets. Pass it to {@link useProcessor}, or list it in a
+ * contribution's `deps`. Its type carries the processor's result type.
  *
  * @typeParam Result - What the processor computes.
  * @typeParam ProcessorId - Its id.
  * @typeParam Carried - Whether the processor returns a `Reading` rather than a
- * bare value. It does when any of its dependencies is a reading: the result
- * then says how current it is (observed, held or modelled), dated by those
- * inputs. See {@link useProcessor}.
+ * bare value. It does when any of its dependencies is a reading: the result then
+ * says how current it is (observed, held or modelled), dated by those inputs. See
+ * {@link useProcessor}.
  *
  * @category Processors
  */
@@ -45,11 +45,13 @@ export interface ProcessorHandle<
 }
 
 /**
- * Whether a dep list makes its processor's result datable.
+ * Whether a dep list makes its processor's result datable. Useful for typing a
+ * processor's result as a `Reading` when any dependency is one. Used by
+ * {@link UplinkClientHandle.registerProcessor} to type the handle it returns.
  *
  * Wrapped in a tuple so a union of deps does not distribute: the answer is a
- * property of the list as a whole, and a distributed `extends never` would
- * decide it once per member.
+ * property of the list as a whole, and a distributed `extends never` would decide
+ * it once per member.
  *
  * @category Processors
  */
@@ -60,16 +62,16 @@ export type CarriesCurrency<Deps extends readonly Dep[]> = [
   : true;
 
 /**
- * A dep asking for a Topic's `Reading` rather than its bare payload.
- * `{ reading: "vessel.resources" }` resolves to the Topic's {@link TopicReading}
- * in the processor's `compute`, so the result can say how current it is: a
- * processor given only the payload computes on last-contact values during a
- * blackout and presents the result as if it were now.
+ * A dep asking for a Topic's `Reading` rather than its bare payload. Useful for
+ * letting a processor's result say how current it is: a processor given only the
+ * payload computes on last-contact values during a blackout and presents the
+ * result as if it were now. Listed in a processor's `deps`.
  *
- * A processor with a reading among its deps returns a `Reading` of its own,
- * observed, held or modelled by those inputs (see {@link CarriesCurrency}).
- * Return a plain value, not the reading, when the result combines several
- * Topics: it is no single Topic's currency.
+ * `{ reading: "vessel.resources" }` resolves to the Topic's {@link TopicReading}
+ * in the processor's `compute`. A processor with a reading among its deps returns
+ * a `Reading` of its own, observed, held or modelled by those inputs (see
+ * {@link CarriesCurrency}). Return a plain value, not the reading, when the result
+ * combines several Topics: it is no single Topic's currency.
  *
  * @typeParam Topic - The Topic read.
  *
@@ -82,8 +84,10 @@ export interface ReadingDep<Topic extends TopicId = TopicId> {
 
 /**
  * A dep whose Topic is only known once the fixed deps have resolved: "the orbit
- * of whichever vessel this route names", not a Topic id anyone can write down
- * in advance. Only a reckoner declares one; a processor handed one is refused.
+ * of whichever vessel this route names", not a Topic id anyone can write down in
+ * advance. Useful for carrying forward a reading about a vessel the operator
+ * selects at run time. Declared by the reckoners built into the SDK. Only a
+ * reckoner declares one; a processor handed one is refused.
  *
  * `Payload` is the payload the resolved Topic carries, which you state, since a
  * Topic id computed at runtime has no entry in `TopicPayloadMap` to infer from.
@@ -120,12 +124,13 @@ export interface SubjectDep<
 }
 
 /**
- * A processor dependency: a raw Topic id, a Topic's reading, another
- * processor's handle, or a per-subject topic resolved at reckon time.
+ * A processor dependency: a raw Topic id, a Topic's reading, another processor's
+ * handle, or a per-subject topic resolved at reckon time. Useful for declaring
+ * what a processor or reckoner computes from. Listed in the `deps` of a
+ * processor, a reckoner and a contribution.
  *
- * The last is a reckoner's to declare. It is in this union rather than in a
- * second one because a reckoner's inputs are the same kind of thing a
- * processor's are, and the alternative is two vocabularies to keep in step (see
+ * The last is a reckoner's to declare. It is in this union because a reckoner's
+ * inputs are the same kind of thing a processor's are (see
  * `ResolvedReckonerDep`, which says the same about resolution). A processor
  * handed one is refused out loud by the evaluator: a processor has no point to
  * take a subject from, and resolving it to `undefined` there would be
@@ -139,7 +144,11 @@ export type Dep =
   | ProcessorHandle<unknown>
   | SubjectDep<unknown>;
 
-/** Whether this dep's topic is computed per subject rather than declared. */
+/**
+ * Whether this dep's topic is computed per subject rather than declared. Useful
+ * for telling a reckoner's dependency apart from a fixed one. Used by the
+ * processor evaluator and the timeline store.
+ */
 export function isSubjectDep(dep: Dep): dep is SubjectDep<unknown> {
   return typeof dep === "object" && dep !== null && "forSubject" in dep;
 }
@@ -163,7 +172,8 @@ type ResolvedDep<Dependency extends Dep> =
 
 /**
  * The tuple of resolved dependency values a processor's `compute` receives, in
- * the order of its deps.
+ * the order of its deps. Useful for typing a `compute` function from its dep
+ * list. Used by {@link UplinkClientHandle.registerProcessor}.
  *
  * @category Processors
  */
@@ -174,13 +184,14 @@ export type ResolvedDeps<Deps extends readonly Dep[]> = {
 };
 
 /**
- * What a processor's `compute` is told about the frame it is running for,
- * beyond its deps. A frame is one pass of the app's telemetry store: it
- * publishes a batch of new samples, and every processor runs once against it.
+ * What a processor's `compute` is told about the frame it is running for, beyond
+ * its deps. A frame is one pass of the app's telemetry store: it publishes a
+ * batch of new samples, and every processor runs once against it. Useful for
+ * turning an instant on the wire into a remaining duration the operator reads.
+ * Passed to `compute` by {@link UplinkClientHandle.registerProcessor}.
  *
- * It holds only the frame's view time, the game time the screen is showing.
- * Use it, not the wall clock, to turn an instant on the wire into a remaining
- * duration, so a replay of the same samples gives the same result.
+ * It holds only the frame's view time, the game time the screen is showing. Use
+ * it, not the wall clock, so a replay of the same samples gives the same result.
  *
  * @category Processors
  */
@@ -207,10 +218,11 @@ export type AnyProcessorDefinition = ProcessorDefinition<
 const processors = new Map<string, AnyProcessorDefinition>();
 
 /**
- * Declare a Processor. Registers under the owner-stamped id `${owner}:${id}`
- * (same owner-stamp convention as registerContribution) and returns an opaque
- * handle other processors and contributions depend on. Re-registering the
- * exact same definition (same compute reference) is a no-op so a module can be
+ * Declares a Processor and returns an opaque handle other processors and
+ * contributions depend on. Useful for computing a value once and sharing it
+ * across widgets. Registers under the owner-stamped id `${owner}:${id}` (the
+ * same owner-stamp convention as registerContribution). Re-registering the exact
+ * same definition (same compute reference) is a no-op so a module can be
  * imported twice; a different definition under an already-used id throws.
  */
 export function defineProcessor<

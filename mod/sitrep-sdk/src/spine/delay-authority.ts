@@ -3,30 +3,34 @@ import { isValue } from "../unit-system/value";
 import { ROUTE_TOPIC, readRouteDelays } from "./comms-route";
 
 /**
- * The `comms.delay` channel topic: the core `SignalDelay` capability's
- * output (`mod/Gonogo.KSP/CommsCoreUplink.cs:DelayTopic`,
- * `mod/Sitrep.Host/ChannelEngine.cs:CommsDelayTopic`). A `Delayed` channel:
- * what defines the delay is the mod's ledger, written by the capture pass, and
- * this is the readout published from the same numbers, so it travels home at
- * the speed everything else does. Read it as an observation of the link, not as
- * the link's current state.
+ * The `comms.delay` channel topic: the one-way signal delay between the vessel
+ * and the command centre, published by the core `SignalDelay` capability. Useful
+ * for timing everything the operator sees by how long the signal takes to
+ * arrive. Read by `DelayAuthority`.
+ *
+ * It is a `Delayed` channel, so it travels home at the same delay as every
+ * other channel. A reading describes the delay when the signal left the vessel
+ * and not the delay now.
  */
 export const COMMS_DELAY_TOPIC = "comms.delay";
 
 /**
  * The `commandCentre.activeVesselDelay` channel topic: each command centre's
- * own delay to the active craft, the rows the mod's ledger times that centre's
- * traffic by (`mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs`).
- * Sparse: home and any centre without a route are absent, and both ride
- * `comms.delay` in the ledger.
+ * own delay to the active vessel, the rows the mod times that centre's traffic
+ * by. Useful for showing the operator the delay at a forward command centre.
+ * Read by `DelayAuthority`.
+ *
+ * The rows are sparse: home and any centre without a route are absent, and
+ * both use `comms.delay`.
  */
 export const CENTRE_DELAY_TOPIC = "commandCentre.activeVesselDelay";
 
 export const ROSTER_TOPIC = "commandCentre.roster";
 
 /**
- * The minimal client surface `DelayAuthority` needs: topic subscription, and
- * the vantage the session stands at, which picks whose delay applies.
+ * What `DelayAuthority` needs of a client: Topic subscription, and the vantage
+ * the session stands at, which picks which command centre's delay applies.
+ * Taken by the `DelayAuthority` constructor, and met by the telemetry client.
  */
 export interface DelaySubscribable {
   subscribe(topic: string, cb: (payload: unknown) => void): () => void;
@@ -55,10 +59,13 @@ function readSeconds(field: unknown): number | null {
 }
 
 /**
- * Each listed centre's own delay to the active craft, keyed by centre id, or
- * `null` for a payload that is not one. An entry with no usable number is left
- * out rather than read as zero, which puts that centre back on `comms.delay`
- * exactly as a missing ledger row does.
+ * Each listed command centre's own delay to the active vessel, keyed by centre
+ * id, or `null` for a payload that is not a `commandCentre.activeVesselDelay`
+ * payload. Useful for showing the operator the delay at each command centre.
+ * Used by the signal delay readout.
+ *
+ * An entry with no usable number is left out and never read as zero, so that
+ * centre uses `comms.delay`, as it does when its row is missing.
  */
 export function readCentreDelays(
   payload: unknown,
@@ -79,7 +86,11 @@ export function readCentreDelays(
   return delays;
 }
 
-/** The roster entry marked home, by id, or `null` for a payload that names none. */
+/**
+ * The id of the command centre marked home in a roster payload, or `null` for a
+ * payload that names none. Useful for telling which command centre the operator
+ * is at by default.
+ */
 export function readHomeCentre(payload: unknown): string | null {
   if (!Array.isArray(payload)) return null;
   for (const entry of payload) {
@@ -98,17 +109,15 @@ export function readHomeCentre(payload: unknown): string | null {
  * A caller keeps its previous delay through a `null` and never reads it as
  * zero.
  *
- * The answer comes from the value and never from `source`
- * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`), because
+ * The answer comes from the value and never from `source`, because
  * `CommsDelaySource.None` covers two opposite states: a 0 is "the delay
  * feature is off and the vessel is connected", and a null is "there is no
- * path home to measure". `command-delay.ts`'s `currentMode` reads the payload
- * the same way.
+ * path home to measure".
  *
  * Only a finite, non-negative delay is returned, as a bare number or as the
  * magnitude of a `Value`. An absent or malformed payload, NaN and a negative
- * all return `null`, because a wrongly reported zero pins the whole clock to
- * the predicted present and releases every delayed channel at once.
+ * all return `null`, because a zero reported wrongly would release every
+ * delayed channel at once.
  */
 export function readOneWaySeconds(payload: unknown): number | null {
   if (!payload || typeof payload !== "object") return null;
@@ -117,20 +126,21 @@ export function readOneWaySeconds(payload: unknown): number | null {
 }
 
 /**
- * The client-side delay authority: holds the one-way delay this session's
- * frames are timed by and exposes it as `delaySeconds()`, which the one
- * `ViewClock` reads (`ViewClockOptions.delaySeconds`).
+ * Holds the one-way delay between this session's command centre and the vessel,
+ * which times the frames the operator sees, and exposes it as `delaySeconds()`
+ * for the view clock to read (`ViewClockOptions.delaySeconds`). Useful for
+ * keeping telemetry and video aligned to how long the signal takes to arrive.
+ * Used by `TelemetryProvider`, which builds one for the shared view clock.
  *
- * The delay is the session's own centre's row on
+ * The delay is the session's own command centre's row on
  * `commandCentre.activeVesselDelay` where it has one, and otherwise
- * `comms.delay`, the whole-network delay every centre without a row is timed
- * by. So a session at a forward centre runs its clock on that centre's own
- * delay, and one at home on home's.
+ * `comms.delay`, the delay used by every centre without a row. So a session at
+ * a forward centre runs its clock on that centre's delay, and one at home on
+ * home's.
  *
  * It enforces nothing: the mod has already withheld each channel's samples
  * until `UT <= now - delay`. The value only sizes how far `utNowEstimate()`
- * leads `confirmedEdgeUt()`. Media reads the same clock, so telemetry and
- * video stay aligned.
+ * leads `confirmedEdgeUt()`. Media reads the same clock.
  */
 export class DelayAuthority {
   /*

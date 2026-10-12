@@ -40,24 +40,38 @@ export type {
   RailTags,
 } from "@ksp-gonogo/sitrep-sdk";
 
-/** The kind axis, and only it: a span lying along the rail for a continuous entry, a point travelling it for a discrete one or an event. */
+/**
+ * The kind axis, and only it: `ribbon` for a span lying along the rail (a
+ * continuous entry), `dot` for a point travelling it (a discrete entry or an
+ * event). Useful for choosing how the operator sees an entry on the delay rail.
+ * Used by {@link CommandList} and the panel delay rail.
+ */
 export function railMark(tags: RailTags): "dot" | "ribbon" {
   return tags.kind === "continuous" ? "ribbon" : "dot";
 }
 
-/** The delivery axis, and only it: whether anything is drawn coming back. */
+/**
+ * The delivery axis, and only it: whether anything is drawn coming back from the
+ * vessel. Useful for showing the operator a return trace only for an entry that
+ * has a reply. Used by {@link ControlDelayStream}.
+ */
 export function railDrawsReturnLeg(tags: RailTags): boolean {
   return tags.delivery === "acked";
 }
 
-/** The direction axis, and only it: which way along the rail the entry runs. */
+/**
+ * The direction axis, and only it: which way along the rail the entry runs.
+ * Useful for showing whether the operator is looking at an order leaving or
+ * news arriving. Used by {@link ControlDelayStream}.
+ */
 export function railFlow(tags: RailTags): "outbound" | "inbound" {
   return tags.direction === "command" ? "outbound" : "inbound";
 }
 
 /**
  * The direction axis, and only it, as a theme token name (no `var()` wrapper):
- * accent for orders leaving, info for news arriving.
+ * accent for orders leaving, info for news arriving. Useful for colouring an
+ * entry by its direction. Used by {@link ControlDelayStream}.
  */
 export function railToneToken(tags: RailTags): string {
   return tags.direction === "command"
@@ -70,11 +84,16 @@ const DIRECTIONS: readonly RailDirection[] = ["command", "telemetry"];
 const KINDS: readonly SampleKind[] = ["event", "discrete", "continuous"];
 const DELIVERIES: readonly RailDelivery[] = ["acked", "fire-and-forget"];
 
-/** One combination, spelled as the table's key; a template-literal type, so the table cannot hold a typo. */
+/**
+ * One combination of the three axes, spelled `direction/kind/delivery`. Useful
+ * for keying an entry on the delay rail. Returned by {@link railTagKey}.
+ */
 export type RailTagKey = `${RailDirection}/${SampleKind}/${RailDelivery}`;
 
 /**
- * A handle's three rail axes as one `direction/kind/delivery` string, e.g. `command/event/acked`.
+ * A handle's three rail axes as one `direction/kind/delivery` string, e.g.
+ * `command/event/acked`. Useful for keying an entry on the delay rail. Used by
+ * {@link CommandDelay} and {@link ControlDelayStream}.
  *
  * @intent Published so a representation of the rail of a third party can key its entries by the same tag combination the kit does.
  * @category CommandDelay
@@ -89,6 +108,8 @@ export function railTagKey(tags: RailTags): RailTagKey {
  * - `in-flight-row`: a row in `InFlightList`, the queue of points crossing the delay
  * - `continuous-strip`: `ControlDelayStream`, the three-zone graph, whichever
  *   mark the entry's data calls for inside it
+ *
+ * Returned by {@link railRendererFor}.
  */
 export type RailRenderer = "in-flight-row" | "continuous-strip";
 
@@ -105,13 +126,17 @@ const RAIL_RENDERERS: Partial<Record<RailTagKey, RailRenderer>> = {
 /**
  * The renderer for an entry, or `null` when nothing draws that combination. A
  * caller handed `null` reports it ({@link reportUnrepresentedRail}) rather than
- * rendering nothing quietly.
+ * rendering nothing quietly. Useful for choosing which display shows the
+ * operator an entry. Used by {@link CommandDelay} and {@link ControlDelayStream}.
  */
 export function railRendererFor(tags: RailTags): RailRenderer | null {
   return RAIL_RENDERERS[railTagKey(tags)] ?? null;
 }
 
-/** Every combination of the three axes: the whole product, twelve of them. */
+/**
+ * Every combination of the three axes, twelve in all. Useful for checking that
+ * each combination is either drawn or reported.
+ */
 export function allRailTags(): RailTags[] {
   const out: RailTags[] = [];
   for (const direction of DIRECTIONS)
@@ -121,7 +146,10 @@ export function allRailTags(): RailTags[] {
   return out;
 }
 
-/** The combinations nothing can draw, as a value the tree can assert on. */
+/**
+ * The combinations nothing can draw. Useful for checking which entries would
+ * never reach the operator's screen.
+ */
 export function unrepresentedRailTags(): RailTags[] {
   return allRailTags().filter((tags) => railRendererFor(tags) === null);
 }
@@ -133,7 +161,8 @@ const reportedUnrepresented = new Set<RailTagKey>();
  * Reports that an entry declared something the rail cannot draw, naming the
  * combination and who declared it. Never throws, so the widget survives. Falls
  * back to `console.error` without a host, because the sdk's `logger` throws
- * when none is installed.
+ * when none is installed. Useful for surfacing an entry the operator would
+ * otherwise not see. Used by {@link CommandDelay} and {@link ControlDelayStream}.
  */
 export function reportUnrepresentedRail(tags: RailTags, who: string): void {
   const key = railTagKey(tags);

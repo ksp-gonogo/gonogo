@@ -9,9 +9,11 @@ export const DashboardItemContext =
   createContext<DashboardItemContextValue | null>(null);
 
 /**
- * Reads the current dashboard item's instance ID. Throws if called outside a
- * `<DashboardItemContext.Provider>`: catches cases where an action-using
- * component is rendered outside the Dashboard.
+ * The instance id of the dashboard item the calling widget is placed in. Useful
+ * for routing an operator's input mapping to the right copy of a widget. Used
+ * by the hook that handles a widget's actions. Throws outside a
+ * `<DashboardItemContext.Provider>`, which means the widget is rendered outside
+ * the dashboard.
  */
 export function useDashboardItemId(): string {
   const ctx = useContext(DashboardItemContext);

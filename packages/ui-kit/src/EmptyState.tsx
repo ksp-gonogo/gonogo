@@ -3,7 +3,8 @@ import styled, { css } from "styled-components";
 
 /**
  * Where an {@link EmptyState} sits: `inline` where it is mounted, `fill`
- * centred in the available space.
+ * centred in the available space. Set with the `layout` prop of
+ * {@link EmptyState}.
  *
  * @category EmptyState
  */

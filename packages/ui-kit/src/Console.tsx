@@ -71,10 +71,11 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
 const QUEUE_LABEL = "Uplink queue";
 
 /**
- * A two-way text console for a craft or device that may be a signal delay
+ * A two-way text console for a vessel or device that may be a signal delay
  * away: the scrollback, the lines still in transit, the line being typed, and
- * one reading of the one-way delay between the command centre and that craft
- * or device (`oneWaySeconds`). Used by widgets that send typed lines, such as
+ * one reading of the one-way delay between the command centre and that vessel
+ * or device (`oneWaySeconds`). Useful for letting the operator type to a remote
+ * vessel and see what is still on its way. Used by widgets that send typed lines, such as
  * a script terminal or a message thread.
  *
  * The console picks the delay reading. While the one-way delay is a second or
@@ -89,9 +90,9 @@ const QUEUE_LABEL = "Uplink queue";
  *
  * @category Console
  * @categoryDescription Console
- * A two-way text console over a delayed link: the scrollback, the line being
- * typed, and the lines still in transit, framed with one reading of the
- * one-way delay to the craft the console talks to.
+ * A two-way text console for a vessel or device behind a signal delay: the
+ * scrollback, the line being typed, and the lines still in transit, framed with
+ * one reading of the one-way delay to the vessel the console talks to.
  */
 export function Console({
   tone,

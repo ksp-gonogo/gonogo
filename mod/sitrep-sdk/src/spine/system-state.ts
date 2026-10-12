@@ -2,15 +2,13 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 import type { SystemBodiesPayload } from "./wire-payloads";
 
 /**
- * The `system.state` derived channel, for display maps that resolve a
- * `system.*` raw channel to a widget-facing shape but have nothing to do with
- * any one vessel.
+ * The `system.state` derived channel: facts about the solar system that do not
+ * depend on any one vessel. Useful for knowing how many bodies exist.
  *
- * Today it carries a single field, `bodyCount`. `system.bodies` on the wire is
- * the raw array of bodies (`SystemViewProvider.BuildSystemBodies`), whereas
- * SystemView/useCelestialBodies.ts reads a plain `number` (how many bodies
- * exist, so it can fan out per-index subscribes). A body count does not depend
- * on anything flying, so it stays available whenever `system.bodies` is.
+ * Today it carries a single field, `bodyCount`. `system.bodies` on the wire is the
+ * raw array of bodies, whereas a widget that fans out one subscription per body
+ * index needs a plain `number`. A body count does not depend on anything flying,
+ * so it stays available whenever `system.bodies` is.
  */
 export interface SystemState {
   /** Number of bodies in `system.bodies`. */
@@ -18,9 +16,10 @@ export interface SystemState {
 }
 
 /**
- * `system.state` derivation. `undefined` while `system.bodies` hasn't arrived
- * ("still resyncing"); `null` when it's a confirmed tombstone; otherwise the
- * array length. Never throws.
+ * Derives `system.state` from `system.bodies`. Useful for knowing how many bodies
+ * the game has. Used by {@link systemStateChannel}. The result is `undefined`
+ * while `system.bodies` has not arrived (still resyncing), `null` when it is a
+ * confirmed tombstone, and otherwise the array length. Never throws.
  */
 export function deriveSystemState(
   get: DerivedGet,
@@ -32,7 +31,9 @@ export function deriveSystemState(
 }
 
 /**
- * Ready-to-register definition: `store.registerDerivedChannel(systemStateChannel)`.
+ * The derived channel definition for `system.state`, ready to register with
+ * `store.registerDerivedChannel(systemStateChannel)`. Useful for making the body
+ * count readable by widgets. Registered by the telemetry context provider.
  * `fields: true` exposes `system.state.bodyCount`. Its status is its single
  * `system.bodies` input's.
  */

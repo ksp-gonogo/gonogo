@@ -60,7 +60,9 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
  *
  * In stock KSP every body has {@link ANALYTIC_BODY_HORIZON}: its orbit is
  * fixed, so its position at any UT is known. In an n-body game the provider
- * says how far each body's elements hold.
+ * says how far each body's elements hold. Useful for telling the operator how
+ * far ahead a body's position on a solar system diagram can be trusted. Held by
+ * {@link CelestialBody}.
  *
  * @category Solar system and fleet
  */
@@ -75,7 +77,9 @@ export interface BodyHorizon {
 
 /**
  * The horizon of a body on a fixed orbit, as in stock KSP: `Unbounded` and
- * `Analytic`. A body whose payload carries no horizon is given this one.
+ * `Analytic`. A body whose payload carries no horizon is given this one. Useful
+ * as the horizon of a body whose position is always known. Held by
+ * {@link CelestialBody}.
  *
  * @category Solar system and fleet
  */
@@ -87,6 +91,8 @@ export const ANALYTIC_BODY_HORIZON: BodyHorizon = Object.freeze({
 
 /**
  * A body's atmosphere. Each field is null when the game did not report it.
+ * Useful for showing the operator whether a body has air and how deep it is.
+ * Held by {@link CelestialBody}; used by the system view.
  *
  * @category Solar system and fleet
  */
@@ -102,7 +108,8 @@ export interface BodyAtmosphere {
 /**
  * A body's figures as `Value`s, as the payload carried them, for showing in a
  * readout: they keep their units and their static mark. Each is `null` when
- * the game did not report it.
+ * the game did not report it. Useful for showing the operator a body's size,
+ * mass and gravity in their units. Held by {@link CelestialBody}.
  *
  * @category Solar system and fleet
  */
@@ -124,7 +131,10 @@ export interface BodyFigures {
  * here are plain, for drawing and arithmetic: lengths in metres, angles in
  * degrees except the mean anomaly in radians, times in seconds. To show one
  * with its unit, use `figures`. A field is `null` when the game did not report
- * it, and the orbit fields are `null` for the root star.
+ * it, and the orbit fields are `null` for the root star. Useful for drawing a
+ * body on a solar system diagram and for showing the operator its facts. Held
+ * by {@link CelestialFacts}; used by the transfer window planner and the kit's
+ * ephemeris figure.
  *
  * @category Solar system and fleet
  */
@@ -206,7 +216,9 @@ export interface CelestialBody {
 
 /**
  * Every body in the solar system as the latest `system.bodies` describes it,
- * computed once per frame. Read it with `useProcessor(CELESTIAL_FACTS)`.
+ * computed once per frame. Read it with `useProcessor(CELESTIAL_FACTS)`. Useful
+ * for looking up a body by index or name. Used by the system view and the
+ * transfer window planner.
  *
  * @category Solar system and fleet
  */
@@ -364,7 +376,9 @@ const NOTHING_KNOWN: CelestialFacts = {
  * Returns {@link CelestialFacts} from a `system.bodies` payload's `bodies`. The
  * same computation {@link CELESTIAL_FACTS} runs each frame, for use without a
  * running telemetry stream, such as in a test. Where a body is at an instant is
- * a different question, answered by `systemPosesAt`.
+ * a different question, answered by `systemPosesAt`. Useful for checking the
+ * bodies the operator would see without a game running. Used by the built-in
+ * reckoners.
  *
  * @category Solar system and fleet
  */
@@ -388,7 +402,9 @@ export function deriveCelestialFacts(
 /**
  * The processor that computes {@link CelestialFacts} once per frame. Read it
  * with `useProcessor(CELESTIAL_FACTS)`, or list it in a contribution's `deps`.
- * Do not register a processor with the same id.
+ * Do not register a processor with the same id. Useful for showing the operator
+ * facts about the bodies of the solar system. Used by the current orbit widget,
+ * the transfer window planner and the system view.
  *
  * @category Solar system and fleet
  */
@@ -411,6 +427,8 @@ export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
 
 /**
  * Returns the body with this index, or `null` when the catalogue has none.
+ * Useful for naming or measuring the body a Topic refers to by index. Used by
+ * the transfer window planner and the landing status.
  *
  * @category Solar system and fleet
  */
@@ -424,6 +442,8 @@ export function bodyAtIndex(
 
 /**
  * Returns the body with this name, or `null` when the catalogue has none.
+ * Useful for finding the body a vessel orbits from its name. Used by the map
+ * view's telemetry.
  *
  * @category Solar system and fleet
  */

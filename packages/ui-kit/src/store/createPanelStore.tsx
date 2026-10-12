@@ -2,7 +2,9 @@ import { createContext, type ReactNode, useContext, useRef } from "react";
 
 /**
  * A per-panel React context so both a widget body and the panel chrome reach
- * the same off-tree store, scoped to the nearest provider.
+ * the same off-tree store, scoped to the nearest provider. Useful for sharing a
+ * tile's reported state between a widget and its header. Used by the panel
+ * status store.
  *
  * The provider creates one store and holds it for its whole life, so its
  * context value never changes identity; live data flows through the store's

@@ -5,7 +5,8 @@ import { INSET_NAME, type InsetToken, RADIUS_VAR } from "./scales";
 /**
  * The background tiers {@link Box} can paint: `app` is the page behind every
  * widget, `panel` a widget's own body, `raised` something lifted off a panel
- * (a card, a popover) and `sunken` a well set into one.
+ * (a card, a popover) and `sunken` a well set into one. Set with the `surface`
+ * prop of {@link Box}.
  *
  * @category Layout
  */
@@ -15,7 +16,7 @@ export type BoxSurface = "app" | "panel" | "raised" | "sunken";
  * The corner radii {@link Box} accepts: `regular` for ordinary controls, rows
  * and cards, `floating` for something that sits above the app (a dialog, a
  * menu), and `pill` for a fully rounded stadium. {@link FramedDisplay} has a corner
- * of its own that a `Box` cannot take.
+ * of its own that a `Box` cannot take. Set with the `radius` prop of {@link Box}.
  *
  * @category Layout
  */
@@ -23,14 +24,15 @@ export type BoxRadius = "regular" | "floating" | "pill";
 
 /**
  * The padding names {@link Box}'s `pad` prop accepts, the same set as
- * {@link InsetToken}.
+ * {@link InsetToken}. Set with the `pad` prop of {@link Box}.
  *
  * @category Layout
  */
 export type BoxPad = InsetToken;
 
 /**
- * Props for {@link Box}. Any other `div` attribute passes through.
+ * Props for {@link Box}: its surface, padding, border and radius. Any other
+ * `div` attribute passes through.
  *
  * @category Layout
  */

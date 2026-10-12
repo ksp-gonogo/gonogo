@@ -66,7 +66,8 @@ export function registerRevealedEventSource(
 
 /**
  * Returns every registered {@link RevealedEventSourceDefinition}, in the order
- * they were registered.
+ * they were registered. Useful for finding which Uplinks can feed the
+ * operator's event alarms. Read by {@link readRevealedEvents}.
  *
  * @category Delay and vantage
  */

@@ -36,7 +36,10 @@ const SERVER_TYPES = new Set<string>(
 /**
  * Returns one frame from the mod, parsed from its JSON text, with every
  * quantity in a `stream-data` payload turned into a `Value` in its declared
- * unit. Other message types are returned as parsed.
+ * unit. Other message types are returned as parsed. Throws when the text is not
+ * JSON, is not an object, or carries a `type` that is not a text server
+ * message. Useful for code that reads the socket itself and turns each text
+ * frame into a message to dispatch. Used by the stream's WebSocket transport.
  *
  * @category Stream messages
  */

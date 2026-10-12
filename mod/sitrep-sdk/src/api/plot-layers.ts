@@ -36,14 +36,17 @@
 import type { Tone } from "./tone";
 
 /**
- * How loudly a layer is drawn within its tone.
+ * How loudly a layer is drawn within its tone. Useful for letting a guide
+ * recede behind a measurement. Set as the `emphasis` of a {@link PlotLayer}.
  *
  * @category Plots
  */
 export type PlotEmphasis = "faint" | "normal" | "bright";
 
 /**
- * A point in the plot's own data space: `x` in the X axis's units, `y` in its axis's.
+ * A point in the plot's own data space: `x` in the X axis's units, `y` in the
+ * Y axis's units. Useful for placing a mark or a vertex of a curve on a plot.
+ * Used by the layers of a {@link PlotEntry}, such as {@link PlotSeriesLayer}.
  *
  * @category Plots
  */
@@ -74,7 +77,9 @@ interface PlotLayerBase {
 }
 
 /**
- * A curve or a trace: points joined in the order given.
+ * A curve or a trace: points joined in the order given. Useful for showing the
+ * operator how a reading, such as speed against height, has moved or is
+ * predicted to. One of the {@link PlotLayer} kinds a {@link PlotEntry} draws.
  *
  * @category Plots
  */
@@ -93,7 +98,9 @@ export interface PlotSeriesLayer extends PlotLayerBase {
 
 /**
  * A straight line at a constant value on one axis, with an optional label: an
- * atmosphere ceiling, max-Q, a stall speed, an antenna's range limit.
+ * atmosphere ceiling, max-Q, a stall speed, an antenna's range limit. Useful
+ * for showing the operator where a limit sits. One of the {@link PlotLayer}
+ * kinds a {@link PlotEntry} draws.
  *
  * @category Plots
  */
@@ -112,6 +119,9 @@ export interface PlotRuleLayer extends PlotLayerBase {
 
 /**
  * A shaded area, either between two boundaries or on one side of a single one.
+ * Useful for showing the operator a region of the plot, such as speeds that
+ * cannot be slowed in time. One of the {@link PlotLayer} kinds a
+ * {@link PlotEntry} draws.
  *
  * The one-sided forms shade "everything right of this curve" without knowing
  * the plot's range: the widget closes the shape along the plot's own edges.
@@ -142,7 +152,9 @@ export interface PlotRegionLayer extends PlotLayerBase {
 /**
  * A wash whose intensity varies along one axis: an atmosphere's density, a
  * belt's flux, a night side. It is drawn as background, so it carries an
- * intensity rather than a value and never gets an axis label.
+ * intensity rather than a value and never gets an axis label. Useful for
+ * showing the operator where a condition is strong or weak. One of the
+ * {@link PlotLayer} kinds a {@link PlotEntry} draws.
  *
  * @category Plots
  */
@@ -165,7 +177,9 @@ export interface PlotFieldLayer extends PlotLayerBase {
 }
 
 /**
- * A point mark at one `(x, y)`: where a thing is.
+ * A point mark at one `(x, y)`: where a thing is. Useful for showing the
+ * operator where a vessel or a target stands on the plot. One of the
+ * {@link PlotLayer} kinds a {@link PlotEntry} draws.
  *
  * @category Plots
  */
@@ -205,7 +219,8 @@ export interface PlotMarkerLayer extends PlotLayerBase {
 
 /**
  * A short bar through a point, with a label at that point, for a reading whose
- * position is the reading.
+ * position is the reading. Useful for labelling a single value on the plot. One
+ * of the {@link PlotLayer} kinds a {@link PlotEntry} draws.
  *
  * @category Plots
  */
@@ -222,7 +237,9 @@ export interface PlotAnnotationLayer extends PlotLayerBase {
 
 /**
  * Text pinned to a corner or an edge of the plot rather than to a point. The
- * widget keeps captions from overlapping as the plot resizes.
+ * widget keeps captions from overlapping as the plot resizes. Useful for
+ * giving the operator a readout that belongs to the whole plot. One of the
+ * {@link PlotLayer} kinds a {@link PlotEntry} draws.
  *
  * @category Plots
  */
@@ -246,7 +263,9 @@ export interface PlotCaptionLayer extends PlotLayerBase {
 /**
  * A two-dimensional field sampled over a rectangle of the plot's data space:
  * the terrain under a landing site, a scan's coverage over a region, a flux
- * map. {@link PlotFieldLayer} varies along one axis only.
+ * map. {@link PlotFieldLayer} varies along one axis only. Useful for showing
+ * the operator the ground around a vessel. One of the {@link PlotLayer} kinds a
+ * {@link PlotEntry} draws.
  *
  * `values` are raw, in the field's own unit; the widget scales them across the
  * grid's own range and picks the colours. Band edges are drawn as contour
@@ -291,6 +310,9 @@ export interface PlotReliefLayer extends PlotLayerBase {
  * land beside it. Which waves show is the renderer's choice, from how many
  * metres each cell spans, so finer waves come in as a window closes and
  * coarser ones go.
+ *
+ * Useful for showing the operator where a vessel would meet the sea. One of the
+ * {@link PlotLayer} kinds a {@link PlotEntry} draws.
  *
  * @category Plots
  */
@@ -337,7 +359,9 @@ export interface PlotWaterLayer extends PlotLayerBase {
 
 /**
  * One layer of a plot: a data series, a guide line, a shaded region, a field,
- * markers, labels, a caption, relief or open water.
+ * markers, labels, a caption, relief or open water. Useful for building up a
+ * plot the operator reads at a glance. Listed in the `layers` of a
+ * {@link PlotEntry}.
  *
  * Every position is in the plot's own data space, in the units of the
  * {@link PlotFrame}'s axes, never in pixels (apart from a marker's

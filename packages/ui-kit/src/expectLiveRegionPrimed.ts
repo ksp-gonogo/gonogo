@@ -7,7 +7,8 @@ const LIVE_REGION =
 /**
  * Asserts that a component's live region is in the document, empty, before its
  * first message, and that the same element is still there holding the message
- * afterwards.
+ * afterwards. Useful in a widget test for checking that a screen reader
+ * announces a status change to the operator.
  *
  * Assistive tech announces a change to a region it already knows. A region
  * inserted together with its words is often never announced, and a test that

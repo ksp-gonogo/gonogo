@@ -5,7 +5,9 @@ import type { Value } from "./value";
 /**
  * An instant as the game's clock shows it: year, day, hour, minute and
  * second. Year and day count from 1, as the game shows them; hour, minute and
- * second count from 0.
+ * second count from 0. Useful for showing the operator a burn's ignition or
+ * cutoff time, or letting them edit it field by field. Taken by {@link composeUt}
+ * and returned by {@link decomposeUt}.
  *
  * @category Orbits and trajectories
  */
@@ -25,6 +27,7 @@ export interface BurnInstantParts {
 /**
  * Returns a UT as {@link BurnInstantParts}, on the calendar of the game being
  * watched (see {@link kspCalendar}). Seconds are rounded to whole seconds.
+ * Useful for showing the operator a maneuver node's time as a game date.
  *
  * @category Orbits and trajectories
  */
@@ -54,7 +57,8 @@ export function decomposeUt(at: Value<"ut">): BurnInstantParts {
 
 /**
  * Returns the UT that {@link BurnInstantParts} name: the reverse of
- * {@link decomposeUt}, so parts read from a UT give that UT back.
+ * {@link decomposeUt}, so parts read from a UT give that UT back. Useful for turning the operator's
+ * edited date fields back into a time for a maneuver node.
  *
  * A part beyond its range carries into the next: minute 90 is an hour and a
  * half.
@@ -79,7 +83,8 @@ export function composeUt(parts: BurnInstantParts): Value<"ut"> {
 /**
  * Returns the time until a burn starts: until `ignitionUt` where the plan has
  * one, otherwise until the node's `ut`. For a burn that takes time, the node is
- * the burn's midpoint, so counting down to it would start the burn late.
+ * the burn's midpoint, so counting down to it would start the burn late. Useful for showing the operator a countdown to
+ * ignition.
  *
  * Negative once the burn has started.
  *
@@ -98,7 +103,8 @@ export function timeToIgnition(
 
 /**
  * Returns whether `nowUt` is between the burn's ignition and cutoff. Always
- * `false` for a burn with no duration in the plan.
+ * `false` for a burn with no duration in the plan. Useful for showing the operator that a
+ * burn is under way. Used by the landing status widget.
  *
  * @category Orbits and trajectories
  */

@@ -37,7 +37,9 @@ type GeneratedReckonableFieldMap = {
  * Topic. Core's come from its contract; an Uplink whose contract marks a value
  * of its own object Topic adds that Topic here with `declare module
  * "@ksp-gonogo/sitrep-sdk"`, the same way it adds to `TopicPayloadMap`, so
- * reading it returns a {@link ReckonableReading}.
+ * reading it returns a {@link ReckonableReading}. Useful for showing the
+ * operator a modelled figure for only the fields a model moves. Used by the
+ * typed telemetry read.
  *
  * @category Reckoners
  */
@@ -46,7 +48,9 @@ export interface ReckonableFieldMap extends GeneratedReckonableFieldMap {}
 /**
  * A Topic whose contract declares a forward model on at least one of its
  * top-level values, such as `vessel.flight`. Reading one with
- * {@link useTelemetry} returns a {@link ReckonableReading}.
+ * {@link useTelemetry} returns a {@link ReckonableReading}. Useful for knowing
+ * which Topics can show the operator a figure for the vessel's present. Used by
+ * the topic manifest typing in the app's core.
  *
  * @category Reckoners
  */
@@ -54,7 +58,9 @@ export type ReckonableTopic = keyof ReckonableFieldMap;
 
 /**
  * The fields of `Topic` that have a declared forward model, as a union of
- * field names, or `never` for a Topic with none.
+ * field names, or `never` for a Topic with none. Useful for naming only the
+ * fields of a Topic that a model moves. Used by the topic manifest typing in the
+ * app's core.
  *
  * @category Reckoners
  */
@@ -64,6 +70,7 @@ export type ReckonableFields<Topic extends TopicId> =
 /**
  * Returns whether any registered contract declares a forward model on a value
  * of `topic`: core's own, or an Uplink's on a Topic it publishes or models.
+ * Useful for deciding whether a Topic can show a modelled figure.
  *
  * @category Reckoners
  * @categoryDescription Reckoners
@@ -83,7 +90,9 @@ export function isReckonableTopic(topic: string): topic is ReckonableTopic {
  * orbit model above the atmosphere and a rate model below it.
  *
  * Pass `owner` for only the models that owner's contract declared, which is
- * the set its registered reckoner answers for.
+ * the set its registered reckoner answers for. Useful for finding which inputs
+ * and which kind of model a field uses. Used by the timeline store and the
+ * reckoner registry.
  *
  * @category Reckoners
  */
@@ -98,7 +107,8 @@ export function reckonableValuesOf(
  * Returns every input any declared model of one field needs, without
  * repeats, or `undefined` when the field has no declared model. Subscribe to
  * all of them to be able to carry the field forward. For which inputs each
- * model needs, read {@link reckonableValuesOf}.
+ * model needs, read {@link reckonableValuesOf}. Useful for knowing which Topics
+ * a widget must subscribe to before it can show a modelled figure.
  *
  * @category Reckoners
  */
@@ -123,7 +133,8 @@ export function reckonableInputsOf(
  * Returns a declared input written as the contract writes it, which is also
  * how a decline names it: `relativeVelocity` for a field of the same Topic,
  * `@system.bodies` for another Topic, `@vessel.orbit#mu` for a field of
- * another Topic.
+ * another Topic. Useful for naming the input that stopped a model when telling
+ * the operator why a figure is unavailable. Used by the timeline store.
  *
  * @category Reckoners
  */

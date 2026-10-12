@@ -5,12 +5,14 @@
 
 /**
  * A projected descent to the ground, as {@link projectDescent} returns it, in
- * the axes of a velocity-height plot.
+ * the axes of a velocity-height plot. Useful for showing the operator how a
+ * descent will go and where it reaches terminal velocity. Drawn by the landing
+ * status widget.
  *
  * @category Orbits and trajectories
  */
 export interface DescentProjection {
-  /** Speed in m/s and height above the ground in metres, from the craft's current state to the ground. */
+  /** Speed in m/s and height above the ground in metres, from the vessel's current state to the ground. */
   points: readonly { speed: number; altitude: number }[];
   /**
    * The height in metres at which the descent reaches terminal velocity, or
@@ -24,6 +26,8 @@ export interface DescentProjection {
 
 /**
  * How many height steps {@link projectDescent} uses unless told otherwise.
+ * Useful for matching the resolution of a descent drawn beside the one the host
+ * draws.
  *
  * @category Orbits and trajectories
  */
@@ -31,21 +35,24 @@ export const DESCENT_TRACE_STEPS = 48;
 
 /**
  * How close to terminal velocity, as a fraction of it, a descent must come to
- * count as having reached it.
+ * count as having reached it. Useful for marking the height at which the operator
+ * should expect the vessel to stop speeding up. Used by {@link projectDescent}.
  *
  * @category Orbits and trajectories
  */
 export const DESCENT_SETTLE_TOLERANCE = 0.12;
 
 /**
- * The starting state and atmosphere for {@link projectDescent}.
+ * The starting state and atmosphere for {@link projectDescent}. Useful for
+ * projecting a descent from the vessel's current speed and height. Taken by
+ * {@link projectDescent}.
  *
  * @category Orbits and trajectories
  */
 export interface ProjectDescentOptions {
-  /** The craft's speed now, in m/s. */
+  /** The vessel's speed now, in m/s. */
   startSpeed: number;
-  /** The craft's height above the ground now, in metres. */
+  /** The vessel's height above the ground now, in metres. */
   startAltitude: number;
   /** The body's surface gravity, in m/s². */
   surfaceGravity: number;
@@ -56,10 +63,11 @@ export interface ProjectDescentOptions {
 }
 
 /**
- * Returns the descent from the craft's current speed and height down to the
+ * Returns the descent from the vessel's current speed and height down to the
  * ground, under gravity and drag, with drag given as terminal velocity by
- * height. It stays accurate however far above terminal velocity the craft
- * starts.
+ * height. It stays accurate however far above terminal velocity the vessel
+ * starts. Useful for showing the operator the speed they will have at each
+ * height on the way down. Used by the landing status widget.
  *
  * Not a reckoner: it projects something that has not happened, so it
  * carries no state or forward model of its own.
@@ -113,7 +121,9 @@ export function projectDescent(
  * Returns terminal velocity as a function of height, through two known points:
  * `groundSpeed` at the ground and `speedNow` at `altitudeNow`. It assumes air
  * density falls exponentially with height, which makes the curve exponential
- * too. `vessel.landing` and `vessel.flight` carry the values it needs.
+ * too. `vessel.landing` and `vessel.flight` carry the values it needs. Useful for
+ * drawing the speed the operator can expect at each height, and for giving
+ * {@link projectDescent} its drag. Used by the landing status widget.
  *
  * @category Orbits and trajectories
  */
@@ -132,6 +142,8 @@ export function terminalVelocityCurve(opts: {
  * Returns air density as a fraction of the density at the ground, as a
  * function of height, from the same model as {@link terminalVelocityCurve}, so
  * the two drawn on one plot agree. It is 1 at the ground and falls with height.
+ * Useful for shading how thick the air is beside a descent plot. Used by the
+ * landing status widget.
  *
  * @category Orbits and trajectories
  */

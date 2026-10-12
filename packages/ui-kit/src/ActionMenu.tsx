@@ -6,7 +6,7 @@ import { EmptyState } from "./EmptyState";
 import { focusRingInset } from "./focusRing";
 
 /**
- * One action in an {@link ActionMenu}.
+ * One action in an {@link ActionMenu}. Taken in the menu's `items`.
  *
  * @category Floating
  */
@@ -24,7 +24,8 @@ export interface ActionMenuItem {
 }
 
 /**
- * Props for {@link ActionMenu}.
+ * Props for {@link ActionMenu}: the actions, the handlers for choosing one or
+ * dismissing the menu, and the menu's accessible name.
  *
  * @category Floating
  */

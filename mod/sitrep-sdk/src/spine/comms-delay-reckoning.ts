@@ -61,7 +61,13 @@ import type { Vec3Tuple } from "./kepler";
 import { buildElements, magnitude, trySolve } from "./kepler-reckoning";
 import { systemInstantAt } from "./reference-frame";
 
-/** Everything the substitution needs, resolved once for a frame. */
+/**
+ * The measured rate of a command centre's signal delay and the positions of the
+ * vessel and its first-hop peer, resolved once per frame. Useful for letting
+ * the operator see the one-way delay change as the vessel moves between
+ * measurements. Returned by `fitCommsDelay` and read by `commsDelaySecondsAt`,
+ * which the `comms.delay` reckoner calls.
+ */
 export interface CommsDelayFit {
   /**
    * The observed delay over the observed route, seconds per metre: the
@@ -82,13 +88,11 @@ export interface CommsDelayFit {
 }
 
 /**
- * The slice of a `comms.delay` payload the model reads: what was measured, and
- * whether it is a measurement at all.
- *
- * Structural rather than the generated `CommsDelay`, on the same terms as
- * {@link CommsPeerOrbit}: a payload passes without a cast, and a caller holding
- * the two fields need not manufacture a `PayloadMeta` to ask a question about
- * them.
+ * The two fields of a `comms.delay` payload the delay model reads: the one-way
+ * delay between the command centre and the vessel, and where that figure came
+ * from. Useful for deciding whether a measured delay can be carried forward.
+ * Taken by `fitCommsDelay`, to which a `comms.delay` payload can be passed
+ * as it is.
  */
 export interface CommsDelayObservation {
   readonly oneWaySeconds?: Quantityish;
@@ -96,8 +100,10 @@ export interface CommsDelayObservation {
 }
 
 /**
- * Resolve the fixed half of the substitution, or say which published input
- * ruled it out.
+ * Works out the signal delay rate and the fixed length of the route beyond the
+ * vessel's first hop, or says which published input ruled that out. Useful for
+ * carrying the one-way delay between the command centre and the vessel forward
+ * between measurements. Used by the `comms.delay` reckoner.
  *
  * `hops` is the route as `comms.path` carried it and `observed` the signal delay
  * `comms.delay` reported for that route. The two ride one capture and are
@@ -108,11 +114,8 @@ export interface CommsDelayObservation {
  *
  * Two of the three `CommsDelaySource` members are a zero that means something
  * other than "no distance": delay is switched off, or the save models no comms
- * network at all. Each is a statement about the
- * operator's configuration rather than about geometry, and none of them stops
- * being true as the craft moves. Deriving a growing signal delay from one would
- * put a delay on a board the player has deliberately switched off, which is a
- * worse answer than no reckoning at all.
+ * network at all. Neither stops being true as the vessel moves, so both are
+ * declined and no delay is derived for them.
  */
 export function fitCommsDelay(input: {
   readonly hops: readonly CommsHop[] | undefined;
@@ -178,12 +181,13 @@ export function fitCommsDelay(input: {
 }
 
 /**
- * The one-way delay at `at`, seconds, or `NaN` where the geometry refuses.
+ * The one-way delay between the command centre and the vessel at the UT `at`,
+ * in seconds, with the first hop re-measured at that instant. Useful for
+ * showing the operator a delay that moves with the vessel. Used by the
+ * `comms.delay` reckoner.
  *
- * `NaN` rather than a decline because this is the thunk, called once per read
- * after the model has been offered: a projection field that cannot be produced
- * for one instant is the same absence the conic reports when its solve fails at
- * a later view time. The withdrawal decision was taken in {@link fitCommsDelay}.
+ * Returns `NaN` where the geometry cannot be placed at `at`. It never declines:
+ * whether the model applies at all is decided once, by `fitCommsDelay`.
  */
 export function commsDelaySecondsAt(fit: CommsDelayFit, at: number): number {
   const separation = firstHopMetresAt(fit, at);

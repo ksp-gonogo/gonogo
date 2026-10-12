@@ -3,7 +3,9 @@ import { type FormatQuantityOptions, writeQuantity } from "./units";
 
 /**
  * The precision a figure is drawn at, reduced to one test: whether two figures
- * come out as the same drawing.
+ * come out as the same drawing. Useful for deciding whether a modelled figure
+ * adds anything to the operator beside the observation. Taken by
+ * {@link standsApart}.
  *
  * @category Unit
  */
@@ -13,7 +15,10 @@ export interface DrawnPrecision<Figure> {
 }
 
 /**
- * Drawn as text: two figures are one where `write` gives them the same text.
+ * A precision for figures drawn as text: two figures are one where `write`
+ * gives them the same text. Useful for comparing a modelled and an observed
+ * figure at the precision the operator reads. Used by {@link Unit} and
+ * {@link ModelledAlongside}.
  *
  * @category Unit
  */
@@ -24,7 +29,10 @@ export function writtenAs<Figure>(
 }
 
 /**
- * A quantity drawn as {@link writeQuantity} writes it, which is also how {@link Unit} draws it with the same options.
+ * A precision for quantities drawn as {@link writeQuantity} writes them, which
+ * is also how {@link Unit} draws them with the same options. Useful for
+ * comparing a modelled and an observed quantity at the precision the operator
+ * reads. Used by {@link ModelledAlongside}.
  *
  * @category Unit
  */
@@ -36,18 +44,21 @@ export function writtenQuantity<Unit extends string>(
 
 /**
  * How far apart two positions on an instrument's scale sit, as a fraction of
- * the whole scale, before they read as two.
- *
- * One percent, the finest step a percentage readout writes.
+ * the whole scale, before they read as two: one percent, the finest step a
+ * percentage readout writes. Useful for deciding when two positions the
+ * operator reads on a dial or tape are the same. Used by
+ * {@link placedOnScale}.
  *
  * @category Unit
  */
 export const SCALE_TOLERANCE = 0.01;
 
 /**
- * Placed on an instrument's scale: each figure is a fraction of it, clamped to
- * it first, and two read as one within one percent of the scale. `wraps`
- * measures the short way round a scale whose ends meet.
+ * A precision for figures placed on an instrument's scale: each figure is a
+ * fraction of it, clamped to it first, and two read as one within one percent
+ * of the scale. `wraps` measures the short way round a scale whose ends meet.
+ * Useful for comparing positions the operator reads on a dial, tape or bar.
+ * Used by {@link Meter}, {@link Dial} and {@link Tape}.
  *
  * @category Unit
  */

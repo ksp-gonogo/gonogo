@@ -126,20 +126,22 @@ interface PendingUplinkQueueLike {
 }
 
 /**
- * The dispatch handle. `Args`/`Reply` come from the generated command map when
- * the hook was given a known `CommandId`.
+ * The dispatch handle: send the command, read its status, and see the commands
+ * still in flight. Useful for showing the operator whether a command has been
+ * sent, confirmed or refused. Returned by {@link useCommand} and taken by the
+ * panel's delay rail controls. `Args` and `Reply` come from the generated command
+ * map when the hook was given a known `CommandId`.
  *
- * `Reply` falls back to {@link AnyCommandReply}, the result envelope, rather
- * than to `unknown`: see that type for why. It is what a handle addressed by a
- * computed string, or reached through a prop declared bare, still knows about
- * its own answer. `Args` has no such floor and stays `unknown`, because there
- * is nothing every command's arguments have in common.
+ * `Reply` falls back to {@link AnyCommandReply}, the result envelope, rather than
+ * to `unknown`: it is what a handle addressed by a computed string, or reached
+ * through a prop declared bare, still knows about its own answer. `Args` has no
+ * such floor and stays `unknown`, because there is nothing every command's
+ * arguments have in common.
  *
- * `send` is declared method-style rather than as a property holding a function,
- * deliberately: that is what makes a typed handle assignable to the bare
- * `UseCommandResult` that every delay-rail control takes. As a property,
- * `strictFunctionTypes` checks the parameter contravariantly and every typed
- * handle stops being a handle.
+ * `send` is declared method-style rather than as a property holding a function.
+ * That is what makes a typed handle assignable to the bare `UseCommandResult` that
+ * every delay-rail control takes. As a property, `strictFunctionTypes` checks the
+ * parameter contravariantly and a typed handle would no longer be assignable.
  */
 export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /**
@@ -415,26 +417,19 @@ function resolveTracked(
 }
 
 /**
- * The handle for a named command, with both its argument type and its reply
- * type resolved out of the generated command map.
- *
- * What to write on a prop, a field, or a helper that passes a dispatch handle
- * around. `useCommand("...")` already returns this; the alias exists because the
- * place a handle loses its type is the annotation it travels through, and
- * `UseCommandResult` bare is one keystroke from that annotation. It takes a
- * union of command ids as readily as one id, so a family of writes that answer
- * alike can be declared once:
+ * The handle for a named command, with both its argument type and its reply type
+ * resolved out of the generated command map. Useful for typing a prop, a field or
+ * a helper that passes a dispatch handle around. `useCommand("...")` already
+ * returns this. It takes a union of command ids as readily as one id, so a family
+ * of writes that answer alike can be declared once:
  * `UseCommandResultFor<"vessel.control.setSas" | "vessel.control.setRcs">`.
  *
  * An Uplink reaches this the same way it reaches `useCommand`, off the published
  * SDK root, and its own augmented `CommandArgsMap` keys work here with nothing
  * extra registered.
  *
- * Named off `UseCommandResult` on purpose, twice over. It sits beside the type
- * that is actually mistyped, so it is in the completion list of anyone about to
- * write the bare one; and `CommandHandle`, the name it would otherwise have, is
- * already a different type on `@ksp-gonogo/ui-kit`'s delay rail, which an Uplink
- * imports from in the same file.
+ * It is not named `CommandHandle`, which is already a different type on
+ * `@ksp-gonogo/ui-kit`'s delay rail, imported in the same file by an Uplink.
  */
 export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
   CommandArgs<Command>,
@@ -442,23 +437,21 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
 >;
 
 /**
- * Fires `command` against the `TelemetryClient` from the nearest
- * `TelemetryProvider` and reactively reflects its lifecycle
- * (`idle -> in-flight -> confirmed|failed`), plus this hook's own set of
- * in-flight dispatches (`inFlight`), the delayed-command-ux primitive: a
- * command widget gets delay state for free from the same hook it already
- * calls to dispatch, no separate opt-in.
+ * Sends `command` to the mod through the nearest `TelemetryProvider` and reflects
+ * its progress (`idle`, `in-flight`, then `confirmed` or `failed`). Useful for a
+ * control that sends a command and shows the operator the delay before it takes
+ * effect. Used by command widgets, and its handle is what {@link CommandButton}
+ * takes.
  *
- * The active `requestId` is held in React state so `send` can be called
- * more than once; `status` is read via `useSyncExternalStore` over
- * `client.subscribeStore`, so any status transition for the in-flight
- * request re-renders the caller. `inFlight` is a separate accumulating set
- * (not just the latest `requestId`): see `UseCommandResult.inFlight`'s doc.
+ * The hook also holds the set of dispatches still in flight (`inFlight`), so a
+ * command widget gets delay state from the same hook it already calls to dispatch,
+ * with no separate opt-in. `send` can be called more than once; any status change
+ * for the active request re-renders the caller. `inFlight` accumulates every
+ * pending dispatch, not only the latest: see `UseCommandResult.inFlight`.
  *
- * The two overloads are the typing seam. A known `CommandId` resolves its args
- * and its reply out of the generated command map; anything else, a computed id
- * or a dynamic per-subject command, keeps the untyped handle this hook has
- * always returned. See the `useCommand` re-export in `../api` for the author's
+ * A known `CommandId` resolves its args and its reply out of the generated command
+ * map; anything else, such as a computed id or a dynamic per-subject command, keeps
+ * the untyped handle. See the `useCommand` re-export in `../api` for the author's
  * account of that split.
  */
 export function useCommand<Command extends CommandId>(

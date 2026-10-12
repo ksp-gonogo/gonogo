@@ -201,9 +201,11 @@ function parseArgs(argv: readonly string[]): Args {
 const WIDGETS_SPECIFIER = "@ksp-gonogo/uplink-tools/widgets";
 
 /**
- * The widgets package draws host widgets for the docs page only. In
+ * Warns when the package that draws host widgets for the docs page is listed in
+ * the Uplink's `dependencies`. It belongs in `devDependencies`, because in
  * `dependencies` it ships with the Uplink and invites imports of the app's
- * widgets, so it belongs in `devDependencies`.
+ * widgets. Useful for keeping an Uplink's published client free of docs-only
+ * packages. Used by the `docs` and `render` commands.
  */
 export function warnWidgetsInDependencies(dir: string): void {
   const manifest = readJsonObject(join(dir, "package.json"));
@@ -225,7 +227,12 @@ export function warnWidgetsInDependencies(dir: string): void {
   );
 }
 
-/** `render` or `docs`, with `argv[0]` naming which. Throws on any failure. */
+/**
+ * Runs `render` or `docs`, with `argv[0]` naming which, and throws on any
+ * failure. Useful for drawing every widget of an Uplink and, for `docs`,
+ * writing and checking the page an operator reads. Used by the `uplink-tools`
+ * command line.
+ */
 export async function renderOrDocs(argv: readonly string[]): Promise<void> {
   // Anywhere in the line, so `--help` never reaches `parseArgs` as an unknown flag.
   if (argv.includes("--help") || argv.includes("-h")) {
@@ -537,18 +544,15 @@ async function readDocsExempt(dir: string): Promise<DocsExempt> {
 }
 
 /**
- * Refuse to overwrite a `README.md` this command did not write.
+ * Throws instead of overwriting a `README.md` that the `docs` command did not
+ * write. Useful for protecting a readme an author wrote by hand when they run
+ * `docs` for the first time. Used by the `docs` command before it writes the
+ * page.
  *
- * `docs` generates the README from the registrations, so replacing the one it
- * generated last time is the job. Replacing one a person wrote is not, and a
- * bare `writeFile` cannot tell the two apart: the first run in a package that
- * already had a hand-written readme destroyed it silently, and outside git there
- * was nothing to recover.
- *
- * A refusal rather than a `--force`, because the recovery is one `git mv` and a
- * flag would be a second thing to know about. The generated file carries
- * {@link README_GENERATED_MARKER} on its first line, so a package this command
- * has generated once never sees this again.
+ * `docs` generates the README from the registrations, so it replaces one it
+ * generated before. The generated file carries a marker on its first line, so
+ * a package `docs` has generated once never sees this refusal again. To
+ * proceed, move the hand-written readme aside.
  */
 export async function refuseToClobberHandWrittenReadme(
   dir: string,
@@ -577,13 +581,12 @@ function reportFont(mode: string, advice?: string): void {
 }
 
 /**
- * Whether this run compares the committed pictures' shapes, which is only ever
- * on CI.
- *
- * The committed pictures and their shape record are generated on the Linux
+ * Whether this run compares the committed pictures' shapes: true only on CI.
+ * The committed pictures and their shape record are generated on the Linux CI
  * runner, and a shape read on any other machine differs from it in ways nobody
- * edited. So the comparison is keyed on being CI, never on the operating
- * system: a Linux laptop is still not the machine the pictures come from.
+ * edited, so the comparison depends on being CI and never on the operating
+ * system. Useful for keeping `docs --check` from failing on a laptop. Used by
+ * the `docs` command's check.
  */
 export function picturesComparedHere(env: NodeJS.ProcessEnv): boolean {
   if (env.GITHUB_ACTIONS === "true") return true;
@@ -615,9 +618,9 @@ export interface CommittedPage {
 
 /**
  * Every difference between the committed page and what the code says today.
- *
- * The text and the asset names are the same on every machine and are always
- * compared. The shapes are compared only when `pictures` is set.
+ * The text and the asset names are always compared; the picture shapes are
+ * compared only when `pictures` is set. Useful for telling the author which
+ * parts of the generated page are stale. Used by the `docs` command's check.
  */
 export async function compareCommittedPage(
   page: CommittedPage,
@@ -667,17 +670,12 @@ async function compareText(
 }
 
 /**
- * Names, not bytes.
- *
- * A missing or extra asset is real drift: a widget added without a fixture, or a
- * fixture deleted and its picture left behind. Rasterisation is per-engine and
- * per-OS, so byte-comparing a PNG here would fail on any machine but the one
- * that generated it, which is a gate that cries wolf and then gets turned off.
- *
- * Exported for the guard in `render.test.ts`. The rule was written here and read
- * back out of the repo twice as its opposite, once in a finding that a whole
- * Uplink's check was a coin flip on PNG bytes. A rule that only exists as prose
- * is one the next change can reverse with nothing to say so.
+ * Compares the names of the committed pictures with the names the code would
+ * generate, never their bytes. A missing or extra picture is a widget added
+ * without a fixture, or a fixture deleted with its picture left behind. A PNG's
+ * bytes differ by engine and operating system, so they are not compared. Useful
+ * for telling the author which pictures to add or remove. Used by
+ * `compareCommittedPage`.
  */
 export async function compareAssetNames(
   committed: string,
@@ -751,21 +749,12 @@ function compareCommittedShapes(
 }
 
 /**
- * Say when the whole page moved for the same reason, because that reads very
- * differently from one widget moving.
- *
- * A theme token reaches every element: `tokens.css` is injected into every render
- * page and `getComputedStyle` resolves `var()` to the final value, so one edit
- * changes every recorded hash in every Uplink while leaving every element count
- * and every visible string alone. The per-asset lines are each individually true
- * and, read as a list, say nothing about which of the two happened.
- *
- * This is a statement about the findings rather than a diagnosis. It fires only
- * when every recorded asset is stale and not one of them moved in its tree or its
- * text, which no widget edit produces and no kit edit fails to.
- *
- * Exported so `render.test.ts` can show it firing and, more to the point,
- * not firing: a note that appears under every red is a note nobody reads.
+ * A note saying the whole page was restyled, or `undefined` when it was not.
+ * It applies only when every recorded asset is stale and none of them changed
+ * in its element tree or its text, which is what a theme token edit produces
+ * and a single widget edit does not. Useful for telling the author that every
+ * picture changed for one shared reason, such as a new theme token. Used by
+ * the `docs` command's check when it reports stale pictures.
  */
 export function wholePageRestyle(
   verdict: ShapeVerdict,

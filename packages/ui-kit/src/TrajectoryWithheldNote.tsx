@@ -13,9 +13,10 @@ import { Tooltip } from "./Tooltip";
  * it, the instant on screen is past its horizon, its shape (a conic drawn from
  * the elements, or an arc sampled by the provider) was not stated, the frame
  * asked for cannot be built (a body not yet received, say), or it could not be
- * sampled. It is the
- * `withheld` member of `OrbitTrajectory`, which `useOrbitTrajectory` from
- * `@ksp-gonogo/sitrep-sdk/frames` returns.
+ * sampled. Useful for telling the operator why a vessel's path is missing. It
+ * is the `withheld` member of `OrbitTrajectory`, which `useOrbitTrajectory`
+ * from `@ksp-gonogo/sitrep-sdk/frames` returns, and is taken by
+ * {@link trajectoryWithheldCopy} and {@link TrajectoryWithheldNote}.
  *
  * @category EmptyState
  */

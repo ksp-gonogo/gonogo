@@ -2,7 +2,9 @@ import type { DataKeyMeta, Sample } from "./types";
 
 /**
  * A value computed from recorded keys and recorded beside them, such as a rate
- * of change.
+ * of change. Useful for plotting a figure the vessel does not report, such as
+ * altitude rate, beside the recorded keys. Taken by {@link registerDerivedKey}
+ * and returned by {@link getDerivedKeys}.
  *
  * @category Flight recording
  */
@@ -29,7 +31,9 @@ export interface DerivedKeyDef {
 const registry: DerivedKeyDef[] = [];
 
 /**
- * Adds a derived key, computed for every flight recorded from then on.
+ * Adds a derived key, computed for every flight recorded from then on. Useful
+ * for letting the operator plot a computed figure beside recorded telemetry.
+ * Used for the built-in derived keys such as rates of change.
  *
  * @category Flight recording
  */
@@ -38,7 +42,9 @@ export function registerDerivedKey(def: DerivedKeyDef): void {
 }
 
 /**
- * Every registered derived key, in registration order.
+ * Every registered derived key, in registration order. Useful for the code that
+ * records a flight and must compute each derived key beside the raw ones. Used
+ * by {@link BufferedDataSource}.
  *
  * @category Flight recording
  */
@@ -47,7 +53,8 @@ export function getDerivedKeys(): readonly DerivedKeyDef[] {
 }
 
 /**
- * Removes every derived key. For tests; a running app never calls it.
+ * Removes every derived key registered with {@link registerDerivedKey}. Useful
+ * for resetting between tests; a running app never calls it.
  *
  * @category Flight recording
  */

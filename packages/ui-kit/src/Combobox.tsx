@@ -11,7 +11,9 @@ import { statusFill } from "./tone";
  */
 
 /**
- * A single selectable item in a combobox or listbox dropdown. Extend it to carry more per option.
+ * A single selectable item in a combobox or listbox dropdown. Extend it to carry
+ * more per option. Useful for offering the operator a value to pick. Taken by
+ * {@link ComboboxListbox} and the functions that filter and group its options.
  *
  * @category Form
  */

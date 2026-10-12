@@ -23,7 +23,9 @@ import {
 import { WAVE_VB_H, waveformExtentX, waveformPath } from "./waveformPath";
 
 /**
- * One sample on a control axis's trace in {@link ControlDelayStream}.
+ * One sample on a control axis's trace in {@link ControlDelayStream}: a
+ * commanded value at a moment. Useful for showing the operator how a held
+ * control, such as a throttle, has moved. Carried by {@link ControlStreamDatum}.
  *
  * @category CommandDelay
  */
@@ -35,8 +37,10 @@ export interface ControlStreamSample {
 }
 
 /**
- * One control axis drawn by {@link ControlDelayStream}: what is still crossing
- * to the craft, what has come back, and the value commanded now.
+ * One control axis drawn by {@link ControlDelayStream}: what is still on its
+ * way to the vessel, what has come back, and the value commanded now. Useful
+ * for showing the operator how a held control, such as a throttle, compares with
+ * what the vessel reports. Taken by {@link ControlDelayStream}.
  *
  * @category CommandDelay
  */
@@ -100,14 +104,16 @@ export interface ControlRibbonDatum {
 }
 
 /**
- * The three sizes of {@link ControlDelayStream}. See {@link ControlDelayStreamProps.variant}.
+ * The three sizes of {@link ControlDelayStream}. Set with the `variant` prop;
+ * see {@link ControlDelayStreamProps.variant}.
  *
  * @category CommandDelay
  */
 export type ControlDelayStreamVariant = "inline" | "rail" | "expanded";
 
 /**
- * Props for {@link ControlDelayStream}.
+ * Props for {@link ControlDelayStream}: the control axes and ribbons to draw,
+ * and the one-way delay between the command centre and the vessel.
  *
  * @category CommandDelay
  */
@@ -136,7 +142,9 @@ export interface ControlDelayStreamProps {
 
 /**
  * The one-way delay, in seconds, under which {@link ControlDelayStream} draws no
- * command streams. Ribbons draw at any positive delay.
+ * command streams. Ribbons draw at any positive delay. Useful for deciding
+ * whether the operator sees a stream at a given delay. Read by
+ * {@link ControlDelayStream}.
  *
  * @intent Published so a representation of the rail of a third party can agree with ControlDelayStream on when streams are drawn.
  * @category CommandDelay
@@ -170,9 +178,11 @@ const padXFor = (variant: ControlDelayStreamVariant): number =>
   variant === "inline" ? PAD_X : 0;
 
 /**
- * Where one signal delay sits for a ribbon, in the graph's viewBox x units (100
- * wide): the T divider, a third of the plot. It never moves with delivery;
- * delivery only decides whether anything is drawn past it.
+ * Where the first divider (T, one signal delay) sits for a ribbon, in the
+ * graph's viewBox x units (100 wide): a third of the plot. It never moves with
+ * delivery; delivery only decides whether anything is drawn past it. Useful for
+ * placing a transmission's divider where the operator expects it. Used by
+ * {@link ControlDelayStream}.
  *
  * @intent Published so a representation of the rail of a third party can place its divider where ControlDelayStream places the T.
  * @category CommandDelay

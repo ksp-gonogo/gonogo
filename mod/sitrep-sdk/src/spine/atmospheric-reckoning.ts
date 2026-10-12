@@ -129,7 +129,8 @@ const FLOAT_RESIDUE_ULPS = 8;
  * The fields of `vessel.flight` the atmospheric descent model reads. A
  * `vessel.flight` payload can be passed as it is. Every field is optional, as
  * a payload may carry only some of them; a missing one makes the model
- * decline.
+ * decline. Useful for working out a vessel's altitude during a descent through
+ * the atmosphere. Taken by {@link atmosphericAdmissibility}.
  *
  * @category Reckoners
  */
@@ -146,7 +147,9 @@ export interface AtmosphericFlightInput {
  * A descent fitted by {@link atmosphericAdmissibility}: the craft's height and
  * vertical speed at the latest observation, its vertical acceleration measured
  * over recent samples, and how far forward the fit may be used. Evaluate it
- * with {@link atmosphericAltitudeAt}.
+ * with {@link atmosphericAltitudeAt}. Useful for showing the operator a modelled
+ * altitude between observations, as for a vessel in reentry. Returned by
+ * {@link atmosphericAdmissibility}.
  *
  * @category Reckoners
  */
@@ -174,7 +177,8 @@ export interface AtmosphericDescentFit {
  * Returns how many seconds a descent fit may be carried forward, given the
  * sensed `gForce` in g: the harder the craft is being decelerated, the
  * shorter. At about 1 g (on the pad, under a parachute, in level flight) it is
- * longest; at the 5 to 10 g of peak entry, seconds.
+ * longest; at the 5 to 10 g of peak entry, seconds. Useful for deciding how far
+ * ahead a modelled altitude may be shown to the operator.
  *
  * @category Reckoners
  */
@@ -189,7 +193,8 @@ export function horizonSecondsFor(gForce: number): number {
  *
  * It has no `minSamples`, since `vessel.flight`'s orbit model needs only one
  * sample; {@link atmosphericAdmissibility} requires two for the descent fit
- * itself.
+ * itself. Useful for giving the descent model enough history to measure the
+ * vessel's deceleration. Used by the built-in altitude model.
  *
  * @category Reckoners
  */
@@ -204,7 +209,9 @@ export const DESCENT_WINDOW = { spanUt: 8, maxSamples: 8 } as const;
  * `altitudeAsl` is the observed height. `conicRadiusAtViewTime` is the
  * distance from the body's centre the orbit model gives at the view time; when
  * it is absent, the observation decides alone. Returns `false` when the body
- * has no atmosphere or nothing says how deep it is.
+ * has no atmosphere or nothing says how deep it is. Useful for choosing which
+ * model shows the operator the vessel's altitude. Used by the built-in altitude
+ * model.
  *
  * @category Reckoners
  */
@@ -229,7 +236,8 @@ export function withinAtmosphere(
 
 /**
  * A least-squares slope over unevenly spaced samples, as
- * {@link verticalAccelerationOver} returns it.
+ * {@link verticalAccelerationOver} returns it. Useful for judging how well a
+ * measured acceleration is known.
  *
  * @category Reckoners
  */
@@ -251,7 +259,9 @@ export interface SlopeFit {
  * Returns the vertical acceleration over a window of `vessel.flight` samples:
  * a least-squares slope of `verticalSpeed` against time, so uneven spacing is
  * accounted for. It is an average over the window, not the acceleration at its
- * end. Samples from any craft other than `subject` are ignored.
+ * end. Samples from any vessel other than `subject` are ignored. Useful for
+ * measuring how hard a vessel is decelerating in the atmosphere. Used by
+ * {@link atmosphericAdmissibility}.
  *
  * @category Reckoners
  */
@@ -354,6 +364,10 @@ export function verticalAccelerationOver(
  *
  * `gravity` is the local gravity in m/s², from {@link localGravity}. When it is
  * `undefined` the last check is skipped.
+ *
+ * Useful for deciding whether a modelled altitude can be shown to the operator
+ * for a vessel descending through the atmosphere. Used by the built-in altitude
+ * model.
  *
  * @category Reckoners
  */
@@ -480,6 +494,8 @@ export function atmosphericAdmissibility(
 /**
  * Returns the fit's altitude above sea level at the UT `at`, in metres,
  * carried forward with constant acceleration from the latest observation.
+ * Useful for showing the operator a vessel's altitude now while it descends
+ * through the atmosphere. Used by the built-in altitude model.
  *
  * @category Reckoners
  */
@@ -499,7 +515,9 @@ export function atmosphericAltitudeAt(
  * Returns how well the fit knows its altitude at the UT `at`, as a band of
  * kind `sigma1`, or `undefined` when the fit has no measure of its error. The
  * band comes from the uncertainty of the measured acceleration alone, so it is
- * zero at the observation and widens with the square of the time since.
+ * zero at the observation and widens with the square of the time since. Useful
+ * for showing the operator how far the modelled altitude can be trusted. Used by
+ * the built-in altitude model.
  *
  * @category Reckoners
  */
@@ -524,7 +542,8 @@ export function atmosphericAltitudeBandAt(
 /**
  * Returns gravity at a distance `radius` in metres from the body's centre,
  * in m/s², from the body's gravitational parameter `mu`, or `undefined` when
- * either is missing or not usable.
+ * either is missing or not usable. Useful for bounding how hard a vessel can be
+ * decelerating at its altitude. Used by the built-in altitude model.
  *
  * @category Reckoners
  */

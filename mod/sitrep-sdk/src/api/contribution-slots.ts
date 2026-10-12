@@ -126,7 +126,7 @@ export type ShipMapPartMetaEntry = {
 
 /**
  * The bitrate of one hop on the comms route, contributed to
- * `comm-signal.hop-rates`. A hop is one link between two neighbouring nodes of
+ * `comm-signal.hop-rates`. A hop is one connection between two neighbouring nodes of
  * the route, such as a vessel and the relay it talks to.
  *
  * CommNet Signal joins each entry onto the hop of the `comms.path` route with the
@@ -323,8 +323,8 @@ export type SystemEntityShape =
 
 /**
  * One thing drawn on the System View diagram, contributed to
- * `system-view.entities`: a vessel's orbit, a link, a marker, a travelling
- * front.
+ * `system-view.entities`: a vessel's orbit, a connection line, a marker, a
+ * travelling front.
  *
  * A contribution returns plain positions and shapes; the widget projects them
  * into the frame it is drawing, at its own pan and zoom. An entity whose parent
@@ -489,20 +489,31 @@ export interface AdminBuildingScreenEntry {
   drawsOwnActions?: boolean;
 }
 
-/** Mirrors `MissionLogAmount`. */
+/**
+ * A figure a mission log row moved, as a magnitude and its contract unit.
+ * Useful for showing the operator what an event cost or paid. Carried as the
+ * `amount` of a mission log event entry.
+ */
 export interface MissionLogAmount {
   readonly magnitude: number;
   /** The contract unit, e.g. `"funds"`, `"rep"`. */
   readonly unit: string;
 }
 
-/** Mirrors `MissionLogSourceState`. */
+/**
+ * Whether a mission log source is recording events, is not, or cannot be read.
+ * Useful for telling the operator whether an empty log means nothing happened.
+ */
 export type MissionLogSourceState =
   | "recording"
   | "not-recording"
   | "unreadable";
 
-/** Mirrors `MissionLogEventEntry`. */
+/**
+ * One row of the mission log: an event at a universal time, with a label, an
+ * optional detail and an optional figure it moved. Useful for showing the
+ * operator what happened on a flight and when.
+ */
 export interface MissionLogEventEntry {
   id: string;
   /** An instant, so a UT, in seconds. */
@@ -670,7 +681,7 @@ declare module "./types" {
     };
     /**
      * Things drawn on the System View diagram, such as a relay's orbit, a
-     * link between two craft or a front crossing the system. The widget
+     * line between two vessels or a front crossing the system. The widget
      * places each entry at its own pan and zoom, and draws only those around
      * the body the diagram is centred on. Returns {@link SystemEntity}
      * entries.

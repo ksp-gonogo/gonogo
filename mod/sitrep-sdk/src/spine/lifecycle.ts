@@ -2,13 +2,14 @@ import type { LimitBreach } from "../__generated__/contract";
 import type { CommandErrorCode } from "../__generated__/error-codes";
 
 /**
- * Everything a refusal needs to be said to the operator, beyond the typed
- * reason itself.
+ * Everything beyond the typed reason that is needed to tell the operator why a
+ * command was refused: the command, its arguments, its label and the limit it
+ * breached. Useful for naming the refused command and quoting its numbers. The
+ * base of {@link CommandRefusal}, which {@link useCommand} returns.
  *
  * `command`, `args` and `label` are what this client dispatched, and `breach`
  * is the comparison the mod attached when the refusal had one. The code picks
- * the sentence and the breach fills it in: a code cannot say "16 of 16", and a
- * pair of numbers does not say which sentence they belong in.
+ * the sentence and the breach fills it in.
  *
  * @category Commands
  */
@@ -36,12 +37,13 @@ export interface CommandRefusalDetail {
 }
 
 /**
- * One refused dispatch, as a widget surface renders it: the typed reason plus
- * everything needed to name the command and quote its numbers.
+ * One command the game refused, as a widget renders it: the typed reason plus
+ * everything needed to name the command and quote its numbers. Useful for
+ * telling the operator why a command did not take effect. Listed in the
+ * `refusals` that {@link useCommand} returns.
  *
  * The `id` is the dispatch's own `requestId`, so the same `dismiss(id)` clears a
- * refusal and a dead in-flight command, and the operator has one gesture rather
- * than two that look alike.
+ * refusal and a dead in-flight command.
  *
  * @category Commands
  */
@@ -53,13 +55,15 @@ export interface CommandRefusal extends CommandRefusalDetail {
 }
 
 /**
- * One dispatch nothing replied to, as a widget surface renders it.
+ * One command that nothing replied to, as a widget renders it. Useful for
+ * telling the operator that the outcome of a command sent to a vessel is not
+ * known. Listed in the `losses` that {@link useCommand} returns.
  *
- * A refusal is the game's verdict and carries a typed reason; a loss carries no
+ * A refusal is the game's verdict and carries a typed reason. A loss carries no
  * reason, because nothing was decided and the command may well have run. It
  * names the command that went quiet and makes no claim about what happened. A
  * loss can have no entry on the delay rail, for instance a command sent to a
- * craft with no connection, so this is where such a command is shown.
+ * vessel with no connection, so this is where such a command is shown.
  *
  * The `id` is the dispatch's own `requestId`, so one `dismiss(id)` clears a
  * loss, a refusal and a dead in-flight command alike.
@@ -78,16 +82,17 @@ export interface CommandLoss {
 }
 
 /**
- * One dispatch that never left this machine, as a widget surface renders it.
+ * One command that never left this machine, as a widget renders it. Useful for
+ * telling the operator that a command did not run and can safely be sent again.
+ * Listed in the `undelivered` that {@link useCommand} returns.
  *
- * A {@link CommandLoss} that has turned out the other way from a
- * {@link CommandFound}: the connection held the command for a link that never
- * came back and has stopped retrying, so it reached no mod and no game and
- * nothing ran. A command that is `lost` may have run; this one did not, so
+ * It is a {@link CommandLoss} that turned out the other way from a
+ * {@link CommandFound}: the connection held the command for a connection that
+ * never came back and has stopped retrying, so it reached no mod and no game
+ * and nothing ran. A command that is `lost` may have run; this one did not, so
  * sending it again cannot do it twice.
  *
- * It carries everything the loss did, so a surface drawing the loss can draw
- * this in its place, plus the transport's own reason.
+ * It carries everything the loss did, plus the transport's own reason.
  *
  * @category Commands
  */
@@ -97,12 +102,14 @@ export interface CommandUndelivered extends CommandLoss {
 }
 
 /**
- * One dispatch the mod answered with a fault rather than a reply, as a widget
- * surface renders it: it expired or was cancelled on its way, a continuous
- * input was dropped where it would have waited, or a game load undid it.
+ * One command the mod answered with a fault rather than a reply, as a widget
+ * renders it: it expired or was cancelled on its way, a continuous input was
+ * dropped where it would have waited, or a game load undid it. Useful for
+ * telling the operator what became of a command that did not run. Listed in the
+ * `failures` that {@link useCommand} returns.
  *
- * Not a refusal, which is the game's verdict on the command itself, and not a
- * loss, where nothing came back. `code` says what became of it.
+ * It is not a refusal, which is the game's verdict on the command itself, and
+ * not a loss, where nothing came back. `code` says what became of it.
  *
  * @category Commands
  */
@@ -114,13 +121,12 @@ export interface CommandFailure extends CommandLoss {
 }
 
 /**
- * One dispatch that was called lost and then replied to after all, as a widget
- * surface renders it.
+ * One command that was reported lost and then replied to after all, as a widget
+ * renders it. Useful for telling the operator what a command reported lost
+ * actually did. Listed in the `founds` that {@link useCommand} returns.
  *
- * A {@link CommandLoss} that came back. It carries everything the loss did, so
- * a surface that was drawing the loss can draw this in its place without going
- * looking for the command's identity again, plus the one thing the loss never
- * had: what the reply actually said.
+ * It is a {@link CommandLoss} that came back. It carries everything the loss
+ * did, plus the one thing the loss never had: what the reply actually said.
  *
  * `lost` means the outcome was not known, not that the command did not happen.
  * The command ran, was refused or broke exactly as it would have had the reply
@@ -131,8 +137,11 @@ export interface CommandFailure extends CommandLoss {
 export type CommandFound = CommandLoss & CommandFoundOutcome;
 
 /**
- * What a late reply turned out to say. The three outcomes call for different
- * responses:
+ * What a late reply to a command reported lost turned out to say. Useful for
+ * telling the operator whether the command ran, was refused or errored. Held in
+ * each {@link CommandFound} that {@link useCommand} returns.
+ *
+ * The three outcomes call for different responses:
  *
  * - `ran`: the command executed. An operator who sent it again after being told
  *   it was lost has now executed it twice
@@ -251,13 +260,14 @@ export type CommandStatus =
     } & CommandFoundOutcome);
 
 /**
- * The rejection value for every dispatch that does not succeed.
+ * The error a command's promise rejects with whenever the command does not
+ * succeed, carrying the fault `code`. Useful for telling the operator why a
+ * command did not take effect. Rejected by the functions that {@link useCommand}
+ * returns.
  *
- * A real `Error`, not a bare object literal, because callers render it: a
- * plain `{ code, message }` reaches the operator as `[object Object]` through
- * the entirely reasonable `err instanceof Error ? err.message : String(err)`.
- * `code` is kept as an own property so the `E_LOST` marker and every
- * `FaultCode` read the same way.
+ * It is a real `Error`, so `err instanceof Error ? err.message : String(err)`
+ * gives the operator a sentence. `code` is an own property, so the `E_LOST`
+ * marker and every `FaultCode` read the same way.
  */
 export class CommandError extends Error {
   readonly code: string;

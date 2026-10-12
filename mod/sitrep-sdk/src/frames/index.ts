@@ -187,14 +187,16 @@ export {
 /**
  * A bare `[x, y, z]` of numbers, the shape every function above takes and
  * returns. Not the root barrel's `Vector3`, the `{x, y, z}` of unit-carrying
- * `Value`s.
+ * `Value`s. Useful for placing a body or vessel in a chosen frame for the
+ * operator. Used by the system view's projection.
  */
 export type { Vec3Tuple };
 
 /**
  * Returns a position or velocity from a payload, a {@link Vec3Of} in metres
  * or metres per second, as the plain `[x, y, z]` numbers the frame functions
- * on this subpath take, such as {@link toFrame}.
+ * on this subpath take, such as {@link toFrame}. Useful for placing a vessel's position or velocity in
+ * a frame the operator chose.
  *
  * @category Frames of reference
  */

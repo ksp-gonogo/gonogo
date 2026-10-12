@@ -17,7 +17,9 @@ import { useTooltip } from "./Tooltip";
 import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
 /**
- * A coloured segment of a {@link Dial}'s arc, in the dial's own unit.
+ * A coloured segment of a {@link Dial}'s arc, in the dial's own unit. Useful for
+ * showing the operator which part of a scale is safe or dangerous. Taken in the
+ * dial's `zones`.
  *
  * @category Gauge
  */
@@ -31,7 +33,9 @@ export interface DialZone<Unit extends string = string> {
 }
 
 /**
- * A tick mark on a {@link Dial}'s face, with an optional label beside it.
+ * A tick mark on a {@link Dial}'s face, with an optional label beside it. Useful
+ * for letting the operator read a value off the scale. Taken in the dial's
+ * `ticks`.
  *
  * @category Gauge
  */
@@ -43,7 +47,8 @@ export interface DialTick<Unit extends string = string> {
 }
 
 /**
- * Props for {@link Dial}.
+ * Props for {@link Dial}: the value, the scale it sweeps, and its zones and
+ * ticks.
  *
  * @category Gauge
  */

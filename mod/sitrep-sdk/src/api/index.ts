@@ -632,7 +632,7 @@ export function useTelemetry<Topic extends TopicId>(
  *   one delay later, and its effect is seen one more delay after that.
  *   {@link DelayMode} says how a command sent now would travel, and
  *   {@link useCommand} reports where it has got to
- * - a command can wait on the way: when no link to the craft is open, a node
+ * - a command can wait on the way: when no connection to the vessel is open, a node
  *   on the route (a relay) holds the command until one opens, and a held
  *   command keeps its place. A lane is the ordered run of delayed commands
  *   one centre sends to one craft, and a lane number is a command's place in

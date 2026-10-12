@@ -5,7 +5,9 @@ import { useWidgetMeta } from "./WidgetMetaContext";
 /**
  * The entries contributed to the current widget's standard
  * `${componentId}.badges` slot, each stamped with its contribution id and
- * owner. Empty outside a widget or without a {@link ContributionsProvider}.
+ * owner. Useful for showing the operator the badges an Uplink adds to a widget
+ * it did not write. Empty outside a widget or without a
+ * {@link ContributionsProvider}.
  * The dashboard reads this for each widget and hands it to
  * {@link PanelBadgesProvider}; a widget drawn in a {@link Panel} gets the
  * badges without calling it.

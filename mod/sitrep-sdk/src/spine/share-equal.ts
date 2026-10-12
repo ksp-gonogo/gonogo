@@ -17,12 +17,14 @@ function isBareValue(candidate: unknown): candidate is Value {
 
 /**
  * `next`, with every part of it that is structurally equal to the same part of
- * `previous` replaced by `previous`'s own object. Returns `previous` itself
- * when the two are equal throughout, so a caller comparing by reference sees
- * "unchanged" exactly when nothing is.
+ * `previous` replaced by `previous`'s own object. Useful for keeping an unchanged
+ * reading the same object from one frame to the next, so a widget redraws only
+ * when its value changes. Used by the timeline store.
  *
- * Walks plain records, arrays and `Value`s. Anything else (a `Map`, a class
- * instance) is equal only to itself.
+ * It returns `previous` itself when the two are equal throughout, so a caller
+ * comparing by reference sees "unchanged" exactly when nothing is. It walks plain
+ * records, arrays and `Value`s; anything else (a `Map`, a class instance) is
+ * equal only to itself.
  */
 export function shareEqual(previous: unknown, next: unknown): unknown {
   if (Object.is(previous, next)) return previous;

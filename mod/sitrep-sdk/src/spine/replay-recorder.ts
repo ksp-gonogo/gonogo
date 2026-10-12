@@ -20,27 +20,26 @@ export interface StreamRecorderOptions {
 }
 
 /**
- * Captures a `TelemetryClient`'s raw wire frames into a `ReplayFixture`,
- * the same `{ subscribedTopics, frames }` shape `ReplayTransport` consumes,
- * so a user recording and a test fixture are structurally identical.
+ * Captures a `TelemetryClient`'s raw wire frames into a `ReplayFixture`, the same
+ * `{ subscribedTopics, frames }` shape `ReplayTransport` consumes, so an
+ * operator's recording and a test fixture are structurally identical. Useful for
+ * saving a flight so the operator can replay it later. Used by the flights
+ * manager's automatic recording.
  *
- * Taps `client.onRawMessage` (verbatim `stream-data`/`event` frames, in
- * arrival order) rather than `client.subscribe`: `subscribe` only hands
- * back the flattened last-value view and never delivers `event` frames at
- * all (see `onRawMessage`'s own doc comment), neither of which round-trips
- * through `ReplayTransport` correctly.
+ * It taps `client.onRawMessage`, which delivers verbatim `stream-data` and
+ * `event` frames in arrival order. `client.subscribe` hands back only the
+ * flattened last-value view and never delivers `event` frames, so a recording
+ * made from it would not replay correctly.
  *
- * **Subscription-scoped by default**: with `recordAllTopics` off, `start()`
- * registers no subscriptions of its own: it only records whatever
- * `stream-data`/`event` frames already flow because something else (a
- * mounted widget, another recorder) is subscribed. A recording therefore
- * holds exactly the topics the dashboard had open; replaying a widget that
- * was never mounted while recording shows nothing. That's the accepted,
- * cheap default (see `StreamRecorderOptions.recordAllTopics`'s doc for the
- * opt-in alternative).
+ * Recording is subscription-scoped by default: with `recordAllTopics` off,
+ * `start()` registers no subscriptions of its own and records only the frames that
+ * already flow because something else (a mounted widget, another recorder) is
+ * subscribed. A recording therefore holds exactly the topics the dashboard had
+ * open, and replaying a widget that was never mounted while recording shows
+ * nothing. See `StreamRecorderOptions.recordAllTopics` for the opt-in alternative.
  *
- * Idle (never `start()`ed, or after `stop()`) costs nothing: no listener is
- * registered on the client until `start()` runs.
+ * Idle (never started, or after `stop()`) costs nothing: no listener is registered
+ * on the client until `start()` runs.
  */
 export class StreamRecorder {
   private readonly client: TelemetryClient;

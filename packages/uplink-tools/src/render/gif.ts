@@ -6,9 +6,9 @@ import { decodePng } from "./png";
  * tools needed. With `pingPong` the frames play forward and then back. Throws
  * on an empty list.
  *
- * A GIF, because an Uplink's README is read on GitHub and SpaceDock, where a
- * GIF embeds and a video does not. `--frames` keeps the numbered PNGs for
- * anything else.
+ * Useful for showing the operator a motion scene on an Uplink's README, where
+ * a GIF embeds and a video does not. Used by the render driver for each motion
+ * scene. `--frames` keeps the numbered PNGs.
  *
  * @category Rendering scenes
  */

@@ -10,11 +10,16 @@
  * behind the thing is gone, which is not the same as a neutral reading, and it
  * sits outside that scale with `neutral` and `info`.
  *
+ * Useful for telling the operator how a reading stands without choosing a
+ * colour. Taken by the `tone` of a {@link PlotLayer} and of contribution
+ * entries such as {@link ShipMapPartMetaEntry}.
+ *
  * @category Tone
  * @categoryDescription Tone
  * The words a widget uses for state (`neutral`, `info`, `go`, `caution`,
- * `warn`, `nogo`, `offline`) in place of colours, so every widget and contribution says the same thing the
- * same way and ui-kit picks the colour for where it is drawn.
+ * `warn`, `nogo`, `offline`) in place of colours, so every widget and
+ * contribution says the same thing the same way and ui-kit picks the colour for
+ * where it is drawn.
  */
 export type Tone =
   | "neutral"

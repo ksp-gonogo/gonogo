@@ -22,7 +22,10 @@ import {
 
 /**
  * How the running mod says each channel's samples relate in time, as carried
- * on the `sampleKinds` field of `system.uplinks`.
+ * on the `sampleKinds` field of `system.uplinks`. Useful for working out, before
+ * a value arrives, whether a channel's values are continuous, discrete or
+ * events. Returned by {@link readDeclaredSampleKinds} and taken by
+ * {@link channelKindOf} and {@link sampleKindOf}.
  *
  * @category Channels
  */
@@ -46,7 +49,9 @@ function kindsOf(value: unknown): [string, SampleKind][] | undefined {
 
 /**
  * Returns the {@link DeclaredSampleKinds} carried on a `system.uplinks`
- * payload, or `undefined` when it carries none.
+ * payload, or `undefined` when it carries none. Useful for noticing what the
+ * running mod says about each channel as soon as the Uplink roster arrives. Used
+ * by the stream's timeline store.
  *
  * @category Channels
  */
@@ -71,7 +76,8 @@ export function readDeclaredSampleKinds(
 /**
  * The kind a channel declares, from the mod's roster where it has arrived and
  * from core's own declarations before then, or `undefined` for a channel
- * neither knows.
+ * neither knows. Useful for deciding whether a channel's values are held until
+ * the next sample or drawn between samples. Used by the stream's timeline store.
  *
  * @category Channels
  */
@@ -170,7 +176,10 @@ function nearestValueKind(
 }
 
 /**
- * How the value at `path` inside `topic` relates in time:
+ * How the value at `path` inside `topic` relates in time. Useful for deciding
+ * whether a plotted or displayed value is held until the next sample or
+ * interpolated between samples. Used by the stream's timeline store. The kind
+ * is decided in this order:
  *
  * 1. an Event channel's every value is an event
  * 2. otherwise the nearest `[SitrepSampleKind]` on the path, then the

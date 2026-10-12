@@ -7,7 +7,9 @@ import {
 /**
  * Publishes a contribution into the nearest {@link PanelStatusStore} for as
  * long as the calling component is mounted, so it counts toward the panel's
- * summary badge and status dots.
+ * summary badge and status dots. Useful for letting a widget report a state to
+ * the operator in its header. Used by a widget's essentials and by
+ * {@link Badge}.
  *
  * - does nothing when there is no store above (a widget outside the dashboard)
  * - keyed on `c.id`: a changed severity or label updates the contribution in

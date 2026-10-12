@@ -14,11 +14,12 @@ type GeneratedUnit = keyof typeof GENERATED_UNIT_KINDS;
 
 /**
  * What the declaration says `Unit` measures, or `never` for a symbol nothing
- * declares.
+ * declares. Useful for checking before the operator sees a figure that a
+ * requested unit is a unit of the same quantity. Used by {@link FormatsFor} and
+ * {@link PresentableAs}.
  *
- * Every type in this module reads `UnitDeclarations` and nothing else, which is
- * what makes a unit an Uplink merges into it indistinguishable here from a
- * first-party one.
+ * A unit an Uplink merges into `UnitDeclarations` is treated the same as a
+ * built-in one.
  *
  * @category Unit
  */
@@ -29,7 +30,8 @@ export type KindOfSymbol<Unit extends string> = Unit extends DeclaredUnit
   : never;
 
 /**
- * Every declared symbol that measures `Kind`.
+ * Every declared symbol that measures `Kind`. Useful for listing the units a
+ * figure of one quantity may be pinned to. Used by {@link FormatsForKind}.
  *
  * @category Unit
  */
@@ -39,6 +41,9 @@ export type SymbolsOfKind<Kind> = {
 
 /**
  * The ladder `Unit` is declared on, or `never` for a unit that climbs none.
+ * Useful for telling which units settle on one scale together, so every figure
+ * in a group shows the same unit to the operator. Used by {@link LadderName}
+ * and {@link KindOfGroup}.
  *
  * @category Unit
  */
@@ -52,8 +57,11 @@ export type LadderOfSymbol<Unit extends string> = Unit extends DeclaredUnit
 
 /**
  * Every symbol of kind `Kind` that exists only as a conversion target (`°C`),
- * which the declarations do not name but a conversion still reaches. A pair whose source is itself undeclared is skipped, or `°C→K`
- * would make every kind accept `K`.
+ * which the declarations do not name but a conversion still reaches. Useful for
+ * letting the operator read a figure in a unit such as degrees Celsius that is
+ * never sent on the wire. A conversion whose source unit is itself undeclared
+ * is skipped, so `°C→K` does not make every kind accept `K`. Used by
+ * {@link PresentableAsKind}.
  *
  * @category Unit
  */
@@ -69,10 +77,11 @@ export type ConversionTargetsOfKind<Kind> = {
 
 /**
  * Every unit that measures the same thing as `Unit`, which is exactly the set a
- * value in `Unit` may be re-expressed in.
+ * value in `Unit` may be re-expressed in. Useful for pinning the unit the
+ * operator reads a figure in: `format="km/h"` checks on a speed and fails on a
+ * length. Used by the `format` prop of {@link Unit}.
  *
- * This is what makes `format="km/h"` check on a speed and fail on a length. A
- * unit an Uplink declares in `UnitDeclarations` widens the accepted set.
+ * A unit an Uplink declares in `UnitDeclarations` widens the accepted set.
  *
  * A literal symbol nothing declares accepts no format at all, since there is no
  * kind to check the request against. Only a wide `string` accepts any string.
@@ -86,6 +95,8 @@ export type FormatsFor<Unit extends string> = string extends Unit
 /**
  * {@link FormatsFor}, asked of the kind rather than of one of its units, for a
  * pin addressed to a whole group that has no single unit to check against.
+ * Useful for pinning the unit a group of figures shares. Used by
+ * {@link UnitSharedFormat}.
  *
  * @category Unit
  */
@@ -93,7 +104,9 @@ export type FormatsForKind<Kind> = SymbolsOfKind<Kind>;
 
 /**
  * Every unit a value in `Unit` may be shown as, which is every unit of its kind
- * plus the presentation-only ones the conversion table reaches.
+ * plus the presentation-only ones the conversion table reaches. Useful for
+ * showing the operator a figure in a familiar unit, such as degrees Celsius for
+ * a temperature sent in kelvin. Used by the `as` prop of {@link Unit}.
  *
  * Wider than {@link FormatsFor} by exactly the symbols that are not on the
  * wire: `format` pins a rung, `as` re-expresses, so `°C` belongs only to `as`.
@@ -106,7 +119,8 @@ export type PresentableAs<Unit extends string> = string extends Unit
   : PresentableAsKind<KindOfSymbol<Unit>>;
 
 /**
- * {@link PresentableAs}, asked of the kind. See {@link FormatsForKind}.
+ * {@link PresentableAs}, asked of the kind. See {@link FormatsForKind}. Used by
+ * {@link UnitSharedFormat}.
  *
  * @category Unit
  */
@@ -318,8 +332,10 @@ const laddersByName: Record<string, readonly Rung[]> = { ...LADDERS };
 
 /**
  * Every ladder (a kind's {@link Rung}s in order) a declared unit names, and
- * therefore every group that settles one unit together. A unit on none of them is a group of its own: `m`, `km`
- * and `Mm` are one group and `s` and `min` are two.
+ * therefore every group that settles one unit together. A unit on none of them
+ * is a group of its own: `m`, `km` and `Mm` are one group and `s` and `min`
+ * are two. Useful for naming the group of figures that shows one unit to the
+ * operator. Used by {@link UnitGroupKey}.
  *
  * @category Unit
  */
@@ -329,6 +345,8 @@ export type LadderName = {
 
 /**
  * What a pin may be addressed to: one group, named the way the group is formed.
+ * Useful for fixing the unit a group of figures shows to the operator. Used by
+ * the `pins` of {@link UnitSharedFormat}.
  *
  * A unit on a ladder is named by the ladder, because every unit of it settles
  * together and `m`, `km` and `Mm` are one thing to pin. Everything else is named
@@ -347,7 +365,9 @@ export type UnitGroupKey =
     }[DeclaredUnit];
 
 /**
- * What the group named by `Group` measures, so a pin addressed to it can be checked.
+ * What the group named by `Group` measures, so a pin addressed to it can be
+ * checked. Useful for refusing a pin whose unit does not measure the same
+ * quantity as the group. Used by {@link UnitSharedFormat}.
  *
  * A ladder key measures whatever its units do; a unit key resolves through the
  * declarations the same way a lone `<Unit>` does.

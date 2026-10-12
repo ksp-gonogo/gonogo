@@ -2,7 +2,9 @@ import { useProcessor } from "./api";
 import { SYSTEM_POSES, type SystemPoses } from "./spine/body-pose";
 
 /**
- * Where every body is at the instant on screen, and how well each is known.
+ * Where every body is at the instant on screen, and how well each position is
+ * known. Useful for drawing the bodies of the system for the operator. Used by
+ * the system view and the transfer window widgets.
  *
  * Each body's pose carries its own currency: `exact` on a fixed
  * orbit, `modelled` inside an integrating provider's horizon, `held` once the

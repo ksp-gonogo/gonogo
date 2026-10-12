@@ -6,7 +6,8 @@ import { ChevronRightIcon } from "./Icons";
 import { useKeyboardScrollable } from "./useScrollerMetric";
 
 /**
- * Props for {@link Disclosure}.
+ * Props for {@link Disclosure}: the trigger, the panel it shows and where the
+ * panel opens.
  *
  * @category Disclosure
  */

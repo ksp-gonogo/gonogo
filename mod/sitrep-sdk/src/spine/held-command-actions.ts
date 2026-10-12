@@ -6,15 +6,26 @@ import { type HeldCommand, JOURNEY_TOPIC, readJourney } from "./comms-journey";
 import { useTelemetryClientOptional } from "./context";
 import { useLatestValue } from "./use-stream";
 
-/** The cancel command: stops a held or travelling command, or it and everything behind it on its lane. */
+/**
+ * The cancel command: stops a held or travelling command, or it and everything
+ * behind it on its lane. Useful for letting the operator withdraw a command
+ * sent to a vessel before it runs. Sent by `sendUplinkAction`.
+ */
 export const UPLINK_CANCEL_COMMAND = "system.uplink.cancel";
 
-/** The send-again command: a new copy of a held or overdue command, in its own place on its lane. */
+/**
+ * The send-again command: a new copy of a held or overdue command, in its own
+ * place on its lane. Useful for letting the operator retry a command that has
+ * not reached the vessel. Sent by `sendUplinkAction`.
+ */
 export const UPLINK_RESEND_COMMAND = "system.uplink.resend";
 
 /**
- * What a cancel or a send again did at the sending centre: the cancel's last
- * lane number, the new copy's id and expiry, or why it was refused.
+ * What a cancel or a send again did at the sending command centre: the cancel's
+ * last lane number, the new copy's id and expiry, or why it was refused. Useful
+ * for telling the operator whether the cancel or resend of a command took
+ * effect. Returned by `sendUplinkAction` and used by the command group that
+ * follows a batch of sends.
  *
  * @category Commands
  */
@@ -29,7 +40,11 @@ export interface UplinkActionOutcome {
   refusal?: string;
 }
 
-/** A cancel or send-again reply as an outcome. */
+/**
+ * The reply to a cancel or a send again as an `UplinkActionOutcome`. Useful for
+ * telling the operator whether the command was withdrawn or sent again. Used by
+ * `sendUplinkAction`.
+ */
 export function readUplinkActionReply(result: unknown): UplinkActionOutcome {
   if (typeof result !== "object" || result === null) {
     return { refusal: "no answer" };
@@ -64,7 +79,12 @@ export function readUplinkActionReply(result: unknown): UplinkActionOutcome {
   };
 }
 
-/** Sends a cancel or a send again for timeline `epoch`, and reads the reply. */
+/**
+ * Sends a cancel or a send again for the timeline `epoch` through `client`, and
+ * returns the reply as an `UplinkActionOutcome`. Useful for withdrawing or
+ * retrying a command the operator sent to a vessel. Used by the command group
+ * that follows a batch of sends.
+ */
 export async function sendUplinkAction(
   client: TelemetryClient,
   epoch: Value<"count">,
@@ -79,7 +99,12 @@ export async function sendUplinkAction(
   }
 }
 
-/** The two actions a held command offers, bound to this session's client and the current timeline. */
+/**
+ * The two actions a held command offers, cancel and send again, bound to this
+ * session's client and the current timeline. Useful for giving the operator
+ * controls over a command that is waiting for the vessel. Returned by
+ * `useHeldCommandActions`.
+ */
 export interface HeldCommandActions {
   /** Cancels the command, or it and every later command on its lane. */
   cancel(
@@ -91,9 +116,12 @@ export interface HeldCommandActions {
 }
 
 /**
- * Cancel and send-again for held commands, from this session's vantage. Both
- * name the timeline the latest journey carries, so a request made across a
- * game load is refused rather than applied to a different game.
+ * Cancel and send-again for held commands, from this session's command centre.
+ * Useful for giving the operator controls over a command that is waiting for the
+ * vessel.
+ *
+ * Both name the timeline the latest journey carries, so a request made across a
+ * game load is refused and never applied to a different game.
  */
 export function useHeldCommandActions(): HeldCommandActions {
   // gonogo:reads none

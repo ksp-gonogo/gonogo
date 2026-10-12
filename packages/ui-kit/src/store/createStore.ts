@@ -1,10 +1,11 @@
 /**
  * A generic, off-tree external store: an id-keyed set of entries with
  * `subscribe`/`getSnapshot`/`register`/`update`, a referentially stable
- * snapshot while unchanged, and insertion order.
+ * snapshot while unchanged, and insertion order. Useful for keeping the states
+ * a dashboard tile reports where a change re-renders only the components that
+ * read them. Used by the panel status store.
  *
- * The live data lives in the store, never in a React context value, so a
- * change re-renders only the snapshot's subscribers.
+ * The live data lives in the store and never in a React context value.
  */
 export interface Store<Item extends { id: string }> {
   /** Add or replace an entry (keyed on `entry.id`). Returns its deregister function. */

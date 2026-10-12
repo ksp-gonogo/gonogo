@@ -36,7 +36,9 @@ function jestAxe(): Promise<{ axe: typeof axeFn }> {
 
 /**
  * The accessibility smoke assertion for a widget test: runs `axe` over
- * `container` (an element or a selector) and fails on any violation.
+ * `container` (an element or a selector) and fails on any violation. Useful in a
+ * widget test for checking that the operator can use the widget with a keyboard
+ * or a screen reader.
  *
  * The whole check runs inside `act`, so a widget with a clock or a
  * subscription that keeps updating while `axe` walks the DOM raises no act

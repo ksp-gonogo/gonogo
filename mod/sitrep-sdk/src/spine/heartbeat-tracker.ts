@@ -1,12 +1,10 @@
 import type { ViewClockConfidence } from "./view-clock";
 
 /**
- * Fallback keyframe interval (UT seconds) for a topic that hasn't declared
- * its own. Matches the emitter's current uniform `KeyframeIntervalUt`
- * convention (`~30s UT`: see CLAUDE.md's CI/CD note and
- * `mod/Sitrep.Core/EmissionPolicy.cs`). A later task may thread the real
- * per-channel declaration through the handshake; until then every topic
- * shares this default unless overridden via `HeartbeatTrackerOptions`.
+ * The keyframe interval in UT seconds, 30, assumed for a Topic that declares
+ * none. It is the interval after which a quiet channel is overdue and its
+ * reading is marked held for the operator. Used by `HeartbeatTracker`, which
+ * applies it to every Topic unless `HeartbeatTrackerOptions` overrides it.
  */
 export const DEFAULT_KEYFRAME_INTERVAL_UT = 30;
 

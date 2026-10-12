@@ -4,14 +4,17 @@ import { namesByValue } from "./enum-names";
 /**
  * The name of each {@link CrewStanding} value: where a kerbal stands on the
  * books. It is not KSP's roster status: an applicant has no roster status,
- * and a kerbal standing down still has the roster status `Available`.
+ * and a kerbal standing down still has the roster status `Available`. Useful
+ * for showing the operator a kerbal's standing by name. Read by
+ * {@link crewStandingLabel}.
  *
  * @category Crew
  */
 export const CREW_STANDING_NAMES = namesByValue(CrewStanding);
 
 /**
- * The name of a {@link CrewStanding} member, as a string union.
+ * The name of a {@link CrewStanding} member, as a string union. Useful for
+ * naming a kerbal's standing in code that groups or filters a crew list.
  *
  * @category Crew
  */
@@ -19,7 +22,8 @@ export type CrewStandingName = keyof typeof CrewStanding;
 
 /**
  * Every {@link CrewStanding}, in the order to group a crew list by: who can
- * fly, who is committed, who is off the books, with `Unknown` last.
+ * fly, who is committed, who is off the books, with `Unknown` last. Useful for showing the operator a
+ * crew list in groups. Used by the astronaut complex roster.
  *
  * @category Crew
  */
@@ -34,7 +38,8 @@ export const CREW_STANDING_ORDER: readonly CrewStanding[] = [
  * Returns a {@link CrewStanding} from KSP's roster status, for a crew entry
  * that carries no `standing` of its own, as from an older version of the mod.
  * An applicant returns `Applicant`, and a missing or unknown status returns
- * `Unknown`.
+ * `Unknown`. Useful for showing the operator a standing for every kerbal in a
+ * crew list. Used by the astronaut complex roster.
  *
  * @category Crew
  */
@@ -61,7 +66,8 @@ export function crewStandingFromRosterStatus(
 
 /**
  * Returns a standing's name to show, or `null` for a value this version does
- * not know. Show nothing rather than a made-up label.
+ * not know. Show nothing rather than a made-up label. Useful for showing the
+ * operator a kerbal's standing by name. Used by the astronaut complex.
  *
  * @category Crew
  */
@@ -76,7 +82,8 @@ export function crewStandingLabel(
 
 /**
  * Returns whether a standing should raise an alarm: the kerbal is dead or
- * missing.
+ * missing. Useful for marking a kerbal for the operator in a crew list. Used by
+ * the kerbal stats display.
  *
  * @category Crew
  */
@@ -87,7 +94,9 @@ export function isFatality(standing: number | null | undefined): boolean {
 /**
  * Returns whether the game would let this kerbal be dismissed: the standing
  * is `Available` or `Resting`. A resting kerbal cannot fly but can be
- * dismissed. Any other standing, including one added later, returns `false`.
+ * dismissed. Any other standing, including one added later, returns `false`. Useful for
+ * enabling the operator's dismiss control only when the game would allow it.
+ * Used by the astronaut complex.
  *
  * @category Crew
  */
@@ -100,7 +109,8 @@ export function canBeSacked(standing: number | null | undefined): boolean {
 /**
  * Returns why a kerbal cannot fly, with when that ends where it is known:
  * "Standing down", or "Standing down until Y2 D14". Returns `null` when the
- * kerbal can fly.
+ * kerbal can fly. Useful for telling the operator why a kerbal cannot be
+ * assigned. Used by the kerbal stats display.
  *
  * @param reason - The payload's `unavailableReason`. Empty or absent means the
  * kerbal can fly.

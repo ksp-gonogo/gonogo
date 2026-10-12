@@ -5,7 +5,7 @@ import { Tooltip } from "./Tooltip";
 import { TONE_MARK, TONE_TEXT } from "./tone";
 
 /**
- * One person in an {@link AvatarStack}.
+ * One person in an {@link AvatarStack}. Taken in the stack's `items`.
  *
  * @category Badge
  */
@@ -21,7 +21,7 @@ export interface AvatarStackItem {
 }
 
 /**
- * Props for {@link AvatarStack}.
+ * Props for {@link AvatarStack}: the people to show and how many places it has.
  *
  * @category Badge
  */

@@ -20,6 +20,8 @@
 
 /**
  * A pattern of square cells, `cols` wide and `rows` high. Either may be fractional.
+ * Useful in a test for describing the picture a feed is meant to carry. Taken
+ * by {@link paintChecker}.
  *
  * @category Testing
  */
@@ -31,14 +33,18 @@ export interface CheckerGrid {
 }
 
 /**
- * The `object-fit` values that scale a picture to its box.
+ * The `object-fit` values that scale a picture to its box. Useful in a test for
+ * stating how a framed picture is scaled. Taken by {@link paintChecker} and
+ * returned by {@link fitOf}.
  *
  * @category Testing
  */
 export type CheckerFit = "fill" | "contain" | "cover";
 
 /**
- * How a {@link CheckerGrid} lands in a box under a given fit, in CSS px.
+ * How a {@link CheckerGrid} lands in a box under a given fit, in CSS px. Useful
+ * in a test for reading what the operator would see of a framed picture.
+ * Returned by {@link paintChecker}.
  *
  * @category Testing
  */
@@ -63,7 +69,8 @@ export interface CheckerPaint {
  * One of the three ways a framed picture goes wrong. `distortion` renders a
  * square cell as a rectangle; `cropping` keeps cells square and loses some
  * off the box's edge; `field-of-view` keeps cells square and whole but shows a
- * different grid from the one intended.
+ * different grid from the one intended. Useful in a test for naming what is
+ * wrong with a framed picture. Returned by {@link framingFaults}.
  *
  * @category Testing
  */
@@ -72,7 +79,8 @@ export type FramingFault = "distortion" | "cropping" | "field-of-view";
 /**
  * Relative slack on every comparison, 1%. A box floored to whole pixels to fit a
  * feed's aspect sits a fraction of a percent off it, which is not a fault; a
- * real distortion is far larger.
+ * real distortion is far larger. Useful in a test for deciding when a framed
+ * picture is faulty enough to show the operator a wrong picture.
  *
  * @category Testing
  */
@@ -81,7 +89,9 @@ export const CHECKER_TOLERANCE = 0.01;
 /**
  * Paint `grid` into `box` under `fit`, centred as `object-position` defaults.
  * The source's pixel size never matters: every supported fit scales it to the
- * box, so only its shape does, and that is the grid's.
+ * box, so only its shape does, and that is the grid's. Useful in a test for
+ * working out how a camera feed or other picture lands in its frame on the
+ * operator's screen.
  *
  * @category Testing
  */
@@ -121,7 +131,8 @@ export function paintChecker(
  * Every {@link FramingFault} `paint` shows.
  * `intended` is the grid the picture was meant to carry (a camera's own
  * aspect, say); without it a field-of-view change cannot be told from a
- * faithful picture, so it is never reported.
+ * faithful picture, so it is never reported. Useful in a test for asserting
+ * that the operator sees an undistorted, uncropped picture.
  *
  * @category Testing
  */
@@ -156,7 +167,8 @@ export function framingFaults(
  * set, and `contain` on a `<video>`, whose user-agent style says so. Throws for
  * an `<svg>` with no `viewBox`, which does not scale its content at all, and
  * for `none` or `scale-down`, which depend on a pixel size the checker does not
- * have.
+ * have. Useful in a test for reading how a rendered picture is scaled, to pass
+ * on to {@link paintChecker}.
  *
  * @category Testing
  */

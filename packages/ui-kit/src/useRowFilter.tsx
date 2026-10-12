@@ -11,7 +11,8 @@ import { SearchBox } from "./SearchBox";
 import { Stack } from "./Stack";
 
 /**
- * A filter made by {@link useRowFilter}. Test each row with `matches`. Its
+ * A filter made by {@link useRowFilter}. Useful for narrowing a list to the
+ * rows the operator typed or toggled. Test each row with `matches`. Its
  * control (contributed toggles, then a search box) is not part of this object:
  * it renders above the list it narrows when the filter is passed to
  * {@link FilterRegion} or to `Panel`'s `panelFilter`.
@@ -27,7 +28,8 @@ export interface RowFilter {
 
 /**
  * A declared segment whose contributions are plain search terms. `badges`, for
- * one, contributes a `BadgeEntry`, which cannot be substring-matched.
+ * one, contributes a `BadgeEntry`, which cannot be substring-matched. Taken by
+ * the `segment` option of {@link useRowFilter}.
  */
 export type TermSegment = {
   [Segment in ComponentSlotSegment]: ComponentSlotRegistry[Segment] extends string

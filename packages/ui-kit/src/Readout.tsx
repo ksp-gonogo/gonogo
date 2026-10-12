@@ -4,7 +4,10 @@ import styled, { css } from "styled-components";
 import { TONE_TEXT } from "./tone";
 
 /**
- * Where a {@link Readout} sits: `hero` fills the remaining panel space and centres, `inline` sits baseline-aligned beside other content.
+ * Where a readout sits: `hero` fills the remaining panel space and centres,
+ * `inline` sits baseline-aligned beside other content. Useful for choosing
+ * whether a figure is the one the operator reads first. Taken by
+ * {@link Readout}.
  *
  * @category Readout
  */

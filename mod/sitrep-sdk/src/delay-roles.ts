@@ -35,12 +35,15 @@ import {
 } from "./__generated__/delay-roles";
 
 /**
- * Which instant a Topic is read at:
+ * Which instant a Topic is read at. Useful for deciding whether the operator sees
+ * a value as of now or as of the signal delay ago. Returned by
+ * {@link delayLaneOf} and used by the stream's timeline store and view clock.
+ * The lanes are:
  *
- * - `"delayed"`: the view time minus the signal delay to the active craft. The
+ * - `"delayed"`: the view time minus the signal delay to the active vessel. The
  *   default for every Topic that declares nothing else
  * - `"true-now"`: the newest value received, with no delay subtracted. For a
- *   Topic that is true at the command centre rather than out at a craft, such
+ *   Topic that is true at the command centre rather than out at a vessel, such
  *   as the warp state, and for one whose delay the mod has already applied
  *   before sending it
  *
@@ -52,7 +55,8 @@ export type DelayLane = "delayed" | "true-now";
  * A Gonogo Topic that is read with no signal delay, because what it describes
  * is true at the command centre and not out at a vessel: uplink health, the
  * celestial bodies, the alarms, the warp state and the comms network's
- * layout.
+ * layout. Useful for knowing which Topics the operator sees at once even when the
+ * vessel is far away. Returned as a guard by {@link isTrueNowTopic}.
  *
  * @category Delay and vantage
  */
@@ -63,7 +67,9 @@ export type TrueNowTopic = GeneratedTrueNowTopic;
  * finances and the space centre's records. Each command centre reads it at its
  * own delay from home rather than at the active craft's delay. The mod applies
  * that delay before it sends the Topic, so the client reads it in the
- * `"true-now"` {@link DelayLane} and subtracts nothing more.
+ * `"true-now"` {@link DelayLane} and subtracts nothing more. Useful for knowing
+ * which Topics each command centre sees at its own delay from home. Returned as
+ * a guard by {@link isHeldAtHomeTopic}.
  *
  * @category Delay and vantage
  */
@@ -73,7 +79,9 @@ export type HeldAtHomeTopic = GeneratedHeldAtHomeTopic;
  * How the running mod says each Topic is delayed, as carried on the
  * `delayRoles` field of `system.uplinks`. It covers Uplink Topics as well as
  * Gonogo's own. A Topic in none of the sets, and not under a prefix in
- * `trueNowPrefixes`, is delayed.
+ * `trueNowPrefixes`, is delayed. Useful for reading an Uplink's Topics in the
+ * right delay lane. Returned by {@link readDeclaredDelayRoles} and taken by
+ * {@link delayLaneOf}.
  *
  * @category Delay and vantage
  */
@@ -108,7 +116,9 @@ function stringsOf(value: unknown): string[] | undefined {
  * Returns the {@link DeclaredDelayRoles} carried on a `system.uplinks`
  * payload, or `undefined` when it carries none or is missing one of the
  * `trueNow`, `heldAtHome` and `trueNowPrefixes` lists. A missing `addressed`
- * list reads as empty.
+ * list reads as empty. Useful for picking up what the mod says about each
+ * Topic's delay as soon as the Uplink roster arrives. Used by the stream's
+ * timeline store.
  *
  * @category Delay and vantage
  */
@@ -137,7 +147,8 @@ export function readDeclaredDelayRoles(
 /**
  * Returns whether `topic` is a {@link TrueNowTopic}. Uplink Topics are not
  * covered; use {@link delayLaneOf} with the mod's {@link DeclaredDelayRoles}
- * for those.
+ * for those. Useful for narrowing a Topic id to one the operator sees without
+ * signal delay.
  *
  * @category Delay and vantage
  */
@@ -147,7 +158,8 @@ export function isTrueNowTopic(topic: string): topic is TrueNowTopic {
 
 /**
  * Returns whether `topic` is a {@link HeldAtHomeTopic}. Uplink Topics are not
- * covered.
+ * covered. Useful for narrowing a Topic id to one read at the home command
+ * centre's delay.
  *
  * @category Delay and vantage
  */
@@ -156,7 +168,9 @@ export function isHeldAtHomeTopic(topic: string): topic is HeldAtHomeTopic {
 }
 
 /**
- * Returns the {@link DelayLane} `topic` is read in.
+ * Returns the {@link DelayLane} `topic` is read in. Useful for deciding whether
+ * the operator sees a value as of now or as of the signal delay ago. Used by
+ * the stream's timeline store.
  *
  * Pass the mod's `roles`, from {@link readDeclaredDelayRoles}, to cover Uplink
  * Topics. Without them only Gonogo's own Topics are known, and every Uplink

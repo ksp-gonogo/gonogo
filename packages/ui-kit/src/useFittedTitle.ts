@@ -42,7 +42,9 @@ function measureCandidateWidth(el: HTMLElement | null, text: string): number {
 }
 
 /**
- * Which candidate fits, as an index into a longest-first list.
+ * Which candidate fits, as an index into a longest-first list. Useful for
+ * showing the operator the longest title form that fits a small tile. Used by
+ * {@link useFittedTitle}.
  *
  * Anything unmeasured (a zero available width, or a first candidate that
  * measured zero) holds index 0, the full form: shortening a title on a
@@ -64,7 +66,8 @@ export function fittedTitleIndex(
 
 /**
  * The title form to render, given the full one and any shorter alternatives,
- * chosen by measuring the box rather than by a column count.
+ * chosen by measuring the box. Useful for showing the operator the longest
+ * title that fits a small tile. Used by the title of {@link Panel}.
  *
  * `compact` is longest-first, so "ORBIT VIEW" then "OVIEW" then "OV" is a full
  * title of `ORBIT VIEW` with `compact={["OVIEW", "OV"]}`. The returned

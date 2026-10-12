@@ -131,8 +131,10 @@ function reckonedValue<Payload>(
 /**
  * Builds a reading from what the store already knows: the sampled point (or
  * its absence), the status `TimelineStore.sampleStatus` derived for the same
- * frame, and optionally a reckoner to ask for a forward model. Pure. Used by
- * the timeline store and the provider's non-hook reads.
+ * frame, and optionally a reckoner to ask for a forward model. Pure. Useful for
+ * giving the operator a Topic's value with its age and any modelled figure.
+ * Used by the timeline store, the built-in reckoners and the provider's non-hook
+ * reads.
  *
  * With no reckoner, one that declines, or one whose coverage does not reach
  * the payload root, the reading is `reckoning: { status: "none" }` whatever

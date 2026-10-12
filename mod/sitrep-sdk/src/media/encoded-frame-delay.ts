@@ -57,7 +57,8 @@ import {
 
 /**
  * The parts of an `RTCEncodedVideoFrame` the delay reads. A real encoded frame
- * satisfies it as it is.
+ * satisfies it as it is. Useful for delaying video before it is decoded. Used
+ * by {@link attachEncodedFrameDelayTransform}.
  *
  * @category Delayed video
  */
@@ -70,7 +71,8 @@ export interface EncodedVideoFrameLike extends FrameLike {
 
 /**
  * The `transformer` of an `RTCTransformEvent`: a readable and a writable stream
- * of encoded frames.
+ * of encoded frames. Useful for delaying video before it is decoded. Taken by
+ * {@link attachEncodedFrameDelayTransform}, which the delay worker calls.
  *
  * @category Delayed video
  */
@@ -82,7 +84,8 @@ export interface EncodedTransformerLike {
 }
 
 /**
- * Options for `attachEncodedFrameDelayTransform`.
+ * Options for {@link attachEncodedFrameDelayTransform}: the delay clock, the
+ * capture time to stamp each frame with, and the limits on what is held.
  *
  * @category Delayed video
  */
@@ -113,6 +116,7 @@ export interface EncodedFrameDelayOptions {
 /**
  * The most encoded video, in bytes, the delay holds before it drops the oldest
  * frames, a whole keyframe group at a time so decoding never breaks: 8 MiB.
+ * Useful as the cap on delayed video held in memory. Used by the radio session.
  *
  * @category Delayed video
  */
@@ -123,7 +127,8 @@ const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
 
 /**
  * Delays the encoded frames passing through `transformer`, the same way
- * {@link runFrameDelayPipeline} delays decoded ones.
+ * {@link runFrameDelayPipeline} delays decoded ones. Useful for holding video
+ * back by the signal delay before it is decoded. Used by the delay worker.
  *
  * Call `pipeline.tickPacing(nowWall)` about 60 times a second while it runs;
  * {@link startPacingTicker} does that.

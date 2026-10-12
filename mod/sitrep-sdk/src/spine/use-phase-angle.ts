@@ -139,24 +139,25 @@ function wrap180(deg: number): number {
 }
 
 /**
- * How far a body leads the active vessel about the body's parent, as a
- * reading: in degrees in (-180, 180], positive when the body is ahead of the
- * vessel, the sense a Hohmann phase angle is given in.
+ * How far a body leads the active vessel about the body's parent, as a reading:
+ * in degrees in (-180, 180], positive when the body is ahead of the vessel, the
+ * sense a Hohmann phase angle is given in. Useful for showing the operator when a
+ * transfer window to that body opens. Used by the system diagram.
  *
- * It is the angle between the two position vectors in the plane of the
- * vessel's own motion, both taken from the model: the body's from its pose,
- * the vessel's from `vessel.orbit`. It is observed at the received edge and,
- * where the vessel's conic reckons past it, both objects are placed at the
- * instant the reckoning is for.
+ * It is the angle between the two position vectors in the plane of the vessel's
+ * own motion, both taken from the model: the body's from its pose, the vessel's
+ * from `vessel.orbit`. It is observed at the received edge and, where the vessel's
+ * conic reckons past it, both objects are placed at the instant the reckoning is
+ * for.
  *
- * The figure takes the weakest currency of what it rests on. A body held at
- * its horizon, or on a catalogue that stopped arriving, makes it held as of
- * that instant; a body on a fixed orbit does not, however old the catalogue
- * is. A reckoning is kept where every pose at its instant is live, and dropped
- * where one is not: a body past its horizon has no place to reckon to.
+ * The figure takes the weakest currency of what it rests on. A body held at its
+ * horizon, or on a catalogue that stopped arriving, makes it held as of that
+ * instant; a body on a fixed orbit does not, however old the catalogue is. A
+ * reckoning is kept where every pose at its instant is live, and dropped where one
+ * is not: a body past its horizon has no place to reckon to.
  *
- * `undefined` when `body` is `null`, there is no catalogue or vessel orbit yet,
- * the orbit is not an ellipse, or the body has no place.
+ * `undefined` when `body` is `null`, there is no catalogue or vessel orbit yet, the
+ * orbit is not an ellipse, or the body has no place.
  *
  * @category Solar system and fleet
  */
@@ -224,17 +225,19 @@ export function usePhaseAngle(
 }
 
 /**
- * Where each of `bodies` is ahead of the vessel, in degrees in [0, 360), keyed
- * by body index, for a mark that is drawn only while it is true now.
+ * Where each of `bodies` is ahead of the vessel, in degrees in [0, 360), keyed by
+ * body index, for a mark that is drawn only while it is true now. Useful for
+ * marking on a diagram the bodies whose transfer window is open at the instant on
+ * screen. Used by the system diagram.
  *
- * Same figure as {@link usePhaseAngle}, taken at the instant on screen from
- * the vessel's elements as its reckoner has carried them. A body whose pose is
- * held or withdrawn is left out, because a live mark drawn from where it used
+ * It is the same figure as {@link usePhaseAngle}, taken at the instant on screen
+ * from the vessel's elements as its reckoner has carried them. A body whose pose
+ * is held or withdrawn is left out, because a live mark drawn from where it used
  * to be would show a window that has gone.
  *
- * The map is empty when there is no vessel orbit, the orbit is not an ellipse,
- * the provider will not answer for the instant, or the vessel's reckoner
- * declined to carry its elements forward to it.
+ * The map is empty when there is no vessel orbit, the orbit is not an ellipse, the
+ * provider will not answer for the instant, or the vessel's reckoner declined to
+ * carry its elements forward to it.
  *
  * @category Solar system and fleet
  */

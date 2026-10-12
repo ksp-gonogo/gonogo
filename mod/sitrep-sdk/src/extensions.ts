@@ -29,7 +29,9 @@
 // Mirrors Sitrep.Contract.ProviderExtensions.WireField; extensions.test.ts asserts the two agree.
 /**
  * The key a payload carries its {@link ProviderExtensions} under:
- * `"extensions"`.
+ * `"extensions"`. Useful for code that walks a payload generically and must skip
+ * or descend into provider extensions. Used when the stream client gives a
+ * payload's quantities their units.
  *
  * @category Reading telemetry
  */
@@ -38,7 +40,8 @@ export const PROVIDER_EXTENSIONS_FIELD = "extensions";
 /**
  * What one provider puts under its own id in a payload's `extensions` field.
  * Its type is unknown to Gonogo: read it with the reader the provider's own
- * package exports, rather than casting it yourself.
+ * package exports, rather than casting it yourself. Useful for typing one
+ * provider's entry in a payload's {@link ProviderExtensions}.
  *
  * @category Reading telemetry
  */
@@ -51,7 +54,8 @@ export type ProviderExtension = unknown;
  * providers never collide.
  *
  * Each value is `unknown` here. Read one through the reader the provider's
- * own package exports, rather than casting it.
+ * own package exports, rather than casting it. Useful for an Uplink author who
+ * reads the extra values a provider adds to a Topic's payload.
  *
  * @category Reading telemetry
  */

@@ -57,7 +57,12 @@ export interface SeedOptions {
   devDependencies: Readonly<Record<string, string>>;
 }
 
-/** The seed's files keyed by path relative to the Uplink's directory. */
+/**
+ * The files of a new Uplink's starting project, keyed by path relative to the
+ * Uplink's directory, rendered from the author's answers in `o`. Useful for
+ * giving the author a client, a contract slice, a plugin and tests that build
+ * on the first run. Used by the `new` command.
+ */
 export function renderSeed(o: SeedOptions): Map<string, string> {
   const id = o.id;
   const Id = pascal(id);
@@ -1732,9 +1737,11 @@ export interface NewUplinkRuntime {
 }
 
 /**
- * Runs `new`. Returns 0 when the directory it leaves builds, 1 when the files
- * were written and a later step did not finish, and 2 when a question went
- * unanswered with nobody to ask, having written nothing.
+ * Runs `new`, which scaffolds an Uplink from the author's answers or flags.
+ * Returns 0 when the directory it leaves builds, 1 when the files were written
+ * and a later step did not finish, and 2 when a question went unanswered with
+ * nobody to ask, having written nothing. Useful for giving an author a working
+ * Uplink in one command. Used by the `uplink-tools` command line.
  */
 export async function newUplink(
   argv: readonly string[],

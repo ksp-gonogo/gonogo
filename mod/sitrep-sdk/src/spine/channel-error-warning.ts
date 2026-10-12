@@ -2,20 +2,12 @@ import { hasHost } from "../api/host";
 import { logger } from "../api/logger";
 
 /**
- * The mod answered a subscribe and then failed to put that channel's payload
- * on the wire.
- *
- * Sibling of `installUnownedTopicWarning`, for the silence that one cannot
- * see. That diagnostic fires when a subscribe is never acked, which is what an
- * undeclared topic looks like. This one is the opposite shape and reads
- * identically to an author: the topic is declared, the subscribe is acked, and
- * nothing ever arrives, because every delivery dies at the wire boundary. The
- * commonest cause by far is publishing a plain CLR type the wire codec cannot
- * write, which no amount of staring at the widget will reveal.
- *
- * Once per topic and code per session: the mod marks the owning Uplink
- * Unavailable on the first failure, so this normally fires exactly once, but a
- * reconnect re-earns the whole verdict and would otherwise reprint it.
+ * Returns the warning text for a Topic whose subscribe the mod accepted and
+ * whose payload it then failed to put on the wire. The Topic is declared and
+ * the subscribe is acked, but nothing arrives. The commonest cause is an Uplink
+ * publishing a plain CLR type that the wire codec cannot write. Useful for
+ * telling an Uplink author why a widget reading the Topic stays pending. Used by
+ * `warnChannelError`.
  */
 export function channelErrorMessage(
   topic: string,
@@ -36,9 +28,11 @@ export function channelErrorMessage(
 }
 
 /**
- * Reported at the point the client would otherwise discard the frame: an error
- * carrying a topic and no requestId is not a reply to any command, so the
- * command correlator drops it and there is nothing else downstream to notice.
+ * Logs the warning from `channelErrorMessage` once for each topic and code in
+ * a session, so a reconnect does not print it again. Does nothing when no host
+ * is installed, as in a unit test. Useful for telling an Uplink author that a
+ * Topic will never deliver. Used by the Sitrep client when it receives an error
+ * that names a Topic and answers no command.
  */
 export function warnChannelError(
   warned: Set<string>,

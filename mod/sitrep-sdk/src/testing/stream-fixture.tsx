@@ -124,9 +124,9 @@ export function setupStreamFixture(
 }
 
 /**
- * Drops the link, as a widget's held-reading tests do: the transport
- * disconnects and a new frame starts, so every reading the widget drew is held
- * rather than current. What a fixture's `"_stream": { "stopsArriving": true }`
+ * Drops the connection to the mod, for a test of how a widget shows held
+ * readings: the transport disconnects and a new frame starts, so every reading
+ * the widget drew is held rather than current. What a fixture's `"_stream": { "stopsArriving": true }`
  * asks for. Call it after the scene's emits.
  *
  * @category Stream fixture

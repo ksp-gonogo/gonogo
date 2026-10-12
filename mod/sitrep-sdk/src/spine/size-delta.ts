@@ -1,10 +1,12 @@
 import type { SizeDelta } from "../api/types";
 
 /**
- * Refuses an extension's size request that is not a whole number of zero or
- * more on either axis, naming the extension. An extension asks a widget for
- * room and never takes it away, so a negative request is an error rather than
- * a clamp, and a fraction has no grid cell to be counted in.
+ * Refuses an extension's size request that is not a whole number of zero or more
+ * on either axis, naming the extension. Useful for stopping an extension from
+ * shrinking the widget the operator is looking at. Used when contributions and
+ * augments are registered. An extension asks a widget for room and never takes it
+ * away, so a negative request is an error rather than a clamp, and a fraction has
+ * no grid cell to be counted in.
  */
 export function assertSizeDelta(
   owner: string,

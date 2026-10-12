@@ -25,7 +25,12 @@ interface ContributionScope {
 let current: ContributionScope | null = null;
 const reported = new Set<string>();
 
-/** Run `compute` as contribution `id`, whose declared topic deps are `declaredTopics`. */
+/**
+ * Runs `compute` as the contribution `id`, whose declared Topic dependencies
+ * are `declaredTopics`. Useful for noticing when a contribution reads a Topic
+ * it did not declare. Used when the contributions of a widget slot are
+ * evaluated.
+ */
 export function runContributionCompute<Result>(
   id: string,
   declaredTopics: ReadonlySet<string>,
@@ -41,9 +46,10 @@ export function runContributionCompute<Result>(
 }
 
 /**
- * Run `evaluate` with no contribution in scope. A Processor evaluated on demand
- * from inside a contribution's `compute` reads for itself, not for the
- * contribution that asked.
+ * Runs `evaluate` with no contribution in scope. Useful for a Processor that is
+ * evaluated on demand from inside a contribution's `compute`, because its reads
+ * belong to the Processor and not to the contribution that asked. Used by the
+ * Processor evaluator.
  */
 export function runOutsideContributionScope<Result>(
   evaluate: () => Result,
@@ -58,13 +64,15 @@ export function runOutsideContributionScope<Result>(
 }
 
 /**
- * Report a read of `seam` from inside a contribution's `compute`, once per
- * (contribution, seam). `topic` names the topic the read resolved to, and a
- * topic the contribution declared is not reported.
+ * Reports a read of `seam` from inside a contribution's `compute`, once per
+ * contribution and seam. `topic` names the Topic the read resolved to, and a
+ * Topic the contribution declared is not reported. Useful for telling a
+ * developer that a contribution reads a Topic it has not declared. Used by the
+ * on-demand telemetry reads.
  *
- * `console.error` under test, so the suite that exercises the contribution
- * shows it; the host's `logger.warn` otherwise. It never throws: the read
- * still answers, and the message names the fix.
+ * The report goes to `console.error` under test and to the host's
+ * `logger.warn` otherwise. It never throws: the read still answers, and the
+ * message names the fix.
  */
 export function noteUndeclaredRead(seam: string, topic?: string): void {
   const scope = current;

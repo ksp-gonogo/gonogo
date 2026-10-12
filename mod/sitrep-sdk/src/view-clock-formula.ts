@@ -14,8 +14,10 @@
 
 /**
  * Everything {@link computeUtNowEstimate} and {@link computeConfirmedEdgeUt}
- * need to work out the view clock, as plain numbers, so the clock can be
- * reproduced somewhere it cannot be shared, such as a web worker.
+ * need to work out the view clock, as plain numbers: the instant the screen is
+ * showing. Useful for reproducing the clock where it cannot be shared, such as
+ * a web worker that delays video to match telemetry. Used by the view clock,
+ * which hands it to both functions.
  *
  * Wall-clock times are in seconds on whatever basis the caller uses, as long
  * as `anchorWall` and the `nowWall` passed in share it.
@@ -38,8 +40,9 @@ export interface ClockFormulaInputs {
 }
 
 /**
- * {@link ClockFormulaInputs} with the timeline generation it was taken in, so
- * a receiver can discard a snapshot taken before a save was loaded.
+ * {@link ClockFormulaInputs} with the timeline generation it was taken in.
+ * Useful for a receiver, such as a web worker, that must discard a snapshot taken
+ * before a save was loaded. Returned by the view clock's `snapshot()`.
  *
  * @category Delay and vantage
  */
@@ -49,11 +52,12 @@ export interface ClockFormulaSnapshot extends ClockFormulaInputs {
 }
 
 /**
- * Returns the estimated UT at the craft now: the anchor UT carried forward at
+ * The estimated UT at the vessel now: the anchor UT carried forward at
  * `warpRate` for the wall-clock time since the anchor. Before any anchor it
  * returns `maxSampleUt`, and 0 while `maxSampleUt` is still
  * `Number.NEGATIVE_INFINITY` (no sample received), so the result is always a
- * finite number.
+ * finite number. Useful for counting game time between samples. Used by the view
+ * clock.
  *
  * @category Delay and vantage
  */
@@ -71,10 +75,10 @@ export function computeUtNowEstimate(
 }
 
 /**
- * Returns the latest UT that may be shown: the estimate from
+ * The latest UT that may be shown to the operator: the estimate from
  * {@link computeUtNowEstimate} minus the signal delay, but never more than
  * `slackSeconds` past the latest sample received. Returns
- * `Number.NEGATIVE_INFINITY` before any sample.
+ * `Number.NEGATIVE_INFINITY` before any sample. Used by the view clock.
  *
  * @category Delay and vantage
  */

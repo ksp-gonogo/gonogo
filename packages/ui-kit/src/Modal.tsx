@@ -27,7 +27,9 @@ interface ModalEntry {
 }
 
 /**
- * What {@link useModal}'s `open` takes beside the content.
+ * The title, accessible name and width of a modal dialog. Useful for labelling
+ * a form or detail view the operator opens over the dashboard. Taken by the
+ * `open` function that {@link useModal} returns, beside the content.
  *
  * @category Modal
  */
@@ -41,7 +43,9 @@ export interface ModalOpenOptions {
 }
 
 /**
- * What {@link useModal} returns: open and close dialogs.
+ * The functions that open and close modal dialogs. Useful for showing the
+ * operator a form or detail view over the dashboard. Returned by
+ * {@link useModal}.
  *
  * @category Modal
  */
@@ -59,9 +63,11 @@ let modalSeq = 0;
 
 /**
  * Holds the stack of open modal dialogs and renders them into `document.body`.
+ * Useful for showing the operator forms and detail views over the dashboard.
  * The dashboard mounts one at its root, so a widget on the dashboard calls
  * {@link useModal} without mounting its own. Anywhere else, such as a test that
- * renders a widget with a config form, wrap the tree in one: `useModal` needs it above it.
+ * renders a widget with a config form, wrap the tree in one: `useModal` needs
+ * it above it.
  *
  * Each dialog has a title bar with a close button, a scrolling body, and an
  * optional sticky footer set with {@link useModalSaveBar} or

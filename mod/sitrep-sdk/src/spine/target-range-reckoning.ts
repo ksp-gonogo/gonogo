@@ -8,18 +8,19 @@ import { buildElements, magnitude, trySolve } from "./kepler-reckoning";
 import { systemInstantAt } from "./reference-frame";
 
 /**
- * The range from the active craft to a craft it only knows of, at an instant
- * after it last heard or sighted it.
+ * The range from the active vessel to a vessel it only knows of, at an instant
+ * after it last heard or sighted it. Useful for showing the operator a modelled
+ * range to a vessel that is no longer measured. Produced by {@link knownCraftOrbits}.
  *
- * `target.available` gives such a craft no range, because a range is something
- * the active craft measures and it cannot measure this one. What it does hold
- * is the orbit that craft was on when it was last heard or seen, and its own
- * orbit, so where both are at a later instant follows from the two conics and
- * the bodies they are round. That is a model, and the reading says so.
+ * `target.available` gives such a vessel no range, because a range is something
+ * the active vessel measures and it cannot measure this one. What it does hold is
+ * the orbit that vessel was on when it was last heard or seen, and its own orbit,
+ * so where both are at a later instant follows from the two conics and the bodies
+ * they are round. That is a model, and the reading says so.
  *
- * The other craft is assumed to have coasted since. Nothing on the wire can
- * say otherwise: a burn it made after the news left is exactly what the active
- * craft does not know yet.
+ * The other vessel is assumed to have coasted since. Nothing on the wire can say
+ * otherwise: a burn it made after the news left is exactly what the active vessel
+ * does not know yet.
  */
 export interface KnownCraftOrbit {
   /** Position in `entries`, which is how the model's claim names the row. */
@@ -29,9 +30,11 @@ export interface KnownCraftOrbit {
 }
 
 /**
- * Every entry whose place can be carried forward: known only by word or by
- * sight, with a closed orbit round a body the catalogue gives a gravitational
- * parameter for. An entry the craft sees as it is keeps its measured range.
+ * Every entry whose place can be carried forward: known only by word or by sight,
+ * with a closed orbit round a body the catalogue gives a gravitational parameter
+ * for. Useful for finding which targets a modelled range can be shown for. Used by
+ * the SDK's built-in target range reckoner. An entry the vessel sees as it is
+ * keeps its measured range.
  */
 export function knownCraftOrbits(
   entries: readonly TargetListEntry[],
@@ -79,7 +82,12 @@ export function knownCraftOrbits(
   return known;
 }
 
-/** Metres between the active craft and one known craft at `at`, or NaN where either cannot be placed. */
+/**
+ * The distance in metres between the active vessel and one known vessel at `at`,
+ * or NaN where either cannot be placed. Useful for showing the operator how far
+ * away a vessel they only know of is. Used by the SDK's built-in target range
+ * reckoner.
+ */
 export function knownCraftRangeAt(
   craft: CommsPeerOrbit,
   known: KnownCraftOrbit,

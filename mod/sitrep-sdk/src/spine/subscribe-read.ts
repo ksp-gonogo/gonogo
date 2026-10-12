@@ -1,15 +1,16 @@
 import type { TimelineStore } from "./timeline-store";
 
 /**
- * Subscribes everything a live read of `topic` needs on the wire, and returns
- * the function that releases it. Two sets are held: the Topics that feed the
- * read (itself for a raw Topic, the parent record for a field subtopic, a
- * derived channel's inputs resolved recursively), and the Topics the read's
- * elected reckoner declared as deps. Used by every read path, point and series
- * alike, such as `useTelemetry` and `useStream`.
+ * Subscribes everything a live read of `topic` needs on the wire, and returns the
+ * function that releases it. Useful for keeping a widget's value arriving for as
+ * long as it is on screen. Used by every read path, point and series alike, such
+ * as `useTelemetry` and `useStream`.
  *
- * The set resolves when the read subscribes, so a reckoner registered after a
- * read mounts is not picked up until the subscription rebuilds.
+ * Two sets are held: the Topics that feed the read (itself for a raw Topic, the
+ * parent record for a field subtopic, a derived channel's inputs resolved
+ * recursively), and the Topics the read's elected reckoner declared as deps. The
+ * set resolves when the read subscribes, so a reckoner registered after a read
+ * mounts is not picked up until the subscription rebuilds.
  */
 export function subscribeTopicRead(
   client: ReadTopicSubscriber,
@@ -68,17 +69,21 @@ export function subscribeTopicRead(
 }
 
 /**
- * The subscribing half, structurally rather than as `TelemetryClient`: the
- * processor evaluator subscribes through an injected function and has no client
- * to hand, and a read path that reaches this seam through a test double should
- * not have to build a whole client to do it.
+ * The subscribing half of a read, structurally rather than as `TelemetryClient`,
+ * so a caller with only a subscribe function can use it. Useful for subscribing
+ * a read without building a whole client. Taken by {@link subscribeTopicRead}.
  */
 export interface ReadTopicSubscriber {
   subscribe(topic: string, cb: (value: unknown) => void): () => void;
   noteSubscriberLabel?(topic: string, label: string): () => void;
 }
 
-/** The resolving half. `TimelineStore` satisfies it; structural so this module does not name the class for one method. */
+/**
+ * The resolving half of a read: the part of `TimelineStore` that turns a Topic
+ * into the Topics that feed it. Useful for resolving a read without naming the
+ * store class. Taken by {@link subscribeTopicRead} and provided by the telemetry
+ * context provider.
+ */
 export type ReadTopicResolver = Pick<
   TimelineStore,
   "resolveSubscriptionTopics" | "reckonerDepTopics"

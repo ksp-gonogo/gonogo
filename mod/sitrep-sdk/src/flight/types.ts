@@ -7,7 +7,9 @@ import type { SitrepUnit } from "../units";
 
 /**
  * A display unit for a recorded key, used to group chart axes and format values.
- * `raw` leaves the value unformatted.
+ * `raw` leaves the value unformatted. Useful for showing the operator recorded
+ * values with the right unit and for putting like quantities on one axis. Used
+ * by the graph widget when it groups axes.
  *
  * @category Flight recording
  */
@@ -39,7 +41,8 @@ export type UnitHint =
 
 /**
  * A {@link DataKey} with what a key picker shows: its label, unit and group.
- * The picker sorts keys alphabetically within each group.
+ * The picker sorts keys alphabetically within each group. Useful for letting the
+ * operator choose which recorded key to plot. Used by the graph widget.
  *
  * @category Flight recording
  */
@@ -55,7 +58,8 @@ export interface DataKeyMeta extends DataKey {
 }
 
 /**
- * One recorded value and the wall-clock time it was taken.
+ * One recorded value and the wall-clock time it was taken. Useful for reading the
+ * latest value of a recorded key. Returned by a flight source's `getLatest`.
  *
  * @category Flight recording
  */
@@ -67,15 +71,14 @@ export interface Sample<Payload = unknown> {
 }
 
 /**
- * Which clock a `SeriesRange`'s `t` is stamped against.
+ * Which clock a {@link SeriesRange}'s `t` is stamped against: the game's UT in
+ * seconds (`"ut-seconds"`) or wall-clock milliseconds (`"wall-ms"`). Useful for
+ * drawing a time axis for the operator on the right clock. Used by the graph
+ * widget.
  *
- * The two producers of a series use different ones: `TimelineStore.sampleRange`
- * hands back the game's UT seconds, and `BufferedDataSource` buffers wall-clock
- * milliseconds.
- *
- * A basis cannot be inferred from the numbers: both are large monotonic
- * counts, and the wrong reading of either is plausible. So the producer states
- * it, and a consumer that does arithmetic on `t` reads the declaration.
+ * The stream's timeline store stamps UT seconds and {@link BufferedDataSource}
+ * stamps wall-clock milliseconds. The basis cannot be told from the numbers, so
+ * a consumer that does arithmetic on `t` reads the declaration.
  *
  * @category Flight recording
  */
@@ -84,13 +87,13 @@ export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
 /**
  * A run of samples that share a stream status other than `"live"`, as
  * inclusive indices into `t` and `v`: the part of a trace that came off the
- * craft's own recorder after a blackout rather than arriving live.
+ * vessel's own recorder after a blackout rather than arriving live. Useful for
+ * telling the operator where a sample came from in a readout or caption. Listed
+ * in {@link SeriesRange.spans} and read by the line chart.
  *
- * Every sample in it was measured by the craft and is exact; it only arrived
- * late. So the built-in graph draws it exactly as it draws live data, and a
- * consumer should use it to name where a sample came from (a readout, a
- * caption), never to draw it as less certain. {@link SeriesReckonedSpan} is the
- * one to set apart.
+ * Every sample in it was measured by the vessel and is exact; it only arrived
+ * late. Draw it exactly as live data, never as less certain.
+ * {@link SeriesReckonedSpan} is the one to set apart.
  *
  * Only statuses the mod stamps on a sample appear here. `held` and
  * `disconnected` describe a Topic now, not a recorded sample, so they never do.
@@ -110,6 +113,9 @@ export interface SeriesStatusSpan {
  * A run of points nobody measured, as inclusive indices into `t` and `v`: a
  * model supplied them, and `basis` names the model, in the vocabulary
  * `Reckoning` uses.
+ *
+ * Useful for showing the operator which part of a trace is an estimate. Listed
+ * in {@link SeriesRange.reckoned} and drawn by {@link LineGraph}.
  *
  * This is the one kind of span a trace should set apart, since the line there
  * is a model's estimate rather than a reading. A sample in a
@@ -139,7 +145,9 @@ export interface SeriesReckonedSpan {
 /**
  * What a value's own model says happened inside one gap between two samples:
  * its values at instants strictly inside the gap, in the clock of `t` and the
- * units of `v`.
+ * units of `v`. Useful for drawing the model's path across a gap in a trace
+ * instead of a straight line. Listed in {@link SeriesRange.bridges} and read by
+ * the line chart.
  *
  * `to` is the index of the later sample, as in `breaks`. Where the straight
  * line from `to - 1` to `to` and the model's path part by more than the chart
@@ -163,7 +171,8 @@ export interface SeriesBridge {
 
 /**
  * How a chart draws between two points of a series. See
- * {@link SeriesRange.interpolation}.
+ * {@link SeriesRange.interpolation}. Useful for drawing a held value as a step
+ * and an occurrence as a point.
  *
  * @category Flight recording
  */
@@ -171,7 +180,9 @@ export type SeriesInterpolation = "linear" | "step" | "none";
 
 /**
  * A window of a series as parallel arrays: `t` and `v` have the same length.
- * `queryRange` and `getLatest` return one.
+ * `queryRange` and `getLatest` return one. Useful for plotting a recorded or
+ * live quantity for the operator. Used by the graph widget and by the data
+ * source that sends a station the main screen's history.
  *
  * @category Flight recording
  */
@@ -241,7 +252,8 @@ export interface SeriesRange<Payload = unknown> {
 
 /**
  * One plotted quantity: a Topic, and the dotted path of one field inside its
- * payload. Leave out `field` for a Topic whose whole payload is the quantity.
+ * payload. Leave out `field` for a Topic whose whole payload is the quantity. Useful for
+ * naming a quantity the operator plots. Used by the graph widget.
  *
  * @category Flight recording
  */
@@ -254,7 +266,8 @@ export interface TopicFieldHandle {
 
 /**
  * The flat key a {@link TopicFieldHandle} reads: `<topic>.<field>`, or the
- * Topic alone.
+ * Topic alone. Useful for keying a plotted quantity's recorded series. Used by
+ * the graph widget.
  *
  * @category Flight recording
  */
@@ -265,12 +278,13 @@ export function seriesKeyOf(handle: TopicFieldHandle): string {
 /**
  * A window of a series in which every sample is a {@link Reading}: the value
  * with its unit, and how it came to be known. `t` and `readings` have the same
- * length, and `t` ascends.
+ * length, and `t` ascends. Useful for drawing a live trace that sets estimated
+ * stretches apart from measured ones. Used by the graph widget.
  *
  * Each sample reads as a point read at that instant would have:
  *
- * - `"observed"`: the craft measured it and it arrived live
- * - `"held"` with grade `"recorded"` or `"last-before-blackout"`: the craft
+ * - `"observed"`: the vessel measured it and it arrived live
+ * - `"held"` with grade `"recorded"` or `"last-before-blackout"`: the vessel
  *   measured it and it arrived late. It is exact for its instant, so a trace
  *   draws it as it draws a live sample
  * - `"held"` with `reckoning.status` `"available"`: nobody measured this
@@ -304,7 +318,8 @@ export interface ReadingSeriesRange<Payload = unknown> {
 /**
  * One flight, recognised when a launch is seen and updated with every sample
  * that belongs to it. Saved in the browser, so flight history survives a
- * reload.
+ * reload. Useful for listing the operator's past flights. Used by the app's
+ * data source that sends flights to stations.
  *
  * @category Flight recording
  */
@@ -358,7 +373,8 @@ export interface FlightRecord {
 /**
  * How a recovered flight ended, from KSP's recovery summary: the vessel's name,
  * the headline figures and the crew. The full summary is on the
- * `recovery.lastSummary` Topic.
+ * `recovery.lastSummary` Topic. Useful for showing the operator how a flight
+ * ended. Part of {@link FlightOutcome}.
  *
  * @category Flight recording
  */
@@ -383,7 +399,8 @@ export interface FlightRecoveryOutcome {
 }
 
 /**
- * How a crashed flight ended: the cause KSP reported, and any kerbals killed.
+ * How a crashed flight ended: the cause KSP reported, and any kerbals killed. Useful for showing the operator how a flight ended.
+ * Part of {@link FlightOutcome}.
  *
  * @category Flight recording
  */
@@ -405,7 +422,8 @@ export interface FlightCrashOutcome {
 }
 
 /**
- * How a flight ended: recovered or crashed.
+ * How a flight ended: recovered or crashed. Useful for showing the operator the
+ * result of each past flight. Carried on {@link FlightRecord}.
  *
  * @category Flight recording
  */
@@ -413,7 +431,9 @@ export type FlightOutcome = FlightRecoveryOutcome | FlightCrashOutcome;
 
 /**
  * One named stretch of a flight, saved on its {@link FlightRecord}. An exported
- * flight carries its chapters as {@link FlightChapter}s.
+ * flight carries its chapters as {@link FlightChapter}s. Useful for letting the
+ * operator mark phases of a flight to find them again. Carried on
+ * {@link FlightRecord}.
  *
  * @category Flight recording
  */
@@ -430,7 +450,8 @@ export interface FlightChapterRecord {
 
 /**
  * A short summary of one recorded mission, stored apart from the recording
- * itself so a list of missions can be shown without loading every recording.
+ * itself so a list of missions can be shown without loading every recording. Useful for
+ * listing the operator's recorded missions. Used by the flights manager.
  *
  * @category Flight recording
  */

@@ -7,7 +7,8 @@
 /**
  * Why microphone capture cannot run on this page: `insecure-origin` (plain
  * http, which works again over https or on localhost) or `no-media-devices`
- * (the browser has no media device interface at all).
+ * (the browser has no media device interface at all). Useful for telling the
+ * operator which remedy applies. Carried by {@link AudioCaptureSupport}.
  *
  * @category AudioInputPicker
  */
@@ -17,6 +18,7 @@ export type AudioCaptureUnsupportedReason =
 
 /**
  * What {@link audioCaptureSupport} reports: supported, or not with the reason.
+ * Useful for telling the operator whether this browser can open a microphone.
  *
  * @category AudioInputPicker
  */
@@ -34,8 +36,9 @@ export type AudioCaptureSupport =
 
 /**
  * Whether this page can open a microphone, probed synchronously before touching
- * a device. It reports a reason rather than a boolean because the two failures
- * need different copy.
+ * a device. It reports a reason because the two failures need different copy.
+ * Useful for telling the operator why a voice feature cannot listen. Used by
+ * {@link useAudioInput}.
  *
  * @category AudioInputPicker
  */

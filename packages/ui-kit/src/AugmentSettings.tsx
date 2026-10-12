@@ -101,8 +101,9 @@ export function useAugmentSettings(augmentId: string): {
 /**
  * The whole per-augment settings map for the current widget instance, keyed
  * `[augmentId][fieldKey]`, or `undefined` outside a provider or before
- * anything is saved. For a widget reasoning across all its augments, such as
- * drawing its settings panel or compositing only the layers switched on.
+ * anything is saved. Useful for a widget reasoning across all its augments,
+ * such as drawing its settings panel or showing only the layers the operator
+ * switched on.
  *
  * @category Extensions
  */

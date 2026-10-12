@@ -6,21 +6,25 @@ import type {
 } from "./commandLossSentence";
 
 /**
- * One dispatch that never left this machine. It has the same fields as {@link CommandLossLike}.
+ * One dispatch that never left this machine. It has the same fields as
+ * {@link CommandLossLike}. Taken by {@link commandUndeliveredSentence}.
  *
  * @category CommandDelay
  */
 export type CommandUndeliveredLike = CommandLossLike;
 
 /**
- * An undelivered dispatch a surface can render: the text's inputs plus the dispatch's `requestId`, which keys the box and is what `dismiss` takes.
+ * An undelivered dispatch a surface can render: the text's inputs plus the
+ * dispatch's `requestId`, which keys the box and is what `dismiss` takes. Used
+ * by the panel delay rail and {@link CommandList}.
  *
  * @category CommandDelay
  */
 export type CommandUndeliveredEntry = CommandLossEntry;
 
 /**
- * One undelivered dispatch as the rail renders it, plus its command's rail axes.
+ * One undelivered dispatch as the rail renders it, plus its command's rail
+ * axes. Taken by {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -30,6 +34,9 @@ export type RailUndelivered = RailLoss;
  * What the operator is told about a command that never went out: it did not
  * run, so it is safe to re-send. It never says "lost", which means the
  * opposite ("may have run"), and does not quote the connection's own error.
+ * Useful for telling the operator a command never reached the vessel and can be
+ * sent again. Used by {@link CommandList}, the panel delay rail and the
+ * maneuver planner.
  *
  * @category CommandDelay
  */

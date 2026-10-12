@@ -1,8 +1,10 @@
 import styled from "styled-components";
 
 /**
- * What an inactive panel or section takes: the reason as one line, or the
- * reason plus a hint at what would bring it back.
+ * Why a panel or section has nothing to show: the reason as one line, or the
+ * reason plus a hint at what would bring it back. Useful for telling the
+ * operator why a part of the screen is empty and what would change that. Taken
+ * by the `inactive` prop of {@link Panel} and {@link Section}.
  *
  * @category Panel
  */

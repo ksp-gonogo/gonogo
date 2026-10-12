@@ -1,12 +1,14 @@
 /**
- * Extra fields attached to one log entry.
+ * Extra fields attached to one log entry, such as the id of the command it is
+ * about. Useful for finding the entries of one request among the operator's
+ * logs. Passed as the last argument of the {@link Logger} methods.
  *
  * @category Logging and performance
  */
 export interface LogContext {
   /** The id of the command or request the entry is about, so its entries can be found together. */
   requestId?: string;
-  /** An id for the person the entry concerns, as a string; leave it out when there is no one. */
+  /** An id for the operator the entry concerns, as a string; leave it out when there is none. */
   userId?: string;
   /** Which part of the code wrote the entry, such as an Uplink's id. */
   service?: string;
@@ -36,7 +38,9 @@ export interface TaggedLogger {
 }
 
 /**
- * The app's logger, reached through `logger`.
+ * The app's logger, with a method for each severity. Useful for leaving a line
+ * in the operator's log buffer that is also sent on to the app's log service.
+ * Reached through the `logger` export of this package.
  *
  * @category Logging and performance
  */

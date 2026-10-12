@@ -8,7 +8,9 @@ import { writeQuantity } from "../units";
 import type { RailTags } from "./railTags";
 
 /**
- * One refused dispatch, as much of it as the sentence needs. The entries in `useCommand`'s `refusals` satisfy it, and so does one built by hand.
+ * One refused dispatch, as much of it as the sentence needs. The entries in
+ * `useCommand`'s `refusals` satisfy it, and so does one built by hand. Taken by
+ * {@link commandRefusalSentence} and {@link commandGateSentence}.
  *
  * @category CommandDelay
  */
@@ -42,7 +44,8 @@ export interface CommandRefusalLike {
 
 /**
  * A refusal a surface can render: the text's inputs plus the dispatch's own
- * `requestId`, which keys the box and is what `dismiss` takes.
+ * `requestId`, which keys the box and is what `dismiss` takes. Used by the panel
+ * delay rail and {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -54,7 +57,7 @@ export interface CommandRefusalEntry extends CommandRefusalLike {
 /**
  * One refused dispatch as the rail renders it: the refusal itself, plus the two
  * things only the registering handle knows, its stable id and the command's
- * rail axes.
+ * rail axes. Taken by {@link CommandList}.
  *
  * @category CommandDelay
  */
@@ -121,7 +124,7 @@ function said(detail: string | undefined): string | null {
 }
 
 /**
- * The sentence shown when the game refuses a command:
+ * The sentence shown to the operator when the game refuses a command:
  *
  *     Hire Valentina Kerman refused: the Astronaut Complex holds 16 of 16 active crew.
  *     Upgrade Launch Pad refused: it is already at tier 3 of 3.
@@ -130,8 +133,9 @@ function said(detail: string | undefined): string | null {
  * The command and its args name the subject, the refusal code picks the
  * clause (a refinement's own sentence ahead of its root's), and the
  * `LimitBreach` supplies the numbers, written as {@link Unit} writes them.
- * Used by {@link CommandButton} and {@link CommandList}, which show it when a
- * command of theirs is refused.
+ * Useful for telling the operator why the game refused a command. Used by
+ * {@link CommandButton} and {@link CommandList}, which show it when a command
+ * of theirs is refused.
  *
  * Names are user-supplied and unbounded, so render the sentence where it can
  * wrap: truncating it cuts the numbers off the end.
@@ -151,7 +155,9 @@ export function commandRefusalSentence(refusal: CommandRefusalLike): string {
  *
  * The same clause as {@link commandRefusalSentence}, so a control never says
  * one thing before the press and another after. "Unavailable" because nothing
- * has been asked yet: a gate is a condition that holds.
+ * has been asked yet: a gate is a condition that holds. Useful for telling the
+ * operator, before they press, why a command is unavailable. Used by
+ * {@link CommandButton}.
  *
  * @category CommandDelay
  */

@@ -110,8 +110,10 @@ const RESERVED_RADII_DEG: readonly number[] = CURATED.map((family, index) => {
 });
 
 /**
- * Every curated family's resolved Tier 2 reserved zone (centre and effective
- * radius).
+ * The hue neighbourhood (centre and effective radius, in degrees) each known
+ * resource family keeps clear of hashed colours. Useful for checking that no
+ * unrecognised resource the operator sees takes the colour of a known one.
+ * Used by {@link resourceColor}.
  */
 export const CURATED_RESERVED_ZONES: ReadonlyArray<{
   aliases: readonly string[];
@@ -137,8 +139,9 @@ function matchCuratedFamily(
 }
 
 /**
- * Tier 1 hue lookup against a table (not exported from the package index).
- * `key` must already be lower-cased.
+ * The hue of the first known resource family whose alias a lower-cased name
+ * contains, or `undefined` when none does. Useful for giving the operator the
+ * same colour for every resource of a family. Used by {@link resourceColor}.
  */
 export function matchCuratedHue(
   key: string,
@@ -166,8 +169,9 @@ function positiveMod(value: number, modulus: number): number {
 }
 
 /**
- * Deterministic member lightness for a full resource name, hashed with a
- * namespaced key so it is independent of Tier 2's hue.
+ * A lightness for a full resource name, the same every time and independent of
+ * the hue a hashed name gets. Useful for telling apart two resources of one
+ * family. Used by {@link resourceColor}.
  */
 export function memberLightness(key: string): number {
   const hash = fnv1a(`light:${key}`);
@@ -176,9 +180,12 @@ export function memberLightness(key: string): number {
 }
 
 /**
- * Tier 1 hue and lightness for a full resource name, or `undefined` when no
- * curated family matches. A single-alias family sits at the mid lightness; a
- * multi-alias family spreads each member to its own hashed lightness.
+ * The hue and lightness for a full resource name, or `undefined` when no known
+ * family matches. Useful for giving the operator the colour of a known
+ * resource. Used by {@link resourceColor}.
+ *
+ * A single-alias family sits at the mid lightness; a multi-alias family
+ * spreads each member to its own hashed lightness.
  */
 export function placedColor(
   key: string,
@@ -200,8 +207,10 @@ function isWithinReservedZone(hue: number): boolean {
 }
 
 /**
- * Tier 2: `hue = (stableHash(name) * goldenAngle) mod 360`, rotated by a
- * name-derived step until it clears every reserved zone.
+ * A hue for a name no known family matches: a stable hash of the name spread by
+ * the golden angle, then rotated by a name-derived step until it clears every
+ * reserved zone. Useful for giving the operator a stable colour for a resource
+ * the kit does not know. Used by {@link resourceColor}.
  */
 export function hashHue(key: string): number {
   const hash = fnv1a(key);
@@ -225,7 +234,9 @@ export function hashHue(key: string): number {
  * whitespace ignored. Known resources share a hue per family (fuels, for
  * instance) with a lightness that tells members apart; unrecognised names get
  * a hashed hue clear of every known family. The colour is an identity, never
- * a severity: use a tone for state.
+ * a severity: use a tone for state. Useful for telling the operator which
+ * resource a bar or card shows. Used by {@link Meter} and the ship map's part
+ * tooltip.
  *
  * @example
  * ```tsx

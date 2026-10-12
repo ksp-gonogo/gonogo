@@ -126,18 +126,20 @@ type Listener = () => void;
 
 /**
  * Owns exactly one in-progress mission replay session, driven by a
- * `ReplayTransport`. Builds a fresh `TelemetryClient` +
- * `TimelineStore` (registering the same production derived channels the
- * live stream does) from a mission's `ReplayFixture`, and renders through
- * the ordinary `TelemetryProvider` surface (`ReplaySessionProvider`): a
- * replayed widget is the exact same component reading the exact same
- * `useTelemetry`/`useDataValue` hooks a live one does, just fed from a
- * different client.
+ * `ReplayTransport`. Useful for replaying a recorded mission to the operator with
+ * play, pause, seek and rate controls. Used by the replay session provider and its
+ * banner.
  *
- * Play/pause/seek/rate all resolve to (re)starting a fresh
- * `ReplayTransport` anchored at a chosen point: never live in-place
- * mutation of an already-armed transport's schedule: rate is constructor-only,
- * so a rate change rebuilds the whole replay source.
+ * It builds a fresh `TelemetryClient` and `TimelineStore` (registering the same
+ * derived channels the live stream does) from a mission's `ReplayFixture`, and
+ * renders through the ordinary `TelemetryProvider` surface
+ * (`ReplaySessionProvider`): a replayed widget is the same component reading the
+ * same `useTelemetry` hook a live one does, fed from a different client.
+ *
+ * Play, pause, seek and rate all resolve to starting a fresh `ReplayTransport`
+ * anchored at a chosen point. The schedule of an armed transport is never changed
+ * in place: rate is fixed at construction, so a rate change rebuilds the whole
+ * replay source.
  */
 export class ReplaySessionController {
   private snapshot: ReplaySessionSnapshot = IDLE_SNAPSHOT;

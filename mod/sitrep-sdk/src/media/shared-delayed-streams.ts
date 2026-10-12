@@ -47,8 +47,11 @@
  * one camera reads the same app-wide clock, so any live one is equivalent.
  */
 
-/** What a build produces: the value to publish, plus the physical pipeline's
- *  teardown/flush handles. `dispose` runs when the last lease releases.
+/**
+ * What a build produces: the value to publish, plus the handles that tear the
+ * delayed video pipeline down and empty it. `dispose` runs when the last lease
+ * releases. Useful for sharing one delayed camera picture between every view of
+ * that camera the operator has open. Returned by a {@link DelayedStreamBuild}.
  *
  * @category Delayed video
  */
@@ -62,7 +65,9 @@ export interface BuiltDelayedStream<Result> {
 }
 
 /**
- * What the build function of a {@link SharedDelayedStreams} entry receives.
+ * What the build function of a {@link SharedDelayedStreams} entry receives:
+ * the contribution of the first lease still held. Passed to a
+ * {@link DelayedStreamBuild}.
  *
  * @category Delayed video
  */
@@ -74,7 +79,8 @@ export interface DelayedStreamBuildContext<Contribution> {
 }
 
 /**
- * Builds the delayed stream a {@link SharedDelayedStreams} entry shares.
+ * Builds the delayed video stream that a {@link SharedDelayedStreams} entry
+ * shares between its consumers. Passed to {@link SharedDelayedStreams.acquire}.
  *
  * @category Delayed video
  */
@@ -84,7 +90,9 @@ export type DelayedStreamBuild<Result, Contribution> = (
 
 /**
  * One consumer's hold on a shared delayed stream. Release it when done; the
- * stream is torn down once its last holder releases.
+ * stream is torn down once its last holder releases. Useful for showing the same
+ * delayed camera picture in several places. Returned by
+ * {@link SharedDelayedStreams.acquire}.
  *
  * @category Delayed video
  */
@@ -119,7 +127,9 @@ interface Entry<Result, Contribution> {
  * camera holds. Each consumer takes a lease, and the stream is built for the
  * first and torn down after the last.
  *
- * Create your own instance in a test, so its entries stay separate.
+ * Useful for showing one delayed picture from a camera in several views at
+ * once, since the browser allows one pipeline per video track. Create your own
+ * instance in a test, so its entries stay separate.
  *
  * @category Delayed video
  */

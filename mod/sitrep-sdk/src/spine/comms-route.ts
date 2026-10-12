@@ -3,12 +3,19 @@ import { isValue, type Value, value } from "../unit-system/value";
 
 /**
  * The `comms.route` channel topic: each command centre's predicted
- * earliest-arrival route to and from the active craft, from the contact plan.
- * A session receives only the rows that start or end at its own vantage.
+ * earliest-arrival route to and from the active vessel, from the contact plan.
+ * A session receives only the rows that start or end at its own command centre.
+ * Useful for showing the operator when a message sent to a vessel will arrive
+ * and where it will wait. Read by the delay authority that works out the delay
+ * between a command centre and a vessel.
  */
 export const ROUTE_TOPIC = "comms.route";
 
-/** One stretch a routed message would spend held at a node, waiting for its next window. */
+/**
+ * One stretch a routed message would spend held at a node, waiting for its next
+ * communication window. Useful for showing the operator where a message to the
+ * vessel will wait. Held in the `holds` of a `RouteRow`.
+ */
 export interface RouteHold {
   /** The node holding it, as a roster id. */
   at: string;
@@ -18,7 +25,12 @@ export interface RouteHold {
   departUt: Value<"ut">;
 }
 
-/** One direction between a centre and the active craft, as the route predicts it. */
+/**
+ * One direction between a command centre and the active vessel, as the route
+ * predicts it: when it was sent, when it would arrive, and where it would wait.
+ * Useful for showing the operator how long a message takes each way. Returned
+ * by `readRouteRows`.
+ */
 export interface RouteRow {
   from: string;
   to: string;
@@ -54,7 +66,9 @@ function readHold(hold: unknown): RouteHold | null {
 
 /**
  * Every row of a `comms.route` payload, or `null` for a payload that is not
- * one. A malformed row or hold is left out rather than guessed at.
+ * one. A malformed row or hold is left out. Useful for listing the predicted
+ * routes between the command centres and the active vessel. Used by
+ * `readRouteDelays`.
  */
 export function readRouteRows(payload: unknown): readonly RouteRow[] | null {
   if (typeof payload !== "object" || payload === null) return null;
@@ -91,10 +105,13 @@ export function readRouteRows(payload: unknown): readonly RouteRow[] | null {
 }
 
 /**
- * Each centre's predicted downlink from the active craft, keyed by the centre
- * it reaches: the time from sending to arrival, waits included, and whether
- * nothing waits anywhere. A row with no arrival has no route and is left out.
- * `null` for a payload that is not one.
+ * Each command centre's predicted downlink from the active vessel, keyed by the
+ * centre it reaches: the time from sending to arrival, waits included, and
+ * whether nothing waits anywhere. A row with no arrival has no route and is left
+ * out. `null` for a payload that is not a `comms.route` payload. Useful for
+ * showing the operator how long the vessel's signal takes to reach each command
+ * centre. Used by the delay authority that works out the delay between a
+ * command centre and a vessel.
  */
 export function readRouteDelays(
   payload: unknown,
@@ -114,9 +131,9 @@ export function readRouteDelays(
 }
 
 /**
- * When a message on this route is next predicted to leave a node it is held
- * at, after `nowUt`: the countdown a waiting step counts to. Undefined for a
- * live route and for one whose holds have all departed.
+ * When a message on this route is next predicted to leave a node it is held at,
+ * after `nowUt`. Useful for counting down to the end of a wait in the route.
+ * Undefined for a live route and for one whose holds have all departed.
  */
 export function nextDepartureUt(
   row: RouteRow,
@@ -125,7 +142,10 @@ export function nextDepartureUt(
   return row.holds.find((hold) => hold.departUt.greaterThan(nowUt))?.departUt;
 }
 
-/** Every predicted hold at `nodeId` across the rows, in time order: what a node is expected to be holding. */
+/**
+ * Every predicted hold at the node `nodeId` across the rows, in time order.
+ * Useful for showing the operator what a node is expected to be holding.
+ */
 export function holdsAt(
   rows: readonly RouteRow[],
   nodeId: string,

@@ -1,14 +1,15 @@
 /**
- * The Topics that can never carry a forward model, such as `vessel.attitude`
- * and `vessel.control`. A read of one is typed `UnmodelledReading`, which has
- * no `reckoning: "available"` member, so a caller cannot write a branch for a
- * reckoning that cannot occur. Used by `useTelemetry` to narrow its return
- * type.
+ * The Topics that can never carry a forward model, such as `vessel.attitude` and
+ * `vessel.control`. Useful for telling the operator's screen that a reading of one
+ * is always the last observed value and is never advanced. Used by
+ * `useTelemetry` to narrow its return type: a read of one is typed
+ * `UnmodelledReading`, which has no `reckoning: "available"` member, so a caller
+ * cannot write a branch for a reckoning that cannot occur.
  *
- * A Topic missing from this list is not classified by it: absence means no
- * model has been written yet. Add a Topic only when no model could ever exist
- * for it, and say why in the comment beside the entry. A Topic that is both
- * listed here and marked reckonable in the contract is a contradiction, and
+ * A Topic missing from this list is not classified by it: absence means no model
+ * has been written yet. Add a Topic only when no model could ever exist for it,
+ * and say why in the comment beside the entry. A Topic that is both listed here
+ * and marked reckonable in the contract is a contradiction, and
  * `never-reckonable.test.ts` fails on it.
  */
 export const NEVER_RECKONABLE = [
@@ -176,12 +177,19 @@ export const NEVER_RECKONABLE = [
   // named in its comment.
 ] as const satisfies readonly string[];
 
-/** A topic declared unmodellable. */
+/**
+ * A Topic declared unmodellable: the union of the names in
+ * `NEVER_RECKONABLE`. Useful for typing a reading that is always the last
+ * observed value. Used by `useTelemetry` to choose the reading type it returns.
+ */
 export type NeverReckonable = (typeof NEVER_RECKONABLE)[number];
 
 const declared: ReadonlySet<string> = new Set(NEVER_RECKONABLE);
 
-/** Whether `topic` is declared unmodellable. The runtime half of the type above. */
+/**
+ * Whether `topic` is declared unmodellable, the runtime counterpart of the
+ * `NeverReckonable` type.
+ */
 export function isNeverReckonable(topic: string): boolean {
   return declared.has(topic);
 }

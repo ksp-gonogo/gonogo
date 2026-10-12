@@ -33,7 +33,9 @@ const UNSTATED: ManeuverBasisLabels = [
  * same words the built-in node editor uses: `["Radial", "Normal", "Prograde"]`
  * for the stock frame. A frame that is unknown or not stated gets
  * `["Component 1", "Component 2", "Component 3"]` rather than the stock words,
- * which would claim a frame nobody declared.
+ * which would claim a frame nobody declared. Useful for labelling the three
+ * delta-v fields of a burn shown to the operator. Used by the maneuver node
+ * editor.
  *
  * @category Orbits and trajectories
  */

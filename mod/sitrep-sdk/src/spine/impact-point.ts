@@ -69,12 +69,14 @@ export interface ImpactPoint {
 }
 
 /**
- * Walks the patch chain forward from `ref.ut` and returns the last sample
- * before altitude drops below `MIN_IMPACT_ALT_M`: the predicted surface
- * impact point. `null` when the walk never dips below the surface within
- * `horizonSec`, never a fabricated `(0,0)`. Bound `horizonSec`/`stepSec`
- * tightly at the call site: this is an O(horizonSec / stepSec) loop with no
- * internal sample cap.
+ * Walks the orbit patches forward from `ref.ut` and returns the last sample
+ * before altitude drops below `MIN_IMPACT_ALT_M`: the predicted surface impact
+ * point. Useful for marking where a descending vessel will land. Used by
+ * `predictImpactPoint`.
+ *
+ * `null` when the walk never dips below the surface within `horizonSec`. The
+ * walk takes `horizonSec / stepSec` steps with no internal cap, so bound both
+ * tightly at the call site.
  */
 export function findImpactPoint(
   patches: readonly PatchSpan[],
@@ -102,13 +104,12 @@ export function findImpactPoint(
 }
 
 /**
- * Sidereal rotation period (seconds) for the stock KSP bodies, hand-mirrored
- * from `@ksp-gonogo/core`'s static body registry
- * (`packages/core/src/stock-bodies.ts`), which this package cannot import.
- * Only a fallback: `system.bodies` reports the period per body, and this
- * answers for a stock game whose stream predates that field and for nothing
- * else. A body in neither gets no impact point. Keep in sync if
- * `stock-bodies.ts`'s rotation periods change.
+ * The sidereal rotation period in seconds of each stock body, keyed by body
+ * name. Useful for turning an inertial impact position into a longitude on a
+ * rotating body. Used by `predictImpactPoint`.
+ *
+ * It is only a fallback for a stock game whose `system.bodies` stream reports no
+ * rotation period. A body in neither gets no impact point.
  */
 export const ROTATION_PERIOD_SECONDS: Readonly<Record<string, number>> = {
   Kerbol: 432000,
@@ -142,7 +143,11 @@ const IMPACT_WALK_MAX_HORIZON_SEC = 1200;
 /** ~60 samples across the bounded horizon: precise enough for a landing-site marker, cheap enough to run on every frame of a descent. */
 const IMPACT_WALK_MIN_STEPS = 60;
 
-/** The `system.bodies` fields the impact point reads. */
+/**
+ * The `system.bodies` fields the impact point reads: each body's index, radius
+ * and rotation period. Useful for placing a predicted landing on the right body.
+ * Taken by `predictImpactPoint`.
+ */
 export interface ImpactBodyTable extends BodyRadiusTable {
   bodies: readonly {
     index: number;
@@ -200,21 +205,23 @@ function rotationPeriodOf(
 }
 
 /**
- * The predicted surface impact point, or `null` when there is none to give.
+ * The predicted point where the vessel will touch the surface, as a latitude and
+ * longitude, or `null` when there is none to give. Useful for marking the
+ * operator's predicted landing site on a map. Used by the map view's telemetry
+ * hook.
  *
- * `null` unless the craft is descending (`verticalSpeed < 0`) toward terrain
+ * `null` unless the vessel is descending (`verticalSpeed < 0`) toward terrain
  * still below it (`altitudeTerrain > 0`), the body's radius and a finite,
  * positive gravity `mu/(radius+altitudeAsl)^2` resolve, and something reports
  * the body's rotation period. Beyond those, the trajectory's shape decides, as
  * the module doc lays out.
  *
- * A measured-basis figure: `null` while the orbit's own `meta.quality` is
- * `OnRails`, which is the basis the envelope carries too. A sample with no
+ * The figure is from measurements: `null` while the orbit's own `meta.quality`
+ * is `OnRails`, which is the basis the envelope carries too. A sample with no
  * payload meta names no basis and is answered on the measurements alone.
  *
- * An answer for the instant it is handed and no other: nothing here carries a
- * descent forward past the observation it was computed from, so a reader
- * wanting it for a later instant hands it that instant's samples.
+ * The answer holds for the instant it is handed and no other. A caller wanting
+ * it for a later instant hands it that instant's samples.
  */
 export function predictImpactPoint(
   input: ImpactPointInput,

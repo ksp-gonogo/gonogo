@@ -74,9 +74,11 @@ const CAUSE_LINE =
   /denied|permission|socket|pipe|node|timed out|exception|cannot|unable|MSB\d+|warn|fail/i;
 
 /**
- * What to tell an author when dotnet failed and its output reports no error.
- * It is the last meaningful lines of a more verbose run, then the reasons that
- * produce this shape.
+ * What to tell an author when `dotnet` failed and its output reports no error:
+ * the last meaningful lines of a more verbose run, then the usual reasons for
+ * that shape of failure. Useful for giving the author something to act on
+ * where `dotnet` itself said nothing. Used by `dotnet` when it reruns a
+ * silent failure.
  */
 export function explainSilentFailure(
   label: string,
@@ -101,7 +103,12 @@ export function explainSilentFailure(
   ].join("\n");
 }
 
-/** Runs `dotnet` and fails naming the step; a failure that reported no error is rerun verbosely and explained. */
+/**
+ * Runs `dotnet` with `args` and throws an error naming the step `label` when
+ * it fails. A failure that reported no error is rerun verbosely and explained.
+ * Useful for showing the author which build or test step broke and why. Used
+ * by the `codegen` and `release` commands for every `dotnet` call.
+ */
 export function dotnet(
   label: string,
   args: readonly string[],
@@ -306,7 +313,13 @@ export interface CodegenInputs {
   contractDir?: string;
 }
 
-/** `"none"` when the Uplink declares no contract slice of its own. */
+/**
+ * What `codegen` did to the Uplink's generated files: `"none"` when the
+ * Uplink declares no contract slice of its own, `"written"` when it changed
+ * them, `"current"` when they already matched. Useful for telling the author
+ * whether a codegen run changed anything. Returned by the `codegen` command's
+ * generate step.
+ */
 export type CodegenResult = "none" | "written" | "current";
 
 export function generate(inputs: CodegenInputs): CodegenResult {

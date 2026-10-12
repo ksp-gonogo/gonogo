@@ -3,7 +3,10 @@ import type { Value } from "./unit-system/value";
 
 /**
  * Computes one value from several readings, and returns it as a
- * {@link Reading} with a state of its own.
+ * {@link Reading} with a state of its own, as current as the least current
+ * input. Useful for showing the operator a figure derived from more than one
+ * Topic, such as the range to a target, without losing how current it is. Used
+ * by the approach display and the fleet roster.
  *
  * @example
  * ```ts
@@ -79,7 +82,8 @@ export function combineReadings<
 
 /**
  * One input to {@link datedFrom}: its state, when it was observed, and why it
- * is held where it is.
+ * is held where it is. Useful for telling {@link datedFrom} how current each
+ * figure behind a derived value is. Used by the maneuver planner.
  *
  * @category Reading telemetry
  */
@@ -94,7 +98,9 @@ export interface CarriedCurrency {
 
 /**
  * Returns a value you have already computed as a {@link Reading}, dated by
- * the inputs it came from.
+ * the inputs it came from. Useful for showing the operator a figure your own
+ * code derived while keeping how current it is. Used by the maneuver planner and
+ * the admin building.
  *
  * Unlike {@link combineReadings}, it never withholds the value: use it when
  * your own code has already decided what a missing input means.
@@ -137,7 +143,9 @@ export function datedFrom<Derived>(
 }
 
 /**
- * The value types of a tuple of readings, in the same order.
+ * The value types of a tuple of readings, in the same order. Useful for typing
+ * the function {@link combineReadings} calls with the inputs' values. Taken by
+ * the `compute` argument of {@link combineReadings}.
  *
  * @category Reading telemetry
  */

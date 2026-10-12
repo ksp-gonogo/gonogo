@@ -24,7 +24,8 @@ import { isTopicId, type TopicId } from "./topics";
 
 /**
  * The id of a control channel: a control such as the throttle or SAS, which is
- * set with a command and read back from a Topic.
+ * set with a command and read back from a Topic. Useful for naming a control the
+ * operator sets on a vessel. Taken by {@link getControlChannel}.
  *
  * @category Commands
  */
@@ -32,16 +33,18 @@ export type ControlChannelId = GeneratedControlChannelId;
 
 /**
  * One control channel's two halves: the command that sets the control, and the
- * Topic field that reports what the craft has actually set it to. Send with
- * {@link useCommand} on `writeCommand`, and read the craft's value with
- * {@link useTelemetry} on `readTopic`.
+ * Topic field that reports what the vessel has actually set it to. Send with
+ * {@link useCommand} on `writeCommand`, and read the vessel's value with
+ * {@link useTelemetry} on `readTopic`. Useful for showing the operator a control
+ * beside the value the vessel reports for it. Returned by
+ * {@link getControlChannel} and used by the stream's control stream hook.
  *
  * @category Commands
  */
 export interface ControlChannelHandle {
   /** The channel id, e.g. `"vessel.control.throttle"`. */
   readonly id: string;
-  /** The Topic that reports the value the craft has set. */
+  /** The Topic that reports the value the vessel has set. */
   readonly readTopic: TopicId;
   /** The field of `readTopic`'s payload holding that value. */
   readonly readField: string;
@@ -63,7 +66,9 @@ const BY_ID: ReadonlyMap<string, GeneratedControlChannel> = new Map(
  * Returns the control channel with this id, or `undefined` when there is none.
  * A control channel is a control such as the throttle or SAS that is set with
  * a command and read back from a Topic field; the handle holds both halves.
- * {@link controlChannelIds} lists the ids.
+ * {@link controlChannelIds} lists the ids. Useful for pairing a control's
+ * command with its readback without hard-coding the Topic. Used by the stream's
+ * control stream hook.
  *
  * @category Commands
  */
@@ -87,7 +92,8 @@ export function getControlChannel(
 
 /**
  * Returns the id of every control channel, such as `"vessel.control.throttle"`
- * or `"vessel.control.yaw"`.
+ * or `"vessel.control.yaw"`. Useful for listing the controls the operator can
+ * set on a vessel.
  *
  * @category Commands
  */

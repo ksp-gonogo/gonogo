@@ -43,6 +43,10 @@ import type { Value } from "./unit-system/value";
  *   {@link combineReadings} does. Nothing is carried forward by this step
  *   itself, so it holds exactly as far as each input's own model does
  *
+ * Useful for telling the operator how a modelled figure was worked out and when
+ * it stops being trustworthy. Used by the kit's line graph and its basis
+ * wording.
+ *
  * @category Reckoners
  */
 export type ReckoningBasis =
@@ -57,7 +61,9 @@ export type ReckoningBasis =
  * at the craft's present, carried forward from the last real observation.
  *
  * `atUt` is the instant the value is for. The reading's own `atUt` or `asOfUt`
- * is when the observation behind it was made.
+ * is when the observation behind it was made. Useful for showing the operator
+ * where a vessel is now rather than where it was when the last data was sent.
+ * Held by {@link TopicReckoning} when a model produced a value.
  *
  * @typeParam Payload - The Topic's payload type.
  *
@@ -110,7 +116,7 @@ export interface TopicReckoningAvailable<Payload> {
  * @category Reading telemetry
  *
  * @concept Reckoning
- * A reckoning is what a forward model says a value is at the craft's present,
+ * A reckoning is what a forward model says a value is at the vessel's present,
  * worked out from the last real observation. It rides beside a reading's
  * `state` and never replaces it: the `value` of an observed or held reading is
  * always something that was received, and a modelled figure is only ever found
@@ -118,7 +124,7 @@ export interface TopicReckoningAvailable<Payload> {
  *
  * - reckoned is not observed: an `observed` reading is the newest value that
  *   could have reached this screen, which under signal delay is already old by
- *   the delay. A reckoning carries it across the gap, and
+ *   the delay. A reckoning carries it across the delay, and
  *   {@link TopicReckoningAvailable.beyondReceived} says when it reaches past
  *   the newest data received, so a figure drawn from it is modelled, not
  *   observed
@@ -140,6 +146,9 @@ export interface TopicReckoningAvailable<Payload> {
  * whose reckoning is never `"none"`. Models are supplied as a
  * {@link TopicModel}; {@link withoutReckoning} drops a reckoning a widget does
  * not want.
+ *
+ * Useful for showing the operator a current figure for a vessel that is behind
+ * a signal delay, marked as modelled. Read by the kit's meter and dial.
  */
 export type TopicReckoning<Payload> =
   | TopicReckoningAvailable<Payload>
@@ -156,7 +165,9 @@ export type TopicReckoning<Payload> =
 
 /**
  * The reckoning of a Topic whose contract declares a forward model: the model
- * produced a value, or declined and said why. Never `"none"`.
+ * produced a value, or declined and said why. Never `"none"`. Useful for
+ * handling a Topic that always has a model without checking for a missing one.
+ * Held by {@link ReckonableReading}.
  *
  * @typeParam Payload - The Topic's payload type.
  *
@@ -168,8 +179,9 @@ export type DeclaredTopicReckoning<Payload> = Exclude<
 >;
 
 /**
- * One path a model moved, and which model moved it. See
- * {@link TopicReckoningAvailable.modelled}.
+ * One path a model moved, and which model moved it. Useful for telling which
+ * figures in a modelled payload are carried forward and which are the last
+ * observation. Listed in {@link TopicReckoningAvailable.modelled}.
  *
  * @category Reckoners
  */
@@ -188,6 +200,9 @@ export interface ModelledField {
  *   outside it about a third of the time, so do not draw or describe it as a
  *   limit
  *
+ * Useful for drawing a band as the right kind of range. Held by
+ * {@link UncertaintyBand}.
+ *
  * @category Reckoners
  */
 export type BandKind = "bound" | "sigma1";
@@ -205,6 +220,9 @@ export type BandKind = "bound" | "sigma1";
  * a band can be passed alone to a threshold check or a chart. Use
  * {@link bandIn} to read a band in a known unit, and {@link bandSide} to
  * compare one with a threshold.
+ *
+ * Useful for showing the operator how far a modelled figure can be trusted. Used
+ * by the kit's meter and tape.
  *
  * @typeParam Unit - The unit of all three values.
  *
@@ -227,7 +245,8 @@ export interface UncertaintyBand<Unit extends string = string> {
  *
  * Most models give no band, and return `undefined` rather than an empty
  * object. A missing band means the model does not say how well it knows the
- * value, not that it knows it well.
+ * value, not that it knows it well. Useful for looking up the band of a
+ * modelled path. Held by {@link TopicReckoningAvailable.bands}.
  *
  * @category Reckoners
  */
@@ -241,7 +260,9 @@ export type ReckonedBands = {
  * runs only when a reading actually needs its value.
  *
  * A model that does not move the payload root does not count for a read of the
- * whole Topic, so that read stays `"held"`.
+ * whole Topic, so that read stays `"held"`. Useful for supplying the operator
+ * with a current figure for a vessel behind a signal delay. Returned by a
+ * {@link ReckonerAnswer}.
  *
  * @typeParam Payload - The Topic's payload type.
  * @typeParam Projection - What `reckon` returns: the whole payload, or for a
@@ -282,6 +303,10 @@ export interface TopicModel<Payload, Projection = Payload> {
  *
  * Branch on `reason`, never on `input` or `note`.
  *
+ * Useful for telling the operator why a modelled figure is unavailable. Used by
+ * the orbit view's empty states and by the components that show a modelled
+ * figure.
+ *
  * @category Reckoners
  */
 export interface ReckoningDecline {
@@ -301,7 +326,9 @@ export interface ReckoningDecline {
 
 /**
  * What a reckoner's `reckon` returns: a {@link TopicModel}, or `{ declined }`
- * with the {@link ReckoningDecline} saying why there is none.
+ * with the {@link ReckoningDecline} saying why there is none. Useful for a
+ * model that cannot produce a figure to say so instead of guessing. Returned by
+ * {@link ReckonerDefinition.reckon}.
  *
  * @typeParam Payload - The Topic's payload type.
  * @typeParam Projection - What the model's `reckon` returns. See
@@ -317,8 +344,9 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
     };
 
 /**
- * A Topic's payload together with how current it is. {@link useTelemetry}
- * returns one.
+ * A Topic's payload together with how current it is. Useful for showing the
+ * operator a value from the vessel with its age, or marking it held or absent.
+ * Returned by {@link useTelemetry}.
  *
  * ## States
  *
@@ -339,7 +367,7 @@ export type ReckonerAnswer<Payload, Projection = Payload> =
  *
  * ## Signal delay
  *
- * Under a signal delay delay every value is old. A value 4 s old under a 4 s
+ * Under a signal delay every value is old. A value 4 s old under a 4 s
  * delay is as current as it can be, and is `"observed"`, not held.
  *
  * ## Modelled values
@@ -377,7 +405,8 @@ export type TopicReading<Payload> = TopicCurrency<
  * readings.
  *
  * Ask for this type when only the observation matters: every Topic reading
- * satisfies it.
+ * satisfies it. Useful for helpers that only check how current a value is. Taken
+ * by {@link observedValue}, {@link stillTrue} and {@link observedAt}.
  *
  * @typeParam Payload - The Topic's payload type.
  * @typeParam ReckoningShape - What `reckoning` may hold on the states that
@@ -432,6 +461,8 @@ export type TopicCurrency<Payload, ReckoningShape = unknown> =
 /**
  * The per-field part of a Topic reading: a {@link FieldReading} for each
  * payload field, as a plain property (`flight.altitudeAsl.reckoning.band`).
+ * Useful for passing one field of a Topic on alone, with its age. Part of
+ * {@link TopicReading}.
  *
  * Each field reading has the same state and model as the Topic reading it
  * comes from. A field named like one of the reading's own properties
@@ -462,7 +493,9 @@ export type TopicFields<Payload> = Payload extends Quantityish
  * One field's reading, with the readings of the fields inside it:
  * `crew[kerbal].rules[index].value` reaches as deep as the payload goes.
  *
- * A quantity or a function is read whole; an array is read by index.
+ * A quantity or a function is read whole; an array is read by index. Useful for
+ * showing the operator one nested figure with its age. Returned by a field
+ * property of {@link TopicReading}.
  *
  * @typeParam Payload - The field's type.
  *
@@ -481,7 +514,8 @@ type Quantityish = { readonly magnitude: number; readonly unit: string };
 
 /**
  * The names of a reading's own properties. A payload field with one of these
- * names has no field reading; read it off the payload instead.
+ * names has no field reading; read it off the payload instead. Useful for
+ * knowing which payload field names cannot be read as a {@link FieldReading}.
  *
  * @category Reading telemetry
  */
@@ -504,7 +538,8 @@ export type ReservedReadingKey =
  * This is the reckoning of one field, as on a {@link Reading} or a
  * {@link FieldReading}. A whole Topic's reckoning is a {@link TopicReckoning},
  * which holds the modelled payload in `value` and lists the moved paths in
- * `modelled`.
+ * `modelled`. Useful for showing the operator a modelled figure for one field
+ * and marking it as modelled.
  *
  * @typeParam Payload - The type of the value modelled.
  *
@@ -541,7 +576,9 @@ export type Reckoning<Payload> =
  * {@link TopicReading} is.
  *
  * `state` has the same meanings as on a {@link TopicReading}. `value` is set
- * only when `state` is `"observed"` or `"held"`.
+ * only when `state` is `"observed"` or `"held"`. Useful for showing the
+ * operator one figure with its age. Taken by the kit's readouts, which draw it
+ * as held or absent when it is.
  *
  * @typeParam Payload - The type of the value: a `Value` for a quantity, such as
  * `Value<"m">`, or a field's own type for anything else.
@@ -574,7 +611,9 @@ export interface Reading<Payload> {
  * `declined` says what stopped it.
  *
  * To combine the two, write `{ ...reading.value, ...reading.reckoning.value }`
- * where the model's value is wanted.
+ * where the model's value is wanted. Useful for showing the operator a current
+ * figure for a vessel behind a signal delay. Returned by {@link useTelemetry}
+ * for such a Topic.
  *
  * @typeParam Payload - The Topic's payload type.
  * @typeParam ReckonableKey - The payload fields the model moves.
@@ -606,7 +645,8 @@ export type ReckonableReading<
  *   The value is the last one received, from a game that is no longer running
  *
  * The grade changes the label, not the drawing: a held value is drawn as held
- * whatever its grade.
+ * whatever its grade. Useful for telling the operator why a value stopped
+ * updating. Used by the kit's held badge and stream status wording.
  *
  * @category Reading telemetry
  *
@@ -645,7 +685,8 @@ export type HeldGrade =
 
 /**
  * The values `state` can take on a reading: `"pending"`, `"unowned"`,
- * `"absent"`, `"observed"` and `"held"`.
+ * `"absent"`, `"observed"` and `"held"`. Useful for choosing what to draw from
+ * a reading. Used by {@link hasAnswered} and by the targeting and landing widgets.
  *
  * @category Reading telemetry
  */
@@ -653,7 +694,8 @@ export type ReadingState = TopicCurrency<unknown>["state"];
 
 /**
  * The values `reckoning.status` can take on a reading: `"available"`,
- * `"none"` and `"declined"`.
+ * `"none"` and `"declined"`. Useful for choosing what to draw from a modelled
+ * figure.
  *
  * @category Reading telemetry
  */
@@ -666,7 +708,7 @@ export type ReadingReckoning = Reckoning<unknown>["status"];
  * Use it for a readout that shows the last observed number, marked as held
  * when it is, and never a modelled one. Never use it for anything that draws a
  * position or an attitude: a marker placed at a last-known value claims to
- * know where the craft is now.
+ * know where the vessel is now. Used by the ship map and the target picker.
  *
  * @category Reading telemetry
  */
@@ -724,7 +766,8 @@ export function withoutReckoning<Payload>(
  * A Topic reading with no model on offer: `reckoning` is always
  * `{ status: "none" }`, so there is no modelled value to reach for.
  *
- * {@link withoutReckoning} returns one. Held values still have to be handled.
+ * Useful for a readout that must never show a modelled figure. {@link withoutReckoning}
+ * returns one. Held values still have to be handled.
  *
  * @typeParam Payload - The Topic's payload type.
  *
@@ -743,7 +786,7 @@ export type UnmodelledReading<Payload> = TopicCurrency<
  * Use it where a value only means something while it is current: a verdict, a
  * status, whether a control can be pressed. To show a held value, check for
  * `state === "held"` and date it with {@link observedAt}. It never uses a
- * forward model.
+ * forward model. Used by the warp control and the commcast panel.
  *
  * @example
  * ```ts
@@ -774,7 +817,8 @@ export function observedValue<Payload>(
  *
  * Only for facts. A measurement that drifts on its own, such as a position or
  * a fuel level, is not still true once updates stop; use
- * {@link observedValue}.
+ * {@link observedValue}. Useful for showing the operator a fact that cannot
+ * have changed while updates were missing. Used by the vantage control.
  *
  * @category Reading telemetry
  */
@@ -799,6 +843,8 @@ export function stillTrue<Payload, Fallback>(
  * The result has no forward model (`reckoning` is `{ status: "none" }`), since
  * `select` can compute something the model never moved. To show a modelled
  * figure, read `reckoning` on the source reading, or use {@link deriveReading}.
+ * Useful for showing one part of a Topic with its age. Used by the space centre
+ * status widget.
  *
  * @category Reading telemetry
  */
@@ -855,7 +901,10 @@ export function readingOf<Payload, Selected>(
  * it from the modelled payload, and is given the instant the model is for. When
  * the model declined, the result carries the decline; when it had nothing to
  * say, the result has no model. Unlike {@link readingOf}, which drops the
- * model, the caller writes the modelled computation itself.
+ * model, the caller writes the modelled computation itself. Useful for showing
+ * the operator a figure worked out from several fields, such as time to an
+ * encounter, that is still marked as modelled. Used by the maneuver planner,
+ * the targeting widget and the encounter countdown.
  *
  * @category Reckoners
  */
@@ -958,7 +1007,9 @@ function derivedReckoning<Payload, Derived>(
 /**
  * Returns one figure of a {@link Reading}, with its forward model kept: `pick`
  * runs on the observed value and on the modelled value alike. Where `pick`
- * returns `undefined` for the modelled value, the result has no model.
+ * returns `undefined` for the modelled value, the result has no model. Useful
+ * for showing one figure of a reading with its age and model. Used by the
+ * maneuver planner and the countdown helper.
  *
  * @category Reading telemetry
  */
@@ -1033,7 +1084,8 @@ function walkField(payload: unknown, path: string): unknown {
  * `path` is dotted from the payload root, such as `"verticalSpeed"`. A path the
  * model does not move returns `{ status: "none" }`, since the value there is
  * the last observation copied unchanged. A Topic reckoning that is `"none"` or
- * `"declined"` is returned as it is.
+ * `"declined"` is returned as it is. Useful for showing the operator a modelled
+ * figure for one field of a Topic. Used by this package's reading store.
  *
  * @category Reading telemetry
  */
@@ -1100,7 +1152,8 @@ function projectField(
  * `undefined` where the list holds no value or no element matches.
  *
  * Use it to find one element by a test and still read its fields as readings,
- * in the list's state and with their forward model.
+ * in the list's state and with their forward model. Useful for showing the
+ * operator one entry of a list, such as a tech node by id.
  *
  * @example
  * ```tsx
@@ -1138,7 +1191,9 @@ export function findReading<Element>(
  * the same object is returned on every later read.
  *
  * Spreading the result (`{ ...reading }`) copies only the currency, not the
- * field readings. Read a field off the reading itself.
+ * field readings. Read a field off the reading itself. Useful for building a
+ * reading from a state when a test or a helper has no Topic to subscribe to.
+ * Used by the telemetry hooks and by this package's reading helpers.
  *
  * @category Reading telemetry
  */
@@ -1236,7 +1291,8 @@ const CURRENCY_MEMBERS = {
  * unit or not well formed (see {@link bandIsWellFormed}). Use it to read a band
  * from {@link ReckonedBands}, whose type cannot say what unit each path is in,
  * without a cast. A missing band and a rejected one are the same to the
- * caller: the modelled value still stands.
+ * caller: the modelled value still stands. Used by the kit's meter, tape and
+ * unit readout.
  *
  * @category Reckoners
  */
@@ -1273,7 +1329,8 @@ export function bandIn<Unit extends string, SourceUnit extends string = string>(
  * three values are equal passes.
  *
  * Nothing rejects a malformed band at runtime. Assert this over your own
- * model's bands in its tests.
+ * model's bands in its tests. Useful for checking a model never gives the
+ * operator an impossible range.
  *
  * @category Reckoners
  */
@@ -1293,7 +1350,8 @@ export function bandIsWellFormed<Unit extends string>(
  * than pick one.
  *
  * The ends count as outside: a band whose `hi` equals the threshold is
- * `"below"`.
+ * `"below"`. Useful for showing the operator whether a modelled figure has
+ * crossed a limit, such as a safe altitude.
  *
  * @category Reckoners
  */
@@ -1314,7 +1372,8 @@ export function bandSide<Unit extends string>(
  * Use it to decide whether to show a section at all, such as one that depends
  * on a mod being installed. `"absent"` counts, because the game said there is
  * no value. Checking `state !== "pending"` instead would count `"unowned"`,
- * which means nothing will ever publish the Topic.
+ * which means nothing will ever publish the Topic. Used by the app's first-run
+ * setup and the availability feeder.
  *
  * To decide what to draw, branch on `state`: `"pending"` can change on the next
  * frame and `"unowned"` never will.
@@ -1347,7 +1406,8 @@ export function hasAnswered(reading: {
  *
  * An age is `viewUt.minus(observedAt(reading))`, a `Value<"s">`, with
  * `viewUt` from {@link useViewUt}. Clamp it at zero: samples can arrive out of
- * order, so one can sit slightly ahead of the view time.
+ * order, so one can sit slightly ahead of the view time. Useful for showing the
+ * operator how old a value is. Used by the kit's contribution runtime.
  *
  * @category Reading telemetry
  */
@@ -1374,7 +1434,8 @@ export function observedAt<Payload>(
  * It returns `undefined` when there is no model, which leaves the reading's
  * `reckoning` `{ status: "none" }`, or a {@link TopicModel}. It must be cheap: it
  * says whether a model exists and what it covers, and `TopicModel.reckon` does
- * the work.
+ * the work. Useful for supplying a model for a vessel behind a signal delay.
+ * Called by this package's timeline store.
  *
  * `grade` is `undefined` while the reading is live: a model may be offered for
  * a live reading too. `reckonUt` is the instant the model is asked to reach, so
@@ -1436,6 +1497,8 @@ type ResolvedReckonerDep<Dependency extends Dep> =
  * seconds may hold one sample or hundreds.
  *
  * Dependencies take a {@link DepWindow} instead, which has no `minSamples`.
+ * Useful for a model that needs a trend, such as a rate of change. Held by
+ * {@link ReckonerDefinition.window}.
  *
  * @category Reckoners
  */
@@ -1461,7 +1524,8 @@ export interface ReckonerWindow {
  * still the current value.
  *
  * There is no `minSamples`: a slow-changing dependency would otherwise never
- * have enough. See {@link ReckonerWindow}.
+ * have enough. See {@link ReckonerWindow}. Useful for a model that needs the
+ * recent trend of an input. Held by {@link ReckonerDefinition.depWindows}.
  *
  * @category Reckoners
  */
@@ -1477,7 +1541,8 @@ export interface DepWindow {
 /**
  * The dependencies a {@link DepWindow} can be given: the Topic ids among a
  * reckoner's `deps`. A reading dependency and a processor have no stored
- * history, so they cannot have one.
+ * history, so they cannot have one. Useful for restricting {@link DepWindows} to
+ * inputs that can have a window.
  *
  * @category Reckoners
  */
@@ -1488,7 +1553,9 @@ export type WindowableDep<Deps extends readonly Dep[]> = Extract<
 
 /**
  * The windows a reckoner gives its dependencies, keyed by Topic id. A key that
- * is not one of the reckoner's own `deps` does not compile.
+ * is not one of the reckoner's own `deps` does not compile. Useful for giving
+ * several inputs of one model a history. Held by
+ * {@link ReckonerDefinition.depWindows}.
  *
  * @category Reckoners
  */
@@ -1500,7 +1567,8 @@ export type DepWindows<Deps extends readonly Dep[]> = {
  * The resolved values of a reckoner's `deps`, in order, as `reckon` receives
  * them: a Topic id resolves to its latest sample, or to an array of samples if
  * it has a {@link DepWindow}; a reading dependency to its {@link Reading}; a
- * processor to its result.
+ * processor to its result. Useful for a model that reads several inputs at once.
+ * Received by {@link ReckonerDefinition.reckon}.
  *
  * @typeParam Deps - The reckoner's `deps`.
  * @typeParam Windowed - The Topic ids among them that have a window.
@@ -1519,8 +1587,10 @@ export type ResolvedReckonerDeps<
 };
 
 /**
- * What a reckoner's `reckon` is told about the frame it is running for,
- * beyond its inputs.
+ * What a reckoner's `reckon` is told about the frame it is running for, beyond
+ * its inputs: why the reading is held, the instant to reach, the latest instant
+ * data was received for, and the recent history. Useful for deciding whether a
+ * model applies to this frame. Received by {@link ReckonerDefinition.reckon}.
  *
  * @category Reckoners
  */
@@ -1547,7 +1617,9 @@ export interface ReckonerFrame<Payload = unknown> {
  * Returns whether a reckoner is asked for the same instant its observation was
  * received at, with the observation still live, so there is no gap to carry
  * the value across. Under signal delay it is `false`: a live observation is
- * still the signal delay behind the craft.
+ * still the signal delay behind the vessel. Useful for a model deciding whether
+ * there is any delay to carry a value across. Used by the built-in atmospheric
+ * and core models.
  *
  * @param frame - The {@link ReckonerFrame} a reckoner's `reckon` is given.
  *
@@ -1570,7 +1642,9 @@ export function currentAtReckonTime(frame: ReckonerFrame): boolean {
  *   width. A band that breaks the rule is dropped, not widened
  *
  * The band rule does not compare widths: a model may legitimately produce a
- * narrower band than its inputs.
+ * narrower band than its inputs. Useful for keeping a modelled figure from
+ * claiming more certainty than its inputs have. Named by
+ * {@link ReckonerExemptions}.
  *
  * @category Reckoners
  */
@@ -1583,7 +1657,8 @@ export type ReckonerInputRule = "horizon" | "band";
  * bound by that input's horizon.
  *
  * Every exemption registered can be listed with `getReckonerExemptions`, and an
- * Uplink's generated page shows its own.
+ * Uplink's generated page shows its own. Useful for a model whose mathematics
+ * legitimately breaks an input rule. Held by {@link ReckonerDefinition.exempt}.
  *
  * @category Reckoners
  */
@@ -1621,6 +1696,9 @@ export interface ReckonerExemptions {
  * that the contract does not declare resolves to `undefined` instead, and the
  * model decides what that means.
  *
+ * Useful for giving the operator a current figure for a vessel behind a signal
+ * delay. Taken by `registerReckoner`.
+ *
  * @typeParam Payload - The Topic's payload type.
  * @typeParam Projection - What the model returns. See {@link TopicModel}.
  * @typeParam Deps - The declared inputs.
@@ -1656,7 +1734,9 @@ export interface ReckonerDefinition<
 
 /**
  * A {@link ReckonerDefinition} with its types erased, as the registry holds
- * it. Any definition can be passed where this is expected.
+ * it. Any definition can be passed where this is expected. Useful for code that
+ * stores or lists reckoners of different Topics together. Held by this
+ * package's reckoner registry.
  *
  * @category Reckoners
  */

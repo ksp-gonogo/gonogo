@@ -4,17 +4,24 @@
  * be asserted directly.
  */
 
-/** The mark's own coordinate box: 100 wide by 16 tall, scaled by the caller into whatever band it has. */
+/**
+ * The height of the ribbon mark's own coordinate box (100 wide by 16 tall),
+ * scaled by the caller into whatever band it has. Used by
+ * {@link ControlDelayStream}.
+ */
 export const WAVE_VB_H = 16;
 /**
- * The centre line of the ribbon mark's box, in box units.
+ * The centre line of the ribbon mark's box, in box units. Useful for reading a
+ * drawn waveform against its centre line.
  *
  * @intent Published so a caller can read the trace waveformPath draws back against its centre line.
  * @category CommandDelay
  */
 export const WAVE_MID_Y = WAVE_VB_H / 2;
 /**
- * How far a full-scale sample reaches either side of the centre line, in box units. Short: the rail is a band, not a meter.
+ * How far a full-scale sample reaches either side of the centre line, in box
+ * units. It is short because the rail is a thin band. Useful for reading a drawn
+ * waveform back as an amplitude.
  *
  * @intent Published so a caller can read the trace waveformPath draws back as an amplitude.
  * @category CommandDelay
@@ -34,7 +41,9 @@ const clamp01 = (v: number): number =>
 /**
  * How far along the rail the drawn trace reaches: one signal delay out at most,
  * and only as far as there is history. A measurement, not a drawing choice:
- * samples older than the span have arrived and are dropped.
+ * samples older than the span have arrived and are dropped. Useful for showing
+ * the operator only the audio still on its way to the vessel. Used by
+ * {@link ControlDelayStream}.
  */
 export function waveformExtentX(
   amplitudes: readonly number[],
@@ -69,10 +78,11 @@ function waveformSteps(
  * Turn a newest-last amplitude ring into an open waveform trace crossing the
  * band's centre, each turning point's height a sample's amplitude, at a fixed
  * pitch so the period stays visible. Silence is a flat line down the middle:
- * the key is open and nobody is speaking.
+ * the key is open and nobody is speaking. Useful for showing the operator a
+ * voice transmission still on its way. Used by {@link ControlDelayStream}.
  *
- * Each sample is drawn at its age, where that audio is on its way across the
- * gap, so a short history draws a trace that stops short of the boundary.
+ * Each sample is drawn at its age, where that audio is on its way to the
+ * vessel, so a short history draws a trace that stops short of the boundary.
  * Keep a longer history to fill it.
  *
  * @category CommandDelay

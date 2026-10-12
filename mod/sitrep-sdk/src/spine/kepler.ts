@@ -37,10 +37,11 @@ const NEWTON_TOLERANCE = 1e-12;
 
 /**
  * How far an orbit's elements can be trusted forward in time, as the payload
- * carries it beside them. Check it with {@link canPropagate} before carrying
- * an orbit forward.
+ * carries it beside them. Useful for telling the operator how far ahead a
+ * vessel's predicted orbit can be shown. Check it with {@link canPropagate}
+ * before carrying an orbit forward.
  *
- * It differs from craft to craft, because it depends on nearby bodies: in an
+ * It differs from vessel to vessel, because it depends on nearby bodies: in an
  * n-body game, a low orbit around a small moon can stay accurate for hours
  * while a high orbit near another body drifts kilometres in an hour. In stock
  * KSP every orbit is `Unbounded`.
@@ -61,8 +62,10 @@ export interface PropagationHorizonLike {
 }
 
 /**
- * Mirrors the contract enum by value rather than importing it, because this
- * module is the propagator's twin and deliberately depends on nothing generated.
+ * The kinds of propagation horizon, with the same values as the contract enum:
+ * `Unspecified` (0) and the kinds that follow it. Useful for reading the kind of
+ * a vessel's `PropagationHorizonLike`. Used by the system view when it draws a
+ * target's orbit.
  */
 export const PropagationHorizonKindLike = {
   Unspecified: 0,
@@ -72,7 +75,12 @@ export const PropagationHorizonKindLike = {
 export type PropagationHorizonKindLike =
   (typeof PropagationHorizonKindLike)[keyof typeof PropagationHorizonKindLike];
 
-/** Mirrors the contract enum by value, for the same reason as the horizon kind above. */
+/**
+ * The kinds of trajectory, with the same values as the contract enum:
+ * `Unspecified` (0) and the kinds that follow it. Useful for telling the operator
+ * whether a withheld path was a fixed orbit or an integrated trajectory. Used by
+ * the trajectory withheld note and the app's trajectory currency bridge.
+ */
 export const TrajectoryKindLike = {
   Unspecified: 0,
   Analytic: 1,
@@ -81,7 +89,11 @@ export const TrajectoryKindLike = {
 export type TrajectoryKindLike =
   (typeof TrajectoryKindLike)[keyof typeof TrajectoryKindLike];
 
-/** Why a propagation was refused, for a caller that wants to say so on screen. */
+/**
+ * Whether an orbit may be carried forward and, when it may not, why. Useful for
+ * telling the operator why a predicted orbit stopped. Returned by
+ * {@link canPropagate} and read by the app's trajectory currency bridge.
+ */
 export type PropagationRefusal =
   | { propagatable: true }
   | { propagatable: false; reason: "no-horizon-stated" }
@@ -99,12 +111,9 @@ export type PropagationRefusal =
     };
 
 /**
- * The horizon's bound as a plain UT, or `undefined` when it names none.
- *
- * Exported so a caller that needs the number for something other than the gate
- * reads it here rather than unwrapping the wire's magnitude a second time. The
- * one-copy rule is the same one `solveEccentricAnomaly`'s own doc argues for,
- * and for the same reason: a second copy is free to disagree.
+ * The horizon's bound as a plain UT, or `undefined` when it names none. Useful
+ * for showing the operator the UT until which a vessel's predicted orbit holds.
+ * Used by the orbit trajectory builder.
  */
 export function horizonUtOf(
   horizon: PropagationHorizonLike,
@@ -162,9 +171,11 @@ export function canPropagate(
 }
 
 /**
- * Classical orbital elements of a body or craft relative to its parent, with
+ * Classical orbital elements of a body or vessel relative to its parent, with
  * the epoch and mean anomaly needed to carry the orbit forward or back in
  * time. Angles are in radians, times in UT seconds, and lengths in metres.
+ * Useful for drawing an orbit or finding where a vessel is on it. Taken by
+ * {@link solve} and {@link solveAnomalies}, and by the transfer window widget.
  *
  * @category Orbits and trajectories
  */
@@ -189,7 +200,8 @@ export interface OrbitElements {
 
 /**
  * A vector as three plain numbers, `[x, y, z]`, as the orbit and frame
- * functions take and return it.
+ * functions take and return it. Useful for passing a position or velocity
+ * between the orbit solver and a drawing. Used by the system view projection.
  *
  * @category Frames of reference
  */
@@ -197,7 +209,8 @@ export type Vec3Tuple = readonly [x: number, y: number, z: number];
 
 /**
  * A position and velocity relative to the parent body, at one instant, in
- * metres and metres per second.
+ * metres and metres per second. Useful for showing where a vessel is and how
+ * fast it moves. Returned by {@link solve}.
  *
  * @category Orbits and trajectories
  */
@@ -210,7 +223,8 @@ export interface StateVector {
 
 /**
  * Where an orbit is at one instant, as angles in radians, with its mean
- * motion. {@link solveAnomalies} returns one.
+ * motion. Useful for showing the operator the vessel's place along its orbit.
+ * Returned by {@link solveAnomalies}.
  *
  * An open orbit (`ecc > 1`) has no period, so `2π / meanMotion` is not one:
  * its mean motion is only the rate its mean anomaly advances at.
@@ -249,7 +263,9 @@ function isOpenConic(ecc: number): boolean {
 
 /**
  * Returns the true anomaly for an eccentric anomaly, both in radians, for an
- * elliptical orbit (`0 <= ecc < 1`). Correct in every quadrant.
+ * elliptical orbit (`0 <= ecc < 1`). Correct in every quadrant. Useful for
+ * turning a solved orbit angle into the angle a drawn point needs. Used by the
+ * trajectory calculations of the core.
  *
  * @category Orbits and trajectories
  */
@@ -268,7 +284,8 @@ export function trueAnomalyFromEccentric(
 
 /**
  * The inverse of {@link trueAnomalyFromEccentric}: true to eccentric anomaly.
- * Radians, `0 <= ecc < 1`.
+ * Radians, `0 <= ecc < 1`. Useful for finding where on an orbit a vessel is when
+ * only its true anomaly is known. Used by the maneuver calculations of the core.
  *
  * @category Orbits and trajectories
  */
@@ -287,7 +304,8 @@ export function eccentricFromTrueAnomaly(
 
 /**
  * Returns the true anomaly for a hyperbolic anomaly, both in radians, on an
- * open orbit (`ecc > 1`). Zero at periapsis and negative before it.
+ * open orbit (`ecc > 1`). Zero at periapsis and negative before it. Useful for
+ * drawing a point on a flyby or an escape orbit.
  *
  * @category Orbits and trajectories
  * @intent an Uplink that solved a hyperbolic anomaly of its own, for a flyby or an escape preview, turns it into the angle a drawn point needs
@@ -307,7 +325,8 @@ export function trueAnomalyFromHyperbolic(
 /**
  * Returns `orbit`'s anomalies and mean motion at `ut`, in UT seconds: the
  * same computation {@link solve} makes, for a caller that needs an angle
- * rather than a position. An open orbit (`ecc > 1`) is solved through the
+ * rather than a position. Useful for showing the operator where a vessel is
+ * along its orbit. Used by {@link solve} and the body derivations. An open orbit (`ecc > 1`) is solved through the
  * hyperbolic anomaly; see {@link Anomalies} for what each field holds then.
  * Throws a `RangeError` for a parabolic orbit (`ecc` exactly 1) and for a
  * negative eccentricity.
@@ -340,13 +359,9 @@ export function solveAnomalies(orbit: OrbitElements, ut: number): Anomalies {
 
 /**
  * The mean anomaly, in radians, `ut` reaches from `meanAnomalyAtEpoch` at
- * `meanMotion`: `M0 + n·(ut − epoch)`.
- *
- * Every term is a quantity up to the sum, and the sum is where the algebra
- * stops: what reads it is the Kepler solve, which is trigonometry on a number.
- * A propagation that advances a conic in time goes through here rather than
- * subtracting instants of its own, so the instant, the interval and the rate
- * keep their units right up to the solve.
+ * `meanMotion`: `M0 + n·(ut − epoch)`. Useful for advancing a vessel along its
+ * orbit to a view time. Takes the instant, the interval and the rate as
+ * quantities and returns the sum as a bare number for the Kepler solve.
  */
 export function meanAnomalyAt(
   meanAnomalyAtEpoch: Value<"rad">,
@@ -358,7 +373,9 @@ export function meanAnomalyAt(
 }
 
 /**
- * The shape and phase of a conic, closed or open, as quantities.
+ * The shape and phase of an orbit, closed or open, as quantities. Useful for
+ * advancing an orbit that is held as quantities rather than bare numbers. Taken
+ * by {@link solveConic}.
  *
  * @category Orbits and trajectories
  */
@@ -374,8 +391,10 @@ export interface ConicShape {
 }
 
 /**
- * Where a craft is along its conic, in the orbital plane: the anomalies and
+ * Where a vessel is along its orbit, in the orbital plane: the anomalies and
  * the distance from the body's centre. Angles in radians, `radius` in metres.
+ * Useful for drawing the vessel on a diagram of its orbit. Returned by
+ * {@link solveConic}.
  *
  * @category Orbits and trajectories
  */
@@ -392,7 +411,9 @@ export interface ConicSolution {
 
 /**
  * Returns where an orbit is at `ut`, in its own plane: its anomalies and its
- * distance from the body's centre. For a position, use {@link solve}.
+ * distance from the body's centre. Useful for advancing a patch or a maneuver
+ * preview for the operator. Used by the orbit patches and the maneuver
+ * calculations of the core. For a position, use {@link solve}.
  *
  * Pass the mean motion yourself, in radians per second: `2π / period` for a
  * closed orbit from the game, which carries its period, or `√(mu / |sma|³)`
@@ -436,8 +457,9 @@ export function solveConic(
 
 /**
  * Returns the position and velocity of `orbit` at `ut`, in UT seconds,
- * relative to its parent body. On a closed orbit, the same result as the
- * mod's own propagation. An open orbit (`ecc > 1`) is carried along its
+ * relative to its parent body. Useful for showing where a vessel or a body is at
+ * a view time. Used by the transfer and porkchop calculations of the core. On a
+ * closed orbit, the same result as the mod's own propagation. An open orbit (`ecc > 1`) is carried along its
  * hyperbola, and only the size of `sma` is read for one. Throws a
  * `RangeError` for a parabolic orbit (`ecc` exactly 1) and for a negative
  * eccentricity.
@@ -486,22 +508,19 @@ export function solve(orbit: OrbitElements, ut: number): StateVector {
 }
 
 /**
- * Newton-Raphson solve of Kepler's equation `M = E - e*sin(E)` for E.
- * Converges in ~5 iterations for typical (e < 0.9) orbits; the iteration
- * cap and tolerance below are a guard against pathological inputs near
- * e -> 1, not the expected case. Mirrors `SolveEccentricAnomaly`.
+ * The eccentric anomaly `E` that solves Kepler's equation `M = E - e*sin(E)`
+ * for a mean anomaly and an eccentricity, in radians, by Newton-Raphson. Useful
+ * for finding where a vessel is along an elliptical orbit. Used by the
+ * trajectory calculations of the core.
  *
- * Starts from a high-eccentricity guess where it needs one, so it converges
- * just after periapsis on a near-parabolic orbit too.
+ * It takes a mean anomaly and an eccentricity and returns an angle, with no
+ * elements, frame or time, so it cannot say where a vessel is. That question
+ * goes through a provider.
  *
- * **Exported as arithmetic, not as propagation.** It takes a mean anomaly
- * and an eccentricity and returns an angle: no elements, no frame, no time, so
- * it cannot say "where is this craft" and is not a way around the propagation
- * seam. That question goes through a provider, and on the C# side the
- * equivalent element-keyed door is deliberately private.
- *
- * Accepts any real mean anomaly and wraps it, because its callers propagate `M`
- * linearly in time and hand over values well outside one revolution.
+ * It accepts any real mean anomaly and wraps it, so callers can advance the
+ * mean anomaly linearly in time. It starts from a high-eccentricity guess where
+ * it needs one, so it converges just after periapsis on a near-parabolic orbit
+ * too.
  */
 export function solveEccentricAnomaly(
   meanAnomaly: number,
@@ -552,8 +571,9 @@ const MAX_HYPERBOLIC_ITERATIONS = 100;
 
 /**
  * Returns the hyperbolic anomaly `H` that solves `M = e·sinh(H) − H` for a
- * mean anomaly `M`, in radians, on an open orbit (`ecc > 1`). `M` is any real
- * number: zero at periapsis, negative before it. Throws a `RangeError` when
+ * mean anomaly `M`, in radians, on an open orbit (`ecc > 1`). Useful for
+ * finding where a vessel is on a flyby or an escape. `M` is any real number:
+ * zero at periapsis, negative before it. Throws a `RangeError` when
  * `ecc` is not above 1.
  *
  * @category Orbits and trajectories
@@ -596,8 +616,9 @@ export function solveHyperbolicAnomaly(
 /**
  * Rotates a perifocal-frame vector into the parent-body-relative inertial
  * frame using the 3-1-3 Euler rotation R3(-lan) * R1(-inc) * R3(-argPe)
- * (Vallado/AIAA convention). Applies identically to position and velocity
- * components. Mirrors `RotatePerifocalToInertial`.
+ * (Vallado/AIAA convention). Useful for placing a point of an orbit diagram in
+ * space. Used by the system view's orbit geometry. Applies identically to
+ * position and velocity components.
  *
  * `zPf` is the part along the orbit normal. A conic has none, so it is left
  * out and the vector is planar; an integrated arc leaves the osculating plane
@@ -643,20 +664,13 @@ export function rotatePerifocalToInertial(
 }
 
 /**
- * The inverse of the rotation above: a body-centred inertial vector expressed
- * in the perifocal frame of the element set given.
+ * The inverse of {@link rotatePerifocalToInertial}: a body-centred inertial
+ * vector expressed in the perifocal frame of the element set given. Useful for
+ * drawing an integrated path, which arrives in the inertial frame, on a
+ * body-centred orbit diagram. Used by the past track.
  *
- * Exported because an integrated path arrives in the inertial frame and the
- * body-centric diagrams draw in the perifocal one, so somewhere the two have to
- * meet. Doing it here keeps the rotation matrix in the one file that owns it:
- * a second copy of those nine terms elsewhere is free to disagree with this one
- * about a sign, and the symptom would be a curve that looks plausible and is
- * mirrored.
- *
- * The rotation is orthonormal, so the inverse is the transpose and no matrix
- * needs inverting. The out-of-plane component survives as `z`: a caller that
- * flattens it to a plane is throwing away the one thing an n-body path has that
- * a conic does not.
+ * The out-of-plane component survives as `z`: a caller that flattens it to a
+ * plane discards what an n-body path has that a two-body orbit does not.
  */
 export function rotateInertialToPerifocal(
   v: Vec3Tuple,

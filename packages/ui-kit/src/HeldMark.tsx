@@ -34,8 +34,10 @@ export const reservesHeldMark = css`
 `;
 
 /**
- * The room a host holds at the end of its figure for the modelled mark, whose
- * box is slightly larger than the held square's. Used by `reservesMark`.
+ * The room a host holds at the end of its figure for the modelled triangle,
+ * whose box is slightly larger than the held square's. Useful for keeping a
+ * modelled figure's mark inside its own box whatever clips or wraps around it.
+ * Used by `reservesMark`.
  */
 export const reservesModelledTriangle = css`
   &::after {
@@ -57,9 +59,11 @@ function reservesHollow(kind: MarkKind) {
 }
 
 /**
- * The room to reserve for a kind of mark, hollow where the figure is
- * `elsewhere`. A current figure that is not `elsewhere` carries no mark and
- * reserves nothing. Used by {@link Unit}.
+ * The room a host holds at the end of its figure for the mark of a kind, hollow
+ * where the figure is `elsewhere`. A current figure that is not `elsewhere`
+ * carries no mark and reserves nothing. Useful for keeping the mark that tells
+ * the operator a figure is held or modelled inside the figure's own box. Used
+ * by {@link Unit}.
  */
 export function reservesMark(kind: MarkKind, elsewhere = false) {
   if (elsewhere) return reservesHollow(kind);
@@ -70,8 +74,8 @@ export function reservesMark(kind: MarkKind, elsewhere = false) {
 /**
  * The square that marks a figure as held. It is absolutely positioned in the
  * room its host reserves at the end of the figure, at superscript height, so
- * the square is inside the host's box and the line never grows. Sized in `em`
- * with a minimum size in pixels, so it stays a square in small text. Used by
+ * the square is inside the host's box and the line never grows. Useful for
+ * showing the operator that a figure has stopped updating. Used by
  * {@link ReckoningMark}.
  *
  * It needs a positioned container that reserves that room: use `HeldHost`, or
@@ -91,7 +95,8 @@ export const HeldMark = styled.span`
 
 /**
  * The mark for a figure a model carried forward: a triangle, point up, in the
- * modelled hue, hung off its host exactly as `HeldMark` is. Used by
+ * modelled hue, hung off its host as `HeldMark` is. Useful for showing the
+ * operator that a figure is an estimate rather than a reading. Used by
  * {@link ReckoningMark}.
  *
  * @category Unit
@@ -186,11 +191,12 @@ export function ReckoningMark({
 }
 
 /**
- * Something for the mark to hang off, for a component that renders bare text
- * and so has no box of its own. Used by {@link HeldFigure} and by the meter's
- * value pair.
+ * A positioned inline box that holds a figure and the mark at its end, for a
+ * component that renders bare text and so has no box of its own. Useful for
+ * placing the mark that tells the operator a figure is held or modelled. Used
+ * by {@link HeldFigure} and by the meter's value pair.
  *
- * It is `nowrap`, since a phrase broken across two lines has two right edges.
+ * It does not wrap, so the figure and its mark stay on one line.
  *
  * @category Unit
  */

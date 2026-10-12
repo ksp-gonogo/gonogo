@@ -65,9 +65,13 @@ export function onContributionsChange(cb: () => void): () => void {
 }
 
 /**
- * Register a contribution. An id collision throws
- * synchronously at this call site (no accumulate-then-flush frame), unless
- * the exact same def is re-registering (a benign idempotent re-import).
+ * Registers a contribution: an entry that a widget shows in one of its slots,
+ * such as a badge or a row. Useful for adding to another widget's panel what
+ * the operator needs to see for a vessel. Used by the widgets that fill a slot
+ * of their own, such as the space centre facilities and the comm signal badge.
+ *
+ * An id collision throws at this call, unless the identical definition is
+ * registering again, which is ignored.
  */
 export function registerContribution<
   Slot extends string,
@@ -109,16 +113,18 @@ export function registerContribution<
 }
 
 /**
- * The band a contribution registers at when it says nothing, and the reason it
- * is 1 rather than 0: 0 is left free below every ordinary contributor, for a
- * host widget filling its own slot with the answer it can read itself. See
+ * The priority a contribution registers at when it declares none, which is 1.
+ * Priority 0 is left below every ordinary contribution, for a host widget
+ * filling its own slot with what it can read itself. See
  * {@link getContributionsForSlot}.
  */
 export const DEFAULT_CONTRIBUTION_PRIORITY = 1;
 
 /**
  * Every contribution that wins the slot: those in the highest priority band
- * present, in registration order. Used by a widget to fill one of its slots.
+ * present, in registration order. Useful for filling one of a widget's slots
+ * with the entries that apply to the operator's vessel. Used by the contribution
+ * runtime that draws a widget's slots.
  *
  * Contributions of equal priority all render, and only a strictly higher band
  * displaces a lower one. A host widget that fills its own slot contributes at
@@ -186,20 +192,17 @@ export function getContributionSettings(
 }
 
 /**
- * For use in tests only, resets the contribution registry to empty.
+ * Resets the contribution registry to empty. Useful in a test that needs a
+ * registry with nothing in it.
  *
- * **It empties the registry, which includes the contributions a host widget
- * makes to its own slot.** Those register as a module side effect, at import,
- * and nothing re-runs an import. So a test file that clears between cases leaves
- * every case after the first rendering a host with none of its own data, which
- * surfaces as a widget that draws its chrome and no content, and reads as a
- * telemetry fault rather than as a registry that was emptied on purpose.
+ * It empties the registry, which includes the contributions a host widget
+ * makes to its own slot. Those register when the module is imported, and
+ * nothing re-runs an import, so every case after the first renders a host with
+ * none of its own data: a widget that draws its chrome and no content.
  *
  * A self-contributing widget therefore exports a function that performs its
- * registration, for a test to call after clearing;
- * `SpaceCenterStatus/facilitiesContribution.ts`'s
- * `registerStockFacilityContribution` is the worked example. Re-registering the
- * identical def is a no-op, so calling it when nothing was cleared is safe.
+ * registration, for a test to call after clearing. Registering the identical
+ * definition again is ignored, so calling it when nothing was cleared is safe.
  */
 export function clearContributions(): void {
   const s = state();

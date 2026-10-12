@@ -1,7 +1,8 @@
 /**
  * The tags a layout or text primitive's `as` prop accepts: every one holds
- * content and none is a control. For a button or link, use the
- * {@link Button} family.
+ * content and none is a control. Useful for choosing the element a block of
+ * content the operator reads is drawn as. Taken by {@link Stack}, {@link Section}
+ * and {@link Block}. For a button or link, use the {@link Button} family.
  *
  * @category Layout
  */

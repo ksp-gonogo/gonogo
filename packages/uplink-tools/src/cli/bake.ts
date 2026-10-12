@@ -79,7 +79,12 @@ const text = (value: unknown): string =>
 /** A C# string literal. JSON's escapes are a subset of C#'s. */
 const cs = (literal: string): string => JSON.stringify(literal);
 
-/** The nearest directory at or above `from` that holds an `uplink.json`. */
+/**
+ * The nearest directory at or above `from` that holds an `uplink.json`, or
+ * `undefined` when none does. Useful for letting an author run an
+ * `uplink-tools` command from anywhere inside an Uplink. Used by the `codegen`,
+ * `page`, `publish` and `release` commands when no Uplink directory is named.
+ */
 export function findUplinkDir(from: string): string | undefined {
   let dir = resolve(from);
   for (;;) {
@@ -231,7 +236,12 @@ function isLoopback(url: string): boolean {
   }
 }
 
-/** What a bake did, in the words an author needs before deciding to ship the DLL. */
+/**
+ * What a bake did: the Uplink it baked, how many files it wrote into `mod/`,
+ * and the client address the plugin was baked with. Useful for showing the
+ * author what the DLL contains before they decide to ship it. Used by the
+ * `new` and `release` commands after they bake.
+ */
 export function describeBake(result: BakeResult): string {
   const lines = [
     `${result.id}: baked ${result.written.length} files into mod/`,

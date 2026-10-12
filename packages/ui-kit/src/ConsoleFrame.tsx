@@ -32,7 +32,8 @@ import styled, { css } from "styled-components";
  */
 /**
  * Which accent a {@link Console} is drawn in: `accent` (the primary accent) for
- * a terminal that dispatches to a craft, `info` for a message log.
+ * a terminal that dispatches to a vessel, `info` for a message log. Set with the
+ * `tone` prop of {@link Console}.
  *
  * @category Console
  */

@@ -5,7 +5,8 @@ import type { FlightRecord } from "./types";
 /**
  * What {@link FlightDetector} reads from one sample to tell which flight it
  * belongs to: the vessel's name and mission time, or its id where one is
- * given, which then decides.
+ * given, which then decides. Useful for telling a vessel's launch from a revert or
+ * a return to an earlier flight. Taken by {@link FlightDetector}.
  *
  * @category Flight recording
  */
@@ -22,7 +23,8 @@ export interface DetectorInput {
 
 /**
  * What `FlightDetector` decides a sample belongs to: the current flight, a new
- * one, or an earlier flight resumed.
+ * one, or an earlier flight resumed. Useful for filing the operator's recorded
+ * samples under the right flight. Returned by {@link FlightDetector}.
  *
  * @category Flight recording
  */
@@ -67,6 +69,9 @@ const REVERT_THRESHOLD_SEC = 5;
  * - `append`: the same flight as the last sample
  * - `resume`: a vessel seen before, so its existing record is picked up
  * - `new`: a new flight, with a new record
+ *
+ * Useful for recording each flight the operator watches as its own history.
+ * Used by {@link BufferedDataSource}.
  *
  * Saving the returned record is the caller's job. The detector never changes a
  * record after returning it, so a caller can keep it without copying.

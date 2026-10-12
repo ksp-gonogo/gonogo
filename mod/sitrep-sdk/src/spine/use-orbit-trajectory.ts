@@ -41,29 +41,32 @@ function orbitKey(
 }
 
 /**
- * How the craft's path may be drawn at the instant on screen, for a
- * `vessel.orbit` value you have already read.
+ * How the vessel's path may be drawn at the instant on screen, for a
+ * `vessel.orbit` value you have already read. Useful for drawing the orbit the
+ * operator sees, as a conic, a sampled arc or a refusal with its reason. Used by
+ * the system diagram, the map's telemetry, the orbit plane trajectory hook and
+ * {@link TrajectoryWithheldNote}.
  *
  * Pass the whole payload, horizon included: the horizon says how far ahead the
- * elements hold, and the answer will not reach past it. You decide which
- * reading counts as the craft's orbit (observed only, or a modelled one too),
- * and the hook does not subscribe to anything itself.
+ * elements hold, and the answer will not reach past it. You decide which reading
+ * counts as the vessel's orbit (observed only, or a modelled one too), and the hook
+ * does not subscribe to anything itself.
  *
  * The view instant is read when your widget renders, not on every frame, so the
- * answer moves with your own telemetry. The answer is held for each whole
- * second of that instant: while the orbit's elements, horizon, sample count and
- * read frame are unchanged, every render in the same second gets the very same
- * object back, so a caller can memoise whatever it derives from it by identity.
- * An orbit whose payload is rebuilt on every render holds just as well, because
- * the key is the orbit's content and never its reference.
+ * answer moves with your own telemetry. The answer is held for each whole second
+ * of that instant: while the orbit's elements, horizon, sample count and read frame
+ * are unchanged, every render in the same second gets the very same object back, so
+ * a caller can memoise whatever it derives from it by identity. An orbit whose
+ * payload is rebuilt on every render holds just as well, because the key is the
+ * orbit's content and never its reference.
  *
- * `null` means the question could not be put: no elements yet, or no clock. It
- * is not a refusal, which arrives as a `withheld` answer carrying its reason, so
- * do not render the two alike.
+ * `null` means the question could not be put: no elements yet, or no clock. It is
+ * not a refusal, which arrives as a `withheld` answer carrying its reason, so do
+ * not render the two alike.
  *
  * `readFrame` asks for the curve in a frame of your choosing, which changes
- * nothing in the game. Omit it for the frame it was computed in. Either way an
- * arc carries its `frame`, which is what to name beside it.
+ * nothing in the game. Omit it for the frame it was computed in. Either way an arc
+ * carries its `frame`, which is what to name beside it.
  *
  * @category Frames of reference
  */

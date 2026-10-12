@@ -4,7 +4,9 @@ import { value } from "../unit-system/value";
 import type { OrbitElements } from "./kepler";
 
 /**
- * How far a provider says the published conic is from the path at one instant.
+ * How far a provider says the published orbit is from the vessel's actual path
+ * at one instant. Useful for deciding how long a propagated orbit can be
+ * trusted. Returned by `departureAt`.
  *
  * @category Reckoners
  */
@@ -16,14 +18,16 @@ export interface Departure {
 }
 
 /**
- * The cap in force at `viewUt`: the first knot whose instant is at or after it.
+ * The departure cap in force at the view time `viewUt`: the first knot whose
+ * instant is at or after it. Useful for telling how far the published orbit may
+ * have drifted from the vessel's path at that instant. Used by the orbit
+ * reckoner in the core.
  *
- * Each knot is a running maximum, so reading the list as a step function is a
- * cap at every instant and a view time just past one knot takes the next
- * knot's figure rather than interpolating down towards the last. `undefined`
- * where the provider stated nothing, where the view precedes the sample the
- * envelope was measured from, and past the last knot, which is where the
- * conic has already been refused.
+ * Each knot is a running maximum, so the list reads as a step function: a view
+ * time just past one knot takes the next knot's figure and is never
+ * interpolated. `undefined` where the provider stated nothing, where the view
+ * precedes the sample the envelope was measured from, and past the last knot,
+ * where the orbit has already been refused.
  */
 export function departureAt(
   knots: readonly PropagationDepartureKnot[] | null | undefined,
@@ -45,8 +49,10 @@ export function departureAt(
 }
 
 /**
- * The most the mean anomaly can be off by when the craft is `metres` from where
- * the conic puts it, at orbital radius `radius` (metres).
+ * The most the mean anomaly can be off by when the vessel is `metres` from where
+ * the orbit puts it, at orbital radius `radius` (metres). Useful for turning a
+ * position drift into an error in the vessel's place along its orbit. Used by
+ * the orbit reckoner in the core.
  *
  * Treats the whole distance as along-track, which is the conservative reading:
  * an along-track error of `d` moves the true anomaly by at most `d / r`, and

@@ -43,7 +43,9 @@ import type { CommandRail } from "./rail-tags";
 
 /**
  * Every command id mapped to the type of the arguments it takes.
- * {@link CommandId} and {@link CommandArgs} are read from it.
+ * {@link CommandId} and {@link CommandArgs} are read from it. Useful for typing
+ * a command's arguments at the call site, so a control sends only what the
+ * vessel's command accepts. Used by {@link useCommand}.
  *
  * An Uplink adds its own commands by merging entries into this interface and
  * {@link CommandReplyMap} from its client package with a `declare module`
@@ -65,7 +67,9 @@ import type { CommandRail } from "./rail-tags";
 export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
 
 /**
- * Every command id mapped to the type its `send` resolves with.
+ * Every command id mapped to the type its `send` resolves with. Useful for
+ * knowing what a control receives back once the vessel has run a command. Used
+ * by {@link useCommand}.
  *
  * A refusal is never a reply. On the wire the game's "no" is a
  * `command-response` whose result has `success: false`, and the client turns
@@ -83,7 +87,8 @@ export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
 /**
  * The reply type of a command handle whose command is not known: the result
  * envelope every command replies with, its own value on `payload`. It is the
- * default `Reply` of {@link useCommand} and {@link UseCommandResult}.
+ * default `Reply` of {@link useCommand} and {@link UseCommandResult}. Useful for
+ * typing a handle to a command whose id is built at runtime.
  *
  * `system.bodies.statesAt` is the one exception: it replies with a
  * `BodyStatesReply` rather than an envelope, so its handle cannot be passed
@@ -107,7 +112,9 @@ interface SdkOwnedCommandReplyMap extends GeneratedCommandReplyMap {}
 
 /**
  * Every command id with known argument and reply types, as a string-literal
- * union, including those an Uplink added to {@link CommandArgsMap}.
+ * union, including those an Uplink added to {@link CommandArgsMap}. Useful for
+ * limiting a control to commands the vessel can run. Used by {@link useCommand}
+ * to type its arguments and reply.
  *
  * @category Commands
  */
@@ -115,14 +122,17 @@ export type CommandId = keyof CommandArgsMap;
 
 /**
  * The arguments `Command` takes. A command whose arguments type is empty takes
- * none, and its `send()` is called with no argument.
+ * none, and its `send()` is called with no argument. Useful for typing the
+ * arguments a control passes to the vessel. Used by {@link useCommand}.
  *
  * @category Commands
  */
 export type CommandArgs<Command extends CommandId> = CommandArgsMap[Command];
 
 /**
- * What `send` resolves with for `Command`. See {@link CommandReplyMap}.
+ * What `send` resolves with for `Command`. See {@link CommandReplyMap}. Useful
+ * for typing what a control does with the vessel's reply. Used by
+ * {@link useCommand}.
  *
  * @category Commands
  */
@@ -130,7 +140,8 @@ export type CommandReply<Command extends CommandId> =
   Command extends keyof CommandReplyMap ? CommandReplyMap[Command] : unknown;
 
 /**
- * Every command id the SDK itself declares, as an array.
+ * Every command id the SDK itself declares, as an array. Useful for listing the
+ * commands a command centre can send without an Uplink loaded.
  *
  * Commands an Uplink registers at load are not in it;
  * {@link getAllKnownCommandIds} and {@link isCommandId} include them.
@@ -190,6 +201,8 @@ export function registerUplinkCommand(id: string, rail?: CommandRail): void {
  * registered it, or `null` when nothing has declared it. That covers a command
  * whose id is built at runtime and one from an Uplink whose client has not
  * loaded. {@link railTagsForCommand} turns either result into tags to draw.
+ * Useful for showing the operator how a command travels on the delay rail.
+ * Used when the stream client works out when a command's reply is due.
  *
  * @category Commands
  */
@@ -201,7 +214,7 @@ export function commandRail(id: string): CommandRail | null {
 /**
  * Every command id known now: {@link COMMAND_IDS} and every id an Uplink has
  * registered so far. An Uplink's commands appear once its client package has
- * loaded.
+ * loaded. Useful for listing every command the operator could send.
  *
  * @category Commands
  */
@@ -211,7 +224,8 @@ export function getAllKnownCommandIds(): readonly string[] {
 
 /**
  * Returns whether `value` is a known {@link CommandId}: one the SDK declares,
- * or one an Uplink has registered with {@link registerUplinkCommand}.
+ * or one an Uplink has registered with {@link registerUplinkCommand}. Useful for
+ * checking an id of unknown origin before typing a command handle with it.
  *
  * @category Commands
  */

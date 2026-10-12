@@ -4,11 +4,13 @@ import { NULL_DISPLAY } from "./NullValue";
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
- * Formats a KSP universal time (UT, seconds) as a date, in whichever of the
- * two calendars the running game actually has.
+ * A game universal time (UT, seconds) as a calendar date, in whichever of the
+ * two calendars the running game has. Useful for showing the operator when a
+ * vessel event happened or will happen, in the game's own dating. Used by
+ * {@link MissionDate}.
  *
  * - No epoch (stock): `Y<year> D<day> HH:MM:SS`, 1-based, so UT 0 is
- *   `Y1 D1 00:00:00`, as KSP's own UI prints it
+ *   `Y1 D1 00:00:00`, as the game's own interface prints it
  * - An epoch: `14 Mar 1957 03:22:37`, the real instant that many seconds after
  *   the anchor, which the mod reports only for a game with a real calendar.
  *   The Gregorian calendar then governs, as the game's own formatter does

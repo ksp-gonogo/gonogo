@@ -13,7 +13,9 @@ const EMPTY_BREAKDOWN_SNAPSHOT = (): readonly StatusBreakdownEntry[] =>
 /**
  * The panel's per-severity status counts, worst first, one row per severity
  * present, or an empty list when nothing has contributed or there is no
- * {@link PanelStatusStore} above. The collapsed header draws one dot per row.
+ * {@link PanelStatusStore} above. Useful for drawing one status dot per severity
+ * in the collapsed header the operator sees on a narrow tile. Used by
+ * {@link Panel}.
  *
  * @category Panel
  */

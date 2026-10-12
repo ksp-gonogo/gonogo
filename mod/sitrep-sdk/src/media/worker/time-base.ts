@@ -29,10 +29,12 @@
  * so this unit-tests directly without a real Worker context.
  */
 
-/** `localTimeOriginMs - mainTimeOriginMs`: the number of milliseconds to
- *  add to a local `performance.now()` reading to land it on the main
- *  thread's wall-clock basis. See the module doc's worked example for why
- *  it's `local - main`, not `main - local`. */
+/**
+ * Returns `localTimeOriginMs - mainTimeOriginMs`: the number of milliseconds to
+ * add to a worker's `performance.now()` reading to put it on the main thread's
+ * wall-clock basis. Useful for making a worker's time comparable with the time
+ * the main thread posts to it.
+ */
 export function computeTimeOriginOffsetMs(
   mainTimeOriginMs: number,
   localTimeOriginMs: number,
@@ -45,7 +47,8 @@ export function computeTimeOriginOffsetMs(
  * `performance.now()` (ms, this context's own clock) shifted by the
  * precomputed origin offset, then converted to seconds, matching
  * `ViewClock.now()`'s own `performance.now() / 1000` exactly, just
- * evaluated from inside the worker.
+ * evaluated from inside the worker. Useful for comparing a worker's time with
+ * the clock values the main thread posts to it. Used by the delay worker.
  */
 export function createNowWall(
   offsetMs: number,

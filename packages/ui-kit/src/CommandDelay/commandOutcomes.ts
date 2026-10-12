@@ -2,7 +2,8 @@ import type { CommandDelayHandle } from "./CommandDelay";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 
 /**
- * What became of a handle's dispatches, as the control that issued them echoes it.
+ * What became of a handle's dispatches, as the control that issued them echoes
+ * it. Returned by {@link commandOutcomes}.
  *
  * @category CommandButton
  */
@@ -27,7 +28,9 @@ export interface CommandOutcomes {
  * A handle's unanswered and undelivered dispatches plus the shared `dismiss`,
  * so the control that issued the command can echo what became of it while the
  * Panel rail stays the primary surface. An unanswered command may still run,
- * so it is unconfirmed and never counted as a failure.
+ * so it is unconfirmed and never counted as a failure. Useful for showing the
+ * operator, beside the control they pressed, what became of the command. Used by
+ * {@link CommandButton} and the attitude controls of the navball.
  *
  * @category CommandButton
  */

@@ -122,7 +122,9 @@ interface Options {
 }
 
 /**
- * Supplies the human-facing half of a `DataKeyMeta` for one key.
+ * Supplies the human-facing half of a `DataKeyMeta` for one key: its label and
+ * group. Useful for naming recorded keys in the operator's flight picker and on
+ * plot axes. Taken by {@link BufferedDataSource} as `enrichKey`.
  *
  * @category Flight recording
  */
@@ -138,7 +140,9 @@ interface SampleRow {
 /**
  * Wraps a live {@link DataSource}, saves every sample into a {@link FlightStore}
  * under the flight it belongs to, and offers both live subscriptions and range
- * queries over what it has saved.
+ * queries over what it has saved. Useful for letting the operator review a past
+ * flight's telemetry after it ended. Used by the mission history data source and
+ * by the data source a station builds from the main screen's feed.
  *
  * A subscription fires on new samples only, not on subscribing; read history
  * with `queryRange`. After a reload it picks up the flights it saved, rather

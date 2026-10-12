@@ -2,18 +2,20 @@ import { MODELLED_TO_SCET } from "./readingCurrency";
 import { HELD_WORDS } from "./status/streamStatusWord";
 
 /**
- * Why a drawn held mark fails to tell an operator what it means:
- * `silent` where nothing a screen reader hears names its grade, `no-hover`
- * where the hover does not, and `no-as-of` where the hover leaves out the
- * instant the spoken words give.
+ * Why a drawn held mark fails to tell the operator what it means: `silent`
+ * where nothing a screen reader hears names its grade, `no-hover` where the
+ * hover does not, and `no-as-of` where the hover leaves out the instant the
+ * spoken words give. Useful for reporting how a widget's held mark falls short.
+ * Returned in {@link UnannouncedHeldMark} by {@link unannouncedHeldMarks}.
  *
  * @category Testing
  */
 export type HeldMarkFault = "silent" | "no-hover" | "no-as-of";
 
 /**
- * One held mark that does not announce itself, with a short description of
- * where it was drawn.
+ * One held mark that does not say what it means, with the fault and a short
+ * description of where it was drawn. Useful for pointing an author at the mark
+ * to fix. Returned by {@link unannouncedHeldMarks}.
  *
  * @category Testing
  */
@@ -78,10 +80,12 @@ function describe(mark: Element): string {
 /**
  * Every held mark (`[data-held-mark]`) under `root` that does not say what it
  * means: its grade's word to a screen reader and on hover, with the hover
- * naming the same "as of" instant the spoken words do.
+ * naming the same "as of" instant the spoken words do. Useful in a widget test
+ * for checking that the operator can learn why a figure is held without seeing
+ * the mark.
  *
- * Keyed on the mark rather than the figure, so a mark drawn by hand outside any
- * kit primitive is still asked about.
+ * It finds marks by the attribute, so a mark drawn by hand outside any kit
+ * primitive is checked too.
  *
  * @category Testing
  */

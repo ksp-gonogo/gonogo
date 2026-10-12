@@ -4,7 +4,8 @@ import type { FlightRecord } from "./types";
 
 /**
  * One named stretch of a recorded flight, as a {@link FlightFixture} carries
- * it.
+ * it. Useful for marking phases of a recorded flight, such as ascent and
+ * landing, for the operator reviewing it.
  *
  * @category Flight recording
  */
@@ -21,7 +22,9 @@ export interface FlightChapter {
 
 /**
  * A recorded flight as a portable JSON file: the flight's metadata and every
- * sample, which `importFixtureToStore` loads back.
+ * sample, which `importFixtureToStore` loads back. Useful for the operator to
+ * save a flight to a file, share it, or replay it later. Returned by
+ * {@link exportFlightToFixture} and by the recorder's flight export.
  *
  * @category Flight recording
  */
@@ -54,7 +57,8 @@ export interface FlightFixture {
 }
 
 /**
- * The format tag every `FlightFixture` carries.
+ * The format tag every {@link FlightFixture} carries. Useful for recognising a
+ * flight file. Checked by {@link isFlightFixture}.
  *
  * @category Flight recording
  */
@@ -62,8 +66,8 @@ export const FLIGHT_FIXTURE_FORMAT = "gonogo-flight-fixture/v1" as const;
 
 /**
  * Whether `value` is a {@link FlightFixture}: the format tag, the flight's
- * details, and every series an array of `[t, v]` pairs in ascending `t`. For
- * checking a JSON file as it is loaded.
+ * details, and every series an array of `[t, v]` pairs in ascending `t`. Useful for checking a JSON file the operator loads
+ * before importing it with {@link importFixtureToStore}.
  *
  * @category Flight recording
  */
@@ -118,7 +122,7 @@ export function isFlightFixture(value: unknown): value is FlightFixture {
 
 /**
  * How long the fixture runs, in milliseconds, from its first sample to its
- * last.
+ * last. Useful for showing the operator how long a saved flight runs.
  *
  * @category Flight recording
  */
@@ -127,7 +131,8 @@ export function fixtureDurationMs(fixture: FlightFixture): number {
 }
 
 /**
- * What `exportFlightToFixture` captures.
+ * What {@link exportFlightToFixture} captures: the keys and, optionally, their
+ * schema. Taken by {@link exportFlightToFixture}.
  *
  * @category Flight recording
  */
@@ -149,7 +154,9 @@ export interface ExportFlightOptions {
 
 /**
  * Reads every sample of `keys` for `flightId` from the store into a
- * {@link FlightFixture}. A key with no samples is left out.
+ * {@link FlightFixture}. A key with no samples is left out. Useful for letting
+ * the operator save a recorded flight to a file. Used by the recorder's flight
+ * export.
  *
  * @category Flight recording
  */
@@ -183,7 +190,8 @@ export async function exportFlightToFixture(
 /**
  * Writes a fixture's flight and every sample into the store, then flushes it,
  * so the samples can be read straight away. Exporting what was imported gives
- * back the same fixture.
+ * back the same fixture. Useful for loading a saved flight file so the operator
+ * can review it.
  *
  * @category Flight recording
  */

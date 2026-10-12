@@ -4,7 +4,9 @@ import { severityFromStreamStatus } from "./status/severity";
 import { heldWord } from "./status/streamStatusWord";
 
 /**
- * What a badge entry draws: its words, its tone and its tooltip.
+ * What a badge entry draws: its words, its tone and its tooltip. Useful for
+ * telling the operator the state of a widget at a glance. Returned by
+ * {@link badgeFace}.
  *
  * @category Badge
  */
@@ -22,7 +24,8 @@ export interface BadgeFace {
  * no held grade it returns the entry's own `label`, `tone` and `title`. With
  * one, the grade's word and severity replace the label and tone, and the
  * title keeps the replaced label (`"<label>: <word>"`) unless the entry set
- * its own. Use it to draw a `BadgeEntry` the same way the panel header does.
+ * its own. Useful for showing the operator a widget's badge the same way the
+ * panel header does. Used by the panel header and the screen header badges.
  *
  * @category Badge
  */

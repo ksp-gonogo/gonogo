@@ -3,7 +3,8 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 /**
  * How much there is, and what that is a fraction of, for {@link TinyEssentials}.
  * Both halves are the same kind of quantity, which the types enforce, and the
- * kit divides them itself.
+ * kit divides them itself. Useful for giving a gauge both the amount in a tank
+ * and its capacity. Taken by the fill-fraction helper.
  *
  * @category Unit
  */
@@ -17,6 +18,7 @@ export interface FillQuantity<Unit extends string = string> {
 /**
  * The pair, as the 0..1 a track is drawn from. `dividedBy` makes the quotient
  * dimensionless. A capacity of zero is no tank at all, so it yields `null`.
+ * Useful for drawing how full a tank or store is. Used by {@link TinyEssentials}.
  *
  * @category Unit
  */

@@ -3,8 +3,9 @@ import type { LockedValue } from "./__generated__/contract";
 /**
  * Returns whether a field arrived as a {@link LockedValue} instead of its
  * value: the save has not yet unlocked what the field needs, a tech node or a
- * building level. A widget that shows the field checks this first, so it
- * can show what is missing rather than an empty value.
+ * building level. Useful for showing the operator what is missing instead of
+ * an empty value, so a widget that shows the field checks this first. Used by
+ * the orbital event chips.
  *
  * @category Readings
  * @categoryDescription Readings
@@ -21,10 +22,11 @@ export function isLocked(value: unknown): value is LockedValue {
 }
 
 /**
- * Returns a field's value, or `null` while it is a {@link LockedValue}. Use it
+ * Returns a field's value, or `null` while it is a {@link LockedValue}. Useful
  * in calculations, where a locked field and a missing one both mean there is
  * nothing to work with. To show the field, use {@link isLocked} instead, so
- * the operator sees why it is empty.
+ * the operator sees why it is empty. Used by the maneuver planner and the
+ * system view.
  *
  * @typeParam Value - The type of the field itself. It is a type parameter of
  * this function, not the SDK's `Value` quantity type.

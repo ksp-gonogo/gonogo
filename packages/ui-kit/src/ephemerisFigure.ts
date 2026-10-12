@@ -11,7 +11,8 @@ import type { UnitValue } from "./readingCurrency";
 /**
  * Turns a quantity computed from the body catalogue into the figure a readout
  * draws, carrying how exact and how current it is. Made by
- * {@link ephemerisFigureOf}; hand the result to `Unit`'s `value`.
+ * {@link ephemerisFigureOf}; hand the result to `Unit`'s `value`. Useful for
+ * showing the operator a planetary figure marked as exact or held.
  *
  * @category Unit
  */
@@ -22,7 +23,8 @@ export type EphemerisFigure = <Unit extends string>(
 /**
  * The figure-maker for quantities computed from `bodies`' orbits and the clock
  * alone: a phase angle between two planets, a transfer window between them, a
- * pair's separation. Pass the poses `useSystemInstant` returns and the bodies
+ * pair's separation. Useful for showing the operator such a figure with the
+ * right mark. Used by the transfer window planner. Pass the poses `useSystemInstant` returns and the bodies
  * the figure rests on.
  *
  * The figure is as current as the least current pose it rests on. Where every

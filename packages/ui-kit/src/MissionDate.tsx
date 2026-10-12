@@ -7,13 +7,15 @@ import { Tooltip } from "./Tooltip";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
- * Which clock an instant is on. Under signal delay they differ for the same
- * event: SCET is when it happens at the craft, and the received clock is when
- * the telemetry showing it reaches a command centre, one signal delay later.
+ * Which clock an instant is on: SCET, when the event happens at the vessel, or
+ * the received clock, when the telemetry showing it reaches a command centre,
+ * one signal delay later. Useful for telling the operator which of the two
+ * times a date means. The `context` prop of {@link MissionDate} takes it.
  *
- * The qualifier belongs to each reading, not to the screen, since two vessels
- * have different signal delays. It is drawn as `SCET` or `AT <vantage>`. A
- * space-centre channel describes no craft, so it takes no context.
+ * The qualifier belongs to each reading and not to the screen, since two
+ * vessels have different signal delays. It is drawn as `SCET` or
+ * `AT <vantage>`. A space-centre channel describes no vessel, so it takes no
+ * context.
  *
  * @category MissionDate
  */

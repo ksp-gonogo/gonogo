@@ -1,7 +1,8 @@
 import { css } from "styled-components";
 
 /**
- * The keyboard focus ring, defined once for the kit.
+ * The keyboard focus ring. Useful for showing the operator which control has
+ * keyboard focus. Used by the kit's interactive controls.
  *
  * The colour is `--color-focus`, not the same-valued `--color-accent-fg`, so
  * focus stays retunable on its own. Kit-internal, not on the barrel.
@@ -16,7 +17,9 @@ export const focusRing = css`
 /**
  * The same ring drawn inside the element's own edge, for a full-bleed control
  * whose parent clips it: a row, a tab, a rail segment, where a ring outside the
- * box would be clipped away.
+ * box would be clipped away. Useful for showing the operator which control has
+ * keyboard focus when a parent clips the ordinary ring. Used by the action menu,
+ * tabs and the data table.
  */
 export const focusRingInset = css`
   &:focus-visible {

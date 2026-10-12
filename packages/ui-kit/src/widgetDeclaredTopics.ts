@@ -1,7 +1,10 @@
 /**
  * The Topic-declaring fields of a widget definition that
  * {@link widgetDeclaredTopics} and {@link widgetDrawnFields} read. Any
- * `ComponentDefinition` satisfies it.
+ * `ComponentDefinition` satisfies it. Useful for working out which Topics a
+ * widget needs before the operator opens it. Taken by
+ * {@link widgetDeclaredTopics}, {@link widgetDrawnFields} and
+ * {@link widgetDrawnFamilies}.
  *
  * @category Extensions
  */
@@ -25,8 +28,9 @@ export interface WidgetTopicDeclaration {
 /**
  * Every concrete channel a widget declares it mounts on: its `channels`,
  * `optionalChannels` and `dataRequirements` joined, plus the Topics its
- * `channelsFromConfig` names for `config`, without duplicates. The dashboard
- * derives a widget's blackout badge from these. Empty for an undefined
+ * `channelsFromConfig` names for `config`, without duplicates. Useful for
+ * telling the operator when a widget's data has gone quiet. Used by the
+ * dashboard to derive a widget's blackout badge. Empty for an undefined
  * definition.
  *
  * Families (`channelFamilies`, `optionalChannelFamilies`) are left out on
@@ -52,8 +56,9 @@ export function widgetDeclaredTopics(
  * Every field a widget declares it draws, as opposed to the channels it needs
  * live to render at all: its `fields` without duplicates, or, when it
  * declares none, its {@link widgetDeclaredTopics}. Topics from
- * `channelsFromConfig` are always included. The dashboard matches alarms to
- * widgets against this list.
+ * `channelsFromConfig` are always included. Useful for showing the operator an
+ * alarm on the widgets that draw the figure it concerns. Used by the dashboard
+ * to match alarms to widgets.
  *
  * @category Extensions
  */
@@ -70,8 +75,10 @@ export function widgetDrawnFields(
 
 /**
  * Every family of runtime-built Topic ids a widget declares, required and
- * optional joined, without duplicates, such as `"fleet.<vessel>.contact"`. The
- * dashboard matches alarms against these with `topicMatchesFamily`.
+ * optional joined, without duplicates, such as `"fleet.<vessel>.contact"`.
+ * Useful for showing the operator an alarm on widgets that draw a figure whose
+ * Topic id is built at runtime. Used by the dashboard, which matches alarms
+ * against these with `topicMatchesFamily`.
  *
  * @category Extensions
  */

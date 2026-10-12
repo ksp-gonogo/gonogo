@@ -45,7 +45,8 @@ import type { Tone } from "./tone";
 
 /**
  * A data key a widget lists in {@link ComponentDefinition.dataRequirements}:
- * one flat key per value, such as `"v.altitude"`, rather than a Topic id. A
+ * one flat key per value, such as `"v.altitude"`, rather than a Topic id. Useful
+ * for telling the dashboard which readings a widget needs. A
  * widget that reads Topics lists them in `channels` instead, which is what an
  * Uplink widget does.
  *
@@ -56,8 +57,10 @@ export type DataRequirement = string;
 /**
  * A game state a widget needs before it can show anything useful.
  * `"flight"` needs a vessel in flight; `"career"` needs a career save or a
- * science-mode save (KSP's mode with science but no funds). While one a widget lists is not met, the dashboard draws a notice
- * naming it in place of the widget's body.
+ * science-mode save (KSP's mode with science but no funds). While one a widget
+ * lists is not met, the dashboard draws a notice naming it in place of the
+ * widget's body. Useful for telling the operator why a widget shows nothing.
+ * Listed in the `requires` of a {@link ComponentDefinition}.
  *
  * @category Registering
  */
@@ -73,13 +76,17 @@ export type ComponentHeldOpen = "crash-ending";
 
 /**
  * The kind of input that can drive an action: a button, or an analog axis.
+ * Useful for saying whether a key press or a stick movement can trigger a widget
+ * action. Listed in the `accepts` of an {@link ActionDefinition}.
  *
  * @category Actions
  */
 export type ActionInputKind = "button" | "analog";
 
 /**
- * What an action handler receives from a bound input.
+ * What an action handler receives from a bound input: the kind of input, its
+ * value and the device's own raw value. Useful for reacting to the operator's
+ * key, button or axis. Passed to the handlers of {@link useActionInput}.
  *
  * @category Actions
  */
@@ -154,7 +161,10 @@ export type ActionHandlers<Actions extends readonly ActionDefinition[]> = {
 };
 
 /**
- * Props passed to every registered dashboard component.
+ * Props passed to every registered dashboard component: its saved settings,
+ * its id and its size on the screen. Useful for a widget that draws itself
+ * differently at the size the operator gave it. Taken by the `component` of a
+ * {@link ComponentDefinition}.
  *
  * @category Registering
  */
@@ -173,7 +183,8 @@ export interface ComponentProps<Config = Record<string, unknown>> {
 
 /**
  * Props passed to a widget's settings form, which the app draws inside its
- * settings dialog.
+ * settings dialog. Useful for letting the operator change a widget's options.
+ * Taken by the `configComponent` of a {@link ComponentDefinition}.
  *
  * @category Registering
  */
@@ -187,7 +198,8 @@ export interface ConfigComponentProps<Config = Record<string, unknown>> {
 /**
  * The small mark drawn beside a {@link TinyEssential}'s figure to say what the
  * figure is, for a figure whose `Reading` cannot say it: held, modelled, or of
- * something other than its label.
+ * something other than its label. Useful for telling the operator how far to
+ * trust a figure at the tiny size. The `mark` of a {@link TinyEssential}.
  *
  * @category Registering
  */
@@ -201,7 +213,9 @@ export interface TinyEssentialMark {
 }
 
 /**
- * One value a widget cannot do without, as its tiny mode draws it.
+ * One value a widget cannot do without, as its tiny mode draws it. Useful for
+ * showing the operator the figures that matter when a tile is too small for the
+ * full widget. Returned by the `useEssentials` of a {@link TinyMode}.
  *
  * @category Registering
  */
@@ -266,6 +280,8 @@ export interface TinyEssential {
 
 /**
  * The button a tiny essential carries, drawn by the kit as a toggle button.
+ * Useful for giving the operator the one command a small tile exists for. The
+ * `control` of a {@link TinyEssential}.
  *
  * @category Registering
  */
@@ -285,7 +301,9 @@ export interface TinyControl {
 }
 
 /**
- * The scale a tiny essential's compact gauge draws its value on.
+ * The scale a tiny essential's compact gauge draws its value on. Useful for
+ * showing the operator where a figure sits between its limits. The `gauge` of a
+ * {@link TinyEssential}.
  *
  * @category Registering
  */
@@ -300,7 +318,8 @@ export interface TinyGauge {
 
 /**
  * The severity words a tiny essential is coloured by: {@link Tone} without
- * `caution` and `offline`.
+ * `caution` and `offline`. Useful for colouring a figure at the tiny size. The
+ * `tone` of a {@link TinyEssential}.
  *
  * @category Registering
  */
@@ -309,6 +328,8 @@ export type TinyEssentialTone = "neutral" | "go" | "warn" | "nogo" | "info";
 /**
  * What a widget shows at the tiny size: a short heading over its essential
  * values, drawn by the kit in one standard form instead of the widget's body.
+ * Useful for keeping a widget readable for the operator on a small tile. The
+ * `tiny` of a {@link ComponentDefinition}.
  *
  * The widget's own component is not mounted while it is tiny, so a widget that
  * handles actions must bind them inside `useEssentials`, which runs in its
@@ -479,7 +500,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
 }
 
 /**
- * What {@link registerTheme} takes: a theme the operator can switch to.
+ * What {@link registerTheme} takes: a theme the operator can switch to. Useful
+ * for restyling every widget on the operator's screen at once.
  *
  * @category Registering
  */
@@ -509,7 +531,9 @@ export interface ThemeDefinition {
 export interface SlotRegistry {}
 
 /**
- * The id of an augment slot some widget declares.
+ * The id of an augment slot some widget declares. Useful for checking that a
+ * widget's `augmentSlots` names a real slot. The `slot` of an
+ * {@link AugmentDefinition}.
  *
  * @category Extensions
  */
@@ -528,6 +552,8 @@ type ErasedOrNever<Slot extends string> = string extends Slot
 /**
  * The props a slot passes to each of its augments. `never` for a slot id no
  * widget declares, so an augment of a misspelled slot does not typecheck.
+ * Useful for typing an augment's component. Taken by the `component` of an
+ * {@link AugmentDefinition}.
  *
  * @category Extensions
  */
@@ -562,7 +588,8 @@ export interface WidgetScopeRegistry {}
 /**
  * The scope the widget `Widget` publishes, from {@link WidgetScopeRegistry}.
  * `never` for a widget id that publishes none, and an open record when
- * `Widget` is a plain `string`.
+ * `Widget` is a plain `string`. Useful for typing what an augment reads from
+ * the widget it is drawn in.
  *
  * @category Registering
  */
@@ -585,7 +612,8 @@ export type WidgetScope<Widget extends string> =
 export interface ContributionRegistry {}
 
 /**
- * The id of a contribution slot some widget declares.
+ * The id of a contribution slot some widget declares. Useful for checking that
+ * a widget's `contributionSlots` names a real slot.
  *
  * @category Extensions
  */
@@ -593,7 +621,8 @@ export type ContributionSlotId = keyof ContributionRegistry;
 
 /**
  * One badge on a widget's panel header: the entry of the `badges` segment of
- * {@link ComponentSlotRegistry}, which is the slot `<widget id>.badges`.
+ * {@link ComponentSlotRegistry}, which is the slot `<widget id>.badges`. Useful
+ * for showing the operator a short status beside a widget's title.
  *
  * @category Extensions
  */
@@ -620,7 +649,8 @@ export interface BadgeEntry {
 /**
  * One labelled bar in a widget's meter list: the entry of the `meters`
  * segment of {@link ComponentSlotRegistry}, which is the slot
- * `<widget id>.meters`. The widget draws it with ui-kit's `Meter`.
+ * `<widget id>.meters`. The widget draws it with ui-kit's `Meter`. Useful for
+ * showing the operator a level, such as a resource, under a widget's own rows.
  *
  * @category Extensions
  */
@@ -649,6 +679,7 @@ export interface MeterEntry {
  * One cell of a widget's stat strip: a label, a figure, and at most one line
  * qualifying it. It is the entry of a slot a widget declares for itself, such
  * as `astronaut-complex.readouts`, rather than of a segment every widget has.
+ * Useful for showing the operator an extra figure in a widget's header strip.
  *
  * @category Extensions
  */
@@ -689,6 +720,8 @@ export interface StatEntry {
  * The contribution segments a reusable component draws, keyed by segment and
  * mapped to the entry type its contributions produce. The full slot id is
  * `${componentId}.${segment}`, for the widget the component is mounted in.
+ * Useful for contributing a badge, meter or filter to any widget's panel. Read
+ * by {@link ContributionEntry}.
  *
  * Of these contribution segments, only `badges` is on every widget. `filters`
  * and `meters` exist on a widget only where it renders the component that
@@ -715,7 +748,8 @@ export interface ComponentSlotRegistry {
 
 /**
  * The name of a standard contribution segment, a key of
- * {@link ComponentSlotRegistry}.
+ * {@link ComponentSlotRegistry}. Useful for naming which standard part of a
+ * widget's panel a contribution feeds. Read by {@link ContributionEntry}.
  *
  * @category Extensions
  */
@@ -731,7 +765,9 @@ type SegmentOf<Slot extends string> = Slot extends `${string}.${infer Rest}`
 /**
  * The entry a contribution to a slot returns from `compute`: the entry the
  * widget declares for that slot, or for a slot every widget carries, such as
- * `badges`, that slot's entry.
+ * `badges`, that slot's entry. Useful for checking that a contribution returns
+ * what the widget it feeds draws. Returned by the `compute` of a
+ * {@link ContributionDefinition}.
  *
  * Read the type as three cases in turn. A slot id a widget declares in
  * `ContributionRegistry` gives the entry it declares there. Otherwise, a slot
@@ -755,7 +791,8 @@ export type ContributionEntry<Slot extends string> =
 
 /**
  * The Uplink client that contributed an entry, as {@link Contributed} carries
- * it. Every {@link UplinkClientHandle} is one.
+ * it. Every {@link UplinkClientHandle} is one. Useful for showing the operator
+ * which Uplink an entry came from.
  *
  * @category Registering
  */
@@ -770,7 +807,8 @@ export interface UplinkClientIdentity {
 
 /**
  * One contributed entry as the widget drawing it receives it: the entry, with
- * the contribution and the Uplink it came from.
+ * the contribution and the Uplink it came from. Useful for keying and
+ * crediting the entries a widget draws from several Uplinks.
  *
  * @category Extensions
  */
@@ -786,7 +824,8 @@ export type Contributed<Entry> = Entry & {
  * host mod from {@link modSettingDep}, or the handle
  * {@link UplinkClientHandle.registerProcessor} returned for a processor whose
  * result is a `Reading`. {@link DepTopics} says what `compute` receives for
- * each.
+ * each. Useful for stating which Topics, mod settings and processors an entry
+ * is computed from. Listed in the `deps` of a {@link ContributionDefinition}.
  *
  * A processor handle is accepted only when its result carries currency, which
  * it does when one of its own deps is a `{ reading: topicId }`: a bare result
@@ -809,7 +848,8 @@ export type ContributionDep =
  * The settings each Uplink's host mod declares, keyed by Uplink id: the type a
  * contribution's {@link ModSettingDep} is checked against. An Uplink adds its
  * own entry by declaration merging, naming each setting with the type its
- * value parses to:
+ * value parses to. Useful for reading a setting the operator changed in the
+ * game's own settings:
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -831,7 +871,9 @@ export interface ModSettingsRegistry {}
  * A contribution's dependency on one setting of an Uplink's host mod, built
  * with `modSettingDep`. `compute` receives it under `settings.<uplink>.<key>`,
  * as the type `ModSettingsRegistry` declares, or `undefined` until the mod has
- * listed the setting with a readable value.
+ * listed the setting with a readable value. Useful for computing an entry from
+ * a setting the operator chose in the game. Listed in the `deps` of a
+ * {@link ContributionDefinition}.
  *
  * @category Extensions
  */
@@ -923,7 +965,9 @@ type DepValue<Dependency> = Dependency extends string
  * A reading is `"pending"` until the Topic's first sample arrives, and
  * `"absent"` while the mod reports that it has nothing to describe. When
  * samples stop it turns `"held"`, keeping the last value with the instant it
- * was observed, so a value drawn from it can be marked as held.
+ * was observed, so a value drawn from it can be marked as held. Useful for
+ * telling the operator when an entry is drawn from stale data. Passed to the
+ * `compute` of a {@link ContributionDefinition}.
  *
  * @category Extensions
  */
@@ -934,7 +978,9 @@ export type DepTopics<Deps extends readonly ContributionDep[]> = {
 /**
  * What an Uplink client handle's `registerContribution` takes: a function
  * that turns Topics into entries for another widget's slot. The widget draws
- * the entries itself.
+ * the entries itself. Useful for adding your Uplink's figures to a widget the
+ * operator already uses. Passed to the `registerContribution` of the handle
+ * {@link defineUplinkClient} returns.
  *
  * `Slot` is inferred from `contributes` and `Deps` from `deps`, so `compute` is
  * checked against both.
@@ -946,7 +992,7 @@ export type DepTopics<Deps extends readonly ContributionDep[]> = {
  *   widget does. The same object is passed to every contribution to the slot.
  * - A reading is `"pending"` until its Topic's first sample arrives, and
  *   `"absent"` while the mod reports that it has nothing to describe. When
- *   samples stop or the link drops it turns `"held"`: the last value, with when
+ *   samples stop or the connection drops it turns `"held"`: the last value, with when
  *   it was observed and why it stopped. An entry drawn from a held value must
  *   say so, through the entry's own reading or `held` field, so the widget
  *   draws it as held rather than as current.
@@ -1035,8 +1081,9 @@ export interface ContributionDefinition<
 
 /**
  * Any contribution, whatever slot it fills, as {@link getContributionsForSlot}
- * returns it. Its `compute` takes an open record, since the slot and `deps` it
- * was written against are not known here. Write a contribution as a
+ * returns it. Useful for checking in a test what an Uplink contributed. Its
+ * `compute` takes an open record, since the slot and `deps` it was written
+ * against are not known here. Write a contribution as a
  * {@link ContributionDefinition}.
  *
  * @category Extensions
@@ -1053,6 +1100,9 @@ export type AnyContribution = Omit<
 
 /**
  * One setting an augment or contribution adds to its host widget's settings.
+ * Useful for letting the operator switch an Uplink's addition to a widget on or
+ * off, or tune it. Listed in the `settings` of an {@link AugmentDefinition} or a
+ * {@link ContributionDefinition}.
  *
  * @category Extensions
  */
@@ -1071,7 +1121,9 @@ export interface AugmentSettingField {
  * One augment's or contribution's settings, as the host widget's settings
  * panel lists them. Each value is stored under `<namespace>.<key>` in the
  * widget instance's settings, so two contributors' settings with the same key
- * never collide. An Uplink that is not installed adds none.
+ * never collide. An Uplink that is not installed adds none. Useful for showing
+ * the operator every setting that Uplinks add to one widget. Returned by
+ * {@link getCoverageSourceSettings} for the map.
  *
  * @category Extensions
  */
@@ -1087,7 +1139,9 @@ export interface NamespacedAugmentSettings {
 /**
  * Room an extension asks of the widget that hosts it, in grid units: how many
  * more columns and rows the host needs, over its own, for the extension's
- * content to fit.
+ * content to fit. Useful for keeping a widget large enough to show what an
+ * Uplink adds to it. The `sizeDelta` of an {@link AugmentDefinition} or a
+ * {@link ContributionDefinition}.
  *
  * Whole numbers of zero or more. An extension asks for room and never gives it
  * back, so there is no negative form, and nothing here is a maximum: no widget
@@ -1109,7 +1163,8 @@ export interface SizeDelta {
 
 /**
  * What `registerAugment` takes: a component the widget renders inside one of
- * its slots.
+ * its slots. Useful for showing the operator information from your Uplink
+ * inside a widget you do not own. Passed to {@link registerAugment}.
  *
  * `Slot` is inferred from `augments`, so `component` is checked against the props
  * that slot passes.
@@ -1239,7 +1294,9 @@ export interface CoverageSourceDefinition {
 }
 
 /**
- * One button on a {@link MapPoi}'s card.
+ * One button on a {@link MapPoi}'s card. Useful for giving the operator a
+ * command to run from a point on the map. Listed in the `actions` of a
+ * {@link MapPoi}.
  *
  * @category Maps and coverage
  */
@@ -1258,6 +1315,8 @@ export interface MapPoiAction {
 
 /**
  * One point of interest a {@link MapPoiProviderDefinition} puts on the map.
+ * Useful for showing the operator where something is on a body, such as a
+ * landing site.
  *
  * @category Maps and coverage
  */
@@ -1292,6 +1351,8 @@ export interface MapPoi {
 
 /**
  * What a point-of-interest provider is told about the map asking for points.
+ * Useful for choosing which points to return for the body the operator is
+ * viewing. Passed to a {@link UseMapPois} hook.
  *
  * @category Maps and coverage
  */
@@ -1302,7 +1363,8 @@ export interface MapPoiProviderContext {
 
 /**
  * A point-of-interest provider's hook, called on every render of the map. It
- * may use other hooks.
+ * may use other hooks. Useful for putting an Uplink's markers on the map the
+ * operator is viewing. The `usePois` of a {@link MapPoiProviderDefinition}.
  *
  * @category Maps and coverage
  */
@@ -1313,7 +1375,8 @@ export type UseMapPois = (
 /**
  * What {@link registerMapPoiProvider} takes: a source of points of interest for
  * the body the map shows. The map draws, labels and offers the actions of
- * every provider's points the same way.
+ * every provider's points the same way. Useful for adding markers to the
+ * operator's map from an Uplink.
  *
  * @category Maps and coverage
  */
@@ -1328,7 +1391,8 @@ export interface MapPoiProviderDefinition {
 
 /**
  * How a body's surface texture maps latitude and longitude to pixels. It is
- * the `map` field of a {@link BodyDefinition}.
+ * the `map` field of a {@link BodyDefinition}. Useful for placing a latitude
+ * and longitude on the body's map picture.
  *
  * @category Maps and coverage
  */
@@ -1345,7 +1409,8 @@ export interface BodyMapConfig {
  * An atmosphere as pressure falling exponentially with height, from a surface
  * pressure and a scale height. KSP's real atmospheres are not quite
  * exponential, so use it to draw a pressure curve or compare atmospheres, not
- * to compute flight.
+ * to compute flight. Useful for showing the operator a pressure curve. The
+ * `atmosphere` of a {@link BodyDefinition}.
  *
  * @category Solar system and fleet
  */
@@ -1359,7 +1424,8 @@ export interface AtmosphereModel {
 /**
  * A celestial body for maps and diagrams: its size, look and imaging limits.
  * Register one with {@link registerBody}; a planet pack registers its own to
- * replace stock ones.
+ * replace stock ones. Useful for showing the operator a body on a map or
+ * diagram. Returned by {@link getBody}.
  *
  * @category Solar system and fleet
  */
@@ -1433,7 +1499,8 @@ export interface BodyDefinition {
 
 /**
  * One body's coverage mask for one layer: a grid of alpha bytes over the body's
- * map.
+ * map. Useful for showing the operator which ground a scanner has covered.
+ * Returned by the `acquire` and `get` methods of the coverage mask cache handle.
  *
  * @category Maps and coverage
  */
@@ -1452,7 +1519,8 @@ export interface BodyMask {
 
 /**
  * The methods of the {@link CoverageMaskCache} an author calls, as
- * {@link useCoverageMaskCache} returns it.
+ * {@link useCoverageMaskCache} returns it. Useful for writing a scanner's
+ * coverage of a body so the map can reveal it.
  *
  * @category Maps and coverage
  */
@@ -1487,7 +1555,8 @@ export interface CoverageMaskCacheHandle {
 // `DataSourceStatus` without registering through the facade at all.
 
 /**
- * The connection state of a `DataSource`.
+ * The connection state of a `DataSource`. Useful for telling the operator
+ * whether a connection is up. The `status` of a {@link DataSource}.
  *
  * @category Registering
  */
@@ -1498,7 +1567,8 @@ export type DataSourceStatus =
   | "error";
 
 /**
- * One registered `DataSource` as {@link useDataSources} lists it.
+ * One registered `DataSource` as {@link useDataSources} lists it. Useful for
+ * showing the operator each connection and its state.
  *
  * @category Registering
  */
@@ -1512,7 +1582,8 @@ export interface DataSourceState {
 }
 
 /**
- * One key a `DataSource` offers, as `DataSource.schema` lists it.
+ * One key a `DataSource` offers, as `DataSource.schema` lists it. Useful for
+ * showing the operator what a connection provides.
  *
  * @category Registering
  */
@@ -1525,7 +1596,8 @@ export interface DataKey {
 
 /**
  * One field of a `DataSource`'s settings form, as `DataSource.configSchema`
- * lists it.
+ * lists it. Useful for letting the operator enter a connection's address or
+ * port.
  *
  * @category Registering
  */
@@ -1543,7 +1615,8 @@ export interface ConfigField {
 /**
  * A connection to something outside the game's telemetry stream, which the
  * app lists under Settings, Data Sources, with its status and a settings form
- * built from {@link DataSource.configSchema}. Register one with
+ * built from {@link DataSource.configSchema}. Useful for letting the operator
+ * configure and watch a connection. Register one with
  * {@link registerDataSource}.
  *
  * @category Registering
@@ -1577,7 +1650,7 @@ export interface DataSource<
   setupInstructions?(): string | null;
   /**
    * When true, the app drops this source's values while the vessel has no
-   * link home. Leave it unset for a source that runs on its own and handles
+   * connection to the command centre. Leave it unset for a source that runs on its own and handles
    * signal loss itself.
    */
   affectedBySignalLoss?: boolean;
@@ -1654,7 +1727,8 @@ export type Seat = "mission-control" | "pilot";
 
 /**
  * What {@link registerSettingsTab} takes: a whole tab of the app's Settings,
- * drawn by the Uplink itself.
+ * drawn by the Uplink itself. Useful for giving the operator a settings page
+ * that rows cannot describe. Passed to {@link registerSettingsTab}.
  *
  * @category Settings
  */
@@ -1716,7 +1790,8 @@ export type {
  *
  * Values here are the latest received, with no state and no delay applied. A
  * widget reads with {@link useTelemetry} and sends with {@link useCommand}
- * instead.
+ * instead. Useful for code that feeds the operator's screen from outside a
+ * component, such as a long-lived media connection.
  *
  * @category Reading telemetry
  */
@@ -1752,7 +1827,8 @@ export interface TelemetryClient {
 /**
  * The two clock methods a delayed media player needs: the latest instant that
  * may be shown, and a per-frame callback. The view clock from
- * {@link useViewClock} satisfies it.
+ * {@link useViewClock} satisfies it. Useful for releasing video frames to the
+ * operator only once their signal delay has passed.
  *
  * @category Delay and vantage
  */
@@ -1779,7 +1855,9 @@ export interface DelayClockLike {
 export type { PerfBudgetOptions } from "../perf/PerfBudget";
 
 /**
- * A performance budget, as {@link createPerfBudget} returns it.
+ * A performance budget, as {@link createPerfBudget} returns it. Useful for
+ * catching an Uplink that sends or draws more often than the operator's machine
+ * can keep up with.
  *
  * @category Logging and performance
  */
@@ -1825,7 +1903,9 @@ export type {
 export type { DelayMode, InFlightCommand, PredictedPhase };
 
 /**
- * Options for {@link useCommand}.
+ * Options for {@link useCommand}: the command centre it is sent from and
+ * whether it joins the panel's delay rail. Useful for sending a command from
+ * another command centre than the screen's. Taken by {@link useCommand}.
  *
  * @category Commands
  */
@@ -1902,7 +1982,8 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   delayReading: Reading<Value<"s">> | null;
   /**
-   * What the link to the craft is doing, from `comms.delay`. `null` until a
+   * What the connection from the command centre to the vessel is doing, from
+   * `comms.delay`. `null` until a
    * `comms.delay` reading arrives, which is not the same as `"no-path"`. It
    * does not stop `send`: a command sent with no path is reported in `losses`.
    */
@@ -1926,8 +2007,8 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   founds: CommandFound[];
   /**
-   * Dispatches that never left this machine because the link did not come
-   * back, newest last. None of them ran, so each is safe to send again.
+   * Dispatches that never left this machine because the connection did not
+   * come back, newest last. None of them ran, so each is safe to send again.
    */
   undelivered: CommandUndelivered[];
   /**
@@ -1976,11 +2057,13 @@ export type UseCommandResultFor<Command extends CommandId> = UseCommandResult<
 
 /**
  * One call to an Uplink's own method, as {@link useUplinkRelay} returns it.
+ * Useful for letting a widget on a station ask the main screen for something
+ * only it holds, such as a media stream.
  * `method` and `args` mean whatever the Uplink's registered object says they
  * mean; nothing between the caller and that object reads either.
  *
  * Rejects with an `Error` when there is no route (no object registered, or a
- * station with no link to the main screen) and when the object throws. Extra
+ * station with no connection to the main screen) and when the object throws. Extra
  * properties of a thrown `Error` survive the trip, so a client can read back
  * what its own code set on it.
  *
@@ -1991,6 +2074,7 @@ export type UplinkRelay = (method: string, args?: unknown) => Promise<unknown>;
 /**
  * The ICE servers the main screen hands out, as {@link useHostIceServers}
  * returns them, for an Uplink opening a media connection from a station.
+ * Useful for streaming video to the operator at a station.
  *
  * Read through functions rather than as an array because credentials rotate: a
  * connection opened before a rotation sees the new ones through `onChange`
@@ -2006,7 +2090,9 @@ export interface HostIceServers {
 }
 
 /**
- * What a station hands an Uplink's non-React code: the same two routes
+ * What a station hands an Uplink's non-React code, for reaching the main screen
+ * and opening media connections from the station. Passed to the function given
+ * to {@link registerStationBroker}. It carries the same two routes
  * `useUplinkRelay` and `useHostIceServers` give a widget, bound to that Uplink.
  *
  * `relay` reaches the Uplink's registered handle on the main screen, which is
@@ -2025,21 +2111,24 @@ export interface StationBroker {
 
 /**
  * Called on a station for the Uplink that passed it to
- * {@link registerStationBroker}, once per station screen that comes up.
+ * {@link registerStationBroker}, once per station screen that comes up. Useful
+ * for connecting an Uplink's own object to the main screen from a station.
  *
  * @category Host and runtime
  */
 export type StationBrokerAttach = (broker: StationBroker) => void;
 
 /**
- * What {@link useRouteCommands} returns.
+ * What {@link useRouteCommands} returns: every command travelling to a Topic and
+ * how they travel. Useful for showing the operator the commands in flight to
+ * one part of a vessel.
  *
  * @category Commands
  */
 export interface UseRouteCommandsResult {
   /** Every command travelling to the topic, from any command centre. */
   items: InFlightCommand[];
-  /** What the link the commands travel on is doing. */
+  /** What the connection the commands travel on is doing. */
   mode: DelayMode;
 }
 

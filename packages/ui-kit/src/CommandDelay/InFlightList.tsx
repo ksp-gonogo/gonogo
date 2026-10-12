@@ -15,7 +15,10 @@ import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
 import { deriveGlyph, PHASE_PROGRESS } from "./toInFlightListItems";
 
-/** Which one of the two delay readings a console draws. */
+/**
+ * Which delay reading a console draws, or `none`. Returned by
+ * {@link signalDelayPresentation}.
+ */
 export type SignalDelayPresentation = "badge" | "strip" | "none";
 
 export interface SignalDelayPresentationInput {
@@ -47,7 +50,8 @@ export interface SignalDelayPresentationInput {
  *
  * The two are mutually exclusive: drawn together they say the same number twice
  * in two shapes. The boundary is `currentMode`'s, the same one the engine uses
- * to stage a dispatch rather than send it live. Used by {@link Console}.
+ * to stage a dispatch rather than send it live. Useful for showing the operator
+ * one delay readout, not two. Used by {@link Console}.
  */
 export function signalDelayPresentation({
   oneWaySeconds,
@@ -65,7 +69,9 @@ export function signalDelayPresentation({
 /**
  * Display shape for one delayed command. `etaSeconds` is the
  * caller's choice of clock (reach or reply); `null` renders as "no ETA" (an
- * `overdue` or `lost` entry, or `no-path` mode).
+ * `overdue` or `lost` entry, or `no-path` mode). Useful for showing the operator
+ * one command that has left the command centre. Taken by {@link InFlightList}
+ * and built by {@link toInFlightListItems}.
  *
  * @category CommandDelay
  */
@@ -95,10 +101,9 @@ export interface InFlightListItem {
 }
 
 /**
- * What the link is doing, as `useCommand`'s `delayMode` reports it: `live`
- * under the staged threshold, `staged` above it, `no-path` when nothing is
- * measurable.
- * {@link InFlightList} writes it to its root's `data-mode` attribute, for
+ * How commands reach the vessel, as `useCommand`'s `delayMode` reports it:
+ * `live` under the staged threshold, `staged` above it, `no-path` when nothing
+ * is measurable. {@link InFlightList} writes it to its root's `data-mode` attribute, for
  * styling, and draws nothing different for it: each command already shows its
  * own phase and countdown, and under `no-path` it shows "no ETA".
  *
@@ -108,7 +113,8 @@ export type InFlightListMode = "live" | "staged" | "no-path";
 
 /**
  * How much of each in-flight command {@link InFlightList} draws, by the room
- * it has. Independent of `mode`, which describes the link.
+ * it has. Independent of `mode`, which describes how commands reach the vessel.
+ * Set with the `density` prop of {@link InFlightList}.
  *
  * - `full`: arrow, label and countdown per command, one per line
  * - `compact`: arrow and countdown only; the label moves to the accessible
@@ -123,7 +129,8 @@ export type InFlightListMode = "live" | "staged" | "no-path";
 export type InFlightListDensity = "auto" | "full" | "compact" | "badge";
 
 /**
- * Props for {@link InFlightList}.
+ * Props for {@link InFlightList}: the commands in flight and how much of each to
+ * draw.
  *
  * @category CommandDelay
  */

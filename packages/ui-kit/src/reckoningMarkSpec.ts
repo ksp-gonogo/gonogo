@@ -5,8 +5,10 @@
  */
 
 /**
- * Which mark: `held` is the last observation kept past its time, `modelled` is
- * a figure a model carried to now.
+ * Which mark a reckoned figure takes: `held` is the last observation kept past
+ * its time, `modelled` is a figure a model carried to now. Useful for telling
+ * the operator how a figure was arrived at. Taken by {@link ReckoningMarkSvg}
+ * and {@link paintReckoningMark}.
  *
  * @category Unit
  */
@@ -14,7 +16,9 @@ export type ReckoningKind = "held" | "modelled";
 
 /**
  * What a figure is, for the purpose of marking it: `current` is a reading of
- * now, and the other two are the {@link ReckoningKind}s.
+ * now, and the other two are the {@link ReckoningKind}s. Useful for choosing the
+ * mark that tells the operator how current a figure is. Taken by
+ * {@link ReckoningMark} and {@link Unit}.
  *
  * @category Unit
  */
@@ -22,16 +26,22 @@ export type MarkKind = "current" | ReckoningKind;
 
 /**
  * The stroke of a hollow mark, the form a mark takes for a figure that is of
- * something other than what its label names (`elsewhere`).
+ * something other than what its label names (`elsewhere`). Useful for drawing
+ * the hollow marks the operator sees on such a figure. Used by
+ * {@link ReckoningMark}.
  *
  * @category Unit
  */
 export const HOLLOW_MARK_STROKE = "max(0.075em, 1.25px)";
 
 /**
- * The spec for each kind. `held` is a square in the warning hue; `modelled`
- * is a triangle, point up, in the modelled hue and about a pixel larger, so
- * the two weigh alike at small sizes.
+ * The shape, hue and size of the mark for each kind. Useful for drawing the
+ * marks that tell the operator a figure is held or modelled the same way in
+ * every face. Used by {@link ReckoningMark} and {@link ReckoningMarkSvg}.
+ *
+ * `held` is a square in the warning hue; `modelled` is a triangle, point up, in
+ * the modelled hue and about a pixel larger, so the two weigh alike at small
+ * sizes.
  *
  * Each also has a hollow form, drawn where the figure is `elsewhere`: of
  * something other than what its label names. Hollow says that and nothing

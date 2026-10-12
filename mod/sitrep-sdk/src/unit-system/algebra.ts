@@ -136,13 +136,19 @@ type Tup<
 type At<Biased> = Biased extends Slot ? Bias[Biased] : never;
 
 /**
- * `(a+9) + (b+9) - 9 = a+b+9`.
+ * The sum of two dimension exponents, at the type level: `Add<2, -1>` is `1`.
+ * Useful for working out the unit of a product of two values, so
+ * `value("m", 3).times(value("m", 2))` is typed as an area. Used by `Mul`,
+ * which {@link Value.times} reaches through `Product`.
  *
- * The template-literal index (`` `${Left}` ``) is what turns a numeric literal
- * into something that can key `Unbias`, and it is also the guard: a
- * non-literal `number` produces the key `"number"`, which is not in `Unbias`,
- * so `Add<number, 1>` is `never` rather than a guess. Underflow is caught by
- * the concatenation being shorter than 9 and failing to match; overflow by
+ * A non-literal `number`, and a result outside -9 to 9, give `never`.
+ */
+/*
+ * `(a+9) + (b+9) - 9 = a+b+9`. The template-literal index (`${Left}`) turns a
+ * numeric literal into something that can key `Unbias`, and it is also the
+ * guard: a non-literal `number` produces the key "number", which is not in
+ * `Unbias`, so `Add<number, 1>` is `never` and not a guess. Underflow is caught
+ * by the concatenation being shorter than 9 and failing to match, overflow by
  * `At`.
  */
 export type Add<
@@ -224,12 +230,17 @@ type NegD<Dimension> = {
 };
 
 /**
- * The `[X] extends [never]` guards are not defensive padding.
- *
- * A mapped type does not distribute over `never`, so without them
- * `Mul<never, {s:1}>` takes `keyof never`, which is `string | number | symbol`,
- * and produces garbage instead of propagating the unknown. One unknown operand
- * has to make the whole result unknown.
+ * The dimension of a product of two dimensions, at the type level, or `never`
+ * when either is unknown. Useful for typing the unit of a product of two
+ * quantities, such as a speed times a duration. Used by `Product`, which types
+ * {@link Value.times}.
+ */
+/*
+ * The `[X] extends [never]` guards are required: a mapped type does not
+ * distribute over `never`, so without them `Mul<never, {s:1}>` takes
+ * `keyof never`, which is `string | number | symbol`, and produces garbage
+ * instead of propagating the unknown. One unknown operand has to make the
+ * whole result unknown.
  */
 export type Mul<Left, Right> = [Left] extends [never]
   ? never
@@ -272,7 +283,10 @@ type ExtUnit = Exclude<DeclaredUnit, StaticUnit>;
 
 /**
  * The resource names an Uplink knows when it is built, each declared by
- * augmenting this interface:
+ * augmenting this interface. Useful for giving each resource, such as food or
+ * oxygen, a unit of its own, so a quantity of one cannot be added to a quantity
+ * of another. Used by {@link registerUnit} and the unit types that check
+ * arithmetic on a resource:
  *
  * ```ts
  * declare module "@ksp-gonogo/sitrep-sdk" {
@@ -352,25 +366,19 @@ type ResourceDim<Token> = Token extends `${infer Resource}:u`
         : never;
 
 /**
- * The dimension a unit token denotes, or `never` if nothing declares it.
- *
- * `UnknownUnit` is checked first, ahead of the three real lookups, and forced
- * to `never` on its own branch rather than left to fall out of them by
- * accident. Today it would fall out the same way unassisted: `UnknownUnit` is
- * a branded, non-literal `string`, so it fails `extends StaticUnit` and
- * `extends ExtUnit` the same way any unrecognised token does, and it fails
- * `ResourceDim`'s template-literal patterns for the same reason (a non-literal
- * string cannot be proven to end in `:u`, `:u/s`, etc.), confirmed by deleting
- * this branch and rerunning `algebra.test-d.ts`, which still passed.
- *
- * The branch stays anyway. That pass is an accident of what the other three
- * happen to reject today, not a commitment, and this module's own rule is
- * "narrow first": a future change to `ResourceDim`'s grammar or a new
- * `ExtUnit` shape could start matching a branded string without anyone
- * noticing, silently letting an unknown unit compose. `algebra.test-d.ts`
- * pins the outcome (`Product`/`Quotient` on `UnknownUnit` degrade to
- * `string`), and that outcome would still catch such a regression even if
- * this branch is currently redundant with it.
+ * The dimension a unit token denotes, such as `{ m: 1, s: -1 }` for `m/s`, or
+ * `never` if nothing declares it. Useful for typing arithmetic on values in
+ * units the compiler knows. Used by `Product` and `Quotient`, which type
+ * {@link Value.times} and {@link Value.per}.
+ */
+/*
+ * `UnknownUnit` is checked first and forced to `never` on its own branch. It
+ * would fall out of the other three lookups today, because it is a branded,
+ * non-literal string, but that is an accident of what they happen to reject. A
+ * future change to `ResourceDim`'s grammar or a new `ExtUnit` shape could start
+ * matching a branded string and silently let an unknown unit compose.
+ * `algebra.test-d.ts` pins the outcome, which is that `Product` and `Quotient`
+ * on `UnknownUnit` degrade to `string`.
  */
 export type DimOf<Unit> = [Unit] extends [UnknownUnit]
   ? never
@@ -446,10 +454,12 @@ type ResSymbolFor<Dimension, Resource extends string = ResName<Dimension>> = [
           : never;
 
 /**
- * The declaration ladder, ending in `string`.
+ * The unit symbol whose dimension is `Dimension`, or `string` when no declared
+ * unit has that dimension. Useful for typing the unit of a computed value, so
+ * the operator sees a speed times a duration as a length. Used by `Product` and
+ * `Quotient`.
  *
- * Never `never` and never a guess: "we do not know" has exactly one spelling,
- * and it is the one that behaves like today.
+ * Never `never`: an unknown dimension is always `string`.
  */
 export type SymbolFor<Dimension> = [Dimension] extends [never]
   ? string
@@ -461,12 +471,19 @@ export type SymbolFor<Dimension> = [Dimension] extends [never]
       : ExtSymbolFor<Dimension>
     : StaticSymbolFor<Dimension>;
 
-/** The unit of `a × b`, or `string` when nothing declares that dimension. */
+/**
+ * The unit of `a × b`, or `string` when nothing declares that dimension. Useful
+ * for typing the unit of a product of two quantities. Used by
+ * {@link Value.times}.
+ */
 export type Product<Left extends string, Right extends string> = SymbolFor<
   Mul<DimOf<Left>, DimOf<Right>>
 >;
 
-/** The unit of `a ÷ b`, or `string` when nothing declares that dimension. */
+/**
+ * The unit of `a ÷ b`, or `string` when nothing declares that dimension. Useful
+ * for typing the unit of a ratio of two quantities. Used by {@link Value.per}.
+ */
 export type Quotient<Left extends string, Right extends string> = SymbolFor<
   Div<DimOf<Left>, DimOf<Right>>
 >;

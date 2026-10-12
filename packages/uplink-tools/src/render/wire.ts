@@ -12,7 +12,9 @@ import {
  */
 
 /**
- * One field of a payload, as the Uplink's page lists it.
+ * One field of a payload, as the Uplink's page lists it. Useful for telling an
+ * Uplink author which values and units a Topic carries. Held by
+ * {@link WirePayload} and written by {@link wireSection}.
  *
  * @category Uplink page
  */
@@ -26,7 +28,10 @@ export interface WireField {
 }
 
 /**
- * One channel the Uplink sends, as its page lists it.
+ * One channel the Uplink sends, as its page lists it: its Topic, payload,
+ * delivery and delay. Useful for showing an Uplink author what the Uplink puts
+ * on the stream. Held by {@link WireSurface} and written by
+ * {@link wireSection}.
  *
  * @category Uplink page
  */
@@ -44,7 +49,9 @@ export interface WireChannel {
 }
 
 /**
- * One payload type and its fields, as the Uplink's page lists it.
+ * One payload type and its fields, as the Uplink's page lists it. Useful for
+ * showing what a Topic or a command carries. Held by {@link WireSurface} and
+ * written by {@link wireSection}.
  *
  * @category Uplink page
  */
@@ -55,7 +62,11 @@ export interface WirePayload {
   fields: WireField[];
 }
 
-/** One command the Uplink accepts, off its generated command map. */
+/**
+ * One command the Uplink accepts, read from its generated command map. Useful
+ * for showing an Uplink author which commands an operator can send. Held by
+ * {@link WireSurface} and written by {@link commandSection}.
+ */
 export interface WireCommand {
   id: string;
   /** The args interface name. An empty shape means the command takes nothing. */
@@ -65,8 +76,9 @@ export interface WireCommand {
 }
 
 /**
- * Everything the Uplink puts on the wire, read from its generated contract
- * files.
+ * Everything the Uplink puts on the wire: its channels, payloads and commands,
+ * read from its generated contract files. Useful for generating the wire
+ * sections of the Uplink's page. Returned by {@link readWireSurface}.
  *
  * @category Uplink page
  */
@@ -198,7 +210,8 @@ function fields(
 
 /**
  * Reads the Uplink's wire surface from the generated contract files under
- * `pkgDir`.
+ * `pkgDir`. Useful for listing on the Uplink's page what it sends and accepts.
+ * Used by the page generator.
  *
  * @category Uplink page
  */
@@ -349,9 +362,11 @@ function fieldList(list: WireField[]): string {
 }
 
 /**
- * The page's `## Wire` section: a table of channels with their payload,
- * delivery and delay, then a table of every payload shape with its fields and
- * each field's unit. Empty when the Uplink has no contract slice.
+ * The page's `## Wire` section as markdown lines: a table of channels with their
+ * payload, delivery and delay, then a table of every payload shape with its
+ * fields and each field's unit. Empty when the Uplink has no contract slice.
+ * Useful for showing an Uplink author what the Uplink sends. Used by the page
+ * generator.
  *
  * @category Uplink page
  */
@@ -387,25 +402,18 @@ export function wireSection(surface: WireSurface): string[] {
 }
 
 /**
- * `## Commands`: the write half, two tables and no sentences, beside `## Wire`.
+ * The page's `## Commands` section as markdown lines: two tables of the commands
+ * the Uplink accepts and their argument shapes, beside `## Wire`. It is derived
+ * from the generated command map, so a command added in C# reaches the table
+ * with no hand edit. Useful for showing an Uplink author which commands an
+ * operator can send. Used by the page generator.
  *
- * The page carried none of this until 2026-09-01. A reader could enumerate every
- * value an Uplink publishes and not one of the calls it accepts, which is not a
- * documentation gap: the vocabulary did not exist anywhere a third party could
- * reach. It is derived from the generated command map, the same rule the Wire
- * section follows, so a command added in C# reaches this table with no hand edit.
+ * The Result column is what a dispatch resolves with, not what the handler
+ * returns: a refusal rejects, carrying its `CommandErrorCode`, so
+ * `CommandResult` in that column means the command ran or threw.
  *
- * The Result column is what a dispatch resolves with, which is not what the
- * handler returns: a refusal rejects, carrying its `CommandErrorCode`, so
- * `CommandResult` in that column means "ran, or threw", never "said no quietly".
- *
- * There is deliberately no Delay column, though `CommandDeclaration.Delay`
- * is a real fact an author wants. It is set in the plugin assembly, which no
- * generated artifact reaches, and one Uplink builds its whole list through a
- * private `DeclareCommands(...)` helper: a source scan would have found nothing
- * for it and said so by printing 29 blank cells. The channel scan next door is
- * safe because `readWireSurface` can cross-check every topic it should have
- * found; there is no equivalent check available here yet.
+ * There is no Delay column, because a command's delay is set in the plugin
+ * assembly, which no generated file reaches.
  */
 export function commandSection(surface: WireSurface): string[] {
   if (surface.commands.length === 0) return [];
