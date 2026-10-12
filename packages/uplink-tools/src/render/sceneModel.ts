@@ -124,13 +124,13 @@ export interface FixtureScene {
    * Why this scene draws exactly the same with the link dropped, and why that
    * is honest.
    *
-   * <p>The only escape from the held comparison, and prose for the same
+   * The only escape from the held comparison, and prose for the same
    * reason `expectsEmpty` is. It is for a subject that draws no figure an
    * operator could take for current: a vocabulary, a control, a label. A
-   * subject that draws a reading does not qualify, however small the reading.</p>
+   * subject that draws a reading does not qualify, however small the reading.
    *
-   * <p>A scene carrying it whose held render does change fails, so the excuse
-   * comes off the moment it stops being needed.</p>
+   * A scene carrying it whose held render does change fails, so the excuse
+   * comes off the moment it stops being needed.
    */
   unchangedWhenHeld?: string;
   /**
@@ -163,14 +163,14 @@ export interface FixtureScene {
 /**
  * One thing done to the mounted widget before it is photographed.
  *
- * <p>Some surfaces have nothing to show until they are used. A plan composer
+ * Some surfaces have nothing to show until they are used. A plan composer
  * with no plan in it is a button; a video feed's controls are hover-gated and
  * invisible at rest. Feeding state in through the fixture instead would render a
  * composer that had never composed anything, which is the difference between a
- * picture of the mechanism and a picture of a shape.</p>
+ * picture of the mechanism and a picture of a shape.
  *
- * <p>Driver-side, through real input events, because that is the only way a
- * hover reaches CSS and a click reaches a handler that reads the event.</p>
+ * Driver-side, through real input events, because that is the only way a
+ * hover reaches CSS and a click reaches a handler that reads the event.
  */
 export interface SceneAct {
   /** Click the control with this accessible name. */

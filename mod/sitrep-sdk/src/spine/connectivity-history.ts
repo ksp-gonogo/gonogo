@@ -1,14 +1,12 @@
-/**
+/*
  * A small, view-clock-frame-keyed connectivity history buffer: backs
- * `useCommand`'s `pathConnectedDuring` predicate (Task 4a in the delayed-
- * command-ux plan: "if the client doesn't already retain `comms.link`
- * connectivity history, add a small buffer; keep it in sitrep-client, not
- * ui-kit"). Records `comms.link.connected` transitions stamped at the
- * caller's `nowUt` and answers "was the path continuously connected across
- * [fromUt, toUt]?": the question `classifyRetained`'s `lost` branch needs.
- *
- * Structural subset of the `CommsLink` wire payload this module reads.
+ * `useCommand`'s `pathConnectedDuring` predicate. Records
+ * `comms.link.connected` transitions stamped at the caller's `nowUt` and
+ * answers "was the path continuously connected across [fromUt, toUt]?": the
+ * question `classifyRetained`'s `lost` branch needs.
  */
+
+/** The part of the `CommsLink` payload that {@link ConnectivityHistory} reads. */
 export interface CommsLinkLike {
   connected: boolean;
 }

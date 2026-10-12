@@ -149,6 +149,18 @@ describe("review aid: published prose", () => {
     expect(list).not.toContain("Sitrep.Contract (");
     const all = readingList(RESULT);
     expect(all.length).toBeGreaterThan(list.length);
+    expect(readingList(RESULT, { corpus: "UI-KIT", category: "badge" })).toBe(
+      list,
+    );
+    const contract = readingList(RESULT, { corpus: "contract" });
+    expect(contract).toContain("Sitrep.Contract (");
+    expect(contract).not.toContain("ui-kit (");
+    const byCategory = (category: string) =>
+      readingList(RESULT, { corpus: "contract", category });
+    expect(byCategory("comms").length).toBeLessThan(contract.length);
+    expect(byCategory("no such category")).toContain(
+      "Nothing matches that package or category.",
+    );
     expect(all).toMatch(/### a word a review called out: /);
   });
 

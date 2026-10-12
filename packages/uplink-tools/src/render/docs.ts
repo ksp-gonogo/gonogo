@@ -340,9 +340,9 @@ function heroAssetsFor(
  * The scenes declared for one registration, as distinct from the assets rendered
  * from them.
  *
- * <p>One scene becomes several assets (one per size), so counting assets answers
+ * One scene becomes several assets (one per size), so counting assets answers
  * "how many pictures" and counting scenes answers "how many STATES somebody
- * thought worth showing". The second is the question review needs.</p>
+ * thought worth showing". The second is the question review needs.
  */
 function scenesFor(inputs: DocsInputs, kind: string, id: string): Scene[] {
   return inputs.scenes.filter(
@@ -353,10 +353,10 @@ function scenesFor(inputs: DocsInputs, kind: string, id: string): Scene[] {
 /**
  * Scenes that assert nothing, which are pictures nobody has read.
  *
- * <p>A warning rather than a failure: a scene with no `paints` still renders and
+ * A warning rather than a failure: a scene with no `paints` still renders and
  * still gets looked at. But `paints` is what catches an expected string that
  * does not appear, and a scene without any is one where nobody wrote down what
- * the render should say.</p>
+ * the render should say.
  */
 export function scenesAssertingNothing(inputs: DocsInputs): string[] {
   return inputs.scenes

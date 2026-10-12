@@ -25,7 +25,6 @@ namespace Sitrep.Contract;
 /// re-wrapping is what makes two runs over the same prose agree regardless of
 /// how the C# happened to be formatted.</para>
 /// </summary>
-/// <category>Serialization</category>
 public static class RtDocText
 {
     /// <summary>

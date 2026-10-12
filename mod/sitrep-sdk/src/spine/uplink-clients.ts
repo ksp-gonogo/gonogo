@@ -6,7 +6,13 @@ import {
   type RootProviderDefinition,
   registerRootProvider,
 } from "../api/root-providers";
-import type { ContributionDefinition, ContributionDep } from "../api/types";
+import type {
+  ContributionDefinition,
+  ContributionDep,
+  ContributionRegistry,
+  ContributionSlotId,
+  DepTopics,
+} from "../api/types";
 import { type ContractTagTable, registerContractTags } from "../contract-tags";
 import type { DepWindows, ReckonerDefinition } from "../reading";
 import type { DerivedChannelDefinition } from "../timeline";
@@ -98,6 +104,19 @@ export interface UplinkClientHandle {
    * for what `def` holds and when `compute` runs. Throws when this Uplink has
    * already registered a contribution with the same id.
    */
+  registerContribution<
+    Slot extends ContributionSlotId,
+    const Deps extends readonly ContributionDep[] = readonly [],
+  >(
+    def: Omit<ContributionDefinition<Slot, Deps>, "owner" | "compute"> & {
+      compute: (
+        topics: DepTopics<Deps>,
+      ) =>
+        | readonly (ContributionRegistry[Slot] & { entry: unknown })["entry"][]
+        | null
+        | undefined;
+    },
+  ): void;
   registerContribution<
     Slot extends string,
     const Deps extends readonly ContributionDep[] = readonly [],

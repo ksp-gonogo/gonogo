@@ -714,9 +714,9 @@ function reasonOf(family: Family): string {
 }
 
 export interface ListFilter {
-  /** A substring of the corpus name, such as `ui-kit` or `Contract`. */
+  /** A substring of the corpus name, any case, such as `ui-kit` or `contract`. */
   corpus?: string;
-  /** An exact `@category`, such as `Badge`. */
+  /** A `@category` or `<category>`, any case, such as `Badge` or `comms`. */
   category?: string;
 }
 
@@ -732,12 +732,20 @@ export function readingList(scan: ReviewScan, filter: ListFilter = {}): string {
     "Each sentence below was picked as a prompt to read it and judge it. It is",
     "not a fault, no word is banned, and a legitimate use is expected among them.",
   ];
+  let listed = 0;
   for (const [name, hits] of scan.hits) {
-    if (filter.corpus && !name.includes(filter.corpus)) continue;
+    if (
+      filter.corpus &&
+      !name.toLowerCase().includes(filter.corpus.toLowerCase())
+    )
+      continue;
     const picked = hits.filter(
-      (h) => !filter.category || h.category === filter.category,
+      (h) =>
+        !filter.category ||
+        h.category?.toLowerCase() === filter.category.toLowerCase(),
     );
     if (picked.length === 0) continue;
+    listed += picked.length;
     out.push("", `## ${name} (${picked.length})`);
     const byReason = new Map<string, ReviewPrompt[]>();
     for (const hit of picked) {
@@ -761,6 +769,9 @@ export function readingList(scan: ReviewScan, filter: ListFilter = {}): string {
         out.push(`- ${hit.file}:${hit.line}: ${hit.excerpt}`);
       }
     }
+  }
+  if (listed === 0 && (filter.corpus || filter.category)) {
+    out.push("", "Nothing matches that package or category.");
   }
   return `${out.join("\n")}\n`;
 }

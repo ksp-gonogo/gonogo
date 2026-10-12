@@ -90,27 +90,27 @@ export function announcesHeld(el: Element): boolean {
 /**
  * The subject's render as a list of elements, for the held comparison.
  *
- * <p>Finer than the probe's size-outline signature on purpose. A widget that
+ * Finer than the probe's size-outline signature on purpose. A widget that
  * says a figure is held often changes nothing a size outline can see: a colour, a
  * `data-held` attribute, a dimmed class. So every attribute is kept,
  * `class` included, which is stable here because one page renders every scene
- * and an identical style always hashes to the identical class.</p>
+ * and an identical style always hashes to the identical class.
  *
- * <p>React ids are folded to one token rather than renumbered: the comparison
+ * React ids are folded to one token rather than renumbered: the comparison
  * that reads these lines subtracts one render from another, and an id counter
  * that shifted because a guest mounted before an element would otherwise make
- * the host's own element look changed.</p>
+ * the host's own element look changed.
  *
- * <p>A widget that strips the colons from a `useId`, as an SVG id and its
+ * A widget that strips the colons from a `useId`, as an SVG id and its
  * `url(#...)` need, leaves a bare `r` and counter. That form is folded too, but
- * only where an id is: as an `id`, an id reference, or inside `url(#...)`.</p>
+ * only where an id is: as an `id`, an id reference, or inside `url(#...)`.
  *
- * <p>A class token a library numbers per instance is folded when it is on
- * {@link INSTANCE_COUNTER_CLASSES}, and compared as written when it is not.</p>
+ * A class token a library numbers per instance is folded when it is on
+ * {@link INSTANCE_COUNTER_CLASSES}, and compared as written when it is not.
  *
- * <p>A `data-held` element that does not {@link announcesHeld} is tagged
+ * A `data-held` element that does not {@link announcesHeld} is tagged
  * {@link UNANNOUNCED_MARK}: the dot is drawn, and nothing tells a screen reader
- * the figure is held.</p>
+ * the figure is held.
  */
 export function describeElements(host: HTMLElement): string[] {
   const lines: string[] = [];

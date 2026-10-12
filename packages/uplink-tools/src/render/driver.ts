@@ -707,12 +707,12 @@ async function performActs(
 /**
  * The control an accessible name reaches, or null when nothing does.
  *
- * <p>A tab is tried after a button because a tab is a press an operator makes
+ * A tab is tried after a button because a tab is a press an operator makes
  * and `role="tab"` is not `role="button"`. Without it every augment hosted
  * inside a tabbed widget was unreachable: the host renders its first tab, the
  * scene can never open the one the augment is in, and the only fixture that
  * could be written was one photographing a panel the augment is not on. Three
- * of the app's own hosts tab their content.</p>
+ * of the app's own hosts tab their content.
  */
 async function pressable(tab: Page, name: string): Promise<Locator | null> {
   for (const role of ["button", "tab"] as const) {
@@ -939,9 +939,9 @@ function guestLedger(inventory: UplinkInventory): GuestLedger {
  * render because that has to be the last mount: everything after it reads the
  * page as it was left.
  *
- * <p>The fed state is mounted once more as a control. Two renders of one state
+ * The fed state is mounted once more as a control. Two renders of one state
  * that differ would make every comparison read as a change, so the check
- * proves it can see "the same" before it trusts "different".</p>
+ * proves it can see "the same" before it trusts "different".
  */
 async function heldRenders(
   tab: Page,
@@ -1000,13 +1000,13 @@ function hostOf(scene: Scene): string | undefined {
  * without saying so. Every stream-fed scene is checked, so nothing escapes it
  * for want of a held fixture.
  *
- * <p>A widget is judged on its whole render. A guest (an augment or a
+ * A widget is judged on its whole render. A guest (an augment or a
  * contribution) is judged on what is left once the render without it is taken
  * away, in both states: the host around it may mark its own held readings, and
  * a render that changed only because the host did is exactly a correctly marked
  * panel carrying a figure nobody marked. The scene's own subject is judged,
  * and so is every other guest of this Uplink the scene's host draws: a guest
- * with no scene of its own is still on screen wherever its host is.</p>
+ * with no scene of its own is still on screen wherever its host is.
  */
 async function assertHeldShows(
   tab: Page,

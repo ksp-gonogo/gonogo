@@ -881,18 +881,18 @@ type DepKey<Dependency> = Dependency extends string
 /**
  * The value that arrives under that key.
  *
- * <para>A Topic arrives as its reading, so a contribution can tell a current
+ * A Topic arrives as its reading, so a contribution can tell a current
  * value from a held one and draw each as what it is. `"pending"` is no point
  * yet, `"absent"` is the mod saying there is nothing to describe, and only
  * `"observed"` and `"held"` carry a value, reached through `value` once the
  * state says there is one. The reading carries no forward model (`reckoning`
  * is always `{ status: "none" }`) and no per-field readings; a contribution
  * that wants a modelled figure depends on a processor with a `{ reading }`
- * dep, which is handed the whole reading.</para>
+ * dep, which is handed the whole reading.
  *
- * <para>A processor dep tracks the evaluator exactly: a processor whose own
+ * A processor dep tracks the evaluator exactly: a processor whose own
  * deps include a reading returns a `Reading`, dated by those inputs, and that
- * is the value a contribution is handed.</para>
+ * is the value a contribution is handed.
  */
 type DepValue<Dependency> = Dependency extends string
   ? TopicCurrency<

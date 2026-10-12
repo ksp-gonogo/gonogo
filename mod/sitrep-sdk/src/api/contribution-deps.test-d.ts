@@ -132,3 +132,27 @@ import type { AnyContribution } from "./types";
 
 declare const erased: AnyContribution;
 CLIENT.registerContribution(erased);
+
+CLIENT.registerContribution({
+  id: "literal-tone-needs-no-const",
+  contributes: "crew-status.row-tone",
+  deps: ["career.status"],
+  compute: () => [{ crewName: "Jeb", tone: "info" }],
+});
+
+CLIENT.registerContribution({
+  id: "literal-tone-with-topics",
+  contributes: "crew-status.row-tone",
+  deps: ["career.status"],
+  compute: (topics) => {
+    void topics;
+    return [{ crewName: "Jeb", tone: "info" }];
+  },
+});
+
+CLIENT.registerContribution({
+  id: "literal-tone-is-checked",
+  contributes: "crew-status.row-tone",
+  // @ts-expect-error a tone the slot does not define is refused, not widened to a string
+  compute: () => [{ crewName: "Jeb", tone: "bogus" }],
+});

@@ -2,6 +2,7 @@
  * The landing-site hazard verdict: safe / marginal / divert, telemetry alerting and never GO/NO-GO. Worst band wins across three axes. It judges every descent by the speed it will touch down at, and knows nothing of what the craft is (an engine, a parachute, whether it floats) or of what the surface is made of:
  *
  * | axis              | `SAFE` | marginal | `DIVERT` | anchor                       |
+ * | ----------------- | ------ | -------- | -------- | ---------------------------- |
  * | slope (deg)       | <=5  | 5-15     | >15    | Apollo LM 12-degree limit    |
  * | roughness (sigma) | A/B  | C        | F      | shared roughness grade       |
  * | touchdown (m/s)   | <=2  | 2-6      | >6     | stock modal crashTolerance   |

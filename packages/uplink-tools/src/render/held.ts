@@ -6,22 +6,22 @@ import type { Scene } from "./scenes";
  * Whether a subject says the link has gone, judged from two renders of one
  * scene: live, and with the link dropped.
  *
- * <p>Every render the harness takes of a stream-fed scene gets a twin with the
+ * Every render the harness takes of a stream-fed scene gets a twin with the
  * other `stopsArriving` value, so an Uplink needs no held fixture for its
  * widgets to be held to this. A scene that already stages the drop is compared
- * with itself fed live; one that does not is compared with itself dropped.</p>
+ * with itself fed live; one that does not is compared with itself dropped.
  *
- * <p>Two ways to fail. Unchanged: the subject draws exactly the same elements
+ * Two ways to fail. Unchanged: the subject draws exactly the same elements
  * both ways, so an operator has nothing to tell a figure from twenty minutes ago
  * from one that just arrived. Unannounced: the subject draws a held mark with
- * no caption, so the dot is there and a screen reader is told nothing.</p>
+ * no caption, so the dot is there and a screen reader is told nothing.
  *
- * <p>A guest drawn inside a real host is judged on what it draws. The host may
+ * A guest drawn inside a real host is judged on what it draws. The host may
  * mark its own readings, and a render that changed only because the host did is
  * the case this exists for: a correctly marked panel carrying a figure nobody
  * marked. So a hosted scene is also rendered with its guest withheld, in both
  * states, and the guest's elements are what is left after the host's are taken
- * away.</p>
+ * away.
  */
 export interface HeldRenders {
   live: readonly string[];
@@ -135,16 +135,16 @@ export interface HeldStage {
  * One render of a scene for the held comparison, live or dropped as the
  * payload says, in the state the scene pictures.
  *
- * <p>The render in the scene's own state is the fed render again, so it drops
+ * The render in the scene's own state is the fed render again, so it drops
  * the link where the fed render does, before the presses. The twin with the
  * other state holds its drop until the presses have run: a scene driven by
  * presses is judged pressed, and a link that goes after them is the order an
- * operator meets it.</p>
+ * operator meets it.
  *
- * <p>A still is refed after the presses, as its picture is; a motion scene is
+ * A still is refed after the presses, as its picture is; a motion scene is
  * not, because its first frame is taken before the refeed. With a guest
  * withheld, a press that finds no control is skipped: the control was the
- * guest's, and the host without it is in the state the press leaves it.</p>
+ * guest's, and the host without it is in the state the press leaves it.
  */
 export async function mountForHeld(
   stage: HeldStage,

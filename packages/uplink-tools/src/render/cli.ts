@@ -472,24 +472,22 @@ async function writeProseOnly(pkg: UplinkPackage, args: Args): Promise<void> {
  * One Uplink's declared render exemptions, from `docs-exempt.json` beside its
  * `package.json`.
  *
- * <p><b>Per-Uplink rather than a list in here, and that is the whole point.</b> The
+ * **Per-Uplink rather than a list in here, and that is the whole point.** The
  * first draft of this gate carried two central sets naming the offending augments,
  * and `uplink-boundary` refused it, correctly: a shared tool naming an individual
  * Uplink's augment ids couples `ui-kit` to code it must not know about, which is
  * the same complaint this project has about allowlists generally. So the exemption lives
  * with the code it describes, and the reason sits where the person who would
- * change it will read it.</p>
+ * change it will read it.
  *
- * <p>Two kinds, because conflating them is how a debt list becomes an allowlist:</p>
- * <ul>
- *   <li><b>`unrenderable`</b> is permanent and needs a reason. `assertEveryWidgetCovered`
+ * Two kinds, because conflating them is how a debt list becomes an allowlist:
+ * - **`unrenderable`** is permanent and needs a reason. `assertEveryWidgetCovered`
  *   has always let augments off, and its own test says why: an overlay augment draws
  *   in its host's projection, so a stand-in panel gives it nothing to draw against
- *   and demanding a fixture would be demanding a picture that cannot be honest.</li>
- *   <li><b>`sceneDebt`</b> is temporary and needs a scene. Entries here predate the
+ *   and demanding a fixture would be demanding a picture that cannot be honest.
+ * - **`sceneDebt`** is temporary and needs a scene. Entries here predate the
  *   gate; the file is expected to shrink and a new entry means new code created the
- *   very problem the gate exists to stop.</li>
- * </ul>
+ *   very problem the gate exists to stop.
  */
 interface DocsExempt {
   unrenderable?: Record<string, string>;

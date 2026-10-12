@@ -8471,6 +8471,10 @@
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
       },
       {
+        "key": "sitrep-sdk . UplinkClientHandle#registerContribution",
+        "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
+      },
+      {
         "key": "sitrep-sdk . UseCommandResult#failures",
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
@@ -8991,6 +8995,10 @@
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
       },
       {
+        "key": "sitrep-sdk ./registry ~UplinkClientHandle#registerContribution",
+        "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
+      },
+      {
         "key": "sitrep-sdk ./spine CelestialBody#trueAnomaly",
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
@@ -9185,6 +9193,10 @@
       {
         "key": "sitrep-sdk ./spine UplinkClientHandle#description?",
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
+        "key": "sitrep-sdk ./spine UplinkClientHandle#registerContribution",
+        "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
       },
       {
         "key": "sitrep-sdk ./spine UseCommandResult#failures",
@@ -9725,6 +9737,10 @@
       {
         "key": "sitrep-sdk ./testing ~UplinkClientHandle#description?",
         "note": "Required: the Uplink's generated page and the app's installed list both need one, and the docs build already refused an Uplink without it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~UplinkClientHandle#registerContribution",
+        "note": "A slot listed in ContributionRegistry types compute from that slot's entry, so a literal such as tone: \"info\" returned from compute is checked against the slot's entry and no longer widens to a string; a component slot id keeps the earlier form"
       },
       {
         "key": "sitrep-sdk ./testing ~UseCommandResult#failures",
@@ -12549,6 +12565,10 @@
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
       {
+        "key": "sitrep-sdk ./spine ~ContributionSlotId",
+        "note": "The id type of a slot an Uplink contributes to, now named by registerContribution's first form"
+      },
+      {
         "key": "sitrep-sdk ./spine ~CrewRowToneEntry#held?",
         "note": "CrewRowToneEntry carries the reading it was drawn from, so the host widget draws a held value as held"
       },
@@ -12835,6 +12855,10 @@
       {
         "key": "sitrep-sdk ./testing ~ContributionDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContributionSlotId",
+        "note": "The id type of a slot an Uplink contributes to, now named by registerContribution's first form"
       },
       {
         "key": "sitrep-sdk ./testing ~CrewRowToneEntry#held?",

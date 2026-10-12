@@ -200,12 +200,12 @@ export interface SceneStep {
    * for a control ticking on its own `setInterval`, or a state the widget leaves
    * behind on a `setTimeout`, neither of which the pinned clock reaches.
    *
-   * <p>Fired, not waited out. It used to be a real wait, and a real wait is a
+   * Fired, not waited out. It used to be a real wait, and a real wait is a
    * different number of ticks on every machine: `jogwheel-rate-mode` hashed
    * differently on each of five consecutive regenerations before this was an
    * amount rather than a duration. A scene that waits runs on its own clock for
    * its whole length and this is how much of it a step spends, so the frame and
-   * its shape are both of one instant. See `./render/sceneClock`.</p>
+   * its shape are both of one instant. See `./render/sceneClock`.
    */
   waitMs?: number;
   /** How many frames this step spans. Defaults to 1. */
@@ -231,16 +231,16 @@ export interface ScenePayload {
   /**
    * The one-way signal delay, in seconds, between the vessel and the command centre screen.
    *
-   * <p>Each reading is sent at its `validAt` and delivered `delaySeconds`
+   * Each reading is sent at its `validAt` and delivered `delaySeconds`
    * later, and the view clock is left live rather than pinned, so it sits at
    * the received edge while the vessel's present runs one signal delay ahead of
    * it. The store reckons every reading to that present exactly as it does in
    * the app, which is the only way a render can show a modelled figure beside
-   * the observed one.</p>
+   * the observed one.
    *
-   * <p>Absent, or zero, the clock is pinned at `pinnedUt` and the two instants
+   * Absent, or zero, the clock is pinned at `pinnedUt` and the two instants
    * are one. A pinned clock wins outright over the delay, so a scene has one
-   * or the other, never both.</p>
+   * or the other, never both.
    */
   delaySeconds?: number;
   /** Every topic the target's registration declares, never written in a fixture. */
@@ -252,21 +252,21 @@ export interface ScenePayload {
    * has run, drop the transport and mint a frame, so the shot is of a widget
    * whose figures have stopped arriving.
    *
-   * <p>Without it this harness can only picture a live scene, and what a widget
+   * Without it this harness can only picture a live scene, and what a widget
    * draws when a figure is held is exactly the thing worth seeing: the
    * mark on the figure, the held value where a null token used to be, the
    * caption naming which half is dated. A field reading and a minted `Value` of
    * the same magnitude draw identical pixels, so a held scene rendered live is
-   * byte-identical to its live twin and shows nothing.</p>
+   * byte-identical to its live twin and shows nothing.
    *
-   * <p>The drop is the lever rather than a clock advance because it is the one
+   * The drop is the lever rather than a clock advance because it is the one
    * the widgets' own held tests use (`store.setTransportConnected(false)`), so
-   * a render and the test asserting on it are staging the same thing.</p>
+   * a render and the test asserting on it are staging the same thing.
    *
-   * <p>The same field `packages/components/scripts/probe/probe-entry.tsx` and
+   * The same field `packages/components/scripts/probe/probe-entry.tsx` and
    * `packages/components/src/test/widgetDomSnapshot.tsx` read. It arrived here
    * later: the commit adding it said "both harnesses" and there are three, this
-   * being the one every Uplink widget renders through.</p>
+   * being the one every Uplink widget renders through.
    */
   stopsArriving?: boolean;
   /** The target's saved settings for this scene, as its config form would save them. */
@@ -1306,20 +1306,20 @@ async function feedInRounds(mounted: Mounted): Promise<string[]> {
 /**
  * Feed what a press has just opened, and report what is still unread.
  *
- * <p>A tab's content is not mounted until the tab is selected, and
+ * A tab's content is not mounted until the tab is selected, and
  * `_scene.before` runs after the feed, so a topic only the tab's content reads
  * had no subscriber when the fixture emitted it and was dropped in silence.
  * Every training picture in one Uplink was rendered in the stand-in host
  * for exactly that reason, which meant the one thing an operator actually meets,
  * the tab with its sections in the order they appear, had never been photographed
- * at all.</p>
+ * at all.
  *
- * <p>This is production's own shape rather than a harness indulgence: the stream
+ * This is production's own shape rather than a harness indulgence: the stream
  * replays the last value on subscribe, so in a running app a tab fills the
  * moment it is opened. What the harness must not do is pretend a topic nothing
  * ever subscribed to landed, and it still does not: whatever is unread after
  * this is the finding, and `assertEveryEmitLanded` is checked against it rather
- * than against the pre-press list.</p>
+ * than against the pre-press list.
  */
 async function refeedScene(): Promise<UnreadTopics> {
   const mounted = currentMount("refeedScene");

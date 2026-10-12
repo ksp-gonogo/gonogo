@@ -28,7 +28,6 @@ namespace Sitrep.Contract;
 /// where they are all one solution.
 /// </internal>
 /// </summary>
-/// <category>Serialization</category>
 public class RtDocVisitor : TypeScriptExportVisitor
 {
     /// <summary>
