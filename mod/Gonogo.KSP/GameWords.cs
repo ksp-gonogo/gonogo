@@ -127,6 +127,24 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Any string the game stores for display, as the player reads it: a
+        /// localisation tag resolved, and the grammatical-gender marker the
+        /// game appends to a name (<c>Kerbin^N</c>) removed. A tag the table
+        /// cannot resolve reads as empty, never as the tag itself.
+        /// </summary>
+        public static string Text(string? stored)
+        {
+            if (string.IsNullOrEmpty(stored))
+            {
+                return "";
+            }
+            var fallback = stored!.IndexOf("#autoLOC", StringComparison.OrdinalIgnoreCase) >= 0 ? "" : stored;
+            var resolved = Name(stored, fallback);
+            var marker = resolved.LastIndexOf('^');
+            return marker < 0 ? resolved : resolved.Substring(0, marker);
+        }
+
+        /// <summary>
         /// A craft's name as the player sees it in game, for anything that names
         /// it to an operator. A craft with no name at all is <c>Vessel</c>.
         /// </summary>

@@ -39,9 +39,11 @@ namespace Sitrep.Host.Tests
             /// </summary>
             public bool StartedHasAudience = true;
 
+            public readonly List<string> Reports = new();
+
             public Rig()
             {
-                Sampler = new FlightLifecycleSampler(Current, Started, Ended, VesselChanged, () => StartedHasAudience);
+                Sampler = new FlightLifecycleSampler(Current, Started, Ended, VesselChanged, () => StartedHasAudience, Reports.Add);
             }
         }
 
@@ -161,15 +163,30 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void SignalEndForANeverStartedVesselIsANoOp()
+        public void SignalEndForANeverStartedVesselPublishesNothingAndIsCountedAndReported()
         {
             var rig = new Rig();
-            // No prior Sample() ever observed VesselA -- e.g. a filtered
-            // debris death that still (hypothetically) reached SignalEnd.
             rig.Sampler.SignalEnd(VesselA, "Debris", FlightEndReason.Crashed, 5.0);
             rig.Sampler.Sample(NoVesselSnapshot(6.0));
 
             Assert.Empty(rig.Ended.Calls);
+            Assert.Equal(1, rig.Sampler.EndsWithoutStart);
+            var report = Assert.Single(rig.Reports);
+            Assert.Contains(VesselA, report);
+            Assert.Contains("Crashed", report);
+        }
+
+        [Fact]
+        public void AnEndForAVesselTheSamplerSawStartIsNeitherCountedNorReported()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.0));
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Recovered, 5.0);
+            rig.Sampler.Sample(NoVesselSnapshot(6.0));
+
+            Assert.Single(rig.Ended.Calls);
+            Assert.Equal(0, rig.Sampler.EndsWithoutStart);
+            Assert.Empty(rig.Reports);
         }
 
         [Fact]

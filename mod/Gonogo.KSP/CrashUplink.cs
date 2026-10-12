@@ -245,7 +245,7 @@ namespace Gonogo.KSP
             {
                 VesselId = vesselId,
                 EventKind = eventKind,
-                What = report?.other ?? "",
+                What = GameWords.Text(report?.other),
                 VesselType = vesselType,
                 Msg = report?.msg ?? "",
                 Latitude = vessel.latitude,

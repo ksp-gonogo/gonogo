@@ -127,6 +127,131 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The game drops the active craft's link in the same instant the craft
+        /// ends: a recovered or destroyed vessel is no longer the active one, so
+        /// the next tick reads no link. The end is signalled while the craft was
+        /// in contact and is only drained by that next tick, so the reveal gate
+        /// must judge it by the link at the moment it happened.
+        /// </summary>
+        [Theory]
+        [InlineData(FlightEndReason.Recovered)]
+        [InlineData(FlightEndReason.Crashed)]
+        [InlineData(FlightEndReason.Destroyed)]
+        public async Task AnEndSignalledWhileInContactReachesTheClientWhenTheLinkDropsWithTheCraft(FlightEndReason reason)
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new TestFlightUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FlightTopics.EndedTopic, Timeout);
+
+                engine.TickAndWait(0.0, SnapshotFor(0.0, VesselA, "Alpha"), Timeout);
+                engine.TickAndWait(5.0, SnapshotFor(5.0, VesselA, "Alpha"), Timeout);
+
+                uplink.Sampler.SignalEnd(VesselA, "Alpha", reason, 5.0);
+                uplink.Connected = false;
+                var noVessel = new KspSnapshot { Ut = 5.02, Values = new Dictionary<string, object?>() };
+                engine.TickAndWait(5.02, noVessel, Timeout);
+                engine.TickAndWait(5.04, new KspSnapshot { Ut = 5.04, Values = new Dictionary<string, object?>() }, Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var ended = frames.Single(f => f.Topic == FlightTopics.EndedTopic);
+                var payload = Assert.IsType<Dictionary<string, object?>>(ended.Payload);
+                Assert.Equal((double)reason, Convert.ToDouble(payload["reason"]));
+                Assert.Equal(VesselA, payload["vesselId"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A game event handler publishes straight from the main thread, stamped
+        /// with the instant it fired. The Courier thread can reach that job after
+        /// a tick that already read the craft's link down, and the fact must
+        /// still be judged by the link at the instant it fired.
+        /// </summary>
+        [Fact]
+        public async Task AFactStampedWhileInContactIsDeliveredEvenIfProcessedAfterTheLinkWasReadDown()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new TestFlightUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FlightTopics.EndedTopic, Timeout);
+
+                engine.TickAndWait(5.0, SnapshotFor(5.0, VesselA, "Alpha"), Timeout);
+                uplink.Connected = false;
+                engine.TickAndWait(5.02, new KspSnapshot { Ut = 5.02, Values = new Dictionary<string, object?>() }, Timeout);
+
+                uplink.Ended.Publish(new FlightEnded
+                {
+                    FlightId = VesselA,
+                    VesselId = VesselA,
+                    VesselName = "Alpha",
+                    Reason = FlightEndReason.Recovered,
+                    Ut = 5.0,
+                }, 5.0);
+                engine.TickAndWait(5.04, new KspSnapshot { Ut = 5.04, Values = new Dictionary<string, object?>() }, Timeout);
+                engine.TickAndWait(5.06, new KspSnapshot { Ut = 5.06, Values = new Dictionary<string, object?>() }, Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.Single(frames, f => f.Topic == FlightTopics.EndedTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The other side of the same rule: a fact stamped after the link was read
+        /// down was taken out of contact, and is held, not delivered.
+        /// </summary>
+        [Fact]
+        public async Task AFactStampedAfterTheLinkWasReadDownIsHeld()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new TestFlightUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FlightTopics.EndedTopic, Timeout);
+
+                engine.TickAndWait(5.0, SnapshotFor(5.0, VesselA, "Alpha"), Timeout);
+                uplink.Connected = false;
+                engine.TickAndWait(5.02, new KspSnapshot { Ut = 5.02, Values = new Dictionary<string, object?>() }, Timeout);
+
+                uplink.Ended.Publish(new FlightEnded
+                {
+                    FlightId = VesselA,
+                    VesselId = VesselA,
+                    VesselName = "Alpha",
+                    Reason = FlightEndReason.Recovered,
+                    Ut = 6.0,
+                }, 6.0);
+                engine.TickAndWait(6.02, new KspSnapshot { Ut = 6.02, Values = new Dictionary<string, object?>() }, Timeout);
+                engine.TickAndWait(6.04, new KspSnapshot { Ut = 6.04, Values = new Dictionary<string, object?>() }, Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(frames, f => f.Topic == FlightTopics.EndedTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// The ordinary case, over the real engine: KSP boots before the
         /// browser, so the flight is already in the air by the time anything
         /// subscribes. <c>ChannelEngine.ProcessPublish</c> drops a publish for
@@ -299,6 +424,12 @@ namespace Sitrep.Host.IntegrationTests
 
             public FlightLifecycleSampler Sampler { get; private set; } = null!;
 
+            /// <summary>Whether the active craft has a link, as the engine's reveal gate reads it each tick.</summary>
+            public volatile bool Connected = true;
+
+            /// <summary>The same handle the sampler publishes <c>flight.ended</c> through, for a fact a test publishes the way a game event handler does.</summary>
+            public IChannelPublisher Ended { get; private set; } = null!;
+
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "test-flight",
@@ -337,13 +468,15 @@ namespace Sitrep.Host.IntegrationTests
 
             public void Register(IUplinkHost host)
             {
+                Ended = host.Publisher(FlightTopics.EndedTopic);
                 Sampler = new FlightLifecycleSampler(
                     host.Publisher(FlightTopics.CurrentTopic),
                     host.Publisher(FlightTopics.StartedTopic),
-                    host.Publisher(FlightTopics.EndedTopic),
+                    Ended,
                     host.Publisher(FlightTopics.VesselChangedTopic),
                     () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic));
                 host.AddSampler(Sampler);
+                host.SetConnectivitySource(_ => Connected);
 
                 host.AddChannelSource(ChannelEngine.CommsDelayTopic, snapshot =>
                 {

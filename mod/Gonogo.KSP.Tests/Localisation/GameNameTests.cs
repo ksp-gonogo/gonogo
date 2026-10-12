@@ -108,6 +108,37 @@ namespace Gonogo.KSP.Tests.Localisation
         }
 
         [Fact]
+        public void AStoredLocationTagIsResolvedToWhatThePlayerReads()
+        {
+            using var _ = new InstalledLocalizer(new Dictionary<string, string> { ["#autoLOC_6002112"] = "LaunchPad" });
+
+            Assert.Equal("LaunchPad", GameWords.Text("#autoLOC_6002112"));
+        }
+
+        [Fact]
+        public void AnUnresolvedTagReadsAsEmptyAndNotAsTheTag()
+        {
+            using var _ = new InstalledLocalizer(new Dictionary<string, string>());
+
+            Assert.Equal("", GameWords.Text("#autoLOC_6002112"));
+        }
+
+        [Fact]
+        public void ABodyNameLosesItsGrammaticalGenderMarker()
+        {
+            using var _ = new InstalledLocalizer(new Dictionary<string, string>());
+
+            Assert.Equal("Kerbin", GameWords.Text("Kerbin^N"));
+        }
+
+        [Fact]
+        public void NothingStoredReadsAsEmpty()
+        {
+            Assert.Equal("", GameWords.Text(null));
+            Assert.Equal("", GameWords.Text(""));
+        }
+
+        [Fact]
         public void ALocalizerThatIsNotUpFallsBackRatherThanNamingNothing()
         {
             Assert.Equal("fallback", GameWords.Name(StockCraftTag, "fallback"));

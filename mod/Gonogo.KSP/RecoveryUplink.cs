@@ -206,8 +206,9 @@ namespace Gonogo.KSP
                 });
             }
 
-            var location = string.IsNullOrEmpty(vessel.displaylandedAt) ? vessel.landedAt : vessel.displaylandedAt;
-            return RecoveryPayload.Unawarded(ut, GameWords.VesselName(vessel.vesselName), vesselType, location ?? "", parts, crew);
+            var location = GameWords.Text(
+                string.IsNullOrEmpty(vessel.displaylandedAt) ? vessel.landedAt : vessel.displaylandedAt);
+            return RecoveryPayload.Unawarded(ut, GameWords.VesselName(vessel.vesselName), vesselType, location, parts, crew);
         }
 
         /// <summary>

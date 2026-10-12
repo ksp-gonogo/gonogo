@@ -47,10 +47,15 @@ namespace Sitrep.Host
             var facility = ParseEditorFacility(args.Editor);
             if (facility == EditorFacilityKind.Unknown)
             {
-                return CommandResult.Fail(CommandErrorCode.Range);
+                return CommandResult.Fail(CommandErrorCode.Range, EditorArgumentDetail("editor", args.Editor));
             }
             return actuator.RevertToEditor(facility);
         }
+
+        private static string EditorArgumentDetail(string argument, string? given) =>
+            string.IsNullOrWhiteSpace(given)
+                ? "missing argument \"" + argument + "\": it must be \"vab\" or \"sph\""
+                : "argument \"" + argument + "\" is \"" + given + "\": it must be \"vab\" or \"sph\"";
 
         public static CommandResult HandleToTrackingStation(IFlightOpsActuator actuator, object? _) =>
             actuator.ToTrackingStation();
@@ -104,7 +109,7 @@ namespace Sitrep.Host
             var facility = ParseEditorFacility(args.Facility);
             if (facility == EditorFacilityKind.Unknown)
             {
-                return CommandResult.Fail(CommandErrorCode.Range);
+                return CommandResult.Fail(CommandErrorCode.Range, EditorArgumentDetail("facility", args.Facility));
             }
             var refusal = LaunchAuthority.Refusal(vantage, args.Site, () => actuator.ReachOf(vantage, args.Site));
             if (refusal != null)

@@ -45,6 +45,32 @@ namespace Gonogo.KSP.Tests.Localisation
         }
 
         [Fact]
+        public void the_recovery_location_is_read_through_the_localiser()
+        {
+            var source = CurrencyDelaySourceText.ReadRelative("RecoveryUplink.cs");
+
+            Assert.DoesNotMatch(RawLocationRead, source);
+        }
+
+        [Fact]
+        public void the_crash_subject_is_read_through_the_localiser()
+        {
+            var source = CurrencyDelaySourceText.ReadRelative("CrashUplink.cs");
+
+            Assert.DoesNotMatch(RawCrashSubjectRead, source);
+        }
+
+        [Fact]
+        public void the_scan_sees_a_planted_raw_location_and_subject()
+        {
+            Assert.Matches(RawLocationRead, "var location = string.IsNullOrEmpty(vessel.displaylandedAt) ? vessel.landedAt : vessel.displaylandedAt;");
+            Assert.Matches(RawCrashSubjectRead, "What = report?.other ?? \"\",");
+        }
+
+        private const string RawLocationRead = @"var location = (?!GameWords\.Text\()";
+        private const string RawCrashSubjectRead = @"(?<!GameWords\.Text\()report\??\.other\b";
+
+        [Fact]
         public void the_scan_sees_a_planted_raw_read()
         {
             var planted = "[\"name\"] = vessel.vesselName,";

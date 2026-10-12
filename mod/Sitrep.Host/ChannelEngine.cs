@@ -7018,7 +7018,8 @@ namespace Sitrep.Host
         /// a positive delay is buffered until <see cref="FlushReveal"/>'s
         /// horizon reaches its UT.
         /// </summary>
-        private void Emit(string topic, object? value, double ut)
+        /// <param name="stampedAtPublish">True for an explicit publish of a fact its producer stamped before the processing instant, which can be processed after the craft's link has gone: the freeze gate then asks whether the link was up at that instant. A tick-driven sample is taken in the tick that reads the link, so it is judged by the link as it stands.</param>
+        private void Emit(string topic, object? value, double ut, bool stampedAtPublish = false)
         {
             if (topic == CommsDelayTopic)
             {
@@ -7039,7 +7040,7 @@ namespace Sitrep.Host
                 return;
             }
 
-            var delay = RevealDelayFor(topic);
+            var delay = RevealDelayFor(topic, stampedAtPublish ? ut : (double?)null);
             if (delay <= 0.0)
             {
                 RecordThrough(topic, value, ut);
@@ -7194,7 +7195,7 @@ namespace Sitrep.Host
         /// <para>Fail-soft: a non-finite or negative delay collapses to 0
         /// (reveal live; never worse than today).</para>
         /// </summary>
-        private double RevealDelayFor(string topic)
+        private double RevealDelayFor(string topic, double? stampedUt = null)
         {
             if (_channelDeclarations.TryGetValue(topic, out var decl) && decl.Delay == DelayRole.TrueNow)
             {
@@ -7223,7 +7224,8 @@ namespace Sitrep.Host
             // freezes on ITS OWN vessel's link, and every non-fleet topic plus
             // the active vessel key by "system", which for a single-vessel
             // program is the same answer a single global bool gives.
-            if (!SubjectConnected(NodeFor(topic)))
+            var node = NodeFor(topic);
+            if (!SubjectConnected(node) && !(stampedUt.HasValue && ConnectivityAt(node, stampedUt.Value)))
             {
                 return double.PositiveInfinity;
             }
@@ -8899,7 +8901,7 @@ namespace Sitrep.Host
                 // Tick). comms.delay is one of those now, and the gate does not
                 // lose its number by it: Emit snoops the value on the way past,
                 // before the horizon is consulted.
-                Emit(publish.Topic, decision.Value, ut);
+                Emit(publish.Topic, decision.Value, ut, stampedAtPublish: publish.Ut < nowUt);
             }
         }
 

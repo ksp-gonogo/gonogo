@@ -71,8 +71,21 @@ namespace Gonogo.KSP
         };
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
-        /// channel uplink is Healthy once it has registered without error.</summary>
-        public UplinkHealth Health() => UplinkHealth.Healthy;
+        /// channel uplink is Healthy once it has registered without error. A flight end that
+        /// arrived for a craft with no start record is counted as a fact, since it was not
+        /// published.</summary>
+        public UplinkHealth Health()
+        {
+            var unmatched = _sampler?.EndsWithoutStart ?? 0;
+            if (unmatched == 0)
+            {
+                return UplinkHealth.Healthy;
+            }
+            return new UplinkHealth(
+                UplinkHealthState.Healthy,
+                null,
+                new[] { new UplinkHealthFact("Flight ends with no start record", unmatched.ToString()) });
+        }
 
         public void Register(IUplinkHost host)
         {
@@ -84,7 +97,8 @@ namespace Gonogo.KSP
                 // KSP boots long before a browser does, so the flight that is
                 // already in the air when someone opens the dashboard has to be
                 // announced to them. See FlightLifecycleSampler's doc comment.
-                () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic));
+                () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic),
+                message => Debug.LogWarning("[Gonogo] " + message));
             host.AddSampler(_sampler);
 
             HookGameEvents();

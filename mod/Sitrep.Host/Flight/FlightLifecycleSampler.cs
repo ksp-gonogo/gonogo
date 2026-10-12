@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Flight
@@ -132,19 +133,31 @@ namespace Sitrep.Host.Flight
         // "nobody is listening" is that whoever listens next has heard nothing.
         private string? _announcedStartedFlightId;
 
+        private readonly Action<string>? _report;
+        private long _endsWithoutStart;
+
+        /// <param name="report">Told, once per occurrence, why an end signal was not published.</param>
         public FlightLifecycleSampler(
             IChannelPublisher current,
             IChannelPublisher started,
             IChannelPublisher ended,
             IChannelPublisher vesselChanged,
-            Func<bool> startedHasAudience)
+            Func<bool> startedHasAudience,
+            Action<string>? report = null)
         {
             _current = current;
             _started = started;
             _ended = ended;
             _vesselChanged = vesselChanged;
             _startedHasAudience = startedHasAudience;
+            _report = report;
         }
+
+        /// <summary>
+        /// How many end signals arrived for a vessel this session never announced as
+        /// started, and so were not published. Readable from any thread.
+        /// </summary>
+        public long EndsWithoutStart => Interlocked.Read(ref _endsWithoutStart);
 
         /// <summary>
         /// Called from a MAIN-THREAD GameEvent handler (crash/recovery
@@ -277,9 +290,14 @@ namespace Sitrep.Host.Flight
         {
             if (!_startedUtByVesselId.ContainsKey(vesselId))
             {
-                // Never observed as started this session (e.g. a filtered
-                // debris/flag death that never reached SignalEnd, or a
-                // duplicate signal) -- nothing to end.
+                // A craft nobody flew this session (a vessel destroyed out of
+                // focus, say) has no flight to end, and one the sampler did
+                // not see start would otherwise vanish without a trace.
+                Interlocked.Increment(ref _endsWithoutStart);
+                _report?.Invoke(
+                    "flight end (" + reason + ") for vessel " + vesselId + " \"" + vesselName
+                    + "\" at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                    + " has no start record, not published");
                 return;
             }
 

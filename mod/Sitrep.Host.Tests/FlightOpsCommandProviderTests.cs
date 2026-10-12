@@ -73,6 +73,23 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void HandleRevertToEditorNamesTheMissingArgumentInTheRefusal()
+        {
+            var result = FlightOpsCommandProvider.HandleRevertToEditor(new FakeFlightOpsActuator(), new RevertToEditorArgs());
+
+            Assert.Contains("\"editor\"", result.Detail);
+            Assert.Contains("vab", result.Detail);
+        }
+
+        [Fact]
+        public void HandleRevertToEditorQuotesAnUnrecognisedFacility()
+        {
+            var result = FlightOpsCommandProvider.HandleRevertToEditor(new FakeFlightOpsActuator(), new RevertToEditorArgs { Editor = "hangar" });
+
+            Assert.Contains("hangar", result.Detail);
+        }
+
+        [Fact]
         public void HandleToTrackingStationCallsTheActuatorExactlyOnce()
         {
             var actuator = new FakeFlightOpsActuator();
