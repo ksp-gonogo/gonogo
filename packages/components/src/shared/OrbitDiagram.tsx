@@ -6,6 +6,7 @@ import {
 import type { ArcFarEnd } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  RECKONING_MARK,
   VESSEL_MARK,
   type VesselMarkState,
   VesselMarkSvg,
@@ -15,6 +16,8 @@ import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 // biome-ignore lint/style/noRestrictedImports: SVG <circle> focus ring (a :focus-visible stroke on a shape), which neither an inline style nor a primitive can render
 import styled from "styled-components";
+
+import type { OrbitSpread } from "./orbitSpread";
 
 export type OrbitDiagramVariant = "full" | "mini";
 
@@ -70,6 +73,12 @@ export interface OrbitDiagramProps {
   periapsis: number;
   /** Where the craft is drawn, or null where its place on the orbit is not known. */
   craft: CraftOnOrbit | null;
+  /**
+   * The stretch of orbit the craft may be anywhere on, drawn as an arc along the
+   * orbit. Left out where the reading carries no spread; an arc shorter than a
+   * pixel is not drawn.
+   */
+  spread?: OrbitSpread | null;
   /** Argument of periapsis in degrees (rotates the ellipse in-plane). */
   argPe: number;
   /** Whether the vessel is in a stable orbit, drives trajectory colour. Defaults to true. */
@@ -203,6 +212,7 @@ export function OrbitDiagram({
   apoapsis,
   periapsis,
   craft,
+  spread = null,
   argPe,
   isOrbiting = true,
   held = false,
@@ -396,6 +406,10 @@ export function OrbitDiagram({
   const vbPerPx = containerSize
     ? Math.max(vb.w / containerSize.w, vb.h / containerSize.h)
     : 1;
+  // Unmeasured, the size of a pixel is unknown, so no arc is claimed.
+  const spreadPath = containerSize
+    ? spreadArc(spread, sma, ecc, vbPerPx)
+    : null;
   const labelOffset = Math.max(dotR * 2.5, labelPxSize * 0.7 * vbPerPx);
   // Labels are nudged radially outward, so a marker below the body never puts its label inside it.
   function radialOffset(p: { x: number; y: number }): {
@@ -548,6 +562,23 @@ export function OrbitDiagram({
                 strokeDasharray={orbitDash}
               />
             )}
+            {spreadPath && (
+              <path
+                data-spread=""
+                d={spreadPath}
+                fill="none"
+                stroke={RECKONING_MARK.modelled.color}
+                strokeOpacity={0.85}
+                strokeWidth={strokeW * SPREAD_STROKE_SCALE}
+                strokeLinecap="butt"
+                strokeLinejoin="round"
+                pointerEvents="stroke"
+              >
+                <title>
+                  {`Position spread ±${spread ? writeQuantity(spread.halfWidth, { decimals: 1 }) : ""} along the orbit`}
+                </title>
+              </path>
+            )}
           </g>
 
           {/* Before the body disc, which occludes its inner edge. */}
@@ -692,6 +723,44 @@ export function OrbitDiagram({
       </DiagramSvg>
     </DiagramFrame>
   );
+}
+
+/** The spread arc is drawn this many line widths thick, so it reads as a band about the orbit line. */
+const SPREAD_STROKE_SCALE = 3;
+
+/** An arc shorter than this many pixels says nothing a viewer can see, so it is not drawn. */
+const SPREAD_MIN_PX = 1;
+
+/**
+ * The spread as an SVG path along the orbit, in the orbit's own frame, or null
+ * where it is absent or shorter than a pixel. Never padded to a minimum width,
+ * since that would claim more spread than the reading carries.
+ */
+function spreadArc(
+  spread: OrbitSpread | null,
+  sma: number,
+  ecc: number,
+  vbPerPx: number,
+): string | null {
+  if (spread === null) return null;
+  const points = spread.anomalies.map((nu) => {
+    const p = orbitalToCartesian(trueAnomalyToRadius(sma, ecc, nu), nu);
+    return { x: p.x, y: -p.y };
+  });
+  if (points.some((p) => !Number.isFinite(p.x) || !Number.isFinite(p.y))) {
+    return null;
+  }
+  let length = 0;
+  for (let i = 1; i < points.length; i++) {
+    length += Math.hypot(
+      points[i].x - points[i - 1].x,
+      points[i].y - points[i - 1].y,
+    );
+  }
+  if (length / vbPerPx < SPREAD_MIN_PX) return null;
+  return points
+    .map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(2)},${p.y.toFixed(2)}`)
+    .join(" ");
 }
 
 /** Each place the craft is known at, in drawing order, through `place` (true anomaly in degrees to SVG space). */

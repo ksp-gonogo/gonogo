@@ -1,7 +1,11 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/test-utils";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  installFixedSizeResizeObserver,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { OrbitDiagram } from "./OrbitDiagram";
 
 const BASE = {
@@ -365,5 +369,50 @@ describe("OrbitDiagram craft marks", () => {
       "var(--color-apoapsis-mark)",
       "var(--color-periapsis-mark)",
     ]);
+  });
+});
+
+describe("OrbitDiagram spread arc", () => {
+  let restore: () => void;
+  beforeEach(() => {
+    restore = installFixedSizeResizeObserver({ width: 400, height: 400 });
+  });
+  afterEach(() => {
+    restore();
+  });
+
+  /** True anomalies centred on the craft at 0 degrees, `half` degrees either side. */
+  const spreadOf = (half: number) => ({
+    anomalies: Array.from({ length: 9 }, (_, i) => -half + (i * half) / 4),
+    halfWidth: value("°", half),
+  });
+
+  it("draws an arc along the orbit, under the craft marks, with the spread in its tooltip", () => {
+    const { container } = render(
+      <OrbitDiagram {...BASE} spread={spreadOf(30)} />,
+    );
+
+    const arc = container.querySelector("path[data-spread]");
+    expect(arc).not.toBeNull();
+    expect(arc?.querySelector("title")?.textContent).toContain("30");
+    const markGroup = container.querySelector("svg > g > g:last-of-type");
+    expect(
+      arc && markGroup
+        ? arc.compareDocumentPosition(markGroup) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        : 0,
+    ).toBeTruthy();
+  });
+
+  it("draws nothing extra when the reading carries no spread", () => {
+    const { container } = render(<OrbitDiagram {...BASE} spread={null} />);
+    expect(container.querySelector("path[data-spread]")).toBeNull();
+  });
+
+  it("draws nothing for a spread smaller than a pixel, never a minimum width", () => {
+    const { container } = render(
+      <OrbitDiagram {...BASE} spread={spreadOf(0.00001)} />,
+    );
+    expect(container.querySelector("path[data-spread]")).toBeNull();
   });
 });
