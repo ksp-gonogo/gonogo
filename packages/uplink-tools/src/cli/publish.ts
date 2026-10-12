@@ -28,7 +28,8 @@ import { parseFlags } from "./flags";
 
 export const PUBLISH_USAGE = `uplink-tools publish [options]
 
-  Copy the released client, its bundle and its gonogo-uplink.json, to where
+  Copy the released client, its bundle and its gonogo-uplink.json, and the
+  spec sheet docs/spec.json when the client has one, to where
   uplink.json's client.url is served from, and say the links. Run it after
   release. A published version is never overwritten: a bundle that differs from
   the one already there is a new version, with its own URL.
@@ -43,7 +44,7 @@ export const PUBLISH_USAGE = `uplink-tools publish [options]
   --from <dir>      the built client (default: client/dist/<id>/ in the Uplink)
   --push            commit what changed and push it to the ref, then check the
                     remote holds the commit. Needs a git remote named origin
-  --purge           ask jsDelivr to drop its cached copy of both URLs
+  --purge           ask jsDelivr to drop its cached copy of each URL it published
   --tag <tag>       refuse unless the tag is <id>-v<version>, as release does
   --uplink <dir>    the Uplink's directory, the one holding uplink.json
                     (default: found by walking up from the current directory)`;
@@ -196,23 +197,41 @@ export interface PublishResult {
   bundleUrl: string;
   sidecarUrl: string;
   target: string;
+  /** Where the spec sheet is served, when one was published beside the bundle. */
+  specUrl?: string;
   /** Whether anything on disk changed. */
   changed: boolean;
 }
 
-/** Copies the client into the served tree. Never overwrites a different published file. */
+/** The spec sheet's file name in a release folder, which a viewer fetches beside the sidecar. */
+export const RELEASED_SPEC_FILE = "spec.json";
+
+/**
+ * Copies the client into the served tree, and the Uplink's spec sheet beside it
+ * when `specSheet` names a file that exists. Never overwrites a different
+ * published file.
+ */
 export function copyRelease(
   plan: PublishPlan,
   from: string,
   root: string,
+  specSheet?: string,
 ): PublishResult {
   const bundleName = `${plan.id}.client.js`;
   const copies: [string, string][] = [
     [bundleName, basename(plan.treePath)],
     ["gonogo-uplink.json", "gonogo-uplink.json"],
   ];
+  const withSpec = specSheet !== undefined && existsSync(specSheet);
+  const sources = new Map<string, string>(
+    copies.map(([file, as]) => [as, join(from, file)]),
+  );
+  if (withSpec) {
+    copies.push([RELEASED_SPEC_FILE, RELEASED_SPEC_FILE]);
+    sources.set(RELEASED_SPEC_FILE, specSheet);
+  }
   for (const [file] of copies) {
-    if (!existsSync(join(from, file))) {
+    if (file !== RELEASED_SPEC_FILE && !existsSync(join(from, file))) {
       throw new Error(
         `${join(from, file)} does not exist. Build it first: uplink-tools release. The loader derives ` +
           "the sidecar's URL from the bundle's own, so both are published together or the fetch half-succeeds.",
@@ -223,7 +242,7 @@ export function copyRelease(
   let changed = false;
   for (const [file, as] of copies) {
     const dest = join(target, as);
-    const bytes = readFileSync(join(from, file));
+    const bytes = readFileSync(sources.get(as) as string);
     if (existsSync(dest)) {
       if (!readFileSync(dest).equals(bytes)) {
         throw new Error(
@@ -236,12 +255,15 @@ export function copyRelease(
     } else changed = true;
   }
   mkdirSync(target, { recursive: true });
-  for (const [file, as] of copies) {
-    copyFileSync(join(from, file), join(target, as));
+  for (const [, as] of copies) {
+    copyFileSync(sources.get(as) as string, join(target, as));
   }
   return {
     bundleUrl: plan.url,
     sidecarUrl: plan.url.replace(/[^/]+$/, "gonogo-uplink.json"),
+    specUrl: withSpec
+      ? plan.url.replace(/[^/]+$/, RELEASED_SPEC_FILE)
+      : undefined,
     target,
     changed,
   };
@@ -349,10 +371,16 @@ export async function publish(
   const fault = to && plan.ref ? checkoutFault(root, plan.ref) : undefined;
   if (fault) throw new Error(`${id}: ${fault}`);
 
-  const result = copyRelease(plan, from, root);
+  const result = copyRelease(
+    plan,
+    from,
+    root,
+    join(clientDir, "docs", "spec.json"),
+  );
   console.log(`${id}: published to ${result.target}`);
   console.log(`  bundle   ${result.bundleUrl}`);
   console.log(`  sidecar  ${result.sidecarUrl}`);
+  if (result.specUrl) console.log(`  spec     ${result.specUrl}`);
   if (plan.owner) {
     console.log(
       `  every published version  https://cdn.jsdelivr.net/gh/${plan.owner}/${plan.repo}@${plan.ref}/${dirname(dirname(plan.treePath))}/`,
@@ -372,7 +400,11 @@ export async function publish(
     );
   }
   if (switches.has("--purge")) {
-    await purgeJsdelivr([result.bundleUrl, result.sidecarUrl]);
+    await purgeJsdelivr(
+      [result.bundleUrl, result.sidecarUrl, result.specUrl].filter(
+        (url): url is string => url !== undefined,
+      ),
+    );
   }
   return 0;
 }

@@ -137,6 +137,45 @@ describe("copyRelease", () => {
     );
   });
 
+  it("publishes the spec sheet beside the sidecar when the client has one", () => {
+    const from = tmp();
+    const root = tmp();
+    const spec = join(tmp(), "spec.json");
+    writeFileSync(join(from, "demo.client.js"), "x");
+    writeFileSync(join(from, "gonogo-uplink.json"), "{}");
+    writeFileSync(spec, '{"specVersion":1}\n');
+    const result = copyRelease(plan, from, root, spec);
+    expect(result.specUrl).toBe("https://example.com/demo/0.0.1/spec.json");
+    expect(readFileSync(join(root, "demo/0.0.1/spec.json"), "utf8")).toBe(
+      '{"specVersion":1}\n',
+    );
+    expect(copyRelease(plan, from, root, spec).changed).toBe(false);
+  });
+
+  it("publishes without a spec sheet for a client that has none", () => {
+    const from = tmp();
+    const root = tmp();
+    writeFileSync(join(from, "demo.client.js"), "x");
+    writeFileSync(join(from, "gonogo-uplink.json"), "{}");
+    const result = copyRelease(plan, from, root, join(tmp(), "spec.json"));
+    expect(result.specUrl).toBeUndefined();
+    expect(existsSync(join(root, "demo/0.0.1/spec.json"))).toBe(false);
+  });
+
+  it("refuses to overwrite a published spec sheet with different bytes", () => {
+    const from = tmp();
+    const root = tmp();
+    const spec = join(tmp(), "spec.json");
+    writeFileSync(join(from, "demo.client.js"), "x");
+    writeFileSync(join(from, "gonogo-uplink.json"), "{}");
+    writeFileSync(spec, "one");
+    copyRelease(plan, from, root, spec);
+    writeFileSync(spec, "two");
+    expect(() => copyRelease(plan, from, root, spec)).toThrow(
+      /already published with different bytes/,
+    );
+  });
+
   it("says to release first when the client was never built", () => {
     expect(() => copyRelease(plan, tmp(), tmp())).toThrow(/Build it first/);
   });
