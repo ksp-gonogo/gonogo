@@ -73,14 +73,60 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public void TwoItemArgumentsOnOneCommandAreRefusedAtStartup()
+        public void TwoItemArgumentsOnOneCommandRefuseTheirUplinkAndTheEngineStarts()
         {
-            // Not disposed: Start refuses before it starts a thread, and Stop joins threads that never ran.
-            var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
             var uplink = new ItemGateProbeUplink { SecondArgument = "otherId" };
             engine.RegisterUplink(uplink);
-            var thrown = Assert.Throws<InvalidOperationException>(() => engine.Start());
-            Assert.Contains("names its items by both", thrown.Message);
+            engine.RegisterUplink(new HealthyUplink());
+            engine.Start();
+            try
+            {
+                var refused = engine.AvailabilityOf(uplink.Manifest.Id);
+                Assert.False(refused.IsAvailable);
+                Assert.Contains("names its items by both", refused.Reason);
+                Assert.True(engine.AvailabilityOf(HealthyUplink.Id).IsAvailable);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A requirement an Uplink contributes to another's command that names
+        /// a different item argument refuses the contributor and leaves the
+        /// owner's gate working.
+        /// </summary>
+        [Fact]
+        public async Task AContributedItemArgumentThatClashesRefusesTheContributorAlone()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            engine.RegisterUplink(new ItemGateProbeUplink());
+            engine.RegisterUplink(new ClashingContributorUplink());
+            engine.Start();
+            try
+            {
+                var refused = engine.AvailabilityOf(ClashingContributorUplink.Id);
+                Assert.False(refused.IsAvailable);
+                Assert.Contains("names its items by both", refused.Reason);
+                Assert.True(engine.AvailabilityOf("item-gate-probe").IsAvailable);
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
+                engine.SampleCommandGates();
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
+                var gate = Assert.Single(
+                    Assert.IsType<List<object?>>(payload["gates"]).Cast<Dictionary<string, object?>>(),
+                    g => (string?)g["command"] == ItemGateProbeUplink.Command);
+                Assert.Equal(ItemGateProbeUplink.Argument, gate["itemArgument"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
         }
 
         private static async Task<Dictionary<string, object?>> SampleOnce(ItemGateProbeUplink uplink)
@@ -106,6 +152,47 @@ namespace Sitrep.Host.IntegrationTests
             finally
             {
                 engine.Stop();
+            }
+        }
+
+        private sealed class HealthyUplink : ISitrepUplink
+        {
+            public const string Id = "healthy";
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest => new UplinkManifest { Id = Id, Version = "1.0.0" };
+
+            public void Register(IUplinkHost host)
+            {
+            }
+        }
+
+        private sealed class ClashingContributorUplink : ISitrepUplink
+        {
+            public const string Id = "clashing-contributor";
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest => new UplinkManifest { Id = Id, Version = "1.0.0" };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddGateEvaluator(new Gate());
+                host.AddCommandRequirement(
+                    ItemGateProbeUplink.Command,
+                    new CommandRequirement { Kind = Gate.GateKind, Needs = new[] { "shipName" } });
+            }
+
+            private sealed class Gate : ICommandGateEvaluator, ICommandGateItems
+            {
+                public const string GateKind = "clashing-vehicle";
+
+                public string Kind => GateKind;
+
+                public IEnumerable<string> Items(CommandRequirement requirement) => new[] { "V-1" };
+
+                public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments) => GateVerdict.Pass();
             }
         }
 

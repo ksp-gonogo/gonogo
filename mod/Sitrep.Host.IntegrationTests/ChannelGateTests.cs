@@ -78,23 +78,41 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         [Fact]
-        public void AChannelRequirementThatNeedsArgumentsIsRefusedAtStartup()
+        public void AChannelRequirementThatNeedsArgumentsRefusesItsUplinkAlone()
         {
-            // Not disposed: Start refuses before it starts a thread, and Stop joins threads that never ran.
-            var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
-            engine.RegisterUplink(new ChannelGateProbeUplink { NeedsAnArgument = true });
-            var thrown = Assert.Throws<InvalidOperationException>(() => engine.Start());
-            Assert.Contains("which a channel never has", thrown.Message);
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new ChannelGateProbeUplink { NeedsAnArgument = true };
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                var refused = engine.AvailabilityOf(uplink.Manifest.Id);
+                Assert.False(refused.IsAvailable);
+                Assert.Contains("which a channel never has", refused.Reason);
+            }
+            finally
+            {
+                engine.Stop();
+            }
         }
 
         [Fact]
         public void AStaticChannelMayNotReadASubTopic()
         {
-            // Not disposed: Start refuses before it starts a thread, and Stop joins threads that never ran.
-            var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
-            engine.RegisterUplink(new ChannelGateProbeUplink { NeedsAnArgument = true, Argument = ChannelArguments.SubTopic });
-            var thrown = Assert.Throws<InvalidOperationException>(() => engine.Start());
-            Assert.Contains("which a channel never has", thrown.Message);
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", executeCommandsOnMainThread: true);
+            var uplink = new ChannelGateProbeUplink { NeedsAnArgument = true, Argument = ChannelArguments.SubTopic };
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                var refused = engine.AvailabilityOf(uplink.Manifest.Id);
+                Assert.False(refused.IsAvailable);
+                Assert.Contains("which a channel never has", refused.Reason);
+            }
+            finally
+            {
+                engine.Stop();
+            }
         }
 
         private static async Task<List<Dictionary<string, object?>>> SampleChannels(

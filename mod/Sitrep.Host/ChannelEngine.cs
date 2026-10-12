@@ -411,8 +411,21 @@ namespace Sitrep.Host
         // declaration rather than merged into it so the two orders stay fixed:
         // the owner's static requirements are evaluated first and can darken a
         // control in advance, contributions follow in the order they arrived.
-        private readonly Dictionary<string, List<CommandRequirement>> _contributedRequirements =
-            new Dictionary<string, List<CommandRequirement>>(StringComparer.Ordinal);
+        private readonly Dictionary<string, List<ContributedRequirement>> _contributedRequirements =
+            new Dictionary<string, List<ContributedRequirement>>(StringComparer.Ordinal);
+
+        /// <summary>A requirement and the Uplink that contributed it, so a fault in it is that Uplink's alone.</summary>
+        private readonly struct ContributedRequirement
+        {
+            public ContributedRequirement(string owner, CommandRequirement requirement)
+            {
+                Owner = owner;
+                Requirement = requirement;
+            }
+
+            public string Owner { get; }
+            public CommandRequirement Requirement { get; }
+        }
 
         // The last main-thread gate sample, published to system.uplink.gates by
         // the Courier-thread mapper. See SampleCommandGates.
@@ -3798,10 +3811,10 @@ namespace Sitrep.Host
             // ValidateGateDeclarations checks the pairing once, after all of them.
             if (!_contributedRequirements.TryGetValue(command, out var contributed))
             {
-                contributed = new List<CommandRequirement>();
+                contributed = new List<ContributedRequirement>();
                 _contributedRequirements[command] = contributed;
             }
-            contributed.Add(requirement);
+            contributed.Add(new ContributedRequirement(_currentRegisteringUplinkId ?? "", requirement));
         }
 
         /// <summary>
@@ -3826,7 +3839,10 @@ namespace Sitrep.Host
 
             var all = new CommandRequirement[declared.Length + contributed.Count];
             Array.Copy(declared, all, declared.Length);
-            contributed.CopyTo(all, declared.Length);
+            for (var i = 0; i < contributed.Count; i++)
+            {
+                all[declared.Length + i] = contributed[i].Requirement;
+            }
             return all;
         }
 
@@ -4743,23 +4759,38 @@ namespace Sitrep.Host
         /// controllable: a command may legitimately declare a kind whose
         /// evaluator registers from a later Uplink.</para>
         ///
-        /// <para>Throwing is the point. A misspelled kind, or an Uplink that
+        /// <para>A fault is never silent. A misspelled kind, or an Uplink that
         /// declares a gate and forgets its evaluator, otherwise produces a gate
         /// that silently does not exist: nothing refused, nothing disabled,
-        /// published as addressable. A startup failure names it once instead.</para>
+        /// published as addressable. The Uplink that declared or contributed it
+        /// is marked Unavailable with the reason in its health line, its
+        /// contributions are withdrawn, and every other Uplink starts. A fault
+        /// no Uplink owns still throws.</para>
         /// </summary>
         internal void ValidateGateDeclarations()
         {
-            var missing = new List<string>();
+            var faults = new List<KeyValuePair<string, string>>();
             foreach (var pair in _commandDeclarations)
             {
+                _commandOwner.TryGetValue(pair.Key, out var commandOwner);
                 string? itemArgument = null;
-                foreach (var requirement in RequirementsFor(pair.Key))
+                var owned = new List<ContributedRequirement>();
+                foreach (var requirement in pair.Value.Requires ?? EmptyRequirements)
                 {
+                    owned.Add(new ContributedRequirement(commandOwner ?? "", requirement));
+                }
+                if (_contributedRequirements.TryGetValue(pair.Key, out var contributions))
+                {
+                    owned.AddRange(contributions);
+                }
+
+                foreach (var entry in owned)
+                {
+                    var requirement = entry.Requirement;
                     var kind = requirement.Kind ?? "";
                     if (!_gateEvaluators.TryGetValue(kind, out var evaluator))
                     {
-                        missing.Add($"command \"{pair.Key}\" requires gate kind \"{kind}\"");
+                        faults.Add(Fault(entry.Owner, $"command \"{pair.Key}\" requires gate kind \"{kind}\""));
                         continue;
                     }
 
@@ -4771,21 +4802,40 @@ namespace Sitrep.Host
                     var need = requirement.Needs[0];
                     if (itemArgument != null && !string.Equals(itemArgument, need, StringComparison.Ordinal))
                     {
-                        missing.Add(
-                            $"command \"{pair.Key}\" names its items by both \"{itemArgument}\" and \"{need}\"");
+                        faults.Add(Fault(entry.Owner,
+                            $"command \"{pair.Key}\" names its items by both \"{itemArgument}\" and \"{need}\""));
                     }
                     itemArgument ??= need;
                 }
             }
 
+            foreach (var pair in _contributedRequirements)
+            {
+                // A contribution to a command nobody declares constrains
+                // nothing, and reads exactly like one that is being enforced.
+                // The shape of the mistake is a typo in a command id, which the
+                // Uplink that made it cannot tell.
+                if (_commandDeclarations.ContainsKey(pair.Key)) continue;
+                foreach (var contribution in pair.Value)
+                {
+                    faults.Add(Fault(contribution.Owner,
+                        $"a requirement was contributed to \"{pair.Key}\", which no uplink declares"));
+                }
+            }
+
             foreach (var pair in ChannelRequirementSets())
             {
+                if (!_channelOwner.TryGetValue(pair.Key, out var owner)
+                    && !_dynamicNamespaceOwner.TryGetValue(pair.Key, out owner))
+                {
+                    owner = "";
+                }
                 foreach (var requirement in pair.Value)
                 {
                     var kind = requirement.Kind ?? "";
                     if (!_gateEvaluators.ContainsKey(kind))
                     {
-                        missing.Add($"channel \"{pair.Key}\" requires gate kind \"{kind}\"");
+                        faults.Add(Fault(owner, $"channel \"{pair.Key}\" requires gate kind \"{kind}\""));
                     }
                     // A channel is sampled with no arguments, so a requirement that
                     // needs one would abstain forever and never say anything. The
@@ -4794,33 +4844,59 @@ namespace Sitrep.Host
                     if (requirement.Needs != null && requirement.Needs.Length > 0
                         && !(_dynamicNamespaces.ContainsKey(pair.Key) && NeedsOnlySubTopic(requirement)))
                     {
-                        missing.Add(
-                            $"channel \"{pair.Key}\" declares a requirement that needs arguments ({string.Join(", ", requirement.Needs)}), which a channel never has");
+                        faults.Add(Fault(owner,
+                            $"channel \"{pair.Key}\" declares a requirement that needs arguments ({string.Join(", ", requirement.Needs)}), which a channel never has"));
                     }
                 }
             }
 
-            // A contribution to a command nobody declares constrains nothing, and
-            // reads exactly like one that is being enforced. Named here rather
-            // than dropped, because the shape of the mistake is a typo in a
-            // command id and the Uplink that made it cannot tell.
-            foreach (var pair in _contributedRequirements)
+            if (faults.Count == 0) return;
+
+            // A fault belongs to the Uplink that declared or contributed the
+            // requirement, and refuses that Uplink alone: one bad declaration
+            // must never leave every other Uplink without a stream. A fault no
+            // Uplink owns was registered straight onto the engine, which is the
+            // host's own wiring and has nobody else to blame, so it still fails
+            // loudly.
+            var unowned = new List<string>();
+            var refused = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (var fault in faults)
             {
-                if (pair.Value.Count > 0 && !_commandDeclarations.ContainsKey(pair.Key))
+                if (string.IsNullOrEmpty(fault.Key))
                 {
-                    missing.Add($"a requirement was contributed to \"{pair.Key}\", which no uplink declares");
+                    unowned.Add(fault.Value);
+                    continue;
                 }
+                if (!refused.TryGetValue(fault.Key, out var reasons))
+                {
+                    reasons = new List<string>();
+                    refused[fault.Key] = reasons;
+                }
+                reasons.Add(fault.Value);
             }
 
-            if (missing.Count > 0)
+            if (unowned.Count > 0)
             {
                 throw new InvalidOperationException(
-                    "gate requirements that cannot be enforced: " + string.Join("; ", missing.ToArray())
+                    "gate requirements that cannot be enforced: " + string.Join("; ", unowned.ToArray())
                         + ". Register an ICommandGateEvaluator for each kind, name a command that exists, "
                         + "or remove the requirement: a gate nobody can evaluate is a gate that silently "
                         + "does not exist.");
             }
+
+            foreach (var pair in refused)
+            {
+                MarkUplinkUnavailable(pair.Key,
+                    "gate requirements that cannot be enforced: " + string.Join("; ", pair.Value.ToArray()));
+                foreach (var contributed in _contributedRequirements.Values)
+                {
+                    contributed.RemoveAll(c => c.Owner == pair.Key);
+                }
+            }
         }
+
+        private static KeyValuePair<string, string> Fault(string? owner, string message) =>
+            new KeyValuePair<string, string>(owner ?? "", message);
 
         /// <summary>
         /// Every non-<see cref="DelayRole.TrueNow"/> command must declare a

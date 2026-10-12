@@ -304,37 +304,48 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A contribution nobody can evaluate is a startup failure, for the same
-        /// reason a declared requirement with no evaluator is: it reads exactly
-        /// like a condition that is being enforced and enforces nothing.
+        /// A contribution nobody can evaluate reads exactly like a condition that
+        /// is being enforced and enforces nothing, so the contributing Uplink is
+        /// refused with the kind in its reason. The owner and the engine are
+        /// unaffected.
         /// </summary>
         [Fact]
-        public void AContributedKindWithNoEvaluatorRefusesToStart()
+        public void AContributedKindWithNoEvaluatorRefusesTheContributorAlone()
         {
-            // Not disposed: Start throws before the courier thread exists, and
-            // Stop joins a thread that was never started.
-            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new OwnerUplink());
             engine.RegisterUplink(new ContributorUplink(OwnedCommand, registerEvaluator: false));
-
-            var ex = Assert.Throws<InvalidOperationException>(() => engine.Start());
-            Assert.Contains(ContributorKind, ex.Message);
+            engine.Start();
+            try
+            {
+                var refused = engine.AvailabilityOf("contributor");
+                Assert.False(refused.IsAvailable);
+                Assert.Contains(ContributorKind, refused.Reason);
+                Assert.True(engine.AvailabilityOf("owner").IsAvailable);
+            }
+            finally { engine.Stop(); }
         }
 
         /// <summary>
         /// A contribution to a command that does not exist constrains nothing, and
         /// the shape of the mistake is a typo in a command id that the contributing
-        /// Uplink has no way to notice.
+        /// Uplink has no way to notice, so it is refused with the command named.
         /// </summary>
         [Fact]
-        public void AContributionToACommandNobodyDeclaresRefusesToStart()
+        public void AContributionToACommandNobodyDeclaresRefusesTheContributorAlone()
         {
-            var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new OwnerUplink());
             engine.RegisterUplink(new ContributorUplink("owner.lunch"));
-
-            var ex = Assert.Throws<InvalidOperationException>(() => engine.Start());
-            Assert.Contains("owner.lunch", ex.Message);
+            engine.Start();
+            try
+            {
+                var refused = engine.AvailabilityOf("contributor");
+                Assert.False(refused.IsAvailable);
+                Assert.Contains("owner.lunch", refused.Reason);
+                Assert.True(engine.AvailabilityOf("owner").IsAvailable);
+            }
+            finally { engine.Stop(); }
         }
 
         /// <summary>
