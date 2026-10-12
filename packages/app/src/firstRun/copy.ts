@@ -123,7 +123,7 @@ export const WIZARD_COPY = {
     "The container's own log usually says why something is not working:",
   "health.logCommandLabel": "container log command",
   "health.hint.guides":
-    "[Checking telemetry is arriving](telemetryChecks) walks the KSP side, and [the networking guide](networking) covers running KSP on another computer.",
+    "Settings, Help, has the checks for the KSP side, and [the networking guide](networking) covers running KSP on another computer.",
   "health.hint.uplinks":
     "Go back to the Uplinks step: each row there says why it is not working. Uplinks are optional, so this does not stop Gonogo.",
 

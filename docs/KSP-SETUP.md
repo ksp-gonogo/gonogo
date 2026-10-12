@@ -1,159 +1,21 @@
-# Connecting gonogo to KSP
+# Connecting Gonogo to KSP
 
-gonogo reads your game through mods installed in KSP. This page lists the mods you need, how to install them, how to point the dashboard at your running game, and how to check that telemetry is actually arriving.
+Gonogo reads your game through mods installed in KSP. This page covers only what you do before the app is open. Everything after that is in the app itself, under **Settings, Help**: connecting from another computer, checking telemetry is arriving, what an empty widget means and Uplinks.
 
 ## The mods you need
 
-Gonogo is built for KSP 1.12 (the mod declares 1.12.0 to 1.12.99). One mod is required:
-
-- **The Gonogo mod**, listed on CKAN as **Gonogo** (identifier `GonogoCore`). This is how gonogo reads the game: telemetry, career state, science, comms and more, streamed live over one WebSocket on port **8090**. See [Installing the Gonogo mod](#installing-the-gonogo-mod)
-
-Everything else is optional, and each one adds widgets without touching the rest of the dashboard:
-
-- **[kOS](https://ksp-kos.github.io/KOS/)** and the **GonogoKosUplink** mod that connects it, for the kOS Terminal widget (see [kOS](#kos))
-- **[SCANsat](https://github.com/S-C-A-N/SCANsat)** and the **GonogoScansatUplink** mod, for the map and scanning widgets
-- **[Kerbcast](https://github.com/ksp-gonogo/kerbcast)** and the **GonogoKerbcastUplink** mod, for streaming and controlling cameras, with **[HullcamVDS Continued](https://spacedock.info/mod/885/HullcamVDS%20Continued)** for the in-game camera parts (see [Camera feeds](#camera-feeds-kerbcast))
-
-An Uplink is a small mod that connects gonogo to one other mod. Each lists the Gonogo mod as its dependency, so a mod manager that finds them installs the Gonogo mod first. Without kerbcast you get no camera feeds, without kOS no terminal, and so on. Start with the Gonogo mod, confirm telemetry is arriving, then add whichever of the others you want.
-
-To see every Uplink CKAN lists, type `dep:GonogoCore` into its search box. kOS, SCANsat and Kerbcast are on CKAN too, and HullcamVDS Continued is on SpaceDock. Anything CKAN does not list is a hand install, walked through below.
-
-Uplinks are marked as development releases, and CKAN hides those by default. If the search finds no Uplinks, open CKAN's settings and allow development releases (its stability tolerance setting), then search again.
-
-### Where your KSP install is
-
-Every install step below copies files into `GameData/` inside your KSP install, so find it first.
-
-- **Steam**: right-click Kerbal Space Program in your library, Manage, Browse local files
-- Otherwise it is wherever you unpacked the game
-
-Inside it you will see a `GameData/` folder already containing `Squad/`. That is the folder mods go in.
-
-**"Merging a mod's `GameData/`"** means: copy the folders *inside* the mod's `GameData/` into *your* `GameData/`, so you end up with `GameData/Squad/` and `GameData/Gonogo/` side by side. You are never replacing your `GameData/` folder, and no two mods share a folder name, so nothing gets overwritten. Reinstalling a mod means deleting its folder and copying the new one in, not merging on top of the old.
+Gonogo is built for KSP 1.12. One mod is required: the **Gonogo mod**. Everything else is optional: each add-on is an Uplink, a small mod that connects Gonogo to one other mod and adds its widgets.
 
 ## Installing the Gonogo mod
 
-The easiest install is CKAN, a mod manager for KSP: [install CKAN](https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN) by following its own guide, search it for **Gonogo**, tick it and press Apply. CKAN puts `GameData/Gonogo/` in place and keeps it updated.
+The mod is not in a mod manager yet. Download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and copy the folders inside its `GameData/` into your KSP install's `GameData/`, so that `Squad/` and `Gonogo/` sit side by side. On Steam, find the install with Manage, Browse local files. Until a release carries the zip there is nothing to download.
 
-Without CKAN, download `Gonogo-v<version>.zip` from the [releases page](https://github.com/ksp-gonogo/gonogo/releases), unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is).
+To install an Uplink, do the same with its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), after installing the mod it connects to.
 
-> **Not on CKAN yet?** The CKAN listing and the downloadable zip arrive with the first release that carries them, and until then neither exists. If a search for **Gonogo** finds nothing, or the releases page has no `Gonogo-v<version>.zip`, there is nothing to install yet: come back after the first release.
-
-### Starting KSP
-
-The mod loads before the main menu and stays loaded across every scene change, so the server is up the moment KSP boots and a dashboard can connect to it from the main menu. Channel data starts flowing once a save is loaded. You do not need to be in a flight scene.
-
-**It listens on `ws://0.0.0.0:8090`**, meaning every network interface, so there is nothing to change on the KSP side to reach it from another computer. The bind address and port are compiled in; there is no setting for either.
-
-There is no TLS and no password, and the same socket that serves telemetry also accepts commands that act on your game. Anything that can reach port 8090 on that machine can fly your ship. Keep it to a network you trust, and don't forward the port.
-
-That includes playing with someone who isn't on your network: they don't need this port, and shouldn't have it. A remote crewmate opens the hosted app and joins with the share code your main screen shows, and their commands travel over that link and are dispatched by your machine. Forwarding 8090 to the internet would hand anyone who found it the same control, with nothing to stop them.
-
-### Installing Uplinks
-
-An Uplink is one mod's worth of extra telemetry and widgets, and it comes in two halves: a plugin that goes in `GameData/` beside the Gonogo mod, and a client bundle that ships with the gonogo app itself. You install the plugin half; the app fetches its own half. Install the Uplink from CKAN (search `dep:GonogoCore`), which also installs the Gonogo mod it depends on. Install kOS (or SCANsat) itself first.
-
-An Uplink the app lists as "Refused: contract mismatch: contract vX vs core vY" was built for a different version of the Gonogo mod than the one running. The dashboard still works; only that mod's widgets are missing. Install an Uplink release built for your mod's version (updating it in CKAN does this), or update the Gonogo mod to match, then reload the page.
-
-To install one by hand, download its zip from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is). Install the mod it connects to (kOS, SCANsat, Kerbcast) the same way or from CKAN. If the releases page has no zip for an Uplink yet, there is nothing to install yet: it arrives with its first release. Uplinks are optional and independent. A missing one costs you its widgets and nothing else.
-
-## Connecting the dashboard to KSP
-
-Everything the app needs to know about your game is one **Host**: a single address shared by the telemetry stream, the camera feeds and every Uplink. Ports are fixed per service, so you never set more than the host.
-
-It is the **browser** you opened the main screen in that connects to the game, directly, on port 8090 for the mod. The container does not. So the Host is an address the main screen computer's browser can reach, and the firewall that matters is the KSP computer's, which must accept incoming connections on 8090 (and 8088 for cameras).
-
-The default is `localhost`, so if you are running the container bundle with `KSP_HOST` set (see the root [README](../README.md#how-to-run-it)) or KSP is on the same computer, there is nothing to do. Note that running both on one computer is awkward in practice, because KSP pauses when it isn't the focused window; [NETWORKING.md](NETWORKING.md) explains the two-computer setup and how to find the KSP computer's address.
-
-To set or change the host by hand:
-
-1. On the main screen, hover the **+** button in the bottom-right corner, or Tab to it. A tower of buttons expands above it, each with its name beside it
-2. Press the **Settings** button (the gear)
-3. Open the **Connection** tab
-4. Under **Game host**, the row is named **Telemetry stream**. Press the gear on that row to reveal **Host** and **Port**, set Host to the KSP computer's address, and press **Save**
-
-The change takes effect immediately, with no restart and no page reload. Port defaults to `8090` and there is normally no reason to touch it.
-
-On a brand new browser this same connection row is part of a six-step setup that opens by itself once (Welcome, Start the container, Connect to KSP, Uplinks, Health check, Done), checking each part for you. **The Connect to KSP step is where a player whose game is on a second computer types that computer's address**: press the gear on its row and set Host. You can open the setup again from **Settings, Connection, Run setup again**.
-
-Station screens need none of this. A station gets all its data from the main screen over a peer connection and never talks to KSP.
+The mod listens on port 8090 with no password, and that port accepts commands that act on your game. Keep it to a network you trust and do not forward it to the internet.
 
 ## Checking telemetry is arriving
 
-Three checks, cheapest first. Do them in order: each one tells you which half of the path is broken.
+Open the app, then **Settings, Help, Checking telemetry is arriving**. The first-run setup runs the same checks for you, and **Settings, Connection, Run setup again** opens it again.
 
-### 1. Did the mod start?
-
-Open `KSP.log` in your KSP install folder and search for `[Gonogo]`. A working start logs:
-
-```
-[Gonogo] Started - serving system.bodies + <n> vessel.* channels on ws://0.0.0.0:8090
-```
-
-- **No `[Gonogo]` lines at all**: KSP never loaded the mod. Check `GameData/Gonogo/Plugins/` exists and holds every DLL the mod shipped with, none deleted
-- **`[Gonogo] Failed to start:`**: the exception that follows says why. A port already in use is the usual cause
-
-### 2. Does the app say it is connected?
-
-Open **Settings, Connection** as above. The **Telemetry stream** row shows a status word next to its name:
-
-- **CONNECTED**: the browser has an open socket to the mod. Expect this from the main menu, before any save is loaded. The connection is fine; if widgets are still empty, load a save
-- **DISCONNECTED**: nothing is getting through. The row also grows a **Reconnect** button and a line of setup text
-- **ERROR** or **RECONNECTING**: the socket failed or is retrying, same causes as disconnected
-
-The **Reconnect** button and the setup text appear only while the row reads DISCONNECTED. When the connection is down, the Settings button in the FAB tower carries an orange dot, so you can see it without opening anything.
-
-If the mod started (check 1 passed) but the app says disconnected, the problem is between the two machines: a wrong Host, or a firewall on the KSP computer. Windows and macOS both block incoming local-network connections by default; [NETWORKING.md](NETWORKING.md) covers this.
-
-The **Uplinks** tab beside it has a page for every Uplink the mod reports installed, showing the health the Uplink reports for itself and whether the app loaded its client, with the reason when it refused one. The list comes off the live stream, so an empty **Uplinks** tab is itself a sign that nothing is arriving.
-
-### 3. Does a widget draw?
-
-Load any save in KSP, then press the **+** button in the bottom-right of the dashboard and add **System View**. It draws a diagram of the bodies orbiting a chosen parent, fed by the `system.bodies` channel, which is the channel that asks least of your save: no vessel and no flight scene, just a loaded game.
-
-If System View draws bodies, the stream is arriving. That proves the connection and the game's bodies, not a vessel: the bodies belong to the game, so they draw from the main menu on. A vessel's widgets need more, covered next.
-
-### 4. Connected, but the vessel widgets stay empty
-
-The Telemetry stream row reads CONNECTED and System View draws, but Current Orbit shows a dash, Crew Status says "Waiting for telemetry..." and CommNet reads "Signal lost". Work down these:
-
-- **Is the game in the flight scene, with a vessel?** The Space Center and the Tracking Station have no active vessel, so vessel widgets have nothing to read. Load a save and press **Launch**, or fly a vessel from the Tracking Station, and give the app a few seconds
-- **Does that vessel have a CommNet link home?** The dashboard works as the operators at home would: a craft's data reaches them only along its comms path. A vessel with no link, such as one with no antenna, out of range of every ground station or behind a body, delivers nothing. Its widgets then say they are waiting if nothing has arrived since the page opened, or keep the last value they received and mark it as held. CommNet reads "Signal lost" and the header reads "Signal delay: disconnected". Nothing is wrong with the dashboard or the connection: get a link, with an antenna in range of a ground station or a relay, and the widgets fill in
-
-### Connected, but the vessel widgets stay empty
-
-If the stream reads CONNECTED and System View draws bodies, but Orbit shows a dash, Crew reads "Waiting for telemetry..." and CommNet reads "No signal", the connection is working and the game has nothing about a craft to send yet. There are two causes:
-
-- **No craft in flight.** Vessel data is sent only in the flight scene, with a craft under your control. The Space Center, Tracking Station and editor send the bodies and nothing about a vessel. Launch something, or switch to a craft already in flight
-- **No signal.** With CommNet on, the mod holds back a craft's telemetry while it has no connection to a command centre, as mission control would lose it. A craft that has had no signal since you loaded it has sent nothing, so its widgets stay empty; one that loses signal in flight keeps its last readings until the link returns, then catches up. Get it a connection (in range of the KSC, or through a relay) and the widgets fill
-
-## kOS
-
-The kOS Terminal widget needs two mods in KSP: **[kOS](https://ksp-kos.github.io/KOS/)** itself, and **GonogoKosUplink**, which is what lets gonogo talk to it (both installed above).
-
-There is no separate bridge process, no proxy to start and no second port. kOS rides the same WebSocket on 8090 as everything else: the app dispatches a script over the stream and reads the result back off it. So there is no kOS host to configure, and no kOS entry on the Connection tab; setting the one **Host** above is the whole of the setup.
-
-The widget lists the CPUs the mod reports. With no CPU reaching it, for any reason, it reads *"No kOS CPUs detected. Boot a kOS processor in-flight."* That one message covers a kOS processor you haven't switched on, GonogoKosUplink not being installed, and no telemetry stream at all, so work down the three checks above before assuming it is a kOS problem. The rest of the dashboard is unaffected either way, and **Settings, Uplinks** is where kOS's own health is reported.
-
-## Camera feeds (kerbcast)
-
-Live in-game camera feeds come through **kerbcast**, a separate KSP-side camera-streaming mod.
-
-### Installing kerbcast
-
-The easiest install is CKAN: search for **Kerbcast** and **Gonogo kerbcast Uplink** (see the development releases note above). By hand:
-
-1. Download the latest `kerbcast-v<version>.zip` from the releases page: **<https://github.com/ksp-gonogo/kerbcast/releases/>**. Take the full `kerbcast-v<version>.zip`, not the bare `Kerbcast.dll`.
-2. Unzip it and merge its `GameData/` folder into your KSP install's `GameData/`, as described under [Where your KSP install is](#where-your-ksp-install-is).
-3. Install the Uplink half the same way: `GonogoKerbcastUplink` from the [Uplinks releases page](https://github.com/ksp-gonogo/gonogo-uplinks/releases), merged into `GameData/`. The Camera Feed widget needs it
-4. kerbcast uses the camera parts from **HullcamVDS Continued** (in the mod list above), so make sure that's installed too.
-
-By default kerbcast only accepts connections from the same computer, unlike the Gonogo mod, which listens on every interface. To watch feeds from another device, which is the usual setup with the dashboard on a different machine from KSP, create `GameData/Kerbcast/PluginData/settings.cfg` (the folder and file are yours to make) containing a `Settings` block with `BindAddress` set to the KSP computer's LAN address (or `0.0.0.0` for every interface), for example `Settings { BindAddress = 0.0.0.0 }`. The `settings.cfg` next to it is overwritten on every update, which is why the change goes in `PluginData`. There's no password on the stream, so only open it up on a network you trust.
-
-Restart KSP. kerbcast starts automatically when a flight scene loads; there's nothing else to run. It serves on port **8088**.
-
-### Connecting the dashboard
-
-There is nothing to configure. The browser on the main screen computer dials kerbcast at the same **Host** you already set for the telemetry stream, on its own port 8088, so there is no camera row on the Connection tab and no second address to keep in sync.
-
-In gonogo, press **+** and add the **Camera Feed** widget. Camera feeds follow the same CommNet rule as the rest of the data: they cut out when you lose the connection.
+For running KSP on a second computer, firewalls and stations, see [NETWORKING.md](NETWORKING.md).

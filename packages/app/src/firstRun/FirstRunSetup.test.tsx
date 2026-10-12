@@ -421,9 +421,9 @@ describe("FirstRunSetup: the health check", () => {
     expect(screen.getByText(CONTAINER_LOGS_COMMAND)).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
-        name: linkWords(runs("health.hint.guides"), "telemetryChecks"),
+        name: linkWords(runs("health.hint.guides"), "networking"),
       }),
-    ).toHaveAttribute("href", SETUP_LINKS.telemetryChecks);
+    ).toHaveAttribute("href", SETUP_LINKS.networking);
   });
 
   it("sends an Uplink problem back to the Uplinks step, not to the container log", async () => {

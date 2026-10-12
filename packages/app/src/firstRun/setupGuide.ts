@@ -115,10 +115,10 @@ export const SETUP_LINKS = {
   ckanInstall: "https://github.com/KSP-CKAN/CKAN/wiki/Installing-CKAN",
   ckanUserGuide: "https://github.com/KSP-CKAN/CKAN/wiki/User-guide",
   kspSetup: `${DOCS}/KSP-SETUP.md`,
-  telemetryChecks: `${DOCS}/KSP-SETUP.md#checking-telemetry-is-arriving`,
   networking: `${DOCS}/NETWORKING.md`,
   relayPorts: `${DOCS}/NETWORKING.md#cross-internet-stations-cellular-remote-networks`,
   source: "https://github.com/ksp-gonogo/gonogo",
+  uplinkReleases: "https://github.com/ksp-gonogo/gonogo-uplinks/releases",
   uplinkDocs: "https://ksp-gonogo.github.io/uplink-dev-docs/",
 } as const;
 

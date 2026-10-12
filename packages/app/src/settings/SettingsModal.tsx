@@ -20,6 +20,7 @@ import { LogsManager } from "../logs/LogsManager";
 import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
+import { HelpSettings } from "./HelpSettings";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { bucketBy, CategoryRows } from "./SettingRows";
@@ -144,6 +145,9 @@ export function SettingsModal({
     label: "Backup & Restore",
     content: <BackupManager />,
   });
+  if (showConnection) {
+    tabs.push({ id: "help", label: "Help", content: <HelpSettings /> });
+  }
   tabs.push({
     id: "diagnostics",
     label: "Diagnostics",
