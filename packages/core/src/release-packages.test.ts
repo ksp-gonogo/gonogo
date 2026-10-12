@@ -355,14 +355,19 @@ describe("main", () => {
   };
   const manifest = (fields: object) =>
     `${JSON.stringify({ exports: { ".": "./dist/index.js" }, ...fields })}\n`;
-  const run = async (argv: string[], log = "feat: a\n") => {
+  const run = async (
+    argv: string[],
+    log = "feat: a\n",
+    { tags = ["v1.0.0"], lastRelease = "v1.0.0" } = {},
+  ) => {
     const printed: string[] = [];
     const result = await main(argv, {
       root,
       npm: (name: string) => (name === KIT ? ["0.1.0"] : []),
       nuget: async () => [],
-      tags: () => ["v1.0.0"],
+      tags: () => tags,
       log: () => log,
+      lastRelease: () => lastRelease,
       print: (line: string) => printed.push(line),
     });
     return { result, printed };
@@ -399,6 +404,34 @@ describe("main", () => {
       release: "1.1.0",
       version: "1.1.0-rc.12",
     });
+  });
+
+  it("plans the tree's own version as the first release when no release tag is reachable", async () => {
+    const { printed } = await run(
+      ["plan", "--bump", "auto", "--rc", "33"],
+      "feat!: a break\n",
+      { tags: [], lastRelease: "" },
+    );
+    expect(JSON.parse(printed[0])).toMatchObject({
+      release: "1.0.0",
+      version: "1.0.0-rc.33",
+    });
+  });
+
+  it("bumps from the log when the tree's own tag is spent, even with none reachable", async () => {
+    const { printed } = await run(["plan", "--bump", "auto"], "fix: a\n", {
+      tags: ["v1.0.0"],
+      lastRelease: "",
+    });
+    expect(JSON.parse(printed[0]).release).toBe("1.0.1");
+  });
+
+  it("applies an explicit bump even before the first release", async () => {
+    const { printed } = await run(["plan", "--bump", "minor"], "fix: a\n", {
+      tags: [],
+      lastRelease: "",
+    });
+    expect(JSON.parse(printed[0]).release).toBe("1.1.0");
   });
 
   it("takes an explicit version over any bump, and validates it the same way", async () => {

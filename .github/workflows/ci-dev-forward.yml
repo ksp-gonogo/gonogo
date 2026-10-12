@@ -14,8 +14,13 @@ name: Forward ci-dev to staging
 # gives a flaky test as many chances as there are runs. So every CI run of the
 # commit is read back, and the forward is refused while any is unfinished or has
 # failed. Each run's completion triggers this workflow, so the last one to finish
-# is the one that forwards. The rule is `scripts/ci-dev-forward-verdict.sh`, read
-# from the commit under test.
+# is the one that forwards. The rule is `scripts/ci-dev-forward-verdict.sh`.
+#
+# Only a push to this repository's own `ci-dev` forwards. `branches` matches the
+# run's head branch NAME, so a fork's pull request from a branch it calls
+# `ci-dev` completes a CI run that triggers this workflow too; the job's `if`
+# refuses it. The verdict script runs from a checkout of `staging`, never from
+# the commit under test, because this job holds a token that can push.
 #
 # A `workflow_run` workflow runs the copy of this file on the repository's
 # DEFAULT branch, which is `main`, not `staging`. An edit here does nothing until
@@ -37,7 +42,10 @@ concurrency:
 
 jobs:
   forward:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Check out the commit CI validated
@@ -46,13 +54,22 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
+      - name: Check out staging's verdict script
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+          path: trusted
+          persist-credentials: false
+          sparse-checkout: scripts/ci-dev-forward-verdict.sh
+          sparse-checkout-cone-mode: false
+
       - name: Every CI run of the commit passed, or refuse
         env:
           GH_TOKEN: ${{ github.token }}
           VALIDATED: ${{ github.event.workflow_run.head_sha }}
         run: |
           set -euo pipefail
-          if ! verdict="$(bash scripts/ci-dev-forward-verdict.sh "$GITHUB_REPOSITORY" "$VALIDATED")"; then
+          if ! verdict="$(bash trusted/scripts/ci-dev-forward-verdict.sh "$GITHUB_REPOSITORY" "$VALIDATED")"; then
             echo "$verdict"
             {
               echo "### Forward refused"

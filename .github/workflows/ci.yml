@@ -776,6 +776,10 @@ jobs:
       # not a lighter test run, so it fails here where the reason is legible
       # rather than as an absence nobody reads.
       #
+      # A push to ci-dev is one of those paths: its green run is what forwards
+      # staging, and rc.yml publishes a candidate on that verdict without
+      # running CI again.
+      #
       # A PULL REQUEST is one of those paths, and the condition has to say so
       # separately: on the `pull_request` trigger `github.ref` is
       # `refs/pull/<n>/merge`, never `refs/heads/main`, so a check written
@@ -797,6 +801,7 @@ jobs:
         if: >-
           github.ref == 'refs/heads/main'
           || github.ref == 'refs/heads/staging'
+          || github.ref == 'refs/heads/ci-dev'
           || (github.event_name == 'pull_request'
               && github.event.pull_request.head.repo.full_name == github.repository
               && (github.base_ref == 'main' || github.base_ref == 'staging'))

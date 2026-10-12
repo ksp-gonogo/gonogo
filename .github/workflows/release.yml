@@ -6,7 +6,8 @@ name: release
 #
 # A release is the deliberate act that moves what users see; pushes to
 # rc.yml only ever moves the RC channel (/rc/ + `:rc` images).
-# This workflow:
+# This workflow, once the package gates below have passed (the app never ships
+# ahead of a package that would then fail its own gate):
 #
 #   1. runs the full test suite at the tag (the release commit was pushed
 #      with GITHUB_TOKEN, so the CI workflow never ran on it, the gate
@@ -100,8 +101,11 @@ permissions:
   contents: write
   actions: write
 
+# GitHub keeps one pending run per group and cancels the older pending one, so
+# a candidate sharing the release's group could cancel a queued release after
+# prepare-release.yml has already moved main and pushed the tag.
 concurrency:
-  group: release
+  group: release-${{ inputs.rc && 'rc' || 'release' }}
   cancel-in-progress: false
 
 jobs:
@@ -109,7 +113,13 @@ jobs:
     # A packages_only dispatch skips the app release outright, so the escape
     # hatch for an out-of-band package publish can't be mistaken for, or
     # accidentally become, a release of the app.
-    if: ${{ !(github.event_name == 'workflow_dispatch' && (inputs.packages_only || inputs.rc)) }}
+    #
+    # The app ships only once every package has passed its pre-publish gates:
+    # a release whose NuGet probe or npm artifact check failed after Pages,
+    # GHCR and SpaceDock had moved would leave a released game with no
+    # packages to build an Uplink against.
+    needs: [ref-guard, packages-probe, nuget-pack]
+    if: ${{ !cancelled() && !(github.event_name == 'workflow_dispatch' && (inputs.packages_only || inputs.rc)) && needs.ref-guard.result == 'success' && needs.packages-probe.result == 'success' && needs.nuget-pack.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -173,33 +183,63 @@ jobs:
       # `--latest` because deploy.yml serves whichever release GitHub calls latest,
       # and GitHub's automatic choice prefers the higher version: after a reset of
       # the version line, an older higher-numbered release would keep /app/.
+      #
+      # A re-run finds the release it created the first time, so it replaces the
+      # asset and keeps it latest instead of failing on "already exists".
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
-          gh release create "${{ steps.version.outputs.tag }}" \
-            gonogo-site.tar.gz \
-            --repo "${{ github.repository }}" \
-            --title "${{ steps.version.outputs.tag }}" \
-            --latest \
-            --generate-notes
+          set -euo pipefail
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::notice::$TAG already has a GitHub Release, replacing its site asset."
+            gh release upload "$TAG" gonogo-site.tar.gz --clobber --repo "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --latest --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" \
+              gonogo-site.tar.gz \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$TAG" \
+              --latest \
+              --generate-notes
+          fi
 
+      # Each dispatch happens once per tag. A re-run of this job finds the run
+      # it dispatched the first time and leaves it alone: a SpaceDock version
+      # cannot be uploaded twice, and an image run for an old tag finishing
+      # after a newer one would move `latest` back. A dispatched run that
+      # failed is re-run from its own page.
       - name: Publish release images
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
+          set -euo pipefail
+          EXISTING="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow publish-images.yml --branch "$TAG" --event workflow_dispatch --json databaseId --jq 'length')"
+          if [ "$EXISTING" != 0 ]; then
+            echo "::notice::publish-images.yml already ran for $TAG; re-run that run if it failed."
+            exit 0
+          fi
           gh workflow run publish-images.yml \
-            --repo "${{ github.repository }}" \
-            --ref "${{ steps.version.outputs.tag }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$TAG" \
             -f channel=release
 
       - name: Publish mod zips
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
+          set -euo pipefail
+          EXISTING="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow publish-mods.yml --branch "$TAG" --event workflow_dispatch --json databaseId --jq 'length')"
+          if [ "$EXISTING" != 0 ]; then
+            echo "::notice::publish-mods.yml already ran for $TAG; re-run that run if it failed."
+            exit 0
+          fi
           gh workflow run publish-mods.yml \
-            --repo "${{ github.repository }}" \
-            --ref "${{ steps.version.outputs.tag }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$TAG" \
             -f channel=release
 
       - name: Publish the release app and the landing page to Pages
@@ -267,6 +307,23 @@ jobs:
 
       - name: The packages install and load together outside the workspace
         run: node scripts/published-packages-probe.mjs
+
+      # The same pack, stamp and artifact checks publish-packages runs on the
+      # tarball it publishes, here before the app release so a package that
+      # would be refused fails the run while nothing has shipped.
+      - name: Every packed package passes the artifact gate
+        run: |
+          set -euo pipefail
+          VERSION="$(node -p "require('./packages/app/package.json').version")"
+          DIRS="$(node -e "import('./scripts/release-packages.mjs').then((m) => console.log(m.publishedPackages().map((p) => p.dir).join(' ')))")"
+          for DIR in $DIRS; do
+            OUT="$RUNNER_TEMP/artifact-gate/$DIR"
+            mkdir -p "$OUT/packed"
+            PACKED="$(node scripts/pack-publishable.mjs "$DIR" "$OUT/packed")"
+            TARBALL="$(node scripts/release-packages.mjs stamp "$PACKED" "$VERSION" "$OUT")"
+            node scripts/verify-package-artifact.mjs "$TARBALL"
+            node scripts/release-packages.mjs check "$TARBALL" "$VERSION"
+          done
 
   # The RC version every published package shares, worked out once and refused
   # unless it sorts above everything any of them has published, then proved
@@ -565,10 +622,11 @@ jobs:
           node-version: '24'
           registry-url: https://registry.npmjs.org
 
+      # Pinned: this job holds the identity that can publish all three packages.
       - name: Ensure npm supports OIDC (>= 11.5.1)
         if: steps.published.outputs.skip == 'false'
         run: |
-          npm install -g npm@latest
+          npm install -g npm@11.21.0
           npm -v
 
       - name: Publish to npm
@@ -680,9 +738,10 @@ jobs:
           node-version: '24'
           registry-url: https://registry.npmjs.org
 
+      # Pinned: this job holds the identity that can move every package's tags.
       - name: Ensure npm can move a dist-tag under OIDC (>= 11.21.0)
         run: |
-          npm install -g npm@latest
+          npm install -g npm@11.21.0
           node -e "
             const [major, minor] = process.argv[1].split('.').map(Number);
             if (major < 11 || (major === 11 && minor < 21)) {
@@ -707,27 +766,20 @@ jobs:
             echo "🏷 $TAG is $VERSION for: $NAMES." >> "$GITHUB_STEP_SUMMARY"
           fi
 
-  # The C# half of the Uplink surface. nuget.org's trusted-publishing policy for
-  # the ksp-gonogo organisation names this file and no environment, so this is
-  # the only place that can push, and it authenticates with the job's OIDC token
-  # exchanged for a one-hour key. There is no stored API key to add.
-  #
-  # One file is packed and every check runs against it: the package gate, then
-  # the extraction probe building a real Uplink against it outside the repo, then
-  # the plant proving the probe could have failed. The push sends that same file,
-  # never a re-pack, so what shipped is what was tested.
-  #
-  # It is pushed FIRST, before any npm package, and `nuget-listed` then waits
-  # for it: see the note above `publish-packages`.
-  publish-nuget:
-    needs: [ref-guard, packages-probe, release, rc-plan]
-    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
+  # The C# half of the Uplink surface, packed once and gated before anything
+  # ships: the package gate, then the extraction probe building a real Uplink
+  # against it outside the repo, then the plant proving the probe could have
+  # failed. `release` waits for this, and `publish-nuget` pushes the file it
+  # uploads, never a re-pack, so what shipped is what was tested.
+  nuget-pack:
+    needs: [ref-guard, packages-probe, rc-plan]
+    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
     outputs:
       version: ${{ steps.pack.outputs.version }}
+      file: ${{ steps.pack.outputs.file }}
     env:
       RC: ${{ inputs.rc && 'true' || 'false' }}
       RC_PLAN: ${{ needs.rc-plan.outputs.plan }}
@@ -784,6 +836,7 @@ jobs:
           VERSION="${VERSION#"$PACKAGE_ID".}"
           {
             echo "nupkg=$NUPKG"
+            echo "file=$(basename "$NUPKG")"
             echo "version=$VERSION"
           } >> "$GITHUB_OUTPUT"
 
@@ -801,6 +854,60 @@ jobs:
           node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --uplink GonogoProbeUplink
           node scripts/nuget-extraction-probe.mjs --nupkg '${{ steps.pack.outputs.nupkg }}' --plant --uplink GonogoProbeUplink
 
+      # The .snupkg travels beside the .nupkg: `dotnet nuget push` sends a
+      # symbols package of the same name automatically.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: |
+            ${{ runner.temp }}/nuget/*.nupkg
+            ${{ runner.temp }}/nuget/*.snupkg
+          if-no-files-found: error
+
+  # nuget.org's trusted-publishing policy for the ksp-gonogo organisation names
+  # this file and no environment, so this is the only place that can push, and
+  # it authenticates with the job's OIDC token exchanged for a one-hour key.
+  # There is no stored API key to add.
+  #
+  # It is pushed FIRST, before any npm package, and `nuget-listed` then waits
+  # for it: see the note above `publish-packages`.
+  publish-nuget:
+    needs: [ref-guard, packages-probe, release, rc-plan, nuget-pack]
+    if: ${{ !cancelled() && needs.ref-guard.result == 'success' && (needs.packages-probe.result == 'success' || (needs.packages-probe.result == 'skipped' && inputs.rc)) && (needs.release.result == 'success' || needs.release.result == 'skipped') && (needs.rc-plan.result == 'success' || (needs.rc-plan.result == 'skipped' && !inputs.rc)) && needs.nuget-pack.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      version: ${{ needs.nuget-pack.outputs.version }}
+    env:
+      RC: ${{ inputs.rc && 'true' || 'false' }}
+      PACKAGE_ID: KspGonogo.Sitrep.Contract
+      NUPKG_FILE: ${{ needs.nuget-pack.outputs.file }}
+      VERSION: ${{ needs.nuget-pack.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: nuget-package
+          path: ${{ runner.temp }}/nuget
+
+      - name: The gated file is the one this job pushes
+        run: |
+          set -euo pipefail
+          NUPKG="$RUNNER_TEMP/nuget/$NUPKG_FILE"
+          test -f "$NUPKG"
+          echo "NUPKG=$NUPKG" >> "$GITHUB_ENV"
+
       # NuGet refuses a republish of an existing version, so an unchanged version
       # is skipped with a notice rather than failing the release. Only a 404 means
       # "not published": any other answer from the registry fails here, because
@@ -810,7 +917,6 @@ jobs:
         id: published
         run: |
           set -euo pipefail
-          VERSION='${{ steps.pack.outputs.version }}'
           ID_LOWER="$(echo "$PACKAGE_ID" | tr '[:upper:]' '[:lower:]')"
           STATUS="$(curl -s -o "$RUNNER_TEMP/versions.json" -w '%{http_code}' \
             "https://api.nuget.org/v3-flatcontainer/$ID_LOWER/index.json")"
@@ -840,14 +946,13 @@ jobs:
         if: steps.published.outputs.skip == 'true'
         run: |
           set -euo pipefail
-          VERSION='${{ steps.pack.outputs.version }}'
           ID_LOWER="$(echo "$PACKAGE_ID" | tr '[:upper:]' '[:lower:]')"
           curl -sf -o "$RUNNER_TEMP/published.nupkg" \
             "https://api.nuget.org/v3-flatcontainer/$ID_LOWER/$VERSION/$ID_LOWER.$VERSION.nupkg"
 
       - name: The published copy is not a fossil
         if: steps.published.outputs.skip == 'true'
-        run: node scripts/nuget-fossil-check.mjs '${{ steps.pack.outputs.nupkg }}' "$RUNNER_TEMP/published.nupkg"
+        run: node scripts/nuget-fossil-check.mjs "$NUPKG" "$RUNNER_TEMP/published.nupkg"
 
       # The login action exchanges the OIDC token as a named nuget.org account,
       # the profile name that owns the policy. It is refused before the exchange
@@ -874,17 +979,16 @@ jobs:
       - name: Publish to nuget.org
         if: steps.published.outputs.skip == 'false' && !inputs.dry_run
         run: |
-          case '${{ steps.pack.outputs.version }}' in
+          case "$VERSION" in
             *-rc.*) ;;
-            *) if [ "$RC" = true ]; then echo "::error::an RC run refuses to push the release version ${{ steps.pack.outputs.version }}"; exit 1; fi ;;
+            *) if [ "$RC" = true ]; then echo "::error::an RC run refuses to push the release version $VERSION"; exit 1; fi ;;
           esac
-          dotnet nuget push '${{ steps.pack.outputs.nupkg }}' \
+          dotnet nuget push "$NUPKG" \
             --api-key '${{ steps.login.outputs.NUGET_API_KEY }}' \
             --source https://api.nuget.org/v3/index.json
 
       - name: Summary
         run: |
-          VERSION='${{ steps.pack.outputs.version }}'
           if [ '${{ steps.published.outputs.skip }}' = 'true' ]; then
             echo "⏭ $PACKAGE_ID $VERSION: already on nuget.org, no version change." >> "$GITHUB_STEP_SUMMARY"
           elif [ '${{ inputs.dry_run }}' = 'true' ]; then

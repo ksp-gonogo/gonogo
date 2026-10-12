@@ -285,8 +285,11 @@ describe("the KSP-assemblies check fires on every path that gates a merge", () =
     ).toBe(false);
   });
 
+  it("fires on a push to ci-dev, whose green run forwards staging and feeds the RC", () => {
+    expect(evaluate(condition, pushTo("ci-dev"))).toBe(true);
+  });
+
   it("stays out of the way of a push to a throwaway branch", () => {
-    expect(evaluate(condition, pushTo("ci-dev"))).toBe(false);
     expect(evaluate(condition, pushTo("fleet/whatever"))).toBe(false);
   });
 });

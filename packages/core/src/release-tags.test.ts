@@ -191,6 +191,63 @@ describe("release.yml publishes the packages as a set", () => {
     }
   });
 
+  const jobBlock = (name: string) => {
+    const start = workflow.indexOf(`\n  ${name}:\n`);
+    expect(start, `the ${name} job`).toBeGreaterThan(-1);
+    const next = workflow.slice(start + 1).search(/\n {2}[a-z-]+:\n/);
+    return workflow.slice(start, next === -1 ? undefined : start + 1 + next);
+  };
+
+  it("ships the app only after every package has passed its pre-publish gates", () => {
+    const release = jobBlock("release");
+    expect(release).toMatch(/needs: \[.*packages-probe.*\]/);
+    expect(release).toMatch(/needs: \[.*nuget-pack.*\]/);
+    expect(release).toContain("needs.packages-probe.result == 'success'");
+    expect(release).toContain("needs.nuget-pack.result == 'success'");
+
+    const pack = jobBlock("nuget-pack");
+    expect(pack).toContain("dotnet pack");
+    expect(pack).toContain("nuget-contract-package-gate.mjs");
+    expect(pack).toContain("nuget-extraction-probe.mjs --nupkg");
+    expect(pack).toContain("--plant");
+
+    // The push sends the file nuget-pack gated, never a re-pack.
+    const push = jobBlock("publish-nuget");
+    expect(push).toMatch(/needs: \[.*nuget-pack.*\]/);
+    expect(push).toContain("needs.nuget-pack.result == 'success'");
+    expect(push).toContain("download-artifact");
+    expect(push).not.toContain("dotnet pack");
+
+    const probe = jobBlock("packages-probe");
+    expect(probe).toContain("verify-package-artifact.mjs");
+    expect(probe).toContain("release-packages.mjs check");
+  });
+
+  it("can re-run the release job once its GitHub Release and dispatches exist", () => {
+    const release = jobBlock("release");
+    expect(release).toMatch(
+      /gh release view "\$TAG"[\s\S]*gh release upload "\$TAG"[^\n]*--clobber/,
+    );
+    expect(release).toMatch(/gh run list [^\n]*--workflow publish-images\.yml/);
+    expect(release).toMatch(/gh run list [^\n]*--workflow publish-mods\.yml/);
+  });
+
+  it("keeps a candidate from cancelling a queued release", () => {
+    expect(workflow).toMatch(
+      /^concurrency:\n {2}group: release-\$\{\{ inputs\.rc && 'rc' \|\| 'release' \}\}$/m,
+    );
+  });
+
+  it("installs an exact npm in every job that holds the publish identity", () => {
+    const installs = workflow
+      .split("\n")
+      .filter((line) => /npm install -g npm@/.test(line));
+    expect(installs.length).toBeGreaterThanOrEqual(2);
+    for (const line of installs) {
+      expect(line).toMatch(/npm@\d+\.\d+\.\d+$/);
+    }
+  });
+
   it("probes the packed packages before either registry is pushed to", () => {
     for (const name of ["publish-nuget", "publish-packages"]) {
       const at = workflow.indexOf(`\n  ${name}:\n`);

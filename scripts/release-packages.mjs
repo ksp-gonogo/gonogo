@@ -14,9 +14,11 @@
  * ## The next release
  *
  * The app's version moved by a bump, or an exact version given instead (the
- * only way to reset the line or to name a 1.0). `auto` reads the conventional
+ * only way to reset the line). `auto` reads the conventional
  * commits since the last `v*` tag: a break moves the major, a feature the minor,
- * anything else the patch. Either way the result is refused unless it sorts
+ * anything else the patch. With no `v*` tag reachable and the tree's own tag
+ * unspent, nothing has been released yet, so `auto` plans the tree's version
+ * itself as the first release. Either way the result is refused unless it sorts
  * above every version already published of every package on its registry, and
  * its `v*` tag does not exist yet: a version is spent once, everywhere.
  *
@@ -451,11 +453,10 @@ function releaseTags(root) {
   return git(root, ["tag", "--list", "v*"]).split("\n").filter(Boolean);
 }
 
-/** The commit subjects and bodies since the last `v*` tag; an `rc-*` tag is not a release. */
-function logSinceRelease(root) {
-  let last = "";
+/** The last `v*` tag reachable from the checked-out commit, or "" when there is none; an `rc-*` tag is not a release. */
+function lastReleaseTag(root) {
   try {
-    last = git(root, [
+    return git(root, [
       "describe",
       "--tags",
       "--abbrev=0",
@@ -463,8 +464,13 @@ function logSinceRelease(root) {
       "v*",
     ]).trim();
   } catch {
-    last = "";
+    return "";
   }
+}
+
+/** The commit subjects and bodies since the last `v*` tag. */
+function logSinceRelease(root) {
+  const last = lastReleaseTag(root);
   return git(root, [
     "log",
     "--format=%s%n%b",
@@ -485,6 +491,7 @@ export async function main(
     nuget = nugetVersions,
     tags = () => releaseTags(root),
     log = () => logSinceRelease(root),
+    lastRelease = () => lastReleaseTag(root),
     print = console.log,
   } = {},
 ) {
@@ -495,9 +502,16 @@ export async function main(
       const bump = flag(rest, "--bump");
       if (!explicit && !bump) throw new Error("plan needs --bump or --version");
       const current = treeRelease(root);
+      const firstRelease =
+        !explicit &&
+        bump === "auto" &&
+        lastRelease() === "" &&
+        !tags().includes(`v${current}`);
       const release =
         explicit ||
-        nextRelease(current, bump === "auto" ? bumpFromLog(log()) : bump);
+        (firstRelease
+          ? current
+          : nextRelease(current, bump === "auto" ? bumpFromLog(log()) : bump));
       const runFlag = flag(rest, "--rc");
       const npmByName = {};
       for (const pkg of publishedPackages(root)) {
@@ -512,7 +526,7 @@ export async function main(
         tags: tags(),
       });
       console.error(
-        `release ${result.release} (the tree is at ${current}${explicit ? ", version given" : `, bump ${bump}`}): every package publishes ${result.version}`,
+        `release ${result.release} (the tree is at ${current}${explicit ? ", version given" : firstRelease ? ", no release yet so the tree's own version" : `, bump ${bump}`}): every package publishes ${result.version}`,
       );
       for (const [name, entry] of Object.entries(result.packages)) {
         if (entry.firstVersion)

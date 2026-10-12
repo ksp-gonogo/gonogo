@@ -45,7 +45,7 @@ on:
           - minor
           - major
       version:
-        description: 'An exact X.Y.Z instead of the bump, to reset the version line or name a 1.0'
+        description: 'An exact X.Y.Z instead of the bump, to reset the version line'
         required: false
         default: ''
         type: string
@@ -97,6 +97,7 @@ jobs:
       # has on npm or nuget.org and its v* tag is unspent. `auto` reads the
       # conventional commits since the last v* tag: a break moves the major, a
       # feature the minor, anything else the patch, and an empty range fails.
+      # With no v* tag reachable it plans the tree's own version, the first release.
       - name: Work out the release version
         id: version
         env:

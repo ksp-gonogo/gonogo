@@ -77,6 +77,8 @@ export function main(
     nuget?: (id: string) => Promise<string[]>;
     tags?: () => string[];
     log?: () => string;
+    /** The last `v*` tag reachable from the checked-out commit, or "" when there is none. */
+    lastRelease?: () => string;
     print?: (line: string) => void;
   },
 ): Promise<unknown>;
