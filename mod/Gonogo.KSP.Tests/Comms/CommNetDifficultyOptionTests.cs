@@ -217,6 +217,32 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         /// <summary>
+        /// The reveal gate treats a disconnected reading as a blackout and
+        /// freezes every Delayed channel, so a read of "no craft" must not be
+        /// one. A flight reverted to the editor ends there, and its
+        /// <c>flight.ended</c> is held until a launch reloads the game and
+        /// drops it.
+        /// </summary>
+        [Fact]
+        public void WithNoCraftOnScreen_TheGateIsGivenNoConnectivityRatherThanADisconnect()
+        {
+            var uplink = RegisteredUplink(new DeadGraphBackend());
+
+            CommsCoreUplink.ConfigureCommsModelProbe(() => true);
+            CommsCoreUplink.ConfigureActiveVesselProbe(() => null);
+            try
+            {
+                Assert.False(uplink.ElectedBackend()!.Connectivity().Connected);
+                Assert.Null(uplink.ComputeConnectedOnMain(null));
+            }
+            finally
+            {
+                CommsCoreUplink.ConfigureCommsModelProbe(null);
+                CommsCoreUplink.ConfigureActiveVesselProbe(null);
+            }
+        }
+
+        /// <summary>
         /// The delay the gate is handed, through the same composition: a known
         /// zero naming its own reason, not the null a craft with no measurable
         /// path reports.

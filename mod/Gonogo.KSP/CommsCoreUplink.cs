@@ -550,12 +550,27 @@ namespace Gonogo.KSP
         /// <see cref="IUplinkHost.SetConnectivitySource"/>): reads the elected
         /// backend's <see cref="ICommsBackend.Connectivity"/> live, exactly where
         /// <see cref="CaptureOnMain"/>/<see cref="ComputeDelayOnMain"/> run.
-        /// Returns null pre-election (no backend), which the gate treats as "no
-        /// authority yet" and leaves the last-known state untouched (default
-        /// connected): never worse than today's LAN behaviour.
+        /// Returns null pre-election (no backend) and while no craft is on screen,
+        /// which the gate treats as "no authority" and leaves the last-known
+        /// state untouched (default connected): never worse than today's LAN
+        /// behaviour.
         /// </summary>
         internal bool? ComputeConnectedOnMain(KspSnapshot? snapshot)
         {
+            /*
+             * With no craft on screen (an editor, the Space Center) there is no
+             * link to be down, but the backend's read of "no craft" is a
+             * disconnected one, and the gate freezes every Delayed channel on a
+             * disconnect. A flight reverted to the editor would then have its
+             * flight.ended held until a launch reloaded the game and dropped
+             * it. No answer leaves the last-known state in force. A forced
+             * blackout is about a craft too, so this precedes the dev override.
+             */
+            if (_activeVesselProbe() == null)
+            {
+                return null;
+            }
+
             // DEV-ONLY: see DevCommsOverride's doc comment. Resolves to null
             // (no-op) unless the GonogoDevTools assembly is loaded in this
             // process, so a real player install always falls through to the
