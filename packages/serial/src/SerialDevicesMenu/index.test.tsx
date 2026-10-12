@@ -1,5 +1,7 @@
-import { render, screen } from "@ksp-gonogo/test-utils";
+import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SerialDeviceProvider } from "../SerialDeviceContext";
 import { SerialDeviceService } from "../SerialDeviceService";
@@ -28,7 +30,7 @@ function setSecureContext(value: boolean): void {
   });
 }
 
-describe("SerialDevicesMenu Web Serial support banner", () => {
+describe("SerialDevicesMenu USB serial switch", () => {
   let originalSerial: PropertyDescriptor | undefined;
   let originalSecureContext: PropertyDescriptor | undefined;
 
@@ -53,90 +55,167 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
     }
   });
 
-  function renderMenu(): void {
-    const svc = new SerialDeviceService({
-      screenKey: "test",
-      storage: memoryStorage(),
-      renderDebounceMs: 0,
+  const USB_TYPE = {
+    id: "box",
+    name: "Button Box",
+    parser: "char-position",
+    inputs: [{ id: "a", name: "A", kind: "button" }],
+  };
+  const USB_DEVICE = {
+    id: "usb1",
+    name: "Throttle",
+    typeId: "box",
+    transport: "web-serial",
+  };
+
+  function setUsbSupported(supported: boolean): void {
+    Object.defineProperty(navigator, "serial", {
+      configurable: true,
+      value: supported ? { requestPort: () => Promise.resolve() } : undefined,
     });
-    render(
-      // SerialDevicesMenu is always opened inside a Modal in production (see
-      // SerialFab.tsx), and a gamepad DeviceRow now offers its own nested
-      // "Learn roles..." modal: so it needs a real ModalProvider ancestor
-      // here too, not just SerialDeviceProvider.
-      <ModalProvider>
-        <SerialDeviceProvider service={svc}>
-          <SerialDevicesMenu />
-        </SerialDeviceProvider>
-      </ModalProvider>,
-    );
+    setSecureContext(supported);
   }
 
-  it("shows the unsupported-browser banner when serial is absent in a secure context", () => {
-    Object.defineProperty(navigator, "serial", {
-      configurable: true,
-      value: undefined,
-    });
-    setSecureContext(true);
-    renderMenu();
-    expect(screen.getByRole("status").textContent).toMatch(
-      /not available in this browser/i,
-    );
-  });
-
-  it("shows the insecure-context banner when serial is absent on an insecure origin", () => {
-    Object.defineProperty(navigator, "serial", {
-      configurable: true,
-      value: undefined,
-    });
-    setSecureContext(false);
-    renderMenu();
-    const banner = screen.getByRole("status");
-    expect(banner.textContent).toMatch(/secure context/i);
-    expect(banner.textContent).toMatch(/unsafely-treat-insecure-origin/i);
-  });
-
-  it("hides the banner when navigator.serial.requestPort exists", () => {
-    Object.defineProperty(navigator, "serial", {
-      configurable: true,
-      value: { requestPort: () => Promise.resolve() },
-    });
-    renderMenu();
-    expect(screen.queryByRole("status")).toBeNull();
-  });
-
-  it("still offers a gamepad device Connect button when web-serial is unsupported, the Gamepad API is cross-browser", async () => {
-    Object.defineProperty(navigator, "serial", {
-      configurable: true,
-      value: undefined,
-    });
-    setSecureContext(true);
+  function renderMenu(opts: { usbOn?: boolean; saved?: boolean } = {}) {
+    const storage = memoryStorage();
+    if (opts.usbOn) storage.setItem("gonogo.serial.usb-enabled.test", "1");
+    if (opts.saved) {
+      storage.setItem("gonogo.serial.device-types", JSON.stringify([USB_TYPE]));
+      storage.setItem(
+        "gonogo.serial.devices.test",
+        JSON.stringify([USB_DEVICE]),
+      );
+    }
     const svc = new SerialDeviceService({
-      screenKey: "gp-no-web-serial",
-      storage: memoryStorage(),
+      screenKey: "test",
+      storage,
       renderDebounceMs: 0,
     });
-    svc.addDevice({
-      id: "gp1",
-      name: "My Pad",
-      typeId: "gamepad-unconfigured",
-      transport: "gamepad",
-    });
-    render(
+    const view = render(
+      // SerialDevicesMenu is always opened inside a Modal in production (see
+      // SerialFab.tsx), and a gamepad DeviceRow offers its own nested
+      // "Learn roles..." modal, so it needs a real ModalProvider ancestor.
       <ModalProvider>
         <SerialDeviceProvider service={svc}>
           <SerialDevicesMenu />
         </SerialDeviceProvider>
       </ModalProvider>,
     );
+    return { svc, ...view };
+  }
 
-    // The unsupported-browser banner is still there (this is genuinely a
-    // browser without web-serial)...
-    expect(screen.getByRole("status").textContent).toMatch(
-      /not available in this browser/i,
+  it("shows nothing about USB serial while it is off, whatever the browser", async () => {
+    setUsbSupported(false);
+    const { container, unmount, svc } = renderMenu();
+    await act(async () => {});
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByRole("tab", { name: "Device Types" })).toBeNull();
+    expect(screen.queryByText(/self-describing/i)).toBeNull();
+    expect(screen.queryByText(/web serial|secure context|flag/i)).toBeNull();
+    expect(
+      (screen.getByRole("checkbox", { name: "USB serial" }) as HTMLInputElement)
+        .checked,
+    ).toBe(false);
+    await expectNoA11yViolations(container);
+    unmount();
+    await svc.destroy();
+  });
+
+  it("lists a saved USB serial device as unavailable while it is off, and runs it again when switched on", async () => {
+    setUsbSupported(true);
+    const user = userEvent.setup();
+    const { unmount, svc } = renderMenu({ saved: true });
+    await act(async () => {});
+
+    expect(screen.getByText("Throttle")).toBeTruthy();
+    expect(screen.getByText("unavailable")).toBeTruthy();
+    expect(screen.getByText("USB serial is off")).toBeTruthy();
+    expect(svc.getDevice("usb1")).toBeUndefined();
+
+    await act(async () => {
+      await user.click(screen.getByRole("checkbox", { name: "USB serial" }));
+    });
+
+    expect(screen.queryByText("unavailable")).toBeNull();
+    expect(screen.getByText(/Button Box · web-serial/)).toBeTruthy();
+    expect(svc.getDevice("usb1")).toBeDefined();
+
+    await act(async () => {
+      await user.click(screen.getByRole("checkbox", { name: "USB serial" }));
+    });
+
+    expect(screen.getByText("USB serial is off")).toBeTruthy();
+    expect(svc.getDevice("usb1")).toBeUndefined();
+    expect(svc.getUnavailableDevice("usb1")?.reason).toBe("usb-serial-off");
+    unmount();
+    await svc.destroy();
+  });
+
+  it("keeps the saved device in storage across a reload with the switch off", async () => {
+    setUsbSupported(true);
+    const storage = memoryStorage();
+    storage.setItem("gonogo.serial.device-types", JSON.stringify([USB_TYPE]));
+    storage.setItem("gonogo.serial.devices.test", JSON.stringify([USB_DEVICE]));
+    const first = new SerialDeviceService({
+      screenKey: "test",
+      storage,
+      renderDebounceMs: 0,
+    });
+    await first.destroy();
+
+    const rows: { id: string }[] = JSON.parse(
+      storage.getItem("gonogo.serial.devices.test") ?? "[]",
     );
-    // ...but it does not block the gamepad device from getting a Connect
-    // affordance.
-    expect(screen.getByRole("button", { name: "Connect" })).not.toBeNull();
+    expect(rows.map((r) => r.id)).toContain("usb1");
+  });
+
+  it("offers the self-describing wizard and the type editor once USB serial is on and the browser can run it", async () => {
+    setUsbSupported(true);
+    const { unmount, svc } = renderMenu({ usbOn: true });
+    await act(async () => {});
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.getByText("+ add self-describing")).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Device Types" })).toBeTruthy();
+    unmount();
+    await svc.destroy();
+  });
+
+  it("shows no banner in the list when USB serial is on but the browser cannot run it, and disables Connect on a saved device", async () => {
+    setUsbSupported(false);
+    const { container, unmount, svc } = renderMenu({
+      usbOn: true,
+      saved: true,
+    });
+    await act(async () => {});
+
+    expect(screen.queryByRole("status")).toBeNull();
+    expect(screen.queryByText("+ add self-describing")).toBeNull();
+    const connects = screen.getAllByRole("button", { name: "Connect" });
+    expect(connects.some((b) => (b as HTMLButtonElement).disabled)).toBe(true);
+    await expectNoA11yViolations(container);
+    unmount();
+    await svc.destroy();
+  });
+
+  it("still offers a gamepad device Connect button when USB serial cannot run, the Gamepad API is cross-browser", async () => {
+    setUsbSupported(false);
+    const { svc, unmount } = renderMenu();
+    await act(async () => {
+      svc.addDevice({
+        id: "gp1",
+        name: "My Pad",
+        typeId: "gamepad-unconfigured",
+        transport: "gamepad",
+      });
+    });
+    await act(async () => {});
+
+    expect(
+      screen.getAllByRole("button", { name: "Connect" }).length,
+    ).toBeGreaterThan(0);
+    unmount();
+    await svc.destroy();
   });
 });

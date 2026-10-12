@@ -174,6 +174,37 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     ],
   },
   {
+    id: "controls",
+    title: "Physical controls",
+    blocks: [
+      text(
+        "Settings, Devices is where a screen's input devices live. Each screen keeps its own list, so a station has its own devices and bindings. To bind one, open a widget's settings, go to Inputs, press Bind and then press the key, button or axis.",
+      ),
+      list(
+        "Keyboard: always there, nothing to add. Bind by pressing a key. Keys held with Ctrl, Alt or Meta, Tab, Escape and anything typed into a text field are ignored",
+        "Gamepad: any controller your browser reports, in every browser. Add a Gamepad device, press Connect, then press a button on the pad, because the browser only reports a controller once it sees a press. If a pad's buttons show no labels, run Learn roles on its row",
+        "Virtual: an on-screen controller from the Virtual Device widget, for trying bindings with no hardware",
+      ),
+      text(
+        "USB serial is for home-built hardware such as a button box or a throttle. It is off until you switch USB serial on in Settings, Devices, and then it is offered when you add a device. Pressing Connect makes the browser open its own list of ports and ask which one to allow. That prompt is the browser's, and it only appears when you press Connect or add a self-describing device.",
+      ),
+      text(
+        "USB serial needs Chrome or Edge, and the page has to be on https or on localhost. A station opened from a plain http address on your network, such as one from the Add station code, is neither, so the browser hides USB serial from it and the add-device list shows a short note instead of the option working. Gamepad and keyboard are not affected.",
+      ),
+      text(
+        "To allow it on a plain http address you trust, open this page in Chrome, add the address to the list on it and relaunch Chrome. It turns off a browser protection for that address, so use it only for your own network.",
+      ),
+      {
+        kind: "command",
+        command: "chrome://flags/#unsafely-treat-insecure-origin-as-secure",
+        label: "Chrome page to copy into the address bar",
+      },
+      text(
+        "A saved USB serial device is kept when the switch is off or the browser cannot run it. It stays in the list as unavailable, with its bindings, and starts again when it can.",
+      ),
+    ],
+  },
+  {
     id: "app",
     title: "Running the app",
     blocks: [
