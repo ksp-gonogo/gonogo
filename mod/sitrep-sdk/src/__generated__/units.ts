@@ -2350,6 +2350,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CareerContracts": {
     active: "CareerContract[]",
     completedRecent: "CareerContract[]",
+    failedRecent: "CareerContract[]",
     offered: "CareerContract[]",
   },
   "CareerFacilities": {

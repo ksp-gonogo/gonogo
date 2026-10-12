@@ -39,6 +39,13 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class SaidByWhen
     {
+        /// <summary>
+        /// The most states kept for one thing; the oldest go first. Only an ask trims
+        /// what is held, and with no craft active nothing asks, so without a bound an
+        /// hour of warp in the tracking station keeps every look.
+        /// </summary>
+        public const int MostKept = RouteDelayByWhen.MostKept;
+
         private readonly Dictionary<string, List<(double Ut, CraftState State)>> _said =
             new Dictionary<string, List<(double, CraftState)>>(StringComparer.Ordinal);
 
@@ -61,6 +68,10 @@ namespace Sitrep.Host.Comms
             }
             _noted[id] = state;
             said.Add((ut, said.Count > 0 ? state.ListedAsBefore(said[said.Count - 1].State) : state));
+            if (said.Count > MostKept)
+            {
+                said.RemoveRange(0, said.Count - MostKept);
+            }
         }
 
         /// <summary>The newest thing said of <paramref name="id"/> at or before <paramref name="ut"/>, or null when nothing had been.</summary>
@@ -118,6 +129,9 @@ namespace Sitrep.Host.Comms
     /// </summary>
     public sealed class LinkByWhen
     {
+        /// <summary>The most changes kept for one craft; the oldest go first, for the reason <see cref="SaidByWhen.MostKept"/> gives.</summary>
+        public const int MostKept = RouteDelayByWhen.MostKept;
+
         private readonly Dictionary<string, List<(double Ut, bool Up)>> _known =
             new Dictionary<string, List<(double, bool)>>(StringComparer.Ordinal);
 
@@ -134,6 +148,10 @@ namespace Sitrep.Host.Comms
                 return;
             }
             known.Add((ut, up));
+            if (known.Count > MostKept)
+            {
+                known.RemoveRange(0, known.Count - MostKept);
+            }
         }
 
         /// <summary>Whether the craft's link was known to be up by <paramref name="ut"/>, or null where nothing of it was known by then.</summary>

@@ -43,6 +43,7 @@ function emitContracts(
     active?: Contract[];
     offered?: Contract[];
     completedRecent?: Contract[];
+    failedRecent?: Contract[];
   },
 ) {
   fixture.emit("career.status", { contracts });
@@ -264,6 +265,48 @@ describe("ContractManagerComponent", () => {
         screen.getByText(/1 active · 2 offered · 1 recent/i),
       ).toBeInTheDocument(),
     );
+  });
+});
+
+describe("recently failed contracts", () => {
+  it("counts them in the subtitle when there are any", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [{ id: 1, title: "A", parameters: [] }],
+        offered: [],
+        completedRecent: [],
+        failedRecent: [
+          { id: 5, title: "E", parameters: [] },
+          { id: 6, title: "F", parameters: [] },
+        ],
+      });
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText(/1 active · 0 offered · 0 recent · 2 failed/i),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("says nothing of failures when none are listed", async () => {
+    const fixture = newFixture();
+    renderContract(fixture);
+    act(() => {
+      emitContracts(fixture, {
+        active: [{ id: 1, title: "A", parameters: [] }],
+        offered: [],
+        completedRecent: [],
+        failedRecent: [],
+      });
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText(/1 active · 0 offered · 0 recent/i),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/failed/i)).toBeNull();
   });
 });
 

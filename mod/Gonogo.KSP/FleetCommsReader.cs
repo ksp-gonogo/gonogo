@@ -195,9 +195,17 @@ namespace Gonogo.KSP
                     return true;
                 }
                 var conn = vessel.connection;
-                if (conn == null || !conn.IsConnected || conn.ControlPath == null)
+                if (conn == null)
+                {
+                    return null;
+                }
+                if (!conn.IsConnected)
                 {
                     return false;
+                }
+                if (conn.ControlPath == null)
+                {
+                    return null;
                 }
                 CommLink? last = null;
                 foreach (var link in conn.ControlPath)

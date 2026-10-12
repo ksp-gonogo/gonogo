@@ -93,26 +93,23 @@ namespace Sitrep.Host.Tests
                 Ut = 0.0,
                 Values = new Dictionary<string, object?>
                 {
-                    ["science"] = new Dictionary<string, object?>
+                    ["deployedScience"] = new List<object?>
                     {
-                        ["deployed"] = new List<object?>
+                        new Dictionary<string, object?>
                         {
-                            new Dictionary<string, object?>
-                            {
-                                ["vesselName"] = "Probodobodyne Experiment Control Station",
-                                ["partName"] = "Atmospheric Fluid Spectro-Variometer",
-                                ["body"] = "Mun",
-                                ["situation"] = "LANDED",
-                                ["biome"] = "Highlands",
-                                ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
-                                ["scienceCompletedPercentage"] = 42.5,
-                                ["scienceTransmittedPercentage"] = 10.0,
-                                ["scienceValue"] = 8.0,
-                                ["scienceLimit"] = 20.0,
-                                ["powerState"] = "Powered",
-                                ["connectionState"] = "Connected",
-                                ["deployedOnGround"] = true,
-                            },
+                            ["vesselName"] = "Probodobodyne Experiment Control Station",
+                            ["partName"] = "Atmospheric Fluid Spectro-Variometer",
+                            ["body"] = "Mun",
+                            ["situation"] = "LANDED",
+                            ["biome"] = "Highlands",
+                            ["experimentId"] = "surfaceExperimentAtmosphericFluidSpectroVariometer",
+                            ["scienceCompletedPercentage"] = 42.5,
+                            ["scienceTransmittedPercentage"] = 10.0,
+                            ["scienceValue"] = 8.0,
+                            ["scienceLimit"] = 20.0,
+                            ["powerState"] = "Powered",
+                            ["connectionState"] = "Connected",
+                            ["deployedOnGround"] = true,
                         },
                     },
                 },

@@ -21,19 +21,21 @@ namespace Gonogo.KSP
     /// why revert needs no GameEvent hook at all). Only the two end reasons a
     /// sampler cannot distinguish (crashed/destroyed vs. recovered) are
     /// hooked here, mirroring <see cref="CrashUplink"/>/<see cref="RecoveryUplink"/>'s
-    /// exact GameEvents and dedupe/filter discipline, independently (zero
-    /// coupling to either uplink: see the contract file's "crash/recovery
-    /// stayed separate" note for why).</para>
+    /// exact GameEvents and filter discipline, independently (zero coupling to
+    /// either uplink: see the contract file's "crash/recovery stayed separate"
+    /// note for why). A death is <c>onVesselWillDestroy</c> alone; a per-part
+    /// <c>onCrash</c> only names it Crashed (see
+    /// <see cref="VesselDeaths{TRecord, TImpact}"/>).</para>
     /// </summary>
     [SitrepUplink("flight")]
     public sealed class FlightUplink : ISitrepUplink
     {
-        // Mirrors CrashUplink's DedupWindowUt: a single death can raise
-        // onCrash/onCrashSplashdown AND onVesselWillDestroy within the same
-        // physics frame.
-        private const double DedupWindowUt = 2.0;
+        // Mirrors CrashUplink's ImpactWindowUt.
+        private const double ImpactWindowUt = 2.0;
 
-        private readonly Dictionary<string, double> _lastPublishedEndUt = new Dictionary<string, double>();
+        private static readonly object Impacted = new object();
+
+        private readonly VesselDeaths<string, object> _deaths = new VesselDeaths<string, object>(ImpactWindowUt);
         private FlightLifecycleSampler? _sampler;
         private bool _subscribed;
 
@@ -100,6 +102,7 @@ namespace Gonogo.KSP
                 () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic),
                 message => Debug.LogWarning("[Gonogo] " + message));
             host.AddSampler(_sampler);
+            host.AddSampledSource(SignalDeaths, _ => { });
 
             HookGameEvents();
         }
@@ -120,57 +123,62 @@ namespace Gonogo.KSP
             // main menu, and a flight can end in any scene the player reaches.
         }
 
-        private void OnCrash(EventReport report) =>
-            HandleDestruction(report?.origin?.vessel, FlightEndReason.Crashed);
+        private void OnCrash(EventReport report) => NoteImpact(report);
 
-        private void OnCrashSplashdown(EventReport report) =>
-            HandleDestruction(report?.origin?.vessel, FlightEndReason.Crashed);
+        private void OnCrashSplashdown(EventReport report) => NoteImpact(report);
 
-        private void OnVesselWillDestroy(Vessel vessel) =>
-            HandleDestruction(vessel, FlightEndReason.Destroyed);
-
-        /// <summary>
-        /// MAIN-THREAD: mirrors <c>CrashUplink.HandleCrash</c>'s de-dupe +
-        /// source-side relevance filter exactly (a single death can raise
-        /// more than one detector; debris/flag/unknown vessels never
-        /// contribute a flight record) and its Crash/CrashSplashdown vs.
-        /// Destroyed distinction: <paramref name="reason"/> is
-        /// <see cref="FlightEndReason.Crashed"/> for a collision/hard
-        /// splashdown detector, <see cref="FlightEndReason.Destroyed"/> for
-        /// the catch-all (a non-collision death such as a re-entry burn-up,
-        /// which fires no <c>onCrash</c>). The de-dupe window means whichever
-        /// detector fires first for a given death wins the reason.
-        /// </summary>
-        private void HandleDestruction(Vessel? vessel, FlightEndReason reason)
+        /// <summary>MAIN-THREAD: one part broke on impact, on a craft that may fly on.</summary>
+        private void NoteImpact(EventReport report)
         {
             try
             {
-                if (vessel == null || _sampler == null)
+                var vessel = report?.origin?.vessel;
+                if (vessel == null)
                 {
                     return;
                 }
+                _deaths.Impact(vessel.id.ToString(), Impacted, Planetarium.GetUniversalTime());
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Gonogo] flight impact read failed: " + ex);
+            }
+        }
 
-                var vesselType = vessel.vesselType.ToString();
-                if (!CrashPayload.ShouldPublish(vesselType))
+        /// <summary>
+        /// MAIN-THREAD: the vessel is about to be destroyed, which ends its flight. Held
+        /// until the next tick so an impact that caused it names the end Crashed rather
+        /// than Destroyed. Debris, flags and unknown vessels never end a flight.
+        /// </summary>
+        private void OnVesselWillDestroy(Vessel vessel)
+        {
+            try
+            {
+                if (vessel == null || !CrashPayload.ShouldPublish(vessel.vesselType.ToString()))
                 {
                     return;
                 }
-
-                var ut = Planetarium.GetUniversalTime();
-                var vesselId = vessel.id.ToString();
-                if (_lastPublishedEndUt.TryGetValue(vesselId, out var previous)
-                    && Math.Abs(ut - previous) <= DedupWindowUt)
-                {
-                    return; // a co-firing detector already signalled this death
-                }
-                _lastPublishedEndUt[vesselId] = ut;
-
-                _sampler.SignalEnd(vesselId, GameWords.VesselName(vessel), reason, ut);
+                _deaths.Death(vessel.id.ToString(), GameWords.VesselName(vessel), Planetarium.GetUniversalTime());
             }
             catch (Exception ex)
             {
                 Debug.LogError("[Gonogo] flight destruction capture failed: " + ex);
             }
+        }
+
+        /// <summary>MAIN-THREAD: signals every flight end held since the last tick.</summary>
+        private object? SignalDeaths(KspSnapshot? snapshot)
+        {
+            if (_sampler == null)
+            {
+                return null;
+            }
+            foreach (var death in _deaths.Drain(snapshot?.Ut ?? Planetarium.GetUniversalTime()))
+            {
+                var reason = death.Impact != null ? FlightEndReason.Crashed : FlightEndReason.Destroyed;
+                _sampler.SignalEnd(death.VesselId, death.Record, reason, death.Ut);
+            }
+            return null;
         }
 
         /// <summary>
@@ -198,12 +206,10 @@ namespace Gonogo.KSP
 
                 var ut = Planetarium.GetUniversalTime();
                 var vesselId = vessel.vesselID.ToString();
-                if (_lastPublishedEndUt.TryGetValue(vesselId, out var previous)
-                    && Math.Abs(ut - previous) <= DedupWindowUt)
+                if (!_deaths.TryEnd(vesselId, ut))
                 {
                     return;
                 }
-                _lastPublishedEndUt[vesselId] = ut;
 
                 _sampler.SignalEnd(vesselId, GameWords.VesselName(vessel.vesselName), FlightEndReason.Recovered, ut);
             }

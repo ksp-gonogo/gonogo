@@ -25,6 +25,14 @@ namespace Sitrep.Contract.Serialization
     /// </summary>
     internal static class JsonReader
     {
+        /// <summary>
+        /// The deepest nesting of objects and arrays a document may have. Deeper input is
+        /// refused with a <see cref="FormatException"/> before it can exhaust the stack,
+        /// which under Mono ends the process rather than throwing. No message or recorded
+        /// payload comes near it.
+        /// </summary>
+        public const int MaxDepth = 64;
+
         public static object? Parse(string json)
         {
             var parser = new Parser(json);
@@ -42,11 +50,13 @@ namespace Sitrep.Contract.Serialization
         {
             private readonly string _s;
             private int _i;
+            private int _depth;
 
             public Parser(string s)
             {
                 _s = s;
                 _i = 0;
+                _depth = 0;
             }
 
             public int Position => _i;
@@ -102,9 +112,15 @@ namespace Sitrep.Contract.Serialization
                 switch (c)
                 {
                     case '{':
-                        return ParseObject();
+                        Descend();
+                        var obj = ParseObject();
+                        _depth--;
+                        return obj;
                     case '[':
-                        return ParseArray();
+                        Descend();
+                        var array = ParseArray();
+                        _depth--;
+                        return array;
                     case '"':
                         return ParseStringValue();
                     case 't':
@@ -118,6 +134,14 @@ namespace Sitrep.Contract.Serialization
                         return null;
                     default:
                         return ParseNumber();
+                }
+            }
+
+            private void Descend()
+            {
+                if (++_depth > MaxDepth)
+                {
+                    throw new FormatException($"JSON nested deeper than {MaxDepth} levels at position {_i}.");
                 }
             }
 

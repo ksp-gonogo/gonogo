@@ -132,11 +132,10 @@ namespace Gonogo.KSP.SilenceTracking
                 {
                     continue;
                 }
-                var (_, connected) = FleetCommsReader.ReadVessel(vessel, config);
                 var orbit = BuildOrbitElements(vessel);
                 present.Add(new SilenceSample(
                     vessel.id.ToString(),
-                    connected,
+                    FleetCommsReader.ReadConnected(vessel, config),
                     orbit,
                     RestsOnSurface(vessel),
                     ReferenceBodyIndexOf(vessel)));

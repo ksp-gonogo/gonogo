@@ -34,7 +34,7 @@ namespace Sitrep.Host
     /// snapshot.Values["career"] = Dictionary&lt;string, object?&gt; {
     ///   "balances":   { "funds": double?, "reputation": double?, "science": double? }
     ///   "facilities": { "&lt;SpaceCenterFacility name&gt;": { "currentTier": int?, "maxTier": int?, "upgradeCost": double? }, ... }
-    ///   "contracts":  { "active": [ ContractEntry, ... ], "offered": [ ContractEntry, ... ], "completedRecent": [ ContractEntry, ... ] }
+    ///   "contracts":  { "active": [ ContractEntry, ... ], "offered": [ ContractEntry, ... ], "completedRecent": [ ContractEntry, ... ], "failedRecent": [ ContractEntry, ... ] }
     ///   "strategies": { "active": [ StrategyEntry, ... ], "all": [ StrategyEntry, ... ], "activeCount": int,
     ///     "activationPatched": bool|null }
     ///   "tech":       { "unlockedCount": int, "unlockedIds": [ string, ... ], "nodes": [ TechNodeEntry, ... ] }
@@ -279,6 +279,7 @@ namespace Sitrep.Host
                 ["active"] = BuildContractList(raw, "active"),
                 ["offered"] = BuildContractList(raw, "offered"),
                 ["completedRecent"] = BuildContractList(raw, "completedRecent"),
+                ["failedRecent"] = BuildContractList(raw, "failedRecent"),
             };
         }
 

@@ -28,7 +28,7 @@ namespace Gonogo.KSP.Tests
         [Fact]
         public void TheSurfaceCaptureDoesNotGateOnSituation()
         {
-            var body = MethodBody(ReadKspHostSource(), "private static Dictionary<string, object?>? BuildSurface(Vessel vessel, Orbit? orbit)");
+            var body = MethodBody(ReadKspHostSource(), "private static Dictionary<string, object?>? BuildSurface(Vessel vessel, Orbit? orbit, double? lowestPointHeight)");
 
             Assert.True(!body.Contains("situation", StringComparison.OrdinalIgnoreCase),
                 "BuildSurface gates on the vessel's situation. KSP's ORBITING means a periapsis above the sea-level datum, "

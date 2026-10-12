@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 40.5.0
+  version: 40.6.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -9743,8 +9743,8 @@ components:
     CareerContract:
       type: object
       description: |-
-        One contract in `CareerContracts.active`, `CareerContracts.offered` or
-        `CareerContracts.completedRecent`.
+        One contract in `CareerContracts.active`, `CareerContracts.offered`,
+        `CareerContracts.completedRecent` or `CareerContracts.failedRecent`.
       required:
         - parameters
       properties:
@@ -9904,6 +9904,7 @@ components:
         - active
         - offered
         - completedRecent
+        - failedRecent
       properties:
         active:
           type: array
@@ -9928,6 +9929,17 @@ components:
             withdrawn contracts are not included. Same `CareerContract` element shape as
             `CareerContracts.active` / `CareerContracts.offered`: no extra fields;
             `State` is always `"Completed"` here.
+        failedRecent:
+          type: array
+          items:
+            $ref: "#/components/schemas/CareerContract"
+          description: |-
+            The most recently failed contracts, at most 10: `State.Failed` contracts
+            from `ContractSystem.Instance.ContractsFinished`, sorted newest-first by
+            `Contract.DateFinished`. Same `CareerContract` element shape as
+            `CareerContracts.active`; `State` is always `"Failed"` here. A contract
+            fails in the same stock call as the objective that failed it, so this is
+            where that objective's final state is read.
     CareerFacilities:
       type: object
       description: |-
@@ -10008,7 +10020,8 @@ components:
           description: |-
             The price of upgrading to the next tier, as KSP's
             `UpgradeableFacility.GetUpgradeCost` prices it (the save's funds difficulty
-            multiplier applied). `null` when it could not be read.
+            multiplier applied). `null` at the top tier, where there is no upgrade to
+            price, and when it could not be read.
     CareerMode:
       type: object
       description: |-
@@ -18262,14 +18275,15 @@ components:
         - const: 2
           title: ContractParameter
           description: |-
-            One objective of one active contract reaching a state the operator chose, as
-            `career.status.contracts.active` reports it.
+            One objective of one contract reaching a state the operator chose, as
+            `career.status.contracts` reports it.
 
             Level rather than edge, like the threshold: an objective already in its
-            target state when the alarm is set is a condition that holds. A contract no
-            longer active leaves the condition unmet for ever, which is the fail-safe
-            outcome for a contract that was completed, failed or withdrawn by some other
-            route.
+            target state when the alarm is set is a condition that holds. An objective
+            that finishes its contract, completing or failing it, is read from the
+            recently completed or failed contracts, so it still comes due. A contract
+            that finished with the objective in another state, or that left the career
+            any other way, makes the alarm `ScetAlarmState.Unreachable`.
         - const: 3
           title: TopicInstant
           description: |-
@@ -18369,12 +18383,13 @@ components:
         - const: 2
           title: Unreachable
           description: |-
-            The craft the condition watches no longer exists, so the alarm can never
-            come due.
+            The condition can never be met: the craft a threshold or a followed instant
+            watches no longer exists, or a contract objective's contract finished with
+            it in another state or left the career.
 
-            Only a threshold reaches this: a time condition has no subject to lose,
-            because universal time belongs to the game. Show such a row as dead rather
-            than as pending.
+            A time condition never reaches this: it has no subject to lose, because
+            universal time belongs to the game. Show such a row as dead rather than as
+            pending.
         - const: 3
           title: Cancelled
           description: |-
@@ -21157,8 +21172,8 @@ components:
             $ref: "#/components/schemas/InventoryStore"
           description: |-
             Every part-hosted inventory on the active vessel this tick, in vessel
-            part-list order. Always present (possibly empty); a vessel-less tick yields
-            a `null` payload, not an empty list.
+            part-list order. Always present (possibly empty); a vessel-less tick, or one
+            whose holds could not be read, yields a `null` payload, not an empty list.
     VesselLanding:
       type: object
       description: |-
@@ -21434,7 +21449,8 @@ components:
             `"semi-deployed"` (open as a streamer, slowing the craft a little),
             `"deployed"` (fully open) or `"cut"` (every one cut away). Unlike
             `VesselLanding.parachuteState` it tells semi-deployed from fully deployed,
-            and a packed parachute from none. Null outside an atmosphere.
+            and a packed parachute from none. Null outside an atmosphere, and when a
+            parachute whose arming could not be read might be the furthest along.
         parachuteDeploySafety:
           type:
             - string

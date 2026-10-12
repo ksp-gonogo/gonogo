@@ -137,8 +137,19 @@ namespace Sitrep.Host
                 {
                     // Partial-load failure (a missing dependency in one type
                     // in the assembly): fall back to whatever types DID
-                    // load rather than abandoning the whole assembly.
+                    // load rather than abandoning the whole assembly. The
+                    // types that did not load can include the Uplink itself,
+                    // which then has no other trace anywhere, so each reason
+                    // is logged against the assembly.
                     types = ex.Types.Where(t => t != null).Cast<Type>().ToArray();
+                    var reasons = (ex.LoaderExceptions ?? Array.Empty<Exception?>())
+                        .Where(reason => reason != null)
+                        .Select(reason => reason!.Message)
+                        .Distinct(StringComparer.Ordinal)
+                        .ToList();
+                    Log(
+                        "assembly \"" + assembly.FullName + "\" loaded only " + types.Length + " of its types; an Uplink among the rest is absent"
+                        + (reasons.Count == 0 ? "" : ": " + string.Join("; ", reasons)));
                 }
                 catch (Exception ex)
                 {
