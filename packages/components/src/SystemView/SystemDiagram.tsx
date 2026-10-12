@@ -110,7 +110,10 @@ export interface SystemDiagramProps {
   width: number;
   height: number;
   /** The diagram's pan and zoom, owned by the host so the layers over the diagram can follow it. */
-  view: PanZoom;
+  view: Pick<
+    PanZoom,
+    "zoom" | "pan" | "following" | "setFollowing" | "resetView" | "focusOn"
+  >;
 }
 
 const ZERO_METRES: readonly [number, number, number] = [0, 0, 0];
@@ -388,16 +391,7 @@ export function SystemDiagram({
   // A craft about a body with no moons is the whole picture there is to draw.
   const emptyDiagram =
     !parent || (children.length === 0 && vesselHere === null);
-  const {
-    zoom,
-    pan,
-    isDragging,
-    following,
-    setFollowing,
-    handlePointerDown,
-    resetView,
-    focusOn,
-  } = view;
+  const { zoom, pan, following, setFollowing, resetView, focusOn } = view;
   const vesselX = placed.vessel?.x;
   const vesselY = placed.vessel?.y;
   useEffect(() => {
@@ -425,11 +419,7 @@ export function SystemDiagram({
   const showVessel = vesselHere !== null;
 
   return (
-    <div
-      onPointerDown={handlePointerDown}
-      onPointerLeave={clearHover}
-      style={{ ...CONTAINER, cursor: isDragging ? "grabbing" : "grab" }}
-    >
+    <div onPointerLeave={clearHover} style={CONTAINER}>
       {/* biome-ignore lint/a11y/useSemanticElements: an SVG cannot be a fieldset; a group rather than an image because an image's children are presentational and the bodies and the active vessel are pressable */}
       <svg
         width="100%"

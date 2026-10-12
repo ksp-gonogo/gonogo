@@ -1,4 +1,5 @@
 import { FramedDisplay } from "@ksp-gonogo/ui";
+import type { CSSProperties } from "react";
 // biome-ignore lint/style/noRestrictedImports: the canvas's :active grab cursor and the compact rows' :has([data-unit-band]) wrap, which no inline style or kit primitive expresses
 import styled from "styled-components";
 
@@ -92,19 +93,12 @@ export const MapSections = styled.div`
   gap: var(--gap-related);
 `;
 
-/** Sized by inline width/height in px so the canvas is exactly 2:1 whichever dimension binds. */
-export const CanvasContainer = styled.div`
-  position: relative;
-  flex-shrink: 0;
-  border-radius: var(--radius-regular);
-  overflow: hidden;
-  cursor: grab;
-  touch-action: none;
-
-  &:active {
-    cursor: grabbing;
-  }
-`;
+/** The map's frame; the width and height come inline in px so the canvas is exactly 2:1 whichever dimension binds. */
+export const CANVAS_CONTAINER: CSSProperties = {
+  flexShrink: 0,
+  borderRadius: "var(--radius-regular)",
+  overflow: "hidden",
+};
 
 const CanvasBase = styled.canvas`
   position: absolute;

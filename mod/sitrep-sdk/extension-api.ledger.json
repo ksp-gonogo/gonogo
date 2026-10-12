@@ -14425,6 +14425,78 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
+        "key": "ui-kit . PanZoomCamera",
+        "note": "where a diagram is looking: the diagram point at the middle of the view and the zoom, shared by every pannable diagram"
+      },
+      {
+        "key": "ui-kit . PanZoomCamera#panX",
+        "note": "diagram x at the middle of the view"
+      },
+      {
+        "key": "ui-kit . PanZoomCamera#panY",
+        "note": "diagram y at the middle of the view"
+      },
+      {
+        "key": "ui-kit . PanZoomCamera#zoom",
+        "note": "screen pixels per diagram unit"
+      },
+      {
+        "key": "ui-kit . PanZoomViewport",
+        "note": "the element that holds a pannable diagram, so an Uplink gets the same drag, pinch, wheel rule, keyboard, focus ring and hint as the system, map and ship diagrams"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps",
+        "note": "the props usePanZoom hands the element that takes the gestures, exported because the hook result names it"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onBlur",
+        "note": "hides the hint when focus leaves the diagram"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onFocus",
+        "note": "shows the keyboard hint when focus arrives by keyboard"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onKeyDown",
+        "note": "arrow keys pan, plus and minus zoom, 0 resets"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onPointerCancel",
+        "note": "ends a drag or pinch the browser took over"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onPointerDown",
+        "note": "starts a drag, or a pinch on the second pointer"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onPointerLeave",
+        "note": "hides the hint when the pointer leaves the diagram"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onPointerMove",
+        "note": "pans, pinches and shows the hint once the pointer really moves over the diagram"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#onPointerUp",
+        "note": "ends a drag or one finger of a pinch"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#ref",
+        "note": "the element the wheel rule and the size measurement read"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#role",
+        "note": "a group, named by the label the viewport is given"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#style",
+        "note": "touch-action none and the grab cursor"
+      },
+      {
+        "key": "ui-kit . PanZoomViewportProps#tabIndex",
+        "note": "focusable, so the keyboard can pan and zoom"
+      },
+      {
         "key": "ui-kit . PlotCrosshair",
         "note": "a crosshair for an SVG plot: a line at an instant, a dot per trace and a readout of every row's value"
       },
@@ -14569,6 +14641,122 @@
         "note": "Says in words that the figure is of something other than what its label names. The figure's mark is then drawn hollow, a ring where it is a reading of now, and the words follow what the figure already says about how current it is (decision 77)"
       },
       {
+        "key": "ui-kit . UsePanZoomOptions",
+        "note": "the tuning usePanZoom takes: limits, zoom anchor, constraint, home view and the manual-move callback"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#constrain?",
+        "note": "holds the camera inside the diagram, such as a map that stops at its poles"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#elementRef?",
+        "note": "lets a caller that already measures the element share its ref"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#enabled?",
+        "note": "leaves the wheel unbound for a diagram with nothing to zoom yet"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#home?",
+        "note": "the starting camera and where reset returns to"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#maxZoom?",
+        "note": "the largest zoom"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#minZoom?",
+        "note": "the smallest zoom, a number or a function of the camera for a limit that depends on where the view is centred"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#onManualMove?",
+        "note": "reports each move made by hand, so a caller following something can stop following"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#panThreshold?",
+        "note": "pixels a press travels before it is a pan rather than a click"
+      },
+      {
+        "key": "ui-kit . UsePanZoomOptions#zoomAbout?",
+        "note": "zoom about the pointer or about the middle of the view"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult",
+        "note": "what usePanZoom returns: the camera, its controls and the props for the diagram element"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#camera",
+        "note": "the current camera"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#didPan",
+        "note": "true after a drag, so a click handler can ignore the click that ends it"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#hint",
+        "note": "the one-line note on how the diagram zooms, or null when hidden"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#isDragging",
+        "note": "true while a drag is in progress, for the grabbing cursor"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#reset",
+        "note": "returns the camera to the home view"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#setCamera",
+        "note": "puts the camera somewhere outright, for an eased move or a follow"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#viewportProps",
+        "note": "spread on the diagram element, or pass the whole result to PanZoomViewport"
+      },
+      {
+        "key": "ui-kit . UsePanZoomResult#zoomBy",
+        "note": "zooms about the middle of the view by a ratio, for a zoom button"
+      },
+      {
+        "key": "ui-kit . WheelGesture",
+        "note": "the wheel rule as a replayable state machine, exported so an Uplink can test its own surface against a recorded event sequence"
+      },
+      {
+        "key": "ui-kit . WheelGesture#owner",
+        "note": "who the latest wheel event belongs to"
+      },
+      {
+        "key": "ui-kit . WheelGesture#pageScrolled",
+        "note": "records that the page scrolled under the pointer"
+      },
+      {
+        "key": "ui-kit . WheelGesture#pointerMovedInside",
+        "note": "records that the pointer really moved over the diagram"
+      },
+      {
+        "key": "ui-kit . WheelGesture#wheel",
+        "note": "records a wheel event and returns its owner"
+      },
+      {
+        "key": "ui-kit . WheelGesture#yieldToPage",
+        "note": "hands the rest of a gesture to the page when the diagram is at its limit"
+      },
+      {
+        "key": "ui-kit . WheelGestureOptions",
+        "note": "the tuning of the wheel rule"
+      },
+      {
+        "key": "ui-kit . WheelGestureOptions#quietMs?",
+        "note": "the pause that ends a gesture"
+      },
+      {
+        "key": "ui-kit . WheelOwner",
+        "note": "diagram or page, the answer of the wheel rule"
+      },
+      {
+        "key": "ui-kit . WheelZoomHandler",
+        "note": "what a diagram does with one wheel event, returning false at its limit so the page scrolls"
+      },
+      {
         "key": "ui-kit . WidgetTopicDeclaration#channelFamilies?",
         "note": "Reads the required families off a widget definition"
       },
@@ -14579,6 +14767,10 @@
       {
         "key": "ui-kit . WidgetTopicDeclaration#optionalChannelFamilies?",
         "note": "Reads the optional families off a widget definition"
+      },
+      {
+        "key": "ui-kit . createWheelGesture",
+        "note": "builds the wheel rule state for replay in a test"
       },
       {
         "key": "ui-kit . describeSendStatus",
@@ -14629,8 +14821,20 @@
         "note": "Breaks a ground track where it flies over a pole; the antimeridian is no break"
       },
       {
+        "key": "ui-kit . usePanZoom",
+        "note": "pan, zoom, pinch, reset, keyboard and the wheel rule for any diagram, so every surface behaves the same"
+      },
+      {
         "key": "ui-kit . useSizeDeltaFor",
         "note": "Hook returning sizeDeltaFor against live Domain presence, new identity when an augment, contribution or Domain changes"
+      },
+      {
+        "key": "ui-kit . useWheelGesture",
+        "note": "the wheel rule alone, for a surface whose camera is not a pan and zoom of a plane, such as a canvas or a third-party viewer"
+      },
+      {
+        "key": "ui-kit . wheelZoomFactor",
+        "note": "the zoom ratio of one wheel event, so a custom surface scales a notch and a pinch the same way"
       },
       {
         "key": "ui-kit . widgetDrawnFamilies",

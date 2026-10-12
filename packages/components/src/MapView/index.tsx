@@ -11,6 +11,7 @@ import { Switch } from "@ksp-gonogo/ui";
 import {
   derivedMarking,
   Panel,
+  PanZoomViewport,
   ReadoutCaption,
   Section,
   WidgetScopeProvider,
@@ -32,7 +33,7 @@ import { MapPoiLayer } from "./MapPoiLayer";
 import {
   BaseCanvas,
   BodyLabel,
-  CanvasContainer,
+  CANVAS_CONTAINER,
   DataCanvas,
   ImagingChip,
   MapBody,
@@ -125,18 +126,8 @@ function MapViewComponent({
   } = telemetry;
 
   const { outerRef, containerSize } = useMapResize();
-  const {
-    camera,
-    setCamera,
-    baseZoom,
-    viewMode,
-    setViewMode,
-    interactionRef,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp,
-    onPointerCancel,
-  } = useCamera(containerSize);
+  const { camera, setCamera, baseZoom, viewMode, setViewMode, panZoom } =
+    useCamera(containerSize);
 
   useMapViewActions({
     viewMode,
@@ -380,17 +371,15 @@ function MapViewComponent({
             <MapBody>
               <MapFrame>
                 <MapOuter ref={outerRef}>
-                  <CanvasContainer
-                    ref={interactionRef}
-                    style={
-                      containerSize
+                  <PanZoomViewport
+                    panZoom={panZoom}
+                    label="Map"
+                    style={{
+                      ...CANVAS_CONTAINER,
+                      ...(containerSize
                         ? { width: containerSize.w, height: containerSize.h }
-                        : undefined
-                    }
-                    onPointerDown={onPointerDown}
-                    onPointerMove={onPointerMove}
-                    onPointerUp={onPointerUp}
-                    onPointerCancel={onPointerCancel}
+                        : undefined),
+                    }}
                   >
                     <BaseCanvas
                       ref={baseRef}
@@ -458,7 +447,7 @@ function MapViewComponent({
                         }}
                       />
                     )}
-                  </CanvasContainer>
+                  </PanZoomViewport>
                 </MapOuter>
               </MapFrame>
             </MapBody>
