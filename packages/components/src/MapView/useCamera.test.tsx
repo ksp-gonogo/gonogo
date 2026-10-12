@@ -1,11 +1,11 @@
 import { act, render, renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { pointerEvent } from "../test/pointerStubs";
-import { WORLD_W } from "./camera";
+import { WORLD_H, WORLD_W, widestZoom } from "./camera";
 import { useCamera } from "./useCamera";
 
 /** Renders the hook with a fixed container size and a fake element on interactionRef, for the pinch path's getBoundingClientRect. */
-function setup() {
+function setup(size = { w: 200, h: 100 }) {
   const el = {
     setPointerCapture() {},
     releasePointerCapture() {},
@@ -24,14 +24,14 @@ function setup() {
     removeEventListener() {},
   } as unknown as HTMLDivElement;
 
-  const hook = renderHook(() => useCamera({ w: 200, h: 100 }));
+  const hook = renderHook(() => useCamera(size));
   hook.result.current.interactionRef.current = el;
   return { hook, el };
 }
 
 describe("useCamera", () => {
   it("pans with a single pointer", () => {
-    const { hook, el } = setup();
+    const { hook, el } = setup({ w: 200, h: 50 });
     const before = hook.result.current.camera;
 
     act(() => {
@@ -69,6 +69,52 @@ describe("useCamera", () => {
     expect(after.panX).not.toBe(before.panX);
     expect(after.panY).not.toBe(before.panY);
     expect(after.zoom).toBe(before.zoom);
+  });
+
+  it("stops a drag at the poles, so nothing is banked to drag back", () => {
+    const { hook, el } = setup({ w: 200, h: 50 });
+    const move = (clientY: number) =>
+      act(() => {
+        hook.result.current.onPointerMove(
+          pointerEvent({
+            pointerId: 1,
+            clientX: 50,
+            clientY,
+            currentTarget: el,
+          }),
+        );
+      });
+    act(() => {
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 50,
+          clientY: 0,
+          currentTarget: el,
+        }),
+      );
+    });
+    const { zoom } = hook.result.current.camera;
+    const half = 50 / 2 / zoom;
+    // Far further down the screen than the map is tall.
+    for (let y = 100; y <= 3000; y += 100) move(y);
+    expect(hook.result.current.camera.panY).toBeCloseTo(half, 6);
+    move(2900);
+    // One step back up moves the view at once.
+    expect(hook.result.current.camera.panY).toBeGreaterThan(half);
+    for (let y = 2800; y >= -3000; y -= 100) move(y);
+    expect(hook.result.current.camera.panY).toBeCloseTo(WORLD_H - half, 6);
+  });
+
+  it("starts at one world across and cannot zoom out from there", () => {
+    const { hook } = setup({ w: 400, h: 100 });
+    expect(hook.result.current.camera.zoom).toBe(widestZoom(400));
+    expect(hook.result.current.baseZoom).toBe(widestZoom(400));
+  });
+
+  it("holds a tile too tall for the world on the world's middle", () => {
+    const { hook } = setup({ w: 100, h: 400 });
+    expect(hook.result.current.camera.panY).toBe(WORLD_H / 2);
   });
 
   it("pans without end: dragging past the world's edge carries on into the next repeat of it", () => {

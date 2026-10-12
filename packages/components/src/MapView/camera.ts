@@ -4,7 +4,7 @@ import { repeatsInView } from "@ksp-gonogo/ui-kit";
 export const WORLD_W = 4096;
 export const WORLD_H = 2048;
 
-// Maximum zoom relative to the fit-whole-world zoom.
+// Maximum zoom relative to the widest view the map allows.
 const ZOOM_MAX_FACTOR = 20;
 
 export type Camera = {
@@ -15,11 +15,38 @@ export type Camera = {
 
 export type ViewMode = "global" | "follow";
 
-export const fitCamera = (screenW: number, screenH: number): Camera => ({
-  zoom: Math.min(screenW / WORLD_W, screenH / WORLD_H),
+/**
+ * The zoom at which the map area is exactly one world wide: the widest view
+ * the map allows, so no place is ever on screen twice. On a tile wider than
+ * the world, this crops the poles rather than repeating the world.
+ */
+export const widestZoom = (screenW: number): number => screenW / WORLD_W;
+
+export const fitCamera = (screenW: number, _screenH: number): Camera => ({
+  zoom: widestZoom(screenW),
   panX: WORLD_W / 2,
   panY: WORLD_H / 2,
 });
+
+/**
+ * `camera` held inside the map: never zoomed out past one world wide, and
+ * never panned north or south past a pole's edge. A view taller than the
+ * world is centred on it. East and west are left alone, the map repeats.
+ */
+export const constrainCamera = (
+  camera: Camera,
+  screenW: number,
+  screenH: number,
+): Camera => {
+  const zoom = Math.max(camera.zoom, widestZoom(screenW));
+  const half = screenH / 2 / zoom;
+  const panY =
+    half * 2 >= WORLD_H
+      ? WORLD_H / 2
+      : Math.min(WORLD_H - half, Math.max(half, camera.panY));
+  if (zoom === camera.zoom && panY === camera.panY) return camera;
+  return { ...camera, zoom, panY };
+};
 
 export const worldToScreen = (
   wx: number,
@@ -93,9 +120,9 @@ export const nearestRepeatX = (wx: number, near: number): number =>
 export const wrapWorldX = (wx: number): number =>
   ((wx % WORLD_W) + WORLD_W) % WORLD_W;
 
-// Relative to the fit zoom, so the operator cannot zoom out past the global view.
+// Relative to the widest zoom, so the operator cannot zoom out past one world across.
 export const zoomBounds = (baseZoom: number) => ({
-  min: baseZoom * 0.9,
+  min: baseZoom,
   max: baseZoom * ZOOM_MAX_FACTOR,
 });
 

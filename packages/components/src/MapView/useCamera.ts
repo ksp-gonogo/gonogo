@@ -1,11 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useWheelZoom } from "../shared/useWheelZoom";
 import {
   type Camera,
+  constrainCamera,
   fitCamera,
   type ViewMode,
   WORLD_H,
   WORLD_W,
+  widestZoom,
   wrapWorldX,
   zoomBounds,
 } from "./camera";
@@ -16,12 +25,33 @@ interface PointerPos {
 }
 
 export function useCamera(containerSize: { w: number; h: number } | null) {
-  const baseZoom = containerSize
-    ? Math.min(containerSize.w / WORLD_W, containerSize.h / WORLD_H)
-    : 0.0001;
+  const baseZoom = containerSize ? widestZoom(containerSize.w) : 0.0001;
 
-  const [camera, setCamera] = useState<Camera>(() =>
+  const [heldCamera, setHeldCamera] = useState<Camera>(() =>
     fitCamera(containerSize?.w ?? WORLD_W, containerSize?.h ?? WORLD_H),
+  );
+  const width = containerSize?.w;
+  const height = containerSize?.h;
+
+  // Every write is held inside the map, so a drag past a pole stops there instead of banking distance to drag back.
+  const setCamera = useCallback(
+    (next: SetStateAction<Camera>) =>
+      setHeldCamera((prev) => {
+        const camera = typeof next === "function" ? next(prev) : next;
+        return width === undefined || height === undefined
+          ? camera
+          : constrainCamera(camera, width, height);
+      }),
+    [width, height],
+  );
+
+  // A resize lands one render before the effect that refits, and the held camera may be wider than the new tile allows.
+  const camera = useMemo(
+    () =>
+      width === undefined || height === undefined
+        ? heldCamera
+        : constrainCamera(heldCamera, width, height),
+    [heldCamera, width, height],
   );
   const [viewMode, setViewMode] = useState<ViewMode>("global");
 
@@ -67,7 +97,7 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
               });
             }
           : null,
-      [containerSize, baseZoom],
+      [containerSize, baseZoom, setCamera],
     ),
   );
 
@@ -137,7 +167,7 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
         panY: prev.panY - dy / prev.zoom,
       }));
     },
-    [baseZoom, containerSize],
+    [baseZoom, containerSize, setCamera],
   );
 
   const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
