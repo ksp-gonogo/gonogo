@@ -11,7 +11,6 @@ import { Switch } from "@ksp-gonogo/ui";
 import {
   derivedMarking,
   Panel,
-  PanZoomViewport,
   ReadoutCaption,
   Section,
   WidgetScopeProvider,
@@ -33,7 +32,7 @@ import { MapPoiLayer } from "./MapPoiLayer";
 import {
   BaseCanvas,
   BodyLabel,
-  CANVAS_CONTAINER,
+  CanvasContainer,
   DataCanvas,
   ImagingChip,
   MapBody,
@@ -126,8 +125,18 @@ function MapViewComponent({
   } = telemetry;
 
   const { outerRef, containerSize } = useMapResize();
-  const { camera, setCamera, baseZoom, viewMode, setViewMode, panZoom } =
-    useCamera(containerSize);
+  const {
+    camera,
+    setCamera,
+    baseZoom,
+    viewMode,
+    setViewMode,
+    interactionRef,
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onPointerCancel,
+  } = useCamera(containerSize);
 
   useMapViewActions({
     viewMode,
@@ -371,15 +380,17 @@ function MapViewComponent({
             <MapBody>
               <MapFrame>
                 <MapOuter ref={outerRef}>
-                  <PanZoomViewport
-                    panZoom={panZoom}
-                    label="Map"
-                    style={{
-                      ...CANVAS_CONTAINER,
-                      ...(containerSize
+                  <CanvasContainer
+                    ref={interactionRef}
+                    style={
+                      containerSize
                         ? { width: containerSize.w, height: containerSize.h }
-                        : undefined),
-                    }}
+                        : undefined
+                    }
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerCancel}
                   >
                     <BaseCanvas
                       ref={baseRef}
@@ -447,7 +458,7 @@ function MapViewComponent({
                         }}
                       />
                     )}
-                  </PanZoomViewport>
+                  </CanvasContainer>
                 </MapOuter>
               </MapFrame>
             </MapBody>

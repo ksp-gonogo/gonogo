@@ -1,16 +1,17 @@
 /**
- * A dashboard taller than the viewport must scroll while the pointer is over a
- * diagram, unless the wheel turn began on the diagram.
+ * A dashboard taller than the viewport must scroll wherever the pointer is.
  *
- * A trackpad two-finger scroll is a stream of `wheel` events, so a diagram that
- * swallowed every one made the page immovable under a pointer parked on the map
- * (the biggest widget on most dashboards). The rule now is that a wheel turn
- * belongs to the diagram only if it began with the pointer inside it, and a
- * pinch (a wheel with `ctrlKey` set) always does.
+ * The operator reported (2026-09-09) that on the main screen, with widgets
+ * below the fold, the page would not scroll. The cause was MapView's wheel
+ * handler calling `preventDefault()` on every wheel event so it could zoom:
+ * a trackpad two-finger scroll is a stream of `wheel` events, so parking the
+ * pointer over the map (the biggest widget on most dashboards) made the page
+ * immovable. Zoom now takes the pinch gesture, which arrives as a wheel with
+ * `ctrlKey` set.
  *
  * The gesture here is trackpad-shaped, many small deltas rather than one
- * discrete notch. A unit test can pin `defaultPrevented`, only a browser can
- * say whether the page moved.
+ * discrete notch, because that is what the operator was doing. A unit test
+ * can pin `defaultPrevented`, only a browser can say whether the page moved.
  */
 import { test } from "@playwright/test";
 import { expect, seedContext } from "./helpers";
@@ -43,11 +44,11 @@ const DASHBOARD = {
 };
 
 test.describe("dashboard scrolling", () => {
-  test("the page keeps scrolling when a gesture that began on the dashboard crosses the map, and a gesture that begins on the map zooms it", async ({
+  test("the page scrolls under a trackpad gesture over the map, and pinch still zooms", async ({
     browser,
   }) => {
     const context = await browser.newContext({
-      viewport: { width: 900, height: 360 },
+      viewport: { width: 900, height: 500 },
     });
     await seedContext(context, "gonogo:dashboard:main", DASHBOARD);
     const page = await context.newPage();
@@ -70,72 +71,25 @@ test.describe("dashboard scrolling", () => {
       100,
     );
 
-    // What the page sees of each wheel event over the map, after the map has had its turn.
-    await page.evaluate(() => {
-      const taken = { over: 0, swallowed: 0 };
-      (window as unknown as { __mapWheel: typeof taken }).__mapWheel = taken;
-      window.addEventListener("wheel", (e) => {
-        const map = document.querySelector(
-          '[data-testid="map-view-base-canvas"]',
-        );
-        if (map?.parentElement?.contains(e.target as Node)) {
-          taken.over++;
-          if (e.defaultPrevented) taken.swallowed++;
-        }
-      });
-    });
-    const mapWheel = () =>
-      page.evaluate(
-        () =>
-          (
-            window as unknown as {
-              __mapWheel: { over: number; swallowed: number };
-            }
-          ).__mapWheel,
-      );
-
-    // Scrolled to the bottom, the pointer rests on the widget below the map, and the page scrolls up so the map arrives under it.
-    await page.evaluate((y) => window.scrollTo(0, y), range);
-    const mapBox = await canvasWrap.boundingBox();
-    if (!mapBox) throw new Error("map canvas has no box");
-    // Low enough that the map is above it when the page is scrolled down, and the map reaches it before the page is back at the top.
-    const pointerY = Math.round(mapBox.y + mapBox.height + range * 0.6);
-    await page.mouse.move(Math.round(mapBox.x + mapBox.width / 2), pointerY);
-    for (let i = 0; i < 40; i++) {
-      await page.mouse.wheel(0, -12);
-      await page.waitForTimeout(16);
-    }
-    await expect
-      .poll(() => page.evaluate(() => window.scrollY), { timeout: 5_000 })
-      .toBe(0);
-    const crossed = await mapWheel();
-    expect(
-      crossed.over,
-      "the map must have passed under the pointer",
-    ).toBeGreaterThan(0);
-    expect(
-      crossed.swallowed,
-      "the map must not take a gesture that began elsewhere",
-    ).toBe(0);
-
-    // A turn that begins with the pointer moved onto the map belongs to the map.
-    await page.evaluate(() => window.scrollTo(0, 0));
     const box = await canvasWrap.boundingBox();
     if (!box) throw new Error("map canvas has no box");
     const over = {
       x: Math.round(box.x + box.width / 2),
       y: Math.round(box.y + box.height / 2),
     };
-    await page.mouse.move(over.x - 40, over.y);
-    await page.mouse.move(over.x, over.y);
-    await page.waitForTimeout(400);
-    const taken0 = (await mapWheel()).swallowed;
-    await page.mouse.wheel(0, -100);
-    await expect
-      .poll(async () => (await mapWheel()).swallowed, { timeout: 5_000 })
-      .toBeGreaterThan(taken0);
 
-    // ...and the pinch gesture always belongs to the map.
+    await page.mouse.move(over.x, over.y);
+    // A trackpad flick: many small deltas, not one notch.
+    for (let i = 0; i < 30; i++) {
+      await page.mouse.wheel(0, 12);
+      await page.waitForTimeout(16);
+    }
+    await expect
+      .poll(() => page.evaluate(() => window.scrollY), { timeout: 5_000 })
+      .toBeGreaterThan(0);
+
+    // ...and the zoom gesture still belongs to the map.
+    await page.evaluate(() => window.scrollTo(0, 0));
     const pinchTaken = await page.evaluate(
       ([x, y]) => {
         const el = document.elementFromPoint(x, y);

@@ -9,13 +9,7 @@ import { writeFile } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { storyNameFromExport, toId } from "storybook/internal/csf";
 import { loadCsf } from "storybook/internal/csf-tools";
-import {
-  Node,
-  Project,
-  type Symbol as TsSymbol,
-  type Type,
-  ts,
-} from "ts-morph";
+import { Project, type Symbol as TsSymbol, type Type, ts } from "ts-morph";
 
 export interface UiKitCoverage {
   /** Stories generated with a synthesised default. */
@@ -185,13 +179,6 @@ export async function writeUiKitStories(opts: {
   for (const [name, decls] of index.getExportedDeclarations()) {
     if (!/^[A-Z]/.test(name)) continue;
     const decl = decls[0];
-    // A type alias of a function type is callable but draws nothing, so it has no story.
-    if (
-      Node.isTypeAliasDeclaration(decl) ||
-      Node.isInterfaceDeclaration(decl)
-    ) {
-      continue;
-    }
     const type = decl.getType();
     const signatures = type.getCallSignatures();
     if (signatures.length === 0) continue;

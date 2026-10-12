@@ -7,7 +7,7 @@ import {
 import { SystemViewComponent } from "./index";
 
 /**
- * A wheel turn zooms the diagram only when it began with the pointer inside it, and a pinch always zooms.
+ * The diagram zooms on the pinch gesture only and leaves a plain wheel to scroll the page.
  * Both directions are asserted, since a surface that never zooms passes the first and one that swallows every wheel passes the second.
  */
 
@@ -90,29 +90,16 @@ function wheelOn(el: Element, init: WheelEventInit): WheelEvent {
 }
 
 describe("SystemView wheel handling", () => {
-  it("leaves a scroll that began outside the diagram to the page when it carries over the diagram", async () => {
+  it("leaves a plain wheel to the page so scrolling past the diagram does not zoom it", async () => {
     const container = await renderDiagram();
     const svg = container.querySelector("svg");
     if (!svg) throw new Error("no diagram svg");
     const before = currentZoom(container);
 
-    wheelOn(document.body, {});
     const ev = wheelOn(svg, {});
 
     expect(ev.defaultPrevented).toBe(false);
     expect(currentZoom(container)).toBe(before);
-  });
-
-  it("zooms on a wheel turn that began inside the diagram, and keeps it off the page", async () => {
-    const container = await renderDiagram();
-    const svg = container.querySelector("svg");
-    if (!svg) throw new Error("no diagram svg");
-    const before = currentZoom(container);
-
-    const ev = wheelOn(svg, {});
-
-    expect(ev.defaultPrevented).toBe(true);
-    expect(currentZoom(container)).toBeGreaterThan(before);
   });
 
   it("zooms on ctrl+wheel, the gesture a trackpad pinch sends, and keeps that one off the page", async () => {

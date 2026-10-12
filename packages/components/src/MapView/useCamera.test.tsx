@@ -1,40 +1,257 @@
-import { act, fireEvent, render } from "@ksp-gonogo/test-utils";
-import { PanZoomViewport } from "@ksp-gonogo/ui-kit";
+import { act, render, renderHook } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
+import { pointerEvent } from "../test/pointerStubs";
 import { WORLD_H, WORLD_W, widestZoom } from "./camera";
 import { useCamera } from "./useCamera";
 
-let latest: ReturnType<typeof useCamera>;
-
-function Harness({ size }: { size: { w: number; h: number } }) {
-  latest = useCamera(size);
-  return (
-    <PanZoomViewport panZoom={latest.panZoom} label="Map">
-      <span />
-    </PanZoomViewport>
-  );
-}
-
-/** Renders the hook on a surface of a fixed size: the rect the gestures measure is the tile's. */
+/** Renders the hook with a fixed container size and a fake element on interactionRef, for the pinch path's getBoundingClientRect. */
 function setup(size = { w: 200, h: 100 }) {
-  const view = render(<Harness size={size} />);
-  const el = view.getByRole("group", { name: "Map" });
-  el.getBoundingClientRect = () =>
-    ({
+  const el = {
+    setPointerCapture() {},
+    releasePointerCapture() {},
+    getBoundingClientRect: () => ({
       left: 0,
       top: 0,
-      width: size.w,
-      height: size.h,
-      right: size.w,
-      bottom: size.h,
-    }) as DOMRect;
-  return el;
+      width: 200,
+      height: 100,
+      right: 200,
+      bottom: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }),
+    addEventListener() {},
+    removeEventListener() {},
+  } as unknown as HTMLDivElement;
+
+  const hook = renderHook(() => useCamera(size));
+  hook.result.current.interactionRef.current = el;
+  return { hook, el };
 }
 
-const down = (el: Element, pointerId: number, x: number, y: number) =>
-  fireEvent.pointerDown(el, { pointerId, clientX: x, clientY: y, button: 0 });
-const move = (el: Element, pointerId: number, x: number, y: number) =>
-  fireEvent.pointerMove(el, { pointerId, clientX: x, clientY: y });
+describe("useCamera", () => {
+  it("pans with a single pointer", () => {
+    const { hook, el } = setup({ w: 200, h: 50 });
+    const before = hook.result.current.camera;
+
+    act(() => {
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 50,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+    });
+    act(() => {
+      hook.result.current.onPointerMove(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 70,
+          clientY: 60,
+          currentTarget: el,
+        }),
+      );
+    });
+    act(() => {
+      hook.result.current.onPointerUp(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 70,
+          clientY: 60,
+          currentTarget: el,
+        }),
+      );
+    });
+
+    const after = hook.result.current.camera;
+    expect(after.panX).not.toBe(before.panX);
+    expect(after.panY).not.toBe(before.panY);
+    expect(after.zoom).toBe(before.zoom);
+  });
+
+  it("stops a drag at the poles, so nothing is banked to drag back", () => {
+    const { hook, el } = setup({ w: 200, h: 50 });
+    const move = (clientY: number) =>
+      act(() => {
+        hook.result.current.onPointerMove(
+          pointerEvent({
+            pointerId: 1,
+            clientX: 50,
+            clientY,
+            currentTarget: el,
+          }),
+        );
+      });
+    act(() => {
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 50,
+          clientY: 0,
+          currentTarget: el,
+        }),
+      );
+    });
+    const { zoom } = hook.result.current.camera;
+    const half = 50 / 2 / zoom;
+    // Far further down the screen than the map is tall.
+    for (let y = 100; y <= 3000; y += 100) move(y);
+    expect(hook.result.current.camera.panY).toBeCloseTo(half, 6);
+    move(2900);
+    // One step back up moves the view at once.
+    expect(hook.result.current.camera.panY).toBeGreaterThan(half);
+    for (let y = 2800; y >= -3000; y -= 100) move(y);
+    expect(hook.result.current.camera.panY).toBeCloseTo(WORLD_H - half, 6);
+  });
+
+  it("starts at one world across and cannot zoom out from there", () => {
+    const { hook } = setup({ w: 400, h: 100 });
+    expect(hook.result.current.camera.zoom).toBe(widestZoom(400));
+    expect(hook.result.current.baseZoom).toBe(widestZoom(400));
+  });
+
+  it("holds a tile too tall for the world on the world's middle", () => {
+    const { hook } = setup({ w: 100, h: 400 });
+    expect(hook.result.current.camera.panY).toBe(WORLD_H / 2);
+  });
+
+  it("pans without end: dragging past the world's edge carries on into the next repeat of it", () => {
+    const { hook, el } = setup();
+    const drag = (clientX: number) =>
+      act(() => {
+        hook.result.current.onPointerMove(
+          pointerEvent({
+            pointerId: 1,
+            clientX,
+            clientY: 50,
+            currentTarget: el,
+          }),
+        );
+      });
+    act(() => {
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 0,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+    });
+    const { zoom, panX: start } = hook.result.current.camera;
+    // Each drag moves the view a fifth of a world east; six of them pass the edge.
+    const step = (WORLD_W / 5) * zoom;
+    for (let i = 1; i <= 6; i++) drag(-i * step);
+
+    const { panX } = hook.result.current.camera;
+    expect(panX).toBeGreaterThanOrEqual(0);
+    expect(panX).toBeLessThan(WORLD_W);
+    expect(panX).toBeCloseTo((start + (6 * WORLD_W) / 5) % WORLD_W, 6);
+  });
+
+  it("zooms with a two-pointer pinch", () => {
+    const { hook, el } = setup();
+    const before = hook.result.current.camera;
+
+    act(() => {
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 80,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 2,
+          clientX: 120,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+    });
+    // Fingers further apart zoom in.
+    act(() => {
+      hook.result.current.onPointerMove(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 40,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+      hook.result.current.onPointerMove(
+        pointerEvent({
+          pointerId: 2,
+          clientX: 160,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+    });
+
+    expect(hook.result.current.camera.zoom).toBeGreaterThan(before.zoom);
+  });
+
+  it("resumes panning when one finger of a pinch lifts off", () => {
+    const { hook, el } = setup();
+
+    act(() => {
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 80,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+      hook.result.current.onPointerDown(
+        pointerEvent({
+          pointerId: 2,
+          clientX: 120,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+    });
+    act(() => {
+      hook.result.current.onPointerUp(
+        pointerEvent({
+          pointerId: 2,
+          clientX: 120,
+          clientY: 50,
+          currentTarget: el,
+        }),
+      );
+    });
+    const afterLift = hook.result.current.camera;
+
+    // Remaining finger now pans; no zoom jump.
+    act(() => {
+      hook.result.current.onPointerMove(
+        pointerEvent({
+          pointerId: 1,
+          clientX: 110,
+          clientY: 60,
+          currentTarget: el,
+        }),
+      );
+    });
+
+    const after = hook.result.current.camera;
+    expect(after.zoom).toBe(afterLift.zoom);
+    expect(after.panX).not.toBe(afterLift.panX);
+  });
+});
+
+/** A real DOM element carrying `interactionRef`, so the native wheel listener is on the node the test dispatches to. */
+function WheelHarness() {
+  const { interactionRef, camera } = useCamera({ w: 200, h: 100 });
+  return <div ref={interactionRef} data-zoom={camera.zoom} />;
+}
 
 function wheelOn(el: Element, init: WheelEventInit): WheelEvent {
   const ev = new WheelEvent("wheel", {
@@ -49,110 +266,26 @@ function wheelOn(el: Element, init: WheelEventInit): WheelEvent {
   return ev;
 }
 
-describe("useCamera", () => {
-  it("pans with a single pointer", () => {
-    const el = setup({ w: 200, h: 50 });
-    const before = latest.camera;
-    down(el, 1, 50, 50);
-    move(el, 1, 70, 60);
-    fireEvent.pointerUp(el, { pointerId: 1 });
-    expect(latest.camera.panX).not.toBe(before.panX);
-    expect(latest.camera.panY).not.toBe(before.panY);
-    expect(latest.camera.zoom).toBe(before.zoom);
-  });
-
-  it("stops a drag at the poles, so nothing is banked to drag back", () => {
-    const el = setup({ w: 200, h: 50 });
-    down(el, 1, 50, 0);
-    const { zoom } = latest.camera;
-    const half = 50 / 2 / zoom;
-    // Far further down the screen than the map is tall.
-    for (let y = 100; y <= 3000; y += 100) move(el, 1, 50, y);
-    expect(latest.camera.panY).toBeCloseTo(half, 6);
-    move(el, 1, 50, 2900);
-    // One step back up moves the view at once.
-    expect(latest.camera.panY).toBeGreaterThan(half);
-    for (let y = 2800; y >= -3000; y -= 100) move(el, 1, 50, y);
-    expect(latest.camera.panY).toBeCloseTo(WORLD_H - half, 6);
-  });
-
-  it("starts at one world across and cannot zoom out from there", () => {
-    setup({ w: 400, h: 100 });
-    expect(latest.camera.zoom).toBe(widestZoom(400));
-    expect(latest.baseZoom).toBe(widestZoom(400));
-  });
-
-  it("holds a tile too tall for the world on the world's middle", () => {
-    setup({ w: 100, h: 400 });
-    expect(latest.camera.panY).toBe(WORLD_H / 2);
-  });
-
-  it("pans without end: dragging past the world's edge carries on into the next repeat of it", () => {
-    const el = setup();
-    down(el, 1, 0, 50);
-    const { zoom, panX: start } = latest.camera;
-    // Each drag moves the view a fifth of a world east; six of them pass the edge.
-    const step = (WORLD_W / 5) * zoom;
-    for (let i = 1; i <= 6; i++) move(el, 1, -i * step, 50);
-    const { panX } = latest.camera;
-    expect(panX).toBeGreaterThanOrEqual(0);
-    expect(panX).toBeLessThan(WORLD_W);
-    expect(panX).toBeCloseTo((start + (6 * WORLD_W) / 5) % WORLD_W, 6);
-  });
-
-  it("zooms with a two-pointer pinch", () => {
-    const el = setup();
-    const before = latest.camera;
-    down(el, 1, 80, 50);
-    down(el, 2, 120, 50);
-    move(el, 1, 40, 50);
-    move(el, 2, 160, 50);
-    expect(latest.camera.zoom).toBeGreaterThan(before.zoom);
-  });
-
-  it("resumes panning when one finger of a pinch lifts off", () => {
-    const el = setup();
-    down(el, 1, 80, 50);
-    down(el, 2, 120, 50);
-    fireEvent.pointerUp(el, { pointerId: 2 });
-    const afterLift = latest.camera;
-    move(el, 1, 110, 60);
-    expect(latest.camera.zoom).toBe(afterLift.zoom);
-    expect(latest.camera.panX).not.toBe(afterLift.panX);
-  });
-
-  it("leaves follow mode when the operator moves the view", () => {
-    const el = setup();
-    act(() => latest.setViewMode("follow"));
-    wheelOn(el, { ctrlKey: true });
-    expect(latest.viewMode).toBe("global");
-  });
-});
-
 describe("useCamera wheel handling", () => {
-  it("leaves a scroll that began outside the map to the page when it carries over the map", () => {
-    const el = setup();
-    const before = latest.camera.zoom;
-    wheelOn(document.body, {});
-    const ev = wheelOn(el, {});
+  it("leaves a plain wheel to the page so a dashboard taller than the viewport still scrolls", () => {
+    const { container } = render(<WheelHarness />);
+    const surface = container.firstElementChild as HTMLElement;
+    const before = surface.dataset.zoom;
+
+    const ev = wheelOn(surface, {});
+
     expect(ev.defaultPrevented).toBe(false);
-    expect(latest.camera.zoom).toBe(before);
+    expect(surface.dataset.zoom).toBe(before);
   });
 
-  it("zooms on a wheel turn that began inside the map, and keeps it off the page", () => {
-    const el = setup();
-    const before = latest.camera.zoom;
-    const ev = wheelOn(el, {});
-    expect(ev.defaultPrevented).toBe(true);
-    expect(latest.camera.zoom).toBeGreaterThan(before);
-  });
+  it("zooms on ctrl+wheel, the gesture a trackpad pinch sends, and keeps that one off the page", () => {
+    const { container } = render(<WheelHarness />);
+    const surface = container.firstElementChild as HTMLElement;
+    const before = Number(surface.dataset.zoom);
 
-  it("zooms on ctrl+wheel, the gesture a trackpad pinch sends, wherever the gesture began", () => {
-    const el = setup();
-    const before = latest.camera.zoom;
-    wheelOn(document.body, {});
-    const ev = wheelOn(el, { ctrlKey: true });
+    const ev = wheelOn(surface, { ctrlKey: true });
+
     expect(ev.defaultPrevented).toBe(true);
-    expect(latest.camera.zoom).toBeGreaterThan(before);
+    expect(Number(surface.dataset.zoom)).toBeGreaterThan(before);
   });
 });

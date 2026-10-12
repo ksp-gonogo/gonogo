@@ -1,9 +1,6 @@
+import { usePrefersReducedMotion } from "@ksp-gonogo/ui-kit";
 import {
-  type PanZoomCamera,
-  usePanZoom as usePanZoomView,
-  usePrefersReducedMotion,
-} from "@ksp-gonogo/ui-kit";
-import {
+  type PointerEvent as ReactPointerEvent,
   type RefObject,
   useCallback,
   useEffect,
@@ -11,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useWheelZoom } from "../shared/useWheelZoom";
 import { EDGE_POINTER_INSET } from "./diagramMarks";
 
 const MIN_ZOOM = 0.3;
@@ -53,18 +51,36 @@ function easeInOut(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
-const HOME: PanZoomCamera = { zoom: 1, panX: 0, panY: 0 };
-
-/**
- * The system diagram's view: pan and zoom from the shared diagram primitive, about the diagram's centre in viewBox user units, plus the eased moves, the follow and the focus the diagram adds.
- * `enabled` binds the gestures only once there is something to zoom, and `elementRef` is the element that takes them.
- */
+/** Drag to pan and pinch to zoom about the centre, in viewBox user units; `enabled` binds the wheel only once there is something to zoom. */
 export function usePanZoom(
-  elementRef: RefObject<HTMLDivElement | null>,
+  containerRef: RefObject<HTMLDivElement | null>,
   enabled: boolean,
   parent: ParentReach | null = null,
 ) {
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragRef = useRef<{
+    startX: number;
+    startY: number;
+    panX: number;
+    panY: number;
+  } | null>(null);
+
+  const onPointerMove = useCallback(
+    (e: globalThis.PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const dx = (e.clientX - drag.startX) / zoom;
+      const dy = (e.clientY - drag.startY) / zoom;
+      setPan({ x: drag.panX - dx, y: drag.panY - dy });
+    },
+    [zoom],
+  );
+  const [isDragging, setIsDragging] = useState(false);
   const [following, setFollowing] = useState(false);
+  // The wheel's callback is memoised on `enabled`, so the live values it reads travel by ref.
+  const live = useRef({ parent, pan });
+  live.current = { parent, pan };
   const reducedMotion = usePrefersReducedMotion();
   const easing = useRef<number | null>(null);
   const stopEasing = useCallback(() => {
@@ -72,35 +88,66 @@ export function usePanZoom(
     easing.current = null;
   }, []);
   useEffect(() => stopEasing, [stopEasing]);
+  const onPointerUp = useCallback(() => {
+    dragRef.current = null;
+    setIsDragging(false);
+  }, []);
 
-  const view = usePanZoomView({
-    elementRef,
-    home: HOME,
-    enabled,
-    zoomAbout: "centre",
-    // The widest view depends on where the view is centred, so the limit is read from the camera.
-    minZoom: useCallback(
-      (camera: PanZoomCamera) =>
-        widestZoom(parent, { x: camera.panX, y: camera.panY }),
-      [parent],
+  useEffect(() => {
+    globalThis.addEventListener("pointermove", onPointerMove);
+    globalThis.addEventListener("pointerup", onPointerUp);
+    return () => {
+      globalThis.removeEventListener("pointermove", onPointerMove);
+      globalThis.removeEventListener("pointerup", onPointerUp);
+    };
+  }, [onPointerMove, onPointerUp]);
+
+  // Pinch-only wheel zoom (see `useWheelZoom`); the callback changes identity when bodies arrive so the listener binds once the container renders.
+  useWheelZoom(
+    containerRef,
+    useMemo(
+      () =>
+        enabled
+          ? // Zoom is about the diagram's centre, so the hook's pointer position is unused.
+            (deltaY: number) => {
+              stopEasing();
+              const factor = deltaY < 0 ? 1.15 : 1 / 1.15;
+              const widest = widestZoom(live.current.parent, live.current.pan);
+              // A view carried across a change of frame can sit outside the limits; a notch then moves it from where it is and never snaps it to one.
+              setZoom((z) =>
+                Math.max(
+                  Math.min(widest, z),
+                  Math.min(Math.max(MAX_ZOOM, z), z * factor),
+                ),
+              );
+            }
+          : null,
+      [enabled, stopEasing],
     ),
-    maxZoom: MAX_ZOOM,
-    onManualMove: useCallback(
-      (kind: "pan" | "zoom" | "reset") => {
-        stopEasing();
-        if (kind !== "zoom") setFollowing(false);
-      },
-      [stopEasing],
-    ),
-  });
-  const { camera, setCamera } = view;
-  const pan = useMemo(
-    () => ({ x: camera.panX, y: camera.panY }),
-    [camera.panX, camera.panY],
   );
-  const zoom = camera.zoom;
 
-  const resetView = view.reset;
+  const handlePointerDown = useCallback(
+    (e: ReactPointerEvent) => {
+      if (e.button !== 0) return;
+      stopEasing();
+      setFollowing(false);
+      dragRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        panX: pan.x,
+        panY: pan.y,
+      };
+      setIsDragging(true);
+    },
+    [pan, stopEasing],
+  );
+
+  const resetView = useCallback(() => {
+    stopEasing();
+    setFollowing(false);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, [stopEasing]);
 
   /**
    * Moves the view from one zoom and centre to another over a short time, the zoom by equal ratios so the picture grows at a steady rate. A drag, a zoom notch or a reset takes over at once.
@@ -112,17 +159,12 @@ export function usePanZoom(
       to: { zoom: number; pan?: { x: number; y: number } },
     ) => {
       stopEasing();
-      const target = to.pan;
-      const put = (z: number, p?: { x: number; y: number }) =>
-        setCamera((prev) => ({
-          zoom: z,
-          panX: p?.x ?? prev.panX,
-          panY: p?.y ?? prev.panY,
-        }));
       if (reducedMotion) {
-        put(to.zoom, target);
+        setZoom(to.zoom);
+        if (to.pan !== undefined) setPan(to.pan);
         return;
       }
+      const target = to.pan;
       // Timed off the frame clock alone, from the first frame it hands over: the two clocks a page has need not share a zero.
       let started: number | null = null;
       const step = (now: number) => {
@@ -130,48 +172,47 @@ export function usePanZoom(
         const t = Math.max(0, Math.min(1, (now - started) / EASE_MS));
         if (t >= 1) {
           // The target itself, never the arithmetic's last approach to it: a view a hair off the whole frame still offers Reset view.
-          put(to.zoom, target);
+          setZoom(to.zoom);
+          if (target !== undefined) setPan(target);
           easing.current = null;
           return;
         }
         const e = easeInOut(t);
-        put(
-          from.zoom * (to.zoom / from.zoom) ** e,
-          target && {
+        setZoom(from.zoom * (to.zoom / from.zoom) ** e);
+        if (target !== undefined) {
+          setPan({
             x: from.pan.x + (target.x - from.pan.x) * e,
             y: from.pan.y + (target.y - from.pan.y) * e,
-          },
-        );
+          });
+        }
         easing.current = requestAnimationFrame(step);
       };
       easing.current = requestAnimationFrame(step);
     },
-    [reducedMotion, setCamera, stopEasing],
+    [reducedMotion, stopEasing],
   );
 
   /** Puts the view at a zoom and centre outright, leaving `following` as it is: for a view carried over from another frame, which the zoom limits do not bind. */
   const setView = useCallback(
-    (next: { zoom: number; pan: { x: number; y: number } }) => {
-      setCamera({ zoom: next.zoom, panX: next.pan.x, panY: next.pan.y });
+    (view: { zoom: number; pan: { x: number; y: number } }) => {
+      setZoom(view.zoom);
+      setPan(view.pan);
     },
-    [setCamera],
+    [],
   );
 
   /** Centres the view on a point in the diagram's own user units, keeping the zoom. While `following` is on, the diagram calls this each time the point moves. */
-  const focusOn = useCallback(
-    (point: { x: number; y: number }) => {
-      setCamera((prev) => ({ ...prev, panX: point.x, panY: point.y }));
-    },
-    [setCamera],
-  );
+  const focusOn = useCallback((point: { x: number; y: number }) => {
+    setPan({ x: point.x, y: point.y });
+  }, []);
 
   return {
     zoom,
     pan,
-    isDragging: view.isDragging,
+    isDragging,
     following,
     setFollowing,
-    panZoom: view,
+    handlePointerDown,
     resetView,
     setView,
     easeView,

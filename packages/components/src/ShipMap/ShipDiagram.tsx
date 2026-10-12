@@ -1,13 +1,8 @@
-import {
-  Floating,
-  PanZoomViewport,
-  TextButton,
-  useElementSize,
-  usePanZoom,
-} from "@ksp-gonogo/ui-kit";
+import { Floating, TextButton } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
 import { useRef, useState } from "react";
+import { useZoomPan } from "../shared/useZoomPan";
 import { PartActionMenu } from "./PartActionMenu";
 import { PartTooltip } from "./PartTooltip";
 import { NO_METERS } from "./partMeters";
@@ -76,24 +71,13 @@ export function ShipDiagram({
       trigger.focus();
     }
   };
-  const { ref: wrapperRef, size } = useElementSize({ w: width, h: height });
-  const panZoom = usePanZoom({
-    elementRef: wrapperRef,
-    minZoom: 0.5,
-    maxZoom: 12,
-    panThreshold: 4,
-  });
-  const resetView = panZoom.reset;
-  // The pan is the diagram point at the middle of the view, and the drawing is moved by a translation in pixels, from the middle of the wrapper.
-  const cam = {
-    zoom: panZoom.camera.zoom,
-    panX:
-      (size.w / 2) * (1 - panZoom.camera.zoom) -
-      panZoom.camera.panX * panZoom.camera.zoom,
-    panY:
-      (size.h / 2) * (1 - panZoom.camera.zoom) -
-      panZoom.camera.panY * panZoom.camera.zoom,
-  };
+  const {
+    ref: wrapperRef,
+    cam,
+    reset: resetView,
+    panMoved,
+    pointerHandlers,
+  } = useZoomPan<HTMLDivElement>();
 
   const menuAnchor = () => {
     const rect = wrapperRef.current?.getBoundingClientRect();
@@ -117,10 +101,16 @@ export function ShipDiagram({
     : NO_META;
 
   return (
-    <PanZoomViewport
-      panZoom={panZoom}
-      label="Ship diagram view"
+    // Mouse-only pan/zoom enhancement; keyboard access is via the focusable SVG parts, and no semantic role fits a bare pan canvas.
+    // biome-ignore lint/a11y/noStaticElementInteractions: mouse-only pan/zoom enhancement; keyboard access is via the focusable SVG parts
+    <div
+      ref={wrapperRef}
       onMouseMove={onWrapperMouseMove}
+      {...pointerHandlers}
+      style={{
+        ...WRAPPER,
+        cursor: panMoved.current ? "grabbing" : "grab",
+      }}
     >
       <TextButton
         type="button"
@@ -187,9 +177,18 @@ export function ShipDiagram({
           />
         </Floating>
       )}
-    </PanZoomViewport>
+    </div>
   );
 }
+
+// `cursor` (grab/grabbing) is applied at the call site from the pan state.
+const WRAPPER: CSSProperties = {
+  position: "relative",
+  width: "100%",
+  height: "100%",
+  touchAction: "none",
+  userSelect: "none",
+};
 
 const RESET_BUTTON: CSSProperties = {
   position: "absolute",

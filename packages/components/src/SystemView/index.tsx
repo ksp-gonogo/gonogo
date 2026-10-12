@@ -29,12 +29,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { ControlFrame, VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
-import {
-  FramedDisplay,
-  NULL_DISPLAY,
-  PanZoomViewport,
-  Section,
-} from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { countdownOf } from "../shared/countdownOf";
@@ -779,11 +774,7 @@ function SystemViewComponent({
           <Section key="diagram" fill>
             {showDiagram ? (
               <FramedDisplay style={DIAGRAM_FRAME}>
-                <PanZoomViewport
-                  panZoom={panZoom.panZoom}
-                  label="System diagram"
-                  style={DIAGRAM_WRAP}
-                >
+                <div ref={wrapRef} style={DIAGRAM_WRAP}>
                   {parentName !== null && bodies.length > 0 && (
                     <SystemDiagram
                       bodies={bodies}
@@ -847,7 +838,7 @@ function SystemViewComponent({
                       />
                     </div>
                   )}
-                </PanZoomViewport>
+                </div>
               </FramedDisplay>
             ) : (
               <div style={COMPACT_BODY}>
