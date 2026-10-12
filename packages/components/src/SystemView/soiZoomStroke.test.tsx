@@ -91,7 +91,7 @@ describe("SystemView: near-parent orbit stroke stays readable at SOI zoom (board
       ).toBeGreaterThan(0),
     );
 
-    // Zoom to the 25x cap (1.15x per notch). ctrl+wheel is the pinch gesture the diagram zooms on; a plain wheel belongs to the page.
+    // Zoom to the 25x cap (1.15x per notch). ctrl+wheel is the pinch gesture, which zooms wherever the gesture began.
     const svg = container.querySelector("svg");
     if (!svg) throw new Error("no diagram svg");
     for (let i = 0; i < 30; i++) {

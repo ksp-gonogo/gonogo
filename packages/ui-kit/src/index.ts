@@ -499,6 +499,7 @@ export {
   WidgetSections,
 } from "./Panel";
 export { type BadgeEntry, PanelBadgesProvider } from "./PanelBadges";
+export { PanZoomViewport } from "./PanZoomViewport";
 export {
   PlotCrosshair,
   type PlotCrosshairProps,
@@ -739,6 +740,13 @@ export {
   type PanelAsideSize,
   usePanelAsideSize,
 } from "./usePanelAsideSize";
+export {
+  type PanZoomCamera,
+  type PanZoomViewportProps,
+  type UsePanZoomOptions,
+  type UsePanZoomResult,
+  usePanZoom,
+} from "./usePanZoom";
 export { usePrefersReducedMotion } from "./usePrefersReducedMotion";
 export {
   FilterRegion,
@@ -747,6 +755,10 @@ export {
   type UseRowFilterOptions,
   useRowFilter,
 } from "./useRowFilter";
+export {
+  useWheelGesture,
+  type WheelZoomHandler,
+} from "./useWheelGesture";
 export { useWidgetBadges } from "./useWidgetBadges";
 export { VisuallyHidden } from "./VisuallyHidden";
 export {
@@ -767,6 +779,13 @@ export {
   WidgetScopeProvider,
   type WidgetScopeRegistry,
 } from "./WidgetScope";
+export {
+  createWheelGesture,
+  type WheelGesture,
+  type WheelGestureOptions,
+  type WheelOwner,
+  wheelZoomFactor,
+} from "./wheelGesture";
 export {
   type WidgetTopicDeclaration,
   widgetDeclaredTopics,
