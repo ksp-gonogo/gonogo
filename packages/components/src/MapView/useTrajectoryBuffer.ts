@@ -5,10 +5,11 @@ export type TrajectoryPoint = {
   lat: number;
   lon: number;
   alt: number;
-  q: number;
-  mach: number;
-  speed: number;
-  vSpeed: number;
+  /** Dynamic pressure, kPa; absent when the flight record did not carry it. */
+  q?: number;
+  mach?: number;
+  speed?: number;
+  vSpeed?: number;
 };
 
 /**
@@ -57,10 +58,10 @@ export function useTrajectoryBuffer({
       lat,
       lon,
       alt: altSea,
-      q: q ?? 0,
-      mach: mach ?? 0,
-      speed: speed ?? 0,
-      vSpeed: vSpeed ?? 0,
+      q,
+      mach,
+      speed,
+      vSpeed,
     };
 
     // Mutated in place: push and shift allocate nothing, where a spread copied the whole buffer every sample.

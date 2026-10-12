@@ -116,6 +116,16 @@ describe("commsLegTime", () => {
     ).toBeCloseTo(totalDelay, 9);
   });
 
+  it("gives no leg a time when any hop of the route has no distance", () => {
+    const hops = [
+      hopWithDistance("Active Vessel", "Relay Sat 1", 1_250_000),
+      hop("Relay Sat 1", "home"),
+    ];
+    for (const h of hops) {
+      expect(commsLegTime(h, hops, value("s", 6.2))).toBeUndefined();
+    }
+  });
+
   it("apportions without being told the save's light speed", () => {
     const hops = [
       hopWithDistance("Active Vessel", "Relay Sat 1", 299_792_458),

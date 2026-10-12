@@ -22,16 +22,19 @@ export const getTrajectoryStyle = ({
   alt: number;
   maxAtmosphere: number;
   hasAtmosphere: boolean;
-  q: number;
-  mach: number;
-  speed: number;
+  /** Dynamic pressure, kPa. */
+  q?: number;
+  mach?: number;
+  speed?: number;
   vSpeed?: number;
 }) => {
   const atmT = norm(alt, 0, maxAtmosphere);
   const orbT = norm(alt, maxAtmosphere, maxAtmosphere * 1.3);
 
-  const qT = norm(q, 0, 50_000);
-  const machT = norm(mach, 0, 5);
+  // A figure the record did not carry adds nothing to the style, which is not the same claim as a measured zero.
+  const qT = q === undefined ? 0 : norm(q, 0, 50);
+  const machT = mach === undefined ? 0 : norm(mach, 0, 5);
+  const speedT = speed === undefined ? 0 : norm(speed, 0, 2500);
 
   const base = !hasAtmosphere
     ? blend(rgb(0, 0, 255), rgb(0, 255, 0), orbT)
@@ -43,7 +46,7 @@ export const getTrajectoryStyle = ({
   const machFx = blend(pressure, rgb(255, 255, 255), machT * 0.25);
 
   const alpha = lerp(0.2, 0.7, qT + (1 - atmT));
-  const width = lerp(1, 5.5, atmT * atmT) + norm(speed, 0, 2500) * 1.5 + qT;
+  const width = lerp(1, 5.5, atmT * atmT) + speedT * 1.5 + qT;
 
   return { color: machFx, alpha, width };
 };

@@ -82,7 +82,7 @@ export function commsRouteRelayCount(hops: readonly CommsHop[]): number {
  * hop's share of the route distance. The legs sum to the total delay and the
  * save's light speed cancels out, so it never has to be known.
  *
- * `undefined` when the hop or route has no distance, or the total delay is not
+ * `undefined` when the hop or any hop of the route has no distance, or the total delay is not
  * positive: a route that carries no delay gets no signal delay annotation.
  */
 export function commsLegTime(
@@ -94,6 +94,8 @@ export function commsLegTime(
   // Loose equality: an unmeasured hop arrives as an explicit null.
   if (hopDistance == null) return undefined;
   if (!pathDelay?.greaterThan(0)) return undefined;
+  // One unmeasured hop leaves the total distance unknown, so every leg is, rather than the measured ones carrying the whole delay.
+  if (hops.some((h) => h.distanceMeters == null)) return undefined;
   const totalDistance = hops.reduce(
     (sum, h) => (h.distanceMeters ? sum.plus(h.distanceMeters) : sum),
     value("m", 0),
