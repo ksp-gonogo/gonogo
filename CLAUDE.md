@@ -259,7 +259,7 @@ If you want a passive, on-interval, no-args feed shared by many subscribers, tha
 
 ## CI/CD
 
-- `.github/workflows/ci.yml`: runs on pushes to `main`, `ci-dev` and `staging`, and on PRs targeting `main` or `staging`. **Six** jobs run in parallel: `test` (lint + `pnpm test`), `act-warnings` (the act-warning ratchet; see Testing Philosophy), `mod` (the C# solution, the Uplink plugin assemblies, and every `dotnet test` project), `scaffold` (an Uplink started with `uplink-tools new`, built from the packed packages outside the workspace; see below), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way; see below).
+- `.github/workflows/ci.yml`: runs on pushes to `main`, `ci-dev` and `staging`, and on PRs targeting `main` or `staging`. **Six** jobs run in parallel: `test` (lint + `pnpm test`), `act-warnings` (the act-warning ratchet; see Testing Philosophy), `mod` (the C# solution, the Uplink plugin assemblies, `Gonogo.KSP` itself through `scripts/ksp-mod-build.sh`, and every `dotnet test` project), `scaffold` (an Uplink started with `uplink-tools new`, built from the packed packages outside the workspace; see below), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way; see below).
 
 **`mod` gives each project one attempt and then fails.** Its own comment is explicit that **every project in its list is a hard gate with no exemption mechanism**: `Sitrep.Host.IntegrationTests` was exempt from 2026-07-12, and that exemption has been removed. So a WS suite that would need a retry is a green that is a probability rather than a fact, which is why its load budgets matter.
 

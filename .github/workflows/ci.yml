@@ -860,6 +860,22 @@ jobs:
           fi
           bash scripts/uplink-mod-build.sh
 
+      # The mod's own plugin assembly. Neither dotnet test (a hand-picked source
+      # list in Gonogo.KSP.Tests) nor the step above (it discovers
+      # Gonogo*Uplink.csproj) compiles mod/Gonogo.KSP, so a type error in a file
+      # that needs a live scene reached staging green. The script plants a
+      # compile error and fails as BLIND when the build does not refuse it.
+      - name: Gonogo.KSP compiles
+        env:
+          KSP_MANAGED: ${{ github.workspace }}/ksp-managed/KSP_Data/Managed
+        run: |
+          set -euo pipefail
+          if [ ! -f "$KSP_MANAGED/Assembly-CSharp.dll" ]; then
+            echo "::warning::KSP reference assemblies absent: Gonogo.KSP NOT COMPILED (soft-degrade, forks only)."
+            exit 0
+          fi
+          bash scripts/ksp-mod-build.sh
+
       - name: dotnet test (KSP-independent Sitrep projects)
         working-directory: mod
         env:

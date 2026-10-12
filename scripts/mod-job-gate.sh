@@ -34,6 +34,7 @@ Uplink client hashes are armed|always:client_hash
 Checkout KSP reference assemblies|ci:fetches the private ksp-managed repo with a secret; here the reference set is the synced KSP install the next step finds
 KSP reference assemblies are mandatory on main/staging and on PRs|mod:reference_set
 Uplink plugin assemblies compile|mod:uplink_build
+Gonogo.KSP compiles|mod:ksp_build
 dotnet test (KSP-independent Sitrep projects)|mod:dotnet_test
 Contract codegen is buildable and its committed output is current|same:Every generated artifact is in sync with its source
 Pack and gate KspGonogo.Sitrep.Contract|mod:pack
@@ -185,6 +186,14 @@ step_uplink_build() {
     return 2
   fi
   quiet bash "$ROOT/scripts/uplink-mod-build.sh"
+}
+
+step_ksp_build() {
+  if [ -z "$KSP_ARGS" ]; then
+    DECLINED="no complete KSP reference set to compile against"
+    return 2
+  fi
+  quiet bash "$ROOT/scripts/ksp-mod-build.sh"
 }
 
 # Projects allowed a retry, each for a stated cause. The WS integration suite
