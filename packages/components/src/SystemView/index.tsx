@@ -513,6 +513,8 @@ function SystemViewComponent({
     ],
   );
 
+  // Owned here rather than by the diagram, so the entity layer and the overlay slot follow the same pan and zoom.
+  const panZoom = usePanZoom(wrapRef, parentName !== null && bodies.length > 0);
   const places = useMemo(
     () => ({
       ut: universalTime,
@@ -569,6 +571,13 @@ function SystemViewComponent({
     },
     [projection, utBucket, offsetAt],
   );
+  const leftFrame = useFrameHandover({
+    frameName: parentName,
+    craftBodyName: vesselBody,
+    plotScale: fitGeometry?.plotScale ?? null,
+    placeOf: placeOfBody,
+    view: panZoom,
+  });
   /*
    * The body the frame body orbits, kept on the picture or pointed to from its edge: a moon's planet.
    * A planet's star is left out. No craft arrives in a planet's frame from the star's by leaving the star behind, and a pointer to it on every planet's diagram would be furniture.
@@ -594,32 +603,6 @@ function SystemViewComponent({
           at: [offset.x, offset.y, offset.z] as const,
         };
   }, [frameParentName, utBucket, offsetAt]);
-  const parentReach = useMemo(() => {
-    if (frameParent === null || fitGeometry === null) return null;
-    const placed = (projection ?? INERTIAL_PLACEMENT).place([
-      frameParent.at[0],
-      frameParent.at[1],
-      frameParent.at[2],
-    ]);
-    return {
-      parentAtPlotUnits:
-        Math.hypot(placed[0], placed[1]) * fitGeometry.plotScale,
-      halfPicturePlotUnits: Math.min(fitGeometry.width, fitGeometry.height) / 2,
-    };
-  }, [frameParent, fitGeometry, projection]);
-  // Owned here rather than by the diagram, so the entity layer and the overlay slot follow the same pan and zoom.
-  const panZoom = usePanZoom(
-    wrapRef,
-    parentName !== null && bodies.length > 0,
-    parentReach,
-  );
-  const leftFrame = useFrameHandover({
-    frameName: parentName,
-    craftBodyName: vesselBody,
-    plotScale: fitGeometry?.plotScale ?? null,
-    placeOf: placeOfBody,
-    view: panZoom,
-  });
   const overlayContext = useMemo(
     () => viewedGeometry(fitGeometry, panZoom.zoom, panZoom.pan),
     [fitGeometry, panZoom.zoom, panZoom.pan],

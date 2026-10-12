@@ -24,7 +24,8 @@
     ".:ComputerIcon",
     ".:FrenetNormalIcon",
     ".:TangentIcon",
-    ".:useAllAugmentSettings"
+    ".:useAllAugmentSettings",
+    ".:usePrefersReducedMotion"
   ],
   "@ksp-gonogo/uplink-tools": []
 }

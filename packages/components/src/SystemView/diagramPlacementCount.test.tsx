@@ -18,7 +18,6 @@ const view = {
   handlePointerDown: () => {},
   resetView: () => {},
   setView: () => {},
-  easeView: () => {},
   focusOn: () => {},
 };
 
