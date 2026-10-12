@@ -24,3 +24,9 @@ export const FastCrash: Story = {
   name: "Fast crash",
   args: { recording: "crashfall" },
 };
+
+/** The same crash, and then the game leaves the flight scene for the space centre: the dashboard's flight gate would hide the widget, and the crash on record holds it open as the record of the last flight. */
+export const CrashThenLeavesFlight: Story = {
+  name: "Fast crash, then the game leaves the flight scene",
+  args: { recording: "crashleaves" },
+};

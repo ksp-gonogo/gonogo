@@ -6,7 +6,8 @@ import {
 import { act, render } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { beforeAll, describe, expect, it } from "vitest";
-import { type RigName, rigFixture, startRigReplay } from "../test/replayRig";
+import { RequiresGuard } from "../shared/RequiresGuard";
+import { type RigFixture, rigFixture, startRigReplay } from "../test/replayRig";
 import {
   installSizedResizeObserver,
   WidgetContributions,
@@ -25,13 +26,24 @@ interface Second {
 }
 
 /** What the widget reads at each whole second of a recording. */
-async function play(name: RigName): Promise<Second[]> {
-  const replay = startRigReplay(rigFixture(name));
+async function play(fixture: RigFixture, guarded = false): Promise<Second[]> {
+  const replay = startRigReplay(fixture);
+  const widget = <LandingStatusComponent id="rig" w={14} h={24} />;
   const { container, unmount } = render(
     <replay.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "rig" }}>
         <WidgetContributions Widget={LandingStatusComponent}>
-          <LandingStatusComponent id="rig" w={14} h={24} />
+          {guarded ? (
+            <RequiresGuard
+              requires={["flight"]}
+              heldOpenBy={["crash-ending"]}
+              title="LANDING"
+            >
+              {widget}
+            </RequiresGuard>
+          ) : (
+            widget
+          )}
         </WidgetContributions>
       </DashboardItemContext.Provider>
     </replay.Provider>,
@@ -68,16 +80,72 @@ async function play(name: RigName): Promise<Second[]> {
   return seconds;
 }
 
+/** The stamp of a recorded frame, read without trusting its shape. */
+function stampOf(raw: string): Record<string, unknown> {
+  const frame: unknown = JSON.parse(raw);
+  if (
+    typeof frame === "object" &&
+    frame !== null &&
+    "meta" in frame &&
+    typeof frame.meta === "object" &&
+    frame.meta !== null
+  ) {
+    return { ...frame.meta };
+  }
+  return {};
+}
+
+/** A wire frame for `topic`, stamped like the recording's own and delivered `after` seconds past its last frame. */
+function frameAt(topic: string, payload: unknown, after: number): string {
+  const stamps = rigFixture("landing-crashfall").frames.map(stampOf);
+  const num = (stamp: Record<string, unknown>, key: string) => {
+    const v = stamp[key];
+    return typeof v === "number" ? v : 0;
+  };
+  const last = stamps.reduce((a, b) =>
+    num(b, "deliveredAt") > num(a, "deliveredAt") ? b : a,
+  );
+  return JSON.stringify({
+    type: "stream-data",
+    topic,
+    payload,
+    meta: {
+      ...last,
+      seq: num(last, "seq") + 1,
+      validAt: num(last, "validAt") + after,
+      deliveredAt: num(last, "deliveredAt") + after,
+    },
+  });
+}
+
+const sceneFrame = (scene: string) =>
+  frameAt("spaceCenter.scene", { scene, launchSite: null }, 5);
+const identityFrame = (vesselId: string) =>
+  frameAt("vessel.identity", { vesselId }, 6);
+
+/** The crash recording with frames of the game moving on, after its last. */
+function afterTheCrash(extra: string[]): RigFixture {
+  const base = rigFixture("landing-crashfall");
+  return { frames: [...base.frames, ...extra] };
+}
+
 describe("Landing Status over the rig's recorded landings", () => {
   let crash: Second[] = [];
   let lowPass: Second[] = [];
   let firstCrash = -1;
+  let leaves: Second[] = [];
+  let nextFlight: Second[] = [];
 
   beforeAll(async () => {
     const restore = installSizedResizeObserver({ w: 720, h: 640 });
     registerStockBodies();
-    crash = await play("landing-crashfall");
-    lowPass = await play("landing-lowpass");
+    crash = await play(rigFixture("landing-crashfall"));
+    lowPass = await play(rigFixture("landing-lowpass"));
+    leaves = await play(afterTheCrash([sceneFrame("SpaceCenter")]), true);
+    nextFlight = await play(
+      afterTheCrash([sceneFrame("Flight"), identityFrame("next-craft")]),
+      true,
+    );
     firstCrash = crash.findIndex((f) => f.text.includes("CRASHED"));
     restore();
   }, 240_000);
@@ -162,6 +230,35 @@ describe("Landing Status over the rig's recorded landings", () => {
     it("carries no badge that only says the link is live", () => {
       for (const f of lowPass) {
         expect(f.text, `at ${f.second} s`).not.toContain("LIVE");
+      }
+    });
+  });
+
+  describe("the crash ending once the game moves on", () => {
+    it("stays on screen when the game leaves the flight scene, as a record of the last flight", () => {
+      const last = leaves.slice(-1);
+      for (const f of last) {
+        expect(f.text, `at ${f.second} s`).toContain("CRASHED");
+        expect(f.text).toContain("Record of the last flight");
+        expect(f.text, `at ${f.second} s`).not.toContain(
+          "Vessel in flight required",
+        );
+        // Nothing live stands beside it: no burn hero, no round trip.
+        expect(f.text).not.toContain("BURN TIMING");
+        expect(f.text).not.toContain("RT ");
+      }
+    });
+
+    it("keeps the held touchdown plots and the crash site there too", () => {
+      for (const f of leaves.slice(-1)) {
+        expect(f.layers.has("impact"), `at ${f.second} s`).toBe(true);
+        expect(f.text).toContain("HELD");
+      }
+    });
+
+    it("lets go when a new flight starts: the old crash does not sit over it", () => {
+      for (const f of nextFlight.slice(-1)) {
+        expect(f.text, `at ${f.second} s`).not.toContain("CRASHED");
       }
     });
   });

@@ -197,6 +197,7 @@ export type {
   CommandStatus,
   CommandUndelivered,
   ComponentDefinition,
+  ComponentHeldOpen,
   ComponentProps,
   ComponentRequirement,
   ComponentSlotRegistry,

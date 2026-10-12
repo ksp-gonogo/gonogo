@@ -1,9 +1,8 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { registerComponent } from "@ksp-gonogo/core";
+import { registerComponent, useHeldOpen } from "@ksp-gonogo/core";
 import { datedFrom, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Countdown,
-  EmptyState,
   NULL_DISPLAY,
   Panel,
   Section,
@@ -100,8 +99,11 @@ function LandingStatusComponent({
   const scopeShown =
     (board === "vacuum-solved" || landed || atmosphericPlotsShown) && showScope;
 
+  // The crash that ended the flight, shown after the game has left the flight scene: a record of the last flight, with nothing live beside it.
+  const heldOpen = useHeldOpen();
+  const recordOnly = crash !== undefined && heldOpen === "crash-ending";
   // Whether a descent is on the board: the empty state otherwise.
-  const descending = !(board === "not-descending" && !landed);
+  const descending = !recordOnly && !(board === "not-descending" && !landed);
 
   // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
   const idle = crash ? "Crashed" : landed ? "Landed" : "Awaiting data";
@@ -222,7 +224,7 @@ function LandingStatusComponent({
         <Section key="link" full>
           <Stack>
             {commitLayerEl}
-            {crash && <CrashOutcome crash={crash} />}
+            {crash && <CrashOutcome crash={crash} record={recordOnly} />}
             {descending && (
               <Text level="muted">
                 RT{" "}
@@ -241,7 +243,7 @@ function LandingStatusComponent({
             )}
           </Stack>
         </Section>,
-        bodyName !== undefined ? (
+        bodyName !== undefined && !recordOnly ? (
           <Section key="context" full>
             <Text level="muted" size="xs">
               {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
@@ -357,6 +359,8 @@ registerComponent<LandingStatusConfig>({
   contributionSlots: ["plots"],
   pushable: true,
   requires: ["flight"],
+  // The crash that ended a flight is a record the widget keeps showing after the game leaves the flight scene.
+  heldOpenBy: ["crash-ending"],
 });
 
 export { LandingStatusComponent };

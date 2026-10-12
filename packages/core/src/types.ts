@@ -338,6 +338,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * context reports `Unknown` and widgets stay live.
    */
   requires?: readonly ComponentRequirement[];
+  /** Reasons the widget stays open while a `requires` is not met. Absent, an unmet `requires` always dims the widget. */
+  heldOpenBy?: readonly ComponentHeldOpen[];
   /**
    * Which seats this widget may be placed at. Omit for the derived default:
    * available everywhere unless the widget declares a topic in a ground domain
@@ -408,6 +410,13 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
  * keep the enum closed so the matching overlay messages stay coherent.
  */
 export type ComponentRequirement = "flight" | "career";
+
+/**
+ * A reason a widget stays on screen although a game state it requires is not
+ * met: `crash-ending` keeps it open while the crash that ended the last flight
+ * is on record, for a widget that shows how a flight ended.
+ */
+export type ComponentHeldOpen = "crash-ending";
 
 export interface ThemeDefinition {
   id: string;

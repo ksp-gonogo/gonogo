@@ -63,6 +63,14 @@ export type DataRequirement = string;
 export type ComponentRequirement = "flight" | "career";
 
 /**
+ * A reason a widget stays on screen although a game state it requires is not met.
+ * `"crash-ending"` keeps it open while the crash that ended the last flight is on record, so a widget that shows how a flight ended is still there once the game leaves the flight scene.
+ *
+ * @category Registering
+ */
+export type ComponentHeldOpen = "crash-ending";
+
+/**
  * The kind of input that can drive an action: a button, or an analog axis.
  *
  * @category Actions
@@ -431,6 +439,8 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   pushable?: boolean;
   /** Game states the widget needs. While one is not met, the dashboard draws a notice in its place. */
   requires?: readonly ComponentRequirement[];
+  /** Reasons the widget stays open while a `requires` is not met. Absent, an unmet `requires` always draws the notice. */
+  heldOpenBy?: readonly ComponentHeldOpen[];
   /**
    * Which seats the widget may be placed at. Absent, the dashboard works it out
    * from the widget's `channels`: a widget is available everywhere unless it

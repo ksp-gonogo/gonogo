@@ -1,4 +1,4 @@
-import { useTelemetry } from "@ksp-gonogo/core";
+import { useCrashEnding, useTelemetry } from "@ksp-gonogo/core";
 import {
   DELTA_V_BUDGET,
   type ReadingState,
@@ -148,15 +148,8 @@ export function useLandingModel(): LandingModel {
     budgetReading?.state === "observed" || budgetReading?.state === "held"
       ? budgetReading.value
       : undefined;
-  /* A crash is a record of an event that already happened, so the last one received is still true down a quiet link. */
-  const crashFlag = useTelemetry("crash.hasRecent");
-  const crashReading = useTelemetry("crash.lastCrash");
-  const crash =
-    (crashFlag.state === "observed" || crashFlag.state === "held") &&
-    crashFlag.value.recent === true &&
-    (crashReading.state === "observed" || crashReading.state === "held")
-      ? crashReading.value
-      : undefined;
+  // gonogo:reads crash.hasRecent, crash.lastCrash, vessel.identity, vessel.flight
+  const crash = useCrashEnding();
   const commsDelayReading = useTelemetry("comms.delay");
   // `oneWaySeconds` is carriable, so the model's projection is overlaid rather than taken whole.
   const commsDelay = describeReckonable(commsDelayReading);

@@ -6,14 +6,66 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import crashfall from "../../components/src/LandingStatus/__fixtures__/rig/landing-crashfall.replay.json";
 import lowpass from "../../components/src/LandingStatus/__fixtures__/rig/landing-lowpass.replay.json";
+import { RequiresGuard } from "../../components/src/shared/RequiresGuard";
 import { DEFAULT_SIZE } from "../scripts/landingStorySize";
 import { PlaybackStart } from "./PlaybackStart";
 import { WidgetScene } from "./WidgetScene";
 
+/** The stamp of a recorded frame, read without trusting its shape. */
+function stampOf(raw: string): Record<string, unknown> {
+  const frame: unknown = JSON.parse(raw);
+  if (
+    typeof frame === "object" &&
+    frame !== null &&
+    "meta" in frame &&
+    typeof frame.meta === "object" &&
+    frame.meta !== null
+  ) {
+    return { ...frame.meta };
+  }
+  return {};
+}
+
+/** The crash recording with the game leaving the flight scene for the space centre a few seconds after its last frame. */
+function crashThenSpaceCentre() {
+  const num = (stamp: Record<string, unknown>, key: string) => {
+    const v = stamp[key];
+    return typeof v === "number" ? v : 0;
+  };
+  const last = crashfall.frames
+    .map(stampOf)
+    .reduce((a, b) => (num(b, "deliveredAt") > num(a, "deliveredAt") ? b : a));
+  const leaving = JSON.stringify({
+    type: "stream-data",
+    topic: "spaceCenter.scene",
+    payload: { scene: "SpaceCenter", launchSite: null },
+    meta: {
+      ...last,
+      seq: num(last, "seq") + 1,
+      validAt: num(last, "validAt") + 6,
+      deliveredAt: num(last, "deliveredAt") + 6,
+    },
+  });
+  return { ...crashfall, frames: [...crashfall.frames, leaving] };
+}
+
 /** The real landings the live rig recorded off the wire, trimmed to what Landing Status mounts on. */
 const RECORDINGS = {
-  lowpass: { fixture: lowpass, label: "a low pass over the Mun" },
-  crashfall: { fixture: crashfall, label: "a fast crash on the Mun" },
+  lowpass: {
+    fixture: lowpass,
+    label: "a low pass over the Mun",
+    gated: false,
+  },
+  crashfall: {
+    fixture: crashfall,
+    label: "a fast crash on the Mun",
+    gated: false,
+  },
+  crashleaves: {
+    fixture: crashThenSpaceCentre(),
+    label: "a fast crash, then the game leaves the flight scene",
+    gated: true,
+  },
 } as const;
 
 export type LandingRecording = keyof typeof RECORDINGS;
@@ -103,7 +155,7 @@ export function LandingReplayScene({
   w = DEFAULT_SIZE.w,
   h = DEFAULT_SIZE.h,
 }: LandingReplaySceneProps) {
-  const { fixture, label } = RECORDINGS[recording];
+  const { fixture, label, gated } = RECORDINGS[recording];
   const [first, last] = useMemo(() => spanOf(fixture.frames), [fixture]);
   const seconds = last - first;
   const [run, setRun] = useState(0);
@@ -136,7 +188,21 @@ export function LandingReplayScene({
         }}
         w={w}
         h={h}
-        wrap={(tree) => <ReplaySessionProvider>{tree}</ReplaySessionProvider>}
+        wrap={(tree) => (
+          <ReplaySessionProvider>
+            {gated ? (
+              <RequiresGuard
+                requires={["flight"]}
+                heldOpenBy={["crash-ending"]}
+                title="LANDING"
+              >
+                {tree}
+              </RequiresGuard>
+            ) : (
+              tree
+            )}
+          </ReplaySessionProvider>
+        )}
       />
     </div>
   );

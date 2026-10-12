@@ -18,7 +18,14 @@ function placeOf(crash: CrashReport): string {
 /**
  * The crash that ended the flight, from the crash report alone: the vessel's own readings go with it, or what is left of it reports as if it had landed. The hero above says the vessel crashed; this says which vessel, where and what was lost.
  */
-export function CrashOutcome({ crash }: Readonly<{ crash: CrashReport }>) {
+export function CrashOutcome({
+  crash,
+  record = false,
+}: Readonly<{
+  crash: CrashReport;
+  /** True once the game has left the flight scene, so this is the record of a flight that is over. */
+  record?: boolean;
+}>) {
   const lost = Array.isArray(crash.partsLost) ? crash.partsLost.length : 0;
   const killed = Array.isArray(crash.kerbalsKilled)
     ? crash.kerbalsKilled.length
@@ -26,6 +33,7 @@ export function CrashOutcome({ crash }: Readonly<{ crash: CrashReport }>) {
   const place = placeOf(crash);
   return (
     <Stack>
+      {record && <Text level="muted">Record of the last flight</Text>}
       <Text level="muted">
         {[crash.vesselName, crash.body].filter(Boolean).join(" \u00b7 ")}
       </Text>

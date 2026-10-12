@@ -10537,8 +10537,16 @@
         "note": "Optional list of the commands a widget's controls can send, checked against what the widget sends; it never locks or replaces the widget"
       },
       {
+        "key": "sitrep-sdk . ComponentDefinition#heldOpenBy?",
+        "note": "a widget can name a reason it stays open while a game state it requires is not met"
+      },
+      {
         "key": "sitrep-sdk . ComponentDefinition#optionalChannelFamilies?",
         "note": "Families of runtime-built Topics the widget reads but can do without"
+      },
+      {
+        "key": "sitrep-sdk . ComponentHeldOpen",
+        "note": "the reasons a widget can stay open while a game state it requires is not met: the crash that ended a flight"
       },
       {
         "key": "sitrep-sdk . ConicShape",
@@ -11369,8 +11377,16 @@
         "note": "Optional list of the commands a widget's controls can send, checked against what the widget sends; it never locks or replaces the widget"
       },
       {
+        "key": "sitrep-sdk ./registry ~ComponentDefinition#heldOpenBy?",
+        "note": "a widget can name a reason it stays open while a game state it requires is not met"
+      },
+      {
         "key": "sitrep-sdk ./registry ~ComponentDefinition#optionalChannelFamilies?",
         "note": "Families of runtime-built Topics the widget reads but can do without"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ComponentHeldOpen",
+        "note": "the reasons a widget can stay open while a game state it requires is not met: the crash that ended a flight"
       },
       {
         "key": "sitrep-sdk ./registry ~ContributionDefinition#sizeDelta?",

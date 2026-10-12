@@ -62,6 +62,7 @@ function renderGuard(
   children: React.ReactNode,
   props: {
     requires?: readonly ("flight" | "career")[];
+    heldOpenBy?: readonly "crash-ending"[];
     channels?: readonly string[];
     title?: string;
   } = {},
@@ -72,6 +73,7 @@ function renderGuard(
     <TelemetryProvider client={client}>
       <RequiresGuard
         requires={props.requires}
+        heldOpenBy={props.heldOpenBy}
         channels={props.channels}
         title={props.title}
       >
@@ -234,5 +236,68 @@ describe("RequiresGuard: 'No telemetry host' takes priority when channels are de
     registerDataSource(makeSitrepFixture("disconnected"));
     renderGuard(<div>widget content</div>);
     expect(screen.getByText("widget content")).toBeInTheDocument();
+  });
+});
+
+describe("RequiresGuard: held open by the crash a flight ended in", () => {
+  /** The game at the space centre first, the gate engaged and showing its notice, then the crash arrives. */
+  const crashOnRecord = async (transport: StubTransport) => {
+    act(() => transport.emit("spaceCenter.scene", { scene: "SpaceCenter" }));
+    await screen.findByText("Vessel in flight required");
+    act(() => {
+      transport.emit("crash.hasRecent", { recent: true });
+      transport.emit("crash.lastCrash", { vesselId: "doomed", ut: 1000 });
+    });
+  };
+
+  it("keeps a widget that declares it on screen once the game has left the flight scene", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      requires: ["flight"],
+      heldOpenBy: ["crash-ending"],
+    });
+    await crashOnRecord(transport);
+    await waitFor(() =>
+      expect(screen.getByText("widget content")).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByText("Vessel in flight required"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("leaves every other flight widget behind the gate, crash on record or not", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      requires: ["flight"],
+    });
+    await crashOnRecord(transport);
+    await waitFor(() =>
+      expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("widget content")).not.toBeInTheDocument();
+  });
+
+  it("holds nothing open without a crash on record", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      requires: ["flight"],
+      heldOpenBy: ["crash-ending"],
+    });
+    act(() => transport.emit("spaceCenter.scene", { scene: "SpaceCenter" }));
+    await waitFor(() =>
+      expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
+    );
+  });
+
+  it("lets go once another vessel is the one reporting, so a new flight is not under the old crash", async () => {
+    const { transport } = renderGuard(<div>widget content</div>, {
+      requires: ["flight"],
+      heldOpenBy: ["crash-ending"],
+    });
+    await crashOnRecord(transport);
+    await waitFor(() =>
+      expect(screen.getByText("widget content")).toBeInTheDocument(),
+    );
+    act(() => transport.emit("vessel.identity", { vesselId: "next-craft" }));
+    await waitFor(() =>
+      expect(screen.getByText("Vessel in flight required")).toBeInTheDocument(),
+    );
   });
 });

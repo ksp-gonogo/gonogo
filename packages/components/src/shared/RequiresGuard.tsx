@@ -1,6 +1,9 @@
 import {
+  type ComponentHeldOpen,
   type ComponentRequirement,
+  HeldOpenContext,
   NO_TELEMETRY_HOST_MESSAGE,
+  useCrashEnding,
   useGameContext,
   useTelemetryHostDown,
   useUplinkHealthFor,
@@ -20,6 +23,8 @@ import type { ReactNode } from "react";
 
 export interface RequiresGuardProps {
   requires?: readonly ComponentRequirement[];
+  /** Reasons the widget stays open while a `requires` is not met. */
+  heldOpenBy?: readonly ComponentHeldOpen[];
   /** The widget's required channels only; optional channels never gate. */
   channels?: readonly string[];
   /**
@@ -59,6 +64,7 @@ export interface RequiresGuardProps {
  */
 export function RequiresGuard({
   requires,
+  heldOpenBy,
   channels,
   families,
   optionalFamilies,
@@ -108,7 +114,12 @@ export function RequiresGuard({
       {[...new Set(claimed)].map((topic) => (
         <ChannelClaim key={topic} topic={topic} />
       ))}
-      <ReadinessGate requires={requires} channels={healthChecked} title={title}>
+      <ReadinessGate
+        requires={requires}
+        heldOpenBy={heldOpenBy}
+        channels={healthChecked}
+        title={title}
+      >
         {children}
       </ReadinessGate>
     </LockScope>
@@ -122,12 +133,26 @@ function ChannelClaim({ topic }: { topic: string }) {
 }
 
 /** The health and game-context half of {@link RequiresGuard}, inside its lock scope. */
-function ReadinessGate({
+function ReadinessGate(props: RequiresGuardProps) {
+  // The crash is read only for a widget that declares it: a read in here claims its topics for the widget's lock scope.
+  return props.heldOpenBy?.includes("crash-ending") === true ? (
+    <CrashHeldGate {...props} />
+  ) : (
+    <GameGate {...props} heldOpen={false} />
+  );
+}
+
+function CrashHeldGate(props: RequiresGuardProps) {
+  return <GameGate {...props} heldOpen={useCrashEnding() !== undefined} />;
+}
+
+function GameGate({
   requires,
   channels,
   title,
+  heldOpen,
   children,
-}: RequiresGuardProps) {
+}: RequiresGuardProps & { heldOpen: boolean }) {
   const uplinkHealth = useUplinkHealthFor(channels ?? []);
   const ctx = useGameContext();
 
@@ -149,15 +174,19 @@ function ReadinessGate({
     return <>{children}</>;
   }
 
+  let bypassed = false;
   for (const req of requires) {
     if (req === "flight" && !ctx.inFlight) {
-      return (
-        <GuardPlaceholder
-          title={title}
-          message="Vessel in flight required"
-          hint={hintForScene(ctx.scene)}
-        />
-      );
+      if (!heldOpen) {
+        return (
+          <GuardPlaceholder
+            title={title}
+            message="Vessel in flight required"
+            hint={hintForScene(ctx.scene)}
+          />
+        );
+      }
+      bypassed = true;
     }
     if (req === "career" && !ctx.isCareerLike) {
       return (
@@ -174,7 +203,13 @@ function ReadinessGate({
     }
   }
 
-  return <>{children}</>;
+  return bypassed ? (
+    <HeldOpenContext.Provider value="crash-ending">
+      {children}
+    </HeldOpenContext.Provider>
+  ) : (
+    <>{children}</>
+  );
 }
 
 /**

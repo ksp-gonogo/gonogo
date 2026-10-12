@@ -210,6 +210,7 @@ export const GridItemContent = memo(function GridItemContent({
                     <SeatGuard def={def}>
                       <RequiresGuard
                         requires={def.requires}
+                        heldOpenBy={def.heldOpenBy}
                         channels={def.channels}
                         families={def.channelFamilies}
                         optionalFamilies={def.optionalChannelFamilies}

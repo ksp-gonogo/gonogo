@@ -1,4 +1,4 @@
-import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
+import { CORE_UPLINK_CLIENT, crashEndingOf } from "@ksp-gonogo/core";
 import {
   datedFrom,
   observedAt,
@@ -219,11 +219,21 @@ export function registerTouchdownPlot(
         live.body?.radius != null;
       const crashFlag = lastValue(topics["crash.hasRecent"]);
       const crashed = lastValue(topics["crash.lastCrash"]);
-      const crashOnRecord = crashFlag?.recent === true && crashed !== undefined;
+      // Whether that crash is still the ending of the flight in view, by the one rule the hero and the gate use.
+      const ending = crashEndingOf({
+        recent: crashFlag?.recent === true,
+        report: crashed,
+        vesselId,
+        flightAt:
+          topics["vessel.flight"].state === "observed"
+            ? observedAt(topics["vessel.flight"])
+            : undefined,
+      });
+      const crashOnRecord = ending !== undefined;
       // A vessel the crash on record names is over, whether it is the one reporting now or the one the scene was drawn for: whatever it goes on reporting is the wreck, so the scene stops being redrawn from it.
       const overThisVessel =
-        crashOnRecord &&
-        (crashed.vesselId === vesselId || crashed.vesselId === kept?.vesselId);
+        ending !== undefined &&
+        (ending.vesselId === vesselId || ending.vesselId === kept?.vesselId);
       if (complete && !overThisVessel) {
         keptCrash = undefined;
         kept = {
@@ -236,12 +246,8 @@ export function registerTouchdownPlot(
           at: observedAt(topics["vessel.flight"]),
         };
       }
-      if (
-        kept !== undefined &&
-        crashOnRecord &&
-        crashed.vesselId === kept.vesselId
-      ) {
-        keptCrash = crashed;
+      if (kept !== undefined && ending?.vesselId === kept.vesselId) {
+        keptCrash = ending;
       }
       // The crash on record is the ending of the flight the scene belongs to: after a crash the game moves the player on to the wreck, a vessel of another id, so the crash is not matched to the id the scene was drawn for.
       const frozen =

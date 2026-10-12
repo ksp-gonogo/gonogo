@@ -1,5 +1,6 @@
 import {
   DashboardItemContext,
+  getComponent,
   PerfBudget,
   registerStockBodies,
 } from "@ksp-gonogo/core";
@@ -15,6 +16,7 @@ import {
   installSizedResizeObserver,
   WidgetContributions,
 } from "../test/widgetDomSnapshot";
+import "../CurrentOrbit";
 import { LandingStatusComponent } from "./index";
 
 /** A mostly-horizontal descent must not report a survivable burn-now touchdown: real physics through the stream pipeline, asserted at the DOM. */
@@ -114,6 +116,18 @@ function emitVessel(
     });
   }
 }
+
+describe("the flight gate Landing Status stands behind", () => {
+  it("is held open by the crash a flight ended in, and no other flight widget is", () => {
+    expect(getComponent("landing-status")?.requires).toEqual(["flight"]);
+    expect(getComponent("landing-status")?.heldOpenBy).toEqual([
+      "crash-ending",
+    ]);
+    // Current Orbit stays behind the gate, crash on record or not.
+    expect(getComponent("current-orbit")?.requires).toEqual(["flight"]);
+    expect(getComponent("current-orbit")?.heldOpenBy).toBeUndefined();
+  });
+});
 
 describe("LandingStatusComponent", () => {
   // A spec replays its scenario inside one rolling second, so the contribution budgets are reset between tests rather than raised.

@@ -204,6 +204,7 @@ const MobileItemContent = memo(function MobileItemContent({
             <SeatGuard def={def}>
               <RequiresGuard
                 requires={def.requires}
+                heldOpenBy={def.heldOpenBy}
                 channels={def.channels}
                 families={def.channelFamilies}
                 optionalFamilies={def.optionalChannelFamilies}
