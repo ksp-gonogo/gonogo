@@ -1557,7 +1557,8 @@ namespace Sitrep.Host.Comms
                 _plans.TryGetValue(centre, out var plan);
                 _unsettled.TryGetValue(centre, out var unsettled);
                 stations ??= StationIds();
-                var figure = ContactLoss.Next(plan, looked.ActiveCraft, centre, home, stations, looked.Ut, unsettled);
+                var heard = looked.ActiveCraft == null ? null : _hearing!.RadioAt(centre, looked.ActiveCraft);
+                var figure = ContactLoss.Next(plan, looked.ActiveCraft, centre, home, stations, looked.Ut, unsettled, heard?.Connected);
                 var changed = !_nextLossSent.TryGetValue(centre, out var sent) || !SameLoss(sent, figure);
                 if (!changed && !_nextLossAsked.Contains(centre))
                 {

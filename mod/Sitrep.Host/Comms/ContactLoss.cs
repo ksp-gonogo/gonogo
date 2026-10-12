@@ -55,6 +55,11 @@ namespace Sitrep.Host.Comms
         /// <param name="antennas">Every ground station, each of which is home's own antenna.</param>
         /// <param name="ut">Now.</param>
         /// <param name="unsettled">The nodes reckoned on an orbit that was still changing.</param>
+        /// <param name="liveLink">
+        /// Whether the craft's link is up as the centre last heard it: false is out of
+        /// contact whatever the plan holds, since a loss is predicted of a link that is
+        /// there. Null is no reading yet, which is not a disconnection, and the plan answers.
+        /// </param>
         public static CommsNextLoss Next(
             ContactPlan? plan,
             string? craft,
@@ -62,11 +67,16 @@ namespace Sitrep.Host.Comms
             string? home,
             IReadOnlyCollection<string>? antennas,
             double ut,
-            IReadOnlyCollection<string>? unsettled = null)
+            IReadOnlyCollection<string>? unsettled = null,
+            bool? liveLink = null)
         {
             if (craft == null)
             {
                 return new CommsNextLoss { Basis = NextLossBasis.NoCraft };
+            }
+            if (liveLink == false)
+            {
+                return new CommsNextLoss { Basis = NextLossBasis.OutOfContact, CoveredToUt = plan?.HorizonUt ?? ut };
             }
             if (plan == null || ut < plan.FromUt || !Includes(plan, craft))
             {

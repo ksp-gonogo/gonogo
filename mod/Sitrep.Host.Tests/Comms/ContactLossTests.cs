@@ -14,8 +14,8 @@ namespace Sitrep.Host.Tests.Comms
 
         private static ContactPlan PlanOf(params PairPlan[] pairs) => new ContactPlan(0.0, Horizon, 10.0, pairs, 0, 0);
 
-        private static CommsNextLoss Next(ContactPlan? plan, string? craft = "vessel:probe", double ut = 100.0) =>
-            ContactLoss.Next(plan, craft, "ground:ksc", "ground:ksc", new[] { "ground:ksc" }, ut);
+        private static CommsNextLoss Next(ContactPlan? plan, string? craft = "vessel:probe", double ut = 100.0, bool? live = null) =>
+            ContactLoss.Next(plan, craft, "ground:ksc", "ground:ksc", new[] { "ground:ksc" }, ut, liveLink: live);
 
         [Fact]
         public void TheEndOfTheOnlyOpenWindowIsTheLoss()
@@ -27,6 +27,53 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(NextLossBasis.PredictedLoss, loss.Basis);
             Assert.Equal(1500.0, loss.Ut!.Value, 9);
             Assert.Equal(Horizon, loss.CoveredToUt, 9);
+        }
+
+        /// <summary>A loss is predicted of a link that is there: with the craft's live link down, the plan's open window describes a link that is not.</summary>
+        [Fact]
+        public void ADownLiveLinkBeatsAnOpenPlanAndIsOutOfContact()
+        {
+            var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(null, 1500.0)));
+
+            var loss = Next(plan, live: false);
+
+            Assert.Equal(NextLossBasis.OutOfContact, loss.Basis);
+            Assert.Null(loss.Ut);
+            Assert.Equal(Horizon, loss.CoveredToUt, 9);
+        }
+
+        [Fact]
+        public void ADownLiveLinkIsOutOfContactWhateverThePlanHoldsEvenOpenEnded()
+        {
+            var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(null, null)));
+
+            Assert.Equal(NextLossBasis.OutOfContact, Next(plan, live: false).Basis);
+        }
+
+        [Fact]
+        public void AnUpLiveLinkStillGetsThePlansPredictedLoss()
+        {
+            var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(null, 1500.0)));
+
+            var loss = Next(plan, live: true);
+
+            Assert.Equal(NextLossBasis.PredictedLoss, loss.Basis);
+            Assert.Equal(1500.0, loss.Ut!.Value, 9);
+        }
+
+        /// <summary>No reading yet is not a disconnection: the plan answers as it always did.</summary>
+        [Fact]
+        public void NoLiveReadingKeepsThePlansAnswer()
+        {
+            var plan = PlanOf(Pair("ground:ksc", "vessel:probe", Horizon, new ContactWindow(null, 1500.0)));
+
+            Assert.Equal(NextLossBasis.PredictedLoss, Next(plan, live: null).Basis);
+        }
+
+        [Fact]
+        public void NoCraftStaysNoCraftWhateverTheLiveLinkReads()
+        {
+            Assert.Equal(NextLossBasis.NoCraft, Next(null, craft: null, live: false).Basis);
         }
 
         [Fact]
