@@ -30,12 +30,14 @@ import {
   MissionDate,
   SectionTitle,
   Stack,
+  Switch,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { useVantageName } from "./foreignAlarm";
+import { isReckonedField } from "./reckonedField";
 import type {
   Alarm,
   AlarmFireAction,
@@ -150,13 +152,19 @@ export function AlarmsModal({
     }
     return new Set(topicsReading.value.map((row) => row.topic));
   }, [topicsReading]);
-  const numericKeys = useMemo(
-    () =>
+  /* Observed values by default. A reckoned value is a model's estimate between
+     observations, so an alarm on one fires on a prediction; the switch widens
+     the list rather than swapping it. */
+  const [includeReckoned, setIncludeReckoned] = useState(false);
+  const numericKeys = useMemo(() => {
+    const addressable =
       addressableTopics === null
         ? numericFields
-        : numericFields.filter((k) => addressableTopics.has(k.topic)),
-    [numericFields, addressableTopics],
-  );
+        : numericFields.filter((k) => addressableTopics.has(k.topic));
+    return includeReckoned
+      ? addressable
+      : addressable.filter((k) => !isReckonedField(k.topic, k.fieldPath));
+  }, [numericFields, addressableTopics, includeReckoned]);
   // Mirror snapshot in a ref so the add handler reads the freshest value
   // when the user clicks (rules of hooks forbid calling useSnapshot inside
   // a handler). Without this, two quick adds anchor to the same UT.
@@ -183,7 +191,7 @@ export function AlarmsModal({
    */
   const [vantage, setVantage] = useState<AlarmVantage>("command");
   // Threshold-trigger fields
-  const [dataKey, setDataKey] = useState("vessel.flight.altitudeAsl");
+  const [dataKey, setDataKey] = useState("vessel.flight.altitudeTerrain");
   const [op, setOp] = useState<ThresholdOp>(">=");
   const [thresholdValue, setThresholdValue] = useState("70000");
   const [sustainSeconds, setSustainSeconds] = useState(
@@ -260,6 +268,8 @@ export function AlarmsModal({
     return { topic: selectedKey.topic, fieldPath: selectedKey.fieldPath };
   }, [selectedKey]);
   const addressable = address !== null;
+  const selectedReckoned =
+    address !== null && isReckonedField(address.topic, address.fieldPath);
   const draftAboard =
     kind === "time" ||
     (vantage === "scet" &&
@@ -516,6 +526,23 @@ export function AlarmsModal({
                 clearable
               />
               <FieldHint>Any telemetry value that returns a number.</FieldHint>
+              <Switch
+                id="alarm-include-reckoned"
+                checked={includeReckoned}
+                onChange={(next) => {
+                  setIncludeReckoned(next);
+                  if (!next && selectedKey !== null && selectedReckoned) {
+                    setDataKey("");
+                  }
+                }}
+                label="Include reckoned values"
+              />
+              {(includeReckoned || selectedReckoned) && (
+                <FieldHint>
+                  A reckoned value is the model's estimate between observations,
+                  so an alarm on one fires on a prediction.
+                </FieldHint>
+              )}
               {trimmedKey !== "" && !addressable && (
                 <FieldHint>
                   <code>{trimmedKey}</code> has no Topic behind it, so there is
@@ -631,6 +658,15 @@ export function AlarmsModal({
                           isAtSubjectVantage(a.trigger) && (
                             <Badge tone="info" size="sm">
                               SCET
+                            </Badge>
+                          )}
+                        {a.trigger.kind === "threshold" &&
+                          isReckonedField(
+                            a.trigger.topic,
+                            a.trigger.fieldPath,
+                          ) && (
+                            <Badge tone="warn" size="sm">
+                              RECKONED
                             </Badge>
                           )}
                       </>
@@ -839,9 +875,20 @@ function ForeignAlarmRow({
     <Card
       as="li"
       titleLeft={
-        <Badge size="md">
-          {alarm.condition?.kind === "time" ? "TIME" : "COND"}
-        </Badge>
+        <>
+          <Badge size="md">
+            {alarm.condition?.kind === "time" ? "TIME" : "COND"}
+          </Badge>
+          {alarm.condition?.kind === "threshold" &&
+            isReckonedField(
+              alarm.condition.topic,
+              alarm.condition.fieldPath,
+            ) && (
+              <Badge tone="warn" size="sm">
+                RECKONED
+              </Badge>
+            )}
+        </>
       }
       title={label}
       titleRight={

@@ -1614,7 +1614,7 @@
     }
   },
   "topics": {
-    "alarm.scet": {
+    "alarm.activeList": {
       "actsOn": "id",
       "armedBy": "id",
       "firedAtUt": "ut",
@@ -2611,7 +2611,7 @@
     }
   },
   "topicShapes": {
-    "alarm.scet": {
+    "alarm.activeList": {
       "condition": "ScetAlarmCondition",
       "onFire": "ScetAlarmAction[]"
     },
@@ -2962,7 +2962,7 @@
     }
   },
   "topicEnums": {
-    "alarm.scet": {
+    "alarm.activeList": {
       "state": "ScetAlarmState"
     },
     "career.mode": {

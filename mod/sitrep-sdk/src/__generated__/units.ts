@@ -1659,7 +1659,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
-  "alarm.scet": {
+  "alarm.activeList": {
     actsOn: "id",
     armedBy: "id",
     firedAtUt: "ut",
@@ -2687,7 +2687,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
-  "alarm.scet": {
+  "alarm.activeList": {
     condition: "ScetAlarmCondition",
     onFire: "ScetAlarmAction[]",
   },
@@ -3049,7 +3049,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
-  "alarm.scet": {
+  "alarm.activeList": {
     state: "ScetAlarmState",
   },
   "career.mode": {

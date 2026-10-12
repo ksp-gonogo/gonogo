@@ -183,15 +183,15 @@ describe("collection Topics in the generated contract", () => {
     expect(derived.unresolved).toEqual([]);
   });
 
-  it("finds alarm.scet, whose payload is ScetAlarm[]", () => {
-    expect(derived.collections).toContain("alarm.scet");
+  it("finds alarm.activeList, whose payload is ScetAlarm[]", () => {
+    expect(derived.collections).toContain("alarm.activeList");
     // Its sibling is a single record and must not be swept in with it.
     expect(derived.collections).not.toContain("alarm.scet.fired");
   });
 
   it("names every SDK-owned collection Topic", () => {
     expect(derived.sdkOwned).toEqual([
-      "alarm.scet",
+      "alarm.activeList",
       "alarm.scet.topics",
       "commandCentre.roster",
       "commandCentre.unreachable",

@@ -71,7 +71,7 @@ namespace Gonogo.KSP
     public sealed class ScetAlarmUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         /// <summary>The roster of armed SCET alarms.</summary>
-        public const string RosterTopic = "alarm.scet";
+        public const string RosterTopic = "alarm.activeList";
 
         /// <summary>The notice that one of them fired and the warp was stopped.</summary>
         public const string FiredTopic = "alarm.scet.fired";

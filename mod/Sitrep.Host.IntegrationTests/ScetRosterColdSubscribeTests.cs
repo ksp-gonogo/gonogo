@@ -14,7 +14,7 @@ namespace Sitrep.Host.IntegrationTests
     ///
     /// <para><b>A roster channel that publishes only on change can never say
     /// "empty."</b> Subscribing to
-    /// <c>alarm.scet</c> returned the subscribed event and then nothing at all,
+    /// <c>alarm.activeList</c> returned the subscribed event and then nothing at all,
     /// well past the
     /// channel's own keyframe interval. A successful arm produced no frame
     /// either. The client's reconciler waits for a roster before it arms

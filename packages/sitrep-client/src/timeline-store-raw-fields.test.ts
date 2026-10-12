@@ -231,11 +231,11 @@ describe("TimelineStore: raw record field-subtopic resolution", () => {
   });
 
   it("a genuinely 3-segment TOPIC is its own wire topic, and carries a field path of its own", () => {
-    // `alarm.scet.fired` is a Topic, not a `.fired` field of the `alarm.scet`
+    // `alarm.scet.fired` is a Topic, not a `.fired` field of the `alarm.activeList`
     // ARRAY. The split lands at the longest known Topic id, so the topic reads
     // and subscribes as itself and `alarm.scet.fired.firedAtUt` reads the field
     // off it, where splitting after the second segment gave both of them
-    // `alarm.scet` and a path nothing could fill.
+    // `alarm.activeList` and a path nothing could fill.
     const store = newStore();
     expect(store.resolveSubscriptionTopics("alarm.scet.fired")).toEqual([
       "alarm.scet.fired",

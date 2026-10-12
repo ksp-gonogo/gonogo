@@ -75,7 +75,7 @@ describe("getTopicFieldCatalog()", () => {
     // `alarm.scet.fired` is the case that paid for the longest-match split: the
     // contract annotates every one of its fields, and while the split landed
     // after the second segment every key under it resolved to a `fired.*` path
-    // into `alarm.scet`, which is an ARRAY and has no such field. So the picker
+    // into `alarm.activeList`, which is an ARRAY and has no such field. So the picker
     // could not offer an annotated instant that the wire genuinely carries.
     const fired = getTopicFieldCatalog().filter(
       (k) => k.topic === "alarm.scet.fired",

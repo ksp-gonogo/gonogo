@@ -140,7 +140,7 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 2 explicit declarations.
   "mod/Gonogo.KSP/VesselUplink.cs": 2,
 
-  // alarm.scet and alarm.scet.fired: the SCET alarm arm.
+  // alarm.activeList and alarm.scet.fired: the SCET alarm arm.
   //
   // The ROSTER is ground-side in the plainest sense: a list of things the
   // operator asked the simulation to watch for, which never described a craft

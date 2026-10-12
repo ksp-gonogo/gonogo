@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 38.2.0
+  version: 39.0.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -217,13 +217,13 @@ servers:
     title: The Gonogo mod's telemetry socket
     description: "Served by the mod inside the running game. The host and port are configurable per install; `localhost:8090` is the default the client falls back to when nothing else is configured. There is no path: the URL is `ws://<host>:<port>`."
 channels:
-  alarm.scet:
-    address: alarm.scet
+  alarm.activeList:
+    address: alarm.activeList
     description: |-
       Carries an array of `ScetAlarm`.
 
       One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as
-      the game holds it: the `alarm.scet` Topic is a bare array of these.
+      the game holds it: the `alarm.activeList` Topic is a bare array of these.
 
       The roster exists so an operator can see which alarms are still set after a
       reconnect, and so a client can remove an entry it no longer remembers. The
@@ -239,7 +239,7 @@ channels:
     x-sitrep-keyframe-interval-ut: 3600
     messages:
       streamData:
-        $ref: "#/components/messages/streamData.alarm.scet"
+        $ref: "#/components/messages/streamData.alarm.activeList"
       event:
         $ref: "#/components/messages/event"
   alarm.scet.arm:
@@ -4891,17 +4891,17 @@ operations:
         $ref: "#/channels/vessel.target.set"
       messages:
         - $ref: "#/channels/vessel.target.set/messages/commandResponse"
-  read:alarm.scet:
+  read:alarm.activeList:
     action: receive
     channel:
-      $ref: "#/channels/alarm.scet"
-    title: Read alarm.scet
-    description: Delivered only after `subscribe` names `alarm.scet` on the session channel, which the mod answers here with an `event` named `subscribed`.
+      $ref: "#/channels/alarm.activeList"
+    title: Read alarm.activeList
+    description: Delivered only after `subscribe` names `alarm.activeList` on the session channel, which the mod answers here with an `event` named `subscribed`.
     tags:
       - name: alarm
     messages:
-      - $ref: "#/channels/alarm.scet/messages/streamData"
-      - $ref: "#/channels/alarm.scet/messages/event"
+      - $ref: "#/channels/alarm.activeList/messages/streamData"
+      - $ref: "#/channels/alarm.activeList/messages/event"
   read:alarm.scet.fired:
     action: receive
     channel:
@@ -7647,17 +7647,17 @@ components:
       title: Select this connection's command centre
       payload:
         $ref: "#/components/schemas/SetVantage"
-    streamData.alarm.scet:
+    streamData.alarm.activeList:
       name: stream-data
-      title: A frame on alarm.scet
+      title: A frame on alarm.activeList
       contentType: application/json
       payload:
-        description: The `stream-data` envelope carrying `alarm.scet`.
+        description: The `stream-data` envelope carrying `alarm.activeList`.
         allOf:
           - $ref: "#/components/schemas/StreamData"
           - properties:
               topic:
-                const: alarm.scet
+                const: alarm.activeList
               payload:
                 type: array
                 items:
@@ -17443,7 +17443,7 @@ components:
       type: object
       description: |-
         One SCET alarm (an alarm on the craft's own clock, spacecraft event time) as
-        the game holds it: the `alarm.scet` Topic is a bare array of these.
+        the game holds it: the `alarm.activeList` Topic is a bare array of these.
 
         The roster exists so an operator can see which alarms are still set after a
         reconnect, and so a client can remove an entry it no longer remembers. The
