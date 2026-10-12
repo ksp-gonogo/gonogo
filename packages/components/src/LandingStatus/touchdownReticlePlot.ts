@@ -52,6 +52,8 @@ export function mapFootprintShare(heightMeters: number): number {
 }
 /** The least width of the map, metres, so a craft at the ground still has a map. */
 const MIN_MAP_METRES = 16;
+/** How far past the crash site the map reaches, as a multiple of its distance from the middle. */
+const IMPACT_MARGIN = 1.25;
 /** Points around the ring. */
 const ZONE_STEPS = 72;
 /** How far out from the map's middle the bearing marks sit, as a share of its width, and the bearings they mark. */
@@ -90,9 +92,22 @@ export function buildTouchdownReticlePlot(
     Math.max(...fu) - Math.min(...fu),
     Math.max(...fv) - Math.min(...fv),
   );
+  // A crash site is shown with the prediction it is judged against, so the map opens wide enough to hold it.
+  const impactReach = inputs.impact
+    ? (() => {
+        const b = (inputs.impact.bearingDeg * Math.PI) / 180;
+        const x = eye[0] + inputs.impact.distanceMeters * Math.sin(b);
+        const y = eye[1] + inputs.impact.distanceMeters * Math.cos(b);
+        return 2 * IMPACT_MARGIN * Math.hypot(uOf(x, y) - cu, vOf(x, y) - cv);
+      })()
+    : 0;
   // Never wider than the grid: past its edge there is no ground to show, and the map would be mostly blank.
   const width = Math.min(
-    Math.max(MIN_MAP_METRES, across / mapFootprintShare(scene.height)),
+    Math.max(
+      MIN_MAP_METRES,
+      across / mapFootprintShare(scene.height),
+      impactReach,
+    ),
     field ? 2 * field.half : Number.POSITIVE_INFINITY,
   );
   const half = width / 2;

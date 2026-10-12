@@ -252,6 +252,12 @@ function LandingStatusComponent({
         <Section key="descent" full>
           {!descending ? (
             <Stack>
+              {/* A crash ends the descent and takes the vessel's readings with it: the touchdown plots stay, holding what they last drew. */}
+              {crash && showPlots && (
+                <div style={{ padding: "var(--inset-contributed-plots)" }}>
+                  {contributedPlots}
+                </div>
+              )}
               <WidgetSections />
             </Stack>
           ) : (

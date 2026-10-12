@@ -65,6 +65,7 @@ function topicsOf(
   // Nothing is on record as a crash while a descent is in flight.
   const topics: Record<string, unknown> = {
     "crash.lastCrash": { state: "absent", atUt: value("ut", 100) },
+    "crash.hasRecent": { state: "absent", atUt: value("ut", 100) },
   };
   for (const e of emitsOf(frame, world)) {
     const cloned = structuredClone(e.value);

@@ -1,6 +1,12 @@
 import { CORE_UPLINK_CLIENT } from "@ksp-gonogo/core";
-import type { PlotEntry, Value } from "@ksp-gonogo/sitrep-sdk";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  datedFrom,
+  observedAt,
+  type PlotEntry,
+  type TopicPayload,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { drawnFrom, lastValue } from "../shared/drawnFrom";
 import { magnitudeOf } from "../shared/magnitude";
@@ -160,6 +166,18 @@ export function timeToImpact(inputs: {
   return Number.isFinite(t) && t > 0 ? t : null;
 }
 
+/** The readings a touchdown plot was last drawn from while the vessel was reporting. */
+interface Kept {
+  flight: TopicPayload<"vessel.flight"> | undefined;
+  landing: TopicPayload<"vessel.landing"> | undefined;
+  surface: TopicPayload<"vessel.surface"> | undefined;
+  elements: TopicPayload<"vessel.orbit"> | undefined;
+  body: ReturnType<typeof parentBodyFromTopics>;
+  vesselId: string | undefined;
+  /** When the flight reading it rests on was made. */
+  at: Value<"ut"> | undefined;
+}
+
 /**
  * Registers a plot of the touchdown: `build` is handed what the two touchdown plots share, worked out once from the Topics here, and returns the plot or null.
  */
@@ -167,6 +185,10 @@ export function registerTouchdownPlot(
   id: string,
   build: (inputs: TouchdownInputs) => PlotEntry | null,
 ): void {
+  // The last whole set of readings this plot was drawn from, kept for a flight that ends in a crash: the vessel's own topics go with it, and the plot holds what it last drew.
+  let kept: Kept | undefined;
+  // The crash report of the vessel the kept scene belongs to: the topic holds only the latest crash, and after one the game moves the player on to the wreck, whose own report replaces it.
+  let keptCrash: TopicPayload<"crash.lastCrash"> | undefined;
   CORE_UPLINK_CLIENT.registerContribution({
     id,
     contributes: "plots",
@@ -177,14 +199,56 @@ export function registerTouchdownPlot(
       "vessel.surface",
       "vessel.landing",
       "vessel.orbit",
+      "crash.hasRecent",
       "crash.lastCrash",
     ],
     compute: (topics) => {
-      const flight = lastValue(topics["vessel.flight"]);
-      const landing = lastValue(topics["vessel.landing"]);
-      const surface = lastValue(topics["vessel.surface"]);
-      const orbit = lastValue(topics["vessel.orbit"]);
-      const body = parentBodyFromTopics(topics);
+      const live = {
+        flight: lastValue(topics["vessel.flight"]),
+        landing: lastValue(topics["vessel.landing"]),
+        surface: lastValue(topics["vessel.surface"]),
+        elements: lastValue(topics["vessel.orbit"]),
+        body: parentBodyFromTopics(topics),
+      };
+      const vesselId = lastValue(topics["vessel.identity"])?.vesselId;
+      const complete =
+        live.flight?.latitude != null &&
+        live.flight?.longitude != null &&
+        live.landing?.predictedLatitude != null &&
+        live.landing?.predictedLongitude != null &&
+        live.body?.radius != null;
+      const crashFlag = lastValue(topics["crash.hasRecent"]);
+      const crashed = lastValue(topics["crash.lastCrash"]);
+      const crashOnRecord = crashFlag?.recent === true && crashed !== undefined;
+      // A vessel the crash on record names is over, whether it is the one reporting now or the one the scene was drawn for: whatever it goes on reporting is the wreck, so the scene stops being redrawn from it.
+      const overThisVessel =
+        crashOnRecord &&
+        (crashed.vesselId === vesselId || crashed.vesselId === kept?.vesselId);
+      if (complete && !overThisVessel) {
+        keptCrash = undefined;
+        kept = {
+          flight: live.flight,
+          landing: live.landing,
+          surface: live.surface,
+          elements: live.elements,
+          body: live.body,
+          vesselId,
+          at: observedAt(topics["vessel.flight"]),
+        };
+      }
+      if (
+        kept !== undefined &&
+        crashOnRecord &&
+        crashed.vesselId === kept.vesselId
+      ) {
+        keptCrash = crashed;
+      }
+      // The crash on record is the ending of the flight the scene belongs to: after a crash the game moves the player on to the wreck, a vessel of another id, so the crash is not matched to the id the scene was drawn for.
+      const frozen =
+        kept !== undefined && crashOnRecord && (!complete || overThisVessel);
+      const source = frozen ? kept : complete ? live : null;
+      if (source === null || source === undefined) return null;
+      const { flight, landing, surface, elements, body } = source;
       if (
         flight?.latitude == null ||
         flight?.longitude == null ||
@@ -218,9 +282,12 @@ export function registerTouchdownPlot(
       );
       const plot = build({
         impact: crashImpactOf({
-          crash: lastValue(topics["crash.lastCrash"]) ?? null,
-          vesselId: lastValue(topics["vessel.identity"])?.vesselId,
-          flightIsCurrent: topics["vessel.flight"].state === "observed",
+          crash: frozen
+            ? (keptCrash ?? null)
+            : (lastValue(topics["crash.lastCrash"]) ?? null),
+          vesselId: frozen ? keptCrash?.vesselId : vesselId,
+          flightIsCurrent:
+            !frozen && complete && topics["vessel.flight"].state === "observed",
           from,
           bodyRadius: body.radius,
         }),
@@ -240,7 +307,7 @@ export function registerTouchdownPlot(
               landing.atmosphericTimeToImpact?.magnitude ?? null,
             aglMeters,
             descentRate: flight.verticalSpeed?.scaled(-1).magnitude ?? null,
-            mu: orbit?.mu?.magnitude ?? null,
+            mu: elements?.mu?.magnitude ?? null,
             radiusFromCentre:
               flight.altitudeAsl?.plus(value("m", body.radius)).magnitude ??
               null,
@@ -267,12 +334,17 @@ export function registerTouchdownPlot(
         ? [
             {
               ...plot,
-              held: drawnFrom([
-                topics["vessel.flight"],
-                topics["vessel.surface"],
-                topics["vessel.landing"],
-                topics["vessel.orbit"],
-              ]),
+              held: frozen
+                ? datedFrom(
+                    [{ state: "held", instant: kept?.at, grade: "held" }],
+                    undefined,
+                  )
+                : drawnFrom([
+                    topics["vessel.flight"],
+                    topics["vessel.surface"],
+                    topics["vessel.landing"],
+                    topics["vessel.orbit"],
+                  ]),
             },
           ]
         : null;

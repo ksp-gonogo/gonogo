@@ -1284,6 +1284,33 @@ describe("touchdown view plot", () => {
     );
   });
 
+  it("opens the touchdown map wide enough to hold the crash site beside the prediction", () => {
+    // A craft a few metres up has a small map, and the crash site lies well outside it.
+    const grounded = {
+      aglMeters: 12,
+      altitudeAsl: 112,
+      siteElevation: 100,
+      driftMeters: 8,
+    };
+    const near = buildTouchdownReticlePlot(low(grounded));
+    const crashed = buildTouchdownReticlePlot(
+      low({ ...grounded, impact: { distanceMeters: 90, bearingDeg: 90 } }),
+    );
+    const impactAt = crashed?.layers.find((l) => l.id === "impact");
+    if (impactAt?.kind !== "marker" || !crashed?.frame || !near?.frame) {
+      throw new Error("expected the impact marker and both maps");
+    }
+    const [x0, x1] = crashed.frame.xDomain;
+    const [y0, y1] = crashed.frame.yDomain;
+    expect(impactAt.at.x).toBeGreaterThan(x0);
+    expect(impactAt.at.x).toBeLessThan(x1);
+    expect(impactAt.at.y).toBeGreaterThan(y0);
+    expect(impactAt.at.y).toBeLessThan(y1);
+    expect(x1 - x0).toBeGreaterThan(
+      near.frame.xDomain[1] - near.frame.xDomain[0],
+    );
+  });
+
   describe("the dispersion ring", () => {
     it("is the prediction's uncertainty: it narrows as the sideways travel still to come is spent, to a floor at touchdown", () => {
       // A coasting craft 100 m/s sideways, its fall time falling as it comes down, then the speed spent on the last stretch.
@@ -1601,6 +1628,7 @@ describe("the body a contribution resolves", () => {
   ) =>
     Object.fromEntries([
       ["crash.lastCrash", { state: "absent", atUt: value("ut", 100) }],
+      ["crash.hasRecent", { state: "absent", atUt: value("ut", 100) }],
       ...Object.entries(payloads).map(([topic, payload]) => [
         topic,
         held.includes(topic)
