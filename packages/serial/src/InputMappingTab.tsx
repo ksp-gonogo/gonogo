@@ -17,7 +17,7 @@ import { describeGamepadInput } from "./gamepadDisplay";
 import type { LabelPack } from "./gamepadLabels";
 import type { GamepadRole } from "./gamepadRoles";
 import { useSerialDeviceService } from "./SerialDeviceContext";
-import type { DeviceInstance, DeviceType } from "./types";
+import type { DeviceInstance, DeviceType, UnavailableDevice } from "./types";
 
 interface InputMappingTabProps {
   actions: readonly ActionDefinition[];
@@ -41,12 +41,29 @@ function decode(value: string): InputBinding | null {
   return deviceId && inputId ? { deviceId, inputId } : null;
 }
 
+/** The option a binding to a saved device this screen cannot run selects, so
+ *  the select names the device where it would otherwise read "(unbound)". */
+function unavailableOption(
+  binding: InputBinding | null | undefined,
+  unavailable: UnavailableDevice[],
+): PickerOption | null {
+  if (!binding) return null;
+  const entry = unavailable.find((u) => u.instance.id === binding.deviceId);
+  if (!entry) return null;
+  return {
+    value: encode(binding.deviceId, binding.inputId),
+    label: `${entry.instance.name} · ${binding.inputId} · unavailable`,
+  };
+}
+
 function optionsForAction(
   action: ActionDefinition,
   devices: DeviceInstance[],
   typeById: Map<string, DeviceType>,
+  held: PickerOption | null,
 ): PickerOption[] {
   const opts: PickerOption[] = [{ value: "", label: "(unbound)" }];
+  if (held) opts.push(held);
   for (const device of devices) {
     const type = typeById.get(device.typeId);
     if (!type) continue;
@@ -125,6 +142,7 @@ export function InputMappingTab({
 }: Readonly<InputMappingTabProps>) {
   const svc = useSerialDeviceService();
   const devices = svc.getDevices();
+  const unavailable = svc.getUnavailableDevices();
   const typeById = useMemo(() => {
     const map = new Map<string, DeviceType>();
     for (const t of svc.getDeviceTypes()) map.set(t.id, t);
@@ -211,15 +229,20 @@ export function InputMappingTab({
 
   return (
     <Wrap>
-      {devices.length === 0 && (
+      {devices.length === 0 && unavailable.length === 0 && (
         <FieldHint>
           No serial devices registered yet. Open the joystick FAB to add one.
         </FieldHint>
       )}
       <List>
         {actions.map((action) => {
-          const opts = optionsForAction(action, devices, typeById);
           const current = draft[action.id];
+          const opts = optionsForAction(
+            action,
+            devices,
+            typeById,
+            unavailableOption(current, unavailable),
+          );
           const currentValue = current
             ? encode(current.deviceId, current.inputId)
             : "";

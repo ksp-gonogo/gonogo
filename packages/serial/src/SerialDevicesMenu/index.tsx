@@ -15,8 +15,9 @@ import {
   useSerialDevices,
   useSerialDeviceTypes,
   useSerialPendingChoices,
+  useSerialUnavailableDevices,
 } from "../SerialDeviceContext";
-import type { DeviceInstance, DeviceType } from "../types";
+import type { DeviceInstance, DeviceType, UnavailableDevice } from "../types";
 import { getWebSerialSupport } from "../webSerialSupport";
 import { DeviceEditor } from "./DeviceEditor";
 import { DeviceTypeEditor } from "./DeviceTypeEditor";
@@ -93,6 +94,7 @@ function DevicesTab() {
   const devices = useSerialDevices();
   const types = useSerialDeviceTypes();
   const pendingChoices = useSerialPendingChoices();
+  const unavailable = useSerialUnavailableDevices();
   const [editing, setEditing] = useState<DeviceInstance | "new" | null>(null);
   const [adding, setAdding] = useState<"self-describing" | null>(null);
   const support = getWebSerialSupport();
@@ -121,7 +123,9 @@ function DevicesTab() {
     <List>
       {!support.supported && <WebSerialBanner reason={support.reason} />}
       <Toolbar>
-        <Heading>Registered devices ({devices.length})</Heading>
+        <Heading>
+          Registered devices ({devices.length + unavailable.length})
+        </Heading>
         <ToolbarButtons>
           {support.supported && (
             <Tooltip text="Pair a json-state controller without manually creating a device type">
@@ -138,7 +142,9 @@ function DevicesTab() {
           </Button>
         </ToolbarButtons>
       </Toolbar>
-      {devices.length === 0 && <Empty>No devices yet</Empty>}
+      {devices.length === 0 && unavailable.length === 0 && (
+        <Empty>No devices yet</Empty>
+      )}
       {devices.map((device) => (
         <DeviceRow
           key={device.id}
@@ -147,6 +153,9 @@ function DevicesTab() {
           pendingChoices={pendingChoices.get(device.id)}
           onEdit={() => setEditing(device)}
         />
+      ))}
+      {unavailable.map((entry) => (
+        <UnavailableDeviceRow key={entry.instance.id} entry={entry} />
       ))}
     </List>
   );
@@ -324,6 +333,52 @@ function DeviceRow({
             </Button>
           </>
         )}
+      </RowActions>
+    </DeviceCard>
+  );
+}
+
+const UNAVAILABLE_DETAIL: Record<UnavailableDevice["reason"], string> = {
+  "unknown-transport":
+    "This saved device uses a transport this version does not have. It stays saved, and its bindings stay on their widgets, until you remove it",
+  "missing-type":
+    "This saved device points at a device type that is not registered. It comes back when that type is added again, and its bindings stay on their widgets until then",
+  "transport-error":
+    "This saved device could not be started. It stays saved, and its bindings stay on their widgets, until you remove it",
+};
+
+function UnavailableDeviceRow({
+  entry,
+}: Readonly<{ entry: UnavailableDevice }>) {
+  const svc = useSerialDeviceService();
+  const { instance, reason, needs } = entry;
+  const meta =
+    reason === "missing-type"
+      ? `needs device type ${needs}`
+      : reason === "unknown-transport"
+        ? `needs ${needs} transport`
+        : `${needs} transport failed to start`;
+  return (
+    <DeviceCard
+      title={instance.name}
+      titleRight={
+        <Tooltip text={UNAVAILABLE_DETAIL[reason]}>
+          <Status $status="unavailable" tabIndex={0}>
+            unavailable
+          </Status>
+        </Tooltip>
+      }
+    >
+      <RowMeta>{meta}</RowMeta>
+      <RowActions>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            void svc.removeDevice(instance.id);
+          }}
+        >
+          Remove
+        </Button>
       </RowActions>
     </DeviceCard>
   );
@@ -510,5 +565,7 @@ const Status = styled.span<{ $status: string }>`
       ? "var(--color-accent-fg)"
       : $status === "error"
         ? "var(--color-nogo-text)"
-        : "var(--color-text-faint)"};
+        : $status === "unavailable"
+          ? "var(--color-warn-text)"
+          : "var(--color-text-faint)"};
 `;

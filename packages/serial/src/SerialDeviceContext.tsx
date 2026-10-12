@@ -42,6 +42,21 @@ export function useSerialDevices() {
   return snapshot;
 }
 
+/**
+ * Reactive view of the saved devices this screen cannot run. Empty almost all
+ * the time; fills when a saved row names a transport kind or a device type
+ * this build does not have.
+ */
+export function useSerialUnavailableDevices() {
+  const svc = useSerialDeviceService();
+  const [snapshot, setSnapshot] = useState(() => svc.getUnavailableDevices());
+  useEffect(
+    () => svc.onDevicesChange(() => setSnapshot(svc.getUnavailableDevices())),
+    [svc],
+  );
+  return snapshot;
+}
+
 /** Reactive view of the registered device types. */
 export function useSerialDeviceTypes() {
   const svc = useSerialDeviceService();

@@ -25,7 +25,13 @@ import { KeyboardTransport } from "./transports/KeyboardTransport";
 import { VirtualTransport } from "./transports/VirtualTransport";
 import { WebSerialTransport } from "./transports/WebSerialTransport";
 import { TypedListeners } from "./typedListeners";
-import type { DeviceInstance, DeviceRenderStyle, DeviceType } from "./types";
+import {
+  DEVICE_TRANSPORT_KINDS,
+  type DeviceInstance,
+  type DeviceRenderStyle,
+  type DeviceType,
+  type UnavailableDevice,
+} from "./types";
 
 const DEVICE_TYPES_KEY = "gonogo.serial.device-types";
 const DEFAULT_RENDER_DEBOUNCE_MS = 100;
@@ -118,6 +124,13 @@ export class SerialDeviceService {
 
   private deviceTypes = new Map<string, DeviceType>();
   private managed = new Map<string, ManagedDevice>();
+  /**
+   * Saved rows this build cannot run: an unknown transport kind, a type that
+   * is not registered, or a transport that threw while being built. They stay
+   * in storage and in the Devices list, and the bindings that name them stay
+   * on their widgets.
+   */
+  private unavailable = new Map<string, UnavailableDevice>();
   /**
    * When true, the InputDispatcher skips dispatch on incoming events. Used
    * by the input-mapping UI's "press to bind" mode so the old binding for
@@ -435,7 +448,7 @@ export class SerialDeviceService {
       this.deviceTypes.set(VIRTUAL_CONTROLLER_TYPE.id, VIRTUAL_CONTROLLER_TYPE);
       this.saveDeviceTypes();
     }
-    if (this.managed.size === 0) {
+    if (this.managed.size === 0 && this.unavailable.size === 0) {
       const instance = defaultVirtualDevice();
       const type = this.deviceTypes.get(instance.typeId);
       if (type) {
@@ -458,6 +471,7 @@ export class SerialDeviceService {
     this.deviceTypes.set(type.id, type);
     this.saveDeviceTypes();
     this.emitDeviceTypesChange();
+    this.retryUnavailable();
   }
 
   async removeDeviceType(id: string): Promise<void> {
@@ -486,8 +500,19 @@ export class SerialDeviceService {
     return this.managed.get(id)?.instance;
   }
 
+  /** Saved devices this screen cannot run, in saved order. */
+  getUnavailableDevices(): UnavailableDevice[] {
+    return Array.from(this.unavailable.values());
+  }
+
+  getUnavailableDevice(id: string): UnavailableDevice | undefined {
+    return this.unavailable.get(id);
+  }
+
   addDevice(instance: DeviceInstance): void {
-    if (this.managed.has(instance.id)) return;
+    if (this.managed.has(instance.id) || this.unavailable.has(instance.id)) {
+      return;
+    }
     const deviceType = this.deviceTypes.get(instance.typeId);
     if (!deviceType) {
       throw new Error(`Unknown device type: ${instance.typeId}`);
@@ -525,6 +550,11 @@ export class SerialDeviceService {
   }
 
   async removeDevice(id: string): Promise<void> {
+    if (this.unavailable.delete(id)) {
+      this.saveDevices();
+      this.emitDevicesChange();
+      return;
+    }
     const managed = this.managed.get(id);
     if (!managed) return;
     const orphanedTypeId = managed.deviceType.id;
@@ -1017,45 +1047,105 @@ export class SerialDeviceService {
   }
 
   private loadDevices(): void {
+    let rows: unknown[];
     try {
       const raw = this.storage.getItem(this.devicesKey());
       if (!raw) return;
       const parsed: unknown = JSON.parse(raw);
       if (!Array.isArray(parsed)) return;
-      const rows: unknown[] = parsed;
-      let droppedAny = false;
-      for (const row of rows) {
-        const inst = asDeviceInstance(row);
-        if (!inst) {
-          droppedAny = true;
-          continue;
-        }
-        const type = this.deviceTypes.get(inst.typeId);
-        if (!type) {
-          logger.warn(
-            `[SerialDeviceService] dropping device ${inst.id}: unknown type ${inst.typeId}`,
-          );
-          droppedAny = true;
-          continue;
-        }
-        this.register(inst, type);
-      }
-      // Self-heal: rewrite localStorage without the orphans so we don't
-      // log the same warning every refresh. Persisting the in-memory list
-      // is enough, the dropped entries are gone from memory already.
-      if (droppedAny) this.saveDevices();
+      rows = parsed;
     } catch (err) {
       logger.warn("[SerialDeviceService] failed to load devices", {
         err: String(err),
       });
+      return;
     }
+    let droppedAny = false;
+    for (const row of rows) {
+      const inst = asDeviceInstance(row);
+      if (!inst) {
+        logger.warn("[SerialDeviceService] dropping a device row with no id");
+        droppedAny = true;
+        continue;
+      }
+      /* One row failing must never stop the rows after it loading. */
+      try {
+        this.adopt(inst);
+      } catch (err) {
+        logger.warn(`[SerialDeviceService] failed to load device ${inst.id}`, {
+          err: String(err),
+        });
+        this.unavailable.set(inst.id, {
+          instance: inst,
+          reason: "transport-error",
+          needs: String(inst.transport),
+        });
+      }
+    }
+    /* A row with no id cannot be listed or removed, so it alone is rewritten
+       out of storage. */
+    if (droppedAny) this.saveDevices();
+  }
+
+  /**
+   * Register a saved row, or file it as unavailable when its type or
+   * transport kind is not one this build has. A transport factory that throws
+   * for a known kind propagates to the caller.
+   */
+  private adopt(inst: DeviceInstance): void {
+    const type = this.deviceTypes.get(inst.typeId);
+    if (!type) {
+      this.unavailable.set(inst.id, {
+        instance: inst,
+        reason: "missing-type",
+        needs: inst.typeId,
+      });
+      return;
+    }
+    if (!DEVICE_TRANSPORT_KINDS.includes(inst.transport)) {
+      this.unavailable.set(inst.id, {
+        instance: inst,
+        reason: "unknown-transport",
+        needs: String(inst.transport),
+      });
+      return;
+    }
+    this.unavailable.delete(inst.id);
+    this.register(inst, type);
+  }
+
+  /** Give every unavailable row another go, after a device type arrived. */
+  private retryUnavailable(): void {
+    let changed = false;
+    for (const entry of Array.from(this.unavailable.values())) {
+      if (entry.reason !== "missing-type") continue;
+      if (!this.deviceTypes.has(entry.instance.typeId)) continue;
+      try {
+        this.adopt(entry.instance);
+        changed = true;
+      } catch (err) {
+        logger.warn(
+          `[SerialDeviceService] failed to load device ${entry.instance.id}`,
+          { err: String(err) },
+        );
+        this.unavailable.set(entry.instance.id, {
+          instance: entry.instance,
+          reason: "transport-error",
+          needs: String(entry.instance.transport),
+        });
+      }
+    }
+    if (changed) this.emitDevicesChange();
   }
 
   private saveDevices(): void {
     try {
       this.storage.setItem(
         this.devicesKey(),
-        JSON.stringify(this.getDevices()),
+        JSON.stringify([
+          ...this.getDevices(),
+          ...Array.from(this.unavailable.values(), (u) => u.instance),
+        ]),
       );
     } catch {
       // ignore

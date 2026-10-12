@@ -93,11 +93,14 @@ export interface DeviceType {
   authoredBy?: DeviceTypeAuthor;
 }
 
-export type DeviceTransportKind =
-  | "web-serial"
-  | "virtual"
-  | "gamepad"
-  | "keyboard";
+export const DEVICE_TRANSPORT_KINDS = [
+  "web-serial",
+  "virtual",
+  "gamepad",
+  "keyboard",
+] as const;
+
+export type DeviceTransportKind = (typeof DEVICE_TRANSPORT_KINDS)[number];
 
 /**
  * A user-registered physical or virtual device on a given screen. `transport`
@@ -130,6 +133,19 @@ export interface DeviceInstance {
    * instance. Learned automatically on first pairing; never user-edited.
    */
   gamepadId?: string;
+}
+
+/**
+ * A saved device this screen cannot run, kept in storage so it survives until
+ * the operator removes it or whatever it needs is back. `needs` names the
+ * missing piece in the saved row's own words (a transport kind, a device type
+ * id). Listed in the Devices tab, and the name a widget's Inputs tab shows for
+ * a binding that points at it. Used by SerialDeviceService.getUnavailableDevices.
+ */
+export interface UnavailableDevice {
+  instance: DeviceInstance;
+  reason: "unknown-transport" | "missing-type" | "transport-error";
+  needs: string;
 }
 
 /**
