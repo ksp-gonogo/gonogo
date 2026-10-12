@@ -50,6 +50,9 @@ namespace Sitrep.Host
         /// now. Outside flight no craft is, and the id is the one last active.
         /// </summary>
         private bool _activeCraftLoaded;
+
+        /// <summary>Whether any tick has said yet which craft is active; before one has, a press is not refused for want of a loaded craft.</summary>
+        private bool _activeCraftKnown;
         private SavedGame? _loadedGame;
         private SavedGame? _latestSave;
         private int _gameLoaded;
@@ -355,6 +358,9 @@ namespace Sitrep.Host
 
         private readonly Dictionary<string, string> _journeyVantage = new Dictionary<string, string>(StringComparer.Ordinal);
 
+        /// <summary>What an operator is told when an order for the active craft is pressed with no craft loaded.</summary>
+        internal const string NoActiveCraftDetail = "The game is not in flight, so no craft is the active vessel to receive this order.";
+
         /// <summary>The craft id a courier node addresses, or null for one that is not a craft.</summary>
         private string? CraftIdFor(string node)
         {
@@ -387,6 +393,16 @@ namespace Sitrep.Host
             if (SenderPlans.Reckons && !_activeCentreIds.Contains(job.Vantage))
             {
                 return false;
+            }
+            /* A command for the active craft runs only on the craft the game has
+               loaded as the active vessel, so with none loaded it can never run, and
+               waiting for a link would not change that. It is refused here, where the
+               operator pressed, rather than after the light has landed. */
+            if (_activeCraftKnown && !_activeCraftLoaded && string.Equals(node, NodeId, StringComparison.Ordinal))
+            {
+                job.OnResult(CommandResult.Fail(CommandErrorCode.WrongScene, NoActiveCraftDetail));
+                job.Done?.Set();
+                return true;
             }
             if (IsContinuousInput(job))
             {
@@ -1236,6 +1252,7 @@ namespace Sitrep.Host
                 return;
             }
             var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            _activeCraftKnown = true;
             _activeCraftLoaded = active != null;
             if (active != null)
             {

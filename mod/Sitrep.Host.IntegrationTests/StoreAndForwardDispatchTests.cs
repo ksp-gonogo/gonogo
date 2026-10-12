@@ -361,6 +361,72 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// An order for the active craft is refused at the press, with a reason the
+        /// operator can read, when no craft is loaded as the active vessel: it could
+        /// only land on a craft the game cannot apply it to, and waiting would not
+        /// change that.
+        /// </summary>
+        [Fact]
+        public void AnOrderForTheActiveCraftIsRefusedAtThePressWhenNoCraftIsLoaded()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                TickActive(engine, uplink, 1.0, loaded: false);
+                object? result = null;
+                string? failure = null;
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op, onRefused: (_, r) => failure = r);
+
+                var refusal = Assert.IsType<CommandResult>(result);
+                Assert.False(refusal.Success);
+                Assert.Equal(CommandErrorCode.WrongScene, refusal.ErrorCode);
+                Assert.Contains("not in flight", refusal.Detail);
+                Assert.Null(failure);
+                Assert.Empty(Pending(engine));
+                TickActive(engine, uplink, 2.0 * OneWaySeconds, loaded: false);
+                Assert.Equal(0, uplink.HandledCount);
+                Assert.Empty(Journey(engine).Events);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>The same press with the active craft loaded is accepted, sent and run.</summary>
+        [Fact]
+        public void AnOrderForTheActiveCraftStillGoesThroughWhenItIsLoaded()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                object? result = null;
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op);
+                Assert.Single(Pending(engine));
+
+                foreach (var ut in new[] { 1.0, OneWaySeconds + 0.5, OneWaySeconds + 2.0, (2 * OneWaySeconds) + 1.0 })
+                {
+                    TickActive(engine, uplink, ut, loaded: true);
+                }
+
+                Assert.Equal(1, uplink.HandledCount);
+                Assert.Equal("done:x", result);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// The same order, with the game back in flight before it arrives: it
         /// lands on the craft it was sent to and runs there.
         /// </summary>
