@@ -651,6 +651,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     willDieWithoutHelmet: "flag",
   },
   "EventMsg": {
+    keyframeIntervalUt: "s",
     name: "text",
     topic: "id",
     type: "id",

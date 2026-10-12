@@ -302,6 +302,8 @@ export class TelemetryClient {
    * auto-builds, or a caller-supplied one).
    */
   private readonly stores = new Set<TimelineStore>();
+  /** The keyframe interval each topic's `subscribed` ack declared, kept so a store attached later is told too. */
+  private readonly declaredKeyframeIntervals = new Map<string, number>();
 
   /**
    * What the mod last said the game is doing, replayed to a store attached
@@ -634,6 +636,9 @@ export class TelemetryClient {
    */
   attachStore(store: TimelineStore): () => void {
     this.stores.add(store);
+    for (const [topic, interval] of this.declaredKeyframeIntervals) {
+      store.declareKeyframeInterval(topic, interval);
+    }
     // Only each topic's newest point is replayed, never the history behind it.
     for (const [topic, point] of this.lastPoints) store.ingest(topic, point);
     if (this.gameState) {
@@ -1062,7 +1067,16 @@ export class TelemetryClient {
     // branch existed, which is why the mod's own answer to "does anything
     // publish this topic" reached nothing that could use it.
     if (message.type === "event") {
-      if (message.name === "subscribed") this.ownership?.noteAck(message.topic);
+      if (message.name === "subscribed") {
+        this.ownership?.noteAck(message.topic);
+        const interval: unknown = message.keyframeIntervalUt;
+        if (typeof interval === "number") {
+          this.declaredKeyframeIntervals.set(message.topic, interval);
+          for (const store of this.stores) {
+            store.declareKeyframeInterval(message.topic, interval);
+          }
+        }
+      }
       return;
     }
     /*

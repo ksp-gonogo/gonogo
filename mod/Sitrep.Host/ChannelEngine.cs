@@ -9718,6 +9718,7 @@ namespace Sitrep.Host
                     Staleness = Staleness.Fresh,
                     TimelineEpoch = _courier.CurrentEpoch,
                 },
+                KeyframeIntervalUt = DeclarationOf(topic)?.Emission?.KeyframeIntervalUt,
             };
             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteEventMsg(ack)));
         }

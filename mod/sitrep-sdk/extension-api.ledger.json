@@ -9047,6 +9047,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./spine HeartbeatTracker#declareKeyframeInterval",
+        "note": "New: records the keyframe interval the mod declared for a topic, a floor under the learned interval"
+      },
+      {
         "key": "sitrep-sdk ./spine HeldGrade",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
@@ -9165,6 +9169,10 @@
       {
         "key": "sitrep-sdk ./spine TelemetryClient#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
+      },
+      {
+        "key": "sitrep-sdk ./spine TimelineStore#declareKeyframeInterval",
+        "note": "New: passes the keyframe interval the mod declared for a topic to its heartbeat tracker"
       },
       {
         "key": "sitrep-sdk ./spine TimelineStore#gameStatus",
@@ -9419,6 +9427,10 @@
         "note": "New: the groups the stub was asked to send, beside the commands that were its members"
       },
       {
+        "key": "sitrep-sdk ./testing TimelineStore#declareKeyframeInterval",
+        "note": "New: passes the keyframe interval the mod declared for a topic to its heartbeat tracker"
+      },
+      {
         "key": "sitrep-sdk ./testing TimelineStore#gameStatus",
         "note": "New: what the game is doing as the operator is shown it, after the onset"
       },
@@ -9517,6 +9529,10 @@
       {
         "key": "sitrep-sdk ./testing ~GonogoHost#useViewClockOptional",
         "note": "the view clock is typed as DelayClockLike instead of unknown"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~HeartbeatTracker#declareKeyframeInterval",
+        "note": "New: records the keyframe interval the mod declared for a topic, a floor under the learned interval"
       },
       {
         "key": "sitrep-sdk ./testing ~HeldGrade",

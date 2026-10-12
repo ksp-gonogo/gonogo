@@ -198,4 +198,93 @@ describe("HeartbeatTracker", () => {
       expect(tracker.intervalFor("vessel.target")).toBe(30);
     });
   });
+  describe("declared keyframe interval", () => {
+    function burstThenSilence(tracker: HeartbeatTracker) {
+      // 38 one-second change emissions, as a burn sends, then the engines cut.
+      for (let t = 0; t <= 38; t++) tracker.noteArrival("vessel.propulsion", t);
+    }
+
+    it("without a declaration a burst teaches a one-second expectation", () => {
+      const tracker = new HeartbeatTracker();
+      burstThenSilence(tracker);
+      expect(tracker.intervalFor("vessel.propulsion")).toBe(1);
+    });
+
+    it("is a floor under the learned interval, so a burst does not shrink the expectation below the keyframe", () => {
+      const tracker = new HeartbeatTracker();
+      tracker.declareKeyframeInterval("vessel.propulsion", 30);
+      burstThenSilence(tracker);
+
+      expect(tracker.intervalFor("vessel.propulsion")).toBe(30);
+      // Last arrival at 38: overdue only past 38 + 30 + 30.
+      expect(tracker.isOverdue("vessel.propulsion", 45, "locked")).toBe(false);
+      expect(tracker.isOverdue("vessel.propulsion", 98, "locked")).toBe(false);
+    });
+
+    it("still holds a topic that has gone quiet past its keyframe gap", () => {
+      const tracker = new HeartbeatTracker();
+      tracker.declareKeyframeInterval("vessel.propulsion", 30);
+      burstThenSilence(tracker);
+
+      expect(tracker.isOverdue("vessel.propulsion", 99, "locked")).toBe(true);
+    });
+
+    it("never lowers a learned interval that is already longer", () => {
+      const tracker = new HeartbeatTracker();
+      tracker.declareKeyframeInterval("vessel.target", 10);
+      for (const t of [0, 60, 120, 180])
+        tracker.noteArrival("vessel.target", t);
+
+      expect(tracker.intervalFor("vessel.target")).toBe(60);
+    });
+
+    it("is kept across reset(), while the learned gaps are dropped", () => {
+      const tracker = new HeartbeatTracker();
+      tracker.declareKeyframeInterval("vessel.propulsion", 45);
+      burstThenSilence(tracker);
+
+      tracker.reset();
+      // Not the 30 default: the declaration outlives the timeline.
+      expect(tracker.intervalFor("vessel.propulsion")).toBe(45);
+    });
+
+    it.each([
+      ["undefined", undefined],
+      ["null", null],
+      ["zero", 0],
+      ["negative", -5],
+      ["NaN", Number.NaN],
+      ["a string", "30"],
+    ])("ignores %s, leaving today's learned rule unchanged", (_label, value) => {
+      const tracker = new HeartbeatTracker();
+      tracker.declareKeyframeInterval("vessel.propulsion", value);
+      burstThenSilence(tracker);
+
+      expect(tracker.intervalFor("vessel.propulsion")).toBe(1);
+    });
+
+    it("combines with the warp floor by taking whichever is longer", () => {
+      const tracker = new HeartbeatTracker();
+      tracker.declareKeyframeInterval("vessel.propulsion", 30);
+      burstThenSilence(tracker);
+
+      /*
+       * At 100x warp with a 1 s real-time floor the mod leaves at least 100 UT
+       * between keyframes, longer than the declared 30: the floor sets the gap.
+       */
+      expect(
+        tracker.isOverdue("vessel.propulsion", 38 + 200, "locked", 100),
+      ).toBe(false);
+      expect(
+        tracker.isOverdue("vessel.propulsion", 38 + 201, "locked", 100),
+      ).toBe(true);
+      // At 2x warp the floor is 2 UT, shorter than the declaration: it governs.
+      expect(tracker.isOverdue("vessel.propulsion", 38 + 60, "locked", 2)).toBe(
+        false,
+      );
+      expect(tracker.isOverdue("vessel.propulsion", 38 + 61, "locked", 2)).toBe(
+        true,
+      );
+    });
+  });
 });

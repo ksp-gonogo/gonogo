@@ -72,6 +72,17 @@ public class EventMsg
     public string Name { get; set; } = "";
     /// <summary>The delivery metadata, as on any other frame.</summary>
     public Meta Meta { get; set; } = new();
+
+    /// <summary>
+    /// On <c>subscribed</c>, the most game time the Topic's channel lets pass
+    /// between two samples before it sends one unconditionally, even when the
+    /// value has not changed. A client judges a quiet change-driven Topic as
+    /// overdue only once it has been silent longer than this. Absent when the
+    /// channel declares no keyframe cadence, and on <c>timeline-reset</c>; absent
+    /// means unknown, never zero.
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double? KeyframeIntervalUt { get; set; }
 }
 
 /// <summary>

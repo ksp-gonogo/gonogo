@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 38.1.0
+  version: 38.2.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -13746,6 +13746,17 @@ components:
           description: The delivery metadata, as on any other frame.
           allOf:
             - $ref: "#/components/schemas/Meta"
+        keyframeIntervalUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: s
+          description: |-
+            On `subscribed`, the most game time the Topic's channel lets pass between
+            two samples before it sends one unconditionally, even when the value has not
+            changed. A client judges a quiet change-driven Topic as overdue only once it
+            has been silent longer than this. Absent when the channel declares no
+            keyframe cadence, and on `timeline-reset`; absent means unknown, never zero.
     ExperimentActionArgs:
       type: object
       description: |-

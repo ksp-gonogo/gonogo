@@ -1987,6 +1987,31 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The <c>subscribed</c> ack carries the keyframe interval the channel
+        /// declared, so a client can tell a quiet change-driven Topic from a
+        /// stale one without guessing.
+        /// </summary>
+        [Fact]
+        public async Task SubscribedAckCarriesTheChannelsDeclaredKeyframeInterval()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new PoisonPayloadTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                var ack = await SubscribeAsync(client, PoisonPayloadTestUplink.Topic, Timeout);
+
+                Assert.Equal("subscribed", ack.Name);
+                Assert.Equal(1000.0, ack.KeyframeIntervalUt);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A throw during <c>Courier.SubscribeStream</c>'s synchronous
         /// catch-up delivery (a second subscriber joining after a poison
         /// sample is already archived) must not unwind after

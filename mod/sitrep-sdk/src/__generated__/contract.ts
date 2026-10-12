@@ -3313,6 +3313,14 @@ export interface EventMsg
 	name: string;
 	/** The delivery metadata, as on any other frame. */
 	meta: Meta;
+	/**
+	* On `subscribed`, the most game time the Topic's channel lets pass between
+	* two samples before it sends one unconditionally, even when the value has not
+	* changed. A client judges a quiet change-driven Topic as overdue only once it
+	* has been silent longer than this. Absent when the channel declares no
+	* keyframe cadence, and on `timeline-reset`; absent means unknown, never zero.
+	*/
+	keyframeIntervalUt?: number;
 }
 /**
 * A command the client sends: the command id, its arguments, and a request id

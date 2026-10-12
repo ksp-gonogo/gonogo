@@ -93,6 +93,8 @@ const OMITTED_WHEN_NULL = new Set([
   "CommandAccepted.oneWaySeconds",
   // And this one: only a command accepted against the odds carries a warning.
   "CommandAccepted.warning",
+  // EnvelopeCodec.WriteEventMsg guards it on HasValue: only a `subscribed` ack for a channel that declares a keyframe cadence carries one.
+  "EventMsg.keyframeIntervalUt",
   // JsonWriter.AppendPendingUplink guards it on HasValue, because a zero throttle and an unknown value must never arrive looking the same.
   "PendingUplink.commandedValue",
   // JsonWriter.AppendCommsContactWindow writes a dish only where the link model named one: a window on an omni or a stock antenna carries neither.

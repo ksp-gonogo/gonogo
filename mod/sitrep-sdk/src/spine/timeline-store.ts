@@ -3706,6 +3706,11 @@ export class TimelineStore {
     for (const listener of this.frameListeners) listener();
   }
 
+  /** The keyframe interval (UT seconds) the mod declared for `topic` on its `subscribed` ack; an absent or invalid value changes nothing. */
+  declareKeyframeInterval(topic: string, intervalUt: unknown): void {
+    this.heartbeats.declareKeyframeInterval(topic, intervalUt);
+  }
+
   /** Whether the mod answered a subscribe for `topic` with nothing. */
   isTopicUnowned(topic: string): boolean {
     return this.unownedTopics.has(topic);

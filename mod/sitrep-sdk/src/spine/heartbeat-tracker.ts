@@ -83,6 +83,8 @@ export class HeartbeatTracker {
    * authority every time.
    */
   private readonly lastHeartbeatUt = new Map<string, number>();
+  /** The keyframe interval (UT seconds) the mod declared for a topic when it confirmed the subscribe. Survives `reset()`: it describes the channel, not the timeline. */
+  private readonly declaredIntervalUt = new Map<string, number>();
   /** Rolling window of recent inter-arrival gaps (UT seconds) per topic, the raw material `intervalFor` learns a per-channel cadence from. Capped at `LEARN_WINDOW`, oldest dropped first. */
   private readonly recentGapsUt = new Map<string, number[]>();
 
@@ -105,11 +107,30 @@ export class HeartbeatTracker {
   }
 
   /**
+   * Record the keyframe interval (UT seconds) the mod declared for `topic`.
+   * It is the least gap `intervalFor` will expect, so a change-driven topic
+   * that just sent a burst of one-second emissions is not read as overdue
+   * until it has been silent past its keyframe. A value that is not a finite
+   * positive number is ignored: an absent declaration is unknown, never zero.
+   */
+  declareKeyframeInterval(topic: string, intervalUt: unknown): void {
+    if (
+      typeof intervalUt !== "number" ||
+      !Number.isFinite(intervalUt) ||
+      intervalUt <= 0
+    ) {
+      return;
+    }
+    this.declaredIntervalUt.set(topic, intervalUt);
+  }
+
+  /**
    * Drop every tracked heartbeat and every learned cadence. Call on an epoch
    * bump (quickload rewind) so pre-reset heartbeat/cadence history can't
    * leak a wrong-epoch expectation into the resynchronizing period that
    * follows (mirrors `ClientTimeline`'s own per-epoch point drop, applied to
-   * this tracker's per-topic maps instead).
+   * this tracker's per-topic maps instead). Declared keyframe intervals are
+   * kept.
    */
   reset(): void {
     this.lastHeartbeatUt.clear();
@@ -124,22 +145,21 @@ export class HeartbeatTracker {
    *    declared one always wins, learned or not.
    * 2. The learned interval (`medianOf` of `recentGapsUt`), once at least
    *    `MIN_GAPS_TO_LEARN` genuine forward gaps have been observed for this
-   *    topic: different channels keyframe at different cadences, and this
-   *    is what replaces a one-size-fits-all default with the channel's own
-   *    observed cadence, without needing a server handshake.
-   * 3. The configured/default fallback, for a topic with too little history
-   *    to trust yet (cold start, or right after a `reset()`).
+   *    topic, or else the configured/default fallback for a topic with too
+   *    little history to trust yet (cold start, or right after a `reset()`).
+   *    Not less than the keyframe interval the mod declared for the topic
+   *    (`declareKeyframeInterval`): a burst of change emissions says nothing
+   *    about how long the channel may stay quiet.
    */
   intervalFor(topic: string): number {
     const explicit = this.options.keyframeIntervalUt?.[topic];
     if (explicit !== undefined) return explicit;
 
-    const learned = this.learnedIntervalFor(topic);
-    if (learned !== undefined) return learned;
-
-    return (
-      this.options.defaultKeyframeIntervalUt ?? DEFAULT_KEYFRAME_INTERVAL_UT
-    );
+    const observed =
+      this.learnedIntervalFor(topic) ??
+      this.options.defaultKeyframeIntervalUt ??
+      DEFAULT_KEYFRAME_INTERVAL_UT;
+    return Math.max(observed, this.declaredIntervalUt.get(topic) ?? 0);
   }
 
   /** The learned interval for `topic`, or `undefined` if too few gaps have been observed yet to trust it (see `intervalFor`'s doc). */

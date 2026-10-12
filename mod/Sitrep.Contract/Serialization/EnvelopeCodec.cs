@@ -300,12 +300,20 @@ namespace Sitrep.Contract.Serialization
 
             AppendField(sb, "meta");
             AppendMeta(sb, msg.Meta);
+
+            // Left out when the channel states no cadence, as gapSinceUt is: absent is unknown, never zero.
+            if (msg.KeyframeIntervalUt.HasValue)
+            {
+                AppendField(sb, "keyframeIntervalUt");
+                JsonWriter.AppendNumber(sb, msg.KeyframeIntervalUt.Value);
+            }
+
             sb.Append('}');
             return sb.ToString();
         }
 
-        /// <summary>Parses an <c>event</c> envelope; every field is
-        /// required.</summary>
+        /// <summary>Parses an <c>event</c> envelope; <c>keyframeIntervalUt</c>
+        /// is optional and every other field is required.</summary>
         /// <param name="json">The JSON text of the envelope.</param>
         /// <returns>The parsed envelope.</returns>
         /// <exception cref="FormatException">The text is not an <c>event</c>
@@ -321,6 +329,7 @@ namespace Sitrep.Contract.Serialization
                 Topic = RequireString(raw, "topic"),
                 Name = RequireString(raw, "name"),
                 Meta = ParseMetaRaw(RequireObject(raw, "meta")),
+                KeyframeIntervalUt = OptionalDouble(raw, "keyframeIntervalUt"),
             };
         }
 
