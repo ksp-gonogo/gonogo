@@ -1,0 +1,54 @@
+name: Bring ci-dev up to staging
+
+# ci-dev-forward.yml fast-forwards `staging` to a validated `ci-dev` commit and
+# refuses while staging holds a commit ci-dev lacks. A pull request merged into
+# staging is such a commit, so this brings it onto ci-dev straight away, by a
+# fast-forward when ci-dev has nothing staging lacks and by a merge otherwise.
+#
+# A push made with GITHUB_TOKEN starts no workflow, so the forwarder's own push
+# to staging and prepare-release.yml's do not run this (the latter brings ci-dev
+# up itself), and this run's push to ci-dev starts no CI. The next push to
+# ci-dev gets its CI run as usual, and that run's commit contains staging.
+#
+# A push workflow runs the copy of this file on the pushed branch, so this one
+# runs from staging and nothing on `main` is involved.
+
+on:
+  push:
+    branches: [staging]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: staging-to-ci-dev
+  cancel-in-progress: false
+
+jobs:
+  catch-up:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Bring ci-dev up to the pushed commit, or say what to do
+        env:
+          PUSHED: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! bash scripts/ci-dev-catch-up.sh "$PUSHED"; then
+            {
+              echo "### ci-dev is behind staging"
+              echo
+              echo "$PUSHED did not merge into ci-dev cleanly. Until ci-dev contains it,"
+              echo "ci-dev-forward.yml refuses every forward. Merge staging into ci-dev by hand:"
+              echo
+              echo '```'
+              echo "git fetch origin && git checkout ci-dev && git merge origin/staging && git push origin ci-dev"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi

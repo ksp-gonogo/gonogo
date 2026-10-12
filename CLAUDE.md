@@ -61,7 +61,7 @@ mod/         : The Gonogo mod (C#) and the generated `sitrep-sdk`, plus each
 
 ## Workflow
 
-Solo-developer repo. **`staging` is the integration branch**: all work lands there. Small work goes straight onto `staging`, no pull requests. Large features get a branch cut from current `origin/staging` and folded back in.
+Solo-developer repo. **`staging` is the integration branch**: all work lands there. Small work goes straight onto `staging`. An outside contributor opens a pull request against `staging` (`CONTRIBUTING.md`); once it is merged, `staging-to-ci-dev.yml` brings that commit onto `ci-dev` so the next forward is still a fast-forward. Large features get a branch cut from current `origin/staging` and folded back in.
 
 **The remote default branch is `main`, on purpose** (`git ls-remote --symref origin HEAD`): it is the real latest version, what a new visitor sees, and it moves only at a release. So `origin/HEAD` points at `main`, not `staging`; check out `staging` explicitly. Never commit to `main` by hand. `schedule` and `workflow_run` workflows run the copy of their file on `main`, which is why `rc.yml` is a trampoline there that only dispatches itself on `staging`.
 
