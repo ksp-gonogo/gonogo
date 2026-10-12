@@ -27,8 +27,8 @@ export const CHECK_USAGE = `uplink-tools check [options]
                       mod's version
   --fix               write the files check owns, then re-verify. Refused when
                       CI is set
-  --only <groups>     run only these comma-separated groups. loadable and minsize
-                      run only when named here
+  --only <groups>     run only these comma-separated groups. loadable, nodenext and
+                      minsize run only when named here
   --skip <groups>     leave these groups out
   --json              print the findings as JSON, and nothing else
   --max-warnings <n>  fail when there are more than n warnings
@@ -37,6 +37,8 @@ export const CHECK_USAGE = `uplink-tools check [options]
   Groups that start a process, so run only when named in --only:
     loadable  every @ksp-gonogo entry point the client depends on imports in
               a bare node
+    nodenext  the client typechecks under moduleResolution nodenext, the mode
+              a bundler-only typecheck cannot see
     minsize   every widget draws without clipping at the minSize it declares,
               in a browser (npx playwright install chromium)`;
 

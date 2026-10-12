@@ -221,7 +221,7 @@ describe("check --only for the groups that start a process", () => {
     } finally {
       console.error = log;
     }
-    expect(errors.join("")).toContain("loadable, minsize");
+    expect(errors.join("")).toContain("loadable, nodenext, minsize");
   });
 
   it("runs loadable on its own without reading the client's source", async () => {

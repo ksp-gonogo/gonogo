@@ -114,14 +114,13 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
       },
       scripts: {
         test: "vitest run",
-        typecheck:
-          "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.nodenext.json",
+        typecheck: "tsc --noEmit -p tsconfig.json",
         codegen: "uplink-tools codegen",
         "codegen:check": "uplink-tools codegen --check",
         bundle: "uplink-tools bundle",
         bake: `uplink-tools bake --bundle dist/${id}/${id}.client.js`,
         release: "uplink-tools release",
-        check: "uplink-tools check",
+        check: "uplink-tools check && uplink-tools check --only nodenext",
         render: "uplink-tools render",
         page: "uplink-tools page",
         docs: `npm run bundle && uplink-tools docs --bundle dist/${id}/${id}.client.js`,

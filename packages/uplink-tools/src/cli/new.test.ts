@@ -186,7 +186,8 @@ describe("uplink-tools new", () => {
       bundle: "uplink-tools bundle",
       bake: "uplink-tools bake --bundle dist/widgets/widgets.client.js",
       release: "uplink-tools release",
-      check: "uplink-tools check",
+      typecheck: "tsc --noEmit -p tsconfig.json",
+      check: "uplink-tools check && uplink-tools check --only nodenext",
       page: "uplink-tools page",
     });
     expect(scripts.build).toBeUndefined();
