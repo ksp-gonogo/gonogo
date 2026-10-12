@@ -244,6 +244,25 @@ namespace Sitrep.Transport.Tests
             Assert.Equal(expected, fakeSocket.LastSentBytes);
         }
 
+        /// <summary>
+        /// A connection that closes during the handshake, before the engine has
+        /// attached to it, still tells the engine it closed: a handler attached
+        /// afterwards is called at once, and only once.
+        /// </summary>
+        [Fact]
+        public void Closed_RaisedBeforeAnyoneListens_IsToldToTheHandlerAttachedAfter()
+        {
+            var fakeSocket = new FakeWebSocketConnection();
+            var connection = CreateFleckTransportConnection(fakeSocket);
+
+            fakeSocket.OnClose!();
+            var told = 0;
+            connection.Closed += () => told++;
+            fakeSocket.OnError!(new Exception("reset"));
+
+            Assert.Equal(1, told);
+        }
+
         private static ITransportConnection CreateFleckTransportConnection(IWebSocketConnection socket)
         {
             var type = typeof(ITransportConnection).Assembly.GetType(

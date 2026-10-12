@@ -23,8 +23,13 @@ namespace Sitrep.Core
     /// each vantage, since each has been told different things. Dropping it here
     /// meant a handler could only ever answer from the game's own state, which is
     /// every vantage's future.</para>
+    ///
+    /// <para><paramref name="craft"/> is the craft the dispatcher said the command
+    /// was for, null when it named none. A node that stands for whichever craft
+    /// is active can hold a different one when the command arrives, and only the
+    /// handler can tell.</para>
     /// </summary>
-    public delegate object? CommandHandler(string command, object? args, string node, string vantage);
+    public delegate object? CommandHandler(string command, object? args, string node, string vantage, string? craft);
 
     /// <summary>
     /// C# port of <c>mod/sitrep-server/src/courier.ts</c>'s <c>Courier</c>:
@@ -75,6 +80,7 @@ namespace Sitrep.Core
             public string Correlation = string.Empty;
             public string Label = string.Empty;
             public string Topic = string.Empty;
+            public string? Craft;
             public bool Ran;
             public object? Result;
             public Action<CommandResponse> OnResponse = null!;
@@ -191,7 +197,7 @@ namespace Sitrep.Core
             new Dictionary<string, Dictionary<string, List<AddressedSample>>>();
 
         private long _seq;
-        private CommandHandler _commandHandler = (_, __, ___, ____) => null;
+        private CommandHandler _commandHandler = (_, __, ___, ____, _____) => null;
 
         // Generation counter for the current timeline -- see Meta.TimelineEpoch's
         // doc comment. Incremented once per ResetTimeline call (quickload/
@@ -263,7 +269,9 @@ namespace Sitrep.Core
         ///
         /// <para><paramref name="correlation"/> is saved with the command and
         /// handed back by <see cref="RestoreCommands"/>, for a dispatcher that
-        /// has to find who asked once <paramref name="onResponse"/> is gone.</para>
+        /// has to find who asked once <paramref name="onResponse"/> is gone.
+        /// <paramref name="craft"/> is saved the same way and handed to the
+        /// command handler when the command runs.</para>
         /// </summary>
         public void DispatchCommand(
             string node,
@@ -275,7 +283,8 @@ namespace Sitrep.Core
             double? uplinkDelaySeconds = null,
             string correlation = "",
             string label = "",
-            string topic = "")
+            string topic = "",
+            string? craft = null)
         {
             if (!_network.Reachable(vantage, node))
             {
@@ -307,6 +316,7 @@ namespace Sitrep.Core
                 Correlation = correlation,
                 Label = label,
                 Topic = topic,
+                Craft = craft,
                 OnResponse = onResponse,
             };
             lock (_commandsGate)
@@ -334,7 +344,7 @@ namespace Sitrep.Core
             _clock.Schedule(pending.ExecuteUt, () =>
             {
                 var result = _commandHandler(
-                    pending.Command, pending.Args, pending.Node, pending.Vantage);
+                    pending.Command, pending.Args, pending.Node, pending.Vantage, pending.Craft);
                 lock (_commandsGate)
                 {
                     pending.Result = result;
@@ -1533,6 +1543,40 @@ namespace Sitrep.Core
             return floors;
         }
 
+        private bool Subscribed(string node, string topic, string vantage)
+        {
+            if (!_subscribers.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var subs))
+            {
+                return false;
+            }
+            foreach (var subscriber in subs)
+            {
+                if (string.Equals(subscriber.Vantage, vantage, StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Lets go of everything held for <paramref name="node"/>: its archive, its
+        /// subscribers and what was owed them. For a node nothing will record on
+        /// again and nothing still in flight is owed to.
+        /// </summary>
+        public void ForgetNode(string node)
+        {
+            _archives.Remove(node);
+            _subscribers.Remove(node);
+            _newestDelivered.Remove(node);
+            _linkDownSince.Remove(node);
+            _subjectLinkDownSince.Remove(node);
+            _gapOpeningSample.Remove(node);
+            _stickyKeyframes.Remove(node);
+            _addressed.Remove(node);
+            _owedScenes.Remove(node);
+        }
+
         /// <summary>
         /// Bound every archive to what its vantages can still read. Safe to call at
         /// any time: it only ever drops samples that no current vantage can reach,
@@ -1543,7 +1587,8 @@ namespace Sitrep.Core
         {
             foreach (var entry in _archives)
             {
-                entry.Value.PruneToVantageCursors(OwedFloorsFor(entry.Key));
+                var node = entry.Key;
+                entry.Value.PruneToVantageCursors(OwedFloorsFor(node), (topic, vantage) => Subscribed(node, topic, vantage));
             }
         }
 
@@ -1600,10 +1645,9 @@ namespace Sitrep.Core
         /// <c>nowUt</c>, so the window retained tracks the delay rather than the
         /// session; and that a vantage some client is already streaming at
         /// shares the very same (topic, vantage) cursor, so reading there pins
-        /// nothing new at all. What it does not bound is a cursor left behind
-        /// after the last reader of a (topic, vantage) pair goes away: that one
-        /// freezes and holds that topic's history from its instant until
-        /// <see cref="ResetTimeline"/> clears every cursor on a quickload.</para>
+        /// nothing new at all. A cursor that neither a subscriber nor a read has
+        /// held since the last prune is dropped at the next one, so a caller
+        /// that stops reading stops pinning.</para>
         /// </summary>
         public object? ReadRawAtVantage(string node, string topic, string vantage, double nowUt, DelayStamp? under = null)
         {
@@ -1695,6 +1739,7 @@ namespace Sitrep.Core
                         Correlation = pending.Correlation,
                         Label = pending.Label,
                         Topic = pending.Topic,
+                        Craft = pending.Craft,
                         Ran = pending.Ran,
                         Result = pending.Result,
                     });
@@ -1735,6 +1780,7 @@ namespace Sitrep.Core
                     Correlation = saved.Correlation,
                     Label = saved.Label,
                     Topic = saved.Topic,
+                    Craft = saved.Craft,
                     Ran = saved.Ran,
                     Result = saved.Result,
                     OnResponse = answerTo(saved),
@@ -1784,6 +1830,9 @@ namespace Sitrep.Core
 
         /// <summary>The part or terminal route the command was addressed to, empty when none.</summary>
         public string Topic { get; set; } = string.Empty;
+
+        /// <summary>The craft the dispatcher said it was for, null when it named none.</summary>
+        public string? Craft { get; set; }
 
         /// <summary>Whether its handler has run.</summary>
         public bool Ran { get; set; }

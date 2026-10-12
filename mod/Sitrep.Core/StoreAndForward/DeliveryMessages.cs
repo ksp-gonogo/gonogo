@@ -209,8 +209,8 @@ namespace Sitrep.Core.StoreAndForward
 
         public LaneKey Lane { get; set; }
 
-        /// <summary>The lane number of the command it is about, or the cancel's first number.</summary>
-        public long LaneSeq { get; set; }
+        /// <summary>The lane number of the command it is about, or the cancel's first number; null for a command that never took a place on a lane.</summary>
+        public long? LaneSeq { get; set; }
 
         /// <summary>The node it is reporting from.</summary>
         public string At { get; set; } = "";

@@ -285,6 +285,10 @@ namespace Sitrep.Host
 
         public void OnTimelineReset(Action reset) => _timelineResetListeners.Add(reset);
 
+        private readonly List<Action<string>> _craftReleasedListeners = new List<Action<string>>();
+
+        public void OnCraftReleased(Action<string> released) => _craftReleasedListeners.Add(released);
+
         /// <summary>
         /// The centre the roster marks home: the claimant's answer, or the ground
         /// station standing in for it when the claimant names none, which is
@@ -355,6 +359,8 @@ namespace Sitrep.Host
             _craftStateSaid.Clear();
             _craftLinkSaid.Clear();
             _craftRadioStamps.Clear();
+            _craftDeparted.Clear();
+            _releaseWhenUnwatched.Clear();
             foreach (var listener in _timelineResetListeners)
             {
                 try

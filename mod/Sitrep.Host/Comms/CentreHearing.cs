@@ -60,6 +60,25 @@ namespace Sitrep.Host.Comms
         {
             _host = host;
             _onHeard = onHeard;
+            host.OnCraftReleased(StopListeningFor);
+        }
+
+        /// <summary>
+        /// Stops listening for a craft nothing more can arrive from, at every
+        /// centre. What each centre heard of it is kept: a centre goes on knowing
+        /// what it last knew of a craft that is gone.
+        /// </summary>
+        private void StopListeningFor(string vesselId)
+        {
+            _craft.Remove(vesselId);
+            foreach (var ear in _ears.Values)
+            {
+                if (ear.Stop.TryGetValue(vesselId, out var stop))
+                {
+                    ear.Stop.Remove(vesselId);
+                    stop();
+                }
+            }
         }
 
         /// <summary>

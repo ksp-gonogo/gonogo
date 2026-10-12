@@ -25,10 +25,10 @@ export interface ScienceCreditEvent {
   vesselName: string;
   /** Science points credited (bare wire number). */
   amount: number;
-  /** The research subject's id, e.g. `magScan@KerbinInSpaceHigh`. */
-  subjectId: string;
-  /** The research subject's human title. */
-  subjectTitle: string;
+  /** The research subject's id, e.g. `magScan@KerbinInSpaceHigh`, or null when the credit names no subject. */
+  subjectId: string | null;
+  /** The research subject's human title, or null when the credit names no subject. */
+  subjectTitle: string | null;
   /** UT the credit happened at, not when it arrived, so a consumer can age it. */
   ut: number;
 }

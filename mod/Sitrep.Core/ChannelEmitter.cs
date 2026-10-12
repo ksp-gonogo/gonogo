@@ -235,6 +235,9 @@ namespace Sitrep.Core
         /// seen by <see cref="Decide"/> yet: it's already force-keyframed by
         /// default.
         /// </summary>
+        /// <summary>Forgets <paramref name="channelId"/>'s emission state, for a channel that will not be published again.</summary>
+        public void Forget(string channelId) => _channels.Remove(channelId);
+
         public void NotifySubscribed(string channelId)
         {
             GetOrCreateState(channelId).ForceKeyframe = true;

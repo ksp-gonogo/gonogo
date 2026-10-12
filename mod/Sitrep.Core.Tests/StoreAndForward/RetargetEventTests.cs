@@ -76,6 +76,9 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             public bool Refuse { get; set; }
 
+            /// <summary>How many of the next restores fail, the first by throwing and the rest by saying so.</summary>
+            public int FailRestores { get; set; }
+
             public string? Turn(string node, string dishId, string peer, double ut)
             {
                 if (Refuse)
@@ -91,6 +94,16 @@ namespace Sitrep.Core.Tests.StoreAndForward
             public bool Restore(string recordId, double ut)
             {
                 Log.Add("restore@" + ut);
+                if (FailRestores > 0)
+                {
+                    var first = FailRestores == 2;
+                    FailRestores--;
+                    if (first)
+                    {
+                        throw new TimeoutException("the main thread did not run it");
+                    }
+                    return false;
+                }
                 var parts = recordId.Split('|');
                 _links.Down(parts[1], parts[2]);
                 return true;
@@ -178,6 +191,24 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.Equal(Relay, event1.Node);
             Assert.Equal(Probe, event1.Peer);
             Assert.Equal(10.0, event1.TurnedUt);
+        }
+
+        /// <summary>
+        /// A restore that throws, or that could not write the old aim, leaves the
+        /// dish on loan, and it is asked again until it goes back.
+        /// </summary>
+        [Fact]
+        public void ARestoreThatFailsIsTriedAgainUntilTheDishIsBack()
+        {
+            var rig = new Rig();
+            rig.Actuator.FailRestores = 2;
+
+            rig.Send(0.0);
+            rig.RunTo(60.0);
+
+            Assert.Equal(3, rig.Actuator.Log.Count(l => l.StartsWith("restore@")));
+            Assert.Equal(0, rig.Actuator.FailRestores);
+            Assert.Equal(1, rig.Ran.Count);
         }
 
         [Fact]

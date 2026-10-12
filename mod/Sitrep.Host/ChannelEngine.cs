@@ -1600,7 +1600,7 @@ namespace Sitrep.Host
             // instead of unwinding out of the Courier's scheduled callback
             // and killing the thread. See InvokeCommandHandler's doc comment.
             _courier.SetCommandHandler(
-                (command, args, node, vantage) => InvokeCommandHandler(command, args, vantage));
+                (command, args, node, vantage, craft) => RunArrived(command, args, vantage, craft));
             _listener = new FleckTransportListener(bindUri);
             _listener.ClientConnected += OnClientConnected;
             _courierThread = new Thread(CourierLoop) { IsBackground = true, Name = "Sitrep-ChannelEngine-Courier" };
@@ -3052,6 +3052,11 @@ namespace Sitrep.Host
 
         public void SetVesselDelay(string vesselId, double oneWaySeconds)
         {
+            if (OffTheRunningCourier())
+            {
+                EnqueueJob(new CourierActionJob(() => SetVesselDelay(vesselId, oneWaySeconds)));
+                return;
+            }
             // Per-vessel downlink delay (Plan 2): the vessel's fleet.<id> node
             // carries its own routed light-time for the single KSC observer.
             // NodeForTopic maps fleet.<id>.* topics to this node, so its
@@ -3680,6 +3685,8 @@ namespace Sitrep.Host
             // active vessel's link stays on SetConnectivitySource.
             // Courier-thread-only, like SetSubjectConnected's other caller.
             _fleetVesselsThisTick.Add(vesselId);
+            _craftDeparted.Remove(FleetNodePrefix + vesselId);
+            _releaseWhenUnwatched.Remove(FleetNodePrefix + vesselId);
             // The tick being worked through, not the clock, which this tick has not advanced yet.
             SetSubjectConnected(FleetNodePrefix + vesselId, connected, Math.Max(_tickUt, _clock.Now()));
             SayCraftLink(vesselId, connected);
@@ -3800,6 +3807,16 @@ namespace Sitrep.Host
             };
             _channelOwner[fullTopic] = _dynamicNamespaceOwner[prefix];
         }
+
+        /// <summary>
+        /// Whether the caller is on another thread while the Courier runs. The
+        /// ledger and declaration maps are the Courier's alone, read mid-tick with
+        /// no lock, so a write from anywhere else is handed to it as a job; the
+        /// job queue keeps it ahead of anything the same caller enqueues after.
+        /// Before the Courier starts, the caller is the only thread there is.
+        /// </summary>
+        private bool OffTheRunningCourier() =>
+            _courierThread.IsAlive && Thread.CurrentThread != _courierThread;
 
         /// <summary>Returns the registered dynamic-namespace prefix that <paramref name="topic"/> falls under, or null.</summary>
         private string? FindDynamicNamespaceForTopic(string topic)
@@ -7026,6 +7043,9 @@ namespace Sitrep.Host
                             case PublishJob publish:
                                 ProcessPublish(publish);
                                 break;
+                            case CourierActionJob action:
+                                action.Run();
+                                break;
                             case DispatchCommandJob dispatch:
                                 ProcessDispatchCommand(dispatch);
                                 break;
@@ -7637,41 +7657,154 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Remove a fleet subject's per-node freeze-map entries once its last
-        /// topic is unsubscribed / its session disconnects (Plan 2b required
-        /// addition 2): otherwise the maps accumulate one stale entry per vessel
-        /// guid ever seen. The "system" subject is permanent (never cleaned).
-        /// Called after the topic is removed from the subscribed-topics mirror,
-        /// so <see cref="IsAnyTopicSubscribed"/> reflects the removal.
+        /// Drop a fleet subject's recorder bookkeeping once no topic recorded on
+        /// its node is subscribed any more, so a craft watched again later does
+        /// not claim a gap running back to a sample its new subscriber never had.
+        /// Its link and delay state stay while the craft is on the roster: a dark
+        /// craft forgotten here would read as connected, and its held light-time
+        /// would collapse to the 0 a lost path reports.
+        /// <see cref="ReleaseSubjectsGoneFromTheRoster"/> lets those go. Called
+        /// after the topic is removed from the subscribed-topics mirror.
         /// </summary>
         private void CleanUpSubjectIfGone(string topic)
         {
             var node = NodeFor(topic);
             if (node == NodeId || node == HomeCommandNode)
             {
-                // Both are permanent. The home node's topics share no name
-                // prefix, so the subscribed-prefix test below would read "gone"
-                // while its siblings are still subscribed and sweep their
-                // record bookkeeping out from under them.
                 return;
             }
-            // Keep the subject while ANY of its topics (node + ".*") is still subscribed.
-            if (IsAnyTopicSubscribed(node + "."))
+            if (Watched(node))
             {
                 return;
             }
-            ForgetSubjectState(node);
+            ForgetRecorderState(node);
+            if (_releaseWhenUnwatched.Remove(node))
+            {
+                FinishRelease(node);
+            }
+        }
+
+        /// <summary>Whether a client is subscribed to any topic recorded on <paramref name="node"/>.</summary>
+        private bool Watched(string node)
+        {
+            foreach (var subscribed in _subscribedTopics.Keys)
+            {
+                if (NodeFor(subscribed) == node)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /*
+         * A craft gone from the roster, by node, against the instant the last of
+         * what it sent lands at the centre farthest from it; and the departed
+         * craft whose release waits for a client still subscribed to one of its
+         * topics. Courier-thread-only.
+         */
+        private readonly Dictionary<string, double> _craftDeparted = new Dictionary<string, double>(StringComparer.Ordinal);
+        private readonly HashSet<string> _releaseWhenUnwatched = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>Margin past the computed last landing before a gone craft is let go.</summary>
+        private const double ReleaseMarginSeconds = 1.0;
+
+        /// <summary>
+        /// A craft has left the roster. A centre learns of that by light like
+        /// anything else, so what is held for the craft stays until the last of
+        /// what it sent has landed everywhere: the longest of the delays its
+        /// telemetry, its state and its radio readings left under.
+        /// </summary>
+        private void NoteDeparted(string node)
+        {
+            var vesselId = node.Substring(FleetNodePrefix.Length);
+            var longest = Longest(_network.StampFor(node));
+            if (_craftStateStamps.TryGetValue(vesselId, out var state))
+            {
+                longest = Math.Max(longest, Longest(state));
+            }
+            if (_craftRadioStamps.TryGetValue(vesselId, out var radio))
+            {
+                longest = Math.Max(longest, Longest(radio));
+            }
+            var releaseUt = Math.Max(_tickUt, _clock.Now()) + longest + ReleaseMarginSeconds;
+            _craftDeparted[node] = releaseUt;
+            _clock.Schedule(releaseUt, () => ReleaseCraft(node, releaseUt));
+        }
+
+        /// <summary>The longest finite delay a stamp holds, 0 when it holds none.</summary>
+        private static double Longest(DelayStamp stamp)
+        {
+            var longest = IsFiniteNonNegative(stamp.BaseSeconds) ? stamp.BaseSeconds : 0.0;
+            var rows = stamp.ByVantage();
+            if (rows != null)
+            {
+                foreach (var seconds in rows.Values)
+                {
+                    if (IsFiniteNonNegative(seconds) && seconds > longest)
+                    {
+                        longest = seconds;
+                    }
+                }
+            }
+            return longest;
+        }
+
+        private static bool IsFiniteNonNegative(double seconds) =>
+            !double.IsNaN(seconds) && !double.IsInfinity(seconds) && seconds >= 0.0;
+
+        private void ReleaseCraft(string node, double releaseUt)
+        {
+            if (!_craftDeparted.TryGetValue(node, out var due) || due != releaseUt)
+            {
+                return;
+            }
+            _craftDeparted.Remove(node);
+            if (Watched(node))
+            {
+                _releaseWhenUnwatched.Add(node);
+                return;
+            }
+            FinishRelease(node);
         }
 
         /// <summary>
-        /// Drop every per-node and per-topic map entry this subject owns.
-        ///
-        /// <para>Shared by the unsubscribe sweep (<see cref="CleanUpSubjectIfGone"/>,
-        /// which decides whether first) and by the roster sweep
-        /// (<see cref="ReleaseSubjectsGoneFromTheRoster"/>, for a craft that is
-        /// gone whether or not anyone is still watching its topics). Says nothing
-        /// about the link-down mark or the recording; those belong to the caller
-        /// that knows why the subject is being let go.</para>
+        /// Lets go of everything still held for a gone craft: the Courier's
+        /// archive and subscriptions on its node, the per-vessel topics declared
+        /// for it, and their emission state; and tells each listener, so the
+        /// centres stop listening for it.
+        /// </summary>
+        private void FinishRelease(string node)
+        {
+            var topics = _channelDeclarations.Keys
+                .Where(topic => FindDynamicNamespaceForTopic(topic) != null && NodeFor(topic) == node)
+                .ToList();
+            foreach (var topic in topics)
+            {
+                _channelDeclarations.Remove(topic);
+                _channelOwner.Remove(topic);
+                _emitter.Forget(topic);
+            }
+            _courier.ForgetNode(node);
+            var vesselId = node.Substring(FleetNodePrefix.Length);
+            foreach (var listener in _craftReleasedListeners)
+            {
+                try
+                {
+                    listener(vesselId);
+                }
+                catch (Exception ex)
+                {
+                    LogHost("a craft-released listener threw: " + ex);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Drop every per-node and per-topic map entry this subject owns, for a
+        /// craft gone from the roster whether or not anyone is still watching its
+        /// topics. Says nothing about the link-down mark or the recording; those
+        /// belong to the caller that knows why the subject is being let go.
         /// </summary>
         private void ForgetSubjectState(string node)
         {
@@ -7680,16 +7813,23 @@ namespace Sitrep.Host
             _subjectLastConnectedDelay.Remove(node);
             _subjectLastConnectedStamp.Remove(node);
             _vesselNodeDelay.Remove(node);
+            if (node.StartsWith(FleetNodePrefix, StringComparison.Ordinal))
+            {
+                var vesselId = node.Substring(FleetNodePrefix.Length);
+                _craftLinkSaid.Remove(vesselId);
+                _craftRadioStamps.Remove(vesselId);
+            }
+            ForgetRecorderState(node);
+        }
 
-            // The recorder's per-topic bookkeeping is keyed by TOPIC, not node,
-            // so it needs its own sweep over this subject's namespace. Left
-            // behind it would accumulate an entry per (vessel guid, field) ever
-            // seen, and an unsubscribed-then-resubscribed vessel would claim a
-            // gap running back to a sample the current subscriber never had.
-            // Matched through NodeFor rather than a "<node>." prefix: this
-            // subject's topics also live under the disjoint per-vessel
-            // namespaces (currency., silence.), which route to the same node and
-            // would survive a prefix test.
+        /// <summary>
+        /// The recorder's per-topic bookkeeping for <paramref name="node"/>. Keyed
+        /// by topic, and matched through <see cref="NodeFor"/> rather than a
+        /// node prefix, because a craft's topics also live under the per-vessel
+        /// namespaces (currency., silence.) that route to the same node.
+        /// </summary>
+        private void ForgetRecorderState(string node)
+        {
             foreach (var recordedTopic in new List<string>(_lastRecordedUt.Keys))
             {
                 if (NodeFor(recordedTopic) == node)
@@ -7783,16 +7923,26 @@ namespace Sitrep.Host
             {
                 return;
             }
-            foreach (var node in new List<string>(_subjectDarkSinceUt.Keys))
+            var known = new HashSet<string>(_subjectDarkSinceUt.Keys, StringComparer.Ordinal);
+            known.UnionWith(_subjectConnected.Keys);
+            known.UnionWith(_vesselNodeDelay.Keys);
+            foreach (var node in known)
             {
                 if (!node.StartsWith(FleetNodePrefix, StringComparison.Ordinal)
                     || _fleetVesselsThisTick.Contains(node.Substring(FleetNodePrefix.Length)))
                 {
                     continue;
                 }
-                DiscardInBlackoutBacklog(node);
-                _subjectDarkSinceUt.Remove(node);
-                _courier.MarkSubjectLinkUp(node);
+                NoteDeparted(node);
+                if (_subjectDarkSinceUt.Remove(node))
+                {
+                    DiscardInBlackoutBacklog(node);
+                    _courier.MarkSubjectLinkUp(node);
+                }
+                else
+                {
+                    DiscardHeldAboard(node);
+                }
                 ForgetSubjectState(node);
             }
         }
@@ -7808,7 +7958,7 @@ namespace Sitrep.Host
         private void DiscardInBlackoutBacklog(string node)
         {
             _releasing.Remove(node);
-            DiscardSpansOf(node);
+            DiscardHeldAboard(node);
             var topics = new HashSet<string>(_recordings.Keys);
             topics.UnionWith(_pendingGapSinceUt.Keys);
             foreach (var topic in topics)
@@ -9338,7 +9488,8 @@ namespace Sitrep.Host
                 response => AnswerLivePath(requestId, clientRequestId, command, response),
                 correlation: clientRequestId,
                 label: job.Label ?? "",
-                topic: job.Topic ?? "");
+                topic: job.Topic ?? "",
+                craft: string.Equals(node, NodeId, StringComparison.Ordinal) ? _activeCraftId : null);
             job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a
@@ -9680,6 +9831,12 @@ namespace Sitrep.Host
 
         private void ProcessSubscribe(ClientSession session, string topic)
         {
+            // A close on a send can queue the disconnect ahead of a subscribe the
+            // read thread is still enqueuing; nothing would ever release it.
+            if (!_sessions.ContainsKey(session.Connection.Id))
+            {
+                return;
+            }
             // MEDIUM-3: gate on any DECLARED channel (_channelDeclarations),
             // not just source-backed ones (_channelSources): a
             // Publisher(topic)-only channel (event-driven, no
@@ -10088,6 +10245,9 @@ namespace Sitrep.Host
             var session = new ClientSession(connection);
             _sessions[connection.Id] = session;
 
+            // Messages first: a close that came before this is raised as soon as
+            // the handler attaches, and the frames buffered ahead of it have to be
+            // queued before the disconnect that ends them.
             connection.MessageReceived += payload => OnMessageReceived(session, payload);
             connection.Closed += () => OnConnectionClosed(session);
             try
@@ -10587,6 +10747,17 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>Work another thread hands the Courier because it writes Courier-only state.</summary>
+        private sealed class CourierActionJob : IEngineJob
+        {
+            public readonly Action Run;
+
+            public CourierActionJob(Action run)
+            {
+                Run = run;
+            }
+        }
+
         private sealed class PublishJob : IEngineJob
         {
             public readonly string Topic;
@@ -10883,7 +11054,14 @@ namespace Sitrep.Host
             public IChannelPublisher Publisher(string subTopic)
             {
                 var fullTopic = _prefix + subTopic;
-                _engine.EnsureDynamicTopicDeclared(_prefix, fullTopic);
+                if (_engine.OffTheRunningCourier())
+                {
+                    _engine.EnqueueJob(new CourierActionJob(() => _engine.EnsureDynamicTopicDeclared(_prefix, fullTopic)));
+                }
+                else
+                {
+                    _engine.EnsureDynamicTopicDeclared(_prefix, fullTopic);
+                }
                 return new ChannelPublisher(_engine, fullTopic);
             }
 
@@ -10967,6 +11145,13 @@ namespace Sitrep.Host
                 while (_reliable.TryDequeue(out var reliableMsg))
                 {
                     _connection.TrySend(new ArraySegment<byte>(reliableMsg), SendClass.Response);
+                }
+
+                // While the socket is still writing what it was given, the
+                // latest frames stay here and go on coalescing.
+                if (!_stopping && _connection.IsBusy)
+                {
+                    continue;
                 }
 
                 foreach (var topic in _latestByTopic.Keys.ToArray())

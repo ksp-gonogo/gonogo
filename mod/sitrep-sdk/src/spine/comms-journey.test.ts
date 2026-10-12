@@ -54,6 +54,28 @@ describe("readJourney", () => {
   });
 });
 
+describe("an event about a command with no lane number", () => {
+  it("reads it with no lane number, and finds it in no lane's journey", () => {
+    const journey = readJourney({
+      epoch: 1,
+      events: [
+        event({}),
+        event({
+          id: "dropped",
+          laneSeq: null,
+          kind: JourneyEventKind.Discarded,
+        }),
+      ],
+    });
+    if (journey === null) throw new Error("not read");
+    expect(journey.events).toHaveLength(2);
+    expect(journey.events[1].laneSeq).toBeNull();
+    expect(
+      journeyOf(journey, "vessel:probe", value("count", 1)).map((e) => e.id),
+    ).toEqual(["e"]);
+  });
+});
+
 describe("one command's journey", () => {
   const journey = readJourney({
     epoch: 1,

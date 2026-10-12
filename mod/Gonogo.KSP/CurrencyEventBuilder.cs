@@ -15,8 +15,8 @@ namespace Gonogo.KSP
             string vesselId,
             string vesselName,
             double amount,
-            string subjectId,
-            string subjectTitle,
+            string? subjectId,
+            string? subjectTitle,
             double ut) =>
             new Dictionary<string, object?>
             {

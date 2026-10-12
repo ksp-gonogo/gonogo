@@ -338,6 +338,42 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
+        public void AVantageNobodyReadsAtAnyMoreStopsHoldingItsTopicsHistory()
+        {
+            // A lagging vantage subscribes and leaves. Its cursor froze where it
+            // last read, and retention prunes to the oldest cursor, so left
+            // standing it would keep every later sample. The late arrival is how
+            // that shows: with the history kept it catches up on a mid sample,
+            // and with it pruned it gets the birth value.
+            var clock = new ManualClock();
+            var network = new StubNetwork();
+            var courier = new Courier(clock, network);
+            network.SetDelay("mid", "n", 100);
+            network.SetDelay("far", "n", 250);
+
+            courier.SubscribeStream("n", "t", "near", _ => { });
+            var unsubscribe = courier.SubscribeStream("n", "t", "mid", _ => { });
+
+            for (var ut = 0; ut <= 300; ut += 10)
+            {
+                courier.Record("n", "t", "v" + ut, ut);
+                clock.AdvanceTo(ut);
+            }
+            unsubscribe();
+            for (var ut = 310; ut <= 1000; ut += 10)
+            {
+                courier.Record("n", "t", "v" + ut, ut);
+                clock.AdvanceTo(ut);
+            }
+
+            var far = new List<object?>();
+            courier.SubscribeStream("n", "t", "far", data => far.Add(data.Payload));
+
+            Assert.NotEmpty(far);
+            Assert.Equal("v0", far[0]);
+        }
+
+        [Fact]
         public void KeepsTheEpochOnASurvivingSample()
         {
             // Two epochs and four samples, so this reads the epoch off a sample the

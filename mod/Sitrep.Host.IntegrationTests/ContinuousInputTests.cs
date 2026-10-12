@@ -90,6 +90,7 @@ namespace Sitrep.Host.IntegrationTests
             var dropped = Assert.Single(world.Engine.JourneyAt(Home).Events);
             Assert.Equal(JourneyEventKind.Discarded, dropped.Kind);
             Assert.Equal(Home, dropped.At);
+            Assert.Null(dropped.LaneSeq);
             world.Tick(3000.0);
             Assert.Equal(0, world.Uplink.ThrottledCount);
         }

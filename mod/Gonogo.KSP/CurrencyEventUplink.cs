@@ -331,8 +331,8 @@ namespace Gonogo.KSP
                     vesselId,
                     GameWords.VesselName(protoVessel.vesselName),
                     amount,
-                    subject?.id ?? string.Empty,
-                    subject?.title ?? string.Empty,
+                    subject?.id,
+                    subject?.title,
                     ut);
 
                 _events.Publisher(vesselId + "." + CurrencyEventTopics.ScienceField).Publish(payload, ut);

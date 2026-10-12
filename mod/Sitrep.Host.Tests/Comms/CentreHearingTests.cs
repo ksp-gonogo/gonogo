@@ -68,6 +68,10 @@ namespace Sitrep.Host.Tests.Comms
             public void OnTimelineReset(Action reset)
             {
             }
+
+            public Action<string>? Released { get; private set; }
+
+            public void OnCraftReleased(Action<string> released) => Released = released;
         }
 
         private static HeardSnapshot Saved() => new HeardSnapshot(new[] { Knows(Home, 0.7), Knows(Crewed, 0.4) });
@@ -79,6 +83,24 @@ namespace Sitrep.Host.Tests.Comms
             new[] { new ContactRadio(Probe, true, strength, new CommsDegrade { ModelId = "m" }) { CapturedUt = 100.0 } });
 
         private static double? StrengthAt(CentreHearing hearing, string centre) => hearing.RadioAt(centre, Probe)?.Strength;
+
+        /// <summary>
+        /// A craft the host has let go is no longer listened for at any centre,
+        /// and a later pass does not start listening for it again.
+        /// </summary>
+        [Fact]
+        public void AReleasedCraftIsNoLongerListenedFor()
+        {
+            var host = new Silent();
+            var hearing = new CentreHearing(host);
+            hearing.Listen(new[] { Home, Crewed }, new[] { "probe" });
+            Assert.Equal(8, host.Listening);
+
+            host.Released!("probe");
+            hearing.Listen(new[] { Home, Crewed }, new string[0]);
+
+            Assert.Equal(0, host.Listening);
+        }
 
         [Fact]
         public void WhatASaveRestoredSurvivesAPassThatListsNoCentresAndThenOnlySome()

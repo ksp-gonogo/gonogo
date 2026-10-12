@@ -339,6 +339,69 @@ namespace Sitrep.Core.Tests.StoreAndForward
         }
 
         /// <summary>
+        /// A save taken from another thread while a released command's handler is
+        /// still waiting there, as a quicksave on the main thread is while the
+        /// Courier waits on it, holds that command as due to run and not as run,
+        /// and the game it is loaded into runs it once.
+        /// </summary>
+        [Fact]
+        public void ASaveTakenWhileAReleasedCommandIsRunningHoldsItAsNotYetRun()
+        {
+            var clock = new ManualClock();
+            var links = new Links();
+            links.Up(Ksc, Probe, 1.0);
+            DeliveryNetwork? network = null;
+            DeliverySnapshot? saved = null;
+            network = new DeliveryNetwork(clock, links, new Routes(), (c, ut) =>
+            {
+                var save = System.Threading.Tasks.Task.Run(() => network!.Snapshot());
+                Assert.True(save.Wait(System.TimeSpan.FromSeconds(10)), "the save could not take the network's lock");
+                saved = save.Result;
+                return "done";
+            }, _ => { });
+            network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
+            clock.AdvanceTo(2.0);
+
+            var collector = Assert.Single(saved!.Collectors);
+            Assert.Empty(collector.Ran);
+            Assert.Equal(1L, Assert.Single(collector.Scheduled).Command.LaneSeq);
+
+            var restored = new Rig();
+            restored.Links.Up(Ksc, Probe, 1.0);
+            restored.Network.Restore(saved, epoch: 2);
+            restored.RunTo(10.0);
+
+            Assert.Equal(1L, Assert.Single(restored.Ran).Seq);
+        }
+
+        /// <summary>
+        /// A command runs on a craft whose link goes as it runs, so its reply is
+        /// held aboard with no way home. When the craft is gone the reply goes
+        /// with it, rather than being kept and routed for ever.
+        /// </summary>
+        [Fact]
+        public void AReplyHeldAboardACraftThatIsGoneGoesWithIt()
+        {
+            var clock = new ManualClock();
+            var links = new Links();
+            links.Up(Ksc, Probe, 1.0);
+            var network = new DeliveryNetwork(clock, links, new Routes(), (c, ut) =>
+            {
+                links.Down(Ksc, Probe);
+                return "done";
+            }, _ => { });
+            network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
+            clock.AdvanceTo(2.0);
+            network.Tick(2.0);
+            Assert.Contains(network.HeldMessages(), h => h.Node == Probe && h.Message is ReportMessage);
+
+            network.DiscardHeldAt(Probe);
+
+            Assert.DoesNotContain(network.HeldMessages(), h => h.Node == Probe);
+            Assert.DoesNotContain(network.Snapshot().Held, h => h.Node == Probe);
+        }
+
+        /// <summary>
         /// Random sends, link flaps, plan changes and cancels: whatever happens,
         /// each lane runs its numbers in strictly increasing order and never runs
         /// one twice.

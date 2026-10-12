@@ -29,7 +29,8 @@ export interface JourneyEvent {
   /** The pending entry id of the command it is about, or a cancel's id. */
   about: string;
   craft: string;
-  laneSeq: Value<"count">;
+  /** Its place on its lane, or null for a command that never took one: a continuous input dropped where it would have waited. */
+  laneSeq: Value<"count"> | null;
   kind: JourneyEventKind;
   /** The node that made the report. */
   at: string;
@@ -78,7 +79,8 @@ function readEvent(raw: unknown): JourneyEvent | null {
   const about = "about" in raw ? raw.about : undefined;
   const craft = "craft" in raw ? raw.craft : undefined;
   const at = "at" in raw ? raw.at : undefined;
-  const laneSeq = readCount("laneSeq" in raw ? raw.laneSeq : undefined);
+  const rawLaneSeq = "laneSeq" in raw ? raw.laneSeq : undefined;
+  const laneSeq = rawLaneSeq === null ? null : readCount(rawLaneSeq);
   const kindOrdinal = "kind" in raw ? raw.kind : undefined;
   const atUt = readUt("atUt" in raw ? raw.atUt : undefined);
   if (
@@ -147,7 +149,10 @@ export function journeyOf(
   laneSeq: Value<"count">,
 ): readonly JourneyEvent[] {
   return journey.events
-    .filter((e) => e.craft === craft && e.laneSeq.equals(laneSeq))
+    .filter(
+      (e) =>
+        e.craft === craft && e.laneSeq !== null && e.laneSeq.equals(laneSeq),
+    )
     .sort((a, b) =>
       a.atUt.lessThan(b.atUt) ? -1 : b.atUt.lessThan(a.atUt) ? 1 : 0,
     );

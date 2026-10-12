@@ -596,6 +596,10 @@ namespace Sitrep.Host.Tests.Comms
             public void OnTimelineReset(System.Action reset)
             {
             }
+
+            public void OnCraftReleased(System.Action<string> released)
+            {
+            }
         }
     }
 }

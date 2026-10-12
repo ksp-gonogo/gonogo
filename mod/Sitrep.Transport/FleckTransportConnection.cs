@@ -43,15 +43,24 @@ namespace Sitrep.Transport
             socket.OnError = _ => RaiseClosed();
         }
 
-        private int _closedRaised;
+        private readonly object _closedLock = new object();
+        private bool _closedRaised;
+        private Action? _closed;
 
         /// <summary>Raises <see cref="Closed"/> once, whichever of Fleck's two ends arrives first.</summary>
         private void RaiseClosed()
         {
-            if (System.Threading.Interlocked.Exchange(ref _closedRaised, 1) == 0)
+            Action? handlers;
+            lock (_closedLock)
             {
-                Closed?.Invoke();
+                if (_closedRaised)
+                {
+                    return;
+                }
+                _closedRaised = true;
+                handlers = _closed;
             }
+            handlers?.Invoke();
         }
 
         public string Id { get; }
@@ -115,7 +124,48 @@ namespace Sitrep.Transport
             }
         }
 
-        public event Action? Closed;
+        /// <summary>
+        /// Raised once when the connection ends. A handler attached after that
+        /// is called at once: a connection can close during the handshake,
+        /// before anyone is listening, and that close is still owed.
+        /// </summary>
+        public event Action? Closed
+        {
+            add
+            {
+                bool alreadyClosed;
+                lock (_closedLock)
+                {
+                    alreadyClosed = _closedRaised;
+                    if (!alreadyClosed)
+                    {
+                        _closed += value;
+                    }
+                }
+                if (alreadyClosed)
+                {
+                    value?.Invoke();
+                }
+            }
+            remove
+            {
+                lock (_closedLock)
+                {
+                    _closed -= value;
+                }
+            }
+        }
+
+        public bool IsBusy
+        {
+            get
+            {
+                lock (_sendLock)
+                {
+                    return _sending;
+                }
+            }
+        }
 
         public bool TrySend(ArraySegment<byte> payload, SendClass cls)
         {

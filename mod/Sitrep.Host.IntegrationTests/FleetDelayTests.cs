@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Sitrep.Contract;
+using Sitrep.Contract.Serialization;
 using Sitrep.Core;
 using Sitrep.Host;
 using Xunit;
@@ -746,6 +747,10 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A craft's link state is let go when it leaves the roster, and kept
+        /// while it is on it, whoever is watching.
+        /// </summary>
         [Fact]
         public async Task FleetSubjectFreezeMapsAreCleanedWhenAVesselGoesAway()
         {
@@ -759,30 +764,113 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(clientA, "fleet.a.orbit", Timeout);
                 await SubscribeAsync(clientB, "fleet.b.orbit", Timeout);
 
-                // Ticks populate the per-subject freeze maps for both vessels.
                 engine.TickAndWait(0.0, ConnFixture(0.0, ("a", true), ("b", true)), Timeout);
                 engine.TickAndWait(1.0, ConnFixture(1.0, ("a", true), ("b", true)), Timeout);
                 await DrainAllStreamDataAsync(clientB, Quiet);
                 Assert.True(engine.HasFreezeStateForSubject("fleet.a"));
                 Assert.True(engine.HasFreezeStateForSubject("fleet.b"));
 
-                // The only fleet.a subscriber disconnects. We do NOT tick during the
-                // wait, so the gated capture cannot re-add fleet.a (in production a
-                // torn-down vessel is likewise gone from the capture). Its freeze
-                // maps are cleaned; fleet.b (still subscribed) is retained.
                 await clientA.DisposeAsync();
                 var deadline = DateTime.UtcNow + Timeout;
-                while (engine.HasFreezeStateForSubject("fleet.a") && DateTime.UtcNow < deadline)
+                while (engine.IsAnyTopicSubscribed("fleet.a.") && DateTime.UtcNow < deadline)
                 {
                     await Task.Delay(20);
                 }
-                Assert.False(engine.HasFreezeStateForSubject("fleet.a")); // cleaned on disconnect
-                Assert.True(engine.HasFreezeStateForSubject("fleet.b"));  // retained
+                engine.TickAndWait(2.0, ConnFixture(2.0, ("a", true), ("b", true)), Timeout);
+                Assert.True(engine.HasFreezeStateForSubject("fleet.a"));
+
+                engine.TickAndWait(3.0, ConnFixture(3.0, ("b", true)), Timeout);
+                Assert.False(engine.HasFreezeStateForSubject("fleet.a"));
+                Assert.True(engine.HasFreezeStateForSubject("fleet.b"));
             }
             finally
             {
                 engine.Stop();
             }
+        }
+
+        /// <summary>
+        /// A craft gone from the roster keeps its per-vessel topics until the last
+        /// of what it sent has landed, and then they go: nothing grows with every
+        /// craft a session has ever seen.
+        /// </summary>
+        [Fact]
+        public async Task AGoneCraftsTopicsAreLetGoOnceItsLastLightHasLanded()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.b.orbit", Timeout);
+
+                engine.TickAndWait(0.0, Fixture(0.0, ("a", 5.0, true), ("b", 1.0, true)), Timeout);
+                engine.TickAndWait(1.0, Fixture(1.0, ("a", 5.0, true), ("b", 1.0, true)), Timeout);
+                Assert.NotNull(engine.DeclarationOf("fleet.a.orbit"));
+
+                engine.TickAndWait(2.0, Fixture(2.0, ("b", 1.0, true)), Timeout);
+                engine.TickAndWait(4.0, Fixture(4.0, ("b", 1.0, true)), Timeout);
+                Assert.NotNull(engine.DeclarationOf("fleet.a.orbit"));
+
+                engine.TickAndWait(12.0, Fixture(12.0, ("b", 1.0, true)), Timeout);
+                Assert.Null(engine.DeclarationOf("fleet.a.orbit"));
+                Assert.NotNull(engine.DeclarationOf("fleet.b.orbit"));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A dark craft whose orbit widget is closed while its silence tracker
+        /// stays open is still watched, and keeps the light-time it was last
+        /// heard at rather than the 0 a lost path reports.
+        /// </summary>
+        [Fact]
+        public async Task ClosingOneOfADarkCraftsTopicsKeepsItsHeldLightTime()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new FleetDelayTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, "fleet.a.orbit", Timeout);
+                await SubscribeAsync(client, "silence.a.state", Timeout);
+                await SubscribeAsync(client, "fleet.b.orbit", Timeout);
+                var node = ChannelEngine.FleetNodePrefix + "a";
+
+                engine.TickAndWait(0.0, Fixture(0.0, ("a", 5.0, true), ("b", 1.0, true)), Timeout);
+                engine.TickAndWait(1.0, Fixture(1.0, ("a", 0.0, false), ("b", 1.0, true)), Timeout);
+                Assert.Equal(5.0, engine.LedgerDelayFor("KSC", node));
+
+                await client.SendAsync(EnvelopeCodec.WriteUnsubscribe(new Unsubscribe { Topic = "fleet.a.orbit" }));
+                var deadline = DateTime.UtcNow + Timeout;
+                while (engine.IsAnyTopicSubscribed("fleet.a.") && DateTime.UtcNow < deadline)
+                {
+                    await Task.Delay(20);
+                }
+                engine.TickAndWait(2.0, Fixture(2.0, ("a", 0.0, false), ("b", 1.0, true)), Timeout);
+
+                Assert.Equal(5.0, engine.LedgerDelayFor("KSC", node));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static KspSnapshot Fixture(double ut, params (string id, double delay, bool connected)[] vessels)
+        {
+            var snapshot = ConnFixture(ut, System.Array.ConvertAll(vessels, v => (v.id, v.connected)));
+            var roster = (List<object?>)snapshot.Values["vessels"]!;
+            for (var i = 0; i < vessels.Length; i++)
+            {
+                ((Dictionary<string, object?>)roster[i]!)["delay"] = vessels[i].delay;
+            }
+            return snapshot;
         }
 
         /// <summary>

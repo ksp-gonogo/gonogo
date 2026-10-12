@@ -40,6 +40,36 @@ namespace Sitrep.Core.Tests.StoreAndForward
             DeleteAtUt = 3600.0,
         };
 
+        /// <summary>
+        /// What a lane remembers of numbers it has settled goes once every copy
+        /// of them has outlived its lifetime, and a copy turning up after that is
+        /// expired, never run.
+        /// </summary>
+        [Fact]
+        public void SettledNumbersAreForgottenOnceNoCopyOfThemCanStillArrive()
+        {
+            var craft = new Craft();
+            var collector = craft.Collector();
+            collector.Arrive(Command(1), 10.0);
+            collector.Cancel(CancelOf(2, 2), 11.0);
+            collector.Arrive(Command(3), 12.0);
+            Assert.Equal(new long[] { 1, 3 }, craft.Ran);
+
+            collector.Forget(100.0, 3600.0);
+            Assert.Equal(2, collector.Ran.Count);
+            Assert.Single(collector.Cancelled);
+
+            collector.Forget(3700.0, 3600.0);
+            Assert.Empty(collector.Ran);
+            Assert.Empty(collector.Cancelled);
+            Assert.Equal(4, collector.Next);
+
+            collector.Arrive(Command(1, deleteAt: 3610.0), 3700.0);
+            collector.Arrive(Command(2, deleteAt: 3611.0), 3700.0);
+            Assert.Equal(new long[] { 1, 3 }, craft.Ran);
+            Assert.Equal(2, craft.Reports.Count(r => r.Kind == JourneyKind.Expired));
+        }
+
         [Fact]
         public void CommandsRunInLaneOrderEvenWhenTheyArriveOutOfIt()
         {

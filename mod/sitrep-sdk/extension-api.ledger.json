@@ -9087,6 +9087,10 @@
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
       {
+        "key": "sitrep-sdk ./spine JourneyEvent#laneSeq",
+        "note": "May be null, for a command that never took a place on a lane: a continuous input dropped where it would have waited. It used to read as lane 0, which a caller could pair with a real command"
+      },
+      {
         "key": "sitrep-sdk ./spine LibrationOffset#vesselFrame",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
