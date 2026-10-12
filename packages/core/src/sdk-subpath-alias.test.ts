@@ -144,6 +144,8 @@ const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
   // `package.json` off disk to write `gonogo-uplink.json`. Both writers of that
   // file resolve it at BUILD time, so no shipped bundle carries the specifier.
   "uplink-manifest": "build tooling, reads the filesystem",
+  /* A host's loader reads this, never a widget under test. */
+  "uplink-load": "host loader gates, never in a shipped bundle",
 };
 
 /*

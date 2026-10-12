@@ -1,25 +1,11 @@
+import {
+  type ParsedSemver,
+  parseSemver,
+} from "@ksp-gonogo/sitrep-sdk/uplink-load";
+
 export type MismatchKind = "same" | "patch" | "minor" | "major" | "unknown";
 
-export interface ParsedSemver {
-  major: number;
-  minor: number;
-  patch: number;
-}
-
-const SEMVER_RE = /^(\d+)\.(\d+)\.(\d+)(?:-[\w.]+)?$/;
-
-export function parseSemver(
-  value: string | undefined | null,
-): ParsedSemver | null {
-  if (!value) return null;
-  const match = SEMVER_RE.exec(value.trim());
-  if (!match) return null;
-  return {
-    major: Number.parseInt(match[1], 10),
-    minor: Number.parseInt(match[2], 10),
-    patch: Number.parseInt(match[3], 10),
-  };
-}
+export { type ParsedSemver, parseSemver };
 
 /**
  * Categorise a (local, remote) version pair. Pre-release suffixes are

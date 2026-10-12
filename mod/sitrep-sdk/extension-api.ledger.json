@@ -13601,6 +13601,138 @@
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
+        "key": "sitrep-sdk ./uplink-load AppCompatIdentity",
+        "note": "The host's own numbers a manifest is gated against, moved here from the app so a page outside it can gate a bundle"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load AppCompatIdentity#apiVersion",
+        "note": "A field of AppCompatIdentity, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load AppCompatIdentity#appVersion",
+        "note": "A field of AppCompatIdentity, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load AppCompatIdentity#contractMajor",
+        "note": "A field of AppCompatIdentity, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load AppCompatIdentity#contractMinor",
+        "note": "A field of AppCompatIdentity, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest",
+        "note": "The sidecar manifest a client bundle ships beside, moved here from the app"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#apiVersion",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#author?",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#bundleUrl?",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#contractMajor",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#contractMinor",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#description?",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#id",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#integrity",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#minAppVersion",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#mod?",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#name?",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#repo?",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#sdkVersion?",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load GonogoUplinkManifest#version",
+        "note": "A field of GonogoUplinkManifest, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load ParsedSemver",
+        "note": "One major.minor.patch triple, moved here with parseSemver"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load ParsedSemver#major",
+        "note": "A field of ParsedSemver, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load ParsedSemver#minor",
+        "note": "A field of ParsedSemver, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load ParsedSemver#patch",
+        "note": "A field of ParsedSemver, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load UplinkCompatVerdict",
+        "note": "The verdict and its reason checkUplinkCompat returns"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load UplinkCompatVerdict#reason",
+        "note": "A field of UplinkCompatVerdict, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load UplinkCompatVerdict#verdict",
+        "note": "A field of UplinkCompatVerdict, unchanged in meaning from the app's copy"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load UplinkCompatVerdictKind",
+        "note": "load, refuse or warn-load"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load checkUplinkCompat",
+        "note": "The rule table deciding whether a host can run a manifest's bundle, moved here from the app"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load isGonogoUplinkManifest",
+        "note": "Typeguard for a manifest's fields"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load parseSemver",
+        "note": "Reads a plain semantic version, or null"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load parseUplinkManifest",
+        "note": "Parses and validates a manifest from text or a parsed value"
+      },
+      {
+        "key": "sitrep-sdk ./uplink-load sha256Integrity",
+        "note": "The integrity string of a bundle's bytes, for checking against a manifest"
+      },
+      {
         "key": "sitrep-sdk ./uplink-manifest UplinkCodegenDeclaration",
         "note": "New: the codegen block of uplink.json, which uplink-tools codegen reads, as a documented type"
       },

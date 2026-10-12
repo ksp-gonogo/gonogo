@@ -15,6 +15,7 @@
     "./biome": "./biome.shared.json",
     "./tsconfig.base.json": "./tsconfig.base.json",
     "./uplink-externals": "./src/uplink-externals.ts",
+    "./uplink-load": "./src/uplink-load.ts",
     "./uplink-manifest": "./src/uplink-manifest.ts",
     "./reads-index.json": "./dist/reads-index.json"
   },
@@ -67,6 +68,10 @@
       "./uplink-externals": {
         "types": "./dist/uplink-externals.d.ts",
         "import": "./dist/uplink-externals.js"
+      },
+      "./uplink-load": {
+        "types": "./dist/uplink-load.d.ts",
+        "import": "./dist/uplink-load.js"
       },
       "./uplink-manifest": {
         "types": "./dist/uplink-manifest.d.ts",

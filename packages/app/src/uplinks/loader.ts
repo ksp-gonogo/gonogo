@@ -24,6 +24,7 @@ import {
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import type { UplinkHealthStateName } from "@ksp-gonogo/sitrep-sdk";
+import { sha256Integrity } from "@ksp-gonogo/sitrep-sdk/uplink-load";
 import { type ConsentInfo, ensureConsents } from "./consent";
 import { ConsentRound, type ConsentSlot } from "./consentRound";
 import type { HostCompat } from "./hostCompat";
@@ -427,19 +428,13 @@ function checkCompat(
 
 /** `sha256-<hex>` of the given bytes, or a refusal when crypto.subtle is absent. */
 async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-  const subtle = globalThis.crypto?.subtle;
-  if (!subtle) {
+  try {
+    return await sha256Integrity(bytes);
+  } catch (error) {
     // Non-secure origin (e.g. http://192.168.x.x): cannot verify. Refusing and
     // saying why is the whole model; silently skipping the hash defeats it (D3).
-    refuse(
-      "cannot verify integrity: crypto.subtle unavailable (non-secure origin), serve the main screen over https or localhost",
-    );
+    return refuse(error instanceof Error ? error.message : String(error));
   }
-  const digest = await subtle.digest("SHA-256", bytes);
-  const hex = Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-  return `sha256-${hex}`;
 }
 
 async function defaultFetchBytes(url: string): Promise<ArrayBuffer> {

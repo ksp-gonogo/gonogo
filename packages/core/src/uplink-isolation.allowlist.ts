@@ -177,6 +177,8 @@ export const NON_AUTHOR_SUBPATHS: Record<
       "dashboard orchestration, which widgets a screen renders. The app reaches it through core's re-export and an Uplink has no business calling it",
     "uplink-externals":
       "the specifiers a client bundle leaves external, read by BUILD tooling (`uplink-tools bundle`) and by the app's import map. Published so an author's bundler and the app cannot drift, which they did while it lived only in the app; nothing in a widget's runtime imports it",
+    "uplink-load":
+      "the gates a host runs before it runs an Uplink's released client: the sidecar manifest's reader, the compatibility verdict and the bundle's integrity hash. Read by the app's loader and by the docs site's viewer, never by an Uplink's own widgets",
     "uplink-manifest":
       "the writer behind `gonogo-uplink.json`, read by BUILD tooling on both sides (`bundle` here, `docs` through ui-kit) so the two cannot write different shapes under one filename, which they did. It reads the filesystem, so nothing in a browser could import it anyway",
   },
