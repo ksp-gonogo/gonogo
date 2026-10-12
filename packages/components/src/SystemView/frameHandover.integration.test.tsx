@@ -89,17 +89,18 @@ function mount() {
     pinnedUt: 0,
     suspendFrames: true,
   });
-  const view = render(
+  const tree = (frame: string) => (
     <fixture.Provider>
       <WidgetMetaContext.Provider
         value={{ componentId: "system-view", contributionSlots: [] }}
       >
         <ContributionsProvider>
-          <SystemViewComponent config={{ frame: "auto" } as never} id="sv" />
+          <SystemViewComponent config={{ frame } as never} id="sv" />
         </ContributionsProvider>
       </WidgetMetaContext.Provider>
-    </fixture.Provider>,
+    </fixture.Provider>
   );
+  const view = render(tree("auto"));
   act(() => {
     fixture.emit("system.bodies", SYSTEM);
     fixture.emit("vessel.identity", {
@@ -122,7 +123,13 @@ function mount() {
       horizon: ANALYTIC,
     });
   });
-  return { fixture, view };
+  return {
+    fixture,
+    view: {
+      ...view,
+      setFrame: (frame: string) => view.rerender(tree(frame)),
+    },
+  };
 }
 
 const MINMUS_INDEX = 3;
@@ -554,6 +561,145 @@ describe("SystemView when the craft changes the body it orbits", () => {
       expect(
         view.container.querySelector("path[data-frame-body-orbit]"),
       ).toBeNull();
+      await act(async () => {});
+    });
+  });
+  describe("anchoring the view on a body", () => {
+    const pressTwice = (name: string) => {
+      fireEvent.click(screen.getByRole("button", { name }));
+      fireEvent.click(screen.getByRole("button", { name }));
+    };
+
+    async function inTheMunFrame() {
+      const frames = holdFrames();
+      const { fixture, view } = mount();
+      await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
+      enterTheMun(fixture);
+      await waitFor(() =>
+        expect(svgOf(view.container).getAttribute("aria-label")).toContain(
+          "Mun",
+        ),
+      );
+      frames.run(1000);
+      frames.run(2000);
+      zoomOut(view.container, 80);
+      return { view, frames };
+    }
+
+    it("anchors on the planet from a moon's frame, which the craft is about, and draws the craft's moon on its own orbit", async () => {
+      const { view } = await inTheMunFrame();
+      expect(planetIsOnThePicture(view.container, "Kerbin")).toBe(true);
+
+      pressTwice("Kerbin");
+
+      await waitFor(() =>
+        expect(view.container.textContent).toContain(
+          "Frame: Kerbin (anchored)",
+        ),
+      );
+      expect(svgOf(view.container).getAttribute("aria-label")).toContain(
+        "Kerbin",
+      );
+      expect(
+        view.container.querySelector('path[data-body-orbit="Mun"]'),
+      ).not.toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Focus vessel" }),
+      ).toBeInTheDocument();
+      await act(async () => {});
+    });
+
+    it("lets go of the anchor with Reset view", async () => {
+      const { view } = await inTheMunFrame();
+      pressTwice("Kerbin");
+      await waitFor(() =>
+        expect(view.container.textContent).toContain("(anchored)"),
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
+
+      await waitFor(() =>
+        expect(view.container.textContent).not.toContain("(anchored)"),
+      );
+      expect(svgOf(view.container).getAttribute("aria-label")).toContain("Mun");
+      await act(async () => {});
+    });
+
+    it("offers Reset view on the whole picture while anchored", async () => {
+      const { view, frames } = await inTheMunFrame();
+      fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
+      pressTwice("Kerbin");
+      await waitFor(() =>
+        expect(view.container.textContent).toContain("(anchored)"),
+      );
+      frames.run(3000);
+      frames.run(5000);
+      expect(svgOf(view.container).getAttribute("aria-label")).toContain(
+        "Kerbin",
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
+
+      await waitFor(() =>
+        expect(view.container.textContent).not.toContain("(anchored)"),
+      );
+      await act(async () => {});
+    });
+
+    it("lets go of the anchor when the Frame setting changes", async () => {
+      const { view } = await inTheMunFrame();
+      pressTwice("Kerbin");
+      await waitFor(() =>
+        expect(view.container.textContent).toContain("(anchored)"),
+      );
+
+      act(() => view.setFrame("Minmus"));
+
+      await waitFor(() =>
+        expect(view.container.textContent).not.toContain("(anchored)"),
+      );
+      expect(svgOf(view.container).getAttribute("aria-label")).toContain(
+        "Minmus",
+      );
+      await act(async () => {});
+    });
+
+    it("anchors from the keyboard with Enter and says so to a screen reader once selected", async () => {
+      const { view } = await inTheMunFrame();
+      const mark = () => screen.getByRole("button", { name: "Kerbin" });
+      expect(mark()).not.toHaveAttribute("aria-describedby");
+
+      fireEvent.keyDown(mark(), { key: "Enter" });
+      await waitFor(() =>
+        expect(mark()).toHaveAttribute("aria-pressed", "true"),
+      );
+      const hint = mark().getAttribute("aria-describedby");
+      expect(hint).not.toBeNull();
+      expect(view.container.querySelector(`[id="${hint}"]`)?.textContent).toBe(
+        "Press again to anchor the view on Kerbin",
+      );
+
+      fireEvent.keyDown(mark(), { key: " " });
+      await waitFor(() =>
+        expect(view.container.textContent).toContain(
+          "Frame: Kerbin (anchored)",
+        ),
+      );
+      await act(async () => {});
+    });
+
+    it("leaves the view and the anchor alone when another body is pressed once", async () => {
+      const { view } = await inTheMunFrame();
+      pressTwice("Kerbin");
+      await waitFor(() =>
+        expect(view.container.textContent).toContain("(anchored)"),
+      );
+      const before = svgOf(view.container).getAttribute("viewBox");
+
+      fireEvent.click(screen.getByRole("button", { name: "Mun" }));
+
+      expect(view.container.textContent).toContain("Frame: Kerbin (anchored)");
+      expect(svgOf(view.container).getAttribute("viewBox")).toBe(before);
       await act(async () => {});
     });
   });

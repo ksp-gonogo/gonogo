@@ -39,6 +39,7 @@ export function frameCaption({
   encounterDirection,
   encounterBody,
   leftFrame = null,
+  anchored = false,
 }: {
   haveBodies: boolean;
   parentName: string | null;
@@ -46,13 +47,16 @@ export function frameCaption({
   encounterBody: string | null;
   /** The body the diagram was centred on until a moment ago, named while the change is fresh. */
   leftFrame?: string | null;
+  /** The operator pressed the frame body to hold the view on it, whichever body the craft is about. */
+  anchored?: boolean;
 }): string {
   if (!haveBodies) return "Waiting for body data...";
   if (parentName === null) return "Pick a frame in the widget config.";
+  const held = anchored ? `${parentName} (anchored)` : parentName;
   const frame =
     leftFrame === null || leftFrame === parentName
-      ? `Frame: ${parentName}`
-      : `Frame: ${parentName}, was ${leftFrame}`;
+      ? `Frame: ${held}`
+      : `Frame: ${held}, was ${leftFrame}`;
   if (encounterDirection === null || encounterBody == null) return frame;
   return `${frame} · next ${encounterDirection}: ${encounterBody}`;
 }

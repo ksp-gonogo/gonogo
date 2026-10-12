@@ -80,6 +80,8 @@ export interface SystemDiagramProps {
   pinnedBodyIndex?: number | null;
   /** Fires when a body is pressed; the host pins it, or releases it when it is already pinned. */
   onBodyActivate?: (body: CelestialBody) => void;
+  /** The frame is held on its body by the operator, which Reset view lets go of even on the whole picture. */
+  anchored?: boolean;
   /** The active vessel's own info is showing in the aside. */
   vesselSelected?: boolean;
   /** Fires when the vessel marker is pressed. Absent leaves the marker inert. */
@@ -137,6 +139,7 @@ export function SystemDiagram({
   onFocusBodyChange,
   pinnedBodyIndex = null,
   onBodyActivate,
+  anchored = false,
   vesselSelected = false,
   onVesselActivate,
   vesselOrigin,
@@ -330,6 +333,13 @@ export function SystemDiagram({
   );
 
   const frameParentName = frameParent?.name;
+  const frameParentBody = useMemo(
+    () =>
+      frameParentName === undefined
+        ? undefined
+        : bodies.find((b) => nameMatches(b.name ?? "", frameParentName)),
+    [bodies, frameParentName],
+  );
   const frameParentAt = frameParent?.at;
   const frameParentPoint = useMemo(() => {
     if (frameParentAt === undefined) return null;
@@ -630,6 +640,15 @@ export function SystemDiagram({
             at={frameParentPoint}
             view={{ x: pan.x, y: pan.y, halfW, halfH }}
             zoom={zoom}
+            pinned={
+              frameParentBody !== undefined &&
+              frameParentBody.index === pinnedBodyIndex
+            }
+            onActivate={() => {
+              if (frameParentBody !== undefined) {
+                (onBodyActivate ?? NO_ACTIVATE)(frameParentBody);
+              }
+            }}
           />
         )}
 
@@ -658,7 +677,7 @@ export function SystemDiagram({
             Focus vessel
           </TextButton>
         )}
-        {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
+        {(anchored || zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
           <TextButton type="button" onClick={resetView} style={VIEW_BUTTON}>
             Reset view
           </TextButton>

@@ -31,7 +31,7 @@ import type { ControlFrame, VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
@@ -146,6 +146,10 @@ function SystemViewComponent({
   h,
 }: Readonly<ComponentProps<SystemViewConfig>>) {
   const frameSetting = config?.frame ?? "auto";
+  // The body the operator pressed twice to hold the view on, whichever body the craft is about; cleared by Reset view and by the Frame setting changing.
+  const [anchor, setAnchor] = useState<string | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the setting is the trigger, not a value read
+  useEffect(() => setAnchor(null), [frameSetting]);
   const bodies = useCelestialBodies();
   const catalogueHeld = useCelestialHeld();
   const poses = useSystemInstant();
@@ -263,7 +267,10 @@ function SystemViewComponent({
       ? (nameByIndex.get(encounter.bodyIndex) ?? null)
       : null;
 
-  const parentName = resolveFrame(bodies, frameSetting, vesselBody);
+  const anchoredName =
+    anchor !== null && bodies.some((b) => b.name === anchor) ? anchor : null;
+  const parentName =
+    anchoredName ?? resolveFrame(bodies, frameSetting, vesselBody);
 
   // The target's own conic and what happens at its sphere-of-influence boundary, from the elements the target states.
   const targetOrbit =
@@ -403,12 +410,20 @@ function SystemViewComponent({
     () => bodies.find((b) => b.index === pinnedBodyIndex) ?? null,
     [bodies, pinnedBodyIndex],
   );
+  /*
+   * A first press selects a body and shows it in the aside; a second press on the one already selected holds the view on it.
+   * Pressing the body the view is already held on does nothing more: Reset view is the way out.
+   */
   const activateBody = useCallback(
     (body: CelestialBody) => {
+      if (pinnedBodyIndex === body.index) {
+        if (body.name !== null && body.name !== anchor) setAnchor(body.name);
+        return;
+      }
       clearSelection();
-      setPinnedBodyIndex((prev) => (prev === body.index ? null : body.index));
+      setPinnedBodyIndex(body.index);
     },
-    [clearSelection],
+    [clearSelection, pinnedBodyIndex, anchor],
   );
   const activateEntity = useCallback(
     (id: string) => {
@@ -618,8 +633,20 @@ function SystemViewComponent({
     craftBodyName: vesselBody,
     plotScale: fitGeometry?.plotScale ?? null,
     placeOf: placeOfBody,
+    anchored: anchoredName !== null,
     view: panZoom,
   });
+  // Reset view lets go of an anchor as well as the zoom and the centre.
+  const viewControls = useMemo(
+    () => ({
+      ...panZoom,
+      resetView: () => {
+        setAnchor(null);
+        panZoom.resetView();
+      },
+    }),
+    [panZoom],
+  );
   const overlayContext = useMemo(
     () => viewedGeometry(fitGeometry, panZoom.zoom, panZoom.pan),
     [fitGeometry, panZoom.zoom, panZoom.pan],
@@ -698,6 +725,7 @@ function SystemViewComponent({
                 encounterDirection,
                 encounterBody,
                 leftFrame,
+                anchored: anchoredName !== null,
               })}
             </div>
             <ContactCaption
@@ -770,6 +798,7 @@ function SystemViewComponent({
                       onFocusBodyChange={setFocusedBody}
                       pinnedBodyIndex={pinnedBodyIndex}
                       onBodyActivate={activateBody}
+                      anchored={anchoredName !== null}
                       vesselSelected={
                         activeVesselEntityId !== null &&
                         selectedVesselId === activeVesselEntityId
@@ -784,7 +813,7 @@ function SystemViewComponent({
                       projection={projection}
                       width={size.w}
                       height={size.h}
-                      view={panZoom}
+                      view={viewControls}
                     />
                   )}
                   {/* Host-drawn contribution entities, on the same auto-fit projection as the overlay slot. */}

@@ -7,7 +7,7 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SystemViewComponent } from "./index";
 import "./vesselOrbitsContribution";
@@ -133,7 +133,12 @@ describe("SystemView: pressing the diagram", () => {
     expect(screen.queryByText("orbiting Kerbol")).not.toBeInTheDocument();
   });
 
-  it("pins a pressed body's almanac in the aside until it is pressed again", async () => {
+  it("pins a pressed body's almanac in the aside, and holds the view on it when it is pressed again", async () => {
+    // Anchoring eases the view; the ease is left unticked so it never lands outside `act`.
+    const spy = vi
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation(() => 0);
+    onTestFinished(() => spy.mockRestore());
     mountScene();
     fireEvent.click(await screen.findByRole("button", { name: "Mun" }));
     await waitFor(() =>
@@ -143,13 +148,11 @@ describe("SystemView: pressing the diagram", () => {
       ),
     );
     expect(screen.getByText("orbiting Kerbin")).toBeInTheDocument();
+    expect(screen.queryByText(/anchored/)).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Mun" }));
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Mun" })).toHaveAttribute(
-        "aria-pressed",
-        "false",
-      ),
+      expect(screen.getByText(/Frame: Mun \(anchored\)/)).toBeInTheDocument(),
     );
   });
 

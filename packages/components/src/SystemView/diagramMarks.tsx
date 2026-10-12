@@ -1,6 +1,7 @@
 import { getBody } from "@ksp-gonogo/core";
 import type { OrbitTrajectory, PatchChainArc } from "@ksp-gonogo/sitrep-client";
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
+import { activateOnKey } from "./activateOnKey";
 import {
   DEPTH_ABOVE_COLOUR,
   DEPTH_BELOW_COLOUR,
@@ -11,6 +12,7 @@ import {
 } from "./depthCues";
 import { arcMetres, openPath, type PlacedRingEnd } from "./diagramGeometry";
 import type { Placement } from "./projection";
+import { InteractiveMarker } from "./SystemEntitiesLayer";
 
 /** The active vessel's own ring, thinner than a body orbit so the two classes read apart. */
 const ACTIVE_VESSEL_ORBIT_STROKE_WIDTH = 1;
@@ -299,15 +301,21 @@ export function FrameParentMark({
   at,
   view,
   zoom,
+  pinned,
+  onActivate,
 }: Readonly<{
   name: string;
   frameBodyName: string;
+  /** The body's almanac is pinned in the aside, so a further press anchors the view on it. */
+  pinned: boolean;
+  onActivate: () => void;
   /** Where the body is, in plot units. */
   at: { x: number; y: number };
   /** The picture's centre and half-extents, in plot units. */
   view: { x: number; y: number; halfW: number; halfH: number };
   zoom: number;
 }>) {
+  const hintId = useId();
   const colour = getBody(name)?.color ?? "var(--color-text-muted)";
   const inset = EDGE_POINTER_INSET / zoom;
   const dx = at.x - view.x;
@@ -315,10 +323,38 @@ export function FrameParentMark({
   const reachX = view.halfW - inset;
   const reachY = view.halfH - inset;
   const title = `${name}, which ${frameBodyName} orbits`;
+  const press = {
+    role: "button",
+    tabIndex: 0,
+    "aria-label": name,
+    "aria-pressed": pinned,
+    "aria-describedby": pinned ? hintId : undefined,
+    style: { cursor: "pointer" },
+    // A press on a body selects it and never starts a pan.
+    onPointerDown: (e: { stopPropagation: () => void }) => e.stopPropagation(),
+    onClick: onActivate,
+    onKeyDown: activateOnKey(onActivate),
+  } as const;
+  const hint = pinned ? (
+    <desc id={hintId}>Press again to anchor the view on {name}</desc>
+  ) : null;
   if (onThePicture(at, view, zoom)) {
     return (
-      <g data-frame-parent={name} pointerEvents="none">
+      <InteractiveMarker data-frame-parent={name} {...press}>
         <title>{title}</title>
+        {hint}
+        <circle
+          className="focus-ring"
+          cx={at.x}
+          cy={at.y}
+          r={9 / zoom}
+          fill="none"
+          stroke="var(--color-focus)"
+          strokeWidth={2 / zoom}
+          pointerEvents="none"
+        />
+        {/* A wider transparent disc enlarges the press target without changing the drawn dot. */}
+        <circle cx={at.x} cy={at.y} r={10 / zoom} fill="transparent" />
         <circle
           cx={at.x}
           cy={at.y}
@@ -333,10 +369,11 @@ export function FrameParentMark({
           fill="var(--color-text-muted)"
           fontSize={9 / zoom}
           textAnchor="middle"
+          pointerEvents="none"
         >
           {name}
         </text>
-      </g>
+      </InteractiveMarker>
     );
   }
   // Where the line from the picture's centre to the body leaves the inset box.
@@ -352,8 +389,19 @@ export function FrameParentMark({
   const labelX = x - Math.sign(dx || 1) * (tip + 4 / zoom);
   const labelY = y - Math.sign(dy) * (tip + 8 / zoom) + 3 / zoom;
   return (
-    <g data-frame-parent-direction={name} pointerEvents="none">
+    <InteractiveMarker data-frame-parent-direction={name} {...press}>
       <title>{title}</title>
+      {hint}
+      <circle
+        className="focus-ring"
+        cx={x}
+        cy={y}
+        r={tip * 1.8}
+        fill="none"
+        stroke="var(--color-focus)"
+        strokeWidth={2 / zoom}
+        pointerEvents="none"
+      />
       <path
         d={`M${tip},0 L${-tip},${tip * 0.7} L${-tip},${-tip * 0.7} Z`}
         transform={`translate(${x} ${y}) rotate(${bearing})`}
@@ -367,9 +415,10 @@ export function FrameParentMark({
         fill="var(--color-text-muted)"
         fontSize={9 / zoom}
         textAnchor={dx >= 0 ? "end" : "start"}
+        pointerEvents="none"
       >
         {name}
       </text>
-    </g>
+    </InteractiveMarker>
   );
 }

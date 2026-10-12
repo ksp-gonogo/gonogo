@@ -1,6 +1,7 @@
 import { getBody } from "@ksp-gonogo/core";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { useId } from "react";
 import { activateOnKey } from "./activateOnKey";
 import type { PlacedBody, PlacedPoint } from "./diagramGeometry";
 import { DepthRing } from "./diagramMarks";
@@ -72,6 +73,7 @@ export function BodyMark({
   onActivate: (body: CelestialBody) => void;
 }>) {
   const c = placed.body;
+  const anchorHintId = useId();
   if ((c.semiMajorAxis ?? 0) <= 0) return null;
   const depthPx = placed.depthUnits * zoom;
   const dotR = DOT_RADIUS[tone] / zoom;
@@ -93,6 +95,7 @@ export function BodyMark({
         tabIndex={0}
         aria-label={c.name ?? "Body"}
         aria-pressed={pinned}
+        aria-describedby={pinned ? anchorHintId : undefined}
         style={{ cursor: "pointer" }}
         onPointerEnter={() => onHoverStart(c)}
         onPointerLeave={onHoverEnd}
@@ -101,6 +104,11 @@ export function BodyMark({
         onClick={() => onActivate(c)}
         onKeyDown={activateOnKey(() => onActivate(c))}
       >
+        {pinned && (
+          <desc id={anchorHintId}>
+            Press again to anchor the view on {c.name ?? "this body"}
+          </desc>
+        )}
         <circle
           className="focus-ring"
           cx={placed.x}

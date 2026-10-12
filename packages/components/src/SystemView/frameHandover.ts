@@ -54,6 +54,7 @@ export function useFrameHandover({
   craftBodyName,
   plotScale,
   placeOf,
+  anchored = false,
   view,
 }: {
   frameName: string | null;
@@ -62,6 +63,8 @@ export function useFrameHandover({
   /** Metres to plot units at zoom 1 in the present frame, or null before there is a picture. */
   plotScale: number | null;
   placeOf: (bodyName: string) => { x: number; y: number } | null;
+  /** The frame is held by the operator's anchor rather than following the craft. */
+  anchored?: boolean;
   view: DiagramView & {
     following: boolean;
     setView: (view: DiagramView) => void;
@@ -75,6 +78,7 @@ export function useFrameHandover({
     frame: string;
     scale: number;
     followedCraft: boolean;
+    anchored: boolean;
   } | null>(null);
   const [leftFrame, setLeftFrame] = useState<string | null>(null);
   // Read at the change and never a reason to run it: the view moves on every drag and every followed frame.
@@ -90,9 +94,12 @@ export function useFrameHandover({
       frame: frameName,
       scale: plotScale,
       followedCraft: followsCraft,
+      anchored,
     };
     if (previous === null || previous.frame === frameName) return;
-    if (!previous.followedCraft || !followsCraft) return;
+    // A frame the craft chose and a frame the operator held are both deliberate; one that came from the setting or from an unknown body is a different picture.
+    if (!(previous.followedCraft || previous.anchored)) return;
+    if (!(followsCraft || anchored)) return;
     const { view: now, placeOf: place } = live.current;
     const previousFrameBodyAt = place(previous.frame);
     if (previousFrameBodyAt === null) {
@@ -109,7 +116,7 @@ export function useFrameHandover({
       now.easeView(carried, now.following ? { zoom: 1 } : WHOLE_FRAME);
     }
     setLeftFrame(previous.frame);
-  }, [frameName, craftBodyName, plotScale]);
+  }, [frameName, craftBodyName, plotScale, anchored]);
 
   useEffect(() => {
     if (leftFrame === null) return;
