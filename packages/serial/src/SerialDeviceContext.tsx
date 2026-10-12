@@ -57,6 +57,17 @@ export function useSerialUnavailableDevices() {
   return snapshot;
 }
 
+/** Reactive view of whether this screen runs USB serial devices. */
+export function useSerialUsbEnabled() {
+  const svc = useSerialDeviceService();
+  const [enabled, setEnabled] = useState(() => svc.isUsbSerialEnabled());
+  useEffect(
+    () => svc.onDevicesChange(() => setEnabled(svc.isUsbSerialEnabled())),
+    [svc],
+  );
+  return enabled;
+}
+
 /** Reactive view of the registered device types. */
 export function useSerialDeviceTypes() {
   const svc = useSerialDeviceService();

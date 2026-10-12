@@ -1,16 +1,16 @@
 /**
- * Graceful-degradation coverage for Web Serial.
+ * Graceful-degradation coverage for USB serial.
  *
- * In Firefox/WebKit `navigator.serial` does not exist at all, the app must
- * render `WebSerialBanner` (packages/serial/src/SerialDevicesMenu/index.tsx)
- * rather than throw. Serial device management now lives inside the Settings
- * modal's "Devices" tab (the standalone joystick FAB was retired when
- * settings were folded into one tabbed modal; see SettingsFab.tsx), so this
- * opens Settings → Devices the same way data-source-status.spec.ts opens
- * Settings → Connection, and asserts the unsupported-browser banner text
- * that `getWebSerialSupport()` actually renders.
+ * In Firefox/WebKit `navigator.serial` does not exist at all. USB serial is
+ * off until the operator switches it on, so the Devices tab says nothing
+ * about it and must not throw; once it is on, picking USB serial in the
+ * add-device editor shows one neutral line (packages/serial/src/
+ * SerialDevicesMenu/DeviceEditor.tsx). Serial device management lives inside
+ * the Settings modal's "Devices" tab (see SettingsFab.tsx), so this opens
+ * Settings → Devices the same way data-source-status.spec.ts opens
+ * Settings → Connection.
  *
- * Skipped in Chromium, where Web Serial is present and the banner never
+ * Skipped in Chromium, where Web Serial is present and the note never
  * renders, that engine is covered by the (currently nonexistent) real
  * Web Serial specs, which would be tagged `@chromium-only`.
  */
@@ -19,7 +19,7 @@ import { expect, test } from "@playwright/test";
 const MAIN_URL = "/";
 
 test.describe("Serial devices: graceful degradation", () => {
-  test("Devices tab shows the unsupported-browser banner instead of throwing", async ({
+  test("Devices tab stays quiet about USB serial, and says what it needs once it is picked", async ({
     page,
     context,
     browserName,
@@ -59,13 +59,23 @@ test.describe("Serial devices: graceful degradation", () => {
 
     await page.getByRole("tab", { name: "Devices" }).click();
 
-    // getWebSerialSupport() returns reason "unsupported-browser" here (the
-    // page is served over http://localhost, a secure context, so it isn't
-    // the "insecure-context" branch): this is the exact string
-    // WebSerialBanner renders for that reason.
+    const needs =
+      "USB serial needs Chrome or Edge on an https or localhost address";
+    await expect(page.getByText("USB serial", { exact: true })).toBeVisible({
+      timeout: 10_000,
+    });
+    await expect(page.getByText(/web serial/i)).toHaveCount(0);
+    await expect(page.getByText(needs)).toHaveCount(0);
+
+    await page.getByText("USB serial", { exact: true }).click();
+    await page.getByRole("button", { name: "+ add device" }).click();
+    await page.getByLabel("Transport").selectOption("web-serial");
+    await expect(page.getByText(needs).first()).toBeVisible({
+      timeout: 10_000,
+    });
     await expect(
-      page.getByText(/web serial is not available in this browser/i),
-    ).toBeVisible({ timeout: 10_000 });
+      page.getByRole("button", { name: "Save device" }),
+    ).toBeDisabled();
 
     // Ignore a camera sidecar probe: the main screen eagerly connects every
     // registered data source on boot (MainScreen.tsx), and a camera source

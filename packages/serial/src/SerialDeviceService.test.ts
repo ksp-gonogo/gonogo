@@ -499,6 +499,8 @@ describe("SerialDeviceService: gamepad wiring", () => {
       JSON.stringify([preExistingDevice]),
     );
 
+    storage.setItem("gonogo.serial.usb-enabled.legacy-screen", "1");
+
     const created = new SerialDeviceService({
       screenKey: "legacy-screen",
       storage,
