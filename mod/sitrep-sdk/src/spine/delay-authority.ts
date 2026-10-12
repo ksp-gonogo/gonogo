@@ -156,7 +156,7 @@ export class DelayAuthority {
    * one value aligns telemetry and video for free.
    *
    * There is no loop here, though it takes a moment to see why. `comms.delay` is
-   * itself `Delayed`, so the reading arrives one light-time after the delay it
+   * itself `Delayed`, so the reading arrives one signal delay after the delay it
    * reports took that value. What decides when it arrives is the server's ledger,
    * not this clock, and `attach` below subscribes to the raw stream rather than
    * to a view-time-gated reading, so nothing the view clock computes feeds back

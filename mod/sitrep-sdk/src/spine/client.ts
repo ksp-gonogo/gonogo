@@ -1399,7 +1399,7 @@ export class TelemetryClient {
      */
     if (!pending.resolve) return;
     /*
-     * Null is the centre having no light-time to quote, because its plan knows
+     * Null is the centre having no signal delay to quote, because its plan knows
      * no route yet. That is not a zero: the command is timed by its predicted
      * reply or its expiry below, and by nothing here when it has neither.
      */

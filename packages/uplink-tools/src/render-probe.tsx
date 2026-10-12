@@ -1728,7 +1728,7 @@ export interface SceneMount {
  *
  * It runs on the page's own timers: the scene clock is page-wide and belongs to
  * the driver's single mount, so a motion scene's steps are not replayed here.
- * A legacy data source id is page-wide too, held by the first live mount that
+ * A scene's data source id is page-wide too, held by the first live mount that
  * registers it.
  */
 function mountScene(el: HTMLElement, scene: ScenePayload): SceneMount {

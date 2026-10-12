@@ -39,7 +39,7 @@ export type ResourceAmountMap = Record<string, Value<"units">>;
  * when no stage matches, or the matching stage carries none). `dv.stages`
  * already carries a per-STAGE resource breakdown
  * (`Gonogo.KSP.KspHost.BuildStageResources`); this derivation exists purely to
- * pick out the one entry the legacy `r.resourceCurrent[X]`/
+ * pick out the one entry the old `r.resourceCurrent[X]`/
  * `r.resourceCurrentMax[X]` pair meant ("the currently active stage"), since a
  * raw-field-subtopic string can't express a dynamic array lookup keyed by
  * another topic's live value: the lookup has to happen here, in a real

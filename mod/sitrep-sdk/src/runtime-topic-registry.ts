@@ -130,7 +130,7 @@ export const DYNAMIC_WHOLE_TOPIC_PREFIXES: readonly string[] = [
   "silence.",
   /*
    * currency.<guid>.science (+ .reputation): source-attributed currency events,
-   * revealed at their source vessel's own light-time.
+   * revealed after the signal delay from their source vessel.
    */
   "currency.",
   /*

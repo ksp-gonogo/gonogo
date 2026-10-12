@@ -122,7 +122,7 @@ export function useLatestValue<Payload>(topic: string): Payload | undefined {
    *
    * `comms.delay` and `comms.path` are read through here too, though neither is
    * real-time: both are Delayed channels, so the wire has already held them for
-   * a light-time and this hook shows each one the moment it lands. What it buys
+   * the signal delay and this hook shows each one the moment it lands. What it buys
    * them is independence from
    * the certainty horizon, which matters because `comms.delay` is what sizes that
    * horizon: reading it through the gated frame would ask the view clock for a
