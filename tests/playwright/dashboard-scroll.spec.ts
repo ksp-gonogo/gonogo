@@ -61,15 +61,6 @@ test.describe("dashboard scrolling", () => {
       timeout: 30_000,
     });
 
-    const range = await page.evaluate(
-      () =>
-        document.documentElement.scrollHeight -
-        document.documentElement.clientHeight,
-    );
-    expect(range, "the dashboard must overflow the viewport").toBeGreaterThan(
-      100,
-    );
-
     // What the page sees of each wheel event over the map, after the map has had its turn.
     await page.evaluate(() => {
       const taken = { over: 0, swallowed: 0 };
@@ -107,22 +98,40 @@ test.describe("dashboard scrolling", () => {
         return { x: r.x, y: r.y, w: r.width, h: r.height };
       });
     await scrolledTo(0);
-    let seen = await mapRect();
+    // The dashboard's tiles settle their sizes after they first draw, so the map's rect and the page's height are read together until neither moves for three samples in a row.
+    const layout = () =>
+      canvasWrap.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return JSON.stringify({
+          rect: [r.x, r.y, r.width, r.height],
+          scrollHeight: document.documentElement.scrollHeight,
+        });
+      });
+    let seen = await layout();
+    let still = 0;
     await expect
       .poll(async () => {
-        const again = await mapRect();
-        const still = JSON.stringify(again) === JSON.stringify(seen);
+        const again = await layout();
+        still = again === seen ? still + 1 : 0;
         seen = again;
         await page.waitForTimeout(250);
-        return still;
+        return still >= 3;
       }, "the layout holds still")
       .toBe(true);
+    const range = await page.evaluate(
+      () =>
+        document.documentElement.scrollHeight -
+        document.documentElement.clientHeight,
+    );
+    expect(range, "the dashboard must overflow the viewport").toBeGreaterThan(
+      100,
+    );
     // Every point of the map that is drawn there, lowest first.
     const onMap = await canvasWrap.evaluate((el) => {
       const r = el.getBoundingClientRect();
       const points: { x: number; y: number }[] = [];
-      for (let fy = 0.95; fy > 0.05; fy -= 0.1) {
-        for (const fx of [0.5, 0.3, 0.7, 0.1, 0.9]) {
+      for (let fy = 0.97; fy > 0.03; fy -= 0.05) {
+        for (const fx of [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.1, 0.9]) {
           const x = Math.round(r.x + r.width * fx);
           const y = Math.round(r.y + r.height * fy);
           if (el.contains(document.elementFromPoint(x, y)))

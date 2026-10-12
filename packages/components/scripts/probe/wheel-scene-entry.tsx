@@ -28,6 +28,12 @@ registerStockBodies();
 
 /** The library revision under test supplies the provider, so it shares a context with the widgets it registers. */
 let AlarmsLauncherProvider: AlarmsProvider;
+let ShipDiagram: ShipDiagramComponent;
+type ShipDiagramComponent = (props: {
+  parts: readonly unknown[];
+  width: number;
+  height: number;
+}) => ReactNode;
 type AlarmsProvider = (props: {
   launcher: () => void;
   creator: () => void;
@@ -85,6 +91,38 @@ function system() {
   };
 }
 
+function shipPart(
+  flightId: number,
+  parentFlightId: number | null,
+  type: string,
+  axial: number,
+  size: { x: number; y: number; z: number },
+) {
+  return {
+    flightId,
+    parentFlightId,
+    name: `part${flightId}`,
+    title: `Part ${flightId}`,
+    type,
+    lat: 0,
+    axial,
+    depth: 0,
+    rotationRad: 0,
+    size,
+    latHalfExtent: size.x / 2,
+    axialHalfExtent: size.y / 2,
+    dryMass: 0.5,
+    stage: flightId - 1,
+    maxTemp: 1200,
+  };
+}
+
+const SHIP_PARTS = [
+  shipPart(1, null, "capsule", 0, { x: 0.6, y: 0.4, z: 0.6 }),
+  shipPart(2, 1, "tank", -1, { x: 1.25, y: 1.85, z: 1.25 }),
+  shipPart(3, 2, "engine", -2, { x: 1.25, y: 1, z: 1.25 }),
+];
+
 function frame() {
   return new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 }
@@ -106,6 +144,23 @@ function Block({ height, label }: { height: number; label: string }) {
       }}
     >
       {label}
+    </div>
+  );
+}
+
+function ShipTile() {
+  return (
+    <div
+      id="scene-ship"
+      style={{
+        width: TILE_W,
+        height: TILE_H,
+        overflow: "hidden",
+        border: "1px solid var(--color-border-strong)",
+        background: "var(--color-surface-panel)",
+      }}
+    >
+      <ShipDiagram parts={SHIP_PARTS} width={TILE_W} height={TILE_H} />
     </div>
   );
 }
@@ -190,6 +245,8 @@ async function mountScene(): Promise<void> {
           />
           <Block height={360} label="Dashboard, between the diagrams" />
           <Tile tileId="scene-map" id="map-view" config={{}} w={10} h={7} />
+          <Block height={360} label="Dashboard, between the diagrams" />
+          <ShipTile />
           <Block height={1000} label="Dashboard, below the diagrams" />
         </div>
       </TelemetryProvider>
@@ -210,7 +267,11 @@ declare global {
   }
 }
 
-export function installScene(provider: AlarmsProvider): void {
+export function installScene(
+  provider: AlarmsProvider,
+  ship: ShipDiagramComponent,
+): void {
   AlarmsLauncherProvider = provider;
+  ShipDiagram = ship;
   window.__mountScene = mountScene;
 }

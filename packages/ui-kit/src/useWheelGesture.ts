@@ -53,8 +53,13 @@ export function useWheelGesture<Zoomed extends HTMLElement>(
 
     // Sees every wheel, scroll and pointer move on the page, so a gesture that began elsewhere is known to have.
     let last: { x: number; y: number } | null = null;
+    /*
+     * With no position seen yet, the first pointer event cannot be told from the
+     * browser repeating a stale position after content scrolled under it, so it
+     * only records where the pointer is.
+     */
     const moved = (x: number, y: number) =>
-      last === null || Math.abs(x - last.x) >= 1 || Math.abs(y - last.y) >= 1;
+      last !== null && (Math.abs(x - last.x) >= 1 || Math.abs(y - last.y) >= 1);
     const trackWheel = (e: WheelEvent) => {
       last = { x: e.clientX, y: e.clientY };
       if (e.ctrlKey || e.metaKey) return;

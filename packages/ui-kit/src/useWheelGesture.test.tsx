@@ -130,4 +130,43 @@ describe("useWheelGesture", () => {
     expect(onZoom).not.toHaveBeenCalled();
     expect(e.defaultPrevented).toBe(false);
   });
+
+  describe("with no pointer position seen since the diagram mounted", () => {
+    function moveOver(diagram: Element, x: number, y: number) {
+      act(() => {
+        diagram.dispatchEvent(
+          new PointerEvent("pointermove", {
+            bubbles: true,
+            clientX: x,
+            clientY: y,
+          }),
+        );
+      });
+    }
+
+    it("does not take the first pointer position after a scroll as the pointer moving, since the browser repeats it", () => {
+      const { diagram, onZoom } = setup();
+      act(() => {
+        document.dispatchEvent(new Event("scroll"));
+      });
+      moveOver(diagram, 40, 40);
+      vi.advanceTimersByTime(5000);
+      const e = wheel(diagram, { clientX: 40, clientY: 40 });
+      expect(onZoom).not.toHaveBeenCalled();
+      expect(e.defaultPrevented).toBe(false);
+    });
+
+    it("takes the next pointer position that differs as the pointer moving", () => {
+      const { diagram, onZoom } = setup();
+      act(() => {
+        document.dispatchEvent(new Event("scroll"));
+      });
+      moveOver(diagram, 40, 40);
+      moveOver(diagram, 46, 40);
+      vi.advanceTimersByTime(5000);
+      const e = wheel(diagram, { clientX: 46, clientY: 40 });
+      expect(onZoom).toHaveBeenCalledTimes(1);
+      expect(e.defaultPrevented).toBe(true);
+    });
+  });
 });
