@@ -161,37 +161,27 @@ interface PendingUplinkQueueLike {
  */
 export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
   /**
-   * `opts.label` is an opaque, operator-facing description of the command
-   * (e.g. line-mode's composed line text) threaded straight through to
-   * `TelemetryClient.dispatch`'s envelope: it plays no role in dispatch,
-   * correlation, or loss inference.
+   * Sends the command. Resolves with the reply once the command has run.
+   * Rejects when the game refuses it, and when no reply arrives by the expected
+   * time. A refusal or loss from a `send` whose promise nobody awaits is still
+   * recorded in `refusals` or `losses`.
    *
-   * `opts.topic` is dispatch-time part/route addressing (e.g. `kos/<coreId>`
-   * for a terminal-scoped command), threaded through the same way, no role
-   * in dispatch, correlation, or loss inference.
+   * `opts.label` is a description of this dispatch to show the operator.
+   * `opts.topic` addresses the command to one part or route on the craft, such
+   * as one script terminal.
    */
   send(args?: Args, opts?: { label?: string; topic?: string }): Promise<Reply>;
+  /** The state of the latest dispatch. See {@link CommandStatus}. */
   status: CommandStatus;
   /**
-   * Every dispatch this hook has made that hasn't yet resolved cleanly,
-   * accumulated on `send` (not just the latest one), retained past the
-   * moment `system.uplink.pending` ages an entry out of the live queue so
-   * an `overdue`/`lost` command can't silently vanish. An entry is dropped
-   * once it reaches `predictedPhase: "due"` under a connected path (assumed
-   * arrived): see `classifyRetained`'s own doc for the full rule. A
-   * dispatch that never gets a queue entry at all (no-delay/LAN path) drops
-   * silently after `NEVER_TRACKED_GRACE_SECONDS` instead of leaking forever.
+   * Every dispatch from this handle still travelling or awaiting its reply. An
+   * entry that is overdue or lost stays until dismissed; one that has arrived
+   * on a connected path is dropped.
    */
   inFlight: InFlightCommand[];
   /**
-   * What this command is on the rail's three axes, from what its owning
-   * assembly declared (`railTagsForCommand(command)`). Handed straight to
-   * `<CommandDelay>`, which reads the axes to pick a renderer rather than
-   * asking what kind of command this is.
-   *
-   * It replaced a two-valued `shape` field. That field was the continuity axis
-   * under another name, and carrying both would have been two spellings of one
-   * property, which is the drift this vocabulary exists to end.
+   * How the command travels, as its Uplink declared it. {@link CommandDelay}
+   * chooses how to draw the command from these.
    */
   tags: RailTags;
   /**
@@ -215,19 +205,13 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   delayReading: Reading<Value<"s">> | null;
   /**
-   * What the link is doing, from `comms.delay` and nothing else: `"live"` under
-   * the staged threshold, `"staged"` above it, `"no-path"` when the payload
-   * reports nothing measurable.
+   * What the connection from the command centre to the vessel is doing, from
+   * `comms.delay`: `"live"` under the staged threshold, `"staged"` above it,
+   * `"no-path"` when nothing measurable is reported.
    *
-   * `null` when no `comms.delay` reading has arrived, which most widgets will
-   * see because most do not carry the topic. That is "we have not heard", not
-   * "there is no path", and the two are kept apart here for the same reason the
-   * contract keeps a null one-way apart from a zero one.
-   *
-   * A readout, not a gate. It does not decide whether {@link send} dispatches:
-   * the mod drops a delayed command for an unreachable subject on arrival
-   * (`ChannelEngine`'s comms-loss uplink gate), and this hook learns that the
-   * way it learns about any unanswered dispatch, through {@link losses}.
+   * `null` until a `comms.delay` reading arrives, which is not the same as
+   * `"no-path"`. It does not stop {@link send}: a command sent with no path is
+   * reported in {@link losses}.
    */
   delayMode: DelayMode | null;
   /**
@@ -239,80 +223,29 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    */
   sendStatus: SendStatus | undefined;
   /**
-   * Clear a dead command from this hook's `inFlight`. `overdue`/`lost` entries
-   * are retained on purpose (they can't silently vanish), but a `lost` command
-   * (or an `overdue` one on a still-up path that never acks) can otherwise sit
-   * forever with no user-facing out; `dismiss(id)` is that out. It filters this
-   * hook's own `inFlight`, and because the handle is the shared channel into the
-   * panel's delay rail, a dismiss from the widget-top queue or from the issuing
-   * control clears the entry in both. Handed to `<CommandDelay>` as
-   * `handle.dismiss`.
+   * Removes the dispatch with this id from `inFlight`, `refusals`, `losses`,
+   * `founds`, `undelivered` or `failures`. Dismissing it anywhere, such as from
+   * the panel's delay rail, removes it here too.
    */
   dismiss: (id: string) => void;
-  /**
-   * Every dispatch from this hook the game refused, newest last, until the
-   * operator clears it with the same `dismiss`.
-   *
-   * Separate from `inFlight` because a refusal is not a delay state: it is
-   * terminal, it never appears in `system.uplink.pending` (the queue holds
-   * commands still travelling), and it is the one outcome that has something to
-   * say. Left to the thrown error alone a refusal reaches the operator as
-   * nothing at all in most widgets, and at best as "command refused:
-   * ModeUnavailable" in a message nobody renders.
-   *
-   * Deliberately refusals only. A `lost` command decided nothing and may well
-   * have executed; saying it was refused would be a confident wrong answer, and
-   * the queue already shows it as lost.
-   */
+  /** Dispatches the game refused, newest last, each with its reason. */
   refusals: CommandRefusal[];
   /**
-   * Every dispatch from this hook that got "NO ANSWER", newest last, until the
-   * operator clears it with the same `dismiss`.
-   *
-   * Separate from both `inFlight` and `refusals`, and it has to be. A loss can
-   * have no queue entry at all: the engine drops a command for an unreachable
-   * subject before it mints a `PendingUplink`, so `inFlight` is empty for the
-   * command's whole life and every surface derived from that queue drew
-   * nothing while the issuing control settled as though the command had
-   * worked. And it is not a refusal, because nothing was decided: saying the
-   * game said no would be a confident wrong answer, which is why `refusals`
-   * deliberately kept `lost` out and why this exists instead of widening it.
+   * Dispatches that got no reply, newest last. The command may still have run,
+   * so sending it again may run it twice.
    */
   losses: CommandLoss[];
   /**
-   * Every dispatch from this hook that was reported lost and then answered
-   * after all, newest last, until the operator clears it with the same
-   * `dismiss`. An entry here has left `losses`: the two are the same dispatch at
-   * different moments, never two things to render side by side.
-   *
-   * It exists because `lost` says we do not know, and this is the case that
-   * proves it. The engine drops some commands before they ever leave, but a
-   * reply can also simply be slow, and the transport re-sends what it queued
-   * while the socket was down, so a command the operator was given permission to
-   * stop waiting for really can turn up executed. Nothing prevents that
-   * execution, and preventing it would trade an honest uncertainty for a false
-   * certainty.
-   *
-   * Not folded into `refusals` or a confirmation, because what an operator does
-   * next differs by outcome: see `CommandFoundOutcome`.
+   * Dispatches that were reported lost and then answered after all, newest last.
+   * An entry here has left `losses`. The command ran, so sending it again would
+   * run it twice. See `CommandFoundOutcome` for what each outcome means.
    */
   founds: CommandFound[];
   /**
-   * Every dispatch from this hook that never left this machine, newest last,
-   * until the operator clears it with the same `dismiss`. Like a found, an entry
-   * here has left `losses`: one dispatch, one box.
-   *
-   * The other way a loss ends, and the one the app could not say at all. A
-   * command pressed while the link is down is held by the transport for the next
-   * open; if the link never comes back, the transport eventually stops retrying
-   * and what it is still holding can never be sent by anyone. Until that is
-   * said, the operator is looking at "no reply, may have run" for a
-   * command that provably did not run.
-   *
-   * Worth its own list rather than a flag on the loss, because it inverts the
-   * advice. A loss warns that re-sending may double a command that already ran;
-   * this one is safe to press again the moment there is a link, and that is the
-   * whole reason an operator wants to be told.
+   * Dispatches that never left the operator's machine, newest last: the
+   * connection stayed down until the transport gave up. An entry here has left
+   * `losses`. The command did not run, so it is safe to send again once there
+   * is a connection.
    */
   undelivered: CommandUndelivered[];
   /**

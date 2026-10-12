@@ -143,7 +143,7 @@ function mintToken(clock: ViewClock, generation: number): FrameToken {
 
 export interface TimelineStoreOptions {
   timelineOptions?: ClientTimelineOptions;
-  /** Options for the store's `HeartbeatTracker` (the keyframe-cadence heartbeat), per-topic keyframe intervals, staleness-margin tuning. */
+  /** Per-topic keyframe intervals and the staleness margin that decide when a reading is held for want of a new frame. */
   heartbeatOptions?: HeartbeatTrackerOptions;
   /**
    * Dynamic-namespace prefixes (each ending in `.`) whose topics are whole raw
@@ -265,22 +265,16 @@ export interface ReckonedSample<Payload> {
    * the boundary that plots it, which is the only place a magnitude is taken.
    */
   value: Payload;
+  /** What the model reckoned this instant from. See {@link ReckoningBasis}. */
   basis: ReckoningBasis;
   /**
    * How well the model knew this instant, present only where the model offered
    * a band for the root path.
    *
-   * In the value's own unit by construction: {@link ReckonedBound} resolves to
-   * the same quantity type `value` carries, so an end in another unit is a
-   * compile error at the consumer and is dropped at the producer. It used to be
-   * a pair of bare magnitudes resting on a sentence in {@link UncertaintyBand}'s
-   * doc comment, which was the only thing saying which unit they were in; that
-   * became a real exposure when the point estimate started carrying a unit,
-   * because until then there was nothing for the two ends to disagree with.
-   *
-   * The magnitudes are taken where the value's is, at the boundary that plots
-   * it (`@ksp-gonogo/data`'s `useDataSeries`), so the three travel to the chart
-   * together rather than one of them arriving there already unwrapped.
+   * In the value's own unit: {@link ReckonedBound} resolves to the same quantity
+   * type `value` carries, so an end in another unit is a compile error and is
+   * dropped. The magnitudes are taken where the value's is, when the series is
+   * plotted, so the three reach the chart together.
    *
    * The three move together. Either all of `bandLo`, `bandHi` and `bandKind`
    * are here or none is; a half-band is a producer bug and reads downstream as
@@ -1341,9 +1335,7 @@ export class TimelineStore {
    * `sample()` alone can't make this distinction: `sampleDerived`'s field
    * lookup collapses "unknown field name" and "not whole yet" onto the same
    * `undefined` return, deliberately (see its own doc comment). This is a
-   * separate diagnostic read for a caller (the `@ksp-gonogo/core` `useDataValue`
-   * compatibility shim: belt-and-suspenders
-   * fallback safety) that needs to tell "still loading, keep waiting" apart
+   * separate diagnostic read for a caller that needs to tell "still loading, keep waiting" apart
    * from "this can never resolve, fall back to another source"; never
    * folded into `sample()`'s own return value.
    *
@@ -1496,9 +1488,8 @@ export class TimelineStore {
   /**
    * Windowed series for a derived topic: the counterpart to `sampleRange`
    * (which structurally can't serve one: a derived value is computed fresh
-   * per frame, nothing is ever stored). Backs `@ksp-gonogo/data`'s
-   * `useDataSeries` so a Graph-style widget plotting a registered
-   * derived-channel key gets a real series off the stream.
+   * per frame, nothing is ever stored). Useful for plotting a derived channel
+   * as a series, as a graph widget does.
    *
    * Replays `def.derive` at every UT any of its raw `inputs` actually
    * changed at within `[fromUt, toUt]` (a change-gated raw timeline only
@@ -1637,10 +1628,9 @@ export class TimelineStore {
    *
    * A `Value` comes back wrapped, because every `vessel.flight` field is one and
    * a bare-number test would draw nothing for a carried altitude on every frame
-   * of a descent. The magnitude is taken once, at the boundary
-   * that plots it (`@ksp-gonogo/data`'s `useDataSeries`), not here, so nothing
-   * between the model and the chart holds a number that has forgotten what it
-   * measures.
+   * of a descent. The magnitude is taken once, where the series is
+   * plotted, so nothing between the model and the chart holds a number that has
+   * forgotten what it measures.
    *
    * Returns an empty array for a topic with no model, or nothing yet observed,
    * which are the same answer to the caller: there is no tail to draw.

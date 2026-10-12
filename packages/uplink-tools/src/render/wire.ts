@@ -99,11 +99,8 @@ export interface WireSurface {
    * Wire shapes nothing on this page can route: a dynamic namespace's payload,
    * or a namespace added inside another channel's extensions bag. The
    * distinction between the two is not in the generated slice, so the page names
-   * both rather than picking one.
-   *
-   * A command's args used to be in here too, unmarked, so an Uplink with one
-   * topic and seven command-arg shapes read as ten payloads published on that
-   * one topic. They are routed now, through `commands`, so they have left.
+   * both rather than picking one. A command's arguments are not in here: they
+   * are listed under `commands`.
    */
   payloads: WirePayload[];
   /**

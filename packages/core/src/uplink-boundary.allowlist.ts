@@ -383,12 +383,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/api/api-shape.gate.test.ts",
       /*
-       * dispatch()'s label doc-comment cites `kos.keystroke` as the example
-       * line-mode command whose composed text becomes the queue label,
-       * comment-only, no kOS coupling in the client spine.
-       */
-      "mod/sitrep-sdk/src/spine/client.ts",
-      /*
        * command-delay.test.ts's fixture uses "kos.run"/"kos/7" as sample
        * command/topic strings (same class as PeerTransport.test.ts's sample
        * strings below): the delayed-command primitives themselves are mod-

@@ -731,10 +731,9 @@ export class TelemetryClient {
   }
 
   /**
-   * Subscribe to observed-vantage changes (for a reactive read, e.g.
-   * `@ksp-gonogo/sitrep-client`'s `useObservedVantage`). Fires only when an
-   * arriving frame names a different
-   * centre than the last one did, not on every frame. Returns an unsubscribe.
+   * Subscribe to observed-vantage changes (for a reactive read). Fires only when
+   * an arriving frame names a different centre than the last one did, not on
+   * every frame. Returns an unsubscribe.
    */
   onObservedVantageChange(cb: () => void): () => void {
     this.observedVantageListeners.add(cb);
@@ -862,8 +861,8 @@ export class TelemetryClient {
   }
 
   /**
-   * Subscribe to "something changed" notifications, independent of topic.
-   * Used by reactive-store plumbing (e.g. `useSyncExternalStore`).
+   * Calls `cb` whenever the client's state changes, whatever the topic. Useful
+   * as the subscribe function of `useSyncExternalStore`. Returns an unsubscribe.
    */
   subscribeStore(cb: StoreListener): () => void {
     this.storeListeners.add(cb);
@@ -895,16 +894,11 @@ export class TelemetryClient {
    * cancels that timer first, so a confirmed/failed command can never later
    * flip to `lost`.
    *
-   * `label` is an opaque, operator-facing description of the command
-   * (e.g. the composed line text for a line-mode `kos.keystroke`) carried
-   * straight through on the envelope: it plays no role in dispatch,
-   * correlation, or loss inference. Defaults to `""` when omitted, matching
-   * every pre-existing caller.
+   * `label` is a description of the command to show the operator, such as the
+   * composed line text of a script terminal keystroke. Defaults to `""`.
    *
-   * `topic` is dispatch-time part/route addressing (e.g. `kos/<coreId>` for
-   * a terminal-scoped command) carried straight through on the envelope,
-   * same rollout shape as `label`, no role in dispatch, correlation, or loss
-   * inference. Defaults to `""` (unscoped) when omitted.
+   * `topic` addresses the command to one part or route on the craft, such as
+   * one script terminal. Defaults to `""`, which leaves it unscoped.
    *
    * `requestId` lets a caller that already holds a unique id (a peer host
    * dispatching a station's command) send it under that id, so the pending

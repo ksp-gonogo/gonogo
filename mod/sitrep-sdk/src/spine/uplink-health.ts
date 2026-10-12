@@ -48,9 +48,8 @@ interface RawUplinkEntry {
   reason: string | null;
   health: RawUplinkHealth;
   /**
-   * Every topic/prefix this uplink owns: `ChannelEngine.ComputeOwnedPrefixes`'s
-   * output. Optional on the wire type so a pre-Phase-1 mod build (field
-   * absent) decodes safely instead of throwing.
+   * Every Topic and Topic prefix this Uplink owns. Absent on a mod build that
+   * predates the field.
    */
   ownedPrefixes?: string[];
   /**
@@ -64,7 +63,7 @@ interface RawUplinkEntry {
   modSettings?: boolean;
 }
 
-/** The raw `system.uplinks` wire payload (`ChannelEngine.BuildSystemUplinksPayload`'s shape). */
+/** The raw `system.uplinks` wire payload. */
 interface RawSystemUplinksPayload {
   uplinks: RawUplinkEntry[];
   /** The contract version the running mod speaks. Absent on a mod build predating the field. */
