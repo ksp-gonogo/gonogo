@@ -1,26 +1,25 @@
 /**
  * Widget DOM mirror: LandingStatus. Asserts the panel header and the
- * "no landing in progress" notice on host and station.
+ * no-landing-prediction state on host and station, and the body-name
+ * subtitle on the host.
  *
  * The fixture (`sitrep-stream-server.mjs`) has the vessel in a stable
  * Kerbin orbit:
  *   vessel.identity.situation   = Situation.Orbiting
  *   vessel.flight.verticalSpeed = +39.3   (ascending)
  *
- * A positive vertical speed means the craft is not falling, so the
- * suicide-burn solve returns `not-descending` and, with the craft not
- * landed, the panel gives its whole body over to the "No landing in
- * progress" notice (`Panel`'s `inactive`), with the header kept. An absent
- * vertical speed takes the same branch, so this text renders identically
- * with or without live data and is safe to check on both screens. The body
- * line ("Kerbin · atmospheric") belongs to the descent board the notice
- * replaces, so it is not drawn here.
+ * The board stands up front whenever a vessel is reporting. A craft that is
+ * not falling has no landing prediction, so the widget says so, and it says
+ * it the same on both screens. The "Kerbin · atmospheric" subtitle is gated
+ * on `bodyName !== undefined`
+ * (`packages/components/src/LandingStatus/index.tsx`); it is checked on the
+ * host only.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";
 
 test.describe("widget DOM mirror: LandingStatus", () => {
-  test("orbit-state idle notice mirrors across host and station", async ({
+  test("an orbiting vessel shows the board with no landing prediction on host and station; subtitle on host", async ({
     browser,
   }) => {
     const pair = await bootstrapPair(browser, "landing-status", {
@@ -36,13 +35,13 @@ test.describe("widget DOM mirror: LandingStatus", () => {
         timeout: 15_000,
       });
       await expect(
-        page.getByText("No landing in progress", { exact: true }),
+        page.getByText("NO LANDING PREDICTION", { exact: true }),
       ).toBeVisible({ timeout: 15_000 });
     }
 
     await expect(
       pair.main.getByText("Kerbin · atmospheric", { exact: true }),
-    ).toHaveCount(0);
+    ).toBeVisible({ timeout: 15_000 });
 
     await teardownPair(pair);
   });

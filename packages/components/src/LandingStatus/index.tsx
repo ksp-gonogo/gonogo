@@ -102,11 +102,19 @@ function LandingStatusComponent({
   // The crash that ended the flight, shown after the game has left the flight scene: a record of the last flight, with nothing live beside it.
   const heldOpen = useHeldOpen();
   const recordOnly = crash !== undefined && heldOpen === "crash-ending";
-  // Whether a descent is on the board: the empty state otherwise.
+  // Whether the craft is on its way down to the ground, which the burn figures rest on.
   const descending = !recordOnly && !(board === "not-descending" && !landed);
+  // The board stands up front whenever a vessel is reporting: the widget exists to make a landing prediction, so it is there before one exists and says what it lacks. Only a flight with nothing reporting gives way to the notice.
+  const showBoard = !recordOnly && (descending || flight !== undefined);
 
   // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
-  const idle = crash ? "Crashed" : landed ? "Landed" : "Awaiting data";
+  const idle = crash
+    ? "Crashed"
+    : landed
+      ? "Landed"
+      : descending
+        ? "Awaiting data"
+        : "Awaiting a landing prediction";
   const reservedPlots: PlotSlot[] = [
     // The view and the map that projects it sit side by side, so a point is matched across a gutter and not a row.
     { subject: "vessel-view", title: "Touchdown view", note: idle },
@@ -155,6 +163,8 @@ function LandingStatusComponent({
       commitInSeconds={clocks.commitInSeconds}
       committed={clocks.committed}
       landed={landed}
+      descending={descending}
+      predicted={landing !== undefined}
       crashed={crash !== undefined}
       noLandingVector={noLandingVector}
       impactSpeed={solution.bestSpeedAtImpact}
@@ -213,8 +223,8 @@ function LandingStatusComponent({
               },
             ]
       }
-      // Nothing descending and no crash on record: the panel has nothing to present, so it gives its body over to the reason.
-      inactive={!descending && !crash ? "No landing in progress" : undefined}
+      // No vessel reporting and no crash on record: the panel has nothing to present, so it gives its body over to the reason.
+      inactive={!showBoard && !crash ? "No landing in progress" : undefined}
       // Planted sections go beside the altitude rail, in the readouts column, never under it.
       panelSections={false}
       // Host-derived: the panel watches every topic this widget declares.
@@ -225,7 +235,7 @@ function LandingStatusComponent({
           <Stack>
             {commitLayerEl}
             {crash && <CrashOutcome crash={crash} record={recordOnly} />}
-            {descending && (
+            {showBoard && (
               <Text level="muted">
                 RT{" "}
                 {clocks.roundTripSeconds != null ? (
@@ -252,7 +262,7 @@ function LandingStatusComponent({
         ) : null,
         /* Not a filling section: the readouts scroll with the panel body, and a section held to the leftover height would overflow past the body's bottom inset. */
         <Section key="descent" full>
-          {!descending ? (
+          {!showBoard ? (
             <Stack>
               {/* A crash ends the descent and takes the vessel's readings with it: the touchdown plots stay, holding what they last drew. */}
               {crash && showPlots && (

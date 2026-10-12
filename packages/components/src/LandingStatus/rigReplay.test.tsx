@@ -192,9 +192,8 @@ describe("Landing Status over the rig's recorded landings", () => {
       }
     });
 
-    // Fails today: the real descent withholds the countdown for 35 s. Remove `.fails` once a change-gated topic stops reading held between its keyframes.
-    it.fails("keeps the burn countdown through the descent", () => {
-      // The propulsion topic is sent only when it changes, with a keyframe every 30 s: after a burst of one-second changes the client expects the next within seconds and reads it held, which withholds the countdown.
+    it("keeps the burn countdown through the descent", () => {
+      // The propulsion topic is sent only when it changes, with a keyframe every 30 s: it is not read as held between its keyframes after a burst of one-second changes.
       const descent = crash.slice(100, firstCrash);
       expect(
         descent.filter((f) => f.text.includes("NEEDS CURRENT TELEMETRY")),
@@ -203,20 +202,28 @@ describe("Landing Status over the rig's recorded landings", () => {
   });
 
   describe("the low pass", () => {
-    it("says no landing is in progress throughout, with no crash and no landing", () => {
+    it("puts the board up front in flight even though no landing is predicted, and says so", () => {
       for (const f of lowPass.slice(40)) {
-        expect(f.text, `at ${f.second} s`).toContain("No landing in progress");
+        expect(f.text, `at ${f.second} s`).toContain("NO LANDING PREDICTION");
+        expect(f.text).toContain("Mun · vacuum");
+        expect(f.text).toContain("Awaiting a landing prediction");
+        expect(f.text).not.toContain("No landing in progress");
         expect(f.text).not.toContain("CRASHED");
         expect(f.text).not.toContain("LANDED");
       }
     });
 
-    it("gives the whole panel over to that reason, as a panel does that has nothing to present", () => {
+    it("withholds every burn figure while there is nothing to burn against", () => {
       for (const f of lowPass.slice(40)) {
-        // Nothing of the descent board stands beside it: no body line, no burn hero, no round trip.
-        expect(f.text, `at ${f.second} s`).not.toContain("Mun · vacuum");
-        expect(f.text).not.toContain("BURN TIMING");
-        expect(f.text).not.toContain("RT ");
+        expect(f.text, `at ${f.second} s`).not.toContain("BURN TIMING");
+        expect(f.text).not.toContain("SUICIDE BURN");
+        expect(f.text).not.toContain("IGNITE");
+      }
+    });
+
+    it("keeps the touchdown plots up as frames that say what they lack", () => {
+      for (const f of lowPass.slice(40)) {
+        expect(f.layers.has("awaiting"), `at ${f.second} s`).toBe(true);
       }
     });
 

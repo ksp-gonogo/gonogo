@@ -106,6 +106,10 @@ export interface CommitLayerProps {
   centreOfMass?: boolean;
   /** True once the vessel has touched down: the descent clocks are void and the hero shows landed. */
   landed?: boolean;
+  /** False while the craft is not on its way down: the hero then says there is nothing to burn against. True when omitted. */
+  descending?: boolean;
+  /** Whether the game has sent a landing prediction. A craft not descending with none reads differently from one with one. */
+  predicted?: boolean;
   /** True while the flight's crash is on record: whatever the wreck still reports, the hero says the vessel was destroyed, never landed. */
   crashed?: boolean;
   /** True when even an optimal burn cannot arrest the vessel in the remaining altitude; distinct from a nominal committed burn. */
@@ -137,6 +141,8 @@ function resolveHero({
   centreOfMass = false,
   landed = false,
   crashed = false,
+  descending = true,
+  predicted = false,
   noLandingVector = false,
   burning = false,
 }: Readonly<CommitLayerProps>): Hero {
@@ -149,6 +155,14 @@ function resolveHero({
 
   if (crashed) return hero("CRASHED", "VESSEL DESTROYED", "nogo");
   if (landed) return hero("LANDED", "TOUCHDOWN CONFIRMED", "go");
+  // Nothing to burn against: no burn timing or link request, only what is so.
+  if (!descending) {
+    return hero(
+      NULL_DISPLAY,
+      predicted ? "NOT DESCENDING" : "NO LANDING PREDICTION",
+      "neutral",
+    );
+  }
   // Committed to a hard impact whatever it does now.
   if (noLandingVector) return hero("NO LANDING VECTOR", "", "nogo");
   // A countdown to a burn that is already under way would be a falsehood, so the engines' own thrust takes its place.
@@ -198,11 +212,19 @@ export function CommitLayer(props: Readonly<CommitLayerProps>) {
         ) : props.landed ? (
           <Readout tone="go">LANDED</Readout>
         ) : (
-          (parachuteLine(props.parachute) ?? (
+          (parachuteLine(props.parachute) ??
+          (props.descending === false ? (
+            <Readout>
+              {NULL_DISPLAY}
+              <ReadoutCaption>
+                {props.predicted ? "NOT DESCENDING" : "NO LANDING PREDICTION"}
+              </ReadoutCaption>
+            </Readout>
+          ) : (
             <Readout>
               <span aria-hidden="true">{"\u00a0"}</span>
             </Readout>
-          ))
+          )))
         )}
       </Section>
     );

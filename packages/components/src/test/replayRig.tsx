@@ -22,23 +22,54 @@ export interface RigFixture {
 /** The recordings checked in beside Landing Status, trimmed to the topics the widget mounts on. */
 export type RigName = "landing-lowpass" | "landing-crashfall";
 
+/**
+ * The recordings predate the `subscribed` ack carrying the channel's keyframe interval, so the loader adds it to each vessel topic's ack, the only frames it touches. The vessel channels all declare 30 s of game time; every data frame is exactly as recorded.
+ */
+const VESSEL_KEYFRAME_INTERVAL_UT = 30;
+
+function isRigFixture(value: unknown): value is RigFixture {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "frames" in value &&
+    Array.isArray(value.frames)
+  );
+}
+
+/** Whether `frame` is the `subscribed` ack of a vessel topic, the only frame the loader adds the keyframe interval to. */
+function isVesselAck(frame: unknown): frame is object {
+  return (
+    typeof frame === "object" &&
+    frame !== null &&
+    "type" in frame &&
+    frame.type === "event" &&
+    "name" in frame &&
+    frame.name === "subscribed" &&
+    "topic" in frame &&
+    typeof frame.topic === "string" &&
+    frame.topic.startsWith("vessel.")
+  );
+}
+
 export function rigFixture(name: RigName): RigFixture {
   const file = path.join(
     path.dirname(fileURLToPath(import.meta.url)),
     "../LandingStatus/__fixtures__/rig",
     `${name}.replay.json`,
   );
-  const parsed: unknown = JSON.parse(readFileSync(file, "utf8"));
-  if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    !("frames" in parsed) ||
-    !Array.isArray(parsed.frames) ||
-    !parsed.frames.every((f): f is string => typeof f === "string")
-  ) {
-    throw new Error(`${name} is not a recorded fixture`);
-  }
-  return { frames: parsed.frames };
+  const recorded: unknown = JSON.parse(readFileSync(file, "utf8"));
+  if (!isRigFixture(recorded)) throw new Error(`${name}: not a recording`);
+  return {
+    ...recorded,
+    frames: recorded.frames.map((raw) => {
+      const frame: unknown = JSON.parse(raw);
+      if (!isVesselAck(frame)) return raw;
+      return JSON.stringify({
+        ...frame,
+        keyframeIntervalUt: VESSEL_KEYFRAME_INTERVAL_UT,
+      });
+    }),
+  };
 }
 
 export interface RigReplay {
