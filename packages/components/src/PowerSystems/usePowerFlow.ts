@@ -1,6 +1,6 @@
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useEffect, useMemo, useState } from "react";
-import type { Contribution } from "./flow";
+import { type Contribution, countUnratedProcesses } from "./flow";
 
 /** The vessel's topology, each part's live slice, and the resources any part reports a flow for. */
 export function useLiveParts() {
@@ -114,6 +114,13 @@ export function useResourceBreakdown(
         ),
     [contributions],
   );
+  const unratedCount = useMemo(
+    () =>
+      topology
+        ? countUnratedProcesses(topology.parts, liveByFlightId, resource)
+        : 0,
+    [topology, liveByFlightId, resource],
+  );
   const totalProduced = producers.reduce((s, c) => s + c.flow, 0);
   const totalConsumed = consumers.reduce((s, c) => s + c.flow, 0);
   const net = totalProduced + totalConsumed;
@@ -136,6 +143,7 @@ export function useResourceBreakdown(
     totalProduced,
     totalConsumed,
     net,
+    unratedCount,
     storage,
   };
 }

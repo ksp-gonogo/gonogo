@@ -22,6 +22,7 @@ import {
 export function PowerTotals({
   net,
   netTone,
+  unratedCount,
   totalProduced,
   totalConsumed,
   measuredTotalProduced,
@@ -30,6 +31,8 @@ export function PowerTotals({
 }: Readonly<{
   net: number;
   netTone: NetTone;
+  /** Parts running a process with no published rate: their draw or yield is missing from NET. */
+  unratedCount: number;
   totalProduced: number;
   totalConsumed: number;
   measuredTotalProduced: number | undefined;
@@ -46,6 +49,14 @@ export function PowerTotals({
           {net >= 0 ? "+" : ""}
           {net.toFixed(2)}/s
         </Text>
+        {unratedCount > 0 && (
+          <Tooltip
+            text={`${unratedCount} running ${unratedCount === 1 ? "process has" : "processes have"} no published rate, so NET leaves ${unratedCount === 1 ? "its" : "their"} draw out`}
+            focusable
+          >
+            <span style={CELL_LABEL}>+{unratedCount} unrated</span>
+          </Tooltip>
+        )}
       </div>
       <div style={TOTALS_CELL}>
         <span style={CELL_LABEL}>PROD</span>

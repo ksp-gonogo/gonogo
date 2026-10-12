@@ -19,7 +19,7 @@ import { heldGrade } from "../shared/heldGrade";
 import { magnitudeOf } from "../shared/magnitude";
 import { ContributionSection } from "./ContributionSection";
 import type { PowerSystemsActions, PowerSystemsConfig } from "./config";
-import { type NetTone, netToneOf, splitCamel } from "./flow";
+import { type NetTone, netToneWithUnrated, splitCamel } from "./flow";
 import { PowerTotals } from "./PowerTotals";
 import { ResourceTrend } from "./ResourceTrend";
 import type { PowerSystemsScope } from "./slots";
@@ -103,6 +103,7 @@ export function PowerSystemsComponent({
     totalProduced,
     totalConsumed,
     net,
+    unratedCount,
     storage,
   } = useResourceBreakdown(topology, liveByFlightId, resource);
 
@@ -173,7 +174,7 @@ export function PowerSystemsComponent({
     );
   }
 
-  const netTone = netToneOf(net);
+  const netTone = netToneWithUnrated(net, unratedCount);
 
   if (!showFullList) {
     return (
@@ -237,6 +238,7 @@ export function PowerSystemsComponent({
             <PowerTotals
               net={net}
               netTone={netTone}
+              unratedCount={unratedCount}
               totalProduced={totalProduced}
               totalConsumed={totalConsumed}
               measuredTotalProduced={measuredTotalProduced}
