@@ -274,7 +274,7 @@ export function EncounterMarker({
 }
 
 /** Room kept between the picture's edge and a pointer to a body off it, screen pixels. */
-const EDGE_POINTER_INSET = 16;
+export const EDGE_POINTER_INSET = 16;
 
 /**
  * The body the frame body orbits: a dot and its name at its place while that is on the picture, and from the edge of the picture a pointer toward it when it is not.

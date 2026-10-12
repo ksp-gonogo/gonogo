@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, onTestFinished, vi } from "vitest";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -125,29 +125,63 @@ function mount() {
   return { fixture, view };
 }
 
-/** The craft crosses into the Mun's sphere of influence: its identity and its elements both name the Mun. */
-function enterTheMun(fixture: StreamFixture) {
+const MINMUS_INDEX = 3;
+const MINMUS_MU = 1.7658e9;
+
+/** The craft crosses into a moon's sphere of influence: its identity and its elements both name the moon. */
+function enterTheMun(
+  fixture: StreamFixture,
+  moon: {
+    index: number;
+    mu: number;
+    sma: number;
+    ecc: number;
+  } = { index: MUN_INDEX, mu: MUN_MU, sma: 1_400_000, ecc: 0.7 },
+) {
   act(() => {
     fixture.emit("vessel.identity", {
       vesselId: "v-active",
       name: "Active Craft",
       vesselType: 0,
       situation: 3,
-      parentBodyIndex: MUN_INDEX,
+      parentBodyIndex: moon.index,
     });
     fixture.emit("vessel.orbit", {
-      referenceBodyIndex: MUN_INDEX,
-      sma: 1_400_000,
-      ecc: 0.7,
+      referenceBodyIndex: moon.index,
+      sma: moon.sma,
+      ecc: moon.ecc,
       inc: 0,
       lan: 0,
       argPe: 0,
       meanAnomalyAtEpoch: 3.1,
       epoch: 0,
-      mu: MUN_MU,
+      mu: moon.mu,
       horizon: ANALYTIC,
     });
   });
+}
+
+/**
+ * Takes the frame clock over for one test: nothing animates until `run` hands the waiting callbacks a time, so a test reads the view at an instant it chose and never at one the machine's load did.
+ */
+function holdFrames(): { run: (ms: number) => void } {
+  let waiting: FrameRequestCallback[] = [];
+  const spy = vi
+    .spyOn(window, "requestAnimationFrame")
+    .mockImplementation((callback) => {
+      waiting.push(callback);
+      return waiting.length;
+    });
+  onTestFinished(() => spy.mockRestore());
+  return {
+    run(ms) {
+      const due = waiting;
+      waiting = [];
+      act(() => {
+        for (const callback of due) callback(ms);
+      });
+    },
+  };
 }
 
 function svgOf(container: HTMLElement): SVGSVGElement {
@@ -186,8 +220,41 @@ function zoomIn(container: HTMLElement, notches: number) {
   });
 }
 
+function zoomOut(container: HTMLElement, notches: number) {
+  act(() => {
+    for (let i = 0; i < notches; i++) {
+      svgOf(container).dispatchEvent(
+        new WheelEvent("wheel", {
+          deltaY: 100,
+          ctrlKey: true,
+          bubbles: true,
+          cancelable: true,
+        }),
+      );
+    }
+  });
+}
+
+/** Whether the planet the frame body orbits is drawn as a dot inside the picture, as against pointed to from its edge. */
+function planetIsOnThePicture(container: HTMLElement, name: string): boolean {
+  const svg = svgOf(container);
+  if (svg.querySelector(`[data-frame-parent-direction="${name}"]`) !== null) {
+    return false;
+  }
+  const dot = svg.querySelector(`[data-frame-parent="${name}"] circle`);
+  if (dot === null) return false;
+  const [x, y, w, h] = (svg.getAttribute("viewBox") ?? "")
+    .split(/\s+/)
+    .map(Number);
+  const cx = Number(dot.getAttribute("cx"));
+  const cy = Number(dot.getAttribute("cy"));
+  return cx > x && cx < x + w && cy > y && cy < y + h;
+}
+
 describe("SystemView when the craft changes the body it orbits", () => {
-  it("keeps the body entered and the body left where they were on the picture", async () => {
+  it("starts from the picture as it was: the body entered and the body left are where they were", async () => {
+    // The ease is held before its first frame, which leaves the carried view.
+    holdFrames();
     const { fixture, view } = mount();
     await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
     const munBefore = onScreen(view.container, 'circle[data-body="Mun"]');
@@ -267,6 +334,7 @@ describe("SystemView when the craft changes the body it orbits", () => {
   });
 
   it("zooms from where the carried view is, never snapping to a limit", async () => {
+    holdFrames();
     const { fixture, view } = mount();
     await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
     enterTheMun(fixture);
@@ -285,5 +353,119 @@ describe("SystemView when the craft changes the body it orbits", () => {
     const after = onScreen(view.container, 'circle[data-body="Mun"]').scale;
     expect(before / after).toBeCloseTo(1.15, 6);
     await act(async () => {});
+  });
+
+  it("then eases to the whole of the new frame, centred on the body entered", async () => {
+    const frames = holdFrames();
+    const { fixture, view } = mount();
+    await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
+    const fitted = onScreen(view.container, 'circle[data-body="Kerbin"]').scale;
+    enterTheMun(fixture);
+    await waitFor(() =>
+      expect(svgOf(view.container).getAttribute("aria-label")).toContain("Mun"),
+    );
+    const carried = onScreen(view.container, 'circle[data-body="Mun"]').scale;
+
+    // Half way through, the picture is between the two and still moving.
+    frames.run(1000);
+    frames.run(1450);
+    const midway = onScreen(view.container, 'circle[data-body="Mun"]');
+    expect(midway.scale).toBeLessThan(carried);
+    expect(midway.scale).toBeGreaterThan(fitted);
+
+    frames.run(2000);
+    const settled = onScreen(view.container, 'circle[data-body="Mun"]');
+    expect(settled.x).toBeCloseTo(0.5, 9);
+    expect(settled.y).toBeCloseTo(0.5, 9);
+    expect(settled.scale).toBe(fitted);
+    expect(screen.queryByRole("button", { name: "Reset view" })).toBeNull();
+    await act(async () => {});
+  });
+
+  it("cuts straight to the whole of the new frame under reduced motion, with the caption still naming the frame left", async () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query.includes("prefers-reduced-motion"),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as never;
+    try {
+      const { fixture, view } = mount();
+      await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
+      enterTheMun(fixture);
+      await waitFor(() =>
+        expect(view.container.textContent).toContain("Frame: Mun, was Kerbin"),
+      );
+      const mun = onScreen(view.container, 'circle[data-body="Mun"]');
+      expect(mun.x).toBeCloseTo(0.5, 6);
+      expect(mun.y).toBeCloseTo(0.5, 6);
+      await act(async () => {});
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+  describe("zooming out after the ease", () => {
+    const orbits = [
+      {
+        label: "a high Mun orbit",
+        moon: { index: MUN_INDEX, mu: MUN_MU, sma: 1_400_000, ecc: 0.7 },
+        planet: "Kerbin",
+      },
+      {
+        label: "a low Mun orbit",
+        moon: { index: MUN_INDEX, mu: MUN_MU, sma: 250_000, ecc: 0.01 },
+        planet: "Kerbin",
+      },
+      {
+        label: "a Minmus orbit, with Kerbin 47 Mm away",
+        moon: { index: MINMUS_INDEX, mu: MINMUS_MU, sma: 90_000, ecc: 0.02 },
+        planet: "Kerbin",
+      },
+    ];
+
+    it.each(orbits)("puts the planet on the picture from $label", async ({
+      moon,
+      planet,
+    }) => {
+      const frames = holdFrames();
+      const { fixture, view } = mount();
+      await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
+      enterTheMun(fixture, moon);
+      await waitFor(() =>
+        expect(svgOf(view.container).getAttribute("aria-label")).toContain(
+          moon.index === MUN_INDEX ? "Mun" : "Minmus",
+        ),
+      );
+      frames.run(1000);
+      frames.run(2000);
+
+      zoomOut(view.container, 80);
+
+      expect(planetIsOnThePicture(view.container, planet)).toBe(true);
+      await act(async () => {});
+    });
+
+    it("returns to the fitted frame with Reset view after zooming out", async () => {
+      const frames = holdFrames();
+      const { fixture, view } = mount();
+      await waitFor(() => onScreen(view.container, 'circle[data-body="Mun"]'));
+      enterTheMun(fixture);
+      await waitFor(() =>
+        expect(svgOf(view.container).getAttribute("aria-label")).toContain(
+          "Mun",
+        ),
+      );
+      frames.run(1000);
+      frames.run(2000);
+      const fitted = svgOf(view.container).getAttribute("viewBox");
+
+      zoomOut(view.container, 80);
+      expect(svgOf(view.container).getAttribute("viewBox")).not.toBe(fitted);
+      fireEvent.click(screen.getByRole("button", { name: "Reset view" }));
+
+      expect(svgOf(view.container).getAttribute("viewBox")).toBe(fitted);
+      await act(async () => {});
+    });
   });
 });
