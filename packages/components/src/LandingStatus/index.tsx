@@ -104,7 +104,7 @@ function LandingStatusComponent({
   const descending = !(board === "not-descending" && !landed);
 
   // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
-  const idle = landed ? "Landed" : "Awaiting data";
+  const idle = crash ? "Crashed" : landed ? "Landed" : "Awaiting data";
   const reservedPlots: PlotSlot[] = [
     // The view and the map that projects it sit side by side, so a point is matched across a gutter and not a row.
     { subject: "vessel-view", title: "Touchdown view", note: idle },
@@ -153,6 +153,7 @@ function LandingStatusComponent({
       commitInSeconds={clocks.commitInSeconds}
       committed={clocks.committed}
       landed={landed}
+      crashed={crash !== undefined}
       noLandingVector={noLandingVector}
       impactSpeed={solution.bestSpeedAtImpact}
       burning={model.burning}
@@ -213,6 +214,7 @@ function LandingStatusComponent({
         <Section key="link" full>
           <Stack>
             {commitLayerEl}
+            {crash && <CrashOutcome crash={crash} />}
             {descending && (
               <Text level="muted">
                 RT{" "}
@@ -242,11 +244,7 @@ function LandingStatusComponent({
         <Section key="descent" full>
           {!descending ? (
             <Stack>
-              {crash ? (
-                <CrashOutcome crash={crash} />
-              ) : (
-                <EmptyState>No landing in progress</EmptyState>
-              )}
+              {!crash && <EmptyState>No landing in progress</EmptyState>}
               <WidgetSections />
             </Stack>
           ) : (
