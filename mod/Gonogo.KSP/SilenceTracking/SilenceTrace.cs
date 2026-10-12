@@ -107,21 +107,20 @@ namespace Gonogo.KSP.SilenceTracking
         private static string? _lastCalibration;
 
         /// <summary>
-        /// The outcome of solving this body's station-longitude offset.
+        /// Whether this body's world frame could be fitted to the propagation
+        /// frame, and what is published meanwhile.
         ///
-        /// <para>On change, not once. A one-shot here was the third instance of
-        /// the same mistake in this subsystem: the first call wins, and the
-        /// first call is invariably the uninteresting one from a tick before
-        /// the scene is ready, after which every later outcome - including the
-        /// success - is suppressed for the rest of the session. De-duplication
-        /// is right for a message that repeats every tick and wrong for one
-        /// whose whole value is that it changed.</para>
+        /// <para>On change, not once. A one-shot here would let the first
+        /// call win, and the first call is invariably the uninteresting one from a
+        /// tick before the scene is ready, after which every later outcome,
+        /// including the success, is suppressed for the rest of the session. The
+        /// caller reports a change of outcome only, never a tick.</para>
         /// </summary>
         public static void Calibration(string report)
         {
             if (report == _lastCalibration) return;
             _lastCalibration = report;
-            Debug.Log(Prefix + "longitude calibration: " + report);
+            Debug.Log(Prefix + "frame fit: " + report);
         }
 
         private static string? _lastChain;
@@ -181,19 +180,19 @@ namespace Gonogo.KSP.SilenceTracking
         /// <c>centreToVessel</c> is a composition error the magnitude-only terms
         /// of <see cref="Decompose"/> could not show.</para>
         ///
-        /// <para>The frame fields are what decide between a rotation model that
-        /// is wrong and a rotating world frame that the offset was measured
-        /// in: <c>inverseRotation</c> and <c>inverseRotAngle</c> are KSP's
-        /// own state for a frame that turns with a body, and
-        /// <c>rotationAngle</c> less <c>directRotAngle</c> is that frame's
-        /// offset from the body's own sidereal angle.</para>
+        /// <para>The frame fields say how the world axes stand against the body:
+        /// <c>inverseRotation</c> and <c>inverseRotAngle</c> are KSP's own state
+        /// for a frame that turns with a body, <c>rotationAngle</c> less
+        /// <c>directRotAngle</c> is that frame's offset from the body's own
+        /// sidereal angle, and <c>frameYaw</c> is the heading the predictor
+        /// fitted between the world axes and its own, or <c>unfitted</c>.</para>
         /// </summary>
         public static void DecomposeStation(
             double liveCentreToVessel, double predictedCentreToVessel,
             double liveToward, double predictedToward,
             double liveStationRadius, double predictedStationRadius,
             string bodyName, bool inverseRotation, double inverseRotAngleDeg,
-            double rotationAngleDeg, double directRotAngleDeg, double? longitudeOffsetDeg)
+            double rotationAngleDeg, double directRotAngleDeg, double? frameYawDeg)
         {
             var line = "decompose: centreToVessel live=" + (long)liveCentreToVessel + " pred=" + (long)predictedCentreToVessel
                 + " | stationTowardVessel live=" + (long)liveToward + " pred=" + (long)predictedToward
@@ -202,9 +201,9 @@ namespace Gonogo.KSP.SilenceTracking
                 + " inverseRotAngle=" + inverseRotAngleDeg.ToString("F2", CultureInfo.InvariantCulture)
                 + " rotationAngle=" + rotationAngleDeg.ToString("F2", CultureInfo.InvariantCulture)
                 + " directRotAngle=" + directRotAngleDeg.ToString("F2", CultureInfo.InvariantCulture)
-                + " longitudeOffset=" + (longitudeOffsetDeg.HasValue
-                    ? longitudeOffsetDeg.Value.ToString("F1", CultureInfo.InvariantCulture)
-                    : "uncalibrated");
+                + " frameYaw=" + (frameYawDeg.HasValue
+                    ? frameYawDeg.Value.ToString("F1", CultureInfo.InvariantCulture)
+                    : "unfitted");
             var key = StationDecomposeKey(
                 liveCentreToVessel, predictedCentreToVessel, liveToward, predictedToward, inverseRotation);
             if (key == _lastStationDecomp) return;

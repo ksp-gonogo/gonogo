@@ -200,7 +200,7 @@ namespace Gonogo.KSP
                 var bodyIndex = bodies.IndexOf(vessel.mainBody);
                 if (vessel.LandedOrSplashed)
                 {
-                    var point = _surface.CalibratedSurfacePoint(vessel.mainBody, comm);
+                    var point = _surface.SurfacePointOf(vessel.mainBody, comm);
                     if (point != null)
                     {
                         nodes.Add(AsCentre(ContactGameNode.LandedCraft(id, bodyIndex, point.Value, CommsNodeHandle.Of(comm), GameWords.VesselName(vessel)), centreOf));
@@ -230,7 +230,7 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
-                var point = _surface.CalibratedSurfacePoint(bodies[bodyIndex], home.Node);
+                var point = _surface.SurfacePointOf(bodies[bodyIndex], home.Node);
                 if (point != null)
                 {
                     nodes.Add(ContactGameNode.GroundStation(home.Id, bodyIndex, point.Value, CommsNodeHandle.Of(home.Node), home.DisplayName));

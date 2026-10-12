@@ -36,11 +36,11 @@ namespace Gonogo.KSP.SilenceTracking
         /// <para>This is the frame self-check the predictor design asks for,
         /// done the one way that needs no world-to-propagation-frame
         /// transform: separation is rotation-invariant, so if the elements,
-        /// the patched-conic chain and the station's rotation phase are all
-        /// right, the two numbers agree. A wrong <c>rotationAngle</c> sign
-        /// misplaces the station by up to a body diameter, so this tolerance
-        /// sits well under Kerbin's 1,200 km and well over the drift between
-        /// one frame's positions.</para>
+        /// the patched-conic chain and the station's place on its body are all
+        /// right, the two numbers agree. A station placed with the wrong heading
+        /// is misplaced by up to a body diameter, so this tolerance sits well
+        /// under Kerbin's 1,200 km and well over the drift between one frame's
+        /// positions.</para>
         ///
         /// <para>It gates the prediction rather than logging a warning
         /// because a silently-wrong frame produces confident, plausible,
@@ -153,15 +153,11 @@ namespace Gonogo.KSP.SilenceTracking
 
             SilenceTrace.Chain(parentBody.bodyName, stationBody.bodyName, occluders.Count);
 
-            double longitudeOffset;
-            if (!StationLongitudeCalibration.TryGet(
-                stationBodyIndex, stationBody.inverseRotation, Planetarium.InverseRotAngle, out longitudeOffset))
+            double frameYaw;
+            if (!TryMeasureFrameYaw(stationBody, bodies, out frameYaw))
             {
-                if (!TryCalibrate(stationBody, comm, occlusion, stationBodyIndex, out longitudeOffset))
-                {
-                    SilenceTrace.NoGeometry("longitude not calibrated yet for " + stationBody.bodyName);
-                    return null;
-                }
+                SilenceTrace.NoGeometry("world frame not fitted yet for " + stationBody.bodyName);
+                return null;
             }
 
             // Every station on the body, not one of them. A single ground
@@ -183,7 +179,7 @@ namespace Gonogo.KSP.SilenceTracking
             var reachLimits = new List<double?>();
             var vesselNode = VesselNode(sample.VesselId);
             var reachModelId = CommsReachModels.UnknownModelId;
-            var chosenStation = StationOn(stationBody, comm, longitudeOffset);
+            var chosenStation = StationOn(stationBody, comm, frameYaw);
             if (chosenStation != null)
             {
                 stations.Add(chosenStation.Value);
@@ -194,7 +190,7 @@ namespace Gonogo.KSP.SilenceTracking
             foreach (var node in stationNodes)
             {
                 if (ReferenceEquals(node, comm)) continue;
-                var on = StationOn(stationBody, node, longitudeOffset);
+                var on = StationOn(stationBody, node, frameYaw);
                 if (on != null)
                 {
                     stations.Add(on.Value);
@@ -453,72 +449,64 @@ namespace Gonogo.KSP.SilenceTracking
         }
 
         /// <summary>
-        /// A station from the body's geodetic coordinates plus its spin. The
-        /// inertial longitude is the body-fixed longitude plus however far the
-        /// body has already turned: <c>rotationAngle</c> is the one convention
-        /// here that is easy to get wrong silently, which is what the
-        /// separation self-check exists to catch.
+        /// A station from where the game says the node is, turned into the
+        /// propagation frame, plus the body's spin.
         /// </summary>
-        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, double longitudeOffsetDeg) =>
-            SurfacePointAt(body, comm.precisePosition, longitudeOffsetDeg);
+        private static RotatingGroundStation? StationOn(CelestialBody body, CommNode comm, double frameYaw) =>
+            SurfacePointAt(body, comm.precisePosition, frameYaw);
 
         /// <summary>
         /// The surface point under <paramref name="node"/> on <paramref name="body"/>,
-        /// with the body's longitude offset taken from its calibration, or
-        /// measured now if the body has none yet. The offset belongs to the
-        /// body, not to any one point on it, so any node on the surface can be
-        /// the one it is measured at: a landed craft calibrates a body with no
-        /// ground station. Null until a calibration is possible. Main thread.
+        /// placed in the propagation frame. The frame's heading belongs to the
+        /// body, not to any one point on it, so any node on the surface will do:
+        /// a landed craft places a body with no ground station. Null until the
+        /// body's frame can be fitted. Main thread.
         /// </summary>
-        internal RotatingGroundStation? CalibratedSurfacePoint(CelestialBody body, CommNode node)
+        internal RotatingGroundStation? SurfacePointOf(CelestialBody body, CommNode node)
         {
             var bodies = FlightGlobals.Bodies;
-            var bodyIndex = bodies == null ? -1 : bodies.IndexOf(body);
-            if (bodyIndex < 0 || node == null)
+            if (bodies == null || node == null)
             {
                 return null;
             }
-            double offset;
-            if (!StationLongitudeCalibration.TryGet(bodyIndex, body.inverseRotation, Planetarium.InverseRotAngle, out offset)
-                && !TryCalibrate(body, node, CommsElection.OcclusionModel(_kernel()), bodyIndex, out offset))
+            double frameYaw;
+            if (!TryMeasureFrameYaw(body, bodies, out frameYaw))
             {
                 return null;
             }
-            return SurfacePointAt(body, node.precisePosition, offset);
+            return SurfacePointAt(body, node.precisePosition, frameYaw);
         }
 
-        private static RotatingGroundStation? SurfacePointAt(CelestialBody body, Vector3d world, double longitudeOffsetDeg)
+        private static RotatingGroundStation? SurfacePointAt(CelestialBody body, Vector3d world, double frameYaw)
         {
             if (!(body.Radius > 0.0) || !(Math.Abs(body.rotationPeriod) > 0.0))
             {
                 return null;
             }
 
-            var latitude = body.GetLatitude(world);
-            var altitude = body.GetAltitude(world);
-            var inertialLongitude = body.GetLongitude(world) + body.rotationAngle + longitudeOffsetDeg;
+            var rel = (world - body.position).xzy;
+            var position = FrameYaw.Rotate(new Sitrep.Contract.Vector3d(rel.x, rel.y, rel.z), frameYaw);
+            if (!(position.Magnitude() > 0.0))
+            {
+                return null;
+            }
 
-            // The offset is measured, not asserted: see
-            // StationLongitudeCalibration for why.
-            //
             // The reference UT is NOW, not the caller's ut.
             //
-            // Both inputs are live quantities: precisePosition is where the
-            // station is at this instant, and rotationAngle is recomputed from
-            // Planetarium.GetUniversalTime() every frame. Stamping a now-phase
-            // with a past reference UT time-shifts the station's entire
-            // trajectory by (now - ut), and the sweep origin CAN be far in the
-            // past - a deadline upgrade evaluates from the silence onset, hours
-            // earlier. Every other input to this geometry is epoch-anchored
-            // (OrbitElements carries epoch + meanAnomalyAtEpoch), so the station
-            // was the only term that could drift, and it drifted silently.
-            return RotatingGroundStation.FromLatitudeLongitude(
-                latitude,
-                inertialLongitude,
+            // precisePosition is where the station is at this instant, so
+            // stamping it with a past reference UT time-shifts the station's
+            // entire trajectory by (now - ut), and the sweep origin CAN be far in
+            // the past - a deadline upgrade evaluates from the silence onset,
+            // hours earlier. Every other input to this geometry is
+            // epoch-anchored (OrbitElements carries epoch + meanAnomalyAtEpoch),
+            // so the station was the only term that could drift, and it drifted
+            // silently.
+            return new RotatingGroundStation(
+                position,
                 Planetarium.GetUniversalTime(),
                 body.rotationPeriod,
-                body.Radius,
-                altitude);
+                position.Magnitude(),
+                0.0);
         }
 
         /// <summary>
@@ -569,214 +557,131 @@ namespace Gonogo.KSP.SilenceTracking
             return true;
         }
 
-        /// <summary>
-        /// Solves for this body's longitude offset against the live scene, by
-        /// minimising the same residual the frame self-check reports: the gap
-        /// between the geometry's own vessel-to-station separation and the
-        /// world-space one. Coarse pass then fine, so the whole circle costs a
-        /// few hundred cheap evaluations, once per body.
-        ///
-        /// <para>Needs a loaded vessel to measure against, so it returns false
-        /// until one is available. That is the correct order of events anyway:
-        /// there is nothing to calibrate against in a scene with no live craft,
-        /// and a prediction withheld for a few ticks costs nothing.</para>
-        /// </summary>
-        private bool TryCalibrate(
-            CelestialBody stationBody,
-            CommNode comm,
-            ICommsOcclusionModel occlusion,
-            int stationBodyIndex,
-            out double offsetDegrees)
+        private readonly Dictionary<int, FrameFit> _frameFits = new Dictionary<int, FrameFit>();
+        private readonly Dictionary<int, string> _frameFitReported = new Dictionary<int, string>();
+
+        private struct FrameFit
         {
-            offsetDegrees = 0.0;
+            public double Ut;
+            public bool Ok;
+            public double Yaw;
+        }
 
-            // Prefer a reference orbiting the STATION's own body, so the chain
-            // is empty and the solve isolates the one unknown it is for.
-            //
-            // Measured both ways on the live save: a Kerbin-orbiting reference
-            // converged to 373 m of 2,467 km, while a Minmus one bottomed out at
-            // 116 km of 46,327 km and was rejected. The difference is the chain
-            // link's own propagation error leaking into the fit, which then
-            // shifts the longitude to compensate - a good fit to the wrong
-            // model. One unknown at a time.
-            var reference = FindVesselOrbiting(stationBody) ?? FindAnyLoadedVessel();
-            if (reference == null || reference.orbitDriver == null || reference.orbitDriver.orbit == null)
+        /// <summary>
+        /// The heading, in radians about the spin axis, that carries the game's
+        /// world axes onto the propagation frame's, read from the station body's
+        /// own position about its parent: a vector known in both, whose heading is
+        /// one unambiguous angle. Fitted once per game tick per body.
+        ///
+        /// <para>False when the body has no parent to read it from, when the
+        /// two vectors do not differ by a turn about the spin axis, or when the
+        /// body's spin axis is not the frame's: no station is placed then, and no
+        /// prediction is made from a frame that is not understood. Each change of
+        /// outcome is logged once, never per tick.</para>
+        /// </summary>
+        private bool TryMeasureFrameYaw(CelestialBody stationBody, IList<CelestialBody> bodies, out double yaw)
+        {
+            yaw = 0.0;
+            var index = bodies.IndexOf(stationBody);
+            if (index < 0)
             {
-                SilenceTrace.Calibration("no reference vessel to measure against for " + stationBody.bodyName);
-                return false;
-            }
-
-            var refBody = reference.orbitDriver.orbit.referenceBody;
-            var refIndex = refBody != null ? FlightGlobals.Bodies.IndexOf(refBody) : -1;
-            if (refIndex < 0)
-            {
-                SilenceTrace.Calibration("reference vessel " + reference.vesselName + " has no known parent body");
                 return false;
             }
 
             var now = Planetarium.GetUniversalTime();
-            var refOccluders = OccludersBetween(stationBodyIndex, refIndex, occlusion);
-            var refTarget = PropagationTarget.Vessel(
-                reference.id.ToString(), refIndex, ElementsOf(reference.orbitDriver.orbit));
-            var frame = PropagationFrame.CentredOn(stationBodyIndex);
-            if (refOccluders == null || !_propagator.CanPropagate(refTarget, frame, now, now))
+            FrameFit cached;
+            if (_frameFits.TryGetValue(index, out cached) && cached.Ut == now)
             {
-                SilenceTrace.Calibration("no propagatable path from reference at " + refBody.bodyName
-                    + " to station at " + stationBody.bodyName);
-                return false;
+                yaw = cached.Yaw;
+                return cached.Ok;
             }
 
-            var live = (reference.orbitDriver.orbit.getPositionAtUT(now) - comm.precisePosition).magnitude;
+            string report;
+            var ok = MeasureFrameYaw(stationBody, bodies, index, now, out yaw, out report);
+            _frameFits[index] = new FrameFit { Ut = now, Ok = ok, Yaw = yaw };
 
-            // One separation fixes the offset only up to a mirror about the line
-            // to the reference, so this gathers every offset that reconciles
-            // rather than the single least residual. The mirror one drops out
-            // once the body has turned, and no prediction is made until it has:
-            // both reconcile now and only one goes on to.
-            //
-            // Keyed on the body's frame regime, and in the rotating regime on the
-            // frame's angle: an offset measured against a rotating frame says
-            // nothing about the inertial one. See StationLongitudeCalibration.
-            var rotating = stationBody.inverseRotation;
-            var frameAngle = Planetarium.InverseRotAngle;
-            Func<double, double> residualAt = offset =>
-                ResidualAt(offset, refTarget, frame, refOccluders, stationBody, comm, occlusion, now, live);
-
-            IReadOnlyList<double> offsets = new double[0];
-            var pending = StationLongitudeCalibration.Pending(stationBodyIndex, rotating, frameAngle);
-            if (pending.Count > 0)
+            string previous;
+            var outcome = ok ? "fitted" : report;
+            if (!_frameFitReported.TryGetValue(index, out previous) || previous != outcome)
             {
-                offsets = StationLongitudeSolve.Surviving(pending, residualAt, FrameCheckToleranceMeters);
+                _frameFitReported[index] = outcome;
+                SilenceTrace.Calibration(ok
+                    ? stationBody.bodyName + " world frame fitted, heading "
+                        + (yaw * 180.0 / Math.PI).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                        + " deg"
+                    : stationBody.bodyName + " world frame not fitted: " + report
+                        + "; no prediction is published for it until it fits");
             }
-            if (offsets.Count == 0)
-            {
-                offsets = StationLongitudeSolve.Candidates(residualAt, FrameCheckToleranceMeters);
-            }
-
-            // Only accept a solve that actually reconciles. A minimum that is
-            // still far off is not a calibration, it is the least-bad of a set
-            // of wrong answers, and adopting it would hand the sweep a station
-            // in the wrong place with no further warning.
-            if (offsets.Count == 0)
-            {
-                SilenceTrace.Calibration("FAILED for " + stationBody.bodyName
-                    + ": no offset leaves less than " + FrameCheckToleranceMeters.ToString("F0")
-                    + "m of " + live.ToString("F0") + "m");
-                return false;
-            }
-
-            StationLongitudeCalibration.Set(stationBodyIndex, rotating, frameAngle, offsets);
-            if (offsets.Count > 1)
-            {
-                SilenceTrace.Calibration(stationBody.bodyName + " longitude ambiguous between "
-                    + offsets.Count + " offsets ("
-                    + string.Join(", ", System.Linq.Enumerable.Select(offsets, o => o.ToString("F1")))
-                    + " deg); waiting for the body to turn");
-                return false;
-            }
-
-            offsetDegrees = offsets[0];
-            SilenceTrace.Calibration(stationBody.bodyName + " longitude offset "
-                + offsetDegrees.ToString("F1") + " deg, residual " + residualAt(offsetDegrees).ToString("F0")
-                + "m of " + live.ToString("F0") + "m, frame " + (rotating ? "rotating" : "inertial"));
-            return true;
+            return ok;
         }
 
-        private double ResidualAt(
-            double offsetDeg,
-            PropagationTarget refTarget,
-            PropagationFrame frame,
-            List<OccludingBody> refOccluders,
+        private bool MeasureFrameYaw(
             CelestialBody stationBody,
-            CommNode comm,
-            ICommsOcclusionModel occlusion,
+            IList<CelestialBody> bodies,
+            int index,
             double now,
-            double live)
+            out double yaw,
+            out string report)
         {
-            var station = StationOn(stationBody, comm, offsetDeg);
-            if (station == null)
+            yaw = 0.0;
+            var parent = stationBody.referenceBody;
+            var parentIndex = parent != null ? bodies.IndexOf(parent) : -1;
+            if (parent == null || parent == stationBody || parentIndex < 0)
             {
-                return double.MaxValue;
+                report = "it has no parent body to read the frame from";
+                return false;
             }
-            var geometry = new OrbitToRemoteStationGeometry(
-                refTarget,
-                frame,
-                refOccluders,
-                station.Value,
-                OccludingRadiusOf(occlusion, stationBody),
-                _propagator);
-            return Math.Abs(live - geometry.SeparationAt(now));
+
+            var pole = stationBody.BodyFrame.LocalToWorld(new Vector3d(0.0, 0.0, 1.0));
+            if (pole.z < PoleAlignment)
+            {
+                report = "its spin axis is tilted "
+                    + (Math.Acos(Math.Max(-1.0, Math.Min(1.0, pole.z))) * 180.0 / Math.PI)
+                        .ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                    + " deg from the frame's";
+                return false;
+            }
+
+            var target = PropagationTarget.Body(index);
+            var frame = PropagationFrame.CentredOn(parentIndex);
+            if (!_propagator.CanPropagate(target, frame, now, now))
+            {
+                report = "no propagatable path from " + parent.bodyName;
+                return false;
+            }
+
+            var rel = (stationBody.position - parent.position).xzy;
+            var inWorld = new Sitrep.Contract.Vector3d(rel.x, rel.y, rel.z);
+            var inPropagation = _propagator.Solve(target, frame, now).Position;
+
+            FrameYawRefusal refusal;
+            double mismatch;
+            if (FrameYaw.TryMeasure(inWorld, inPropagation, out yaw, out refusal, out mismatch))
+            {
+                report = string.Empty;
+                return true;
+            }
+
+            switch (refusal)
+            {
+                case FrameYawRefusal.NearAxis:
+                    report = "the body sits too close to the spin axis of " + parent.bodyName + " to read a heading";
+                    break;
+                case FrameYawRefusal.OffAxisMismatch:
+                case FrameYawRefusal.LengthMismatch:
+                    report = "the game's position of the body about " + parent.bodyName
+                        + " is not a turn of the propagated one (they differ by "
+                        + mismatch.ToString("F0", System.Globalization.CultureInfo.InvariantCulture) + " m)";
+                    break;
+                default:
+                    report = "the body's position about " + parent.bodyName + " is not a real number";
+                    break;
+            }
+            return false;
         }
 
-        /// <summary>
-        /// Any vessel orbiting <paramref name="body"/>, loaded or not.
-        ///
-        /// <para>A landed or splashed craft is never the reference: its orbit is
-        /// the body's own surface rotation expressed as a conic, in the frame
-        /// that turns with the body, so it measures that frame and not the
-        /// inertial one the prediction is made in.</para>
-        ///
-        /// <para>Being unloaded is no obstacle: <c>getPositionAtUT</c> is the
-        /// same propagation KSP itself uses for an on-rails craft, and the
-        /// world-space position it yields is exactly what the calibration
-        /// compares against. Requiring a loaded reference found nothing at all
-        /// on a real save - only the active vessel is loaded, and it was at
-        /// Minmus - which sent the solve back to a one-link chain and the
-        /// polluted fit this preference exists to avoid.</para>
-        /// </summary>
-        private static Vessel FindVesselOrbiting(CelestialBody body)
-        {
-            var all = FlightGlobals.Vessels;
-            if (all == null) return null;
-            foreach (var v in all)
-            {
-                if (v == null || v.orbitDriver == null || v.orbitDriver.orbit == null) continue;
-                if (v.orbitDriver.orbit.referenceBody != body) continue;
-                if (v.LandedOrSplashed || !IsPropagatable(v.orbitDriver.orbit)) continue;
-                return v;
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Whether <see cref="KeplerProvider"/> can solve this orbit at all.
-        ///
-        /// <para>A save is full of things it cannot: debris on escape
-        /// trajectories, and anything else with <c>ecc &gt;= 1</c>. Picking one
-        /// as the calibration reference threw deep inside the solver, the policy
-        /// swallowed the throw, and the predictor went silent for the entire
-        /// session with no trace - which is exactly what happened here, twice,
-        /// for two different reasons.</para>
-        /// </summary>
-        private static bool IsPropagatable(Orbit orbit) =>
-            orbit.eccentricity < 1.0
-            && orbit.semiMajorAxis > 0.0
-            && orbit.referenceBody != null
-            && orbit.referenceBody.gravParameter > 0.0;
-
-        private static Vessel FindAnyLoadedVessel()
-        {
-            // Deliberately NOT ActiveVesselScope: this wants ANY vessel with a
-            // propagatable orbit to calibrate against, and falls through to the whole
-            // roster below when the first candidate will not do. It names no scope.
-            var active = FlightGlobals.ActiveVessel;
-            if (active != null && !active.LandedOrSplashed && active.orbitDriver != null
-                && active.orbitDriver.orbit != null && IsPropagatable(active.orbitDriver.orbit))
-            {
-                return active;
-            }
-            var all = FlightGlobals.Vessels;
-            if (all == null) return null;
-            foreach (var v in all)
-            {
-                if (v != null && v.loaded && !v.LandedOrSplashed && v.orbitDriver != null
-                    && v.orbitDriver.orbit != null && IsPropagatable(v.orbitDriver.orbit))
-                {
-                    return v;
-                }
-            }
-            return null;
-        }
+        /// <summary>The least cosine between the body's polar axis and the frame's +Z for the body to spin about the frame's axis.</summary>
+        private const double PoleAlignment = 0.9999;
 
         private static Vessel FindVessel(string vesselId)
         {
@@ -918,12 +823,8 @@ namespace Gonogo.KSP.SilenceTracking
                     : 0.0;
                 var predicted = geometry.AnatomyAt(now);
 
-                double offset;
-                var calibrated = StationLongitudeCalibration.TryGet(
-                    bodies != null ? bodies.IndexOf(stationBody) : -1,
-                    stationBody.inverseRotation,
-                    Planetarium.InverseRotAngle,
-                    out offset);
+                double fittedYaw = 0.0;
+                var fitted = bodies != null && TryMeasureFrameYaw(stationBody, bodies, out fittedYaw);
                 SilenceTrace.DecomposeStation(
                     liveCentreToVessel, predicted.CentreToVesselMeters,
                     liveToward, predicted.StationTowardVesselMeters,
@@ -933,7 +834,7 @@ namespace Gonogo.KSP.SilenceTracking
                     Planetarium.InverseRotAngle,
                     stationBody.rotationAngle,
                     stationBody.directRotAngle,
-                    calibrated ? (double?)offset : null);
+                    fitted ? (double?)(fittedYaw * 180.0 / Math.PI) : null);
             }
             catch (Exception ex)
             {

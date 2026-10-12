@@ -9,13 +9,11 @@ namespace Gonogo.KSP.CommandCentres
     ///
     /// <para><b>Body-fixed, not inertial.</b> The roster declares where a centre
     /// sits on its body, which is <c>GetLongitude(world)</c> raw.
-    /// <see cref="SilenceTracking.KspVisibilityGeometryFactory"/> adds
-    /// <c>body.rotationAngle</c> plus a measured per-body offset to the same call,
-    /// but that converts into the propagation frame and belongs only there: see
-    /// <see cref="SilenceTracking.StationLongitudeCalibration"/> for what guessing
-    /// that constant cost. Nothing here needs it, and adding it would move every
-    /// station on the map.</para>
-    ///
+    /// <see cref="SilenceTracking.KspVisibilityGeometryFactory"/> places stations
+    /// in the propagation frame from their world position instead, which belongs
+    /// only there. Nothing here needs it, and adding it would move every station
+    /// on the map.</para>
+
     /// <para><b>Degrees.</b> <c>CelestialBody.GetLatitude</c>/<c>GetLongitude</c>
     /// return degrees: <c>KspHost.PredictImpact</c> subtracts a <c>360/rotationPeriod</c>
     /// rate straight from <c>GetLongitude</c>'s result, which only holds in degrees.
