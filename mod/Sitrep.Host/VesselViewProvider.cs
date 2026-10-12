@@ -76,6 +76,7 @@ namespace Sitrep.Host
         public const string DockTopic = "vessel.dock";
         public const string SurfaceTopic = "vessel.surface";
         public const string LandingTopic = "vessel.landing";
+        public const string LightTopic = "vessel.light";
 
         /// <summary>
         /// The <c>eva.crew</c> channel: every kerbal currently outside a craft,
@@ -96,7 +97,7 @@ namespace Sitrep.Host
             IdentityTopic, OrbitTopic, OrbitTruthTopic, FlightTopic,
             AttitudeTopic, ResourcesTopic, ThermalTopic, ControlTopic, PhysicsModeTopic, CommsTopic,
             PropulsionTopic, ManeuverTopic, TargetTopic, CrewTopic, StructureTopic, WarpTopic,
-            CalendarTopic, DockTopic, SurfaceTopic, LandingTopic, EvaCrewTopic,
+            CalendarTopic, DockTopic, SurfaceTopic, LandingTopic, LightTopic, EvaCrewTopic,
         };
 
 
@@ -1143,6 +1144,36 @@ namespace Sitrep.Host
             };
         }
 
+        /// <summary>The <c>vessel.light</c> channel: see <see cref="VesselLight"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.SolveLight</c> omitted the raw group (no provider, no orbit, or a craft orbiting the star).</summary>
+        public static VesselLight? BuildLight(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            if (vessel == null)
+            {
+                return null;
+            }
+
+            if (!TryGetGroup(vessel, "light", out var light))
+            {
+                return null;
+            }
+
+            var horizon = GetDouble(light, "sweptToUt");
+            if (!horizon.HasValue)
+            {
+                return null;
+            }
+
+            return new VesselLight
+            {
+                Sunlit = GetBool(light, "sunlit"),
+                NextSunriseUt = GetDouble(light, "nextSunriseUt"),
+                NextSunsetUt = GetDouble(light, "nextSunsetUt"),
+                SweptToUt = horizon.Value,
+                Basis = GetString(light, "basis") ?? "withheld",
+            };
+        }
+
         /// <summary>The <c>vessel.surface</c> channel: see <see cref="VesselSurface"/>'s class doc comment. Null whenever <c>Gonogo.KSP.KspHost.BuildSurface</c> omitted the raw group (no reference body yet).</summary>
         public static VesselSurface? BuildSurface(KspSnapshot? snapshot)
         {
@@ -1615,6 +1646,9 @@ namespace Sitrep.Host
         public static object? BuildDockWire(KspSnapshot? snapshot) =>
             BuildDock(snapshot) is { } dock ? ToWire(dock) : null;
 
+        public static object? BuildLightWire(KspSnapshot? snapshot) =>
+            BuildLight(snapshot) is { } light ? ToWire(light) : null;
+
         public static object? BuildSurfaceWire(KspSnapshot? snapshot) =>
             BuildSurface(snapshot) is { } surface ? ToWire(surface) : null;
 
@@ -1888,6 +1922,15 @@ namespace Sitrep.Host
         {
             ["time"] = ca.Time,
             ["distance"] = ca.Distance,
+        };
+
+        private static Dictionary<string, object?> ToWire(VesselLight light) => new Dictionary<string, object?>
+        {
+            ["sunlit"] = light.Sunlit,
+            ["nextSunriseUt"] = light.NextSunriseUt,
+            ["nextSunsetUt"] = light.NextSunsetUt,
+            ["sweptToUt"] = light.SweptToUt,
+            ["basis"] = light.Basis,
         };
 
         private static Dictionary<string, object?> ToWire(DockAlignment dock) => new Dictionary<string, object?>

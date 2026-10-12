@@ -1,0 +1,104 @@
+{
+  "_meta": {
+    "shows": "A craft in flight at 1x, in contact now, with its route predicted to close in about forty minutes and a sunrise and sunset ahead, for the warp-to loss of signal and light targets.",
+    "scenario": "loss-and-light-ahead",
+    "notes": "comms.nextLoss gives the predicted-loss instant of the whole route; vessel.light gives the craft's next sunrise and sunset from the mod's sweep; fleet.silence lists the craft Nominal so no signal return is offered."
+  },
+  "kc.scene": "Flight",
+  "kc.padOccupied": false,
+  "career.mode": "CAREER",
+  "t.currentRate": 1,
+  "t.timeWarp": 0,
+  "t.warpMode": "High",
+  "t.isPaused": false,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "time.warp",
+        "value": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight"
+        }
+      },
+      {
+        "channel": "spaceCenter.launchSites",
+        "value": [
+          {
+            "name": "__pad_occupancy__",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "11111111-1111-1111-1111-111111111111"
+        }
+      },
+      {
+        "channel": "fleet.silence",
+        "value": {
+          "vessels": [
+            {
+              "vesselId": "11111111-1111-1111-1111-111111111111",
+              "state": "Nominal"
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          },
+          "patches": [
+            {
+              "referenceBody": "Kerbin",
+              "startUt": 4999900,
+              "endUt": 5009000,
+              "patchEndTransition": 1
+            }
+          ]
+        }
+      },
+      {
+        "channel": "comms.nextLoss",
+        "value": {
+          "ut": 5002400,
+          "basis": "predicted-loss",
+          "coveredToUt": 5021600,
+          "lowConfidence": false
+        }
+      },
+      {
+        "channel": "vessel.light",
+        "value": {
+          "sunlit": false,
+          "nextSunriseUt": 5001200,
+          "nextSunsetUt": 5003300,
+          "sweptToUt": 5007200,
+          "basis": "orbit"
+        }
+      }
+    ],
+    "pinnedUt": 5000000
+  },
+  "t.universalTime": 5000000
+}

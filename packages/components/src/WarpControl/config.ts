@@ -51,6 +51,25 @@ export const warpActions = [
     description:
       "Set an alarm for the craft's next sphere-of-influence change.",
   },
+  {
+    id: "warp-to-loss",
+    label: "Warp to loss of signal",
+    accepts: ["button"],
+    description:
+      "Set an alarm for when the craft is next predicted to lose contact with this command centre.",
+  },
+  {
+    id: "warp-to-sunrise",
+    label: "Warp to sunrise",
+    accepts: ["button"],
+    description: "Set an alarm for the craft's next sunrise.",
+  },
+  {
+    id: "warp-to-sunset",
+    label: "Warp to sunset",
+    accepts: ["button"],
+    description: "Set an alarm for the craft's next sunset.",
+  },
 ] as const satisfies readonly ActionDefinition[];
 
 export type WarpControlActions = typeof warpActions;

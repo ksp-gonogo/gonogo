@@ -1,9 +1,9 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 40.0.0
+  version: 40.1.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 86 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -165,7 +165,7 @@ info:
     - name: commcast
       description: 2 telemetry channels, 5 commands
     - name: comms
-      description: 13 telemetry channels, 0 commands
+      description: 14 telemetry channels, 0 commands
     - name: crash
       description: 2 telemetry channels, 0 commands
     - name: deployed
@@ -205,7 +205,7 @@ info:
     - name: time
       description: 2 telemetry channels, 2 commands
     - name: vessel
-      description: 20 telemetry channels, 18 commands
+      description: 21 telemetry channels, 18 commands
   externalDocs:
     description: "Writing an Uplink: the plugin half and the client half"
     url: https://ksp-gonogo.github.io/uplink-dev-docs/
@@ -1189,6 +1189,33 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.comms.network"
+      event:
+        $ref: "#/components/messages/event"
+  comms.nextLoss:
+    address: comms.nextLoss
+    description: |-
+      Carries a `CommsNextLoss`.
+
+      When the active craft is next predicted to drop out of contact with one
+      command centre, on `comms.nextLoss`: the first moment its contact plan has
+      no open route between the two, relays included.
+
+      A prediction, and the receiving centre's own, made over the `comms.contacts`
+      plan that centre holds. A craft held in contact by one relay after another
+      stays in contact across a handover, so this is the end of the whole route
+      and never the end of one window. The live link the game reports decides what
+      actually gets through.
+
+      Each session is sent only the figure of the centre it sits at.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 1000
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.comms.nextLoss"
       event:
         $ref: "#/components/messages/event"
   comms.occlusion:
@@ -3628,6 +3655,35 @@ channels:
         $ref: "#/components/messages/streamData.vessel.landing"
       event:
         $ref: "#/components/messages/event"
+  vessel.light:
+    address: vessel.light
+    description: |-
+      Carries a `VesselLight`.
+
+      The `vessel.light` Topic payload: whether the active craft is in sunlight
+      now, and the next two instants at which that changes, for a widget that
+      warps to sunrise or sunset or plans around a night pass.
+
+      The star counts as hidden when a body between it and the craft covers its
+      centre. A craft in orbit is swept along its patched conic; a landed or
+      splashed craft is carried round by its body's rotation. The instants are
+      universal times, so they hold wherever they are read and need no reckoning
+      between samples.
+
+      Whenever no sound answer exists (an open orbit, an orbit of the star itself,
+      no body table yet) the payload is absent or its instants are null with
+      `VesselLight.basis` saying `withheld`, never a guess.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: delayed
+    x-sitrep-sample-kind: discrete
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.vessel.light"
+      event:
+        $ref: "#/components/messages/event"
   vessel.maneuver:
     address: vessel.maneuver
     description: |-
@@ -5122,6 +5178,17 @@ operations:
     messages:
       - $ref: "#/channels/comms.network/messages/streamData"
       - $ref: "#/channels/comms.network/messages/event"
+  read:comms.nextLoss:
+    action: receive
+    channel:
+      $ref: "#/channels/comms.nextLoss"
+    title: Read comms.nextLoss
+    description: Delivered only after `subscribe` names `comms.nextLoss` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: comms
+    messages:
+      - $ref: "#/channels/comms.nextLoss/messages/streamData"
+      - $ref: "#/channels/comms.nextLoss/messages/event"
   read:comms.occlusion:
     action: receive
     channel:
@@ -5716,6 +5783,17 @@ operations:
     messages:
       - $ref: "#/channels/vessel.landing/messages/streamData"
       - $ref: "#/channels/vessel.landing/messages/event"
+  read:vessel.light:
+    action: receive
+    channel:
+      $ref: "#/channels/vessel.light"
+    title: Read vessel.light
+    description: Delivered only after `subscribe` names `vessel.light` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: vessel
+    messages:
+      - $ref: "#/channels/vessel.light/messages/streamData"
+      - $ref: "#/channels/vessel.light/messages/event"
   read:vessel.maneuver:
     action: receive
     channel:
@@ -7928,6 +8006,19 @@ components:
                 const: comms.network
               payload:
                 $ref: "#/components/schemas/CommsNetwork"
+    streamData.comms.nextLoss:
+      name: stream-data
+      title: A frame on comms.nextLoss
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `comms.nextLoss`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: comms.nextLoss
+              payload:
+                $ref: "#/components/schemas/CommsNextLoss"
     streamData.comms.occlusion:
       name: stream-data
       title: A frame on comms.occlusion
@@ -8660,6 +8751,19 @@ components:
                 const: vessel.landing
               payload:
                 $ref: "#/components/schemas/VesselLanding"
+    streamData.vessel.light:
+      name: stream-data
+      title: A frame on vessel.light
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `vessel.light`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: vessel.light
+              payload:
+                $ref: "#/components/schemas/VesselLight"
     streamData.vessel.maneuver:
       name: stream-data
       title: A frame on vessel.maneuver
@@ -12049,6 +12153,55 @@ components:
           allOf:
             - $ref: "#/components/schemas/CommsHopKind"
               x-sitrep-unit: enum
+    CommsNextLoss:
+      type: object
+      description: |-
+        When the active craft is next predicted to drop out of contact with one
+        command centre, on `comms.nextLoss`: the first moment its contact plan has
+        no open route between the two, relays included.
+
+        A prediction, and the receiving centre's own, made over the `comms.contacts`
+        plan that centre holds. A craft held in contact by one relay after another
+        stays in contact across a handover, so this is the end of the whole route
+        and never the end of one window. The live link the game reports decides what
+        actually gets through.
+
+        Each session is sent only the figure of the centre it sits at.
+      required:
+        - basis
+        - coveredToUt
+        - lowConfidence
+      properties:
+        ut:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time the plan first has no open route between the centre and
+            the active craft, or null when none is predicted: see `CommsNextLoss.basis`
+            for which.
+        basis:
+          type: string
+          x-sitrep-unit: enum
+          description: |-
+            What `CommsNextLoss.ut` rests on. One of `predicted-loss` (the plan closes
+            the last open route at `CommsNextLoss.ut`), `no-loss-in-window` (in contact
+            through `CommsNextLoss.coveredToUt`), `out-of-contact` (no route is open
+            now; `fleet.silence` says when it returns), `not-planned` (the centre holds
+            no plan that includes the craft) or `no-craft` (there is no active craft).
+        coveredToUt:
+          type: number
+          x-sitrep-unit: ut
+          description: |-
+            The last universal time the plan reaches. A null `CommsNextLoss.ut` with
+            `no-loss-in-window` means no loss before it.
+        lowConfidence:
+          type: boolean
+          x-sitrep-unit: flag
+          description: |-
+            True while an end of the route was last heard of with its orbit still
+            changing, so the instant is a rough guide until its next report.
     CommsOcclusion:
       type: object
       description: |-
@@ -21041,6 +21194,64 @@ components:
           description: The payload's provenance (`"vessel:<guid>"`).
           allOf:
             - $ref: "#/components/schemas/PayloadMeta"
+    VesselLight:
+      type: object
+      description: |-
+        The `vessel.light` Topic payload: whether the active craft is in sunlight
+        now, and the next two instants at which that changes, for a widget that
+        warps to sunrise or sunset or plans around a night pass.
+
+        The star counts as hidden when a body between it and the craft covers its
+        centre. A craft in orbit is swept along its patched conic; a landed or
+        splashed craft is carried round by its body's rotation. The instants are
+        universal times, so they hold wherever they are read and need no reckoning
+        between samples.
+
+        Whenever no sound answer exists (an open orbit, an orbit of the star itself,
+        no body table yet) the payload is absent or its instants are null with
+        `VesselLight.basis` saying `withheld`, never a guess.
+      required:
+        - sweptToUt
+        - basis
+      properties:
+        sunlit:
+          type:
+            - boolean
+            - "null"
+          x-sitrep-unit: flag
+          description: |-
+            True while the star is above the craft's horizon and no body covers it,
+            false in shadow. Null when the geometry could not be solved this tick.
+        nextSunriseUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The next universal time the craft leaves shadow, or null when it stays lit
+            through `VesselLight.sweptToUt`, is lit now and no sunrise is predicted, or
+            no prediction was made.
+        nextSunsetUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The next universal time the craft enters shadow, or null when it stays lit
+            through `VesselLight.sweptToUt` or no prediction was made.
+        sweptToUt:
+          type: number
+          x-sitrep-unit: ut
+          description: |-
+            The last universal time the search reached. A null instant means no change
+            before it.
+        basis:
+          type: string
+          x-sitrep-unit: enum
+          description: |-
+            What the instants rest on: `orbit` (the craft swept along its orbit),
+            `surface` (the craft carried round by its body's rotation) or `withheld` (no
+            sound prediction, so both instants are null).
     VesselManeuver:
       type: object
       description: |-

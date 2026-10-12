@@ -109,7 +109,12 @@ export function WarpToRow({
       label={(open) => (open ? "Hide warp to" : "Warp to")}
     >
       <Stack gap="related-dense">
-        <Cluster gap="related-packed" role="group" aria-label="Warp target">
+        <Cluster
+          gap="related-packed"
+          wrap
+          role="group"
+          aria-label="Warp target"
+        >
           <ToggleButton
             size="sm"
             pressed={target === "for"}
@@ -145,7 +150,9 @@ export function WarpToRow({
 
         {event !== null ? (
           <ReadoutCaption>
-            {event.instant === null ? "No prediction" : (event.detail ?? "")}
+            {event.instant === null
+              ? (event.absent ?? "No prediction")
+              : (event.detail ?? "")}
           </ReadoutCaption>
         ) : target === "for" ? (
           <UnitInput

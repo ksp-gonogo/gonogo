@@ -19,6 +19,13 @@ const INSTANCE = "warp-events";
 interface Scenario {
   silent?: { predictedUt: number | null };
   soi?: { transition: TransitionType; endUt: number };
+  loss?: { ut: number | null; basis: string; lowConfidence?: boolean };
+  light?: {
+    sunlit: boolean;
+    sunriseUt: number | null;
+    sunsetUt: number | null;
+    basis?: string;
+  };
 }
 
 async function mount(scenario: Scenario) {
@@ -58,6 +65,23 @@ async function mount(scenario: Scenario) {
         },
       ],
     });
+    if (scenario.loss) {
+      fixture.emit("comms.nextLoss", {
+        ut: scenario.loss.ut,
+        basis: scenario.loss.basis,
+        coveredToUt: VIEW_UT + 21_600,
+        lowConfidence: scenario.loss.lowConfidence ?? false,
+      });
+    }
+    if (scenario.light) {
+      fixture.emit("vessel.light", {
+        sunlit: scenario.light.sunlit,
+        nextSunriseUt: scenario.light.sunriseUt,
+        nextSunsetUt: scenario.light.sunsetUt,
+        sweptToUt: VIEW_UT + 7_200,
+        basis: scenario.light.basis ?? "orbit",
+      });
+    }
     fixture.emit("vessel.orbit", {
       patches: scenario.soi
         ? [
@@ -207,5 +231,103 @@ describe("WarpControl: event targets", () => {
 
     expect(result).toBeUndefined();
     expect(creator).not.toHaveBeenCalled();
+  });
+
+  it("arms a time alarm at the predicted loss of signal", async () => {
+    const user = userEvent.setup();
+    const { creator, container } = await mount({
+      loss: { ut: VIEW_UT + 2_400, basis: "predicted-loss" },
+    });
+
+    await open(user);
+    await user.click(screen.getByRole("button", { name: "Signal lost" }));
+    expect(armButton().disabled).toBe(false);
+    await user.click(armButton());
+
+    expect(creator.mock.calls[0][0]).toMatchObject({
+      name: "Signal lost",
+      trigger: { kind: "time", ut: VIEW_UT + 2_400 },
+    });
+    await expectNoA11yViolations(container);
+  });
+
+  it("says why there is no loss of signal to warp to", async () => {
+    const user = userEvent.setup();
+    await mount({ loss: { ut: null, basis: "out-of-contact" } });
+
+    await open(user);
+    await user.click(screen.getByRole("button", { name: "Signal lost" }));
+
+    expect(screen.getByText("Out of contact now")).toBeTruthy();
+    expect(armButton().disabled).toBe(true);
+  });
+
+  it("arms sunrise and sunset at the instants the mod predicts", async () => {
+    const user = userEvent.setup();
+    const { creator } = await mount({
+      light: {
+        sunlit: false,
+        sunriseUt: VIEW_UT + 1_200,
+        sunsetUt: VIEW_UT + 3_300,
+      },
+    });
+
+    await open(user);
+    await user.click(screen.getByRole("button", { name: "Sunrise" }));
+    await user.click(armButton());
+    await user.click(screen.getByRole("button", { name: "Sunset" }));
+    await user.click(armButton());
+
+    expect(creator.mock.calls[0][0]).toMatchObject({
+      name: "Sunrise",
+      trigger: { kind: "time", ut: VIEW_UT + 1_200 },
+    });
+    expect(creator.mock.calls[1][0]).toMatchObject({
+      name: "Sunset",
+      trigger: { kind: "time", ut: VIEW_UT + 3_300 },
+    });
+  });
+
+  it("offers no sunrise when the mod withheld its prediction", async () => {
+    const user = userEvent.setup();
+    const { creator } = await mount({
+      light: {
+        sunlit: true,
+        sunriseUt: null,
+        sunsetUt: null,
+        basis: "withheld",
+      },
+    });
+
+    await open(user);
+    await user.click(screen.getByRole("button", { name: "Sunrise" }));
+
+    expect(screen.getByText("No prediction")).toBeTruthy();
+    expect(armButton().disabled).toBe(true);
+    expect(creator).not.toHaveBeenCalled();
+  });
+
+  it("registers an action per new event that arms the same alarm", async () => {
+    const { creator } = await mount({
+      loss: { ut: VIEW_UT + 2_400, basis: "predicted-loss" },
+      light: { sunlit: true, sunriseUt: null, sunsetUt: VIEW_UT + 600 },
+    });
+
+    let loss: unknown;
+    let sunset: unknown;
+    act(() => {
+      loss = dispatchAction(INSTANCE, "warp-to-loss", {
+        kind: "button",
+        value: true,
+      });
+      sunset = dispatchAction(INSTANCE, "warp-to-sunset", {
+        kind: "button",
+        value: true,
+      });
+    });
+
+    expect(loss).toEqual({ Armed: "Signal lost" });
+    expect(sunset).toEqual({ Armed: "Sunset" });
+    expect(creator).toHaveBeenCalledTimes(2);
   });
 });

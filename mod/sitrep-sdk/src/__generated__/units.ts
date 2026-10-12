@@ -467,6 +467,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     id: "id",
     kind: "enum",
   },
+  "CommsNextLoss": {
+    basis: "enum",
+    coveredToUt: "ut",
+    lowConfidence: "flag",
+    ut: "ut",
+  },
   "CommsOcclusion": {
     modelId: "id",
     modelName: "text",
@@ -1529,6 +1535,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     slopeSampleRadiusMeters: "m",
     terminalVelocity: "m/s",
   },
+  "VesselLight": {
+    basis: "enum",
+    nextSunriseUt: "ut",
+    nextSunsetUt: "ut",
+    sunlit: "flag",
+    sweptToUt: "ut",
+  },
   "VesselManeuver": {
     planner: "id",
   },
@@ -1754,6 +1767,12 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "comms.link": {
     connected: "flag",
+  },
+  "comms.nextLoss": {
+    basis: "enum",
+    coveredToUt: "ut",
+    lowConfidence: "flag",
+    ut: "ut",
   },
   "comms.occlusion": {
     modelId: "id",
@@ -2193,6 +2212,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     siteHeightsSize: "count",
     slopeSampleRadiusMeters: "m",
     terminalVelocity: "m/s",
+  },
+  "vessel.light": {
+    basis: "enum",
+    nextSunriseUt: "ut",
+    nextSunsetUt: "ut",
+    sunlit: "flag",
+    sweptToUt: "ut",
   },
   "vessel.maneuver": {
     planner: "id",
@@ -2914,6 +2940,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "CommsNetworkNode": {
     kind: "CommsHopKind",
   },
+  "CommsNextLoss": {
+    basis: null,
+  },
   "CommsSignal": {
     quantity: "SignalQuantity",
   },
@@ -3029,6 +3058,9 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
     situation: "Situation",
     vesselType: "VesselType",
   },
+  "VesselLight": {
+    basis: null,
+  },
   "VesselPart": {
     categoryOrdinal: "KspPartCategory",
   },
@@ -3074,6 +3106,9 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "comms.delay": {
     source: "CommsDelaySource",
   },
+  "comms.nextLoss": {
+    basis: null,
+  },
   "comms.signal": {
     quantity: "SignalQuantity",
   },
@@ -3109,6 +3144,9 @@ export const GENERATED_TOPIC_ENUMS: Readonly<Record<string, EnumsByField>> = {
   "vessel.identity": {
     situation: "Situation",
     vesselType: "VesselType",
+  },
+  "vessel.light": {
+    basis: null,
   },
   "vessel.physics.mode": {
     mode: "PhysicsMode",

@@ -427,6 +427,12 @@
       "id": "id",
       "kind": "enum"
     },
+    "CommsNextLoss": {
+      "basis": "enum",
+      "coveredToUt": "ut",
+      "lowConfidence": "flag",
+      "ut": "ut"
+    },
     "CommsOcclusion": {
       "modelId": "id",
       "modelName": "text"
@@ -1489,6 +1495,13 @@
       "slopeSampleRadiusMeters": "m",
       "terminalVelocity": "m/s"
     },
+    "VesselLight": {
+      "basis": "enum",
+      "nextSunriseUt": "ut",
+      "nextSunsetUt": "ut",
+      "sunlit": "flag",
+      "sweptToUt": "ut"
+    },
     "VesselManeuver": {
       "planner": "id"
     },
@@ -1709,6 +1722,12 @@
     },
     "comms.link": {
       "connected": "flag"
+    },
+    "comms.nextLoss": {
+      "basis": "enum",
+      "coveredToUt": "ut",
+      "lowConfidence": "flag",
+      "ut": "ut"
     },
     "comms.occlusion": {
       "modelId": "id",
@@ -2148,6 +2167,13 @@
       "siteHeightsSize": "count",
       "slopeSampleRadiusMeters": "m",
       "terminalVelocity": "m/s"
+    },
+    "vessel.light": {
+      "basis": "enum",
+      "nextSunriseUt": "ut",
+      "nextSunsetUt": "ut",
+      "sunlit": "flag",
+      "sweptToUt": "ut"
     },
     "vessel.maneuver": {
       "planner": "id"
@@ -2829,6 +2855,9 @@
     "CommsNetworkNode": {
       "kind": "CommsHopKind"
     },
+    "CommsNextLoss": {
+      "basis": null
+    },
     "CommsSignal": {
       "quantity": "SignalQuantity"
     },
@@ -2944,6 +2973,9 @@
       "situation": "Situation",
       "vesselType": "VesselType"
     },
+    "VesselLight": {
+      "basis": null
+    },
     "VesselPart": {
       "categoryOrdinal": "KspPartCategory"
     },
@@ -2987,6 +3019,9 @@
     "comms.delay": {
       "source": "CommsDelaySource"
     },
+    "comms.nextLoss": {
+      "basis": null
+    },
     "comms.signal": {
       "quantity": "SignalQuantity"
     },
@@ -3022,6 +3057,9 @@
     "vessel.identity": {
       "situation": "Situation",
       "vesselType": "VesselType"
+    },
+    "vessel.light": {
+      "basis": null
     },
     "vessel.physics.mode": {
       "mode": "PhysicsMode"

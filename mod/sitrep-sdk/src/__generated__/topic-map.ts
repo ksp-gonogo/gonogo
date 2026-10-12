@@ -44,6 +44,7 @@ import type {
   CommsJourney,
   CommsLink,
   CommsNetwork,
+  CommsNextLoss,
   CommsOcclusion,
   CommsPath,
   CommsRoutes,
@@ -99,6 +100,7 @@ import type {
   VesselIdentity,
   VesselInventory,
   VesselLanding,
+  VesselLight,
   VesselManeuver,
   VesselOrbit,
   VesselOrbitTruth,
@@ -156,6 +158,8 @@ export interface GeneratedTopicPayloadMap {
   "comms.link": CommsLink;
   /** The `comms.network` payload: the nodes and edges of the active vessel's path as the receiving command centre believes it to stand now, which is `comms.path` in graph form with each node named. */
   "comms.network": CommsNetwork;
+  /** When the active craft is next predicted to drop out of contact with one command centre, on `comms.nextLoss`: the first moment its contact plan has no open route between the two, relays included. */
+  "comms.nextLoss": CommsNextLoss;
   /** The model of which bodies block a radio path, named, with its rule already applied to every celestial body the game knows about: each body's blocking radius. */
   "comms.occlusion": CommsOcclusion;
   /** The `comms.path` payload: the route the active vessel's samples take to the receiving command centre. */
@@ -264,6 +268,8 @@ export interface GeneratedTopicPayloadMap {
   "vessel.inventory": VesselInventory;
   /** The `vessel.landing` Topic payload: landing data for the active vessel that needs KSP's PQS terrain heightmap (slope, roughness and elevation at the touchdown site), plus an atmosphere-aware descent estimate built from the vessel's measured drag. */
   "vessel.landing": VesselLanding;
+  /** The `vessel.light` Topic payload: whether the active craft is in sunlight now, and the next two instants at which that changes, for a widget that warps to sunrise or sunset or plans around a night pass. */
+  "vessel.light": VesselLight;
   /** The `vessel.maneuver` Topic payload: the active vessel's planned burns. */
   "vessel.maneuver": VesselManeuver;
   /** The `vessel.orbit` Topic payload: the active vessel's orbital elements. */
@@ -310,6 +316,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.journey",
   "comms.link",
   "comms.network",
+  "comms.nextLoss",
   "comms.occlusion",
   "comms.path",
   "comms.route",
@@ -364,6 +371,7 @@ export const GENERATED_TOPIC_IDS = [
   "vessel.identity",
   "vessel.inventory",
   "vessel.landing",
+  "vessel.light",
   "vessel.maneuver",
   "vessel.orbit",
   "vessel.orbit.truth",

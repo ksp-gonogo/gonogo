@@ -83,6 +83,7 @@ export const GENERATED_ADDRESSED_TOPICS = [
   "comms.degrade",
   "comms.delay",
   "comms.network",
+  "comms.nextLoss",
   "comms.path",
   "comms.route",
   "comms.signal",

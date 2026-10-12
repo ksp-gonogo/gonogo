@@ -202,6 +202,8 @@ namespace Sitrep.Host.Comms
 
         public const string RouteTopic = "comms.route";
 
+        public const string NextLossTopic = "comms.nextLoss";
+
         public const string PathTopic = "comms.path";
 
         public const string NetworkTopic = "comms.network";
@@ -384,6 +386,12 @@ namespace Sitrep.Host.Comms
         private readonly Dictionary<string, IReadOnlyCollection<string>> _unsettled = new Dictionary<string, IReadOnlyCollection<string>>(StringComparer.Ordinal);
         private readonly HashSet<string> _unpublished = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _routesAsked = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The centres with a session that has just subscribed to <c>comms.nextLoss</c>.</summary>
+        private readonly HashSet<string> _nextLossAsked = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>The figure last sent to each centre, so an unchanged one is not sent again.</summary>
+        private readonly Dictionary<string, CommsNextLoss> _nextLossSent = new Dictionary<string, CommsNextLoss>(StringComparer.Ordinal);
         private readonly Dictionary<string, HashSet<string>> _pathsAsked = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
         private readonly Dictionary<string, string> _pathShapes = new Dictionary<string, string>(StringComparer.Ordinal);
 
@@ -557,6 +565,18 @@ namespace Sitrep.Host.Comms
             {
                 Kind = SampleKind.Discrete,
                 Requires = Requirement.None,
+                Topic = NextLossTopic,
+                Delivery = Delivery.LossyLatest,
+                // Addressed: each centre is sent the loss of its own route and no other's.
+                Delay = DelayRole.Delayed,
+                Addressed = true,
+                Recordable = false,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+            },
+            new ChannelDeclaration
+            {
+                Kind = SampleKind.Discrete,
+                Requires = Requirement.None,
                 Topic = RouteTopic,
                 Delivery = Delivery.LossyLatest,
                 // Addressed: each centre is sent its own routes and no other's.
@@ -588,11 +608,13 @@ namespace Sitrep.Host.Comms
             plans?.SetHeardStore(HeardNow, heard => System.Threading.Volatile.Write(ref _restore, new Restore(heard)));
             _streams.DeclareAddressedTopic(ContactsTopic);
             _streams.DeclareAddressedTopic(RouteTopic);
+            _streams.DeclareAddressedTopic(NextLossTopic);
             // A plan is state, and an addressed sample is not kept for whoever
             // subscribes after it landed, so a session that has just sat down is
             // told its centre's current plan and routes again.
             _streams.OnAddressedSubscribed(ContactsTopic, centre => _unpublished.Add(centre));
             _streams.OnAddressedSubscribed(RouteTopic, centre => _routesAsked.Add(centre));
+            _streams.OnAddressedSubscribed(NextLossTopic, centre => _nextLossAsked.Add(centre));
             _streams.DeclareAddressedTopic(RosterTopic);
             _streams.OnAddressedSubscribed(RosterTopic, centre => _rosterAsked.Add(centre));
             foreach (var topic in FigureTopics)
@@ -863,6 +885,7 @@ namespace Sitrep.Host.Comms
             }
             PublishPlans(looked.Ut);
             PublishRoutes(looked, planning);
+            PublishNextLoss(looked, planning);
             PublishPaths(looked, planning);
             PublishVessels(looked, planning);
             PublishRosters(looked, listening);
@@ -1510,6 +1533,47 @@ namespace Sitrep.Host.Comms
             _routesAsked.Clear();
             RouteRowsBudget.Record(rows, looked.Ut);
         }
+
+        /// <summary>
+        /// Sends each planning centre the instant its own plan next has no open
+        /// route to the active craft. A figure that has not changed is not sent
+        /// again, except to a session that has just sat down.
+        /// </summary>
+        private void PublishNextLoss(Looked looked, IReadOnlyCollection<string> planning)
+        {
+            if (!_host!.IsAnyTopicSubscribed(NextLossTopic))
+            {
+                _nextLossAsked.Clear();
+                return;
+            }
+            IReadOnlyCollection<string>? stations = null;
+            var home = _audience!.HomeCentre();
+            foreach (var centre in planning)
+            {
+                if (!looked.RoutesDue && !_nextLossAsked.Contains(centre))
+                {
+                    continue;
+                }
+                _plans.TryGetValue(centre, out var plan);
+                _unsettled.TryGetValue(centre, out var unsettled);
+                stations ??= StationIds();
+                var figure = ContactLoss.Next(plan, looked.ActiveCraft, centre, home, stations, looked.Ut, unsettled);
+                var changed = !_nextLossSent.TryGetValue(centre, out var sent) || !SameLoss(sent, figure);
+                if (!changed && !_nextLossAsked.Contains(centre))
+                {
+                    continue;
+                }
+                _nextLossSent[centre] = figure;
+                _streams!.PublishAddressedTo(NextLossTopic, figure, looked.Ut, ToItself(centre));
+            }
+            _nextLossAsked.Clear();
+        }
+
+        private static bool SameLoss(CommsNextLoss a, CommsNextLoss b) =>
+            a.Basis == b.Basis
+            && a.LowConfidence == b.LowConfidence
+            && a.Ut == b.Ut
+            && a.CoveredToUt == b.CoveredToUt;
 
         /// <summary>
         /// Sends each planning centre the active craft's path: every centre once a second, and at once a centre where a session

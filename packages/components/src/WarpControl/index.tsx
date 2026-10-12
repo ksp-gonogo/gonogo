@@ -48,6 +48,15 @@ const topics = defineTopicManifest({
     "vessel.orbit.patches",
     "vessel.identity.vesselId",
     "fleet.silence.vessels",
+    "comms.nextLoss.ut",
+    "comms.nextLoss.basis",
+    "comms.nextLoss.lowConfidence",
+    "comms.nextLoss.coveredToUt",
+    "vessel.light.nextSunriseUt",
+    "vessel.light.nextSunsetUt",
+    "vessel.light.basis",
+    "vessel.light.sunlit",
+    "vessel.light.sweptToUt",
   ],
 });
 
@@ -101,6 +110,8 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     orbit: observedValue(topics.useTelemetry("vessel.orbit")),
     silence: stillTrue(topics.useTelemetry("fleet.silence"), undefined),
     identity: stillTrue(topics.useTelemetry("vessel.identity"), undefined),
+    loss: stillTrue(topics.useTelemetry("comms.nextLoss"), undefined),
+    light: stillTrue(topics.useTelemetry("vessel.light"), undefined),
     viewUt: viewUt?.valueOf(),
   });
 
@@ -153,6 +164,9 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     },
     "warp-to-contact": (payload) => armEventAction("contact", payload),
     "warp-to-soi": (payload) => armEventAction("soi", payload),
+    "warp-to-loss": (payload) => armEventAction("loss", payload),
+    "warp-to-sunrise": (payload) => armEventAction("sunrise", payload),
+    "warp-to-sunset": (payload) => armEventAction("sunset", payload),
   });
 
   return {

@@ -680,6 +680,39 @@ const WIDGETS: WidgetRenderConfig[] = [
         ],
         forFixtures: ["signal-lost-soi-ahead"],
       },
+      // The loss-of-signal target, which arms an alarm at the instant the mod predicts the whole route closes.
+      {
+        name: "warp-to-loss-open-8x7",
+        w: 8,
+        h: 7,
+        clicks: [
+          { selector: "button[aria-expanded]" },
+          { selector: '[aria-label="Warp target"] button:nth-child(6)' },
+        ],
+        forFixtures: ["loss-and-light-ahead"],
+      },
+      // The sunrise target, from the sweep of the craft's line to the star.
+      {
+        name: "warp-to-sunrise-open-8x7",
+        w: 8,
+        h: 7,
+        clicks: [
+          { selector: "button[aria-expanded]" },
+          { selector: '[aria-label="Warp target"] button:nth-child(7)' },
+        ],
+        forFixtures: ["loss-and-light-ahead"],
+      },
+      // The sunset target, the other half of the same sweep.
+      {
+        name: "warp-to-sunset-open-8x7",
+        w: 8,
+        h: 7,
+        clicks: [
+          { selector: "button[aria-expanded]" },
+          { selector: '[aria-label="Warp target"] button:nth-child(8)' },
+        ],
+        forFixtures: ["loss-and-light-ahead"],
+      },
       // An event target with nothing published for it: drawn absent, with nothing to arm.
       {
         name: "warp-to-soi-absent-open-8x7",

@@ -179,6 +179,10 @@ namespace Gonogo.KSP
                 // meaningful ("not descending toward a solid surface"), so
                 // absenceIsData: true (same as vessel.dock/target/crew).
                 Channel(VesselViewProvider.LandingTopic, SampleKind.Continuous, absenceIsData: true),
+                // vessel.light: the next sunrise and sunset of the craft.
+                // Absent when nothing sound can be said (no orbit, or a craft
+                // orbiting the star), which is an answer and not a gap.
+                Channel(VesselViewProvider.LightTopic, SampleKind.Discrete, absenceIsData: true),
                 // vessel.parts (P1b slice 2): the full part-tree topology
                 // (VesselPartsViewProvider), sibling of vessel.structure. Same
                 // structured-vessel.* cadence/DelayRole.Delayed posture; per-
@@ -341,6 +345,7 @@ namespace Gonogo.KSP
             host.AddChannelSource(VesselViewProvider.DockTopic, VesselViewProvider.BuildDockWire);
             host.AddChannelSource(VesselViewProvider.SurfaceTopic, VesselViewProvider.BuildSurfaceWire);
             host.AddChannelSource(VesselViewProvider.LandingTopic, VesselViewProvider.BuildLandingWire);
+            host.AddChannelSource(VesselViewProvider.LightTopic, VesselViewProvider.BuildLightWire);
             host.AddChannelSource(VesselPartsViewProvider.PartsTopic, VesselPartsViewProvider.BuildPartsWire);
             host.AddChannelSource(StageDeltaVViewProvider.StagesTopic, StageDeltaVViewProvider.BuildStages);
             host.AddChannelSource(StageDeltaVViewProvider.SummaryTopic, StageDeltaVViewProvider.BuildSummary);

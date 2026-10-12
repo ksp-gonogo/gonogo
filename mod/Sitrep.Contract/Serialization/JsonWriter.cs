@@ -262,6 +262,9 @@ namespace Sitrep.Contract.Serialization
                 case Sitrep.Contract.CommsRoutes routes:
                     AppendCommsRoutes(sb, routes);
                     break;
+                case Sitrep.Contract.CommsNextLoss nextLoss:
+                    AppendCommsNextLoss(sb, nextLoss);
+                    break;
                 case Sitrep.Contract.CommsRoute route:
                     AppendCommsRoute(sb, route);
                     break;
@@ -1909,6 +1912,28 @@ namespace Sitrep.Contract.Serialization
             AppendString(sb, "lowConfidence");
             sb.Append(':');
             AppendBool(sb, p.LowConfidence);
+            sb.Append('}');
+        }
+
+        private static void AppendCommsNextLoss(
+            StringBuilder sb, Sitrep.Contract.CommsNextLoss n)
+        {
+            sb.Append('{');
+            AppendString(sb, "ut");
+            sb.Append(':');
+            AppendNullableNumber(sb, n.Ut);
+            sb.Append(',');
+            AppendString(sb, "basis");
+            sb.Append(':');
+            AppendString(sb, n.Basis ?? "");
+            sb.Append(',');
+            AppendString(sb, "coveredToUt");
+            sb.Append(':');
+            AppendNumber(sb, n.CoveredToUt);
+            sb.Append(',');
+            AppendString(sb, "lowConfidence");
+            sb.Append(':');
+            AppendBool(sb, n.LowConfidence);
             sb.Append('}');
         }
 

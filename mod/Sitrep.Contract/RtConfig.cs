@@ -127,6 +127,7 @@ public static class RtConfig
                 typeof(ControlFrameOption),
                 typeof(SetControlFrameArgs),
                 typeof(DockAlignment),
+                typeof(VesselLight),
                 typeof(ResourceAmount),
                 typeof(ThermalHottestPart),
                 typeof(WarpState),
@@ -398,6 +399,8 @@ public static class RtConfig
                 typeof(CommsRoutes),
                 typeof(CommsRoute),
                 typeof(CommsRouteHold),
+                // comms.nextLoss: the next predicted loss of the whole route to each centre
+                typeof(CommsNextLoss),
                 // comms.journey and the store-and-forward commands
                 typeof(CommsJourney),
                 typeof(CommsJourneyEvent),

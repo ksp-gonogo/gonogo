@@ -2695,6 +2695,48 @@ export interface UplinkActionReply
 	expiresAtUt: Value<"ut">;
 }
 /**
+* When the active craft is next predicted to drop out of contact with one
+* command centre, on `comms.nextLoss`: the first moment its contact plan has
+* no open route between the two, relays included.
+*
+* A prediction, and the receiving centre's own, made over the `comms.contacts`
+* plan that centre holds. A craft held in contact by one relay after another
+* stays in contact across a handover, so this is the end of the whole route
+* and never the end of one window. The live link the game reports decides what
+* actually gets through.
+*
+* Each session is sent only the figure of the centre it sits at.
+*
+* @category Comms
+*/
+export interface CommsNextLoss
+{
+	/**
+	* The universal time the plan first has no open route between the centre and
+	* the active craft, or null when none is predicted: see `CommsNextLoss.basis`
+	* for which.
+	*/
+	ut?: Value<"ut"> | null;
+	/**
+	* What `CommsNextLoss.ut` rests on. One of `predicted-loss` (the plan closes
+	* the last open route at `CommsNextLoss.ut`), `no-loss-in-window` (in contact
+	* through `CommsNextLoss.coveredToUt`), `out-of-contact` (no route is open
+	* now; `fleet.silence` says when it returns), `not-planned` (the centre holds
+	* no plan that includes the craft) or `no-craft` (there is no active craft).
+	*/
+	basis: string;
+	/**
+	* The last universal time the plan reaches. A null `CommsNextLoss.ut` with
+	* `no-loss-in-window` means no loss before it.
+	*/
+	coveredToUt: Value<"ut">;
+	/**
+	* True while an end of the route was last heard of with its orbit still
+	* changing, so the instant is a rough guide until its next report.
+	*/
+	lowConfidence: boolean;
+}
+/**
 * One body's occlusion geometry, as resolved by the elected model.
 * `CommsOcclusionBody.index` matches `BodyEntry.Index` on `system.bodies`
 * (both are `CelestialBody.flightGlobalsIndex`), so a consumer joins the two
@@ -9893,6 +9935,53 @@ export interface VesselLanding
 	parachuteFullDeployAltitude?: Value<"m"> | null;
 	/** The payload's provenance (`"vessel:<guid>"`). */
 	meta: PayloadMeta;
+}
+/**
+* The `vessel.light` Topic payload: whether the active craft is in sunlight
+* now, and the next two instants at which that changes, for a widget that
+* warps to sunrise or sunset or plans around a night pass.
+*
+* The star counts as hidden when a body between it and the craft covers its
+* centre. A craft in orbit is swept along its patched conic; a landed or
+* splashed craft is carried round by its body's rotation. The instants are
+* universal times, so they hold wherever they are read and need no reckoning
+* between samples.
+*
+* Whenever no sound answer exists (an open orbit, an orbit of the star itself,
+* no body table yet) the payload is absent or its instants are null with
+* `VesselLight.basis` saying `withheld`, never a guess.
+*
+* @category Vessel
+*/
+export interface VesselLight
+{
+	/**
+	* True while the star is above the craft's horizon and no body covers it,
+	* false in shadow. Null when the geometry could not be solved this tick.
+	*/
+	sunlit?: boolean | null;
+	/**
+	* The next universal time the craft leaves shadow, or null when it stays lit
+	* through `VesselLight.sweptToUt`, is lit now and no sunrise is predicted, or
+	* no prediction was made.
+	*/
+	nextSunriseUt?: Value<"ut"> | null;
+	/**
+	* The next universal time the craft enters shadow, or null when it stays lit
+	* through `VesselLight.sweptToUt` or no prediction was made.
+	*/
+	nextSunsetUt?: Value<"ut"> | null;
+	/**
+	* The last universal time the search reached. A null instant means no change
+	* before it.
+	*/
+	sweptToUt: Value<"ut">;
+	/**
+	* What the instants rest on: `orbit` (the craft swept along its orbit),
+	* `surface` (the craft carried round by its body's rotation) or `withheld` (no
+	* sound prediction, so both instants are null).
+	*/
+	basis: string;
 }
 /**
 * One planned burn: named delta-v components in a named frame

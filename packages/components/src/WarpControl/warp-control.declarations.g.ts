@@ -3,10 +3,12 @@ export default {
   optionalChannels: [
     "career.mode",
     "comms.delay",
+    "comms.nextLoss",
     "fleet.silence",
     "spaceCenter.scene",
     "spaceCenter.state",
     "vessel.identity",
+    "vessel.light",
     "vessel.maneuver",
     "vessel.orbit",
   ],

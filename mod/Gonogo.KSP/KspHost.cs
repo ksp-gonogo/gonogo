@@ -13,6 +13,7 @@ using ModuleWheels;
 using Sitrep.Host;
 using Sitrep.Host.Maneuver;
 using Sitrep.Host.Propulsion;
+using Sitrep.Propagation.Visibility;
 using Strategies;
 using UnityEngine;
 using Sitrep.Contract;
@@ -290,7 +291,9 @@ namespace Gonogo.KSP
                         // Null when there's no target / no encounter -- stamped onto
                         // vessel.target below.
                         var closestApproach = SolveClosestApproach(ut);
-                        values["vessel"] = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, _signalQuantity?.Invoke(), ut);
+                        var vesselEntry = BuildVesselEntry(activeVessel, _actionGroupsBackend?.Invoke(), _maneuverPlanSource?.Invoke(), closestApproach, _thrustObserver, _signalQuantity?.Invoke(), ut);
+                        TryBuildGroup(vesselEntry, "light", () => SolveLight(activeVessel, ut));
+                        values["vessel"] = vesselEntry;
 
                         // Science + parts/power/robotics capture-adds (this
                         // session) - both require an active vessel to have
@@ -3185,6 +3188,157 @@ namespace Gonogo.KSP
             }
 
             return provider.SolveClosestApproach(subject, other.Value, frame, ut, ut + window.Value);
+        }
+
+        /// <summary>The prediction last made for the light on the active craft, and what it was made from.</summary>
+        private sealed class LightMemory
+        {
+            public string Key = "";
+            public double ComputedUt;
+            public Dictionary<string, object?>? Result;
+        }
+
+        private LightMemory? _light;
+
+        /// <summary>
+        /// Seconds of game time a prediction is kept while the craft's orbit is
+        /// changing under thrust, so a burn is not re-swept on every frame.
+        /// </summary>
+        private const double LightBurnReuseSeconds = 1.0;
+
+        /// <summary>
+        /// When the active craft next enters and leaves the shadow of the bodies
+        /// it orbits, asked of the elected propagation provider, as the raw
+        /// <c>light</c> group <c>vessel.light</c> is mapped from. A craft on the
+        /// ground is carried round by its body's rotation instead of swept along
+        /// an orbit.
+        ///
+        /// <para>Null whenever there is nothing honest to say: no provider, no
+        /// orbit, or a craft orbiting the star itself, which has no body to hide
+        /// behind. A prediction is kept until one of its instants passes, its
+        /// orbit changes or half a cycle has gone by.</para>
+        /// </summary>
+        private Dictionary<string, object?>? SolveLight(Vessel vessel, double ut)
+        {
+            var provider = _propagation != null ? _propagation.Invoke() : null;
+            var orbit = vessel.orbitDriver != null ? vessel.orbitDriver.orbit : null;
+            if (provider == null || orbit == null || orbit.referenceBody == null)
+            {
+                return null;
+            }
+            var parent = orbit.referenceBody;
+            var parentIndex = BodyIndexOf(parent);
+            var star = StarOf(parent);
+            var starIndex = BodyIndexOf(star);
+            if (parentIndex < 0 || starIndex < 0 || parentIndex == starIndex)
+            {
+                return null;
+            }
+
+            var onGround = vessel.situation == Vessel.Situations.LANDED
+                || vessel.situation == Vessel.Situations.SPLASHED
+                || vessel.situation == Vessel.Situations.PRELAUNCH;
+            var key = string.Join(
+                "|",
+                vessel.id.ToString(),
+                onGround ? "g" : "o",
+                orbit.semiMajorAxis.ToString("R"),
+                orbit.eccentricity.ToString("R"),
+                orbit.inclination.ToString("R"),
+                orbit.LAN.ToString("R"),
+                orbit.argumentOfPeriapsis.ToString("R"),
+                orbit.meanAnomalyAtEpoch.ToString("R"),
+                orbit.epoch.ToString("R"),
+                parentIndex.ToString());
+
+            var memory = _light;
+            if (memory != null && memory.Result != null && ut >= memory.ComputedUt)
+            {
+                var sameOrbit = memory.Key == key;
+                var instantsAhead = LightInstantAhead(memory.Result, "nextSunriseUt", ut)
+                    && LightInstantAhead(memory.Result, "nextSunsetUt", ut);
+                var horizonUt = memory.Result.TryGetValue("sweptToUt", out var h) && h is double hd ? hd : ut;
+                if (sameOrbit && instantsAhead && ut < horizonUt && ut - memory.ComputedUt < (horizonUt - memory.ComputedUt) / 4.0)
+                {
+                    return memory.Result;
+                }
+                if (!sameOrbit && ut - memory.ComputedUt < LightBurnReuseSeconds)
+                {
+                    return memory.Result;
+                }
+            }
+
+            var frame = PropagationFrame.CentredOn(parentIndex);
+            var occluders = new List<OccludingBody>();
+            var body = parent;
+            for (var depth = 0; body != null && body != star && depth < 16; depth++)
+            {
+                var index = BodyIndexOf(body);
+                if (index >= 0)
+                {
+                    occluders.Add(new OccludingBody(index, body.Radius));
+                }
+                body = body.referenceBody;
+            }
+            if (occluders.Count == 0)
+            {
+                return null;
+            }
+
+            var subject = PropagationTarget.Vessel(vessel.id.ToString(), parentIndex, ElementsOf(orbit));
+            SunLineOfSightGeometry geometry;
+            double? limit = null;
+            if (onGround)
+            {
+                var position = provider.Solve(subject, frame, ut).Position;
+                var spin = parent.rotationPeriod;
+                if (!(Math.Abs(spin) > 0.0) || !(parent.Radius > 0.0) || !(position.Magnitude() > 0.0))
+                {
+                    return null;
+                }
+                var station = new RotatingGroundStation(position, ut, spin, parent.Radius, position.Magnitude() - parent.Radius);
+                geometry = SunLineOfSightGeometry.ForSurface(provider, station, frame, starIndex, occluders);
+            }
+            else
+            {
+                geometry = SunLineOfSightGeometry.ForOrbit(provider, subject, frame, starIndex, occluders);
+                if (orbit.patchEndTransition != Orbit.PatchTransitionType.FINAL)
+                {
+                    limit = orbit.EndUT;
+                }
+            }
+
+            var found = LightPrediction.Predict(geometry, ut, onGround, limit);
+            var result = new Dictionary<string, object?>
+            {
+                ["sunlit"] = found.Sunlit,
+                ["nextSunriseUt"] = found.NextSunriseUt,
+                ["nextSunsetUt"] = found.NextSunsetUt,
+                ["sweptToUt"] = found.HorizonUt,
+                ["basis"] = found.Basis,
+            };
+            _light = new LightMemory { Key = key, ComputedUt = ut, Result = result };
+            return result;
+        }
+
+        /// <summary>True when the named instant is absent or still ahead of <paramref name="ut"/>.</summary>
+        private static bool LightInstantAhead(Dictionary<string, object?> light, string field, double ut) =>
+            !light.TryGetValue(field, out var value) || !(value is double instant) || instant > ut;
+
+        /// <summary>The body at the root of <paramref name="body"/>'s chain of parents, the star.</summary>
+        private static CelestialBody StarOf(CelestialBody body)
+        {
+            var current = body;
+            for (var depth = 0; depth < 16 && current != null; depth++)
+            {
+                var up = current.referenceBody;
+                if (up == null || up == current)
+                {
+                    return current;
+                }
+                current = up;
+            }
+            return current;
         }
 
         /// <summary>
