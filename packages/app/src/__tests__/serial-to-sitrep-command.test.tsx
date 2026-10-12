@@ -153,8 +153,7 @@ describe("serial → action → sitrep command end-to-end", () => {
     // ActionGroup handler → dispatchAction → useCommand.send →
     // client.dispatch → transport.send) inside a single act scope.
     await act(async () => {
-      // The first line is the panel's resting state; the press is the change from it.
-      await port.emitData(" 0 0 \n 1 0 \n");
+      await port.emitData(" 1 0 \n");
       // Drain enough microtasks for the full async cascade to settle.
       for (let i = 0; i < 10; i++) await Promise.resolve();
     });

@@ -53,11 +53,6 @@ export interface LogTransport {
    * page unload and from tests that need deterministic dispatch.
    */
   flush?(): Promise<void> | void;
-  /**
-   * Release whatever the transport holds outside itself, such as a window
-   * listener. Optional; called once the logger has stopped sending to it.
-   */
-  dispose?(): void;
 }
 
 export interface TaggedLogger {

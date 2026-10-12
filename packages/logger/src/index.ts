@@ -121,16 +121,14 @@ export class ConsoleLogger implements Logger {
    * Remove a previously-registered transport. Best-effort flush of any
    * buffered entries first so the removed sink (e.g. Axiom) doesn't drop
    * what it already holds. Idempotent, removing a transport that isn't
-   * registered is a no-op. The transport is disposed once it is out. Used by
-   * the analytics-consent gate to detach the Axiom sink the moment consent
-   * is revoked.
+   * registered is a no-op. Used by the analytics-consent gate to detach
+   * the Axiom sink the moment consent is revoked.
    */
   removeTransport(transport: LogTransport): void {
     const idx = this.transports.indexOf(transport);
     if (idx === -1) return;
     void transport.flush?.();
     this.transports.splice(idx, 1);
-    transport.dispose?.();
   }
 
   /** Number of currently-registered transports: used by the consent

@@ -116,7 +116,7 @@ export class AxiomTransport implements LogTransport {
     }
   }
 
-  /** Detach the `pagehide` handler. */
+  /** Detach the `pagehide` handler. Used in tests to release the listener. */
   dispose(): void {
     if (
       this.pageHideHandler &&

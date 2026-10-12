@@ -13,7 +13,6 @@
  * the React UI can render via useSyncExternalStore / useState+useEffect.
  */
 
-import { logger } from "@ksp-gonogo/logger";
 import {
   dispatchActiveCommandTopic,
   getVesselIdentity,
@@ -88,7 +87,6 @@ export class GoNoGoHostService {
     timer: ReturnType<typeof setTimeout>;
   } | null = null;
   private launched = false;
-  private abortInFlight = false;
   private abort: { peerId: string; stationName: string; at: number } | null =
     null;
   private config: GoNoGoConfig = { ...DEFAULT_GONOGO_CONFIG };
@@ -98,8 +96,10 @@ export class GoNoGoHostService {
   constructor(private host: GoNoGoHost) {
     this.unsubs.push(
       host.onPeerConnect((peerId) => {
-        // A screen that has just joined has no vote, and a screen with no vote is not in the poll: its first vote decides what it does to a countdown.
         this.connectedPeers.add(peerId);
+        // Rule: a new station can't have voted yet, so the "all green"
+        // condition is broken. Cancel any in-flight countdown.
+        this.cancelCountdownIfRunning("new station joined");
         this.emit();
       }),
     );
@@ -124,13 +124,11 @@ export class GoNoGoHostService {
     this.unsubs.push(
       host.onGonogoVote((peerId, status) => {
         this.peerIdToVote.set(peerId, status);
-        if (this.pollIsGo()) {
+        if (status === "go") {
           this.maybeStartCountdown();
         } else {
           this.cancelCountdownIfRunning(
-            status === null
-              ? "the last GO vote was withdrawn"
-              : `vote flipped to ${status}`,
+            `vote flipped to ${status ?? "missing"}`,
           );
         }
         this.emit();
@@ -153,10 +151,23 @@ export class GoNoGoHostService {
           });
           return;
         }
-        // One abort is on its way to the craft: a second press adds nothing until its outcome is known.
-        if (this.abortInFlight) return;
         const stationName = this.peerIdToName.get(peerId) ?? "Unknown station";
-        void this.sendAbort(peerId, stationName);
+        this.abort = { peerId, stationName, at: Date.now() };
+        // Abort alert tone: fired alongside f.abort on the first-abort path
+        // (the re-notify branch above returns early, so a station re-sending
+        // within the same host session doesn't chime twice). The tone is
+        // deliberately coupled to f.abort: a main-screen *reload* mid-abort
+        // builds a fresh host with no abort memory and re-fires both f.abort
+        // and this tone: inherited f.abort behaviour, not introduced here.
+        // Internally gated by isSoundEnabled(); main-only.
+        playAbortTone();
+        void this.dispatchCommand("vessel.control.setAbort", { enabled: true });
+        this.host.broadcast({
+          type: "gonogo-abort-notify",
+          stationName,
+          t: this.abort.at,
+        });
+        this.emit();
       }),
     );
 
@@ -191,39 +202,7 @@ export class GoNoGoHostService {
   }
 
   /**
-   * Send the abort and, only once the craft has taken it, record it, sound the
-   * alert and tell every station who aborted. An abort that had no stream to
-   * travel on, or that the game refused, is recorded nowhere, so the next press
-   * from any station sends it again.
-   */
-  private async sendAbort(peerId: string, stationName: string): Promise<void> {
-    this.abortInFlight = true;
-    const refusal = await this.dispatchCommand("vessel.control.setAbort", {
-      enabled: true,
-    });
-    this.abortInFlight = false;
-    if (refusal !== undefined) {
-      logger.warn(
-        `[GoNoGoHost] abort from ${stationName} not sent: ${refusal}`,
-      );
-      return;
-    }
-    // A craft back on the pad by the time the outcome arrived has no abort to show.
-    if (!this.launched || this.abort) return;
-    this.abort = { peerId, stationName, at: Date.now() };
-    // Internally gated by isSoundEnabled(); main-only.
-    playAbortTone();
-    this.host.broadcast({
-      type: "gonogo-abort-notify",
-      stationName,
-      t: this.abort.at,
-    });
-    this.emit();
-  }
-
-  /**
-   * Fire a command through the stream, naming it and its arguments directly,
-   * and resolve with why it did not take effect, or `undefined` when it did.
+   * Fire a command through the stream, naming it and its arguments directly.
    *
    * Never through a widget-facing action string, which costs the abort twice
    * over: an action string resolves to a toggle bridge, reading
@@ -236,14 +215,9 @@ export class GoNoGoHostService {
    * Naming `setAbort` with an absolute `true` says what the operator meant, and
    * needs no current value to say it.
    */
-  private async dispatchCommand(
-    command: string,
-    args: unknown,
-  ): Promise<string | undefined> {
+  private dispatchCommand(command: string, args: unknown): void {
     const outcome = dispatchActiveCommandTopic(command, args);
-    if (!outcome.routed) return "no telemetry stream is connected";
-    const refusal = await outcome.settled;
-    return refusal?.message;
+    if (outcome.routed) void outcome.settled;
   }
 
   getSnapshot(): GoNoGoSnapshot {
@@ -289,26 +263,13 @@ export class GoNoGoHostService {
     this.listeners.clear();
   }
 
-  /**
-   * Whether the poll passes: at least one connected screen has voted "GO" and
-   * none has voted "NO-GO". A screen with no vote is not in the poll, whether
-   * it never showed the widget or has removed it, so it neither blocks a
-   * countdown nor counts towards one. No votes at all does not pass.
-   */
-  private pollIsGo(): boolean {
-    let go = 0;
-    for (const peerId of this.connectedPeers) {
-      const vote = this.peerIdToVote.get(peerId) ?? null;
-      if (vote === "no-go") return false;
-      if (vote === "go") go++;
-    }
-    return go > 0;
-  }
-
   private maybeStartCountdown(): void {
     if (this.launched) return;
     if (this.countdown) return;
-    if (!this.pollIsGo()) return;
+    if (this.connectedPeers.size === 0) return;
+    for (const peerId of this.connectedPeers) {
+      if (this.peerIdToVote.get(peerId) !== "go") return;
+    }
     const t0Ms = Date.now() + this.config.countdownLengthMs;
     const timer = setTimeout(() => {
       this.onCountdownReached();
@@ -335,12 +296,7 @@ export class GoNoGoHostService {
     // is instantiated only on MainScreen.
     playCountdownTone(true);
     if (this.config.triggerStageAtZero) {
-      void this.dispatchCommand("vessel.control.stage", null).then(
-        (refusal) => {
-          if (refusal === undefined) return;
-          logger.warn(`[GoNoGoHost] T-0 stage not sent: ${refusal}`);
-        },
-      );
+      void this.dispatchCommand("vessel.control.stage", null);
     }
     this.emit();
   }

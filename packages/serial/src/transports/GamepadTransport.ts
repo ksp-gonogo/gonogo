@@ -115,28 +115,9 @@ export class GamepadTransport implements DeviceTransport {
       GamepadPoller.get().release(this.resolvedIndex);
     }
     this.resolvedIndex = null;
-    this.releaseHeld();
+    this.lastValues.clear();
     this.setStatus("disconnected");
     return Promise.resolve();
-  }
-
-  /**
-   * The pad went away on its own: a pulled cable, a Bluetooth drop. Gives the
-   * pad up and goes back to waiting for it, so it is adopted again when it
-   * returns. `disconnect()` is the operator's choice and stops listening.
-   */
-  private losePad(): void {
-    if (this.frameUnsubscribe) {
-      this.frameUnsubscribe();
-      this.frameUnsubscribe = null;
-    }
-    if (this.resolvedIndex !== null) {
-      GamepadPoller.get().release(this.resolvedIndex);
-    }
-    this.resolvedIndex = null;
-    this.releaseHeld();
-    this.setStatus("disconnected");
-    this.attachConnectedListener();
   }
 
   /** Rumble is deferred; see the Out of scope section of the
@@ -191,17 +172,6 @@ export class GamepadTransport implements DeviceTransport {
     return candidates.find((p) => p.mapping === "standard") ?? candidates[0];
   }
 
-  /** Report every button still held as released, then forget the pad's state. */
-  private releaseHeld(): void {
-    for (const [inputId, value] of this.lastValues) {
-      if (value !== true) continue;
-      this.inputListeners.forEach((cb) => {
-        cb({ inputId, value: false });
-      });
-    }
-    this.lastValues.clear();
-  }
-
   private attachConnectedListener(): void {
     if (this.connectedListener) return;
     this.connectedListener = (evt: Event) => {
@@ -237,7 +207,7 @@ export class GamepadTransport implements DeviceTransport {
       const pad = (evt as Event & { gamepad?: Gamepad }).gamepad;
       if (!pad) return;
       if (this.resolvedIndex !== pad.index) return;
-      this.losePad();
+      void this.disconnect();
     };
     window.addEventListener("gamepaddisconnected", this.disconnectedListener);
   }
@@ -324,8 +294,10 @@ export class GamepadTransport implements DeviceTransport {
     if (this.resolvedIndex === null) return;
     const pad = pads[this.resolvedIndex] ?? null;
     if (!pad || (this.gamepadId && pad.id !== this.gamepadId)) {
-      // The pad vanished from this slot (or a different physical pad now occupies it) before its disconnect event was delivered.
-      this.losePad();
+      // The pad vanished from this slot (or a different physical pad now
+      // occupies it) between disconnect-event delivery and this tick,
+      // treat it the same as an explicit disconnect.
+      void this.disconnect();
       return;
     }
     for (let i = 0; i < pad.buttons.length; i++) {

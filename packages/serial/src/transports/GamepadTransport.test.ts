@@ -224,18 +224,6 @@ describe("GamepadTransport", () => {
     expect(t.status).toBe("disconnected");
   });
 
-  it("adopts its pad again when the pad comes back after dropping", async () => {
-    mock.install();
-    const t = createTransport({ id: "d1", deviceType: EMPTY_TYPE });
-    await t.connect();
-    mock.connectPad(0, { id: "Pad A" });
-    mock.disconnectPad(0);
-    expect(t.status).toBe("disconnected");
-
-    mock.connectPad(0, { id: "Pad A" });
-    expect(t.status).toBe("connected");
-  });
-
   describe("frame diffing (via GamepadPoller.tick(), no real rAF)", () => {
     function makeStandardType(): DeviceType {
       return {

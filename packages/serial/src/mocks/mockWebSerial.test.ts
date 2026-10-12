@@ -34,10 +34,13 @@ describe("MockWebSerial", () => {
     await transport.connect();
     expect(transport.status).toBe("connected");
 
-    await port.emitData(" 0 0 \n 1 0 \n");
+    await port.emitData(" 1 0 \n");
     for (let i = 0; i < 5; i++) await Promise.resolve();
 
-    expect(events).toEqual([{ inputId: "a", value: true }]);
+    expect(events).toEqual([
+      { inputId: "a", value: true },
+      { inputId: "b", value: false },
+    ]);
 
     await transport.disconnect();
   });

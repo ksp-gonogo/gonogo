@@ -110,7 +110,6 @@ type ClientEventMap = {
   hostCommandCentre: [centreId: string | null];
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
-  superseded: [superseded: boolean];
   brokerReachable: [reachable: boolean];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
@@ -175,10 +174,6 @@ export class PeerClientService {
   private relayIceServers: RTCIceServer[] = [];
   private hostVersion: { version: string; buildTime: string } | null = null;
   private hostSessionToken: string | null = null;
-  /** The share code last passed to `connect`, kept so the station can be taken back. */
-  private shareCode: string | null = null;
-  /** True once the host has handed this station to another page with the same stationKey. */
-  private superseded = false;
   // Host's technical-analytics consent. Stations follow the host, they
   // never read a local value. Cached so a late subscriber gets the current
   // state on subscribe. Privacy-first default: disabled until the first
@@ -251,8 +246,6 @@ export class PeerClientService {
   connect(code: string) {
     // `code` is the operator-typed share code. Derive the host's broker peer
     // id (`gonogo-host-<CODE>`) once and hold it as the reconnect target.
-    this.shareCode = code;
-    this.setSuperseded(false);
     this.hostPeerId = deriveHostPeerId(code);
     logger.setIdentity({ hostPeerId: this.hostPeerId });
     this.retryPolicy.beginConnect();
@@ -298,17 +291,14 @@ export class PeerClientService {
     // `key: "gonogo"` puts the station in our private namespace on the
     // public broker. MUST match PeerHostService, a station with a different
     // key is invisible to the host on the broker even if the ids match.
-    const peer = new Peer(this.stationPeerId, peerBrokerOptions());
-    this.peer = peer;
-    peer.on("open", () => {
-      if (this.peer !== peer) return;
+    this.peer = new Peer(this.stationPeerId, peerBrokerOptions());
+    this.peer.on("open", () => {
       // Reaching `open` means the broker answered and holds our id, so any earlier "can't reach the broker" verdict is stale.
       this.setBrokerReachable(true);
       this.enterStage("host");
       this.connectToHost();
     });
-    peer.on("error", (err) => {
-      if (this.peer !== peer) return;
+    this.peer.on("error", (err) => {
       /* Classify BEFORE the peer-unavailable branches below: a broker we
          never reached is a different fault from a host that isn't there,
          and only this branch can tell the operator which one they have. */
@@ -360,15 +350,8 @@ export class PeerClientService {
      * radio chunks play in arrival order. Delivery is unchanged either way, so
      * the only cost is head-of-line waiting behind a lost packet's retransmit.
      */
-    const conn = this.peer.connect(this.hostPeerId, { reliable: true });
-    this.conn = conn;
-    /* Every handler below drops an event from a connection that is no longer
-       the current one. Closing a connection emits its `close` synchronously,
-       and a torn-down connection can still deliver events afterwards; either
-       would otherwise be read as the live link failing. */
-    const current = (): boolean => this.conn === conn;
-    attachIceDiagnostics(conn, () => {
-      if (!current()) return;
+    this.conn = this.peer.connect(this.hostPeerId, { reliable: true });
+    attachIceDiagnostics(this.conn, () => {
       // The host's peer can die without peerjs ever firing `close` (abrupt
       // pagehide on host refresh). This is the line that ships to Axiom to
       // mark the ICE/PC-driven reconnect. handleUnexpectedClose() is
@@ -378,8 +361,7 @@ export class PeerClientService {
       );
       this.retryPolicy.handleUnexpectedClose();
     });
-    conn.on("open", () => {
-      if (!current()) return;
+    this.conn.on("open", () => {
       logger.info(`[PeerClient] connected to host=${this.hostPeerId}`);
       this.retryPolicy.onConnected();
       this.enterStage("data");
@@ -390,43 +372,35 @@ export class PeerClientService {
       this.sendDataMode("selective");
       this.emitConnStatus("connected");
     });
-    conn.on("data", (raw) => {
-      if (!current()) return;
+    this.conn.on("data", (raw) => {
       const msg = asPeerMessage(raw);
       if (msg) this.handleMessage(msg);
     });
-    conn.on("close", () => {
-      if (!current()) return;
+    this.conn.on("close", () => {
       logger.info(`[PeerClient] connection closed`);
       this.retryPolicy.handleUnexpectedClose();
     });
-    conn.on("error", (err) => {
-      if (!current()) return;
+    this.conn.on("error", (err) => {
       logger.error("[PeerClient] connection error", err);
     });
   }
 
   private tearDownPeer() {
-    // Cleared before closing, so the events closing emits find no current connection to fail.
-    const conn = this.conn;
-    const peer = this.peer;
-    this.peer = null;
-    this.conn = null;
     try {
-      conn?.close();
+      this.conn?.close();
     } catch {
       /* already closed */
     }
     try {
-      peer?.destroy();
+      this.peer?.destroy();
     } catch {
       /* already destroyed */
     }
-    /* Drop the cached hello so a reconnect to a freshly-deployed host on a
-       different version doesn't briefly report the old version. The session
-       token is kept: comparing the next hello's token with it is the only way
-       to tell a restarted host from the same host reconnected. */
+    this.peer = null;
+    this.conn = null;
+    // Drop the cached hello so a reconnect to a freshly-deployed host on a different version doesn't briefly report the old version.
     this.hostVersion = null;
+    this.hostSessionToken = null;
   }
 
   private enterStage(stage: keyof ConnectProgress["entered"]) {
@@ -975,31 +949,6 @@ export class PeerClientService {
     return this.events.on("schema", cb);
   }
 
-  private setSuperseded(value: boolean) {
-    if (this.superseded === value) return;
-    this.superseded = value;
-    this.events.emit("superseded", value);
-  }
-
-  /** Whether another page with this station's identity has taken the station over. */
-  isSuperseded(): boolean {
-    return this.superseded;
-  }
-
-  /** Fires when this station is taken over by another page, and when it is taken back. */
-  onSuperseded(cb: (superseded: boolean) => void) {
-    return this.events.on("superseded", cb);
-  }
-
-  /**
-   * Connect again after another page took this station over. That page is
-   * then the one told it has been superseded. Does nothing unless superseded.
-   */
-  takeBack(): void {
-    if (!this.superseded || !this.shareCode) return;
-    this.connect(this.shareCode);
-  }
-
   /**
    * Fires when the broker reports the configured host id as
    * `peer-unavailable` (i.e. nobody on the broker is registered with
@@ -1173,15 +1122,6 @@ export class PeerClientService {
     },
     "relay-ice-servers": (msg) => {
       this.applyRelayIceServers(msg.iceServers);
-    },
-    "station-superseded": () => {
-      logger.info("[PeerClient] station taken over by another page");
-      // No retry: reconnecting would take the station straight back from the page that now holds it.
-      this.retryPolicy.cancel();
-      this.tearDownPeer();
-      this.rejectPendingQueries("station taken over by another page");
-      this.emitConnStatus("disconnected");
-      this.setSuperseded(true);
     },
     "gonogo-countdown-start": (msg) => {
       this.lastCountdownT0Ms = msg.t0Ms;

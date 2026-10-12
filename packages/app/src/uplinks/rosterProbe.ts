@@ -37,12 +37,6 @@ export interface RosterProbeOptions {
   transport?: Transport;
   /** Give up after this long with no sample and fall back to the two-way check. */
   timeoutMs?: number;
-  /**
-   * Settles when the game host is final for this page load. The probe waits on
-   * it, for at most `hostReadyTimeoutMs`, before reading which host to dial.
-   */
-  hostReady?: Promise<unknown>;
-  hostReadyTimeoutMs?: number;
 }
 
 /**
@@ -82,18 +76,6 @@ export function decodeRosterPayload(value: unknown): RosterEntry[] | undefined {
   }));
 }
 
-/** Resolves when `promise` settles either way, or after `ms`, whichever is first. */
-function settledWithin(promise: Promise<unknown>, ms: number): Promise<void> {
-  return new Promise<void>((resolve) => {
-    const timer = setTimeout(resolve, ms);
-    const done = (): void => {
-      clearTimeout(timer);
-      resolve();
-    };
-    promise.then(done, done);
-  });
-}
-
 /**
  * Boot-time bounded read of the `system.uplinks` roster so the loader can enforce
  * the three-way mod-hash check. Never throws: any failure, no host, no sample in
@@ -103,9 +85,6 @@ export async function probeUplinkRoster(
   opts: RosterProbeOptions = {},
 ): Promise<RosterEntry[] | undefined> {
   const timeoutMs = opts.timeoutMs ?? 3000;
-  if (opts.hostReady) {
-    await settledWithin(opts.hostReady, opts.hostReadyTimeoutMs ?? 1500);
-  }
   const { host, port } = getSitrepHostConfig();
   // Own (and dispose) only the transport we built, an injected one is the caller's, matching SitrepTelemetryProvider's ownership convention.
   let ownedTransport: WebSocketTransport | undefined;
