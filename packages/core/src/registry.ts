@@ -30,6 +30,7 @@ export {
   getDataSources,
   registerComponent,
   registerDataSource,
+  registerTheme,
   unregisterDataSource,
 } from "@ksp-gonogo/sitrep-sdk";
 export {
@@ -38,42 +39,7 @@ export {
   getComponents,
   getReplacementConflicts,
   getResolvedComponents,
+  getTheme,
+  getThemes,
   type ReplacementConflict,
 } from "@ksp-gonogo/sitrep-sdk/registry";
-
-import { registerTheme as registerSdkTheme } from "@ksp-gonogo/sitrep-sdk";
-import {
-  getTheme as getSdkTheme,
-  getThemes as getSdkThemes,
-} from "@ksp-gonogo/sitrep-sdk/registry";
-import type { ThemeDefinition } from "./types";
-
-/**
- * The three theme functions are narrowed here rather than re-exported, and that
- * is not a wart. The sdk's `ThemeDefinition.theme` is `unknown` because the sdk
- * cannot name `UiKitTheme`: `@ksp-gonogo/ui-kit` imports the sdk, so the edge back
- * would cycle. It is the same constraint that made the sdk's `testing/theme.ts`
- * ship a generated copy of the theme values rather than importing them.
- *
- * So the sdk stores a theme opaquely and this package, the first one that can see
- * both ends, is where it gets its type. Both halves need the narrowing for their
- * own reason: `ThemeProvider` needs the real shape on the way out or every
- * `theme.colors.*` read degrades to `unknown`, and re-exporting the sdk's
- * `registerTheme` on the way in would silently widen every theme pack's argument
- * to `unknown`, throwing away the one check that catches a malformed pack.
- *
- * The read casts are sound because this wrapper is the only typed write path, and
- * a theme arriving through the sdk barrel instead was equally unchecked before the
- * move.
- */
-export function registerTheme(def: ThemeDefinition): void {
-  registerSdkTheme(def);
-}
-
-export function getThemes(): ThemeDefinition[] {
-  return getSdkThemes() as ThemeDefinition[];
-}
-
-export function getTheme(id: string): ThemeDefinition | undefined {
-  return getSdkTheme(id) as ThemeDefinition | undefined;
-}

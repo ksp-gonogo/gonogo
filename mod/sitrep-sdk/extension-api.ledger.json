@@ -8455,6 +8455,10 @@
         "note": "TargetingHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
+        "key": "sitrep-sdk . ThemeDefinition#theme",
+        "note": "Typed as UiKitTheme: the contract moved into the sdk, so a theme is checked where it is registered"
+      },
+      {
         "key": "sitrep-sdk . TinyMode#bodyMinSize?",
         "note": "Removed: a tiny widget's minSize now says where its body stops fitting, so the separate switch point is redundant; no Uplink declares a tiny mode, so nothing reads it"
       },
@@ -8981,6 +8985,10 @@
       {
         "key": "sitrep-sdk ./registry ~SystemUplinksTopicPayloadMap#\"system.uplinks\"",
         "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeDefinition#theme",
+        "note": "Typed as UiKitTheme: the contract moved into the sdk, so a theme is checked where it is registered"
       },
       {
         "key": "sitrep-sdk ./registry ~TinyMode#bodyMinSize?",
@@ -10885,6 +10893,62 @@
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
       },
       {
+        "key": "sitrep-sdk . ThemeBorders",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeBorders#strong",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeBorders#subtle",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#accent",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#border",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#focus",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#surface",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeColors#text",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#family",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#letterSpacing",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#size",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . ThemeTypography#weight",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
         "key": "sitrep-sdk . TinyEssential#mark?",
         "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
       },
@@ -10903,6 +10967,22 @@
       {
         "key": "sitrep-sdk . TinyEssentialMark#kind?",
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#borders",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#colors",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk . UiKitTheme#typography",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
         "key": "sitrep-sdk . UplinkActionOutcome",
@@ -12305,6 +12385,62 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~ThemeBorders",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeBorders#strong",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeBorders#subtle",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#accent",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#border",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#focus",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#surface",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeColors#text",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#family",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#letterSpacing",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#size",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ThemeTypography#weight",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
         "key": "sitrep-sdk ./registry ~TinyEssential#mark?",
         "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
       },
@@ -12323,6 +12459,22 @@
       {
         "key": "sitrep-sdk ./registry ~TinyEssentialMark#kind?",
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#borders",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#colors",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~UiKitTheme#typography",
+        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
         "key": "sitrep-sdk ./spine BodyPose",

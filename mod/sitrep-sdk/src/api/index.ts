@@ -161,6 +161,12 @@ export type {
   SystemOverlayContext,
   TargetingHudContext,
 } from "./slots";
+export type {
+  ThemeBorders,
+  ThemeColors,
+  ThemeTypography,
+  UiKitTheme,
+} from "./theme";
 export { TINY_SIZE } from "./tiny-size";
 export { type AlertTone, TONES, type Tone } from "./tone";
 // The message-pipe contract. Defined entirely in terms of this package's own

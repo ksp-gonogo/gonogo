@@ -66,6 +66,7 @@ export const SCAN_DOMAINS = {
   "src/styleguide-focus-ring.test.ts": [
     UI_KIT,
     THEME,
+    SDK,
     /^packages\/components\//,
   ],
   "src/styleguide-generated-null-unions.test.ts": [MOD],

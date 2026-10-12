@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
  * Design-system guard: a focus ring in ui-kit is drawn in the theme's focus
  * colour.
  *
- * `packages/theme/src/theme.ts` declares `focus: string` as a slot and the
+ * `mod/sitrep-sdk/src/api/theme.ts` declares `focus: string` as a slot and the
  * default theme fills it with `var(--color-focus)`. Twelve rings in the kit
  * were nonetheless drawn in `var(--color-accent-fg)`, which resolves to the
  * same value today, so nothing looked wrong and the role was unusable: a ring
@@ -146,7 +146,9 @@ describe("design-system: focus rings use the theme's focus role", () => {
   it("still has a focus role in the theme contract to point at", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
     const read = (rel: string) => readFileSync(join(root, rel), "utf8");
-    expect(read("packages/theme/src/theme.ts")).toMatch(/^\s*focus: string;/m);
+    expect(read("mod/sitrep-sdk/src/api/theme.ts")).toMatch(
+      /^\s*focus: string;/m,
+    );
     expect(read("packages/theme/src/defaultDarkTheme.ts")).toMatch(
       /focus:\s*"var\(--color-focus\)"/,
     );

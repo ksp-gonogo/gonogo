@@ -40,6 +40,7 @@ import type {
   WidgetFieldPath,
 } from "../topics";
 import type { Value } from "../value";
+import type { UiKitTheme } from "./theme";
 import type { Tone } from "./tone";
 
 /**
@@ -487,12 +488,8 @@ export interface ThemeDefinition {
   id: string;
   /** The theme's name in the theme picker. */
   name: string;
-  /**
-   * The theme's tokens: a `UiKitTheme`, the type `@ksp-gonogo/ui-kit` exports.
-   * Typed `unknown` here because this package does not depend on ui-kit, so the
-   * compiler does not check the shape: type your own value as `UiKitTheme`.
-   */
-  theme: unknown;
+  /** The theme's tokens: the colours, type and borders the kit draws with. */
+  theme: UiKitTheme;
 }
 
 /**

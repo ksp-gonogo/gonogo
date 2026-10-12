@@ -813,6 +813,9 @@ importers:
 
   packages/theme:
     dependencies:
+      '@ksp-gonogo/sitrep-sdk':
+        specifier: workspace:*
+        version: link:../../mod/sitrep-sdk
       react:
         specifier: ^18.0.0
         version: 18.3.1

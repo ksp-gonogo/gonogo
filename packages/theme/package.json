@@ -26,6 +26,9 @@
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "@ksp-gonogo/sitrep-sdk": "workspace:*"
+  },
   "peerDependencies": {
     "react": "^18.0.0",
     "styled-components": "^6.0.0"
