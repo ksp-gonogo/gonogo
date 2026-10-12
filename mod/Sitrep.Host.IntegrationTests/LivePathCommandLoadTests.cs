@@ -201,8 +201,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The game is quit and started again, so the request that sent the
         /// command died with the old process. The client reconnected while the
-        /// game loaded, and its answer reaches it on the new connection, by the
-        /// request id it chose.
+        /// game loaded and claimed the request id it chose; the load says the
+        /// command is still on its way, and its answer reaches the new
+        /// connection.
         /// </summary>
         [Fact]
         public async Task AfterARestartTheAnswerReachesTheClientThatReconnected()
@@ -230,6 +231,7 @@ namespace Sitrep.Host.IntegrationTests
             try
             {
                 await using var reconnected = await TestClient.ConnectAsync(after.BoundPort, Timeout);
+                await reconnected.SendAsync(Claim("client-1"));
                 after.NoteGameLoaded(written, savedUt: 2.0);
                 Tick(after, 2.0);
                 Tick(after, 5.0);
@@ -243,6 +245,81 @@ namespace Sitrep.Host.IntegrationTests
             finally
             {
                 after.Stop();
+            }
+        }
+
+        /// <summary>
+        /// The same restart, with the claim made after the game has loaded: the
+        /// load has already put the command back, so the claim finds it there.
+        /// </summary>
+        [Fact]
+        public async Task AClaimMadeAfterTheLoadFindsTheCommandItPutBack()
+        {
+            DeliverySnapshot written;
+            using (var before = NewEngine(out _))
+            {
+                try
+                {
+                    await using var client = await TestClient.ConnectAsync(before.BoundPort, Timeout);
+                    Tick(before, 0.0);
+                    await SendCommandAsync(client, "client-3");
+                    await ReceiveTypedAsync<CommandAccepted>(client, Timeout);
+                    Tick(before, 2.0);
+                    written = Written(before);
+                }
+                finally
+                {
+                    before.Stop();
+                }
+            }
+
+            using var after = NewEngine(out var afterUplink);
+            try
+            {
+                after.NoteGameLoaded(written, savedUt: 2.0);
+                Tick(after, 2.0);
+                await using var reconnected = await TestClient.ConnectAsync(after.BoundPort, Timeout);
+                await reconnected.SendAsync(Claim("client-3"));
+                await WaitForAsync(() => after.ClaimsHandledForTests >= 1);
+                Tick(after, 5.0);
+                Tick(after, 10.0);
+
+                var answer = await ReceiveTypedAsync<CommandResponse<object?>>(reconnected, Timeout);
+                Assert.Equal("client-3", answer.RequestId);
+                Assert.Equal("ran:x", answer.Result);
+                Assert.Equal(1, afterUplink.Runs);
+            }
+            finally
+            {
+                after.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A claim for a command the loaded game does not carry is refused, so
+        /// the client stops waiting for it.
+        /// </summary>
+        [Fact]
+        public async Task AClaimMadeBeforeTheLoadForACommandItDoesNotCarryIsRefusedWhenTheLoadLands()
+        {
+            using var engine = NewEngine(out _);
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await client.SendAsync(Claim("client-4"));
+                await WaitForAsync(() => engine.ClaimsHandledForTests >= 1);
+                await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(100));
+
+                engine.NoteGameLoaded(null, savedUt: 0.0);
+                Tick(engine, 0.0);
+
+                var refusal = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("client-4", refusal.RequestId);
+                Assert.Equal(FaultCode.ReplyNotReceived, refusal.Code);
+            }
+            finally
+            {
+                engine.Stop();
             }
         }
 
@@ -292,12 +369,10 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// A client whose connection closed while its command was on its way
-        /// finds the answer on its next connection, and so does any client that
-        /// sits down at that centre afterwards; one that never sent that
-        /// request id ignores it.
+        /// finds the answer on its next connection by claiming the request id.
         /// </summary>
         [Fact]
-        public async Task AnAnswerForAClosedConnectionIsSentToTheNextConnectionAtThatCentre()
+        public async Task AnAnswerForAClosedConnectionIsSentToTheNextConnectionThatClaimsIt()
         {
             using var engine = NewEngine(out var uplink);
             try
@@ -313,6 +388,7 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.Equal(1, uplink.Runs);
 
                 await using var next = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await next.SendAsync(Claim("client-2"));
                 var answer = await ReceiveTypedAsync<CommandResponse<object?>>(next, Timeout);
                 Assert.Equal("client-2", answer.RequestId);
                 Assert.Equal("ran:x", answer.Result);
@@ -350,6 +426,9 @@ namespace Sitrep.Host.IntegrationTests
             refusals = refused;
             return answers;
         }
+
+        private static string Claim(params string[] ids) =>
+            EnvelopeCodec.WriteClaim(new ClaimRequest { RequestIds = new List<string>(ids) });
 
         private static Task SendCommandAsync(TestClient client, string requestId) =>
             client.SendAsync(EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>

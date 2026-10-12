@@ -183,6 +183,8 @@ const SESSION_DESCRIPTION = `Frames that belong to the connection rather than to
 closes delivery on it: see the subscription gate in the document description.
 \`set-vantage\` selects the command centre this connection commands from and
 observes at, which governs both what it reads and how long its commands take.
+\`claim\` names the commands a reconnecting client still waits on, so the answers
+the mod kept for them are sent to the new connection.
 The mod opens every connection with a \`hello\` naming the run it has reached,
 and answers a \`ping\` with a \`pong\` at once, in any scene and with nothing
 subscribed, which is how a client tells a quiet connection from a dead one.
@@ -506,6 +508,7 @@ export function buildDocument({
       subscribe: { $ref: "#/components/messages/subscribe" },
       unsubscribe: { $ref: "#/components/messages/unsubscribe" },
       setVantage: { $ref: "#/components/messages/setVantage" },
+      claim: { $ref: "#/components/messages/claim" },
       ping: { $ref: "#/components/messages/ping" },
       hello: { $ref: "#/components/messages/hello" },
       pong: { $ref: "#/components/messages/pong" },
@@ -537,6 +540,11 @@ export function buildDocument({
     name: "set-vantage",
     title: "Select this connection's command centre",
     payload: schemas.ref("SetVantage"),
+  };
+  messages.claim = {
+    name: "claim",
+    title: "Claim the answers to commands sent on an earlier connection",
+    payload: schemas.ref("ClaimRequest"),
   };
   messages.ping = {
     name: "ping",
@@ -573,12 +581,13 @@ export function buildDocument({
     action: "send",
     channel: { $ref: "#/channels/session" },
     title:
-      "Open or close delivery, change vantage, or ask whether the connection is alive",
+      "Open or close delivery, change vantage, claim earlier commands' answers, or ask whether the connection is alive",
     tags: [{ name: "session" }],
     messages: [
       { $ref: "#/channels/session/messages/subscribe" },
       { $ref: "#/channels/session/messages/unsubscribe" },
       { $ref: "#/channels/session/messages/setVantage" },
+      { $ref: "#/channels/session/messages/claim" },
       { $ref: "#/channels/session/messages/ping" },
     ],
   };

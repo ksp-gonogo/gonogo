@@ -3453,6 +3453,31 @@ export interface CommandGroupRequest
 	members: CommandRequest<unknown>[];
 }
 /**
+* Names the commands a client is still waiting on, sent after it reconnects to
+* the game: a page reload, a dropped network or a restarted game has closed
+* the connection the commands were sent on, and the answers they were owed
+* have nowhere to go. For each `requestId` the game holds an answer for, it
+* sends that answer now and forgets it; for each command still in flight it
+* sends the answer to this connection when it comes; for each one it holds
+* nothing for, it sends an `error` carrying `replyNotReceived`, so the client
+* can stop waiting. Used by a client that keeps its outstanding commands
+* across a reload, such as a command held for a craft out of contact.
+*
+* An id is claimed only by the command centre that sent it: send this after
+* `SetVantage`, and an id sent from another centre is answered as one the game
+* holds nothing for. Answers are never sent to a connection that does not name
+* their id.
+*
+* @category Stream messages
+*/
+export interface ClaimRequest
+{
+	/** The frame type, always `"claim"`. */
+	type: "claim";
+	/** The `requestId` of each command the client still waits on, as it sent them. */
+	requestIds: string[];
+}
+/**
 * The server's reply to a `CommandRequest`, matched to it by
 * `CommandResponse.requestId`.
 *

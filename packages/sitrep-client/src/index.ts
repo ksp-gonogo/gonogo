@@ -340,6 +340,7 @@ export {
   patchStateAt,
   wrap180,
 } from "./orbit-patches";
+export { localStorageOutstandingCommands } from "./outstanding-commands-storage";
 export type {
   PatchChain,
   PatchChainArc,

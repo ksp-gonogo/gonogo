@@ -293,7 +293,7 @@ export function MainScreen({
   }, []);
 
   return (
-    <SitrepTelemetryProvider transport={transport}>
+    <SitrepTelemetryProvider transport={transport} screenKey={screen}>
       <SitrepPeerRelay peerHost={peerHostService} />
       <CommcastLink log={commcastLog} />
       {/*

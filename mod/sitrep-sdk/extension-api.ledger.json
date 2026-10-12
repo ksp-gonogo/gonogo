@@ -9183,6 +9183,10 @@
         "note": "New: sends several commands as one command-group frame"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#restoredCommands",
+        "note": "New: hands a useCommand the commands an earlier page of the screen left outstanding"
+      },
+      {
         "key": "sitrep-sdk ./spine TimelineStore#declareKeyframeInterval",
         "note": "New: passes the keyframe interval the mod declared for a topic to its heartbeat tracker"
       },
@@ -9333,6 +9337,22 @@
       {
         "key": "sitrep-sdk ./spine ~DepValue",
         "note": "A { reading: topicId } dep arrives as the Topic's Reading where it arrived as the payload alone, so a contribution can tell a held value from a current one"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingCommand#etaConfirm",
+        "note": "The client keeps the UT a command's reply was expected by so it can be stored while outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingCommand#restored",
+        "note": "Marks a command read back from the outstanding store"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingCommand#taken",
+        "note": "Marks a restored command a useCommand has already taken"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingCommand#unclaimable",
+        "note": "Marks a command the mod has said it holds no answer for"
       },
       {
         "key": "sitrep-sdk ./spine ~PlotLayer",
@@ -9563,6 +9583,22 @@
         "note": "OrbitOverlayContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
+        "key": "sitrep-sdk ./testing ~PendingCommand#etaConfirm",
+        "note": "The client keeps the UT a command's reply was expected by so it can be stored while outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PendingCommand#restored",
+        "note": "Marks a command read back from the outstanding store"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PendingCommand#taken",
+        "note": "Marks a restored command a useCommand has already taken"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PendingCommand#unclaimable",
+        "note": "Marks a command the mod has said it holds no answer for"
+      },
+      {
         "key": "sitrep-sdk ./testing ~PlotLayer",
         "note": "The plot layer union gains open water (PlotWaterLayer)"
       },
@@ -9753,6 +9789,10 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#restoredCommands",
+        "note": "New: hands a useCommand the commands an earlier page of the screen left outstanding"
       },
       {
         "key": "sitrep-sdk ./testing ~Transport#onMessage",
@@ -10975,6 +11015,10 @@
       {
         "key": "sitrep-sdk . TinyEssentialMark#kind?",
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
+        "key": "sitrep-sdk . Transport#claimsAnswers?",
+        "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
       {
         "key": "sitrep-sdk . UiKitTheme",
@@ -12709,8 +12753,48 @@
         "note": "New: how many points a closed orbit ring is sampled into"
       },
       {
+        "key": "sitrep-sdk ./spine OUTSTANDING_COMMAND_CAP",
+        "note": "New: the most commands stored as outstanding for one screen"
+      },
+      {
         "key": "sitrep-sdk ./spine OrbitCurveSubject",
         "note": "New: whose path useOrbitCurve answers for, a catalogue body or elements already held"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommand",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommand#args",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommand#command",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommand#etaConfirm",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommand#label",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommand#requestId",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommandStore",
+        "note": "New: where a screen keeps the commands it still waits on across a reload"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommandStore#read",
+        "note": "New: where a screen keeps the commands it still waits on across a reload"
+      },
+      {
+        "key": "sitrep-sdk ./spine OutstandingCommandStore#write",
+        "note": "New: where a screen keeps the commands it still waits on across a reload"
       },
       {
         "key": "sitrep-sdk ./spine PatchChain",
@@ -12835,6 +12919,10 @@
       {
         "key": "sitrep-sdk ./spine SystemPoses#ut",
         "note": "The poses of every body at one instant, by body index"
+      },
+      {
+        "key": "sitrep-sdk ./spine TelemetryClientOptions#outstanding?",
+        "note": "New option: the store a client keeps its outstanding commands in"
       },
       {
         "key": "sitrep-sdk ./spine UplinkClientConfig",
@@ -13109,6 +13197,10 @@
         "note": "A reckonable row with the owner whose contract declared it"
       },
       {
+        "key": "sitrep-sdk ./spine ~PendingCommand#restoredResult?",
+        "note": "Marks a command read back from the outstanding store"
+      },
+      {
         "key": "sitrep-sdk ./spine ~PendingEntry#members?",
         "note": "New optional field: the request ids a group's one entry stands for"
       },
@@ -13223,6 +13315,10 @@
       {
         "key": "sitrep-sdk ./spine ~SystemEntitySubjectPosition#subject",
         "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~Transport#claimsAnswers?",
+        "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
       {
         "key": "sitrep-sdk ./spine ~ValueTags",
@@ -13453,12 +13549,52 @@
         "note": "New: one command of a group passed to TelemetryClient.dispatchGroup"
       },
       {
+        "key": "sitrep-sdk ./testing ~OutstandingCommand",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommand#args",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommand#command",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommand#etaConfirm",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommand#label",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommand#requestId",
+        "note": "New: one command stored while it is outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommandStore",
+        "note": "New: where a screen keeps the commands it still waits on across a reload"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommandStore#read",
+        "note": "New: where a screen keeps the commands it still waits on across a reload"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~OutstandingCommandStore#write",
+        "note": "New: where a screen keeps the commands it still waits on across a reload"
+      },
+      {
         "key": "sitrep-sdk ./testing ~OwnedReckonableValue",
         "note": "A reckonable row with the owner whose contract declared it"
       },
       {
         "key": "sitrep-sdk ./testing ~OwnedReckonableValue#owner",
         "note": "A reckonable row with the owner whose contract declared it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PendingCommand#restoredResult?",
+        "note": "Marks a command read back from the outstanding store"
       },
       {
         "key": "sitrep-sdk ./testing ~PlotEntry#held?",
@@ -13571,6 +13707,14 @@
       {
         "key": "sitrep-sdk ./testing ~SystemEntitySubjectPosition#subject",
         "note": "Places an entity where a named body is at the instant on screen, in the frame the diagram draws in, held when the body's place is held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClientOptions#outstanding?",
+        "note": "New option: the store a client keeps its outstanding commands in"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~Transport#claimsAnswers?",
+        "note": "New: a transport that is the mod's own connection says it can send a claim"
       },
       {
         "key": "sitrep-sdk ./testing ~UplinkActionOutcome",

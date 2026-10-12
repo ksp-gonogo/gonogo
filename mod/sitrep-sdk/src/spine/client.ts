@@ -156,6 +156,16 @@ interface PendingCommand {
    * once cancelled (or if no timer was ever scheduled, e.g. `StubTransport`).
    */
   cancelLossTimer: (() => void) | null;
+  /** The UT the command's reply is expected by, kept so the command can be stored while it is still outstanding. */
+  etaConfirm: number;
+  /** True for a command read back from the outstanding store rather than dispatched by this client. */
+  restored: boolean;
+  /** The promise a restored command settles, handed to the first `useCommand` that adopts it. */
+  restoredResult?: Promise<unknown>;
+  /** Whether a `useCommand` has already taken this restored command. */
+  taken: boolean;
+  /** Set once the mod has said it holds no answer for this command, so it is neither claimed nor stored again. */
+  unclaimable: boolean;
 }
 
 /**
@@ -238,12 +248,48 @@ export interface GroupMember {
 }
 
 /**
+ * One command a client has sent and not yet had answered, as it is stored for
+ * its screen: the request id it was sent under, the command, its arguments
+ * and label, and the UT its reply was expected by. Useful for letting a
+ * reloaded screen ask the game for the answer to a command held for a craft
+ * out of contact. Used by {@link OutstandingCommandStore}.
+ */
+export interface OutstandingCommand {
+  requestId: string;
+  command: string;
+  args: unknown;
+  label: string;
+  /** The UT its reply was expected by when it was sent. */
+  etaConfirm: number;
+}
+
+/**
+ * Where a client keeps the commands it has sent and not yet had answered,
+ * one list for each screen. Useful for claiming those commands' answers from
+ * the game after a page reload. Used by {@link TelemetryClientOptions}; a
+ * client with none still claims its commands after a reconnect, and cannot
+ * after a reload.
+ */
+export interface OutstandingCommandStore {
+  read(): readonly OutstandingCommand[];
+  write(commands: readonly OutstandingCommand[]): void;
+}
+
+/**
+ * The most commands stored as outstanding for one screen. The oldest go first
+ * once a screen holds more.
+ */
+export const OUTSTANDING_COMMAND_CAP = 256;
+
+/**
  * Construction options for the Sitrep client: the prefix of the request ids it
- * mints. Taken by `TelemetryClient`.
+ * mints and where it keeps its outstanding commands. Taken by `TelemetryClient`.
  */
 export interface TelemetryClientOptions {
   /** Prefix of every request id this client mints. Random per client unless a test pins it. */
   idPrefix?: string;
+  /** Keeps the commands this client still waits on across a reload. Used only with a transport that claims answers. */
+  outstanding?: OutstandingCommandStore;
 }
 
 function randomIdPrefix(): string {
@@ -295,6 +341,10 @@ export class TelemetryClient {
   /** No-op for a transport carrying nobody else's verdict: see `Transport.onLost`. */
   private readonly unsubscribeFromLost: () => void;
   private readonly commands = new Map<string, PendingCommand>();
+  private readonly outstandingStore: OutstandingCommandStore | undefined;
+  private outstandingDirty = false;
+  private lastOutstanding = "";
+  private disposed = false;
   private nextRequestId = 0;
   private readonly idPrefix: string;
   private selectedVantageId: string | undefined;
@@ -371,6 +421,8 @@ export class TelemetryClient {
   ) {
     this.idPrefix = options.idPrefix ?? randomIdPrefix();
     this.transport = transport;
+    this.outstandingStore =
+      transport.claimsAnswers === true ? options.outstanding : undefined;
     this.clock = clock;
     this.ownership = transport.decidesTopicOwnership
       ? new TopicOwnershipTracker((topic) => {
@@ -396,6 +448,7 @@ export class TelemetryClient {
         ),
       ) ?? (() => undefined);
     this.unsubscribeFromTransportStatus = transport.onStatusChange((status) => {
+      if (status === "connected") this.scheduleClaim();
       /* Every attached store reads link-down from here: a reading's grade is
          `disconnected` only while the transport says `connected` is false. */
       for (const store of this.stores) {
@@ -413,6 +466,143 @@ export class TelemetryClient {
       this.ownership.handleDisconnected();
       for (const store of this.stores) store.clearTopicOwnership();
       this.notifyStore();
+    });
+    this.restoreOutstanding();
+    if (transport.status === "connected") this.scheduleClaim();
+  }
+
+  /**
+   * Takes back the commands an earlier page of this screen was still waiting
+   * on, so the mod can be asked for their answers and a `useCommand` can show
+   * them again. Each is tracked as in flight under the id it was sent with.
+   */
+  private restoreOutstanding(): void {
+    const store = this.outstandingStore;
+    if (!store) return;
+    let stored: readonly OutstandingCommand[] = [];
+    try {
+      stored = store.read().slice(-OUTSTANDING_COMMAND_CAP);
+    } catch {
+      return;
+    }
+    for (const held of stored) {
+      if (this.commands.has(held.requestId)) continue;
+      const result = new Promise<unknown>((resolve, reject) => {
+        this.commands.set(held.requestId, {
+          command: held.command,
+          args: held.args,
+          label: held.label,
+          status: {
+            phase: "in-flight",
+            requestId: held.requestId,
+            etaConfirm: held.etaConfirm,
+          },
+          resolve,
+          reject,
+          cancelLossTimer: null,
+          etaConfirm: held.etaConfirm,
+          restored: true,
+          taken: false,
+          unclaimable: false,
+        });
+      });
+      result.catch(() => undefined);
+      const pending = this.commands.get(held.requestId);
+      if (!pending) continue;
+      pending.restoredResult = result;
+      /* The claim's answer has to travel first, so the deadline starts from now when the old one has passed. */
+      pending.cancelLossTimer = this.clock.schedule(
+        Math.max(held.etaConfirm, this.clock.now()) + LOSS_MARGIN,
+        () => this.handleLoss(held.requestId),
+      );
+    }
+    this.lastOutstanding = JSON.stringify(this.outstandingList());
+    this.notifyStore();
+  }
+
+  /**
+   * The commands read back from an earlier page that are for `command` and
+   * that no `useCommand` has taken yet, each with the promise it settles, so
+   * the hook can show them and their answers as it does its own sends.
+   */
+  restoredCommands(command: string): {
+    requestId: string;
+    args: unknown;
+    label: string;
+    result: Promise<unknown>;
+  }[] {
+    const taken: {
+      requestId: string;
+      args: unknown;
+      label: string;
+      result: Promise<unknown>;
+    }[] = [];
+    for (const [requestId, pending] of this.commands) {
+      if (
+        !pending.restored ||
+        pending.taken ||
+        pending.command !== command ||
+        !pending.restoredResult
+      ) {
+        continue;
+      }
+      pending.taken = true;
+      taken.push({
+        requestId,
+        args: pending.args,
+        label: pending.label,
+        result: pending.restoredResult,
+      });
+    }
+    return taken;
+  }
+
+  /** The commands still waiting for an answer that the mod has not said it has none for. */
+  private outstandingList(): OutstandingCommand[] {
+    const list: OutstandingCommand[] = [];
+    for (const [requestId, pending] of this.commands) {
+      if (pending.unclaimable) continue;
+      const phase = pending.status.phase;
+      if (phase !== "in-flight" && phase !== "lost") continue;
+      list.push({
+        requestId,
+        command: pending.command,
+        args: pending.args,
+        label: pending.label,
+        etaConfirm: pending.etaConfirm,
+      });
+    }
+    return list.slice(-OUTSTANDING_COMMAND_CAP);
+  }
+
+  /** Writes the outstanding commands to the store when they have changed. */
+  private flushOutstanding(): void {
+    this.outstandingDirty = false;
+    const store = this.outstandingStore;
+    if (!store || this.disposed) return;
+    const list = this.outstandingList();
+    const serialised = JSON.stringify(list);
+    if (serialised === this.lastOutstanding) return;
+    this.lastOutstanding = serialised;
+    try {
+      store.write(list);
+    } catch {
+      /* A full or blocked store costs the reload claim and nothing else. */
+    }
+  }
+
+  /**
+   * Asks the mod for the answers to every command still outstanding, once the
+   * transport has re-sent its vantage and subscriptions: a claim is checked
+   * against the vantage the connection sits at, so it goes after them.
+   */
+  private scheduleClaim(): void {
+    if (this.transport.claimsAnswers !== true) return;
+    queueMicrotask(() => {
+      if (this.disposed || this.transport.status !== "connected") return;
+      const requestIds = this.outstandingList().map((c) => c.requestId);
+      if (requestIds.length === 0) return;
+      this.transport.send({ type: "claim", requestIds });
     });
   }
 
@@ -918,8 +1108,13 @@ export class TelemetryClient {
         resolve,
         reject,
         cancelLossTimer: null,
+        etaConfirm,
+        restored: false,
+        taken: false,
+        unclaimable: false,
       });
     });
+    this.outstandingDirty = true;
 
     if (predictedEta !== undefined) {
       const cancel = this.clock.schedule(predictedEta + LOSS_MARGIN, () =>
@@ -962,6 +1157,7 @@ export class TelemetryClient {
    * hang forever on a client that will never receive their response.
    */
   dispose(): void {
+    this.disposed = true;
     this.unsubscribeFromTransport();
     this.unsubscribeFromTransportStatus();
     this.unsubscribeFromUndelivered();
@@ -1066,6 +1262,10 @@ export class TelemetryClient {
           message.code,
           message.message,
         );
+        return;
+      }
+      if (message.code === FaultCode.ReplyNotReceived) {
+        this.handleNoRecord(message.requestId, message.message);
         return;
       }
       this.handleCommandError(message.requestId, message.code, message.message);
@@ -1223,6 +1423,8 @@ export class TelemetryClient {
           : roundTrip;
     if (etaConfirm === undefined) return;
     pending.cancelLossTimer?.();
+    pending.etaConfirm = etaConfirm;
+    this.outstandingDirty = true;
     pending.status = warning
       ? { phase: "in-flight", requestId, etaConfirm, warning }
       : { phase: "in-flight", requestId, etaConfirm };
@@ -1236,6 +1438,7 @@ export class TelemetryClient {
   private handleCommandResponse(requestId: string, rawResult: unknown): void {
     const pending = this.commands.get(requestId);
     if (!pending) return;
+    this.outstandingDirty = true;
     // A reply's units, here rather than in `parseServerMessage`, because the
     // envelope names a requestId and no type: the command that was dispatched is
     // the only route back to one, and this is the first point that knows it.
@@ -1315,6 +1518,7 @@ export class TelemetryClient {
   ): void {
     const pending = this.commands.get(requestId);
     if (!pending) return;
+    this.outstandingDirty = true;
     // Same exception as `handleCommandResponse`, and it is not a lesser case: an
     // `error` frame correlated to this requestId is proof the mod RECEIVED the
     // command, so the silence was ours. What it went on to say is that the
@@ -1338,6 +1542,25 @@ export class TelemetryClient {
     pending.resolve = null;
     pending.reject = null;
     reject(new CommandError(code, message));
+    this.notifyStore();
+  }
+
+  /**
+   * The mod's answer to a claim for a command it holds nothing for: the
+   * command never arrived, or its answer expired or was pushed out. Nothing
+   * more will come, so the command is no longer claimed or stored. One still in
+   * flight is called lost, as it would be when its deadline passed; one already
+   * lost stays lost.
+   */
+  private handleNoRecord(requestId: string, message: string): void {
+    const pending = this.commands.get(requestId);
+    if (!pending) return;
+    pending.unclaimable = true;
+    this.outstandingDirty = true;
+    if (pending.status.phase === "in-flight") {
+      this.handleLoss(requestId, "reply-not-received", message);
+      return;
+    }
     this.notifyStore();
   }
 
@@ -1406,6 +1629,7 @@ export class TelemetryClient {
   ): void {
     const pending = this.commands.get(requestId);
     if (!pending || pending.status.phase !== "in-flight") return;
+    this.outstandingDirty = true;
     const reject = pending.reject;
     /*
      * A no-op when this IS the timer firing, and load-bearing when a relayed
@@ -1448,6 +1672,7 @@ export class TelemetryClient {
   private handleUndelivered(requestId: string, reason: string): void {
     const pending = this.commands.get(requestId);
     if (!pending) return;
+    this.outstandingDirty = true;
     const status: CommandStatus = { phase: "undelivered", requestId, reason };
     if (!pending.reject) {
       if (pending.status.phase !== "lost") return;
@@ -1466,6 +1691,7 @@ export class TelemetryClient {
   }
 
   private notifyStore(): void {
+    if (this.outstandingDirty) this.flushOutstanding();
     for (const listener of this.storeListeners) listener();
   }
 

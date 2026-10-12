@@ -3634,7 +3634,6 @@ namespace Sitrep.Host
             // vantage on subsequent subscribes/dispatches (an eventually-consistent
             // switch, matching the client re-subscribing its topics at the new vantage).
             session.ChosenVantage = sv.CentreId;
-            ReplayParkedAnswers(session);
         }
 
         public void SetVesselConnectivity(string vesselId, bool connected)
@@ -6996,6 +6995,9 @@ namespace Sitrep.Host
                             case DisconnectJob disconnect:
                                 ProcessDisconnect(disconnect.Session);
                                 break;
+                            case ClaimJob claim:
+                                ProcessClaim(claim.Session, claim.RequestIds);
+                                break;
                             case FreshConnectionVantageMovedJob:
                                 ProcessFreshConnectionVantageMoved();
                                 break;
@@ -10022,6 +10024,7 @@ namespace Sitrep.Host
                 unsubscribe();
             }
             session.Unsubscribers.Clear();
+            ForgetWaitingClaims(session);
         }
 
         // Socket domain (Fleck's connection threads)
@@ -10037,7 +10040,6 @@ namespace Sitrep.Host
             {
                 session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteHello(new Hello { BootId = BootId })));
                 GreetWithGameState(session);
-                ReplayParkedAnswers(session);
             }
             catch (Exception publishEx)
             {
@@ -10087,13 +10089,15 @@ namespace Sitrep.Host
                 return null;
             }
 
+            RegisterRoute(session, req.RequestId);
+            var home = VantageOf(session);
             return MakeDispatchJob(
                 req.Command,
                 req.Args,
-                string.IsNullOrEmpty(req.Vantage) ? VantageOf(session) : req.Vantage,
+                string.IsNullOrEmpty(req.Vantage) ? home : req.Vantage,
                 result =>
             {
-                Answer(session, ResponseFrame(req.RequestId, req.Command, VantageOf(session), req.SentAt, result));
+                Reply(req.RequestId, session, home, ResponseFrame(req.RequestId, req.Command, home, req.SentAt, result), terminal: true);
             }, req.Label, req.Topic, onRefused: (code, reason) =>
             {
                 // The dispatch never reached a handler (unknown
@@ -10106,7 +10110,7 @@ namespace Sitrep.Host
                 // refusal buried in a payload, and it cancels the
                 // loss timer so the promise never rejects as
                 // "signal-lost" for a link that was up the whole time.
-                Answer(session, ErrorFrame(req.RequestId, code, reason));
+                Reply(req.RequestId, session, home, ErrorFrame(req.RequestId, code, reason), terminal: true);
             }, onAcceptedHeld: (oneWaySeconds, predictedReplyUt, expiresAtUt, warning) =>
             {
                 // A held command: the reply may come long after twice the
@@ -10120,7 +10124,11 @@ namespace Sitrep.Host
                     ExpiresAtUt = expiresAtUt,
                     Warning = warning,
                 };
-                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(held)));
+                if (expiresAtUt != null)
+                {
+                    NoteRouteExpiry(req.RequestId, expiresAtUt.Value);
+                }
+                Reply(req.RequestId, session, home, Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(held)), terminal: false);
             }, onAccepted: oneWaySeconds =>
             {
                 // The command is in flight and this is when to
@@ -10133,7 +10141,11 @@ namespace Sitrep.Host
                     RequestId = req.RequestId,
                     OneWaySeconds = oneWaySeconds,
                 };
-                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(accepted)));
+                if (oneWaySeconds != null)
+                {
+                    NoteRouteExpiry(req.RequestId, _tickUt + Math.Max(Sitrep.Core.StoreAndForward.DeliveryNetwork.CommandLifetimeSeconds, 2 * oneWaySeconds.Value));
+                }
+                Reply(req.RequestId, session, home, Encoding.UTF8.GetBytes(EnvelopeCodec.WriteCommandAccepted(accepted)), terminal: false);
             }, onMalformed: reason =>
             {
                 // The request was carried but its args do not fit
@@ -10146,7 +10158,7 @@ namespace Sitrep.Host
                     Code = FaultCode.InvalidEnvelope,
                     Message = "command-request envelope could not be read: " + reason,
                 };
-                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+                Reply(req.RequestId, session, home, Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)), terminal: true);
             }, clientRequestId: req.RequestId, sessionId: session.Connection.Id);
         }
 
@@ -10189,7 +10201,7 @@ namespace Sitrep.Host
                         break;
                     default:
                         /* Unreachable while ParseClientMessage returns only the
-                           five handled types. A fifth one added without a case
+                           handled types. A fifth one added without a case
                            here would otherwise be accepted and do nothing, with
                            nothing on the wire to say so. */
                         RefuseUnhandledEnvelope(session, msg);
@@ -10202,6 +10214,9 @@ namespace Sitrep.Host
                         break;
                     case CommandGroupRequest group:
                         HandleCommandGroup(session, group);
+                        break;
+                    case ClaimRequest claim:
+                        EnqueueJob(new ClaimJob(session, claim.RequestIds));
                         break;
                 }
             }
@@ -10701,6 +10716,18 @@ namespace Sitrep.Host
             public DisconnectJob(ClientSession session)
             {
                 Session = session;
+            }
+        }
+
+        private sealed class ClaimJob : IEngineJob
+        {
+            public readonly ClientSession Session;
+            public readonly IReadOnlyList<string> RequestIds;
+
+            public ClaimJob(ClientSession session, IReadOnlyList<string> requestIds)
+            {
+                Session = session;
+                RequestIds = requestIds;
             }
         }
 

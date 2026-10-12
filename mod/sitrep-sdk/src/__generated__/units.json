@@ -225,6 +225,10 @@
     "ChannelGate": {
       "topic": "id"
     },
+    "ClaimRequest": {
+      "requestIds": "id",
+      "type": "id"
+    },
     "ClosestApproach": {
       "distance": "m",
       "time": "ut"

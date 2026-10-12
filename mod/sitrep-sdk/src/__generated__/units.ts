@@ -265,6 +265,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "ChannelGate": {
     topic: "id",
   },
+  "ClaimRequest": {
+    requestIds: "id",
+    type: "id",
+  },
   "ClosestApproach": {
     distance: "m",
     time: "ut",

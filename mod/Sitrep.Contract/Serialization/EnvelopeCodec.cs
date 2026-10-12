@@ -462,6 +462,55 @@ namespace Sitrep.Contract.Serialization
             };
         }
 
+        /// <summary>Serializes a <c>claim</c> envelope: the request ids the client still waits on.</summary>
+        /// <param name="msg">The envelope to write.</param>
+        /// <returns>The JSON text of the envelope.</returns>
+        public static string WriteClaim(ClaimRequest msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+
+            AppendField(sb, "requestIds");
+            sb.Append('[');
+            for (var i = 0; i < msg.RequestIds.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                JsonWriter.AppendString(sb, msg.RequestIds[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        /// <summary>Parses a <c>claim</c> envelope.</summary>
+        /// <param name="json">The JSON text of the envelope.</param>
+        /// <returns>The parsed envelope.</returns>
+        /// <exception cref="FormatException">The text is not a <c>claim</c> envelope, or an id is not a string.</exception>
+        public static ClaimRequest ParseClaim(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "claim");
+            if (!raw.TryGetValue("requestIds", out var rawIds) || !(rawIds is List<object?> list))
+            {
+                throw new FormatException("claim needs a requestIds array.");
+            }
+            var ids = new List<string>();
+            foreach (var id in list)
+            {
+                if (!(id is string text))
+                {
+                    throw new FormatException("claim requestIds must all be strings.");
+                }
+                ids.Add(text);
+            }
+            return new ClaimRequest { Type = "claim", RequestIds = ids };
+        }
+
         /// <summary>Serializes a <c>command-response</c> envelope. A null
         /// <c>Result</c> is written as JSON <c>null</c>.</summary>
         /// <param name="msg">The envelope to write.</param>
@@ -848,7 +897,7 @@ namespace Sitrep.Contract.Serialization
         /// <summary>
         /// Parses a client-to-server envelope (<see cref="Subscribe"/>,
         /// <see cref="Unsubscribe"/>, <see cref="SetVantage"/>,
-        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c> or <see cref="CommandGroupRequest"/>), dispatching on the
+        /// <see cref="Ping"/>, <c>CommandRequest&lt;object?&gt;</c>, <see cref="CommandGroupRequest"/> or <see cref="ClaimRequest"/>), dispatching on the
         /// <c>"type"</c> field.
         ///
         /// <para>Failure comes back as one of two <see cref="FormatException"/>
@@ -876,6 +925,7 @@ namespace Sitrep.Contract.Serialization
                     "ping" => ParsePing(json),
                     "command-request" => ParseCommandRequest(json),
                     "command-group" => ParseCommandGroup(json),
+                    "claim" => ParseClaim(json),
                     _ => throw new UnknownEnvelopeTypeException(
                         $"unknown client envelope type: {type}", type, PeekRequestId(json), PeekTopic(json)),
                 };

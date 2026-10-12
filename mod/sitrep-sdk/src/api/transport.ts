@@ -107,6 +107,13 @@ export interface Transport {
    */
   readonly carriesVantage?: boolean;
   /**
+   * Optional: `true` when this transport is the mod's own connection and so can
+   * send a `claim`, the frame that asks the mod for the answers to commands
+   * sent on an earlier connection. Absent means no: a station's transport
+   * relays through the main screen, which holds the answers for it.
+   */
+  readonly claimsAnswers?: boolean;
+  /**
    * Optional: `true` when this transport passes on the mod's acknowledgement
    * of each subscription, so a Topic that is never acknowledged can be shown as
    * `"unowned"`. Absent means no, and such Topics stay `"pending"`.

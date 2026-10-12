@@ -982,6 +982,23 @@ describe("WebSocketTransport outbound queue", () => {
     transport.dispose();
   });
 
+  it("drops a claim made with no socket, and sends one made on an open socket", () => {
+    const { transport, socket } = downTransport();
+    transport.send({ type: "claim", requestIds: ["a-1"] });
+
+    socket.fire("open");
+    expect(
+      sentMessages(socket).filter((message) => message.type === "claim"),
+    ).toEqual([]);
+
+    transport.send({ type: "claim", requestIds: ["a-2"] });
+    expect(
+      sentMessages(socket).filter((message) => message.type === "claim"),
+    ).toEqual([{ type: "claim", requestIds: ["a-2"] }]);
+
+    transport.dispose();
+  });
+
   it("keeps only the latest vantage selection, and replays it before re-subscribing", () => {
     const { transport, socket } = downTransport();
     transport.send({ type: "subscribe", topic: "vessel.orbit" });

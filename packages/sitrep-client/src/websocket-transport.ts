@@ -246,6 +246,9 @@ export class WebSocketTransport implements Transport {
    * `Transport.decidesTopicOwnership` for why the default is the other way.
    */
   readonly decidesTopicOwnership = true;
+
+  /** This connection is the mod's own, so it can claim the answers to commands an earlier connection sent. */
+  readonly claimsAnswers = true;
   private _status: TransportStatus = "reconnecting";
 
   private readonly url: string;
@@ -372,6 +375,11 @@ export class WebSocketTransport implements Transport {
     }
     if (message.type === "set-vantage") {
       this.selectedVantage = message.centreId;
+      this.sendRaw(message);
+      return;
+    }
+    // A claim is made again on every connect, so one with no socket to take it is dropped rather than held.
+    if (message.type === "claim") {
       this.sendRaw(message);
       return;
     }

@@ -970,12 +970,12 @@ namespace Sitrep.Host
                 }
                 if (report.Kind == JourneyKind.Reply)
                 {
-                    ParkAnswer(report.To, ResponseFrame(report.ClientRequestId, report.Command, report.To, report.AtUt, report.Result));
+                    Reply(report.ClientRequestId, null, report.To, ResponseFrame(report.ClientRequestId, report.Command, report.To, report.AtUt, report.Result), terminal: true);
                     return;
                 }
                 if (RefusalOf(report) is { } parked)
                 {
-                    ParkAnswer(report.To, ErrorFrame(report.ClientRequestId, parked.Code, parked.Reason));
+                    Reply(report.ClientRequestId, null, report.To, ErrorFrame(report.ClientRequestId, parked.Code, parked.Reason), terminal: true);
                 }
                 return;
             }
@@ -1314,6 +1314,7 @@ namespace Sitrep.Host
                 RestoreLivePath(carried.LivePath);
             }
             CarryOrUndo(jobsBefore, courierJobsBefore, pendingBefore, dispatchersBefore);
+            SettleWaitingClaims(RestoredCommandsOf(carried));
             var ic = System.Globalization.CultureInfo.InvariantCulture;
             if (from != null)
             {
@@ -1324,6 +1325,32 @@ namespace Sitrep.Host
             return latest == null
                 ? "restored nothing, no save has been written or loaded"
                 : "restored nothing, the newest save is of UT " + latest.Ut.ToString("F2", ic) + " in '" + latest.Save + "'";
+        }
+
+        /// <summary>The commands a loaded save carries, each by the request id its client chose.</summary>
+        private static IEnumerable<KeyValuePair<string, RestoredCommand>> RestoredCommandsOf(DeliverySnapshot? carried)
+        {
+            if (carried == null)
+            {
+                yield break;
+            }
+            foreach (var command in carried.SentCommands
+                .Concat(carried.Held.Select(h => h.Message))
+                .Concat(carried.Flights.Select(f => f.Message))
+                .OfType<CommandMessage>())
+            {
+                if (!string.IsNullOrEmpty(command.ClientRequestId))
+                {
+                    yield return new KeyValuePair<string, RestoredCommand>(command.ClientRequestId, new RestoredCommand(command.Lane.Vantage, command.DeleteAtUt));
+                }
+            }
+            foreach (var command in carried.LivePath.Commands)
+            {
+                if (!string.IsNullOrEmpty(command.Correlation))
+                {
+                    yield return new KeyValuePair<string, RestoredCommand>(command.Correlation, new RestoredCommand(command.Vantage, command.ConfirmUt));
+                }
+            }
         }
 
         /// <summary>

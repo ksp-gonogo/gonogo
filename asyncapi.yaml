@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 40.2.0
+  version: 40.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 61 commands it dispatches, with the payload
@@ -2488,6 +2488,8 @@ channels:
       closes delivery on it: see the subscription gate in the document description.
       `set-vantage` selects the command centre this connection commands from and
       observes at, which governs both what it reads and how long its commands take.
+      `claim` names the commands a reconnecting client still waits on, so the answers
+      the mod kept for them are sent to the new connection.
       The mod opens every connection with a `hello` naming the run it has reached,
       and answers a `ping` with a `pong` at once, in any scene and with nothing
       subscribed, which is how a client tells a quiet connection from a dead one.
@@ -2505,6 +2507,8 @@ channels:
         $ref: "#/components/messages/unsubscribe"
       setVantage:
         $ref: "#/components/messages/setVantage"
+      claim:
+        $ref: "#/components/messages/claim"
       ping:
         $ref: "#/components/messages/ping"
       hello:
@@ -5919,13 +5923,14 @@ operations:
     action: send
     channel:
       $ref: "#/channels/session"
-    title: Open or close delivery, change vantage, or ask whether the connection is alive
+    title: Open or close delivery, change vantage, claim earlier commands' answers, or ask whether the connection is alive
     tags:
       - name: session
     messages:
       - $ref: "#/channels/session/messages/subscribe"
       - $ref: "#/channels/session/messages/unsubscribe"
       - $ref: "#/channels/session/messages/setVantage"
+      - $ref: "#/channels/session/messages/claim"
       - $ref: "#/channels/session/messages/ping"
   session.notices:
     action: receive
@@ -5945,6 +5950,11 @@ components:
       description: "A dispatch and its answer are correlated on `requestId`, never on order: responses may arrive out of the order the requests were sent, and a delayed command's answer can be minutes behind it."
       location: $message.payload#/requestId
   messages:
+    claim:
+      name: claim
+      title: Claim the answers to commands sent on an earlier connection
+      payload:
+        $ref: "#/components/schemas/ClaimRequest"
     commandRequest.alarm.scet.arm:
       name: command-request
       title: Dispatch alarm.scet.arm
@@ -10351,6 +10361,38 @@ components:
           type: number
           x-sitrep-unit: s
           description: One-way signal time along the routed path between the two.
+    ClaimRequest:
+      type: object
+      description: |-
+        Names the commands a client is still waiting on, sent after it reconnects to
+        the game: a page reload, a dropped network or a restarted game has closed
+        the connection the commands were sent on, and the answers they were owed
+        have nowhere to go. For each `requestId` the game holds an answer for, it
+        sends that answer now and forgets it; for each command still in flight it
+        sends the answer to this connection when it comes; for each one it holds
+        nothing for, it sends an `error` carrying `replyNotReceived`, so the client
+        can stop waiting. Used by a client that keeps its outstanding commands
+        across a reload, such as a command held for a craft out of contact.
+
+        An id is claimed only by the command centre that sent it: send this after
+        `SetVantage`, and an id sent from another centre is answered as one the game
+        holds nothing for. Answers are never sent to a connection that does not name
+        their id.
+      required:
+        - type
+        - requestIds
+      properties:
+        type:
+          type: string
+          const: claim
+          x-sitrep-unit: id
+          description: The frame type, always `"claim"`.
+        requestIds:
+          type: array
+          items:
+            type: string
+            x-sitrep-unit: id
+          description: The `requestId` of each command the client still waits on, as it sent them.
     ClosestApproach:
       type: object
       description: |-

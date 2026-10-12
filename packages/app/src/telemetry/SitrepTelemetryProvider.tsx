@@ -1,6 +1,7 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import {
+  localStorageOutstandingCommands,
   TelemetryClient,
   TelemetryProvider,
   type Transport,
@@ -145,6 +146,13 @@ export interface SitrepTelemetryProviderProps {
    * a live `WebSocketTransport` to the mod host/port is built.
    */
   transport?: Transport;
+  /**
+   * Names this screen's list of commands still waiting on the mod, kept in
+   * local storage so a reload of this screen can claim their answers. Omitted
+   * for a screen with nothing to claim, which then claims only after a
+   * reconnect that keeps the page.
+   */
+  screenKey?: string;
 }
 
 /**
@@ -173,6 +181,7 @@ export function SitrepTelemetryProvider({
   host,
   port,
   transport: injectedTransport,
+  screenKey,
 }: SitrepTelemetryProviderProps) {
   const liveHostConfig = useSyncExternalStore(
     subscribeSitrepHostConfig,
@@ -286,7 +295,11 @@ export function SitrepTelemetryProvider({
       setClient(null);
       return;
     }
-    const telemetryClient = new TelemetryClient(transport);
+    const telemetryClient = new TelemetryClient(transport, undefined, {
+      outstanding: screenKey
+        ? localStorageOutstandingCommands(screenKey)
+        : undefined,
+    });
     if (chosenVantage.current !== undefined) {
       telemetryClient.setVantage(chosenVantage.current);
     }
@@ -299,7 +312,7 @@ export function SitrepTelemetryProvider({
       telemetryClient.dispose();
       setClient(null);
     };
-  }, [transport, generation]);
+  }, [transport, generation, screenKey]);
 
   if (!client) return <>{children}</>;
 

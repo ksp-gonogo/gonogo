@@ -201,6 +201,41 @@ public class CommandGroupRequest
 }
 
 /// <summary>
+/// Names the commands a client is still waiting on, sent after it reconnects
+/// to the game: a page reload, a dropped network or a restarted game has closed
+/// the connection the commands were sent on, and the answers they were owed
+/// have nowhere to go. For each <c>requestId</c> the game holds an answer for,
+/// it sends that answer now and forgets it; for each command still in flight
+/// it sends the answer to this connection when it comes; for each one it holds
+/// nothing for, it sends an <c>error</c> carrying <c>replyNotReceived</c>, so
+/// the client can stop waiting. Used by a client that keeps its outstanding
+/// commands across a reload, such as a command held for a craft out of contact.
+///
+/// <para>An id is claimed only by the command centre that sent it: send this
+/// after <see cref="SetVantage"/>, and an id sent from another centre is
+/// answered as one the game holds nothing for. Answers are never sent to a
+/// connection that does not name their id.</para>
+/// </summary>
+/// <category>Stream messages</category>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class ClaimRequest
+{
+    /// <summary>The frame type, always <c>"claim"</c>.</summary>
+#if SITREP_CODEGEN
+    [TsProperty(Type = "\"claim\"")]
+#endif
+    [SitrepUnit(Units.Id)]
+    public string Type { get; set; } = "claim";
+
+    /// <summary>The <c>requestId</c> of each command the client still waits on, as it sent them.</summary>
+    [SitrepUnit(Units.Id)]
+    public List<string> RequestIds { get; set; } = new List<string>();
+}
+
+/// <summary>
 /// The server's reply to a <see cref="CommandRequest{TArgs}"/>, matched to it
 /// by <see cref="RequestId"/>.
 /// </summary>

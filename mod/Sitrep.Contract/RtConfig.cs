@@ -45,6 +45,7 @@ public static class RtConfig
         builder.ExportAsInterface<Hello>().AutoI(false).WithPublicProperties().OverrideName("Hello");
         builder.ExportAsInterface<GameState>().AutoI(false).WithPublicProperties().OverrideName("GameState");
         builder.ExportAsInterface<CommandGroupRequest>().AutoI(false).WithPublicProperties().OverrideName("CommandGroupRequest");
+        builder.ExportAsInterface<ClaimRequest>().AutoI(false).WithPublicProperties().OverrideName("ClaimRequest");
         builder.ExportAsInterface<Ping>().AutoI(false).WithPublicProperties().OverrideName("Ping");
         builder.ExportAsInterface<Pong>().AutoI(false).WithPublicProperties().OverrideName("Pong");
         builder.ExportAsInterface<StreamBinary>().AutoI(false).WithPublicProperties().OverrideName("StreamBinary");

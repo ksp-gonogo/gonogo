@@ -415,7 +415,7 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The game is quit with a command held on a lane and started again: the
         /// request that sent it died with the old process, and the client that
-        /// reconnected finds the reply by the request id it chose.
+        /// reconnected claims the request id it chose and is sent the reply.
         /// </summary>
         [Fact]
         public async Task AHeldCommandSavedAcrossARestartIsAnsweredToTheClientByItsRequestId()
@@ -450,6 +450,7 @@ namespace Sitrep.Host.IntegrationTests
                 Tick(after, 0.5);
                 await using var reconnected = await TestClient.ConnectAsync(after.BoundPort, Op);
                 await reconnected.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Centre }));
+                await reconnected.SendAsync(EnvelopeCodec.WriteClaim(new ClaimRequest { RequestIds = new List<string> { "client-7" } }));
                 after.NoteGameLoaded(written, savedUt: 1.0);
                 Tick(after, 2.0);
                 OpenRoute(after);
@@ -470,8 +471,8 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The same restart, but the route never opens and the command runs out
-        /// of time where it is held: the client is refused by its request id
-        /// rather than left waiting.
+        /// of time where it is held: the client that claimed its request id is
+        /// refused rather than left waiting.
         /// </summary>
         [Fact]
         public async Task AHeldCommandThatExpiresAfterARestartIsRefusedToTheClientByItsRequestId()
@@ -506,6 +507,7 @@ namespace Sitrep.Host.IntegrationTests
                 Tick(after, 0.5);
                 await using var reconnected = await TestClient.ConnectAsync(after.BoundPort, Op);
                 await reconnected.SendAsync(EnvelopeCodec.WriteSetVantage(new SetVantage { CentreId = Centre }));
+                await reconnected.SendAsync(EnvelopeCodec.WriteClaim(new ClaimRequest { RequestIds = new List<string> { "client-8" } }));
                 after.NoteGameLoaded(written, savedUt: 1.0);
                 Tick(after, 2.0);
                 Tick(after, 5000.0);
