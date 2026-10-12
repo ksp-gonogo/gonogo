@@ -41,10 +41,10 @@ Once it is in an Uplink's devDependencies the same commands answer to
 | `bake` | write what the plugin tells the app about its client into C#: where the bundle lives, who wrote it, and the hash the mod vouches for |
 | `package` | lay the built plugin out as `GameData/<name>/` and zip it with that as the zip's one root, which is what a hand install and CKAN both expect; it refuses a netkan whose install stanza names a path the zip does not hold |
 | `release` | `bundle`, `bake`, compile the plugin, check the DLL carries what was baked, and `package`, in that order. It refuses when the Uplink's version is not the same in `client/package.json`, in `defineUplinkClient` and in the version folder of `client.url` |
-| `page` | write `README.md`, `gonogo-uplink.json` and `docs/widgets.json` from what the client registers, with no browser |
+| `page` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/spec.json` from what the client registers, with no browser |
 | `render` | render every scene to `renders/` |
 | `story <id>` | render one Storybook story to a PNG, or to a GIF when the story is tagged `playback`; see below |
-| `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json` and `docs/assets/`; `docs --check` fails on drift |
+| `docs` | write `README.md`, `gonogo-uplink.json`, `docs/widgets.json`, `docs/spec.json` and `docs/assets/`; `docs --check` fails on drift |
 
 ### Seeing a build in the app
 
@@ -126,9 +126,12 @@ You will not usually import the first of these: the command line runs it.
 
 `uplink-tools docs` writes `README.md`, `gonogo-uplink.json` and
 `docs/widgets.json`, the record of each widget you register. The README's widget
-sections are rendered from those records, and `docs --check` and
-`expectUplinkPageCurrent` fail when any of the three no longer matches your
-registrations. Commit all three.
+sections are rendered from those records. `docs/spec.json` is the spec sheet: the
+whole Uplink as data (Topics with delivery and delay, commands, widgets, the
+slots it fills, models, error codes and the contract it was built against), for
+a developer or a tool reading someone else's Uplink. `docs --check` and
+`expectUplinkPageCurrent` fail when any of the four no longer matches your
+registrations. Commit all four.
 
 ## What a fixture puts on the stream
 

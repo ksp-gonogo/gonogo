@@ -71,6 +71,13 @@ export {
   type ShapeVerdict,
 } from "./render/shape";
 export {
+  buildUplinkSpec,
+  SPEC_FILE,
+  SPEC_VERSION,
+  type UplinkSpec,
+  uplinkSpecJson,
+} from "./render/spec";
+export {
   WIDGET_RECORDS_FILE,
   type WidgetRecord,
   widgetRecordsJson,

@@ -14,7 +14,9 @@ import {
   widgetRecordsOf,
 } from "./render/docs";
 import { assertEveryWidgetCovered, buildScenes } from "./render/scenes";
+import { buildUplinkSpec, SPEC_FILE, uplinkSpecJson } from "./render/spec";
 import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./render/widgetRecord";
+import { readWireSurface } from "./render/wire";
 
 /*
  * The browserless half of `uplink-tools docs --check`: whether the generated page still matches what the registrations declare.
@@ -71,6 +73,8 @@ interface GeneratedPage {
   manifestJson: string;
   recordsPath: string;
   recordsJson: string;
+  specPath: string;
+  specJson: string;
   root: string;
 }
 
@@ -113,12 +117,21 @@ function generatePage(options: PageCheckOptions): GeneratedPage {
     manifestJson: `${JSON.stringify(manifest, null, 2)}\n`,
     recordsPath: join(pkg.dir, WIDGET_RECORDS_FILE),
     recordsJson: widgetRecordsJson(widgetRecordsOf(inventory)),
+    specPath: join(pkg.dir, SPEC_FILE),
+    specJson: uplinkSpecJson(
+      buildUplinkSpec(
+        pkg,
+        inventory,
+        readWireSurface(pkg.dir),
+        widgetRecordsOf(inventory),
+      ),
+    ),
     root: pkg.dir,
   };
 }
 
 /**
- * Regenerates the Uplink's README, manifest and `docs/widgets.json` and
+ * Regenerates the Uplink's README, manifest, `docs/widgets.json` and `docs/spec.json` and
  * compares them with the committed files, without writing anything.
  *
  * @category Page check
@@ -153,11 +166,18 @@ export function checkUplinkPage(
     page.root,
     differences,
   );
+  compare(
+    page.specPath,
+    page.specJson,
+    (a, b) => a === b,
+    page.root,
+    differences,
+  );
   return { differences };
 }
 
 /**
- * Rewrites the Uplink's README, manifest and `docs/widgets.json` in place,
+ * Rewrites the Uplink's README, manifest, `docs/widgets.json` and `docs/spec.json` in place,
  * leaving `docs/assets` untouched: the counterpart to {@link checkUplinkPage},
  * for a change that moves the page's text but not its pictures, such as a new
  * contract version.
@@ -175,6 +195,7 @@ export function writeUplinkPage(options: PageCheckOptions = {}): {
     [page.readmePath, page.readme],
     [page.manifestPath, page.manifestJson],
     [page.recordsPath, page.recordsJson],
+    [page.specPath, page.specJson],
   ] as const) {
     let committed: string | undefined;
     try {
@@ -276,7 +297,7 @@ function updateRequested(): boolean {
 }
 
 /**
- * Fails when the Uplink's committed README, manifest or `docs/widgets.json` no
+ * Fails when the Uplink's committed README, manifest, `docs/widgets.json` or `docs/spec.json` no
  * longer matches what its registrations declare, listing each difference. For an Uplink's own test
  * suite: it needs no browser, and it cannot tell whether the committed images
  * are current, which `uplink-tools docs --check` does. With `PAGE_UPDATE_ENV`

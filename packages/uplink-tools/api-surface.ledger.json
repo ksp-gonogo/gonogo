@@ -670,6 +670,66 @@
         "note": "A field of the fixture file's FixtureStream block, unchanged in meaning"
       },
       {
+        "key": "uplink-tools . SPEC_FILE",
+        "note": "Where uplink-tools writes an Uplink's spec sheet: docs/spec.json"
+      },
+      {
+        "key": "uplink-tools . SPEC_VERSION",
+        "note": "The shape version of the spec sheet file"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec",
+        "note": "An Uplink described as data: Topics, commands, widgets, slots, models and the contract stamp"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#augments",
+        "note": "The slots the Uplink fills in other widgets"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#commandArgs",
+        "note": "The argument shapes the commands take"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#commands",
+        "note": "The commands the Uplink accepts"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#contributions",
+        "note": "The values the Uplink contributes to named slots"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#errorCodes",
+        "note": "The refusal refinements the Uplink answers with"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#models",
+        "note": "The processors, forward models, derived channels and input-rule exemptions"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#nestedPayloads",
+        "note": "Payload shapes reached through a Topic's fields"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#otherPayloads",
+        "note": "Payload shapes no listed Topic routes to"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#specVersion",
+        "note": "The shape version of the file"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#topics",
+        "note": "The Topics the Uplink publishes with payload, delivery and delay"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#uplink",
+        "note": "The Uplink's id, name, version, description and wrapped mod"
+      },
+      {
+        "key": "uplink-tools . UplinkSpec#widgets",
+        "note": "The widgets the Uplink registers, as widget records"
+      },
+      {
         "key": "uplink-tools . WIDGET_RECORDS_FILE",
         "note": "Where gonogo-uplink docs writes an Uplink's widget records: docs/widgets.json"
       },
@@ -760,6 +820,14 @@
       {
         "key": "uplink-tools . WidgetRecord#tiny",
         "note": "New: whether the widget has a tiny form"
+      },
+      {
+        "key": "uplink-tools . buildUplinkSpec",
+        "note": "Builds the spec sheet from the same inventory and wire surface the README uses"
+      },
+      {
+        "key": "uplink-tools . uplinkSpecJson",
+        "note": "The one writer of the spec sheet file's text"
       },
       {
         "key": "uplink-tools . widgetRecordsJson",

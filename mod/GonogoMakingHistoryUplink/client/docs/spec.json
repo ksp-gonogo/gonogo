@@ -1,0 +1,36 @@
+{
+  "specVersion": 1,
+  "uplink": {
+    "id": "makingHistory",
+    "name": "Making History",
+    "version": "0.0.1",
+    "description": "Lists the running Making History mission's objectives in the Objectives widget, each marked pending, under way, reached or failed.",
+    "wraps": null
+  },
+  "topics": [],
+  "nestedPayloads": [],
+  "otherPayloads": [],
+  "commands": [],
+  "commandArgs": [],
+  "widgets": [],
+  "augments": [
+    {
+      "id": "objectives-making-history",
+      "augments": "objectives.source",
+      "channels": [
+        "missions.active"
+      ],
+      "priority": 10,
+      "suppressesVanillaBase": false,
+      "settings": []
+    }
+  ],
+  "contributions": [],
+  "models": {
+    "processors": [],
+    "forwardModels": [],
+    "derivedChannels": [],
+    "inputRuleExemptions": []
+  },
+  "errorCodes": []
+}

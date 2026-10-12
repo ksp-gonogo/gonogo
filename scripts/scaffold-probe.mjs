@@ -735,6 +735,12 @@ const widgetRecords = JSON.parse(
   readFileSync(join(client, "docs/widgets.json"), "utf8"),
 ).widgets;
 if (widgetRecords.length === 0) fail("the generated page lists no widget");
+const specSheet = JSON.parse(
+  readFileSync(join(client, "docs/spec.json"), "utf8"),
+);
+if (specSheet.widgets.length !== widgetRecords.length) {
+  fail("docs/spec.json does not list the widgets docs/widgets.json lists");
+}
 for (const widget of widgetRecords) {
   if (!widget.description?.trim() || !pageText.includes(widget.description)) {
     fail(`the generated page does not carry a description of ${widget.id}`);

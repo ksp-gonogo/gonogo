@@ -86,7 +86,7 @@ export function pageRule(run: typeof runPageCheck = runPageCheck): Rule {
           severity: "error",
           file: files[0],
           line: 1,
-          message: `The page check fails, so README.md, gonogo-uplink.json or docs/widgets.json no longer describes what the client registers.\n  ${whatDiffers(result.output)}`,
+          message: `The page check fails, so README.md, gonogo-uplink.json, docs/widgets.json or docs/spec.json no longer describes what the client registers.\n  ${whatDiffers(result.output)}`,
           fixable: true,
           fix: "Run `uplink-tools page` and commit what it writes.",
           apply: () => {

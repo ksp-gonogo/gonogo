@@ -27,8 +27,8 @@ import { parseFlags } from "./flags";
 
 export const PAGE_USAGE = `uplink-tools page [options]
 
-  Write this Uplink's generated page (README.md, gonogo-uplink.json and
-  docs/widgets.json) from what the client registers, with no browser. It runs
+  Write this Uplink's generated page (README.md, gonogo-uplink.json,
+  docs/widgets.json and docs/spec.json) from what the client registers, with no browser. It runs
   the test that holds the page check, and only that one, with the check writing
   the page instead of comparing it, so the client's dependencies must be
   installed and the rest of the client's tests may be failing. It says which
@@ -115,16 +115,17 @@ export function page(
   console.log(
     wrote.length > 0
       ? `page: wrote ${wrote.join(", ")}`
-      : "page: README.md, gonogo-uplink.json and docs/widgets.json already match what the client registers. Nothing written.",
+      : "page: README.md, gonogo-uplink.json, docs/widgets.json and docs/spec.json already match what the client registers. Nothing written.",
   );
   return 0;
 }
 
-/** The three files the page check writes, relative to the client. */
+/** The files the page check writes, relative to the client. */
 export const PAGE_FILES = [
   "README.md",
   "gonogo-uplink.json",
   "docs/widgets.json",
+  "docs/spec.json",
 ];
 
 /** The test files under `dir` that call the page check, which are the only ones `page` runs. */

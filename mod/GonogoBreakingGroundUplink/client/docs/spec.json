@@ -1,0 +1,177 @@
+{
+  "specVersion": 1,
+  "uplink": {
+    "id": "breakingGround",
+    "name": "Breaking Ground",
+    "version": "0.0.1",
+    "description": "Drives Breaking Ground robotic joints and rotors from the console, and reports deployed surface bases on every body while you fly something else.",
+    "wraps": null
+  },
+  "topics": [],
+  "nestedPayloads": [],
+  "otherPayloads": [],
+  "commands": [],
+  "commandArgs": [],
+  "widgets": [
+    {
+      "id": "deployed-science",
+      "name": "Deployed Science",
+      "description": "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.",
+      "tags": [
+        "telemetry",
+        "science"
+      ],
+      "channels": [],
+      "optionalChannels": [],
+      "commands": [],
+      "channelFamilies": [],
+      "optionalChannelFamilies": [],
+      "readsFromConfig": false,
+      "dataRequirements": [
+        "deployed.bases",
+        "game.dlc.breakingGround"
+      ],
+      "fields": [],
+      "actions": [],
+      "augmentSlots": [
+        "deployed-science.experiment"
+      ],
+      "contributionSlots": [],
+      "requires": [],
+      "replaces": null,
+      "pushable": true,
+      "defaultSize": {
+        "w": 5,
+        "h": 9
+      },
+      "minSize": {
+        "w": 4,
+        "h": 5
+      },
+      "tiny": false
+    },
+    {
+      "id": "robotics-console",
+      "name": "Robotics Console",
+      "description": "Current-vs-target position, at-target state and motor/lock controls for Breaking Ground robotic hinges, rotation servos and pistons. Select a joint to drive it from the stepper or a mapped input.",
+      "tags": [
+        "telemetry",
+        "robotics"
+      ],
+      "channels": [],
+      "optionalChannels": [],
+      "commands": [],
+      "channelFamilies": [],
+      "optionalChannelFamilies": [],
+      "readsFromConfig": false,
+      "dataRequirements": [
+        "robotics.servos",
+        "robotics.available.available",
+        "game.dlc.breakingGround"
+      ],
+      "fields": [],
+      "actions": [
+        {
+          "id": "target-up",
+          "label": "Target +"
+        },
+        {
+          "id": "target-down",
+          "label": "Target −"
+        },
+        {
+          "id": "toggle-motor",
+          "label": "Toggle motor"
+        },
+        {
+          "id": "toggle-lock",
+          "label": "Toggle lock"
+        }
+      ],
+      "augmentSlots": [],
+      "contributionSlots": [],
+      "requires": [
+        "flight"
+      ],
+      "replaces": null,
+      "pushable": true,
+      "defaultSize": {
+        "w": 5,
+        "h": 8
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      },
+      "tiny": false
+    },
+    {
+      "id": "rotor-tachometer",
+      "name": "Rotor Tachometer",
+      "description": "Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, brake and direction controls. Select a rotor to drive it from the dial or a mapped input.",
+      "tags": [
+        "telemetry",
+        "robotics"
+      ],
+      "channels": [],
+      "optionalChannels": [],
+      "commands": [],
+      "channelFamilies": [],
+      "optionalChannelFamilies": [],
+      "readsFromConfig": false,
+      "dataRequirements": [
+        "robotics.servos",
+        "robotics.available.available",
+        "game.dlc.breakingGround"
+      ],
+      "fields": [],
+      "actions": [
+        {
+          "id": "rpm-up",
+          "label": "RPM up"
+        },
+        {
+          "id": "rpm-down",
+          "label": "RPM down"
+        },
+        {
+          "id": "toggle-motor",
+          "label": "Toggle motor"
+        },
+        {
+          "id": "toggle-lock",
+          "label": "Toggle lock"
+        },
+        {
+          "id": "reverse",
+          "label": "Reverse"
+        }
+      ],
+      "augmentSlots": [],
+      "contributionSlots": [],
+      "requires": [
+        "flight"
+      ],
+      "replaces": null,
+      "pushable": true,
+      "defaultSize": {
+        "w": 6,
+        "h": 10
+      },
+      "minSize": {
+        "w": 4,
+        "h": 4
+      },
+      "tiny": false
+    }
+  ],
+  "augments": [],
+  "contributions": [],
+  "models": {
+    "processors": [],
+    "forwardModels": [],
+    "derivedChannels": [],
+    "inputRuleExemptions": []
+  },
+  "errorCodes": []
+}

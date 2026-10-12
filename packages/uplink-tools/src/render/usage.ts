@@ -21,18 +21,20 @@ ${SHARED_OPTIONS}
 
 const DOCS_USAGE = `uplink-tools docs [options]
 
-  Write README.md, gonogo-uplink.json, docs/widgets.json and docs/assets/.
+  Write README.md, gonogo-uplink.json, docs/widgets.json, docs/spec.json and
+  docs/assets/.
 
 ${SHARED_OPTIONS}
   --check                regenerate in memory and fail on any difference.
                          The pictures' shapes are compared only on CI
                          (CI or GITHUB_ACTIONS set); elsewhere the README,
-                         the manifest, docs/widgets.json and the asset names are
-  --no-assets            write README.md, gonogo-uplink.json and
-                         docs/widgets.json only, and leave docs/assets/ as it
-                         is. For a change that moves the prose (a scene added
-                         or removed) on a machine whose renders are not the ones
-                         committed
+                         the manifest, docs/widgets.json, docs/spec.json and
+                         the asset names are
+  --no-assets            write README.md, gonogo-uplink.json,
+                         docs/widgets.json and docs/spec.json only, and
+                         leave docs/assets/ as it is. For a change that
+                         moves the prose (a scene added or removed) on a
+                         machine whose renders are not the ones committed
   --assets <dir>         docs asset output (default: docs/assets)
   --bundle <file>        the file you distribute, hashed into integrity
 `;

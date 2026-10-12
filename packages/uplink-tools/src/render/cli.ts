@@ -9,6 +9,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
+import type { UplinkInventory } from "../render-probe";
 import {
   display,
   readJsonObject,
@@ -36,8 +37,10 @@ import {
   type ShapeVerdict,
   writeShapeRecord,
 } from "./shape";
+import { buildUplinkSpec, SPEC_FILE, uplinkSpecJson } from "./spec";
 import { usageOf } from "./usage";
 import { WIDGET_RECORDS_FILE, widgetRecordsJson } from "./widgetRecord";
+import { readWireSurface } from "./wire";
 
 /**
  * What to do about a stale page, and it is not the obvious thing.
@@ -284,6 +287,18 @@ export async function renderOrDocs(argv: readonly string[]): Promise<void> {
   }
 }
 
+/** The spec sheet's text for an Uplink, from the same inventory the README is built from. */
+function specJsonOf(pkg: UplinkPackage, inventory: UplinkInventory): string {
+  return uplinkSpecJson(
+    buildUplinkSpec(
+      pkg,
+      inventory,
+      readWireSurface(pkg.dir),
+      widgetRecordsOf(inventory),
+    ),
+  );
+}
+
 /** `docs` writes the page with its assets rendered into `assetOut`; `docs --check` compares against it instead. */
 async function docs(
   pkg: UplinkPackage,
@@ -322,10 +337,12 @@ async function docs(
   const readme = buildReadme(inputs, manifest);
   const manifestJson = `${JSON.stringify(manifest, null, 2)}\n`;
   const recordsJson = widgetRecordsJson(widgetRecordsOf(result.inventory));
+  const specJson = specJsonOf(pkg, result.inventory);
 
   const readmePath = join(pkg.dir, "README.md");
   const manifestPath = join(pkg.dir, "gonogo-uplink.json");
   const recordsPath = join(pkg.dir, WIDGET_RECORDS_FILE);
+  const specPath = join(pkg.dir, SPEC_FILE);
 
   const shapes = new Map<string, AssetShape>(
     result.assets.map((asset) => [asset.file, asset.shape]),
@@ -337,6 +354,7 @@ async function docs(
     await writeFile(manifestPath, manifestJson, "utf8");
     await mkdir(dirname(recordsPath), { recursive: true });
     await writeFile(recordsPath, recordsJson, "utf8");
+    await writeFile(specPath, specJson, "utf8");
     await writeShapeRecord(assetOut, {
       version: SHAPE_RECORD_VERSION,
       engine: args.engine,
@@ -345,6 +363,7 @@ async function docs(
     console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
     console.log(`wrote ${display(pkg.dir, manifestPath)}`);
     console.log(`wrote ${WIDGET_RECORDS_FILE}`);
+    console.log(`wrote ${SPEC_FILE}`);
     console.log(`wrote ${result.assets.length} asset(s) → ${args.assetDir}/`);
     console.log(`wrote ${args.assetDir}/${SHAPE_RECORD_FILE}`);
     return;
@@ -402,6 +421,8 @@ async function docs(
     manifestJson,
     recordsPath,
     recordsJson,
+    specPath,
+    specJson,
     committedAssets: resolve(pkg.dir, args.assetDir),
     generatedAssets: assetOut,
     shapes,
@@ -462,9 +483,15 @@ async function writeProseOnly(pkg: UplinkPackage, args: Args): Promise<void> {
     widgetRecordsJson(widgetRecordsOf(read.inventory)),
     "utf8",
   );
+  await writeFile(
+    join(pkg.dir, SPEC_FILE),
+    specJsonOf(pkg, read.inventory),
+    "utf8",
+  );
   console.log(`\nwrote ${display(pkg.dir, readmePath)}`);
   console.log(`wrote ${display(pkg.dir, manifestPath)}`);
   console.log(`wrote ${WIDGET_RECORDS_FILE}`);
+  console.log(`wrote ${SPEC_FILE}`);
   console.log(`left ${args.assetDir}/ untouched`);
 }
 
@@ -565,7 +592,7 @@ export function picturesComparedHere(env: NodeJS.ProcessEnv): boolean {
 }
 
 export const PICTURES_ARE_CI_NOTE =
-  "docs --check: pictures and their shapes are compared in CI only; this run compared the README, the manifest, docs/widgets.json and the asset names.";
+  "docs --check: pictures and their shapes are compared in CI only; this run compared the README, the manifest, docs/widgets.json, docs/spec.json and the asset names.";
 
 export interface CommittedPage {
   readmePath: string;
@@ -575,6 +602,9 @@ export interface CommittedPage {
   /** Where the widget records belong, and what they should hold. */
   recordsPath: string;
   recordsJson: string;
+  /** Where the spec sheet belongs, and what it should hold. */
+  specPath: string;
+  specJson: string;
   committedAssets: string;
   generatedAssets: string;
   shapes: ReadonlyMap<string, AssetShape>;
@@ -596,6 +626,7 @@ export async function compareCommittedPage(
   await compareText(page.readmePath, page.readme, differences);
   await compareText(page.manifestPath, page.manifestJson, differences);
   await compareText(page.recordsPath, page.recordsJson, differences);
+  await compareText(page.specPath, page.specJson, differences);
   await compareAssetNames(
     page.committedAssets,
     page.generatedAssets,

@@ -15,6 +15,7 @@
       "!.claude",
       "!**/__generated__",
       "!**/client/docs/widgets.json",
+      "!**/client/docs/spec.json",
       "!mod/Sitrep.Contract/contract-shape.baseline.json",
       "!**/tsup.config.bundled_*.mjs",
       "!docs/homepage"

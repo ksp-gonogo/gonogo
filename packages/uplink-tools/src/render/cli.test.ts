@@ -101,6 +101,7 @@ describe("the committed page, with and without pictures", () => {
     writeFileSync(join(dir, "gonogo-uplink.json"), "{}\n");
     mkdirSync(join(dir, "docs"), { recursive: true });
     writeFileSync(join(dir, "docs", "widgets.json"), '{ "widgets": [] }\n');
+    writeFileSync(join(dir, "docs", "spec.json"), "{}\n");
     for (const name of committed.assets) {
       writeFileSync(join(committedAssets, name), "a picture");
     }
@@ -121,6 +122,8 @@ describe("the committed page, with and without pictures", () => {
       manifestJson: "{}\n",
       recordsPath: join(dir, "docs", "widgets.json"),
       recordsJson: '{ "widgets": [] }\n',
+      specPath: join(dir, "docs", "spec.json"),
+      specJson: "{}\n",
       committedAssets,
       generatedAssets,
       shapes: new Map([["a--default.png", shape("rendered-here")]]),
