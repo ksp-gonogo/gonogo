@@ -78,19 +78,24 @@ The probe runs in the main screen's browser and looks for the relay at `http://l
 
 The relay answers three requests on port `3002`, handy from the machine it runs on:
 
-- `GET http://localhost:3002/health` reports the relay status, the public IP coturn is advertising, and the most recently registered host peer id (for diagnostics only; stations do not read it to find the host)
+- `GET http://localhost:3002/health` reports the relay status and the public IP and port coturn is advertising. With no internet and no `TURN_EXTERNAL_IP`, the relay stays up without TURN (a LAN needs none), `turn` is `null` with a `turnUnavailable` reason, and it retries finding the public IP every 60 seconds. If coturn cannot start or stops after running, `/health` answers `503` and the relay exits so its container restarts
 - `GET http://localhost:3002/version` returns `{ version, buildTime }`, which is how you tell which image a box is actually on
-- `GET http://localhost:3002/ice-config` returns the ICE servers the main screen fetches on boot. The TURN shared secret in it rotates on every relay restart and lives only in the relay's memory
+- `GET http://localhost:3002/ice-config` returns the ICE servers the main screen fetches on boot, or `503` with a reason while coturn is not running. The TURN shared secret in it rotates on every relay restart and lives only in the relay's memory
 
 ## Running the relay on its own
 
-The container from the README runs the app and the relay together. For an always-on relay on a separate machine, such as a public Linux box, run the relay image by itself (swap `podman` for `docker` if you prefer):
+The released app has no setting for where the relay is. The main screen's browser always asks `http://localhost:3002`, so the relay has to run on the machine the main screen is open on, which is what the container from the README does. A relay on a separate machine is reached only by an app built with `VITE_RELAY_URL` set to its address; the published builds at `ksp-gonogo.github.io/app/` and `/rc/` are not, so they never contact one. That is a fork's setup, not an option of the released app.
+
+For a fork that does that, run the relay image by itself (swap `podman` for `docker` if you prefer):
 
 ```bash
 podman run -d --name gonogo-relay \
   -p 3002:3002 -p 3478:3478/udp -p 3478:3478/tcp -p 49160-49170:49160-49170/udp \
   -e TURN_EXTERNAL_IP=<public-ip> \
+  -e RELAY_PUBLIC=1 \
   ghcr.io/ksp-gonogo/gonogo-relay:latest
 ```
 
 On a box where the TURN ports are directly reachable, the relay finds its public IP by itself and nothing needs forwarding at home; leave `TURN_EXTERNAL_IP` out unless discovery gets it wrong.
+
+`RELAY_PUBLIC=1` makes coturn refuse to relay to loopback, private, link-local and CGNAT addresses, which on a relay reachable from the internet are the relay box's own networks. Leave it unset on a LAN, where stations and the main screen sit on those ranges. The relay answers any web page that asks for `/ice-config`, because the address of the main screen's app is not known to the relay (it may be a LAN address, the public build, or a fork), so keep `3002` closed to the internet where you can and publish only the TURN ports.

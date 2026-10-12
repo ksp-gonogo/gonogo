@@ -26,4 +26,10 @@ describe("loadConfig", () => {
     expect(c.turnMinPort).toBe(49160);
     expect(c.turnPort).toBe(3478);
   });
+
+  it("is LAN-safe by default and public only when RELAY_PUBLIC is set", () => {
+    expect(loadConfig({}).publicRelay).toBe(false);
+    expect(loadConfig({ RELAY_PUBLIC: "1" }).publicRelay).toBe(true);
+    expect(loadConfig({ RELAY_PUBLIC: "true" }).publicRelay).toBe(true);
+  });
 });

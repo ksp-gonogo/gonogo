@@ -27,6 +27,12 @@ export interface RelayConfig {
    * working `turnserver` binary on every dev machine.
    */
   skipCoturn: boolean;
+  /**
+   * The relay is reachable from the internet, so coturn must not relay to
+   * private, loopback, link-local or shared carrier-range peers. Off by default: a LAN
+   * deployment needs those ranges.
+   */
+  publicRelay: boolean;
 }
 
 /** Defaults live here rather than in `startCoturn` so one file answers
@@ -49,5 +55,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): RelayConfig {
     turnMinPort: port(env.TURN_MIN_PORT, DEFAULT_TURN_MIN_PORT),
     turnMaxPort: port(env.TURN_MAX_PORT, DEFAULT_TURN_MAX_PORT),
     skipCoturn: env.SKIP_COTURN === "1" || env.SKIP_COTURN === "true",
+    publicRelay: env.RELAY_PUBLIC === "1" || env.RELAY_PUBLIC === "true",
   };
 }

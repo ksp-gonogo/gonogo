@@ -40,17 +40,7 @@ class FakePeer {
 
 vi.mock("peerjs", () => ({ default: FakePeer }));
 
-/** Parse the `{ shareCode, peerId }` body of a captured fetch call. */
-function bodyOf(call: [unknown, RequestInit?]): {
-  shareCode?: string;
-  peerId?: string;
-} {
-  const init = call[1];
-  if (!init?.body) return {};
-  return JSON.parse(String(init.body));
-}
-
-/** Filter a fetch spy's calls down to the relay `POST /host` registrations. */
+/** Filter a fetch spy's calls down to the relay `POST /host` calls. */
 function hostPosts(
   spy: ReturnType<typeof vi.fn>,
 ): Array<[unknown, RequestInit?]> {
@@ -105,18 +95,13 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     service.stop();
   });
 
-  it("POSTs { shareCode, peerId } to /host for diagnostics (discovery doesn't depend on it)", async () => {
+  it("does not POST to the relay's retired /host registry", async () => {
     const { PeerHostService } = await import("../peer/PeerHostService");
     const service = new PeerHostService();
     await service.start();
     await flush();
 
-    const posts = hostPosts(fetchSpy);
-    expect(posts.length).toBeGreaterThanOrEqual(1);
-    const body = bodyOf(posts[0]);
-    expect(body.shareCode).toBe(service.shareCode);
-    expect(body.peerId).toBe(`gonogo-host-${service.shareCode}`);
-    expect(service.relayRegistered).toBe(true);
+    expect(hostPosts(fetchSpy)).toHaveLength(0);
     service.stop();
   });
 
@@ -305,29 +290,6 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     service.stop();
   });
 
-  it("marks relayRegistered false (and never throws) when the relay rejects the POST", async () => {
-    fetchSpy.mockImplementation((url: string | URL, init?: RequestInit) => {
-      const u = String(url);
-      if (u.endsWith("/ice-config")) {
-        return Promise.resolve(
-          new Response(JSON.stringify({ iceServers: [] }), { status: 200 }),
-        );
-      }
-      if (u.endsWith("/host") && init?.method === "POST") {
-        return Promise.resolve(new Response("nope", { status: 500 }));
-      }
-      return Promise.reject(new Error(`unmocked ${u}`));
-    });
-
-    const { PeerHostService } = await import("../peer/PeerHostService");
-    const service = new PeerHostService();
-    await service.start();
-    await flush();
-
-    expect(service.relayRegistered).toBe(false);
-    service.stop();
-  });
-
   it("does not throw when the relay is unreachable (fetch rejects)", async () => {
     fetchSpy.mockImplementation((url: string | URL) => {
       const u = String(url);
@@ -336,7 +298,7 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
           new Response(JSON.stringify({ iceServers: [] }), { status: 200 }),
         );
       }
-      // /host POST rejects: relay down. Discovery still works (derived id).
+      // Relay down: discovery still works (derived id).
       return Promise.reject(new Error("ECONNREFUSED"));
     });
 
@@ -344,7 +306,6 @@ describe("PeerHostService: stable host id (derived from share code)", () => {
     const service = new PeerHostService();
     await expect(service.start()).resolves.toBeUndefined();
     await flush();
-    expect(service.relayRegistered).toBe(false);
     // The host still claimed its derived id regardless of the relay.
     expect(service.peerId).toBe(`gonogo-host-${service.shareCode}`);
     service.stop();

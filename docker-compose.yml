@@ -29,6 +29,10 @@ services:
       # When unset (the typical case) the relay auto-discovers it via a
       # public lookup at startup.
       TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP:-}
+      # Set to 1 on a relay reachable from the internet: coturn then refuses
+      # to relay to private, loopback, link-local and CGNAT peers. Leave it
+      # unset on a LAN, where those are the peers it serves.
+      RELAY_PUBLIC: ${RELAY_PUBLIC:-}
       # TURN ports, kept in step with the published `ports:` above. Change
       # them here (or in `.env`) rather than in coturnManager.ts, and widen
       # the router forwards to match.

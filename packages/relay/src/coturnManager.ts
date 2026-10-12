@@ -52,6 +52,19 @@ export interface CoturnOptions {
   secret?: string;
   /** Path to the turnserver binary. Defaults to `turnserver`. */
   binaryPath?: string;
+  /**
+   * Refuse relay allocations toward loopback, private, link-local and shared
+   * carrier-range peer addresses. Off by default because a LAN setup (a Steam Deck and a
+   * laptop on one network) can legitimately relay between private addresses;
+   * turn it on for a relay reachable from the internet, where those ranges
+   * are the relay's own private network.
+   */
+  denyPrivatePeers?: boolean;
+  /**
+   * Called once when coturn stops serving: it exited, or the binary could not
+   * be spawned. Not called for a stop the caller asked for.
+   */
+  onExit?: (reason: string) => void;
   logger: {
     info: (msg: string, ...args: unknown[]) => void;
     error: (msg: string, ...args: unknown[]) => void;
@@ -67,6 +80,12 @@ export interface CoturnHandle {
   externalIp: string;
   /** Listening port. */
   port: number;
+  /**
+   * Whether the coturn process is still there to serve an allocation. False
+   * once it has exited or failed to start, after which the credentials above
+   * name a server that is gone.
+   */
+  running(): boolean;
   /** Stop the underlying coturn process. */
   stop(): Promise<void>;
 }
@@ -74,6 +93,24 @@ export interface CoturnHandle {
 const DEFAULT_PORT = 3478;
 const DEFAULT_MIN_PORT = 49160;
 const DEFAULT_MAX_PORT = 49170;
+
+/**
+ * Peer address ranges coturn refuses to relay to when `denyPrivatePeers` is
+ * set: this host, RFC 1918, link-local (cloud metadata lives in 169.254/16),
+ * the shared carrier range, and the IPv6 loopback, unique-local and link-local ranges.
+ */
+export const PRIVATE_PEER_RANGES: readonly string[] = [
+  "0.0.0.0-0.255.255.255",
+  "10.0.0.0-10.255.255.255",
+  "100.64.0.0-100.127.255.255",
+  "127.0.0.0-127.255.255.255",
+  "169.254.0.0-169.254.255.255",
+  "172.16.0.0-172.31.255.255",
+  "192.168.0.0-192.168.255.255",
+  "::1-::1",
+  "fc00::-fdff:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+  "fe80::-febf:ffff:ffff:ffff:ffff:ffff:ffff:ffff",
+];
 
 /**
  * Spawn coturn with a fresh random secret. Resolves once the binary has
@@ -131,6 +168,9 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     // these windows.
     "--max-allocate-lifetime=300",
     "--channel-lifetime=60",
+    ...(opts.denyPrivatePeers
+      ? PRIVATE_PEER_RANGES.map((range) => `--denied-peer-ip=${range}`)
+      : []),
   ];
 
   opts.logger.info(
@@ -141,24 +181,41 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     stdio: ["ignore", "pipe", "pipe"],
   });
 
+  /*
+   * The secret is on coturn's command line, so a startup banner or a debug
+   * line that echoes its arguments would carry it into the relay's logs, which
+   * reach Axiom.
+   */
+  const scrub = (line: string) => line.split(secret).join("[redacted]");
+
   proc.stdout?.on("data", (chunk: Buffer) => {
     // coturn is chatty at default verbosity; surface line-by-line so the proxy's log timestamps interleave correctly.
     for (const line of chunk.toString("utf8").split(/\r?\n/)) {
-      if (line.length > 0) opts.logger.info(`[coturn] ${line}`);
+      if (line.length > 0) opts.logger.info(`[coturn] ${scrub(line)}`);
     }
   });
   proc.stderr?.on("data", (chunk: Buffer) => {
     for (const line of chunk.toString("utf8").split(/\r?\n/)) {
-      if (line.length > 0) opts.logger.error(`[coturn] ${line}`);
+      if (line.length > 0) opts.logger.error(`[coturn] ${scrub(line)}`);
     }
   });
 
+  let running = true;
+  let stopping = false;
+  const down = (reason: string) => {
+    if (!running) return;
+    running = false;
+    if (!stopping) opts.onExit?.(reason);
+  };
+
   proc.on("error", (err) => {
     opts.logger.error("[coturn] spawn failed", err);
+    down(`spawn failed: ${err.message}`);
   });
 
   proc.on("exit", (code, signal) => {
     opts.logger.error(`[coturn] exited code=${code} signal=${signal}`);
+    down(`exited code=${code} signal=${signal}`);
   });
 
   return {
@@ -166,7 +223,9 @@ export function startCoturn(opts: CoturnOptions): CoturnHandle {
     credential: secret,
     externalIp: opts.externalIp,
     port,
+    running: () => running,
     async stop(): Promise<void> {
+      stopping = true;
       if (proc.exitCode !== null) return;
       proc.kill("SIGTERM");
       // Give coturn a beat to exit gracefully; force-kill if it doesn't.

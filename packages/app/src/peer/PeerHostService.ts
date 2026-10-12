@@ -466,13 +466,6 @@ export class PeerHostService {
    *  was constructed with. Empty `[]` means the fetch failed or no
    *  relay is configured. */
   iceServers: RTCIceServer[] = [];
-  /** True once the relay has accepted a `shareCode → peerId` registration
-   *  (`POST /host` returned 2xx). This: not `iceServers` (which is `[]`
-   *  whenever coturn is down but the relay process is up), is the signal
-   *  the "Add station" UI gates on to decide whether to surface the
-   *  share-code (resolvable) or fall back to the raw peer id. */
-  relayRegistered = false;
-
   private flightListChangeUnsub: (() => void) | null = null;
   /**
    * TURN-on-demand escalation flag. False by default: the host starts
@@ -513,16 +506,11 @@ export class PeerHostService {
   // rebuild of the relay container silently breaks new TURN allocations
   // until the operator hard-refreshes the host page.
   private iceConfigRefreshTimer: ReturnType<typeof setInterval> | null = null;
-  // Best-effort relay bookkeeping: the share-code → peer-id registration
-  // (diagnostics only), the analytics-consent POST, and the periodic
-  // heartbeat that re-asserts both (relay TTL ~90s). The heartbeat starts on
-  // the first PeerJS open and stops in stop(). Relay down just means stations
-  // fall back to treating the typed code as a direct peer id.
+  // Best-effort relay bookkeeping: the analytics-consent POST and the
+  // periodic heartbeat that re-asserts it. The heartbeat starts on the first
+  // PeerJS open and stops in stop().
   private readonly relayRegistration = new RelayRegistration({
-    getShareCode: () => this.shareCode,
-    getPeerId: () => this.peerId,
     getConsent: () => this.analyticsConsent,
-    onRegisteredChange: (registered) => this.setRelayRegistered(registered),
   });
   // Exponential-backoff state for the broker-reconnect path. PeerJS's
   // `disconnected` event fires synchronously from the WS's `onclose`
@@ -637,10 +625,6 @@ export class PeerHostService {
       logger.setIdentity({ role: "host", id: this.shareCode, peerId: id });
       logger.info(`[PeerHost] open: id=${id} (shareCode=${this.shareCode})`);
       this.events.emit("id", id);
-      // Best-effort relay registration for diagnostics only: discovery no
-      // longer depends on it (stations derive the id from the code). The
-      // heartbeat keeps the entry alive for the session.
-      void this.relayRegistration.register();
       this.relayRegistration.startHeartbeat();
     });
 
@@ -2268,7 +2252,6 @@ export class PeerHostService {
     this.flightListChangeUnsub = null;
     this.stopIceConfigRefresh();
     this.relayRegistration.stopHeartbeat();
-    this.setRelayRegistered(false);
     this.detachLifecycleListeners();
     if (this.brokerReconnectTimer !== null) {
       clearTimeout(this.brokerReconnectTimer);
@@ -2312,11 +2295,6 @@ export class PeerHostService {
     }, REFRESH_MS);
   }
 
-  private setRelayRegistered(next: boolean): void {
-    if (this.relayRegistered === next) return;
-    this.relayRegistered = next;
-  }
-
   /**
    * Subscribe to share-code changes. Fires with the current value
    * immediately (so a late subscriber sees the right code without waiting
@@ -2324,8 +2302,7 @@ export class PeerHostService {
    * changes when the operator clicks the Add Station modal's reset control
    * (`regenerateShareCode()`); a plain peer-id rotation leaves it alone.
    * The modal subscribes to this so a regenerate visibly updates the
-   * displayed code even though the peer id (and `relayRegistered`) are
-   * unchanged.
+   * displayed code even though the peer id is unchanged.
    */
   onShareCodeChange(cb: (shareCode: string) => void): () => void {
     const unsub = this.events.on("shareCode", cb);

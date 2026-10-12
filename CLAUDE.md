@@ -44,9 +44,8 @@ packages/
   app/       : Vite + React SPA (main screen + station mode)
   relay/     : Fastify server hosting the /ice-config endpoint, a coturn
                 TURN/STUN child process with a per-restart-rotated shared
-                secret, the host-discovery registry (/host) mapping a
-                stable share-code to the host's current PeerJS peer id,
-                and /bootstrap-config republishing the bundle's KSP_HOST
+                secret, the /analytics-config consent broker, and
+                /bootstrap-config republishing the bundle's KSP_HOST
                 so the SPA can seed data-source defaults on first run
 
 mod/         : The Gonogo mod (C#) and the generated `sitrep-sdk`, plus each
