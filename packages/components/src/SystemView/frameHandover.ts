@@ -36,11 +36,14 @@ export function handoverView({
   };
 }
 
+/** The view a frame mounts with: all of it, centred on its body. */
+const WHOLE_FRAME: DiagramView = { zoom: 1, pan: { x: 0, y: 0 } };
+
 /** How long the caption names the body the diagram was centred on before, in real milliseconds. */
 const LEFT_FRAME_SHOWN_MS = 12_000;
 
 /**
- * Carries the view across a change of frame that the craft caused, by passing from one body's sphere of influence into another's, so the picture holds still when the frame changes. Reports the body the diagram was centred on for a short while afterwards.
+ * Carries the view across a change of frame that the craft caused, by passing from one body's sphere of influence into another's: the picture starts where it was and eases to the whole of the new frame. Reports the body the diagram was centred on for a short while afterwards.
  *
  * Only a frame that was following the craft before and after counts: a frame that changes because the widget was reconfigured, or because the craft's body was not yet known, is a different picture and the view is left alone.
  *
@@ -59,7 +62,14 @@ export function useFrameHandover({
   /** Metres to plot units at zoom 1 in the present frame, or null before there is a picture. */
   plotScale: number | null;
   placeOf: (bodyName: string) => { x: number; y: number } | null;
-  view: DiagramView & { setView: (view: DiagramView) => void };
+  view: DiagramView & {
+    following: boolean;
+    setView: (view: DiagramView) => void;
+    easeView: (
+      from: DiagramView,
+      to: { zoom: number; pan?: { x: number; y: number } },
+    ) => void;
+  };
 }): string | null {
   const last = useRef<{
     frame: string;
@@ -85,16 +95,19 @@ export function useFrameHandover({
     if (!previous.followedCraft || !followsCraft) return;
     const { view: now, placeOf: place } = live.current;
     const previousFrameBodyAt = place(previous.frame);
-    now.setView(
-      previousFrameBodyAt === null
-        ? { zoom: 1, pan: { x: 0, y: 0 } }
-        : handoverView({
-            view: { zoom: now.zoom, pan: now.pan },
-            previousScale: previous.scale,
-            scale: plotScale,
-            previousFrameBodyAt,
-          }),
-    );
+    if (previousFrameBodyAt === null) {
+      now.setView(WHOLE_FRAME);
+    } else {
+      const carried = handoverView({
+        view: { zoom: now.zoom, pan: now.pan },
+        previousScale: previous.scale,
+        scale: plotScale,
+        previousFrameBodyAt,
+      });
+      now.setView(carried);
+      // From the picture as it was to the whole of the new frame; a view that is following keeps its centre on what it follows.
+      now.easeView(carried, now.following ? { zoom: 1 } : WHOLE_FRAME);
+    }
     setLeftFrame(previous.frame);
   }, [frameName, craftBodyName, plotScale]);
 
