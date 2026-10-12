@@ -20,24 +20,36 @@
  */
 import {
   AugmentSlot,
+  clearAugments,
+  clearContributions,
   defineUplinkClient,
+  getContributionsForSlot,
+  onContributionsChange,
   PerfBudget,
   registerAugment,
+  registerSetting,
+  registerSettingsTab,
   useActionInput,
+  useDataSources,
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useReplaySessionActive } from "@ksp-gonogo/data";
 import { logger } from "@ksp-gonogo/logger";
 import {
   getActiveTelemetryClient,
+  sendTogether,
   useCommand,
   useLatestValue,
+  useLateTelemetrySubscribe,
   useProcessor,
   useRouteCommands,
   useStream,
   useStreamEvent,
   useTelemetryClientOptional,
+  useTelemetryStoreOptional,
   useUtNow,
+  useViewClock,
+  useViewClockOptional,
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import type { GonogoHost } from "@ksp-gonogo/sitrep-sdk";
@@ -45,25 +57,31 @@ import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 
 installTestHost({
   AugmentSlot: AugmentSlot as GonogoHost["AugmentSlot"],
+  clearAugments,
+  clearContributions,
   createPerfBudget: (opts) => new PerfBudget(opts),
   defineUplinkClient,
+  getContributionsForSlot,
   getActiveTelemetryClient: getActiveTelemetryClient as Parameters<
     typeof installTestHost
   >[0]["getActiveTelemetryClient"],
   logger,
+  onContributionsChange,
   registerAugment: registerAugment as Parameters<
     typeof installTestHost
   >[0]["registerAugment"],
+  registerSetting,
+  registerSettingsTab,
+  sendTogether,
   useActionInput: (handlers) =>
     useActionInput(handlers as Parameters<typeof useActionInput>[0]),
   useCommand: ((command: string, options?: { vantage?: string }) =>
     useCommand(command, options)) as GonogoHost["useCommand"],
+  useDataSources,
+  useLateTelemetrySubscribe,
   useLatestValue,
   useProcessor: useProcessor as GonogoHost["useProcessor"],
-  useRouteCommands: (topic) =>
-    useRouteCommands(topic) as unknown as ReturnType<
-      GonogoHost["useRouteCommands"]
-    >,
+  useRouteCommands,
   useReplaySessionActive,
   useStream,
   useStreamEvent,
@@ -71,6 +89,9 @@ installTestHost({
   useTelemetryClientOptional: useTelemetryClientOptional as Parameters<
     typeof installTestHost
   >[0]["useTelemetryClientOptional"],
+  useTelemetryStoreOptional,
   useUtNow,
+  useViewClock,
+  useViewClockOptional,
   useViewUt: () => useViewUt(),
 });
