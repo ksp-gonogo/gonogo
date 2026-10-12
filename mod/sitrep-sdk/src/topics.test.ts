@@ -7,7 +7,7 @@ import {
   familyPrefix,
   getAllKnownTopicIds,
   isTopicId,
-  registerBarePrimitiveTopic,
+  registerUplinkTopic,
   TOPIC_IDS,
   type TopicPayload,
   type TopicPayloadMap,
@@ -19,7 +19,7 @@ import {
  * contract type): the two ENGINE-AGGREGATED system channels. See the topics.ts header.
  * Everything else in `TOPIC_IDS` must come from the generated map. The bare-primitive
  * Uplink Topics are no longer here: they moved out to their owning Uplink client packages
- * (each registers its id at load via `registerBarePrimitiveTopic`), so they are not part of
+ * (each registers its id at load via `registerUplinkTopic`), so they are not part of
  * the SDK's own `TOPIC_IDS`.
  */
 const HAND_DECLARED_TOPICS = [
@@ -168,7 +168,7 @@ describe("typed Topic registry", () => {
     });
   });
 
-  describe("registerBarePrimitiveTopic", () => {
+  describe("registerUplinkTopic", () => {
     // A synthetic id (not a real Uplink Topic) keeps the module-global registry
     // uncontaminated for the rest of the suite, the real bare topics are
     // registered by their own Uplink client packages, never by the SDK.
@@ -178,15 +178,15 @@ describe("typed Topic registry", () => {
       expect(isTopicId(SYNTHETIC)).toBe(false);
       expect(getAllKnownTopicIds()).not.toContain(SYNTHETIC);
 
-      registerBarePrimitiveTopic(SYNTHETIC);
+      registerUplinkTopic(SYNTHETIC);
 
       expect(isTopicId(SYNTHETIC)).toBe(true);
       expect(getAllKnownTopicIds()).toContain(SYNTHETIC);
     });
 
     it("is idempotent, a double register adds no duplicate", () => {
-      registerBarePrimitiveTopic(SYNTHETIC);
-      registerBarePrimitiveTopic(SYNTHETIC);
+      registerUplinkTopic(SYNTHETIC);
+      registerUplinkTopic(SYNTHETIC);
       const all = getAllKnownTopicIds();
       expect(all.filter((t) => t === SYNTHETIC)).toHaveLength(1);
     });

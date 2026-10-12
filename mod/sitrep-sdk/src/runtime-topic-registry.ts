@@ -6,7 +6,7 @@
  * An Uplink's Topics can never appear in a list written in this repo: it ships
  * separately, on its own schedule, and the first-party build has never heard of
  * it. What it does do, because narrowing and decode already require it, is call
- * `registerBarePrimitiveTopic` for each Topic id when its client package loads.
+ * `registerUplinkTopic` for each Topic id when its client package loads.
  * That call is the only runtime advertisement of an Uplink's Topics that
  * exists, so it is what everything downstream that needs "which Topics are real
  * right now" has to read.
@@ -36,7 +36,7 @@ function invalidate(): void {
 
 /**
  * Record that `id` is a real Topic on this client. Called by
- * `registerBarePrimitiveTopic`, never directly by an Uplink: an author
+ * `registerUplinkTopic`, never directly by an Uplink: an author
  * registers the way they already do and this follows.
  */
 export function noteRuntimeTopic(id: string): void {
@@ -65,7 +65,7 @@ export function noteRuntimeTopicMetadata(): void {
 
 /**
  * Every Topic id a client package has registered with
- * {@link registerBarePrimitiveTopic}, in registration order.
+ * {@link registerUplinkTopic}, in registration order.
  *
  * The array is the same object until the next registration, so it can be a
  * `useSyncExternalStore` snapshot or a `useMemo` dependency. Pair it with

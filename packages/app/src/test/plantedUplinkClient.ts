@@ -1,8 +1,8 @@
 import {
   defineUplinkClient,
   registerAugment,
-  registerBarePrimitiveTopic,
   registerComponent,
+  registerUplinkTopic,
 } from "@ksp-gonogo/sitrep-sdk";
 
 /**
@@ -33,7 +33,7 @@ export const PLANTED_TOPIC = "planted.wiring.topic";
 export const PLANTED_WIDGET_ID = "planted-widget";
 export const PLANTED_AUGMENT_ID = "planted-augment";
 
-registerBarePrimitiveTopic(PLANTED_TOPIC);
+registerUplinkTopic(PLANTED_TOPIC);
 
 registerComponent({
   id: PLANTED_WIDGET_ID,

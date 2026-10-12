@@ -1,8 +1,8 @@
 import {
-  registerBarePrimitiveTopic,
   registerCollectionTopic,
   registerTopicUnits,
   registerTypeUnits,
+  registerUplinkTopic,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -23,7 +23,7 @@ import {
  */
 const REACTOR = "acme.reactor";
 
-registerBarePrimitiveTopic(REACTOR);
+registerUplinkTopic(REACTOR);
 registerTopicUnits(
   REACTOR,
   { coreTempK: "K", scrammed: "flag" },
@@ -38,7 +38,7 @@ registerTypeUnits("AcmeReactorLimits", { maxTempK: "K" });
  */
 const RODS = "acme.rods";
 
-registerBarePrimitiveTopic(RODS);
+registerUplinkTopic(RODS);
 registerTopicUnits(RODS, { insertion: "ratio", rodTempK: "K" });
 registerCollectionTopic(RODS);
 

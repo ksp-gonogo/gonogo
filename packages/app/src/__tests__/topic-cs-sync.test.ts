@@ -96,7 +96,7 @@ function syncDiff(
 
 describe("C#-declared Topics stay in exact sync with the full runtime registry", () => {
   /**
-   * Every first-party Uplink client present runs its `registerBarePrimitiveTopic(...)`
+   * Every first-party Uplink client present runs its `registerUplinkTopic(...)`
    * calls, so by the time the assertions read `getAllKnownTopicIds()` the runtime registry
    * holds the SDK's own Topics plus every bare-primitive Uplink Topic. Discovered rather
    * than imported by name, because each mod Uplink is leaving for its own repo and a named
@@ -153,7 +153,7 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
 
     // missingFromRegistry: a Topic declared in C# that no client registers and the SDK
     // does not own, either a new bare-primitive Topic whose client forgot its
-    // `registerBarePrimitiveTopic`, or a generated/engine Topic missing from the SDK.
+    // `registerUplinkTopic`, or a generated/engine Topic missing from the SDK.
     expect(
       missingFromRegistry,
       "C# Topics not known to the runtime registry",

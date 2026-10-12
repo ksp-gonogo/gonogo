@@ -1,6 +1,6 @@
 import {
   defineUplinkClient,
-  registerBarePrimitiveTopic,
+  registerUplinkTopic,
   stillTrue,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -33,7 +33,7 @@ export const PLANTED_UPLINK = defineUplinkClient({
 
 export const PLANTED_AVAILABLE_TOPIC = "planted.available";
 
-registerBarePrimitiveTopic(PLANTED_AVAILABLE_TOPIC);
+registerUplinkTopic(PLANTED_AVAILABLE_TOPIC);
 
 /** The propellants the built-in `ship-map.part-meters` contribution meters. */
 const BUILTIN_METERED = new Set([
@@ -200,7 +200,7 @@ PLANTED_UPLINK.registerContribution({
  */
 export const PLANTED_LEADS_AVAILABLE_TOPIC = "plantedleads.available";
 
-registerBarePrimitiveTopic(PLANTED_LEADS_AVAILABLE_TOPIC);
+registerUplinkTopic(PLANTED_LEADS_AVAILABLE_TOPIC);
 
 /**
  * A screen listing a department whose cards the Uplink's own body acts on,

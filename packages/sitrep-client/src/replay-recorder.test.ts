@@ -1,7 +1,7 @@
 import type { ServerMessage, Value } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
-  registerBarePrimitiveTopic,
+  registerUplinkTopic,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
@@ -74,7 +74,7 @@ describe("StreamRecorder", () => {
     // registration stands in for a real Uplink's bare presence-gate Topic without
     // pulling the Uplink clients into this mod-agnostic package's tests.
     const syntheticBare = "test.replay.bare";
-    registerBarePrimitiveTopic(syntheticBare);
+    registerUplinkTopic(syntheticBare);
     expect(getAllKnownTopicIds()).toContain(syntheticBare);
 
     const transport = new StubTransport();
