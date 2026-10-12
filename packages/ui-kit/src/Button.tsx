@@ -2,6 +2,7 @@ import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 import styled, { css } from "styled-components";
 import { focusRing } from "./focusRing";
+import type { PredictedOutcome } from "./SendStatus/predictedOutcome";
 import { TONE_MARK, TONE_ON_STATUS, TONE_STATUS, TONE_TEXT } from "./tone";
 
 /**
@@ -55,6 +56,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
    * with no state of its own reads as on, so a neutral one fills in go.
    */
   pressed?: boolean;
+  /**
+   * The predicted result of pressing, drawn as a dashed edge in the button's own
+   * border so its size does not change: `held` in the go colour with dashes, and
+   * `at-risk` in the warning colour with the same dashes. It is drawn apart from the
+   * keyboard focus ring, so both show at once, and a disabled button keeps its
+   * disabled look. The tooltip says what the prediction is.
+   */
+  predictedOutcome?: PredictedOutcome;
 }
 
 /**
@@ -94,7 +103,14 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
-    { variant = "default", tone, size = "md", pressed, ...rest },
+    {
+      variant = "default",
+      tone,
+      size = "md",
+      pressed,
+      predictedOutcome,
+      ...rest
+    },
     ref,
   ) {
     return (
@@ -105,6 +121,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         $size={size}
         $pressed={pressed === true}
         aria-pressed={pressed}
+        data-predicted={predictedOutcome}
         {...rest}
       />
     );
@@ -240,6 +257,21 @@ export const Button__Body = styled.button<{
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+  }
+
+  /* A predicted result changes the edge's line style and colour only, never its width, so the box stays the same size; both dashed because they are predictions, apart by colour and the tooltip. */
+  &[data-predicted="held"]:not(:disabled) {
+    border-style: dashed;
+    border-color: var(--color-go-mark);
+  }
+  &[data-predicted="at-risk"]:not(:disabled) {
+    border-style: dashed;
+    /* Eased toward the ground so the amber is no louder than the go green beside it. */
+    border-color: color-mix(
+      in srgb,
+      var(--color-warn-mark) 65%,
+      var(--color-surface-raised)
+    );
   }
 
   /* An unconfirmed command may still run and a failed one never left; both read in the warning tone. */

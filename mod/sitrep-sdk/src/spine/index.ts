@@ -106,6 +106,7 @@ export * from "./replay-session";
 export * from "./replay-session-controller";
 export * from "./replay-transport";
 export * from "./screen";
+export * from "./send-status";
 export * from "./settings-registry";
 export * from "./settings-tabs";
 export { assertSizeDelta } from "./size-delta";

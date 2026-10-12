@@ -1,4 +1,9 @@
-import { CommandErrorCode, railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  railTagsForCommand,
+  type SendStatus,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -1305,5 +1310,90 @@ describe("CommandButton icon", () => {
     await user.click(screen.getByRole("button", { name: "Upgrade" }));
     expect(screen.getByRole("button", { name: "Confirm" })).toBeVisible();
     await act(async () => {});
+  });
+});
+
+describe("CommandButton send status", () => {
+  const status = (over: Partial<SendStatus>): SendStatus => ({
+    contact: { kind: "in-contact" },
+    signalDelay: value("s", 480),
+    arrival: "expected",
+    sends: "now",
+    ...over,
+  });
+  const held = status({
+    contact: { kind: "back-in", seconds: value("s", 180) },
+    sends: "held",
+    heldUntilUt: value("ut", 1180),
+    arrivesUt: value("ut", 1660),
+  });
+  const loss = status({
+    contact: { kind: "loss-in", seconds: value("s", 300) },
+    arrival: "likely-lost",
+  });
+  const none: SendStatus = {
+    contact: { kind: "none" },
+    arrival: "likely-lost",
+  };
+
+  it.each([
+    ["an order that goes at once", status({}), undefined],
+    ["a held order", held, "held"],
+    ["an order expected to be lost", loss, "at-risk"],
+    ["an order with no route", none, "at-risk"],
+  ] as const)("outlines %s as %s and still sends on a press", async (_name, sendStatus, predicted) => {
+    const send = vi.fn().mockResolvedValue(OK);
+    const { container } = render(
+      <CommandButton handle={makeHandle(send, { sendStatus })} label="Fire" />,
+    );
+    const button = screen.getByRole("button", { name: "Fire" });
+    expect(button.getAttribute("data-predicted")).toBe(predicted ?? null);
+    await userEvent.click(button);
+    expect(send).toHaveBeenCalledTimes(1);
+    await expectNoA11yViolations(container);
+  });
+
+  it("draws nothing beside the control, in any state", () => {
+    const { container } = render(
+      <CommandButton
+        handle={makeHandle(vi.fn(), { sendStatus: held })}
+        label="Fire"
+      />,
+    );
+    expect(screen.queryByText(/No contact/)).toBeNull();
+    expect(container.querySelectorAll("button")).toHaveLength(1);
+  });
+
+  it("writes the status in the tooltip", async () => {
+    render(
+      <CommandButton
+        handle={makeHandle(vi.fn(), { sendStatus: loss })}
+        label="Fire"
+      />,
+    );
+    await userEvent.hover(screen.getByRole("button", { name: "Fire" }));
+    expect(
+      await screen.findByText(/LOS in 5min · 8min signal delay/),
+    ).toBeTruthy();
+  });
+
+  it("keeps the predicted outline to the edge's style and colour, so no state moves the box", () => {
+    render(
+      <CommandButton
+        handle={makeHandle(vi.fn(), { sendStatus: held })}
+        label="Fire"
+      />,
+    );
+    const rules = [...document.querySelectorAll("style")]
+      .flatMap((sheet) => [...(sheet.sheet?.cssRules ?? [])])
+      .filter((rule) => rule.cssText.includes("data-predicted"));
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      for (const property of (rule as CSSStyleRule).style) {
+        expect(property).toMatch(
+          /^border(-top|-right|-bottom|-left)*-(style|color)$|^border-(style|color)$/,
+        );
+      }
+    }
   });
 });

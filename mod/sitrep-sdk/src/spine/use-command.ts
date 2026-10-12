@@ -55,6 +55,7 @@ import {
   toGateStatus,
 } from "./command-gate";
 import { openCommandGroup } from "./command-group";
+import { ROUTE_TOPIC, readRouteRows } from "./comms-route";
 import {
   type CommsLinkLike,
   ConnectivityHistory,
@@ -73,6 +74,11 @@ import { CommandError } from "./lifecycle";
 import { useClaimCapability } from "./lock-scope";
 import { commandDelayed } from "./map-command";
 import { useRailRegistry } from "./rail-registry";
+import {
+  readNextLossUt,
+  type SendStatus,
+  sendStatusFromRoutes,
+} from "./send-status";
 import { useLatestValue, useStream } from "./use-stream";
 import { META_VANTAGE } from "./vantage";
 
@@ -224,6 +230,14 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * way it learns about any unanswered dispatch, through {@link losses}.
    */
   delayMode: DelayMode | null;
+  /**
+   * What an order sent now would do, from the sending centre's `comms.route`
+   * prediction: it goes at once, is held for a predicted contact and arrives at
+   * a stated time, or has no route. An advisory, never a gate: it does not
+   * decide whether {@link send} dispatches. `undefined` for an instant command
+   * and while no route is known for the sending centre.
+   */
+  sendStatus: SendStatus | undefined;
   /**
    * Clear a dead command from this hook's `inFlight`. `overdue`/`lost` entries
    * are retained on purpose (they can't silently vanish), but a `lost` command
@@ -722,6 +736,16 @@ export function useCommand(
   // whether the test ever touches `inFlight`.
   const store = useTelemetryStoreOptional();
   const nowUt = store?.clock.utNowEstimate() ?? 0;
+  const routePayload = useLatestValue<unknown>(ROUTE_TOPIC);
+  const nextLossPayload = useLatestValue<unknown>("comms.nextLoss");
+  const sendStatus = isInstant
+    ? undefined
+    : sendStatusFromRoutes(
+        readRouteRows(routePayload),
+        nowUt,
+        vantage,
+        readNextLossUt(nextLossPayload),
+      );
 
   if (connectivity) {
     connectivityHistoryRef.current.record(nowUt, connectivity.connected);
@@ -1209,6 +1233,7 @@ export function useCommand(
     effectiveDelaySeconds,
     delayReading,
     delayMode,
+    sendStatus,
     dismiss,
     gate,
   };

@@ -10,12 +10,14 @@
  * @category Reading telemetry
  */
 export const FRAMEWORK_READS = {
-  /** What `useCommand` reads: the pending and gated commands, and the link and delay they wait on. */
+  /** What `useCommand` reads: the pending and gated commands, and the link, delay, predicted route and predicted loss they wait on. */
   useCommand: [
     "system.uplink.pending",
     "system.uplink.gates",
     "comms.link",
     "comms.delay",
+    "comms.route",
+    "comms.nextLoss",
   ],
   /** What the guard that replaces a locked widget reads: Uplink health, the scene and the career mode. */
   RequiresGuard: [

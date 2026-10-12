@@ -8487,6 +8487,10 @@
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
+        "key": "sitrep-sdk . UseCommandResult#sendStatus",
+        "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
+      },
+      {
         "key": "sitrep-sdk . defineUplinkClient",
         "note": "The config's description is required, matching the handle it returns"
       },
@@ -9227,6 +9231,10 @@
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
+        "key": "sitrep-sdk ./spine UseCommandResult#sendStatus",
+        "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
+      },
+      {
         "key": "sitrep-sdk ./spine Vector3",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -9819,6 +9827,10 @@
         "note": "every dispatch the mod answered with a fault (expired, cancelled, dropped, undone by a load) is kept until dismissed, where it was dropped with the promise; required, so a hand-built handle must now carry it"
       },
       {
+        "key": "sitrep-sdk ./testing ~UseCommandResult#sendStatus",
+        "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
+      },
+      {
         "key": "sitrep-sdk ./uplink-manifest UplinkDeclaration#mod?",
         "note": "uplink.json's mod block is now the named UplinkWrappedMod and may be null, as the scaffold writes it for an Uplink that wraps no mod"
       },
@@ -10353,6 +10365,10 @@
         "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
+        "key": "sitrep-sdk . Arrival",
+        "note": "New: whether a send is expected to arrive, assuming nobody intervenes"
+      },
+      {
         "key": "sitrep-sdk . AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -10645,6 +10661,10 @@
         "note": "What solveConic returns: the anomalies in radians and the radius in metres"
       },
       {
+        "key": "sitrep-sdk . ContactStatus",
+        "note": "New: whether the addressee can be reached now, and when that changes"
+      },
+      {
         "key": "sitrep-sdk . ContractReckonableRow",
         "note": "One value a contract declares a model carries forward, as an Uplink's codegen writes it"
       },
@@ -10831,6 +10851,34 @@
       {
         "key": "sitrep-sdk . SampleKind",
         "note": "How a channel's samples relate in time: continuous, discrete or event"
+      },
+      {
+        "key": "sitrep-sdk . SendStatus",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk . SendStatus#arrival",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk . SendStatus#arrivesUt?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk . SendStatus#contact",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk . SendStatus#heldUntilUt?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk . SendStatus#sends?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk . SendStatus#signalDelay?",
+        "note": "New: signal time along the route, waits included"
       },
       {
         "key": "sitrep-sdk . SeriesInterpolation",
@@ -12549,6 +12597,10 @@
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
+        "key": "sitrep-sdk ./spine Arrival",
+        "note": "New: whether a send is expected to arrive, assuming nobody intervenes"
+      },
+      {
         "key": "sitrep-sdk ./spine BodyPose",
         "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
       },
@@ -12703,6 +12755,10 @@
       {
         "key": "sitrep-sdk ./spine ConicSolution#trueAnomaly",
         "note": "What solveConic returns: the anomalies in radians and the radius in metres"
+      },
+      {
+        "key": "sitrep-sdk ./spine ContactStatus",
+        "note": "New: whether the addressee can be reached now, and when that changes"
       },
       {
         "key": "sitrep-sdk ./spine GAME_LOADING_ONSET_MS",
@@ -12885,6 +12941,34 @@
         "note": "The processor behind useSystemInstant, readable by id from a contribution's deps"
       },
       {
+        "key": "sitrep-sdk ./spine SendStatus",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./spine SendStatus#arrival",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./spine SendStatus#arrivesUt?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./spine SendStatus#contact",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./spine SendStatus#heldUntilUt?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./spine SendStatus#sends?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./spine SendStatus#signalDelay?",
+        "note": "New: signal time along the route, waits included"
+      },
+      {
         "key": "sitrep-sdk ./spine SoiCrossing",
         "note": "New: where and when a craft crosses a sphere of influence"
       },
@@ -13033,8 +13117,16 @@
         "note": "Looks one body's pose up by its index, null when the instant has none"
       },
       {
+        "key": "sitrep-sdk ./spine readNextLossUt",
+        "note": "New: the predicted loss time off a comms.nextLoss payload, absent unless a loss is predicted"
+      },
+      {
         "key": "sitrep-sdk ./spine readPendingLane",
         "note": "New spine helper behind a held command's cancel, shared by the hook and by a group"
+      },
+      {
+        "key": "sitrep-sdk ./spine sendStatusFromRoutes",
+        "note": "New: the send status for a command from a centre to the active craft, from its comms.route rows and predicted loss"
       },
       {
         "key": "sitrep-sdk ./spine sendTogether",
@@ -13381,6 +13473,10 @@
         "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
+        "key": "sitrep-sdk ./testing ~Arrival",
+        "note": "New: whether a send is expected to arrive, assuming nobody intervenes"
+      },
+      {
         "key": "sitrep-sdk ./testing ~AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -13427,6 +13523,10 @@
       {
         "key": "sitrep-sdk ./testing ~CommandGroupPhase",
         "note": "New with command groups"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ContactStatus",
+        "note": "New: whether the addressee can be reached now, and when that changes"
       },
       {
         "key": "sitrep-sdk ./testing ~ContractReckonableRow",
@@ -13667,6 +13767,34 @@
       {
         "key": "sitrep-sdk ./testing ~SampleKind",
         "note": "How a channel's samples relate in time: continuous, discrete or event"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SendStatus",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SendStatus#arrival",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SendStatus#arrivesUt?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SendStatus#contact",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SendStatus#heldUntilUt?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SendStatus#sends?",
+        "note": "New: what a command control says about an order sent now"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SendStatus#signalDelay?",
+        "note": "New: signal time along the route, waits included"
       },
       {
         "key": "sitrep-sdk ./testing ~SizeDelta",
@@ -14033,8 +14161,16 @@
         "note": "Places in the stack, which fix its width"
       },
       {
+        "key": "ui-kit . ButtonProps#predictedOutcome?",
+        "note": "New: the predicted result of pressing, drawn as a dashed or dotted edge that does not change the button's size"
+      },
+      {
         "key": "ui-kit . ComboboxListboxProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
+      },
+      {
+        "key": "ui-kit . CommandButtonHandle#sendStatus?",
+        "note": "optional send status a control writes in its tooltip and outlines its edge for"
       },
       {
         "key": "ui-kit . CommandButtonProps#pressed?",
@@ -14377,6 +14513,10 @@
         "note": "the chart's width in pixels"
       },
       {
+        "key": "ui-kit . PredictedOutcome",
+        "note": "New: held or at-risk, the predicted result a control outlines"
+      },
+      {
         "key": "ui-kit . ReadoutProps",
         "note": "the named props of Readout, so size and tone have a documented table"
       },
@@ -14441,6 +14581,10 @@
         "note": "Reads the optional families off a widget definition"
       },
       {
+        "key": "ui-kit . describeSendStatus",
+        "note": "New: the two lines a send status is written as, for a tooltip or an accessible name"
+      },
+      {
         "key": "ui-kit . gridFloor",
         "note": "The smallest tile the dashboard gives a widget: the tiny size for a widget with a tiny mode, else its minSize"
       },
@@ -14467,6 +14611,10 @@
       {
         "key": "ui-kit . plotCrosshairShowsCard",
         "note": "says whether the crosshair card has room on a plot, so a chart can hand its legend corner to the card"
+      },
+      {
+        "key": "ui-kit . predictedOutcomeOf",
+        "note": "New: the predicted outcome of a send status"
       },
       {
         "key": "ui-kit . repeatsInView",

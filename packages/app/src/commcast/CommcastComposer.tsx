@@ -1,9 +1,13 @@
 import type { Value } from "@ksp-gonogo/sitrep-sdk";
-import { ComposerBar, VisuallyHidden } from "@ksp-gonogo/ui-kit";
+import {
+  ComposerBar,
+  describeSendStatus,
+  VisuallyHidden,
+} from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { useLocalParticipant } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
-import { describeSendStatus, sendStatusFor } from "./commcastSendStatus";
+import { sendStatusFor } from "./commcastSendStatus";
 import { Commcast__Input } from "./commcastStyles";
 import type { Vantage } from "./reveal";
 import type { RecipientId } from "./types";

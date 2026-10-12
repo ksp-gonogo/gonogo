@@ -558,6 +558,11 @@ export {
   SelectableRow,
   type SelectableRowProps,
 } from "./SelectableRow";
+export { describeSendStatus } from "./SendStatus/describeSendStatus";
+export {
+  type PredictedOutcome,
+  predictedOutcomeOf,
+} from "./SendStatus/predictedOutcome";
 export { Slider, type SliderProps } from "./Slider";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { Stack, type StackProps } from "./Stack";

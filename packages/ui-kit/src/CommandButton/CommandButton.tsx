@@ -1,4 +1,7 @@
-import { classifyCommandRejection } from "@ksp-gonogo/sitrep-sdk";
+import {
+  classifyCommandRejection,
+  type SendStatus,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
@@ -17,6 +20,8 @@ import {
 } from "../CommandDelay/commandRefusalSentence";
 import { FitLabel } from "../FitLabelButton";
 import { LiveRegion } from "../LiveRegion";
+import { describeSendStatus } from "../SendStatus/describeSendStatus";
+import { predictedOutcomeOf } from "../SendStatus/predictedOutcome";
 import { Tooltip } from "../Tooltip";
 import { InFlightFace } from "./InFlightFace";
 
@@ -116,6 +121,13 @@ export interface CommandButtonHandle<Result = CommandReplyLike, Args = unknown>
    * that sends arguments reads it in preference to {@link gate}.
    */
   gateFor?(args: Args): CommandGateLike | undefined;
+  /**
+   * What an order sent now would do, from `useCommand`'s `sendStatus`. The
+   * control writes it in its tooltip and, for a held order or one expected to be
+   * lost, outlines its own edge (see {@link PredictedOutcome}). It never
+   * blocks the press and never changes the control's size.
+   */
+  sendStatus?: SendStatus | undefined;
 }
 
 /**
@@ -776,10 +788,16 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
     tone,
   });
 
+  const sendStatus = handle.sendStatus;
+  const restTip =
+    sendStatus === undefined
+      ? title
+      : [title, describeSendStatus(sendStatus)].filter(Boolean).join("\n");
+
   return (
     <>
       <Tooltip
-        text={foundText ?? refusalText ?? (isPending ? pendingLabel : title)}
+        text={foundText ?? refusalText ?? (isPending ? pendingLabel : restTip)}
       >
         <CommandButton__Body
           type="button"
@@ -798,6 +816,9 @@ export function CommandButton<Result = CommandReplyLike, Args = unknown>({
           data-unconfirmed={hasUnconfirmed ? "true" : undefined}
           data-failed={hasFailure ? "true" : undefined}
           data-command-phase={phase}
+          data-predicted={
+            isBlocked ? undefined : predictedOutcomeOf(sendStatus)
+          }
           // A diagnostic hook only: an undetermined gate renders as an ordinary control.
           data-gate={
             isBlocked

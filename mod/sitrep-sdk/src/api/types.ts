@@ -1887,6 +1887,7 @@ import type {
   CommandStatus,
   CommandUndelivered,
 } from "../spine/lifecycle";
+import type { SendStatus } from "../spine/send-status";
 
 export type { CommandGateStatus } from "../spine/command-gate";
 export type {
@@ -1899,7 +1900,11 @@ export type {
   CommandStatus,
   CommandUndelivered,
 } from "../spine/lifecycle";
-
+export type {
+  Arrival,
+  ContactStatus,
+  SendStatus,
+} from "../spine/send-status";
 export type { DelayMode, InFlightCommand, PredictedPhase };
 
 /**
@@ -1988,6 +1993,14 @@ export interface UseCommandResult<Args = unknown, Reply = AnyCommandReply> {
    * does not stop `send`: a command sent with no path is reported in `losses`.
    */
   delayMode: DelayMode | null;
+  /**
+   * What an order sent now would do, from the sending centre's `comms.route`
+   * prediction: it goes at once, is held for a predicted contact and arrives at
+   * a stated time, or has no route. Never blocks `send`. `undefined` for a
+   * command that arrives at once, and while no route is known for the sending
+   * centre. {@link CommandButton} writes it in its tooltip on every control.
+   */
+  sendStatus: SendStatus | undefined;
   /**
    * Removes the dispatch with this id from `inFlight`, `refusals`, `losses`,
    * `founds`, `undelivered` or `failures`. Dismissing it anywhere, such as from the

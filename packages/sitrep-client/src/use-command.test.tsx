@@ -1771,3 +1771,90 @@ describe("useCommand delay reading", () => {
     expect(screen.getByText("mode:null")).toBeTruthy();
   });
 });
+
+describe("useCommand send status", () => {
+  function SendStatusReadout() {
+    const cmd = useCommand("deploy");
+    const status = cmd.sendStatus;
+    return (
+      <div>
+        <span>sends:{status?.sends ?? "unknown"}</span>
+        <span>contact:{status?.contact.kind ?? "unknown"}</span>
+        <span>delay:{status?.signalDelay ? "quoted" : "absent"}</span>
+      </div>
+    );
+  }
+
+  function renderReadout() {
+    const fixture = setupFixture({ suspendFrames: true });
+    render(
+      <fixture.Provider>
+        <SendStatusReadout />
+      </fixture.Provider>,
+    );
+    return fixture;
+  }
+
+  async function settleIngestFrame() {
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    });
+  }
+
+  function emitRoute(
+    fixture: ReturnType<typeof setupFixture>,
+    route: Record<string, unknown>,
+  ) {
+    act(() => {
+      fixture.transport.emit(
+        "comms.route",
+        {
+          routes: [
+            { from: "ground:ksc", to: "vessel:probe", sentUt: 0, ...route },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+  }
+
+  it("knows nothing before a route arrives", async () => {
+    renderReadout();
+    expect(screen.getByText("sends:unknown")).toBeTruthy();
+    await settleIngestFrame();
+  });
+
+  it("sends at once on a live route", async () => {
+    const fixture = renderReadout();
+    emitRoute(fixture, { arrivalUt: 480, live: true, holds: [] });
+    await waitFor(() => {
+      expect(screen.getByText("sends:now")).toBeTruthy();
+    });
+    expect(screen.getByText("delay:quoted")).toBeTruthy();
+    await settleIngestFrame();
+  });
+
+  it("holds for a predicted contact", async () => {
+    const fixture = renderReadout();
+    emitRoute(fixture, {
+      arrivalUt: 900,
+      live: false,
+      holds: [{ at: "ground:ksc", arriveUt: 0, departUt: 400 }],
+    });
+    await waitFor(() => {
+      expect(screen.getByText("sends:held")).toBeTruthy();
+    });
+    expect(screen.getByText("contact:back-in")).toBeTruthy();
+    await settleIngestFrame();
+  });
+
+  it("reports no route as no route, never a zero delay", async () => {
+    const fixture = renderReadout();
+    emitRoute(fixture, { live: false, holds: [] });
+    await waitFor(() => {
+      expect(screen.getByText("contact:none")).toBeTruthy();
+    });
+    expect(screen.getByText("delay:absent")).toBeTruthy();
+    await settleIngestFrame();
+  });
+});
