@@ -238,6 +238,35 @@ describe("uplink-tools new", () => {
       newUplink(["fresh", "--dir", uplinks, ...BARE]),
     ).rejects.toThrow(/already exists/);
   });
+  it("starts at 0.0.1 whatever version the sibling it inherits its URL from has reached", async () => {
+    const root = workdir();
+    const uplinks = join(root, "uplinks");
+    mkdirSync(join(uplinks, "sib", "client"), { recursive: true });
+    writeFileSync(
+      join(uplinks, "sib", "uplink.json"),
+      JSON.stringify({
+        id: "sib",
+        author: "a",
+        repo: "https://r",
+        client: { url: "https://cdn/releases/sib/1.0.0-rc.1/sib.client.js" },
+      }),
+    );
+    writeFileSync(
+      join(uplinks, "sib", "client", "package.json"),
+      JSON.stringify({ dependencies: {}, devDependencies: {} }),
+    );
+    vi.spyOn(console, "log").mockImplementation(() => {});
+
+    await newUplink(["fresh", "--dir", uplinks, ...BARE]);
+
+    const declared = JSON.parse(
+      readFileSync(join(uplinks, "fresh", "uplink.json"), "utf8"),
+    );
+    expect(declared.client.url).toBe(
+      "https://cdn/releases/fresh/0.0.1/fresh.client.js",
+    );
+  });
+
   it("pins every published sibling to this package's own version when there is no sibling Uplink to inherit from", async () => {
     const uplinks = join(workdir(), "uplinks");
     vi.spyOn(console, "log").mockImplementation(() => {});

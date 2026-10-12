@@ -1780,8 +1780,12 @@ export async function newUplink(
   const releasesPath = uplinksDir ? "uplinks/releases" : "releases";
   const derivedUrl = `https://cdn.jsdelivr.net/gh/${owner}/${repoName}@releases/${releasesPath}/${id}/0.0.1/${id}.client.js`;
   // A sibling's URL with this Uplink's id in its place: the same repository and layout, which is where this one will be published too.
+  // The sibling's version is not this Uplink's: a new one starts at 0.0.1, which is what its package.json says.
   const inheritedUrl = sibling?.clientUrl
-    ? sibling.clientUrl.split(sibling.id).join(id)
+    ? sibling.clientUrl
+        .split(sibling.id)
+        .join(id)
+        .replace(/\/[^/]+(\/[^/]*\.client\.js)$/, "/0.0.1$1")
     : undefined;
   const files = renderSeed({
     id,
