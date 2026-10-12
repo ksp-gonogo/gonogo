@@ -31,7 +31,7 @@ export interface ActionGroupViewProps
   extends Readonly<ComponentProps<ActionGroupConfig>> {
   group: ActionGroup | undefined;
   value: unknown;
-  /** The state was withheld because its reading is held, not because it never came. */
+  /** The value is the last one received while its reading is withheld; it is drawn marked held and cannot be inverted. */
   valueHeld: boolean;
   /** The value is the last one received, its updates running late; it is drawn marked held. */
   valueLate: boolean;
@@ -84,7 +84,7 @@ export function ActionGroupView({
     label: currentLabel,
     value,
     stateLabel,
-    held: valueLate ? "held" : undefined,
+    held: valueLate || (valueHeld && value != null) ? "held" : undefined,
   };
 
   const unavailableTitle = unavailableReason
@@ -210,8 +210,14 @@ export function ActionGroupView({
                   onClick={press}
                   aria-label={`Toggle ${currentLabel}`}
                 >
-                  {valueLate ? (
-                    <HeldFigure caption="Last reading, updates running late">
+                  {valueLate || (valueHeld && value != null) ? (
+                    <HeldFigure
+                      caption={
+                        valueLate
+                          ? "Last reading, updates running late"
+                          : "Last reading, held"
+                      }
+                    >
                       {stateLabel}
                     </HeldFigure>
                   ) : (

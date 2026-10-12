@@ -84,6 +84,41 @@ namespace Sitrep.Propagation.Tests.Contacts
             }
         }
 
+        private static PlanNode SurfaceNode(string id, double longitudeDeg, double altitude) =>
+            PlanNode.OnSurface(
+                id,
+                Kerbin,
+                RotatingGroundStation.FromLatitudeLongitude(0.0, longitudeDeg, 0.0, KerbinSiderealDay, KerbinRadius, altitude));
+
+        private static ContactPlan PlanSurfacePair(double apartMeters, double altitude)
+        {
+            var apartDeg = apartMeters / KerbinRadius * 180.0 / Math.PI;
+            var nodes = new[]
+            {
+                SurfaceNode("ground:ksc", 10.0, altitude),
+                SurfaceNode("vessel:pad", 10.0 + apartDeg, altitude),
+            };
+            var pairs = new[] { new PlanPair("vessel:pad", "ground:ksc", KerbinOnly(), null) };
+            return ContactPlanner.Plan(nodes, pairs, Propagator(), Kerbin, 0.0, 3600.0, 10.0, 0.05);
+        }
+
+        [Theory]
+        [InlineData(0.0)]
+        [InlineData(70.0)]
+        public void ACraftOnThePadSeesAStationAtTheSameHeightBesideIt(double altitude)
+        {
+            var window = Assert.Single(PlanSurfacePair(1000.0, altitude).Pairs[0].Windows);
+
+            Assert.Null(window.OpenUt);
+            Assert.Null(window.CloseUt);
+        }
+
+        [Fact]
+        public void ACraftAndAStationOnOppositeSidesOfTheBodyNeverSeeEachOther()
+        {
+            Assert.Empty(PlanSurfacePair(KerbinRadius * Math.PI * 0.5, 70.0).Pairs[0].Windows);
+        }
+
         [Fact]
         public void TwoCraftOnOpposideSidesOfTheirPlanetNeverTalk()
         {

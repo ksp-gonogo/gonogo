@@ -101,7 +101,7 @@ describe("ActionGroup when the group's state is held", () => {
     expect(toggle()).not.toBeDisabled();
   });
 
-  it("withholds the state once it stops arriving, and says why the press is refused", async () => {
+  it("keeps the last state drawn held once it stops arriving, and says why the press is refused", async () => {
     const { fixture, container } = mount("SAS");
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
@@ -111,9 +111,9 @@ describe("ActionGroup when the group's state is held", () => {
 
     stopDelivering(fixture);
 
-    // A blank pill alone is indistinguishable from waiting for the first sample; the disabled toggle and its reason tell them apart.
     await waitFor(() => expect(toggle()).toBeDisabled());
-    expect(toggle().textContent).toBe(NULL_DISPLAY);
+    expect(toggle().textContent).toContain("ON");
+    expect(toggle().querySelector("[data-held-mark]")).not.toBeNull();
     expect(toggle().getAttribute("data-tooltip")).toBe(
       "Cannot invert a held state",
     );

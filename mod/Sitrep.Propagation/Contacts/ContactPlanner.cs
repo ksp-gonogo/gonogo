@@ -468,6 +468,9 @@ namespace Sitrep.Propagation.Contacts
 
     public static class ContactPlanner
     {
+        /// <summary>How far above its surface a point fixed to it is taken to see from, in metres, when it is tested for line of sight against another such point.</summary>
+        public const double SurfaceMastMeters = 10.0;
+
         /// <summary>Grid samples per shortest cycle among the nodes: enough to see a window a seventy-second of a cycle long.</summary>
         public const int StepsPerShortestCycle = 72;
 
@@ -867,6 +870,8 @@ namespace Sitrep.Propagation.Contacts
 
             public bool Has(string id) => _index.ContainsKey(id);
 
+            public bool IsOnSurface(string id) => _index.TryGetValue(id, out var i) && _nodes[i].Surface != null;
+
             Vector3d? IContactPositions.NodeAt(string nodeId, double ut) => Has(nodeId) ? NodeAt(nodeId, ut) : (Vector3d?)null;
 
             public double ValidUntil(string id) => _nodes[_index[id]].ValidUntilUt ?? double.PositiveInfinity;
@@ -978,7 +983,7 @@ namespace Sitrep.Propagation.Contacts
                 var margin = double.PositiveInfinity;
                 foreach (var occluder in _pair.Occluders)
                 {
-                    var m = ChordOcclusion.HorizonMargin(a, b, _cache.BodyAt(occluder.BodyIndex, ut), occluder.OccludingRadiusMeters);
+                    var m = OcclusionBy(occluder, ut, a, b);
                     if (m < margin)
                     {
                         margin = m;
@@ -994,6 +999,30 @@ namespace Sitrep.Propagation.Contacts
 
             public double SeparationAt(double ut) => (_cache.NodeAt(_pair.A, ut) - _cache.NodeAt(_pair.B, ut)).Magnitude();
 
+            /*
+             * Two points fixed to a surface are tested as antennas standing
+             * SurfaceMastMeters above it. Held exactly at the occluding radius
+             * their chord always dips below it, so a landed craft and a station
+             * metres apart would never see each other.
+             */
+            private double OcclusionBy(OccludingBody occluder, double ut, Vector3d a, Vector3d b)
+            {
+                var centre = _cache.BodyAt(occluder.BodyIndex, ut);
+                if (_cache.IsOnSurface(_pair.A) && _cache.IsOnSurface(_pair.B))
+                {
+                    a = Raised(a, centre);
+                    b = Raised(b, centre);
+                }
+                return ChordOcclusion.HorizonMargin(a, b, centre, occluder.OccludingRadiusMeters);
+            }
+
+            private static Vector3d Raised(Vector3d point, Vector3d centre)
+            {
+                var up = point - centre;
+                var length = up.Magnitude();
+                return length > 0.0 ? point + (up * (SurfaceMastMeters / length)) : point;
+            }
+
             /// <summary>The pair's line-of-sight margin alone: the worst occluder's, or 1 when nothing can come between.</summary>
             public double OcclusionMarginAt(double ut)
             {
@@ -1002,7 +1031,7 @@ namespace Sitrep.Propagation.Contacts
                 var margin = double.PositiveInfinity;
                 foreach (var occluder in _pair.Occluders)
                 {
-                    var m = ChordOcclusion.HorizonMargin(a, b, _cache.BodyAt(occluder.BodyIndex, ut), occluder.OccludingRadiusMeters);
+                    var m = OcclusionBy(occluder, ut, a, b);
                     if (m < margin)
                     {
                         margin = m;

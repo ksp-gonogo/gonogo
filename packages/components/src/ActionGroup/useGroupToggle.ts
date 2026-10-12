@@ -17,7 +17,7 @@ import {
 export interface GroupToggleInput {
   group: ActionGroup | undefined;
   value: unknown;
-  /** The state was withheld because its reading is held, not because it never came. */
+  /** The state is the last one received while its reading is withheld: drawn, never inverted. */
   valueHeld: boolean;
   /** A current payload named this group and could not say whether it is engaged. */
   stateUnreadable: boolean;
@@ -58,7 +58,7 @@ export function useGroupToggle({
   const toggleCmd = useCommand(toggleCommand ?? "");
 
   const press = () => {
-    if (!group?.toggle || !toggleCommand) return;
+    if (!group?.toggle || !toggleCommand || valueHeld) return;
     const args = buildToggleArgs(group, value);
     if (args === TOGGLE_INVALID) return;
     void toggleCmd.send(args, { label: `Toggle ${label}` });
