@@ -515,3 +515,19 @@ describe("a marker with no shape", () => {
     expect(container.textContent).toContain("090°");
   });
 });
+
+describe("a marker whose shape the renderer does not know", () => {
+  it("draws no mark, rather than falling back to a chevron", () => {
+    const { container } = chart([
+      {
+        kind: "marker",
+        id: "m",
+        at: { x: 1, y: 1 },
+        shape: "sparkle" as never,
+        label: "090\u00b0",
+      },
+    ]);
+    expect(container.querySelector("polyline")).toBeNull();
+    expect(container.querySelector('[data-plot-layer="m"]')).toBeNull();
+  });
+});

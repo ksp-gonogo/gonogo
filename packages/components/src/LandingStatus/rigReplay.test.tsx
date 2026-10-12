@@ -40,6 +40,12 @@ describe("Landing Status over the rig's recorded landings", () => {
     const frames = play("landing-crashfall");
     const firstCrash = frames.findIndex((f) => f.text.includes("CRASHED"));
 
+    it("carries no badge that only says the link is live", () => {
+      for (const f of frames) {
+        expect(f.text, `at ${f.second} s`).not.toContain("LIVE");
+      }
+    });
+
     it("shows the descent before it, with nothing said of a crash", () => {
       expect(firstCrash).toBeGreaterThan(100);
       for (const f of frames.slice(0, firstCrash)) {
@@ -77,6 +83,21 @@ describe("Landing Status over the rig's recorded landings", () => {
         expect(f.text, `at ${f.second} s`).toContain("No landing in progress");
         expect(f.text).not.toContain("CRASHED");
         expect(f.text).not.toContain("LANDED");
+      }
+    });
+
+    it("gives the whole panel over to that reason, as a panel does that has nothing to present", () => {
+      for (const f of play("landing-lowpass").slice(40)) {
+        // Nothing of the descent board stands beside it: no body line, no burn hero, no round trip.
+        expect(f.text, `at ${f.second} s`).not.toContain("Mun · vacuum");
+        expect(f.text).not.toContain("BURN TIMING");
+        expect(f.text).not.toContain("RT ");
+      }
+    });
+
+    it("carries no badge that only says the link is live", () => {
+      for (const f of play("landing-lowpass")) {
+        expect(f.text, `at ${f.second} s`).not.toContain("LIVE");
       }
     });
   });

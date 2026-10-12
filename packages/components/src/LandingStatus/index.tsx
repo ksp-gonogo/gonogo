@@ -197,14 +197,22 @@ function LandingStatusComponent({
     <Panel
       panelTitle="LANDING"
       // The link regime is the widget's state, so it sits in the header with the other state badges rather than in the body, where its width would move the rows.
-      panelBadges={[
-        {
-          id: "landing-regime",
-          label: REGIME_LABEL[clocks.regime],
-          tone: REGIME_TONE[clocks.regime],
-          title: "How the vessel's link to the ground is carrying this descent",
-        },
-      ]}
+      // A live link is the ordinary state and says nothing; only a staged, autonomous or missing one does.
+      panelBadges={
+        clocks.regime === "live"
+          ? []
+          : [
+              {
+                id: "landing-regime",
+                label: REGIME_LABEL[clocks.regime],
+                tone: REGIME_TONE[clocks.regime],
+                title:
+                  "How the vessel's link to the ground is carrying this descent",
+              },
+            ]
+      }
+      // Nothing descending and no crash on record: the panel has nothing to present, so it gives its body over to the reason.
+      inactive={!descending && !crash ? "No landing in progress" : undefined}
       // Planted sections go beside the altitude rail, in the readouts column, never under it.
       panelSections={false}
       // Host-derived: the panel watches every topic this widget declares.
@@ -244,7 +252,6 @@ function LandingStatusComponent({
         <Section key="descent" full>
           {!descending ? (
             <Stack>
-              {!crash && <EmptyState>No landing in progress</EmptyState>}
               <WidgetSections />
             </Stack>
           ) : (
