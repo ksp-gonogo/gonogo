@@ -125,7 +125,7 @@ describe("CommSignalComponent", () => {
       document.querySelector('[data-reckoning-mark="modelled"]'),
     ).not.toBeNull();
     expect(document.body.textContent).toMatch(
-      /worked out for the path this command centre believes in/i,
+      /worked out for the active route, not measured/i,
     );
     await act(async () => {});
   });
@@ -148,7 +148,7 @@ describe("CommSignalComponent", () => {
     // Not the held square: the figure is not stale.
     expect(document.querySelector('[data-reckoning-mark="held"]')).toBeNull();
     expect(document.body.textContent).toMatch(
-      /measured on another path: the craft's radio reported this on a route this command centre does not believe in/i,
+      /measured by the craft's radio on a route other than the active route/i,
     );
     await act(async () => {});
   });
@@ -174,7 +174,7 @@ describe("CommSignalComponent", () => {
 
     await waitFor(() => expect(visibleText()).toContain("60 %"));
     expect(document.body.textContent).toMatch(
-      /Measured via Relay A to KSC, a route this command centre does not believe in/,
+      /Measured via Relay A to KSC, a route other than the active route/,
     );
     await act(async () => {});
   });
@@ -198,7 +198,7 @@ describe("CommSignalComponent", () => {
         ?.getAttribute("data-reckoning-mark"),
     ).toBe("current");
     expect(document.body.textContent).toMatch(
-      /measured by the craft on the route it was using/i,
+      /measured by the craft's radio on the route it was using/i,
     );
 
     // Sent its own path's measured worth, the figure carries no mark at all.
