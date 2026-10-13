@@ -64,7 +64,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/deployed-science-widget",
     modes: [
       // Minimum size: base header + first experiment, rest scrolls.
-      { name: "min-4x5", w: 4, h: 5 },
+      { name: "min-5x7", w: 5, h: 7 },
       // Default registered size: a base card with its experiments.
       { name: "default-5x9", w: 5, h: 9 },
       // Tall: multiple bases stacked.

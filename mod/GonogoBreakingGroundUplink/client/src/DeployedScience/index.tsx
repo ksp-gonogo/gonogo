@@ -78,8 +78,8 @@ registerComponent<DeployedScienceConfig>({
     "Power balance and per-experiment science progress for Breaking Ground deployed surface bases on every body, reported even while you fly something else. Read-only.",
   tags: ["telemetry", "science"],
   defaultSize: { w: 5, h: 9 },
-  // At four rows the overflow glow covers the last line of the empty state.
-  minSize: { w: 4, h: 5 },
+  // Five columns hold an experiment's figure beside its collecting badge, and seven rows keep a base's header, site line, power line and first experiment on screen with the held badge wrapped onto its own line.
+  minSize: { w: 5, h: 7 },
   component: DeployedScienceComponent,
   dataRequirements: ["deployed.bases", "game.dlc.breakingGround"],
   defaultConfig: {},

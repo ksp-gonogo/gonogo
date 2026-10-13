@@ -23,7 +23,7 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | Reads, as flat keys | `deployed.bases`, `game.dlc.breakingGround` |
 | Slots | `deployed-science.experiment` |
 | Default size | 5 × 9 |
-| Smallest size | 4 × 5 |
+| Smallest size | 5 × 7 |
 | Scenes | 4 |
 
 ![A powered Mun base with two experiments collecting, above a Minmus base that has lost power overnight](docs/assets/mun-and-minmus-bases--default.png)

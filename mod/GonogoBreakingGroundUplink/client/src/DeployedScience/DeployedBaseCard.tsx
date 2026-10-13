@@ -9,6 +9,7 @@ import {
   Meter,
   Stack,
   Text,
+  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { DeployedBase } from "./parseBases";
@@ -66,7 +67,7 @@ export function DeployedBaseCard({
       }}
     >
       <Stack>
-        <Cluster style={{ gap: "var(--gap-related)" }}>
+        <Cluster justify="start" wrap>
           <Text size="sm" style={{ fontWeight: 600 }}>
             {base.body || "Surface base"}
           </Text>
@@ -112,10 +113,11 @@ export function DeployedBaseCard({
                       decimals={0}
                     />
                     {exp.collecting === true && (
-                      <Text tone="go" style={XS2_STYLE}>
-                        {" "}
-                        ● collecting
-                      </Text>
+                      <Tooltip text="This experiment is collecting science now">
+                        <Badge tone="go" size="sm">
+                          Collecting
+                        </Badge>
+                      </Tooltip>
                     )}
                   </>
                 )

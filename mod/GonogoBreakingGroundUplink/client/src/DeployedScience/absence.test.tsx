@@ -114,24 +114,20 @@ describe("DeployedScience: a withheld progress is withheld on screen", () => {
     expect(screen.queryByRole("meter")).toBeNull();
   });
 
-  it("does not light the collecting dot for an unread experiment", async () => {
-    const { container } = mount([
-      flatEntry({ scienceCompletedPercentage: null }),
-    ]);
+  it("does not show the collecting badge for an unread experiment", async () => {
+    mount([flatEntry({ scienceCompletedPercentage: null })]);
 
     await screen.findByText("Seismometer");
-    expect(screen.queryByText(/collecting/)).toBeNull();
-    expect(container.innerHTML).not.toContain("●");
+    expect(screen.queryByText(/collecting/i)).toBeNull();
   });
 
-  it("still draws the bar and the dot for a real 0% reading", async () => {
-    // The control: 0% is a reading, and it keeps its bar and its dot.
-    const { container } = mount([flatEntry({ scienceCompletedPercentage: 0 })]);
+  it("still draws the bar and the collecting badge for a real 0% reading", async () => {
+    // The control: 0% is a reading, and it keeps its bar and its badge.
+    mount([flatEntry({ scienceCompletedPercentage: 0 })]);
 
     const bar = await screen.findByRole("meter", { name: "Seismometer" });
     expect(bar.getAttribute("aria-valuenow")).toBe("0");
-    expect(container.innerHTML).toContain("●");
-    expect(screen.getByText(/collecting/)).toBeInTheDocument();
+    expect(screen.getByText(/collecting/i)).toBeInTheDocument();
   });
 
   it("has no a11y violations with every science figure withheld", async () => {
