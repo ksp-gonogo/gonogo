@@ -77,6 +77,7 @@ namespace Sitrep.Host.Tests
                             ["statusText"] = "Processing",
                             ["scientistCount"] = 2,
                             ["scienceRate"] = 0.75,
+                            ["scienceCap"] = 500.0,
                             ["isOperational"] = true,
                         },
                     },
@@ -151,7 +152,7 @@ namespace Sitrep.Host.Tests
         {
                 "[{\"partName\":\"Mystery Goo Containment Pod\",\"location\":\"experiment\",\"experimentId\":\"mysteryGoo\",\"subjectId\":\"mysteryGoo@KerbinSrfLanded\",\"title\":\"Mystery Goo Observation\",\"dataAmount\":5,\"scienceValueRatio\":1,\"baseTransmitValue\":0.3,\"transmitBonus\":1,\"labValue\":1,\"deployed\":true,\"inoperable\":false,\"situation\":\"LANDED\",\"valueModel\":\"stock\"},{\"partName\":\"Science Jr.\",\"location\":\"container\",\"experimentId\":null,\"subjectId\":null,\"title\":null,\"dataAmount\":null,\"scienceValueRatio\":null,\"baseTransmitValue\":null,\"transmitBonus\":null,\"labValue\":null,\"deployed\":null,\"inoperable\":null,\"situation\":null,\"valueModel\":\"stock\"}]",
                 "[{\"partId\":\"4012\",\"partName\":\"Thermometer\",\"experimentId\":\"temperatureScan\",\"title\":\"Temperature Scan\",\"deployed\":false,\"inoperable\":false,\"rerunnable\":true,\"resettable\":true,\"dataIsCollectable\":false}]",
-                "[{\"partId\":\"4021\",\"partName\":\"Mobile Processing Lab\",\"dataStored\":120.5,\"dataStorage\":750,\"storedScience\":3.25,\"processingData\":true,\"statusText\":\"Processing\",\"scientistCount\":2,\"scienceRate\":0.75,\"isOperational\":true,\"valueModel\":\"stock\"}]",
+                "[{\"partId\":\"4021\",\"partName\":\"Mobile Processing Lab\",\"dataStored\":120.5,\"dataStorage\":750,\"storedScience\":3.25,\"processingData\":true,\"statusText\":\"Processing\",\"scientistCount\":2,\"scienceRate\":0.75,\"scienceCap\":500,\"isOperational\":true,\"valueModel\":\"stock\"}]",
                 "[{\"partId\":\"4013\",\"partName\":\"Accelerometer\",\"type\":\"ACC\",\"readout\":\"1.02 g\",\"active\":true}]",
                 "[{\"subjectId\":\"mysteryGoo@KerbinSrfLanded\",\"biome\":\"Shores\",\"situation\":\"SrfLanded\",\"expTitle\":\"Mystery Goo Observation\",\"dataMits\":5,\"remainingPotential\":null,\"valueModel\":\"stock\"}]",
         };

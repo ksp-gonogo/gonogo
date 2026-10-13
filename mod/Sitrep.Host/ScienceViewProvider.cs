@@ -197,6 +197,7 @@ namespace Sitrep.Host
             StatusText = SnapshotDict.GetString(raw, "statusText"),
             ScientistCount = SnapshotDict.GetInt(raw, "scientistCount"),
             ScienceRate = SnapshotDict.GetDouble(raw, "scienceRate"),
+            ScienceCap = SnapshotDict.GetDouble(raw, "scienceCap"),
             IsOperational = SnapshotDict.GetBool(raw, "isOperational"),
             // Stock's lab is terminal: it produces science per game-day. See
             // ScienceValueModels and LabEntry.ValueModel.

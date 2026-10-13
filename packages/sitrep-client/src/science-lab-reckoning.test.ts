@@ -96,6 +96,26 @@ describe("a science lab's stored science under delay", () => {
     expect(reckoning?.modelled?.magnitude).toBeCloseTo(10.5, 6);
   });
 
+  it("stops at the lab's science cap", () => {
+    const readings = scene([
+      lab("4001", { scienceCap: value("science", 10.2) }),
+    ]).at(QUARTER_DAY);
+
+    expect(reckoned(readings, RUNNING)?.modelled?.magnitude).toBeCloseTo(
+      10.2,
+      6,
+    );
+  });
+
+  it("carries a lab whose cap could not be read without a limit", () => {
+    const readings = scene([lab("4001", { scienceCap: null })]).at(QUARTER_DAY);
+
+    expect(reckoned(readings, RUNNING)?.modelled?.magnitude).toBeCloseTo(
+      10.5,
+      6,
+    );
+  });
+
   it("leaves a lab that is not processing at what was observed", () => {
     const readings = scene().at(QUARTER_DAY);
 

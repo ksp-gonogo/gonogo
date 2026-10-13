@@ -86,6 +86,11 @@
     "reason": "The velocity components ARE the derivative of the position components, so this pairing is real. First-order only: relative motion between an orbiting pair is curved, so it is honest for seconds and wrong for minutes, and it assumes nothing has thrusted, which a craft out of contact is exactly what we cannot know.",
     "verdict": "real-but-unmodelled"
   },
+  "LabEntry.scienceCap": {
+    "rates": ["scienceRate"],
+    "reason": "A ceiling, not a quantity the rate accumulates: `scienceRate` grows `storedScience` up to `scienceCap`, and the cap itself never moves with time.",
+    "verdict": "coincidence"
+  },
   "LabEntry.storedScience": {
     "rates": ["scienceRate"],
     "reason": "`scienceRate` is the rate of `storedScience`. Conditional: a non-stock provider produces no science itself, leaves `scienceRate` null and carries its own rate in `Extensions`, so a model must gate on the value model rather than assume the field is populated.",
@@ -304,6 +309,11 @@
   "robotics.servos.targetAngle": {
     "rates": ["currentRPM", "rpmLimit"],
     "reason": "The COMMANDED angle, which changes only when a command is issued. A servo's RPM moves the current angle toward this one; it does not move this one.",
+    "verdict": "coincidence"
+  },
+  "science.lab.scienceCap": {
+    "rates": ["scienceRate"],
+    "reason": "A ceiling, not a quantity the rate accumulates: `scienceRate` grows `storedScience` up to `scienceCap`, and the cap itself never moves with time.",
     "verdict": "coincidence"
   },
   "science.lab.storedScience": {

@@ -840,7 +840,8 @@ function registerTargetRosterReckoner(): void {
  *
  * The rate is the one KSP computed at the stored data it had then, and
  * converting drains that data, so a constant rate slightly overshoots over a
- * long gap. The model is first order and declines when no lab qualifies.
+ * long gap. The model is first order and declines when no lab qualifies. A lab
+ * stops generating at its `scienceCap`, so the carried figure stops there too.
  */
 function registerScienceLabReckoner(): void {
   registerReckoner("science.lab", CORE_RECKONER_OWNER, {
@@ -889,7 +890,13 @@ function registerScienceLabReckoner(): void {
             const gained = lab.scienceRate
               .times(value("s", Math.max(0, at - point.validAt)))
               .in("science");
-            return { ...lab, storedScience: lab.storedScience.plus(gained) };
+            const grown = lab.storedScience.plus(gained);
+            const cap = lab.scienceCap;
+            return {
+              ...lab,
+              storedScience:
+                cap != null && grown.greaterThan(cap) ? cap : grown,
+            };
           }),
       };
     },

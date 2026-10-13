@@ -5763,12 +5763,14 @@ namespace Gonogo.KSP
                     var partId = part.flightID != 0 ? part.flightID.ToString() : null;
 
                     double? rate = null;
+                    double? scienceCap = null;
                     try
                     {
                         var converter = lab.Converter;
                         if (converter != null)
                         {
                             rate = converter.CalculateScienceRate(lab.dataStored);
+                            scienceCap = converter.scienceCap;
                         }
                     }
                     catch (Exception ex)
@@ -5804,6 +5806,7 @@ namespace Gonogo.KSP
                         ["statusText"] = lab.statusText,
                         ["scientistCount"] = scientistCount,
                         ["scienceRate"] = rate,
+                        ["scienceCap"] = scienceCap,
                         ["isOperational"] = isOperational,
                     });
                 }

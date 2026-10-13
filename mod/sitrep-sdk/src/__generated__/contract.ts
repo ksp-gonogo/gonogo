@@ -6820,10 +6820,18 @@ export interface LabEntry
 	/**
 	* Science the lab has generated and is holding, not yet transmitted (KSP's
 	* `ModuleScienceLab.storedScience`). While the lab is processing it grows at
-	* `LabEntry.scienceRate`, so a model carries it forward from there; a lab that
-	* is not processing holds it exactly as observed.
+	* `LabEntry.scienceRate` up to `LabEntry.scienceCap`, so a model carries it
+	* forward from there; a lab that is not processing holds it exactly as
+	* observed.
 	*/
 	storedScience?: Value<"science"> | null;
+	/**
+	* The most science the lab holds: generation stops once
+	* `LabEntry.storedScience` reaches it (KSP's
+	* `ModuleScienceConverter.scienceCap`). `null` when the lab has no converter
+	* or it could not be read.
+	*/
+	scienceCap?: Value<"science"> | null;
 	/**
 	* Whether the lab is currently processing data (KSP's
 	* `ModuleScienceLab.processingData`).

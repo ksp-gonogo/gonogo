@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 41.0.0
+  version: 41.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -15802,8 +15802,19 @@ components:
           description: |-
             Science the lab has generated and is holding, not yet transmitted (KSP's
             `ModuleScienceLab.storedScience`). While the lab is processing it grows at
-            `LabEntry.scienceRate`, so a model carries it forward from there; a lab that
-            is not processing holds it exactly as observed.
+            `LabEntry.scienceRate` up to `LabEntry.scienceCap`, so a model carries it
+            forward from there; a lab that is not processing holds it exactly as
+            observed.
+        scienceCap:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: science
+          description: |-
+            The most science the lab holds: generation stops once
+            `LabEntry.storedScience` reaches it (KSP's
+            `ModuleScienceConverter.scienceCap`). `null` when the lab has no converter
+            or it could not be read.
         processingData:
           type:
             - boolean

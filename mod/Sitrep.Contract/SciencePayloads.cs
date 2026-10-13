@@ -360,12 +360,19 @@ public class LabEntry
 
     /// <summary>Science the lab has generated and is holding, not yet
     /// transmitted (KSP's <c>ModuleScienceLab.storedScience</c>). While the lab
-    /// is processing it grows at <see cref="ScienceRate"/>, so a model carries
-    /// it forward from there; a lab that is not processing holds it exactly as
-    /// observed.</summary>
+    /// is processing it grows at <see cref="ScienceRate"/> up to
+    /// <see cref="ScienceCap"/>, so a model carries it forward from there; a
+    /// lab that is not processing holds it exactly as observed.</summary>
     [SitrepUnit(Units.Science)]
-    [SitrepReckonable(ReckoningBases.RateIntegration, "scienceRate")]
+    [SitrepReckonable(ReckoningBases.RateIntegration, "scienceRate", "scienceCap")]
     public double? StoredScience { get; set; }
+
+    /// <summary>The most science the lab holds: generation stops once
+    /// <see cref="StoredScience"/> reaches it (KSP's
+    /// <c>ModuleScienceConverter.scienceCap</c>). <c>null</c> when the lab has
+    /// no converter or it could not be read.</summary>
+    [SitrepUnit(Units.Science)]
+    public double? ScienceCap { get; set; }
 
     /// <summary>Whether the lab is currently processing data (KSP's
     /// <c>ModuleScienceLab.processingData</c>).</summary>

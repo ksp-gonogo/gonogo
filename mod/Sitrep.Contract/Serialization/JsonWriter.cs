@@ -876,6 +876,10 @@ namespace Sitrep.Contract.Serialization
             sb.Append(':');
             AppendNullableNumber(sb, e.ScienceRate);
             sb.Append(',');
+            AppendString(sb, "scienceCap");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.ScienceCap);
+            sb.Append(',');
             AppendString(sb, "isOperational");
             sb.Append(':');
             AppendNullableBool(sb, e.IsOperational);

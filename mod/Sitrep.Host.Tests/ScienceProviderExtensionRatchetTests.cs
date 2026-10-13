@@ -9,7 +9,9 @@ namespace Sitrep.Host.Tests
     /// <summary>
     /// The anti-pattern ratchet for the four elected <c>science.*</c> payloads: a
     /// new provider-specific science field belongs in the extension bag under the
-    /// provider's own id, not as another hand-listed nullable member here.
+    /// provider's own id, not as another hand-listed nullable member here. A
+    /// stock concept that every provider's lab or experiment obeys is a member,
+    /// and is added to the frozen set below by name.
     ///
     /// <para><b>Why science needs this.</b> The stock-versus-modelled-science
     /// overlap survey found four whole concepts one provider
@@ -83,6 +85,8 @@ namespace Sitrep.Host.Tests
             nameof(LabEntry.StatusText),
             nameof(LabEntry.ScientistCount),
             nameof(LabEntry.ScienceRate),
+            // Stock's own lab rule (ModuleScienceConverter.scienceCap): every lab stops generating at its cap.
+            nameof(LabEntry.ScienceCap),
             nameof(LabEntry.IsOperational),
             nameof(LabEntry.ValueModel),
             nameof(LabEntry.Extensions),

@@ -85,6 +85,7 @@ namespace Sitrep.Host.Tests
                 ["statusText"] = "Analyzing data...",
                 ["scientistCount"] = 2,
                 ["scienceRate"] = 0.02,
+                ["scienceCap"] = 500.0,
                 ["isOperational"] = true,
             });
 
