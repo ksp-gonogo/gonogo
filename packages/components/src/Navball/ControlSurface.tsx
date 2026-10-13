@@ -44,7 +44,7 @@ interface ControlSurfaceProps {
 }
 
 /** A press disarms whenever the craft may be holding the stick, so the one safe action is always a click away. */
-const FBW_VIEW: Record<
+export const FBW_VIEW: Record<
   FbwState,
   { label: string; hint: string; press: "arm" | "disarm" }
 > = {

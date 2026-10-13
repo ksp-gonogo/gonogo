@@ -28,6 +28,7 @@ import { ControlSurface } from "./ControlSurface";
 import { ControlToggles } from "./ControlToggles";
 import { type NavballConfig, navballActions } from "./config";
 import { useAxisStreams, useThrottleCommand } from "./controlStreams";
+import { FbwBanner } from "./FbwBanner";
 import { NavballConfigForm } from "./NavballConfigForm";
 import read from "./navball.declarations.g";
 import { lastObserved, numericOrNull } from "./readings";
@@ -190,6 +191,8 @@ function NavballComponent({
   const showThrottleColumn = showDial && cols >= 5;
   // In the body, not the header aside, which collapses on a measured fit and would take contributed alerts with it.
   const showControlRow = cols >= 5;
+  // Armed with the control surface out of sight (control mode off, or a small tile), the override still says so and can be dropped.
+  const fbwOutsideSurface = fbwState !== "off" && !showControlSurface;
 
   return (
     <Panel
@@ -227,24 +230,31 @@ function NavballComponent({
             )}
           </div>
         </Section>,
-        showControlRow ? (
+        showControlRow || fbwOutsideSurface ? (
           <Section key="controls" full>
-            <AppliedInput
-              pitch={control?.pitch}
-              roll={control?.roll}
-              reading={controlReading}
-            />
-            <ControlToggles
-              disabled={!isControllable}
-              sas={sasRaw}
-              sasBadgeMode={sasBadgeMode}
-              sasUnavailableReason={sasUnavailableReason}
-              rcs={rcsRaw}
-              precision={control?.precisionControl}
-              marking={derivedMarking(controlReading)}
-              onToggleSas={toggleSas}
-              onToggleRcs={toggleRcs}
-            />
+            {fbwOutsideSurface && (
+              <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} />
+            )}
+            {showControlRow && (
+              <>
+                <AppliedInput
+                  pitch={control?.pitch}
+                  roll={control?.roll}
+                  reading={controlReading}
+                />
+                <ControlToggles
+                  disabled={!isControllable}
+                  sas={sasRaw}
+                  sasBadgeMode={sasBadgeMode}
+                  sasUnavailableReason={sasUnavailableReason}
+                  rcs={rcsRaw}
+                  precision={control?.precisionControl}
+                  marking={derivedMarking(controlReading)}
+                  onToggleSas={toggleSas}
+                  onToggleRcs={toggleRcs}
+                />
+              </>
+            )}
           </Section>
         ) : null,
         showControlSurface ? (

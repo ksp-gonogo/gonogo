@@ -189,3 +189,36 @@ describe("Navball's FBW state follows the command outcome", () => {
     await fbwButton("Arming FBW");
   });
 });
+
+describe("Navball says fly-by-wire is armed when the control surface is out of sight", () => {
+  function plain(instanceId: string, fixture: StreamFixture) {
+    return render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId }}>
+          <NavballComponent config={{}} id={instanceId} w={6} h={8} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+  }
+
+  it("shows the state and a disarm control on a tile with no control mode, and drops the override from it", async () => {
+    const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
+    fixture.transport.setCommandHandler(() => ({ success: true }));
+    plain("fbw-banner", fixture);
+    act(() => {
+      fixture.emit("vessel.comms", { controlState: 4 });
+    });
+    expect(screen.queryByRole("button", { name: "Disarm FBW" })).toBeNull();
+
+    press("fbw-banner", "arm-fbw");
+    const disarm = await screen.findByRole("button", { name: "Disarm FBW" });
+    await waitFor(() =>
+      expect(document.body.textContent).toContain("FBW ARMED"),
+    );
+
+    act(() => disarm.click());
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Disarm FBW" })).toBeNull(),
+    );
+  });
+});
