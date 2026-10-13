@@ -33,14 +33,48 @@ function currencyAt(series: ChartSeries, index: number): SampleCurrency {
 }
 
 /**
+ * `series` with its samples in ascending x, which the lookups below assume. A
+ * series already ascending, as every time series is, comes back as it is. On a
+ * value axis the samples arrive in time order, so a craft that climbs and then
+ * descends visits an x twice; ties keep their time order.
+ */
+export function orderedByX(series: ChartSeries): ChartSeries {
+  const { x, y, y2 } = series.data;
+  let ascending = true;
+  for (let i = 0; i < x.length; i++) {
+    if (!Number.isFinite(x[i]) || (i > 0 && x[i] < x[i - 1])) {
+      ascending = false;
+      break;
+    }
+  }
+  if (ascending) return series;
+  const order = x
+    .map((_, i) => i)
+    .filter((i) => Number.isFinite(x[i]))
+    .sort((a, b) => x[a] - x[b] || a - b);
+  return {
+    ...series,
+    data: {
+      x: order.map((i) => x[i]),
+      y: order.map((i) => y[i]),
+      ...(y2 ? { y2: order.map((i) => y2[i]) } : {}),
+    },
+  };
+}
+
+/**
  * The sample of `series` nearest `x`, or `null` when it has none to offer.
  * A series has nothing at an instant before its first sample or after its
  * last, nor inside a hole it declares: the nearest sample there is across a
- * gap and would be read as a figure for a time nobody measured.
+ * gap and would be read as a figure for a time nobody measured. With `within`,
+ * a sample further than that from `x` is no reading of it either, which is how
+ * a trace on a value axis stays silent where the craft never was. A series that
+ * reads between its samples is interpolated at `x`.
  */
 export function sampleNearest(
   series: ChartSeries,
   x: number,
+  within?: number,
 ): CrosshairSample | null {
   const xs = series.data.x;
   const ys = series.data.y;
@@ -61,6 +95,13 @@ export function sampleNearest(
   if (xs[after] !== x && after > 0 && isBreakBetween(series.data.breaks, after))
     return null;
   const index = x - xs[before] <= xs[after] - x ? before : after;
+  if (within !== undefined && Math.abs(xs[index] - x) > within) return null;
+  const span = xs[after] - xs[before];
+  if (series.readBetween && span > 0 && xs[after] !== x) {
+    const y = ys[before] + ((ys[after] - ys[before]) * (x - xs[before])) / span;
+    if (!Number.isFinite(y)) return null;
+    return { index, x, y, currency: currencyAt(series, index) };
+  }
   const y = ys[index];
   if (!Number.isFinite(y)) return null;
   const y2 = series.data.y2?.[index];

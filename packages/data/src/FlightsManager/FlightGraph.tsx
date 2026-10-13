@@ -1,6 +1,6 @@
 import { getDataSource } from "@ksp-gonogo/core";
 import type { ChartSeries, KeyOption } from "@ksp-gonogo/ui";
-import { DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
+import { axisTitle, DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { plotValue } from "../hooks/useDataSeries";
@@ -156,6 +156,19 @@ export function FlightGraph({ missionId, fromUt, toUt }: FlightGraphProps) {
 
   const anyData = series.some((s) => s.data.x.length > 0);
 
+  // One name per distinct series label, up to two, and the unit only where every plotted key shares it.
+  const selectedMeta = [...selected].map((key) =>
+    numericFields.find((field) => field.key === key),
+  );
+  const names = [
+    ...new Set(selectedMeta.map((meta, i) => meta?.label ?? [...selected][i])),
+  ];
+  const units = [...new Set(selectedMeta.map((meta) => meta?.unit))];
+  const yAxisLabel = axisTitle(
+    names.length > 0 && names.length <= 2 ? names.join(" / ") : undefined,
+    units.length === 1 ? units[0] : undefined,
+  );
+
   return (
     <Wrap>
       <Toolbar>
@@ -193,6 +206,8 @@ export function FlightGraph({ missionId, fromUt, toUt }: FlightGraphProps) {
             <LineChart
               series={series}
               xDomain={xDomain}
+              xAxisLabel="Mission time"
+              yAxisLabel={yAxisLabel}
               width={width}
               height={260}
             />
