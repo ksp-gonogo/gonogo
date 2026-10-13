@@ -50,6 +50,53 @@ describe("vanillaPoiProvider: KSC/launch-site/contract-target POIs", () => {
     await waitFor(() => expect(result.current).toEqual([]));
   });
 
+  it("darkens Set as Target with the mod's reason while the command's gate fails", async () => {
+    const fixture = setupStreamFixture({ suspendFrames: true });
+    const provider = getProvider();
+    const { result, unmount } = renderHook(
+      () => provider.usePois({ bodyId: "Kerbin" }),
+      { wrapper: fixture.Provider },
+    );
+    renderedTrees.push(unmount);
+
+    const target = () =>
+      result.current?.[0]?.actions?.find((a) => a.id === "set-target");
+    act(() => {
+      fixture.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
+      fixture.emit("spaceCenter.pois", [
+        {
+          id: "launchSite:Runway",
+          kind: "ksc",
+          bodyIndex: 1,
+          latitude: -0.0486,
+          longitude: -74.72,
+          label: "Runway",
+        },
+      ]);
+    });
+    await waitFor(() => expect(target()).toBeDefined());
+    expect(target()?.disabled).toBeUndefined();
+    expect(target()?.disabledReason).toBeUndefined();
+
+    act(() => {
+      fixture.emit("system.uplink.gates", {
+        gates: [
+          {
+            command: "vessel.target.set",
+            verdict: {
+              // GateOutcome.Fail.
+              outcome: 1,
+              errorCode: "modeUnavailable",
+              detail: "No vessel is active",
+            },
+          },
+        ],
+      });
+    });
+    await waitFor(() => expect(target()?.disabled).toBe(true));
+    expect(target()?.disabledReason).toContain("No vessel is active");
+  });
+
   it("filters POIs to the current body and carries contractTarget meta (funds/agent/deadline)", async () => {
     const fixture = setupStreamFixture({
       suspendFrames: true,

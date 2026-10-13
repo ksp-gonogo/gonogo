@@ -10,6 +10,7 @@ import {
   stillTrue,
   TargetKind,
 } from "@ksp-gonogo/sitrep-sdk";
+import { commandGateSentence } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 
 /**
@@ -56,6 +57,7 @@ function toMapPoi(
     return null;
   }
 
+  const gate = setTargetCmd.gate;
   const status: MapPoi["status"] =
     entry.status === "active" || entry.status === "available"
       ? entry.status
@@ -93,6 +95,16 @@ function toMapPoi(
             { kind: TargetKind.Position, bodyIndex, latitude, longitude },
             { label: "Set as Target" },
           ),
+        // The mod's standing verdict on the command: a gate that fails darkens the button and says why, as every other control on a gated command does.
+        ...(gate?.blocked === true
+          ? {
+              disabled: true,
+              disabledReason: commandGateSentence({
+                ...gate,
+                label: "Set as Target",
+              }),
+            }
+          : {}),
       },
     ],
   };
