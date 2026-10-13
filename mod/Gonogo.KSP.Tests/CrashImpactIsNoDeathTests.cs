@@ -38,9 +38,14 @@ namespace Gonogo.KSP.Tests
         public void only_the_vessel_dying_is_a_death(string file)
         {
             var source = CurrencyDelaySourceText.ReadRelative(file);
-            var destroy = CurrencyDelaySourceText.MethodBody(source, "private void OnVesselWillDestroy(Vessel vessel)");
 
-            Assert.Contains("_deaths.Death(", destroy, StringComparison.Ordinal);
+            Assert.Contains("private void OnVesselWillDestroy(Vessel vessel) => NoteDeath(", source, StringComparison.Ordinal);
+            Assert.Contains("private void OnVesselExplodeGroundCollision(Vessel vessel) => NoteDeath(", source, StringComparison.Ordinal);
+            Assert.Contains("GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);", source, StringComparison.Ordinal);
+            Assert.Contains("GameEvents.onVesselExplodeGroundCollision.Add(OnVesselExplodeGroundCollision);", source, StringComparison.Ordinal);
+
+            var death = CurrencyDelaySourceText.MethodBody(source, "private void NoteDeath(Vessel vessel, string eventName)");
+            Assert.Contains("_deaths.Death(", death, StringComparison.Ordinal);
         }
     }
 }

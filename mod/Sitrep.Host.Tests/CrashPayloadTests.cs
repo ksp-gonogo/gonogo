@@ -109,6 +109,37 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void Build_ACraftReadWholeBeforeItBrokeCarriesEveryPartAndEveryoneAboardAndNullsWhatWasNeverMeasured()
+        {
+            var capture = new CrashCapture
+            {
+                VesselId = "craft-1",
+                EventKind = "Destroyed",
+                VesselType = "Ship",
+                PartsLost = new List<LostPart>
+                {
+                    new LostPart { PartId = 1, PartName = "mk1pod.v2", PartTitle = "Mk1 Command Pod", Msg = "" },
+                    new LostPart { PartId = 2, PartName = "miniLandingLeg", PartTitle = "LT-05 Landing Strut", Msg = "" },
+                    new LostPart { PartId = 3, PartName = "miniLandingLeg", PartTitle = "LT-05 Landing Strut", Msg = "" },
+                },
+                FlightStats = new FlightStatsTracker().Snapshot("craft-1", missionTimeAtCrash: 12.0),
+                KerbalsKilled = new List<string> { "Jebediah Kerman", "Bill Kerman" },
+                CrewAboard = new List<string> { "Jebediah Kerman", "Bill Kerman" },
+            };
+
+            var wire = CrashPayload.Build(capture);
+
+            Assert.Equal(3, ((List<object?>)wire["partsLost"]!).Count);
+            Assert.Equal(2, ((List<object?>)wire["crewAboard"]!).Count);
+            var stats = (Dictionary<string, object?>)wire["flightStats"]!;
+            Assert.Equal(12.0, stats["missionTime"]);
+            Assert.Null(stats["highestAltitude"]);
+            Assert.Null(stats["highestSpeed"]);
+            Assert.Null(stats["totalDistance"]);
+            Assert.Null(stats["partsLost"]);
+        }
+
+        [Fact]
         public void Build_ProducedPayloadSerializesThroughTheRealWirePath()
         {
             var dict = CrashPayload.Build(new CrashCapture

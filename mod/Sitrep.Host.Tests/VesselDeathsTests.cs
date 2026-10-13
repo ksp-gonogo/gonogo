@@ -87,6 +87,58 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void a_crash_through_terrain_alone_is_one_death()
+        {
+            var deaths = Deaths();
+
+            // Vessel.Die never runs, so onVesselExplodeGroundCollision is the only report.
+            deaths.Death(Craft, "whole craft", 100);
+
+            var death = Assert.Single(deaths.Drain(100.1));
+            Assert.Equal("whole craft", death.Record);
+            Assert.Null(death.Impact);
+            Assert.Empty(deaths.Drain(100.2));
+        }
+
+        [Fact]
+        public void a_crash_through_terrain_then_the_impact_then_the_destruction_is_one_death()
+        {
+            var deaths = Deaths();
+
+            deaths.Death(Craft, "whole craft", 100);
+            deaths.Impact(Craft, "Crash", 100);
+            deaths.Death(Craft, "torn craft", 100);
+
+            var death = Assert.Single(deaths.Drain(100.1));
+            Assert.Equal("whole craft", death.Record);
+            Assert.Equal("Crash", death.Impact);
+            Assert.Empty(deaths.Drain(100.2));
+        }
+
+        [Fact]
+        public void a_destruction_reported_after_the_crash_was_published_is_not_a_second_death()
+        {
+            var deaths = Deaths();
+
+            deaths.Death(Craft, "whole craft", 100);
+            Assert.Single(deaths.Drain(100.1));
+
+            deaths.Death(Craft, "torn craft", 100.5);
+
+            Assert.Empty(deaths.Drain(100.6));
+        }
+
+        [Fact]
+        public void a_destruction_alone_is_one_death_as_before()
+        {
+            var deaths = Deaths();
+
+            deaths.Death(Craft, "burn-up", 100);
+
+            Assert.Equal("burn-up", Assert.Single(deaths.Drain(100.1)).Record);
+        }
+
+        [Fact]
         public void one_death_is_published_once()
         {
             var deaths = Deaths();

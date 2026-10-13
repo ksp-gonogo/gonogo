@@ -23,9 +23,11 @@ namespace Gonogo.KSP
     /// hooked here, mirroring <see cref="CrashUplink"/>/<see cref="RecoveryUplink"/>'s
     /// exact GameEvents and filter discipline, independently (zero coupling to
     /// either uplink: see the contract file's "crash/recovery stayed separate"
-    /// note for why). A death is <c>onVesselWillDestroy</c> alone; a per-part
-    /// <c>onCrash</c> only names it Crashed (see
-    /// <see cref="VesselDeaths{TRecord, TImpact}"/>).</para>
+    /// note for why). A death is <c>onVesselWillDestroy</c>, or
+    /// <c>onVesselExplodeGroundCollision</c> where the vessel is about to be
+    /// destroyed by the ground and may not reach <c>Vessel.Die</c>; one death is
+    /// published once whichever arrives. A per-part <c>onCrash</c> only names it
+    /// Crashed (see <see cref="VesselDeaths{TRecord, TImpact}"/>).</para>
     /// </summary>
     [SitrepUplink("flight")]
     public sealed class FlightUplink : ISitrepUplink
@@ -118,6 +120,7 @@ namespace Gonogo.KSP
             GameEvents.onCrash.Add(OnCrash);
             GameEvents.onCrashSplashdown.Add(OnCrashSplashdown);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
+            GameEvents.onVesselExplodeGroundCollision.Add(OnVesselExplodeGroundCollision);
             GameEvents.onVesselRecovered.Add(OnVesselRecovered);
             // The hooks live for the whole process: Register runs once, before the
             // main menu, and a flight can end in any scene the player reaches.
@@ -150,11 +153,29 @@ namespace Gonogo.KSP
         /// until the next tick so an impact that caused it names the end Crashed rather
         /// than Destroyed. Debris, flags and unknown vessels never end a flight.
         /// </summary>
-        private void OnVesselWillDestroy(Vessel vessel)
+        private void OnVesselWillDestroy(Vessel vessel) => NoteDeath(vessel, "onVesselWillDestroy");
+
+        /// <summary>
+        /// MAIN-THREAD: the ground is about to destroy the vessel, raised at the
+        /// "crashed through terrain" site before the explosion and before any part
+        /// is decoupled. The same death <see cref="OnVesselWillDestroy"/> reports
+        /// when <c>Vessel.Die</c> runs, and the only report when it does not.
+        /// </summary>
+        private void OnVesselExplodeGroundCollision(Vessel vessel) => NoteDeath(vessel, "onVesselExplodeGroundCollision");
+
+        private void NoteDeath(Vessel vessel, string eventName)
         {
             try
             {
-                if (vessel == null || !CrashPayload.ShouldPublish(vessel.vesselType.ToString()))
+                if (vessel == null)
+                {
+                    return;
+                }
+                var type = vessel.vesselType.ToString();
+                var active = ActiveVesselScope.Current;
+                Debug.Log("[Gonogo] flight: " + eventName + " vessel " + vessel.id
+                    + " type " + type + " active " + (active != null && active.id == vessel.id));
+                if (!CrashPayload.ShouldPublish(type))
                 {
                     return;
                 }

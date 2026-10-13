@@ -17,11 +17,14 @@ namespace Gonogo.KSP
     /// station via keyframe-on-subscribe, which is exactly the "last crash"
     /// semantics.
     ///
-    /// <para>A death is <c>onVesselWillDestroy</c>, and only that: stock raises
-    /// <c>onCrash</c> / <c>onCrashSplashdown</c> once per part that breaks, on a craft
-    /// that may fly on, so those only name the cause of a death they coincide with
-    /// (see <see cref="VesselDeaths{TRecord, TImpact}"/>). A death is read as it
-    /// happens and published from the next tick, once per death.</para>
+    /// <para>A death is <c>onVesselWillDestroy</c>, or
+    /// <c>onVesselExplodeGroundCollision</c>, which is raised at the "crashed through
+    /// terrain" site while the vessel is still whole and is the only report when
+    /// <c>Vessel.Die</c> does not run. Stock raises <c>onCrash</c> /
+    /// <c>onCrashSplashdown</c> once for every part that breaks, on a craft that may
+    /// fly on, so those only name the cause of a death they coincide with (see
+    /// <see cref="VesselDeaths{TRecord, TImpact}"/>). A death is read as it happens
+    /// and published from the next tick, once per death.</para>
     ///
     /// <para>The KSP-free record assembly, the debris filter, and the
     /// per-flight stats tracker all live in <c>Sitrep.Host.Crash</c> (mirroring
@@ -137,6 +140,7 @@ namespace Gonogo.KSP
             GameEvents.onCrash.Add(OnCrash);
             GameEvents.onCrashSplashdown.Add(OnCrashSplashdown);
             GameEvents.onVesselWillDestroy.Add(OnVesselWillDestroy);
+            GameEvents.onVesselExplodeGroundCollision.Add(OnVesselExplodeGroundCollision);
             GameEvents.onLaunch.Add(OnLaunch);
             GameEvents.onStageSeparation.Add(OnStageSeparation);
             GameEvents.onPartDie.Add(OnPartDie);
@@ -223,7 +227,18 @@ namespace Gonogo.KSP
         /// MAIN-THREAD: the vessel is about to be destroyed. Read now, while it is still
         /// whole, and held until the next tick so an impact that caused it can name it.
         /// </summary>
-        private void OnVesselWillDestroy(Vessel vessel)
+        private void OnVesselWillDestroy(Vessel vessel) => NoteDeath(vessel, "onVesselWillDestroy");
+
+        /// <summary>
+        /// MAIN-THREAD: the ground is about to destroy the vessel, raised at the
+        /// "crashed through terrain" site before the explosion and before any part
+        /// is decoupled, so the record read here is the whole craft. The same death
+        /// <see cref="OnVesselWillDestroy"/> reports when <c>Vessel.Die</c> runs, and
+        /// the only report when it does not.
+        /// </summary>
+        private void OnVesselExplodeGroundCollision(Vessel vessel) => NoteDeath(vessel, "onVesselExplodeGroundCollision");
+
+        private void NoteDeath(Vessel vessel, string eventName)
         {
             try
             {
@@ -233,6 +248,9 @@ namespace Gonogo.KSP
                 }
 
                 var vesselType = vessel.vesselType.ToString();
+                var active = ActiveVesselScope.Current;
+                Debug.Log("[Gonogo] crash: " + eventName + " vessel " + vessel.id
+                    + " type " + vesselType + " active " + (active != null && active.id == vessel.id));
                 if (!CrashPayload.ShouldPublish(vesselType))
                 {
                     _tracker.Forget(vessel.id.ToString());
