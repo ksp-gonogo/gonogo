@@ -1,6 +1,6 @@
 /**
  * Smoke tests for telemetry visualisation components:
- * CurrentOrbit, Rendezvous, OrbitView, GroundTrack.
+ * CurrentOrbit, Targeting, OrbitView, MapView.
  *
  * These are integration tests: real data source, real hooks, real components,
  * only the network is intercepted by MSW.
@@ -8,9 +8,9 @@
 
 import {
   CurrentOrbitComponent,
-  GroundTrackComponent,
+  MapViewComponent,
   OrbitViewComponent,
-  RendezvousComponent,
+  TargetingComponent,
 } from "@ksp-gonogo/components";
 import {
   clearBodies,
@@ -54,9 +54,9 @@ beforeEach(() => {
   clearRegistry();
   registerStockBodies();
 
-  // GroundTrack's `useMapResize` constructs a `ResizeObserver` on mount; jsdom
+  // MapView's `useMapResize` constructs a `ResizeObserver` on mount; jsdom
   // has no implementation. Stub the same fixed-size fake the widget's own
-  // `GroundTrack/index.test.tsx` uses so the full-map render path can measure.
+  // `MapView/index.test.tsx` uses so the full-map render path can measure.
   restoreResizeObserver = installFixedSizeResizeObserver({
     width: 600,
     height: 300,
@@ -73,7 +73,7 @@ afterEach(() => {
 // over a StubTransport) for widgets that read via the canonical `useTelemetry`
 // stream path post-P1 vocabulary migration. Mirrors
 // `packages/components/src/test/setupStreamFixture.tsx` (the pattern used by
-// Rendezvous's and OrbitView's own dedicated stream tests), duplicated
+// Targeting's and OrbitView's own dedicated stream tests), duplicated
 // here in miniature rather than imported, since `@ksp-gonogo/components`'s test
 // helpers aren't part of its published surface.
 function setupTelemetryStream() {
@@ -184,13 +184,13 @@ describe("CurrentOrbitComponent", () => {
   });
 });
 
-describe("RendezvousComponent", () => {
+describe("TargetingComponent", () => {
   it("waits for telemetry rather than claiming no target is set, before anything is received", () => {
     // The old assertion (and this test's own old title) had it backwards: "not
     // yet received" is pending, and "No target set in KSP" is a claim about the
     // GAME that only a tombstone can support. `TopicReading<T>` splits the two, and
     // no provider is mounted here at all, so this is the pending branch.
-    render(<RendezvousComponent config={{}} id="tar" />);
+    render(<TargetingComponent config={{}} id="tar" />);
     expect(
       screen.getByText("Waiting for target telemetry"),
     ).toBeInTheDocument();
@@ -200,14 +200,14 @@ describe("RendezvousComponent", () => {
   it("shows target name and distance when telemetry arrives", async () => {
     // P1: the widget no longer reads a legacy `tar.distance`
     // scalar: it derives distance client-side from the `vessel.target` Vec3
-    // `relativePosition` (see Rendezvous's own `stream.test.tsx`).
+    // `relativePosition` (see Targeting's own `stream.test.tsx`).
     // `tar.name` maps to `vessel.target.name`, a raw-field subtopic of the
     // same carried record, so it rides the stream too, no legacy "data"
     // WS emission needed for this case.
     const stream = setupTelemetryStream();
     const { container } = render(
       <stream.Provider>
-        <RendezvousComponent config={{}} id="tar" />
+        <TargetingComponent config={{}} id="tar" />
       </stream.Provider>,
     );
     act(() => {
@@ -236,7 +236,7 @@ describe("RendezvousComponent", () => {
     const stream = setupTelemetryStream();
     render(
       <stream.Provider>
-        <RendezvousComponent config={{}} id="tar" />
+        <TargetingComponent config={{}} id="tar" />
       </stream.Provider>,
     );
     act(() => {
@@ -307,20 +307,20 @@ describe("OrbitViewComponent", () => {
   });
 });
 
-describe("GroundTrackComponent", () => {
-  // GroundTrack reads position off `vessel.flight.latitude`/`.longitude`, and names the header body from `vessel.identity.parentBodyIndex` through `system.bodies`.
+describe("MapViewComponent", () => {
+  // MapView reads position off `vessel.flight.latitude`/`.longitude`, and names the header body from `vessel.identity.parentBodyIndex` through `system.bodies`.
   function emitKerbin(stream: ReturnType<typeof setupTelemetryStream>) {
     stream.emit("vessel.identity", { parentBodyIndex: 1, launchUt: null });
     stream.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
   }
 
-  it("renders GROUND TRACK heading", () => {
-    renderWidget(<GroundTrackComponent id="t" />);
-    expect(screen.getByText("GROUND TRACK")).toBeInTheDocument();
+  it("renders MAP VIEW heading", () => {
+    renderWidget(<MapViewComponent id="t" />);
+    expect(screen.getByText("MAP VIEW")).toBeInTheDocument();
   });
 
   it('shows "Waiting for telemetry" before a body arrives', () => {
-    renderWidget(<GroundTrackComponent id="t" />);
+    renderWidget(<MapViewComponent id="t" />);
     expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
   });
 
@@ -328,7 +328,7 @@ describe("GroundTrackComponent", () => {
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <GroundTrackComponent id="t" />
+        <MapViewComponent id="t" />
       </stream.Provider>,
     );
     act(() => emitKerbin(stream));
@@ -339,7 +339,7 @@ describe("GroundTrackComponent", () => {
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <GroundTrackComponent id="t" />
+        <MapViewComponent id="t" />
       </stream.Provider>,
     );
     act(() => emitKerbin(stream));
@@ -351,7 +351,7 @@ describe("GroundTrackComponent", () => {
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <GroundTrackComponent id="t" />
+        <MapViewComponent id="t" />
       </stream.Provider>,
     );
     act(() => {

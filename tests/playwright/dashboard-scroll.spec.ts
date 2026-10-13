@@ -15,12 +15,12 @@
 import { test } from "@playwright/test";
 import { expect, seedContext } from "./helpers";
 
-const MAP = "widget-ground-track";
+const MAP = "widget-map-view";
 
-/** ground-track up top, a second widget below it, in a viewport too short for both. */
+/** map-view up top, a second widget below it, in a viewport too short for both. */
 const DASHBOARD = {
   items: [
-    { i: MAP, componentId: "ground-track" },
+    { i: MAP, componentId: "map-view" },
     { i: "widget-current-orbit", componentId: "current-orbit" },
   ],
   layouts: Object.fromEntries(
@@ -55,7 +55,7 @@ test.describe("dashboard scrolling", () => {
 
     // The map binds its wheel listener once the container has been measured, which is when the canvas wrapper gets an inline width.
     const canvasWrap = page
-      .getByTestId("ground-track-base-canvas")
+      .getByTestId("map-view-base-canvas")
       .locator("xpath=..");
     await expect(canvasWrap).toHaveAttribute("style", /width/, {
       timeout: 30_000,
@@ -67,7 +67,7 @@ test.describe("dashboard scrolling", () => {
       (window as unknown as { __mapWheel: typeof taken }).__mapWheel = taken;
       window.addEventListener("wheel", (e) => {
         const map = document.querySelector(
-          '[data-testid="ground-track-base-canvas"]',
+          '[data-testid="map-view-base-canvas"]',
         );
         if (map?.parentElement?.contains(e.target as Node)) {
           taken.over++;
@@ -184,7 +184,7 @@ test.describe("dashboard scrolling", () => {
       await page.evaluate(
         ([x, y]) =>
           document
-            .querySelector('[data-testid="ground-track-base-canvas"]')
+            .querySelector('[data-testid="map-view-base-canvas"]')
             ?.parentElement?.contains(document.elementFromPoint(x, y)) ?? false,
         [point.x, point.y],
       ),

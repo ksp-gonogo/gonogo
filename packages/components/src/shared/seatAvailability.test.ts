@@ -147,7 +147,7 @@ describe("the built-in catalogue, derived", () => {
           "domains": [
             "career",
           ],
-          "id": "administration-building",
+          "id": "admin-building",
         },
         {
           "domains": [
@@ -187,13 +187,6 @@ describe("the built-in catalogue, derived", () => {
             "career",
             "spaceCenter",
           ],
-          "id": "research-and-development",
-        },
-        {
-          "domains": [
-            "career",
-            "spaceCenter",
-          ],
           "id": "science-data",
         },
         {
@@ -202,6 +195,13 @@ describe("the built-in catalogue, derived", () => {
             "spaceCenter",
           ],
           "id": "space-center-status",
+        },
+        {
+          "domains": [
+            "career",
+            "spaceCenter",
+          ],
+          "id": "tech-tree",
         },
       ]
     `);
@@ -215,12 +215,7 @@ describe("the built-in catalogue, derived", () => {
 
   it("leaves the craft-side instruments alone", () => {
     const ids = new Set(excluded.map((e) => e.id));
-    for (const id of [
-      "navball",
-      "current-orbit",
-      "ground-track",
-      "comm-signal",
-    ]) {
+    for (const id of ["navball", "current-orbit", "map-view", "comm-signal"]) {
       expect(ids.has(id)).toBe(false);
     }
   });

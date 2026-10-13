@@ -1,4 +1,4 @@
-import { quantiseUt } from "../GroundTrack/predictionThrottle";
+import { quantiseUt } from "../MapView/predictionThrottle";
 
 /**
  * A UT bucket that cannot advance faster than wall-clock time, gating the projection solve.

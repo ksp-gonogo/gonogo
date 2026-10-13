@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Write the full-roster Strategies fixture and the three
- * `AdministrationBuilding/__render_unknown__` fixtures derived from it.
+ * `AdminBuilding/__render_unknown__` fixtures derived from it.
  *
  * Generated rather than hand-authored because the case being rendered is a
  * scale case: `3e0a841fa` was found on a career whose Administration Building
@@ -21,12 +21,9 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROSTER_OUT = resolve(
   HERE,
-  "../src/AdministrationBuilding/__fixtures__/full-administration-building.json",
+  "../src/AdminBuilding/__fixtures__/full-admin-building.json",
 );
-const OUT_DIR = resolve(
-  HERE,
-  "../src/AdministrationBuilding/__render_unknown__",
-);
+const OUT_DIR = resolve(HERE, "../src/AdminBuilding/__render_unknown__");
 
 /**
  * Verbatim what the career model publishes beside a null eligibility, copied
@@ -448,7 +445,7 @@ async function main(): Promise<void> {
   await writeFixture(
     ROSTER_OUT,
     withRoster(all, {
-      scenario: "full-administration-building",
+      scenario: "full-admin-building",
       synthetic: true,
       notes: `SYNTHETIC, written by scripts/gen-eligibility-fixtures.ts: ${all.length} rows on career.status.strategies.all across ${DEPARTMENTS.length} departments, against the two to four every other Strategies fixture carries. Every name is invented. ${all.length - inactive.length} rows are running, ${capped.length} are refused by the concurrent-strategy cap, ${refused.length} by another arm (a reputation shortfall, or a department that is still locked), and the rest are eligible. Several blurbs run past a thousand characters, so this is the fixture where a description is cut and there is something to expand. Not a live capture.`,
     }),
@@ -465,11 +462,11 @@ async function main(): Promise<void> {
    */
   const shut = all.map((row) => (row.isActive ? row : legacyUnanswered(row)));
   await writeFixture(
-    join(OUT_DIR, "administration-building-shut.json"),
+    join(OUT_DIR, "admin-building-shut.json"),
     withRoster(shut, {
-      scenario: "administration-building-shut",
+      scenario: "admin-building-shut",
       synthetic: true,
-      notes: `DERIVED from AdministrationBuilding/__fixtures__/full-administration-building.json (${all.length} synthetic rows) by setting canActivate to null and activateBlockedReason to the career model's own unanswered sentence on every INACTIVE row, which is the shape a shut Administration Building actually publishes: KSP answers eligibility for the whole screen or for none of it. Nothing else is changed, so every title, cost and effect line is the source fixture's. This is the case 3e0a841fa was found on: before it, all ${inactive.length} of these would sit under a heading reading Locked.`,
+      notes: `DERIVED from AdminBuilding/__fixtures__/full-admin-building.json (${all.length} synthetic rows) by setting canActivate to null and activateBlockedReason to the career model's own unanswered sentence on every INACTIVE row, which is the shape a shut Administration Building actually publishes: KSP answers eligibility for the whole screen or for none of it. Nothing else is changed, so every title, cost and effect line is the source fixture's. This is the case 3e0a841fa was found on: before it, all ${inactive.length} of these would sit under a heading reading Locked.`,
     }),
   );
 
@@ -506,16 +503,16 @@ async function main(): Promise<void> {
    */
   const shutDerived = all.map((row) => (row.isActive ? row : derived(row)));
   await writeFixture(
-    join(OUT_DIR, "administration-building-shut-derived.json"),
+    join(OUT_DIR, "admin-building-shut-derived.json"),
     withRoster(shutDerived, {
-      scenario: "administration-building-shut-derived",
+      scenario: "admin-building-shut-derived",
       synthetic: true,
-      notes: `DERIVED from the same ${all.length}-row synthetic roster as administration-building-shut.json, and deliberately its twin: same career, same shut facility, same rows, differing only in what the career model can now say about them. A row the source holds as refused by arms 2-9 keeps that verdict and its wording, marked activateVerdictSource=derived, because stock returns on its first refusal so an arm that fires off-screen would have fired on it. Every other row is unanswered with activateVerdictSource=none, naming arm 1: the concurrent-strategy cap compares a counter that exists only while that screen is up, and a pass is owed to every arm. Rendered beside fixture 1 this is the whole of the change from the operator's side: one silent heap becomes a real Locked list plus a much smaller unknown one, and every Activate button stays dark because KSP's own commitment runs inside that building either way.`,
+      notes: `DERIVED from the same ${all.length}-row synthetic roster as admin-building-shut.json, and deliberately its twin: same career, same shut facility, same rows, differing only in what the career model can now say about them. A row the source holds as refused by arms 2-9 keeps that verdict and its wording, marked activateVerdictSource=derived, because stock returns on its first refusal so an arm that fires off-screen would have fired on it. Every other row is unanswered with activateVerdictSource=none, naming arm 1: the concurrent-strategy cap compares a counter that exists only while that screen is up, and a pass is owed to every arm. Rendered beside fixture 1 this is the whole of the change from the operator's side: one silent heap becomes a real Locked list plus a much smaller unknown one, and every Activate button stays dark because KSP's own commitment runs inside that building either way.`,
     }),
   );
 
   console.log(
-    `Wrote full-administration-building.json (${all.length} rows), administration-building-shut.json (${shut.length} rows), three-buckets.json (${mixed.length} rows) and administration-building-shut-derived.json (${shutDerived.length} rows)`,
+    `Wrote full-admin-building.json (${all.length} rows), admin-building-shut.json (${shut.length} rows), three-buckets.json (${mixed.length} rows) and admin-building-shut-derived.json (${shutDerived.length} rows)`,
   );
 }
 

@@ -141,7 +141,7 @@ const UNOBSERVED_FAMILIES: readonly {
     reason: "read only once a part's action menu is open",
   },
   {
-    widgetId: "ground-track",
+    widgetId: "map-view",
     pattern: "<domain>.available",
     reason: "one per registered map point-of-interest provider",
   },

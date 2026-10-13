@@ -23,7 +23,7 @@ export interface AugmentSettingsPanelProps {
  * The settings augments add to a widget, drawn one control per field: a
  * {@link Switch} for a `boolean` field, a text or number input otherwise.
  * Useful for letting the operator configure a widget's augments from its
- * configuration form. Used by the ground track widget's configuration form.
+ * configuration form. Used by the map view's configuration form.
  *
  * Fields are namespaced by augment id, so two augments' settings with the same
  * key never collide. A widget with several slots joins the

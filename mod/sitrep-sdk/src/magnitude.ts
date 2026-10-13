@@ -50,7 +50,7 @@ export function magnitudeOr(v: Quantityish, fallback: number): number {
  * Returns `value` as a {@link Quantityish} when it is one, and `undefined` when
  * it is not, such as a string where a number was expected. Use it on data
  * whose type is not known before passing it to {@link magnitudeOf}. Used when
- * a widget parses a value of unknown type, such as the administration building's fields.
+ * a widget parses a value of unknown type, such as the admin building's fields.
  *
  * @category Units and values
  */

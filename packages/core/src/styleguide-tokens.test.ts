@@ -143,7 +143,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/styles/global.css": 1,
     "packages/components/src/FleetRoster/RosterTable.tsx": 1,
     "packages/components/src/FleetRoster/UpdatesRow.tsx": 1,
-    "packages/components/src/GroundTrack/MapPoiLayer.styles.tsx": 2,
+    "packages/components/src/MapView/MapPoiLayer.styles.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
     "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 19,
     "packages/data/src/FlightsManager/index.tsx": 2,
@@ -166,8 +166,8 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * scale's `lg` ceiling (18/20/22/24/28px readouts) and fluid `clamp()`
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
-   * (Navball's 9px and 14px terms in a 74px reserve, ResearchAndDevelopment's card
-   * ladder against CARD_H = 48, Rendezvous's 11px, PanelStatusDot's
+   * (Navball's 9px and 14px terms in a 74px reserve, TechTree's card
+   * ladder against CARD_H = 48, Targeting's 11px, PanelStatusDot's
    * 7px pinned under an 11px dot), plus `shared/` and mod widgets no slice
    * owned.
    */
@@ -177,14 +177,14 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/components/StationLinkFab.tsx": 1,
     "packages/app/src/goNoGo/GoNoGoComponent.tsx": 5,
     "packages/components/src/CurrentOrbit/OrbitCells.tsx": 1,
-    "packages/components/src/GroundTrack/GroundTrack.styles.ts": 1,
+    "packages/components/src/MapView/MapView.styles.ts": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 3,
     "packages/components/src/PowerSystems/styles.ts": 1,
     "packages/components/src/SemiMajorAxis/index.tsx": 1,
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,
     "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/SystemView/index.tsx": 1,
-    "packages/components/src/ResearchAndDevelopment/styles.ts": 3,
+    "packages/components/src/TechTree/styles.ts": 3,
     "packages/components/src/WarpControl/styles.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
@@ -209,7 +209,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   lineHeight: {
     "packages/components/src/SpaceCenterStatus/styles.ts": 1,
-    "packages/components/src/ResearchAndDevelopment/styles.ts": 1,
+    "packages/components/src/TechTree/styles.ts": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 1,
   },

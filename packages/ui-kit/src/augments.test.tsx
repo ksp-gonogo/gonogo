@@ -30,8 +30,8 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   }
 }
 
-/** The rendezvous HUD's own context, for the same reason as `MAP_OVERLAY`. */
-const RENDEZVOUS_CAMERA: SlotProps<"rendezvous.camera"> = {
+/** The targeting HUD's own context, for the same reason as `MAP_OVERLAY`. */
+const TARGETING_CAMERA: SlotProps<"targeting.camera"> = {
   maxDeg: 15,
   reticleOffset: { x: 0, y: 0 },
   reticleTravelPx: 40,
@@ -44,8 +44,8 @@ const RENDEZVOUS_CAMERA: SlotProps<"rendezvous.camera"> = {
   cameraFlightId: undefined,
 };
 
-/** `ground-track.overlay` is a typed slot and will not take a partial context, even where a test reads none of it. */
-const MAP_OVERLAY: SlotProps<"ground-track.overlay"> = {
+/** `map-view.overlay` is a typed slot and will not take a partial context, even where a test reads none of it. */
+const MAP_OVERLAY: SlotProps<"map-view.overlay"> = {
   width: 320,
   height: 160,
   camera: { zoom: 1, panX: 0, panY: 0 },
@@ -92,7 +92,7 @@ describe("augment registry: ordering", () => {
     // Different slot: must not leak into this slot's list.
     registerAugment({
       id: "other-slot",
-      augments: "ground-track.overlay",
+      augments: "map-view.overlay",
       component: () => null,
     });
 
@@ -154,24 +154,24 @@ describe("AugmentSlot: composition", () => {
   it("layers overlay augments in priority (z-)order (spec §4.8)", () => {
     registerAugment({
       id: "trajectory",
-      augments: "ground-track.overlay",
+      augments: "map-view.overlay",
       component: () => <div data-testid="layer">trajectory</div>,
       priority: 30,
     });
     registerAugment({
       id: "scan",
-      augments: "ground-track.overlay",
+      augments: "map-view.overlay",
       component: () => <div data-testid="layer">scan</div>,
       priority: 10,
     });
     registerAugment({
       id: "commlink",
-      augments: "ground-track.overlay",
+      augments: "map-view.overlay",
       component: () => <div data-testid="layer">commlink</div>,
       priority: 20,
     });
 
-    render(<AugmentSlot name="ground-track.overlay" props={MAP_OVERLAY} />);
+    render(<AugmentSlot name="map-view.overlay" props={MAP_OVERLAY} />);
 
     // DOM order = ascending priority → the highest-priority layer is last (on top).
     const order = screen.getAllByTestId("layer").map((el) => el.textContent);
@@ -185,13 +185,13 @@ describe("AugmentSlot: composition", () => {
     }
     registerAugment({
       id: "proj",
-      augments: "ground-track.overlay",
+      augments: "map-view.overlay",
       component: ProjAugment,
     });
 
     render(
       <AugmentSlot
-        name="ground-track.overlay"
+        name="map-view.overlay"
         props={{ ...MAP_OVERLAY, camera: { zoom: 7, panX: 0, panY: 0 } }}
       />,
     );
@@ -204,7 +204,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
   it("does not render an augment whose required Domain is absent, then renders it once available", async () => {
     registerAugment({
       id: "scan-overlay",
-      augments: "ground-track.overlay",
+      augments: "map-view.overlay",
       component: () => <div>scan-layer</div>,
       requires: "demomod",
       channels: ["demomod.available"],
@@ -215,7 +215,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
 
     render(
       <DomainAvailabilityContext.Provider value={store}>
-        <AugmentSlot name="ground-track.overlay" props={MAP_OVERLAY} />
+        <AugmentSlot name="map-view.overlay" props={MAP_OVERLAY} />
       </DomainAvailabilityContext.Provider>,
     );
 
@@ -567,7 +567,7 @@ describe("augment registry: retired slot ids", () => {
 
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("distance-to-target.camera");
-    expect(errors[0]).toContain("rendezvous.camera");
+    expect(errors[0]).toContain("targeting.camera");
     expect(errors[0]).toContain("docking-camera");
     expect(errors[0]).toContain("Demo Mod (demomod)");
     expect(errors[0]).toContain("render nothing");
@@ -593,22 +593,22 @@ describe("augment registry: retired slot ids", () => {
     });
 
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("rendezvous.overlay");
+    expect(errors[0]).toContain("targeting.overlay");
     expect(errors[0]).toContain("unknown");
   });
 
   it("stays quiet for the replacement id, and the augment actually renders", () => {
     registerAugment({
       id: "updated-aug",
-      augments: "rendezvous.camera",
+      augments: "targeting.camera",
       component: () => <div>backdrop</div>,
     });
 
     expect(errors).toEqual([]);
-    expect(getAugmentsForSlot("rendezvous.camera")).toHaveLength(1);
+    expect(getAugmentsForSlot("targeting.camera")).toHaveLength(1);
 
     const { container } = render(
-      <AugmentSlot name="rendezvous.camera" props={RENDEZVOUS_CAMERA} />,
+      <AugmentSlot name="targeting.camera" props={TARGETING_CAMERA} />,
     );
     expect(container.textContent).toBe("backdrop");
   });
@@ -632,9 +632,9 @@ describe("augment registry: retired slot ids", () => {
 
     // The registry holds it, yet no slot renders it under either name.
     expect(getAugments().map((a) => a.id)).toContain("stale-aug");
-    expect(getAugmentsForSlot("rendezvous.camera")).toEqual([]);
+    expect(getAugmentsForSlot("targeting.camera")).toEqual([]);
     const { container } = render(
-      <AugmentSlot name="rendezvous.camera" props={RENDEZVOUS_CAMERA} />,
+      <AugmentSlot name="targeting.camera" props={TARGETING_CAMERA} />,
     );
     expect(container.textContent).toBe("");
   });

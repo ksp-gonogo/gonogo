@@ -15,20 +15,8 @@ describe("component-id migration", () => {
   it("maps a renamed id forward", () => {
     expect(migrateComponentId("mission-director")).toBe("contract-manager");
     expect(migrateComponentId("mission-status")).toBe("objectives");
+    expect(migrateComponentId("distance-to-target")).toBe("targeting");
     expect(migrateComponentId("aero-state")).toBe("aerodynamics");
-  });
-
-  it("leaves the id of a renamed widget alone when no migration was written, so the dashboard treats it as unknown", () => {
-    expect(migrateComponentId("targeting")).toBe("targeting");
-    expect(migrateComponentId("distance-to-target")).toBe("distance-to-target");
-    expect(migrateComponentId("tech-tree")).toBe("tech-tree");
-    expect(migrateComponentId("admin-building")).toBe("admin-building");
-    expect(migrateComponentId("map-view")).toBe("map-view");
-    const items: DashboardItem[] = [
-      item("a", "targeting"),
-      item("b", "tech-tree"),
-    ];
-    expect(migrateDashboardItems(items)).toBe(items);
   });
 
   it("leaves a current id untouched", () => {

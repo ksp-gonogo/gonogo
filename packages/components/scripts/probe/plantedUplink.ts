@@ -181,14 +181,14 @@ PLANTED_UPLINK.registerContribution({
 
 /**
  * A screen naming no departments, the shape an Uplink's own tab contributes:
- * chrome for whatever augment binds `administration-building.screen-body`, no
+ * chrome for whatever augment binds `admin-building.screen-body`, no
  * departments to list. No augment is planted here, so the tab is deliberately
  * blank: the render this exists for is about the host drawing no strategy
  * lists on it, not about any particular body.
  */
 PLANTED_UPLINK.registerContribution({
-  id: "administration-building-finances-screen",
-  contributes: "administration-building.screens",
+  id: "admin-building-finances-screen",
+  contributes: "admin-building.screens",
   requires: "planted",
   compute: () => [{ id: "planted-finances", label: "Finances", order: 90 }],
 });
@@ -208,8 +208,8 @@ registerUplinkTopic(PLANTED_LEADS_AVAILABLE_TOPIC);
  * the stock activation the host would otherwise offer.
  */
 PLANTED_UPLINK.registerContribution({
-  id: "administration-building-own-actions-screen",
-  contributes: "administration-building.screens",
+  id: "admin-building-own-actions-screen",
+  contributes: "admin-building.screens",
   requires: "plantedleads",
   compute: () => [
     {

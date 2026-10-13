@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 /**
  * Records real wheel input over a scrolling dashboard that holds a System View
- * and a Ground Track, for the revision in the working tree and, with `--before
+ * and a Map View, for the revision in the working tree and, with `--before
  * <ref>`, for the widget library as it was at a git revision, from the same
  * scene and the same input. Output goes to `--out` (default
  * `.renders/wheel-zoom`): one mp4 per widget and revision, and `results.json`
@@ -22,7 +22,7 @@
  * starts at that limit), or `page then diagram` (the notches before the pointer
  * moves scroll the page, the ones after it zoom the diagram).
  *
- * `--widget system-view|ground-track|ship-map` and `--gesture <text in the label>`
+ * `--widget system-view|map-view|ship-map` and `--gesture <text in the label>`
  * narrow the run, `--repeat <n>` repeats each gesture.
  *
  * Video is recorded for chromium only and needs ffmpeg on the path.
@@ -260,7 +260,7 @@ const GESTURES: Gesture[] = [
 
 interface Measure {
   scrollY: number;
-  /** System View: its viewBox. Ship Map: the transform of its drawing. Ground Track: hash of the base canvas pixels. */
+  /** System View: its viewBox. Ship Map: the transform of its drawing. Map View: hash of the base canvas pixels. */
   view: string;
 }
 
@@ -327,7 +327,7 @@ const TILES = [
     widget: "system-view",
     ready: "#scene-system svg[viewBox]",
   },
-  { id: "scene-map", widget: "ground-track", ready: "#scene-map canvas" },
+  { id: "scene-map", widget: "map-view", ready: "#scene-map canvas" },
   {
     id: "scene-ship",
     widget: "ship-map",

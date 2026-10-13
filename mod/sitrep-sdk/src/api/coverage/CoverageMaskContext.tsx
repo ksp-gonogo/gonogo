@@ -29,7 +29,7 @@ export function CoverageMaskCacheProvider({
 /**
  * The nearest {@link CoverageMaskCache}, or `null` when no
  * {@link CoverageMaskCacheProvider} is above. Useful for writing scanned
- * ground into the cache a map reads. Used by the ground track widget's coverage gate. On
+ * ground into the cache a map reads. Used by the map view's coverage gate. On
  * `null`, skip drawing coverage.
  *
  * @category Maps and coverage

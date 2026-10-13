@@ -107,16 +107,16 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // GroundTrack paints to <canvas> (equirectangular body texture + coverage
+    // MapView paints to <canvas> (equirectangular body texture + coverage
     // overlay + vessel trail). The playwright harness captures the
     // canvas pixels directly: no parallel SVG renderer needed for
     // visual coverage, just the standard fixture/mode pattern. The DOM
     // snapshot test snaps the chrome around the canvas (which is the
     // useful structural-regression layer); canvas pixels live only in
     // the PNG harness, which we don't pixel-diff.
-    widgetId: "ground-track",
-    fixturesPath: "GroundTrack/__fixtures__",
-    outPath: "renders/ground-track-widget",
+    widgetId: "map-view",
+    fixturesPath: "MapView/__fixtures__",
+    outPath: "renders/map-view-widget",
     modes: [
       // Minimum size: chrome thin, body fill dominates.
       { name: "tiny-3x4", w: 3, h: 4 },
@@ -148,7 +148,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         h,
         zooms: [
           {
-            selector: '[data-testid="ground-track-base-canvas"]',
+            selector: '[data-testid="map-view-base-canvas"]',
             steps,
             // The craft in both scenes, as fractions of the map: longitude -132 on the equator.
             at: [0.383, 0.5] as const,
@@ -308,9 +308,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "rendezvous",
-    fixturesPath: "Rendezvous/__fixtures__",
-    outPath: "renders/rendezvous-widget",
+    widgetId: "targeting",
+    fixturesPath: "Targeting/__fixtures__",
+    outPath: "renders/targeting-widget",
     modes: [
       // The kit's tiny form: range and closing rate.
       { name: "tiny-3x3", w: 3, h: 3 },
@@ -1066,9 +1066,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "administration-building",
-    fixturesPath: "AdministrationBuilding/__fixtures__",
-    outPath: "renders/administration-building-widget",
+    widgetId: "admin-building",
+    fixturesPath: "AdminBuilding/__fixtures__",
+    outPath: "renders/admin-building-widget",
     // Activate spends career funds, so the balance (or the statement standing in for it) has to be readable at every size the widget is rendered at.
     mustBeVisible: { selector: "[data-balance-row]" },
     modes: [
@@ -1097,7 +1097,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         name: "description-expanded-6x16",
         w: 6,
         h: 16,
-        forFixtures: ["full-administration-building"],
+        forFixtures: ["full-admin-building"],
         clicks: [{ selector: "[data-expandable-toggle]" }],
       },
     ],
@@ -1136,9 +1136,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "research-and-development",
-    fixturesPath: "ResearchAndDevelopment/__fixtures__",
-    outPath: "renders/research-and-development-widget",
+    widgetId: "tech-tree",
+    fixturesPath: "TechTree/__fixtures__",
+    outPath: "renders/tech-tree-widget",
     modes: [
       { name: "tiny-3x3", w: 3, h: 3 },
       // The kit's tiny form: researchable count over the science balance.
@@ -1147,7 +1147,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-6x9", w: 6, h: 9 },
       // tall: more of the tree visible without scrolling.
       { name: "tall-6x16", w: 6, h: 16 },
-      // wide landscape: closest to an in-game tech tree aspect.
+      // wide landscape: closest to an in-game tech-tree aspect.
       { name: "wide-16x10", w: 16, h: 10 },
       // large: generous room for a node-graph layout.
       { name: "xl-18x16", w: 18, h: 16 },

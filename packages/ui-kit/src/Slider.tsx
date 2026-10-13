@@ -14,7 +14,7 @@ export type SliderProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type">;
 /**
  * A native range slider in the kit's accent, for a value set by feel along a
  * fixed span (a throttle, a gain). Useful for letting the operator adjust a
- * level without typing a number. Used by the administration building's screens. It
+ * level without typing a number. Used by the admin building's screens. It
  * fills the width it is given; the value it stands for is the caller's to show
  * beside it.
  *

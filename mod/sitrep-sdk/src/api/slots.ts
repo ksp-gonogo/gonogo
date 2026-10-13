@@ -7,11 +7,11 @@
 // revision had each slot-owning
 // widget carry a SECOND `declare module "@ksp-gonogo/sitrep-sdk"` block
 // alongside its existing `declare module "@ksp-gonogo/core"` one (see e.g.
-// GroundTrack/index.tsx). That doesn't work: TypeScript only applies ambient
+// MapView/index.tsx). That doesn't work: TypeScript only applies ambient
 // module augmentation from files that are actually part of the compiled
 // PROGRAM, and a facade-sealed client (which must not import
 // `@ksp-gonogo/components`) never pulls those files in: so
-// `SlotProps<"ground-track.overlay">` etc. resolve to `never` for a sealed
+// `SlotProps<"map-view.overlay">` etc. resolve to `never` for a sealed
 // client, exactly the failure mode this seam exists to prevent.
 //
 // The fix is NOT `import type` from `@ksp-gonogo/components`, same leaf
@@ -55,19 +55,19 @@ import type { HeldGrade, Reading } from "../reading";
 // "warp-control.stepper" carries no props today.
 
 /**
- * Props passed to every `rendezvous.overlay` and `rendezvous.camera` augment.
+ * Props passed to every `targeting.overlay` and `targeting.camera` augment.
  *
- * Both slots are drawn only in the docking HUD view, which the Rendezvous widget
+ * Both slots are drawn only in the docking HUD view, which the Targeting widget
  * switches to while docking alignment is reported and the target is close. The
  * overlay sits over the reticle box and the camera slot behind it, as the video
  * backdrop. Positions are measured in pixels from the centre of the HUD's
  * frame.
  * Useful for adding a camera feed or marks to the docking view. Used by the
- * Rendezvous widget.
+ * Targeting widget.
  *
  * @category Widget slots
  */
-export interface RendezvousHudContext {
+export interface TargetingHudContext {
   /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Read it from here and never write the number in, since it can change between releases. */
   maxDeg: number;
   /**
@@ -86,7 +86,7 @@ export interface RendezvousHudContext {
    */
   reticleTravelPx: number;
   /**
-   * For the `rendezvous.camera` slot: report the aspect (width over height) of
+   * For the `targeting.camera` slot: report the aspect (width over height) of
    * the picture the augment paints with `object-fit: cover`, or `null` once it
    * paints none. The reticle's degree scale then follows the camera's visible
    * field rather than the frame. An overlay has no picture and never calls it.
@@ -461,17 +461,17 @@ export interface ObjectiveSourceContext {
 }
 
 /**
- * Props passed to every `administration-building.screen-body` augment: the body of one
+ * Props passed to every `admin-building.screen-body` augment: the body of one
  * Administration Building screen, drawn below the strategy cards the screen
- * lists. Screens come from the `administration-building.screens` contribution slot, and the
+ * lists. Screens come from the `admin-building.screens` contribution slot, and the
  * slot is drawn only on a screen that is open for use.
  * Useful for drawing a screen's own controls, such as accepting a program. Used
  * by the Administration Building widget.
  *
  * @category Widget slots
  */
-export interface AdministrationBuildingScreenBodyContext {
-  /** The `id` of the screen being drawn, as its `administration-building.screens` entry gave it. An augment bound to more than one screen branches on it. */
+export interface AdminBuildingScreenBodyContext {
+  /** The `id` of the screen being drawn, as its `admin-building.screens` entry gave it. An augment bound to more than one screen branches on it. */
   screenId: string;
 }
 
@@ -574,7 +574,7 @@ export interface SystemOverlayContext {
 // "system-view.actions" carries no props today.
 
 /**
- * Props passed to every `ground-track.overlay` augment: a layer over the Ground Track widget's
+ * Props passed to every `map-view.overlay` augment: a layer over the Map View's
  * canvases, with the projection the map draws with.
  *
  * The map is an equirectangular world image, `worldW` by `worldH` pixels, seen
@@ -607,7 +607,7 @@ export interface MapOverlayContext {
   worldW: number;
   /** Height of the world image in world pixels, spanning 180 degrees of latitude. */
   worldH: number;
-  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `ground-track.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
   /** The mapped body's radius in metres. `undefined` while it is not known. */
   bodyRadius: number | undefined;
@@ -638,21 +638,21 @@ export interface MapOverlayContext {
 }
 
 /**
- * What the Ground Track widget is showing, read with `useWidgetScope("ground-track")` from
+ * What the Map View is showing, read with `useWidgetScope("map-view")` from
  * `@ksp-gonogo/ui-kit`.
  * Useful for letting an augment follow the body the operator is looking at. Used
- * by the Ground Track widget.
+ * by the Map View.
  *
  * @category Widget slots
  */
-export interface GroundTrackScope {
-  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `ground-track.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+export interface MapViewScope {
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
 }
 
 /**
  * How much of the mapped body's surface is revealed, combined from every
- * registered coverage source, such as scanner coverage. A `ground-track.base`
+ * registered coverage source, such as scanner coverage. A `map-view.base`
  * augment reads it to paint only what has been revealed.
  * Useful for painting only the ground the operator has revealed.
  *
@@ -672,7 +672,7 @@ export interface MapCoverageGate {
 }
 
 /**
- * Props passed to every `ground-track.base` augment: the base surface of the Map
+ * Props passed to every `map-view.base` augment: the base surface of the Map
  * View, under every other layer.
  *
  * Any number of augments can fill this slot at once. Each hands back a canvas
@@ -683,12 +683,12 @@ export interface MapCoverageGate {
  * texture, and transparent pixels show what is beneath. An augment that declares `suppressesVanillaBase` removes the stock
  * texture.
  * Useful for painting the body's surface with data such as coverage or terrain.
- * Used by the Ground Track widget.
+ * Used by the Map View.
  *
  * @category Widget slots
  */
 export interface MapBaseLayerContext {
-  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `ground-track.overlay` augment is given as `bodyName`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.overlay` augment is given as `bodyName`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyId: string | undefined;
   /** Width of the map area in pixels. */
   width: number;
@@ -977,23 +977,23 @@ declare module "./types" {
     "warp-control.stepper": Record<string, never>;
 
     /**
-     * The video backdrop behind the reticle box in the Rendezvous widget's
+     * The video backdrop behind the reticle box in the Targeting widget's
      * docking view. Fill the frame with a camera picture, such as a docking
      * port camera, and pass its aspect to
-     * {@link RendezvousHudContext.reportPictureAspect} so the
+     * {@link TargetingHudContext.reportPictureAspect} so the
      * reticle's scale follows the picture. Drawn only while the docking view
      * is shown at a size with room for the frame, and not when the operator
-     * picks the view without a camera. Passes a {@link RendezvousHudContext}.
+     * picks the view without a camera. Passes a {@link TargetingHudContext}.
      */
-    "rendezvous.camera": RendezvousHudContext;
+    "targeting.camera": TargetingHudContext;
     /**
-     * A layer over the reticle box in the Rendezvous widget's docking view, for
+     * A layer over the reticle box in the Targeting widget's docking view, for
      * marks of your own placed in the reticle's space with
-     * {@link RendezvousHudContext.reticleOffset} and
-     * {@link RendezvousHudContext.reticleTravelPx}. Drawn only while the docking view is shown at a size
-     * with room for the frame. Passes a {@link RendezvousHudContext}.
+     * {@link TargetingHudContext.reticleOffset} and
+     * {@link TargetingHudContext.reticleTravelPx}. Drawn only while the docking view is shown at a size
+     * with room for the frame. Passes a {@link TargetingHudContext}.
      */
-    "rendezvous.overlay": RendezvousHudContext;
+    "targeting.overlay": TargetingHudContext;
 
     /** Content of your own at the end of the CommNet Signal widget's body, after everything the widget itself draws. Passes no props. */
     "comm-signal.sections": Record<string, never>;
@@ -1091,30 +1091,30 @@ declare module "./types" {
     "system-view.overlay": SystemOverlayContext;
 
     /**
-     * A layer over every canvas of the Ground Track widget, the same size as the map
+     * A layer over every canvas of the Map View, the same size as the map
      * area, for marks placed by latitude and longitude with
      * {@link MapOverlayContext.project}. The
      * layer passes pointer events through to the map, so an element that
      * needs clicks turns them back on itself. Passes a
      * {@link MapOverlayContext}.
      */
-    "ground-track.overlay": MapOverlayContext;
+    "map-view.overlay": MapOverlayContext;
     /**
-     * The Ground Track's base surface, under every other layer, for a picture of
+     * The Map View's base surface, under every other layer, for a picture of
      * the whole body such as a scanned terrain map. The augment draws nothing
      * itself: it paints a canvas and hands it to the map with
      * {@link MapBaseLayerContext.onLayer}, and
      * returns `null`. Set `suppressesVanillaBase` on the augment to remove the
      * stock texture. Passes a {@link MapBaseLayerContext}.
      */
-    "ground-track.base": MapBaseLayerContext;
-    /** Content of your own at the end of the Ground Track widget's body, after everything the widget itself draws. Passes no props. */
-    "ground-track.sections": Record<string, never>;
-    /** The standard header segment of the Ground Track widget: controls of your own in its panel header. Passes no props. */
-    "ground-track.actions": Record<string, never>;
+    "map-view.base": MapBaseLayerContext;
+    /** Content of your own at the end of the Map View widget's body, after everything the widget itself draws. Passes no props. */
+    "map-view.sections": Record<string, never>;
+    /** The standard header segment of the Map View widget: controls of your own in its panel header. Passes no props. */
+    "map-view.actions": Record<string, never>;
 
-    /** Content of your own at the end of the Research and Development widget's body, after everything the widget itself draws. Passes no props. */
-    "research-and-development.sections": Record<string, never>;
+    /** Content of your own at the end of the Tech Tree widget's body, after everything the widget itself draws. Passes no props. */
+    "tech-tree.sections": Record<string, never>;
 
     /**
      * A line under each science subject on the Science Data widget's Aboard
@@ -1170,13 +1170,13 @@ declare module "./types" {
     "fleet-roster.updates": FleetRosterUpdatesContext;
 
     /**
-     * The body of one screen of the Administration Building widget,
+     * The body of an Administration Building screen in the Admin Building widget,
      * below the strategy cards the screen lists, for content of your own such
      * as a Programs screen with its own controls. Screens come from the
-     * `administration-building.screens` contribution slot; the body is drawn only on a
-     * screen that is open for use. Passes a {@link AdministrationBuildingScreenBodyContext}.
+     * `admin-building.screens` contribution slot; the body is drawn only on a
+     * screen that is open for use. Passes a {@link AdminBuildingScreenBodyContext}.
      */
-    "administration-building.screen-body": AdministrationBuildingScreenBodyContext;
+    "admin-building.screen-body": AdminBuildingScreenBodyContext;
   }
 
   // What each widget publishes about its own current focus, for an augment to
@@ -1184,8 +1184,8 @@ declare module "./types" {
   // the slot props above are: a widget in `packages/components` declaring its
   // scope is invisible to a sealed client that cannot see that package.
   interface WidgetScopeRegistry {
-    /** What the Ground Track widget is showing: the body it maps. Read with `useWidgetScope("ground-track")`. */
-    "ground-track": GroundTrackScope;
+    /** What the Map View is showing: the body it maps. Read with `useWidgetScope("map-view")`. */
+    "map-view": MapViewScope;
     /** The resource Power Systems is showing, as the operator picked it. Read with `useWidgetScope("power-systems")`. */
     "power-systems": PowerSystemsScope;
   }

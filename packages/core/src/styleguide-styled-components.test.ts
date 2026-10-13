@@ -46,7 +46,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // imports, which is a gate that has stopped gating while still reporting
 // green. Measured 14 lines in 14 files: RequiresGuard, OrbitView/styles,
 // ManeuverPlanner/{ManeuverPlannerView,ManeuverPreview,NodeRow,styles} and
-// GroundTrack/MapPoiLayer.styles migrated onto ui-kit primitives and the new
+// MapView/MapPoiLayer.styles migrated onto ui-kit primitives and the new
 // ContainerBreak (a container-query breakpoint with no inline-style
 // equivalent), WarpControl/styles migrated onto the kit's Button.
 //
@@ -60,8 +60,8 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // selector (PowerSystems), an :empty collapse (FleetRoster/UpdatesRow), and a
 // page route that is not a widget (StationConnectView). The other seven hold
 // bespoke control states on hand-rolled buttons (LaunchDirector,
-// SpaceCenterStatus, Strategies, TargetPicker, ResearchAndDevelopment, TransferWindow,
-// GroundTrack); a kit primitive that took arbitrary state CSS through props was
+// SpaceCenterStatus, Strategies, TargetPicker, TechTree, TransferWindow,
+// MapView); a kit primitive that took arbitrary state CSS through props was
 // refused (#428) as an escape hatch. Deleting an ignore to tidy the list
 // deletes a focus ring or a hover state, so do not lower this number without
 // migrating the file it names.

@@ -71,7 +71,7 @@ const ALLOWLIST_PATH = "packages/core/src/uplink-isolation.allowlist.ts";
  * one did.
  *
  * A bare specifier is never enough on its own. Without a preceding keyword the
- * possessive in a comment ("`@ksp-gonogo/components`'s GroundTrack") reads as a
+ * possessive in a comment ("`@ksp-gonogo/components`'s MapView") reads as a
  * terminated specifier, which is how a summary of this audit once reported four
  * imports that were four sentences. Three such possessives are in Uplink client
  * headers today.
