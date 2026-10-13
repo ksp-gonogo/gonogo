@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/test-utils";
+import { act, render } from "@ksp-gonogo/test-utils";
 import {
   expectNoA11yViolations,
   installFixedSizeResizeObserver,
@@ -130,31 +130,76 @@ describe("OrbitDiagram projected overlay", () => {
     expect(h).toBeGreaterThan(w);
   });
 
-  it("swaps the apoapsis label for its altitude on hover", async () => {
+  it("names the apoapsis and its altitude on hover, then goes back to the short label", async () => {
     const user = userEvent.setup();
     // Apoapsis 770 km on a 600 km body is 170 km up.
     const { container } = render(
       <OrbitDiagram {...BASE} bodyRadius={600_000} />,
     );
-    const findApText = () =>
-      Array.from(container.querySelectorAll("text")).find(
-        (t) => t.textContent === "Ap",
-      );
-    expect(findApText()).toBeTruthy();
+    const texts = () =>
+      Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
+    expect(texts()).toContain("Ap");
     const apMarker = container.querySelector(
       'circle[fill="var(--color-apoapsis-mark)"]',
     );
     expect(apMarker).toBeTruthy();
     if (!apMarker) return;
     await user.hover(apMarker);
-    expect(findApText()).toBeUndefined();
+    expect(texts()).not.toContain("Ap");
+    expect(texts().some((t) => /^Apoapsis, .*170\.0\s*km/.test(t ?? ""))).toBe(
+      true,
+    );
+    await user.unhover(apMarker);
+    expect(texts()).toContain("Ap");
+  });
+
+  it("names the periapsis and its altitude on hover too", async () => {
+    const user = userEvent.setup();
+    // Periapsis 630 km on a 600 km body is 30 km up.
+    const { container } = render(
+      <OrbitDiagram {...BASE} bodyRadius={600_000} />,
+    );
+    const peMarker = container.querySelector(
+      'circle[fill="var(--color-periapsis-mark)"]',
+    );
+    if (!peMarker) throw new Error("no periapsis marker");
+    await user.hover(peMarker);
     expect(
       Array.from(container.querySelectorAll("text")).some((t) =>
-        (t.textContent ?? "").includes("170.0 km"),
+        /^Periapsis, .*30\.0\s*km/.test(t.textContent ?? ""),
       ),
     ).toBe(true);
+  });
+
+  it("names a marker on hover in the mini variant, which draws no labels otherwise", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <OrbitDiagram {...BASE} bodyRadius={600_000} variant="mini" />,
+    );
+    expect(container.querySelectorAll("text")).toHaveLength(0);
+    const apMarker = container.querySelector(
+      'circle[fill="var(--color-apoapsis-mark)"]',
+    );
+    if (!apMarker) throw new Error("no apoapsis marker");
+    await user.hover(apMarker);
+    expect(
+      Array.from(container.querySelectorAll("text")).map((t) => t.textContent),
+    ).toEqual([expect.stringMatching(/^Apoapsis, .*170\.0\s*km/)]);
     await user.unhover(apMarker);
-    expect(findApText()).toBeTruthy();
+    expect(container.querySelectorAll("text")).toHaveLength(0);
+  });
+
+  it("names a marker on keyboard focus, and leaves the pointer as it was", () => {
+    const { container } = render(
+      <OrbitDiagram {...BASE} bodyRadius={600_000} variant="mini" />,
+    );
+    const apMarker = container.querySelector(
+      'circle[fill="var(--color-apoapsis-mark)"]',
+    ) as SVGCircleElement | null;
+    if (!apMarker) throw new Error("no apoapsis marker");
+    act(() => apMarker.focus());
+    expect(container.querySelectorAll("text")).toHaveLength(1);
+    expect(getComputedStyle(apMarker).cursor).not.toBe("help");
   });
 
   it("omits the rotation marker when rotationAngleDeg is not supplied", () => {
