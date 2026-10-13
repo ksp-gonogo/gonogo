@@ -18,16 +18,6 @@ import type {
   WidgetRenderConfig,
 } from "./widgetRenderHarness";
 
-const MICRO_FIXTURES = [
-  "gravity-turn-east",
-  "gravity-turn-east-link-lost",
-  "inverted-level",
-  "steep-dive-west",
-  "banked-90-right",
-  "north-level",
-  "fly-by-wire-already-armed",
-] as const;
-
 const WIDGETS: WidgetRenderConfig[] = [
   {
     // The rebooted Landing widget on a SYNTHETIC Mun descent (model-generated,
@@ -164,10 +154,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     outPath: "renders/navball-widget",
     modes: [
       // The widget's own floor. Rendering it any smaller renders a size an
-      // operator cannot select, and the three figures clip there.
-      { name: "micro-3x3", w: 3, h: 3, forFixtures: MICRO_FIXTURES },
-      { name: "micro-4x4", w: 4, h: 4, forFixtures: MICRO_FIXTURES },
-      // The largest tile that still shows the stacked readout with its title.
+      // operator cannot select, and the stacked readout clips there.
       { name: "tiny-4x5", w: 4, h: 5 },
       { name: "medium-4x7", w: 4, h: 7 },
       { name: "wide-5x8", w: 5, h: 8 },

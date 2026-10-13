@@ -221,28 +221,4 @@ describe("Navball says fly-by-wire is armed when the control surface is out of s
       expect(screen.queryByRole("button", { name: "Disarm FBW" })).toBeNull(),
     );
   });
-
-  it("keeps the armed state and a disarm press on the smallest tile, beside the three figures", async () => {
-    const fixture = setupStreamFixture({ pinnedUt: 0, suspendFrames: true });
-    fixture.transport.setCommandHandler(() => ({ success: true }));
-    render(
-      <fixture.Provider>
-        <DashboardItemContext.Provider value={{ instanceId: "fbw-micro" }}>
-          <NavballComponent config={{}} id="fbw-micro" w={3} h={3} />
-        </DashboardItemContext.Provider>
-      </fixture.Provider>,
-    );
-    act(() => {
-      fixture.emit("vessel.comms", { controlState: 4 });
-    });
-
-    press("fbw-micro", "arm-fbw");
-    const armed = await fbwButton("FBW ARMED");
-    expect(document.querySelectorAll("[data-attitude-line]")).toHaveLength(3);
-
-    act(() => armed.click());
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "FBW ARMED" })).toBeNull(),
-    );
-  });
 });

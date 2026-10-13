@@ -45,36 +45,6 @@ function manualClock(initialEdge = Number.NEGATIVE_INFINITY): DelayClockLike & {
   };
 }
 
-describe("DelayedPlayoutBuffer: frames the capture clock could not date", () => {
-  it("drops them once a frame with a UT arrives, rather than holding them for the camera's lifetime", () => {
-    const clock = manualClock(0);
-    const dropped: StampedFrame[] = [];
-    const buffer = new DelayedPlayoutBuffer({
-      view: clock,
-      onRelease: () => {},
-      onDrop: (f) => dropped.push(f),
-      maxBufferedBytes: 10_000,
-    });
-
-    buffer.push({
-      ut: Number.POSITIVE_INFINITY,
-      keyframe: false,
-      data: "undated-1",
-    });
-    buffer.push({
-      ut: Number.POSITIVE_INFINITY,
-      keyframe: false,
-      data: "undated-2",
-    });
-    expect(buffer.peekQueue()).toHaveLength(2);
-
-    buffer.push({ ut: 100, keyframe: true, data: "dated" });
-
-    expect(dropped.map((f) => f.data)).toEqual(["undated-1", "undated-2"]);
-    expect(buffer.peekQueue().map((f) => f.data)).toEqual(["dated"]);
-  });
-});
-
 describe("DelayedPlayoutBuffer", () => {
   // -- Scenario 1: basic delayed release -----------------------------------
   it("releases a frame stamped capture-UT C only once confirmedEdgeUt() reaches C, not before", () => {

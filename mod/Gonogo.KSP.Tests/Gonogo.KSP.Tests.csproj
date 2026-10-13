@@ -191,7 +191,6 @@
     <Compile Include="..\GonogoDevTools\CurrencyProbeVerdicts.cs" />
     <Compile Include="..\GonogoDevTools\DevRequestLedger.cs" />
     <Compile Include="..\GonogoDevTools\TeleportAnomaly.cs" />
-    <Compile Include="..\GonogoDevTools\TeleportHeight.cs" />
   </ItemGroup>
 
   <!-- StockCurrencyDecision.cs mirrors TransactionReasons as its own plain

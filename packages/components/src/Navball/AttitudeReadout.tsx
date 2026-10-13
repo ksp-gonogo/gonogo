@@ -4,7 +4,6 @@ import {
   NULL_DISPLAY,
   Readout,
   ReadoutCaption,
-  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
@@ -40,7 +39,6 @@ export function AttitudeReadout({
   roll,
   across,
   columnWidth,
-  compact = false,
   reading,
 }: {
   heading: number | null;
@@ -50,20 +48,8 @@ export function AttitudeReadout({
   across: boolean;
   /** The column the readout sits in, in pixels; the figures grow with it up to {@link READOUT_FIGURE_MAX_PX}. */
   columnWidth: number;
-  /** Draws the three angles as one fixed-width line each, for a tile below the stacked readout's own floor. */
-  compact?: boolean;
   reading: TopicReading<unknown>;
 }) {
-  if (compact) {
-    return (
-      <AttitudeLines
-        heading={heading}
-        pitch={pitch}
-        roll={roll}
-        reading={reading}
-      />
-    );
-  }
   return (
     <>
       <div style={across ? READOUT_TRIPLE : READOUT_STACK}>
@@ -90,78 +76,18 @@ export function AttitudeReadout({
   );
 }
 
-/**
- * HDG, PCH and RLL as a label and a figure each, the figures in fixed columns
- * (a sign slot, then right-aligned tabular digits) so a changing angle never
- * moves the line. Heading keeps an empty sign slot so its digits line up with
- * the other two.
- */
-function AttitudeLines({
-  heading,
-  pitch,
-  roll,
-  reading,
-}: {
-  heading: number | null;
-  pitch: number | null;
-  roll: number | null;
-  reading: TopicReading<unknown>;
-}) {
-  const rows: ReadonlyArray<{
-    label: string;
-    angle: number | null;
-    signed: boolean;
-  }> = [
-    { label: "HDG", angle: heading, signed: false },
-    { label: "PCH", angle: pitch, signed: true },
-    { label: "RLL", angle: roll, signed: true },
-  ];
-  return (
-    <Tooltip text={absenceReason(reading)} focusable>
-      <div style={LINES}>
-        {rows.map(({ label, angle, signed }) => (
-          <div key={label} style={LINE} data-attitude-line="">
-            <span style={LINE_LABEL} data-attitude-label="">
-              {label}
-            </span>
-            <span style={LINE_SIGN} data-attitude-sign="">
-              {signed && angle !== null
-                ? Math.round(angle) < 0
-                  ? "\u2212"
-                  : "+"
-                : ""}
-            </span>
-            <span style={LINE_FIGURE} data-attitude-figure="">
-              {angle === null ? (
-                NULL_DISPLAY
-              ) : (
-                <Unit
-                  value={readingOf(reading, () =>
-                    value("°", signed ? Math.abs(angle) : angle),
-                  )}
-                  decimals={0}
-                />
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-    </Tooltip>
-  );
-}
-
-/** Why there is no attitude to draw, or null while there is one. */
-function absenceReason(reading: TopicReading<unknown>): string | null {
-  if (reading.state === "pending") return "Waiting for attitude telemetry";
-  if (reading.state === "unowned") return "No attitude channel on this install";
-  if (reading.state === "absent") return "No attitude reported";
-  return null;
-}
-
 /** Says why there is no attitude to draw, under the null tokens that stand in for it. */
 function AttitudeAbsence({ reading }: { reading: TopicReading<unknown> }) {
-  const reason = absenceReason(reading);
-  return reason === null ? null : <ReadoutCaption>{reason}</ReadoutCaption>;
+  if (reading.state === "pending") {
+    return <ReadoutCaption>Waiting for attitude telemetry</ReadoutCaption>;
+  }
+  if (reading.state === "unowned") {
+    return <ReadoutCaption>No attitude channel on this install</ReadoutCaption>;
+  }
+  if (reading.state === "absent") {
+    return <ReadoutCaption>No attitude reported</ReadoutCaption>;
+  }
+  return null;
 }
 
 /**
@@ -256,40 +182,4 @@ const READOUT_VALUE: CSSProperties = {
   color: "var(--color-text-primary)",
   fontVariantNumeric: "tabular-nums",
   letterSpacing: "0.04em",
-};
-
-const LINES: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0,
-};
-
-const LINE: CSSProperties = {
-  display: "flex",
-  alignItems: "baseline",
-  gap: "var(--gap-related)",
-  whiteSpace: "nowrap",
-  lineHeight: "var(--line-height-tight)",
-};
-
-/** Wide enough for the longest label, so the signs and digits start in one column. */
-const LINE_LABEL: CSSProperties = {
-  ...READOUT_LABEL,
-  width: "3.2em",
-};
-
-const LINE_SIGN: CSSProperties = {
-  ...READOUT_VALUE,
-  fontSize: "var(--font-size-value)",
-  width: "1ch",
-  textAlign: "center",
-};
-
-/** Three digits, the degree sign and a mark, right-aligned so the unit stays put as digits come and go. */
-const LINE_FIGURE: CSSProperties = {
-  ...READOUT_VALUE,
-  fontSize: "var(--font-size-value)",
-  display: "inline-block",
-  minWidth: "5ch",
-  textAlign: "right",
 };

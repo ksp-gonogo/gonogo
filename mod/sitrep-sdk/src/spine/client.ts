@@ -371,7 +371,6 @@ export class TelemetryClient {
   /** No-op for a transport carrying nobody else's verdict: see `Transport.onLost`. */
   private readonly unsubscribeFromLost: () => void;
   private readonly commands = new Map<string, PendingCommand>();
-  private readonly heldCommands = new Map<string, number>();
   private readonly outstandingStore: OutstandingCommandStore | undefined;
   private outstandingDirty = false;
   private lastOutstanding = "";
@@ -1209,31 +1208,9 @@ export class TelemetryClient {
     for (const [requestId, pending] of this.commands) {
       if (excess <= 0) return;
       if (!FINAL_PHASES.has(pending.status.phase)) continue;
-      if (this.heldCommands.has(requestId)) continue;
       this.commands.delete(requestId);
       excess -= 1;
     }
-  }
-
-  /**
-   * Keeps the records of these commands past the sweep of answered ones, for a
-   * reader that reports their status later (a group of commands). Returns the
-   * release, which hands them back to the sweep.
-   */
-  holdCommands(requestIds: readonly string[]): () => void {
-    for (const id of requestIds) {
-      this.heldCommands.set(id, (this.heldCommands.get(id) ?? 0) + 1);
-    }
-    let released = false;
-    return () => {
-      if (released) return;
-      released = true;
-      for (const id of requestIds) {
-        const left = (this.heldCommands.get(id) ?? 1) - 1;
-        if (left > 0) this.heldCommands.set(id, left);
-        else this.heldCommands.delete(id);
-      }
-    };
   }
 
   /** Current lifecycle status for a dispatched command, or `idle` if the client holds no record of it: it was never sent, or it was answered long enough ago to be dropped. */

@@ -1,6 +1,5 @@
 import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
-import { useStream } from "@ksp-gonogo/sitrep-client";
-import { deriveReading, seriesKeyOf, value } from "@ksp-gonogo/sitrep-sdk";
+import { seriesKeyOf, value } from "@ksp-gonogo/sitrep-sdk";
 import { Readout, Sparkline } from "@ksp-gonogo/ui";
 import { NULL_DISPLAY, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode, RefObject } from "react";
@@ -45,21 +44,6 @@ export function GraphReadout({
     (run) => run.to >= sparkValues.length - 1,
   );
 
-  /*
-   * The series only records samples that arrived, so a topic that goes quiet adds none and the newest one still reads as measured. The topic's own reading knows it has stopped vouching for that figure, so the headline takes its currency from it.
-   */
-  const topicReading = useStream<unknown>(cfg.source.topic);
-  const headline =
-    latest === undefined || !unit
-      ? undefined
-      : topicReading.state === "held"
-        ? deriveReading(
-            topicReading,
-            () => value(unit, latest),
-            () => value(unit, latest),
-          )
-        : value(unit, latest);
-
   // The series label is dropped when it would only repeat the title.
   const readoutTitle = title ?? "GRAPH";
   return (
@@ -89,7 +73,7 @@ export function GraphReadout({
                 NULL_DISPLAY
               ) : unit ? (
                 <Unit
-                  value={headline}
+                  value={value(unit, latest)}
                   marked={modelled ? MODELLED : undefined}
                 />
               ) : (

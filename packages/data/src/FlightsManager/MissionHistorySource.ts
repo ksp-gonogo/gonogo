@@ -4,7 +4,6 @@ import type {
   DataSourceStatus,
 } from "@ksp-gonogo/core";
 import { PerfBudget } from "@ksp-gonogo/core";
-import { logger } from "@ksp-gonogo/logger";
 import {
   buildFullHistoryStore,
   type ReplayFixture,
@@ -164,7 +163,7 @@ export class MissionHistorySource implements DataSource {
   async saveMission(record: MissionRecord): Promise<void> {
     await this.missionStore.saveMission(record);
     this.flightListSubscribers.fire();
-    await this.pruneToKeepCount(record.meta.id);
+    await this.pruneToKeepCount();
   }
 
   /**
@@ -182,24 +181,14 @@ export class MissionHistorySource implements DataSource {
     // A graph open on this mission holds a store built from fewer parts.
     this.historyCache.delete(meta.id);
     this.flightListSubscribers.fire();
-    await this.pruneToKeepCount(meta.id);
+    await this.pruneToKeepCount();
   }
 
-  /**
-   * Applies keep latest, when it is on, to the missions stored now. The one
-   * just stored is still being recorded, so it is never the one removed, and a
-   * failure here is the prune's own: the write it follows has already landed.
-   */
-  private async pruneToKeepCount(keepId?: string): Promise<void> {
+  /** Applies keep latest, when it is on, to the missions stored now. */
+  private async pruneToKeepCount(): Promise<void> {
     const keepCount = getKeepCount();
     if (keepCount <= 0) return;
-    try {
-      await this.pruneFlightsKeepLatest({ keepCount, keepId });
-    } catch (err) {
-      logger.warn("[MissionHistorySource] keep latest could not prune", {
-        err: String(err),
-      });
-    }
+    await this.pruneFlightsKeepLatest({ keepCount });
   }
 
   async exportFlight(id: string): Promise<ReplayFixture> {
@@ -276,10 +265,7 @@ export class MissionHistorySource implements DataSource {
     return missionMetaToFlightRecord({ ...meta, chapters });
   }
 
-  async pruneFlightsKeepLatest(opts: {
-    keepCount: number;
-    keepId?: string;
-  }): Promise<string[]> {
+  async pruneFlightsKeepLatest(opts: { keepCount: number }): Promise<string[]> {
     const removed = await this.missionStore.pruneMissionsKeepLatest(opts);
     for (const id of removed) this.historyCache.delete(id);
     if (removed.length > 0) this.flightListSubscribers.fire();

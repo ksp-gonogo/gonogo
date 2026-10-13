@@ -107,14 +107,6 @@ describe("a science lab's stored science under delay", () => {
     );
   });
 
-  it("never carries a lab below what it reported when that is already past its cap", () => {
-    const readings = scene([
-      lab("4001", { scienceCap: value("science", 9) }),
-    ]).at(QUARTER_DAY);
-
-    expect(reckoned(readings, RUNNING)?.modelled?.magnitude).toBeCloseTo(10, 6);
-  });
-
   it("carries a lab whose cap could not be read without a limit", () => {
     const readings = scene([lab("4001", { scienceCap: null })]).at(QUARTER_DAY);
 

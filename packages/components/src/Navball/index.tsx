@@ -193,14 +193,10 @@ function NavballComponent({
   const showControlRow = cols >= 5;
   // Armed with the control surface out of sight (control mode off, or a small tile), the override still says so and can be dropped.
   const fbwOutsideSurface = fbwState !== "off" && !showControlSurface;
-  // Under the stacked readout's own floor the figures take one fixed-width line each.
-  const compactReadout = rows < 5 || cols < 4;
 
   return (
     <Panel
       panelTitle="NAVBALL"
-      fitToSize={compactReadout}
-      hoverTitle={compactReadout}
       sections={[
         <Section
           key="attitude"
@@ -221,33 +217,22 @@ function NavballComponent({
                 )}
               </div>
             ) : (
-              <div
-                style={
-                  compactReadout
-                    ? { ...NUMERIC_READOUT, gap: "var(--gap-related-packed)" }
-                    : NUMERIC_READOUT
-                }
-              >
+              <div style={NUMERIC_READOUT}>
                 <AttitudeReadout
                   heading={heading}
                   pitch={pitch}
                   roll={roll}
                   across={readoutAcross}
                   columnWidth={columnWidth}
-                  compact={compactReadout}
                   reading={attitudeReading}
                 />
-                {/* Inside the readout's own section, since a compact tile has no room for the gap and inset of a section of its own. */}
-                {fbwOutsideSurface && compactReadout && (
-                  <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} compact />
-                )}
               </div>
             )}
           </div>
         </Section>,
-        showControlRow || (fbwOutsideSurface && !compactReadout) ? (
+        showControlRow || fbwOutsideSurface ? (
           <Section key="controls" full>
-            {fbwOutsideSurface && !compactReadout && (
+            {fbwOutsideSurface && (
               <FbwBanner fbwState={fbwState} onDisarm={disarmFbw} />
             )}
             {showControlRow && (
@@ -347,8 +332,8 @@ registerComponent<NavballConfig>({
     "Your vessel's heading, pitch and roll, measured at the root part (or at the centre of mass when the tile's settings ask for it), with controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the tile's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
-  // Three columns by three rows is the smallest tile that holds all three figures, with the title behind a hover.
-  minSize: { w: 3, h: 3 },
+  // 4x5 is where the stacked readout stops clipping vertically.
+  minSize: { w: 4, h: 5 },
   component: NavballComponent,
   configComponent: NavballConfigForm,
   channels: topics.channels,
