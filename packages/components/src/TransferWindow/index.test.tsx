@@ -11,6 +11,7 @@ import {
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import {
   expectNoA11yViolations,
   visibleText,
@@ -332,9 +333,19 @@ describe("TransferWindow reach list", () => {
   });
 });
 
-describe("TransferWindow reach list: the absent budget", () => {
-  // Stock computes no Δv for a vessel it is not simulating, so `dv.summary` tombstones: neither "not heard" nor "cannot afford".
-  it("says the sim has no figure, and still shows the costs", async () => {
+describe("TransferWindow reach list: a budget that is not a figure", () => {
+  // The Budget slot holds the no-data token and the reason is its tip; the tile carries no sentence about the game.
+  const budgetToken = () =>
+    screen.getByText("Budget").parentElement?.querySelector("[data-tooltip]");
+  const noDeltaVSentence = () => {
+    expect(visibleText()).not.toMatch(/No Δv figure/i);
+    expect(visibleText()).not.toMatch(/stock simulation/i);
+    for (const status of screen.queryAllByRole("status")) {
+      expect(status.textContent).not.toMatch(/Δv|delta-v/i);
+    }
+  };
+
+  it("confirmed absent: shows the token with the reason as its tip, keeps the costs, offers no verdict", async () => {
     const { fixture } = setup();
     await waitFor(() =>
       expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
@@ -344,23 +355,77 @@ describe("TransferWindow reach list: the absent budget", () => {
     });
 
     await waitFor(() =>
-      expect(visibleText()).toMatch(/No Δv figure for this craft/i),
+      expect(budgetToken()?.getAttribute("data-tooltip")).toBe(
+        "The game has no delta-v figure for this craft right now, so destinations show cost only",
+      ),
     );
-    // A confirmed absence is not a verdict of any kind.
+    expect(budgetToken()?.textContent).toBe(NULL_DISPLAY);
+    noDeltaVSentence();
     expect(screen.queryByText("Affords")).not.toBeInTheDocument();
     expect(screen.queryByText("NO")).not.toBeInTheDocument();
     // The costs and windows do not depend on the budget, so they stay.
     expect(screen.getByText("Δv needed")).toBeInTheDocument();
   });
 
-  it("does not claim the sim has no figure when nothing has merely arrived yet", async () => {
+  it("not heard yet: shows the token and says it is waiting, never that the game has none", async () => {
     setup();
     await waitFor(() =>
       expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
     );
-    // Silence is not a tombstone: no caption asserting anything about the craft.
-    expect(visibleText()).not.toMatch(/No Δv figure for this craft/i);
+
+    expect(budgetToken()?.getAttribute("data-tooltip")).toBe(
+      "Waiting for the craft's delta-v",
+    );
+    expect(budgetToken()?.textContent).toBe(NULL_DISPLAY);
+    noDeltaVSentence();
     expect(screen.queryByText("Affords")).not.toBeInTheDocument();
+  });
+
+  it("a summary whose total is not a number: shows the token with its own tip, not nothing", async () => {
+    const { fixture } = setup();
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    act(() => {
+      fixture.emit("dv.summary", { stageCount: 2, totalDvVac: null });
+    });
+
+    await waitFor(() =>
+      expect(budgetToken()?.getAttribute("data-tooltip")).toBe(
+        "The game returned a delta-v figure that cannot be used, so destinations show cost only",
+      ),
+    );
+    expect(budgetToken()?.textContent).toBe(NULL_DISPLAY);
+    noDeltaVSentence();
+    expect(screen.queryByText("Affords")).not.toBeInTheDocument();
+  });
+
+  it("a figure: shows it, with no token", async () => {
+    setup(undefined, { budgetDvVac: 6000 });
+    await waitFor(() =>
+      expect(screen.getByText("Affords")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("Budget").parentElement?.textContent).not.toContain(
+      NULL_DISPLAY,
+    );
+    expect(visibleText()).toMatch(/Budget.*6[, ]?000/);
+  });
+
+  it("has no accessibility violations for each state of the budget", async () => {
+    const { fixture, view } = setup();
+    await waitFor(() =>
+      expect(screen.getByText("Reach from Earth")).toBeInTheDocument(),
+    );
+    await expectNoA11yViolations(view.container);
+    act(() => {
+      fixture.emit("dv.summary", null);
+    });
+    await waitFor(() => expect(budgetToken()).not.toBeNull());
+    await expectNoA11yViolations(view.container);
+    act(() => {
+      fixture.emit("dv.summary", { stageCount: 2, totalDvVac: null });
+    });
+    await expectNoA11yViolations(view.container);
   });
 });
 
