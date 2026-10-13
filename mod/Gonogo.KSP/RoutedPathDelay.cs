@@ -43,7 +43,7 @@ namespace Gonogo.KSP
                 });
             }
 
-            return SignalDelay.ComputeForCraft(config, new CommsPath { Hops = commsHops }, string.Empty).OneWaySeconds;
+            return SignalDelay.Compute(config, new CommsPath { Hops = commsHops }, string.Empty).OneWaySeconds;
         }
 
         /// <summary>
