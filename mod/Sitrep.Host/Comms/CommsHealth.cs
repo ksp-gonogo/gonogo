@@ -44,8 +44,20 @@ namespace Sitrep.Host.Comms
         /// stopped observing. <c>null</c> (no save loaded yet, or the read
         /// threw) adds nothing.
         /// </param>
-        public static UplinkHealth Evaluate(bool backendElected, bool? modelPresent = null)
+        /// <param name="forcedBlackout">
+        /// Whether a development build's comms override is forcing the active
+        /// craft out of contact, whatever its real link. The override is read
+        /// from a request file that outlives a game restart, so it is named here,
+        /// where whoever reads the Uplink's health sees why no craft is in contact.
+        /// </param>
+        public static UplinkHealth Evaluate(bool backendElected, bool? modelPresent = null, bool forcedBlackout = false)
         {
+            if (forcedBlackout)
+            {
+                return new UplinkHealth(
+                    UplinkHealthState.Degraded,
+                    "dev tools are forcing a comms blackout: the active craft reads out of contact whatever its link, until GameData/GonogoDevTools/Plugins/PluginData/force-comms-request.cfg is set to restore");
+            }
             if (!backendElected)
             {
                 return new UplinkHealth(UplinkHealthState.Degraded, "no comms backend elected");
