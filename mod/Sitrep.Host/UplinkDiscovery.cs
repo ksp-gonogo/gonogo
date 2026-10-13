@@ -49,7 +49,14 @@ namespace Sitrep.Host
         /// <summary>One discovered Uplink instance plus the contract version it declared it was built against; see <see cref="SitrepUplinkAttribute"/>.</summary>
         public readonly struct DiscoveredUplink
         {
-            public ISitrepUplink Uplink { get; }
+            /// <summary>
+            /// The constructed Uplink, or null for one whose declared contract version
+            /// this core refuses: it is never constructed, so none of its code (static
+            /// initialisers, event hooks in its constructor) runs inside a core it was
+            /// not built for. The refusal is recorded from <see cref="Id"/> and the
+            /// version.
+            /// </summary>
+            public ISitrepUplink? Uplink { get; }
             public int ContractMajor { get; }
             public int ContractMinor { get; }
 
@@ -64,7 +71,7 @@ namespace Sitrep.Host
             /// </summary>
             public string? Id { get; }
 
-            public DiscoveredUplink(ISitrepUplink uplink, int contractMajor, int contractMinor, string? id = null)
+            public DiscoveredUplink(ISitrepUplink? uplink, int contractMajor, int contractMinor, string? id = null)
             {
                 Uplink = uplink;
                 ContractMajor = contractMajor;
@@ -178,6 +185,12 @@ namespace Sitrep.Host
                         var attr = type.GetCustomAttribute<SitrepUplinkAttribute>();
                         if (attr == null)
                         {
+                            continue;
+                        }
+
+                        if (ChannelEngine.ContractRefusalReason(attr.ContractMajor, attr.ContractMinor) != null)
+                        {
+                            found.Add(new DiscoveredUplink(null, attr.ContractMajor, attr.ContractMinor, attr.Id));
                             continue;
                         }
 

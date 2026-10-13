@@ -28,7 +28,7 @@ namespace Sitrep.Host.Tests
         {
             var found = UplinkDiscovery.Discover(ThisAssembly);
 
-            var match = found.SingleOrDefault(d => d.Uplink.Manifest.Id == "discovery-test-normal");
+            var match = found.SingleOrDefault(d => d.Uplink?.Manifest.Id == "discovery-test-normal");
             Assert.NotEqual(default, match);
             Assert.IsType<NormalDiscoverableUplink>(match.Uplink);
             Assert.Equal(ContractVersion.Major, match.ContractMajor);
@@ -53,7 +53,7 @@ namespace Sitrep.Host.Tests
             var found = UplinkDiscovery.Discover(ThisAssembly);
 
             Assert.DoesNotContain(found, d => d.Uplink is NoParameterlessCtorUplink);
-            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+            Assert.Contains(found, d => d.Uplink?.Manifest.Id == "discovery-test-normal");
         }
 
         [Fact]
@@ -68,7 +68,7 @@ namespace Sitrep.Host.Tests
             var found = UplinkDiscovery.Discover(ThisAssembly);
 
             Assert.DoesNotContain(found, d => d.Uplink is ThrowingCtorUplink);
-            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+            Assert.Contains(found, d => d.Uplink?.Manifest.Id == "discovery-test-normal");
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace Sitrep.Host.Tests
 
             var found = UplinkDiscovery.Discover(new System.Reflection.Assembly[] { partial }, lines.Add);
 
-            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+            Assert.Contains(found, d => d.Uplink?.Manifest.Id == "discovery-test-normal");
             var line = Assert.Single(lines, l => l.Contains(PartlyLoadedAssembly.Name));
             Assert.Contains("Method 'Health' does not have an implementation.", line);
         }
@@ -178,7 +178,7 @@ namespace Sitrep.Host.Tests
                 ThisAssembly,
                 _ => throw new InvalidOperationException("broken sink"));
 
-            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+            Assert.Contains(found, d => d.Uplink?.Manifest.Id == "discovery-test-normal");
         }
 
         [Fact]
@@ -205,8 +205,8 @@ namespace Sitrep.Host.Tests
 
             var found = UplinkDiscovery.Discover(assemblies);
 
-            Assert.DoesNotContain(found, d => d.Uplink.GetType() == crashyType);
-            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+            Assert.DoesNotContain(found, d => d.Uplink?.GetType() == crashyType);
+            Assert.Contains(found, d => d.Uplink?.Manifest.Id == "discovery-test-normal");
         }
 
         /// <summary>See <see cref="SurvivesTypeWhoseAttributeResolutionThrowsWithoutAbortingTheWholeScan"/>.</summary>
@@ -303,9 +303,50 @@ namespace Sitrep.Host.Tests
             // directly rather than needing an actual old assembly on disk).
             var found = UplinkDiscovery.Discover(ThisAssembly);
 
-            var stale = found.Single(d => d.Uplink.Manifest.Id == "discovery-test-stale");
+            var stale = found.Single(d => d.Id == "discovery-test-stale");
             Assert.Equal(0, stale.ContractMajor);
             Assert.Equal(9, stale.ContractMinor);
+        }
+
+        /// <summary>
+        /// The version check refuses an Uplink built for another major or a newer
+        /// minor, so its constructor, with whatever static set-up and event hooks it
+        /// carries, must not run inside this core at all.
+        /// </summary>
+        [Fact]
+        public void AnUplinkThisCoreRefusesIsNeverConstructed()
+        {
+            StaleContractUplink.Constructed = 0;
+            NewerMinorUplink.Constructed = 0;
+
+            var found = UplinkDiscovery.Discover(ThisAssembly);
+
+            Assert.Null(found.Single(d => d.Id == "discovery-test-stale").Uplink);
+            Assert.Null(found.Single(d => d.Id == "discovery-test-newer-minor").Uplink);
+            Assert.Equal(0, StaleContractUplink.Constructed);
+            Assert.Equal(0, NewerMinorUplink.Constructed);
+        }
+
+        [Fact]
+        public void AnUplinkBuiltAgainstANewerMinorIsRefusedWithBothVersions()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+
+            engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover(ThisAssembly));
+
+            var availability = engine.AvailabilityOf("discovery-test-newer-minor");
+            Assert.False(availability.IsAvailable);
+            Assert.Contains("newer minor", availability.Reason);
+            Assert.Contains($"v{ContractVersion.Major}.{ContractVersion.Minor + 1}", availability.Reason);
+        }
+
+        [Fact]
+        public void AnUplinkBuiltAgainstAnOlderOrTheSameMinorLoads()
+        {
+            Assert.Null(ChannelEngine.ContractRefusalReason(ContractVersion.Major, ContractVersion.Minor));
+            Assert.Null(ChannelEngine.ContractRefusalReason(ContractVersion.Major, 0));
+            Assert.NotNull(ChannelEngine.ContractRefusalReason(ContractVersion.Major, ContractVersion.Minor + 1));
+            Assert.NotNull(ChannelEngine.ContractRefusalReason(ContractVersion.Major + 1, 0));
         }
 
         [Fact]
@@ -330,13 +371,13 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void RegisterDiscoveredUplinkSucceedsOnMatchingMajor()
+        public void RegisterDiscoveredUplinkSucceedsOnMatchingMajorAndAnOlderMinor()
         {
             // See the no-Start()/no-Dispose() rationale in the sibling test above.
             var engine = new ChannelEngine("ws://127.0.0.1:0");
             var uplink = new NormalDiscoverableUplink();
 
-            engine.RegisterDiscoveredUplink(uplink, contractMajor: ContractVersion.Major, contractMinor: ContractVersion.Minor + 5);
+            engine.RegisterDiscoveredUplink(uplink, contractMajor: ContractVersion.Major, contractMinor: 0);
 
             Assert.True(uplink.RegisterWasCalled);
             Assert.True(engine.AvailabilityOf(uplink.Manifest.Id).IsAvailable);
@@ -395,6 +436,10 @@ namespace Sitrep.Host.Tests
         [SitrepUplink("discovery-test-stale", contractMajor: 0, contractMinor: 9)]
         public sealed class StaleContractUplink : ISitrepUplink
         {
+            public static int Constructed;
+
+            public StaleContractUplink() => Constructed++;
+
             // Mandatory health floor (test double).
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
@@ -402,5 +447,18 @@ namespace Sitrep.Host.Tests
             public void Register(IUplinkHost host) { }
         }
 
+
+        [SitrepUplink("discovery-test-newer-minor", contractMajor: ContractVersion.Major, contractMinor: ContractVersion.Minor + 1)]
+        public sealed class NewerMinorUplink : ISitrepUplink
+        {
+            public static int Constructed;
+
+            public NewerMinorUplink() => Constructed++;
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest { Id = "discovery-test-newer-minor" };
+            public void Register(IUplinkHost host) { }
+        }
     }
 }

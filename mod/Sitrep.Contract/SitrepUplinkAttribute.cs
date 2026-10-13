@@ -15,16 +15,19 @@ namespace Sitrep.Contract
     /// <see cref="ContractVersion"/> constants of the contract you compiled
     /// against, and the compiler inlines them into your assembly, so they record
     /// which contract your build assumed. Leave them alone. An Uplink whose
-    /// contract major differs from the running mod's is refused:
+    /// contract major differs from the running mod's, or whose minor is newer than
+    /// the running mod's, is refused: it is never constructed,
     /// <see cref="ISitrepUplink.Register"/> is never called, and the Uplink is
-    /// marked unavailable with both versions in the reason. A minor difference in
-    /// either direction loads, because minor versions only add.</para>
+    /// marked unavailable with both versions in the reason. An older minor loads,
+    /// because minor versions only add.</para>
     /// </summary>
     /// <category>Uplink API</category>
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class SitrepUplinkAttribute : Attribute
     {
-        /// <summary>The Uplink's registry-unique id. Must equal <see cref="UplinkManifest.Id"/>.</summary>
+        /// <summary>The Uplink's registry-unique id. Must equal <see cref="UplinkManifest.Id"/>:
+        /// an Uplink whose two ids differ, or whose id another installed Uplink also
+        /// claims, is refused.</summary>
         public string Id { get; }
 
         /// <summary>The contract major this Uplink was built against.</summary>

@@ -1373,7 +1373,9 @@ namespace Sitrep.Host
         private readonly Dictionary<string, ContractDeclaration> _declaredContract = new Dictionary<string, ContractDeclaration>();
 
         /// <summary>
-        /// Every uplink <see cref="PassesContractMajorCheck"/> refused, keyed by id.
+        /// Every uplink refused at discovery, keyed by id: by
+        /// <see cref="PassesContractMajorCheck"/>, or for a manifest that cannot
+        /// register (see <see cref="ManifestRefusal"/>).
         /// Refusal skips <see cref="RegisterUplink"/> entirely, so these ids are absent
         /// from <see cref="_registeredUplinks"/> and used to be absent from
         /// <see cref="UplinksTopic"/> with them: an operator saw the capability simply
@@ -1986,6 +1988,12 @@ namespace Sitrep.Host
         public void RegisterUplink(ISitrepUplink uplink)
         {
             var id = uplink.Manifest.Id;
+            if (_registeredUplinks.TryGetValue(id, out var incumbent) && !ReferenceEquals(incumbent, uplink))
+            {
+                // The incumbent keeps the id and its availability; the newcomer never registers.
+                LogHost($"uplink \"{id}\" from {uplink.GetType().Assembly.GetName().Name} refused: the id already belongs to {incumbent.GetType().Assembly.GetName().Name}");
+                return;
+            }
             // Two-pass fix: do NOT clobber an existing availability entry. The
             // capability-declaration pass (DeclareUplinkCapabilities) may have
             // already marked this uplink Unavailable (its DeclareCapabilities
@@ -2005,6 +2013,13 @@ namespace Sitrep.Host
                     MarkUplinkUnavailable(id, UndefinedKind("channel \"" + channel.Topic + "\"", channel.Kind));
                     return;
                 }
+            }
+
+            var taken = TakenByAnother(id, uplink.Manifest);
+            if (taken != null)
+            {
+                MarkUplinkUnavailable(id, taken);
+                return;
             }
 
             string? contradiction = null;
@@ -2062,6 +2077,32 @@ namespace Sitrep.Host
             }
 
             RefuseAddressedChannelsNothingPublishes(id, uplink);
+        }
+
+        /// <summary>
+        /// The first topic or command <paramref name="manifest"/> declares that another
+        /// Uplink, or core, already owns, as a refusal reason; null when none is taken.
+        /// Owners are decided by registration, never replaced by it: a second claim on a
+        /// topic would take the channel's source from the first owner, decided by
+        /// nothing but assembly scan order.
+        /// </summary>
+        private string? TakenByAnother(string id, UplinkManifest manifest)
+        {
+            foreach (var channel in manifest.Channels)
+            {
+                if (_channelOwner.TryGetValue(channel.Topic, out var owner) && owner != id)
+                {
+                    return "channel \"" + channel.Topic + "\" already belongs to \"" + owner + "\"";
+                }
+            }
+            foreach (var command in manifest.Commands)
+            {
+                if (_commandOwner.TryGetValue(command.Command, out var owner) && owner != id)
+                {
+                    return "command \"" + command.Command + "\" already belongs to \"" + owner + "\"";
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -2576,10 +2617,9 @@ namespace Sitrep.Host
         /// deserialize/type-check against this core's contract shapes at
         /// all, so skipping Register entirely (rather than letting it run
         /// and rely on ordinary fail-soft) avoids handing it live wire types
-        /// it was never compiled to expect. A minor mismatch (either
-        /// direction) is fine, Minor bumps are additive-only, so an older-
-        /// or newer-Minor Uplink and this core can always talk on their
-        /// shared subset.
+        /// it was never compiled to expect. An Uplink built against a newer
+        /// minor is refused the same way: it may call members this older core
+        /// does not have. An older minor is fine, Minor bumps are additive-only.
         /// </summary>
         public void RegisterDiscoveredUplink(ISitrepUplink uplink, int contractMajor, int contractMinor)
         {
@@ -2625,13 +2665,27 @@ namespace Sitrep.Host
         /// </summary>
         public void RegisterDiscoveredUplinks(IEnumerable<UplinkDiscovery.DiscoveredUplink> discovered)
         {
+            var all = discovered.ToList();
             var accepted = new List<ISitrepUplink>();
-            foreach (var d in discovered)
+            foreach (var d in all)
             {
-                if (PassesContractMajorCheck(d.Uplink, d.Id, d.ContractMajor, d.ContractMinor))
+                if (!PassesContractMajorCheck(d.Uplink, d.Id, d.ContractMajor, d.ContractMinor))
                 {
-                    accepted.Add(d.Uplink);
+                    continue;
                 }
+                var uplink = d.Uplink!;
+                var refusal = ManifestRefusal(uplink, d.Id, all, out var id);
+                if (refusal != null)
+                {
+                    if (id != null)
+                    {
+                        _availability[id] = Availability.Unavailable(refusal);
+                        _contractRefusals[id] = new ContractRefusal(id, d.ContractMajor, d.ContractMinor, refusal);
+                    }
+                    LogHost($"uplink \"{id ?? uplink.GetType().FullName}\" refused: {refusal}");
+                    continue;
+                }
+                accepted.Add(uplink);
             }
 
             // Pass A: declare every capability before any provider registers.
@@ -2934,7 +2988,7 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Shared MAJOR-version gate for both the single
+        /// Shared contract-version gate (a different major, or a newer minor) for both the single
         /// (<see cref="RegisterDiscoveredUplink"/>) and batch
         /// (<see cref="RegisterDiscoveredUplinks"/>) discovery paths. A major
         /// mismatch fail-softs the uplink to Unavailable without registering it,
@@ -2952,23 +3006,86 @@ namespace Sitrep.Host
         /// where it is the only name available and the uplink is one this core built
         /// its own discovery record for.</para>
         /// </summary>
-        private bool PassesContractMajorCheck(ISitrepUplink uplink, string? declaredId, int contractMajor, int contractMinor)
+        private bool PassesContractMajorCheck(ISitrepUplink? uplink, string? declaredId, int contractMajor, int contractMinor)
         {
-            if (contractMajor != Sitrep.Contract.ContractVersion.Major)
+            var refusal = ContractRefusalReason(contractMajor, contractMinor);
+            if (refusal != null)
             {
-                var refusedId = string.IsNullOrEmpty(declaredId) ? uplink.Manifest.Id : declaredId!;
-                var reason =
-                    $"contract v{contractMajor}.{contractMinor} vs core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor}: major mismatch";
-                _availability[refusedId] = Availability.Unavailable(reason);
-                _contractRefusals[refusedId] = new ContractRefusal(refusedId, contractMajor, contractMinor, reason);
+                var refusedId = string.IsNullOrEmpty(declaredId) ? uplink!.Manifest.Id : declaredId!;
+                _availability[refusedId] = Availability.Unavailable(refusal);
+                _contractRefusals[refusedId] = new ContractRefusal(refusedId, contractMajor, contractMinor, refusal);
                 return false;
             }
 
-            var acceptedId = string.IsNullOrEmpty(declaredId) ? uplink.Manifest.Id : declaredId!;
+            var acceptedId = string.IsNullOrEmpty(declaredId) ? uplink!.Manifest.Id : declaredId!;
             _declaredContract[acceptedId] = new ContractDeclaration(contractMajor, contractMinor);
             return true;
         }
 
+
+        /// <summary>
+        /// Why a discovered Uplink that passed the version check still cannot register,
+        /// or null when it can: its manifest throws when read, names a different id from
+        /// its attribute, or shares its id with another discovered Uplink (two installed
+        /// copies, or two mods choosing one id). Every copy of a shared id is refused,
+        /// since which one would win depends on nothing but assembly scan order.
+        /// <paramref name="id"/> is the id the refusal is recorded under, null when none
+        /// can be read.
+        /// </summary>
+        private static string? ManifestRefusal(
+            ISitrepUplink uplink,
+            string? declaredId,
+            IReadOnlyList<UplinkDiscovery.DiscoveredUplink> all,
+            out string? id)
+        {
+            id = declaredId;
+            string manifestId;
+            try
+            {
+                manifestId = uplink.Manifest.Id;
+            }
+            catch (Exception ex)
+            {
+                return "its manifest threw when read: " + SafeExceptionMessage(ex);
+            }
+            id ??= manifestId;
+            if (declaredId != null && !string.Equals(manifestId, declaredId, StringComparison.Ordinal))
+            {
+                return $"its manifest id \"{manifestId}\" differs from its [SitrepUplink] id \"{declaredId}\"";
+            }
+
+            var claimants = new List<string>();
+            foreach (var other in all)
+            {
+                if (string.Equals(other.Id, id, StringComparison.Ordinal))
+                {
+                    claimants.Add(other.Uplink?.GetType().Assembly.GetName().Name ?? "(refused before construction)");
+                }
+            }
+            return claimants.Count > 1
+                ? $"{claimants.Count} installed Uplinks claim the id \"{id}\" ({string.Join(", ", claimants)}); remove all but one"
+                : null;
+        }
+
+        /// <summary>
+        /// Why an Uplink built against <paramref name="contractMajor"/>.<paramref name="contractMinor"/>
+        /// cannot load into this core, or null when it can: a different major, or a
+        /// newer minor, whose members this core does not have and which would
+        /// otherwise fail the first time the Uplink reached for one.
+        /// </summary>
+        internal static string? ContractRefusalReason(int contractMajor, int contractMinor)
+        {
+            var core = $"core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor}";
+            if (contractMajor != Sitrep.Contract.ContractVersion.Major)
+            {
+                return $"contract v{contractMajor}.{contractMinor} vs {core}: major mismatch";
+            }
+            if (contractMinor > Sitrep.Contract.ContractVersion.Minor)
+            {
+                return $"contract v{contractMajor}.{contractMinor} vs {core}: built against a newer minor, so this core is too old for it";
+            }
+            return null;
+        }
 
         // NOTE: called from the main thread (a registered uplink calling
         // this via its IUplinkHost during e.g. a command handler that
@@ -3014,6 +3131,13 @@ namespace Sitrep.Host
         public void AddChannelSource(string topic, Func<KspSnapshot?, object?> map)
         {
             RequireChannelDeclared(topic, nameof(AddChannelSource));
+            if (_currentRegisteringUplinkId != null
+                && _channelOwner.TryGetValue(topic, out var owner)
+                && owner != _currentRegisteringUplinkId)
+            {
+                throw new InvalidOperationException(
+                    $"{nameof(AddChannelSource)}(\"{topic}\") names a channel \"{owner}\" owns; an uplink sources only the channels its own manifest declares.");
+            }
             _channelSources[topic] = map;
         }
 
