@@ -33,7 +33,10 @@ import { LiveRegion } from "./LiveRegion";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { PanelStatusDot } from "./status/PanelStatusDot";
-import type { StatusSummary } from "./status/PanelStatusStore";
+import type {
+  StatusBreakdownEntry,
+  StatusSummary,
+} from "./status/PanelStatusStore";
 import {
   type Severity,
   severityFromStreamStatus,
@@ -43,7 +46,7 @@ import { formatStreamStatus } from "./status/streamStatusWord";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
-import { Tooltip } from "./Tooltip";
+import { Tooltip, useTooltip } from "./Tooltip";
 import { titleText } from "./titleText";
 import { TONE_LABEL } from "./tone";
 import { useElementSize } from "./useElementSize";
@@ -333,15 +336,16 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
         display: inline-flex;
       }
       /* Hidden rather than display: none, so useHeaderAsideFit's clone measurement sees it as it sees the inline state. */
-      &:not([open]) > [data-panel-aside-full] {
+      &:not([open]):not([data-hovering]) > [data-panel-aside-full] {
         position: absolute;
         top: 0;
         right: 0;
         visibility: hidden;
         pointer-events: none;
       }
-      /* Collapsed and open: floats over the body so its controls do not reflow the panel. */
-      &[open] > [data-panel-aside-full] {
+      /* Collapsed and open, or held open by the pointer: floats over the body so its controls do not reflow the panel. */
+      &[open] > [data-panel-aside-full],
+      &[data-hovering] > [data-panel-aside-full] {
         position: absolute;
         top: calc(100% + var(--offset-popover));
         right: 0;
@@ -363,6 +367,21 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
       }
     `}
 `;
+
+/** How long the pointer may spend crossing from the summary to the floating menu before the menu closes. */
+const MENU_CROSSING_MS = 120;
+
+/** Every contributor's words under its severity, worst first, or `null` where there are none to say. */
+function describeBreakdown(
+  breakdown: readonly StatusBreakdownEntry[],
+): string | null {
+  const lines = breakdown.map((e) =>
+    e.labels.length === 0
+      ? `${e.count} ${TONE_LABEL[e.severity]}`
+      : `${TONE_LABEL[e.severity]}: ${e.labels.join(", ")}`,
+  );
+  return lines.length === 0 ? null : lines.join("\n");
+}
 
 /**
  * The row at the top of a panel: its title and an optional right-hand aside.
@@ -410,9 +429,63 @@ export function PanelHeader({
    * operator's open choice, so a panel that narrows again starts closed.
    */
   const [openWhileCollapsed, setOpenWhileCollapsed] = useState(false);
+  /*
+   * The pointer holds the menu open without touching `open`, so what a screen
+   * reader is told about the disclosure follows a press or a key and never a
+   * hover. A touch never sets it: a tap pins the menu through the summary.
+   */
+  const [hovering, setHovering] = useState(false);
+  const leaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expandRef = useRef<HTMLDetailsElement>(null);
+  const summaryRef = useRef<HTMLElement>(null);
+  const cancelLeave = useCallback(() => {
+    if (leaveTimer.current !== null) clearTimeout(leaveTimer.current);
+    leaveTimer.current = null;
+  }, []);
   useEffect(() => {
-    if (!collapsed) setOpenWhileCollapsed(false);
+    if (!collapsed) {
+      setOpenWhileCollapsed(false);
+      setHovering(false);
+    }
   }, [collapsed]);
+  useEffect(() => cancelLeave, [cancelLeave]);
+
+  const menuShown = collapsed && (openWhileCollapsed || hovering);
+  useEffect(() => {
+    if (!menuShown) return;
+    const onKey = (event: globalThis.KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      const focusInside = expandRef.current?.contains(document.activeElement);
+      cancelLeave();
+      setHovering(false);
+      setOpenWhileCollapsed(false);
+      if (focusInside) summaryRef.current?.focus();
+    };
+    const onPress = (event: PointerEvent) => {
+      if (expandRef.current?.contains(event.target as Node)) return;
+      cancelLeave();
+      setHovering(false);
+      setOpenWhileCollapsed(false);
+    };
+    document.addEventListener("keydown", onKey, true);
+    document.addEventListener("pointerdown", onPress, true);
+    return () => {
+      document.removeEventListener("keydown", onKey, true);
+      document.removeEventListener("pointerdown", onPress, true);
+    };
+  }, [menuShown, cancelLeave]);
+
+  /*
+   * The summary's words for keyboard focus, and for a menu that is not showing:
+   * while the menu is up it shows each badge with its own tip, so the summary's
+   * tip steps aside rather than make two surfaces for one thing. The pointer
+   * never opens it, the menu is what a hover opens.
+   */
+  const description = collapsed ? describeBreakdown(breakdown) : null;
+  const { anchor: summaryTip, tip: summaryTipBody } = useTooltip(
+    menuShown ? null : description,
+  );
 
   return (
     /* `data-panel-header` is a stable targeting hook. */
@@ -431,15 +504,41 @@ export function PanelHeader({
         <PanelHeader__Aside>
           {/* A native `<details>` carries an implicit `role="group"`, so an aside's own `getByRole("group")` query must scope to its subtree. */}
           <PanelAsideExpand
+            ref={expandRef}
             data-panel-aside-expand=""
+            data-hovering={collapsed && hovering ? "" : undefined}
             $collapsed={collapsed}
             open={collapsed ? openWhileCollapsed : true}
             onToggle={(e) => {
               // The forced-open inline state is not an operator choice.
-              if (collapsed) setOpenWhileCollapsed(e.currentTarget.open);
+              if (!collapsed) return;
+              setOpenWhileCollapsed(e.currentTarget.open);
+              // The press that closes a pinned menu must not leave the hover holding it open.
+              if (!e.currentTarget.open) setHovering(false);
+            }}
+            onPointerEnter={(e) => {
+              if (!collapsed || e.pointerType === "touch") return;
+              cancelLeave();
+              setHovering(true);
+            }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === "touch") return;
+              cancelLeave();
+              leaveTimer.current = setTimeout(() => {
+                leaveTimer.current = null;
+                setHovering(false);
+              }, MENU_CROSSING_MS);
             }}
           >
+            {/* biome-ignore lint/a11y/noStaticElementInteractions: a summary is natively interactive, which the rule does not know */}
             <summary
+              ref={summaryRef}
+              data-tooltip={summaryTip["data-tooltip"]}
+              onPointerDown={summaryTip.onPointerDown}
+              onPointerUp={summaryTip.onPointerUp}
+              onFocus={summaryTip.onFocus}
+              onBlur={summaryTip.onBlur}
+              aria-description={description ?? undefined}
               aria-label={
                 breakdown.length === 0
                   ? "Panel status and controls"
@@ -457,6 +556,7 @@ export function PanelHeader({
               ))}
               <span data-panel-aside-chevron="" aria-hidden="true" />
             </summary>
+            {summaryTipBody}
             <PanelAsideSizeProvider value={collapsed ? "collapsed" : "full"}>
               <div data-panel-aside-full="" ref={asideFullRef}>
                 {aside}
@@ -1474,11 +1574,14 @@ function PanelSummaryBadge({ summary }: { summary: StatusSummary }) {
       setPulseCount((k) => k + 1);
     }
   }, [summary.severity]);
+  const description = describeBreakdown(useStatusBreakdown());
   return (
     <PanelSummaryBadge__Pulse $pulse={pulseCount}>
-      <Badge tone={summary.severity} size="sm">
-        {summary.label}
-      </Badge>
+      <Tooltip text={description} focusable>
+        <Badge tone={summary.severity} size="sm">
+          {summary.label}
+        </Badge>
+      </Tooltip>
     </PanelSummaryBadge__Pulse>
   );
 }
@@ -1828,9 +1931,11 @@ function PanelRootImpl({
   const statusBadge = summaryDuplicatesABadgePill ? null : summary !== null ? (
     <PanelSummaryBadge summary={summary} />
   ) : streamStatus === null || streamLabel === null ? null : (
-    <Badge tone={severityFromStreamStatus(streamStatus)} size="sm">
-      {streamLabel}
-    </Badge>
+    <Tooltip text={`Telemetry stream: ${streamLabel}`} focusable>
+      <Badge tone={severityFromStreamStatus(streamStatus)} size="sm">
+        {streamLabel}
+      </Badge>
+    </Tooltip>
   );
   /* Prefixed with a plain title, so a change is heard as belonging to a widget. */
   const statusLabel = summary?.label ?? streamLabel;
