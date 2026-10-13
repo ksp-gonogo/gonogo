@@ -166,6 +166,116 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.Contains(rig.Reports, r => r.Kind == JourneyKind.Departed && r.At == Relay);
         }
 
+        private static void BringForward(Rig rig, double factor, double ut)
+        {
+            foreach (var step in rig.Network.PlanBringForward(factor, ut).OrderBy(step => step.Order))
+            {
+                step.Apply();
+            }
+        }
+
+        [Fact]
+        public void LightOnItsWayIsDeliveredAtOnceWhenTheDelayIsSwitchedOff()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Ksc, Probe, light: 20.0);
+            rig.Send(0.0);
+            rig.Tick(5.0);
+            Assert.Empty(rig.Ran);
+
+            BringForward(rig, 0.0, 5.0);
+            rig.Tick(5.5);
+
+            Assert.Equal(1L, rig.Ran.Single().Seq);
+        }
+
+        [Fact]
+        public void LightOnItsWayHasWhatIsLeftOfItsHopScaledWhenTheDelayIsShortened()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Ksc, Probe, light: 20.0);
+            rig.Send(0.0);
+            rig.Tick(10.0);
+
+            // Ten seconds were left; at half the delay five are.
+            BringForward(rig, 0.5, 10.0);
+            rig.Tick(14.9);
+            Assert.Empty(rig.Ran);
+            rig.Tick(15.1);
+
+            Assert.Equal(1L, rig.Ran.Single().Seq);
+        }
+
+        [Fact]
+        public void LightOnItsWayIsLeftAloneWhenTheDelayGrows()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Ksc, Probe, light: 20.0);
+            rig.Send(0.0);
+            rig.Tick(10.0);
+
+            BringForward(rig, 2.0, 10.0);
+            rig.Tick(19.9);
+            Assert.Empty(rig.Ran);
+            rig.Tick(20.1);
+
+            Assert.Single(rig.Ran);
+        }
+
+        [Fact]
+        public void CommandsOnTheirWayAreDeliveredInTheOrderSentWhenTheDelayIsSwitchedOff()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Ksc, Probe, light: 20.0);
+            rig.Send(0.0);
+            rig.Send(1.0);
+            rig.Tick(5.0);
+
+            BringForward(rig, 0.0, 5.0);
+            rig.Tick(5.5);
+
+            Assert.Equal(new long[] { 1, 2 }, rig.Ran.Select(r => r.Seq));
+        }
+
+        [Fact]
+        public void ACopyWaitingAtARelayForAHopThatIsNotOpenIsNotMovedWhenTheDelayIsSwitchedOff()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Ksc, Relay, light: 1.0);
+            rig.Routes.Plan = (from, to, ut) => from == Ksc
+                ? new[] { new PlannedHop(Relay, ut, ut + 1.0), new PlannedHop(Probe, 50.0, 51.0) }
+                : from == Relay ? new[] { new PlannedHop(Probe, Math.Max(ut, 50.0), Math.Max(ut, 50.0) + 1.0) } : null;
+            rig.Send(0.0);
+            rig.RunTo(40.0);
+            Assert.Contains(rig.Network.HeldMessages(), h => h.Node == Relay && h.Message is CommandMessage);
+
+            Assert.Empty(rig.Network.PlanBringForward(0.0, 40.0));
+            BringForward(rig, 0.0, 40.0);
+            rig.RunTo(45.0);
+
+            Assert.Empty(rig.Ran);
+            Assert.Contains(rig.Network.HeldMessages(), h => h.Node == Relay && h.Message is CommandMessage);
+        }
+
+        [Fact]
+        public void ACommandOnTheFirstHopToARelayIsBroughtForwardAndThenWaitsAtTheRelayForTheOpenHop()
+        {
+            var rig = new Rig();
+            rig.Links.Up(Ksc, Relay, light: 30.0);
+            rig.Routes.Plan = (from, to, ut) => from == Ksc
+                ? new[] { new PlannedHop(Relay, ut, ut + 30.0), new PlannedHop(Probe, 100.0, 101.0) }
+                : from == Relay ? new[] { new PlannedHop(Probe, Math.Max(ut, 100.0), Math.Max(ut, 100.0) + 1.0) } : null;
+            rig.Send(0.0);
+            rig.Tick(10.0);
+            Assert.DoesNotContain(rig.Network.HeldMessages(), h => h.Node == Relay);
+
+            BringForward(rig, 0.0, 10.0);
+            rig.Tick(10.5);
+
+            Assert.Contains(rig.Network.HeldMessages(), h => h.Node == Relay && h.Message is CommandMessage);
+            Assert.Empty(rig.Ran);
+        }
+
         [Fact]
         public void AHopCaughtByABreakLeavesTheCommandWithItsSenderWhichWaitsTwoLightTimesBeforeTryingAgain()
         {

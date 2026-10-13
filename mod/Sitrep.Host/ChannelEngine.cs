@@ -9892,7 +9892,8 @@ namespace Sitrep.Host
                 correlation: clientRequestId,
                 label: job.Label ?? "",
                 topic: job.Topic ?? "",
-                craft: string.Equals(node, NodeId, StringComparison.Ordinal) ? _activeCraftId : null);
+                craft: string.Equals(node, NodeId, StringComparison.Ordinal) ? _activeCraftId : null,
+                sendOrder: ++_sendOrder);
             job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a
@@ -10011,10 +10012,11 @@ namespace Sitrep.Host
         /// pending entry of each is brought to the new round trip. A growing delay
         /// changes nothing already sent.
         ///
-        /// <para>Only the live path is brought forward. A command held for want of
-        /// a path stays held, because the delay was removed and the path was not,
-        /// and one passing through store-and-forward keeps the hop times its route
-        /// was planned with.</para>
+        /// <para>Commands on the live path and light on a hop of the relayed path
+        /// are brought forward together, in the order the commands were sent. A
+        /// command held for want of a path, whether at its centre or at a relay
+        /// waiting for a hop that is not yet open, stays held: the delay was
+        /// removed and the path was not.</para>
         /// </summary>
         private void BringForwardWhatTravelsOnAShorterDelay(double ut)
         {
@@ -10026,16 +10028,31 @@ namespace Sitrep.Host
                 return;
             }
 
-            var moved = _courier.BringForward(seen > 0.0 ? factor / seen : 0.0, ut);
-            foreach (var (requestId, _, confirmUt) in moved)
+            var ratio = seen > 0.0 ? factor / seen : 0.0;
+            var steps = _courier.PlanBringForward(ratio, ut).ToList();
+            if (_delivery != null)
             {
-                var entry = _pending.Find(p => string.Equals(p.Id, requestId, StringComparison.Ordinal));
+                steps.AddRange(_delivery.PlanBringForward(ratio, ut));
+            }
+
+            // One send order across the live path and the relayed one.
+            foreach (var step in steps.OrderBy(step => step.Order))
+            {
+                step.Apply();
+                if (!step.Moved)
+                {
+                    continue;
+                }
+                var entry = _pending.Find(p => string.Equals(p.Id, step.RequestId, StringComparison.Ordinal));
                 if (entry != null && entry.LaneSeq == null)
                 {
-                    entry.OneWaySeconds = Math.Max(0.0, (confirmUt - entry.DispatchedAt) / 2.0);
+                    entry.OneWaySeconds = Math.Max(0.0, (step.ConfirmUt - entry.DispatchedAt) / 2.0);
                 }
             }
         }
+
+        // Where the last command sent stands in the order everything was sent in, on the live path and the relayed one alike.
+        private long _sendOrder;
 
         private void PrunePendingUplinks(double ut)
         {

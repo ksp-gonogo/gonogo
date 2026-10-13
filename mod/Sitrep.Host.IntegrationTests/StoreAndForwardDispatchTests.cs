@@ -91,6 +91,43 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Signal delay switched off delivers a command already travelling over the
+        /// held path at once, and the reply home with it, where it would have run
+        /// a light time later. The reply that sets off afterwards takes the hop
+        /// delay the authority holds, which this harness does not fold the switch
+        /// into.
+        /// </summary>
+        [Fact]
+        public void SwitchingDelayOffDeliversACommandTravellingOverTheHeldPathAtOnce()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                OpenRoute(engine);
+                Tick(engine, 0.0);
+                object? result = null;
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op);
+                Tick(engine, 1.0);
+                Assert.Equal(0, uplink.HandledCount);
+
+                using var off = engine.DelayModifiers.Register(0.0, "test: switched off");
+                Tick(engine, 1.5);
+                Tick(engine, 2.0);
+
+                Assert.Equal(1, uplink.HandledCount);
+                Tick(engine, 7.0);
+                Assert.NotNull(result);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public void AHeldCommandThatExpiresReportsAgainstItsCraftAndRefusesItsRequest()
         {

@@ -293,7 +293,8 @@ namespace Sitrep.Core
             string correlation = "",
             string label = "",
             string topic = "",
-            string? craft = null)
+            string? craft = null,
+            long sendOrder = 0)
         {
             if (!_network.Reachable(vantage, node))
             {
@@ -330,7 +331,7 @@ namespace Sitrep.Core
             };
             lock (_commandsGate)
             {
-                pending.Sent = ++_sent;
+                pending.Sent = sendOrder != 0 ? sendOrder : ++_sent;
                 _pendingCommands[requestId] = pending;
             }
 
@@ -1901,65 +1902,93 @@ namespace Sitrep.Core
         ///
         /// <para><paramref name="nowUt"/> is the instant the change takes effect,
         /// which can be ahead of the clock until the tick advances it. A command
-        /// that has run is not run again: only its confirmation
-        /// moves. Returns each moved command's new UTs so the caller can correct
-        /// what it published about them.</para>
+        /// that has run is not run again: only its confirmation moves. Returns each
+        /// moved command's new UTs so the caller can correct what it published
+        /// about them.</para>
         /// </summary>
         public IReadOnlyList<(string RequestId, double ExecuteUt, double ConfirmUt)> BringForward(double remainingFactor, double nowUt)
         {
-            var moved = new List<(string, double, double)>();
+            var plan = PlanBringForward(remainingFactor, nowUt);
+            foreach (var item in plan.OrderBy(p => p.Order))
+            {
+                item.Apply();
+            }
+
+            return plan.Where(p => p.Moved).Select(p => (p.RequestId, p.ExecuteUt, p.ConfirmUt)).ToList();
+        }
+
+        /// <summary>
+        /// What <see cref="BringForward"/> would do, as one step per command on its
+        /// way carrying the order it was sent in. Nothing is moved until a step is
+        /// applied, so a caller that also holds other commands on their way can
+        /// apply the steps of both in one send order.
+        /// </summary>
+        public IReadOnlyList<Retiming> PlanBringForward(double remainingFactor, double nowUt)
+        {
+            var plan = new List<Retiming>();
             if (double.IsNaN(remainingFactor) || remainingFactor >= 1.0)
             {
-                return moved;
+                return plan;
             }
 
             var factor = Math.Max(0.0, remainingFactor);
-            var now = nowUt;
             List<PendingCommand> inOrder;
             lock (_commandsGate)
             {
                 inOrder = _pendingCommands.Values.OrderBy(p => p.Sent).ToList();
             }
 
-            var changed = new List<PendingCommand>();
             foreach (var pending in inOrder)
             {
-                var (execute, confirm) = ScaledLegs(pending, now, factor);
+                var (execute, confirm) = ScaledLegs(pending, nowUt, factor);
 
-                if (execute != pending.ExecuteUt || confirm != pending.ConfirmUt)
+                var moved = execute != pending.ExecuteUt || confirm != pending.ConfirmUt;
+                var target = pending;
+                plan.Add(new Retiming(pending.Sent, pending.RequestId, execute, confirm, moved, () =>
                 {
-                    pending.ExecuteUt = execute;
-                    pending.ConfirmUt = confirm;
-                    changed.Add(pending);
-                }
+                    target.ExecuteUt = execute;
+                    target.ConfirmUt = confirm;
+                    target.CancelExecute?.Invoke();
+                    target.CancelConfirm?.Invoke();
+                    target.CancelExecute = null;
+                    target.CancelConfirm = null;
+                    ScheduleCommand(target);
+                }));
             }
 
-            if (changed.Count == 0)
-            {
-                return moved;
-            }
-
-            // Everything still scheduled is withdrawn and put back in the order
-            // sent, so commands due at the same instant run in that order.
-            foreach (var pending in inOrder)
-            {
-                pending.CancelExecute?.Invoke();
-                pending.CancelConfirm?.Invoke();
-                pending.CancelExecute = null;
-                pending.CancelConfirm = null;
-            }
-
-            foreach (var pending in inOrder)
-            {
-                ScheduleCommand(pending);
-                if (changed.Contains(pending))
-                {
-                    moved.Add((pending.RequestId, pending.ExecuteUt, pending.ConfirmUt));
-                }
-            }
-
-            return moved;
+            return plan;
         }
+    }
+
+    /// <summary>
+    /// One step of bringing what is on its way forward: the order the item was
+    /// sent in, its new times, and the action that puts it on the clock again.
+    /// </summary>
+    public readonly struct Retiming
+    {
+        public Retiming(long order, string requestId, double executeUt, double confirmUt, bool moved, Action apply)
+        {
+            Order = order;
+            RequestId = requestId;
+            ExecuteUt = executeUt;
+            ConfirmUt = confirmUt;
+            Moved = moved;
+            Apply = apply;
+        }
+
+        /// <summary>Where the item stands in the order everything was sent in.</summary>
+        public long Order { get; }
+
+        public string RequestId { get; }
+
+        public double ExecuteUt { get; }
+
+        public double ConfirmUt { get; }
+
+        /// <summary>Whether its times differ from what it had.</summary>
+        public bool Moved { get; }
+
+        public Action Apply { get; }
     }
 
     /// <summary>
