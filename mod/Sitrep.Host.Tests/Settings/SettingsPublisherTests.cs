@@ -49,6 +49,21 @@ namespace Sitrep.Host.Tests.Settings
         private static Dictionary<string, object?> PersistenceOf(SettingsPublisher publisher) =>
             (Dictionary<string, object?>)Model(publisher)["persistence"]!;
 
+        [Theory]
+        [InlineData("true", "True")]
+        [InlineData("FALSE", "False")]
+        [InlineData("True", "True")]
+        public void ABooleanTheFileSpellsInAnyCaseIsPublishedInTheOneSpelling(string stored, string published)
+        {
+            var (store, _) = Store();
+            store.Stage(Enabled, stored);
+            store.Commit();
+
+            var row = Rows(Publisher(store)).Find(r => (string?)r["path"] == Enabled)!;
+
+            Assert.Equal(published, row["value"]);
+        }
+
         private static SaveSettingsArgs Saving(params (string path, string value)[] changes)
         {
             var args = new SaveSettingsArgs();
