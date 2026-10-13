@@ -485,7 +485,7 @@ const FUNNEL_BUDGET: Record<string, number> = {
   "packages/app": 9,
   // Two of these are ShipMap taking the wire's wrapped throttle for the SVG engine-flame gate and the ambient temperature for its CSS colour ramp, both plain-number boundaries.
   // Four more are the touchdown view reading wire quantities into the plain numbers its camera projects with, each at one call in touchdownInputs.ts: the sample arrays (the camera's per-pixel sampler indexes plain numbers), the grid's extent (the world scale of its ray march), and the craft's altitude and the site's elevation (where the camera places the eye and the ground it looks at).
-  "packages/components": 115,
+  "packages/components": 114,
   "packages/data": 5,
   "packages/ui-kit": 8,
 };

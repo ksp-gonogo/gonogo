@@ -58,6 +58,12 @@ function emitSituation(
   fixture.emit("vessel.surface", { landedAt });
 }
 
+/** The innermost element carrying the banked-science readout, whose figure and caption are separate nodes. */
+const banked = (_: string, el: Element | null) =>
+  el !== null &&
+  /1,234.*SCI banked/.test(el.textContent ?? "") &&
+  ![...el.children].some((c) => /SCI banked/.test(c.textContent ?? ""));
+
 describe("ScienceDataComponent", () => {
   afterEach(() => {
     for (const unmount of renderedTrees) unmount();
@@ -103,13 +109,9 @@ describe("ScienceDataComponent", () => {
       career.emit("career.mode", { mode: 1 });
       career.emit("career.status", { balances: { science: 1234 } });
     });
-    await waitFor(() =>
-      expect(screen.getByText(/1234 SCI/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText(banked)).toBeInTheDocument());
     // Not in the header, which folds away at narrow widths.
-    expect(
-      screen.getByText(/1234 SCI/).closest("[data-panel-header]"),
-    ).toBeNull();
+    expect(screen.getByText(banked).closest("[data-panel-header]")).toBeNull();
 
     for (const unmount of renderedTrees) unmount();
     renderedTrees.length = 0;
