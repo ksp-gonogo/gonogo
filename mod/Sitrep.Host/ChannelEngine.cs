@@ -10031,10 +10031,6 @@ namespace Sitrep.Host
             {
                 NoteTopicSubscribed(topic);
                 _emitter.NotifySubscribed(topic);
-                if (topic == UplinksTopic)
-                {
-                    RecordRosterNow();
-                }
             }
 
             var vantage = ObservationVantageFor(topic, VantageOf(session));
@@ -10193,30 +10189,6 @@ namespace Sitrep.Host
                 KeyframeIntervalUt = DeclarationOf(topic)?.Emission?.KeyframeIntervalUt,
             };
             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteEventMsg(ack)));
-        }
-
-        /// <summary>
-        /// Record the uplink roster as it stands now, ahead of a first subscriber's
-        /// catch-up. The roster is only built while something is subscribed, so
-        /// the archive holds the roster from whenever the last subscriber left,
-        /// and a health that changed since (a forced comms blackout, say) would be
-        /// handed to the newcomer as the first thing it reads.
-        /// </summary>
-        private void RecordRosterNow()
-        {
-            var ut = _clock.Now();
-            try
-            {
-                var decision = _emitter.Decide(UplinksTopic, BuildSystemUplinksPayload(null), ut);
-                if (decision.ShouldEmit)
-                {
-                    Emit(UplinksTopic, decision.Value, ut);
-                }
-            }
-            catch (Exception ex)
-            {
-                FailSoftChannel(UplinksTopic, ex);
-            }
         }
 
         /// <summary>
