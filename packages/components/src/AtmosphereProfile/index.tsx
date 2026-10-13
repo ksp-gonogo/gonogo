@@ -58,7 +58,6 @@ function AtmosphereProfileComponent({
   const liveDensity = flight?.atmDensity;
 
   const cols = w ?? 8;
-  const rows = h ?? 8;
   // Shared chart chrome collides at narrow widths; shorten widget-owned labels.
   const narrow = cols < 6;
 
@@ -130,14 +129,19 @@ function AtmosphereProfileComponent({
     (showNoBodyNotice && `Unknown body “${bodyName}”.`) ||
     undefined;
 
-  // The chip only means something in atmosphere, and would obscure a small chart.
-  const chipFits = cols >= 7 && rows >= 6;
   // Narrow: the full title would wrap and steal a chart row.
   const title = narrow ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
   const showLiveChip =
-    chipFits &&
     liveDensity?.greaterThan(value(liveDensity.unit, 1e-9)) === true &&
     body?.hasAtmosphere === true;
+  // The Graph places it: a side column where the frame is wide, a corner card where it is not, nothing where neither fits.
+  const liveChip = showLiveChip ? (
+    <LiveAirChip
+      density={flightReading.atmDensity}
+      airTemp={flightReading.atmosphericTemperature}
+      skinTemp={flightReading.externalTemperature}
+    />
+  ) : undefined;
   return (
     <Fill>
       <Fill grow>
@@ -148,15 +152,9 @@ function AtmosphereProfileComponent({
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title={title}
           notice={notice}
-          plotAside={
-            showLiveChip ? (
-              <LiveAirChip
-                density={flightReading.atmDensity}
-                airTemp={flightReading.atmosphericTemperature}
-                skinTemp={flightReading.externalTemperature}
-              />
-            ) : undefined
-          }
+          plotAside={liveChip}
+          plotOverlay={liveChip}
+          plotOverlayCorner="bottom-left"
           emptyState={
             body
               ? `No atmosphere on ${body.name}`

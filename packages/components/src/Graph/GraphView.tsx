@@ -117,8 +117,12 @@ export interface GraphViewProps {
   h?: number;
   /** What the chart cannot show ("plotting trace only"). The kit places it: over an empty plot with room, beside a wide short one, below the rest. */
   notice?: ReactNode;
-  /** Figures drawn in a column beside the plot, inside its frame, so they take width from the plot instead of covering it. */
+  /** Figures drawn in a column beside the plot, inside its frame, so they take width from the plot instead of covering it. Drawn only where the measured frame is wide enough to spare the column; below that, `plotOverlay` stands in for it. */
   plotAside?: ReactNode;
+  /** The same figures as a fixed card inside the plot, in the `plotOverlayCorner` the plotted data does not reach. Drawn where the frame is too narrow for `plotAside` and still has room for the card; below that, nothing. */
+  plotOverlay?: ReactNode;
+  /** The corner of the plot `plotOverlay` sits in. Defaults to the top right. */
+  plotOverlayCorner?: "top-right" | "top-left" | "bottom-right" | "bottom-left";
 }
 
 /** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
@@ -139,6 +143,8 @@ export function GraphView({
   h,
   notice,
   plotAside,
+  plotOverlay,
+  plotOverlayCorner = "top-right",
 }: GraphViewProps) {
   const series = useMemo(
     () => (config?.series ?? []).map(withDefaults),
@@ -218,6 +224,15 @@ export function GraphView({
     ro.observe(el);
     return () => ro.disconnect();
   }, [resolvedVariant]);
+
+  // Decided from the frame's measured size, never from the grid size: the same tile can be wide or narrow in pixels.
+  const asideFits = area !== null && area.w >= PLOT_ASIDE_MIN_FRAME_WIDTH;
+  const overlayFits =
+    area !== null &&
+    area.w >= PLOT_OVERLAY_MIN_FRAME_WIDTH &&
+    area.h >= PLOT_OVERLAY_MIN_FRAME_HEIGHT;
+  const showAside = plotAside != null && asideFits;
+  const showOverlay = plotOverlay != null && !showAside && overlayFits;
 
   const [fetchedData, setSeriesData] = useState<
     Map<string, SeriesRange<number>>
@@ -427,10 +442,17 @@ export function GraphView({
               height={size.h}
             />
           )}
+          {showOverlay && (
+            <div
+              style={{ ...PLOT_OVERLAY, ...OVERLAY_CORNER[plotOverlayCorner] }}
+            >
+              {plotOverlay}
+            </div>
+          )}
           {/* Inside the frame, so a notice laid over an empty plot leaves the frame the body's only content. */}
           {notices.length > 0 && noticePlacement === "center" && noticeNode}
         </div>
-        {plotAside !== undefined && plotAside !== null && (
+        {showAside && (
           <Box pad="surface" style={PLOT_ASIDE}>
             {plotAside}
           </Box>
@@ -471,6 +493,36 @@ const CHART_BODY: CSSProperties = {
 };
 
 const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0, minWidth: 0 };
+
+/** The frame width at which a side column still leaves the plot a usable width, in CSS px. */
+const PLOT_ASIDE_MIN_FRAME_WIDTH = 520;
+
+/** The smallest frame that holds a corner card without it covering a meaningful part of the plot, in CSS px. */
+const PLOT_OVERLAY_MIN_FRAME_WIDTH = 320;
+const PLOT_OVERLAY_MIN_FRAME_HEIGHT = 180;
+
+const PLOT_OVERLAY: CSSProperties = {
+  position: "absolute",
+  pointerEvents: "none",
+  background: "var(--color-surface-panel)",
+  border: "1px solid var(--color-border-subtle)",
+  borderRadius: "var(--radius-regular)",
+  padding: "var(--inset-chip)",
+};
+
+/*
+ * The chart keeps a margin round its plot for the axis labels (50 px at the sides, 10 at the top and 28 at the bottom), so a corner card is inset by that margin plus a gap to sit inside the plot and not over a label.
+ */
+const OVERLAY_GAP = 8;
+const OVERLAY_CORNER: Record<
+  NonNullable<GraphViewProps["plotOverlayCorner"]>,
+  CSSProperties
+> = {
+  "top-right": { top: 10 + OVERLAY_GAP, right: 50 + OVERLAY_GAP },
+  "top-left": { top: 10 + OVERLAY_GAP, left: 50 + OVERLAY_GAP },
+  "bottom-right": { bottom: 28 + OVERLAY_GAP, right: 50 + OVERLAY_GAP },
+  "bottom-left": { bottom: 28 + OVERLAY_GAP, left: 50 + OVERLAY_GAP },
+};
 
 const PLOT_ASIDE: CSSProperties = {
   flex: "0 0 auto",
