@@ -48,9 +48,9 @@ import { readWireSurface } from "./wire";
  * "Run `uplink-tools docs` and commit the result" would be wrong twice on a
  * developer's machine. It re-rasterises every picture
  * locally, and a picture rendered on the wrong OS is the same mistake as a
- * locally-rendered visual baseline. And `docs` empties the asset directory before
- * it renders, so a run that throws part-way leaves the committed pictures deleted
- * and the shape record intact, which then reads as missing assets.
+ * locally-rendered visual baseline. And `docs` first removes the pictures its previous
+ * run recorded, so a run that throws part-way leaves those committed pictures
+ * deleted and the shape record intact, which then reads as missing assets.
  *
  * The prose half has no such hazard and needs no browser at all, so it is named
  * first and separately: most stale pages are stale in their text.
@@ -64,8 +64,9 @@ const REGENERATE_REMEDY =
   "  (Inside the gonogo repository those are `pnpm uplink-pages` and " +
   "`pnpm uplink-docs`.)\n" +
   "  `uplink-tools docs` regenerates both on THIS machine's rasteriser, " +
-  "and it\n  empties docs/assets before it renders: a run that throws leaves the " +
-  "committed\n  pictures deleted. Recover with `git checkout -- docs/assets`.";
+  "and it\n  first removes the pictures its last run recorded in " +
+  "`.uplink-tools-renders.json`: a run\n  that throws leaves those deleted. " +
+  "Recover with `git checkout -- docs/assets`.";
 
 /**
  * The browser verbs of `uplink-tools`:

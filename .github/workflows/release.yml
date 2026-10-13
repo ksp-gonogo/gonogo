@@ -110,16 +110,17 @@ concurrency:
 
 jobs:
   release:
-    # A packages_only dispatch skips the app release outright, so the escape
-    # hatch for an out-of-band package publish can't be mistaken for, or
-    # accidentally become, a release of the app.
+    # A packages_only, rc or dry_run dispatch skips the app release outright, so
+    # the escape hatch for an out-of-band package publish can't be mistaken for,
+    # or accidentally become, a release of the app, and a dry run never ships
+    # anything.
     #
     # The app ships only once every package has passed its pre-publish gates:
     # a release whose NuGet probe or npm artifact check failed after Pages,
     # GHCR and SpaceDock had moved would leave a released game with no
     # packages to build an Uplink against.
     needs: [ref-guard, packages-probe, nuget-pack]
-    if: ${{ !cancelled() && !(github.event_name == 'workflow_dispatch' && (inputs.packages_only || inputs.rc)) && needs.ref-guard.result == 'success' && needs.packages-probe.result == 'success' && needs.nuget-pack.result == 'success' }}
+    if: ${{ !cancelled() && !(github.event_name == 'workflow_dispatch' && (inputs.packages_only || inputs.rc || inputs.dry_run)) && needs.ref-guard.result == 'success' && needs.packages-probe.result == 'success' && needs.nuget-pack.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
