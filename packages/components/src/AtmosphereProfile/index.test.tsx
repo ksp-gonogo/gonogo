@@ -83,7 +83,7 @@ describe("AtmosphereProfileComponent", () => {
     await waitFor(() => {
       const text = container.textContent ?? "";
       // The chart writes the unit's word, not its symbol, since a chart annotation is read aloud.
-      expect(text).toMatch(/pascals/);
+      expect(text).toMatch(/At [\d.,]+ k?m: /);
     });
     // A marker: where the craft is, with no crossing tone to take.
     expect(

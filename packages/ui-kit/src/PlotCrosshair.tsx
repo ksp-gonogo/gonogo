@@ -275,6 +275,30 @@ export function plotCrosshairShowsCard(
 }
 
 /**
+ * Where {@link PlotCrosshair} draws its readout card, as a box in the plot's
+ * pixels, or `undefined` when it draws none. Useful for a chart that keeps a
+ * fixed card of its own over the plot and must know whether the crosshair's
+ * readout would land on it. Used by the line chart.
+ *
+ * @category LineGraph
+ */
+export function plotCrosshairCardBox(
+  props: Pick<
+    PlotCrosshairProps,
+    "x" | "plot" | "heading" | "rows" | "column" | "traces"
+  >,
+): { x0: number; y0: number; x1: number; y1: number } | undefined {
+  const { layout, place } = resolveCard(props);
+  if (place === undefined) return undefined;
+  return {
+    x0: place.cardX,
+    y0: place.cardY,
+    x1: place.cardX + layout.cardW,
+    y1: place.cardY + layout.cardH,
+  };
+}
+
+/**
  * A crosshair for an SVG plot: a vertical line at an instant, a dot on each
  * trace where it is read, and a readout of every row's exact value. Useful for
  * letting the operator read the exact figure of each trace at a moment on a

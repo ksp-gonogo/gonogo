@@ -22,7 +22,7 @@ import { AtmosphereProfileComponent } from "./index";
  * pressure line stays on the held altitude and wears the held mark.
  */
 
-const PRESSURE_LINE = /At 6 km: [\d.]+ kilopascals/;
+const PRESSURE_LINE = /At 6 km: [\d.]+ kPa/;
 
 function heldMark(container: HTMLElement): Element | null {
   return container.querySelector("text [data-held-mark]");

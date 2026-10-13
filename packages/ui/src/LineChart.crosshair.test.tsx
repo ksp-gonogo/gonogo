@@ -195,7 +195,9 @@ describe("LineChart crosshair", () => {
     const card = container.querySelector("[data-plot-crosshair-card]");
     expect(card?.textContent).toContain("Altitude");
     expect(card?.textContent).toContain("Speed");
-    expect(card?.textContent).toContain("measured");
+    // A measurement is the unremarkable case and is never spelled out; a state that differs is.
+    expect(card?.textContent).not.toContain("measured");
+    expect(card?.textContent).toContain("modelled");
     expect(card?.textContent).not.toContain("\u2026");
   });
 

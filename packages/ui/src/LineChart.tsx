@@ -8,6 +8,7 @@ import {
   PlotCrosshair,
   type PlotCrosshairRow,
   placePlotReadouts,
+  plotCrosshairCardBox,
   plotCrosshairShowsCard,
   ReckoningMarkSvg,
   reckoningBasisPhrase,
@@ -127,6 +128,8 @@ interface ThresholdRuleBase {
   /** `"primary"` when omitted. */
   axis?: "primary" | "secondary";
   label?: string;
+  /** The label as a screen reader should hear it, with units spelled out. `label` when omitted. */
+  spokenLabel?: string;
   /** What the line was drawn from. A held one marks the label, and one a model carried is marked as modelled; the chart's accessible name says which. */
   reading?: UnitValue;
 }
@@ -230,6 +233,8 @@ export interface LineChartProps {
    * axis span, so a trace is silent where the craft never was.
    */
   xKind?: "time" | "value";
+  /** Writes an x for the crosshair's heading and announcement, when it should differ from a tick label. Defaults to `xTickFormat`. */
+  xReadFormat?: (value: number, domain: readonly [number, number]) => string;
   /** Names the x axis, with its unit, under the tick labels. Not drawn on a spatial plot or with `hideXAxis`. */
   xAxisLabel?: string;
   /** Names the primary y axis, with its unit, up the left edge. */
@@ -413,6 +418,7 @@ export function LineChart({
   "aria-label": ariaLabel,
   crosshair = false,
   xKind = "time",
+  xReadFormat,
   xAxisLabel,
   yAxisLabel,
   ySecondaryAxisLabel,
@@ -837,6 +843,7 @@ export function LineChart({
       return {
         id: t.id,
         label: t.label,
+        spokenLabel: t.spokenLabel,
         value: t.value,
         kind: t.kind,
         passed,
@@ -1057,7 +1064,7 @@ export function LineChart({
 
   // Tone is not a channel a screen reader has either, so a passed limit and a reached target each say so.
   const thresholdClauses = thresholdLines.flatMap((t) => {
-    const name = t.label ?? t.id;
+    const name = t.spokenLabel ?? t.label ?? t.id;
     const clauses: string[] = [];
     if (t.passed && t.kind === "limit") clauses.push(`${name}: limit passed`);
     if (t.passed && t.kind === "target")
@@ -1065,15 +1072,16 @@ export function LineChart({
     if (t.currency.held) clauses.push(sayHeld(name, t.currency.caption));
     // A label with no room to be drawn is still said.
     if (t.label && !labelPlaces.get(t.id) && clauses.length === 0)
-      clauses.push(t.label);
+      clauses.push(t.spokenLabel ?? t.label);
     return clauses;
   });
 
+  // What differs from a plain measured chart: the one thing a hover has to say, since the accessible name already says the rest.
+  const stateClauses = [...reckonedClauses, ...thresholdClauses];
   const chartLabel = [
     ariaLabel ?? "Telemetry line chart",
     ...plotLayerDescriptions(layers ?? []),
-    ...reckonedClauses,
-    ...thresholdClauses,
+    ...stateClauses,
   ].join("; ");
 
   const crosshairSeries = useMemo(
@@ -1110,7 +1118,8 @@ export function LineChart({
           isBand && sample.y2 !== undefined
             ? `${write(sample.y)} to ${write(sample.y2)}`
             : write(sample.y),
-        currency: sample.currency,
+        // A measurement is the unremarkable case and is not written out; only a state that differs from it is.
+        currency: sample.currency === "measured" ? undefined : sample.currency,
         modelled: sample.currency === "modelled",
         y: isBand ? undefined : scaleY(sample.y),
       };
@@ -1133,7 +1142,7 @@ export function LineChart({
         });
       }
     }
-    return { heading: xTickFormat(at, xDomain), rows };
+    return { heading: (xReadFormat ?? xTickFormat)(at, xDomain), rows };
   }
 
   function sayReading(at: number): string {
@@ -1199,6 +1208,30 @@ export function LineChart({
       column,
       traces: cardTraces,
     });
+
+  /*
+   * The readout takes a corner clear of the fixed card when one exists. Where
+   * the one it takes lands on the card, the card gives way for as long as the
+   * crosshair is up, so what the operator points at is never covered.
+   */
+  const crosshairRect =
+    crosshairReading !== null && cursorAt !== null
+      ? plotCrosshairCardBox({
+          x: scaleX(cursorAt),
+          plot: { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
+          heading: crosshairReading.heading,
+          rows: crosshairReading.rows,
+          column,
+          traces: cardTraces,
+        })
+      : undefined;
+  const cardYields =
+    cardBox !== undefined &&
+    crosshairRect !== undefined &&
+    crosshairRect.x0 < cardBox.x1 &&
+    crosshairRect.x1 > cardBox.x0 &&
+    crosshairRect.y0 < cardBox.y1 &&
+    crosshairRect.y1 > cardBox.y0;
 
   function timeAtPointer(e: React.PointerEvent<SVGSVGElement>): number | null {
     const box = e.currentTarget.getBoundingClientRect();
@@ -1332,7 +1365,6 @@ export function LineChart({
           : {}),
       }}
     >
-      <title>{chartLabel}</title>
       {layers && layers.length > 0 && (
         <defs>
           <clipPath id={layerClipId}>
@@ -1340,6 +1372,8 @@ export function LineChart({
           </clipPath>
         </defs>
       )}
+      {/* A hover only where a mark needs one: a held or modelled figure says why, and a chart with nothing to say draws no native tooltip. */}
+      {stateClauses.length > 0 && <title>{stateClauses.join("; ")}</title>}
       <rect
         x={plotX0}
         y={plotY0}
@@ -1800,7 +1834,7 @@ export function LineChart({
         position: "absolute",
         left: cardBox?.x0 ?? 0,
         top: cardBox?.y0 ?? 0,
-        visibility: cardBox ? "visible" : "hidden",
+        visibility: cardBox && !cardYields ? "visible" : "hidden",
         pointerEvents: "none",
         width: "max-content",
         padding: "var(--gap-line) var(--gap-related)",

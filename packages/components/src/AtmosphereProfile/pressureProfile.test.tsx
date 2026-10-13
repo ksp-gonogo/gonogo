@@ -120,10 +120,10 @@ describe("AtmosphereProfile: the pressure curve is the game's, not a model", () 
     });
 
     await waitFor(() => {
-      expect(visibleText(container)).toMatch(/pascals/);
+      expect(visibleText(container)).toMatch(/At [\d.,]+ k?m: /);
     });
     const text = visibleText(container);
-    expect(text).toMatch(/54(\.0+)? kilopascals/);
-    expect(text).not.toMatch(/41(\.\d+)? kilopascals/);
+    expect(text).toMatch(/54(\.0+)? kPa/);
+    expect(text).not.toMatch(/41(\.\d+)? kPa/);
   });
 });

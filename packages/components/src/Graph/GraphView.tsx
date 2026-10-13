@@ -22,6 +22,7 @@ import {
   Section,
   speakQuantity,
   Text,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
@@ -47,7 +48,7 @@ import {
   resolvePanelTitle,
 } from "./header";
 import { buildLiveSeries } from "./liveSeries";
-import { formatNumericTick, unitTick } from "./ticks";
+import { formatNumericTick, unitTick, writeThreeFigures } from "./ticks";
 import type {
   ComputedSeries,
   GraphThreshold,
@@ -89,8 +90,11 @@ function thresholdRuleOf(
       ? { kind: line.kind, bad: line.bad }
       : { kind: line.kind }),
     axis: line.axis,
-    // The unit's word rather than its symbol: a chart annotation is read aloud.
-    label: [line.label, speakQuantity(shown)].filter(Boolean).join(": "),
+    // Drawn with the unit's symbol like every other figure on the chart, and read aloud with its word.
+    label: [line.label, shown ? writeThreeFigures(shown) : undefined]
+      .filter(Boolean)
+      .join(": "),
+    spokenLabel: [line.label, speakQuantity(shown)].filter(Boolean).join(": "),
     reading: "state" in line.value ? line.value : undefined,
   };
 }
@@ -404,6 +408,18 @@ export function GraphView({
     return (v: number) => formatNumericTick(v, xMeta?.unit);
   }
   const xTickFormat = resolveXTickFormat();
+  // The crosshair's heading writes the x with the same unit vocabulary as the rest of the chart: a symbol after a space, at the kit's own precision.
+  const xReadUnit = xPinned ? config?.xUnit : xMeta?.unit;
+  const xReadFormat =
+    xIsTime || !xReadUnit || xReadUnit === "raw"
+      ? undefined
+      : (v: number) => {
+          try {
+            return writeQuantity({ magnitude: v, unit: xReadUnit });
+          } catch {
+            return formatNumericTick(v, xReadUnit);
+          }
+        };
 
   const yTickFormat = config?.yUnit
     ? (v: number, ticks?: readonly number[]) =>
@@ -540,6 +556,7 @@ export function GraphView({
               series={chartSeries}
               xDomain={xDomain}
               xTickFormat={xTickFormat}
+              xReadFormat={xReadFormat}
               yDomainPrimary={config?.yDomainPrimary}
               yDomainSecondary={config?.yDomainSecondary}
               yScalePrimary={config?.yScalePrimary}

@@ -507,6 +507,7 @@ export {
   PlotCrosshair,
   type PlotCrosshairProps,
   type PlotCrosshairRow,
+  plotCrosshairCardBox,
   plotCrosshairShowsCard,
 } from "./PlotCrosshair";
 export {

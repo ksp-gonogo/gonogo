@@ -86,3 +86,17 @@ export function formatNumericTick(v: number, unit?: string): string {
   const text = numericTickText(v);
   return unit ? `${text}${unit}` : text;
 }
+
+/** A quantity written to three significant figures, in the unit the kit settles on for its size: "478 Pa", "37.3 kPa", "1.21 kPa". A reading derived from a model carries no more than that. */
+export function writeThreeFigures(quantity: {
+  magnitude: number;
+  unit: string;
+}): string {
+  const probe = partsOf(writeQuantity(quantity, { decimals: 3 }));
+  const lead = Math.abs(probe.figure);
+  const decimals =
+    Number.isFinite(lead) && lead > 0
+      ? Math.max(0, 2 - Math.floor(Math.log10(lead)))
+      : 0;
+  return writeQuantity(quantity, { decimals });
+}

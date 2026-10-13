@@ -82,7 +82,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
     expect(visibleText(container)).not.toContain("Unknown body");
     expect(visibleText(container)).not.toContain("Density");
     // No current-pressure threshold: only its label renders the spelled-out unit.
-    expect(visibleText(container)).not.toMatch(/pascals/);
+    expect(visibleText(container)).not.toMatch(/At [\d.,]+ k?m: /);
   });
 
   it("takes a body the bundled table has never heard of as known, because the stream described it", async () => {
@@ -145,7 +145,7 @@ describe("AtmosphereProfile: what undefined means today", () => {
         container.querySelectorAll("path[stroke-dasharray]").length,
       ).toBeGreaterThan(0);
     });
-    expect(visibleText(container)).not.toMatch(/pascals/);
+    expect(visibleText(container)).not.toMatch(/At [\d.,]+ k?m: /);
 
     // With an altitude the marker draws: the missing field is the only cause.
     act(() => {
@@ -155,7 +155,9 @@ describe("AtmosphereProfile: what undefined means today", () => {
         { validAt: 1, seq: 1, deliveredAt: 1 },
       );
     });
-    await waitFor(() => expect(visibleText(container)).toMatch(/pascals/));
+    await waitFor(() =>
+      expect(visibleText(container)).toMatch(/At [\d.,]+ k?m: /),
+    );
   });
 
   it("suppresses the whole HUD chip when the flight record has no density", async () => {
@@ -172,7 +174,9 @@ describe("AtmosphereProfile: what undefined means today", () => {
       });
     });
 
-    await waitFor(() => expect(visibleText(container)).toMatch(/pascals/));
+    await waitFor(() =>
+      expect(visibleText(container)).toMatch(/At [\d.,]+ k?m: /),
+    );
     expect(visibleText(container)).not.toContain("Density");
     expect(visibleText(container)).not.toContain("Air");
     expect(visibleText(container)).not.toContain("Skin");

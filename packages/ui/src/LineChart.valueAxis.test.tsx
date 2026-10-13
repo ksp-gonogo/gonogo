@@ -239,3 +239,90 @@ describe("a fixed card", () => {
     expect(cardOf(container)?.style.visibility ?? "hidden").toBe("hidden");
   });
 });
+
+describe("a plain measured chart", () => {
+  it("draws no native tooltip, and keeps its accessible name", () => {
+    const { container } = render(chart({ series: [flown] }));
+    expect(container.querySelector("svg > title")).toBeNull();
+    expect(container.querySelector("svg")?.getAttribute("aria-label")).toBe(
+      "Telemetry line chart",
+    );
+  });
+});
+
+describe("the fixed card against the crosshair readout", () => {
+  const sizes = Object.getOwnPropertyDescriptors(HTMLElement.prototype);
+  let restoreObserver: () => void = () => {};
+  beforeEach(() => {
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", {
+      configurable: true,
+      get() {
+        return this.hasAttribute("data-plot-card") ? 90 : 0;
+      },
+    });
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      get() {
+        return this.hasAttribute("data-plot-card") ? 44 : 0;
+      },
+    });
+    restoreObserver = installFixedSizeResizeObserver({
+      width: 400,
+      height: 300,
+    });
+  });
+  afterEach(() => {
+    Object.defineProperty(
+      HTMLElement.prototype,
+      "offsetWidth",
+      sizes.offsetWidth,
+    );
+    Object.defineProperty(
+      HTMLElement.prototype,
+      "offsetHeight",
+      sizes.offsetHeight,
+    );
+    restoreObserver();
+  });
+
+  const falling: ChartSeries = {
+    id: "p",
+    label: "Pressure",
+    axis: "primary",
+    color: "#4af",
+    data: { x: [0, 40_000], y: [100, 1] },
+  };
+
+  it("stays up when the readout has a corner of its own, and gives way when it does not", () => {
+    // Wide: the readout has room in a column beside the plot, so the card stays.
+    const wide = render(
+      chart({ series: [falling], width: 760, card: <span>air</span> }),
+    );
+    const wideSvg = wide.container.querySelector("svg") as SVGSVGElement;
+    act(() => wideSvg.focus());
+    const wideCard = wide.container.querySelector(
+      "[data-plot-card]",
+    ) as HTMLElement;
+    expect(wideCard.style.visibility).toBe("visible");
+    wide.unmount();
+
+    // Small: the readout has no corner clear of the card, so the card yields while the crosshair is up and returns when it leaves.
+    const small = render(
+      chart({
+        series: [falling],
+        width: 260,
+        height: 200,
+        card: <span>air</span>,
+      }),
+    );
+    const card = small.container.querySelector(
+      "[data-plot-card]",
+    ) as HTMLElement;
+    const svg = small.container.querySelector("svg") as SVGSVGElement;
+    expect(card.style.visibility).toBe("visible");
+    act(() => svg.focus());
+    expect(card.style.visibility).toBe("hidden");
+    fireEvent.keyDown(svg, { key: "Escape" });
+    expect(card.style.visibility).toBe("visible");
+  });
+});

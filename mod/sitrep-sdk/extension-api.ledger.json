@@ -15001,6 +15001,10 @@
         "note": "one kit placement for the crosshair card, the legend and the limit or target captions"
       },
       {
+        "key": "ui-kit . plotCrosshairCardBox",
+        "note": "says where the crosshair card is drawn, so a chart with a fixed card of its own can give way when the readout would land on it"
+      },
+      {
         "key": "ui-kit . plotCrosshairShowsCard",
         "note": "says whether the crosshair card has room on a plot, so a chart can hand its legend corner to the card"
       },
