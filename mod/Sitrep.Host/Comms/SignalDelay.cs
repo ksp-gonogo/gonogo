@@ -103,6 +103,24 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
+        /// <see cref="Compute"/> for a craft's own route home: a craft with no
+        /// route reads as no path whether delay is on or switched off, so a dark
+        /// craft is never reported as a delay of zero. The one case that stays a
+        /// known zero without a route is a save with no comms network, where
+        /// every craft is connected.
+        /// </summary>
+        public static CommsDelay ComputeForCraft(SignalDelayConfig? config, CommsPath? path, string source)
+        {
+            var switchedOff = config != null && !config.Enabled && !config.CutForNoCommsModel;
+            if (switchedOff && (path?.Hops == null || path.Hops.Count == 0))
+            {
+                return NoPath(new PayloadMeta { Source = source ?? "" });
+            }
+
+            return Compute(config, path, source);
+        }
+
+        /// <summary>
         /// Compute <c>comms.delay</c> from the elected backend's hop geometry.
         /// TRUE-NOW sim-meta (§1): the returned value drives the delay of every
         /// other channel and is itself never delay-gated.

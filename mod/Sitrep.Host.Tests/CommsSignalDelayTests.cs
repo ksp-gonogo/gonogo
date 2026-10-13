@@ -23,6 +23,47 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void FlagOff_ACraftWithNoRouteReadsAsNoPath()
+        {
+            foreach (var path in new[] { null, new CommsPath(), new CommsPath { Hops = new List<CommsHop>() } })
+            {
+                var result = SignalDelay.ComputeForCraft(SignalDelayConfig.Off(), path, "vessel:x");
+
+                Assert.Null(result.OneWaySeconds);
+                Assert.Equal(CommsDelaySource.None, result.Source);
+                Assert.Equal("vessel:x", result.Meta.Source);
+            }
+        }
+
+        [Fact]
+        public void FlagOff_ACraftWithARouteStillReadsAsAKnownZero()
+        {
+            var result = SignalDelay.ComputeForCraft(SignalDelayConfig.Off(), PathWith(1.0e9), "vessel:x");
+
+            Assert.Equal(0.0, result.OneWaySeconds);
+        }
+
+        [Fact]
+        public void FlagOnAndOff_AgreeOnACraftWithNoRoute()
+        {
+            var on = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
+
+            Assert.Null(SignalDelay.ComputeForCraft(on, new CommsPath(), "s").OneWaySeconds);
+            Assert.Null(SignalDelay.ComputeForCraft(SignalDelayConfig.Off(), new CommsPath(), "s").OneWaySeconds);
+        }
+
+        [Fact]
+        public void NoCommsModel_StaysAKnownZeroWithNoRoute()
+        {
+            var cut = new SignalDelayConfig { Enabled = false, CutForNoCommsModel = true };
+
+            var result = SignalDelay.ComputeForCraft(cut, new CommsPath(), "s");
+
+            Assert.Equal(0.0, result.OneWaySeconds);
+            Assert.Equal(CommsDelaySource.NoCommsModel, result.Source);
+        }
+
+        [Fact]
         public void FlagOff_YieldsZeroDelayWithSourceNone()
         {
             var result = SignalDelay.Compute(SignalDelayConfig.Off(), PathWith(1.0e9), "vessel:x");

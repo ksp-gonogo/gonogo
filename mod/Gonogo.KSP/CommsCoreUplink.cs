@@ -730,7 +730,7 @@ namespace Gonogo.KSP
             // comms.delay itself must see every modifier the currency deadline
             // and the fleet's light-time see, or the gate holds telemetry for a
             // delay the rest of the board has already dropped.
-            return SignalDelay.Compute(
+            return SignalDelay.ComputeForCraft(
                 SignalDelayConfig,
                 path,
                 SourceOf(active));
@@ -859,7 +859,7 @@ namespace Gonogo.KSP
                 }
 
                 var path = backend.Path(active);
-                var delay = SignalDelay.Compute(
+                var delay = SignalDelay.ComputeForCraft(
                     SignalDelayConfig,
                     path,
                     SourceOf(active));
