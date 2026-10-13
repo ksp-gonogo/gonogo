@@ -126,7 +126,7 @@ namespace Sitrep.Host.IntegrationTests
         /// lost its link. The command is accepted and goes as live, because that is
         /// all the centre knows. The light is lost. The centre learns of it when
         /// twice the signal delay has passed with nothing back, and no sooner, and
-        /// sends the command again at the time its loss report named.
+        /// sends the command again once it next hears from the relay.
         /// </summary>
         [Fact]
         public async Task ACommandSentOnTheCentresBeliefGoesAsLiveAndTheTruthComesHomeNoSoonerThanLight()
@@ -171,10 +171,8 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(T0 + (2.0 * light), held.AtUt, 3);
             Assert.Single(Pending(world));
 
-            var lost = Journey(world).Single(e => e.Kind == JourneyEventKind.LostOnLanding);
-            Assert.NotNull(lost.UntilUt);
-
-            // The relay is back before the wait ends, and the copy sent then lands.
+            // The relay is back, and dumps what it recorded. That reaches home a
+            // light time later, and the command goes again.
             var back = T0 + (2.0 * light) + 100.0;
             world.Tick(back - 1.0);
             world.Game.RelayConnected = true;
@@ -183,14 +181,13 @@ namespace Sitrep.Host.IntegrationTests
             {
                 world.Tick(ut);
             }
-            Assert.True(back < lost.UntilUt!.Value, "the wait ended before the relay was back");
-            Assert.Equal(0, world.Uplink.HandledCount);
+            Assert.DoesNotContain(Journey(world), e => e.Kind == JourneyEventKind.Departed);
 
             foreach (var ut in new[] { back + real + 1.0, back + (2.0 * real) + 2.0 })
             {
                 world.Tick(ut);
             }
-            Assert.DoesNotContain(Journey(world), e => e.Kind == JourneyEventKind.Departed);
+            Assert.Contains(Journey(world), e => e.Kind == JourneyEventKind.Departed);
             Assert.Equal(1, world.Uplink.HandledCount);
             Assert.Null(result);
 

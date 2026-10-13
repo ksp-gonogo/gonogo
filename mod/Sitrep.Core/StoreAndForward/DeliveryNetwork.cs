@@ -224,8 +224,6 @@ namespace Sitrep.Core.StoreAndForward
         private readonly Dictionary<string, double> _spanSweepUt = new Dictionary<string, double>(StringComparer.Ordinal);
         // The instant a wake last looked over everything each node holds.
         private readonly Dictionary<string, double> _wakeSweepUt = new Dictionary<string, double>(StringComparer.Ordinal);
-        // The instant news of each node last reached each centre.
-        private readonly Dictionary<(string Centre, string Node), double> _lastHeardUt = new Dictionary<(string, string), double>();
         private readonly IDeliveryRoutes _routes;
         private readonly ISenderPlans? _beliefs;
         private readonly Func<CommandMessage, double, object?> _execute;
@@ -309,28 +307,18 @@ namespace Sitrep.Core.StoreAndForward
         /// News of <paramref name="node"/> has reached <paramref name="centre"/>:
         /// whatever the centre holds that was caught on its way there may be
         /// tried again. Hearing from a node is the one sign a centre gets that
-        /// the node is listening, but only after a silence: a copy lost on
-        /// landing goes again early only when the node had gone unheard for at
-        /// least the wait that loss started, and a node heard all along leaves
-        /// the wait to run.
+        /// the node is listening.
         /// </summary>
         public void Heard(string centre, string node)
         {
             lock (_gate)
             {
-                var now = _clock.Now();
-                var silence = _lastHeardUt.TryGetValue((centre, node), out var lastUt) ? now - lastUt : double.PositiveInfinity;
-                _lastHeardUt[(centre, node)] = now;
                 if (!_held.TryGetValue(centre, out var list))
                 {
                     return;
                 }
                 foreach (var held in list)
                 {
-                    if (held.Losses > 0 && silence < held.RetryExcludedUt - held.EligibleUt)
-                    {
-                        continue;
-                    }
                     held.Excluded?.Remove(node);
                 }
             }
@@ -895,7 +883,6 @@ namespace Sitrep.Core.StoreAndForward
                 _sentCommands.Clear();
                 _leftSender.Clear();
                 _wakeSweepUt.Clear();
-                _lastHeardUt.Clear();
                 ResetRetargets();
             }
         }
@@ -1392,11 +1379,8 @@ namespace Sitrep.Core.StoreAndForward
                     continue;
                 }
                 var destination = message is CancelMessage c && c.TargetNode != null ? c.TargetNode : message.Destination;
-                if (held.Excluded != null && held.ExcludedAtPlan == _planVersion && nowUt >= held.RetryExcludedUt)
-                {
-                    held.RetryAnnounced = held.Losses > 0;
-                }
-                if (held.ExcludedAtPlan != _planVersion || nowUt >= held.RetryExcludedUt)
+                if (held.ExcludedAtPlan != _planVersion
+                    || (held.Excluded != null && nowUt >= held.RetryExcludedUt && !IsItsOwnCentre(node, message)))
                 {
                     held.Excluded = null;
                 }
@@ -1699,12 +1683,10 @@ namespace Sitrep.Core.StoreAndForward
             {
                 _leftSender.Add(sent.Id);
             }
-            // A copy sent again when its loss report said it would be is not reported a second time.
-            if (held.ReportedHeld && !held.RetryAnnounced && held.Message is CommandMessage command)
+            if (held.ReportedHeld && held.Message is CommandMessage command)
             {
                 Report(node, command, JourneyKind.Departed, nowUt, detail: RetargetDetail(node, to, nowUt), until: nowUt + (expectedLight ?? light));
             }
-            held.RetryAnnounced = false;
             var retargeted = IsRetargetedFlight(node, to);
             NoteLaunched(node, held, nowUt);
             var flight = new Flight(held.Message, node, to, nowUt, nowUt + light, endToEnd) { CameFrom = held.CameFrom, Custody = held, ToDish = toDish, Retargeted = retargeted };
@@ -1767,10 +1749,10 @@ namespace Sitrep.Core.StoreAndForward
             held.EligibleUt = atUt;
             (held.Excluded ??= new HashSet<string>(StringComparer.Ordinal)).Add(to);
             held.ExcludedAtPlan = _planVersion;
-            /* Every node, the sending centre included, tries the hop again after a
-               wait that doubles with each loss: nothing tells a node the link is
-               back. A plan change ends the wait sooner, and so does news of the
-               node after a silence as long as the wait (see Heard). */
+            // A craft or relay holding a copy that lost light tries the hop again
+            // after a wait that doubles with each loss: nothing will tell it the
+            // link is back, and the plan does not change for a craft that holds
+            // still. A command centre keeps to what it has heard instead.
             held.Losses++;
             var wait = Math.Max(MinRetrySeconds, atUt - held.LaunchedUt) * Math.Pow(2.0, Math.Min(held.Losses - 1, 16));
             held.RetryExcludedUt = atUt + Math.Min(MaxRetrySeconds, wait);
@@ -1785,19 +1767,19 @@ namespace Sitrep.Core.StoreAndForward
                 ReportLostOnLanding(node, held, lostCommand, to, atUt);
             }
             Depart(node, atUt);
-            if (held.Away == null && list.Contains(held))
-            {
-                WakeAt(node, held, held.RetryExcludedUt, atUt);
-            }
         }
 
-        /// <summary>Tells the centre a copy it was sent on never landed, and when the node holding it sends it again.</summary>
+        /// <summary>
+        /// Tells the centre a copy it was sent on never landed. A node other than
+        /// the sending centre names the time its wait ends; a centre goes by its own
+        /// plan alone, so nothing but a new plan sends it again and no time is named.
+        /// </summary>
         private void ReportLostOnLanding(string node, Held held, CommandMessage command, string to, double atUt)
         {
             var own = IsItsOwnCentre(node, command);
             var detail = "copy " + held.Losses + " lost on its way to " + to
-                + (own ? "; it is sent again when its wait ends or its plan changes" : "");
-            Report(node, command, JourneyKind.LostOnLanding, atUt, detail: detail, until: held.RetryExcludedUt);
+                + (own ? "; it is sent again when its plan changes" : "");
+            Report(node, command, JourneyKind.LostOnLanding, atUt, detail: detail, until: own ? (double?)null : held.RetryExcludedUt);
         }
 
         private static bool IsExcluded(Held held, string to) => held.Excluded != null && held.Excluded.Contains(to);
@@ -2092,9 +2074,6 @@ namespace Sitrep.Core.StoreAndForward
 
             /// <summary>How many times a hop has lost this copy's light, which lengthens the wait to try again.</summary>
             public int Losses { get; set; }
-
-            /// <summary>Whether this copy is leaving at the time its last loss report named, so leaving says nothing new.</summary>
-            public bool RetryAnnounced { get; set; }
 
             /// <summary>When this copy last left.</summary>
             public double LaunchedUt { get; set; }

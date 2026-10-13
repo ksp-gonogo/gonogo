@@ -54,13 +54,6 @@ namespace Gonogo.KSP
         private static float _lastPollRealtime = float.MinValue;
         private static bool? _cachedMode;
         private static bool _everLogged;
-        private static volatile bool _forcingBlackout;
-
-        /// <summary>
-        /// Whether the last poll found a blackout forced. Read from any thread
-        /// without polling, so the Uplink's health can say so off the main thread.
-        /// </summary>
-        internal static bool ForcingBlackout => _forcingBlackout;
 
         /// <summary>
         /// <c>null</c> = no override, use the real elected backend's
@@ -150,18 +143,10 @@ namespace Gonogo.KSP
 
             if (!_everLogged || resolved != _cachedMode)
             {
-                if (resolved == false)
-                {
-                    Debug.LogWarning(LogPrefix + "mode -> " + DescribeMode(resolved) + ", from " + RequestPath + "; every craft reads out of contact until the request is set to restore");
-                }
-                else
-                {
-                    Debug.Log(LogPrefix + "mode -> " + DescribeMode(resolved));
-                }
+                Debug.Log(LogPrefix + "mode -> " + DescribeMode(resolved));
                 _everLogged = true;
             }
             _cachedMode = resolved;
-            _forcingBlackout = resolved == false;
         }
 
         /// <summary>

@@ -926,8 +926,7 @@ namespace Gonogo.KSP
         public UplinkHealth Health() =>
             CommsHealth.Evaluate(
                 _kernel != null && CommsElection.Elected(_kernel) != null,
-                CommsModelPresent,
-                DevCommsOverride.ForcingBlackout);
+                CommsModelPresent);
 
         /// <summary>Plain cross-thread payload bundle: no live KSP references.</summary>
         private sealed class CommsCapture

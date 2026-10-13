@@ -24,15 +24,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void ReportsDegraded_WhileDevToolsForceABlackout()
-        {
-            var health = CommsHealth.Evaluate(backendElected: true, modelPresent: true, forcedBlackout: true);
-
-            Assert.Equal(UplinkHealthState.Degraded, health.State);
-            Assert.Contains("force-comms-request.cfg", health.Detail);
-        }
-
-        [Fact]
         public void ReportsHealthy_OnceABackendIsElected()
         {
             var health = CommsHealth.Evaluate(backendElected: true);
