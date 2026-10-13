@@ -124,7 +124,7 @@ export type ContractParameterTargetState = "Complete" | "Failed";
  */
 export interface ContractParameterTrigger {
   kind: "contract-parameter";
-  contractId: number;
+  contractId: string;
   /** Parameter title as emitted on `contracts.active[].parameters[].title`. */
   parameterTitle: string;
   /** State the parameter must reach. Default "Complete". */
@@ -502,7 +502,7 @@ export function parseTrigger(raw: unknown): AlarmTrigger | null {
   }
   if (t.kind === "contract-parameter") {
     if (
-      typeof t.contractId !== "number" ||
+      typeof t.contractId !== "string" ||
       typeof t.parameterTitle !== "string" ||
       (t.targetState !== "Complete" && t.targetState !== "Failed") ||
       typeof t.sustainSeconds !== "number"
