@@ -2,6 +2,7 @@ import type { UplinkHealthStateName } from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import {
   connectionCheck,
+  isThisComputer,
   needsAttention,
   relayCheck,
   uplinksCheck,
@@ -136,5 +137,31 @@ describe("uplinksCheck: Uplinks that ship no client", () => {
       state: "pass",
       text: say("uplinks.check.allWorking", { installed: 3 }),
     });
+  });
+});
+
+describe("isThisComputer", () => {
+  it("is true for the names that mean this computer", () => {
+    for (const host of [
+      "localhost",
+      "LOCALHOST",
+      "127.0.0.1",
+      "127.1.2.3",
+      "::1",
+      "[::1]",
+    ]) {
+      expect(isThisComputer(host), host).toBe(true);
+    }
+  });
+
+  it("is false for an address on the network", () => {
+    for (const host of [
+      "192.168.1.20",
+      "10.0.0.4",
+      "deck.local",
+      "1270.0.0.1",
+    ]) {
+      expect(isThisComputer(host), host).toBe(false);
+    }
   });
 });

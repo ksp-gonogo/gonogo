@@ -13,7 +13,8 @@ import { useRelayHealth } from "../useRelayHealth";
 import { Hint, Prose, StepCheck } from "./StepParts";
 
 /**
- * Confirms the container is up by asking its relay half. The app half needs no
+ * Confirms the container is up by asking its relay half, and shows how to
+ * start it only when that gets no answer. The app half needs no
  * check of its own on the usual path, since the operator is reading it; the
  * relay is the part that can be missing while this screen still renders, when
  * its port was left out of the run command or the app came from a dev server.
@@ -26,35 +27,37 @@ export function ContainerStep() {
 
   return (
     <Stack gap="related-comfortable">
-      <Text level="muted" size="sm">
-        {say("container.instruction", { tag })}
-      </Text>
-      <CommandBlock
-        command={runCommandFor(shell, tag)}
-        label={say("container.runCommandLabel")}
-      />
-      {shell === "powershell" && (
-        <Text level="muted" size="sm">
-          {say("container.powershellNote")}
-        </Text>
-      )}
       <StepCheck check={check} />
       {check.state === "fail" && (
-        <Hint>
-          <span>{say("container.hint.status")}</span>
+        <>
+          <Text level="muted" size="sm">
+            {say("container.instruction", { tag })}
+          </Text>
           <CommandBlock
-            command={CONTAINER_STATUS_COMMAND}
-            label={say("container.statusCommandLabel")}
+            command={runCommandFor(shell, tag)}
+            label={say("container.runCommandLabel")}
           />
-          <span>
-            <Prose runs={runs("container.hint.fix")} />
-          </span>
-          <div>
-            <Button variant="ghost" type="button" onClick={recheck}>
-              {say("container.recheck")}
-            </Button>
-          </div>
-        </Hint>
+          {shell === "powershell" && (
+            <Text level="muted" size="sm">
+              {say("container.powershellNote")}
+            </Text>
+          )}
+          <Hint>
+            <span>{say("container.hint.status")}</span>
+            <CommandBlock
+              command={CONTAINER_STATUS_COMMAND}
+              label={say("container.statusCommandLabel")}
+            />
+            <span>
+              <Prose runs={runs("container.hint.fix")} />
+            </span>
+            <div>
+              <Button variant="ghost" type="button" onClick={recheck}>
+                {say("container.recheck")}
+              </Button>
+            </div>
+          </Hint>
+        </>
       )}
     </Stack>
   );

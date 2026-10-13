@@ -48,9 +48,6 @@ export function HealthStep() {
 
   return (
     <Stack gap="related-comfortable">
-      <Text level="muted" size="sm">
-        {say("health.intro")}
-      </Text>
       <LiveRegion as="div">
         <Text weight="semibold">{verdict(checks)}</Text>
       </LiveRegion>
@@ -62,6 +59,11 @@ export function HealthStep() {
           </li>
         ))}
       </RowList>
+      {(plumbingBad || uplinks.state === "attention") && (
+        <Text level="muted" size="sm">
+          {say("health.fix")}
+        </Text>
+      )}
       {plumbingBad && (
         <Hint>
           <span>{say("health.hint.log")}</span>

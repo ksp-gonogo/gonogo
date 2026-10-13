@@ -23,16 +23,16 @@ export const WIZARD_COPY = {
   "welcome.heading": "Welcome",
   "welcome.advance": "Get started",
   "welcome.parts":
-    "Gonogo has two parts. This app runs in a container on your computer. The Gonogo mod runs inside KSP and sends the game's data to it.",
+    "Gonogo has two parts: this app, which runs in a container on your computer, and the Gonogo mod, which runs inside KSP and sends the game's data to it.",
   "welcome.steps":
-    "The next steps check each part in turn: the container, the connection to KSP, and any Uplinks you have installed. Each step shows the command to run and then checks the result for you.",
+    "The next steps check the container, the connection to KSP and any Uplinks. A step only tells you what to do if something is not ready.",
   "welcome.noBlock":
-    "No step blocks the next, so you can carry on and come back to anything that is not ready yet.",
+    "No step blocks the next, so you can carry on and come back later.",
 
   "container.heading": "Start the container",
   "container.advance": "Connect to KSP",
   "container.instruction":
-    "Start the Gonogo container. It serves this app and the relay that lets other screens join yours. If it is already running, there is nothing to do here. The command ends with the image tag this build of the app was published under, {tag}.",
+    "Start the Gonogo container. It serves this app and the relay that lets other screens join yours. The command ends with the image tag of this build, {tag}.",
   "container.runCommandLabel": "run command",
   "container.powershellNote":
     "Written for PowerShell, the default terminal on Windows. In Command Prompt, type ^ in place of the ` that ends each line.",
@@ -40,22 +40,22 @@ export const WIZARD_COPY = {
   "container.check.pass": "The container is running",
   "container.check.fail": "No answer from the container at {url}",
   "container.hint.status":
-    "This checks again every few seconds. To see whether the container is running:",
+    "This checks again every few seconds. To see if the container is running:",
   "container.statusCommandLabel": "container status command",
   "container.hint.fix":
-    "If that lists no container, run the first command. If it lists one, port 3002 was not published: remove the container and run the first command again, unchanged. The [networking guide](relayPorts) covers the relay and its ports.",
+    "If that lists no container, run the command above. If it lists one, port 3002 was not published: remove it and run the command above again, unchanged. The [networking guide](relayPorts) covers the ports.",
   "container.recheck": "Check again",
 
   "connect.heading": "Connect to KSP",
   "connect.advance": "Check Uplinks",
   "connect.instruction":
-    "Start KSP with the Gonogo mod installed. The mod starts with the game, so reaching the main menu is enough. If KSP runs on another computer, press the gear on the row below and set Host to that computer's address.",
+    "Start KSP with the Gonogo mod installed and wait for the main menu. If KSP runs on another computer, press the gear below and set Host to its address.",
   "connect.twoComputers":
-    "KSP pauses when its window is not in front, so with both on one computer the dashboard stops getting data whenever you switch to it. Running KSP on a second computer avoids that.",
+    "KSP pauses when its window is not in front, so on one computer the dashboard stops getting data while you look at it. A second computer for KSP avoids that.",
   "connect.trust":
-    "The mod listens on port 8090 with no password, and that port accepts commands that fly your ship. Keep it to a network you trust and never forward it to the internet. Friends elsewhere join with your share code instead.",
+    "Port 8090 has no password and accepts commands that fly your ship. Keep it to a network you trust and never forward it to the internet.",
   "connect.confirm":
-    'To confirm the mod started, run this in your KSP install folder. A working start prints a line beginning "[Gonogo] Started".',
+    'To confirm the mod started, run this in your KSP install folder. It prints a line beginning "[Gonogo] Started".',
   "connect.logCommandLabel": "mod log command",
   "connect.hint.address":
     "To find the KSP computer's address, run the command for its system on that computer. The address usually starts 192.168. or 10.",
@@ -76,12 +76,8 @@ export const WIZARD_COPY = {
 
   "uplinks.heading": "Uplinks",
   "uplinks.advance": "Review setup",
-  "uplinks.intro":
-    "Uplinks are optional add-ons. Each one connects Gonogo to one other mod and adds its widgets, such as camera feeds or a scripting terminal. Gonogo works without any. To find them, type this into the search box in CKAN:",
-  "uplinks.searchLabel": "CKAN search",
-  "uplinks.install":
-    "Install one, restart KSP, and it appears below. The [CKAN user guide](ckanUserGuide) covers searching and installing.",
-  "uplinks.check.waiting": "Waiting for the mod to report its Uplinks",
+  "uplinks.check.waiting":
+    "Waiting for the mod to list its Uplinks. This needs the KSP connection.",
   "uplinks.check.none":
     "No Uplinks installed, which is fine: they are optional",
   "uplinks.check.allWorking":
@@ -92,12 +88,14 @@ export const WIZARD_COPY = {
     "{loaded} of {installed} installed {installed?Uplink has|Uplinks have} a loaded client",
   "uplinks.summaryRefused":
     "{summary}; {refused} refused for a contract mismatch",
-  "uplinks.hint.none":
-    "Uplinks are marked as development releases, which CKAN hides by default. If the search finds none, allow development releases in CKAN's settings (its stability tolerance) and search again.",
-  "uplinks.hint.waiting":
-    "This list comes from the mod, so it stays empty until the previous step is connected to KSP.",
+  "uplinks.find.label": "Find Uplinks",
+  "uplinks.find.search":
+    "Uplinks are add-ons that connect Gonogo to other mods. In CKAN, search for:",
+  "uplinks.find.searchLabel": "CKAN search",
+  "uplinks.find.devReleases":
+    "If that finds none, allow development releases in CKAN's settings. The [CKAN user guide](ckanUserGuide) covers installing.",
   "uplinks.hint.attention":
-    "A row that is not working says why. Each Uplink also has its own page under Settings, Uplinks, with the same readings.",
+    "A row that is not working says why. Settings, Uplinks, has the same readings.",
   "uplinks.row.version": "v{version}",
   "uplinks.row.contractMismatch":
     "Built for contract {declared}; this mod speaks {core}. The mod refused it, so none of its channels or commands are running.",
@@ -111,8 +109,7 @@ export const WIZARD_COPY = {
 
   "health.heading": "Health check",
   "health.advance": "Next",
-  "health.intro":
-    "These are the same checks as the steps before, all in one place. Go back to a step to fix what it reports; this page updates when a check changes.",
+  "health.fix": "Go back to a step to fix what it reports.",
   "health.verdict.checking": "Checking your setup",
   "health.verdict.allWorking": "Everything is working",
   "health.verdict.needLook": "{bad} of {total} checks {bad?needs|need} a look",
@@ -123,16 +120,16 @@ export const WIZARD_COPY = {
     "The container's own log usually says why something is not working:",
   "health.logCommandLabel": "container log command",
   "health.hint.guides":
-    "Settings, Help, has the checks for the KSP side, and [the networking guide](networking) covers running KSP on another computer.",
+    "Settings, Help, has more checks for the KSP side. For KSP on another computer, see the [networking guide](networking).",
   "health.hint.uplinks":
-    "Go back to the Uplinks step: each row there says why it is not working. Uplinks are optional, so this does not stop Gonogo.",
+    "Each row on the Uplinks step says why. Uplinks are optional, so Gonogo still works.",
 
   "done.heading": "Done",
   "done.advance": "Finish",
   "done.next":
     "Load a save in KSP, then press the + button in the bottom-right corner of the dashboard to add widgets.",
   "done.settings":
-    "This setup opens by itself only once. Settings, behind that same + button, carries the same readings from now on: the KSP connection under Connection, and each Uplink's health and whether its client loaded on its own page under Uplinks. Run setup again, also under Connection, opens this flow again.",
+    "This setup opens by itself once. Settings, behind the same + button, keeps the same readings: the KSP connection under Connection and each Uplink under Uplinks. Run setup again, under Connection, reopens it.",
 
   "settings.heading": "Setup",
   "settings.label": "First-run setup",

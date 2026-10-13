@@ -61,24 +61,15 @@ export function UplinkReadinessStep() {
   const installed = entries.filter((entry) => entry.installed);
 
   /*
-   * The count is a claim about what the mod reports installed, so it waits for
-   * the mod. Rows do not: a client loaded in an earlier session is already a
-   * reading, and holding it back behind a connection would hide it.
+   * Rows do not wait for the mod: a client loaded in an earlier session is
+   * already a reading, and holding it back behind a connection would hide it.
+   * The count line only says something when a row needs a look, since "all
+   * working" already says the rest.
    */
   return (
     <Stack gap="related-comfortable">
-      <Text level="muted" size="sm">
-        {say("uplinks.intro")}
-      </Text>
-      <CommandBlock
-        command={CKAN_UPLINK_FILTER}
-        label={say("uplinks.searchLabel")}
-      />
-      <Text level="muted" size="sm">
-        <Prose runs={runs("uplinks.install")} />
-      </Text>
       <StepCheck check={check} />
-      {!waitingForMod && installed.some((e) => e.state !== "mod-only") && (
+      {check.state === "attention" && (
         <Text level="muted" size="sm">
           {summarise(entries)}
         </Text>
@@ -91,14 +82,20 @@ export function UplinkReadinessStep() {
         </RowList>
       )}
       {!waitingForMod && installed.length === 0 && (
-        <Hint>
-          <span>{say("uplinks.hint.none")}</span>
-        </Hint>
-      )}
-      {waitingForMod && (
-        <Hint>
-          <span>{say("uplinks.hint.waiting")}</span>
-        </Hint>
+        <Disclosure label={say("uplinks.find.label")} variant="inline">
+          <Stack gap="related">
+            <Text level="muted" size="sm">
+              {say("uplinks.find.search")}
+            </Text>
+            <CommandBlock
+              command={CKAN_UPLINK_FILTER}
+              label={say("uplinks.find.searchLabel")}
+            />
+            <Text level="muted" size="sm">
+              <Prose runs={runs("uplinks.find.devReleases")} />
+            </Text>
+          </Stack>
+        </Disclosure>
       )}
       {check.state === "attention" && (
         <Hint>

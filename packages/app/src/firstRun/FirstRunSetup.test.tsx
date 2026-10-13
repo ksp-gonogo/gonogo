@@ -100,7 +100,7 @@ function streamFrame(topic: string, payload: unknown): string {
  * same id/name production uses, so the connect step's embedded
  * `SitrepConnection` has something to render.
  */
-function makeSitrepStub(status: DataSourceStatus): DataSource {
+function makeSitrepStub(status: DataSourceStatus, host?: string): DataSource {
   return {
     id: "sitrep",
     name: "Sitrep Stream",
@@ -110,7 +110,7 @@ function makeSitrepStub(status: DataSourceStatus): DataSource {
     schema: () => [],
     subscribe: () => () => {},
     configSchema: (): ConfigField[] => [],
-    getConfig: () => ({}),
+    getConfig: () => (host ? { host, port: 8090 } : {}),
     configure: () => {},
     onStatusChange: () => () => {},
   };
@@ -131,16 +131,23 @@ function wrapper({ children }: { children: ReactNode }) {
  */
 function renderSetup(
   props?: { onFinish?: () => void },
-  world: { relay?: "up" | "down"; ksp?: DataSourceStatus } = {},
+  world: {
+    relay?: "up" | "down" | "pending";
+    ksp?: DataSourceStatus;
+    kspHost?: string;
+  } = {},
 ) {
-  registerDataSource(makeSitrepStub(world.ksp ?? "disconnected"));
+  registerDataSource(
+    makeSitrepStub(world.ksp ?? "disconnected", world.kspHost),
+  );
   const wsClients: LinkClient[] = [];
   server.use(
-    http.get(RELAY_HEALTH_URL, () =>
-      world.relay === "down"
+    http.get(RELAY_HEALTH_URL, () => {
+      if (world.relay === "pending") return new Promise<never>(() => {});
+      return world.relay === "down"
         ? HttpResponse.error()
-        : HttpResponse.json({ status: "ok", turn: null }),
-    ),
+        : HttpResponse.json({ status: "ok", turn: null });
+    }),
     link.addEventListener("connection", ({ client }) => {
       wsClients.push(client);
     }),
@@ -257,28 +264,40 @@ describe("FirstRunSetup: step sequence", () => {
 });
 
 describe("FirstRunSetup: the container check", () => {
-  it("prints the run command and confirms the container by itself", async () => {
+  it("confirms the container by itself and shows nothing to run once it answers", async () => {
     renderSetup();
     await userEvent
       .setup()
       .click(screen.getByRole("button", { name: say("welcome.advance") }));
 
-    expect(screen.getByRole("group", { name: "run command" }).textContent).toBe(
-      runCommandFor("posix"),
-    );
-    expect(screen.queryByText(say("container.powershellNote"))).toBeNull();
-    expect(
-      screen.getByRole("button", {
-        name: `Copy ${say("container.runCommandLabel")}`,
-      }),
-    ).toBeInTheDocument();
     await screen.findByText(say("container.check.pass"));
+    expect(
+      screen.queryByRole("group", { name: say("container.runCommandLabel") }),
+    ).toBeNull();
+    expect(screen.queryByText(/Start the Gonogo container/)).toBeNull();
     expect(
       screen.queryByText(CONTAINER_STATUS_COMMAND),
     ).not.toBeInTheDocument();
   });
 
-  it("says what to run and where to read more when nothing answers", async () => {
+  it("shows only the check while the container has not answered yet", async () => {
+    renderSetup(undefined, { relay: "pending" });
+    await userEvent
+      .setup()
+      .click(screen.getByRole("button", { name: say("welcome.advance") }));
+
+    expect(
+      screen.getByText(
+        say("container.check.checking", { url: "http://localhost:3002" }),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: say("container.runCommandLabel") }),
+    ).toBeNull();
+    expect(screen.queryByText(CONTAINER_STATUS_COMMAND)).toBeNull();
+  });
+
+  it("prints the run command, then says what to check and where to read more, when nothing answers", async () => {
     renderSetup(undefined, { relay: "down" });
     await userEvent
       .setup()
@@ -287,6 +306,10 @@ describe("FirstRunSetup: the container check", () => {
     await screen.findByText(
       say("container.check.fail", { url: "http://localhost:3002" }),
     );
+    expect(screen.getByRole("group", { name: "run command" }).textContent).toBe(
+      runCommandFor("posix"),
+    );
+    expect(screen.queryByText(say("container.powershellNote"))).toBeNull();
     expect(screen.getByText(CONTAINER_STATUS_COMMAND)).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
@@ -355,12 +378,34 @@ describe("FirstRunSetup: the KSP connection check", () => {
     ).toHaveAttribute("href", SETUP_LINKS.networking);
   });
 
-  it("says why a second computer helps and that the port is not to be forwarded", async () => {
+  it("says why a second computer helps when KSP is on this one, and that the port is not to be forwarded", async () => {
     renderSetup(undefined, { ksp: "connected" });
     await goToConnect();
 
     expect(screen.getByText(say("connect.twoComputers"))).toBeInTheDocument();
     expect(screen.getByText(say("connect.trust"))).toBeInTheDocument();
+  });
+
+  it("leaves the second computer out when KSP is already on another one", async () => {
+    renderSetup(undefined, { ksp: "connected", kspHost: "192.168.1.20" });
+    await goToConnect();
+
+    expect(screen.getByText(say("connect.trust"))).toBeInTheDocument();
+    expect(screen.queryByText(say("connect.twoComputers"))).toBeNull();
+  });
+
+  it("shows only the check while the connection is being made", async () => {
+    renderSetup(undefined, { ksp: "reconnecting" });
+    await goToConnect();
+
+    expect(
+      screen.getByText(
+        say("connect.check.checking", { address: "localhost:8090" }),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(say("connect.instruction"))).toBeNull();
+    expect(screen.queryByText(say("connect.trust"))).toBeNull();
+    expect(screen.queryByText(MOD_LOG_COMMAND.posix)).toBeNull();
   });
 
   it("gives the command that finds the KSP computer's address on each system, since it need not be this one", async () => {
@@ -387,6 +432,9 @@ describe("FirstRunSetup: the KSP connection check", () => {
         name: linkWords(runs("connect.hint.blocked"), "networking"),
       }),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText(say("connect.instruction"))).toBeNull();
+    expect(screen.queryByText(say("connect.confirm"))).toBeNull();
+    expect(screen.queryByText(MOD_LOG_COMMAND.posix)).toBeNull();
   });
 });
 
@@ -408,6 +456,7 @@ describe("FirstRunSetup: the health check", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText(CONTAINER_LOGS_COMMAND)).not.toBeInTheDocument();
+    expect(screen.queryByText(say("health.fix"))).toBeNull();
   });
 
   it("counts what needs a look and offers the log command and the guides", async () => {
@@ -434,13 +483,13 @@ describe("FirstRunSetup: the health check", () => {
     await screen.findByText(
       say("health.verdict.needLook", { bad: 1, total: 3 }),
     );
-    expect(screen.getByText(/Go back to the Uplinks step/)).toBeInTheDocument();
+    expect(screen.getByText(say("health.hint.uplinks"))).toBeInTheDocument();
     expect(screen.queryByText(CONTAINER_LOGS_COMMAND)).not.toBeInTheDocument();
   });
 });
 
 describe("FirstRunSetup: the Uplinks reading", () => {
-  it("counts only the Uplinks that ship a client, leaving mod-only capabilities out of the tally", async () => {
+  it("reads all working with no second count line, and no row for a mod-only capability", async () => {
     setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
     const { wsClients } = renderSetup();
     await goToUplinks();
@@ -450,18 +499,36 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       rosterEntry({ id: "capability-b", expectedClientHash: null }),
     ]);
 
-    await screen.findByText(
-      say("uplinks.summary", { loaded: 1, installed: 1 }),
-    );
+    await screen.findByText(say("uplinks.check.allWorking", { installed: 3 }));
+    expect(
+      screen.queryByText(say("uplinks.summary", { loaded: 1, installed: 1 })),
+    ).toBeNull();
     expect(
       screen.queryByText(say("uplinks.row.noClient")),
     ).not.toBeInTheDocument();
+  });
+
+  it("counts the loaded clients when an Uplink needs a look, leaving mod-only capabilities out", async () => {
+    setUplinkOutcome({ id: "widget-loaded", name: "Loaded", status: "loaded" });
+    const { wsClients } = renderSetup();
+    await goToUplinks();
+    await emitRoster(wsClients, [
+      rosterEntry({ id: "widget-loaded" }),
+      rosterEntry({ id: "widget-noclient" }),
+      rosterEntry({ id: "capability-a", expectedClientHash: null }),
+    ]);
+
+    await screen.findByText(
+      say("uplinks.summary", { loaded: 1, installed: 2 }),
+    );
+    expect(screen.getByText(say("uplinks.hint.attention"))).toBeInTheDocument();
   });
 
   it("says it is waiting until the mod answers, never guessing a state first", async () => {
     const { wsClients } = renderSetup();
     await goToUplinks();
     expect(screen.getByText(say("uplinks.check.waiting"))).toBeInTheDocument();
+    expect(screen.queryByText(say("uplinks.find.label"))).toBeNull();
     expect(
       screen.queryByText(say("uplinks.row.noClient")),
     ).not.toBeInTheDocument();
@@ -470,15 +537,21 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     await screen.findByText(say("uplinks.check.none"));
   });
 
-  it("says CKAN hides Uplinks until development releases are allowed, once the mod reports none", async () => {
+  it("offers how to find Uplinks, collapsed, once the mod reports none", async () => {
     const { wsClients } = renderSetup();
     await goToUplinks();
-    expect(screen.queryByText(say("uplinks.hint.none"))).toBeNull();
+    expect(screen.queryByText(say("uplinks.find.label"))).toBeNull();
 
     await emitRoster(wsClients, []);
-    expect(
-      await screen.findByText(say("uplinks.hint.none")),
-    ).toBeInTheDocument();
+    const trigger = await screen.findByRole("button", {
+      name: say("uplinks.find.label"),
+    });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText(CKAN_UPLINK_FILTER)).toBeNull();
+
+    await userEvent.setup().click(trigger);
+    expect(screen.getByText(CKAN_UPLINK_FILTER)).toBeInTheDocument();
+    expect(screen.getByText(/allow development releases/)).toBeInTheDocument();
   });
 
   it("gives a player one plain line for an author-facing refusal and keeps the detail behind Details", async () => {
@@ -602,16 +675,20 @@ describe("FirstRunSetup: the Uplinks reading", () => {
   });
 
   it("prints the CKAN search that lists Uplinks, and never calls one required", async () => {
-    renderSetup();
+    const { wsClients } = renderSetup();
     await goToUplinks();
+    await emitRoster(wsClients, []);
+    await userEvent
+      .setup()
+      .click(
+        await screen.findByRole("button", { name: say("uplinks.find.label") }),
+      );
 
     expect(screen.getByText(CKAN_UPLINK_FILTER)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Uplinks are optional add-ons/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(say("uplinks.check.none"))).toBeInTheDocument();
     expect(
       screen.getByRole("link", {
-        name: linkWords(runs("uplinks.install"), "ckanUserGuide"),
+        name: linkWords(runs("uplinks.find.devReleases"), "ckanUserGuide"),
       }),
     ).toHaveAttribute("href", SETUP_LINKS.ckanUserGuide);
   });

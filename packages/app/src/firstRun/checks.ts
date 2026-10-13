@@ -51,6 +51,21 @@ export function connectionCheck(
 }
 
 /**
+ * Whether an address names the computer the browser is on: `localhost`, an
+ * IPv4 loopback address or the IPv6 one. Used to tell whether KSP and the
+ * dashboard share a computer.
+ */
+export function isThisComputer(host: string): boolean {
+  const name = host
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "");
+  return (
+    name === "localhost" || name === "::1" || /^127(\.\d{1,3}){3}$/.test(name)
+  );
+}
+
+/**
  * An installed Uplink the operator should look at: the mod refused it or calls
  * it unavailable, or no working client for it is running here. A degraded
  * Uplink is not one, because degraded is the ordinary state of an Uplink whose

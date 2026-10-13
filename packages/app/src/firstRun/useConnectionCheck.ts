@@ -1,5 +1,5 @@
 import { getDataSource, useDataSources } from "@ksp-gonogo/core";
-import { connectionCheck, type SetupCheck } from "./checks";
+import { connectionCheck, isThisComputer, type SetupCheck } from "./checks";
 
 /**
  * The connection to the mod as a check, read off the same `sitrep` source the
@@ -8,8 +8,20 @@ import { connectionCheck, type SetupCheck } from "./checks";
  */
 export function useConnectionCheck(): SetupCheck {
   const source = useDataSources().find((s) => s.id === "sitrep");
-  const config = getDataSource("sitrep")?.getConfig() ?? {};
-  const host = typeof config.host === "string" ? config.host : "localhost";
-  const port = typeof config.port === "number" ? config.port : 8090;
+  const { host, port } = sitrepAddress();
   return connectionCheck(source?.status, `${host}:${port}`);
+}
+
+/** Whether the connection is aimed at this computer, so KSP and the dashboard share it. */
+export function useKspOnThisComputer(): boolean {
+  useDataSources();
+  return isThisComputer(sitrepAddress().host);
+}
+
+function sitrepAddress(): { host: string; port: number } {
+  const config = getDataSource("sitrep")?.getConfig() ?? {};
+  return {
+    host: typeof config.host === "string" ? config.host : "localhost",
+    port: typeof config.port === "number" ? config.port : 8090,
+  };
 }
