@@ -1,6 +1,6 @@
 import type { ExtensionScene } from "../coverage";
 import { SCENES as actionGroup } from "./action-group";
-import { SCENES as strategies } from "./admin-building";
+import { SCENES as strategies } from "./administration-building";
 import { SCENES as astronautComplex } from "./astronaut-complex";
 import { SCENES as commSignal } from "./comm-signal";
 import { SCENES as contractManager } from "./contract-manager";
@@ -82,8 +82,11 @@ export const COMBINED_SLOT_SCENES: readonly {
 }[] = [
   // The body draws only on a contributed screen.
   {
-    widgetId: "admin-building",
-    slots: ["admin-building.screens", "admin-building.screen-body"],
+    widgetId: "administration-building",
+    slots: [
+      "administration-building.screens",
+      "administration-building.screen-body",
+    ],
   },
   // Both mount in the docking view, the overlay over the camera's picture.
   {
@@ -173,8 +176,9 @@ export function slotScenes(hosts: readonly SlotHost[]): ExtensionScene[] {
 
 /** Contributions a stub brings with it, each mapped to the slot whose story shows it rather than one of its own. */
 export const STUB_COMPANIONS: Readonly<Record<string, string>> = {
-  // The screen the `admin-building.screen-body` stub draws on.
-  "planted:planted-slots-admin-building-screen": "admin-building.screen-body",
+  // The screen the `administration-building.screen-body` stub draws on.
+  "planted:planted-slots-administration-building-screen":
+    "administration-building.screen-body",
 };
 
 /** The id a slot's stub story registers under, which a companion's story is found by. */

@@ -101,7 +101,7 @@ export function ScreenSections({
   const fundsNow = magnitudeOf(funds);
   const reputationNow = magnitudeOf(reputation);
   const scienceNow = magnitudeOf(science);
-  const bodyBound = useSlotBound("admin-building.screen-body");
+  const bodyBound = useSlotBound("administration-building.screen-body");
   // The available card and the unanswered one are the same card; only the note differs.
   const strategyRow = (s: Strategy, note?: string) => (
     <AvailableRow
@@ -241,7 +241,7 @@ export function ScreenSections({
           )}
           {screenId !== undefined && (
             <AugmentSlot
-              name="admin-building.screen-body"
+              name="administration-building.screen-body"
               props={{ screenId }}
             />
           )}
@@ -408,7 +408,7 @@ export function ScreenSections({
           <>
             {bodyBound && listsStrategies && <Divider />}
             <AugmentSlot
-              name="admin-building.screen-body"
+              name="administration-building.screen-body"
               props={{ screenId }}
             />
           </>

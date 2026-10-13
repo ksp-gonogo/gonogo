@@ -80,7 +80,7 @@ export type {
 } from "./alarm-request";
 export { useAlarmRequest } from "./alarm-request";
 export type {
-  AdminBuildingScreenEntry,
+  AdministrationBuildingScreenEntry,
   CommSignalHopRateEntry,
   CrewRowToneEntry,
   ExperimentsInstrumentEntry,
@@ -132,7 +132,7 @@ export type {
 export type {
   ActionGroupSlotContext,
   ActionGroupSlotId,
-  AdminBuildingScreenBodyContext,
+  AdministrationBuildingScreenBodyContext,
   AstronautComplexCrewContext,
   CrewAvatarContext,
   CrewBadgeContext,

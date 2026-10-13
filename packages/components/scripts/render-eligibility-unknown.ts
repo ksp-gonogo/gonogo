@@ -11,7 +11,7 @@
  *
  * Two scenes, and the pair is the point:
  *
- * - `admin-building-shut` is that career at the same scale: 91 synthetic
+ * - `administration-building-shut` is that career at the same scale: 91 synthetic
  *   rows, 88 of them unanswered. It is the scene worth rendering against both sides of the
  *   commit, because the heading is the defect
  * - `three-buckets` cuts the same roster down until Available, Locked and
@@ -24,7 +24,7 @@
  * These exist to be looked at by a person.
  *
  * No `dist` staleness guard here, unlike `render-reckoned-tail.ts`: the change
- * being shown is `src/AdminBuilding/index.tsx`, which esbuild bundles from source,
+ * being shown is `src/AdministrationBuilding/index.tsx`, which esbuild bundles from source,
  * so this render cannot predate it.
  *
  * Run via `pnpm --filter @ksp-gonogo/components render-eligibility-unknown`.
@@ -36,10 +36,10 @@ import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 
 const CONFIGS: WidgetRenderConfig[] = [
   {
-    widgetId: "admin-building",
-    label: "admin-building/eligibility-unknown-roster",
-    slug: "admin-building-eligibility-roster",
-    fixturesPath: "AdminBuilding/__render_unknown__",
+    widgetId: "administration-building",
+    label: "administration-building/eligibility-unknown-roster",
+    slug: "administration-building-eligibility-roster",
+    fixturesPath: "AdministrationBuilding/__render_unknown__",
     outPath: "renders/eligibility-unknown/roster",
     /*
      * Fixed tile, not full content. The scene's whole claim is the HEADING over
@@ -60,13 +60,13 @@ const CONFIGS: WidgetRenderConfig[] = [
         w: 9,
         h: 14,
         scroll: 700,
-        forFixtures: ["admin-building-shut"],
+        forFixtures: ["administration-building-shut"],
       },
       {
         name: "wide-9x14-at-rest",
         w: 9,
         h: 14,
-        forFixtures: ["admin-building-shut"],
+        forFixtures: ["administration-building-shut"],
       },
       /*
        * The same career and the same shut facility, once the arms are asked one
@@ -80,21 +80,21 @@ const CONFIGS: WidgetRenderConfig[] = [
         w: 9,
         h: 14,
         scroll: 700,
-        forFixtures: ["admin-building-shut-derived"],
+        forFixtures: ["administration-building-shut-derived"],
       },
       {
         name: "wide-9x14-at-rest",
         w: 9,
         h: 14,
-        forFixtures: ["admin-building-shut-derived"],
+        forFixtures: ["administration-building-shut-derived"],
       },
     ],
   },
   {
-    widgetId: "admin-building",
-    label: "admin-building/eligibility-unknown-buckets",
-    slug: "admin-building-eligibility-buckets",
-    fixturesPath: "AdminBuilding/__render_unknown__",
+    widgetId: "administration-building",
+    label: "administration-building/eligibility-unknown-buckets",
+    slug: "administration-building-eligibility-buckets",
+    fixturesPath: "AdministrationBuilding/__render_unknown__",
     outPath: "renders/eligibility-unknown/buckets",
     // Whole content, because the claim here is that the three headings coexist and one of them below the fold would be the same as it not being there.
     fullContent: true,

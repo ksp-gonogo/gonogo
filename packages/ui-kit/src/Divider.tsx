@@ -19,7 +19,7 @@ export interface DividerProps extends HTMLAttributes<HTMLHRElement> {
 
 /**
  * A full-width 1px horizontal rule in the subtle border colour. Useful for
- * separating stacked sections for the operator. Used by the admin building and
+ * separating stacked sections for the operator. Used by the administration building and
  * experiment lab sections. It renders a real `<hr>`, so it carries separator
  * semantics. Flush by default; `space` adds room above and below.
  *

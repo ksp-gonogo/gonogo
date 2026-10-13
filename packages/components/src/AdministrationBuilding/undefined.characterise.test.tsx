@@ -8,10 +8,10 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { AdminBuildingComponent } from "./index";
+import { AdministrationBuildingComponent } from "./index";
 
 /**
- * What Admin Building does when its telemetry reads are absent. A missing strategy
+ * What Administration Building does when its telemetry reads are absent. A missing strategy
  * list swaps the widget for a placeholder; a missing balance fails closed, so
  * Activate stays disabled.
  */
@@ -41,7 +41,7 @@ function renderStrategies(
     <fixture.Provider>
       {probe && <ReadingProbe topic="career.status" />}
       <DashboardItemContext.Provider value={{ instanceId: "strat-char" }}>
-        <AdminBuildingComponent
+        <AdministrationBuildingComponent
           config={{}}
           id="strat-char"
           w={size.w}
@@ -83,29 +83,31 @@ function emitCareer(fixture: StreamFixture, over: Record<string, unknown>) {
   });
 }
 
-describe("Admin Building: nothing has arrived at all", () => {
+describe("Administration Building: nothing has arrived at all", () => {
   it("swaps the whole widget for a placeholder that carries none of the loaded content", () => {
     renderStrategies(newFixture());
 
-    expect(screen.getByText("Admin Building")).toBeInTheDocument();
+    expect(screen.getByText("Administration Building")).toBeInTheDocument();
     expect(screen.getByText(/Awaiting career data\.\.\./)).toBeInTheDocument();
     expect(screen.queryByLabelText("Active")).toBeNull();
     expect(screen.queryByLabelText("Available")).toBeNull();
     expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
     expect(screen.queryAllByText(NULL_DISPLAY)).toHaveLength(0);
-    expect(visibleText()).toBe("Admin BuildingAwaiting career data...");
+    expect(visibleText()).toBe(
+      "Administration BuildingAwaiting career data...",
+    );
   });
 
   it("says nothing at all in a short box, because the placeholder is itself gated on height", () => {
     // At h=3 the awaiting branch renders an empty body.
     renderStrategies(newFixture(), { w: 9, h: 3 });
 
-    expect(screen.getByText("Admin Building")).toBeInTheDocument();
+    expect(screen.getByText("Administration Building")).toBeInTheDocument();
     expect(screen.queryByText(/Awaiting career data/)).toBeNull();
   });
 });
 
-describe("Admin Building: the `strategies === null` absence gate", () => {
+describe("Administration Building: the `strategies === null` absence gate", () => {
   it("fires for a never-arrived topic and stops firing for a confirmed-empty list", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
@@ -119,7 +121,7 @@ describe("Admin Building: the `strategies === null` absence gate", () => {
 
     // An empty array is not absence: the widget states "none available".
     await waitFor(() =>
-      expect(screen.getByText("Admin Building")).toBeInTheDocument(),
+      expect(screen.getByText("Administration Building")).toBeInTheDocument(),
     );
     expect(screen.queryByText(/Awaiting career data/)).toBeNull();
     expect(
@@ -156,7 +158,7 @@ describe("Admin Building: the `strategies === null` absence gate", () => {
   });
 });
 
-describe("Admin Building: null versus undefined", () => {
+describe("Administration Building: null versus undefined", () => {
   it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
     const fixture = newFixture();
     renderStrategies(fixture, undefined, { probe: true });
@@ -171,7 +173,7 @@ describe("Admin Building: null versus undefined", () => {
   });
 });
 
-describe("Admin Building: an absent balance beside a present strategy list", () => {
+describe("Administration Building: an absent balance beside a present strategy list", () => {
   it("renders the funds/rep/science tallies as the null dash", async () => {
     const fixture = newFixture();
     renderStrategies(fixture);
@@ -227,11 +229,15 @@ describe("Admin Building: an absent balance beside a present strategy list", () 
   });
 });
 
-describe("Admin Building: tiny mode keeps the funds essential", () => {
+describe("Administration Building: tiny mode keeps the funds essential", () => {
   it("draws the null token for funds while balances are absent, and the balance once it arrives", async () => {
     const fixture = newFixture();
     // w=4 is the tiny bucket.
-    renderWidget("admin-building", { w: 4, h: 4, wrapper: fixture.Provider });
+    renderWidget("administration-building", {
+      w: 4,
+      h: 4,
+      wrapper: fixture.Provider,
+    });
 
     emitCareer(fixture, {
       balances: null,
