@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { act, render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { HeldFigure } from "./HeldMark";
@@ -157,6 +157,94 @@ describe("Tooltip", () => {
     expect(tipIn(document.body)).not.toBeNull();
     await user.keyboard("{Escape}");
     expect(tipIn(document.body)).toBeNull();
+  });
+
+  describe("selecting the tip's text", () => {
+    function open() {
+      const user = userEvent.setup();
+      const { container } = render(
+        <Tooltip text="Held since Y1 D12">
+          <span data-testid="anchor">Alt</span>
+        </Tooltip>,
+      );
+      return { user, container };
+    }
+    const selectTipText = () => {
+      const tip = tipIn(document.body) as HTMLElement;
+      const range = document.createRange();
+      range.selectNodeContents(tip);
+      const selection = document.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    };
+
+    it("stays open when the press lands in the tip, instead of closing as a press on the anchor does", async () => {
+      const { user } = open();
+      await user.hover(screen.getByTestId("anchor"));
+      await user.pointer({
+        target: tipIn(document.body) as HTMLElement,
+        keys: "[MouseLeft>]",
+      });
+      expect(tipIn(document.body)).not.toBeNull();
+    });
+
+    it("stays open while a drag carries the pointer off the tip, and while its text is selected afterwards", async () => {
+      const { user } = open();
+      await user.hover(screen.getByTestId("anchor"));
+      const tip = tipIn(document.body) as HTMLElement;
+      await user.pointer({ target: tip, keys: "[MouseLeft>]" });
+      await user.unhover(tip);
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      });
+      expect(tipIn(document.body)).not.toBeNull();
+
+      act(() => selectTipText());
+      await user.pointer({ keys: "[/MouseLeft]" });
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      });
+      expect(tipIn(document.body)).not.toBeNull();
+    });
+
+    it("closes once the press ends with nothing selected and the pointer is away", async () => {
+      const { user } = open();
+      await user.hover(screen.getByTestId("anchor"));
+      const tip = tipIn(document.body) as HTMLElement;
+      await user.pointer({ target: tip, keys: "[MouseLeft>]" });
+      await user.unhover(tip);
+      await user.pointer({ keys: "[/MouseLeft]" });
+      await waitFor(() => expect(tipIn(document.body)).toBeNull());
+    });
+
+    it("still closes on Escape while its text is selected", async () => {
+      const { user } = open();
+      await user.hover(screen.getByTestId("anchor"));
+      act(() => selectTipText());
+      await user.pointer({
+        target: tipIn(document.body) as HTMLElement,
+        keys: "[MouseLeft]",
+      });
+      await user.keyboard("{Escape}");
+      expect(tipIn(document.body)).toBeNull();
+    });
+
+    it("does not click what the anchor sits in when the tip is pressed", async () => {
+      const user = userEvent.setup();
+      const onClick = vi.fn();
+      render(
+        // biome-ignore lint/a11y/noStaticElementInteractions: the row exists only to catch a click that must not arrive
+        // biome-ignore lint/a11y/useKeyWithClickEvents: as above
+        <div onClick={onClick}>
+          <Tooltip text="Held since Y1 D12">
+            <span data-testid="anchor">Alt</span>
+          </Tooltip>
+        </div>,
+      );
+      await user.hover(screen.getByTestId("anchor"));
+      await user.click(tipIn(document.body) as HTMLElement);
+      expect(onClick).not.toHaveBeenCalled();
+    });
   });
 
   it("makes a non-control child reachable only when asked", async () => {

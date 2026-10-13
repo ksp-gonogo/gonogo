@@ -2,6 +2,7 @@ import {
   type CSSProperties,
   cloneElement,
   type FocusEvent,
+  forwardRef,
   type ReactElement,
   type ReactNode,
   useCallback,
@@ -77,7 +78,7 @@ export interface UseTooltipResult {
  * ancestor never cuts it off. Useful for giving the operator the words behind
  * an icon or abbreviation when the tip needs its own placement. Used by the
  * communications addressee control. It opens while the pointer is over the anchor or
- * the anchor has keyboard focus, and closes on a press of the anchor, on Escape (from anywhere on the page), scroll or resize. The pointer can move onto the tip, which stays open while it is hovered.
+ * the anchor has keyboard focus, and closes on a press of the anchor, on Escape (from anywhere on the page), scroll or resize. The pointer can move onto the tip, which stays open while it is hovered and while its text is held or selected, so the operator can copy it.
  *
  * The tip is hidden from the accessibility tree, so the anchor must already
  * say the same thing to a screen reader (in its text, an `aria-label` or a
@@ -106,10 +107,14 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const [tipHovered, setTipHovered] = useState(false);
+  // Set while the operator holds a press inside the tip or has text of it selected, so the tip stays to be read and copied.
+  const [pinned, setPinned] = useState(false);
+  const tipRef = useRef<HTMLDivElement | null>(null);
+  const holding = useRef(false);
   const pressed = useRef(false);
   const leaving = useRef<ReturnType<typeof setTimeout> | null>(null);
   const shown = text != null && text !== "" ? text : null;
-  const open = at !== null && (hovered || focused || tipHovered);
+  const open = at !== null && (hovered || focused || tipHovered || pinned);
   const cancelLeave = useCallback(() => {
     if (leaving.current !== null) clearTimeout(leaving.current);
     leaving.current = null;
@@ -120,7 +125,32 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
     setHovered(false);
     setFocused(false);
     setTipHovered(false);
+    setPinned(false);
+    holding.current = false;
   }, [cancelLeave]);
+
+  // Lets go once the press is over and no text of the tip is selected any more.
+  useEffect(() => {
+    if (!pinned) return;
+    const settle = () => {
+      const selection = document.getSelection();
+      const inTip =
+        selection !== null &&
+        !selection.isCollapsed &&
+        tipRef.current?.contains(selection.anchorNode) === true;
+      if (!holding.current && !inTip) setPinned(false);
+    };
+    const release = () => {
+      holding.current = false;
+      settle();
+    };
+    document.addEventListener("pointerup", release);
+    document.addEventListener("selectionchange", settle);
+    return () => {
+      document.removeEventListener("pointerup", release);
+      document.removeEventListener("selectionchange", settle);
+    };
+  }, [pinned]);
 
   // The pointer gets a moment to cross onto the tip before the anchor's leave closes it.
   const leaveSoon = useCallback(() => {
@@ -203,8 +233,13 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
     tip: open
       ? createPortal(
           <TipBody
+            ref={tipRef}
             at={at}
             text={shown}
+            onPress={() => {
+              holding.current = true;
+              setPinned(true);
+            }}
             onPointerEnter={() => {
               cancelLeave();
               setTipHovered(true);
@@ -217,27 +252,34 @@ export function useTooltip(text: string | null | undefined): UseTooltipResult {
   };
 }
 
-function TipBody({
-  at,
-  text,
-  onPointerEnter,
-  onPointerLeave,
-}: {
-  at: Placement;
-  text: string;
-  onPointerEnter: () => void;
-  onPointerLeave: () => void;
-}) {
+const TipBody = forwardRef<
+  HTMLDivElement,
+  {
+    at: Placement;
+    text: string;
+    onPress: () => void;
+    onPointerEnter: () => void;
+    onPointerLeave: () => void;
+  }
+>(function TipBody({ at, text, onPress, onPointerEnter, onPointerLeave }, ref) {
   const position: CSSProperties = at.above
     ? { bottom: window.innerHeight - at.anchorTop }
     : { top: at.top };
   return (
     <Tooltip__Body
+      ref={ref}
       aria-hidden="true"
       data-tooltip-tip=""
       data-above={at.above ? "" : undefined}
       onPointerEnter={onPointerEnter}
       onPointerLeave={onPointerLeave}
+      // The tip is a React child of its anchor, so a press in it would otherwise reach the anchor's own handlers and close the tip, or click whatever the anchor sits in.
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        onPress();
+      }}
+      onPointerUp={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
       style={
         {
           ...position,
@@ -249,7 +291,7 @@ function TipBody({
       {text}
     </Tooltip__Body>
   );
-}
+});
 
 /**
  * The props of {@link Tooltip}: the tip's text and the one element it
@@ -370,6 +412,8 @@ const Tooltip__Body = styled.div`
   line-height: var(--line-height-body);
   letter-spacing: 0.02em;
   white-space: pre-line;
+  user-select: text;
+  cursor: text;
 
   &[data-above] {
     margin-top: 0;

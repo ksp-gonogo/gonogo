@@ -508,8 +508,9 @@ const Tabs__Button = styled.button<{
     }
   }
 
+  /* Only an unselected tab takes the primary text colour under hover: on the accent blob that colour measures 1.2:1, so the selected tab keeps its inverse label. */
   @media (hover: hover) {
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not([aria-selected="true"]) {
       color: var(--color-text-primary);
     }
   }

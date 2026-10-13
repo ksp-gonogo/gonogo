@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { shouldExpandTabs, TABS_PANEL_MIN_WIDTH, Tabs } from "./Tabs";
+import { emittedStateRuleFor } from "./test/emittedRule";
 
 const TABS = [
   { id: "one", label: "One", content: <span>panel-one</span> },
@@ -23,6 +24,18 @@ describe("Tabs", () => {
     );
     expect(screen.getByText("panel-one")).toBeInTheDocument();
     expect(screen.queryByText("panel-two")).not.toBeInTheDocument();
+  });
+
+  it("takes the primary label colour under hover for an unselected tab only, so the selected one keeps its inverse label", () => {
+    render(<Tabs tabs={TABS} activeId="one" onChange={() => undefined} />);
+    const selector = ':hover:not(:disabled):not([aria-selected="true"])';
+    const selected = screen.getByRole("tab", { name: "One" });
+    const other = screen.getByRole("tab", { name: "Two" });
+    expect(emittedStateRuleFor(other, selector)).toContain(
+      "color:var(--color-text-primary)",
+    );
+    expect(selected.matches(':not([aria-selected="true"])')).toBe(false);
+    expect(other.matches(':not([aria-selected="true"])')).toBe(true);
   });
 
   it("calls onChange when a different tab is clicked", async () => {
