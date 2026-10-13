@@ -36,7 +36,10 @@ namespace Sitrep.Core.Tests.StoreAndForward
 
             public double? LiveLink(string from, string to) => _links.TryGetValue((from, to), out var light) ? light : (double?)null;
 
-            public double? LivePath(string from, string to) => LiveLink(from, to);
+            /// <summary>Whether the path a landing is judged by reads down whatever the link reads.</summary>
+            public bool PathDown { get; set; }
+
+            public double? LivePath(string from, string to) => PathDown ? null : LiveLink(from, to);
         }
 
         private sealed class Plan : IDeliveryRoutes
@@ -67,16 +70,16 @@ namespace Sitrep.Core.Tests.StoreAndForward
             public readonly ManualClock Clock = new ManualClock();
             public readonly DeliveryNetwork Network;
 
-            public Rig()
+            public Rig(double planLight = 10.0)
             {
                 Network = new DeliveryNetwork(
                     Clock,
                     Links,
-                    new Plan(10.0),
+                    new Plan(planLight),
                     (c, ut) => { Ran.Add(ut); return "done"; },
                     Reports.Add,
                     beliefs: Beliefs);
-                Beliefs.Plans[Ksc] = new Plan(10.0);
+                Beliefs.Plans[Ksc] = new Plan(planLight);
             }
 
             public void RunTo(double end)
@@ -117,9 +120,8 @@ namespace Sitrep.Core.Tests.StoreAndForward
             Assert.DoesNotContain(rig.Reports, r => r.Kind == JourneyKind.LostOnLanding);
         }
 
-        /// <summary>A centre goes by its own plan alone, so after a loss nothing but a new plan sends the command again, and the report says so rather than naming a time.</summary>
         [Fact]
-        public void ACentreSaysItWaitsForItsPlanToChangeAndNamesNoTime()
+        public void ACentreNamesWhenItWillSendTheCopyAgain()
         {
             var rig = new Rig();
             rig.Network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
@@ -127,8 +129,112 @@ namespace Sitrep.Core.Tests.StoreAndForward
             rig.RunTo(25.0);
 
             var lost = Assert.Single(rig.Reports, r => r.Kind == JourneyKind.LostOnLanding);
-            Assert.Null(lost.UntilUt);
+            Assert.NotNull(lost.UntilUt);
+            Assert.True(lost.UntilUt!.Value > lost.AtUt);
             Assert.Contains("plan", lost.Detail);
+        }
+
+        [Fact]
+        public void ACentreSendsALostCommandAgainOnAWaitThatDoublesUpToTheCap()
+        {
+            var rig = new Rig(planLight: 3e-5);
+            rig.Links.PathDown = true;
+            rig.Network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
+
+            rig.RunTo(3600.0);
+
+            Assert.Empty(rig.Ran);
+            var lost = rig.Reports.Where(r => r.Kind == JourneyKind.LostOnLanding).ToList();
+            for (var i = 0; i < lost.Count - 1; i++)
+            {
+                var waited = lost[i].UntilUt!.Value - lost[i].AtUt;
+                Assert.Equal(Math.Min(Math.Pow(2.0, i), 300.0), waited, 2);
+                Assert.Equal(lost[i].UntilUt!.Value, lost[i + 1].AtUt, 2);
+            }
+            Assert.InRange(lost.Count, 15, 25);
+        }
+
+        /// <summary>
+        /// A pad craft whose telemetry reaches the centre every two seconds while
+        /// the path a command is judged by on landing reads down: each copy is lost
+        /// the moment it lands, and hearing the craft again and again is no reason
+        /// to keep sending.
+        /// </summary>
+        [Fact]
+        public void ACentreThatHearsTheCraftAllAlongDoesNotSendALostCommandEachTimeItHearsIt()
+        {
+            var rig = new Rig(planLight: 3e-5);
+            rig.Links.PathDown = true;
+            rig.Links.Up(Ksc, Probe, light: 3e-5);
+            rig.Network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
+
+            for (var ut = 1.0; ut <= 3600.0; ut += 1.0)
+            {
+                rig.Clock.AdvanceTo(ut);
+                if (ut % 2.0 == 0.0)
+                {
+                    rig.Network.Heard(Ksc, Probe);
+                }
+                rig.Network.Tick(ut);
+            }
+
+            Assert.Empty(rig.Ran);
+            var lost = rig.Reports.Where(r => r.Kind == JourneyKind.LostOnLanding).ToList();
+            Assert.InRange(lost.Count, 3, 30);
+            Assert.InRange(lost.Count(r => r.AtUt > 600.0), 1, 11);
+        }
+
+        /// <summary>A craft the centre had stopped hearing is heard again: the lost command goes at once rather than at the end of its wait.</summary>
+        [Fact]
+        public void HearingTheCraftAfterASilenceAsLongAsTheWaitSendsTheLostCommandAgain()
+        {
+            var rig = new Rig(planLight: 3e-5);
+            rig.Links.PathDown = true;
+            rig.Network.Heard(Ksc, Probe);
+            rig.Network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
+            rig.RunTo(200.0);
+            var last = rig.Reports.Last(r => r.Kind == JourneyKind.LostOnLanding);
+            Assert.True(last.UntilUt!.Value > 210.0);
+            var lostBefore = rig.Reports.Count(r => r.Kind == JourneyKind.LostOnLanding);
+
+            rig.Network.Heard(Ksc, Probe);
+            rig.RunTo(202.0);
+
+            Assert.Equal(lostBefore + 1, rig.Reports.Count(r => r.Kind == JourneyKind.LostOnLanding));
+            Assert.Contains(rig.Reports, r => r.Kind == JourneyKind.Departed && r.AtUt > 200.0);
+        }
+
+        [Fact]
+        public void EachCopySentAgainAfterALossIsOneJourneyEvent()
+        {
+            var rig = new Rig(planLight: 3e-5);
+            rig.Links.PathDown = true;
+            rig.Network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
+
+            rig.RunTo(600.0);
+
+            var firstLoss = rig.Reports.First(r => r.Kind == JourneyKind.LostOnLanding).AtUt;
+            var after = rig.Reports.Where(r => r.AtUt > firstLoss + 1e-9).ToList();
+            Assert.NotEmpty(after);
+            Assert.All(after, r => Assert.True(r.Kind == JourneyKind.LostOnLanding || r.Kind == JourneyKind.Held, "a retry reported " + r.Kind));
+            Assert.True(after.Count(r => r.Kind == JourneyKind.Held) <= 1);
+        }
+
+        [Fact]
+        public void APlanChangeSendsALostCopyAgainWithoutWaitingOutTheInterval()
+        {
+            var rig = new Rig(planLight: 3e-5);
+            rig.Links.PathDown = true;
+            rig.Network.SendCommand(Lane, "c", null, "system", null, 0.0, null);
+            rig.RunTo(600.0);
+            var lostBefore = rig.Reports.Count(r => r.Kind == JourneyKind.LostOnLanding);
+            var waitEnds = rig.Reports.Last(r => r.Kind == JourneyKind.LostOnLanding).UntilUt!.Value;
+            Assert.True(waitEnds > 602.0);
+
+            rig.Network.PlanChanged();
+            rig.RunTo(602.0);
+
+            Assert.Equal(lostBefore + 1, rig.Reports.Count(r => r.Kind == JourneyKind.LostOnLanding));
         }
 
         /// <summary>A relay that lost a copy tries again on a wait that grows to a cap, and the report names when.</summary>
