@@ -55,19 +55,19 @@ import type { HeldGrade, Reading } from "../reading";
 // "warp-control.stepper" carries no props today.
 
 /**
- * Props passed to every `targeting.overlay` and `targeting.camera` augment.
+ * Props passed to every `rendezvous.overlay` and `rendezvous.camera` augment.
  *
- * Both slots are drawn only in the docking HUD view, which the Targeting widget
+ * Both slots are drawn only in the docking HUD view, which the Rendezvous widget
  * switches to while docking alignment is reported and the target is close. The
  * overlay sits over the reticle box and the camera slot behind it, as the video
  * backdrop. Positions are measured in pixels from the centre of the HUD's
  * frame.
  * Useful for adding a camera feed or marks to the docking view. Used by the
- * Targeting widget.
+ * Rendezvous widget.
  *
  * @category Widget slots
  */
-export interface TargetingHudContext {
+export interface RendezvousHudContext {
   /** Alignment angle in degrees that reaches the edge of the reticle box. The reticle stops at the edge past it. Read it from here and never write the number in, since it can change between releases. */
   maxDeg: number;
   /**
@@ -86,7 +86,7 @@ export interface TargetingHudContext {
    */
   reticleTravelPx: number;
   /**
-   * For the `targeting.camera` slot: report the aspect (width over height) of
+   * For the `rendezvous.camera` slot: report the aspect (width over height) of
    * the picture the augment paints with `object-fit: cover`, or `null` once it
    * paints none. The reticle's degree scale then follows the camera's visible
    * field rather than the frame. An overlay has no picture and never calls it.
@@ -977,23 +977,23 @@ declare module "./types" {
     "warp-control.stepper": Record<string, never>;
 
     /**
-     * The video backdrop behind the reticle box in the Targeting widget's
+     * The video backdrop behind the reticle box in the Rendezvous widget's
      * docking view. Fill the frame with a camera picture, such as a docking
      * port camera, and pass its aspect to
-     * {@link TargetingHudContext.reportPictureAspect} so the
+     * {@link RendezvousHudContext.reportPictureAspect} so the
      * reticle's scale follows the picture. Drawn only while the docking view
      * is shown at a size with room for the frame, and not when the operator
-     * picks the view without a camera. Passes a {@link TargetingHudContext}.
+     * picks the view without a camera. Passes a {@link RendezvousHudContext}.
      */
-    "targeting.camera": TargetingHudContext;
+    "rendezvous.camera": RendezvousHudContext;
     /**
-     * A layer over the reticle box in the Targeting widget's docking view, for
+     * A layer over the reticle box in the Rendezvous widget's docking view, for
      * marks of your own placed in the reticle's space with
-     * {@link TargetingHudContext.reticleOffset} and
-     * {@link TargetingHudContext.reticleTravelPx}. Drawn only while the docking view is shown at a size
-     * with room for the frame. Passes a {@link TargetingHudContext}.
+     * {@link RendezvousHudContext.reticleOffset} and
+     * {@link RendezvousHudContext.reticleTravelPx}. Drawn only while the docking view is shown at a size
+     * with room for the frame. Passes a {@link RendezvousHudContext}.
      */
-    "targeting.overlay": TargetingHudContext;
+    "rendezvous.overlay": RendezvousHudContext;
 
     /** Content of your own at the end of the CommNet Signal widget's body, after everything the widget itself draws. Passes no props. */
     "comm-signal.sections": Record<string, never>;

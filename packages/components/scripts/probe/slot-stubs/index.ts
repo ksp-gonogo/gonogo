@@ -20,7 +20,7 @@ import "./space-center-status";
 import "./admin-building";
 import "./system-view";
 import "./target-picker";
-import "./targeting";
+import "./rendezvous";
 import "./tech-tree";
 import "./warp-control";
 import "./contributions";

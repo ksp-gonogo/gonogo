@@ -22,7 +22,7 @@ export const LIVE_REGION_MOUNT_DEBT: Record<string, number> = {
   "packages/components/src/SemiMajorAxis/index.tsx": 1,
   "packages/components/src/SpaceCenterStatus/SpaceCenterStatusView.tsx": 1,
   "packages/ui/src/StationConnectView/index.tsx": 1,
-  "packages/components/src/Targeting/DockingHud.tsx": 1,
+  "packages/components/src/Rendezvous/DockingHud.tsx": 1,
   "packages/components/src/ThermalStatus/ThermalStatusView.tsx": 1,
   "packages/serial/src/InputMappingTab.tsx": 1,
   "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 2,

@@ -308,9 +308,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "targeting",
-    fixturesPath: "Targeting/__fixtures__",
-    outPath: "renders/targeting-widget",
+    widgetId: "rendezvous",
+    fixturesPath: "Rendezvous/__fixtures__",
+    outPath: "renders/rendezvous-widget",
     modes: [
       // The kit's tiny form: range and closing rate.
       { name: "tiny-3x3", w: 3, h: 3 },

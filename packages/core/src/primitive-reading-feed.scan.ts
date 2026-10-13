@@ -155,7 +155,7 @@ const CURRENCY_MEMBERS = ["state", "reckoning"] as const;
  *
  * ## An age handed its own reading would make the widget lie
  *
- * This is not a tidiness exemption, and `Targeting`'s two age readouts are why.
+ * This is not a tidiness exemption, and `Rendezvous`'s two age readouts are why.
  * An age is `viewUt.minus(observedAt(reading))`: recomputed against the current
  * frame on every render, so it is exactly current at the instant it is drawn,
  * and its entire job is to say that something else is old. Hand it the reading

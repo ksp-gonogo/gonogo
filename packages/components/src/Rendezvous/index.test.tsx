@@ -10,7 +10,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { TargetingComponent } from "./index";
+import { RendezvousComponent } from "./index";
 
 /**
  * Mode transitions and the docking gate through the stream pipeline. Distance,
@@ -38,7 +38,7 @@ function renderWidget(
   const view = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: props.id ?? "tar" }}>
-        <TargetingComponent
+        <RendezvousComponent
           config={config}
           id={props.id ?? "tar"}
           w={props.w}
@@ -51,7 +51,7 @@ function renderWidget(
   return view;
 }
 
-describe("TargetingComponent", () => {
+describe("RendezvousComponent", () => {
   let fixture: StreamFixture;
 
   afterEach(() => {
@@ -315,7 +315,7 @@ describe("TargetingComponent", () => {
   });
 });
 
-describe("Targeting: augment slots", () => {
+describe("Rendezvous: augment slots", () => {
   afterEach(() => {
     // Unmount before clearAugments(): RTL's own cleanup runs after this file's afterEach hooks.
     for (const unmount of renderedTrees) unmount();
@@ -324,18 +324,18 @@ describe("Targeting: augment slots", () => {
   });
 
   it("exposes the docking-HUD .overlay + .camera slots and passes the reticle/camera context", async () => {
-    registerAugment<"targeting.overlay">({
+    registerAugment<"rendezvous.overlay">({
       id: "test-overlay",
-      augments: "targeting.overlay",
+      augments: "rendezvous.overlay",
       component: ({ maxDeg, reticleTravelPx }) => (
         <div data-testid="ovl">
           maxDeg={maxDeg}/travel={reticleTravelPx}
         </div>
       ),
     });
-    registerAugment<"targeting.camera">({
+    registerAugment<"rendezvous.camera">({
       id: "test-camera",
-      augments: "targeting.camera",
+      augments: "rendezvous.camera",
       component: ({ cameraFlightId }) => (
         <div data-testid="cam">cam={String(cameraFlightId)}</div>
       ),

@@ -7,7 +7,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { TargetingComponent } from "./index";
+import { RendezvousComponent } from "./index";
 
 /**
  * What `undefined` means at every read site downstream of the readings: for
@@ -40,7 +40,7 @@ function renderWidget(
       <DashboardItemContext.Provider
         value={{ instanceId: props.id ?? "dtt-c" }}
       >
-        <TargetingComponent
+        <RendezvousComponent
           id={props.id ?? "dtt-c"}
           w={props.w ?? 12}
           h={props.h ?? 10}
@@ -59,7 +59,7 @@ function dockingFixture() {
   });
 }
 
-describe("Targeting: nothing has arrived on either topic", () => {
+describe("Rendezvous: nothing has arrived on either topic", () => {
   it("renders the waiting empty state and none of the three value surfaces", () => {
     const fixture = dockingFixture();
     const { container } = renderWidget(fixture);
@@ -76,7 +76,7 @@ describe("Targeting: nothing has arrived on either topic", () => {
   });
 });
 
-describe("Targeting: the vessel.dock absence gate", () => {
+describe("Rendezvous: the vessel.dock absence gate", () => {
   /** An undefined `vessel.dock` means "not a docking scenario", not "waiting"; both tests sit inside HUD range so only the gate keeps the HUD shut. */
   it("stays in the approach view at HUD range while vessel.dock has never arrived", async () => {
     const fixture = dockingFixture();
@@ -131,7 +131,7 @@ describe("Targeting: the vessel.dock absence gate", () => {
   });
 });
 
-describe("Targeting: a partial vessel.dock record", () => {
+describe("Rendezvous: a partial vessel.dock record", () => {
   /** A missing dock distance or relative velocity is silently answered by the target-derived figure, not a placeholder. */
   it("falls back to the target's distance and closing rate when the dock record omits them", async () => {
     const fixture = dockingFixture();
@@ -189,7 +189,7 @@ describe("Targeting: a partial vessel.dock record", () => {
   });
 });
 
-describe("Targeting: a partial vessel.target record", () => {
+describe("Rendezvous: a partial vessel.target record", () => {
   it("reports a confident absence for an OBSERVED record that carries no name", async () => {
     // A current record with no name renders the confirmed-absence branch: pinned as observed behaviour, not endorsed.
     const fixture = dockingFixture();

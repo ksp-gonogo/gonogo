@@ -15,7 +15,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { DISPLAY_VALUE_STYLE, DisplayDash } from "./TargetingView";
+import { DISPLAY_VALUE_STYLE, DisplayDash } from "./RendezvousView";
 
 interface ApproachHudProps {
   name: string;

@@ -11,7 +11,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import type { TargetingReading } from "./useTargetingReading";
+import type { RendezvousReading } from "./useRendezvousReading";
 
 /** The panel chrome shared by every branch, so the badges slot and title cannot drift. */
 export function TargetPanel({ children }: { children: ReactNode }) {
@@ -46,10 +46,10 @@ export function DisplayDash() {
 interface TrackingViewProps {
   name: string;
   distance: number | undefined;
-  rangeR: TargetingReading["rangeR"];
-  closingRateR: TargetingReading["closingRateR"];
+  rangeR: RendezvousReading["rangeR"];
+  closingRateR: RendezvousReading["closingRateR"];
   outOfContact: boolean;
-  reckoned: TargetingReading["reckoned"];
+  reckoned: RendezvousReading["reckoned"];
   reckonedDistance: number | undefined;
   showTargetName: boolean;
   showSubReadout: boolean;
