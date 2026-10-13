@@ -48,6 +48,13 @@ namespace Sitrep.Host.Comms
         /// </summary>
         void RecordCraftSighting(string vesselId, CraftSighting sighting, double ut, IReadOnlyDictionary<string, double> lightSeconds);
 
+        /// <summary>
+        /// Keeps a craft that has left the game from being let go before
+        /// <paramref name="untilUt"/>, so that what is still to be recorded of it
+        /// can reach a centre. Negative infinity takes the keep off.
+        /// </summary>
+        void KeepCraftUntil(string vesselId, double untilUt);
+
         /// <summary>Calls <paramref name="seen"/> each time a sighting of the object reaches <paramref name="centre"/>. Returns what stops it.</summary>
         Action HearCraftSighting(string vesselId, string centre, Action<CraftSighting> seen);
 

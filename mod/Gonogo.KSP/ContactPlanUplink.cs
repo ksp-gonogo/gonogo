@@ -247,7 +247,7 @@ namespace Gonogo.KSP
             {
                 Radio = stands ? RadioOfActive() : null,
                 Roster = roster,
-                Sight = stands ? SightOf(vessels, active, roster) : null,
+                Sight = stands ? SightOf(vessels, active, roster, SightBodies(bodies)) : null,
                 Vessels = stands ? listed : null,
                 VesselsUnread = !stands,
             };
@@ -271,13 +271,28 @@ namespace Gonogo.KSP
         /// signal delay is the shortest of theirs.</para>
         /// </summary>
         private static IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? SightOf(
-            List<Vessel> vessels, IReadOnlyList<ICommandCentre> centres, List<CommandCentreEntry> roster)
+            List<Vessel> vessels, IReadOnlyList<ICommandCentre> centres, List<CommandCentreEntry> roster, IReadOnlyList<SightBody> bodies)
         {
             if (!TrackingStationPlacesVessels())
             {
                 return null;
             }
-            return SightLines.Table(vessels, vessel => vessel.GetWorldPos3D(), centres, roster, CommsCoreUplink.SignalDelayConfig);
+            return SightLines.Table(vessels, vessel => vessel.GetWorldPos3D(), centres, roster, CommsCoreUplink.SignalDelayConfig, bodies);
+        }
+
+        /// <summary>Every body where it is now, at the radius the elected comms backend says it blocks a line at.</summary>
+        private List<SightBody> SightBodies(List<CelestialBody> bodies)
+        {
+            var occlusion = CommsElection.OcclusionModel(_host?.Kernel);
+            var sight = new List<SightBody>(bodies.Count);
+            foreach (var body in bodies)
+            {
+                if (body != null)
+                {
+                    sight.Add(new SightBody(body.position, KspVisibilityGeometryFactory.OccludingRadiusOf(occlusion, body)));
+                }
+            }
+            return sight;
         }
 
         private static bool TrackingStationPlacesVessels()

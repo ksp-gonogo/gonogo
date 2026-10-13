@@ -226,6 +226,59 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Null(seated.View.Vessel(Relay));
         }
 
+        /// <summary>
+        /// A body hides the relay from home while it burns, so home does not see
+        /// the burn. When the relay comes back into home's view, home sees it
+        /// where it is then.
+        /// </summary>
+        [Fact]
+        public async Task ACentreDoesNotSeeACraftABodyHidesAndSeesItAgainWhenItComesIntoView()
+        {
+            await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 100.0 });
+            await seated.TickAsync(1, 2, 700, 702);
+            var before = Sma(seated.View);
+
+            seated.World.Game.RelayConnected = false;
+            seated.World.Game.RelayHiddenFrom.Add(ScriptedContactGame.Home);
+            await seated.TickAsync(800, 802);
+            seated.World.Game.BurnRelay(T0);
+            await seated.TickAsync(T0, T0 + 2, T0 + 103, T0 + 104, T0 + 105, T0 + 400);
+            Reckoned.True(Sma(seated.View) == before, "home saw a burn a body hid from it");
+
+            seated.World.Game.RelayHiddenFrom.Clear();
+            await seated.TickAsync(T0 + 500, T0 + 502, T0 + 599);
+            Reckoned.True(Sma(seated.View) == before, "home saw the craft come into view before its light could arrive");
+
+            await seated.TickAsync(T0 + 603, T0 + 604, T0 + 605);
+            Assert.NotEqual(before, Sma(seated.View));
+        }
+
+        /// <summary>
+        /// The relay is destroyed out of contact while a body hides it from home,
+        /// so home does not see it go. Home sees it gone when the place it would
+        /// be comes into view and it is not there, a hundred light-seconds later.
+        /// </summary>
+        [Fact]
+        public async Task ACraftDestroyedOutOfViewIsSeenGoneWhenWhereItWouldBeComesIntoView()
+        {
+            await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 100.0 });
+            await seated.TickAsync(1, 2, 700, 702);
+
+            seated.World.Game.RelayConnected = false;
+            seated.World.Game.RelayHiddenFrom.Add(ScriptedContactGame.Home);
+            await seated.TickAsync(800, 802);
+            seated.World.Game.DestroyRelay();
+            await seated.TickAsync(T0, T0 + 2, T0 + 103, T0 + 104, T0 + 1500, T0 + 1502);
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home saw a craft go that a body hid from it");
+
+            seated.World.Game.RelayGoneInViewOf.Add(ScriptedContactGame.Home);
+            await seated.TickAsync(T0 + 2000, T0 + 2002, T0 + 2099);
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home saw an empty place before light from it could arrive");
+
+            await seated.TickAsync(T0 + 2103, T0 + 2104, T0 + 2105);
+            Assert.Null(seated.View.Vessel(Relay));
+        }
+
         /// <summary>A tracking station that cannot place a vessel sees nothing: an object with no radio is never listed, and a craft is known by its radio alone.</summary>
         [Fact]
         public async Task WhereTheGameTracksNothingBySightACraftIsKnownByItsRadioAlone()

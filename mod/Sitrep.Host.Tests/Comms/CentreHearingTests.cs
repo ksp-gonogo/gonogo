@@ -53,6 +53,10 @@ namespace Sitrep.Host.Tests.Comms
             {
             }
 
+            public void KeepCraftUntil(string vesselId, double untilUt)
+            {
+            }
+
             public Action HearCraftSighting(string vesselId, string centre, Action<CraftSighting> seen) => Hear();
 
             public Action HearCraftLink(string vesselId, string centre, Action<bool> heard) => Hear();

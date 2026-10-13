@@ -106,6 +106,17 @@ namespace Sitrep.Host.Comms
         public IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? Sight { get; set; }
 
         /// <summary>
+        /// For each object that has left the game within
+        /// <see cref="CraftSighting.GoneSightHorizonSeconds"/>, by node id, the
+        /// same delays to each command centre that would now have it in view
+        /// where it would be had it gone on as it was: on its last orbit, or at
+        /// its last place on the ground. A centre that should see it there and
+        /// does not sees it gone. Shaped like <see cref="Sight"/>, and null
+        /// whenever that is.
+        /// </summary>
+        public IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? GoneSight { get; set; }
+
+        /// <summary>
         /// Every vessel the game lists, by bare guid, whether or not it has a
         /// radio or can be planned for. Null from a game that cannot say,
         /// which leaves nothing judged to have gone by it.

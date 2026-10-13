@@ -481,6 +481,7 @@
     <Compile Include="..\Gonogo.KSP\Gates\UnlockGates.cs" />
     <Compile Include="..\Gonogo.KSP\OrbitKnowledge.cs" />
     <Compile Include="..\Gonogo.KSP\SightLines.cs" />
+    <Compile Include="..\Gonogo.KSP\GonePlaces.cs" />
     <Compile Include="UnityStandIns.cs" />
     <!-- The currency glue: the interceptor's handlers, one save's books and the
          reveal. Each is driven directly in a test with KSP's own statics stood in

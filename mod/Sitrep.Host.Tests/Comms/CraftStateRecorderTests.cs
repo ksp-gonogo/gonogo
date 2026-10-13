@@ -553,6 +553,118 @@ namespace Sitrep.Host.Tests.Comms
             Assert.All(again.Sightings, s => Assert.Equal(9.0, s.LightSeconds["vessel:crewed"]));
         }
 
+        /// <summary>The junk object in view of the centres named, each this many light-seconds away; the radio craft a in view of both.</summary>
+        private static ContactGameLook InViewOf(bool junkExists, IReadOnlyDictionary<string, double> junkRow, IReadOnlyDictionary<string, double>? goneRow = null)
+        {
+            var look = Look(Craft("a", Orbit(700_000.0)), Ksc);
+            var sight = new Dictionary<string, IReadOnlyDictionary<string, double>>
+            {
+                ["vessel:a"] = new Dictionary<string, double> { ["ground:ksc"] = 3.0, ["vessel:crewed"] = 9.0 },
+            };
+            if (junkExists)
+            {
+                sight["vessel:junk"] = junkRow;
+            }
+            look.Sight = sight;
+            look.GoneSight = goneRow == null
+                ? new Dictionary<string, IReadOnlyDictionary<string, double>>()
+                : new Dictionary<string, IReadOnlyDictionary<string, double>> { ["vessel:junk"] = goneRow };
+            return look;
+        }
+
+        private static readonly IReadOnlyDictionary<string, double> BothSee =
+            new Dictionary<string, double> { ["ground:ksc"] = 40.0, ["vessel:crewed"] = 50.0 };
+
+        private static readonly IReadOnlyDictionary<string, double> OnlyKscSees =
+            new Dictionary<string, double> { ["ground:ksc"] = 40.0 };
+
+        [Fact]
+        public void AnObjectGoneWhileHiddenFromACentreIsSeenGoneOnlyByTheCentresThatHadItInView()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(InViewOf(true, BothSee), 0.0, null, Roster(("a", 0), ("junk", 0)));
+            recorder.Capture(InViewOf(true, OnlyKscSees), 1.0, null, Roster(("a", 0), ("junk", 0)));
+
+            var went = recorder.Capture(InViewOf(false, OnlyKscSees), 2.0, null, Roster(("a", 0)));
+
+            var gone = went.Sightings.Single(s => s.Sighting.Id == "vessel:junk");
+            Assert.False(gone.Sighting.Exists);
+            Assert.Equal(new[] { "ground:ksc" }, gone.LightSeconds.Keys);
+            Assert.Equal(2.0 + CraftSighting.GoneSightHorizonSeconds, went.Keeps["junk"]);
+        }
+
+        [Fact]
+        public void ACentreThatDidNotSeeAnObjectGoIsShownItGoneWhenWhereItWouldBeComesIntoView()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(InViewOf(true, BothSee), 0.0, null, Roster(("a", 0), ("junk", 0)));
+            recorder.Capture(InViewOf(true, OnlyKscSees), 1.0, null, Roster(("a", 0), ("junk", 0)));
+            recorder.Capture(InViewOf(false, OnlyKscSees), 2.0, null, Roster(("a", 0)));
+
+            var stillHidden = recorder.Capture(InViewOf(false, OnlyKscSees, goneRow: new Dictionary<string, double>()), 50.0, null, Roster(("a", 0)));
+            Assert.DoesNotContain(stillHidden.Sightings, s => s.Sighting.Id == "vessel:junk");
+            Assert.Equal(2.0 + CraftSighting.GoneSightHorizonSeconds, stillHidden.Keeps["junk"]);
+
+            var inView = recorder.Capture(
+                InViewOf(false, OnlyKscSees, goneRow: new Dictionary<string, double> { ["ground:ksc"] = 41.0, ["vessel:crewed"] = 55.0 }),
+                90.0, null, Roster(("a", 0)));
+            var gone = inView.Sightings.Single(s => s.Sighting.Id == "vessel:junk");
+            Assert.False(gone.Sighting.Exists);
+            Assert.Equal(90.0, gone.Sighting.CapturedUt);
+            Assert.Equal(new[] { "vessel:crewed" }, gone.LightSeconds.Keys);
+            Assert.Equal(55.0, gone.LightSeconds["vessel:crewed"]);
+            Assert.Equal(double.NegativeInfinity, inView.Keeps["junk"]);
+
+            var after = recorder.Capture(
+                InViewOf(false, OnlyKscSees, goneRow: new Dictionary<string, double> { ["ground:ksc"] = 41.0, ["vessel:crewed"] = 55.0 }),
+                91.0, null, Roster(("a", 0)));
+            Assert.DoesNotContain(after.Sightings, s => s.Sighting.Id == "vessel:junk");
+            Assert.False(after.Keeps.ContainsKey("junk"));
+        }
+
+        [Fact]
+        public void AnObjectTheLookCanNoLongerPlaceIsNeverSeenGoneByTheCentresStillWaiting()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(InViewOf(true, BothSee), 0.0, null, Roster(("a", 0), ("junk", 0)));
+            recorder.Capture(InViewOf(true, OnlyKscSees), 1.0, null, Roster(("a", 0), ("junk", 0)));
+            recorder.Capture(InViewOf(false, OnlyKscSees), 2.0, null, Roster(("a", 0)));
+
+            var expired = recorder.Capture(InViewOf(false, OnlyKscSees), 3.0, null, Roster(("a", 0)));
+
+            Assert.DoesNotContain(expired.Sightings, s => s.Sighting.Id == "vessel:junk");
+            Assert.Equal(double.NegativeInfinity, expired.Keeps["junk"]);
+        }
+
+        [Fact]
+        public void AnObjectComingIntoACentresViewIsSeenAgain()
+        {
+            var recorder = new CraftStateRecorder();
+            recorder.Capture(InViewOf(true, BothSee), 0.0, null, Roster(("a", 0), ("junk", 0)));
+            recorder.Capture(InViewOf(true, OnlyKscSees), 1.0, null, Roster(("a", 0), ("junk", 0)));
+            Assert.DoesNotContain(
+                recorder.Capture(InViewOf(true, OnlyKscSees), 2.0, null, Roster(("a", 0), ("junk", 0))).Sightings,
+                s => s.Sighting.Id == "vessel:junk");
+
+            var back = recorder.Capture(InViewOf(true, BothSee), 3.0, null, Roster(("a", 0), ("junk", 0)));
+
+            var seen = back.Sightings.Single(s => s.Sighting.Id == "vessel:junk");
+            Assert.True(seen.Sighting.Exists);
+            Assert.Equal(50.0, seen.LightSeconds["vessel:crewed"]);
+        }
+
+        [Fact]
+        public void AKeepIsRecordedWithTheHost()
+        {
+            var host = new RecordingHost();
+            var batch = new CraftStateRecorder.Batch(
+                5.0, new string[0], new CraftState[0], new string[0], keeps: new Dictionary<string, double> { ["junk"] = 99.0 });
+
+            CraftStateRecorder.Record(batch, host);
+
+            Assert.Contains("keep junk@99", host.Calls);
+        }
+
         [Fact]
         public void ACraftThatLosesItsRadioKeepsWhatWasLastHeardOfItAndIsNotCalledGone()
         {
@@ -586,6 +698,8 @@ namespace Sitrep.Host.Tests.Comms
                 Calls.Add("seen " + vesselId + "@" + ut);
 
             public System.Action HearCraftSighting(string vesselId, string centre, System.Action<CraftSighting> seen) => () => { };
+
+            public void KeepCraftUntil(string vesselId, double untilUt) => Calls.Add("keep " + vesselId + "@" + untilUt);
 
             public System.Action HearCraftLink(string vesselId, string centre, System.Action<bool> heard) => () => { };
 

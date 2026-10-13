@@ -9,8 +9,9 @@ namespace Gonogo.KSP.Tests.Comms
 {
     /// <summary>
     /// The sight table a command centre is shown craft by: one row per object,
-    /// one delay per centre, the straight line between the two positions over
-    /// the speed of light.
+    /// one delay per centre that has a clear line to it, the length of that line
+    /// over the speed of light. A body blocks a line that passes inside its
+    /// occluding radius.
     /// </summary>
     public class SightLinesTests
     {
@@ -26,7 +27,10 @@ namespace Gonogo.KSP.Tests.Comms
         private static SignalDelayConfig DelayOn() => new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
 
         private static KspCommandCentre Centre(string id, CommandCentreKind kind, double x) =>
-            new KspCommandCentre(id, id, kind, bodyIndex: 1, node: null, position: new Vector3d(x, 0.0, 0.0), active: true);
+            Centre(id, kind, new Vector3d(x, 0.0, 0.0));
+
+        private static KspCommandCentre Centre(string id, CommandCentreKind kind, Vector3d position) =>
+            new KspCommandCentre(id, id, kind, bodyIndex: 1, node: null, position: position, active: true);
 
         private static List<CommandCentreEntry> HomeIs(string id) =>
             new List<CommandCentreEntry> { new CommandCentreEntry { Id = id, IsHome = true } };
@@ -39,19 +43,88 @@ namespace Gonogo.KSP.Tests.Comms
             return craft;
         }
 
+        private static readonly SightBody[] NoBodies = new SightBody[0];
+
+        /// <summary>The homeworld at the origin, occluding at its bare radius.</summary>
+        private static readonly SightBody[] Kerbin = { new SightBody(new Vector3d(0.0, 0.0, 0.0), KerbinRadius) };
+
         private static Dictionary<string, IReadOnlyDictionary<string, double>> Table(
             Vessel craft, Vector3d at, SignalDelayConfig config, params KspCommandCentre[] centres) =>
-            SightLines.Table(new[] { craft }, _ => at, centres, HomeIs(Home), config);
+            Table(craft, at, config, NoBodies, centres);
+
+        private static Dictionary<string, IReadOnlyDictionary<string, double>> Table(
+            Vessel craft, Vector3d at, SignalDelayConfig config, IReadOnlyList<SightBody> bodies, params KspCommandCentre[] centres) =>
+            SightLines.Table(new[] { craft }, _ => at, centres, HomeIs(Home), config, bodies);
 
         /// <summary>
         /// A ground station on one side of the homeworld and a craft on the
-        /// other: the line between them runs through the planet, and the craft
-        /// is seen anyway, at the length of that line.
+        /// other: the line between them runs through the planet, so the station
+        /// cannot see the craft.
         /// </summary>
         [Fact]
-        public void ACraftOnTheFarSideOfThePlanetIsSeenAtItsStraightLineDistance()
+        public void ACraftOnTheFarSideOfThePlanetIsNotSeen()
         {
-            var sight = Table(Craft(), new Vector3d(3.0 * KerbinRadius, 0.0, 0.0), DelayOn(),
+            var sight = Table(Craft(), new Vector3d(3.0 * KerbinRadius, 0.0, 0.0), DelayOn(), Kerbin,
+                Centre(Home, CommandCentreKind.GroundStation, -KerbinRadius));
+
+            Assert.Empty(sight[Row]);
+        }
+
+        /// <summary>
+        /// A craft high above a station's horizon and one just below it, the
+        /// station on the surface at the occluding radius.
+        /// </summary>
+        [Theory]
+        [InlineData(0.01, true)]
+        [InlineData(-0.01, false)]
+        public void ACraftJustClearOfTheLimbIsSeenAndOneJustBehindItIsNot(double radiansAboveHorizon, bool seen)
+        {
+            var far = 10.0 * KerbinRadius;
+            var bearing = Math.PI / 2.0 - radiansAboveHorizon;
+            var at = new Vector3d(far * Math.Sin(bearing), far * Math.Cos(bearing) + KerbinRadius, 0.0);
+            var sight = Table(Craft(), at, DelayOn(), Kerbin,
+                Centre(Home, CommandCentreKind.GroundStation, new Vector3d(0.0, KerbinRadius, 0.0)));
+
+            Assert.Equal(seen, sight[Row].ContainsKey(Home));
+        }
+
+        [Fact]
+        public void ACraftBehindAMoonIsNotSeen()
+        {
+            var moon = new SightBody(new Vector3d(20.0 * KerbinRadius, 0.0, 0.0), 200_000.0);
+            var sight = Table(Craft(), new Vector3d(30.0 * KerbinRadius, 0.0, 0.0), DelayOn(), new[] { Kerbin[0], moon },
+                Centre(Home, CommandCentreKind.GroundStation, new Vector3d(KerbinRadius, 0.0, 0.0)));
+
+            Assert.Empty(sight[Row]);
+        }
+
+        [Fact]
+        public void ACrewedCraftCentreCannotSeeACraftOnTheFarSideOfAPlanetFromIt()
+        {
+            var sight = Table(Craft(), new Vector3d(3.0 * KerbinRadius, 0.0, 0.0), DelayOn(), Kerbin,
+                Centre(Home, CommandCentreKind.GroundStation, new Vector3d(KerbinRadius, 0.0, 0.0)),
+                Centre(Crewed, CommandCentreKind.CrewedVessel, -3.0 * KerbinRadius));
+
+            Assert.False(sight[Row].ContainsKey(Crewed));
+            Assert.True(sight[Row].ContainsKey(Home));
+        }
+
+        [Fact]
+        public void HomeSeesThroughAnotherGroundStationWhenItsOwnLineIsBlocked()
+        {
+            var sight = Table(Craft(), new Vector3d(3.0 * KerbinRadius, 0.0, 0.0), DelayOn(), Kerbin,
+                Centre(Home, CommandCentreKind.GroundStation, new Vector3d(-KerbinRadius, 0.0, 0.0)),
+                Centre(Island, CommandCentreKind.GroundStation, new Vector3d(KerbinRadius, 0.0, 0.0)));
+
+            Assert.Equal(2.0 * KerbinRadius / C, sight[Row][Home], 12);
+            Assert.Equal(2.0 * KerbinRadius / C, sight[Row][Island], 12);
+        }
+
+        [Fact]
+        public void ABodyAModelGivesNoOccludingRadiusBlocksNothing()
+        {
+            var transparent = new[] { new SightBody(new Vector3d(0.0, 0.0, 0.0), 0.0) };
+            var sight = Table(Craft(), new Vector3d(3.0 * KerbinRadius, 0.0, 0.0), DelayOn(), transparent,
                 Centre(Home, CommandCentreKind.GroundStation, -KerbinRadius));
 
             Assert.Equal(4.0 * KerbinRadius / C, sight[Row][Home], 12);

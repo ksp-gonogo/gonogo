@@ -258,6 +258,12 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the tracking station can place anything by sight. Without it every craft is known by its radio alone.</summary>
         public bool TracksBySight { get; set; } = true;
 
+        /// <summary>The centres a body hides the relay from: they have no line to it, so it is not in their row.</summary>
+        public HashSet<string> RelayHiddenFrom { get; } = new HashSet<string>();
+
+        /// <summary>Once the relay is destroyed, the centres that would now have it in view had it gone on as it was.</summary>
+        public HashSet<string> RelayGoneInViewOf { get; } = new HashSet<string>();
+
         private IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? Sight()
         {
             if (!TracksBySight)
@@ -269,9 +275,37 @@ namespace Sitrep.Host.IntegrationTests
             return new Dictionary<string, IReadOnlyDictionary<string, double>>
             {
                 [Active] = Row(ActiveSeconds, ActiveSeconds),
-                [Relay] = Row(RelaySeenFromHomeSeconds ?? RelayFromHomeSeconds, RelayFromFarSeconds),
+                [Relay] = RelayRow(centre => !RelayHiddenFrom.Contains(centre)),
                 ["vessel:" + DebrisGuid] = Row(DebrisSeenSeconds, DebrisSeenSeconds),
             };
+        }
+
+        private IReadOnlyDictionary<string, double> RelayRow(Func<string, bool> inView)
+        {
+            var row = new Dictionary<string, double>();
+            if (inView(Home))
+            {
+                row[Home] = RelaySeenFromHomeSeconds ?? RelayFromHomeSeconds;
+            }
+            if (inView(Far))
+            {
+                row[Far] = RelayFromFarSeconds;
+            }
+            return row;
+        }
+
+        private IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? GoneSight()
+        {
+            if (!TracksBySight)
+            {
+                return null;
+            }
+            var gone = new Dictionary<string, IReadOnlyDictionary<string, double>>();
+            if (!RelayExists)
+            {
+                gone[Relay] = RelayRow(centre => RelayGoneInViewOf.Contains(centre));
+            }
+            return gone;
         }
 
         /// <summary>Whether the relay is a command centre: crewed, and on the roster.</summary>
@@ -459,7 +493,7 @@ namespace Sitrep.Host.IntegrationTests
             }
             return new ContactGameLook(nodes, Bodies, Kerbin, (_, index) => index == Kerbin ? KerbinRadius : 0.0)
             {
-                Radio = Radio, Roster = roster, Sight = Sight(), Vessels = vessels,
+                Radio = Radio, Roster = roster, Sight = Sight(), GoneSight = GoneSight(), Vessels = vessels,
             };
         }
 

@@ -3911,6 +3911,8 @@ namespace Sitrep.Host
             // Courier-thread-only, like SetSubjectConnected's other caller.
             _fleetVesselsThisTick.Add(vesselId);
             _craftDeparted.Remove(FleetNodePrefix + vesselId);
+            _craftReleaseFloor.Remove(FleetNodePrefix + vesselId);
+            _craftKeptUntil.Remove(FleetNodePrefix + vesselId);
             _releaseWhenUnwatched.Remove(FleetNodePrefix + vesselId);
             // The tick being worked through, not the clock, which this tick has not advanced yet.
             SetSubjectConnected(FleetNodePrefix + vesselId, connected, Math.Max(_tickUt, _clock.Now()));
@@ -7989,6 +7991,12 @@ namespace Sitrep.Host
         private readonly Dictionary<string, double> _craftDeparted = new Dictionary<string, double>(StringComparer.Ordinal);
         private readonly HashSet<string> _releaseWhenUnwatched = new HashSet<string>(StringComparer.Ordinal);
 
+        /// <summary>The earliest each departed craft can be let go: the last of what it sent landing everywhere.</summary>
+        private readonly Dictionary<string, double> _craftReleaseFloor = new Dictionary<string, double>(StringComparer.Ordinal);
+
+        /// <summary>A UT before which a craft is not let go whatever it sent, while something about it is still owed.</summary>
+        private readonly Dictionary<string, double> _craftKeptUntil = new Dictionary<string, double>(StringComparer.Ordinal);
+
         /// <summary>Margin past the computed last landing before a gone craft is let go.</summary>
         private const double ReleaseMarginSeconds = 1.0;
 
@@ -8014,20 +8022,52 @@ namespace Sitrep.Host
             {
                 longest = Math.Max(longest, Longest(sight));
             }
-            var releaseUt = Math.Max(_tickUt, _clock.Now()) + longest + ReleaseMarginSeconds;
-            _craftDeparted[node] = releaseUt;
-            _clock.Schedule(releaseUt, () => ReleaseCraft(node, releaseUt));
+            _craftReleaseFloor[node] = Math.Max(_tickUt, _clock.Now()) + longest + ReleaseMarginSeconds;
+            ScheduleRelease(node);
         }
 
         /// <summary>Moves a departed craft's release no earlier than <paramref name="untilUt"/>. A craft that has not departed is untouched.</summary>
         private void HoldDepartedUntil(string node, double untilUt)
         {
-            if (!_craftDeparted.TryGetValue(node, out var due) || untilUt <= due)
+            if (!_craftReleaseFloor.TryGetValue(node, out var floor) || untilUt <= floor)
             {
                 return;
             }
-            _craftDeparted[node] = untilUt;
-            _clock.Schedule(untilUt, () => ReleaseCraft(node, untilUt));
+            _craftReleaseFloor[node] = untilUt;
+            ScheduleRelease(node);
+        }
+
+        public void KeepCraftUntil(string vesselId, double untilUt)
+        {
+            var node = FleetNodePrefix + vesselId;
+            if (double.IsNegativeInfinity(untilUt))
+            {
+                _craftKeptUntil.Remove(node);
+            }
+            else
+            {
+                _craftKeptUntil[node] = untilUt;
+            }
+            if (_craftReleaseFloor.ContainsKey(node))
+            {
+                ScheduleRelease(node);
+            }
+        }
+
+        /// <summary>Times a departed craft's release at the later of its floor and any keep on it. A release timed before is dropped when it fires.</summary>
+        private void ScheduleRelease(string node)
+        {
+            var due = _craftReleaseFloor[node];
+            if (_craftKeptUntil.TryGetValue(node, out var kept))
+            {
+                due = Math.Max(due, kept);
+            }
+            if (_craftDeparted.TryGetValue(node, out var was) && was == due)
+            {
+                return;
+            }
+            _craftDeparted[node] = due;
+            _clock.Schedule(due, () => ReleaseCraft(node, due));
         }
 
         /// <summary>The longest finite delay a stamp holds, 0 when it holds none.</summary>
@@ -8058,6 +8098,8 @@ namespace Sitrep.Host
                 return;
             }
             _craftDeparted.Remove(node);
+            _craftReleaseFloor.Remove(node);
+            _craftKeptUntil.Remove(node);
             if (Watched(node))
             {
                 _releaseWhenUnwatched.Add(node);

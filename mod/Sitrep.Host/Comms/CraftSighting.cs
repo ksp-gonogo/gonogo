@@ -26,6 +26,13 @@ namespace Sitrep.Host.Comms
         /// <summary>The keys of a <c>system.vessels</c> entry it is tracked under.</summary>
         public static readonly string[] IdentityFacts = { "vesselId", "name", "vesselType" };
 
+        /// <summary>
+        /// How long after an object leaves the game a centre that did not see
+        /// it go is still owed the sight of its going: one stock day. A centre
+        /// that has not had the object's place in view by then never sees it go.
+        /// </summary>
+        public const double GoneSightHorizonSeconds = Sitrep.Core.GameDayDefaults.StockDaySeconds;
+
         private CraftSighting(string id, double capturedUt, bool exists, IReadOnlyDictionary<string, object?>? listed, CraftState? place)
         {
             Id = id;

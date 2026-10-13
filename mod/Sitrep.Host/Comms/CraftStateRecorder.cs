@@ -100,8 +100,10 @@ namespace Sitrep.Host.Comms
                 IReadOnlyList<CraftState> states,
                 IReadOnlyList<string> gone,
                 IReadOnlyList<Sighted>? sightings = null,
-                IReadOnlyList<string>? known = null)
+                IReadOnlyList<string>? known = null,
+                IReadOnlyDictionary<string, double>? keeps = null)
             {
+                Keeps = keeps ?? new Dictionary<string, double>();
                 Ut = ut;
                 Present = present;
                 States = states;
@@ -126,6 +128,13 @@ namespace Sitrep.Host.Comms
 
             /// <summary>The craft that were in the game at the last pass and are not now, by bare guid.</summary>
             public IReadOnlyList<string> Gone { get; }
+
+            /// <summary>
+            /// Gone objects, by bare guid, that some centre is still owed the sight
+            /// of the going of, each with the UT not to let it go before; negative
+            /// infinity for one no longer owed to any.
+            /// </summary>
+            public IReadOnlyDictionary<string, double> Keeps { get; }
         }
 
         // Main-thread state, apart from the flag a timeline reset raises.
@@ -137,6 +146,14 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The signal delays of the last pass, for an object that is gone by this one and can no longer be measured.</summary>
         private IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>? _lastSight;
+
+        /// <summary>
+        /// Each gone object, by node id, with the centres that did not have it
+        /// in view when it went and so have not seen it go. Each is shown it
+        /// going when the place it would be comes into that centre's view.
+        /// </summary>
+        private readonly Dictionary<string, (HashSet<string> Centres, double KeepUntil)> _goneUnseenBy =
+            new Dictionary<string, (HashSet<string>, double)>(StringComparer.Ordinal);
 
         /// <summary>The centres the last pass measured to. A centre that is new has seen nothing, so everything is seen again for it.</summary>
         private HashSet<string> _sightCentres = new HashSet<string>(StringComparer.Ordinal);
@@ -162,6 +179,7 @@ namespace Sitrep.Host.Comms
                 _read.Clear();
                 _sighted.Clear();
                 _lastSight = null;
+                _goneUnseenBy.Clear();
                 _centreSaid.Clear();
             }
 
@@ -169,6 +187,7 @@ namespace Sitrep.Host.Comms
             var sight = look.Sight;
             var sightAgain = NewCentreIn(sight);
             var sightings = new List<Sighted>();
+            var keeps = new Dictionary<string, double>(StringComparer.Ordinal);
 
             var seen = new HashSet<string>(StringComparer.Ordinal);
             var present = new List<string>();
@@ -203,7 +222,7 @@ namespace Sitrep.Host.Comms
                 // Seen whenever it has something new to say, since that is when where it is going is read.
                 if (sight != null
                     && sight.TryGetValue(node.Id, out var light)
-                    && (state != null || sightAgain || !_sighted.ContainsKey(node.Id))
+                    && (state != null || sightAgain || !_sighted.ContainsKey(node.Id) || InViewOfANewCentre(node.Id, light))
                     && _read.TryGetValue(node.Id, out var read))
                 {
                     var sighting = CraftSighting.Of(node.Id, ut, listed, read.State.PlaceOnly());
@@ -229,12 +248,13 @@ namespace Sitrep.Host.Comms
                         continue;
                     }
                     var sighting = CraftSighting.Of(entry.Key, ut, entry.Value);
-                    if (sightAgain || SeenAfresh(entry.Key, sighting.Listed, ut))
+                    if (sightAgain || SeenAfresh(entry.Key, sighting.Listed, ut) || InViewOfANewCentre(entry.Key, light))
                     {
                         _sighted[entry.Key] = (sighting.Listed, ut);
                         sightings.Add(new Sighted(sighting, light));
                     }
                 }
+                ShowTheGoingWhereItComesIntoView(look, ut, sightings, keeps);
                 foreach (var id in new List<string>(_sighted.Keys))
                 {
                     if (seen.Contains(id) || roster.ContainsKey(id))
@@ -242,10 +262,22 @@ namespace Sitrep.Host.Comms
                         continue;
                     }
                     _sighted.Remove(id);
-                    // It can no longer be measured, so its going is seen over the distance it was last at.
-                    if (_lastSight != null && _lastSight.TryGetValue(id, out var light))
+                    // It can no longer be measured, so its going is seen from where it was last in view, over the distance it was last at.
+                    IReadOnlyDictionary<string, double>? light = null;
+                    if (_lastSight != null && _lastSight.TryGetValue(id, out light) && light.Count > 0)
                     {
                         sightings.Add(new Sighted(CraftSighting.Gone(id, ut), light));
+                    }
+                    var unseenBy = new HashSet<string>(CentresOf(look), StringComparer.Ordinal);
+                    if (light != null)
+                    {
+                        unseenBy.ExceptWith(light.Keys);
+                    }
+                    if (unseenBy.Count > 0)
+                    {
+                        var keepUntil = ut + CraftSighting.GoneSightHorizonSeconds;
+                        _goneUnseenBy[id] = (unseenBy, keepUntil);
+                        keeps[GuidOf(id)] = keepUntil;
                     }
                 }
             }
@@ -262,7 +294,7 @@ namespace Sitrep.Host.Comms
                 }
             }
             StatesRecordedBudget.Record(states.Count + sightings.Count, ut);
-            return new Batch(ut, present, states, gone, sightings, known);
+            return new Batch(ut, present, states, gone, sightings, known, keeps);
         }
 
         /// <summary>Whether the game's own list of vessels, where it gives one, still holds the craft.</summary>
@@ -281,6 +313,85 @@ namespace Sitrep.Host.Comms
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Whether some centre has the object in view this pass that did not on
+        /// the last, so that centre sees where it is now rather than where it was
+        /// when it went out of view.
+        /// </summary>
+        private bool InViewOfANewCentre(string id, IReadOnlyDictionary<string, double> row)
+        {
+            if (_lastSight == null || !_lastSight.TryGetValue(id, out var before))
+            {
+                return false;
+            }
+            foreach (var centre in row.Keys)
+            {
+                if (!before.ContainsKey(centre))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// For each gone object some centre has not seen go: that centre sees it
+        /// gone at the first pass that has the place it would be in view, which is
+        /// when an object still there would be seen and is not. One the look can
+        /// no longer place is never seen gone by the centres still waiting.
+        /// </summary>
+        private void ShowTheGoingWhereItComesIntoView(ContactGameLook look, double ut, List<Sighted> sightings, Dictionary<string, double> keeps)
+        {
+            if (look.GoneSight == null)
+            {
+                return;
+            }
+            foreach (var id in new List<string>(_goneUnseenBy.Keys))
+            {
+                var (unseenBy, keepUntil) = _goneUnseenBy[id];
+                if (look.GoneSight.TryGetValue(id, out var row))
+                {
+                    var nowInView = new Dictionary<string, double>(StringComparer.Ordinal);
+                    foreach (var centre in row)
+                    {
+                        if (unseenBy.Remove(centre.Key))
+                        {
+                            nowInView[centre.Key] = centre.Value;
+                        }
+                    }
+                    if (nowInView.Count > 0)
+                    {
+                        sightings.Add(new Sighted(CraftSighting.Gone(id, ut), nowInView));
+                    }
+                    if (unseenBy.Count > 0)
+                    {
+                        keeps[GuidOf(id)] = keepUntil;
+                        continue;
+                    }
+                }
+                _goneUnseenBy.Remove(id);
+                keeps[GuidOf(id)] = double.NegativeInfinity;
+            }
+        }
+
+        /// <summary>Every command centre the look names, or the centres the last pass measured to where it names none.</summary>
+        private IEnumerable<string> CentresOf(ContactGameLook look)
+        {
+            if (look.Roster == null)
+            {
+                return _sightCentres;
+            }
+            var centres = new List<string>();
+            foreach (var entry in look.Roster)
+            {
+                if (entry.Id != null)
+                {
+                    centres.Add(entry.Id);
+                }
+            }
+            return centres;
         }
 
         /// <summary>Whether this pass measures to a centre the last one did not, and notes the centres it measures to.</summary>
@@ -518,6 +629,10 @@ namespace Sitrep.Host.Comms
             foreach (var sighted in batch.Sightings)
             {
                 host.RecordCraftSighting(GuidOf(sighted.Sighting.Id), sighted.Sighting, batch.Ut, sighted.LightSeconds);
+            }
+            foreach (var keep in batch.Keeps)
+            {
+                host.KeepCraftUntil(keep.Key, keep.Value);
             }
         }
 

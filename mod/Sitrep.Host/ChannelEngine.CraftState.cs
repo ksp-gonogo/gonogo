@@ -374,6 +374,8 @@ namespace Sitrep.Host
             var departed = new List<string>(_craftDeparted.Keys);
             departed.AddRange(_releaseWhenUnwatched);
             _craftDeparted.Clear();
+            _craftReleaseFloor.Clear();
+            _craftKeptUntil.Clear();
             _releaseWhenUnwatched.Clear();
             foreach (var node in departed)
             {
