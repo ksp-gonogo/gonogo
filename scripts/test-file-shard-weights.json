@@ -1,8 +1,8 @@
 {
   "packages/components/src/ActionGroup/snapshots.test.tsx": 10,
-  "packages/components/src/AdminBuilding/eligibility-unknown.test.tsx": 3,
-  "packages/components/src/AdminBuilding/screens.test.tsx": 3,
-  "packages/components/src/AdminBuilding/snapshots.test.tsx": 17,
+  "packages/components/src/AdministrationBuilding/eligibility-unknown.test.tsx": 3,
+  "packages/components/src/AdministrationBuilding/screens.test.tsx": 3,
+  "packages/components/src/AdministrationBuilding/snapshots.test.tsx": 17,
   "packages/components/src/AstronautComplex/index.test.tsx": 8,
   "packages/components/src/AtmosphereProfile/snapshots.test.tsx": 12,
   "packages/components/src/CommSignal/snapshots.test.tsx": 24,

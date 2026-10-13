@@ -461,17 +461,17 @@ export interface ObjectiveSourceContext {
 }
 
 /**
- * Props passed to every `admin-building.screen-body` augment: the body of one
+ * Props passed to every `administration-building.screen-body` augment: the body of one
  * Administration Building screen, drawn below the strategy cards the screen
- * lists. Screens come from the `admin-building.screens` contribution slot, and the
+ * lists. Screens come from the `administration-building.screens` contribution slot, and the
  * slot is drawn only on a screen that is open for use.
  * Useful for drawing a screen's own controls, such as accepting a program. Used
  * by the Administration Building widget.
  *
  * @category Widget slots
  */
-export interface AdminBuildingScreenBodyContext {
-  /** The `id` of the screen being drawn, as its `admin-building.screens` entry gave it. An augment bound to more than one screen branches on it. */
+export interface AdministrationBuildingScreenBodyContext {
+  /** The `id` of the screen being drawn, as its `administration-building.screens` entry gave it. An augment bound to more than one screen branches on it. */
   screenId: string;
 }
 
@@ -1170,13 +1170,13 @@ declare module "./types" {
     "fleet-roster.updates": FleetRosterUpdatesContext;
 
     /**
-     * The body of an Administration Building screen in the Admin Building widget,
+     * The body of one screen of the Administration Building widget,
      * below the strategy cards the screen lists, for content of your own such
      * as a Programs screen with its own controls. Screens come from the
-     * `admin-building.screens` contribution slot; the body is drawn only on a
-     * screen that is open for use. Passes a {@link AdminBuildingScreenBodyContext}.
+     * `administration-building.screens` contribution slot; the body is drawn only on a
+     * screen that is open for use. Passes a {@link AdministrationBuildingScreenBodyContext}.
      */
-    "admin-building.screen-body": AdminBuildingScreenBodyContext;
+    "administration-building.screen-body": AdministrationBuildingScreenBodyContext;
   }
 
   // What each widget publishes about its own current focus, for an augment to

@@ -21,7 +21,7 @@ import type { ResolvedScreen } from "./screens";
 import { BalanceRow, Empty, LockedScreen, Sep, Tally } from "./styles";
 import type { Strategy } from "./types";
 
-export interface AdminBuildingViewProps {
+export interface AdministrationBuildingViewProps {
   w: number | undefined;
   h: number | undefined;
   strategies: readonly Strategy[] | null;
@@ -49,7 +49,7 @@ export interface AdminBuildingViewProps {
   setExpandedId: Dispatch<SetStateAction<string | null>>;
 }
 
-export function AdminBuildingView({
+export function AdministrationBuildingView({
   w,
   h,
   strategies,
@@ -67,13 +67,13 @@ export function AdminBuildingView({
   deactivateCmd,
   expandedId,
   setExpandedId,
-}: Readonly<AdminBuildingViewProps>) {
+}: Readonly<AdministrationBuildingViewProps>) {
   const showSubtitle = (h ?? 8) >= 4;
 
   if (strategies === null) {
     return (
       <Panel
-        panelTitle="Admin Building"
+        panelTitle="Administration Building"
         compactTitle={["ADMIN", "ADM"]}
         sections={
           showSubtitle ? (
@@ -121,7 +121,7 @@ export function AdminBuildingView({
 
   return (
     <Panel
-      panelTitle="Admin Building"
+      panelTitle="Administration Building"
       compactTitle={["ADMIN", "ADM"]}
       panelAside={
         <Tally $overCap={overCap}>

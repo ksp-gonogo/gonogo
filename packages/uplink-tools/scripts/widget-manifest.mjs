@@ -52,7 +52,7 @@ const PAGE_SCENES = {
   "resource-ops": "kerbalism-mixed",
   "ship-map": "fuel-tank-bars-only",
   "space-center-status": "mid-career-mixed",
-  "admin-building": "one-active-room-for-more",
+  "administration-building": "one-active-room-for-more",
   "target-picker": "lko-station-target",
   rendezvous: "approach-closing",
   "research-and-development": "small-career-detail",
