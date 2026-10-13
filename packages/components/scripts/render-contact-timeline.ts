@@ -9,7 +9,7 @@
  * through when the deadline expires. A still cannot show that the amber state
  * is reached by waiting rather than by an event.
  *
- * Pipeline mirrors `render-navball-gif.ts`: synthesise one fixture per frame
+ * Pipeline: synthesise one fixture per frame
  * into a temp dir under `src/` (the harness resolves `fixturesPath` relative to
  * it), render each through the existing playwright harness, stitch with ffmpeg.
  *

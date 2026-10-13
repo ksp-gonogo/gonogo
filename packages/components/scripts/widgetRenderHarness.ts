@@ -69,7 +69,7 @@ const FIXED_EPOCH_MS = 1_700_000_000_000;
  *  mounts read the clock. Note: only `Date.now()` is pinned, a future widget
  *  deriving layout from `new Date()` / `performance.now()` would reintroduce
  *  nondeterminism and need handling here. */
-async function installFixedClock(page: Page): Promise<void> {
+export async function installFixedClock(page: Page): Promise<void> {
   await page.addInitScript((fixed) => {
     Date.now = () => fixed;
   }, FIXED_EPOCH_MS);
