@@ -9,10 +9,10 @@ import { SCENES as deployedScience } from "./deployed-science";
 import { SCENES as experiments } from "./experiments";
 import { SCENES as fleetRoster } from "./fleet-roster";
 import { SCENES as fuelStatus } from "./fuel-status";
+import { SCENES as groundTrack } from "./ground-track";
 import { SCENES as landingStatus } from "./landing-status";
 import { SCENES as launchDirector } from "./launch-director";
 import { SCENES as maneuverPlanner } from "./maneuver-planner";
-import { SCENES as mapView } from "./map-view";
 import { SCENES as orbitView } from "./orbit-view";
 import { SCENES as powerSystems } from "./power-systems";
 import { SCENES as rendezvous } from "./rendezvous";
@@ -44,7 +44,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...landingStatus,
   ...launchDirector,
   ...maneuverPlanner,
-  ...mapView,
+  ...groundTrack,
   ...orbitView,
   ...powerSystems,
   ...resourceOps,
@@ -94,7 +94,10 @@ export const COMBINED_SLOT_SCENES: readonly {
     slots: ["rendezvous.camera", "rendezvous.overlay"],
   },
   // The base paints the surface the overlay is drawn over, in one projection.
-  { widgetId: "map-view", slots: ["map-view.base", "map-view.overlay"] },
+  {
+    widgetId: "ground-track",
+    slots: ["ground-track.base", "ground-track.overlay"],
+  },
   // One per-kerbal source: its row tone summarises the meters under the row.
   {
     widgetId: "crew-status",

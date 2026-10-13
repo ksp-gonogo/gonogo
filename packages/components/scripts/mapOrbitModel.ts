@@ -1,10 +1,10 @@
 /**
- * A craft circling Kerbin at 85 km on a 28.5 degree orbit, as Map View is
+ * A craft circling Kerbin at 85 km on a 28.5 degree orbit, as Ground Track is
  * shown it: each frame is the position and conic the game would have sent at
  * that instant, worked out from the orbit and the planet's spin. Two orbits
  * shift the ground track west by the planet's rotation between them.
  */
-import fixture from "../src/MapView/__fixtures__/kerbin-lko-equator.json";
+import fixture from "../src/GroundTrack/__fixtures__/kerbin-lko-equator.json";
 import {
   firstScene,
   type PlaybackEmit,
@@ -104,7 +104,7 @@ function emitsAt(ut: number): PlaybackEmit[] {
   ];
 }
 
-/** The scene Map View mounts on: the craft at the equator crossing. */
+/** The scene Ground Track mounts on: the craft at the equator crossing. */
 export function orbitFirstScene(): Record<string, unknown> {
   return firstScene(
     fixture,

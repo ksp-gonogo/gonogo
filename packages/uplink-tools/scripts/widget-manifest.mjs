@@ -47,7 +47,7 @@ const PAGE_SCENES = {
   experiments: "instruments-holding-data",
   "fleet-roster": "mixed-fleet",
   "fuel-status": "asparagus-multi-stage",
-  "map-view": "kerbin-lko-equator",
+  "ground-track": "kerbin-lko-equator",
   navball: "gravity-turn-east",
   "resource-ops": "kerbalism-mixed",
   "ship-map": "fuel-tank-bars-only",

@@ -43,13 +43,13 @@ export const eccentricToTrueAnomaly = trueAnomalyFromEccentric;
 export const MAX_TRACK_SAMPLES = 500;
 
 /**
- * Soft cap on `predictGroundTrack` invocations. MapView re-runs the
+ * Soft cap on `predictGroundTrack` invocations. GroundTrack re-runs the
  * prediction whenever its inputs change, orbit patches change rarely
  * (SOI changes, maneuvers), but `universalTime` ticks 4×/sec and used
  * to invalidate the memo on every tick. After the throttle that
  * quantises the ut bucket to 1 Hz, normal use should be ~1/sec across
- * one MapView, plus per-maneuver-node samples on top. Budget at 30/sec
- * gives plenty of headroom for several MapView instances + multiple
+ * one GroundTrack, plus per-maneuver-node samples on top. Budget at 30/sec
+ * gives plenty of headroom for several GroundTrack instances + multiple
  * maneuver nodes without hiding a real regression.
  */
 const PREDICT_GROUND_TRACK_BUDGET = new PerfBudget({

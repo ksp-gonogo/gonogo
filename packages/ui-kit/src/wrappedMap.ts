@@ -21,7 +21,7 @@ export interface GroundPoint {
  * Break a ground track wherever it flies over a pole, where its longitude
  * flips by half a turn and a line joining the pair would run along the map's
  * top or bottom edge. Useful for drawing a vessel's ground track on the
- * operator's map without a stray line across it. Used by the map view.
+ * operator's map without a stray line across it. Used by the ground track widget.
  * Crossing the antimeridian is not a break: draw each run with
  * {@link wrapPath}, which carries it on into the next copy of the world.
  *
@@ -58,7 +58,7 @@ export function splitAtPoleCrossings<Point extends GroundPoint>(
  * longitude. The path must already be split where it crosses a pole (see
  * {@link splitAtPoleCrossings}), since half a turn of longitude is no jump a
  * continuous line can be told apart from. Useful for drawing a track that
- * leaves one edge of the map and carries on at the other. Used by the map view.
+ * leaves one edge of the map and carries on at the other. Used by the ground track widget.
  *
  * @category Extensions
  */

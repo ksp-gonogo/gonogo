@@ -44,8 +44,8 @@ const RENDEZVOUS_CAMERA: SlotProps<"rendezvous.camera"> = {
   cameraFlightId: undefined,
 };
 
-/** `map-view.overlay` is a typed slot and will not take a partial context, even where a test reads none of it. */
-const MAP_OVERLAY: SlotProps<"map-view.overlay"> = {
+/** `ground-track.overlay` is a typed slot and will not take a partial context, even where a test reads none of it. */
+const MAP_OVERLAY: SlotProps<"ground-track.overlay"> = {
   width: 320,
   height: 160,
   camera: { zoom: 1, panX: 0, panY: 0 },
@@ -92,7 +92,7 @@ describe("augment registry: ordering", () => {
     // Different slot: must not leak into this slot's list.
     registerAugment({
       id: "other-slot",
-      augments: "map-view.overlay",
+      augments: "ground-track.overlay",
       component: () => null,
     });
 
@@ -154,24 +154,24 @@ describe("AugmentSlot: composition", () => {
   it("layers overlay augments in priority (z-)order (spec §4.8)", () => {
     registerAugment({
       id: "trajectory",
-      augments: "map-view.overlay",
+      augments: "ground-track.overlay",
       component: () => <div data-testid="layer">trajectory</div>,
       priority: 30,
     });
     registerAugment({
       id: "scan",
-      augments: "map-view.overlay",
+      augments: "ground-track.overlay",
       component: () => <div data-testid="layer">scan</div>,
       priority: 10,
     });
     registerAugment({
       id: "commlink",
-      augments: "map-view.overlay",
+      augments: "ground-track.overlay",
       component: () => <div data-testid="layer">commlink</div>,
       priority: 20,
     });
 
-    render(<AugmentSlot name="map-view.overlay" props={MAP_OVERLAY} />);
+    render(<AugmentSlot name="ground-track.overlay" props={MAP_OVERLAY} />);
 
     // DOM order = ascending priority → the highest-priority layer is last (on top).
     const order = screen.getAllByTestId("layer").map((el) => el.textContent);
@@ -185,13 +185,13 @@ describe("AugmentSlot: composition", () => {
     }
     registerAugment({
       id: "proj",
-      augments: "map-view.overlay",
+      augments: "ground-track.overlay",
       component: ProjAugment,
     });
 
     render(
       <AugmentSlot
-        name="map-view.overlay"
+        name="ground-track.overlay"
         props={{ ...MAP_OVERLAY, camera: { zoom: 7, panX: 0, panY: 0 } }}
       />,
     );
@@ -204,7 +204,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
   it("does not render an augment whose required Domain is absent, then renders it once available", async () => {
     registerAugment({
       id: "scan-overlay",
-      augments: "map-view.overlay",
+      augments: "ground-track.overlay",
       component: () => <div>scan-layer</div>,
       requires: "demomod",
       channels: ["demomod.available"],
@@ -215,7 +215,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
 
     render(
       <DomainAvailabilityContext.Provider value={store}>
-        <AugmentSlot name="map-view.overlay" props={MAP_OVERLAY} />
+        <AugmentSlot name="ground-track.overlay" props={MAP_OVERLAY} />
       </DomainAvailabilityContext.Provider>,
     );
 

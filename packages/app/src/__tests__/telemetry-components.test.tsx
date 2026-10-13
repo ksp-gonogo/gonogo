@@ -1,6 +1,6 @@
 /**
  * Smoke tests for telemetry visualisation components:
- * CurrentOrbit, Rendezvous, OrbitView, MapView.
+ * CurrentOrbit, Rendezvous, OrbitView, GroundTrack.
  *
  * These are integration tests: real data source, real hooks, real components,
  * only the network is intercepted by MSW.
@@ -8,7 +8,7 @@
 
 import {
   CurrentOrbitComponent,
-  MapViewComponent,
+  GroundTrackComponent,
   OrbitViewComponent,
   RendezvousComponent,
 } from "@ksp-gonogo/components";
@@ -54,9 +54,9 @@ beforeEach(() => {
   clearRegistry();
   registerStockBodies();
 
-  // MapView's `useMapResize` constructs a `ResizeObserver` on mount; jsdom
+  // GroundTrack's `useMapResize` constructs a `ResizeObserver` on mount; jsdom
   // has no implementation. Stub the same fixed-size fake the widget's own
-  // `MapView/index.test.tsx` uses so the full-map render path can measure.
+  // `GroundTrack/index.test.tsx` uses so the full-map render path can measure.
   restoreResizeObserver = installFixedSizeResizeObserver({
     width: 600,
     height: 300,
@@ -307,20 +307,20 @@ describe("OrbitViewComponent", () => {
   });
 });
 
-describe("MapViewComponent", () => {
-  // MapView reads position off `vessel.flight.latitude`/`.longitude`, and names the header body from `vessel.identity.parentBodyIndex` through `system.bodies`.
+describe("GroundTrackComponent", () => {
+  // GroundTrack reads position off `vessel.flight.latitude`/`.longitude`, and names the header body from `vessel.identity.parentBodyIndex` through `system.bodies`.
   function emitKerbin(stream: ReturnType<typeof setupTelemetryStream>) {
     stream.emit("vessel.identity", { parentBodyIndex: 1, launchUt: null });
     stream.emit("system.bodies", { bodies: [{ index: 1, name: "Kerbin" }] });
   }
 
-  it("renders MAP VIEW heading", () => {
-    renderWidget(<MapViewComponent id="t" />);
-    expect(screen.getByText("MAP VIEW")).toBeInTheDocument();
+  it("renders GROUND TRACK heading", () => {
+    renderWidget(<GroundTrackComponent id="t" />);
+    expect(screen.getByText("GROUND TRACK")).toBeInTheDocument();
   });
 
   it('shows "Waiting for telemetry" before a body arrives', () => {
-    renderWidget(<MapViewComponent id="t" />);
+    renderWidget(<GroundTrackComponent id="t" />);
     expect(screen.getByText("Waiting for telemetry...")).toBeInTheDocument();
   });
 
@@ -328,7 +328,7 @@ describe("MapViewComponent", () => {
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <MapViewComponent id="t" />
+        <GroundTrackComponent id="t" />
       </stream.Provider>,
     );
     act(() => emitKerbin(stream));
@@ -339,7 +339,7 @@ describe("MapViewComponent", () => {
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <MapViewComponent id="t" />
+        <GroundTrackComponent id="t" />
       </stream.Provider>,
     );
     act(() => emitKerbin(stream));
@@ -351,7 +351,7 @@ describe("MapViewComponent", () => {
     const stream = setupTelemetryStream();
     renderWidget(
       <stream.Provider>
-        <MapViewComponent id="t" />
+        <GroundTrackComponent id="t" />
       </stream.Provider>,
     );
     act(() => {

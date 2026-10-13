@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import { getWidget } from "../../scripts/widgets";
+import { snapshotWidgetMode } from "../test/widgetDomSnapshot";
+import launchpad from "./__fixtures__/kerbin-launchpad.json";
+import lko from "./__fixtures__/kerbin-lko-equator.json";
+import reentry from "./__fixtures__/kerbin-reentry.json";
+import mun from "./__fixtures__/mun-polar-orbit.json";
+import noVessel from "./__fixtures__/no-vessel-data.json";
+import { GroundTrackComponent } from "./index";
+
+/**
+ * DOM snapshots off the stream pipeline, driven by each fixture's own
+ * `_stream` block. `no-vessel-data` carries none by design: no position is its
+ * subject.
+ */
+
+const FIXTURES: Record<string, Record<string, unknown>> = {
+  "kerbin-launchpad": launchpad,
+  "kerbin-lko-equator": lko,
+  "kerbin-reentry": reentry,
+  "mun-polar-orbit": mun,
+  "no-vessel-data": noVessel,
+};
+
+const config = getWidget("ground-track");
+if (!config) throw new Error("ground-track missing from widgets.ts");
+
+describe("GroundTrack DOM snapshots", () => {
+  for (const [name, fixture] of Object.entries(FIXTURES)) {
+    for (const mode of config.modes) {
+      // The zoom modes target scenes of their own, and a DOM snapshot dispatches no wheel: here they would be the unzoomed render under a zoom's name.
+      if (mode.forFixtures && !mode.forFixtures.includes(name)) continue;
+      it(`${name} @ ${mode.name}`, async () => {
+        const html = await snapshotWidgetMode({
+          Widget: GroundTrackComponent,
+          fixture,
+          mode,
+        });
+        expect(html).toMatchSnapshot();
+      });
+    }
+  }
+});

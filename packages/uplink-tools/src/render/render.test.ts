@@ -988,7 +988,7 @@ describe("coverage of the registrations", () => {
       augments: [
         {
           id: "overlay",
-          augments: "map-view.overlay",
+          augments: "ground-track.overlay",
           channels: [],
           suppressesVanillaBase: false,
           settings: [],

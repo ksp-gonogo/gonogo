@@ -215,14 +215,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 8: each UnitInput's Value unwrapped into the planner inputs, which planning.ts solves as numbers: a transfer or a plane change is trigonometry, not an operation the algebra has a term for.
   "packages/components/src/ManeuverPlanner/PresetInput.tsx": 8,
   "packages/components/src/ManeuverPlanner/usePlannerTelemetry.ts": 4,
-  "packages/components/src/MapView/index.tsx": 6,
+  "packages/components/src/GroundTrack/index.tsx": 6,
   // 3: `predictGroundTrack` is plain-number geometry, so the reference's latitude and longitude unwrap once in `predictionRef`, and the horizon, reckoned as Values, unwraps once in `loopHorizon`.
-  "packages/components/src/MapView/useGroundTrackPrediction.ts": 3,
-  "packages/components/src/MapView/useMapPainting.ts": 2,
-  "packages/components/src/MapView/useMapTelemetry.ts": 5,
+  "packages/components/src/GroundTrack/useGroundTrackPrediction.ts": 3,
+  "packages/components/src/GroundTrack/useMapPainting.ts": 2,
+  "packages/components/src/GroundTrack/useMapTelemetry.ts": 5,
   // 4: `predictGroundTrack` is plain-number geometry, so the reckoning's instant, the throttle bucket and the `{ ut, lat, lon }` reference unwrap at that boundary.
-  "packages/components/src/MapView/useModelledPosition.ts": 4,
-  "packages/components/src/MapView/vanillaPoiProvider.ts": 2,
+  "packages/components/src/GroundTrack/useModelledPosition.ts": 4,
+  "packages/components/src/GroundTrack/vanillaPoiProvider.ts": 2,
   "packages/components/src/OrbitView/index.tsx": 6,
   /*
    * ONE, on a quotient `dividedBy` has already made dimensionless: a part

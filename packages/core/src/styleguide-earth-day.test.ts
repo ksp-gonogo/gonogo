@@ -37,7 +37,7 @@ import { exitStatus } from "./ratchetBaseRef";
  *
  * So the mod now publishes what the running game uses on `time.calendar`, and
  * both literals are offences here. Two were found by widening this: a
- * ground-track horizon in `MapView` and a hand-rolled `Y# D#` clock in
+ * ground-track horizon in `GroundTrack` and a hand-rolled `Y# D#` clock in
  * `AlarmsModal` that also printed a literal "Y1" for every date.
  *
  * The fix is always the same: `kspCalendar()` from `@ksp-gonogo/ui-kit`, or
