@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { compareRenderRecord } from "./cli";
 import {
   RENDERED_FILES_RECORD,
   recordedRenders,
@@ -70,5 +71,41 @@ describe("the files a render run may delete", () => {
       JSON.stringify(["../outside.png", "ok.png", 3]),
     );
     expect(recordedRenders(dir)).toEqual(["ok.png"]);
+  });
+});
+
+describe("the committed list of rendered pictures", () => {
+  const dirs = (committed: string[] | null, generated: string[]) => {
+    const have = folder();
+    const want = folder();
+    if (committed) recordRenders(have, committed);
+    recordRenders(want, generated);
+    return { have, want };
+  };
+  const differences = (have: string, want: string) => {
+    const out: string[] = [];
+    compareRenderRecord(have, want, out);
+    return out;
+  };
+
+  it("says to commit it when pictures are drawn and no list is committed", () => {
+    const { have, want } = dirs(null, ["a--default.png"]);
+    expect(differences(have, want)).toEqual([
+      expect.stringContaining("does not exist: commit it with the pictures"),
+    ]);
+  });
+
+  it("names the pictures a committed list leaves out and the ones it lists wrongly", () => {
+    const { have, want } = dirs(["old--default.png"], ["a--default.png"]);
+    const [line] = differences(have, want);
+    expect(line).toContain("not listed: a--default.png");
+    expect(line).toContain("listed but not drawn: old--default.png");
+  });
+
+  it("is quiet when the lists agree, and when nothing is drawn", () => {
+    const same = dirs(["a--default.png"], ["a--default.png"]);
+    expect(differences(same.have, same.want)).toEqual([]);
+    const none = dirs(null, []);
+    expect(differences(none.have, none.want)).toEqual([]);
   });
 });

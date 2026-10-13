@@ -138,4 +138,6 @@ jobs:
             echo "pnpm uplink-pages   # prose and manifest, any machine"
             echo "pnpm uplink-docs    # everything, pictures included, on Linux"
             echo '```'
+            echo
+            echo "Commit docs/assets/.uplink-tools-renders.json with the pictures: it is the list a later run uses to remove the picture of a scene that is gone."
           } >> "$GITHUB_STEP_SUMMARY"

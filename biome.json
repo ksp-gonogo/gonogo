@@ -16,6 +16,7 @@
       "!**/__generated__",
       "!**/client/docs/widgets.json",
       "!**/client/docs/spec.json",
+      "!**/client/docs/assets/.uplink-tools-renders.json",
       "!mod/Sitrep.Contract/contract-shape.baseline.json",
       "!**/tsup.config.bundled_*.mjs",
       "!docs/homepage"

@@ -27,6 +27,7 @@ import {
   widgetRecordsOf,
 } from "./docs";
 import { type Engine, readUplinkScenes, renderUplink } from "./driver";
+import { RENDERED_FILES_RECORD, recordedRenders } from "./rendered-files";
 import {
   type AssetShape,
   compareShapes,
@@ -66,7 +67,9 @@ const REGENERATE_REMEDY =
   "  `uplink-tools docs` regenerates both on THIS machine's rasteriser, " +
   "and it\n  first removes the pictures its last run recorded in " +
   "`.uplink-tools-renders.json`: a run\n  that throws leaves those deleted. " +
-  "Recover with `git checkout -- docs/assets`.";
+  "Recover with `git checkout -- docs/assets`.\n" +
+  "  Commit `docs/assets/.uplink-tools-renders.json` with the pictures: it is what lets a run on " +
+  "another\n  machine remove the picture of a scene that no longer exists.";
 
 /**
  * The browser verbs of `uplink-tools`:
@@ -636,6 +639,7 @@ export async function compareCommittedPage(
     page.generatedAssets,
     differences,
   );
+  compareRenderRecord(page.committedAssets, page.generatedAssets, differences);
   if (!page.pictures) {
     console.log(`\n${PICTURES_ARE_CI_NOTE}`);
     return { differences };
@@ -702,6 +706,38 @@ export async function compareAssetNames(
   for (const name of [...have].sort()) {
     if (!want.has(name)) out.push(`${committed}: stale asset ${name}`);
   }
+}
+
+/**
+ * Compares the committed list of rendered pictures with the list a fresh run
+ * writes. Pictures with no list, or a list naming other files, are the state in
+ * which a later run on another machine cannot remove the picture of a scene that
+ * no longer exists. Useful for telling the author to commit the list with the
+ * pictures. Used by `compareCommittedPage`.
+ */
+export function compareRenderRecord(
+  committed: string,
+  generated: string,
+  out: string[],
+): void {
+  const want = recordedRenders(generated);
+  if (want.length === 0) return;
+  const have = recordedRenders(committed);
+  const path = join(committed, RENDERED_FILES_RECORD);
+  if (!existsSync(path)) {
+    out.push(
+      `${path} does not exist: commit it with the pictures, so a later run can remove the picture of a scene that is gone`,
+    );
+    return;
+  }
+  const missing = want.filter((name) => !have.includes(name));
+  const extra = have.filter((name) => !want.includes(name));
+  if (missing.length === 0 && extra.length === 0) return;
+  out.push(
+    `${path} names other files than the pictures this code draws` +
+      (missing.length > 0 ? `; not listed: ${missing.join(", ")}` : "") +
+      (extra.length > 0 ? `; listed but not drawn: ${extra.join(", ")}` : ""),
+  );
 }
 
 /**

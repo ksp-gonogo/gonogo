@@ -1,0 +1,17 @@
+[
+  "breaking-ground-absent--default.png",
+  "controller-not-connected--default.png",
+  "controller-not-connected--min.png",
+  "mun-and-minmus-bases--default.png",
+  "mun-and-minmus-bases--min.png",
+  "mun-and-minmus-bases-stopped-arriving--default.png",
+  "mun-and-minmus-bases-stopped-arriving--min.png",
+  "robotics-dlc-absent--default.png",
+  "rotors--default.png",
+  "rotors--min.png",
+  "rotors-dlc-absent--default.png",
+  "rotors-link-lost--default.png",
+  "servos--default.png",
+  "servos--min.png",
+  "servos-link-lost--default.png"
+]
