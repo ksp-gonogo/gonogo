@@ -1,18 +1,19 @@
 import { KSP_EDITOR_FACILITY_NAMES } from "@ksp-gonogo/sitrep-sdk";
-import { asQuantityish, magnitudeOr } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import type { LaunchSiteEntry } from "./pads";
 
 export interface SavedShip {
   name: string;
   /** The `.craft` file name without its extension: unique within a facility folder, and what `ksp.launch` resolves. {@link name} is operator-chosen text and repeats across files. */
   file: string;
-  partCount: number;
-  totalMass: number;
+  /** The three figures below are null where the wire did not carry them. */
+  partCount: number | null;
+  totalMass: number | null;
   /** KSP's own `EditorFacility` name, verbatim: the label shown on the row. */
   facility: string;
   /** KSP's `EditorFacility` ordinal, `null` when none was sent: what decides the launch editor; {@link facility} is display only. */
   facilityOrdinal: number | null;
-  requiresFunds: number;
+  requiresFunds: number | null;
   missingParts: string[];
 }
 
@@ -29,12 +30,12 @@ export function parseSavedShips(raw: unknown): SavedShip[] | null {
     out.push({
       name,
       file: typeof e.file === "string" && e.file ? e.file : name,
-      partCount: magnitudeOr(asQuantityish(e.partCount), 0),
-      totalMass: magnitudeOr(asQuantityish(e.totalMass), 0),
+      partCount: magnitudeOf(asQuantityish(e.partCount)),
+      totalMass: magnitudeOf(asQuantityish(e.totalMass)),
       facility: typeof e.facility === "string" ? e.facility : "",
       facilityOrdinal:
         typeof e.facilityOrdinal === "number" ? e.facilityOrdinal : null,
-      requiresFunds: magnitudeOr(asQuantityish(e.requiresFunds), 0),
+      requiresFunds: magnitudeOf(asQuantityish(e.requiresFunds)),
       missingParts: Array.isArray(e.missingParts)
         ? e.missingParts.filter((p): p is string => typeof p === "string")
         : [],
@@ -84,7 +85,9 @@ export function shipBlockedReason(
   fundsAvailable: number,
 ): string | null {
   const causes = [
-    ship.requiresFunds > fundsAvailable ? "Insufficient funds" : null,
+    ship.requiresFunds !== null && ship.requiresFunds > fundsAvailable
+      ? "Insufficient funds"
+      : null,
     ship.missingParts.length > 0
       ? `Missing: ${ship.missingParts.join(", ")}`
       : null,

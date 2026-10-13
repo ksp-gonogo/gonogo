@@ -85,14 +85,15 @@ export function ConformanceSection({
     ecc !== undefined &&
     ApR !== undefined &&
     PeR !== undefined &&
-    trueAnomaly !== undefined
+    trueAnomaly !== undefined &&
+    argPe !== undefined
       ? {
           sma,
           ecc,
           apoapsis: ApR,
           periapsis: PeR,
           trueAnomaly,
-          argPe: argPe ?? 0,
+          argPe,
         }
       : null;
   return (

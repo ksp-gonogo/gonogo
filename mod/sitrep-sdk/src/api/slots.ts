@@ -782,9 +782,9 @@ export interface OrbitOverlayContext {
   apoapsis?: number;
   /** Periapsis distance from the body's centre, in metres. */
   periapsis: number;
-  /** Argument of periapsis in degrees, which turns the orbit in its plane. 0 when not reported. */
+  /** Argument of periapsis in degrees, which turns the orbit in its plane. Always reported: with no argument of periapsis the orbit has no overlay. */
   argPe: number;
-  /** The vessel's true anomaly in degrees. 0 when not reported. */
+  /** The vessel's true anomaly in degrees. */
   trueAnomaly: number;
   /** The body's radius in metres. Absent while it is not known. */
   bodyRadius?: number;
