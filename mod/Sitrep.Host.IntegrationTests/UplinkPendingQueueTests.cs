@@ -102,6 +102,111 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Switching signal delay off while a command is on its way: the command
+        /// keeps the arrival it was given when it left, and a command sent after
+        /// the switch arrives at once. So a later command runs ahead of an
+        /// earlier one.
+        /// </summary>
+        [Fact]
+        public void SwitchingDelayOffMidFlightLeavesAnEarlierCommandOnItsWayAndLetsALaterOneOvertakeIt()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 5.0), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "earlier", "KSC", _ => { }, TestBudgets.Op, label: "run.");
+
+                // The switch goes off: the next reading carries no delay.
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: 0.0), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "later", "KSC", _ => { }, TestBudgets.Op, label: "run.");
+                engine.TickAndWait(2.0, FreezeGateTestUplink.Snapshot(2.0, connected: true, delay: 0.0), Timeout);
+
+                Assert.Equal(new[] { "later" }, uplink.RanInOrder);
+
+                engine.TickAndWait(6.0, FreezeGateTestUplink.Snapshot(6.0, connected: true, delay: 0.0), Timeout);
+
+                Assert.Equal(new[] { "later", "earlier" }, uplink.RanInOrder);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Switching signal delay on while nothing is pending: a command sent
+        /// after the switch waits the delay, one sent before it ran at once.
+        /// </summary>
+        [Fact]
+        public void SwitchingDelayOnDelaysOnlyCommandsSentAfterTheSwitch()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 0.0), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "before", "KSC", _ => { }, TestBudgets.Op, label: "run.");
+                engine.TickAndWait(0.5, FreezeGateTestUplink.Snapshot(0.5, connected: true, delay: 0.0), Timeout);
+                Assert.Equal(new[] { "before" }, uplink.RanInOrder);
+
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: 5.0), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "after", "KSC", _ => { }, TestBudgets.Op, label: "run.");
+                engine.TickAndWait(3.0, FreezeGateTestUplink.Snapshot(3.0, connected: true, delay: 5.0), Timeout);
+
+                Assert.Equal(new[] { "before" }, uplink.RanInOrder);
+
+                engine.TickAndWait(7.0, FreezeGateTestUplink.Snapshot(7.0, connected: true, delay: 5.0), Timeout);
+
+                Assert.Equal(new[] { "before", "after" }, uplink.RanInOrder);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A change of light speed while a command is on its way: the command
+        /// in flight keeps the arrival it was given, and the one sent after the
+        /// change takes the new delay.
+        /// </summary>
+        [Fact]
+        public void ChangingLightSpeedMidFlightRetimesOnlyCommandsSentAfterIt()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new PendingQueueTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.RegisterCommandCentreSource(new StaticSource("KSC"));
+            engine.Start();
+            try
+            {
+                engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 5.0), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "slow", "KSC", _ => { }, TestBudgets.Op, label: "run.");
+
+                // Light speed halves: the same distance now takes twice as long.
+                engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: true, delay: 10.0), Timeout);
+                engine.DispatchCommandAndWait(PendingQueueTestUplink.Command, "slower", "KSC", _ => { }, TestBudgets.Op, label: "run.");
+
+                engine.TickAndWait(6.0, FreezeGateTestUplink.Snapshot(6.0, connected: true, delay: 10.0), Timeout);
+                Assert.Equal(new[] { "slow" }, uplink.RanInOrder);
+
+                engine.TickAndWait(12.0, FreezeGateTestUplink.Snapshot(12.0, connected: true, delay: 10.0), Timeout);
+                Assert.Equal(new[] { "slow", "slower" }, uplink.RanInOrder);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public async Task ZeroDelayCommandDispatchIsNeverEnqueued()
         {
@@ -728,6 +833,20 @@ namespace Sitrep.Host.IntegrationTests
 
             public int HandledCount => Volatile.Read(ref _handled);
 
+            private readonly List<string> _order = new List<string>();
+
+            /// <summary>The arguments of the dispatched commands, in the order the uplink ran them.</summary>
+            public string[] RanInOrder
+            {
+                get
+                {
+                    lock (_order)
+                    {
+                        return _order.ToArray();
+                    }
+                }
+            }
+
             public UplinkManifest Manifest { get; } = new UplinkManifest
             {
                 Id = "pending-queue-test",
@@ -758,6 +877,10 @@ namespace Sitrep.Host.IntegrationTests
                 host.AddCommandHandler<string, string>(Command, args =>
                 {
                     Interlocked.Increment(ref _handled);
+                    lock (_order)
+                    {
+                        _order.Add(args);
+                    }
                     return "pong:" + args;
                 });
                 host.AddCommandHandler<Dictionary<string, object>, string>(
