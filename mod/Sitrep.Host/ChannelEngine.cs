@@ -981,18 +981,6 @@ namespace Sitrep.Host
         private readonly Dictionary<string, DelayStamp> _subjectLastConnectedStamp =
             new Dictionary<string, DelayStamp>();
 
-        /*
-         * The active-vessel node's rows as they stood on the last tick the delay
-         * source could measure a path, and the UT of the first tick it could not.
-         * A craft that is gone (destroyed, recovered) has no path, so the ledger
-         * reads 0 for it from that tick on; a fact about the craft that is
-         * recorded after that is timed by these rows instead, so the end of a
-         * flight is never delivered ahead of the flight's own last samples.
-         * Courier-thread-only.
-         */
-        private DelayStamp? _lastMeasuredStamp;
-        private double? _unmeasuredSinceUt;
-
         // The routed light-time last written for each fleet.<guid> node. Shadows
         // the ledger's node-default purely so SetVesselDelay can snapshot the
         // OUTGOING value into _subjectLastConnectedDelay, the role
@@ -7323,7 +7311,7 @@ namespace Sitrep.Host
             var delay = RevealDelayFor(topic, stampedAtPublish ? ut : (double?)null);
             if (delay <= 0.0)
             {
-                RecordThrough(topic, value, ut, MeasuredStampFor(topic, ut));
+                RecordThrough(topic, value, ut);
                 return;
             }
 
@@ -7347,51 +7335,6 @@ namespace Sitrep.Host
             }
 
             BufferFor(topic).Add(new BufferedReveal(ut, value, delay));
-        }
-
-        /// <summary>
-        /// The rows a Delayed fact on the active vessel's node is sent under when
-        /// it describes a moment the craft could still be measured, though the
-        /// craft has gone since: the rows from the last tick that measured a
-        /// path. Null for everything else, which the ledger as it stands times.
-        /// </summary>
-        private DelayStamp? MeasuredStampFor(string topic, double ut)
-        {
-            if (_lastMeasuredStamp == null
-                || _unmeasuredSinceUt is not double since
-                || ut > since
-                || NodeFor(topic) != NodeId)
-            {
-                return null;
-            }
-            return _channelDeclarations.TryGetValue(topic, out var declaration) && declaration.Delay == DelayRole.Delayed
-                ? _lastMeasuredStamp
-                : null;
-        }
-
-        /// <summary>
-        /// Remember the active vessel node's rows while its path can be
-        /// measured, and the first tick it cannot. Runs after the ledger is
-        /// written, so what is kept is what this tick's samples go out under.
-        /// A source that gave no answer at all leaves both untouched.
-        /// </summary>
-        private void NoteActivePathMeasurement(TickJob tick)
-        {
-            var delay = tick.SignalDelay.Value;
-            if (delay == null)
-            {
-                return;
-            }
-
-            if (delay.OneWaySeconds != null)
-            {
-                _lastMeasuredStamp = _network.StampFor(NodeId);
-                _unmeasuredSinceUt = null;
-            }
-            else if (_unmeasuredSinceUt == null && _lastMeasuredStamp != null)
-            {
-                _unmeasuredSinceUt = tick.Ut;
-            }
         }
 
         /// <summary>
@@ -8897,8 +8840,6 @@ namespace Sitrep.Host
                 // on a topic would claim a hole back to a pre-rewind UT.
                 _lastRecordedUt.Clear();
                 _pendingGapSinceUt.Clear();
-                _lastMeasuredStamp = null;
-                _unmeasuredSinceUt = null;
                 // The connectivity history's UTs belong to the abandoned
                 // timeline too: collapse it to the current link state seeded at
                 // -Inf so a post-rewind ConnectivityAt lookup fails soft to that
@@ -9054,7 +8995,6 @@ namespace Sitrep.Host
             // the sampled-source handles (SetVesselDelay) and the delay refresh
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
-            NoteActivePathMeasurement(tick);
             _activeVesselSwitched = false;
 
             // The DROP EVENT, written after the ledger's delays and well before

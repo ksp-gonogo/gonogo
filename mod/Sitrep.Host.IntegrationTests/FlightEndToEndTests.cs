@@ -170,46 +170,6 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// A craft that ends has no path left to measure, so the ledger reads no
-        /// delay for it from that tick on. Its end is a fact about the craft as it
-        /// was, and crosses on the delay the craft's own samples crossed on: it
-        /// must not be delivered ahead of them.
-        /// </summary>
-        [Fact]
-        public async Task AnEndRecordedAfterTheCraftIsGoneCrossesOnTheDelayTheCraftLastHad()
-        {
-            const double oneWay = 45.0;
-            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
-            var uplink = new TestFlightUplink(pathSource: true);
-            engine.RegisterUplink(uplink);
-            engine.Start();
-            try
-            {
-                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
-                await SubscribeAsync(client, FlightTopics.EndedTopic, Timeout);
-
-                engine.TickAndWait(0.0, DelaySnapshot(0.0, oneWay, VesselA, "Alpha"), Timeout);
-                engine.TickAndWait(5.0, DelaySnapshot(5.0, oneWay, VesselA, "Alpha"), Timeout);
-
-                uplink.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Crashed, 5.0);
-                var gone = new Dictionary<string, object?>();
-                engine.TickAndWait(5.02, new KspSnapshot { Ut = 5.02, Values = gone }, Timeout);
-                engine.TickAndWait(5.04, new KspSnapshot { Ut = 5.04, Values = gone }, Timeout);
-
-                // The craft's own delay has not elapsed, so the end has not crossed.
-                engine.TickAndWait(5.0 + oneWay - 5.0, new KspSnapshot { Ut = 5.0 + oneWay - 5.0, Values = gone }, Timeout);
-                Assert.DoesNotContain(await DrainAllStreamDataAsync(client, Quiet), f => f.Topic == FlightTopics.EndedTopic);
-
-                engine.TickAndWait(5.0 + oneWay + 1.0, new KspSnapshot { Ut = 5.0 + oneWay + 1.0, Values = gone }, Timeout);
-                Assert.Single(await DrainAllStreamDataAsync(client, Quiet), f => f.Topic == FlightTopics.EndedTopic);
-            }
-            finally
-            {
-                engine.Stop();
-            }
-        }
-
-        /// <summary>
         /// A game event handler publishes straight from the main thread, stamped
         /// with the instant it fired. The Courier thread can reach that job after
         /// a tick that already read the craft's link down, and the fact must
@@ -462,14 +422,6 @@ namespace Sitrep.Host.IntegrationTests
             // Mandatory health floor (test double).
             public UplinkHealth Health() => UplinkHealth.Healthy;
 
-            private readonly bool _pathSource;
-
-            /// <param name="pathSource">Give the engine its delay the way production does, from a source that reports no measurable path once the craft is gone, rather than a channel that goes quiet.</param>
-            public TestFlightUplink(bool pathSource = false)
-            {
-                _pathSource = pathSource;
-            }
-
             public FlightLifecycleSampler Sampler { get; private set; } = null!;
 
             /// <summary>Whether the active craft has a link, as the engine's reveal gate reads it each tick.</summary>
@@ -525,19 +477,6 @@ namespace Sitrep.Host.IntegrationTests
                     () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic));
                 host.AddSampler(Sampler);
                 host.SetConnectivitySource(_ => Connected);
-
-                if (_pathSource)
-                {
-                    host.SetSignalDelaySource(snapshot =>
-                        new CommsDelay
-                        {
-                            OneWaySeconds = snapshot != null && snapshot.Values.TryGetValue("delay", out var raw) && raw != null
-                                ? Convert.ToDouble(raw)
-                                : (double?)null,
-                            Source = CommsDelaySource.SignalDelay,
-                        });
-                    return;
-                }
 
                 host.AddChannelSource(ChannelEngine.CommsDelayTopic, snapshot =>
                 {
