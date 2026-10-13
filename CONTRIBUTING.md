@@ -29,4 +29,4 @@ The pre-commit hook runs Biome and the type check. Do not skip it with `--no-ver
 
 ## Commit subjects
 
-Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, ...), with a subject of 100 characters at most. The subjects become the public changelog, so write one a player can read: what changed for them, not which files moved. Detail goes in the body.
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, ...), with a subject of 100 characters at most. The subjects become the public changelog, so write one a player can read: what changed for them, not which files moved. A commit is a subject only: `.githooks/commit-msg` refuses a body, and any reference to a private tracker ticket. Put the detail in the pull request description.

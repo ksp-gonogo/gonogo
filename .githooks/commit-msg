@@ -35,7 +35,7 @@ MSG
     ;;
 esac
 
-# ── Refuse a body that is not a changelog line ────────────────────────────────
+# Refuse a body and a tracker reference
 #
 # THE STYLE, IN FULL. Duplicated here on purpose rather than linked: a hook that
 # points at a document is a hook whose rule nobody reads at the moment it fires.
@@ -51,17 +51,19 @@ esac
 #      prefixes are fine and are what the release tooling reads.
 #      The subject is at most 100 characters: one line a reader can take in at
 #      a glance. Past that it is carrying detail that is not the change.
-#   2. DEFAULT TO NO BODY. On a changelog commit a body is usually superfluous.
-#      If the change does not fit a 100-character subject, the subject is
-#      carrying too much: keep the change in the subject and move the one
-#      detail worth having into the ONE-LINE body.
+#   2. NO BODY. A commit is a subject only. If the change does not fit a
+#      100-character subject, the subject is carrying too much: keep the change
+#      in the subject and put the rest on the ticket.
 #   3. NO HISTORY-TELLING. Why the repo was in an odd state, what was tried
 #      first, which agent did what, how long it took, what the measurement was:
 #      all noise in a changelog. Cut it.
 #   4. NO THIRD-PERSON NARRATION. Commits are authored as the repo author.
 #      Never "the user", "the operator", "as requested", "user-flagged".
 #   5. NO AI ATTRIBUTION of any kind, including a Co-Authored-By trailer.
-#   6. A FOLD DESCRIBES THE FEATURE, never the fold. `git merge --squash`, then
+#   6. NO TRACKER REFERENCE anywhere in the message. The repo is public and the
+#      tracker is not: "Saga", "(Saga 911)", "batch 2", "stage 5.2",
+#      "decision 220" and a bare "#123" mean nothing to a reader of the history.
+#   7. A FOLD DESCRIBES THE FEATURE, never the fold. `git merge --squash`, then
 #      one commit that reads like the changelog entry for what landed.
 #
 # Long, verbose, working-scaffolding commits are fine on a FEATURE BRANCH; they
@@ -69,12 +71,16 @@ esac
 #
 # The length cap is not applied to a subject git is carrying over unchanged:
 # `git commit --amend` that keeps the subject, and `git cherry-pick --continue`
-# after a conflict, both run this hook with a subject written before the cap.
+# after a conflict, both run this hook with a message written before the cap, and
+# the same carry-over exempts a body that is identical to the one already there.
 # `git rebase` (reword included) does not run commit-msg at all.
 #
 # Footers are exempt (BREAKING CHANGE:, Refs:, Fixes:) because the release
-# tooling reads them. A git-generated revert body is exempt for the same reason
-# it exists.
+# tooling reads them. A Refs: or Fixes: footer must name a public GitHub issue
+# or pull request (#123) or a URL, since a name that only the tracker resolves is
+# a tracker reference. A "#" is refused everywhere else. A git-generated revert
+# body is exempt for the same reason it exists, and so is a body git carries
+# over unchanged (see below).
 
 # A co-author trailer is refused whoever it names. It arrives as a well-formed
 # trailer, so the body rule below counts it as an exempt footer and lets it
@@ -94,31 +100,74 @@ MSG
 fi
 
 body=$(sed -e '/^#/d' "$1" | tail -n +2)
-prose=$(printf '%s\n' "$body" | grep -vE '^[[:space:]]*$' | grep -vE '^([A-Za-z][A-Za-z-]*|BREAKING CHANGE): ' || true)
-prose_lines=$(printf '%s' "$prose" | grep -c . || true)
 
+# A message git is carrying over (amend, cherry-pick --continue) keeps the body
+# it already had; only an unchanged one is exempt.
+carried_subject=0
+carried_body=0
+for rev in HEAD CHERRY_PICK_HEAD; do
+  if existing=$(git log -1 --format=%s "$rev" 2>/dev/null) && [ "$existing" = "$subject" ]; then
+    carried_subject=1
+    existing_body=$(git log -1 --format=%b "$rev" 2>/dev/null || true)
+    if [ "$(printf '%s' "$body" | sed -e '/^[[:space:]]*$/d')" = "$(printf '%s' "$existing_body" | sed -e '/^[[:space:]]*$/d')" ]; then
+      carried_body=1
+    fi
+  fi
+done
+
+is_revert=0
 case "$subject" in
-  "Revert "*) prose_lines=0 ;;
+  "Revert "*) is_revert=1 ;;
 esac
 
-if [ "${prose_lines:-0}" -gt 1 ]; then
-  cat >&2 <<MSG
-commit-msg: refusing a commit body of $prose_lines lines.
+# Footers the release tooling reads, and the body git writes for a revert.
+prose=$(printf '%s\n' "$body" | grep -vE '^[[:space:]]*$' | grep -vE '^(BREAKING CHANGE|Refs|Fixes): ' || true)
+if [ "$is_revert" -eq 1 ]; then
+  prose=$(printf '%s\n' "$prose" | grep -vE '^This reverts commit [0-9a-f]+' || true)
+fi
+prose_lines=$(printf '%s' "$prose" | grep -c . || true)
+[ "$carried_body" -eq 1 ] && prose_lines=0
 
-staging history becomes release notes, so this commit has to stand alone as ONE
-CHANGELOG LINE for someone who was not here. A body is usually superfluous: if
-the subject cannot carry the change, the subject is wrong.
+# A Refs: or Fixes: footer resolves to a public GitHub issue or pull request, or
+# a URL. Anything else names a ticket only the tracker can open.
+bad_footer=$(printf '%s\n' "$body" | grep -E '^(Refs|Fixes): ' | grep -vE '^(Refs|Fixes): ((#[0-9]+|https?://[^[:space:]]+)(, ?|[[:space:]]+|$))+$' || true)
+
+# Scan the subject and the footers; the reverted subject git quotes is not ours.
+scan=$(sed -e '/^#/d' "$1")
+if [ "$is_revert" -eq 1 ]; then
+  scan=$(printf '%s\n' "$scan" | tail -n +2 | grep -vE '^This reverts commit ' || true)
+else
+  scan=$(printf '%s\n' "$scan" | grep -vE '^(Refs|Fixes): ((#[0-9]+|https?://[^[:space:]]+)(, ?|[[:space:]]+|$))+$' || true)
+fi
+if [ -n "$bad_footer" ] || printf '%s\n' "$scan" | grep -qiE '\bsaga\b|\bbatch [0-9]+|\bstage [0-9]+|\bdecision [0-9]+|#[0-9]+'; then
+  cat >&2 <<MSG
+commit-msg: refusing a reference to a tracker ticket.
 
   $subject
 
-Cut the body, or reduce it to a single flat line. In particular cut:
-  - history-telling (what was tried first, why the repo was odd, measurements)
-  - third-person narration ("the user", "the operator", "as requested")
-  - any AI attribution, including a Co-Authored-By trailer
+The repo is public and the tracker is not. A commit never names a ticket: not
+"Saga", "(Saga 911)", "batch 2", "stage 5.2", "decision 220" or a bare "#123",
+and a Refs: or Fixes: footer may only name a public GitHub issue or pull request
+(#123) or a URL. Keep the change in the subject and put the rest on the ticket.
+MSG
+  exit 1
+fi
+
+if [ "${prose_lines:-0}" -gt 0 ]; then
+  cat >&2 <<MSG
+commit-msg: refusing a commit body.
+
+staging history becomes release notes, so a commit is a subject only: ONE
+CHANGELOG LINE for someone who was not here.
+
+  $subject
+
+Keep the change in the subject and put the rest on the ticket. Footers
+(BREAKING CHANGE:, Refs:, Fixes:) are exempt, and a co-author trailer is
+refused.
 
 Verbose working commits belong on a feature branch and are discarded at the
-squash-fold. Footers (BREAKING CHANGE:, Refs:, Fixes:) are exempt and do not
-count toward this.
+squash-fold.
 MSG
   exit 1
 fi
@@ -154,13 +203,7 @@ max_subject=100
 case "$subject" in
   "Revert "*|"Merge "*) ;;
   *)
-    carried=0
-    for rev in HEAD CHERRY_PICK_HEAD; do
-      if existing=$(git log -1 --format=%s "$rev" 2>/dev/null) && [ "$existing" = "$subject" ]; then
-        carried=1
-      fi
-    done
-    if [ "${#subject}" -gt "$max_subject" ] && [ "$carried" -eq 0 ]; then
+    if [ "${#subject}" -gt "$max_subject" ] && [ "$carried_subject" -eq 0 ]; then
       cat >&2 <<MSG
 commit-msg: refusing a subject of ${#subject} characters (the limit is $max_subject).
 
@@ -168,16 +211,13 @@ commit-msg: refusing a subject of ${#subject} characters (the limit is $max_subj
 
 staging history becomes release notes, and the subject is the line a reader who
 was not here has to take in at a glance. Keep the change in the subject and put
-the one detail worth having in the one-line body the hook allows. For example,
-instead of:
+the rest on the ticket. For example, instead of:
 
   fix(mod): the stopped-clock rule holds until a flight's vessels are built, where it let go when the flight's scene stood
 
 write:
 
   fix(mod): hold the stopped clock until a flight's vessels are built
-
-  The rule used to let go as soon as the flight scene stood.
 MSG
       exit 1
     fi
