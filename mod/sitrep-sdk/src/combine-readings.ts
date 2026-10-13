@@ -6,7 +6,8 @@ import type { Value } from "./unit-system/value";
  * {@link Reading} with a state of its own, as current as the least current
  * input. Useful for showing the operator a figure derived from more than one
  * Topic, such as the range to a target, without losing how current it is. Used
- * by the approach display and the fleet roster.
+ * by the approach display, which shows the range and closing rate to a target,
+ * and by the fleet roster, which lists the operator's vessels.
  *
  * @example
  * ```ts

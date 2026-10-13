@@ -107,7 +107,8 @@ export interface SystemUplinksTopicPayloadMap {
        * version mismatch is listed too, with `available: false` and the
        * refusal as its `reason`; these two fields say which version it wanted,
        * to compare with `coreContractMajor`. `null` for an Uplink registered
-       * outside discovery, and absent on a mod build that predates them.
+       * outside discovery, and absent when the running mod is older than this
+       * package, in which case read it as unknown.
        */
       contractMajor?: number | null;
       contractMinor?: number | null;
@@ -126,23 +127,23 @@ export interface SystemUplinksTopicPayloadMap {
       };
       /**
        * Whether `settings.<id>` carries this Uplink's host mod settings, which
-       * `useModSettings` reads. Absent on a mod build that predates mod
-       * settings.
+       * `useModSettings` reads. Absent when the running mod is older than
+       * this package, in which case read it as false.
        */
       modSettings?: boolean;
     }>;
     /**
      * The contract version the running mod speaks, stated once because it is a
-     * fact about the mod and not about any Uplink. Absent on a mod build that
-     * predates the fields.
+     * fact about the mod and not about any Uplink. Absent when the running
+     * mod is older than this package, in which case read it as unknown.
      */
     coreContractMajor?: number | null;
     coreContractMinor?: number | null;
     /**
      * The release the running mod was built as: a tag such as `v1.4.0`, or a
      * candidate label such as `rc-abc1234`. `null` for a build that records
-     * none, which is every local build, and absent on a mod that predates the
-     * field.
+     * none, such as one built locally, and absent when the running mod is
+     * older than this package.
      */
     coreVersion?: string | null;
     /**
@@ -151,8 +152,8 @@ export interface SystemUplinksTopicPayloadMap {
      * namespaces whose Topics are all true now and are not listed one by one.
      * `addressed` names Topics whose samples are each sent to a named audience
      * and arrive already delayed by their own journey. A Topic in none of the
-     * lists is delayed by the link's signal delay. Absent on a mod build that
-     * predates the field.
+     * lists is delayed by the link's signal delay. Absent when the running
+     * mod is older than this package, in which case read every Topic as delayed.
      */
     delayRoles?: {
       trueNow: string[];
@@ -363,6 +364,19 @@ const barePrimitiveTopicIds = new Set<string>();
  * letting the operator read and pick an Uplink's Topics as they do the SDK's
  * own.
  *
+ * @example
+ * ```ts
+ * import { registerUplinkTopic } from "@ksp-gonogo/sitrep-sdk";
+ *
+ * declare module "@ksp-gonogo/sitrep-sdk" {
+ *   interface TopicPayloadMap {
+ *     "myuplink.armed": boolean;
+ *   }
+ * }
+ *
+ * registerUplinkTopic("myuplink.armed");
+ * ```
+ *
  * @category Reading telemetry
  */
 export function registerUplinkTopic(id: string): void {
@@ -426,8 +440,8 @@ export function registerCollectionTopic(id: string): void {
  * Whether `id`'s payload is a bare array of elements: an SDK-owned Topic the
  * contract marks as one, or an Uplink Topic registered through
  * {@link registerCollectionTopic}. Useful for knowing that a field path under
- * the Topic can never carry a value. Used by the field picker's catalogue of
- * Topic fields.
+ * the Topic can never carry a value. Used by the picker in which the operator
+ * chooses one field of a Topic to plot.
  *
  * A read of `<id>.<field>` walks into the array itself, which has no such
  * property, so a field path under a collection Topic never carries a value.
@@ -499,7 +513,7 @@ export function isWidgetChannelId(value: string): value is WidgetChannelId {
 
 /**
  * A family of Topics whose id is built at runtime, written the way the docs
- * write it: `vessel.partActions.<flightId>`, `fleet.<vessel>.contact`,
+ * write it: `vessel.partActions.<flightId>`, `fleet.<guid>.contact`,
  * `<domain>.available`. Each `<name>` stands for exactly one dotted segment and
  * must fill a whole segment. A widget lists them in `channelFamilies` and
  * `optionalChannelFamilies`. Useful for declaring that a widget mounts on a
@@ -511,7 +525,7 @@ export type ChannelFamily = `${string}<${string}>${string}`;
 
 /**
  * The literal text before the first placeholder of a family, such as
- * `"fleet."` for `fleet.<vessel>.contact`. It is empty when the pattern starts
+ * `"fleet."` for `fleet.<guid>.contact`. It is empty when the pattern starts
  * with a placeholder, as `<domain>.available` does. Useful for narrowing which
  * Topics could belong to a family before matching each one. Used when working out
  * which Topics a widget's declared families cover.

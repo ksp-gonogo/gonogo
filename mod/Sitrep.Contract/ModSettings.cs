@@ -251,16 +251,21 @@ namespace Sitrep.Contract
     /// The <c>settings.&lt;uplink&gt;</c> Topic payload: one Uplink's host mod's
     /// own settings, as the Uplink read them.
     ///
-    /// <para><b>One topic per Uplink</b>, declared only for an Uplink that
-    /// implements <see cref="IModSettingsSource"/>; its entry on
+    /// <para><b>One topic per Uplink</b>, declared only for an Uplink whose C# half
+    /// lists the settings of the mod it wraps; that Uplink's entry on
     /// <c>system.uplinks</c> says so with <c>modSettings</c>.</para>
     ///
     /// <para><b>Not delayed.</b> A mod setting configures the game on the KSP
     /// machine, not a craft, so every command centre knows it at once.</para>
     ///
-    /// <para><b>Whether a write landed.</b> A write can time out and
-    /// still land, so a client reads the outcome here, never from the command's
-    /// reply.</para>
+    /// <para><b>Whether a write landed.</b> A client learns this from this
+    /// payload. The <c>settings.mod.write</c> command
+    /// (<see cref="WriteModSettingArgs"/>) can time out and still land, so read
+    /// the outcome here, never from the command's reply.</para>
+    /// <internal>
+    /// The topic exists only for an Uplink that implements
+    /// <see cref="IModSettingsSource"/>.
+    /// </internal>
     /// </summary>
     /// <category>Mod settings</category>
     [SitrepContract]

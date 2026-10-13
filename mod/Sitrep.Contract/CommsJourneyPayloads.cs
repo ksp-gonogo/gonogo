@@ -218,8 +218,10 @@ public class UplinkResendRequest
 /// overdue command again). It reports what the command centre that asked did,
 /// not what happened at the craft; that arrives later as
 /// <c>comms.journey</c> reports (<see cref="CommsJourneyEvent"/>).
-/// A lane is the ordered run of delayed commands one centre sends to one craft,
-/// and a lane number is a command's place in it (<see cref="PendingUplink.LaneSeq"/>).
+/// A lane here is the ordered run of delayed commands one centre sends to one
+/// craft, and a lane number is a command's place in it
+/// (<see cref="PendingUplink.LaneSeq"/>); it is not the lane byte of a binary
+/// frame.
 /// </summary>
 /// <category>Command results</category>
 [SitrepContract]
@@ -236,7 +238,7 @@ public class UplinkActionReply
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 
-    /// <summary>When the cancel or copy expires.</summary>
+    /// <summary>The universal time after which the cancel, or the new copy, is dropped if it has not reached the craft. Both travel to the craft like any delayed command.</summary>
     [SitrepUnit(Units.UniversalTime)]
     public double ExpiresAtUt { get; set; }
 }

@@ -387,7 +387,8 @@ export interface CareerStatus
 }
 /**
 * The `career.facilities` Topic payload: the space centre's buildings, each
-* with the tier it stands at and the ladder it stands on.
+* with the level it stands at and the full run of levels it can be upgraded
+* through (its tier count and what each upgrade costs).
 *
 * **When it arrives.** A facility's tier count and prices are readable from
 * the building objects, which KSP registers at the space centre, in the editor
@@ -1432,8 +1433,8 @@ export interface ChannelGate
 * What a field arrives as, in place of its value, while the save has not
 * unlocked what it needs: the unlocks it is missing, so a reader can say why
 * it has nothing to show rather than drawing an empty value as if there were
-* none. A mod's C# marks such a field with SitrepRequiresAttribute; a client
-* only reads the result.
+* none. A field that can arrive this way has `LockedValue` among the types it
+* is declared with, and the SDK's `isLocked` tells the two apart.
 *
 * @category Readings
 */
@@ -1464,7 +1465,11 @@ export interface MissingUnlock
 {
 	/** Whether this is a tech node or a building. */
 	kind: UnlockKind;
-	/** The tech node's `techID`, or the `SpaceCenterFacility` member name. */
+	/**
+	* The game's own id for the unlock: a tech node's id in the research tree
+	* (such as `"basicRocketry"`), or a building's name (such as
+	* `"MissionControl"`). Use `MissingUnlock.name` for what to show.
+	*/
 	id: string;
 	/** The game's own title for it: "Flight Control", "Mission Control". */
 	name: string;
@@ -1648,11 +1653,13 @@ export interface CommcastMessageSendArgs
 	author: CommcastAuthor;
 }
 /**
-* What `commcast.message.send`, the command that says a text message to a
-* group (its args are `CommcastMessageSendArgs`), did with a message: which
-* command centres it left for, and which it could not leave for. A centre is a
-* `commandCentre.roster` entry, a place commands are sent from. It says
-* nothing of arrival, which only each listener's acknowledgement does.
+* What `commcast.message.send` (args `CommcastMessageSendArgs`) did with a
+* message: which command centres it left for, and which it could not leave
+* for. `commcast.message.send` is the command, of the core mod's Commcast
+* group messaging and radio, that sends a text message to a group of command
+* centres. A centre is a `commandCentre.roster` entry, a place commands are
+* sent from. It says nothing of arrival, which only each listener's
+* acknowledgement does.
 *
 * @category Command results
 * @categoryDescription Command results
@@ -2785,9 +2792,10 @@ export interface UplinkResendRequest
 * command still on its way to the craft) and to `system.uplink.resend`
 * (`UplinkResendRequest`, send a held or overdue command again). It reports
 * what the command centre that asked did, not what happened at the craft; that
-* arrives later as `comms.journey` reports (`CommsJourneyEvent`). A lane is
-* the ordered run of delayed commands one centre sends to one craft, and a
-* lane number is a command's place in it (`PendingUplink.laneSeq`).
+* arrives later as `comms.journey` reports (`CommsJourneyEvent`). A lane here
+* is the ordered run of delayed commands one centre sends to one craft, and a
+* lane number is a command's place in it (`PendingUplink.laneSeq`); it is not
+* the lane byte of a binary frame.
 *
 * @category Command results
 */
@@ -2804,7 +2812,11 @@ export interface UplinkActionReply
 	* for a cancel.
 	*/
 	id: string;
-	/** When the cancel or copy expires. */
+	/**
+	* The universal time after which the cancel, or the new copy, is dropped if it
+	* has not reached the craft. Both travel to the craft like any delayed
+	* command.
+	*/
 	expiresAtUt: Value<"ut">;
 }
 /**
@@ -2995,9 +3007,9 @@ export interface CommsRouteHold
 	departUt: Value<"ut">;
 }
 /**
-* The frame the game's own navigation view is expressed in: what the player is
-* looking at, and what a burn expressed relative to the control frame is held
-* fixed against.
+* The frame the game's own navigation view is expressed in, which is what the
+* player is looking at. A burn given relative to the control frame holds its
+* direction fixed against this frame.
 *
 * This is not a widget's own read frame, which nothing else sees. It belongs
 * to the game, there is one at a time, and it can be written as well as read
@@ -4251,11 +4263,12 @@ export interface FlightCurrent
 	phase: Situation;
 }
 /**
-* The `flight.started` Topic payload: a reliable, ordered, delayed event sent
-* when a new flight begins. A flight is new when its vessel id has not been
-* started before in this game session (a launch, or a first switch onto a
-* vessel), and every vessel active just after a revert or a quickload starts a
-* new flight, even one with the same id.
+* The `flight.started` Topic payload: an event that is always delivered, in
+* the order it happened, and held back by the signal delay like any value
+* about a craft, sent when a new flight begins. A flight is new when its
+* vessel id has not been started before in this game session (a launch, or a
+* first switch onto a vessel), and every vessel active just after a revert or
+* a quickload starts a new flight, even one with the same id.
 *
 * A client that subscribes while a flight is already open receives that
 * flight's `flight.started`, carrying its original start `FlightStarted.ut`. A
@@ -4283,11 +4296,12 @@ export interface FlightStarted
 	ut: Value<"ut">;
 }
 /**
-* The `flight.ended` Topic payload: a reliable, ordered, delayed event sent
-* once per flight when it stops being trackable: recovered, crashed, destroyed
-* or reverted. It shares the delay class of `crash.lastCrash` and
-* `recovery.lastSummary`, so an end that a rewind discards before its signal
-* delay has elapsed is never revealed.
+* The `flight.ended` Topic payload: an event that is always delivered, in the
+* order it happened, and held back by the signal delay like any value about a
+* craft, sent once per flight when it stops being trackable: recovered,
+* crashed, destroyed or reverted. It shares the delay class of
+* `crash.lastCrash` and `recovery.lastSummary`, so an end that a rewind
+* discards before its signal delay has elapsed is never revealed.
 *
 * Debris, flags and vessels of unknown type never end a flight.
 *
@@ -4316,13 +4330,14 @@ export interface FlightEnded
 	ut: Value<"ut">;
 }
 /**
-* The `flight.vesselChanged` Topic payload: a reliable, ordered, delayed event
-* sent whenever the active vessel changes after the first observation of the
-* session (docking, undocking, a tracking-station reselect). Switching away
-* from a vessel that is still flying does not end its flight, and switching
-* back to a known one does not start a new one. Switching onto a vessel for
-* the first time also sends `FlightStarted`. Going on EVA does not change the
-* active vessel (see `FlightCurrent`).
+* The `flight.vesselChanged` Topic payload: an event that is always delivered,
+* in the order it happened, and held back by the signal delay like any value
+* about a craft, sent whenever the active vessel changes after the first
+* observation of the session (docking, undocking, a tracking-station
+* reselect). Switching away from a vessel that is still flying does not end
+* its flight, and switching back to a known one does not start a new one.
+* Switching onto a vessel for the first time also sends `FlightStarted`. Going
+* on EVA does not change the active vessel (see `FlightCurrent`).
 *
 * @category Flights
 */
@@ -4501,10 +4516,11 @@ export interface SetControlAxesArgs
 * (deployed science, for instance, needs Breaking Ground).
 *
 * The whole payload is `null`, not an all-false object, when no sample has
-* been taken yet, so "no data yet" and "DLC absent" stay distinct. It carries
-* no `Meta` of its own: its `Meta` is on the envelope (`StreamData.Meta`). A
-* fact about the ground, so the channel is DelayRole.TrueNow, independent of
-* any vessel's comms link.
+* been taken yet, so "no data yet" and "DLC absent" stay distinct. A widget
+* sees that `null` as a reading whose `state` is `"absent"` and which carries
+* no value. This is a fact about the ground, so it is never delayed by any
+* vessel's comms link (its delay role is `TrueNow`; see the delay and vantage
+* page).
 *
 * @category Game
 */
@@ -5023,8 +5039,8 @@ export interface OrbitPayloadMeta
 	quality: Quality;
 }
 /**
-* Where one Making History mission objective stands. Gonogo works this out
-* from the mission's progress: KSP itself keeps no per-objective state.
+* Where one Making History mission objective stands, worked out from how far
+* the mission has progressed.
 *
 * On the wire it is an integer ordinal.
 *
@@ -5047,7 +5063,9 @@ export enum MissionObjectiveState {
 	Failed = 3
 }
 /**
-* One objective of a Making History mission, in mission-flow order.
+* One objective of a Making History mission. A mission is a flow chart of
+* nodes, each node a step that leads to the next, and each objective is one
+* node. Objectives are listed in the order the flow chart leads through them.
 *
 * @category Missions
 */
@@ -5070,7 +5088,9 @@ export interface MissionObjectiveEntry
 * running, or has just ended, in the current game. The whole payload is `null`
 * when there is no mission game, when no mission has been set up, or when the
 * expansion is not installed; read the `game.dlc` Topic (`GameDlc`) to tell
-* the last from the others.
+* the last from the others. A `null` payload reaches a widget as a reading
+* whose `state` is `"absent"` and which carries no value, so test the state
+* rather than the value for `null`.
 *
 * A mission that has ended stays in the payload with `MissionStatus.finished`
 * true until the game leaves the mission, so a client can show the outcome.
@@ -5090,8 +5110,8 @@ export interface MissionStatus
 	/** The mission's title, localised. */
 	name?: string | null;
 	/**
-	* The title of the mission's active node, the stage the mission is on. `null`
-	* when it has no active node.
+	* The title of the mission's active node, the step of the mission's flow chart
+	* the mission is on now. `null` when it has no active node.
 	*/
 	phase?: string | null;
 	/** Whether the mission has started. */
@@ -5110,8 +5130,9 @@ export interface MissionStatus
 	/** The most score the mission can award. */
 	maxScore?: Value<"count"> | null;
 	/**
-	* The mission's objectives in flow order. A node of the mission that nothing
-	* leads to is left out. Empty when it has none.
+	* The mission's objectives in the order its flow chart leads through them. A
+	* node that nothing in the flow chart leads to is left out. Empty when it has
+	* none.
 	*/
 	objectives: MissionObjectiveEntry[];
 }
@@ -5119,15 +5140,16 @@ export interface MissionStatus
 * The `settings.<uplink>` Topic payload: one Uplink's host mod's own settings,
 * as the Uplink read them.
 *
-* **One topic per Uplink**, declared only for an Uplink that implements
-* IModSettingsSource; its entry on `system.uplinks` says so with
-* `modSettings`.
+* **One topic per Uplink**, declared only for an Uplink whose C# half lists
+* the settings of the mod it wraps; that Uplink's entry on `system.uplinks`
+* says so with `modSettings`.
 *
 * **Not delayed.** A mod setting configures the game on the KSP machine, not a
 * craft, so every command centre knows it at once.
 *
-* **Whether a write landed.** A write can time out and still land, so a client
-* reads the outcome here, never from the command's reply.
+* **Whether a write landed.** A client learns this from this payload. The
+* `settings.mod.write` command (`WriteModSettingArgs`) can time out and still
+* land, so read the outcome here, never from the command's reply.
 *
 * @category Mod settings
 */
@@ -6891,9 +6913,10 @@ export interface LabEntry
 }
 /**
 * One entry in the `deployed.bases` Topic payload: a Breaking Ground
-* deployed-science experiment (`ModuleGroundExperiment`). The Topic payload is
-* a bare array (`DeployedEntry[]`) or `null` when Breaking Ground is not
-* installed and no loaded vessel carries a deployed experiment.
+* deployed-science experiment, a science instrument set down on the surface.
+* The Topic payload is a bare array (`DeployedEntry[]`) or `null` when
+* Breaking Ground is not installed and no loaded vessel carries a deployed
+* experiment.
 *
 * Unlike the `science.*` channels, `deployed.bases` covers the whole save, not
 * just the active vessel: a deployed cluster is its own ground vessel, so an
@@ -7234,18 +7257,19 @@ export interface ArchiveEntry
 * not a craft.
 *
 * This is where a client learns whether a save landed. The `settings.save`
-* command can time out and still land, so read the outcome here, never from
-* the command's reply.
+* command (`SaveSettingsArgs`) can time out and still land, so read the
+* outcome here, never from the command's reply.
 *
 * @category Mod settings
 * @categoryDescription Mod settings
-* Settings as the stream carries them: Gonogo's own, its Uplinks', and a host
-* mod's own settings read through its Uplink. Each row says what it may hold,
-* what it holds now and whether it can be written, and the model says whether
-* the settings file on the KSP machine agrees. A client reads Gonogo's with
-* `useTelemetry("settings.gonogo")` and a host mod's with
-* `useModSettings(uplinkId)`; a setting that lives only in the browser is
-* declared with `registerSetting` instead.
+* Settings as the stream carries them, of three kinds that a client reads
+* differently. Gonogo's own settings and its Uplinks' are one Topic, read with
+* `useTelemetry("settings.gonogo")`. A host mod's own settings, those of the
+* KSP mod an Uplink wraps, are read through that Uplink with
+* `useModSettings(uplinkId)`. A setting that lives only in the browser has no
+* Topic and is declared with `registerSetting` instead. Each row says what it
+* may hold, what it holds now and whether it can be written, and the model
+* says whether the settings file on the KSP machine agrees.
 */
 export interface SettingsModel
 {
@@ -7363,9 +7387,12 @@ export interface SettingsPersistence
 */
 export interface SettingsDeclarationFailure
 {
-	/** The id of the Uplink whose settings could not be declared. */
+	/**
+	* The id of the Uplink, as its `system.uplinks` entry names it, whose settings
+	* could not be declared.
+	*/
 	uplinkId: string;
-	/** The reason, as a sentence written for the operator. */
+	/** Why the declaration failed, as a sentence to show the operator as it is. */
 	reason: string;
 }
 /**
@@ -7407,7 +7434,7 @@ export interface SettingsChange
 /**
 * One launch site in the `spaceCenter.launchSites` channel: the stock KSC pad
 * and runway, any Making History sites, and any Kerbal Konstructs sites, which
-* is everything registered in KSP's `PSystemSetup.Instance.LaunchSites`.
+* is every launch site the game has registered.
 *
 * The channel is a bare array of these entries, not a wrapper object and not a
 * single KSC record: KSP has many launch sites, keyed by
@@ -8532,19 +8559,19 @@ export interface TargetAvailable
 *
 * Three things change them:
 *
-* - **Stock, no mods.** `GameSettings.KERBIN_TIME` is a setting a player can
+* - **Stock, no mods.** The game's Kerbin time setting is one a player can
 *   turn off, and KSP's own UI then reads in 24-hour days and 365-day years.
-* - **A planet pack.** RSS and anything else built on Kopernicus replaces
-*   `KSPUtil.dateTimeFormatter`, so a day becomes 86,400 s and a year 365
+* - **A planet pack.** A planet-pack mod replaces the game's date formatter,
+*   the code that prints its clock, so a day becomes 86,400 s and a year 365
 *   days.
-* - **Anything else.** The formatter has a public setter, so a mod can put any
-*   calendar behind it.
+* - **Anything else.** Any mod can put its own calendar behind the game's date
+*   formatter.
 *
-* The values are read straight off `KSPUtil.dateTimeFormatter`, whose
-* `Minute`, `Hour`, `Day` and `Year` are each a count of seconds: whatever the
-* game uses to print its own clock is what this channel carries.
+* Whatever the game uses to print its own clock is what this channel carries:
+* each duration is the count of seconds the date formatter gives for a minute,
+* hour, day and year.
 *
-* It can change mid-session: the KERBIN_TIME setting is reachable from the
+* It can change mid-session: the Kerbin time setting is reachable from the
 * in-game settings menu at any time.
 *
 * The whole payload is `null` when the calendar cannot be read or any of the
@@ -8585,9 +8612,9 @@ export interface TimeCalendar
 	* `Units.UniversalTime` field is an offset from UT 0, so with an epoch a
 	* deadline can be shown as `14 Mar 1957` rather than `Y3 D122`.
 	*
-	* It is read from the date formatter itself. Formatters that model a real
-	* calendar hold an anchor date: RSS installs RSSTimeFormatter, which does, and
-	* Kronometer can. The stock formatter holds none.
+	* It is read from the date formatter itself. A formatter that models a real
+	* calendar holds an anchor date, as a planet-pack mod's does does; the stock
+	* formatter holds none.
 	*
 	* `null` is the normal value, and it is not zero. Stock KSP has no real
 	* calendar: its own UI prints Year 1, Day 1, and so should every consumer. A
@@ -8597,11 +8624,10 @@ export interface TimeCalendar
 	*/
 	epoch?: string | null;
 	/**
-	* The stock `GameSettings.KERBIN_TIME` flag, for a consumer that wants to
-	* label the calendar ("Kerbin time" against "Earth time"). Do not do
-	* arithmetic with it: the seconds fields above already account for this flag
-	* and for anything a planet pack did on top of it. `true` when the setting
-	* cannot be read.
+	* The game's Kerbin time setting, for a consumer that wants to label the
+	* calendar ("Kerbin time" against "Earth time"). Do not do arithmetic with it:
+	* the seconds fields above already account for this flag and for anything a
+	* planet pack did on top of it. `true` when the setting cannot be read.
 	*/
 	kerbinTime: boolean;
 	/**
@@ -8946,8 +8972,8 @@ export interface Vec3
 }
 /**
 * The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's
-* control reference (`Vessel.GetTransform()`) against the local surface up and
-* north, in two named frames.
+* control reference, the orientation the pilot steers by, against the local
+* surface up and north, in two named frames.
 *
 * `VesselAttitude.pitch`, `VesselAttitude.heading` and `VesselAttitude.roll`
 * are the primary frame, with up and north measured at `Vessel.CoM` (MechJeb's
@@ -9917,15 +9943,15 @@ export interface InventoryItem
 }
 /**
 * The `vessel.landing` Topic payload: landing data for the active vessel that
-* needs KSP's PQS terrain heightmap (slope, roughness and elevation at the
-* touchdown site), plus an atmosphere-aware descent estimate built from the
-* vessel's measured drag. The vacuum ballistic figures (which need no terrain)
-* are not here; a client solves those itself.
+* needs the terrain map of the body below (slope, roughness and elevation at
+* the touchdown site), plus an atmosphere-aware descent estimate built from
+* the vessel's measured drag. The vacuum ballistic figures (which need no
+* terrain) are not here; a client solves those itself.
 *
 * The whole payload is absent unless the vessel is descending toward a solid
-* surface: the body must have a solid surface and PQS terrain, and the vessel
-* must be descending towards it within the prediction horizon. So it never
-* carries a leftover reading from orbit, or a 0 from a body with no terrain.
+* surface: the body must have a solid surface and terrain, and the vessel must
+* be descending towards it within the prediction horizon. So it never carries
+* a leftover reading from orbit, or a 0 from a body with no terrain.
 *
 * Every field is nullable, and null means that input is unavailable this tick
 * (no terrain fit, not in an atmosphere, and so on), never an unverified 0.
@@ -11501,9 +11527,10 @@ export enum WarpMode {
 * `meta.validAt` stamps every sample with the UT it describes, and a client
 * asks what time it is with the SDK's `useViewUt`.
 *
-* Warp and pause are game-wide state, so `WarpState.meta` is stamped `Source =
-* "game"`, not `"vessel:<guid>"`, and the channel emits at the Space Center
-* and Tracking Station as well as in flight, with or without an active vessel.
+* Warp and pause are game-wide state, not a craft's: the payload's
+* `meta.source` is `"game"` rather than `"vessel:<guid>"`, and the Topic emits
+* at the Space Center and Tracking Station as well as in flight, with or
+* without an active vessel.
 *
 * @category Game
 * @categoryDescription Game
@@ -11514,7 +11541,8 @@ export interface WarpState
 {
 	/**
 	* The current time-warp multiplier (KSP's `TimeWarp.CurrentRate`): `1` is real
-	* time, `1000` is game time passing a thousand times faster.
+	* time, `1000` is game time passing a thousand times faster. A pure ratio, so
+	* its unit is the dimensionless `"1"`.
 	*/
 	warpRate: Value<"1">;
 	/**

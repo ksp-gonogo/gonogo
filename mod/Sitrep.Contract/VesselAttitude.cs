@@ -6,8 +6,8 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// The <c>vessel.attitude</c> Topic payload: pitch, heading and roll of the
-/// vessel's control reference (<c>Vessel.GetTransform()</c>) against the local
-/// surface up and north, in two named frames.
+/// vessel's control reference, the orientation the pilot steers by, against the
+/// local surface up and north, in two named frames.
 ///
 /// <para><see cref="Pitch"/>, <see cref="Heading"/> and <see cref="Roll"/> are
 /// the primary frame, with up and north measured at <c>Vessel.CoM</c> (MechJeb's
@@ -19,7 +19,10 @@ namespace Sitrep.Contract;
 ///
 /// <para>Absent when the vessel has no reference body. Attitude is not
 /// derivable from orbital elements, so it is streamed raw.</para>
-/// <internal>Built by <c>Gonogo.KSP.KspHost.BuildAttitude</c>.</internal>
+/// <internal>
+/// The control reference is KSP's <c>Vessel.GetTransform()</c>. Built by
+/// <c>Gonogo.KSP.KspHost.BuildAttitude</c>.
+/// </internal>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]

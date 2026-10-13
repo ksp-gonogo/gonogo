@@ -131,19 +131,23 @@ public enum FaultOrigin
 /// <summary>
 /// Why a command, or any other request, could not be carried: nothing about the
 /// game was decided. The refused/failed split is the kind of code, not a
-/// judgement a client makes: a <see cref="RefusalCode"/> says the game said no,
-/// this says the machinery did not get that far, and a retry may work.
+/// judgement a client makes: a refusal (<see cref="CommandErrorCode"/>) says the
+/// game said no, this says the machinery did not get that far, and a retry may
+/// work.
 ///
 /// <para>Closed, and declared only here: the error codes an Uplink adds are
 /// refusals, refinements of a <see cref="CommandErrorCode"/> root, never
-/// faults. A handler that throws becomes <see cref="CommandUnavailable"/>, and
-/// one that throws a <see cref="CommandFaultException"/> raises a specific
-/// fault and leaves its command available.</para>
+/// faults.</para>
 ///
 /// <para>A command that was sent and never answered is neither a refusal nor
 /// one of these: its <c>send</c> rejects with the client's own <c>E_LOST</c>
-/// marker, which the SDK's <c>classifyCommandRejection</c> reports as
+/// marker, which the SDK's <c>classifyCommandRejection</c> function reports as
 /// <c>lost</c>.</para>
+/// <internal>
+/// A handler that throws becomes <see cref="CommandUnavailable"/>, and one that
+/// throws a <see cref="CommandFaultException"/> raises a specific fault and
+/// leaves its command available.
+/// </internal>
 /// </summary>
 public sealed class FaultCode : IEquatable<FaultCode>
 {

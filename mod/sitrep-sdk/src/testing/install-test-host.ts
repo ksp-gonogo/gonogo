@@ -20,9 +20,9 @@ export function installTestHost(host: Partial<GonogoHost>): () => void {
 
 /**
  * Removes any installed host, whichever of {@link installTestHost} or {@link
- * installRealTestHost} put it there. The function either returns removes the
- * host that call installed; this removes whatever is installed. Useful for
- * leaving no host installed between tests.
+ * installRealTestHost} put it there. The function each of those returns removes
+ * only the host its own call installed; this removes whatever is installed.
+ * Useful for leaving no host installed between tests.
  *
  * @category Test hosts
  */

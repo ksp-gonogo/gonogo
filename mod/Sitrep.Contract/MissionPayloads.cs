@@ -6,8 +6,8 @@ using Reinforced.Typings.Attributes;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// Where one Making History mission objective stands. Gonogo works this out
-/// from the mission's progress: KSP itself keeps no per-objective state.
+/// Where one Making History mission objective stands, worked out from how far
+/// the mission has progressed.
 ///
 /// <para>On the wire it is an integer ordinal.</para>
 /// <internal>
@@ -41,7 +41,9 @@ public enum MissionObjectiveState
 }
 
 /// <summary>
-/// One objective of a Making History mission, in mission-flow order.
+/// One objective of a Making History mission. A mission is a flow chart of nodes,
+/// each node a step that leads to the next, and each objective is one node.
+/// Objectives are listed in the order the flow chart leads through them.
 /// </summary>
 /// <category>Missions</category>
 [SitrepContract]
@@ -72,7 +74,10 @@ public class MissionObjectiveEntry
 /// that is running, or has just ended, in the current game. The whole payload
 /// is <c>null</c> when there is no mission game, when no mission has been set
 /// up, or when the expansion is not installed; read the <c>game.dlc</c> Topic
-/// (<see cref="GameDlc"/>) to tell the last from the others.
+/// (<see cref="GameDlc"/>) to tell the last from the others. A <c>null</c>
+/// payload reaches a widget as a reading whose <c>state</c> is <c>"absent"</c>
+/// and which carries no value, so test the state rather than the value for
+/// <c>null</c>.
 ///
 /// <para>A mission that has ended stays in the payload with
 /// <see cref="Finished"/> true until the game leaves the mission, so a client
@@ -106,7 +111,7 @@ public class MissionStatus
     [SitrepUnit(Units.Text)]
     public string? Name { get; set; }
 
-    /// <summary>The title of the mission's active node, the stage the mission is on. <c>null</c> when it has no active node.</summary>
+    /// <summary>The title of the mission's active node, the step of the mission's flow chart the mission is on now. <c>null</c> when it has no active node.</summary>
     [SitrepUnit(Units.Text)]
     public string? Phase { get; set; }
 
@@ -134,6 +139,6 @@ public class MissionStatus
     [SitrepUnit(Units.Count)]
     public double? MaxScore { get; set; }
 
-    /// <summary>The mission's objectives in flow order. A node of the mission that nothing leads to is left out. Empty when it has none.</summary>
+    /// <summary>The mission's objectives in the order its flow chart leads through them. A node that nothing in the flow chart leads to is left out. Empty when it has none.</summary>
     public List<MissionObjectiveEntry> Objectives { get; set; } = new();
 }

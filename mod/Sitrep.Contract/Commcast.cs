@@ -127,12 +127,13 @@ public class CommcastMessageSendArgs
 }
 
 /// <summary>
-/// What <c>commcast.message.send</c>, the command that says a text message to a
-/// group (its args are <see cref="CommcastMessageSendArgs"/>), did with a
-/// message: which command centres it left for, and which it could not leave
-/// for. A centre is a <c>commandCentre.roster</c> entry, a place commands are
-/// sent from. It says nothing of arrival, which only each listener's
-/// acknowledgement does.
+/// What <c>commcast.message.send</c> (args <see cref="CommcastMessageSendArgs"/>)
+/// did with a message: which command centres it left for, and which it could not
+/// leave for. <c>commcast.message.send</c> is the command, of the core mod's
+/// Commcast group messaging and radio, that sends a text message to a group of
+/// command centres. A centre is a <c>commandCentre.roster</c> entry, a place
+/// commands are sent from. It says nothing of arrival, which only each
+/// listener's acknowledgement does.
 /// </summary>
 /// <category>Command results</category>
 /// <categoryDescription>

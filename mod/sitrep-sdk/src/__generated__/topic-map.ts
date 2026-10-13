@@ -122,7 +122,7 @@ export interface GeneratedTopicPayloadMap {
   "alarm.scet.fired": ScetAlarmFired;
   /** One Topic a SCET (spacecraft event time) threshold alarm may be armed against: a row of the `alarm.scet.topics` channel. */
   "alarm.scet.topics": ScetAddressableTopic[];
-  /** The `career.facilities` Topic payload: the space centre's buildings, each with the tier it stands at and the ladder it stands on. */
+  /** The `career.facilities` Topic payload: the space centre's buildings, each with the level it stands at and the full run of levels it can be upgraded through (its tier count and what each upgrade costs). */
   "career.facilities": CareerFacilities;
   /** The `career.mode` Topic payload: the active save's `GameMode`, as `{ "mode": <int> }`. */
   "career.mode": CareerMode;
@@ -172,7 +172,7 @@ export interface GeneratedTopicPayloadMap {
   "crash.hasRecent": CrashRecent;
   /** The last notable crash of the current save. */
   "crash.lastCrash": CrashReport;
-  /** One entry in the `deployed.bases` Topic payload: a Breaking Ground deployed-science experiment (`ModuleGroundExperiment`). */
+  /** One entry in the `deployed.bases` Topic payload: a Breaking Ground deployed-science experiment, a science instrument set down on the surface. */
   "deployed.bases": DeployedEntry[];
   /** One ΔV-producing stage of the active vessel, from the game's own stage simulation: the same numbers the in-game ΔV app shows, with atmosphere, ISP, crossfeed and staging all handled by the game. */
   "dv.stages": StageDeltaVEntry[];
@@ -184,11 +184,11 @@ export interface GeneratedTopicPayloadMap {
   "fleet.silence": FleetSilence;
   /** Which flight is active and what phase it is in, for the vessel gonogo is reporting as active. */
   "flight.current": FlightCurrent;
-  /** The `flight.ended` Topic payload: a reliable, ordered, delayed event sent once per flight when it stops being trackable: recovered, crashed, destroyed or reverted. */
+  /** The `flight.ended` Topic payload: an event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent once per flight when it stops being trackable: recovered, crashed, destroyed or reverted. */
   "flight.ended": FlightEnded;
-  /** The `flight.started` Topic payload: a reliable, ordered, delayed event sent when a new flight begins. */
+  /** The `flight.started` Topic payload: an event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent when a new flight begins. */
   "flight.started": FlightStarted;
-  /** The `flight.vesselChanged` Topic payload: a reliable, ordered, delayed event sent whenever the active vessel changes after the first observation of the session (docking, undocking, a tracking-station reselect). */
+  /** The `flight.vesselChanged` Topic payload: an event that is always delivered, in the order it happened, and held back by the signal delay like any value about a craft, sent whenever the active vessel changes after the first observation of the session (docking, undocking, a tracking-station reselect). */
   "flight.vesselChanged": FlightVesselChanged;
   /** The `game.dlc` Topic payload: which KSP expansions ("DLC") are installed. */
   "game.dlc": GameDlc;
@@ -228,7 +228,7 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.astronautComplex": AstronautComplexInfo;
   /** One kerbal in the `spaceCenter.crewRoster` channel (the hired-crew roster: KSP's `KerbalRoster.Crew`, owned crew that is either available or currently assigned to a mission), and the same shape for every entry in `AstronautComplexInfo.applicants`: one shape for a kerbal whether hired or still a candidate. */
   "spaceCenter.crewRoster": CrewRosterEntry[];
-  /** One launch site in the `spaceCenter.launchSites` channel: the stock KSC pad and runway, any Making History sites, and any Kerbal Konstructs sites, which is everything registered in KSP's `PSystemSetup.Instance.LaunchSites`. */
+  /** One launch site in the `spaceCenter.launchSites` channel: the stock KSC pad and runway, any Making History sites, and any Kerbal Konstructs sites, which is every launch site the game has registered. */
   "spaceCenter.launchSites": LaunchSiteEntry[];
   /** The `spaceCenter.partsAvailable` Topic payload: a wrapper carrying the count of parts the player can place right now (tech-unlocked and purchased in career; the full `PartLoader` catalogue in sandbox). */
   "spaceCenter.partsAvailable": SpaceCenterPartsAvailable;
@@ -240,7 +240,7 @@ export interface GeneratedTopicPayloadMap {
   "spaceCenter.scene": SpaceCenterScene;
   /** The `system.bodies` Topic payload: every celestial body in the game, as a tree, wrapped as `{ "bodies": [ ... ] }`. */
   "system.bodies": SystemBodies;
-  /** The frame the game's own navigation view is expressed in: what the player is looking at, and what a burn expressed relative to the control frame is held fixed against. */
+  /** The frame the game's own navigation view is expressed in, which is what the player is looking at. */
   "system.frame": ControlFrame;
   /** The `system.vessels` Topic payload: every vessel the receiving command centre knows of, wrapped as `{ "vessels": [ ... ] }`. */
   "system.vessels": SystemVessels;
@@ -250,7 +250,7 @@ export interface GeneratedTopicPayloadMap {
   "time.calendar": TimeCalendar;
   /** The `time.warp` Topic payload: the game's time-warp and pause state, as separate typed fields. */
   "time.warp": WarpState;
-  /** The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's control reference (`Vessel.GetTransform()`) against the local surface up and north, in two named frames. */
+  /** The `vessel.attitude` Topic payload: pitch, heading and roll of the vessel's control reference, the orientation the pilot steers by, against the local surface up and north, in two named frames. */
   "vessel.attitude": VesselAttitude;
   /** The `vessel.comms` Topic payload: the active vessel's own CommNet connection, from KSP's `vessel.connection`. */
   "vessel.comms": VesselComms;
@@ -266,7 +266,7 @@ export interface GeneratedTopicPayloadMap {
   "vessel.identity": VesselIdentity;
   /** The stock cargo a vessel's parts are carrying: what is aboard, and in which part. */
   "vessel.inventory": VesselInventory;
-  /** The `vessel.landing` Topic payload: landing data for the active vessel that needs KSP's PQS terrain heightmap (slope, roughness and elevation at the touchdown site), plus an atmosphere-aware descent estimate built from the vessel's measured drag. */
+  /** The `vessel.landing` Topic payload: landing data for the active vessel that needs the terrain map of the body below (slope, roughness and elevation at the touchdown site), plus an atmosphere-aware descent estimate built from the vessel's measured drag. */
   "vessel.landing": VesselLanding;
   /** The `vessel.light` Topic payload: whether the active craft is in sunlight now, and the next two instants at which that changes, for a widget that warps to sunrise or sunset or plans around a night pass. */
   "vessel.light": VesselLight;

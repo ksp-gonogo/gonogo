@@ -11,9 +11,10 @@ namespace Sitrep.Contract;
 /// what kind of refusal it was, and so whether waiting, changing the craft, or
 /// doing something in the game is what makes a retry worthwhile.
 ///
-/// <para>A producer that can say more names a refinement of one of these (see
-/// <see cref="RefusalCode.Refine"/>); the root still travels, so nothing a client
-/// does with a root depends on knowing the refinement.</para>
+/// <para>A producer that can say more names a refinement of one of these, a code
+/// written <c>owner.name</c> that travels beside the root's id in the reply's
+/// <c>reason</c>; the root still travels, so nothing a client does with a root
+/// depends on knowing the refinement.</para>
 /// </summary>
 /// <category>Stream messages</category>
 public static class CommandErrorCode
@@ -36,7 +37,7 @@ public static class CommandErrorCode
     /// would never be flown.
     ///
     /// <para>The command is refused and nothing is written. The owning planner
-    /// is on the wire as <c>VesselManeuver.Planner</c>.
+    /// is on the wire as the <c>planner</c> field of the <c>vessel.maneuver</c> payload.
     /// <internal>The game's own planner is stock's
     /// <c>patchedConicSolver</c>.</internal></para>
     /// </summary>
@@ -49,14 +50,14 @@ public static class CommandErrorCode
     /// <para>A retry succeeds only once something changes, such as a kerbal
     /// leaving the active roster.</para>
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Breach"/> carries the
+    /// <para>The <c>breach</c> field of the reply carries the
     /// numbers, so a client can say "16 of 16".</para>
     /// </summary>
     public static readonly RefusalCode LimitReached = RefusalCode.DeclareRoot("limitReached", "a limit has been reached");
 
     /// <summary>
-    /// Already at the top of an upgradeable scale, so there is nothing above
-    /// this to move to. The Launch Pad at tier 3 of 3.
+    /// The thing is already at the top of an upgradeable scale, so there is
+    /// nothing above it to move to. An example is the Launch Pad at tier 3 of 3.
     ///
     /// <para>Not <see cref="LimitReached"/>: a cap that is full can be freed; a
     /// maximum tier cannot be exceeded by any action at all.</para>
@@ -66,7 +67,7 @@ public static class CommandErrorCode
     /// <summary>
     /// The command costs more than the funds on hand.
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Breach"/> carries the cost as
+    /// <para>The <c>breach</c> field of the reply carries the cost as
     /// <c>Actual</c> against the balance as <c>Limit</c>, so the client can say
     /// how short and in the operator's own currency rendering.</para>
     /// </summary>
@@ -105,7 +106,7 @@ public static class CommandErrorCode
     /// <summary>
     /// The game is in a scene this command cannot run from.
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names the scene when the producer had
+    /// <para>The <c>detail</c> field of the reply names the scene when the producer had
     /// one.
     /// <internal>Decided by <c>HighLogic.LoadedScene</c> (<c>GameScenes</c>).</internal></para>
     /// </summary>
@@ -117,7 +118,7 @@ public static class CommandErrorCode
     /// contract asked to accept when it is not offered, an assigned kerbal asked
     /// to be sacked, a spent experiment asked to deploy.
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> can carry the state in the game's own
+    /// <para>The <c>detail</c> field of the reply can carry the state in the game's own
     /// words.
     /// <internal>Decided by the entity's own state enum. <c>Strategies.Strategy.IsActive</c>,
     /// <c>RDTech.State</c>, <c>Contract.State</c>,
@@ -135,7 +136,7 @@ public static class CommandErrorCode
     /// acceleration, moving over the surface, about to crash, on a ladder; and a
     /// revert or a scene change can also be switched off by the save's own
     /// difficulty settings. The game's reason is on
-    /// <see cref="Sitrep.Contract.CommandResult.Detail"/>.
+    /// the <c>detail</c> field of the reply.
     /// <internal>Decided by <c>FlightGlobals.ClearToSave()</c>, plus
     /// <c>FlightDriver.CanRevertToPostInit</c>/<c>CanRevertToPrelaunch</c> and
     /// the <c>GameParameters</c> flags for leaving to the space center and to
@@ -212,7 +213,7 @@ public static class CommandErrorCode
     /// Another vessel is on the launch site.
     ///
     /// <para>The game's own words for it ride on
-    /// <see cref="Sitrep.Contract.CommandResult.Detail"/>.
+    /// the <c>detail</c> field of the reply.
     /// <internal>Decided by <c>PreFlightTests.LaunchSiteClear</c>, whose
     /// <c>GetWarningTitle()</c>/<c>GetWarningDescription()</c> supply those
     /// words.</internal></para>
@@ -256,7 +257,7 @@ public static class CommandErrorCode
     /// sending the command again asks the question afresh, and that is the only
     /// sound next move.</para>
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names what could
+    /// <para>The <c>detail</c> field of the reply names what could
     /// not be read when the handler had a name for it.
     /// <internal>
     /// In practice a reflection read whose member does not resolve on the loaded
@@ -275,7 +276,7 @@ public static class CommandErrorCode
     /// makes it succeed. Sending from a centre in the place's own system
     /// does.</para>
     ///
-    /// <para><see cref="Sitrep.Contract.CommandResult.Detail"/> names the centre
+    /// <para>The <c>detail</c> field of the reply names the centre
     /// and the place, and the system each is in, so an operator learns which
     /// centre to send from.</para>
     ///

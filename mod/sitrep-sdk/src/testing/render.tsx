@@ -34,19 +34,21 @@ function withTheme(Extra?: Wrapper): Wrapper {
  * mounted, so a `@ksp-gonogo/ui-kit` component renders without a provider of
  * your own. A `wrapper` you pass is mounted inside the theme. It needs
  * `@testing-library/react` and `styled-components` installed, and a DOM test
- * environment such as jsdom. Useful for testing what an operator sees of a
- * ui-kit component or a widget.
+ * environment such as jsdom. Any test runner works; the example uses vitest.
+ * Its options and result are Testing Library's own `RenderOptions` and
+ * `RenderResult`, with Testing Library's default queries, which the signature
+ * shows as `queries`. Useful for testing what an operator sees of a ui-kit
+ * component or a widget.
  *
  * @example
  * ```tsx
  * import { render } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { Badge } from "@ksp-gonogo/ui-kit";
  * import { expect, it } from "vitest";
  *
- * const Label = () => <p>Altitude</p>;
- *
- * it("labels the figure", () => {
- *   const { getByText } = render(<Label />);
- *   expect(getByText("Altitude")).toBeTruthy();
+ * it("draws the badge with the kit's theme", () => {
+ *   const { getByText } = render(<Badge tone="nogo">Abort</Badge>);
+ *   expect(getByText("Abort")).toBeTruthy();
  * });
  * ```
  *
@@ -67,6 +69,24 @@ export function render(
  * always mounted. A `wrapper` you pass is mounted inside the theme. Useful for
  * testing a hook that reads what the operator sees, such as a telemetry
  * reading.
+ *
+ * @example
+ * ```tsx
+ * import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+ * import {
+ *   renderHook,
+ *   setupStreamFixture,
+ * } from "@ksp-gonogo/sitrep-sdk/testing";
+ * import { expect, it } from "vitest";
+ *
+ * it("has no observed value before anything is emitted", () => {
+ *   const fixture = setupStreamFixture();
+ *   const { result } = renderHook(() => useTelemetry("vessel.flight"), {
+ *     wrapper: fixture.Provider,
+ *   });
+ *   expect(result.current.state).not.toBe("observed");
+ * });
+ * ```
  *
  * @category Rendering
  */

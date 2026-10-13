@@ -108,7 +108,8 @@ function subscribe(listener: () => void): () => void {
 /**
  * Mounts every registered root provider around `children`, for one screen.
  * Useful for giving an Uplink's widgets their shared state on the screen the
- * operator is using. Used by the main screen and the station screen.
+ * operator is using. Used by the app's main screen and station screen, which
+ * each mount it once around their dashboard.
  *
  * A provider registered after this has mounted, as an Uplink loaded at runtime
  * registers one, is mounted when it arrives. Each change to the set remounts

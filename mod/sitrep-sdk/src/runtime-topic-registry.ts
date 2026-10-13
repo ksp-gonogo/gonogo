@@ -67,8 +67,8 @@ export function noteRuntimeTopicMetadata(): void {
  * Every Topic id a client package has registered with
  * {@link registerUplinkTopic}, in registration order. Useful for listing the
  * Topics an operator can pick a value from, including the ones an Uplink adds
- * after the app has rendered. Used by the field picker's catalogue of Topic
- * fields.
+ * after the app has rendered. Used by the picker in which the operator chooses
+ * one field of a Topic to plot.
  *
  * The array is the same object until the next registration, so it can be a
  * `useSyncExternalStore` snapshot or a `useMemo` dependency. Pair it with
@@ -85,7 +85,8 @@ export function getRuntimeRegisteredTopicIds(): readonly string[] {
  * {@link getRuntimeRegisteredTopicIds}, including a registration of units for
  * a Topic already listed. Returns a function that unsubscribes. Useful for
  * keeping a list of Topics an operator can pick from current as Uplinks load.
- * Used by the hook behind the field picker.
+ * Used by the hook behind the picker in which the operator chooses one field of
+ * a Topic to plot.
  *
  * @category Reading telemetry
  */
@@ -101,7 +102,7 @@ export function subscribeRuntimeTopicRegistry(
 /**
  * The prefixes, each ending in `.`, under which Topic ids are built at runtime
  * from something such as a vessel id or a part's flight id:
- * `fleet.<vessel id>.orbit`. A key under one of them is read as a Topic of its
+ * `fleet.<guid>.orbit`. A key under one of them is read as a Topic of its
  * own, never as a field of a shorter Topic.
  *
  * Gonogo's own prefixes are listed here, and an Uplink adds its own with

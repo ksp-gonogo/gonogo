@@ -94,7 +94,8 @@ public class CareerStatus
 
 /// <summary>
 /// The <c>career.facilities</c> Topic payload: the space centre's buildings,
-/// each with the tier it stands at and the ladder it stands on.
+/// each with the level it stands at and the full run of levels it can be
+/// upgraded through (its tier count and what each upgrade costs).
 ///
 /// <para><b>When it arrives.</b> A facility's tier count and prices are readable from the
 /// building objects, which KSP registers at the space centre, in the editor and

@@ -222,8 +222,12 @@ namespace Sitrep.Contract
     /// What a field arrives as, in place of its value, while the save has not
     /// unlocked what it needs: the unlocks it is missing, so a reader can say
     /// why it has nothing to show rather than drawing an empty value as if there
-    /// were none. A mod's C# marks such a field
-    /// with <see cref="SitrepRequiresAttribute"/>; a client only reads the result.
+    /// were none. A field that can arrive this way has <c>LockedValue</c> among the
+    /// types it is declared with, and the SDK's <c>isLocked</c> tells the two apart.
+    /// <internal>
+    /// A mod's C# marks such a field with <see cref="SitrepRequiresAttribute"/>;
+    /// a client only reads the result.
+    /// </internal>
     /// </summary>
     /// <category>Readings</category>
     [SitrepContract]
@@ -266,7 +270,7 @@ namespace Sitrep.Contract
         [SitrepUnit(Units.Enumeration)]
         public UnlockKind Kind { get; set; }
 
-        /// <summary>The tech node's <c>techID</c>, or the <c>SpaceCenterFacility</c> member name.</summary>
+        /// <summary>The game's own id for the unlock: a tech node's id in the research tree (such as <c>"basicRocketry"</c>), or a building's name (such as <c>"MissionControl"</c>). Use <see cref="Name"/> for what to show.</summary>
         [SitrepUnit(Units.Id)]
         public string Id { get; set; } = "";
 

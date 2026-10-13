@@ -36,8 +36,8 @@ export const RADIO_REQUIRED_GLOBALS = [
 /**
  * The encoder configuration the radio transmits at: 20 ms chunks of mono
  * 48 kHz audio at a voice-radio bitrate. Useful for encoding the operator's
- * microphone audio before it is sent. Used by the app's radio audio code.
- * `bitrate` is a target that some browsers exceed, so size buffers by the
+ * microphone audio before it is sent. Used by the app's push-to-talk radio
+ * when it encodes the operator's voice. `bitrate` is a target that some browsers exceed, so size buffers by the
  * measured rate rather than this number.
  *
  * @category Radio
@@ -56,7 +56,7 @@ export const RADIO_ENCODER_CONFIG = {
 /**
  * The decoder half of {@link RADIO_ENCODER_CONFIG}, without a bitrate. Useful
  * for decoding received radio audio so the operator can hear it. Used by the
- * app's radio audio code.
+ * app's push-to-talk radio when it plays what it receives.
  *
  * @category Radio
  */
@@ -73,16 +73,18 @@ export const RADIO_DECODER_CONFIG = {
  * Samples per encoded chunk at {@link RADIO_ENCODER_CONFIG}'s sample rate: 960,
  * which is 20 ms. Every Opus packet the radio sends and receives holds this many
  * samples. Useful for cutting microphone audio into chunks. Used by the app's
- * radio audio code.
+ * push-to-talk radio when it cuts the operator's voice into packets.
  *
  * @category Radio
  */
 export const RADIO_CHUNK_FRAMES = 960;
 
 /**
- * Why the radio cannot run here. `insecure-context` the operator can fix by
- * opening the page over https or on localhost; `no-codec` they cannot. Useful
- * for telling the operator which of the two applies. Carried by
+ * Why the radio cannot run here. With `insecure-context` the page is not a
+ * secure origin, which the operator can fix by opening it over https or on
+ * localhost. With `no-codec` the browser lacks the audio codec the radio needs,
+ * which the operator cannot fix on this browser. Useful for telling the operator
+ * which of the two applies. Carried by
  * {@link RadioSupport}.
  *
  * @category Radio
@@ -92,8 +94,7 @@ export type RadioUnsupportedReason = "insecure-context" | "no-codec";
 /**
  * What {@link radioSupportStatus} returns: `{ supported: true }`, or
  * `supported: false` with the `reason` and the WebCodecs constructors that were
- * missing. Useful for telling the operator why the radio is unavailable. Returned
- * by {@link radioSupportStatus}.
+ * missing. Useful for telling the operator why the radio is unavailable.
  *
  * @category Radio
  */
@@ -118,7 +119,7 @@ export type RadioSupport =
  * cannot. Useful for telling the operator whether the radio is available and
  * why not, so a page served over plain http says so. Prefer it to
  * {@link isRadioSupported} wherever the result is shown. Used by the app's radio
- * hook.
+ * controls, which show the operator why the radio is unavailable.
  *
  * @category Radio
  */
@@ -151,7 +152,8 @@ export function radioSupportStatus(): RadioSupport {
  * @category Radio
  * @categoryDescription Radio
  * Whether this browser can carry live push-to-talk radio, and the audio
- * settings the radio encodes and decodes with. This package does not send or
+ * settings the radio encodes and decodes with. The radio is part of Commcast,
+ * the core mod's group messaging and radio between command centres. This package does not send or
  * play audio itself: it tells a client whether it may and what to encode with.
  *
  * To speak, encode microphone audio as Opus packets of 20 ms with

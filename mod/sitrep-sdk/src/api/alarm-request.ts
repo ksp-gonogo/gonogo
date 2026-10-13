@@ -160,9 +160,9 @@ export interface UplinkAlarmRequest {
   key: string;
   /** The alarm's name, as the operator reads it. Name the event, not the Uplink. */
   name: string;
-  /** Optional longer note on the row. */
+  /** An optional longer note, shown under the alarm's name in the operator's alarm list. */
   notes?: string;
-  /** When the alarm fires. */
+  /** When the alarm fires: at a time, when a value crosses a threshold, or at a time a Topic publishes. See {@link UplinkAlarmTrigger}. */
   trigger: UplinkAlarmTrigger;
 }
 

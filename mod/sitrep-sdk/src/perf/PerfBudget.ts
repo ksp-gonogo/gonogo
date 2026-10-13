@@ -50,8 +50,9 @@ interface Event {
  * `PerfBudget.installTestGate()`, a test that pushes a budget over its
  * threshold fails. `windowTotal()` returns the current total, for a test that asserts
  * on steady-state cost. Useful for noticing a runaway update loop before it
- * slows the operator's dashboard. Used by the app's commcast log and by the
- * trajectory calculation.
+ * slows the operator's dashboard. Used by the app's commcast log, which warns
+ * when it sends too many messages in a second, and by the trajectory
+ * calculation, which warns when it is recomputed too often.
  *
  * An Uplink calls {@link createPerfBudget}, which makes one of these in the
  * app's own copy of the SDK and returns a handle to it. `new PerfBudget(...)`
@@ -215,7 +216,7 @@ export class PerfBudget {
     return [...PerfBudget.registry];
   }
 
-  /** Test-only: clears the registry. Doesn't dispose existing instances. */
+  /** Test-only: forgets every budget made so far, so `getAll()` lists none until new ones are made. A budget already made keeps counting its own events. */
   static clearRegistry(): void {
     PerfBudget.registry.clear();
   }

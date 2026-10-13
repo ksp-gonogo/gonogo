@@ -12,6 +12,7 @@ export interface LogContext {
   userId?: string;
   /** Which part of the code wrote the entry, such as an Uplink's id. */
   service?: string;
+  /** Any other field is kept on the entry as it is. */
   [key: string]: unknown;
 }
 
@@ -42,10 +43,15 @@ export interface TaggedLogger {
  * in the operator's log buffer that is also sent on to the app's log service.
  * Reached through the `logger` export of this package.
  *
+ * Every entry is kept in the log buffer. The browser console shows an entry
+ * only at or above the level the operator sets with `localStorage.LOG_LEVEL`
+ * (`debug`, `info`, `warn` or `error`, then a reload); with none set, every
+ * level shows.
+ *
  * @category Logging and performance
  */
 export interface Logger {
-  /** Detail for someone tracing a problem. */
+  /** Detail for someone tracing a problem. Shown on the console unless `LOG_LEVEL` is set above `debug`. */
   debug(message: string, context?: LogContext): void;
   /** Something that happened and is worth a line. */
   info(message: string, context?: LogContext): void;

@@ -62,7 +62,8 @@ function readSeconds(field: unknown): number | null {
  * Each listed command centre's own delay to the active vessel, keyed by centre
  * id, or `null` for a payload that is not a `commandCentre.activeVesselDelay`
  * payload. Useful for showing the operator the delay at each command centre.
- * Used by the signal delay readout.
+ * Used by the signal delay readout, the chip that shows the one-way delay
+ * between a command centre and a vessel.
  *
  * An entry with no usable number is left out and never read as zero, so that
  * centre uses `comms.delay`, as it does when its row is missing.

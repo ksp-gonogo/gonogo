@@ -45,21 +45,21 @@ export interface ProcessorHandle<
 }
 
 /**
- * Whether a dep list makes its processor's result datable. Useful for typing a
- * processor's result as a `Reading` when any dependency is one. Used by
+ * `true` when a dep list contains a {@link ReadingDep}, so the processor's
+ * result is a `Reading` that says how current it is, and `false` when every dep
+ * is a bare Topic or another processor. Useful for typing a processor's result
+ * as a `Reading` when any dependency is one. Used by
  * {@link UplinkClientHandle.registerProcessor} to type the handle it returns.
- *
- * Wrapped in a tuple so a union of deps does not distribute: the answer is a
- * property of the list as a whole, and a distributed `extends never` would decide
- * it once per member.
  *
  * @category Processors
  */
-export type CarriesCurrency<Deps extends readonly Dep[]> = [
-  Extract<Deps[number], ReadingDep>,
-] extends [never]
-  ? false
-  : true;
+export type CarriesCurrency<Deps extends readonly Dep[]> =
+  /*
+   * Wrapped in a tuple so a union of deps does not distribute: the answer is a
+   * property of the list as a whole, and a distributed `extends never` would
+   * decide it once per member.
+   */
+  [Extract<Deps[number], ReadingDep>] extends [never] ? false : true;
 
 /**
  * A dep asking for a Topic's `Reading` rather than its bare payload. Useful for
@@ -130,10 +130,9 @@ export interface SubjectDep<
  * processor, a reckoner and a contribution.
  *
  * The last is a reckoner's to declare. It is in this union because a reckoner's
- * inputs are the same kind of thing a processor's are (see
- * `ResolvedReckonerDep`, which says the same about resolution). A processor
- * handed one is refused out loud by the evaluator: a processor has no point to
- * take a subject from, and resolving it to `undefined` there would be
+ * inputs are the same kind of thing a processor's are. A processor that declares
+ * one throws an error when it first runs: a processor has no point to take a
+ * subject from, and resolving it to `undefined` there would be
  * indistinguishable from an absent input.
  *
  * @category Processors

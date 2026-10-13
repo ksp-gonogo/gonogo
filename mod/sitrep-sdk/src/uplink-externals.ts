@@ -15,20 +15,23 @@
  */
 
 /**
- * Each specifier the app resolves for a loaded Uplink, paired with the name of
- * the file the app serves it from. Used by the app to write its import map.
- * Mark every specifier `external` when bundling an Uplink's client, so it uses
- * the app's own copy of each package.
- * A bundled copy brings its own `registerComponent`, `registerAugment` and the
- * other registries, so whatever it registers lands in a copy the dashboard
- * never reads.
- * A subpath, such as `@ksp-gonogo/sitrep-sdk/media`, is its own entry.
+ * Each package specifier the app resolves for a loaded Uplink, paired with the
+ * name of the file the app serves it from. Used by the app to write its import
+ * map, the table in its page that tells the browser which file each package name
+ * loads from, and by {@link UPLINK_EXTERNAL_SPECIFIERS}.
  *
- * Being listed here is not permission to import: an Uplink's client imports
- * only `@ksp-gonogo/sitrep-sdk` (its root and the `frames`, `media` and
- * `testing` subpaths) and `@ksp-gonogo/ui-kit`, with React and styled-components.
- * The other `@ksp-gonogo` packages named here belong to the app, which resolves
- * them for its own code.
+ * Being listed here is not permission to import. An Uplink's client imports only
+ * `@ksp-gonogo/sitrep-sdk` (its root and the `frames` and `media` subpaths, plus
+ * `testing` in its tests) and `@ksp-gonogo/ui-kit`, with React and
+ * styled-components. The other `@ksp-gonogo` packages named here, and the
+ * `@ksp-gonogo/sitrep-sdk/spine` subpath, belong to the app, which resolves them
+ * for its own code. `testing` is absent because tests never ship in a bundle.
+ *
+ * Mark every specifier `external` when bundling an Uplink's client, so it uses
+ * the app's own copy of each package. A bundled copy brings its own
+ * `registerComponent`, `registerAugment` and the other registries, so whatever
+ * it registers lands in a copy the dashboard never reads. A subpath, such as
+ * `@ksp-gonogo/sitrep-sdk/media`, is its own entry.
  *
  * @category Bundling
  */
@@ -63,11 +66,10 @@ export const UPLINK_EXTERNAL_SPECIFIERS: readonly string[] =
 
 /**
  * Specifiers a bundler must also leave out of an Uplink's bundle, although the
- * app serves no file of its own for them: it provides each through another
- * entry, so a bundle that imports them still resolves. They are
- * `react-dom/client` and `react/jsx-dev-runtime`. Useful for building an
- * Uplink's client so that the app supplies these packages. Used by {@link
- * UPLINK_BUNDLE_EXTERNALS} and the app's table of provided packages.
+ * app serves no file of its own for them: it supplies each through the file of
+ * the package it belongs to, so a bundle that imports them still resolves. They are `react-dom/client` and `react/jsx-dev-runtime`. Useful for
+ * building an Uplink's client so that the app supplies these packages. Used by
+ * {@link UPLINK_BUNDLE_EXTERNALS} and the app's table of provided packages.
  *
  * @category Bundling
  */
@@ -89,9 +91,9 @@ export const UPLINK_EXTERNAL_NO_CHUNK: readonly string[] = [
  *
  * @category Bundling
  * @categoryDescription Bundling
- * Use these to configure your bundler's `external` option. They are the package
- * names an Uplink's client bundle leaves unresolved, for the app to supply when
- * it loads the bundle.
+ * The package names an Uplink's client bundle leaves unresolved, for the app to
+ * supply when it loads the bundle. Pass them to your bundler's `external`
+ * option.
  */
 export const UPLINK_BUNDLE_EXTERNALS: readonly string[] = [
   ...UPLINK_EXTERNAL_SPECIFIERS,

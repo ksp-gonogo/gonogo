@@ -43,9 +43,9 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// The frame the game's own navigation view is expressed in: what the player
-    /// is looking at, and what a burn expressed relative to the control frame is
-    /// held fixed against.
+    /// The frame the game's own navigation view is expressed in, which is what the
+    /// player is looking at. A burn given relative to the control frame holds its
+    /// direction fixed against this frame.
     ///
     /// <para>This is not a widget's own read frame, which nothing else sees. It
     /// belongs to the game, there is one at a time, and it can be written as

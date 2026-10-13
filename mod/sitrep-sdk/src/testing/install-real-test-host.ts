@@ -64,9 +64,11 @@ export interface UiKitHostPieces {
  *
  * Call it once, in the test setup file. It returns a function that removes the
  * host again, which most suites never need: the host keeps no state of its
- * own, so there is nothing to clear between tests.
+ * own. The augments a test registers do live in a registry, which is ui-kit's,
+ * and `clearAugments`, one of the pieces you pass, empties it between tests.
  *
- * Install `@testing-library/react`, `jsdom` and `vitest` as dev dependencies,
+ * Install `@ksp-gonogo/ui-kit` (the pieces below come from it),
+ * `@testing-library/react`, `jsdom` and `vitest` as dev dependencies,
  * set `environment: "jsdom"` in the vitest config, and name the setup file
  * below in its `setupFiles`. Useful for testing a widget as the operator's app
  * would run it. Used by the test setup of each bundled Uplink's client.

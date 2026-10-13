@@ -632,7 +632,9 @@ export type ReckonableReading<
 /**
  * Why a held reading (`state: "held"`) stopped updating.
  *
- * - `held`: this Topic's own updates stopped arriving on schedule
+ * - `held`: the general case, when none of the specific reasons below applies:
+ *   this Topic's own updates stopped arriving on schedule while the connection
+ *   and the game are otherwise running
  * - `disconnected`: the connection to the game is down, which affects every
  *   Topic at once
  * - `last-before-blackout`: the last value sent before a known loss of signal
@@ -818,7 +820,8 @@ export function observedValue<Payload>(
  * Only for facts. A measurement that drifts on its own, such as a position or
  * a fuel level, is not still true once updates stop; use
  * {@link observedValue}. Useful for showing the operator a fact that cannot
- * have changed while updates were missing. Used by the vantage control.
+ * have changed while updates were missing. Used by the vantage control, the
+ * picker of which command centre to view from.
  *
  * @category Reading telemetry
  */
@@ -1085,7 +1088,8 @@ function walkField(payload: unknown, path: string): unknown {
  * model does not move returns `{ status: "none" }`, since the value there is
  * the last observation copied unchanged. A Topic reckoning that is `"none"` or
  * `"declined"` is returned as it is. Useful for showing the operator a modelled
- * figure for one field of a Topic. Used by this package's reading store.
+ * figure for one field of a Topic. Used by the readings that {@link useTelemetry}
+ * returns, to give each payload field its own reading.
  *
  * @category Reading telemetry
  */
@@ -1373,7 +1377,8 @@ export function bandSide<Unit extends string>(
  * on a mod being installed. `"absent"` counts, because the game said there is
  * no value. Checking `state !== "pending"` instead would count `"unowned"`,
  * which means nothing will ever publish the Topic. Used by the app's first-run
- * setup and the availability feeder.
+ * setup dialog, and by the part of the app that tells widgets which Domains of
+ * Topics are available.
  *
  * To decide what to draw, branch on `state`: `"pending"` can change on the next
  * frame and `"unowned"` never will.

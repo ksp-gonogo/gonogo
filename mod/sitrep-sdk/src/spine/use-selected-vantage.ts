@@ -4,8 +4,8 @@ import { useTelemetryClientOptional } from "./context";
 /**
  * The command centre the operator has selected to view from, updating when the
  * selection changes. Useful for showing the operator which command centre the
- * screen is viewing from. Used by the vantage control and the signal delay
- * readout.
+ * screen is viewing from. Used by the vantage control, the picker of which
+ * command centre to view from, and by the signal delay readout.
  *
  * `undefined` until a command centre is chosen, and when no `TelemetryProvider`
  * is mounted. Until then the mod has put the connection at the home command

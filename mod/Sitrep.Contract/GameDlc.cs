@@ -12,10 +12,10 @@ namespace Sitrep.Contract;
 ///
 /// <para>The whole payload is <c>null</c>, not an all-false object, when no
 /// sample has been taken yet, so "no data yet" and "DLC absent" stay
-/// distinct. It carries no <c>Meta</c> of its own: its <see cref="Meta"/> is
-/// on the envelope (<c>StreamData.Meta</c>). A fact about the ground, so the
-/// channel is <see cref="DelayRole.TrueNow"/>, independent of any vessel's
-/// comms link.</para>
+/// distinct. A widget sees that <c>null</c> as a reading whose <c>state</c> is
+/// <c>"absent"</c> and which carries no value. This is a fact about the
+/// ground, so it is never delayed by any vessel's comms link (its delay role is
+/// <c>TrueNow</c>; see the delay and vantage page).</para>
 /// <internal>
 /// Typing-only mirror of Sitrep.Host.SystemViewProvider.BuildGameDlc's shape;
 /// the provider emits the value tree JsonWriter walks.

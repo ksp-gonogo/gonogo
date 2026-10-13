@@ -9,17 +9,17 @@
  * @category Error codes
  */
 export interface ErrorCodeDeclaration {
-  /** The camelCase id: one segment for a root or a fault, `owner.name` for a refinement. */
+  /** The camelCase id. `owner.name` for a refinement, where `owner` is the declaring Uplink or core domain, which is what every code an Uplink declares is; one segment for a core root or a fault. */
   readonly id: string;
   /** `refusal`: the game ran the command and said no. `fault`: nothing was decided, the request could not be carried. */
   readonly kind: "refusal" | "fault";
-  /** The root a refinement refines; `null` on a root and on every fault. */
+  /** The root a refinement refines. Always set on a code an Uplink declares; `null` on a core root and on every fault. */
   readonly refines: string | null;
   /** Where a fault is minted; `null` on a refusal. */
   readonly origin: "mod" | "client" | null;
   /** What an operator reads after "refused:" or "failed:", lower case and without a full stop. */
   readonly sentence: string;
-  /** What the code means, from its declaration's doc comment. Empty when that is not to hand. */
+  /** A longer explanation of what the code means, written for a developer rather than the operator. Empty for a code learnt from the running mod, which carries only its sentence. */
   readonly meaning: string;
 }
 
@@ -29,7 +29,9 @@ export interface ErrorCodeDeclaration {
  * @category Error codes
  */
 export interface UplinkErrorCodeDeclaration extends ErrorCodeDeclaration {
+  /** Always `"refusal"`: an Uplink declares refusals and never faults. */
   readonly kind: "refusal";
+  /** Always `null`: only a fault has an origin. */
   readonly origin: null;
 }
 
@@ -38,9 +40,10 @@ export interface UplinkErrorCodeDeclaration extends ErrorCodeDeclaration {
  * kind of refusal it was, and so whether waiting, changing the craft, or doing
  * something in the game is what makes a retry worthwhile.
  *
- * A producer that can say more names a refinement of one of these (see
- * `RefusalCode.Refine`); the root still travels, so nothing a client does with
- * a root depends on knowing the refinement.
+ * A producer that can say more names a refinement of one of these, a code
+ * written `owner.name` that travels beside the root's id in the reply's
+ * `reason`; the root still travels, so nothing a client does with a root
+ * depends on knowing the refinement.
  *
  * @category Error codes
  */
@@ -69,7 +72,7 @@ export const CommandErrorCode = {
    * never be flown.
    *
    * The command is refused and nothing is written. The owning planner is on the
-   * wire as `VesselManeuver.Planner`.
+   * wire as the `planner` field of the `vessel.maneuver` payload.
    */
   PlanNotOwned: "planNotOwned",
   /**
@@ -79,12 +82,13 @@ export const CommandErrorCode = {
    * A retry succeeds only once something changes, such as a kerbal leaving the
    * active roster.
    *
-   * `CommandResult.breach` carries the numbers, so a client can say "16 of 16".
+   * The `breach` field of the reply carries the numbers, so a client can say "16
+   * of 16".
    */
   LimitReached: "limitReached",
   /**
-   * Already at the top of an upgradeable scale, so there is nothing above this
-   * to move to. The Launch Pad at tier 3 of 3.
+   * The thing is already at the top of an upgradeable scale, so there is nothing
+   * above it to move to. An example is the Launch Pad at tier 3 of 3.
    *
    * Not `CommandErrorCode.LimitReached`: a cap that is full can be freed; a
    * maximum tier cannot be exceeded by any action at all.
@@ -93,9 +97,9 @@ export const CommandErrorCode = {
   /**
    * The command costs more than the funds on hand.
    *
-   * `CommandResult.breach` carries the cost as `Actual` against the balance as
-   * `Limit`, so the client can say how short and in the operator's own currency
-   * rendering.
+   * The `breach` field of the reply carries the cost as `Actual` against the
+   * balance as `Limit`, so the client can say how short and in the operator's
+   * own currency rendering.
    */
   InsufficientFunds: "insufficientFunds",
   /**
@@ -118,7 +122,7 @@ export const CommandErrorCode = {
   /**
    * The game is in a scene this command cannot run from.
    *
-   * `CommandResult.detail` names the scene when the producer had one.
+   * The `detail` field of the reply names the scene when the producer had one.
    */
   WrongScene: "wrongScene",
   /**
@@ -127,7 +131,7 @@ export const CommandErrorCode = {
    * contract asked to accept when it is not offered, an assigned kerbal asked to
    * be sacked, a spent experiment asked to deploy.
    *
-   * `CommandResult.detail` can carry the state in the game's own words.
+   * The `detail` field of the reply can carry the state in the game's own words.
    */
   WrongState: "wrongState",
   /**
@@ -137,7 +141,7 @@ export const CommandErrorCode = {
    * The game gives five such reasons: in atmosphere, under acceleration, moving
    * over the surface, about to crash, on a ladder; and a revert or a scene
    * change can also be switched off by the save's own difficulty settings. The
-   * game's reason is on `CommandResult.detail`.
+   * game's reason is on the `detail` field of the reply.
    *
    * Also returned by the command that sets a SCET alarm (an alarm on the craft's
    * own clock, spacecraft event time) when the command centre it names as its
@@ -184,7 +188,7 @@ export const CommandErrorCode = {
   /**
    * Another vessel is on the launch site.
    *
-   * The game's own words for it ride on `CommandResult.detail`.
+   * The game's own words for it ride on the `detail` field of the reply.
    */
   SiteOccupied: "siteOccupied",
   /**
@@ -215,8 +219,8 @@ export const CommandErrorCode = {
    * the command again asks the question afresh, and that is the only sound next
    * move.
    *
-   * `CommandResult.detail` names what could not be read when the handler had a
-   * name for it.
+   * The `detail` field of the reply names what could not be read when the
+   * handler had a name for it.
    */
   Unreadable: "unreadable",
   /**
@@ -227,8 +231,8 @@ export const CommandErrorCode = {
    * This refuses the sender, not the moment, so no amount of waiting makes it
    * succeed. Sending from a centre in the place's own system does.
    *
-   * `CommandResult.detail` names the centre and the place, and the system each
-   * is in, so an operator learns which centre to send from.
+   * The `detail` field of the reply names the centre and the place, and the
+   * system each is in, so an operator learns which centre to send from.
    *
    * Distinct from `CommandErrorCode.NoConnection`, which is a link that cannot
    * carry the command. A centre may be perfectly linked to the place and still
@@ -241,18 +245,15 @@ export type CommandErrorCode = (typeof CommandErrorCode)[keyof typeof CommandErr
 /**
  * Why a command, or any other request, could not be carried: nothing about the
  * game was decided. The refused/failed split is the kind of code, not a
- * judgement a client makes: a `RefusalCode` says the game said no, this says
- * the machinery did not get that far, and a retry may work.
+ * judgement a client makes: a refusal (`CommandErrorCode`) says the game said
+ * no, this says the machinery did not get that far, and a retry may work.
  *
  * Closed, and declared only here: the error codes an Uplink adds are refusals,
- * refinements of a `CommandErrorCode` root, never faults. A handler that
- * throws becomes `FaultCode.CommandUnavailable`, and one that throws a
- * `CommandFaultException` raises a specific fault and leaves its command
- * available.
+ * refinements of a `CommandErrorCode` root, never faults.
  *
  * A command that was sent and never answered is neither a refusal nor one of
  * these: its `send` rejects with the client's own `E_LOST` marker, which the
- * SDK's `classifyCommandRejection` reports as `lost`.
+ * SDK's `classifyCommandRejection` function reports as `lost`.
  *
  * @category Error codes
  */
@@ -430,7 +431,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "another planner owns the flight plan",
-    meaning: "The maneuver plan is owned by a trajectory planner other than the game's own, such as a mod that plans its own burns, so a node written there would never be flown.\n\nThe command is refused and nothing is written. The owning planner is on the wire as `VesselManeuver.Planner`.",
+    meaning: "The maneuver plan is owned by a trajectory planner other than the game's own, such as a mod that plans its own burns, so a node written there would never be flown.\n\nThe command is refused and nothing is written. The owning planner is on the wire as the `planner` field of the `vessel.maneuver` payload.",
   },
   {
     id: "limitReached",
@@ -438,7 +439,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "a limit has been reached",
-    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nA retry succeeds only once something changes, such as a kerbal leaving the active roster.\n\n`CommandResult.breach` carries the numbers, so a client can say \"16 of 16\".",
+    meaning: "A capacity is full: the Astronaut Complex holds its cap of active crew, a facility holds its cap of anything else countable.\n\nA retry succeeds only once something changes, such as a kerbal leaving the active roster.\n\nThe `breach` field of the reply carries the numbers, so a client can say \"16 of 16\".",
   },
   {
     id: "alreadyAtMaximum",
@@ -446,7 +447,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "it is already at its maximum",
-    meaning: "Already at the top of an upgradeable scale, so there is nothing above this to move to. The Launch Pad at tier 3 of 3.\n\nNot `CommandErrorCode.LimitReached`: a cap that is full can be freed; a maximum tier cannot be exceeded by any action at all.",
+    meaning: "The thing is already at the top of an upgradeable scale, so there is nothing above it to move to. An example is the Launch Pad at tier 3 of 3.\n\nNot `CommandErrorCode.LimitReached`: a cap that is full can be freed; a maximum tier cannot be exceeded by any action at all.",
   },
   {
     id: "insufficientFunds",
@@ -454,7 +455,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "there are not enough funds",
-    meaning: "The command costs more than the funds on hand.\n\n`CommandResult.breach` carries the cost as `Actual` against the balance as `Limit`, so the client can say how short and in the operator's own currency rendering.",
+    meaning: "The command costs more than the funds on hand.\n\nThe `breach` field of the reply carries the cost as `Actual` against the balance as `Limit`, so the client can say how short and in the operator's own currency rendering.",
   },
   {
     id: "insufficientScience",
@@ -478,7 +479,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the game is not in a scene that allows it",
-    meaning: "The game is in a scene this command cannot run from.\n\n`CommandResult.detail` names the scene when the producer had one.",
+    meaning: "The game is in a scene this command cannot run from.\n\nThe `detail` field of the reply names the scene when the producer had one.",
   },
   {
     id: "wrongState",
@@ -486,7 +487,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "it is not in a state that allows it",
-    meaning: "The entity is not in a state this transition applies to: an already-active strategy asked to activate, an already-researched node asked to unlock, a contract asked to accept when it is not offered, an assigned kerbal asked to be sacked, a spent experiment asked to deploy.\n\n`CommandResult.detail` can carry the state in the game's own words.",
+    meaning: "The entity is not in a state this transition applies to: an already-active strategy asked to activate, an already-researched node asked to unlock, a contract asked to accept when it is not offered, an assigned kerbal asked to be sacked, a spent experiment asked to deploy.\n\nThe `detail` field of the reply can carry the state in the game's own words.",
   },
   {
     id: "notClearToProceed",
@@ -494,7 +495,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the flight is not clear for it yet",
-    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on `CommandResult.detail`.\n\nAlso returned by the command that sets a SCET alarm (an alarm on the craft's own clock, spacecraft event time) when the command centre it names as its vantage cannot be checked, because the game has not yet reported any command centre: at the main menu, and in the first moments after a save loads. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
+    meaning: "Right command, wrong moment: the flight is not in a state that permits it yet, and will be later.\n\nThe game gives five such reasons: in atmosphere, under acceleration, moving over the surface, about to crash, on a ladder; and a revert or a scene change can also be switched off by the save's own difficulty settings. The game's reason is on the `detail` field of the reply.\n\nAlso returned by the command that sets a SCET alarm (an alarm on the craft's own clock, spacecraft event time) when the command centre it names as its vantage cannot be checked, because the game has not yet reported any command centre: at the main menu, and in the first moments after a save loads. The same command refuses a vantage that is known and inactive with `CommandErrorCode.Range` instead, because that one does not resolve by waiting. Any other command naming an inactive vantage fails with the `unknownVantage` fault.\n\nDistinct from `CommandErrorCode.WrongState`, which is about the entity and does not resolve by waiting.",
   },
   {
     id: "capabilityMismatch",
@@ -526,7 +527,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "another vessel is on the launch site",
-    meaning: "Another vessel is on the launch site.\n\nThe game's own words for it ride on `CommandResult.detail`.",
+    meaning: "Another vessel is on the launch site.\n\nThe game's own words for it ride on the `detail` field of the reply.",
   },
   {
     id: "facilityDamaged",
@@ -550,7 +551,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "the game would not answer",
-    meaning: "The command's handler could not read the state it needed, so the question went unanswered. Nothing about the craft, the save or the moment was established, and the refusal is no judgement about the command.\n\nUnlike `CommandErrorCode.CapabilityMismatch`, this says nothing about what the craft can do. Waiting does not by itself make it succeed, but sending the command again asks the question afresh, and that is the only sound next move.\n\n`CommandResult.detail` names what could not be read when the handler had a name for it.",
+    meaning: "The command's handler could not read the state it needed, so the question went unanswered. Nothing about the craft, the save or the moment was established, and the refusal is no judgement about the command.\n\nUnlike `CommandErrorCode.CapabilityMismatch`, this says nothing about what the craft can do. Waiting does not by itself make it succeed, but sending the command again asks the question afresh, and that is the only sound next move.\n\nThe `detail` field of the reply names what could not be read when the handler had a name for it.",
   },
   {
     id: "outOfReach",
@@ -558,7 +559,7 @@ export const CORE_ERROR_CODES: readonly ErrorCodeDeclaration[] = [
     refines: null,
     origin: null,
     sentence: "this command centre has no authority over that place",
-    meaning: "The command acts at a place, and the command centre it was sent from is not in that place's planetary system, so it has no authority there: a launch from a pad in another planet's system.\n\nThis refuses the sender, not the moment, so no amount of waiting makes it succeed. Sending from a centre in the place's own system does.\n\n`CommandResult.detail` names the centre and the place, and the system each is in, so an operator learns which centre to send from.\n\nDistinct from `CommandErrorCode.NoConnection`, which is a link that cannot carry the command. A centre may be perfectly linked to the place and still have no authority over it.",
+    meaning: "The command acts at a place, and the command centre it was sent from is not in that place's planetary system, so it has no authority there: a launch from a pad in another planet's system.\n\nThis refuses the sender, not the moment, so no amount of waiting makes it succeed. Sending from a centre in the place's own system does.\n\nThe `detail` field of the reply names the centre and the place, and the system each is in, so an operator learns which centre to send from.\n\nDistinct from `CommandErrorCode.NoConnection`, which is a link that cannot carry the command. A centre may be perfectly linked to the place and still have no authority over it.",
   },
   {
     id: "invalidEnvelope",

@@ -129,8 +129,10 @@ export interface UplinkDeclaration {
    */
   csharpNamespace?: string;
   /**
-   * The KSP mod this Uplink wraps, when it wraps one, or `null` when it wraps
-   * none. The generated page prints it, and its name and `builtAgainst` are
+   * The game mod this Uplink wraps, a separate KSP mod that someone else
+   * wrote, when it wraps one, or `null` when it wraps none. It is not the
+   * Uplink's own C# half, which this page calls the plugin. The generated page
+   * prints it, and its name and `builtAgainst` are
    * copied into `gonogo-uplink.json`, where the app shows them beside the
    * Uplink when asking whether to load it.
    *
@@ -156,8 +158,10 @@ export interface UplinkDeclaration {
     /**
      * The absolute address the released client bundle is fetched from, by every
      * install. The plugin carries it, so it is where you publish the bundle, with the
-     * `gonogo-uplink.json` beside it. Its version folder has to be this
-     * release's version: `uplink-tools release` refuses when it is not.
+     * `gonogo-uplink.json` beside it. The address carries the version as a folder,
+     * such as `https://example.com/habitat/1.0.0/client.js`, and that version
+     * has to be this release's version: `uplink-tools release` refuses when it
+     * is not.
      */
     url?: string;
   };
@@ -196,7 +200,9 @@ export interface UplinkCodegenDeclaration {
    * always written and is not listed. Each entry is the name of an environment
    * variable the method reads an output path from, mapped to the file name
    * `uplink-tools codegen` sets that variable to, under
-   * `client/src/__generated__/`.
+   * `client/src/__generated__/`. The method chooses the variable names, so any
+   * name works as long as the method reads the same one; `uplink-tools new`
+   * writes `SITREP_<UPLINK ID IN CAPITALS>_TOPICMAP_OUT` and its siblings.
    */
   emits?: Record<string, string>;
 }
@@ -236,7 +242,7 @@ export interface UplinkManifest {
   minAppVersion: string;
   /**
    * The extension API the client was built against: the sdk's
-   * `EXTENSION_API_VERSION`, which covers the surface of the sdk and of ui-kit
+   * {@link EXTENSION_API_VERSION}, which covers the surface of the sdk and of ui-kit
    * together. The app refuses a client whose major differs from its own or
    * whose minor is newer. It moves only when that surface changes, never with
    * a package's version.
@@ -422,19 +428,31 @@ function wrappedMod(
  *
  * @example Writing the manifest beside a bundle, from a build script
  * ```ts
- * import { writeFileSync } from "node:fs";
+ * import { createHash } from "node:crypto";
+ * import { readFileSync, writeFileSync } from "node:fs";
+ * import {
+ *   CONTRACT_MAJOR,
+ *   CONTRACT_MINOR,
+ *   EXTENSION_API_VERSION,
+ * } from "@ksp-gonogo/sitrep-sdk";
  * import {
  *   buildUplinkManifest,
  *   serialiseUplinkManifest,
  *   UPLINK_MANIFEST_FILE,
  * } from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
  *
+ * // The file you distribute: its hash is what the app checks before running it.
+ * const bundle = readFileSync("dist/habitat/habitat.client.js");
+ *
  * const manifest = buildUplinkManifest({
  *   clientDir: "client",
- *   // The numbers the bundle was built against, read from the built bundle.
- *   compat: { apiVersion: "1.0.0", contractMajor: 1, contractMinor: 0 },
- *   // sha256-<hex> of the file you distribute.
- *   integrity: "sha256-0123abcd",
+ *   // The versions of the sdk surface and the wire contract this sdk carries.
+ *   compat: {
+ *     apiVersion: EXTENSION_API_VERSION,
+ *     contractMajor: CONTRACT_MAJOR,
+ *     contractMinor: CONTRACT_MINOR,
+ *   },
+ *   integrity: `sha256-${createHash("sha256").update(bundle).digest("hex")}`,
  * });
  * writeFileSync(`dist/${UPLINK_MANIFEST_FILE}`, serialiseUplinkManifest(manifest));
  * ```

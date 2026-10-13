@@ -86,8 +86,9 @@ public class FlightCurrent
 }
 
 /// <summary>
-/// The <c>flight.started</c> Topic payload: a reliable, ordered, delayed
-/// event sent when a new flight begins. A flight is new when its vessel id
+/// The <c>flight.started</c> Topic payload: an event that is always delivered,
+/// in the order it happened, and held back by the signal delay like any value
+/// about a craft, sent when a new flight begins. A flight is new when its vessel id
 /// has not been started before in this game session (a launch, or a first
 /// switch onto a vessel), and every vessel active just after a revert or a
 /// quickload starts a new flight, even one with the same id.
@@ -123,8 +124,9 @@ public class FlightStarted
 }
 
 /// <summary>
-/// The <c>flight.ended</c> Topic payload: a reliable, ordered, delayed
-/// event sent once per flight when it stops being trackable: recovered,
+/// The <c>flight.ended</c> Topic payload: an event that is always delivered,
+/// in the order it happened, and held back by the signal delay like any value
+/// about a craft, sent once per flight when it stops being trackable: recovered,
 /// crashed, destroyed or reverted. It shares the delay class of
 /// <c>crash.lastCrash</c> and <c>recovery.lastSummary</c>, so an end that a
 /// rewind discards before its signal delay has elapsed is never revealed.
@@ -160,8 +162,9 @@ public class FlightEnded
 }
 
 /// <summary>
-/// The <c>flight.vesselChanged</c> Topic payload: a reliable, ordered,
-/// delayed event sent whenever the active vessel changes after the first
+/// The <c>flight.vesselChanged</c> Topic payload: an event that is always delivered,
+/// in the order it happened, and held back by the signal delay like any value
+/// about a craft, sent whenever the active vessel changes after the first
 /// observation of the session (docking, undocking, a tracking-station
 /// reselect). Switching away from a vessel that is still flying does not end
 /// its flight, and switching back to a known one does not start a new one.

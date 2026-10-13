@@ -433,8 +433,8 @@ public class LabEntry
 }
 
 /// <summary> One entry in the <c>deployed.bases</c> Topic payload: a
-/// Breaking Ground deployed-science experiment
-/// (<c>ModuleGroundExperiment</c>). The Topic payload is a bare array
+/// Breaking Ground deployed-science experiment, a science instrument set down
+/// on the surface. The Topic payload is a bare array
 /// (<c>DeployedEntry[]</c>) or <c>null</c> when Breaking Ground is not
 /// installed and no loaded vessel carries a deployed experiment.
 ///
@@ -449,6 +449,7 @@ public class LabEntry
 /// <para>Every field is nullable, and is <c>null</c> whenever the raw value is
 /// absent or could not be read.</para>
 /// <internal>
+/// The experiment is KSP's <c>ModuleGroundExperiment</c>.
 /// Typing-only mirror of
 /// <c>Sitrep.Host.BreakingGroundViewProvider.BuildDeployedEntry</c>; see
 /// <see cref="ExperimentEntry"/> for the "no wire change, all fields

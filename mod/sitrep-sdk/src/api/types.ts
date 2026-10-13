@@ -45,10 +45,10 @@ import type { Tone } from "./tone";
 
 /**
  * A data key a widget lists in {@link ComponentDefinition.dataRequirements}:
- * one flat key per value, such as `"v.altitude"`, rather than a Topic id. Useful
- * for telling the dashboard which readings a widget needs. A
- * widget that reads Topics lists them in `channels` instead, which is what an
- * Uplink widget does.
+ * the dotted path of one value, a Topic id followed by a field of its payload,
+ * such as `"vessel.orbit.sma"`, rather than a bare Topic id. Useful for telling
+ * the dashboard which readings a widget needs. A widget that lists whole Topics
+ * uses `channels` instead, which is what an Uplink widget does.
  *
  * @category Registering
  */
@@ -93,7 +93,7 @@ export type ActionInputKind = "button" | "analog";
  * @category Actions
  */
 export interface ActionInputPayload {
-  /** Which kind of input fired. */
+  /** Which kind of input fired: a `"button"` press or release, or an `"analog"` axis movement. */
   kind: ActionInputKind;
   /** For a button, `true` when pressed and `false` when released; for an axis, from -1 to 1. */
   value: boolean | number;
@@ -105,7 +105,8 @@ export interface ActionInputPayload {
  * One action a widget declares in {@link ComponentDefinition.actions}, which
  * an operator can bind to a key, button or axis.
  * Useful for letting the operator drive a widget from a key, a button or an
- * axis. Used by the Inputs tab of a widget's settings.
+ * axis. Used by the Inputs tab of a widget's settings, the page of its settings
+ * dialog where the operator picks which device input drives each action.
  *
  * @category Actions
  * @categoryDescription Actions
@@ -123,8 +124,9 @@ export interface ActionInputPayload {
  * {@link useActionInput}.
  *
  * A binding connects one input of one device to one action of one placed
- * widget. The operator makes it on the widget's Inputs tab, and it is saved
- * with that widget. A device belongs to the screen it is plugged into, and its
+ * widget. The operator makes it on the widget's Inputs tab, the page of the
+ * widget's settings dialog (opened from the tile's gear icon) where each action
+ * is given a device input, and it is saved with that widget. A device belongs to the screen it is plugged into, and its
  * inputs never reach another screen. The keyboard is always present, so any
  * action can be bound to a key.
  *
@@ -401,13 +403,15 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   mobileWidth?: "full" | "half";
   /** On a phone, the widget's height in pixels. Defaults to the height of its `defaultSize`. */
   mobileHeight?: number;
-  /** Flat data keys the widget depends on, one per value, such as `"v.altitude"`. An Uplink widget lists the Topics it reads in `channels` instead. */
+  /** The values the widget depends on, one dotted path per value, such as `"vessel.orbit.sma"`. An Uplink widget lists the Topics it reads in `channels` instead. */
   dataRequirements?: DataRequirement[];
   /**
-   * Topics the widget needs. Listing one does not subscribe to it:
-   * {@link useTelemetry} subscribes whether a Topic is listed or not. When the
-   * Uplink that serves a listed Topic reports itself degraded or unavailable,
-   * the dashboard draws that Uplink's reason in place of the widget.
+   * Topics the widget needs. List every Topic the widget cannot work without: when
+   * the Uplink that serves a listed Topic reports itself degraded or unavailable,
+   * the dashboard draws that Uplink's reason in place of the widget. A Topic left
+   * out is still read, so the widget works, but it keeps drawing through the
+   * Uplink's fault with no notice. Listing one does not subscribe to it:
+   * {@link useTelemetry} subscribes whether a Topic is listed or not.
    */
   channels?: readonly WidgetChannelId[];
   /**
@@ -417,7 +421,7 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
   optionalChannels?: readonly WidgetChannelId[];
   /**
    * Families of Topics the widget needs whose ids are built at runtime, such as
-   * `"fleet.<vessel>.contact"`. They are treated like `channels`: the
+   * `"fleet.<guid>.contact"`. They are treated like `channels`: the
    * dashboard draws the serving Uplink's reason in place of the widget while
    * that Uplink is degraded or unavailable. The Uplink is found by the literal
    * prefix before the first placeholder, so a family that starts with a
@@ -475,8 +479,9 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
    * Which seats the widget may be placed at. Absent, the dashboard works it out
    * from the widget's `channels`: a widget is available everywhere unless it
    * lists a Topic about something on the ground (`spaceCenter.*`, `career.*`,
-   * `recovery.*`, and `commandCentre.*` other than the command centre roster
-   * and separation), which keeps it at the `"mission-control"` seat. A Topic in
+   * `recovery.*`, and `commandCentre.*` other than `commandCentre.roster` and
+   * `commandCentre.separation`, which a crew needs to address the ground), which
+   * keeps it at the `"mission-control"` seat. A Topic in
    * any other Domain, including one an Uplink adds, is available aboard, at the
    * `"pilot"` seat. A Topic's Domain is the first segment of its id (`vessel`
    * in `vessel.orbit`); see [Domain and seat](/reference/concepts/domain-and-seat)
@@ -520,7 +525,7 @@ export interface ThemeDefinition {
   id: string;
   /** The theme's name in the theme picker. */
   name: string;
-  /** The theme's tokens: the colours, type and borders the kit draws with. */
+  /** The theme's tokens: the colours and type the kit draws with. */
   theme: UiKitTheme;
 }
 
@@ -597,9 +602,10 @@ export interface WidgetScopeRegistry {}
 
 /**
  * The scope the widget `Widget` publishes, from {@link WidgetScopeRegistry}.
- * `never` for a widget id that publishes none, and an open record when
- * `Widget` is a plain `string`. Useful for typing what an augment reads from
- * the widget it is drawn in.
+ * `never` for a widget id that publishes none, and an open record
+ * (`Record<string, unknown>`) when `Widget` is a plain `string`, which is what
+ * the signature's `ErasedOrNever` yields for it. Useful for typing what an
+ * augment reads from the widget it is drawn in.
  *
  * @category Registering
  */
@@ -807,7 +813,7 @@ export type ContributionEntry<Slot extends string> =
  * @category Registering
  */
 export interface UplinkClientIdentity {
-  /** The Uplink's id. */
+  /** The Uplink's id, the one its mod declares. */
   id: string;
   /** The Uplink's version. */
   version: string;
@@ -1584,9 +1590,9 @@ export type DataSourceStatus =
  * @category Registering
  */
 export interface DataSourceState {
-  /** The source's id. */
+  /** The `id` the source was registered with. */
   id: string;
-  /** The source's display name. */
+  /** The `name` the source was registered with, as the Data Sources list shows it. */
   name: string;
   /** Its connection state now. */
   status: DataSourceStatus;
@@ -1639,9 +1645,9 @@ export interface DataSource<
   id: string;
   /** The source's name in the Data Sources list. */
   name: string;
-  /** Opens the connection. */
+  /** Opens the connection and resolves once it is open. The app calls it for every registered source when the main screen starts, and again when the operator retries a failed connection. */
   connect(): Promise<void>;
-  /** Closes the connection. */
+  /** Closes the connection. The app calls it for every registered source when the main screen closes. */
   disconnect(): void;
   /** The connection's state now. */
   status: DataSourceStatus;

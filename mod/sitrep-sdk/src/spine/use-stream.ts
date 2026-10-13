@@ -100,8 +100,9 @@ const NO_PROVIDER = topicReading<never>({
  * such as
  * `system.uplink.pending` and `system.uplink.gates`, and for `comms.delay` and
  * `comms.path`. Telemetry from a vessel is read with `useStream`, which shows
- * it at the view time. Used by the signal delay readout and the command stream
- * controls.
+ * it at the view time. Used by the signal delay readout, the chip that shows the
+ * one-way delay between a command centre and a vessel, and by the controls that
+ * send commands.
  *
  * Raw Topics only: a derived channel is never visible here. `undefined` with
  * no `TelemetryProvider` mounted, or before anything has arrived for `topic`.

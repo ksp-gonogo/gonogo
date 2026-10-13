@@ -34,9 +34,9 @@ public enum WarpMode
 /// contract: <c>meta.validAt</c> stamps every sample with the UT it describes,
 /// and a client asks what time it is with the SDK's <c>useViewUt</c>.</para>
 ///
-/// <para>Warp and pause are game-wide state, so <see cref="Meta"/> is
-/// stamped <c>Source = "game"</c>, not <c>"vessel:&lt;guid&gt;"</c>, and the
-/// channel emits at the Space Center and Tracking Station as well as in
+/// <para>Warp and pause are game-wide state, not a craft's: the payload's
+/// <c>meta.source</c> is <c>"game"</c> rather than <c>"vessel:&lt;guid&gt;"</c>,
+/// and the Topic emits at the Space Center and Tracking Station as well as in
 /// flight, with or without an active vessel.</para>
 /// <internal>
 /// <c>Gonogo.KSP.KspHost.BuildTime</c> reads it unconditionally; see
@@ -59,7 +59,8 @@ public class WarpState
 {
     /// <summary>The current time-warp multiplier (KSP's
     /// <c>TimeWarp.CurrentRate</c>): <c>1</c> is real time, <c>1000</c> is
-    /// game time passing a thousand times faster.</summary>
+    /// game time passing a thousand times faster. A pure ratio, so its unit is the
+    /// dimensionless <c>"1"</c>.</summary>
     [SitrepUnit(Units.Dimensionless)]
     public double WarpRate { get; set; }
 

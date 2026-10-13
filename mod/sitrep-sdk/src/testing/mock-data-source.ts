@@ -52,9 +52,13 @@ export interface MockDataSourceOptions {
  * @category Test doubles
  */
 export class MockDataSource implements DataSource {
+  /** The `id` option, or `"mock"`. */
   readonly id: string;
+  /** The `name` option, or `"Mock"`. */
   readonly name: string;
+  /** The `affectedBySignalLoss` option; unset when the option is. */
   affectedBySignalLoss?: boolean;
+  /** `"disconnected"` until `connect()` is called. */
   status: DataSourceStatus = "disconnected";
 
   private readonly subs = new Map<string, Set<(v: unknown) => void>>();
@@ -68,6 +72,7 @@ export class MockDataSource implements DataSource {
     this.affectedBySignalLoss = options.affectedBySignalLoss;
   }
 
+  /** Sets `status` to `"connected"` at once and tells every status subscriber. */
   async connect(): Promise<void> {
     this.status = "connected";
     this.statusSubs.forEach((cb) => {
@@ -75,6 +80,7 @@ export class MockDataSource implements DataSource {
     });
   }
 
+  /** Sets `status` to `"disconnected"` at once and tells every status subscriber. */
   disconnect(): void {
     this.status = "disconnected";
     this.statusSubs.forEach((cb) => {
@@ -109,8 +115,10 @@ export class MockDataSource implements DataSource {
     return [];
   }
 
+  /** Does nothing: the mock has no settings form. */
   configure(_config: Record<string, unknown>): void {}
 
+  /** Always an empty object. */
   getConfig(): Record<string, unknown> {
     return {};
   }

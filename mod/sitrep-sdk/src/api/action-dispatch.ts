@@ -90,8 +90,9 @@ export function unregisterActionHandler(
  * Runs the function set for one action of one placed widget, and returns what
  * it returns, which is sent back to the device that fired the input. Returns
  * `undefined` when none is set. Useful for sending a serial or keyboard input
- * to the widget the operator bound it to. Used by the serial input dispatcher
- * when a bound input fires.
+ * to the widget the operator bound it to. Used by the app's input dispatcher,
+ * which receives each event from a connected device or keyboard and calls this
+ * for the widget its binding names.
  *
  * @category Actions
  */
@@ -107,7 +108,8 @@ export function dispatchAction(
 
 /**
  * Removes every action handler of every placed widget, so a test starts with
- * none bound. Useful between test cases that share an instance id.
+ * none bound. Useful between test cases that share an instance id, the id the
+ * dashboard gave one placed copy of a widget (see {@link registerActionHandler}).
  *
  * @category Actions
  */

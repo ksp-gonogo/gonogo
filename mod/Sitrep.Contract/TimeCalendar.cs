@@ -15,28 +15,33 @@ namespace Sitrep.Contract;
 ///
 /// <para>Three things change them:</para>
 /// <list type="bullet">
-/// <item><description><b>Stock, no mods.</b> <c>GameSettings.KERBIN_TIME</c>
-/// is a setting a player can turn off, and KSP's own UI then reads in 24-hour
-/// days and 365-day years.</description></item>
-/// <item><description><b>A planet pack.</b> RSS and anything else built on
-/// Kopernicus replaces <c>KSPUtil.dateTimeFormatter</c>, so a day becomes
-/// 86,400 s and a year 365 days.</description></item>
-/// <item><description><b>Anything else.</b> The formatter has a public setter,
-/// so a mod can put any calendar behind it.</description></item>
+/// <item><description><b>Stock, no mods.</b> The game's Kerbin time setting is
+/// one a player can turn off, and KSP's own UI then reads in 24-hour days and
+/// 365-day years.</description></item>
+/// <item><description><b>A planet pack.</b> A planet-pack mod
+/// replaces the game's date formatter, the code that prints its clock, so a day
+/// becomes 86,400 s and a year 365 days.</description></item>
+/// <item><description><b>Anything else.</b> Any mod can put its own calendar
+/// behind the game's date formatter.</description></item>
 /// </list>
 ///
-/// <para>The values are read straight off <c>KSPUtil.dateTimeFormatter</c>,
-/// whose <c>Minute</c>, <c>Hour</c>, <c>Day</c> and <c>Year</c> are each a count
-/// of seconds: whatever the game uses to print its own clock is what this
-/// channel carries.</para>
+/// <para>Whatever the game uses to print its own clock is what this channel
+/// carries: each duration is the count of seconds the date formatter gives for a
+/// minute, hour, day and year.</para>
 ///
-/// <para>It can change mid-session: the KERBIN_TIME setting is reachable from
+/// <para>It can change mid-session: the Kerbin time setting is reachable from
 /// the in-game settings menu at any time.</para>
 ///
 /// <para>The whole payload is <c>null</c> when the calendar cannot be read or
 /// any of the four durations is missing or not positive, so a consumer never
 /// divides by zero. There is no days-per-year field: divide
 /// <see cref="YearSeconds"/> by <see cref="DaySeconds"/>, which is exact.</para>
+/// <internal>
+/// The values are read off <c>KSPUtil.dateTimeFormatter</c> (its <c>Minute</c>,
+/// <c>Hour</c>, <c>Day</c> and <c>Year</c>); the Kerbin time setting is
+/// <c>GameSettings.KERBIN_TIME</c>. A planet-pack mod, such as one built on Kopernicus,
+/// replaces the formatter, and the formatter has a public setter so any mod can.
+/// </internal>
 /// </summary>
 /// <category>Game</category>
 [SitrepContract]
@@ -79,9 +84,9 @@ public class TimeCalendar
     /// epoch a deadline can be shown as <c>14 Mar 1957</c> rather than
     /// <c>Y3 D122</c>.</para>
     ///
-    /// <para>It is read from the date formatter itself. Formatters that model a
-    /// real calendar hold an anchor date: RSS installs RSSTimeFormatter, which
-    /// does, and Kronometer can. The stock formatter holds none.</para>
+    /// <para>It is read from the date formatter itself. A formatter that models a
+    /// real calendar holds an anchor date, as a planet-pack mod's does
+    /// does; the stock formatter holds none.</para>
     ///
     /// <para><c>null</c> is the normal value, and it is not zero. Stock KSP has
     /// no real calendar: its own UI prints Year 1, Day 1, and so should every
@@ -98,7 +103,7 @@ public class TimeCalendar
     public string? Epoch { get; set; }
 
     /// <summary>
-    /// The stock <c>GameSettings.KERBIN_TIME</c> flag, for a consumer that
+    /// The game's Kerbin time setting, for a consumer that
     /// wants to label the calendar ("Kerbin time" against "Earth time"). Do
     /// not do arithmetic with it: the seconds fields above already account for
     /// this flag and for anything a planet pack did on top of it.

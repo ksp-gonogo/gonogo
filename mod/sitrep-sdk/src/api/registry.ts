@@ -225,7 +225,8 @@ export function getComponents(): AnyDef[] {
 
 /**
  * The widget registered under `id`, or `undefined`. Useful for drawing a widget
- * from the id saved in a screen's layout. Used by the widget renderer.
+ * from the id saved in a screen's layout. Used by the dashboard when it draws
+ * the widgets a screen's layout names.
  *
  * @category Registering
  */
@@ -309,8 +310,8 @@ export function getResolvedComponents(): AnyDef[] {
 
 /**
  * Every registered data source. Useful for listing the connections the operator
- * can configure. Used by the service that shares the data sources with
- * connected stations.
+ * can configure. Used by the main screen when it shares its data sources with
+ * the station screens connected to it.
  *
  * @category Registering
  */
@@ -320,8 +321,8 @@ export function getDataSources(): AnySource[] {
 
 /**
  * The data source registered under `id`, or `undefined`. Useful for reading a
- * connection's configuration or status. Used by the Sitrep connection page in
- * Settings.
+ * connection's configuration or status. Used by the page in Settings that
+ * configures the connection to the mod.
  *
  * @category Registering
  */

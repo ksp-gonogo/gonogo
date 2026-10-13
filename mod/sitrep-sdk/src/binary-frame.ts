@@ -33,8 +33,8 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
 export const BINARY_LANE_MAGIC = 0x9e;
 
 /**
- * The lane byte of a `stream-binary` frame, the only lane in use. The other
- * values of that byte are left free for lanes to come. Used by
+ * The lane byte of a `stream-binary` frame, the only lane byte a frame can carry.
+ * Any other value is refused as an unknown lane. Used by
  * {@link decodeBinaryFrame} to refuse a frame whose lane this build does not
  * know.
  *
@@ -55,8 +55,10 @@ export const BINARY_LANE_PREFIX_BYTES = 4;
 
 /**
  * One binary frame, decoded: the fields of its {@link StreamBinary} header,
- * with `segments` holding the segments' bytes in place of their lengths. Each
- * segment is a `Uint8Array`. Useful for handing a received binary payload, such
+ * with `segments` holding the segments' bytes in place of their lengths. That
+ * is `type` (always `"stream-binary"`), `topic` (the Topic id the delivery
+ * belongs to) and `meta` (when the payload was true, when it arrived and where
+ * it was observed from), plus `segments`. Each segment is a `Uint8Array`. Useful for handing a received binary payload, such
  * as radio audio, to the code that plays or stores it. Returned by
  * {@link decodeBinaryFrame}.
  *
@@ -125,7 +127,8 @@ export type BinaryFrameResult =
  * Whether `bytes` start with the binary frame's magic byte. A text frame never
  * does, since it starts with `{`. Useful for choosing, per received frame,
  * between reading it as JSON text and calling {@link decodeBinaryFrame}. Used
- * by the stream's WebSocket transport.
+ * by the app's connection to the mod, which receives every frame the socket
+ * delivers.
  *
  * @category Binary lane
  */
@@ -138,7 +141,8 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
 /**
  * Decodes one binary frame into a {@link StreamBinaryMessage}, or says why it
  * could not. Useful for code that reads the socket itself and receives opaque
- * payloads such as radio audio. Used by the stream's WebSocket transport.
+ * payloads such as radio audio. Used by the app's connection to the mod, which
+ * receives every frame the socket delivers.
  *
  * Each segment is a view onto `bytes`, not a copy, so decoding is cheap. Copy a
  * segment you keep after `bytes` may be reused.
@@ -146,9 +150,10 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
  * @category Binary lane
  * @categoryDescription Binary lane
  * The stream's binary frames, which carry bulk payloads as raw bytes beside
- * the JSON text frames everything else arrives in: how to tell a binary frame from a text one and read its header and
- * body. Only code that reads the socket itself meets these: a widget that
- * reads Topics with `useTelemetry` or `useStream` can skip this page.
+ * the JSON text frames everything else arrives in: how to tell a binary frame
+ * from a text one and read its header and body. Only code that reads the socket
+ * itself meets these: a widget that reads Topics with {@link useTelemetry} or
+ * {@link useStream} can skip this page.
  *
  * @concept Binary lane
  * The binary lane is how the stream carries a payload that is opaque bytes,
@@ -311,7 +316,8 @@ export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {
  * `binaryType = "arraybuffer"`) or a view. A `Blob` is not accepted: reading
  * one is asynchronous, which would put frames out of order. Useful for turning
  * what the socket delivered into the input {@link isBinaryFrame} and
- * {@link decodeBinaryFrame} take. Used by the stream's WebSocket transport.
+ * {@link decodeBinaryFrame} take. Used by the app's connection to the mod, which
+ * receives every frame the socket delivers.
  *
  * @category Binary lane
  */

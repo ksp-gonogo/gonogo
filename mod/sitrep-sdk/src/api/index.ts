@@ -541,11 +541,12 @@ export { isReadOnlySetting, settingKindOf } from "../spine/settings-registry";
  * Subscribes to a Topic and returns its latest {@link TopicReading}: the
  * payload together with how current it is. Useful for showing the operator
  * what a vessel or the game is doing and whether that is current. Used by the
- * space centre status widget.
+ * space centre status widget, which shows the state of the space centre's
+ * buildings.
  *
- * The payload as a whole, `reading.value`, is only there when `state` is
- * `"observed"`, or `"held"` for a held value, so check `state` before reading
- * it. Every payload field is also on the reading itself as a {@link Reading}
+ * The payload as a whole, `reading.value`, exists only when `state` is
+ * `"observed"` or `"held"` (a held value is the last one received), so check
+ * `state` before reading it. Every payload field is also on the reading itself as a {@link Reading}
  * of its own, `flight.altitudeAsl` beside `flight.value.altitudeAsl`. That one
  * can be passed to a kit component such as `Unit` without a check: it carries
  * its own state, and the component shows how current it is.
@@ -905,7 +906,8 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
  * same states as {@link useTelemetry}. Useful for showing the operator a Topic
  * that has no {@link TopicId}: a derived channel such as `"system.state"`, an
  * Uplink's own Topic, or a Topic whose id is built at runtime such as
- * `vessel.partActions.<flightId>`. Used by the space centre status widget.
+ * `vessel.partActions.<flightId>`. Used by the space centre status widget, which
+ * shows the state of the space centre's buildings.
  *
  * `Payload` is whatever you pass and nothing checks it, so prefer
  * {@link useTelemetry} wherever the Topic has a `TopicId`.
@@ -967,8 +969,9 @@ export function modSettingDep<
 /**
  * Returns a processor's value for the current frame, and re-renders when it
  * changes. Useful for showing the operator a figure derived from several
- * Topics, such as a vessel's delta-v budget. Used by the maneuver planner. Pass the handle that {@link UplinkClientHandle.registerProcessor}
- * returned, or a handle the SDK publishes such as {@link CELESTIAL_FACTS}; the
+ * Topics, such as a vessel's delta-v budget. Used by the maneuver planner, which
+ * plans burns against the vessel's delta-v budget. Pass the handle that
+ * {@link UplinkClientHandle.registerProcessor} returned, or a handle the SDK publishes such as {@link CELESTIAL_FACTS}; the
  * result is typed from the handle. A frame is one batch of new samples
  * published by the app's telemetry store; the processor runs once per frame
  * however many widgets read it. Returns `undefined` with no telemetry stream
@@ -1021,14 +1024,15 @@ export function useViewClock(): ViewClockLike {
  * Connects a widget's declared actions to handlers, so an input the operator
  * has bound, such as a key or a joystick button, fires them. Useful for
  * letting the operator drive a widget without the mouse. Used by the target
- * picker. Keys are the
+ * picker widget, so the operator can clear the target from a key. Keys are the
  * action ids from {@link ComponentDefinition.actions}, which the widget must
  * declare when it registers, or no operator can bind them. An operator binds
- * an input to an action on the widget's Inputs tab, in its settings. What a
- * handler returns is sent back to the device that fired it, a serial control
- * panel with a screen for instance, so the screen can follow the widget. The
- * built-in text display, 21 characters by 8 lines, takes a flat object of keys to
- * values, such as `{ ALT: "12.4 km", THR: "80%" }`, and prints one `KEY VALUE`
+ * an input to an action on the widget's Inputs tab, the page of the widget's
+ * settings dialog (opened from the tile's gear icon) that lists its actions.
+ * What a handler returns is sent back to the device that fired it, a serial
+ * control panel with a screen for instance, so the screen can follow the
+ * widget. The text display the app's serial devices can draw on, 21 characters
+ * by 8 lines, takes a flat object of keys to values, such as `{ ALT: "12.4 km", THR: "80%" }`, and prints one `KEY VALUE`
  * line per entry, sorted by key. Return nothing when the device has no display.
  *
  * Pass a new handler object on every render if you like: the latest handlers
@@ -1094,7 +1098,8 @@ export function useActionInput<Actions extends readonly ActionDefinition[]>(
  * Every registered data source with its connection status, re-rendering when
  * a status changes. Each element is `{ id, name, status }`, with `status` a
  * {@link DataSourceStatus}. Useful for showing the operator a connection banner
- * or a diagnostics panel. Used by the Settings connection rows.
+ * or a diagnostics panel. Used by the rows of the Settings page that lists the
+ * operator's connections.
  *
  * It says nothing about the
  * game's telemetry stream, which is not a registered source: a widget reads
@@ -1111,7 +1116,8 @@ export function useDataSources(): DataSourceState[] {
  * Returns the latest value received on `topic`, without the signal delay and
  * without a state: `undefined` until something arrives. Useful for showing the
  * operator a value about the command centre itself, such as the one-way delay
- * to a vessel. Used by the signal delay readout.
+ * to a vessel. Used by the signal delay readout, the chip that shows the
+ * one-way delay between a command centre and a vessel.
  *
  * Only for values about the command centre itself, such as when a command was
  * sent or the state of the connection to a vessel. A value about a craft must be read with
@@ -1130,7 +1136,8 @@ export function useLatestValue<Payload = unknown>(
  * Calls `handler` once for each event delivered on `topic`, such as a crash.
  * Useful for telling the operator when something happens, on a Topic that
  * carries events rather than a value that changes. Used by the radio
- * transmission detector. A value is read with {@link useStream}.
+ * transmission detector, which notices when another command centre starts
+ * speaking. A value is read with {@link useStream}.
  *
  * @category Reading telemetry
  */
@@ -1156,7 +1163,8 @@ export function useLateTelemetrySubscribe(): LateTelemetrySubscribe {
 /**
  * Returns the instant the screen is showing, in UT seconds as a plain number,
  * and re-renders on each frame. Useful for stamping or ageing events on the
- * view time. Used by the radio transmission detector. `undefined` when no
+ * view time. Used by the radio transmission detector, which notices when another
+ * command centre starts speaking. `undefined` when no
  * telemetry stream is mounted. {@link useViewUt} returns the same instant as a
  * `Value<"ut">`.
  *
@@ -1167,12 +1175,12 @@ export function useUtNow(): number | undefined {
 }
 
 /**
- * Returns the store that holds the received history of every Topic, or
- * `undefined` when no telemetry stream is mounted. Useful for deciding whether
- * to show the operator telemetry at all: an Uplink's one use is to test
- * whether a stream is mounted, which is whether this is `undefined`. The
- * store's type is not published, so the return is `unknown`.
- * Read a Topic with {@link useTelemetry} or {@link useStream}.
+ * Returns `undefined` when no telemetry stream is mounted, and otherwise the
+ * store that holds the received history of every Topic. Useful for deciding
+ * whether to show the operator telemetry at all. The store's type is not
+ * published, so the return is `unknown` and the only thing to do with it is to
+ * test whether it is `undefined`. Read a Topic with {@link useTelemetry} or
+ * {@link useStream}.
  *
  * @category Reading telemetry
  */

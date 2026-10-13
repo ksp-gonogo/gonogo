@@ -6,13 +6,13 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// The <c>vessel.landing</c> Topic payload: landing data for the active
-/// vessel that needs KSP's PQS terrain heightmap (slope, roughness and
+/// vessel that needs the terrain map of the body below (slope, roughness and
 /// elevation at the touchdown site), plus an atmosphere-aware descent estimate
 /// built from the vessel's measured drag. The vacuum ballistic figures (which
 /// need no terrain) are not here; a client solves those itself.
 ///
 /// <para>The whole payload is absent unless the vessel is descending toward a
-/// solid surface: the body must have a solid surface and PQS terrain, and the
+/// solid surface: the body must have a solid surface and terrain, and the
 /// vessel must be descending towards it within the prediction horizon. So it
 /// never carries a leftover reading from orbit, or a 0 from a body with no
 /// terrain.</para>
@@ -20,6 +20,10 @@ namespace Sitrep.Contract;
 /// <para>Every field is nullable, and null means that input is unavailable
 /// this tick (no terrain fit, not in an atmosphere, and so on), never an
 /// unverified 0.</para>
+/// <internal>
+/// The terrain map is KSP's PQS heightmap; a body with PQS terrain is one that
+/// has a map to fit.
+/// </internal>
 /// </summary>
 /// <category>Vessel</category>
 [SitrepContract]

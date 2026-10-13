@@ -36,10 +36,18 @@ import { registerReckoner } from "./reckoners";
  * one per client, in one module, and import it wherever the client registers
  * something.
  *
- * Every `register...` method on the handle prefixes the id it is given with
- * the Uplink's own, `my-uplink:<id>`, so two Uplinks can use the same local ids
- * without colliding. `registerComponent` and `registerAugment` are not methods
- * of the handle: they take the handle as `owner` and use the id as written.
+ * There are two ways to register, and each piece uses one of them:
+ *
+ * - the methods of this handle (`registerRootProvider`,
+ *   `registerRevealedEventSource`, `registerContribution`, `registerProcessor`)
+ *   prefix the id they are given with the Uplink's own, `my-uplink:<id>`, so two
+ *   Uplinks can use the same local ids without colliding; `registerReckoner` and
+ *   `registerDerivedChannel` take a Topic rather than an id of their own, and
+ *   record this Uplink as its owner
+ * - the free functions `registerComponent` and `registerAugment` are not methods
+ *   of the handle: they take the handle as `owner` and use the id as written
+ * - `registerDataSource` and `registerTheme` take no owner and use the id as
+ *   written, so prefix those ids yourself
  *
  * @example
  * ```tsx
@@ -56,6 +64,13 @@ import { registerReckoner } from "./reckoners";
  *   return <p>All experiments nominal</p>;
  * }
  *
+ * // A method of the handle: the id is registered as "my-uplink:status".
+ * MY_UPLINK.registerRootProvider({
+ *   id: "status",
+ *   Provider: ({ children }) => <>{children}</>,
+ * });
+ *
+ * // A free function: the handle goes in as owner and the id is used as written.
  * registerComponent({
  *   id: "my-uplink-status",
  *   name: "My Status",

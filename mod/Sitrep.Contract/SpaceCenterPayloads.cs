@@ -8,8 +8,7 @@ namespace Sitrep.Contract;
 /// <summary>
 /// One launch site in the <c>spaceCenter.launchSites</c> channel: the stock
 /// KSC pad and runway, any Making History sites, and any Kerbal Konstructs
-/// sites, which is everything registered in KSP's
-/// <c>PSystemSetup.Instance.LaunchSites</c>.
+/// sites, which is every launch site the game has registered.
 ///
 /// <para>The channel is a bare array of these entries, not a wrapper object
 /// and not a single KSC record: KSP has many launch sites, keyed by
@@ -23,6 +22,7 @@ namespace Sitrep.Contract;
 /// from home to that centre, and at once when both are on the ground
 /// network.</para>
 /// <internal>
+/// The registered sites are KSP's <c>PSystemSetup.Instance.LaunchSites</c>.
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildLaunchSites</c>.
 /// Typing-only mirror of the per-site dict the provider emits;
 /// <c>JsonWriter</c> walks that live tree. Kerbal Konstructs registers its

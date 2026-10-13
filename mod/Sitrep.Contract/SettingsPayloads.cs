@@ -20,18 +20,20 @@ namespace Sitrep.Contract;
 /// at, not a craft.</para>
 ///
 /// <para>This is where a client learns whether a save landed. The
-/// <c>settings.save</c> command can time out and still land, so read the
-/// outcome here, never from the command's reply.</para>
+/// <c>settings.save</c> command (<see cref="SaveSettingsArgs"/>) can time out
+/// and still land, so read the outcome here, never from the command's
+/// reply.</para>
 /// </summary>
 /// <category>Mod settings</category>
 /// <categoryDescription>
-/// Settings as the stream carries them: Gonogo's own, its Uplinks', and a host
-/// mod's own settings read through its Uplink. Each row says what it may hold, what
-/// it holds now and whether it can be written, and the model says whether the
-/// settings file on the KSP machine agrees. A client reads Gonogo's with
-/// <c>useTelemetry("settings.gonogo")</c> and a host mod's with
-/// <c>useModSettings(uplinkId)</c>; a setting that lives only in the browser
-/// is declared with <c>registerSetting</c> instead.
+/// Settings as the stream carries them, of three kinds that a client reads
+/// differently. Gonogo's own settings and its Uplinks' are one Topic, read with
+/// <c>useTelemetry("settings.gonogo")</c>. A host mod's own settings, those of
+/// the KSP mod an Uplink wraps, are read through that Uplink with
+/// <c>useModSettings(uplinkId)</c>. A setting that lives only in the browser has
+/// no Topic and is declared with <c>registerSetting</c> instead. Each row says
+/// what it may hold, what it holds now and whether it can be written, and the
+/// model says whether the settings file on the KSP machine agrees.
 /// </categoryDescription>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -169,11 +171,11 @@ public class SettingsPersistence
 #endif
 public class SettingsDeclarationFailure
 {
-    /// <summary>The id of the Uplink whose settings could not be declared.</summary>
+    /// <summary>The id of the Uplink, as its <c>system.uplinks</c> entry names it, whose settings could not be declared.</summary>
     [SitrepUnit(Units.Id)]
     public string UplinkId { get; set; } = "";
 
-    /// <summary>The reason, as a sentence written for the operator.</summary>
+    /// <summary>Why the declaration failed, as a sentence to show the operator as it is.</summary>
     [SitrepUnit(Units.Text)]
     public string Reason { get; set; } = "";
 }

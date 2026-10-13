@@ -1,7 +1,7 @@
 /**
  * The state a badge, meter, figure, plot layer or button shows: a contribution
- * names a tone, never a colour, and ui-kit chooses the colour for where it is
- * drawn.
+ * names a tone, never a colour, and the design-system package `@ksp-gonogo/ui-kit`
+ * (`npm install @ksp-gonogo/ui-kit`) chooses the colour for where it is drawn.
  *
  * `neutral` carries no state. `info` is something worth noticing that is
  * neither good nor bad. `go` is all well. `caution` is a milder `warn`, and
@@ -18,8 +18,8 @@
  * @categoryDescription Tone
  * The words a widget uses for state (`neutral`, `info`, `go`, `caution`,
  * `warn`, `nogo`, `offline`) in place of colours, so every widget and
- * contribution says the same thing the same way and ui-kit picks the colour for
- * where it is drawn.
+ * contribution says the same thing the same way and `@ksp-gonogo/ui-kit` picks
+ * the colour for where it is drawn.
  */
 export type Tone =
   | "neutral"

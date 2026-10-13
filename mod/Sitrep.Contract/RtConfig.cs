@@ -665,22 +665,24 @@ public static class RtConfig
         {
             sb.Append("/**\n * One declared error code, as a client reads it.\n *\n * @category Error codes\n */\n");
             sb.Append("export interface ErrorCodeDeclaration {\n");
-            sb.Append("  /** The camelCase id: one segment for a root or a fault, `owner.name` for a refinement. */\n");
+            sb.Append("  /** The camelCase id. `owner.name` for a refinement, where `owner` is the declaring Uplink or core domain, which is what every code an Uplink declares is; one segment for a core root or a fault. */\n");
             sb.Append("  readonly id: string;\n");
             sb.Append("  /** `refusal`: the game ran the command and said no. `fault`: nothing was decided, the request could not be carried. */\n");
             sb.Append("  readonly kind: \"refusal\" | \"fault\";\n");
-            sb.Append("  /** The root a refinement refines; `null` on a root and on every fault. */\n");
+            sb.Append("  /** The root a refinement refines. Always set on a code an Uplink declares; `null` on a core root and on every fault. */\n");
             sb.Append("  readonly refines: string | null;\n");
             sb.Append("  /** Where a fault is minted; `null` on a refusal. */\n");
             sb.Append("  readonly origin: \"mod\" | \"client\" | null;\n");
             sb.Append("  /** What an operator reads after \"refused:\" or \"failed:\", lower case and without a full stop. */\n");
             sb.Append("  readonly sentence: string;\n");
-            sb.Append("  /** What the code means, from its declaration's doc comment. Empty when that is not to hand. */\n");
+            sb.Append("  /** A longer explanation of what the code means, written for a developer rather than the operator. Empty for a code learnt from the running mod, which carries only its sentence. */\n");
             sb.Append("  readonly meaning: string;\n");
             sb.Append("}\n\n");
             sb.Append("/**\n * One error code an Uplink declares: always a refusal, since an Uplink's codes refine a root and faults are declared by Gonogo.\n *\n * @category Error codes\n */\n");
             sb.Append("export interface UplinkErrorCodeDeclaration extends ErrorCodeDeclaration {\n");
+            sb.Append("  /** Always `\"refusal\"`: an Uplink declares refusals and never faults. */\n");
             sb.Append("  readonly kind: \"refusal\";\n");
+            sb.Append("  /** Always `null`: only a fault has an origin. */\n");
             sb.Append("  readonly origin: null;\n");
             sb.Append("}\n\n");
         }

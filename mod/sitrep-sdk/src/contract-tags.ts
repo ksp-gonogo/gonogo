@@ -41,7 +41,7 @@ export type SampleKind = "continuous" | "discrete" | "event";
  * the channel's own for the value and everything beneath it; `event` is never
  * one, since whether a sample is an occurrence is a fact about the whole sample.
  * Useful for telling readers of the stream how one value inside a payload
- * behaves in time. Returned by the value-tags reader.
+ * behaves in time. Held in a {@link ContractTagTable}.
  *
  * @category Registering
  */
@@ -72,9 +72,11 @@ export interface ContractReckonableRow {
 }
 
 /**
- * The table a contract's codegen writes into its generated units file: value
- * tags by Topic then path, and the values its models carry forward. Useful for
- * an Uplink that registers its own tags. Taken by the contract-tag registration.
+ * The table `uplink-tools codegen` writes into an Uplink's generated units file
+ * (`client/src/__generated__/units.ts`, as `GENERATED_CONTRACT_TAGS`): value tags
+ * by Topic then path, and the values the Uplink's models carry forward. Useful
+ * for an Uplink that declares tags for its own Topics. Taken by the `tags` of
+ * {@link UplinkClientConfig}.
  *
  * @category Registering
  */

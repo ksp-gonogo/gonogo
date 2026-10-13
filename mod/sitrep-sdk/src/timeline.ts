@@ -44,8 +44,8 @@ export interface TimelinePoint<Payload = unknown> {
  * `get(topic)` returns that Topic's sample at the view time `derive` was called
  * for, including its `meta`, so a derived figure is built from inputs of one
  * instant. Useful for combining several Topics into a figure shown to the
- * operator. Used by the first-party derived channels, such as the one that
- * computes stage delta-v.
+ * operator. Used by the app's own derived channels, such as the one that
+ * computes the delta-v of each stage.
  *
  * `Payload` is the input Topic's payload type, which the caller names:
  * `get<VesselOrbit>("vessel.orbit")`. A time other than the view time cannot be
@@ -62,8 +62,12 @@ export type DerivedGet = <Payload = unknown>(
  * {@link UplinkClientHandle.registerDerivedChannel}. Useful for showing the
  * operator a figure that needs more than one Topic, such as a state worked out
  * from several readings. It joins the timeline store, the app's record of every
- * Topic's samples over game time, so a widget reads it like any other Topic.
- * The provider registers the first-party channels from a list of these.
+ * Topic's samples over game time. A widget reads it by its id with
+ * {@link useStream}, which takes any string. {@link useTelemetry} and a widget's
+ * `channels` accept only a {@link TopicId} or one of the {@link
+ * DERIVED_CHANNEL_IDS}, which is the app's own list, so an Uplink's channel is
+ * not listed in `channels` and is read with `useStream`. The app registers its
+ * own derived channels from a list of these.
  *
  * @example A channel that says whether the vessel is descending
  * ```ts
