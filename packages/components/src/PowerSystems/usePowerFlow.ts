@@ -1,5 +1,7 @@
+import { useActionInput } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
 import { useEffect, useMemo, useState } from "react";
+import type { PowerSystemsActions } from "./config";
 import { type Contribution, countUnratedProcesses } from "./flow";
 
 /** The vessel's topology, each part's live slice, and the resources any part reports a flow for. */
@@ -148,4 +150,22 @@ export function useResourceBreakdown(
     unratedCount,
     storage,
   };
+}
+
+/** Binds the next-resource action: it steps the pick through the resources that have flow, whichever size the widget is drawn at. */
+export function useCycleResourceAction(
+  resourcesWithFlow: readonly string[],
+  resource: string,
+  pick: (name: string) => void,
+) {
+  useActionInput<PowerSystemsActions>({
+    "cycle-resource": (payload) => {
+      if (payload.kind === "button" && payload.value !== true) return undefined;
+      if (resourcesWithFlow.length === 0) return undefined;
+      const idx = resourcesWithFlow.indexOf(resource);
+      const next = resourcesWithFlow[(idx + 1) % resourcesWithFlow.length];
+      pick(next);
+      return { resource: next };
+    },
+  });
 }

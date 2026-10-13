@@ -1,5 +1,5 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { useActionInput, useTelemetry } from "@ksp-gonogo/core";
+import { useTelemetry } from "@ksp-gonogo/core";
 import { useDataSeries } from "@ksp-gonogo/data";
 import { readingOf } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
@@ -18,7 +18,7 @@ import { useMemo } from "react";
 import { heldGrade } from "../shared/heldGrade";
 import { magnitudeOf } from "../shared/magnitude";
 import { ContributionSection } from "./ContributionSection";
-import type { PowerSystemsActions, PowerSystemsConfig } from "./config";
+import type { PowerSystemsConfig } from "./config";
 import { type NetTone, netToneWithUnrated, splitCamel } from "./flow";
 import { PowerTotals } from "./PowerTotals";
 import { ResourceTrend } from "./ResourceTrend";
@@ -34,6 +34,7 @@ import {
   SectionsScroll,
 } from "./styles";
 import {
+  useCycleResourceAction,
   useLiveParts,
   useResourceBreakdown,
   useResourcePick,
@@ -82,16 +83,7 @@ export function PowerSystemsComponent({
     resourcesWithFlow,
   );
 
-  useActionInput<PowerSystemsActions>({
-    "cycle-resource": (payload) => {
-      if (payload.kind === "button" && payload.value !== true) return undefined;
-      if (resourcesWithFlow.length === 0) return undefined;
-      const idx = resourcesWithFlow.indexOf(resource);
-      const next = resourcesWithFlow[(idx + 1) % resourcesWithFlow.length];
-      pick(next);
-      return { resource: next };
-    },
-  });
+  useCycleResourceAction(resourcesWithFlow, resource, pick);
 
   const scope = useMemo<PowerSystemsScope>(() => ({ resource }), [resource]);
 

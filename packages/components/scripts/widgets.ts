@@ -1034,7 +1034,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "PowerSystems/__fixtures__",
     outPath: "renders/power-systems-widget",
     modes: [
-      // Compact path: cols<6 || rows<8: shows resource name + net rate only.
+      // The tiny size: the net rate of the picked resource, no title.
       { name: "tiny-3x3", w: 3, h: 3 },
       // Compact with header visible (rows>=4 → showHeader=true, still !showFullList).
       { name: "compact-4x5", w: 4, h: 5 },
@@ -2013,7 +2013,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "TargetPicker/__fixtures__",
     outPath: "renders/target-picker-widget",
     modes: [
-      // Below the picker threshold (rows<6 || cols<4): compact current-target readout (name + distance) or "No target set".
+      // The tiny size: the current target's name over its range, no title.
+      { name: "tiny-3x3", w: 3, h: 3 },
+      // Below the picker threshold (rows<6 || cols<4): the same tiny form on a tile one row taller.
       { name: "compact-3x4", w: 3, h: 4 },
       // defaultSize 6×11: the full sectioned picker (Suggested + Bodies + Vessels + Parts + Other) with the current-target summary when set.
       { name: "default-6x11", w: 6, h: 11 },

@@ -1,5 +1,4 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
-import { useActionInput } from "@ksp-gonogo/core";
 import { useCommand, withoutReckoning } from "@ksp-gonogo/sitrep-client";
 import { stillTrue, type TargetListEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -23,7 +22,7 @@ import { OrbitalEventChips } from "../shared/OrbitalEventChips";
 import { rosterDistance } from "../shared/rosterDistance";
 import { CategorySection } from "./CategorySection";
 import { CurrentTargetSummary } from "./CurrentTargetSummary";
-import type { TargetPickerActions, TargetPickerConfig } from "./config";
+import type { TargetPickerConfig } from "./config";
 import { entryId, targetArgsFor } from "./entries";
 import {
   CompactCurrent,
@@ -38,6 +37,7 @@ import {
 } from "./styles";
 import { TargetRow } from "./TargetRow";
 import { targetPickerTopics } from "./topics";
+import { useClearTarget } from "./useClearTarget";
 import { useRosterCategories } from "./useRosterCategories";
 
 /** What a confirmed-no-targets tombstone means: a roster, and it is empty. */
@@ -79,7 +79,7 @@ export function TargetPickerComponent({
   );
   /** Setting or clearing the target is subject to signal delay; every kind sets through `vessel.target.set`, keyed by `entry.kind`. */
   const setTargetCmd = useCommand("vessel.target.set");
-  const clearTargetCmd = useCommand("vessel.target.clear");
+  const clearTargetCmd = useClearTarget();
 
   const [filter, setFilter] = useState("");
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
@@ -87,13 +87,6 @@ export function TargetPickerComponent({
   const [vesselsExpanded, setVesselsExpanded] = useState(true);
   const [partsExpanded, setPartsExpanded] = useState(true);
   const [otherExpanded, setOtherExpanded] = useState(true);
-
-  useActionInput<TargetPickerActions>({
-    "clear-target": (payload) => {
-      if (payload.kind !== "button" || payload.value !== true) return;
-      void clearTargetCmd.send(undefined, { label: "Clear target" });
-    },
-  });
 
   // The row awaiting the `vessel.target` readback, spinning until it confirms or a 5 s safety net clears it; a Suggested row and its category twin light up together.
   const [pendingTarget, setPendingTarget] = useState<{

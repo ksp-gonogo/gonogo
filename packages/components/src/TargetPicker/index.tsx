@@ -5,6 +5,7 @@ import { TargetPickerConfigForm } from "./TargetPickerConfigForm";
 import { TargetPickerComponent } from "./TargetPickerView";
 import read from "./target-picker.declarations.g";
 import { targetPickerTopics } from "./topics";
+import { useTargetPickerEssentials } from "./useTargetPickerEssentials";
 
 export { SPACE_OBJECT_VESSEL_TYPE } from "./entries";
 
@@ -15,8 +16,14 @@ registerComponent<TargetPickerConfig>({
     "Pick a target from a suggested list or browse bodies, vessels and parts, or see your current target's type, distance and closing speed and clear it.",
   tags: ["telemetry", "navigation"],
   defaultSize: { w: 6, h: 11 },
-  minSize: { w: 3, h: 3 },
+  // Below four columns the target's name and range are the tiny form's, with the title behind a hover.
+  minSize: { w: 4, h: 3 },
   component: TargetPickerComponent,
+  tiny: {
+    title: "TARGET",
+    bindsActions: true,
+    useEssentials: useTargetPickerEssentials,
+  },
   configComponent: TargetPickerConfigForm,
   augmentSlots: ["target-picker.sections"],
   channels: targetPickerTopics.channels,
