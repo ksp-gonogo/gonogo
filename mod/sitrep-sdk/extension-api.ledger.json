@@ -10187,6 +10187,10 @@
         "note": "renamed to pressed, matching Button and IconButton"
       },
       {
+        "key": "ui-kit . TrajectoryWithheldNote",
+        "note": "Removed. A component per reason-set is not a kit primitive: a widget draws the heading with EmptyState and Tooltip"
+      },
+      {
         "key": "ui-kit . UI_KIT_VERSION",
         "note": "Removed. It was a hand-typed copy of the package version that the app refused clients against, and a release never moved it, so every client built against a published kit was refused. The kit's surface is covered by EXTENSION_API_VERSION"
       },
@@ -10207,6 +10211,10 @@
         "note": "The union widens with \"lost\", a craft nothing vouches for any more. Callers that pass a state are unaffected; one that switches exhaustively over the union needs a case for it"
       },
       {
+        "key": "ui-kit . WithheldTrajectory",
+        "note": "Moved to the sdk frames entry, beside OrbitTrajectory"
+      },
+      {
         "key": "ui-kit . bandClaim",
         "note": "removed: an identity function over an unused kind"
       },
@@ -10225,6 +10233,10 @@
       {
         "key": "ui-kit . smallestBodyTile",
         "note": "Removed with bodyMinSize: a tiny widget's body tile is its registered minSize; only the minsize probe used it"
+      },
+      {
+        "key": "ui-kit . trajectoryWithheldCopy",
+        "note": "Moved to the sdk frames entry, beside useOrbitTrajectory, since the wording is a function of its published result"
       },
       {
         "key": "ui-kit . widgetDeclaredTopics",
@@ -11521,6 +11533,10 @@
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
+        "key": "sitrep-sdk ./frames WithheldTrajectory",
+        "note": "The withheld arm of OrbitTrajectory, as the type the wording function takes"
+      },
+      {
         "key": "sitrep-sdk ./frames arcInOrbitPlane",
         "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
       },
@@ -11547,6 +11563,10 @@
       {
         "key": "sitrep-sdk ./frames rotatePerifocalToInertial",
         "note": "Published on /frames beside the frame arithmetic: it turns a point in an orbit's plane into the parent body's inertial frame"
+      },
+      {
+        "key": "sitrep-sdk ./frames trajectoryWithheldCopy",
+        "note": "The heading and sentence for each reason a path is withheld, so every widget words it alike"
       },
       {
         "key": "sitrep-sdk ./frames trueAnomalyFromEccentric",
@@ -13205,6 +13225,10 @@
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
+        "key": "sitrep-sdk ./spine WithheldTrajectory",
+        "note": "Same type, as the spine entry also exports it"
+      },
+      {
         "key": "sitrep-sdk ./spine arcInOrbitPlane",
         "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
       },
@@ -13295,6 +13319,10 @@
       {
         "key": "sitrep-sdk ./spine systemPosesAt",
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
+      },
+      {
+        "key": "sitrep-sdk ./spine trajectoryWithheldCopy",
+        "note": "Same function, as the spine entry also exports it"
       },
       {
         "key": "sitrep-sdk ./spine trueAnomalyFromHyperbolic",

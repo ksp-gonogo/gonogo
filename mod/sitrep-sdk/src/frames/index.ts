@@ -147,6 +147,8 @@ export {
   type TrajectoryFrame,
   TrajectoryFrameKindLike,
   trajectoryFrameLabel,
+  trajectoryWithheldCopy,
+  type WithheldTrajectory,
 } from "../spine/orbit-trajectory";
 export {
   type PatchChain,

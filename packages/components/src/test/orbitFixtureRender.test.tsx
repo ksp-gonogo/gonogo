@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component.
 import "../index";
-import { trajectoryWithheldCopy } from "@ksp-gonogo/ui-kit";
+import { trajectoryWithheldCopy } from "@ksp-gonogo/sitrep-sdk/frames";
 import { renderWidgetMode, type WidgetSnapshotMode } from "./widgetDomSnapshot";
 
 /**

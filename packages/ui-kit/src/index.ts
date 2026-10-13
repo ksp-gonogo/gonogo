@@ -662,11 +662,6 @@ export {
   type UseTooltipResult,
   useTooltip,
 } from "./Tooltip";
-export {
-  TrajectoryWithheldNote,
-  trajectoryWithheldCopy,
-  type WithheldTrajectory,
-} from "./TrajectoryWithheldNote";
 export { Truncate } from "./Truncate";
 export {
   TONE_LABEL,

@@ -1,12 +1,13 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
+import type { WithheldTrajectory } from "@ksp-gonogo/sitrep-sdk/frames";
 import { Badge, Panel } from "@ksp-gonogo/ui";
-import type { WithheldTrajectory } from "@ksp-gonogo/ui-kit";
 import { FramedDisplay, Section, Text, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { InlaidTrajectoryFrameCaption } from "../shared/trajectoryFrame";
-import { noOrbitSentence, TrajectoryWithheld } from "./emptyStates";
+import { WithheldPath } from "../shared/WithheldPath";
+import { noOrbitSentence } from "./emptyStates";
 import type { OrbitPill } from "./orbitPill";
 
 import type { OrbitOverlayContext } from "./slots";
@@ -121,7 +122,7 @@ export function OrbitViewPanel({
           <PillBadge pill={pill} />
         </PillFill>
       );
-    if (withheld) return <TrajectoryWithheld withheld={withheld} />;
+    if (withheld) return <WithheldPath withheld={withheld} layout="fill" />;
     return diagramWithCaption;
   };
 

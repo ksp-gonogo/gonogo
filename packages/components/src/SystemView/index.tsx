@@ -40,8 +40,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
-import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
 import { useEncounterIn } from "../shared/useEncounterIn";
+import { WithheldPath } from "../shared/WithheldPath";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
 import type { SystemViewConfig } from "./config";
@@ -741,7 +741,7 @@ function SystemViewComponent({
             />
             {/* Beside the caption rather than over the diagram: only the vessel's curve is missing. */}
             {trajectoryWithheld && (
-              <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
+              <WithheldPath withheld={trajectoryWithheld} />
             )}
             {drawnTarget !== null &&
               targetHorizon !== null &&
@@ -754,7 +754,7 @@ function SystemViewComponent({
                 />
               )}
             {targetTrajectory?.shape === "withheld" && (
-              <TrajectoryWithheldNote withheld={targetTrajectory} compact />
+              <WithheldPath withheld={targetTrajectory} />
             )}
             {commsSource !== undefined && (
               <CommsSourceCaption

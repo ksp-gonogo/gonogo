@@ -1,17 +1,9 @@
+import { describe, expect, it } from "vitest";
+import { TrajectoryKindLike } from "./kepler";
 import {
   type OrbitTrajectory,
-  TrajectoryKindLike,
-} from "@ksp-gonogo/sitrep-sdk/spine";
-import { render } from "@ksp-gonogo/sitrep-sdk/testing";
-import {
-  expectNoA11yViolations,
-  visibleText,
-} from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
-import {
-  TrajectoryWithheldNote,
   trajectoryWithheldCopy,
-} from "./TrajectoryWithheldNote";
+} from "./orbit-trajectory";
 
 /** Every reason the seam can hand back, listed so a new one cannot slip past unworded. */
 const EVERY_REASON = [
@@ -19,6 +11,7 @@ const EVERY_REASON = [
   "past-horizon",
   "shape-not-stated",
   "no-arc-available",
+  "frame-unavailable",
 ] as const satisfies readonly Extract<
   OrbitTrajectory,
   { shape: "withheld" }
@@ -52,26 +45,5 @@ describe("trajectoryWithheldCopy", () => {
         trajectoryKind: TrajectoryKindLike.Analytic,
       }).heading,
     ).toBe("PAST HORIZON");
-  });
-});
-
-describe("TrajectoryWithheldNote", () => {
-  it("puts the refusal on screen where the drawing was", () => {
-    const { container } = render(
-      <TrajectoryWithheldNote
-        withheld={{ shape: "withheld", reason: "shape-not-stated" }}
-      />,
-    );
-    expect(visibleText(container)).toContain("SHAPE NOT STATED");
-    expect(container.querySelector('[role="status"]')).not.toBeNull();
-  });
-
-  it("has no accessibility violations", async () => {
-    const { container } = render(
-      <TrajectoryWithheldNote
-        withheld={{ shape: "withheld", reason: "no-arc-available" }}
-      />,
-    );
-    await expectNoA11yViolations(container);
   });
 });

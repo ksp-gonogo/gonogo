@@ -1,25 +1,4 @@
 import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Text,
-  trajectoryWithheldCopy,
-  type WithheldTrajectory,
-} from "@ksp-gonogo/ui-kit";
-import { NoData } from "./styles";
-
-/** The refusal copy comes from the shared table; only the container is local, and it takes over the whole panel body. */
-export function TrajectoryWithheld({
-  withheld,
-}: Readonly<{ withheld: WithheldTrajectory }>) {
-  const { heading, detail } = trajectoryWithheldCopy(withheld);
-  return (
-    <NoData role="status">
-      <Text size="xs">{heading}</Text>
-      <Text level="muted" size="xs">
-        {detail}
-      </Text>
-    </NoData>
-  );
-}
 
 /** The empty-state sentence, from why the conic withdrew; the switch is exhaustive so a new reason is a compile error. */
 export function noOrbitSentence(

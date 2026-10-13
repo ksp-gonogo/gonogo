@@ -1,6 +1,6 @@
 import { FramedDisplay } from "@ksp-gonogo/ui-kit";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
-import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
+import { WithheldPath } from "../shared/WithheldPath";
 import type { ManeuverPreviewProps } from "./ManeuverPreview";
 import { isSequence } from "./planning";
 import { DiagramWrap } from "./styles";
@@ -25,7 +25,7 @@ export function ManeuverDiagram({
     return (
       <DiagramWrap>
         <FramedDisplay padded style={FRAME_STYLE}>
-          <TrajectoryWithheldNote withheld={currentTrajectory} />
+          <WithheldPath withheld={currentTrajectory} layout="fill" />
         </FramedDisplay>
       </DiagramWrap>
     );

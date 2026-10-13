@@ -10,7 +10,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { OrbitDiagram, type ProjectedOrbit } from "../shared/OrbitDiagram";
-import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";
+import { WithheldPath } from "../shared/WithheldPath";
 import {
   type ConformanceRegime,
   devianceIsAttributable,
@@ -150,7 +150,7 @@ export function ConformancePlot({
       </Tooltip>
       {withheld ? (
         // A lone planned conic, with nothing to read it against, would look like "on plan".
-        <TrajectoryWithheldNote withheld={withheld} compact />
+        <WithheldPath withheld={withheld} />
       ) : current ? (
         <div
           // Dimmed, not hidden, when the current orbit is described rather than observed.

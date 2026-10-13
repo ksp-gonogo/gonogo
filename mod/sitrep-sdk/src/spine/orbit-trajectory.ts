@@ -181,7 +181,7 @@ export type TrajectoryWithheldReason =
  * {@link useOrbitTrajectory}: as a conic from its elements, as the sampled arc
  * the provider vouched for, or not at all. Useful for deciding what to draw for
  * the vessel's orbit. Used by the maneuver planner's preview and conformance
- * plot, the current orbit widget and {@link TrajectoryWithheldNote}.
+ * plot, the current orbit widget and {@link trajectoryWithheldCopy}.
  *
  * A `withheld` answer carries its reason. Show it where the curve would be: it
  * is a statement about what the provider vouched for, not a missing value.
@@ -233,6 +233,73 @@ export type OrbitTrajectory =
  * by the impact-point prediction.
  */
 export type TrajectoryArcAnswer = Extract<OrbitTrajectory, { shape: "arc" }>;
+
+/**
+ * The withheld arm of {@link OrbitTrajectory}: an orbit path that may not be
+ * drawn, and the reason. An orbit's elements are the numbers that define its
+ * curve, and its horizon is how far ahead in game time they can be trusted.
+ * The path is withheld when no horizon was stated for it, the instant on screen
+ * is past its horizon, its shape (a conic drawn from the elements, or an arc
+ * sampled by the provider) was not stated, the frame asked for cannot be built
+ * (a body not yet received, say), or it could not be sampled. Useful for
+ * telling the operator why a vessel's path is missing. Taken by
+ * {@link trajectoryWithheldCopy}.
+ *
+ * @category Frames of reference
+ */
+export type WithheldTrajectory = Extract<
+  OrbitTrajectory,
+  { shape: "withheld" }
+>;
+
+/**
+ * The heading and sentence for a withheld path. Each reason has its own
+ * wording, saying what would let the path be drawn. Useful for telling the
+ * operator why a path is not drawn, in the same words in every widget: the
+ * heading where the path would be, the sentence in a tooltip. Used by the map
+ * view, the orbit view and the maneuver planner.
+ *
+ * @category Frames of reference
+ */
+export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
+  heading: string;
+  detail: string;
+} {
+  switch (withheld.reason) {
+    case "no-horizon-stated":
+      return {
+        heading: "NO HORIZON STATED",
+        detail:
+          "Nothing says how far ahead these orbital elements can be trusted.",
+      };
+    case "past-horizon":
+      return withheld.trajectoryKind === TrajectoryKindLike.Integrated
+        ? {
+            heading: "BEYOND INTEGRATION",
+            detail: "The trajectory is not computed this far ahead yet.",
+          }
+        : {
+            heading: "PAST HORIZON",
+            detail: "These orbital elements cannot be trusted this far ahead.",
+          };
+    case "shape-not-stated":
+      return {
+        heading: "SHAPE NOT STATED",
+        detail: "Nothing has said whether this trajectory is a conic.",
+      };
+    case "frame-unavailable":
+      return {
+        heading: "FRAME UNAVAILABLE",
+        detail:
+          "The trajectory is fine; the frame it was asked for cannot be built from the bodies known here. Pick another frame.",
+      };
+    default:
+      return {
+        heading: "NO PATH AVAILABLE",
+        detail: "The integrated trajectory could not be sampled.",
+      };
+  }
+}
 
 export interface OrbitTrajectoryInput {
   /**

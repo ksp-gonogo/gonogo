@@ -25,7 +25,6 @@ import {
   Section,
   Stack,
   Tooltip,
-  TrajectoryWithheldNote,
 } from "@ksp-gonogo/ui-kit";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
@@ -37,6 +36,7 @@ import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { useStreamBody } from "../shared/useStreamBody";
+import { WithheldPath } from "../shared/WithheldPath";
 import { CurrentOrbitConfigForm } from "./CurrentOrbitConfigForm";
 import {
   type CurrentOrbitActions,
@@ -245,7 +245,7 @@ function CurrentOrbitComponent({
           <Section key="orbit" fill>
             <FramedDisplay padded={withheld !== null} style={DIAGRAM_FRAME}>
               {withheld ? (
-                <TrajectoryWithheldNote withheld={withheld} compact />
+                <WithheldPath withheld={withheld} />
               ) : (
                 canDrawDiagram && (
                   <OrbitDiagram

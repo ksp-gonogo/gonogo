@@ -7,6 +7,7 @@ import {
   latLonToMap,
   registerComponent,
 } from "@ksp-gonogo/core";
+import { trajectoryWithheldCopy } from "@ksp-gonogo/sitrep-sdk/frames";
 import { Switch } from "@ksp-gonogo/ui";
 import {
   derivedMarking,
@@ -14,12 +15,12 @@ import {
   PanZoomViewport,
   ReadoutCaption,
   Section,
+  Tooltip,
   WidgetScopeProvider,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
 import { useCallback, useEffect, useMemo } from "react";
 import { OrbitalEventChips } from "../shared/OrbitalEventChips";
-import { trajectoryWithheldCopy } from "../shared/trajectoryWithheld";
 import { mapViewActions, useMapViewActions } from "./actions";
 import { CompactMapView } from "./CompactMapView";
 import {
@@ -455,10 +456,15 @@ function MapViewComponent({
           /* Under the map, not over it: only the forward track is refused. */
           trajectoryWithheld && predictionEnabled && telemetry.hasPatchChain ? (
             <Section key="withheld">
-              <ReadoutCaption role="status">
-                {trajectoryWithheldCopy(trajectoryWithheld).heading}: no
-                predicted ground track
-              </ReadoutCaption>
+              <Tooltip
+                text={trajectoryWithheldCopy(trajectoryWithheld).detail}
+                focusable
+              >
+                <ReadoutCaption role="status">
+                  {trajectoryWithheldCopy(trajectoryWithheld).heading}: no
+                  predicted ground track
+                </ReadoutCaption>
+              </Tooltip>
             </Section>
           ) : null,
           /* No frame caption: a ground track is always body-fixed. */
