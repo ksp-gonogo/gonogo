@@ -21,9 +21,6 @@ export function bodyTone(isTarget: boolean, isHighlighted: boolean): BodyTone {
 /** Larger than the pinned ring (1.9) so keyboard focus on a pinned body is still seen. */
 const FOCUS_RING_RADIUS = 2.6;
 
-/** The frame body's dot, larger than any child's. */
-const FRAME_DOT_RADIUS = 6;
-
 const DOT_RADIUS: Record<BodyTone, number> = {
   target: 6,
   highlighted: 5,
@@ -47,19 +44,6 @@ function phaseFill(status: "go" | "soon" | undefined): string {
   if (status === "go") return "var(--color-go-text)";
   if (status === "soon") return "var(--color-warn-mark)";
   return "var(--color-text-faint)";
-}
-
-/** A body placed from a held pose is dimmed and dashed, as a held entity is, so it does not rely on opacity alone to say so. */
-const HELD_FILL_OPACITY = 0.5;
-
-function heldDash(zoom: number): string {
-  return `${2 / zoom} ${1.5 / zoom}`;
-}
-
-/** The accessible name of a body's mark, saying so when its place is held. */
-function bodyLabel(body: CelestialBody, held: boolean): string {
-  const name = body.name ?? "Body";
-  return held ? `${name}, held` : name;
 }
 
 /** One child body: its depth ring, its dot, and a name and phase-angle label unless it sits on the parent. */
@@ -109,7 +93,7 @@ export function BodyMark({
       <InteractiveMarker
         role="button"
         tabIndex={0}
-        aria-label={bodyLabel(c, placed.held)}
+        aria-label={c.name ?? "Body"}
         aria-pressed={pinned}
         aria-describedby={pinned ? anchorHintId : undefined}
         style={{ cursor: "pointer" }}
@@ -138,15 +122,12 @@ export function BodyMark({
         <circle
           data-body={c.name ?? ""}
           data-depth-px={depthPx}
-          {...(placed.held ? { "data-body-held": "" } : {})}
           cx={placed.x}
           cy={placed.y}
           r={dotR}
           fill={dotFill(tone, c)}
-          fillOpacity={placed.held ? HELD_FILL_OPACITY : undefined}
           stroke="var(--color-text-inverse)"
           strokeWidth={1 / zoom}
-          strokeDasharray={placed.held ? heldDash(zoom) : undefined}
         />
       </InteractiveMarker>
       {pinned && (
@@ -186,95 +167,6 @@ export function BodyMark({
           })}
         </text>
       )}
-    </g>
-  );
-}
-
-/** The frame's own body at the centre of the diagram: its dot and name, pressed like any other body to pin its almanac in the aside. */
-export function FrameBodyMark({
-  body,
-  at,
-  zoom,
-  fill,
-  onHoverStart,
-  onHoverEnd,
-  pinned,
-  onActivate,
-}: Readonly<{
-  body: CelestialBody;
-  at: PlacedPoint;
-  zoom: number;
-  fill: string;
-  onHoverStart: (body: CelestialBody) => void;
-  onHoverEnd: () => void;
-  /** The body's almanac is pinned in the aside. */
-  pinned: boolean;
-  onActivate: (body: CelestialBody) => void;
-}>) {
-  const anchorHintId = useId();
-  const dotR = FRAME_DOT_RADIUS / zoom;
-  return (
-    <g>
-      <InteractiveMarker
-        role="button"
-        tabIndex={0}
-        aria-label={body.name ?? "Body"}
-        aria-pressed={pinned}
-        aria-describedby={pinned ? anchorHintId : undefined}
-        style={{ cursor: "pointer" }}
-        onPointerEnter={() => onHoverStart(body)}
-        onPointerLeave={onHoverEnd}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={() => onActivate(body)}
-        onKeyDown={activateOnKey(() => onActivate(body))}
-      >
-        {pinned && (
-          <desc id={anchorHintId}>
-            Press again to anchor the view on {body.name ?? "this body"}
-          </desc>
-        )}
-        <circle
-          className="focus-ring"
-          cx={at.x}
-          cy={at.y}
-          r={dotR * FOCUS_RING_RADIUS}
-          fill="none"
-          stroke="var(--color-focus)"
-          strokeWidth={2 / zoom}
-          pointerEvents="none"
-        />
-        <circle
-          data-body={body.name ?? ""}
-          cx={at.x}
-          cy={at.y}
-          r={dotR}
-          fill={fill}
-          stroke="var(--color-text-inverse)"
-          strokeWidth={1 / zoom}
-        />
-      </InteractiveMarker>
-      {pinned && (
-        <circle
-          data-body-pinned={body.name ?? ""}
-          cx={at.x}
-          cy={at.y}
-          r={dotR * 1.9}
-          fill="none"
-          stroke="var(--color-focus)"
-          strokeWidth={2 / zoom}
-          pointerEvents="none"
-        />
-      )}
-      <text
-        x={at.x}
-        y={at.y + 18 / zoom}
-        fill="var(--color-text-primary)"
-        fontSize={10 / zoom}
-        textAnchor="middle"
-        pointerEvents="none"
-      >
-        {body.name}
-      </text>
     </g>
   );
 }

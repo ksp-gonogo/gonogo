@@ -156,47 +156,6 @@ describe("SystemView: pressing the diagram", () => {
     );
   });
 
-  /** The frame's own body sits at the centre; pressing it shows its almanac, and the view stays where it was. */
-  it("pins the frame body's almanac when it is pressed, and leaves the view where it is", async () => {
-    const { container } = mountScene();
-    const home = await screen.findByRole("button", { name: "Kerbin" });
-    const before = container
-      .querySelector("svg[viewBox]")
-      ?.getAttribute("viewBox");
-    expect(home).toHaveAttribute("aria-pressed", "false");
-
-    fireEvent.click(home);
-
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Kerbin" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      ),
-    );
-    expect(
-      container.querySelector("svg[viewBox]")?.getAttribute("viewBox"),
-    ).toBe(before);
-  });
-
-  /** Once another body is pinned, the frame body can be pressed back into the aside. */
-  it("lets the frame body be pressed again after another body was pinned", async () => {
-    mountScene();
-    fireEvent.click(await screen.findByRole("button", { name: "Mun" }));
-    await waitFor(() =>
-      expect(screen.getByText("orbiting Kerbin")).toBeInTheDocument(),
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Kerbin" }));
-
-    await waitFor(() =>
-      expect(screen.getByText("orbiting Kerbol")).toBeInTheDocument(),
-    );
-    expect(screen.getByRole("button", { name: "Mun" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
-  });
-
   it("draws a pinned body's keyboard focus ring outside its pinned ring", async () => {
     const { container } = mountScene();
     fireEvent.click(await screen.findByRole("button", { name: "Mun" }));
