@@ -1,6 +1,6 @@
 import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
-import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
 /**
  * An objective's state. The first three are KSP's `Contracts.ParameterState`;
@@ -31,10 +31,11 @@ export interface ContractEntry {
   title: string;
   agency: string;
   state: string;
-  fundsAdvance: number;
-  fundsCompletion: number;
-  scienceCompletion: number;
-  repCompletion: number;
+  /** The four figures are null where the wire did not carry them: a reward nobody stated is not a reward of nothing. */
+  fundsAdvance: number | null;
+  fundsCompletion: number | null;
+  scienceCompletion: number | null;
+  repCompletion: number | null;
   /** UT seconds by which an accepted contract must be completed; zero when it has none, null when the wire did not say (an offer has not been given one yet). */
   deadlineUt: number | null;
   /** UT seconds at which an offered contract is withdrawn if not accepted; null when the wire did not say. */
@@ -85,9 +86,9 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
     if (id === null) continue;
     const agency = agencyOf(e);
     // The wire spells it `reputationCompletion` and `dateDeadline`; the shorter spellings are still read.
-    const repCompletion =
-      magnitudeOf(asQuantityish(e.repCompletion ?? e.reputationCompletion)) ??
-      0;
+    const repCompletion = magnitudeOf(
+      asQuantityish(e.repCompletion ?? e.reputationCompletion),
+    );
     const deadlineUt = utOf(e.deadlineUt ?? e.dateDeadline);
     const expireUt = utOf(e.dateExpire);
     out.push({
@@ -95,9 +96,9 @@ export function parseContracts(raw: unknown): ContractEntry[] | null {
       title: typeof e.title === "string" ? e.title : "(unnamed contract)",
       agency,
       state: typeof e.state === "string" ? e.state : "",
-      fundsAdvance: magnitudeOr(asQuantityish(e.fundsAdvance), 0),
-      fundsCompletion: magnitudeOr(asQuantityish(e.fundsCompletion), 0),
-      scienceCompletion: magnitudeOr(asQuantityish(e.scienceCompletion), 0),
+      fundsAdvance: magnitudeOf(asQuantityish(e.fundsAdvance)),
+      fundsCompletion: magnitudeOf(asQuantityish(e.fundsCompletion)),
+      scienceCompletion: magnitudeOf(asQuantityish(e.scienceCompletion)),
       repCompletion,
       deadlineUt,
       expireUt,
