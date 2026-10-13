@@ -228,6 +228,8 @@ async function bundle(argv: readonly string[]): Promise<number> {
   const options = {
     entryPoints: [entry],
     outfile: outFile,
+    // Module paths land in the output relative to this, so the bytes and their hash must not depend on where the command ran.
+    absWorkingDir: clientDir,
     bundle: true,
     write: false,
     format: "esm" as const,
@@ -272,7 +274,7 @@ async function bundle(argv: readonly string[]): Promise<number> {
         [
           ...Buffer.from(bytes)
             .toString("utf8")
-            .matchAll(/from\s*"(@ksp-gonogo\/[^"]+)"/g),
+            .matchAll(/(?:\bfrom\s*|\bimport\s*\(?\s*)"(@ksp-gonogo\/[^"]+)"/g),
         ].map((match) => match[1]),
       ),
     ].filter((spec) => !UPLINK_BUNDLE_EXTERNALS.includes(spec));
