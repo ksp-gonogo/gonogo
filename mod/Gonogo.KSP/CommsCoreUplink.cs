@@ -123,11 +123,9 @@ namespace Gonogo.KSP
         /// </summary>
         public const string FleetSilenceTopic = "fleet.silence";
 
-        // The config flag lives in core (§3). Default OFF for in-place upgraders;
-        // the intended forward default is ON at real light-speed (§3.1), that
-        // literal is a config/onboarding decision, so core ships it off and the
-        // settings layer flips it. Held here so the settings store can set it
-        // before Register wires the delay source.
+        // The config flag lives in core. Held here so the settings store can set
+        // it before Register wires the delay source; BindSettings then seeds it
+        // on at real light speed.
         private static SignalDelayConfig _signalDelayConfig = SignalDelayConfig.Off();
 
         /// <summary>The settings block this uplink owns.</summary>
@@ -160,14 +158,24 @@ namespace Gonogo.KSP
             store.OnChanged(SignalDelayBlock, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
         }
 
+        private static double _unusableScaleLogged = double.NaN;
+
         private static SignalDelayConfig ReadSignalDelay(SettingsStore store)
         {
             var scale = store.Number(LightSpeedScaleRow);
+            if (!(scale > 0.0) && !scale.Equals(_unusableScaleLogged))
+            {
+                _unusableScaleLogged = scale;
+                store.DiagnosticLog?.Invoke(
+                    LightSpeedScaleRow + " holds " + SettingsText.FromNumber(scale)
+                    + ", which is not a light speed: real light speed (1) is in force");
+            }
+
             return new SignalDelayConfig
             {
                 Enabled = store.Bool(DelayEnabledRow),
                 // A scale of zero or less is not a slower light speed, it is an
-                // infinite delay, so it reverts to real light-speed rather than
+                // infinite delay, so it reads as real light speed rather than
                 // freezing every channel.
                 LightSpeedScale = scale > 0.0 ? scale : 1.0,
             };
@@ -650,7 +658,7 @@ namespace Gonogo.KSP
             // comms.delay itself must see every modifier the currency deadline
             // and the fleet's light-time see, or the gate holds telemetry for a
             // delay the rest of the board has already dropped.
-            return SignalDelay.Compute(
+            return SignalDelay.ComputeForCraft(
                 SignalDelayConfig,
                 path,
                 SourceOf(active));
@@ -779,7 +787,7 @@ namespace Gonogo.KSP
                 }
 
                 var path = backend.Path(active);
-                var delay = SignalDelay.Compute(
+                var delay = SignalDelay.ComputeForCraft(
                     SignalDelayConfig,
                     path,
                     SourceOf(active));

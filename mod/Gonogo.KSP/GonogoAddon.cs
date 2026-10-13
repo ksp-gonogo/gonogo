@@ -351,14 +351,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Reads the signal delay delay config from
-        /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>SIGNAL_DELAY</c>
-        /// node: <c>enabled = true|false</c>, <c>lightSpeedScale = &lt;double&gt;</c>).
-        /// Default when the file/node is absent: delay on at real light-speed
-        /// (scale 1.0): the mod's realism default. A smaller scale lengthens
-        /// delay (slower light); a larger scale shortens it. Never throws.
-        /// </summary>
-        /// <summary>
         /// Which binary is actually running, logged at startup.
         ///
         /// <para>Verifying a live fix means knowing the game loaded the DLL you

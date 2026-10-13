@@ -92,8 +92,6 @@ function kspSettings(state: number, reason: string | null = null) {
         owner: "gonogo",
         kind: BOOL,
         label: "Apply light-time delay to commands and telemetry",
-        description:
-          "Holds each command and each reading for the light time between the craft and the command centre.",
         value: "True",
         default: "True",
       },
