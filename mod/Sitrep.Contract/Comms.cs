@@ -115,7 +115,7 @@ public class CommsConnectivity
 /// path at that instant could: it never tells a centre what a relay's link is
 /// doing before the relay's own light has. Absent until the first reading
 /// arrives. The path it was measured over is the game's, which is not always
-/// the path the centre believes in on <c>comms.path</c>.</para>
+/// the active route on <c>comms.path</c>.</para>
 ///
 /// <para>A save with the stock CommNet difficulty option off models no link
 /// budget at all, so <see cref="Strength"/> is null there and
@@ -154,32 +154,33 @@ public class CommsSignal
 
     /// <summary>
     /// Whether <see cref="Strength"/> is worked out and not measured. A
-    /// command centre is sent the strength of the path it believes in. Where
-    /// the active vessel's radio last reported on that very path, the reported
-    /// strength is sent and this is false. Where it reported on another path,
-    /// or has not reported, the strength is what the backend works out for the
-    /// believed path from what the centre has heard, and this is true. Where
-    /// nothing can be worked out either, see <see cref="OtherPath"/>.
+    /// command centre is sent the strength of the active route. Where the
+    /// active vessel's radio last reported on the active route itself, the
+    /// reported strength is sent and this is false. Where it reported on
+    /// another route, or has not reported, the strength is what the backend
+    /// works out for the active route from what the centre has heard, and this
+    /// is true. Where nothing can be worked out either, see
+    /// <see cref="OtherPath"/>.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool Modelled { get; set; }
 
     /// <summary>
-    /// Whether <see cref="Strength"/> was measured on a path other than the
-    /// one the receiving command centre believes in. The active vessel's radio
-    /// reports the strength of whatever path the game has it on. Where that is
-    /// not the centre's believed path and the comms backend can work nothing
-    /// out for the believed one, the reported strength is still sent, with
-    /// this set, so it is never read as the believed path's own. False
-    /// whenever <see cref="Modelled"/> is true, and false for a centre that
-    /// believes in no path yet, which is sent the reported strength as it is.
+    /// Whether <see cref="Strength"/> was measured on a route other than the
+    /// active route. The active vessel's radio reports the strength of
+    /// whatever route the game has it on. Where that is not the active route
+    /// and the comms backend can work nothing out for the active route, the
+    /// reported strength is still sent, with this set, so it is never read as
+    /// the active route's own. False whenever <see cref="Modelled"/> is true,
+    /// and false for a centre that has no active route yet, which is sent the
+    /// reported strength as it is.
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool OtherPath { get; set; }
 
     /// <summary>
-    /// The path <see cref="Strength"/> was measured on, where that is not the
-    /// path the receiving command centre believes in. Set whenever
+    /// The route <see cref="Strength"/> was measured on, where that is not the
+    /// active route. Set whenever
     /// <see cref="OtherPath"/> is true and null otherwise, so a reader can
     /// name the route the figure belongs to beside the mark that says it is
     /// of another path. It is as old as the strength beside it, and names
@@ -237,7 +238,7 @@ public enum SignalQuantity
 /// <summary>
 /// A path a vessel's radio reported a strength on, as the nodes it runs
 /// through. It is the path the game had the vessel on when the radio was read,
-/// which a command centre may not believe in.
+/// which may not be the active route.
 /// </summary>
 /// <category>Comms</category>
 [SitrepContract]
@@ -381,8 +382,8 @@ public class CommsHop
     /// <summary>
     /// What this hop's link is worth at the distance it crosses, from 0 to 1,
     /// in the comms backend's own terms (see <see cref="CommsSignal"/>). On
-    /// <c>comms.path</c> it is worked out for the receiving command centre's
-    /// own believed hop, from what that centre has heard of the two ends'
+    /// <c>comms.path</c> it is worked out for this hop of the active route,
+    /// from what the receiving command centre has heard of the two ends'
     /// antennas, so it is a model and not a measurement. Null when the
     /// backend states no strength for the hop, or the centre has not heard
     /// enough to work one out.
@@ -410,8 +411,8 @@ public class CommsHop
     /// <para>On <c>comms.path</c> a hop carries the facts the active vessel's
     /// radio last reported of that same hop, as the receiving command centre
     /// heard them, and a report reaches a centre no sooner than light from the
-    /// farthest node on the path it was measured over. A hop the centre
-    /// believes in and has heard no report of carries the facts the backend
+    /// farthest node on the path it was measured over. A hop of the active
+    /// route the centre has heard no report of carries the facts the backend
     /// works out for it, from what the centre has heard of the two ends'
     /// antennas, or none where the backend states none.</para>
     /// </summary>
@@ -442,6 +443,10 @@ public class CommsHop
 /// (<c>comms.route</c>, held commands, cancel deadlines) are always the plan's.
 /// Nothing is sent until the centre has a contact plan or a game route, so the
 /// topic is absent, not empty, for the first moments of a session.</para>
+///
+/// <para>The route sent here is the active route: the route this command
+/// centre has the active vessel on. The other comms topics use the term in
+/// this sense.</para>
 ///
 /// <para>Not reckonable: a route changes in steps (a relay drops below the
 /// horizon and the whole chain re-solves to different hops), and every
@@ -517,9 +522,9 @@ public class CommsNetworkEdge
 }
 
 /// <summary>
-/// The <c>comms.network</c> payload: the nodes and edges of the active
-/// vessel's path as the receiving command centre believes it to stand now,
-/// which is <c>comms.path</c> in graph form with each node named. The graph
+/// The <c>comms.network</c> payload: the nodes and edges of the active route
+/// as it stands now, which is <c>comms.path</c> in graph form with each node
+/// named. The graph
 /// is empty when the centre knows of no open path.
 ///
 /// <para>As with <c>comms.path</c>, each command centre is sent its own,
@@ -711,8 +716,8 @@ public class CommsLink
 
 /// <summary>
 /// The <c>comms.commandCentre</c> payload: which command centre the active
-/// vessel's path ends at, as the receiving command centre believes it to
-/// stand now, so a client can show its own stats against the right name
+/// route ends at as it stands now, so a client can show its own stats against
+/// the right name
 /// instead of assuming KSC. It is where <c>comms.path</c>'s last hop ends: the
 /// receiving centre itself, or, for the home centre, whichever ground station
 /// the signal reaches first. Shares its id and kind scheme with

@@ -7,7 +7,8 @@ namespace Sitrep.Contract
     /// given separation, and what a path of such links is worth as a whole.
     ///
     /// <para><b>A companion to <see cref="ICommsBackend"/>.</b> A command centre
-    /// is shown the strength of the path it believes in, hop by hop, worked out
+    /// is shown the strength of the active route (see <c>comms.path</c>), hop
+    /// by hop, worked out
     /// from what it has heard and from where its plan puts each node. A backend
     /// that is not one of these states no per-hop strength, and a centre is then
     /// shown only the strength the active vessel's own radio last reported.</para>

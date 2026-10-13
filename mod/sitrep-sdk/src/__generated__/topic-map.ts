@@ -140,7 +140,7 @@ export interface GeneratedTopicPayloadMap {
   "commcast.traffic": CommcastTraffic;
   /** One row of `commcast.transmissions`: a radio transmission this vantage can detect. */
   "commcast.transmissions": CommcastTransmissionRow;
-  /** The `comms.commandCentre` payload: which command centre the active vessel's path ends at, as the receiving command centre believes it to stand now, so a client can show its own stats against the right name instead of assuming KSC. */
+  /** The `comms.commandCentre` payload: which command centre the active route ends at as it stands now, so a client can show its own stats against the right name instead of assuming KSC. */
   "comms.commandCentre": CommsCommandCentre;
   /** Whether the active vessel has a control link home right now, and the degree of control it has. */
   "comms.connectivity": CommsConnectivity;
@@ -156,7 +156,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.journey": CommsJourney;
   /** The `comms.link` payload: the one statement a client should read for "is there a control link home right now?". */
   "comms.link": CommsLink;
-  /** The `comms.network` payload: the nodes and edges of the active vessel's path as the receiving command centre believes it to stand now, which is `comms.path` in graph form with each node named. */
+  /** The `comms.network` payload: the nodes and edges of the active route as it stands now, which is `comms.path` in graph form with each node named. */
   "comms.network": CommsNetwork;
   /** When the active craft is next predicted to drop out of contact with one command centre, on `comms.nextLoss`: the first moment its contact plan has no open route between the two, relays included. */
   "comms.nextLoss": CommsNextLoss;

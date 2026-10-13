@@ -5,8 +5,8 @@ using Sitrep.Contract;
 namespace Sitrep.Host.Comms
 {
     /// <summary>
-    /// What one command centre can work out about the strength of the hops it
-    /// believes in: the comms backend's strength model for each pair, as the
+    /// What one command centre can work out about the strength of the hops of
+    /// the active route: the comms backend's strength model for each pair, as the
     /// centre last heard either end's antennas, and the backend's rule for a
     /// whole path.
     ///
@@ -130,10 +130,10 @@ namespace Sitrep.Host.Comms
 
     /// <summary>
     /// What a command centre is told of the strength of the active craft's
-    /// link: measured where the craft's radio last reported on the very path
-    /// the centre believes in, worked out for that path otherwise, and where
+    /// link: measured where the craft's radio last reported on the active
+    /// route itself, worked out for the active route otherwise, and where
     /// nothing can be worked out, the radio's own figure marked as being of
-    /// another path.
+    /// another route.
     /// </summary>
     public static class CentreSignal
     {
@@ -149,7 +149,7 @@ namespace Sitrep.Host.Comms
                 MeasuredOver = measuredOver;
             }
 
-            /// <summary>The strength is the one the radio measured on a path that is not the centre's believed one.</summary>
+            /// <summary>The strength is the one the radio measured on a route other than the active route.</summary>
             public bool OtherPath => MeasuredOver != null;
 
             /// <summary>The hops the strength was measured over, where it is of another path; null otherwise.</summary>
@@ -158,7 +158,7 @@ namespace Sitrep.Host.Comms
             /// <summary>The strength told, or null when the radio read none.</summary>
             public double? Strength { get; }
 
-            /// <summary>Which quantity <see cref="Strength"/> is: the heard radio's where it was measured, and the believed hops' where it was worked out.</summary>
+            /// <summary>Which quantity <see cref="Strength"/> is: the heard radio's where it was measured, and the active route's hops' where it was worked out.</summary>
             public SignalQuantity Quantity { get; }
 
             public bool Modelled { get; }
@@ -167,7 +167,7 @@ namespace Sitrep.Host.Comms
             public CommsDegrade? Degrade { get; }
         }
 
-        /// <param name="believed">The centre's believed path, with each hop's strength where one could be worked out.</param>
+        /// <param name="believed">The active route, with each hop's strength where one could be worked out.</param>
         /// <param name="believedStrength">The strength worked out for that whole path, or null when it could not be.</param>
         /// <param name="heard">The newest reading of the craft's radio to have reached the centre, or null.</param>
         /// <returns>What to tell the centre, or null when nothing has been heard and nothing can be worked out.</returns>
@@ -175,15 +175,15 @@ namespace Sitrep.Host.Comms
         {
             if (heard != null && (!heard.Connected || believed.Hops.Count == 0 || SamePath(believed, heard)))
             {
-                // The craft's own word: of the path the centre believes in, or that there is no link at all,
-                // or all the centre has while it believes in no path for the radio's to differ from.
+                // The craft's own word: of the active route, or that there is no link at all,
+                // or all the centre has while it has no active route for the radio's to differ from.
                 return new Told(heard.Strength, heard.Quantity, false, heard.Degrade);
             }
             if (believedStrength != null)
             {
                 return new Told(believedStrength.Value, QuantityOf(believed), true, heard == null ? null : GradedAt(heard.Degrade, believedStrength.Value));
             }
-            // The radio reported on a path other than the believed one and nothing can be worked out.
+            // The radio reported on a route other than the active route and nothing can be worked out.
             // A figure for another path is not this path's figure, so it is told as what it is.
             return heard == null ? (Told?)null : new Told(heard.Strength, heard.Quantity, false, heard.Degrade, heard.Hops);
         }

@@ -1690,8 +1690,8 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Gives each hop of a centre's path the facts the craft's radio
         /// measured of it, where the newest reading to have reached that
-        /// centre was taken over the same hop. A hop the centre believes in
-        /// and has heard no reading of keeps what the backend worked out for
+        /// centre was taken over the same hop. A hop of the active route the
+        /// centre has heard no reading of keeps what the backend worked out for
         /// it, or nothing where the backend states nothing.
         /// </summary>
         internal static void WithHeardFacts(CommsPath path, ContactRadio? radio)
@@ -1761,16 +1761,16 @@ namespace Sitrep.Host.Comms
         /// <summary>
         /// Sends <paramref name="centre"/> the strength and grading of the
         /// active craft's link as that centre has it: the radio's own report
-        /// where it is of the path the centre believes in, and what the
-        /// backend works out for that path where it is not. Where the report
-        /// is of another path and nothing can be worked out, the report is
-        /// sent marked as being of another path. Sent when either
+        /// where it is of the active route, and what the backend works out for
+        /// the active route where it is not. Where the report is of another
+        /// route and nothing can be worked out, the report is sent marked as
+        /// being of another route. Sent when either
         /// moves by <see cref="ContactRadio.Quantum"/> or changes kind, and at
         /// once where a session has just sat down. A centre with nothing heard
         /// and nothing to work out is sent nothing. Returns how many frames it
         /// sent.
         /// </summary>
-        /// <param name="view">The centre's believed path, or null when it has no plan.</param>
+        /// <param name="view">The active route, or null when the centre has no plan.</param>
         /// <param name="radio">The newest reading of the craft's radio to have reached the centre, or null.</param>
         private int PublishSignal(Looked looked, string centre, CentrePathView? view, ContactRadio? radio)
         {
@@ -1826,7 +1826,7 @@ namespace Sitrep.Host.Comms
         /// The path a radio reading was measured over, as <paramref name="centre"/>
         /// is sent it: the craft and then the far end of each of the reading's
         /// own hops, with each craft named as that centre last heard it named.
-        /// Nothing is read of the game or of the centre's believed path, so it
+        /// Nothing is read of the game or of the active route, so it
         /// is exactly as old as the reading.
         /// </summary>
         private CommsMeasuredPath MeasuredPath(string centre, string activeCraft, IReadOnlyList<RadioHop> measuredOver)

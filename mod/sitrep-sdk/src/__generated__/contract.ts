@@ -1935,8 +1935,8 @@ export interface CommsConnectivity
 * centre no sooner than light leaving the farthest node on that path at that
 * instant could: it never tells a centre what a relay's link is doing before
 * the relay's own light has. Absent until the first reading arrives. The path
-* it was measured over is the game's, which is not always the path the centre
-* believes in on `comms.path`.
+* it was measured over is the game's, which is not always the active route on
+* `comms.path`.
 *
 * A save with the stock CommNet difficulty option off models no link budget at
 * all, so `CommsSignal.strength` is null there and `CommsSignal.quantity` is
@@ -1961,32 +1961,30 @@ export interface CommsSignal
 	quantity: SignalQuantity;
 	/**
 	* Whether `CommsSignal.strength` is worked out and not measured. A command
-	* centre is sent the strength of the path it believes in. Where the active
-	* vessel's radio last reported on that very path, the reported strength is
-	* sent and this is false. Where it reported on another path, or has not
-	* reported, the strength is what the backend works out for the believed path
+	* centre is sent the strength of the active route. Where the active vessel's
+	* radio last reported on the active route itself, the reported strength is
+	* sent and this is false. Where it reported on another route, or has not
+	* reported, the strength is what the backend works out for the active route
 	* from what the centre has heard, and this is true. Where nothing can be
 	* worked out either, see `CommsSignal.otherPath`.
 	*/
 	modelled: boolean;
 	/**
-	* Whether `CommsSignal.strength` was measured on a path other than the one the
-	* receiving command centre believes in. The active vessel's radio reports the
-	* strength of whatever path the game has it on. Where that is not the centre's
-	* believed path and the comms backend can work nothing out for the believed
-	* one, the reported strength is still sent, with this set, so it is never read
-	* as the believed path's own. False whenever `CommsSignal.modelled` is true,
-	* and false for a centre that believes in no path yet, which is sent the
-	* reported strength as it is.
+	* Whether `CommsSignal.strength` was measured on a route other than the active
+	* route. The active vessel's radio reports the strength of whatever route the
+	* game has it on. Where that is not the active route and the comms backend can
+	* work nothing out for the active route, the reported strength is still sent,
+	* with this set, so it is never read as the active route's own. False whenever
+	* `CommsSignal.modelled` is true, and false for a centre that has no active
+	* route yet, which is sent the reported strength as it is.
 	*/
 	otherPath: boolean;
 	/**
-	* The path `CommsSignal.strength` was measured on, where that is not the path
-	* the receiving command centre believes in. Set whenever
-	* `CommsSignal.otherPath` is true and null otherwise, so a reader can name the
-	* route the figure belongs to beside the mark that says it is of another path.
-	* It is as old as the strength beside it, and names each vessel as the
-	* receiving centre last heard it named.
+	* The route `CommsSignal.strength` was measured on, where that is not the
+	* active route. Set whenever `CommsSignal.otherPath` is true and null
+	* otherwise, so a reader can name the route the figure belongs to beside the
+	* mark that says it is of another path. It is as old as the strength beside
+	* it, and names each vessel as the receiving centre last heard it named.
 	*/
 	measuredPath?: CommsMeasuredPath | null;
 }
@@ -2026,7 +2024,7 @@ export enum SignalQuantity {
 /**
 * A path a vessel's radio reported a strength on, as the nodes it runs
 * through. It is the path the game had the vessel on when the radio was read,
-* which a command centre may not believe in.
+* which may not be the active route.
 *
 * @category Comms
 */
@@ -2151,8 +2149,8 @@ export interface CommsHop
 	/**
 	* What this hop's link is worth at the distance it crosses, from 0 to 1, in
 	* the comms backend's own terms (see `CommsSignal`). On `comms.path` it is
-	* worked out for the receiving command centre's own believed hop, from what
-	* that centre has heard of the two ends' antennas, so it is a model and not a
+	* worked out for this hop of the active route, from what the receiving command
+	* centre has heard of the two ends' antennas, so it is a model and not a
 	* measurement. Null when the backend states no strength for the hop, or the
 	* centre has not heard enough to work one out.
 	*/
@@ -2174,7 +2172,7 @@ export interface CommsHop
 	* On `comms.path` a hop carries the facts the active vessel's radio last
 	* reported of that same hop, as the receiving command centre heard them, and a
 	* report reaches a centre no sooner than light from the farthest node on the
-	* path it was measured over. A hop the centre believes in and has heard no
+	* path it was measured over. A hop of the active route the centre has heard no
 	* report of carries the facts the backend works out for it, from what the
 	* centre has heard of the two ends' antennas, or none where the backend states
 	* none.
@@ -2201,6 +2199,9 @@ export interface CommsHop
 * cancel deadlines) are always the plan's. Nothing is sent until the centre
 * has a contact plan or a game route, so the topic is absent, not empty, for
 * the first moments of a session.
+*
+* The route sent here is the active route: the route this command centre has
+* the active vessel on. The other comms topics use the term in this sense.
 *
 * Not reckonable: a route changes in steps (a relay drops below the horizon
 * and the whole chain re-solves to different hops), and every reckoning basis
@@ -2261,10 +2262,9 @@ export interface CommsNetworkEdge
 	active: boolean;
 }
 /**
-* The `comms.network` payload: the nodes and edges of the active vessel's path
-* as the receiving command centre believes it to stand now, which is
-* `comms.path` in graph form with each node named. The graph is empty when the
-* centre knows of no open path.
+* The `comms.network` payload: the nodes and edges of the active route as it
+* stands now, which is `comms.path` in graph form with each node named. The
+* graph is empty when the centre knows of no open path.
 *
 * As with `comms.path`, each command centre is sent its own, made from what
 * that centre has heard.
@@ -2399,13 +2399,12 @@ export interface CommsLink
 	meta: PayloadMeta;
 }
 /**
-* The `comms.commandCentre` payload: which command centre the active vessel's
-* path ends at, as the receiving command centre believes it to stand now, so a
-* client can show its own stats against the right name instead of assuming
-* KSC. It is where `comms.path`'s last hop ends: the receiving centre itself,
-* or, for the home centre, whichever ground station the signal reaches first.
-* Shares its id and kind scheme with `CommandCentreEntry` (the
-* `commandCentre.roster` entries).
+* The `comms.commandCentre` payload: which command centre the active route
+* ends at as it stands now, so a client can show its own stats against the
+* right name instead of assuming KSC. It is where `comms.path`'s last hop
+* ends: the receiving centre itself, or, for the home centre, whichever ground
+* station the signal reaches first. Shares its id and kind scheme with
+* `CommandCentreEntry` (the `commandCentre.roster` entries).
 *
 * As with `comms.path`, each command centre is sent its own, made from what
 * that centre has heard.
