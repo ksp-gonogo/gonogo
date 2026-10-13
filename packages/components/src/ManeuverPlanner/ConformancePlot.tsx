@@ -3,6 +3,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   FramedDisplay,
   NULL_DISPLAY,
+  type ReckoningMarking,
   Stack,
   Tooltip,
   Unit,
@@ -99,6 +100,8 @@ export interface ConformancePlotProps {
    * authored and never dims: a plan does not be held, it just is.
    */
   currentIsObserved: boolean;
+  /** The mark the current orbit carries while it is not a current observation; the figures worked from it inherit it. */
+  marking?: ReckoningMarking | null;
   bodyRadius?: number | null;
 }
 
@@ -119,6 +122,7 @@ export function ConformancePlot({
   regime,
   residual,
   currentIsObserved,
+  marking = null,
   bodyRadius,
 }: ConformancePlotProps) {
   const r = REGIME[regime];
@@ -215,7 +219,8 @@ export function ConformancePlot({
           </FramedDisplay>
           <span style={CAPTION}>
             widest gap, flown vs planned:{" "}
-            <Unit value={value("m", inset.gap)} decimals={0} /> apart
+            <Unit value={value("m", inset.gap)} marked={marking} decimals={0} />{" "}
+            apart
           </span>
         </div>
       ) : null}
@@ -226,7 +231,12 @@ export function ConformancePlot({
         ) : (
           <>
             impulsive plan differs by{" "}
-            <Unit value={value("%", residual * 100)} decimals={2} /> of the burn
+            <Unit
+              value={value("%", residual * 100)}
+              marked={marking}
+              decimals={2}
+            />{" "}
+            of the burn
             {attributable ? "" : ": too much to read the gap as flying"}
           </>
         )}

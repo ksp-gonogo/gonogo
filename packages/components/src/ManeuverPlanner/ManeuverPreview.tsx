@@ -7,7 +7,7 @@ import {
   Countdown,
   Notice,
   type ReckoningMarking,
-  SectionTitle,
+  Section,
   SignalDelayBadge,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -73,8 +73,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
   const { plan } = props;
   if (!plan) return null;
   return (
-    <div style={PREVIEW_SECTION_STYLE}>
-      <SectionTitle as="h4">Preview</SectionTitle>
+    <Section title="Preview" gap="related">
       <div style={CONTAINER_STYLE}>
         <ContainerBreak
           at={460}
@@ -155,7 +154,7 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           </Button>
         </SendGroup>
       </CommitRow>
-    </div>
+    </Section>
   );
 }
 
@@ -206,13 +205,6 @@ function PreviewBody({
     </PreviewGrid>
   );
 }
-
-const PREVIEW_SECTION_STYLE: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--gap-related)",
-  paddingTop: "var(--gap-planner-section)",
-};
 
 const CONTAINER_STYLE: CSSProperties = { containerType: "inline-size" };
 

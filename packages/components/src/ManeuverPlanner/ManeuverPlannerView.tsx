@@ -2,14 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { useManeuverNodes, useNumericFields } from "@ksp-gonogo/data";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import type { VesselManeuver } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Panel,
-  Section,
-  SectionTitle,
-  Tabs,
-  Text,
-  WidgetSections,
-} from "@ksp-gonogo/ui-kit";
+import { Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { currencyOf } from "../shared/currencyOf";
 import { mergeMarkings } from "../shared/mergeMarkings";
@@ -21,7 +14,6 @@ import { ManeuverPreview } from "./ManeuverPreview";
 import { NewManeuverSection } from "./NewManeuverSection";
 import { NotPlannableNotice } from "./NotPlannableNotice";
 import { type ManeuverPlannerConfig, usesTarget } from "./presets";
-import { PaddedSection } from "./styles";
 import { useTriggerSnapshot } from "./triggerService";
 import type { FrozenPlanInputs, ThresholdOp } from "./triggerTypes";
 import { useNodeCommands } from "./useNodeCommands";
@@ -107,29 +99,55 @@ export function ManeuverPlannerComponent({
     ? mergeMarkings(orbitMarking, targetMarking)
     : orbitMarking;
 
-  function renderPlanTab() {
-    return (
-      <>
+  return (
+    <Panel
+      panelTitle="MANEUVER PLANNER"
+      sections={[
+        refBody !== undefined && (
+          <Section key="body" full>
+            <Text
+              level="muted"
+              style={REF_BODY_CAPTION_STYLE}
+              data-ref-body-caption=""
+            >
+              {refBody}
+            </Text>
+          </Section>
+        ),
+        <Section key="nodes" title="Planned nodes">
+          <ManeuverNodeList
+            nodes={nodes}
+            awaiting={planAwaited}
+            completedNodes={completedNodes}
+            currentUT={currentUT}
+            availableDv={availableDeltaV}
+            from={planCurrency}
+            onDelete={handleDelete}
+            onEdit={handleEdit}
+            onClearAll={handleClearAll}
+          />
+          {/* Mounted while empty, so a trigger listed later, a fired one that went wrong included, is announced. */}
+          <div role="status" aria-live="polite" aria-atomic="false">
+            {armedTriggers.length > 0 && (
+              <Section title="Armed triggers" gap="related">
+                <ArmedTriggersList
+                  triggers={armedTriggers}
+                  onCancel={(id) => triggerService.cancel(id)}
+                />
+              </Section>
+            )}
+          </div>
+        </Section>,
         <BurnWindowsSection
+          key="windows"
           nodes={nodes}
           currentUT={nowUtSeconds}
           from={planCurrency}
-        />
-        {/* Mounted while empty, so a trigger listed later, a fired one that went wrong included, is announced. */}
-        <div role="status" aria-live="polite" aria-atomic="false">
-          {armedTriggers.length > 0 && (
-            <PaddedSection>
-              <SectionTitle as="h4">Armed triggers</SectionTitle>
-              <ArmedTriggersList
-                triggers={armedTriggers}
-                onCancel={(id) => triggerService.cancel(id)}
-              />
-            </PaddedSection>
-          )}
-        </div>
-        <NewManeuverSection api={inputsApi} telemetry={telemetry} />
-        {planReady ? (
+        />,
+        <NewManeuverSection key="new" api={inputsApi} telemetry={telemetry} />,
+        planReady ? (
           <ManeuverPreview
+            key="preview"
             plan={plan}
             currentOrbit={currentOrbit}
             currentTrajectory={currentTrajectory}
@@ -165,71 +183,21 @@ export function ManeuverPlannerComponent({
             onArm={handleArmTrigger}
           />
         ) : (
-          <NotPlannableNotice
-            hyperbolic={hyperbolic}
-            currentTrajectory={currentTrajectory}
-          />
-        )}
-        {/* The sections slot, below the preview and feasibility check. */}
-        <WidgetSections />
-      </>
-    );
-  }
-
-  return (
-    <Panel
-      panelTitle="MANEUVER PLANNER"
-      // The sections seam is placed inside the Plan tab instead of on every tab.
-      panelSections={false}
-      sections={[
-        refBody !== undefined && (
-          <Section key="body" full>
-            <Text
-              level="muted"
-              style={REF_BODY_CAPTION_STYLE}
-              data-ref-body-caption=""
-            >
-              {refBody}
-            </Text>
+          <Section key="preview">
+            <NotPlannableNotice
+              hyperbolic={hyperbolic}
+              currentTrajectory={currentTrajectory}
+            />
           </Section>
         ),
-        // The node list sits above the tabs: it is the subject both tabs are views of.
-        <Section key="nodes" full>
-          <PaddedSection>
-            <SectionTitle as="h4">Planned nodes</SectionTitle>
-            <ManeuverNodeList
-              nodes={nodes}
-              awaiting={planAwaited}
-              completedNodes={completedNodes}
-              currentUT={currentUT}
-              availableDv={availableDeltaV}
-              from={planCurrency}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-              onClearAll={handleClearAll}
-            />
-          </PaddedSection>
-        </Section>,
-        <Section key="views" full>
-          {/* Plan authors the next burn; Conformance is the retrospective on flown ones. */}
-          <Tabs
-            tabs={[
-              { id: "plan", label: "Plan", content: renderPlanTab() },
-              {
-                id: "conformance",
-                label: "Conformance",
-                content: (
-                  <ConformanceSection
-                    nodes={nodes}
-                    awaiting={planAwaited}
-                    maxDvByUt={maxDvByUt}
-                    telemetry={telemetry}
-                  />
-                ),
-              },
-            ]}
-          />
-        </Section>,
+        // What was flown against what was planned: the retrospective on the nodes above.
+        <ConformanceSection
+          key="conformance"
+          nodes={nodes}
+          awaiting={planAwaited}
+          maxDvByUt={maxDvByUt}
+          telemetry={telemetry}
+        />,
       ]}
     />
   );

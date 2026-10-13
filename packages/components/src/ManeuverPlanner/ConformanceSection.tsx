@@ -1,12 +1,11 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import type { OrbitPatch } from "@ksp-gonogo/sitrep-sdk";
-import { EmptyState, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { EmptyState, Section, Stack } from "@ksp-gonogo/ui-kit";
 import type { ProjectedOrbit } from "../shared/OrbitDiagram";
 import { BurnConformanceRow } from "./BurnConformanceRow";
 import { ConformancePlot } from "./ConformancePlot";
 import { burnConformance } from "./conformance";
 import { conformanceRegime, finiteBurnResidual } from "./conformanceRegime";
-import { PaddedSection } from "./styles";
 import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
 interface ConformanceSectionProps {
@@ -62,14 +61,15 @@ export function ConformanceSection({
     nowUtSeconds,
     period,
     elementsNeedDating,
+    orbitMarking,
   } = telemetry;
   if (nodes.length === 0) {
     return (
-      <PaddedSection>
+      <Section title="Conformance">
         <EmptyState>
           {awaiting ? "Awaiting maneuver plan" : "No planned burns to compare"}
         </EmptyState>
-      </PaddedSection>
+      </Section>
     );
   }
   const current =
@@ -88,8 +88,7 @@ export function ConformanceSection({
         }
       : null;
   return (
-    <PaddedSection>
-      <SectionTitle as="h4">Conformance</SectionTitle>
+    <Section title="Conformance">
       <Stack>
         {nodes.map((node) => {
           const first = node.orbitPatches[0];
@@ -130,11 +129,12 @@ export function ConformanceSection({
                 )}
                 // The planned conic is authored and never dims; only the current orbit follows the observation rules.
                 currentIsObserved={!elementsNeedDating}
+                marking={orbitMarking}
               />
             </Stack>
           );
         })}
       </Stack>
-    </PaddedSection>
+    </Section>
   );
 }

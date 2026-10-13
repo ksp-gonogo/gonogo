@@ -1,6 +1,5 @@
-import { SectionTitle } from "@ksp-gonogo/ui-kit";
+import { Section } from "@ksp-gonogo/ui-kit";
 import { PresetInput } from "./PresetInput";
-import { PaddedSection } from "./styles";
 import type { PlannerInputsApi } from "./usePlannerInputs";
 import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
@@ -14,8 +13,7 @@ export function NewManeuverSection({
   telemetry,
 }: NewManeuverSectionProps) {
   return (
-    <PaddedSection>
-      <SectionTitle as="h4">New maneuver</SectionTitle>
+    <Section title="New maneuver" gap="related">
       <PresetInput
         api={api}
         telemetry={{
@@ -30,6 +28,6 @@ export function NewManeuverSection({
           targetMarking: telemetry.targetMarking,
         }}
       />
-    </PaddedSection>
+    </Section>
   );
 }

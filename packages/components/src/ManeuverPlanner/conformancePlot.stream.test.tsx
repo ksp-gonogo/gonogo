@@ -1,7 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -99,8 +98,7 @@ async function mountOnConformance(
     emitNode(fixture, patches);
   });
 
-  const tab = await screen.findByRole("tab", { name: "Conformance" });
-  await userEvent.click(tab);
+  await screen.findByRole("heading", { name: "Conformance" });
   return view;
 }
 

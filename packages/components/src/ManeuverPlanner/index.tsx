@@ -6,8 +6,8 @@ import { useManeuverEssentials } from "./useManeuverEssentials";
 const maneuverActions = [] as const satisfies readonly ActionDefinition[];
 
 /**
- * The whole-widget append slot below the preview and feasibility check, for
- * alternate transfer strategies such as a porkchop or an optimal-transfer
+ * The whole-widget append slot, drawn as a section after the preview and
+ * conformance sections, for alternate transfer strategies such as a porkchop or an optimal-transfer
  * Uplink. Declaration-merged into `SlotRegistry` so the slot carries its exact
  * empty prop shape.
  */

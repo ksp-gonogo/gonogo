@@ -231,19 +231,6 @@ export function SecondaryButton(props: Readonly<ButtonProps>) {
   return <Button variant="ghost" style={COMPACT_BUTTON_STYLE} {...props} />;
 }
 
-export function PaddedSection({
-  children,
-}: Readonly<{ children?: ReactNode }>) {
-  return <section style={PADDED_SECTION_STYLE}>{children}</section>;
-}
-
-const PADDED_SECTION_STYLE: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--gap-related-dense)",
-  paddingTop: "var(--gap-planner-section)",
-};
-
 export function WaitingPanel({ children }: Readonly<{ children?: ReactNode }>) {
   return <div style={WAITING_PANEL_STYLE}>{children}</div>;
 }

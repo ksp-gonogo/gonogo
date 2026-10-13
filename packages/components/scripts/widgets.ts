@@ -1864,6 +1864,10 @@ const WIDGETS: WidgetRenderConfig[] = [
       mayScroll: ["landscape-18x9", "mobile-9x9", "min-7x9"],
     },
     modes: [
+      // The three shapes the panel lays its sections out for: one column, a grid, and a row of columns.
+      { name: "shape-tall-7x20", w: 7, h: 20 },
+      { name: "shape-square-12x12", w: 12, h: 12 },
+      { name: "shape-wide-24x9", w: 24, h: 9 },
       { name: "tiny-3x3", w: 3, h: 3 },
       // minSize: the kit's tiny form, the next burn against the budget.
       { name: "tiny-3x4", w: 3, h: 4 },
@@ -1873,23 +1877,6 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-10x18", w: 10, h: 18 },
       // wide landscape.
       { name: "wide-14x12", w: 14, h: 12 },
-      // The CONFORMANCE tab, which the default render never reaches: Plan is
-      // the opening tab, so the plot is only rendered after a click. Selected
-      // by the tab's id suffix rather than its text, since a CSS selector
-      // cannot match on content and `useId`'s prefix moves with the mount.
-      {
-        name: "conformance-10x18",
-        w: 10,
-        h: 18,
-        clicks: [{ selector: "[id$='conformance-tab']" }],
-      },
-      // The same tab at the widget's MINIMUM width, since every widget defect found in this batch was at a small breakpoint.
-      {
-        name: "conformance-7x9",
-        w: 7,
-        h: 9,
-        clicks: [{ selector: "[id$='conformance-tab']" }],
-      },
       /*
        * The target presets, which open on `circularize-apo` and so are never
        * reached by any mode above. Their description line is the only place
@@ -1916,14 +1903,6 @@ const WIDGETS: WidgetRenderConfig[] = [
         w: 7,
         h: 18,
         config: { defaultPreset: "custom-apo" },
-        forFixtures: ["kerbin-rendezvous-target"],
-      },
-      // The Conformance tab with no planned burn to compare.
-      {
-        name: "conformance-empty-10x12",
-        w: 10,
-        h: 12,
-        clicks: [{ selector: "[id$='conformance-tab']" }],
         forFixtures: ["kerbin-rendezvous-target"],
       },
       // The mobile tile and aspect extremes at this widget's minSize, where the shared 9x8, 5x18 and 18x5 fall below it.
