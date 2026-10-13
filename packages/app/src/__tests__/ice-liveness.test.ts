@@ -1,6 +1,6 @@
 import { type LogEntry, logger } from "@ksp-gonogo/logger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { iceAddressClass } from "../peer/iceDiagnostics";
+import { iceAddressClass, iceServerUrlParts } from "../peer/iceDiagnostics";
 import { attachIceDiagnostics } from "../peer/PeerClientService";
 import { asDataConnection } from "../test/peerFakes";
 
@@ -175,6 +175,49 @@ describe("attachIceDiagnostics candidate logging", () => {
       addressClass: "public",
       relatedAddressClass: "private",
     });
+  });
+
+  it("logs the class of a failing ICE server's address and never the address", () => {
+    const sent: LogEntry[] = [];
+    const transport = {
+      send: (entries: readonly LogEntry[]) => {
+        sent.push(...entries);
+      },
+    };
+    const wasEnabled = logger.isEnabled();
+    logger.setEnabled(true);
+    logger.addTransport(transport);
+    try {
+      const { pc } = wire();
+      pc.emit("icecandidateerror", {
+        url: "turn:198.51.100.9:3478?transport=udp",
+        errorCode: 701,
+        errorText: "timed out",
+      });
+    } finally {
+      logger.removeTransport(transport);
+      logger.setEnabled(wasEnabled);
+    }
+    expect(JSON.stringify(sent)).not.toContain("198.51.100.9");
+    const entry = sent.find((e) => e.message.includes("icecandidateerror"));
+    expect(entry?.context).toMatchObject({
+      serverScheme: "turn",
+      serverAddressClass: "public",
+      serverPort: 3478,
+      errorCode: 701,
+    });
+  });
+
+  it("reads the scheme, class and port out of an ICE server URL", () => {
+    expect(iceServerUrlParts("stun:stun.example.org")).toEqual({
+      serverScheme: "stun",
+      serverAddressClass: "hostname",
+      serverPort: null,
+    });
+    expect(iceServerUrlParts("turns:[fd00::1]:5349").serverAddressClass).toBe(
+      "private",
+    );
+    expect(iceServerUrlParts(undefined).serverScheme).toBe("unknown");
   });
 
   it("classifies candidate addresses", () => {

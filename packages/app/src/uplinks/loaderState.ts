@@ -54,6 +54,11 @@ export interface UplinkLoadOutcome {
    * makes the refusal stale.
    */
   refusedOnHealth?: true;
+  /**
+   * Set when the quarantine was the registry index being unreadable, which says
+   * nothing about the Uplink itself: the next roster read tries it again.
+   */
+  registryUnavailable?: true;
 }
 
 /**
@@ -71,6 +76,7 @@ export function integrityFailures(
 type Listener = () => void;
 
 const outcomes = new Map<string, UplinkLoadOutcome>();
+let clientless = new Set<string>();
 const listeners = new Set<Listener>();
 let snapshot: UplinkLoadOutcome[] = [];
 
@@ -96,8 +102,19 @@ export function subscribeUplinkOutcomes(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+/** Replace the roster ids the last registry read found to ship no client, which no later roster can make loadable. */
+export function setClientlessUplinks(ids: Iterable<string>): void {
+  clientless = new Set(ids);
+}
+
+/** Whether the last registry read found this roster id to ship no client. */
+export function isClientlessUplink(id: string): boolean {
+  return clientless.has(id);
+}
+
 /** Test-only: clear all recorded outcomes. */
 export function __resetUplinkOutcomes(): void {
   outcomes.clear();
+  clientless = new Set();
   recompute();
 }

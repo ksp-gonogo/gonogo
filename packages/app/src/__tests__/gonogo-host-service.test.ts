@@ -366,6 +366,15 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().countdown).toBeNull();
   });
 
+  it("keeps counting down when a screen that never voted disconnects", () => {
+    host.fireConnect("peer-1");
+    host.fireConnect("peer-2");
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+    host.fireDisconnect("peer-2");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+  });
+
   it("stages at T-0 when triggerStageAtZero is on (default)", async () => {
     svc.setConfig({ countdownLengthMs: 5_000 });
     host.fireConnect("peer-1");

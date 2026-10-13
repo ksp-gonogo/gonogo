@@ -117,8 +117,12 @@ export class GoNoGoHostService {
       host.onPeerDisconnect((peerId) => {
         this.connectedPeers.delete(peerId);
         this.peerIdToName.delete(peerId);
+        const hadVote = (this.peerIdToVote.get(peerId) ?? null) !== null;
         this.peerIdToVote.delete(peerId);
-        this.cancelCountdownIfRunning("station disconnected");
+        // A screen with no vote was not in the poll, so its leaving changes nothing for a countdown.
+        if (hadVote || !this.pollIsGo()) {
+          this.cancelCountdownIfRunning("station disconnected");
+        }
         this.emit();
       }),
     );

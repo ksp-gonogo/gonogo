@@ -1900,6 +1900,26 @@ describe("loadEnabledUplinks: a local build under the dev server", () => {
     expect(importBundle).toHaveBeenCalledOnce();
   });
 
+  it("is not loaded a second time by the roster that arrives after startup", async () => {
+    const importBundle = importOk();
+    await loadLocal(localIndex(goodHash), { importBundle });
+    expect(importBundle).toHaveBeenCalledOnce();
+    const roster = armedRoster("sha256-whatever");
+    stubRegistryFetch(localIndex(goodHash));
+    expect(
+      await loadFromLiveRoster({
+        registrySource: { url: "/uplinks/registry.local.json" },
+        hostCompat: HOST,
+        appVersion: "1.0.0",
+        roster,
+        ensureConsent: async () => true,
+        fetchBytes: async () => BUNDLE_BYTES,
+        importBundle,
+      }),
+    ).toEqual([]);
+    expect(importBundle).toHaveBeenCalledOnce();
+  });
+
   it("loads with no roster at all, and says the mod is not reporting it", async () => {
     const outcomes = await loadLocal(localIndex(goodHash));
     expect(outcomes).toHaveLength(1);
@@ -1957,5 +1977,54 @@ describe("loadEnabledUplinks: a local build under the dev server", () => {
     } finally {
       vi.unstubAllEnvs();
     }
+  });
+});
+
+describe("loadFromLiveRoster: a registry that cannot be read", () => {
+  const roster: RosterEntry[] = [
+    { id: "scansat", version: "1.0.0", available: true, reason: null },
+  ];
+  const importBundle = vi.fn<
+    (bytes: ArrayBuffer, url: string) => Promise<unknown>
+  >(async () => ({}));
+
+  beforeEach(() => {
+    importBundle.mockClear();
+  });
+
+  it("tries an Uplink again at the next roster once the registry reads", async () => {
+    const down = await loadFromLiveRoster(
+      ctx({ index: "fail", roster, importBundle }),
+    );
+    expect(down[0].status).toBe("quarantined");
+    expect(importBundle).not.toHaveBeenCalled();
+
+    const up = await loadFromLiveRoster(
+      ctx({ index: indexWith(goodHash), roster, importBundle }),
+    );
+    expect(up[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledTimes(1);
+  });
+
+  it("reads no registry when every Uplink in the roster has an outcome", async () => {
+    await loadFromLiveRoster(
+      ctx({ index: indexWith(goodHash), roster, importBundle }),
+    );
+    const again = ctx({ index: "fail", roster, importBundle });
+    expect(await loadFromLiveRoster(again)).toEqual([]);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+  });
+
+  it("reads no registry again for an Uplink it found to ship no client", async () => {
+    const withExtra: RosterEntry[] = [
+      ...roster,
+      { id: "modonly", version: "1.0.0", available: true, reason: null },
+    ];
+    await loadFromLiveRoster(
+      ctx({ index: indexWith(goodHash), roster: withExtra, importBundle }),
+    );
+    const again = ctx({ index: "fail", roster: withExtra, importBundle });
+    expect(await loadFromLiveRoster(again)).toEqual([]);
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 });

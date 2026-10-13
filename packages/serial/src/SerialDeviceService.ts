@@ -378,6 +378,13 @@ export class SerialDeviceService {
       // locks on port.readable/writable are still held. Force cleanup
       // before adopting so the new doConnect sees clean streams.
       if (managed.transport.status === "connected") {
+        // Two identical panels share a VID/PID: a connected one that holds a different port is working, and is not this port's owner.
+        const holds = (
+          managed.transport as DeviceTransport & {
+            holdsPort?: (port: SerialPort) => boolean;
+          }
+        ).holdsPort;
+        if (holds && !holds.call(managed.transport, port)) continue;
         trace.debug("hot-plug stale-connected; cleanup before adopt", {
           deviceId: managed.instance.id,
         });

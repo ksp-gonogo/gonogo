@@ -327,7 +327,7 @@ export class WebSerialTransport implements DeviceTransport {
     this.readableAbort = null;
     // A half-received line and the last known state both belong to the session that just ended.
     this.buffer = "";
-    this.lastValues.clear();
+    this.releaseHeld();
     this.writableAbort?.abort();
     this.writableAbort = null;
 
@@ -485,6 +485,17 @@ export class WebSerialTransport implements DeviceTransport {
       }
       this.emitChanged(result.events);
     }
+  }
+
+  /** Report every button still held as released, then forget the device's state. */
+  private releaseHeld(): void {
+    for (const [inputId, value] of this.lastValues) {
+      if (value !== true) continue;
+      this.inputListeners.forEach((cb) => {
+        cb({ inputId, value: false });
+      });
+    }
+    this.lastValues.clear();
   }
 
   private emitChanged(events: readonly InputEvent[]): void {

@@ -124,7 +124,7 @@ export function attachIceDiagnostics(
     const e = ev as RTCPeerConnectionIceErrorEvent;
     iceLog.warn("icecandidateerror", {
       ...ctx,
-      url: e.url,
+      ...iceServerUrlParts(e.url),
       errorCode: e.errorCode,
       errorText: e.errorText,
     });
@@ -137,6 +137,23 @@ export function attachIceDiagnostics(
     dead = true;
     clearGrace();
   });
+}
+
+/**
+ * The scheme, address class and port of an ICE server URL, never the address:
+ * a relay addressed by a public IP would otherwise ship it to the log.
+ */
+export function iceServerUrlParts(url: string | null | undefined): {
+  serverScheme: string;
+  serverAddressClass: IceAddressClass;
+  serverPort: number | null;
+} {
+  const m = /^(stuns?|turns?):(\[[^\]]*\]|[^:/?]*)(?::(\d+))?/i.exec(url ?? "");
+  return {
+    serverScheme: m?.[1].toLowerCase() ?? "unknown",
+    serverAddressClass: iceAddressClass(m?.[2]),
+    serverPort: m?.[3] ? Number(m[3]) : null,
+  };
 }
 
 export type IceAddressClass =

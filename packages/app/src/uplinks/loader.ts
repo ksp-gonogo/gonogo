@@ -36,6 +36,8 @@ import {
 import type { UplinkIntegrityFailure, UplinkIntegrityParty } from "./integrity";
 import {
   getUplinkOutcomes,
+  isClientlessUplink,
+  setClientlessUplinks,
   setUplinkOutcome,
   type UplinkLoadOutcome,
 } from "./loaderState";
@@ -1135,8 +1137,11 @@ let loadQueue: Promise<unknown> = Promise.resolve();
 function queueLoad(
   ctx: LoaderContext,
   pick: (ids: string[]) => string[],
+  anyWaiting?: () => boolean,
 ): Promise<UplinkLoadOutcome[]> {
-  const run = loadQueue.then(() => loadPicked(ctx, pick));
+  const run = loadQueue.then(() =>
+    anyWaiting && !anyWaiting() ? [] : loadPicked(ctx, pick),
+  );
   loadQueue = run.catch(() => undefined);
   return run;
 }
@@ -1168,13 +1173,19 @@ async function loadPicked(
         name: id,
         status: "quarantined",
         reason,
+        registryUnavailable: true,
       };
       setUplinkOutcome(outcome);
       return outcome;
     });
   }
 
-  const effectiveIds = pick(deriveEnabledIds(ctx.roster, index, ctx.override));
+  const enabledIds = deriveEnabledIds(ctx.roster, index, ctx.override);
+  const enabled = new Set(enabledIds);
+  setClientlessUplinks(
+    (ctx.roster ?? []).map((r) => r.id).filter((id) => !enabled.has(id)),
+  );
+  const effectiveIds = pick(enabledIds);
   const round = new ConsentRound(effectiveIds.length, resolveConsents(ctx));
   const runs: Promise<UplinkLoadOutcome>[] = [];
   let turn: Promise<unknown> = Promise.resolve();
@@ -1242,16 +1253,26 @@ export async function loadFromLiveRoster(
   const roster = ctx.roster;
   if (!roster) return [];
   const pinned = ctx.override !== undefined;
-  return queueLoad({ ...ctx, override: undefined }, (ids) => {
-    const known = new Map(getUplinkOutcomes().map((o) => [o.id, o]));
-    return ids.filter((id) => {
-      const outcome = known.get(id);
-      if (!outcome) return !pinned;
-      if (outcome.status !== "quarantined" || !outcome.refusedOnHealth) {
-        return false;
-      }
-      const entry = roster.find((r) => r.id === id);
-      return entry?.available && entry.health?.state !== "unavailable";
-    });
-  });
+  const known = () => new Map(getUplinkOutcomes().map((o) => [o.id, o]));
+  const wants = (id: string, outcome: UplinkLoadOutcome | undefined) => {
+    if (isClientlessUplink(id)) return false;
+    if (!outcome) return !pinned;
+    if (outcome.registryUnavailable) return true;
+    if (outcome.status !== "quarantined" || !outcome.refusedOnHealth) {
+      return false;
+    }
+    const entry = roster.find((r) => r.id === id);
+    return entry?.available && entry.health?.state !== "unavailable";
+  };
+  return queueLoad(
+    { ...ctx, override: undefined },
+    (ids) => {
+      const outcomes = known();
+      return ids.filter((id) => wants(id, outcomes.get(id)));
+    },
+    () => {
+      const outcomes = known();
+      return roster.some((r) => wants(r.id, outcomes.get(r.id)));
+    },
+  );
 }

@@ -935,6 +935,34 @@ describe("SerialDeviceService: two web-serial panels", () => {
     }
   });
 
+  it("gives a re-plugged panel its own port and leaves its identical twin on the one it holds", async () => {
+    const { mock, svc, portA, portB } = await twoPanels({
+      vendorId: 0x1111,
+      productId: 0x0001,
+    });
+    try {
+      mock.fireDisconnect(portB);
+      await vi.waitFor(() => expect(svc.getStatus("b")).toBe("disconnected"));
+      mock.fireConnect(portB);
+      await vi.waitFor(() => expect(svc.getStatus("b")).toBe("connected"));
+      const { WebSerialTransport } = await import(
+        "./transports/WebSerialTransport"
+      );
+      const portOf = (id: string) => {
+        const transport = svc.getTransport(id);
+        if (!(transport instanceof WebSerialTransport)) {
+          throw new Error(`${id} is not a web-serial transport`);
+        }
+        return transport.currentPort();
+      };
+      expect(portOf("a")).toBe(portA);
+      expect(portOf("b")).toBe(portB);
+      await svc.destroy();
+    } finally {
+      mock.restore();
+    }
+  });
+
   it("disconnects only the unplugged panel of two identical ones", async () => {
     const { mock, svc, portA } = await twoPanels({
       vendorId: 0x1111,

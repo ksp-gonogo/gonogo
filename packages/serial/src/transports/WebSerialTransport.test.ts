@@ -58,6 +58,17 @@ describe("WebSerialTransport input events", () => {
     await transport.disconnect();
   });
 
+  it("releases a button that is held when the device goes away", async () => {
+    const { port, transport, events } = await connected();
+    await port.emitData("00\n01\n");
+    await settle();
+    await transport.disconnect();
+    expect(events).toEqual([
+      { inputId: "btn", value: true },
+      { inputId: "btn", value: false },
+    ]);
+  });
+
   it("starts each session from the device's state, without a half line from the last one", async () => {
     const { port, transport, events } = await connected();
     await port.emitData("00\n01\n0");
