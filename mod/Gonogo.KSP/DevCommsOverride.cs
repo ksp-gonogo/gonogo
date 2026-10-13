@@ -47,13 +47,23 @@ namespace Gonogo.KSP
         // assembly under GonogoDevTools to resolve from, so the path is the
         // well-known GameData-relative layout every other GonogoDevTools cfg
         // already deploys to (GameData/GonogoDevTools/Plugins/PluginData/*.cfg).
-        private static readonly string RequestPath = Path.Combine(
+        // Built when read, never in the type initializer: KSPUtil asks Unity
+        // for the root path, which throws outside the game, and the type is
+        // touched headless whenever the comms Uplink reports its health.
+        private static string RequestPath => Path.Combine(
             KSPUtil.ApplicationRootPath, "GameData", "GonogoDevTools", "Plugins", "PluginData", "force-comms-request.cfg");
 
         private static bool? _devToolsLoaded;
         private static float _lastPollRealtime = float.MinValue;
         private static bool? _cachedMode;
         private static bool _everLogged;
+        private static volatile bool _forcingBlackout;
+
+        /// <summary>
+        /// Whether the last poll found a blackout forced. Read from any thread
+        /// without polling, so the Uplink's health can say so off the main thread.
+        /// </summary>
+        internal static bool ForcingBlackout => _forcingBlackout;
 
         /// <summary>
         /// <c>null</c> = no override, use the real elected backend's
@@ -143,10 +153,18 @@ namespace Gonogo.KSP
 
             if (!_everLogged || resolved != _cachedMode)
             {
-                Debug.Log(LogPrefix + "mode -> " + DescribeMode(resolved));
+                if (resolved == false)
+                {
+                    Debug.LogWarning(LogPrefix + "mode -> " + DescribeMode(resolved) + ", from " + RequestPath + "; every craft reads out of contact until the request is set to restore");
+                }
+                else
+                {
+                    Debug.Log(LogPrefix + "mode -> " + DescribeMode(resolved));
+                }
                 _everLogged = true;
             }
             _cachedMode = resolved;
+            _forcingBlackout = resolved == false;
         }
 
         /// <summary>
