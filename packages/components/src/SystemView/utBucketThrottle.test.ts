@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { quantiseUt } from "../GroundTrack/predictionThrottle";
+import { quantiseUt } from "../MapView/predictionThrottle";
 import { createUtBucketThrottle } from "./utBucketThrottle";
 
 /** Simulates 60 frames per real second at `warp` game-seconds per real second, returning how many distinct buckets each strategy produced. */

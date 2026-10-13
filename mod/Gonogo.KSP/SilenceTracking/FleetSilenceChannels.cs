@@ -59,17 +59,6 @@ namespace Gonogo.KSP.SilenceTracking
         private List<SilenceContactSnapshot>? _lastSentRoster;
         private IDynamicChannelSource? _silenceSource;
         private IChannelPublisher? _rosterPublisher;
-        private ICraftForecastWriter? _forecasts;
-
-        /// <summary>The forecast last handed to the engine for each vessel, so only a change is recorded. Courier thread only.</summary>
-        private readonly Dictionary<string, CraftForecast> _forecastSaid = new Dictionary<string, CraftForecast>();
-
-        public FleetSilenceChannels()
-        {
-        }
-
-        /// <param name="forecasts">Where the ground's forecasts go, which registration otherwise finds on the host.</param>
-        internal FleetSilenceChannels(ICraftForecastWriter forecasts) => _forecasts = forecasts;
 
         /// <summary>
         /// Called from <see cref="CommsCoreUplink.Register"/>, on that uplink's
@@ -93,7 +82,6 @@ namespace Gonogo.KSP.SilenceTracking
             });
 
             _rosterPublisher = host.Publisher(CommsCoreUplink.FleetSilenceTopic);
-            _forecasts ??= host as ICraftForecastWriter;
 
             // Ungated: no subscriptionTopicPrefixes argument, see this
             // class's own doc comment above.
@@ -152,8 +140,8 @@ namespace Gonogo.KSP.SilenceTracking
                 var orbit = BuildOrbitElements(vessel);
                 present.Add(new SilenceSample(
                     vessel.id.ToString(),
-                    // In contact means heard by the ground, whichever station; the tracker has no unknown, so a route that could not be read counts as silent.
-                    FleetCommsReader.ReachesGround(vessel, config) == true,
+                    // The tracker has no unknown: a link that could not be read counts as silent.
+                    FleetCommsReader.ReadConnected(vessel, config) == true,
                     orbit,
                     RestsOnSurface(vessel),
                     ReferenceBodyIndexOf(vessel)));
@@ -201,7 +189,7 @@ namespace Gonogo.KSP.SilenceTracking
                 });
             }
 
-            return new SilenceCapture { Ut = ut, Vessels = snapshots, Roster = roster, Tracker = tracker };
+            return new SilenceCapture { Ut = ut, Vessels = snapshots, Roster = roster };
         }
 
         /// <summary>
@@ -214,10 +202,6 @@ namespace Gonogo.KSP.SilenceTracking
         /// </summary>
         internal void HandleSilenceOnCourier(object? captured)
         {
-            if (captured is SilenceCapture forecasting)
-            {
-                SayForecasts(forecasting);
-            }
             if (captured is not SilenceCapture cap || _silenceSource == null)
             {
                 SilenceTrace.NotPublished(captured, _silenceSource == null);
@@ -246,58 +230,6 @@ namespace Gonogo.KSP.SilenceTracking
                 _rosterPublisher.Publish(FleetSilenceRosterBuilder.Build(entries), cap.Ut);
             }
         }
-
-        /// <summary>The tracker the forecasts last handed over came from. Courier thread only.</summary>
-        private SilenceTracker? _forecastTracker;
-
-        /// <summary>Hands the engine every forecast this capture changed. A new tracker is a new save or a reload, which says every forecast again.</summary>
-        private void SayForecasts(SilenceCapture cap)
-        {
-            if (!ReferenceEquals(cap.Tracker, _forecastTracker))
-            {
-                _forecastTracker = cap.Tracker;
-                _forecastSaid.Clear();
-            }
-            foreach (var v in cap.Vessels)
-            {
-                SayForecast(v, cap.Ut);
-            }
-        }
-
-        /// <summary>
-        /// Hands the engine the ground's forecast for one vessel when it has
-        /// changed: a deadline while the vessel is silent, none once it is heard
-        /// again. A vessel gone from the game has nothing more to forecast.
-        /// </summary>
-        private void SayForecast(SilenceContactSnapshot v, double ut)
-        {
-            if (_forecasts == null || v.DeadlineBasis == SilenceDeadlineBasis.Destroyed)
-            {
-                return;
-            }
-            var silent = v.State != SilenceState.Nominal;
-            var forecast = new CraftForecast(
-                CraftStateRecorder.VesselPrefix + v.VesselId,
-                ut,
-                silent ? v.SilenceSinceUt : null,
-                silent ? v.DeadlineUt : null,
-                silent ? v.DeadlineBasis : null,
-                silent ? v.PredictedReacquisitionUt : null,
-                silent ? v.PredictionGraceSec : null);
-            if (_forecastSaid.TryGetValue(v.VesselId, out var said) && SameForecast(said, forecast))
-            {
-                return;
-            }
-            _forecastSaid[v.VesselId] = forecast;
-            _forecasts.RecordCraftForecast(v.VesselId, forecast, ut);
-        }
-
-        private static bool SameForecast(CraftForecast a, CraftForecast b) =>
-            a.OnsetUt == b.OnsetUt
-            && a.DeadlineUt == b.DeadlineUt
-            && a.Basis == b.Basis
-            && a.PredictedReacquisitionUt == b.PredictedReacquisitionUt
-            && a.PredictionGraceSec == b.PredictionGraceSec;
 
         private static bool SameRoster(List<SilenceContactSnapshot>? sent, List<SilenceContactSnapshot> now)
         {
@@ -373,9 +305,6 @@ namespace Gonogo.KSP.SilenceTracking
         private sealed class SilenceCapture
         {
             public double Ut { get; set; }
-
-            /// <summary>The tracker this was captured from. A new one is a new save or a reload, which says every forecast again.</summary>
-            public SilenceTracker? Tracker { get; set; }
 
             /// <summary>The vessels this tick touched, which is what the per-vessel topics publish.</summary>
             public List<SilenceContactSnapshot> Vessels { get; set; } = new List<SilenceContactSnapshot>();

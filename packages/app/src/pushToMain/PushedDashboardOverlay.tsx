@@ -90,7 +90,7 @@ export function PushedDashboardOverlay() {
   // Scaling via `transform` leaves each widget internally thinking it has
   // some other pixel budget, so flex/overflow inside the widget root can
   // clip content below the visible area. By handing every widget an actual
-  // pixel-size that fits, GroundTrack / Graph / etc. resize their own contents
+  // pixel-size that fits, MapView / Graph / etc. resize their own contents
   // (canvas, flex-wrap telemetry rows) to what's available.
   const cellW =
     viewport.w > 0
@@ -167,7 +167,7 @@ function PushedItem({
       <ItemBody>
         {def ? (
           // DashboardItemContext is required by widgets that consume
-          // `useActionInput` (GroundTrack, ActionGroup, ...): the station's
+          // `useActionInput` (MapView, ActionGroup, ...): the station's
           // copy has it; our mirror on main has to provide it too or the
           // hook throws. Actions won't actually fire here since there's
           // no main-side InputDispatcher bound to this instance id.

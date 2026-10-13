@@ -203,7 +203,7 @@ describe("alarm attribution survives the vocabulary migration", () => {
   it("attributes a contract-parameter alarm without a legacy key", () => {
     const contract = makeAlarm("c", "CONTRACT", "firing", {
       kind: "contract-parameter",
-      contractId: "1",
+      contractId: 1,
       parameterTitle: "Reach orbit",
       targetState: "Complete",
       sustainSeconds: 0,

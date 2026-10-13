@@ -461,7 +461,7 @@ describe("the widget-fixture check can fail", () => {
     // expresses the same payload two ways, and a reader that saw only one of
     // them would report a clean run over half the tree.
     const fromStream = fixturePayloads({
-      _scene: { widget: "administration-building" },
+      _scene: { widget: "admin-building" },
       _meta: { notes: "departmentName is prose here and must not be graded" },
       _stream: {
         emits: [
@@ -470,7 +470,7 @@ describe("the widget-fixture check can fail", () => {
       },
     });
     const fromLegacy = fixturePayloads({
-      _scene: { widget: "administration-building" },
+      _scene: { widget: "admin-building" },
       ...PLANTED_DEFECT,
     });
     expect(fromStream.map((p) => p.topic)).toEqual(["career.status"]);
@@ -488,7 +488,7 @@ describe("the widget-fixture check can fail", () => {
 
   it("reads the emits a sent command sets off as payloads too", () => {
     const answered = fixturePayloads({
-      _scene: { widget: "administration-building" },
+      _scene: { widget: "admin-building" },
       _stream: {
         emits: [],
         answers: {
@@ -645,10 +645,7 @@ describe("the widget-fixture check can fail", () => {
     // reader that took them for payloads would report the scene language as
     // contract violations, which is a gate nobody would keep.
     const payloads = fixturePayloads({
-      _scene: {
-        widget: "administration-building",
-        config: { showDepartment: true },
-      },
+      _scene: { widget: "admin-building", config: { showDepartment: true } },
       _meta: { notes: "any words at all", scenario: "x" },
       _stream: { emits: [] },
     });

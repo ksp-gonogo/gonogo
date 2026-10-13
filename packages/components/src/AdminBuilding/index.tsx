@@ -1,0 +1,154 @@
+import type { ComponentProps } from "@ksp-gonogo/core";
+import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
+import { META_VANTAGE, useCommand } from "@ksp-gonogo/sitrep-client";
+import {
+  readingOf,
+  stillTrue,
+  type TinyEssential,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
+import { useContributions } from "@ksp-gonogo/ui-kit";
+import { useMemo, useState } from "react";
+import { currencyOf } from "../shared/currencyOf";
+import { AdminBuildingView } from "./AdminBuildingView";
+import read from "./admin-building.declarations.g";
+import { parseEffectLines, parseStrategies } from "./parsing";
+import { inferCap, partition } from "./partition";
+import { resolveScreens } from "./screens";
+
+export type { Strategy } from "./types";
+export { parseEffectLines, parseStrategies };
+
+const topics = defineTopicManifest({
+  channels: ["career.status"],
+  fields: [
+    "career.status.strategies.all",
+    "career.status.strategies.activeCount",
+    "career.status.strategies.activationPatched",
+    "career.status.balances.funds",
+    "career.status.balances.reputation",
+    "career.status.balances.science",
+  ],
+});
+
+type AdminBuildingConfig = Record<string, never>;
+
+function AdminBuildingComponent({
+  w,
+  h,
+}: Readonly<ComponentProps<AdminBuildingConfig>>) {
+  /*
+   * The strategy list is a fact that only moves when the operator acts, so the
+   * last list received is still the list. The balances are judgements: they
+   * colour the price beside a control that spends them, so a held balance is
+   * withheld from that verdict. Whether Activate is available is its gate's.
+   */
+  const careerReading = topics.useTelemetry("career.status");
+  const rosterRaw = stillTrue(careerReading, undefined)?.strategies;
+  const stratsRaw = rosterRaw?.all;
+  // Only an explicit false says the game's activation is its own, so the command re-runs every check at confirm.
+  const checkedOnConfirm = rosterRaw?.activationPatched === false;
+  // An affordability verdict may only rest on an observation.
+  const balances =
+    careerReading.state === "observed"
+      ? careerReading.value.balances
+      : undefined;
+  const funds = balances?.funds;
+  const reputation = balances?.reputation;
+  const science = balances?.science;
+  // The balances as the rail draws them: held ones stay on screen and Unit marks them.
+  const shownBalances = {
+    funds: readingOf(careerReading, (c) => c.balances?.funds ?? undefined),
+    reputation: readingOf(
+      careerReading,
+      (c) => c.balances?.reputation ?? undefined,
+    ),
+    science: readingOf(careerReading, (c) => c.balances?.science ?? undefined),
+  };
+  // An Administration Building action carries no vessel signal delay.
+  const activateCmd = useCommand("career.strategy.activate", {
+    vantage: META_VANTAGE,
+  });
+  const deactivateCmd = useCommand("career.strategy.deactivate", {
+    vantage: META_VANTAGE,
+  });
+
+  const strategies = useMemo(() => parseStrategies(stratsRaw), [stratsRaw]);
+
+  // With no screens contributed (stock), the widget draws ungrouped.
+  const screenEntries = useContributions("admin-building.screens");
+  const screens = useMemo(
+    () => resolveScreens(screenEntries, strategies ?? []),
+    [screenEntries, strategies],
+  );
+
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [factorById, setFactorById] = useState<Record<string, number>>({});
+
+  return (
+    <AdminBuildingView
+      w={w}
+      h={h}
+      strategies={strategies}
+      activeCount={rosterRaw?.activeCount ?? null}
+      screens={screens}
+      funds={funds}
+      reputation={reputation}
+      science={science}
+      shownBalances={shownBalances}
+      rosterFrom={[currencyOf(careerReading)]}
+      factorById={factorById}
+      setFactorById={setFactorById}
+      checkedOnConfirm={checkedOnConfirm}
+      activateCmd={activateCmd}
+      deactivateCmd={deactivateCmd}
+      expandedId={expandedId}
+      setExpandedId={setExpandedId}
+    />
+  );
+}
+
+/** The balance and the commitments held against it. */
+function useAdminBuildingEssentials(): readonly TinyEssential[] {
+  const career = topics.useTelemetry("career.status");
+  const roster = partition(
+    parseStrategies(stillTrue(career, undefined)?.strategies?.all) ?? [],
+  );
+  const cap = inferCap(roster.softBlocked);
+  return [
+    {
+      label: "Funds",
+      value: readingOf(career, (c) => c.balances?.funds ?? undefined),
+      decimals: 0,
+    },
+    {
+      label: "Active",
+      value: readingOf(career, () => value("count", roster.active.length)),
+      tone: cap !== null && roster.active.length > cap ? "warn" : "neutral",
+    },
+  ];
+}
+
+registerComponent<AdminBuildingConfig>({
+  id: "admin-building",
+  name: "Admin Building",
+  description:
+    "Career strategies from the Administration Building: the ones you have running and their effects, and the ones you could start, with what each costs at the commitment you choose. Start and stop strategies from here.",
+  tags: ["career"],
+  defaultSize: { w: 5, h: 9 },
+  // Three columns and four rows hold a full balance over the tally.
+  minSize: { w: 5, h: 4 },
+  component: AdminBuildingComponent,
+  tiny: { title: "ADMIN", useEssentials: useAdminBuildingEssentials },
+  channels: topics.channels,
+  ...read,
+  fields: topics.fields,
+  defaultConfig: {},
+  actions: [],
+  pushable: true,
+  requires: ["career"],
+  contributionSlots: ["admin-building.screens"],
+  augmentSlots: ["admin-building.screen-body"],
+});
+
+export { AdminBuildingComponent };

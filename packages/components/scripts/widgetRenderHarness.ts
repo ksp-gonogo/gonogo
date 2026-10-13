@@ -125,7 +125,7 @@ const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
  * while the app draws it at `--font-size-compact`.
  */
 const APP_GLOBAL_CSS = resolve(HERE, "../../app/src/styles/global.css");
-/** What the app serves at its base URL: the body textures GroundTrack asks for. */
+/** What the app serves at its base URL: the body textures MapView asks for. */
 const PUBLIC_ASSETS = resolve(HERE, "../../app/public");
 const ARTIFACT_EXTS = new Set([".png"]);
 
@@ -2435,8 +2435,8 @@ export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
    * Resolve relative asset URLs against the app's public/ directory.
    *
    * The page is written to the system tmpdir, so `bodies/Kerbin_Color.png` (what
-   * `registerStockBodies()` hands GroundTrack) resolved to a tmpdir path and 404'd.
-   * GroundTrack's `img.onerror` degrades to a colour wash by design, so every map
+   * `registerStockBodies()` hands MapView) resolved to a tmpdir path and 404'd.
+   * MapView's `img.onerror` degrades to a colour wash by design, so every map
    * render came out textureless and looked deliberate, with the failure visible
    * only as console-error lines the harness prints and does not fail on.
    */

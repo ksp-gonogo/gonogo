@@ -79,19 +79,6 @@ namespace Sitrep.Host.Comms
         /// <summary>Calls <paramref name="heard"/> each time a report from the centre aboard the craft reaches <paramref name="centre"/>. Returns what stops it.</summary>
         Action HearCentreReport(string vesselId, string centre, Action<CentreReport> heard);
 
-        /// <summary>Calls <paramref name="heard"/> each time the ground's forecast for the craft, made at home, reaches <paramref name="centre"/>. Returns what stops it.</summary>
-        Action HearCraftForecast(string vesselId, string centre, Action<CraftForecast> heard);
-
-        /// <summary>
-        /// Records the home centre's judgement of the craft. It is sent out from
-        /// home, reaching each centre at that centre's delay to home and none
-        /// while it has no route home.
-        /// </summary>
-        void RecordHomeVerdict(string vesselId, HomeVerdict verdict, double ut);
-
-        /// <summary>Calls <paramref name="heard"/> each time the home centre's judgement of the craft reaches <paramref name="centre"/>. Returns what stops it.</summary>
-        Action HearHomeVerdict(string vesselId, string centre, Action<HomeVerdict> heard);
-
         /// <summary>
         /// Records what a craft's radio says of its own link, on the craft's
         /// node. It reaches each centre no sooner than light from the farthest

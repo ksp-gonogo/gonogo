@@ -69,34 +69,26 @@ export function ContractRewards({
 }: Readonly<{ contract: ContractEntry }>) {
   return (
     <div style={REWARDS_STYLE}>
-      {c.fundsCompletion !== 0 && (
+      {c.fundsCompletion > 0 && (
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>FUNDS</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.fundsCompletion === null
-              ? NULL_DISPLAY
-              : formatCompactCurrency(c.fundsCompletion)}
+            {formatCompactCurrency(c.fundsCompletion)}
           </span>
         </div>
       )}
-      {c.scienceCompletion !== 0 && (
+      {c.scienceCompletion > 0 && (
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>SCI</span>
           <span style={REWARD_VALUE_STYLE}>
-            {c.scienceCompletion === null
-              ? NULL_DISPLAY
-              : c.scienceCompletion.toFixed(1)}
+            {c.scienceCompletion.toFixed(1)}
           </span>
         </div>
       )}
-      {c.repCompletion !== 0 && (
+      {c.repCompletion > 0 && (
         <div style={REWARD_STYLE}>
           <span style={REWARD_LABEL_STYLE}>REP</span>
-          <span style={REWARD_VALUE_STYLE}>
-            {c.repCompletion === null
-              ? NULL_DISPLAY
-              : c.repCompletion.toFixed(1)}
-          </span>
+          <span style={REWARD_VALUE_STYLE}>{c.repCompletion.toFixed(1)}</span>
         </div>
       )}
     </div>

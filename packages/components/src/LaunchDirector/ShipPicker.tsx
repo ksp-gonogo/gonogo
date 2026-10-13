@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, SelectableRow, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
+import { SelectableRow, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
 import { type SavedShip, shipBlocked, shipBlockedReason } from "./ships";
 import {
   BlockedTag,
@@ -52,29 +52,22 @@ export function ShipPicker({
                 <ShipMeta>
                   <ShipName>{s.name}</ShipName>
                   <ShipDetails>
-                    {s.partCount === null ? NULL_DISPLAY : s.partCount} parts ·{" "}
-                    {s.totalMass === null ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <Unit value={value("t", s.totalMass)} decimals={1} />
-                    )}
+                    {s.partCount} parts ·{" "}
+                    <Unit value={value("t", s.totalMass)} decimals={1} />
                   </ShipDetails>
                 </ShipMeta>
                 <ShipCost>
                   {/* One Unit carrying the value, so the cost groups like the balance. */}
-                  {s.requiresFunds !== null &&
-                    s.requiresFunds > fundsAvailable && (
-                      <BlockedTag>
-                        <Unit value={value("funds", s.requiresFunds)} />
-                      </BlockedTag>
-                    )}
-                  {s.requiresFunds !== null &&
-                    s.requiresFunds <= fundsAvailable &&
-                    s.requiresFunds > 0 && (
-                      <CostTag>
-                        <Unit value={value("funds", s.requiresFunds)} />
-                      </CostTag>
-                    )}
+                  {s.requiresFunds > fundsAvailable && (
+                    <BlockedTag>
+                      <Unit value={value("funds", s.requiresFunds)} />
+                    </BlockedTag>
+                  )}
+                  {s.requiresFunds <= fundsAvailable && s.requiresFunds > 0 && (
+                    <CostTag>
+                      <Unit value={value("funds", s.requiresFunds)} />
+                    </CostTag>
+                  )}
                   {s.missingParts.length > 0 && (
                     <BlockedTag>{s.missingParts.length} locked</BlockedTag>
                   )}

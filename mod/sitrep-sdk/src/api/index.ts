@@ -80,7 +80,7 @@ export type {
 } from "./alarm-request";
 export { useAlarmRequest } from "./alarm-request";
 export type {
-  AdministrationBuildingScreenEntry,
+  AdminBuildingScreenEntry,
   CommSignalHopRateEntry,
   CrewRowToneEntry,
   ExperimentsInstrumentEntry,
@@ -132,7 +132,7 @@ export type {
 export type {
   ActionGroupSlotContext,
   ActionGroupSlotId,
-  AdministrationBuildingScreenBodyContext,
+  AdminBuildingScreenBodyContext,
   AstronautComplexCrewContext,
   CrewAvatarContext,
   CrewBadgeContext,
@@ -141,19 +141,18 @@ export type {
   ExperimentsInstrument,
   ExperimentsInstrumentSlotContext,
   FleetRosterUpdatesContext,
-  GroundTrackScope,
   LaunchDirectorPadContext,
   LaunchDirectorSlotContext,
   MapBaseLayerContext,
   MapCoverageGate,
   MapOverlayContext,
+  MapViewScope,
   ObjectiveSlotItem,
   ObjectiveSlotSection,
   ObjectiveSlotState,
   ObjectiveSourceContext,
   OrbitOverlayContext,
   PowerSystemsScope,
-  RendezvousHudContext,
   ScienceDataAboardRowContext,
   ShipMapBounds,
   ShipMapOverlayContext,
@@ -161,6 +160,7 @@ export type {
   ShipMapPartStateModule,
   ShipMapPartType,
   SystemOverlayContext,
+  TargetingHudContext,
 } from "./slots";
 export type {
   ThemeColors,

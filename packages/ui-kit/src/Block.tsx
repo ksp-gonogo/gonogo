@@ -253,7 +253,7 @@ function BlockRoot({ ...props }: BlockProps): ReactNode {
  * The arrangement of a record with no surface: a name sized as a heading, a
  * body under it, asides on any of four sides, and a footer. Useful for laying
  * out one item of a list, such as a strategy or a contract, so every record in
- * a widget has the same type and spacing. Used by the administration building widget's
+ * a widget has the same type and spacing. Used by the admin building widget's
  * strategy cards. {@link Card} is the same arrangement on a sunken surface.
  *
  * `titleRight` is not `right`: `titleRight` holds badges on the name's line and

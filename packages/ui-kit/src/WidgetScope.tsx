@@ -14,7 +14,7 @@ const WidgetScopeContext = createContext<{
  * resource, the followed body) to augments rendered in any of its slots, which
  * read it with {@link useWidgetScope}. Useful for letting an Uplink's augment
  * show the operator figures for the same body or resource the widget shows.
- * Used by the ground track widget and the power systems widget. It carries one scope value; several
+ * Used by the map view and the power systems widget. It carries one scope value; several
  * unrelated fields belong in a slot's own props type instead.
  *
  * `widget` is the publishing widget's registered component id. It types

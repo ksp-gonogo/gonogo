@@ -1,0 +1,343 @@
+import {
+  clearActionHandlers,
+  clearAugments,
+  DashboardItemContext,
+} from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it } from "vitest";
+import { perItemGateReport } from "../test/perItemGate";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
+import { parseTechNodes, TechTreeComponent } from "./index";
+
+/**
+ * TechTree off a real stream pipeline. Nodes are emitted in the explicit-`state` shape `parseTechNodes` also accepts, which lets these tests exercise the per-node `parts` rendering the real wire has no field for.
+ */
+
+const SAMPLE_NODES = [
+  {
+    id: "start",
+    title: "Start",
+    description: "The technology we started out with.",
+    scienceCost: 0,
+    state: "Available",
+    parents: [],
+    parts: [
+      {
+        name: "mk1pod.v2",
+        title: "Mk1 Command Pod",
+        manufacturer: "Kerlington Model Rockets",
+        category: "Pods",
+        entryCost: 0,
+        purchased: true,
+      },
+    ],
+  },
+  {
+    id: "basicRocketry",
+    title: "Basic Rocketry",
+    description: "How hard can Rocket Science be anyway?",
+    scienceCost: 5,
+    state: "Researchable",
+    parents: ["start"],
+    parts: [
+      {
+        name: "liquidEngine2",
+        title: "LV-T45 Liquid Fuel Engine",
+        manufacturer: "Jebediah Kerman's Junkyard",
+        category: "Engine",
+        entryCost: 0,
+        purchased: false,
+      },
+    ],
+  },
+  {
+    id: "advRocketry",
+    title: "Advanced Rocketry",
+    description: "We're getting fancy.",
+    scienceCost: 45,
+    state: "Unavailable",
+    parents: ["basicRocketry"],
+    parts: [],
+  },
+];
+
+function careerStatusFrom(
+  nodes: typeof SAMPLE_NODES,
+  science: number,
+): Record<string, unknown> {
+  return {
+    balances: { funds: 0, reputation: 0, science },
+    facilities: null,
+    contracts: null,
+    strategies: null,
+    tech: { unlockedCount: 0, unlockedIds: [], nodes },
+  };
+}
+
+function renderTree(fixture: StreamFixture) {
+  return render(
+    <fixture.Provider>
+      <DashboardItemContext.Provider value={{ instanceId: "tt" }}>
+        <TechTreeComponent config={{}} id="tt" />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+}
+
+describe("TechTreeComponent", () => {
+  // Reset at the start of each test, when the prior tree is already unmounted, so no mutation fires against a live component.
+  beforeEach(() => {
+    clearActionHandlers();
+    clearAugments();
+  });
+
+  it("shows awaiting placeholder before any telemetry", () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    expect(screen.getByText(/Awaiting tech telemetry/i)).toBeInTheDocument();
+  });
+
+  it("shows all nodes by default (no empty first paint)", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    // Default filter is "All", so every node is present on first paint.
+    await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
+    expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
+    expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument();
+  });
+
+  it("draws a locked node's words at the muted text tier rather than through opacity", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Advanced Rocketry")).toBeInTheDocument(),
+    );
+    const locked = screen.getByText("Advanced Rocketry").closest("li");
+    if (locked === null) throw new Error("the locked node has no row");
+    const style = getComputedStyle(locked);
+    expect(["", "1"]).toContain(style.opacity);
+    expect(style.getPropertyValue("--color-text-primary").trim()).toBe(
+      "var(--color-text-muted)",
+    );
+  });
+
+  it("filters to Researchable on demand", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Researchable" }));
+    // Basic Rocketry (parent unlocked, affordable) is researchable-now.
+    expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
+    // Start (owned) and Advanced Rocketry (parent locked) are filtered out.
+    expect(screen.queryByText("Start")).toBeNull();
+    expect(screen.queryByText("Advanced Rocketry")).toBeNull();
+  });
+
+  it("expands a node to show description, parents, and parts", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByText("Basic Rocketry"));
+    expect(
+      screen.getByText("How hard can Rocket Science be anyway?"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("start")).toBeInTheDocument(); // parent chip
+    expect(visibleText()).toContain("LV-T45 Liquid Fuel Engine");
+  });
+
+  it("arms and confirms tech.unlock with the node id", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByText("Basic Rocketry"));
+    await user.click(screen.getByRole("button", { name: "Unlock" }));
+    await user.click(screen.getByRole("button", { name: /Confirm unlock/i }));
+    await waitFor(() => {
+      const sent = fixture.transport.sentCommands.find(
+        (c) => c.command === "career.tech.unlock",
+      );
+      expect(sent).toMatchObject({
+        args: { techId: "basicRocketry" },
+        vantage: "meta",
+      });
+    });
+  });
+
+  it("renders the tiered graph at wide sizes and opens a detail pane on click", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "tt" }}>
+          <TechTreeComponent config={{}} id="tt" w={16} h={12} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    // Graph cards are buttons labelled with title + state + cost.
+    const card = await screen.findByRole("button", { name: /Basic Rocketry/ });
+    await user.click(card);
+    const pane = screen.getByRole("region", { name: "Basic Rocketry details" });
+    expect(pane).toBeInTheDocument();
+    // Detail surfaces the description and the unlock control.
+    expect(
+      screen.getByText("How hard can Rocket Science be anyway?"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Unlock" })).toBeInTheDocument();
+  });
+
+  it("darkens Unlock on a short balance only once the node's gate refuses it", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 2));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByText("Basic Rocketry"));
+    const unlock = screen.getByRole("button", { name: "Unlock" });
+    expect((unlock as HTMLButtonElement).disabled).toBe(false);
+
+    const node = SAMPLE_NODES.find((n) => n.title === "Basic Rocketry");
+    act(() => {
+      fixture.emit(
+        "system.uplink.gates",
+        perItemGateReport("career.tech.unlock", "techId", {
+          [String(node?.id)]: {
+            errorCode: "insufficientScience",
+            detail: "not enough science",
+          },
+        }),
+      );
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: /not enough science/ }),
+      ).toHaveAttribute("aria-disabled", "true"),
+    );
+  });
+
+  it("arms Unlock with no game-scene signal at all, since the backend carries no scene gate", async () => {
+    const user = userEvent.setup();
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() =>
+      expect(screen.getByText("Basic Rocketry")).toBeInTheDocument(),
+    );
+    await user.click(screen.getByText("Basic Rocketry"));
+    const unlock = screen.getByRole("button", { name: "Unlock" });
+    expect((unlock as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("exposes the per-node badges slot with no bound augment (empty is fine)", async () => {
+    // No augment registered: the slot composes nothing and the list renders one row per node.
+    const fixture = setupStreamFixture({
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+    renderTree(fixture);
+    act(() => {
+      fixture.emit("career.status", careerStatusFrom(SAMPLE_NODES, 100));
+    });
+    await waitFor(() => expect(screen.getByText("Start")).toBeInTheDocument());
+    expect(screen.getByText("Basic Rocketry")).toBeInTheDocument();
+    expect(screen.queryByTestId("tech-badge")).not.toBeInTheDocument();
+  });
+});
+
+describe("parseTechNodes", () => {
+  it("returns null for non-array input", () => {
+    expect(parseTechNodes(null)).toBeNull();
+    expect(parseTechNodes(undefined)).toBeNull();
+    expect(parseTechNodes({})).toBeNull();
+  });
+
+  it("drops entries without an id", () => {
+    const parsed = parseTechNodes([
+      { id: "good", title: "Good", scienceCost: 0, state: "Available" },
+      { title: "No id" },
+      { id: 42 },
+    ]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed?.[0].id).toBe("good");
+  });
+
+  it("clamps unknown states to Unavailable", () => {
+    const parsed = parseTechNodes([
+      { id: "x", title: "X", scienceCost: 0, state: "Floomp" },
+    ]);
+    expect(parsed?.[0].state).toBe("Unavailable");
+  });
+
+  it("preserves description, parents, and parts when present", () => {
+    const parsed = parseTechNodes([SAMPLE_NODES[1]]);
+    expect(parsed?.[0].description).toBe(
+      "How hard can Rocket Science be anyway?",
+    );
+    expect(parsed?.[0].parents).toEqual(["start"]);
+    expect(parsed?.[0].parts[0].title).toBe("LV-T45 Liquid Fuel Engine");
+    expect(parsed?.[0].parts[0].purchased).toBe(false);
+  });
+});

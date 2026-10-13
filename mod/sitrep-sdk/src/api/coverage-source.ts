@@ -13,7 +13,7 @@ import type {
  *
  * A coverage source contributes data (coverage bytes for a body under some layer
  * id), not a renderable component, which is why it is a registry parallel to the
- * augment one rather than another slot kind. Consumed by GroundTrack's own coverage
+ * augment one rather than another slot kind. Consumed by MapView's own coverage
  * gate as a PAINT-GATE: there is no darkening overlay layer in this design, only
  * surface content whose alpha is modulated per-tile by the composite of every
  * enabled source here.
@@ -61,7 +61,7 @@ function notifyChange(): void {
 /**
  * Calls `cb` whenever a coverage source is registered or removed, and returns
  * the function that stops it. Useful for redrawing a body map when the set of
- * scanned-ground layers changes. Used by the ground track widget's coverage gate.
+ * scanned-ground layers changes. Used by the map view's coverage gate.
  *
  * @category Maps and coverage
  */
@@ -109,7 +109,7 @@ export function unregisterCoverageSource(id: string): void {
 
 /**
  * Every registered coverage source, in registration order. Useful for deciding
- * which parts of a body map to reveal. Used by the ground track widget's coverage gate.
+ * which parts of a body map to reveal. Used by the map view's coverage gate.
  *
  * @category Maps and coverage
  */
@@ -122,7 +122,7 @@ export function getCoverageSources(): CoverageSourceDefinition[] {
 /**
  * The settings each coverage source adds to the map's settings panel, one block
  * per source that declares any. Useful for letting the operator adjust each
- * coverage layer. Used by the ground track widget's settings. Each block is keyed by the
+ * coverage layer. Used by the map view's settings. Each block is keyed by the
  * source's id, so two sources' settings with the same key never collide.
  *
  * @category Maps and coverage

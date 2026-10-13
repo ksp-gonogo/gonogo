@@ -25,7 +25,7 @@ export interface FilterChipProps {
  * A pill-shaped toggle `button` for one filter term, with `aria-pressed`
  * following `selected` and an optional count after the label. Useful for
  * letting the operator switch one filter term on or off. Used by
- * {@link useRowFilter} for each contributed term, and by research and development. Use it
+ * {@link useRowFilter} for each contributed term, and by the tech tree. Use it
  * directly for a filter row of your own.
  *
  * @example

@@ -238,67 +238,6 @@ namespace Sitrep.Host
             });
         }
 
-        /// <summary>
-        /// The prefix the ground's forecasts are recorded under, one topic per
-        /// craft, on the home command's node. A forecast is the ground's own
-        /// reckoning from where it last knew the craft to be, not word from the
-        /// craft, so it is home's from the moment it is made, including for a
-        /// craft no ground station ever heard.
-        /// </summary>
-        internal const string CraftForecastPrefix = "homeforecast.";
-
-        public void RecordCraftForecast(string vesselId, CraftForecast forecast, double ut) =>
-            _courier.Record(HomeCommandNode, CraftForecastPrefix + vesselId, forecast, ut);
-
-        public Action HearCraftForecast(string vesselId, string centre, Action<CraftForecast> heard) =>
-            _courier.SubscribeStream(HomeCommandNode, CraftForecastPrefix + vesselId, centre, delivered =>
-            {
-                if (delivered.Payload is CraftForecast forecast)
-                {
-                    heard(forecast);
-                }
-            });
-
-        /// <summary>The prefix the home centre's judgements are recorded under, one topic per craft, on the home command's node.</summary>
-        internal const string HomeVerdictPrefix = "homeverdict.";
-
-        public void RecordHomeVerdict(string vesselId, HomeVerdict verdict, double ut) =>
-            _courier.Record(HomeCommandNode, HomeVerdictPrefix + vesselId, verdict.Copy(), ut);
-
-        public Action HearHomeVerdict(string vesselId, string centre, Action<HomeVerdict> heard) =>
-            _courier.SubscribeStream(HomeCommandNode, HomeVerdictPrefix + vesselId, centre, delivered =>
-            {
-                if (delivered.Payload is HomeVerdict verdict)
-                {
-                    heard(verdict);
-                }
-            });
-
-        /// <summary>
-        /// The longest a report of contact with the craft can take to reach the
-        /// home centre, in seconds: over each centre that has had a route to it,
-        /// that route's delay as last measured and the centre's delay home. A
-        /// centre with no route home adds nothing, and nor does a craft no centre
-        /// has heard.
-        /// </summary>
-        public double NewsAllowanceSeconds(string vesselId)
-        {
-            if (!_craftReached.TryGetValue(vesselId, out var reached))
-            {
-                return 0.0;
-            }
-            var longest = 0.0;
-            foreach (var row in reached)
-            {
-                var home = _network.DelayTo(row.Key, HomeCommandNode);
-                if (IsFiniteNonNegative(home))
-                {
-                    longest = Math.Max(longest, row.Value.Seconds + home);
-                }
-            }
-            return longest;
-        }
-
         internal const string CraftRadioSuffix = ".radio";
 
         /// <summary>The topic a craft's radio readings are recorded under.</summary>

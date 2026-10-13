@@ -93,7 +93,7 @@ export const FAINT_TEXT_STYLE: Readonly<Record<string, string>> = {
 /**
  * The same declarations as {@link FAINT_TEXT_STYLE}, written as
  * `property: value;` lines for a styled-components rule. Useful for quieting a
- * block of words in a styled rule. Used by the research and development styles.
+ * block of words in a styled rule. Used by the tech tree's styles.
  *
  * @category Typography
  */

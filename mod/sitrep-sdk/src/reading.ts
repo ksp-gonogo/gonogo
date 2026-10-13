@@ -688,7 +688,7 @@ export type HeldGrade =
 /**
  * The values `state` can take on a reading: `"pending"`, `"unowned"`,
  * `"absent"`, `"observed"` and `"held"`. Useful for choosing what to draw from
- * a reading. Used by {@link hasAnswered} and by the rendezvous and landing widgets.
+ * a reading. Used by {@link hasAnswered} and by the targeting and landing widgets.
  *
  * @category Reading telemetry
  */
@@ -907,7 +907,7 @@ export function readingOf<Payload, Selected>(
  * model, the caller writes the modelled computation itself. Useful for showing
  * the operator a figure worked out from several fields, such as time to an
  * encounter, that is still marked as modelled. Used by the maneuver planner,
- * the rendezvous widget and the encounter countdown.
+ * the targeting widget and the encounter countdown.
  *
  * @category Reckoners
  */

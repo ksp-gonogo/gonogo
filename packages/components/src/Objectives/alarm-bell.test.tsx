@@ -32,7 +32,7 @@ function mount(alarmSet: boolean) {
             alarmSet &&
             matcher({
               kind: "contract-parameter",
-              contractId: SAFE_ID,
+              contractId: Number(SAFE_ID),
               parameterTitle: "Orbit Kerbin",
             })
               ? "alarm-1"
@@ -94,7 +94,7 @@ describe("Objectives: the contract objective alarm bell", () => {
         name: "Orbit Kerbin → Complete",
         trigger: {
           kind: "contract-parameter",
-          contractId: SAFE_ID,
+          contractId: Number(SAFE_ID),
           parameterTitle: "Orbit Kerbin",
           targetState: "Complete",
           sustainSeconds: 0,
@@ -121,25 +121,11 @@ describe("Objectives: the contract objective alarm bell", () => {
     expect(created).toEqual([]);
   });
 
-  it("offers a bell on a contract whose id is beyond the safe integer range, keeping the id exact", async () => {
-    const user = userEvent.setup();
-    const { created } = mount(false);
-    await user.click(
-      screen.getByRole("button", {
-        name: "Set alarm for Board the craft completion",
-      }),
-    );
-    expect(created).toEqual([
-      {
-        name: "Board the craft → Complete",
-        trigger: {
-          kind: "contract-parameter",
-          contractId: UNSAFE_ID,
-          parameterTitle: "Board the craft",
-          targetState: "Complete",
-          sustainSeconds: 0,
-        },
-      },
-    ]);
+  it("offers no bell on a contract whose id cannot fit the trigger", () => {
+    mount(false);
+    expect(screen.getByText("Board the craft")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Board the craft/ }),
+    ).toBeNull();
   });
 });

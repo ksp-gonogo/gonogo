@@ -20,7 +20,7 @@
  * is the dashboard's, derived by the host from `dataRequirements`, so under a bare
  * widget harness it never renders at all and the wait is satisfied on the first
  * paint, before any emit. The flaw was diagnosed in a comment in
- * `Rendezvous/snapshots.test.tsx` and fixed only there, while the same wait
+ * `Targeting/snapshots.test.tsx` and fixed only there, while the same wait
  * stayed load-bearing elsewhere.
  *
  * A textual detector found the first widget and missed the second, because one
@@ -63,7 +63,7 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "loss of signal is the scenario; the widget's subject is the absence",
   "ThermalStatus/no-thermal-data":
     "every reading is the 2.05 K deep-space sentinel under an empty part name, which is the vessel reporting no thermal data rather than a read that failed",
-  "AdministrationBuilding/feature-unavailable":
+  "AdminBuilding/feature-unavailable":
     "there is no StrategySystem, which is a save with no career rather than a building left unbuilt, so `strategies` is null on the wire and there is no roster to draw; the absence is the scenario",
   "FuelStatus/no-engine-data":
     "no engines, no stages and every tank 0/0, and at tiny-3x3 the widget is the stage readout alone, so that one mode has nothing left to show; the other seven modes DO render this fixture and fail when starved",
@@ -73,11 +73,11 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "depicts the pre-telemetry placeholder deliberately, as its own case",
   "LaunchDirector/awaiting":
     "depicts the pre-telemetry placeholder deliberately, as its own case",
-  "GroundTrack/no-vessel-data":
+  "MapView/no-vessel-data":
     "no vessel position to plot, so the map draws its ground state only",
   "SemiMajorAxis/no-data":
     "no orbit to report; the widget is a single readout with nothing behind it",
-  "Rendezvous/no-target":
+  "Targeting/no-target":
     "at tiny-3x3 the widget draws only the Range/Closing readouts as em dashes, with nothing left to distinguish a confirmed no-target from a stream that has not reported yet; the other seven modes DO render distinguishing text and fail when starved",
   "Twr/engine-off-empty":
     "engines off, so there is genuinely no thrust-to-weight to show",

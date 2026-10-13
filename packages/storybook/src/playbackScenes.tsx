@@ -163,7 +163,7 @@ export function SystemTransferScene({
   );
 }
 
-/** Ground Track over two orbits of Kerbin, the ground track marching west as the planet turns beneath it. */
+/** Map View over two orbits of Kerbin, the ground track marching west as the planet turns beneath it. */
 export function MapOrbitScene({ w = 18, h = 12 }: PlaybackSceneProps) {
   const model = useMemo(
     () => ({ first: orbitFirstScene(), frames: orbitFrames() }),
@@ -171,7 +171,7 @@ export function MapOrbitScene({ w = 18, h = 12 }: PlaybackSceneProps) {
   );
   return (
     <FramePlayer
-      widgetId="ground-track"
+      widgetId="map-view"
       name="orbit"
       first={model.first}
       frames={model.frames}

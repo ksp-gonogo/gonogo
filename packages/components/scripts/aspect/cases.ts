@@ -1,4 +1,4 @@
-import { coverBox, type Size } from "../../src/Rendezvous/reticleGeometry";
+import { coverBox, type Size } from "../../src/Targeting/reticleGeometry";
 
 export interface AspectCase {
   name: string;

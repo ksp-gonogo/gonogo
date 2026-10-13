@@ -8171,8 +8171,8 @@
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
       {
-        "key": "sitrep-sdk . ContributionRegistry#\"administration-building.screens\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk . ContributionRegistry#\"strategies.screens\"",
@@ -8367,68 +8367,12 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
-        "key": "sitrep-sdk . SlotRegistry#\"administration-building.screen-body\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"ground-track.actions\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"ground-track.base\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"ground-track.overlay\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"ground-track.sections\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"map-view.actions\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"map-view.base\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"map-view.overlay\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"map-view.sections\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"rendezvous.camera\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"rendezvous.overlay\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"research-and-development.sections\"",
-        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
+        "key": "sitrep-sdk . SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"targeting.camera\"",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"targeting.overlay\"",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . SlotRegistry#\"tech-tree.sections\"",
-        "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
       },
       {
         "key": "sitrep-sdk . StatEntry#value?",
@@ -8523,44 +8467,8 @@
         "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean. The alarm roster Topic alarm.scet is now alarm.activeList, since it lists every kind of alarm"
       },
       {
-        "key": "sitrep-sdk . TargetingHudContext",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#aligned",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#ax",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#ay",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#cameraFlightId",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#distance",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#maxDeg",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#reportPictureAspect",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#reticleOffset",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk . TargetingHudContext#reticleTravelPx",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+        "key": "sitrep-sdk . TargetingHudContext#held",
+        "note": "TargetingHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
         "key": "sitrep-sdk . ThemeDefinition#theme",
@@ -8597,14 +8505,6 @@
       {
         "key": "sitrep-sdk . UseCommandResult#sendStatus",
         "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
-      },
-      {
-        "key": "sitrep-sdk . WidgetScopeRegistry#\"ground-track\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . WidgetScopeRegistry#\"map-view\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
       },
       {
         "key": "sitrep-sdk . defineUplinkClient",
@@ -9019,8 +8919,8 @@
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
       {
-        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"administration-building.screens\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./registry ~ContributionRegistry#\"strategies.screens\"",
@@ -9491,8 +9391,8 @@
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
       {
-        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"administration-building.screens\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./spine ~ContributionRegistry#\"strategies.screens\"",
@@ -9695,8 +9595,8 @@
         "note": "A contribution's Topic dep now arrives as its reading, so the { reading } form is gone, and a processor dep must be one whose result carries currency"
       },
       {
-        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"administration-building.screens\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./testing ~ContributionRegistry#\"strategies.screens\"",
@@ -9883,68 +9783,12 @@
         "note": "tone is optional on a text row, which never draws it; the entry is a union on kind"
       },
       {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"administration-building.screen-body\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.actions\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.base\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.overlay\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.sections\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.actions\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.base\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.overlay\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.sections\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"rendezvous.camera\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"rendezvous.overlay\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"research-and-development.sections\"",
-        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"targeting.camera\"",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"targeting.overlay\"",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~SlotRegistry#\"tech-tree.sections\"",
-        "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
       },
       {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
@@ -10031,44 +9875,8 @@
         "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
       },
       {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#aligned",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#ax",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#ay",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#cameraFlightId",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#distance",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#maxDeg",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#reportPictureAspect",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#reticleOffset",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#reticleTravelPx",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#held",
+        "note": "TargetingHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
@@ -10191,8 +9999,8 @@
         "note": "now an interface extending CommandLossLike with an optional fault code, where it was an alias of CommandLossLike"
       },
       {
-        "key": "ui-kit . ContributionRegistry#\"administration-building.screens\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "ui-kit . ContributionRegistry#\"admin-building.screens\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "ui-kit . ContributionRegistry#\"strategies.screens\"",
@@ -10319,68 +10127,12 @@
         "note": "Its kind widens with \"current\" and it gains the optional elsewhere prop, which draws the kind's hollow form. Existing callers draw as before"
       },
       {
-        "key": "ui-kit . SlotRegistry#\"administration-building.screen-body\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"ground-track.actions\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"ground-track.base\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"ground-track.overlay\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"ground-track.sections\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"map-view.actions\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"map-view.base\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"map-view.overlay\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"map-view.sections\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"rendezvous.camera\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"rendezvous.overlay\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"research-and-development.sections\"",
-        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
+        "key": "ui-kit . SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "ui-kit . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"targeting.camera\"",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"targeting.overlay\"",
-        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
-      },
-      {
-        "key": "ui-kit . SlotRegistry#\"tech-tree.sections\"",
-        "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
       },
       {
         "key": "ui-kit . Spinner",
@@ -10461,14 +10213,6 @@
       {
         "key": "ui-kit . WithheldTrajectory",
         "note": "Moved to the sdk frames entry, beside OrbitTrajectory"
-      },
-      {
-        "key": "ui-kit . WidgetScopeRegistry#\"ground-track\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "ui-kit . WidgetScopeRegistry#\"map-view\"",
-        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
       },
       {
         "key": "ui-kit . bandClaim",
@@ -10721,44 +10465,44 @@
     ],
     "additions": [
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenBodyContext",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenBodyContext",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenBodyContext#screenId",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenBodyContext#screenId",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry#departments?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry#disabledReason?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry#drawsOwnActions?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry#enabled?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry#id",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry#label",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk . AdministrationBuildingScreenEntry#order?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk . AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk . Arrival",
@@ -11137,16 +10881,16 @@
         "note": "New: the latest instant a recorded sample is valid at"
       },
       {
-        "key": "sitrep-sdk . GroundTrackScope",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . GroundTrackScope#bodyName",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
         "key": "sitrep-sdk . HEALTH_STATE_NAMES",
         "note": "published because UplinkHealthStateName is keyed on it"
+      },
+      {
+        "key": "sitrep-sdk . MapViewScope",
+        "note": "Exported by name, so a widget or augment reading this scope can name its type"
+      },
+      {
+        "key": "sitrep-sdk . MapViewScope#bodyName",
+        "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
       {
         "key": "sitrep-sdk . MissionMeta#firstValidUt?",
@@ -11259,50 +11003,6 @@
       {
         "key": "sitrep-sdk . ReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#aligned",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#ax",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#ay",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#cameraFlightId",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#distance",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#held",
-        "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#maxDeg",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#reportPictureAspect",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#reticleOffset",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk . RendezvousHudContext#reticleTravelPx",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
         "key": "sitrep-sdk . ResolvedDeps",
@@ -11961,44 +11661,44 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenBodyContext",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenBodyContext",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenBodyContext#screenId",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenBodyContext#screenId",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry#departments?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry#disabledReason?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry#drawsOwnActions?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry#enabled?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry#id",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry#label",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./registry ~AdministrationBuildingScreenEntry#order?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./registry ~AstronautComplexCrewContext",
@@ -12521,50 +12221,6 @@
         "note": "Whether the sea is seen from above or from the side"
       },
       {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#aligned",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#ax",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#ay",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#cameraFlightId",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#distance",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#held",
-        "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#maxDeg",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#reportPictureAspect",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#reticleOffset",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~RendezvousHudContext#reticleTravelPx",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SampleKind",
         "note": "How a channel's samples relate in time: continuous, discrete or event"
       },
@@ -12769,8 +12425,8 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"administration-building.screen-body\"",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"admin-building.screen-body\"",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"astronaut-complex.crew\"",
@@ -12821,22 +12477,6 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.actions\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.base\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.overlay\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.sections\"",
-        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
-      },
-      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"landing-status.actions\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -12857,6 +12497,22 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.actions\"",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.base\"",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.overlay\"",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.sections\"",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"objectives.source\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -12867,18 +12523,6 @@
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"power-systems.sections\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"rendezvous.camera\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"rendezvous.overlay\"",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"research-and-development.sections\"",
-        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"science-data.aboard-row\"",
@@ -12902,6 +12546,18 @@
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"target-picker.sections\"",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"targeting.camera\"",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"targeting.overlay\"",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"tech-tree.sections\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
@@ -12970,6 +12626,50 @@
       },
       {
         "key": "sitrep-sdk ./registry ~SystemOverlayContext#width",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#aligned",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#ax",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#ay",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#cameraFlightId",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#distance",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#held",
+        "note": "TargetingHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#maxDeg",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#reportPictureAspect",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#reticleOffset",
+        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TargetingHudContext#reticleTravelPx",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
@@ -13653,36 +13353,36 @@
         "note": "Wraps a degree value to (-180, 180]; the one copy, moved out of the impact point and core calc, which now re-export it"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry#departments?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry#disabledReason?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry#drawsOwnActions?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry#enabled?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry#id",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry#label",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./spine ~AdministrationBuildingScreenEntry#order?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./spine ~AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./spine ~CommSignalHopRateEntry#held?",
@@ -13925,44 +13625,44 @@
         "note": "Declares a test Topic's mark, so a test can register a model where the contract marks nothing"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenBodyContext",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenBodyContext",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenBodyContext#screenId",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenBodyContext#screenId",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry#departments?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#departments?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry#disabledReason?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#disabledReason?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry#drawsOwnActions?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#drawsOwnActions?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry#enabled?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#enabled?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry#id",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#id",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry#label",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#label",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
-        "key": "sitrep-sdk ./testing ~AdministrationBuildingScreenEntry#order?",
-        "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
+        "key": "sitrep-sdk ./testing ~AdminBuildingScreenEntry#order?",
+        "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
         "key": "sitrep-sdk ./testing ~Arrival",
@@ -14267,50 +13967,6 @@
       {
         "key": "sitrep-sdk ./testing ~ReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#aligned",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#ax",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#ay",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#cameraFlightId",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#distance",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#held",
-        "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#maxDeg",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#reportPictureAspect",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#reticleOffset",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
-      },
-      {
-        "key": "sitrep-sdk ./testing ~RendezvousHudContext#reticleTravelPx",
-        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
         "key": "sitrep-sdk ./testing ~SampleKind",

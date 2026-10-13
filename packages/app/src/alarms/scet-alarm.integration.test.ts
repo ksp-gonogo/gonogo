@@ -1499,7 +1499,7 @@ describe("SCET alarms", () => {
       name: "Mun orbit done",
       trigger: {
         kind: "contract-parameter",
-        contractId: "42",
+        contractId: 42,
         parameterTitle: "Orbit the Mun",
         targetState: "Failed",
         sustainSeconds: 3,
@@ -2332,7 +2332,7 @@ describe("SCET alarms", () => {
   describe("contract objective, judged by the mod", () => {
     const MUN_ORBIT = {
       kind: "contract-parameter",
-      contractId: "42",
+      contractId: 42,
       parameterTitle: "Orbit the Mun",
       targetState: "Complete",
       sustainSeconds: 0,

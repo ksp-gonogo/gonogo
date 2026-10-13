@@ -702,7 +702,7 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
  * time), found (a lost command has since replied), or blocked. Useful for
  * letting the operator send a command and see which control sent it and how it
  * ended. Used by the upgrade button of the space centre status widget and the
- * rows of the administration building. A control is blocked while the mod says in
+ * rows of the admin building. A control is blocked while the mod says in
  * advance that the command would be refused, such as a purchase the save cannot
  * afford, and the button then says why. The panel's delay rail shows that a
  * command is in flight; this shows which control sent it.

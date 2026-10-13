@@ -1,11 +1,10 @@
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { asQuantityish, magnitudeOf } from "../shared/magnitude";
+import { asQuantityish, magnitudeOr } from "../shared/magnitude";
 
 export interface CrewMember {
   name: string;
   trait: string;
-  /** Null where the wire carried none: a kerbal of unknown rank is not a level-0 kerbal. */
-  experienceLevel: number | null;
+  experienceLevel: number;
   /** Whether this kerbal can fly today, or `null` where the wire said nothing, which is not false. */
   available: boolean | null;
   unavailableReason: string;
@@ -44,14 +43,9 @@ export function crewTally(crew: CrewMember[], selected = 0): string {
   return ` ${terms.join(" · ")}`;
 }
 
-/** The rank as the row writes it, the no-data token when the wire carried none. */
-function rankOf(k: CrewMember): string {
-  return k.experienceLevel === null ? NULL_DISPLAY : `L${k.experienceLevel}`;
-}
-
 /** Trait and rank stay reachable on a row whose value line spent itself on the reason. */
 export function crewChipTitle(k: CrewMember, reading: CrewReading): string {
-  const who = `${k.trait || NULL_DISPLAY} · ${rankOf(k)}`;
+  const who = `${k.trait || NULL_DISPLAY} · L${k.experienceLevel}`;
   if (reading === "available") return who;
   if (reading === "unavailable") return `${who} · ${k.unavailableReason}`;
   return `${who} · no availability reading`;
@@ -60,7 +54,7 @@ export function crewChipTitle(k: CrewMember, reading: CrewReading): string {
 /** The chip's second line: trait and rank for a kerbal who can fly, otherwise why not. */
 export function crewChipDetail(k: CrewMember, reading: CrewReading): string {
   if (reading === "available") {
-    return `${k.trait || NULL_DISPLAY} ${rankOf(k)}`;
+    return `${k.trait || NULL_DISPLAY} L${k.experienceLevel}`;
   }
   if (reading === "unavailable") return k.unavailableReason;
   return "no reading";
@@ -79,7 +73,7 @@ export function parseCrew(raw: unknown): CrewMember[] | null {
     out.push({
       name,
       trait: typeof e.trait === "string" ? e.trait : "",
-      experienceLevel: magnitudeOf(asQuantityish(e.experienceLevel)),
+      experienceLevel: magnitudeOr(asQuantityish(e.experienceLevel), 0),
       available: typeof e.available === "boolean" ? e.available : null,
       unavailableReason:
         typeof e.unavailableReason === "string" ? e.unavailableReason : "",

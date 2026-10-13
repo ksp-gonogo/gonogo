@@ -152,9 +152,6 @@ namespace Sitrep.Host.Comms
         /// <summary>The home centre's id, or null while there is none.</summary>
         string? HomeCentre();
 
-        /// <summary>The longest a report of contact with the craft, by bare guid, can take to reach the home centre, in seconds.</summary>
-        double NewsAllowanceSeconds(string vesselId);
-
         /// <summary>What a real signal delay is multiplied by to get the delay the game is set to model: see <see cref="DeliveryInputs.LightFactor"/>.</summary>
         double LightFactor();
 
@@ -838,62 +835,6 @@ namespace Sitrep.Host.Comms
             return home == null || _hearing == null ? null : _hearing.HomeContactAt(home, _groundCentres, nodeId);
         }
 
-        /// <summary>
-        /// The home centre's judgement of each craft, by node id. Taken back from
-        /// what home itself last heard of its own judgements after a load, which
-        /// is how a save carries them. Courier thread only.
-        /// </summary>
-        private readonly Dictionary<string, HomeVerdict> _verdicts = new Dictionary<string, HomeVerdict>(StringComparer.Ordinal);
-
-        /// <summary>
-        /// Judges every craft the home centre has word of, and sends out each
-        /// judgement that changed: see <see cref="HomeJudgement"/>.
-        /// </summary>
-        private void JudgeAtHome(double ut)
-        {
-            var home = _audience?.HomeCentre();
-            if (home == null || _hearing == null || _craftHost == null)
-            {
-                return;
-            }
-            var ids = new HashSet<string>(_hearing.ContactsAt(home).Keys, StringComparer.Ordinal);
-            foreach (var ground in _groundCentres)
-            {
-                ids.UnionWith(_hearing.ContactsAt(ground).Keys);
-            }
-            foreach (var report in _hearing.ReportsAt(home))
-            {
-                ids.UnionWith(report.Contacts.Keys);
-            }
-            foreach (var id in ids)
-            {
-                var contact = _hearing.HomeContactAt(home, _groundCentres, id);
-                if (contact == null || !id.StartsWith(CraftStateRecorder.VesselPrefix, StringComparison.Ordinal))
-                {
-                    continue;
-                }
-                if (!_verdicts.TryGetValue(id, out var verdict))
-                {
-                    verdict = _hearing.VerdictAt(home, id)?.Copy() ?? new HomeVerdict { Id = id };
-                    _verdicts[id] = verdict;
-                }
-                var vesselId = id.Substring(CraftStateRecorder.VesselPrefix.Length);
-                if (HomeJudgement.Judge(verdict, contact, _hearing.ForecastAt(home, id), _audience!.NewsAllowanceSeconds(vesselId), ut))
-                {
-                    _craftHost.RecordHomeVerdict(vesselId, verdict, ut);
-                }
-            }
-        }
-
-        /// <summary>The home centre's judgement of the craft as it has reached <paramref name="centre"/>. Courier thread only.</summary>
-        internal HomeVerdict? VerdictHeardAt(string centre, string nodeId) => _hearing?.VerdictAt(centre, nodeId);
-
-        /// <summary>The ground's forecast for the craft as it has reached <paramref name="centre"/>. Courier thread only.</summary>
-        internal CraftForecast? ForecastHeardAt(string centre, string nodeId) => _hearing?.ForecastAt(centre, nodeId);
-
-        /// <summary>The home centre's judgement of the craft as it stands. Courier thread only.</summary>
-        internal HomeVerdict? HomeVerdictOf(string nodeId) => _verdicts.TryGetValue(nodeId, out var verdict) ? verdict : null;
-
         /// <summary>What each crewed centre's contact count stood at when it was last looked at, by centre id. Courier thread only.</summary>
         private readonly Dictionary<string, long> _reportsSaid = new Dictionary<string, long>(StringComparer.Ordinal);
 
@@ -1008,7 +949,6 @@ namespace Sitrep.Host.Comms
                 _vesselsNews.Clear();
                 _reportsSaid.Clear();
                 _reportsSent.Clear();
-                _verdicts.Clear();
                 // The version does not move here: the first plan after the reset is judged against the
                 // one it replaces, so a load that finds the same contacts is not a change to them.
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
@@ -1036,7 +976,6 @@ namespace Sitrep.Host.Comms
             }
             NoteGroundCentres(looked);
             SayCentreReports(looked);
-            JudgeAtHome(looked.Ut);
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
             System.Threading.Volatile.Write(ref _restore, null);
@@ -1384,7 +1323,7 @@ namespace Sitrep.Host.Comms
             long news = centres.Count;
             foreach (var centre in centres)
             {
-                news += _hearing!.NewsAt(centre) + _hearing.ReadingsAt(centre) + _hearing.ContactNewsAt(centre);
+                news += _hearing!.NewsAt(centre) + _hearing.ReadingsAt(centre);
             }
             if (news == _heardNowNews)
             {

@@ -266,7 +266,7 @@ export interface PaintVesselMarkOptions {
 /**
  * Paints the vessel mark on a canvas, centred on a point in canvas pixels, the
  * triangle always point up. Useful for showing the operator where a vessel is
- * on a canvas map. Used by the ground track widget. `radius` is the current vessel's circle, 4 px
+ * on a canvas map. Used by the map view. `radius` is the current vessel's circle, 4 px
  * unless given.
  *
  * @category Unit
@@ -322,7 +322,7 @@ export type VesselPositions = Partial<
 /**
  * Paints every position given with its own vessel mark, the one nearest to now
  * on top. Useful for showing the operator a vessel's observed and modelled
- * positions together. Used by the ground track widget. A held position and a modelled one are joined by a faint dashed
+ * positions together. Used by the map view. A held position and a modelled one are joined by a faint dashed
  * track, so the pair reads as "was here, modelled to be there".
  *
  * @category Unit

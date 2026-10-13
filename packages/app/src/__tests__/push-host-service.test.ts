@@ -74,7 +74,7 @@ function pushMsg(
   return {
     type: "widget-push",
     widgetInstanceId,
-    componentId: "ground-track",
+    componentId: "map-view",
     config: { trajectoryLength: 2000 },
     width: 6,
     height: 4,
@@ -96,7 +96,7 @@ describe("PushHostService", () => {
     expect(svc.snapshot()[0]).toMatchObject({
       peerId: "peer-A",
       widgetInstanceId: "w1",
-      componentId: "ground-track",
+      componentId: "map-view",
       width: 6,
       height: 4,
       stationName: "LDO",

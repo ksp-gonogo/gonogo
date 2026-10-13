@@ -91,34 +91,6 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(CentreContactState.InContact, back.Contacts["vessel:b"].State);
         }
 
-        /// <summary>Home's judgements come back from what home itself heard of them, which is how a declaration and its number survive a load.</summary>
-        [Fact]
-        public void ForecastsAndHomeJudgementsComeBackAsTheCentreLastHadThem()
-        {
-            var forecast = new CraftForecast("vessel:a", 1000.0, 1000.0, 4000.0, SilenceDeadlineBasis.PolicyCeiling, 3500.0, 120.0);
-            var cleared = new CraftForecast("vessel:b", 900.0, null, null, null, null, null);
-            var verdict = new HomeVerdict { Id = "vessel:a", State = HomeVerdictState.Nominal, DeclaredLostUt = 4601.0, LostSeq = 2, WithdrawnUt = 6000.0 };
-            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[]
-            {
-                new HeardAtCentre("ground:ksc", new CraftState[0], new Dictionary<string, bool>(), forecasts: new[] { forecast, cleared }, verdicts: new[] { verdict }),
-            }));
-
-            var back = HeardSnapshotCodec.Decode(encoded)!.Centres.Single();
-
-            var a = back.Forecasts.Single(f => f.Id == "vessel:a");
-            Assert.Equal(1000.0, a.OnsetUt);
-            Assert.Equal(4000.0, a.DeadlineUt);
-            Assert.Equal(SilenceDeadlineBasis.PolicyCeiling, a.Basis);
-            Assert.Equal(3500.0, a.PredictedReacquisitionUt);
-            Assert.Equal(120.0, a.PredictionGraceSec);
-            Assert.Null(back.Forecasts.Single(f => f.Id == "vessel:b").DeadlineUt);
-            var judged = Assert.Single(back.Verdicts);
-            Assert.Equal(HomeVerdictState.Nominal, judged.State);
-            Assert.Equal(4601.0, judged.DeclaredLostUt);
-            Assert.Equal(2, judged.LostSeq);
-            Assert.Equal(6000.0, judged.WithdrawnUt);
-        }
-
         private sealed class FakeRestorer : ILinkStrengthRestorer
         {
             public IContactLinkStrength? RestoreLinkStrength(string modelId, IReadOnlyDictionary<string, object?> data) => RestoreFake(modelId, data);

@@ -45,7 +45,7 @@ export interface ExpandableTextProps {
  * Prose written by the game or a mod (a contract's description, a part's
  * blurb), cut to a readable length with the rest behind a "Show more" button.
  * Useful for keeping long descriptions from filling a list the operator is
- * scanning. Used by the administration building rows and the research and development node facts.
+ * scanning. Used by the admin building rows and the tech tree node facts.
  *
  * The cut is a prefix of the string ending on a whole word, followed by
  * `...`; text with no space before `limit` is cut hard at `limit`. It is a character count, not

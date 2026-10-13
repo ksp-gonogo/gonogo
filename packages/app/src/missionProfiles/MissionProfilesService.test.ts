@@ -21,7 +21,7 @@ function memoryStorage(): Storage {
 
 const ITEMS: DashboardItem[] = [
   { i: "a", componentId: "fuel-status" },
-  { i: "b", componentId: "ground-track" },
+  { i: "b", componentId: "map-view" },
 ];
 
 const LAYOUTS: Layouts = {

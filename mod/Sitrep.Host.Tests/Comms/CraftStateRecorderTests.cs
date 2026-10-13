@@ -709,12 +709,6 @@ namespace Sitrep.Host.Tests.Comms
 
             public System.Action HearCentreReport(string vesselId, string centre, System.Action<CentreReport> heard) => () => { };
 
-            public System.Action HearCraftForecast(string vesselId, string centre, System.Action<CraftForecast> heard) => () => { };
-
-            public void RecordHomeVerdict(string vesselId, HomeVerdict verdict, double ut) => Calls.Add("verdict " + vesselId + "@" + ut);
-
-            public System.Action HearHomeVerdict(string vesselId, string centre, System.Action<HomeVerdict> heard) => () => { };
-
             public void RecordCraftRadio(string vesselId, ContactRadio radio, double ut) => Calls.Add("radio " + vesselId + "@" + ut);
 
             public System.Action HearCraftRadio(string vesselId, string centre, System.Action<ContactRadio> heard) => () => { };

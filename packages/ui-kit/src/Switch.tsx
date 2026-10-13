@@ -44,7 +44,7 @@ export type SwitchProps = SwitchBaseProps &
  * An on/off toggle for one setting, which takes effect as it is flipped; inside
  * a form with a save bar the change waits for Save like any other field.
  * Useful for letting the operator turn a widget option on or off. Used by the
- * configuration forms of the warp control and the rendezvous widget. It is
+ * configuration forms of the warp control and the targeting widget. It is
  * a native checkbox drawn as a sliding track, keyboard-operable with Space and
  * with the focus ring drawn on the track.
  *

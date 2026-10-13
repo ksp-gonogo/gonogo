@@ -1,0 +1,253 @@
+import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
+import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { renderWidget, visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { afterEach, describe, expect, it } from "vitest";
+import { ReadingProbe } from "../test/ReadingProbe";
+import {
+  type StreamFixture,
+  setupStreamFixture,
+} from "../test/setupStreamFixture";
+import { AdminBuildingComponent } from "./index";
+
+/**
+ * What Admin Building does when its telemetry reads are absent. A missing strategy
+ * list swaps the widget for a placeholder; a missing balance fails closed, so
+ * Activate stays disabled.
+ */
+
+// Unmounted before `clearActionHandlers()`, which would otherwise update a mounted widget outside act().
+const renderedTrees: Array<() => void> = [];
+
+afterEach(() => {
+  for (const unmount of renderedTrees) unmount();
+  renderedTrees.length = 0;
+  clearActionHandlers();
+});
+
+function newFixture() {
+  return setupStreamFixture({
+    pinnedUt: 10,
+    suspendFrames: true,
+  });
+}
+
+function renderStrategies(
+  fixture: StreamFixture,
+  size: { w?: number; h?: number } = { w: 9, h: 12 },
+  { probe = false }: { probe?: boolean } = {},
+) {
+  const result = render(
+    <fixture.Provider>
+      {probe && <ReadingProbe topic="career.status" />}
+      <DashboardItemContext.Provider value={{ instanceId: "strat-char" }}>
+        <AdminBuildingComponent
+          config={{}}
+          id="strat-char"
+          w={size.w}
+          h={size.h}
+        />
+      </DashboardItemContext.Provider>
+    </fixture.Provider>,
+  );
+  renderedTrees.push(result.unmount);
+  return result;
+}
+
+/** An affordable-only-if-you-know-your-balance strategy. */
+const EXPENSIVE = {
+  id: "Expensive",
+  title: "Expensive Gamble",
+  description: "Costs a fortune.",
+  department: "Finance",
+  isActive: false,
+  initialCostFunds: 500_000,
+  initialCostScience: 0,
+  initialCostReputation: 0,
+  canActivate: true,
+  activateBlockedReason: "",
+  canDeactivate: false,
+  effect: "Effects: everything.",
+};
+
+function emitCareer(fixture: StreamFixture, over: Record<string, unknown>) {
+  act(() => {
+    fixture.emit("career.status", {
+      balances: null,
+      facilities: null,
+      contracts: null,
+      strategies: null,
+      tech: null,
+      ...over,
+    });
+  });
+}
+
+describe("Admin Building: nothing has arrived at all", () => {
+  it("swaps the whole widget for a placeholder that carries none of the loaded content", () => {
+    renderStrategies(newFixture());
+
+    expect(screen.getByText("Admin Building")).toBeInTheDocument();
+    expect(screen.getByText(/Awaiting career data\.\.\./)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Active")).toBeNull();
+    expect(screen.queryByLabelText("Available")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Activate" })).toBeNull();
+    expect(screen.queryAllByText(NULL_DISPLAY)).toHaveLength(0);
+    expect(visibleText()).toBe("Admin BuildingAwaiting career data...");
+  });
+
+  it("says nothing at all in a short box, because the placeholder is itself gated on height", () => {
+    // At h=3 the awaiting branch renders an empty body.
+    renderStrategies(newFixture(), { w: 9, h: 3 });
+
+    expect(screen.getByText("Admin Building")).toBeInTheDocument();
+    expect(screen.queryByText(/Awaiting career data/)).toBeNull();
+  });
+});
+
+describe("Admin Building: the `strategies === null` absence gate", () => {
+  it("fires for a never-arrived topic and stops firing for a confirmed-empty list", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+
+    expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
+
+    emitCareer(fixture, {
+      balances: { funds: 1000, reputation: 5, science: 20 },
+      strategies: { active: [], all: [], activeCount: 0 },
+    });
+
+    // An empty array is not absence: the widget states "none available".
+    await waitFor(() =>
+      expect(screen.getByText("Admin Building")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/Awaiting career data/)).toBeNull();
+    expect(
+      screen.getByText(/No strategies available right now/),
+    ).toBeInTheDocument();
+  });
+
+  it("fires for a partial payload whose `strategies` field is null", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture, undefined, { probe: true });
+
+    // Balances without strategies are indistinguishable from the topic never having arrived.
+    emitCareer(fixture, {
+      balances: { funds: 289_848, reputation: 420, science: 145 },
+      strategies: null,
+    });
+
+    await screen.findByText("career.status: observed");
+    expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
+    // The funds the payload did carry are not shown.
+    expect(visibleText()).not.toContain("289,848");
+  });
+
+  it("fires when `strategies.all` itself is null", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture, undefined, { probe: true });
+
+    emitCareer(fixture, {
+      strategies: { active: [], all: null, activeCount: 0 },
+    });
+
+    await screen.findByText("career.status: observed");
+    expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
+  });
+});
+
+describe("Admin Building: null versus undefined", () => {
+  it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture, undefined, { probe: true });
+
+    act(() => {
+      // A tombstone folds into the same placeholder as never-arrived.
+      fixture.emit("career.status", null);
+    });
+
+    await screen.findByText("career.status: absent");
+    expect(screen.getByText(/Awaiting career data/)).toBeInTheDocument();
+  });
+});
+
+describe("Admin Building: an absent balance beside a present strategy list", () => {
+  it("renders the funds/rep/science tallies as the null dash", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+
+    emitCareer(fixture, {
+      balances: null,
+      strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Expensive Gamble")).toBeInTheDocument(),
+    );
+    // Three labelled dashes: each null token keeps its currency's symbol.
+    const dashes = screen.getAllByText(NULL_DISPLAY);
+    expect(dashes).toHaveLength(3);
+    expect(dashes[0]?.parentElement?.textContent).toBe(
+      `${NULL_DISPLAY}f funds·${NULL_DISPLAY} reputation·${NULL_DISPLAY} science`,
+    );
+  });
+
+  // An absent balance is not unlimited money on a control that commits career funds.
+  it("leaves Activate on a 500,000f strategy to its gate while the balance is unknown", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+
+    emitCareer(fixture, {
+      balances: null,
+      strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("Expensive Gamble")).toBeInTheDocument(),
+    );
+    const activate = screen.getByRole("button", { name: "Activate" });
+    expect(activate).toBeEnabled();
+    // An unknown balance draws no verdict on the price either.
+    expect(document.querySelector('[data-afford="no"]')).toBeNull();
+  });
+
+  it("marks the price short once a balance arrives and is too small", async () => {
+    const fixture = newFixture();
+    renderStrategies(fixture);
+
+    emitCareer(fixture, {
+      balances: { funds: 10, reputation: 0, science: 0 },
+      strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
+    });
+
+    await waitFor(() =>
+      expect(document.querySelector('[data-afford="no"]')).not.toBeNull(),
+    );
+    expect(screen.getByRole("button", { name: "Activate" })).toBeEnabled();
+  });
+});
+
+describe("Admin Building: tiny mode keeps the funds essential", () => {
+  it("draws the null token for funds while balances are absent, and the balance once it arrives", async () => {
+    const fixture = newFixture();
+    // w=4 is the tiny bucket.
+    renderWidget("admin-building", { w: 4, h: 4, wrapper: fixture.Provider });
+
+    emitCareer(fixture, {
+      balances: null,
+      strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
+    });
+
+    // The tiny header is out of flow: the title trails the essentials in the DOM, drawn as a corner overlay rather than a row above them.
+    await waitFor(() =>
+      expect(visibleText()).toBe(`Funds${NULL_DISPLAY}Active0ADMIN`),
+    );
+
+    emitCareer(fixture, {
+      balances: { funds: 1234, reputation: 0, science: 0 },
+      strategies: { active: [], all: [EXPENSIVE], activeCount: 0 },
+    });
+
+    await waitFor(() => expect(visibleText()).toBe("Funds1,234fActive0ADMIN"));
+  });
+});

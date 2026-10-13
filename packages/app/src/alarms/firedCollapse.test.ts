@@ -12,7 +12,7 @@ function cp(id: string, state: Alarm["state"] = "fired"): Alarm {
     createdAt: 0,
     trigger: {
       kind: "contract-parameter",
-      contractId: "123",
+      contractId: 123,
       parameterTitle: `Param ${id}`,
       targetState: "Complete",
       sustainSeconds: 0,
