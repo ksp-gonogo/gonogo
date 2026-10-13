@@ -948,6 +948,16 @@ namespace Sitrep.Host
             return _unitsDescriptorJson;
         }
 
+        /*
+         * The craft on screen changed on this tick. What the active node held for
+         * the previous craft (its last in-contact delay and rows) is not this
+         * craft's to be held at, and the delay still in _signalDelaySeconds is the
+         * previous craft's, so it must not be taken as this one's outgoing value.
+         * Cleared once the tick's ledger is written. Courier-thread-only.
+         */
+        private bool _activeVesselSwitched;
+        private string? _lastActiveVesselId;
+
         // Per-subject last-connected delay (Plan 2b), keyed by NodeForTopic: what
         // RefreshLedgerDelays holds a dark subject's node default at.
         private readonly Dictionary<string, double> _subjectLastConnectedDelay =
@@ -7488,7 +7498,7 @@ namespace Sitrep.Host
                 // RefreshConnectivityFromCapability (same tick), so
                 // _commsConnected here still reflects connectivity as of the
                 // outgoing value about to be replaced.
-                if (SubjectConnected(NodeId))
+                if (SubjectConnected(NodeId) && !_activeVesselSwitched)
                 {
                     _subjectLastConnectedDelay[NodeId] = _signalDelaySeconds;
                 }
@@ -8822,6 +8832,18 @@ namespace Sitrep.Host
                 NotifyTimelineResetListeners();
             }
 
+            var activeVesselId = VesselViewProvider.TryGetActiveVesselId(tick.Snapshot);
+            if (activeVesselId != null)
+            {
+                if (_lastActiveVesselId != null && _lastActiveVesselId != activeVesselId)
+                {
+                    _activeVesselSwitched = true;
+                    _subjectLastConnectedDelay.Remove(NodeId);
+                    _subjectLastConnectedStamp.Remove(NodeId);
+                }
+                _lastActiveVesselId = activeVesselId;
+            }
+
             if (tick.Snapshot != null)
             {
                 foreach (var (ownerId, sampler) in _samplers)
@@ -8940,6 +8962,7 @@ namespace Sitrep.Host
             // the sampled-source handles (SetVesselDelay) and the delay refresh
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
+            _activeVesselSwitched = false;
 
             // The DROP EVENT, written after the ledger's delays and well before
             // this tick's _clock.AdvanceTo: a break has to be on the books
