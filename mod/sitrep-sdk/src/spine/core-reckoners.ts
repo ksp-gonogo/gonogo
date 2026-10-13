@@ -900,10 +900,15 @@ function registerScienceLabReckoner(): void {
               .in("science");
             const grown = lab.storedScience.plus(gained);
             const cap = lab.scienceCap;
+            /* A lab that already reports more than its cap keeps what was observed: the carried figure never falls below the last sample. */
+            const limit =
+              cap != null && lab.storedScience.greaterThan(cap)
+                ? lab.storedScience
+                : cap;
             return {
               ...lab,
               storedScience:
-                cap != null && grown.greaterThan(cap) ? cap : grown,
+                limit != null && grown.greaterThan(limit) ? limit : grown,
             };
           }),
       };

@@ -51,6 +51,7 @@ import {
 } from "./arrival-deadline";
 import {
   type CommandGateStatus,
+  hasItemVerdict,
   selectCommandGate,
   toGateStatus,
 } from "./command-gate";
@@ -456,10 +457,28 @@ export function useCommand(
     [client],
   );
 
-  const getSnapshot = useCallback(
-    () => (client && requestId ? client.getCommand(requestId) : IDLE),
-    [client, requestId],
-  );
+  /*
+   * The client drops the record of an answered command once a control stream
+   * has sent enough newer ones, after which `getCommand` reads `idle` for an id
+   * this hook did send. The last answer seen for the id stands in for it.
+   */
+  const lastSeenRef = useRef<{
+    client: object;
+    id: string;
+    status: CommandStatus;
+  } | null>(null);
+  const getSnapshot = useCallback(() => {
+    if (!client || !requestId) return IDLE;
+    const current = client.getCommand(requestId);
+    if (current.phase !== "idle") {
+      lastSeenRef.current = { client, id: requestId, status: current };
+      return current;
+    }
+    const last = lastSeenRef.current;
+    return last?.client === client && last.id === requestId
+      ? last.status
+      : current;
+  }, [client, requestId]);
 
   const status = useSyncExternalStore(subscribe, getSnapshot);
 
@@ -513,7 +532,12 @@ export function useCommand(
   const gateReportRef = useRef(gateReport);
   gateReportRef.current = gateReport;
   const [checked, setChecked] = useState<
-    { key: string; status: CommandGateStatus } | undefined
+    | {
+        key: string;
+        status: CommandGateStatus;
+        report: CommandGateReport | undefined;
+      }
+    | undefined
   >();
   const checkTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>();
   const checkSeqRef = useRef(0);
@@ -525,7 +549,19 @@ export function useCommand(
         checked && checked.key === gateCheckKey(args)
           ? checked.status
           : undefined;
-      return answered?.blocked ? answered : (published ?? answered);
+      /*
+       * A refusal about an item the engine also publishes holds only until the
+       * engine publishes again: the state it was about (a pad, a vehicle)
+       * changes with no change of arguments, and the report that follows is the
+       * engine's current word on that item. A refusal about arguments the report
+       * does not name has no other source, and stands.
+       */
+      const superseded =
+        checked?.report !== gateReport &&
+        hasItemVerdict(gateReport, command, args);
+      return answered?.blocked && !superseded
+        ? answered
+        : (published ?? answered);
     },
     [gateReport, command, checked],
   );
@@ -559,7 +595,13 @@ export function useCommand(
               }
               const status = verdict && toGateStatus(verdict, command);
               setChecked(
-                status ? { key: gateCheckKey(args), status } : undefined,
+                status
+                  ? {
+                      key: gateCheckKey(args),
+                      status,
+                      report: gateReportRef.current,
+                    }
+                  : undefined,
               );
               resolve(status);
             });
@@ -585,17 +627,14 @@ export function useCommand(
    * silence, which is what separates a command that arrived from one nobody
    * ever heard. Read off the client's own record for the request: `in-flight`
    * and `lost` are the absence of an answer, and every other phase is one,
-   * a refusal, a late reply and a command that never left included.
+   * a refusal, a late reply and a command that never left included. An `idle`
+   * record for an id this hook sent is one the client dropped after it was
+   * answered, since only answered records are dropped.
    */
   const acknowledged = useCallback(
     (id: string) => {
       const phase = client?.getCommand(id).phase;
-      return (
-        phase !== undefined &&
-        phase !== "idle" &&
-        phase !== "in-flight" &&
-        phase !== "lost"
-      );
+      return phase !== undefined && phase !== "in-flight" && phase !== "lost";
     },
     [client],
   );

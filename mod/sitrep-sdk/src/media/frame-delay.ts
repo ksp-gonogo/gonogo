@@ -320,9 +320,10 @@ const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
 
 /**
  * How far ahead of now a paced video frame may be due before the pacer jumps to
- * it, in seconds. Above the second of game time that one telemetry sample can
- * release together, and low enough that a time-warped camera holds a few dozen
- * frames at most.
+ * it, in seconds. A telemetry sample releases a second of game time together at
+ * normal speed, and more under time warp: a burst spanning more than this (above
+ * about 2.5x warp) is shown as its newest frame, so the video plays at the
+ * telemetry's rate there.
  */
 export const DEFAULT_PACING_MAX_LEAD_SECONDS = 2;
 

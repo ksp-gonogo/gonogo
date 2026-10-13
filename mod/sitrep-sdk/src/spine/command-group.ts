@@ -241,14 +241,32 @@ function closeGroup(group: OpenGroup): CommandGroupHandle {
     send.track(sent.requestId, sent.result).then(settle.resolve, settle.reject);
   });
   const requestIds = dispatched.members.map((m) => m.requestId);
+  /*
+   * A group reads its members' records live, and the client sweeps the oldest
+   * answered record once a control stream has sent enough inputs, after which a
+   * confirmed member reads as unanswered. The records are held until the group
+   * reaches a phase nothing changes (a lost member can still be found, so lost
+   * is not one), and that phase is kept.
+   */
+  const release = client.holdCommands(requestIds);
+  let settled: CommandGroupPhase | undefined;
+  const phase = (): CommandGroupPhase => {
+    if (settled !== undefined) return settled;
+    const now = phaseOf(client, requestIds);
+    if (now === "confirmed" || now === "refused" || now === "failed") {
+      settled = now;
+      release();
+    }
+    return now;
+  };
   const result = Promise.all(members.map((m) => m.settle.promise));
-  result.catch(() => undefined);
+  result.then(phase, phase);
 
   return {
     id: dispatched.groupId,
     requestIds,
     get status(): CommandGroupPhase {
-      return phaseOf(client, requestIds);
+      return phase();
     },
     result,
     cancel: () => cancelGroup(client, requestIds[0]),

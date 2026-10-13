@@ -1,7 +1,7 @@
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { Quality, Staleness, setKeepCount } from "@ksp-gonogo/sitrep-sdk";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getTopicFieldCatalog } from "../schema/topicFieldCatalog";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
@@ -140,6 +140,20 @@ describe("MissionHistorySource", () => {
       await source.connect();
 
       expect((await source.listFlights()).map((f) => f.id)).toEqual(["c"]);
+    });
+
+    it("keeps a stored mission stored when the prune after it fails", async () => {
+      const { source, store } = freshSource();
+      setKeepCount(1);
+      vi.spyOn(store, "pruneMissionsKeepLatest").mockRejectedValue(
+        new Error("idb closed"),
+      );
+
+      await expect(
+        source.saveMission(mission({ id: "a", launchedAt: 1 })),
+      ).resolves.toBeUndefined();
+
+      expect((await source.listFlights()).map((f) => f.id)).toEqual(["a"]);
     });
 
     it("deletes nothing while keep latest is off", async () => {

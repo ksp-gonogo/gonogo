@@ -77,6 +77,22 @@ export function selectCommandGate(
 }
 
 /**
+ * Whether the report holds a verdict for the very item a call names, rather
+ * than only the command's own. Used by {@link useCommand} to tell a published
+ * answer about these arguments from the general one.
+ *
+ * @internal
+ */
+export function hasItemVerdict(
+  report: CommandGateReport | undefined,
+  command: string,
+  args: unknown,
+): boolean {
+  const entry = report?.gates.find((gate) => gate.command === command);
+  return entry !== undefined && itemVerdict(entry, args) !== undefined;
+}
+
+/**
  * The verdict for the items a call names, when the gate depends on which item
  * that is and the mod published one. Each item set is keyed on its own
  * argument (a launch has a site and a vehicle), and the first set holding a
