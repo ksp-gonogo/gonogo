@@ -72,6 +72,18 @@ function Widget({
   );
 }
 
+function StatusProbe() {
+  const probe = useCommand("probe");
+  return (
+    <div>
+      <button type="button" onClick={() => void probe.send({}).catch(() => {})}>
+        probe
+      </button>
+      <span>phase:{probe.status.phase}</span>
+    </div>
+  );
+}
+
 const returnsAPromise: () => void = async () => {};
 
 describe("sendTogether", () => {
@@ -101,6 +113,32 @@ describe("sendTogether", () => {
     expect(replies).toHaveLength(3);
     await waitFor(() => expect(captured?.status).toBe("confirmed"));
     await act(async () => {});
+  });
+
+  it("still reads confirmed after a control stream has swept the answered records", async () => {
+    const { client, Provider } = setup();
+    let captured: CommandGroupHandle | undefined;
+    render(
+      <Provider>
+        <Widget group={() => {}} onGroup={(g) => (captured = g)} />
+      </Provider>,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("go"));
+    });
+    await captured?.result;
+    await act(async () => {});
+
+    await act(async () => {
+      for (let input = 0; input < 700; input += 1) {
+        const { result } = client.dispatch("vessel.control.setThrottle");
+        await result.catch(() => undefined);
+      }
+    });
+
+    expect(client.getCommand(captured?.requestIds[0] ?? "").phase).toBe("idle");
+    expect(captured?.status).toBe("confirmed");
   });
 
   it("reads refused when the game refuses the group", async () => {
@@ -389,5 +427,29 @@ describe("sendTogether", () => {
     await waitFor(() => expect(screen.getByText("rows:1")).toBeTruthy());
     expect(screen.getByText("label:ag + ag + sas (group of 3)")).toBeTruthy();
     await act(async () => {});
+  });
+});
+
+describe("useCommand: answered records the client has dropped", () => {
+  it("keeps the confirmed status of the last send once a control stream has swept it", async () => {
+    const { client, Provider } = setup();
+    render(
+      <Provider>
+        <StatusProbe />
+      </Provider>,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByText("probe"));
+    });
+    await waitFor(() => screen.getByText("phase:confirmed"));
+
+    await act(async () => {
+      for (let input = 0; input < 700; input += 1) {
+        const { result } = client.dispatch("vessel.control.setThrottle");
+        await result.catch(() => undefined);
+      }
+    });
+
+    expect(screen.getByText("phase:confirmed")).toBeTruthy();
   });
 });

@@ -250,14 +250,19 @@ export class MissionStore {
    */
   async pruneMissionsKeepLatest(opts: {
     keepCount: number;
+    /** A mission still being recorded: never removed, and counted among the ones kept. */
+    keepId?: string;
   }): Promise<string[]> {
     if (opts.keepCount <= 0) return [];
     const all = await this.listMissions();
-    const sorted = [...all].sort((a, b) => b.launchedAt - a.launchedAt);
+    // A resumed recording shares its launch instant with the first, so the id breaks the tie the same way every time.
+    const sorted = [...all].sort(
+      (a, b) => b.launchedAt - a.launchedAt || (a.id < b.id ? 1 : -1),
+    );
     const victims: MissionMeta[] = [];
-    let kept = 0;
+    let kept = sorted.some((m) => m.id === opts.keepId && !m.starred) ? 1 : 0;
     for (const m of sorted) {
-      if (m.starred) continue;
+      if (m.starred || m.id === opts.keepId) continue;
       kept += 1;
       if (kept > opts.keepCount) victims.push(m);
     }

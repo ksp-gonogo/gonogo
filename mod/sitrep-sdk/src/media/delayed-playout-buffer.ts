@@ -144,6 +144,8 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
    *  6), where the newly pushed frame is already at-or-before the edge. */
   push(frame: StampedFrame<Frame>): void {
     if (this.disposed) return;
+    // A frame stamped before the capture clock had a UT is held at the tail; once any frame can be dated those can never be, so they are dropped.
+    if (Number.isFinite(frame.ut)) this.dropUndated();
     const insertAt = this.queue.findIndex((f) => f.ut > frame.ut);
     if (insertAt === -1) this.queue.push(frame);
     else this.queue.splice(insertAt, 0, frame);
@@ -210,6 +212,20 @@ export class DelayedPlayoutBuffer<Frame = unknown> {
     for (const dropped of this.queue) this.opts.onDrop?.(dropped);
     this.queue = [];
     this.bufferedBytes = 0;
+  }
+
+  /** Drops every queued frame stamped `+Infinity`, which sort last and no view time reaches. */
+  private dropUndated(): void {
+    const kept: StampedFrame<Frame>[] = [];
+    for (const frame of this.queue) {
+      if (frame.ut === Number.POSITIVE_INFINITY) {
+        this.bufferedBytes -= frame.bytes ?? 1;
+        this.opts.onDrop?.(frame);
+      } else {
+        kept.push(frame);
+      }
+    }
+    this.queue = kept;
   }
 
   /**

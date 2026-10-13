@@ -147,6 +147,25 @@ describe("MissionStore", () => {
       expect(remaining.sort()).toEqual(["c", "old-starred"]);
     });
 
+    it("never removes the mission still being recorded, whichever of two launched together sorts last", async () => {
+      for (const open of ["a", "b"]) {
+        const store = freshStore();
+        await store.saveMission(mission({ id: "a", launchedAt: 100 }));
+        await store.saveMission(mission({ id: "b", launchedAt: 100 }));
+        await store.saveMission(mission({ id: "old", launchedAt: 50 }));
+
+        const removed = await store.pruneMissionsKeepLatest({
+          keepCount: 1,
+          keepId: open,
+        });
+
+        expect(removed).not.toContain(open);
+        expect(removed.sort()).toEqual(
+          [open === "a" ? "b" : "a", "old"].sort(),
+        );
+      }
+    });
+
     it("does nothing when keepCount is 0 or negative", async () => {
       const store = freshStore();
       await store.saveMission(mission({ id: "a" }));

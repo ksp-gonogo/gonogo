@@ -9235,6 +9235,10 @@
         "note": "New: sends several commands as one command-group frame"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#holdCommands",
+        "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
+      },
+      {
         "key": "sitrep-sdk ./spine TelemetryClient#restoredCommands",
         "note": "New: hands a useCommand the commands an earlier page of the screen left outstanding"
       },
@@ -9877,6 +9881,10 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
         "note": "New: sends several commands as one command-group frame"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#holdCommands",
+        "note": "New: keeps the records of named commands past the sweep of answered ones, so a command group keeps reading its members' answers"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#restoredCommands",
@@ -13195,6 +13203,10 @@
       {
         "key": "sitrep-sdk ./spine canPropagatePatch",
         "note": "The guard that says whether a patch can be propagated: elliptical, with every element present"
+      },
+      {
+        "key": "sitrep-sdk ./spine hasItemVerdict",
+        "note": "New spine plumbing that says whether a gate report names the item a call is about; not an author surface"
       },
       {
         "key": "sitrep-sdk ./spine openCommandGroup",
