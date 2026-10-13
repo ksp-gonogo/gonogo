@@ -653,7 +653,9 @@ namespace Sitrep.Host.Alarms
         /// it is read at the <c>"game"</c> subject whatever the alarm names, and
         /// a craft being lost says nothing about it. The alarm goes
         /// <see cref="ScetAlarmState.Unreachable"/> when its contract has finished
-        /// with the objective in another state, or has left the career.</para>
+        /// with the objective in another state, or has left the career, which only
+        /// a reader that is also an <see cref="IScetFinishedContracts"/> can
+        /// tell.</para>
         /// </summary>
         private static void EvaluateContractParameter(
             Entry entry,
@@ -667,7 +669,11 @@ namespace Sitrep.Host.Alarms
                 return;
             }
             var matched = ScetPayload.MatchContractParameter(
-                career, condition.ContractId ?? "", condition.ParameterTitle ?? "", condition.TargetState);
+                career,
+                (state as IScetFinishedContracts)?.FinishedContracts("game"),
+                condition.ContractId ?? "",
+                condition.ParameterTitle ?? "",
+                condition.TargetState);
             switch (matched)
             {
                 case ContractParameterMatch.Holds:

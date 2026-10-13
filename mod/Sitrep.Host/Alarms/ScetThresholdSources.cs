@@ -217,7 +217,7 @@ namespace Sitrep.Host.Alarms
     /// the wire adapters that shape it are pure functions of it, which is what
     /// keeps the whole threshold arm exercisable without a game.</para>
     /// </summary>
-    public sealed class SnapshotScetStateReader : IScetStateReader
+    public sealed class SnapshotScetStateReader : IScetStateReader, IScetFinishedContracts
     {
         private const string VesselSubjectPrefix = "vessel:";
 
@@ -246,6 +246,25 @@ namespace Sitrep.Host.Alarms
                 && string.Equals(source, subject, StringComparison.Ordinal)
                     ? root
                     : null;
+
+        /// <summary>
+        /// The snapshot's whole finished-contract index, which the career payload
+        /// leaves off the wire, under the career payload's provenance.
+        /// </summary>
+        public IDictionary<string, object?>? FinishedContracts(string subject)
+        {
+            if (ReadPayload(subject, CareerViewProvider.Topic) == null
+                || _snapshot?.Values == null
+                || !_snapshot.Values.TryGetValue("career", out var rawCareer)
+                || rawCareer is not IDictionary<string, object?> career
+                || !career.TryGetValue("contracts", out var rawContracts)
+                || rawContracts is not IDictionary<string, object?> contracts
+                || !contracts.TryGetValue("finished", out var rawFinished))
+            {
+                return null;
+            }
+            return rawFinished as IDictionary<string, object?>;
+        }
 
         /// <summary>This tick's payload for <paramref name="topic"/>, built once and shared by every alarm that reads it.</summary>
         private IDictionary<string, object?>? Payload(string topic)

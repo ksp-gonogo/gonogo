@@ -4647,7 +4647,47 @@ namespace Gonogo.KSP
                 ["offered"] = offered,
                 ["completedRecent"] = BuildFinishedRecent(system, Contract.State.Completed),
                 ["failedRecent"] = BuildFinishedRecent(system, Contract.State.Failed),
+                ["finished"] = BuildFinishedById(system),
             };
+        }
+
+        // Main thread only. A finished contract no longer changes, so its entry
+        // is built once per Contract object; a reload makes new objects, and so
+        // new entries for a contract that finished differently this time.
+        private static Dictionary<Contract, Dictionary<string, object?>> _finishedEntries =
+            new Dictionary<Contract, Dictionary<string, object?>>();
+
+        /// <summary>
+        /// Every contract in <c>ContractSystem.ContractsFinished</c>, keyed by id,
+        /// in the <see cref="BuildContractEntry"/> shape. In the snapshot only, for
+        /// a reader that has to find a contract the recent lists have already
+        /// dropped; null when the list could not be read.
+        /// </summary>
+        private static Dictionary<string, object?>? BuildFinishedById(ContractSystem system)
+        {
+            var finished = system.ContractsFinished;
+            if (finished == null)
+            {
+                return null;
+            }
+
+            var byId = new Dictionary<string, object?>(StringComparer.Ordinal);
+            var kept = new Dictionary<Contract, Dictionary<string, object?>>();
+            foreach (var contract in finished)
+            {
+                if (contract == null)
+                {
+                    continue;
+                }
+                if (!_finishedEntries.TryGetValue(contract, out var entry))
+                {
+                    entry = BuildContractEntry(contract);
+                }
+                kept[contract] = entry;
+                byId[contract.ContractID.ToString()] = entry;
+            }
+            _finishedEntries = kept;
+            return byId;
         }
 
         /// <summary>

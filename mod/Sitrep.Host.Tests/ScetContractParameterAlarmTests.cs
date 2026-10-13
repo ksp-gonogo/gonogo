@@ -24,6 +24,30 @@ namespace Sitrep.Host.Tests
             public ScetReading Read(string subject, string topic, string fieldPath) => ScetReading.NotObservable;
         }
 
+        /// <summary>A reader that also holds the career's whole finished list, as the simulation's does.</summary>
+        private sealed class WholeCareerReader : IScetStateReader, IScetFinishedContracts
+        {
+            public IDictionary<string, object?>? Career;
+            public IDictionary<string, object?>? Finished = new Dictionary<string, object?>();
+
+            public IDictionary<string, object?>? ReadPayload(string subject, string topic) =>
+                subject == "game" && topic == CareerViewProvider.Topic ? Career : null;
+
+            public ScetReading Read(string subject, string topic, string fieldPath) => ScetReading.NotObservable;
+
+            public IDictionary<string, object?>? FinishedContracts(string subject) => subject == "game" ? Finished : null;
+        }
+
+        private static Dictionary<string, object?> FinishedEntry(string id, string title, int ordinal) =>
+            new Dictionary<string, object?>
+            {
+                ["id"] = id,
+                ["parameters"] = new List<object?>
+                {
+                    new Dictionary<string, object?> { ["title"] = title, ["stateOrdinal"] = ordinal },
+                },
+            };
+
         private static IDictionary<string, object?> Career(params (string id, string title, object? ordinal)[] objectives) =>
             new Dictionary<string, object?>
             {
@@ -117,12 +141,54 @@ namespace Sitrep.Host.Tests
             var roster = new ScetAlarmRoster();
             roster.Arm(Objective(), "");
 
-            var tick = roster.Evaluate(10, new CareerReader { Career = Career(("c-other", "Orbit the Mun", 1)) });
+            var tick = roster.Evaluate(10, new WholeCareerReader { Career = Career(("c-other", "Orbit the Mun", 1)) });
 
             Assert.Empty(tick.Fired);
             Assert.False(tick.StopWarp);
             Assert.True(tick.RosterChanged);
             Assert.Equal(ScetAlarmState.Unreachable, roster.Snapshot().Single().State);
+        }
+
+        /// <summary>
+        /// The recent lists are bounded, so a contract missing from all of them may
+        /// have finished out of sight. A reader with no whole finished list cannot
+        /// say it left the career, and the alarm stays armed.
+        /// </summary>
+        [Fact]
+        public void AContractMissingFromTheRecentListsIsNotTakenAsGone()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(), "");
+
+            var tick = roster.Evaluate(10, new CareerReader { Career = Career(("c-other", "Orbit the Mun", 1)) });
+
+            Assert.Empty(tick.Fired);
+            Assert.Equal(ScetAlarmState.Armed, roster.Snapshot().Single().State);
+        }
+
+        /// <summary>
+        /// A burst of completions pushes the contract out of the ten recent ones
+        /// within a second. It is still found among everything finished, and the
+        /// sustain window runs on to the fire.
+        /// </summary>
+        [Fact]
+        public void AContractCompletedOutOfTheRecentListsStillFires()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(sustainSeconds: 5), "");
+            var reader = new WholeCareerReader { Career = Career(("c-42", "Orbit the Mun", 0)) };
+            roster.Evaluate(10, reader);
+
+            reader.Career = Finished("completedRecent", "c-42", "Orbit the Mun", 1);
+            reader.Finished = new Dictionary<string, object?> { ["c-42"] = FinishedEntry("c-42", "Orbit the Mun", 1) };
+            var stop = roster.Evaluate(11, reader);
+            reader.Career = Finished("completedRecent", "c-newer", "Reach 50 km", 1);
+            var pushedOut = roster.Evaluate(12, reader);
+            var due = roster.Evaluate(16, reader);
+
+            Assert.True(stop.StopWarp);
+            Assert.Empty(pushedOut.Fired);
+            Assert.Equal("a1", Assert.Single(due.Fired).Id);
         }
 
         /// <summary>
@@ -279,6 +345,42 @@ namespace Sitrep.Host.Tests
                                 },
                             },
                             ["offered"] = new List<object?>(),
+                        },
+                    },
+                },
+            };
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(), "");
+
+            var tick = roster.Evaluate(10, new SnapshotScetStateReader(snapshot, ScetThresholdSources.CoreOnly));
+
+            Assert.Single(tick.Fired);
+        }
+
+        /// <summary>
+        /// Through the real reader: a contract only in the snapshot's whole
+        /// finished list, which the career payload leaves off the wire, fires.
+        /// </summary>
+        [Fact]
+        public void TheSnapshotReaderFindsAContractOnlyInTheWholeFinishedList()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Ut = 10,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["contracts"] = new Dictionary<string, object?>
+                        {
+                            ["active"] = new List<object?>(),
+                            ["offered"] = new List<object?>(),
+                            ["completedRecent"] = new List<object?>(),
+                            ["failedRecent"] = new List<object?>(),
+                            ["finished"] = new Dictionary<string, object?>
+                            {
+                                ["c-42"] = FinishedEntry("c-42", "Orbit the Mun", 1),
+                            },
                         },
                     },
                 },

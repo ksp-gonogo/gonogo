@@ -86,6 +86,22 @@ namespace Sitrep.Host.Alarms
         IDictionary<string, object?>? ReadPayload(string subject, string topic);
     }
 
+    /// <summary>
+    /// A reader that can find any contract the career has finished, not only
+    /// the recent ones a career payload lists. Without one, a contract missing
+    /// from every list may have finished out of the payload's sight, so it is
+    /// not taken as having left the career.
+    /// </summary>
+    public interface IScetFinishedContracts
+    {
+        /// <summary>
+        /// Every contract the career has finished, keyed by contract id, each in
+        /// the career payload's contract shape; null when the list could not be
+        /// read or is not about <paramref name="subject"/>.
+        /// </summary>
+        IDictionary<string, object?>? FinishedContracts(string subject);
+    }
+
     /// <summary>Where a contract objective stands against the state an alarm waits for.</summary>
     internal enum ContractParameterMatch
     {
@@ -168,10 +184,13 @@ namespace Sitrep.Host.Alarms
         /// <paramref name="target"/>, read out of a <c>career.status</c> payload.
         ///
         /// <para>The contract is looked for among the active ones, then among the
-        /// recently completed and recently failed ones: completing or failing the last
-        /// objective takes the contract out of the active list in the same stock call,
-        /// so an objective that reached its target that way is only to be found
-        /// there.</para>
+        /// recently completed and recently failed ones, then in
+        /// <paramref name="finishedById"/>: completing or failing the last objective
+        /// takes the contract out of the active list in the same stock call, so an
+        /// objective that reached its target that way is only to be found among the
+        /// finished. The recent lists are bounded, and a burst of completions pushes
+        /// a contract out of them within a tick, so only the whole finished list can
+        /// say a contract is not there.</para>
         ///
         /// <para><see cref="ContractParameterMatch.Unread"/> when the lists could not
         /// be read at all, which is a different claim from an empty one, and for an
@@ -180,10 +199,18 @@ namespace Sitrep.Host.Alarms
         /// state cannot silently stop an alarm matching. An objective of a finished
         /// contract can no longer change, so one not in its target state there, a
         /// finished contract with no such objective, and a contract found in none of
-        /// the lists are all <see cref="ContractParameterMatch.Never"/>.</para>
+        /// the lists including <paramref name="finishedById"/> are all
+        /// <see cref="ContractParameterMatch.Never"/>. With no
+        /// <paramref name="finishedById"/>, a contract found in none of the lists is
+        /// <see cref="ContractParameterMatch.Unread"/>.</para>
         /// </summary>
+        /// <param name="finishedById">Every contract the career has finished, by id, or null when the reader cannot say.</param>
         internal static ContractParameterMatch MatchContractParameter(
-            IDictionary<string, object?> career, string contractId, string parameterTitle, KspParameterState target)
+            IDictionary<string, object?> career,
+            IDictionary<string, object?>? finishedById,
+            string contractId,
+            string parameterTitle,
+            KspParameterState target)
         {
             if (!career.TryGetValue("contracts", out var rawContracts)
                 || rawContracts is not IDictionary<string, object?> contracts
@@ -205,6 +232,15 @@ namespace Sitrep.Host.Alarms
                 {
                     return MatchParameter(done, parameterTitle, target, finished: true);
                 }
+            }
+            if (finishedById == null)
+            {
+                return ContractParameterMatch.Unread;
+            }
+            if (finishedById.TryGetValue(contractId, out var rawEarlier)
+                && rawEarlier is IDictionary<string, object?> earlier)
+            {
+                return MatchParameter(earlier, parameterTitle, target, finished: true);
             }
             return ContractParameterMatch.Never;
         }
