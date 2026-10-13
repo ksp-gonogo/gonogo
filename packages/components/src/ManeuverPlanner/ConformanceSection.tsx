@@ -62,6 +62,7 @@ export function ConformanceSection({
     period,
     elementsNeedDating,
     orbitMarking,
+    body,
   } = telemetry;
   if (nodes.length === 0) {
     return (
@@ -130,6 +131,7 @@ export function ConformanceSection({
                 // The planned conic is authored and never dims; only the current orbit follows the observation rules.
                 currentIsObserved={!elementsNeedDating}
                 marking={orbitMarking}
+                bodyRadius={body?.radius}
               />
             </Stack>
           );

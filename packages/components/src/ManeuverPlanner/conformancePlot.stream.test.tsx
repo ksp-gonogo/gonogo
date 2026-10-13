@@ -136,6 +136,18 @@ describe("ManeuverPlanner: the render gate's selector still matches", () => {
 });
 
 describe("ManeuverPlanner: the conformance plot's planned conic", () => {
+  it("draws the planet at the radius the stream reports", async () => {
+    const view = await mountOnConformance([POST_BURN_PATCH]);
+    await waitFor(() => {
+      const radii = [
+        ...view.container.querySelectorAll(
+          "[data-conformance-plot] svg circle",
+        ),
+      ].map((c) => Number(c.getAttribute("r")));
+      expect(radii).toContain(600000);
+    });
+  });
+
   it("draws the planned conic from the burn's own patches[0]", async () => {
     const view = await mountOnConformance([POST_BURN_PATCH]);
     await waitFor(() => {
