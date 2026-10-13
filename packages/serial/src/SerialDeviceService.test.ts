@@ -312,6 +312,21 @@ describe("SerialDeviceService: json-state schema updates", () => {
     expect(type?.renderStyleConfig).toEqual({ w: 40, h: 4 });
   });
 
+  it("saves the type once when a device repeats the same screen and inputs on every line", async () => {
+    const { svc, transport } = await makeWithFakeTransport();
+    const update: SchemaUpdate = {
+      inputs: [{ id: "A", name: "A", kind: "button" }],
+      screen: { type: "txt", w: 40, h: 4 },
+    };
+    transport.fireSchema(update);
+    let changes = 0;
+    svc.onDeviceTypesChange(() => {
+      changes++;
+    });
+    for (let i = 0; i < 50; i++) transport.fireSchema(structuredClone(update));
+    expect(changes).toBe(0);
+  });
+
   it("ignores unknown screen types (leaves renderStyleId untouched)", async () => {
     const { svc, transport } = await makeWithFakeTransport();
     transport.fireSchema({
@@ -380,6 +395,22 @@ describe("SerialDeviceService: gamepad wiring", () => {
     const type = created.getDeviceType("gamepad-standard-18b-4a");
     expect(type?.inputs).toHaveLength(22);
     expect(type?.authoredBy).toBe("device");
+  });
+
+  it("connects a saved gamepad on autoReconnect, with no click in the Devices menu", async () => {
+    mock.install();
+    mock.connectPad(0, { id: "Pad A", buttonCount: 18, axisCount: 4 });
+    const created = await makeGamepadService();
+    created.addDevice({
+      id: "gp1",
+      name: "My Pad",
+      typeId: "gamepad-unconfigured",
+      transport: "gamepad",
+      gamepadId: "Pad A",
+    });
+    expect(created.getStatus("gp1")).toBe("disconnected");
+    await created.autoReconnect();
+    expect(created.getStatus("gp1")).toBe("connected");
   });
 
   it("shares one type between two pads of the same shape", async () => {
@@ -832,5 +863,185 @@ describe("SerialDeviceService hot-plug", () => {
     } finally {
       mock.restore();
     }
+  });
+});
+
+describe("SerialDeviceService: two web-serial panels", () => {
+  beforeEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function twoPanels(second: { vendorId: number; productId: number }) {
+    const { MockWebSerial } = await import("./mocks/mockWebSerial");
+    const { WebSerialTransport } = await import(
+      "./transports/WebSerialTransport"
+    );
+    const mock = new MockWebSerial();
+    mock.install({ force: true });
+    const svc = new SerialDeviceService({
+      screenKey: "test",
+      storage: memoryStorage(),
+      transportFactory: (instance, deviceType) =>
+        new WebSerialTransport({ id: instance.id, deviceType }),
+    });
+    for (const d of svc.getDevices()) await svc.removeDevice(d.id);
+    for (const t of svc.getDeviceTypes()) await svc.removeDeviceType(t.id);
+    svc.upsertDeviceType(TYPE);
+    const first = { vendorId: 0x1111, productId: 0x0001 };
+    svc.addDevice({
+      id: "a",
+      name: "Panel A",
+      typeId: TYPE.id,
+      transport: "web-serial",
+      portInfo: first,
+    });
+    svc.addDevice({
+      id: "b",
+      name: "Panel B",
+      typeId: TYPE.id,
+      transport: "web-serial",
+      portInfo: second,
+    });
+    const portA = mock.createPort({
+      info: { usbVendorId: first.vendorId, usbProductId: first.productId },
+    });
+    const portB = mock.createPort({
+      info: { usbVendorId: second.vendorId, usbProductId: second.productId },
+    });
+    await svc.connect("a", { port: portA });
+    await svc.connect("b", { port: portB });
+    expect(svc.getStatus("a")).toBe("connected");
+    expect(svc.getStatus("b")).toBe("connected");
+    return { mock, svc, portA, portB };
+  }
+
+  it("leaves one panel connected when a different panel's port reports a connect", async () => {
+    const { mock, svc, portB } = await twoPanels({
+      vendorId: 0x2222,
+      productId: 0x0002,
+    });
+    try {
+      const seen: TransportStatus[] = [];
+      svc.onStatusChange((deviceId, status) => {
+        if (deviceId === "a") seen.push(status);
+      });
+      mock.fireConnect(portB);
+      await new Promise((r) => setTimeout(r, 20));
+      expect(seen).toEqual([]);
+      expect(svc.getStatus("a")).toBe("connected");
+      await svc.destroy();
+    } finally {
+      mock.restore();
+    }
+  });
+
+  it("disconnects only the unplugged panel of two identical ones", async () => {
+    const { mock, svc, portA } = await twoPanels({
+      vendorId: 0x1111,
+      productId: 0x0001,
+    });
+    try {
+      mock.fireDisconnect(portA);
+      await vi.waitFor(() => expect(svc.getStatus("a")).toBe("disconnected"));
+      expect(svc.getStatus("b")).toBe("connected");
+      await svc.destroy();
+    } finally {
+      mock.restore();
+    }
+  });
+});
+
+describe("SerialDeviceService: updateDevice", () => {
+  it("keeps the transport, and its connection, across a rename", async () => {
+    const svc = await makeService();
+    svc.upsertDeviceType(TYPE);
+    svc.addDevice(INSTANCE);
+    await svc.connect("d1");
+    const before = svc.getTransport("d1");
+    svc.updateDevice("d1", { ...INSTANCE, name: "Renamed" });
+    expect(svc.getTransport("d1")).toBe(before);
+    expect(svc.getStatus("d1")).toBe("connected");
+    expect(svc.getDevice("d1")?.name).toBe("Renamed");
+    await svc.destroy();
+  });
+
+  it("reconnects a connected device whose transport had to be rebuilt", async () => {
+    const svc = await makeService();
+    svc.upsertDeviceType(TYPE);
+    svc.addDevice(INSTANCE);
+    await svc.connect("d1");
+    const before = svc.getTransport("d1");
+    svc.updateDevice("d1", { ...INSTANCE, baudRate: 115200 });
+    expect(svc.getTransport("d1")).not.toBe(before);
+    await vi.waitFor(() => expect(svc.getStatus("d1")).toBe("connected"));
+    await svc.destroy();
+  });
+});
+
+describe("SerialDeviceService: a transport that releases on disconnect", () => {
+  class HoldingTransport implements DeviceTransport {
+    readonly id = "hold";
+    status: TransportStatus = "connected";
+    private inputSubs = new Set<(e: InputEvent) => void>();
+    async connect() {}
+    async disconnect() {
+      for (const cb of this.inputSubs) cb({ inputId: "a", value: false });
+    }
+    async write() {}
+    onInput(cb: (e: InputEvent) => void) {
+      this.inputSubs.add(cb);
+      return () => this.inputSubs.delete(cb);
+    }
+    onStatus() {
+      return () => {};
+    }
+  }
+
+  it("delivers the release to input subscribers when the device is removed", async () => {
+    const svc = new SerialDeviceService({
+      screenKey: "hold-test",
+      storage: memoryStorage(),
+      transportFactory: () => new HoldingTransport(),
+    });
+    svc.upsertDeviceType(TYPE);
+    svc.addDevice({ ...INSTANCE, id: "held" });
+    const events: InputEvent[] = [];
+    svc.onInput((deviceId, event) => {
+      if (deviceId === "held") events.push(event);
+    });
+    await svc.removeDevice("held");
+    expect(events).toEqual([{ inputId: "a", value: false }]);
+    await svc.destroy();
+  });
+});
+
+describe("SerialDeviceService: device types shared between screens", () => {
+  const OTHER: DeviceType = { ...TYPE, id: "other", name: "Other" };
+
+  it("keeps a type another screen saved when this screen saves its own", async () => {
+    const storage = memoryStorage();
+    const main = new SerialDeviceService({ screenKey: "main", storage });
+    const station = new SerialDeviceService({ screenKey: "station", storage });
+    main.upsertDeviceType(TYPE);
+    station.upsertDeviceType(OTHER);
+
+    const reloaded = new SerialDeviceService({ screenKey: "main", storage });
+    const ids = reloaded.getDeviceTypes().map((t) => t.id);
+    expect(ids).toContain(TYPE.id);
+    expect(ids).toContain(OTHER.id);
+    expect(station.getDeviceType(TYPE.id)).toBeDefined();
+    await main.destroy();
+    await station.destroy();
+    await reloaded.destroy();
+  });
+
+  it("does not bring back a type this screen removed", async () => {
+    const storage = memoryStorage();
+    const main = new SerialDeviceService({ screenKey: "main", storage });
+    main.upsertDeviceType(TYPE);
+    await main.removeDeviceType(TYPE.id);
+    main.upsertDeviceType(OTHER);
+    expect(main.getDeviceType(TYPE.id)).toBeUndefined();
+    await main.destroy();
   });
 });

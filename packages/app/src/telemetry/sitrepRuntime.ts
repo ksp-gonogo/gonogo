@@ -52,7 +52,14 @@ function computeEffectiveHostConfig(): SitrepHostConfig {
 let cachedHostConfig: SitrepHostConfig = computeEffectiveHostConfig();
 
 function refreshCache(): void {
-  cachedHostConfig = computeEffectiveHostConfig();
+  const next = computeEffectiveHostConfig();
+  if (
+    next.host === cachedHostConfig.host &&
+    next.port === cachedHostConfig.port
+  ) {
+    return;
+  }
+  cachedHostConfig = next;
   notifyHostConfigChange();
 }
 
@@ -64,16 +71,16 @@ export function getSitrepHostConfig(): SitrepHostConfig {
   return cachedHostConfig;
 }
 
-/** Panel "Save": host → shared core gameHost, port → this service's own store. */
+/**
+ * Panel "Save": host → shared core gameHost, port → this service's own store.
+ * The host is written even when it equals the effective one, because the
+ * effective host may be a seed that lasts only for this page load.
+ */
 export function setSitrepHostConfig(config: SitrepHostConfig): void {
   portStore.set({ port: config.port });
-  if (getGameHost() !== config.host) {
-    // Host changed → setSetting cascades to refreshCache via the module's subscribeSetting(GAME_HOST_KEY, ...) registration; no explicit refresh.
-    setSetting(GAME_HOST_KEY, config.host);
-  } else {
-    // Port-only change: the host subscription won't fire, so refresh here.
-    refreshCache();
-  }
+  setSetting(GAME_HOST_KEY, config.host);
+  // A port-only change does not reach the host subscription.
+  refreshCache();
 }
 
 /** Subscribe to any change in the effective host/port (a save or a core gameHost change). */

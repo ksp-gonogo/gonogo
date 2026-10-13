@@ -680,7 +680,10 @@ export async function takeAudio(page: Page): Promise<TapedBlock[]> {
 export interface OpenScreenOptions {
   name: string;
   url: string;
-  dashboardKey: "gonogo:dashboard:main" | "gonogo:dashboard:station";
+  dashboardKey:
+    | "gonogo:dashboard:main"
+    | "gonogo:dashboard:station"
+    | "gonogo:dashboard:pilot";
   sitrepPort: number;
   videoDir: string;
   clip: ClipSpec;

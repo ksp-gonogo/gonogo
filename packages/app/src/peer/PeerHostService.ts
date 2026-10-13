@@ -660,7 +660,15 @@ export class PeerHostService {
         // pointed at the same teardown `close` runs. Attached here rather than
         // on the `connection` event because the underlying peer connection is
         // only reliably readable once the connection is open.
-        attachIceDiagnostics(conn, () => this.dropConnection(conn, "ICE dead"));
+        attachIceDiagnostics(conn, () => {
+          this.dropConnection(conn, "ICE dead");
+          // Closed as well as forgotten: a link whose ICE recovers would otherwise keep delivering messages from a station the host has already let go.
+          try {
+            conn.close();
+          } catch {
+            /* already closed */
+          }
+        });
         logger.info(
           `[PeerHost] connection open: peer=${conn.peer}, total=${this.connections.size}`,
         );
@@ -710,6 +718,7 @@ export class PeerHostService {
         this.events.emit("peerConnect", conn.peer);
       });
       conn.on("data", (raw) => {
+        if (this.droppedConnections.has(conn)) return;
         const msg = asPeerMessage(raw);
         if (msg) this.handleIncoming(msg, conn);
       });
@@ -1534,15 +1543,22 @@ export class PeerHostService {
     },
     "station-info": (msg, conn) => {
       if (msg.stationKey) {
-        // If another live connection claims the same stationKey, it's a
-        // ghost from a previous session for the same device, close it
-        // so the GO/NO-GO list collapses back to one entry. Skip the
-        // current conn so we don't kill the legitimate one when the
-        // station re-sends station-info on a rename.
+        /* One station identity holds one live connection. Another connection
+           with this stationKey is the same browser's other page: a previous
+           load not yet reaped, or a second tab. The newest takes the station
+           over; the older one is told why before it is closed, so a page that
+           is still open stops reconnecting and says so, where a silent close
+           would have the two evicting each other in turn. The current conn is
+           skipped so a rename's repeated station-info does not close it. */
         for (const [peerId, key] of this.peerIdToStationKey) {
           if (key === msg.stationKey && peerId !== conn.peer) {
-            const ghost = this.findConnByPeerId(peerId);
-            ghost?.close();
+            const older = this.findConnByPeerId(peerId);
+            try {
+              older?.send({ type: "station-superseded" } satisfies PeerMessage);
+            } catch {
+              /* a page that is already gone cannot be told */
+            }
+            older?.close({ flush: true });
             this.peerIdToStationKey.delete(peerId);
           }
         }

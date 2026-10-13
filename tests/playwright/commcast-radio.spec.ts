@@ -164,7 +164,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
     const craft = await openScreen(browser, {
       name: "near-craft",
       url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
-      dashboardKey: "gonogo:dashboard:main",
+      dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: CLIP,
@@ -318,7 +318,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
     const near = await openScreen(browser, {
       name: "near-craft",
       url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
-      dashboardKey: "gonogo:dashboard:main",
+      dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: CLIP,
@@ -327,7 +327,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
     const far = await openScreen(browser, {
       name: "far-craft",
       url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
-      dashboardKey: "gonogo:dashboard:main",
+      dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.far,
       videoDir,
       clip: CLIP,

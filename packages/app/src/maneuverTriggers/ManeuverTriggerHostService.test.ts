@@ -65,7 +65,7 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   clock.scrubTo(pinnedUt);
   const store = new TimelineStore(clock);
   client.attachStore(store);
-  client.subscribe("vessel.orbit", () => {});
+  const dropOrbitReader = client.subscribe("vessel.orbit", () => {});
   client.subscribe("vessel.identity", () => {});
   client.subscribe("system.bodies", () => {});
 
@@ -84,6 +84,8 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   return {
     store,
     calls,
+    /** Lets go of this fixture's own `vessel.orbit` subscription, as a widget does when it leaves the dashboard. */
+    dropOrbitReader,
     /** What the mod answers every command with from here on. */
     answerWith(result: unknown): void {
       answer = result;
@@ -531,6 +533,25 @@ describe("ManeuverTriggerHostService", () => {
     await Promise.resolve();
     expect(storeFixture.calls.length).toBe(1);
     expect(storeFixture.calls[0].command).toBe("vessel.maneuver.add");
+    expect(svc.snapshot().triggers).toHaveLength(0);
+  });
+
+  it("fires on a field no widget is reading any more, because the trigger keeps its own subscription", async () => {
+    const svc = makeService();
+    const storeFixture = seedKerbinOrbit();
+    svc.arm({
+      dataKey: "vessel.orbit.sma",
+      op: ">=",
+      value: 750_000,
+      inputs: FROZEN,
+    });
+    storeFixture.dropOrbitReader();
+    storeFixture.emitOrbit(kerbinOrbitPayload(1_000_000, 800_000));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(storeFixture.calls.map((c) => c.command)).toEqual([
+      "vessel.maneuver.add",
+    ]);
     expect(svc.snapshot().triggers).toHaveLength(0);
   });
 

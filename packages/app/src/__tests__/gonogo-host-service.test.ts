@@ -179,8 +179,8 @@ class FakeTimelineStore {
  * list. Two turns is enough and matches what the alarm host's own tests drain.
  */
 async function drainDispatch(): Promise<void> {
-  await Promise.resolve();
-  await Promise.resolve();
+  // A command's outcome crosses several promise hops before the service acts on it.
+  for (let i = 0; i < 10; i++) await Promise.resolve();
 }
 
 /**
@@ -293,6 +293,7 @@ describe("GoNoGoHostService", () => {
     host.fireConnect("peer-2");
     host.fireStationInfo("peer-1", "A");
     host.fireStationInfo("peer-2", "B");
+    host.fireVote("peer-2", "no-go");
     host.fireVote("peer-1", "go");
     expect(svc.getSnapshot().countdown).toBeNull();
     host.fireVote("peer-2", "go");
@@ -311,14 +312,48 @@ describe("GoNoGoHostService", () => {
     expect(cancel.reason).toContain("no-go");
   });
 
-  it("cancels the countdown when a new peer joins mid-countdown", () => {
+  it("is not blocked by a connected screen that has no GO/NO-GO widget", () => {
+    host.fireConnect("peer-1");
+    host.fireConnect("no-widget");
+    host.fireVote("no-widget", null);
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+  });
+
+  it("stops counting a screen that removes its widget mid-poll", () => {
+    host.fireConnect("peer-1");
+    host.fireConnect("peer-2");
+    host.fireVote("peer-1", "go");
+    host.fireVote("peer-2", "no-go");
+    expect(svc.getSnapshot().countdown).toBeNull();
+    host.fireVote("peer-2", null);
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+  });
+
+  it("never reads zero votes as all GO", () => {
+    host.fireConnect("peer-1");
+    host.fireConnect("peer-2");
+    host.fireVote("peer-1", null);
+    host.fireVote("peer-2", null);
+    expect(svc.getSnapshot().countdown).toBeNull();
+
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+    host.fireVote("peer-1", null);
+    expect(svc.getSnapshot().countdown).toBeNull();
+    expect(lastBroadcast(host, "gonogo-countdown-cancel").reason).toContain(
+      "withdrawn",
+    );
+  });
+
+  it("keeps counting down when a screen with no vote joins, and stops when that screen votes NO-GO", () => {
     host.fireConnect("peer-1");
     host.fireVote("peer-1", "go");
     expect(svc.getSnapshot().countdown).not.toBeNull();
     host.fireConnect("peer-2");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
+    host.fireVote("peer-2", "no-go");
     expect(svc.getSnapshot().countdown).toBeNull();
-    const cancel = lastBroadcast(host, "gonogo-countdown-cancel");
-    expect(cancel.reason).toContain("new station");
   });
 
   it("cancels the countdown when a peer disconnects mid-countdown", () => {
@@ -338,6 +373,38 @@ describe("GoNoGoHostService", () => {
     vi.advanceTimersByTime(5_001);
     await drainDispatch();
     expect(dispatched.map((d) => d.command)).toContain("vessel.control.stage");
+  });
+
+  it("starts no second countdown and stages once when a GO is repeated before the launch is seen", async () => {
+    svc.setConfig({ countdownLengthMs: 5_000 });
+    host.fireConnect("peer-1");
+    host.fireConnect("peer-2");
+    host.fireVote("peer-1", "go");
+    host.fireVote("peer-2", "go");
+    vi.advanceTimersByTime(5_001);
+    await drainDispatch();
+    const stages = () =>
+      dispatched.filter((d) => d.command === "vessel.control.stage");
+    expect(stages()).toHaveLength(1);
+    // Signal delay: the craft's mission time has not arrived, so nothing reads as launched yet.
+    expect(svc.getSnapshot().launched).toBe(false);
+
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).toBeNull();
+    vi.advanceTimersByTime(10_000);
+    await drainDispatch();
+    expect(stages()).toHaveLength(1);
+  });
+
+  it("counts down again after T-0 only once a vote has left GO and returned", async () => {
+    svc.setConfig({ countdownLengthMs: 5_000 });
+    host.fireConnect("peer-1");
+    host.fireVote("peer-1", "go");
+    vi.advanceTimersByTime(5_001);
+    await drainDispatch();
+    host.fireVote("peer-1", "no-go");
+    host.fireVote("peer-1", "go");
+    expect(svc.getSnapshot().countdown).not.toBeNull();
   });
 
   it("does not stage at T-0 when triggerStageAtZero is off", async () => {
@@ -403,11 +470,51 @@ describe("GoNoGoHostService", () => {
     expect(notify.stationName).toBe("CAPCOM");
   });
 
-  it("plays the abort alert tone on the genuine first abort, but not on re-notify", () => {
+  it("records no abort the game refused, announces nothing, and sends the next press again", async () => {
+    let refuse = true;
+    transport.setCommandHandler((command, args) => {
+      dispatched.push({ command, args });
+      if (refuse) throw new Error("no vessel to abort");
+      return null;
+    });
+    host.fireConnect("peer-1");
+    host.fireStationInfo("peer-1", "CAPCOM");
+    timeline.emitMet(10);
+    const broadcastsBefore = host.broadcasts.length;
+
+    host.fireAbort("peer-1");
+    await drainDispatch();
+    expect(abortDispatches()).toHaveLength(1);
+    expect(svc.getSnapshot().abort).toBeNull();
+    expect(host.broadcasts.length).toBe(broadcastsBefore);
+    expect(oscillators).toHaveLength(0);
+
+    refuse = false;
+    host.fireAbort("peer-1");
+    await drainDispatch();
+    expect(abortDispatches()).toHaveLength(2);
+    expect(svc.getSnapshot().abort?.stationName).toBe("CAPCOM");
+    expect(lastBroadcast(host, "gonogo-abort-notify").stationName).toBe(
+      "CAPCOM",
+    );
+  });
+
+  it("records no abort when there is no stream to send it on", async () => {
+    setActiveTelemetryClientForTests(undefined);
+    host.fireConnect("peer-1");
+    timeline.emitMet(10);
+    host.fireAbort("peer-1");
+    await drainDispatch();
+    expect(svc.getSnapshot().abort).toBeNull();
+    expect(oscillators).toHaveLength(0);
+  });
+
+  it("plays the abort alert tone on the genuine first abort, but not on re-notify", async () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
     timeline.emitMet(10);
     host.fireAbort("peer-1");
+    await drainDispatch();
     const afterFirst = oscillators.length;
     expect(afterFirst).toBeGreaterThan(0);
     // A re-notification (station reconnect after host refresh) must not chime again: mirrors the f.abort no-double-fire guarantee.
@@ -444,11 +551,12 @@ describe("GoNoGoHostService", () => {
     expect(svc.getSnapshot().abort?.stationName).toBe("A");
   });
 
-  it("clears abort on revert (MET back to 0)", () => {
+  it("clears abort on revert (MET back to 0)", async () => {
     host.fireConnect("peer-1");
     host.fireStationInfo("peer-1", "CAPCOM");
     timeline.emitMet(10);
     host.fireAbort("peer-1");
+    await drainDispatch();
     expect(svc.getSnapshot().abort).not.toBeNull();
     timeline.emitMet(0);
     expect(svc.getSnapshot().abort).toBeNull();

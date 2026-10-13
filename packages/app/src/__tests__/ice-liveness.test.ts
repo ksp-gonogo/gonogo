@@ -1,4 +1,6 @@
+import { type LogEntry, logger } from "@ksp-gonogo/logger";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { iceAddressClass } from "../peer/iceDiagnostics";
 import { attachIceDiagnostics } from "../peer/PeerClientService";
 import { asDataConnection } from "../test/peerFakes";
 
@@ -13,17 +15,17 @@ class FakePc {
   iceGatheringState: RTCIceGatheringState = "gathering";
   connectionState: RTCPeerConnectionState = "connecting";
   signalingState: RTCSignalingState = "stable";
-  private listeners = new Map<string, Array<() => void>>();
+  private listeners = new Map<string, Array<(ev?: unknown) => void>>();
 
-  addEventListener(event: string, cb: () => void) {
+  addEventListener(event: string, cb: (ev?: unknown) => void) {
     const bucket = this.listeners.get(event) ?? [];
     bucket.push(cb);
     this.listeners.set(event, bucket);
   }
 
-  private emit(event: string) {
+  emit(event: string, ev?: unknown) {
     this.listeners.get(event)?.forEach((cb) => {
-      cb();
+      cb(ev);
     });
   }
 
@@ -136,5 +138,53 @@ describe("attachIceDiagnostics liveness", () => {
     conn.emit("close"); // clean teardown
     vi.advanceTimersByTime(10_000);
     expect(onDead).not.toHaveBeenCalled();
+  });
+});
+
+describe("attachIceDiagnostics candidate logging", () => {
+  it("logs the class of a candidate's address and never the address", () => {
+    const sent: LogEntry[] = [];
+    const transport = {
+      send: (entries: readonly LogEntry[]) => {
+        sent.push(...entries);
+      },
+    };
+    const wasEnabled = logger.isEnabled();
+    logger.setEnabled(true);
+    logger.addTransport(transport);
+    try {
+      const { pc } = wire();
+      pc.emit("icecandidate", {
+        candidate: {
+          type: "srflx",
+          protocol: "udp",
+          address: "203.0.113.77",
+          port: 50000,
+          relatedAddress: "192.168.1.23",
+        },
+      });
+    } finally {
+      logger.removeTransport(transport);
+      logger.setEnabled(wasEnabled);
+    }
+    const shipped = JSON.stringify(sent);
+    expect(shipped).not.toContain("203.0.113.77");
+    expect(shipped).not.toContain("192.168.1.23");
+    const entry = sent.find((e) => e.message.includes("icecandidate"));
+    expect(entry?.context).toMatchObject({
+      addressClass: "public",
+      relatedAddressClass: "private",
+    });
+  });
+
+  it("classifies candidate addresses", () => {
+    expect(iceAddressClass(null)).toBe("none");
+    expect(iceAddressClass("3f2a9c1e.local")).toBe("mdns");
+    expect(iceAddressClass("127.0.0.1")).toBe("loopback");
+    expect(iceAddressClass("10.1.2.3")).toBe("private");
+    expect(iceAddressClass("172.20.0.4")).toBe("private");
+    expect(iceAddressClass("172.32.0.4")).toBe("public");
+    expect(iceAddressClass("fe80::1")).toBe("private");
+    expect(iceAddressClass("2001:db8::1")).toBe("public");
   });
 });

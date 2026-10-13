@@ -105,7 +105,6 @@ import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
  */
 const EMPTY_DASHBOARD: DashboardConfig = { items: [], layouts: {} };
 
-const BASE_DASHBOARD_KEY = "gonogo:dashboard:main";
 const SCENE_SCOPED_KEYS = new Set([
   "SpaceCenter",
   "Editor",
@@ -113,10 +112,13 @@ const SCENE_SCOPED_KEYS = new Set([
   "TrackingStation",
 ]);
 
-function dashboardKeyForScene(scene: string | undefined): string {
-  return scene && SCENE_SCOPED_KEYS.has(scene)
-    ? `${BASE_DASHBOARD_KEY}:${scene}`
-    : BASE_DASHBOARD_KEY;
+/** Each screen keeps its own layouts: a pilot's dashboard is not the main screen's. */
+function dashboardKeyForScene(
+  screen: Screen,
+  scene: string | undefined,
+): string {
+  const base = `gonogo:dashboard:${screen}`;
+  return scene && SCENE_SCOPED_KEYS.has(scene) ? `${base}:${scene}` : base;
 }
 
 /**
@@ -319,16 +321,22 @@ export function MainScreen({
        * the main screen's own picker owns it there.
        */}
       {screen === "pilot" && <PilotVantage />}
-      <ReplaySessionProvider>
-        <ScreenProvider value={screen}>
-          <SettingsProvider service={settingsService}>
-            <AnalyticsConsentHost
-              service={analyticsConsentService}
-              peerHost={peerHostService}
-            />
-            <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
-            <ConsoleSettingsFromHost service={settingsService} />
-            <AutoRecordControllerWithMissionHistory />
+      <ScreenProvider value={screen}>
+        <SettingsProvider service={settingsService}>
+          <AnalyticsConsentHost
+            service={analyticsConsentService}
+            peerHost={peerHostService}
+          />
+          <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
+          <ConsoleSettingsFromHost service={settingsService} />
+          {/*
+           * Above the replay provider, so it records the live stream. Below
+           * it, entering a replay would remount it, which saves the live
+           * recording early, and it would then record the replay itself as
+           * new missions.
+           */}
+          <AutoRecordControllerWithMissionHistory />
+          <ReplaySessionProvider>
             <AlarmHostProvider service={alarmHost}>
               {/*
                * So a deliberate press on this screen's own warp control does
@@ -366,9 +374,9 @@ export function MainScreen({
                 </NotesHostProvider>
               </WarpIntentProvider>
             </AlarmHostProvider>
-          </SettingsProvider>
-        </ScreenProvider>
-      </ReplaySessionProvider>
+          </ReplaySessionProvider>
+        </SettingsProvider>
+      </ScreenProvider>
     </SitrepTelemetryProvider>
   );
 }
@@ -390,7 +398,7 @@ function MainDashboard({
 }) {
   const { scene, inFlight, hasGameSignal } = useGameContext();
   const dashboard = useDashboardState(
-    dashboardKeyForScene(scene),
+    dashboardKeyForScene(screen, scene),
     EMPTY_DASHBOARD,
   );
 

@@ -5,7 +5,10 @@ import "./missionHistory";
 import "./sitrep";
 import { seedKspHostDefaults } from "./seedKspHost";
 
-// First-run KSP_HOST seeding (bundle deployments). Fire-and-forget: any
-// already-started connection attempts are restarted by the per-source seed
-// hooks when the relay reports a host. No-op outside the bundle.
-void seedKspHostDefaults();
+/**
+ * Settles once the first-run `KSP_HOST` seed (bundle deployments) has been
+ * applied or found absent. Sources that connect before it settles are restarted
+ * by their own seed hooks; a one-shot read of the game host waits on this.
+ * Never rejects.
+ */
+export const kspHostSeeded: Promise<void> = seedKspHostDefaults();

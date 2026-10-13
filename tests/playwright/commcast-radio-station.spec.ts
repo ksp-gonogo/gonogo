@@ -182,7 +182,7 @@ test.describe("commcast radio from a station screen @chromium-only", () => {
     const pilot = await openScreen(browser, {
       name: "near-craft",
       url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
-      dashboardKey: "gonogo:dashboard:main",
+      dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: PILOT_CLIP,

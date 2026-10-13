@@ -61,7 +61,7 @@ test.describe("commcast radio: the relay repeats a peer once @chromium-only", ()
     const pilot = await openScreen(browser, {
       name: "near-craft",
       url: `/pilot?host=${shareCode}&uplinkLoaderIds=`,
-      dashboardKey: "gonogo:dashboard:main",
+      dashboardKey: "gonogo:dashboard:pilot",
       sitrepPort: PORTS.radioStream.near,
       videoDir,
       clip: { name: "relay pilot", chunks: CHUNKS },

@@ -41,10 +41,24 @@ function loadState(key: string): PersistedState | null {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== "object" || parsed === null) return null;
     const state = parsed as PersistedState;
+    // One entry that is not an item must not cost the operator every other widget on the layout.
+    const items = Array.isArray(state.items)
+      ? state.items.filter(
+          (it): it is DashboardItem =>
+            typeof it === "object" &&
+            it !== null &&
+            typeof it.i === "string" &&
+            typeof it.componentId === "string",
+        )
+      : [];
     // Forward-map any renamed widget ids so old placements survive a rename.
     return {
       ...state,
-      items: migrateDashboardItems(state.items ?? []),
+      items: migrateDashboardItems(items),
+      layouts:
+        typeof state.layouts === "object" && state.layouts !== null
+          ? state.layouts
+          : {},
     };
   } catch {
     return null;
@@ -104,10 +118,10 @@ export function useDashboardState(
   storageKey: string | undefined,
   initial: DashboardConfig,
 ): DashboardState {
-  const loadedRef = useRef<PersistedState | null>(
+  // Read once: a ref's initial value is evaluated on every render, a state initialiser is not.
+  const [saved] = useState<PersistedState | null>(() =>
     storageKey ? loadState(storageKey) : null,
   );
-  const saved = loadedRef.current;
 
   const [items, setItemsInner] = useState<DashboardItem[]>(
     saved?.items ?? initial.items,
@@ -132,6 +146,13 @@ export function useDashboardState(
   // loaded/seeded the incoming key, so the persist effect below never writes
   // the outgoing scene's items under the incoming scene's key.
   const activeKeyRef = useRef(storageKey);
+  const storageKeyRef = useRef(storageKey);
+  storageKeyRef.current = storageKey;
+  /* Set when the whole dashboard is replaced while a key change is still
+     waiting for its effect below. A child's effect runs before this hook's, so
+     a layout loaded because of the scene change arrives first, and loading the
+     incoming key's saved layout after it would undo it. */
+  const replacedForKeyRef = useRef<string | undefined>(undefined);
 
   // Side effects (persistence + external subscribers) run from an effect, NOT
   // inside the setState updater: StrictMode double-invokes updaters to
@@ -157,8 +178,12 @@ export function useDashboardState(
   // effect above, so nothing is lost.
   useEffect(() => {
     if (storageKey === activeKeyRef.current) return;
-    const next = storageKey ? loadState(storageKey) : null;
     activeKeyRef.current = storageKey;
+    const replaced = replacedForKeyRef.current === storageKey;
+    replacedForKeyRef.current = undefined;
+    // The replacement is already in state and is saved under the incoming key by the effect above.
+    if (replaced) return;
+    const next = storageKey ? loadState(storageKey) : null;
     if (next) {
       setItemsInner(next.items);
       setLayouts(next.layouts);
@@ -308,6 +333,9 @@ export function useDashboardState(
    */
   const replaceState = useCallback(
     (nextItems: DashboardItem[], nextLayouts: Layouts) => {
+      if (storageKeyRef.current !== activeKeyRef.current) {
+        replacedForKeyRef.current = storageKeyRef.current;
+      }
       // Mission-profile / peer-config loads also carry persisted ids, migrate.
       setItemsInner(migrateDashboardItems(nextItems));
       setLayouts(nextLayouts);
