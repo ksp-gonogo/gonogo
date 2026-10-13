@@ -108,6 +108,19 @@ namespace Sitrep.Core
             new HashSet<(string, string)>();
 
         /// <summary>
+        /// Drop everything recorded for <paramref name="topic"/>: its samples and
+        /// the read position of every vantage on it. For a topic whose recorded
+        /// value has stopped describing anything, so the next reader is handed
+        /// nothing instead of that.
+        /// </summary>
+        public void ForgetTopic(string topic)
+        {
+            _samplesByTopic.Remove(topic);
+            _cursors.Remove(topic);
+            _readSincePrune.RemoveWhere(read => read.Topic == topic);
+        }
+
+        /// <summary>
         /// Ascending per-topic sample list (by ValidAt). Returns a fresh copy
         /// (not a reference to internal state), so callers can't mutate
         /// archive state through it. Empty list for a topic with no recorded

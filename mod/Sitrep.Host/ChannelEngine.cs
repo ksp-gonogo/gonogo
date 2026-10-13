@@ -432,6 +432,13 @@ namespace Sitrep.Host
         // the Courier-thread mapper. See SampleCommandGates.
         private CommandGateReport _commandGateReport = new CommandGateReport();
 
+        /*
+         * True from a first subscriber to system.uplink.gates until the main
+         * thread's next pass has written the report, so the report on hand is
+         * never published as the answer for a game it no longer describes.
+         */
+        private bool _gateReportStale = true;
+
         // Per declared channel, each payload field a [SitrepRequires] gates, by
         // its wire name. Built once at Start; read by the main-thread sampler.
         private Dictionary<string, List<KeyValuePair<string, CommandRequirement[]>>> _fieldRequirements =
@@ -1659,6 +1666,7 @@ namespace Sitrep.Host
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[UplinksTopic] = BuildSystemUplinksPayload;
+            _engineStateTopics.Add(UplinksTopic);
 
             _commandDeclarations[BodyStatesAtCommand] = new CommandDeclaration
             {
@@ -1682,6 +1690,7 @@ namespace Sitrep.Host
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[SettingsTopic] = _ => _settingsPublisher?.Snapshot;
+            _engineStateTopics.Add(SettingsTopic);
             _commandDeclarations[SaveSettingsCommand] = new CommandDeclaration
             {
                 Command = SaveSettingsCommand,
@@ -1729,6 +1738,7 @@ namespace Sitrep.Host
             // ProcessDispatchCommand appends on, so no synchronization is
             // needed here either.
             _channelSources[UplinkPendingTopic] = _ => new PendingUplinkQueue { Pending = _pending.ToList() };
+            _engineStateTopics.Add(UplinkPendingTopic);
 
             // Built-in system.uplink.gates declaration + source: see
             // UplinkGatesTopic's doc comment. Declared before Start(), same
@@ -1752,13 +1762,18 @@ namespace Sitrep.Host
                 // minutes after a rocket rolled out onto it. The DISPATCH still
                 // takes its delay; knowing in advance does not.
                 Delay = DelayRole.TrueNow,
+                // No report is the answer until a pass has run, which is
+                // silence and not a report that there is nothing.
+                NullIsUnreadable = true,
             };
             // The mapper hands back the last MAIN-THREAD sample and reads
             // nothing live. Volatile because the sampler writes from the Unity
             // main thread and this runs on the Courier thread; the reference
             // swap is the whole synchronisation, since each report is built
             // fresh and never mutated after publication.
-            _channelSources[UplinkGatesTopic] = _ => Volatile.Read(ref _commandGateReport);
+            _channelSources[UplinkGatesTopic] = _ =>
+                Volatile.Read(ref _gateReportStale) ? null : Volatile.Read(ref _commandGateReport);
+            _engineStateTopics.Add(UplinkGatesTopic);
             DeclareGateCheck();
             _commandGateBudget = new PerfBudget(
                 "ChannelEngine gate evaluations/sec",
@@ -1829,6 +1844,7 @@ namespace Sitrep.Host
                 Delay = DelayRole.TrueNow,
             };
             _channelSources[ChannelsTopic] = _ => ChannelEmissionRoster();
+            _engineStateTopics.Add(ChannelsTopic);
             _channelCounterBudget = new PerfBudget(
                 "ChannelEngine channel-counter rows/sec",
                 threshold: ChannelCounterRowBudget,
@@ -2859,6 +2875,7 @@ namespace Sitrep.Host
             };
             _channelOwner[topic] = id;
             _channelSources[topic] = _ => publisher.Snapshot;
+            _engineStateTopics.Add(topic);
         }
 
         /// <summary>
@@ -4341,6 +4358,7 @@ namespace Sitrep.Host
             if (reportWanted)
             {
                 Volatile.Write(ref _commandGateReport, new CommandGateReport { Gates = gates, Channels = channels });
+                Volatile.Write(ref _gateReportStale, false);
             }
         }
 
@@ -10031,6 +10049,7 @@ namespace Sitrep.Host
             {
                 NoteTopicSubscribed(topic);
                 _emitter.NotifySubscribed(topic);
+                ForgetEngineStateOnFirstSubscriber(topic);
             }
 
             var vantage = ObservationVantageFor(topic, VantageOf(session));
@@ -10189,6 +10208,35 @@ namespace Sitrep.Host
                 KeyframeIntervalUt = DeclarationOf(topic)?.Emission?.KeyframeIntervalUt,
             };
             session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteEventMsg(ack)));
+        }
+
+        /*
+         * The topics whose value is the engine's own state, read through a source
+         * that ignores the tick's snapshot. Each is only built while something is
+         * subscribed, so the archive holds what it was when the last subscriber
+         * left. Courier-thread-only after registration.
+         */
+        private readonly HashSet<string> _engineStateTopics = new HashSet<string>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Drop what is archived for an engine-state topic when its first
+        /// subscriber arrives, so that subscriber is handed nothing until the next
+        /// tick has built the topic, and never what it said when the last
+        /// subscriber left (a health that changed since, say). The gate report is
+        /// sampled on the main thread and is held back until a pass has written
+        /// it.
+        /// </summary>
+        private void ForgetEngineStateOnFirstSubscriber(string topic)
+        {
+            if (!_engineStateTopics.Contains(topic))
+            {
+                return;
+            }
+            if (topic == UplinkGatesTopic)
+            {
+                Volatile.Write(ref _gateReportStale, true);
+            }
+            _courier.ForgetTopic(NodeFor(topic), topic);
         }
 
         /// <summary>

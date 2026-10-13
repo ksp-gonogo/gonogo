@@ -1578,6 +1578,24 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Lets go of what is recorded for <paramref name="topic"/> on
+        /// <paramref name="node"/>, including the keyframe a late subscriber is
+        /// seeded from, so the next subscriber is handed nothing until the topic
+        /// is recorded again.
+        /// </summary>
+        public void ForgetTopic(string node, string topic)
+        {
+            if (_archives.TryGetValue(node, out var archive))
+            {
+                archive.ForgetTopic(topic);
+            }
+            if (_stickyKeyframes.TryGetValue(node, out var sticky))
+            {
+                sticky.Remove(topic);
+            }
+        }
+
+        /// <summary>
         /// Bound every archive to what its vantages can still read. Safe to call at
         /// any time: it only ever drops samples that no current vantage can reach,
         /// and a read that would have wanted one answers null rather than falling

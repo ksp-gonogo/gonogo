@@ -845,18 +845,14 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, GateSampleProbeUplink.CourierProbeTopic, Timeout);
                 await SubscribeAsync(client, ChannelEngine.UplinkGatesTopic, Timeout);
 
-                // One Courier tick: it samples every subscribed channel,
-                // system.uplink.gates included, with no main-thread pump in
-                // existence.
+                // One Courier tick: it samples every subscribed channel, with
+                // no main-thread pump in existence. The gate report is not one
+                // of them: it is only published once a pass has written it.
                 engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
 
-                var topics = new List<string>
-                {
-                    (await ReceiveStreamDataAsync(client, Timeout)).Topic,
-                    (await ReceiveStreamDataAsync(client, Timeout)).Topic,
-                };
-                Assert.Contains(ChannelEngine.UplinkGatesTopic, topics);
-                Assert.Contains(GateSampleProbeUplink.CourierProbeTopic, topics);
+                Assert.Equal(
+                    GateSampleProbeUplink.CourierProbeTopic,
+                    (await ReceiveStreamDataAsync(client, Timeout)).Topic);
 
                 var courierThreadId = uplink.LastMapperThreadId;
                 Assert.NotEqual(-1, courierThreadId);
@@ -878,6 +874,15 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.True(pump.Join(Timeout), "the gate sample should return promptly on the pump thread");
 
                 Assert.Equal(pumpThreadId, uplink.LastGateThreadId);
+
+                engine.TickAndWait(2.0, new KspSnapshot { Ut = 2.0 }, Timeout);
+                var topicsAfterPump = new List<string>
+                {
+                    (await ReceiveStreamDataAsync(client, Timeout)).Topic,
+                    (await ReceiveStreamDataAsync(client, Timeout)).Topic,
+                };
+                Assert.Contains(ChannelEngine.UplinkGatesTopic, topicsAfterPump);
+
                 // Over the WHOLE run, not just the last call: see
                 // GateSampleProbeUplink.GateThreadIds for why the last-one-wins
                 // field cannot see this violation on its own.
