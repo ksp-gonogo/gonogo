@@ -30,6 +30,7 @@ const topics = defineTopicManifest({
 function AtmosphereProfileComponent({
   config,
   w,
+  h,
 }: Readonly<ComponentProps<AtmosphereProfileConfig>>) {
   /**
    * The chip states the air the craft is flying through now, undated, and
@@ -57,6 +58,7 @@ function AtmosphereProfileComponent({
   const liveDensity = flight?.atmDensity;
 
   const cols = w ?? 8;
+  const rows = h ?? 8;
   // Shared chart chrome collides at narrow widths; shorten widget-owned labels.
   const narrow = cols < 6;
 
@@ -113,10 +115,6 @@ function AtmosphereProfileComponent({
       windowSec: 60,
       x: { topic: "vessel.flight", field: "altitudeAsl" },
       yScalePrimary: "log",
-      xLabel: "Altitude",
-      xUnit: "m",
-      yLabel: "Pressure",
-      yUnit: "Pa",
     }),
     [],
   );
@@ -132,9 +130,12 @@ function AtmosphereProfileComponent({
     (showNoBodyNotice && `Unknown body “${bodyName}”.`) ||
     undefined;
 
+  // The chip only means something in atmosphere, and would obscure a small chart.
+  const chipFits = cols >= 7 && rows >= 6;
   // Narrow: the full title would wrap and steal a chart row.
   const title = narrow ? "ATMOSPHERE" : "ATMOSPHERE PROFILE";
   const showLiveChip =
+    chipFits &&
     liveDensity?.greaterThan(value(liveDensity.unit, 1e-9)) === true &&
     body?.hasAtmosphere === true;
   return (
@@ -147,17 +148,14 @@ function AtmosphereProfileComponent({
           referenceCurves={referenceCurve ? [referenceCurve] : undefined}
           title={title}
           notice={notice}
-          plotReadout={
-            showLiveChip
-              ? (room) => (
-                  <LiveAirChip
-                    density={flightReading.atmDensity}
-                    airTemp={flightReading.atmosphericTemperature}
-                    skinTemp={flightReading.externalTemperature}
-                    stacked={room.compact}
-                  />
-                )
-              : undefined
+          plotAside={
+            showLiveChip ? (
+              <LiveAirChip
+                density={flightReading.atmDensity}
+                airTemp={flightReading.atmosphericTemperature}
+                skinTemp={flightReading.externalTemperature}
+              />
+            ) : undefined
           }
           emptyState={
             body

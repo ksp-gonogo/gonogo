@@ -38,7 +38,6 @@ import {
   timeWindowDomain,
   withDefaults,
 } from "./axes";
-import { axisTitle, yAxisTitle } from "./axisTitles";
 import { GraphFetchers } from "./GraphFetchers";
 import { GraphReadout } from "./GraphReadout";
 import {
@@ -118,49 +117,8 @@ export interface GraphViewProps {
   h?: number;
   /** What the chart cannot show ("plotting trace only"). The kit places it: over an empty plot with room, beside a wide short one, below the rest. */
   notice?: ReactNode;
-  /** Names each axis from the series drawn on it and the field on x, where the config gives no name. For a plot whose series the operator picked. */
-  deriveAxisTitles?: boolean;
-  /**
-   * Figures the plot shows about the present, as one fixed card. Where the plot
-   * has measured room for it, the card takes a column beside the plot, inside
-   * its frame. Where it does not, the card stands over the plot in a corner no
-   * trace, line or legend chip crosses, and where no corner is clear it is not
-   * drawn.
-   */
-  plotReadout?: ReactNode | ((room: ReadoutRoom) => ReactNode);
-}
-
-/** The newest sample of the first plotted series, with the figure each reference curve has at its x. */
-export interface PresentPoint {
-  x: number;
-  y: number;
-  /** Reference curves read at `x`, by curve id; a curve that does not reach `x` is left out. */
-  references: Readonly<Record<string, number>>;
-}
-
-/** The value of a sampled curve at `x` by straight lines between samples, or nothing outside the curve. */
-function readCurveAt(
-  xs: readonly number[],
-  ys: readonly number[],
-  x: number,
-): number | undefined {
-  for (let i = 1; i < xs.length; i++) {
-    const [x0, x1] = [xs[i - 1], xs[i]];
-    if (x >= Math.min(x0, x1) && x <= Math.max(x0, x1) && x1 !== x0) {
-      return ys[i - 1] + ((ys[i] - ys[i - 1]) * (x - x0)) / (x1 - x0);
-    }
-  }
-  return undefined;
-}
-
-/** The space a readout is offered, so it can answer with a form that fits: a column has all it needs, a card on the plot has the plot's. */
-export interface ReadoutRoom {
-  width: number;
-  height: number;
-  /** Where the first plotted series stands now (its newest sample) and what each reference curve reads there, in the plot's own numbers. Absent on a time axis or before a sample arrives. */
-  present?: PresentPoint;
-  /** Figures set beside their labels have no clear corner, so they should be stacked under them. */
-  compact: boolean;
+  /** Figures drawn in a column beside the plot, inside its frame, so they take width from the plot instead of covering it. */
+  plotAside?: ReactNode;
 }
 
 /** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
@@ -180,8 +138,7 @@ export function GraphView({
   w,
   h,
   notice,
-  plotReadout,
-  deriveAxisTitles,
+  plotAside,
 }: GraphViewProps) {
   const series = useMemo(
     () => (config?.series ?? []).map(withDefaults),
@@ -262,22 +219,6 @@ export function GraphView({
     return () => ro.disconnect();
   }, [resolvedVariant]);
 
-  const [asideSize, setAsideSize] = useState<{ w: number; h: number } | null>(
-    null,
-  );
-  const [asideEl, setAsideEl] = useState<HTMLDivElement | null>(null);
-  useEffect(() => {
-    if (!asideEl) return;
-    const ro = new ResizeObserver(() =>
-      setAsideSize({
-        w: asideEl.offsetWidth + ASIDE_CHROME_PX,
-        h: asideEl.offsetHeight + ASIDE_CHROME_PX,
-      }),
-    );
-    ro.observe(asideEl);
-    return () => ro.disconnect();
-  }, [asideEl]);
-
   const [fetchedData, setSeriesData] = useState<
     Map<string, SeriesRange<number>>
   >(new Map());
@@ -350,7 +291,6 @@ export function GraphView({
           color: curve.color ?? "var(--color-text-faint)",
           type: "line" as const,
           dashed: true,
-          readBetween: true,
           data: { x: curve.xs, y: curve.ys },
         }))
       : [];
@@ -408,30 +348,6 @@ export function GraphView({
         unitTick(config.yUnit as string, v, ticks)
     : undefined;
 
-  const derive = deriveAxisTitles === true;
-  const xAxisTitle = axisTitle(
-    config?.xLabel ?? (derive ? (xIsTime ? "Time" : xMeta?.label) : undefined),
-    xIsTime ? undefined : (config?.xUnit ?? xMeta?.unit),
-  );
-  const yAxisLabel = yAxisTitle({
-    axis: "primary",
-    series,
-    axes,
-    metaMap,
-    name: config?.yLabel,
-    unit: config?.yUnit,
-    derive,
-  });
-  const ySecondaryAxisLabel = yAxisTitle({
-    axis: "secondary",
-    series,
-    axes,
-    metaMap,
-    name: undefined,
-    unit: undefined,
-    derive,
-  });
-
   if (resolvedVariant === "readout") {
     const cfg = series[0];
     const key = seriesKeyOf(cfg.source);
@@ -473,48 +389,6 @@ export function GraphView({
     </GraphNotice>
   );
 
-  const present = ((): PresentPoint | undefined => {
-    if (xIsTime) return undefined;
-    const lead = liveSeries.find(
-      (s) => s.type !== "band" && s.data.x.length > 0,
-    );
-    if (!lead) return undefined;
-    let last = lead.data.x.length - 1;
-    while (
-      last >= 0 &&
-      !(
-        Number.isFinite(lead.data.x[last]) && Number.isFinite(lead.data.y[last])
-      )
-    ) {
-      last -= 1;
-    }
-    if (last < 0) return undefined;
-    const x = lead.data.x[last];
-    const references: Record<string, number> = {};
-    for (const curve of referenceCurves ?? []) {
-      const at = readCurveAt(curve.xs, curve.ys, x);
-      if (at !== undefined) references[curve.id] = at;
-    }
-    return { x, y: lead.data.y[last], references };
-  })();
-  // A readout that answers with nothing for the present state has nothing to place.
-  const columnReadout =
-    typeof plotReadout === "function"
-      ? plotReadout({
-          width: Number.POSITIVE_INFINITY,
-          height: Number.POSITIVE_INFINITY,
-          present,
-          compact: false,
-        })
-      : plotReadout;
-  const hasReadout = columnReadout !== undefined && columnReadout !== null;
-  // Beside the plot only where the plot keeps a usable width and the column fits the height; until the column has been measured it is assumed a typical width.
-  const readoutBeside =
-    hasReadout &&
-    area !== null &&
-    area.w - (asideSize?.w ?? ASIDE_GUESS_PX) >= ASIDE_PLOT_KEEPS_PX &&
-    area.h >= (asideSize?.h ?? 0);
-
   const chartBody = (
     <div
       ref={areaRef}
@@ -548,27 +422,7 @@ export function GraphView({
               spatial={config?.spatial}
               gridScale={config?.gridScale}
               aria-label={ariaLabel}
-              crosshair={!config?.hideXAxis}
-              xKind={xIsTime ? "time" : "value"}
-              xAxisLabel={config?.spatial ? undefined : xAxisTitle}
-              yAxisLabel={config?.spatial ? undefined : yAxisLabel}
-              ySecondaryAxisLabel={
-                config?.spatial ? undefined : ySecondaryAxisLabel
-              }
-              card={
-                hasReadout && !readoutBeside
-                  ? typeof plotReadout === "function"
-                    ? (room) =>
-                        plotReadout({
-                          width: room.width,
-                          height: room.height,
-                          present,
-                          compact: room.form > 0,
-                        })
-                    : plotReadout
-                  : undefined
-              }
-              cardForms={typeof plotReadout === "function" ? 2 : 1}
+              crosshair={xIsTime}
               width={size.w}
               height={size.h}
             />
@@ -576,11 +430,9 @@ export function GraphView({
           {/* Inside the frame, so a notice laid over an empty plot leaves the frame the body's only content. */}
           {notices.length > 0 && noticePlacement === "center" && noticeNode}
         </div>
-        {readoutBeside && (
+        {plotAside !== undefined && plotAside !== null && (
           <Box pad="surface" style={PLOT_ASIDE}>
-            <div ref={setAsideEl} data-plot-aside="">
-              {columnReadout}
-            </div>
+            {plotAside}
           </Box>
         )}
         {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
@@ -609,13 +461,6 @@ export function GraphView({
     />
   );
 }
-
-/** A column beside the plot is assumed this wide until it has been measured. */
-const ASIDE_GUESS_PX = 180;
-/** The column's padding and border around the readout it holds, which the measured readout does not include. */
-const ASIDE_CHROME_PX = 24;
-/** What the plot must keep, its axes included, once the column is taken. */
-const ASIDE_PLOT_KEEPS_PX = 300;
 
 const CHART_BODY: CSSProperties = {
   flex: 1,

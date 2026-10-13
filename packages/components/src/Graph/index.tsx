@@ -22,16 +22,8 @@ function GraphComponent({
     () => graphThresholdsOf(config, catalog),
     [config, catalog],
   );
-  return (
-    // gonogo:reads config
-    <GraphView
-      config={view}
-      thresholds={thresholds}
-      w={w}
-      h={h}
-      deriveAxisTitles
-    />
-  );
+  // gonogo:reads config
+  return <GraphView config={view} thresholds={thresholds} w={w} h={h} />;
 }
 
 registerComponent<GraphConfig>({
@@ -53,14 +45,8 @@ registerComponent<GraphConfig>({
   pushable: true,
 });
 
-export type {
-  GraphViewProps,
-  PresentPoint,
-  ReadoutRoom,
-  ReferenceCurve,
-} from "./GraphView";
+export type { GraphViewProps, ReferenceCurve } from "./GraphView";
 export { GraphView } from "./GraphView";
-export { type ReadoutRow, ReadoutRows } from "./ReadoutRows";
 export type {
   ComputedSeries,
   GraphConfig,

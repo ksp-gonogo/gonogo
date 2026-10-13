@@ -56,7 +56,7 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
 
     await waitFor(() => expect(visibleText()).toContain("87°"));
     expect(visibleText()).toContain("+12°");
-    expect(visibleText()).toContain("\u22125°");
+    expect(visibleText()).toContain("-5°");
     // The toggle names the held mode rather than a bare ON.
     expect(screen.getByRole("button", { name: "SAS: PRO" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "PRECISION" })).toBeTruthy();

@@ -189,14 +189,10 @@ function NavballComponent({
   const showThrottleColumn = showDial && cols >= 5;
   // In the body, not the header aside, which collapses on a measured fit and would take contributed alerts with it.
   const showControlRow = cols >= 5;
-  // Under the stacked readout's own floor the figures take one fixed-width line each.
-  const compactReadout = rows < 5 || cols < 4;
 
   return (
     <Panel
       panelTitle="NAVBALL"
-      fitToSize={compactReadout}
-      hoverTitle={compactReadout}
       sections={[
         <Section
           key="attitude"
@@ -224,7 +220,6 @@ function NavballComponent({
                   roll={roll}
                   across={readoutAcross}
                   columnWidth={columnWidth}
-                  compact={compactReadout}
                   reading={attitudeReading}
                 />
               </div>
@@ -326,8 +321,8 @@ registerComponent<NavballConfig>({
     "Your vessel's heading, pitch and roll, measured at the root part (or at the centre of mass when the tile's settings ask for it), with controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the tile's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
-  // Three columns by three rows is the smallest tile that holds all three figures, with the title behind a hover.
-  minSize: { w: 3, h: 3 },
+  // 4x5 is where the stacked readout stops clipping vertically.
+  minSize: { w: 4, h: 5 },
   component: NavballComponent,
   configComponent: NavballConfigForm,
   channels: topics.channels,

@@ -11,14 +11,6 @@ const REFERENCE_PLOT = {
   x: { topic: "vessel.flight", field: "altitudeAsl" },
 };
 
-/** The notice's own live region: the chart keeps another, empty until a key moves its crosshair. */
-const noticeRegion = () =>
-  screen
-    .getAllByRole("status")
-    .find((region) =>
-      region.textContent?.includes("plotting trace only"),
-    ) as HTMLElement;
-
 /** The kit, not the widget, decides where a chart's notice sits: from the measured space and from whether the plot has anything to cover. */
 describe("GraphView notice placement", () => {
   let restore: () => void = () => {};
@@ -47,19 +39,19 @@ describe("GraphView notice placement", () => {
   it("centres the notice over an empty plot that has room", async () => {
     renderAt({ width: 400, height: 300 }, false);
     await waitFor(() =>
-      expect(noticeRegion()).toHaveStyle({ position: "absolute" }),
+      expect(screen.getByRole("status")).toHaveStyle({ position: "absolute" }),
     );
   });
 
   it("puts the notice below a plot that draws a curve", async () => {
     renderAt({ width: 400, height: 300 }, true);
     await waitFor(() =>
-      expect(noticeRegion()).toHaveStyle({
+      expect(screen.getByRole("status")).toHaveStyle({
         alignSelf: "flex-start",
         maxWidth: "100%",
       }),
     );
-    expect(noticeRegion()).not.toHaveStyle({
+    expect(screen.getByRole("status")).not.toHaveStyle({
       position: "absolute",
     });
   });
@@ -67,7 +59,7 @@ describe("GraphView notice placement", () => {
   it("puts the notice beside a wide, short plot", async () => {
     renderAt({ width: 900, height: 200 }, true);
     await waitFor(() =>
-      expect(noticeRegion()).toHaveStyle({ maxWidth: "40%" }),
+      expect(screen.getByRole("status")).toHaveStyle({ maxWidth: "40%" }),
     );
   });
 });

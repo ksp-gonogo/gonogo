@@ -5,13 +5,12 @@ import {
   registerComponent,
 } from "@ksp-gonogo/core";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { deriveReading, type VesselOrbit, value } from "@ksp-gonogo/sitrep-sdk";
+import type { VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import {
   type ComputedSeries,
   GraphView,
   type GraphViewConfig,
-  ReadoutRows,
   type ReferenceCurve,
 } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -139,15 +138,10 @@ function KeplerPeriodComponent({
       x: { topic: "vessel.orbit", field: "sma" },
       // SMA spans many orders of magnitude across the system, log scale makes both sides of the curve readable.
       yScalePrimary: "log",
-      xLabel: "Semi-major axis",
-      xUnit: "m",
-      yLabel: "Orbital period",
       yUnit: "s",
     }),
     [windowSec],
   );
-
-  const orbitTelemetry = topics.useTelemetry("vessel.orbit");
 
   const showNoGmNotice = body !== undefined && body.gm === undefined;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
@@ -173,30 +167,6 @@ function KeplerPeriodComponent({
       referenceCurves={referenceCurve ? [referenceCurve] : undefined}
       title="KEPLER PERIOD"
       notice={notice}
-      plotReadout={(room) => {
-        const { present } = room;
-        if (!present) return undefined;
-        /* The figures keep the orbit reading's currency and are the plot's own newest sample, so a period is never shown for an orbit the plot has no sample of. */
-        const period = deriveReading(
-          orbitTelemetry,
-          () => value("s", present.y),
-          () => value("s", present.y),
-        );
-        const semiMajorAxis = deriveReading(
-          orbitTelemetry,
-          () => value("m", present.x),
-          () => value("m", present.x),
-        );
-        return (
-          <ReadoutRows
-            stacked={room.compact}
-            rows={[
-              { label: "Orbital period", value: period },
-              { label: "Semi-major axis", value: semiMajorAxis },
-            ]}
-          />
-        );
-      }}
     />
   );
 }

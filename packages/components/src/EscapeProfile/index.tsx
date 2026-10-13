@@ -4,14 +4,8 @@ import {
   escapeVelocity,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { deriveReading, value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
-import {
-  GraphView,
-  type GraphViewConfig,
-  ReadoutRows,
-  type ReferenceCurve,
-} from "../Graph";
+import { GraphView, type GraphViewConfig, type ReferenceCurve } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useStreamBody } from "../shared/useStreamBody";
 
@@ -70,7 +64,6 @@ function EscapeProfileComponent({
   config,
   w,
 }: Readonly<ComponentProps<EscapeProfileConfig>>) {
-  const flightReading = topics.useTelemetry("vessel.flight");
   const bodyName = useBodyName(useParentBodyIndex());
   // Matched by name against the same `system.bodies` roster the name came from, so planet-pack bodies resolve.
   const body = useStreamBody(bodyName);
@@ -86,16 +79,7 @@ function EscapeProfileComponent({
     return buildEscapeCurve(body, ceiling, narrow);
   }, [body, config?.altitudeCeiling, narrow]);
 
-  /*
-   * The head of the track is a filled dot while the newest sample is a
-   * measurement and a ring while it is held or a model's figure, so the mark
-   * never states more than the reading does.
-   */
-  const measured =
-    flightReading.state === "observed" &&
-    flightReading.reckoning.status !== "available";
-
-  // Orbital speed against altitude: touching the curve means escape. The track is a line, and its head mark reads where a line has a single sample to join.
+  // Orbital speed against altitude: touching the curve means escape. Scatter, because a line series draws nothing for a single sample.
   const graphConfig: GraphViewConfig = useMemo(
     () => ({
       series: [
@@ -104,18 +88,13 @@ function EscapeProfileComponent({
           source: { topic: "vessel.flight", field: "orbitalSpeed" },
           label: "Orbital speed",
           axis: "primary",
-          type: "line",
-          head: measured ? "dot" : "ring",
+          type: "scatter",
         },
       ],
       windowSec,
       x: { topic: "vessel.flight", field: "altitudeAsl" },
-      xLabel: "Altitude",
-      xUnit: "m",
-      yLabel: "Speed",
-      yUnit: "m/s",
     }),
-    [windowSec, measured],
+    [windowSec],
   );
 
   const showNoGmNotice = body !== undefined && body.gm === undefined;
@@ -135,43 +114,6 @@ function EscapeProfileComponent({
       referenceCurves={referenceCurve ? [referenceCurve] : undefined}
       title="ESCAPE PROFILE"
       notice={notice}
-      plotReadout={(room) => {
-        const { present } = room;
-        const needed = present?.references["escape-velocity"];
-        if (!present) return undefined;
-        /* The figures keep the flight reading's currency; margin needs both of its inputs, so it is absent where the curve has no figure at this altitude. */
-        const speed = deriveReading(
-          flightReading,
-          () => value("m/s", present.y),
-          () => value("m/s", present.y),
-        );
-        const escapeSpeed = deriveReading(
-          flightReading,
-          () => (needed === undefined ? undefined : value("m/s", needed)),
-          () => (needed === undefined ? undefined : value("m/s", needed)),
-        );
-        const margin = deriveReading(
-          flightReading,
-          () =>
-            needed === undefined
-              ? undefined
-              : value("m/s", needed).minus(value("m/s", present.y)),
-          () =>
-            needed === undefined
-              ? undefined
-              : value("m/s", needed).minus(value("m/s", present.y)),
-        );
-        return (
-          <ReadoutRows
-            stacked={room.compact}
-            rows={[
-              { label: "Orbital speed", value: speed, decimals: 0 },
-              { label: "Escape speed", value: escapeSpeed, decimals: 0 },
-              { label: "Margin", value: margin, decimals: 0 },
-            ]}
-          />
-        );
-      }}
     />
   );
 }

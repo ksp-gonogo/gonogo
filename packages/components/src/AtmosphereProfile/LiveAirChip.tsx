@@ -3,33 +3,26 @@ import type { ComponentProps } from "react";
 
 type UnitValue = ComponentProps<typeof Unit>["value"];
 
-/**
- * The air around the craft now: density, then air and skin temperature where
- * each arrived. `stacked` puts each figure under its label, for a card with
- * little width.
- */
+/** The air around the craft now: density, then air and skin temperature where each arrived. */
 export function LiveAirChip({
   density,
   airTemp,
   skinTemp,
-  stacked = false,
 }: {
   density: UnitValue;
   airTemp: UnitValue;
   skinTemp: UnitValue;
-  stacked?: boolean;
 }) {
-  const rowStyle = stacked ? STACKED_ROW_STYLE : ROW_STYLE;
   return (
     <div role="status" aria-live="polite" style={LIVE_CHIP_STYLE}>
-      <div style={rowStyle}>
+      <div style={CHIP_ROW_STYLE}>
         <span style={CHIP_LABEL_STYLE}>Density</span>
         <span style={CHIP_VALUE_STYLE}>
           <Unit value={density} decimals={3} />
         </span>
       </div>
       {hasFigure(airTemp) && (
-        <div style={rowStyle}>
+        <div style={CHIP_ROW_STYLE}>
           <span style={CHIP_LABEL_STYLE}>Air</span>
           <span style={CHIP_VALUE_STYLE}>
             <Unit value={airTemp} as="°C" />
@@ -37,7 +30,7 @@ export function LiveAirChip({
         </div>
       )}
       {hasFigure(skinTemp) && (
-        <div style={rowStyle}>
+        <div style={CHIP_ROW_STYLE}>
           <span style={CHIP_LABEL_STYLE}>Skin</span>
           <span style={CHIP_VALUE_STYLE}>
             <Unit value={skinTemp} as="°C" />
@@ -65,16 +58,11 @@ const LIVE_CHIP_STYLE = {
   fontVariantNumeric: "tabular-nums",
 } as const;
 
-const ROW_STYLE = {
+const CHIP_ROW_STYLE = {
   display: "grid",
   gridTemplateColumns: "7ch auto",
   gap: "var(--gap-related)",
   alignItems: "baseline",
-} as const;
-
-const STACKED_ROW_STYLE = {
-  display: "flex",
-  flexDirection: "column",
 } as const;
 
 const CHIP_LABEL_STYLE = {

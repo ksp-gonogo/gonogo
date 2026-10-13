@@ -4,13 +4,11 @@ import {
   defineTopicManifest,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { deriveReading, value } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import {
   type ComputedSeries,
   GraphView,
   type GraphViewConfig,
-  ReadoutRows,
   type ReferenceCurve,
 } from "../Graph";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
@@ -138,15 +136,11 @@ function OrbitalAscentComponent({
       ],
       windowSec,
       x: { topic: "vessel.flight", field: "altitudeAsl" },
-      xLabel: "Altitude",
-      xUnit: "m",
-      yLabel: "Speed",
       yUnit: "m/s",
     }),
     [windowSec],
   );
 
-  const flightReading = topics.useTelemetry("vessel.flight");
   const showNoGmNotice = body !== undefined && body.gm === undefined;
   const showNoBodyNotice = bodyName !== undefined && body === undefined;
 
@@ -165,47 +159,6 @@ function OrbitalAscentComponent({
       referenceCurves={referenceCurve ? [referenceCurve] : undefined}
       title="ORBITAL ASCENT"
       notice={notice}
-      plotReadout={(room) => {
-        const { present } = room;
-        if (!present) return undefined;
-        const needed = present.references["circular-orbit"];
-        /* The figures keep the flight reading's currency; the shortfall needs both of its inputs, so it is absent where the curve has no figure at this altitude. */
-        const speedOf = (metresPerSecond: number | undefined) =>
-          metresPerSecond === undefined
-            ? undefined
-            : value("m/s", metresPerSecond);
-        const figure = (metresPerSecond: number | undefined) =>
-          deriveReading(
-            flightReading,
-            () => speedOf(metresPerSecond),
-            () => speedOf(metresPerSecond),
-          );
-        const shortfall = deriveReading(
-          flightReading,
-          () =>
-            needed === undefined
-              ? undefined
-              : value("m/s", needed).minus(value("m/s", present.y)),
-          () =>
-            needed === undefined
-              ? undefined
-              : value("m/s", needed).minus(value("m/s", present.y)),
-        );
-        return (
-          <ReadoutRows
-            stacked={room.compact}
-            rows={[
-              {
-                label: "Horizontal speed",
-                value: figure(present.y),
-                decimals: 0,
-              },
-              { label: "Orbit speed", value: figure(needed), decimals: 0 },
-              { label: "Shortfall", value: shortfall, decimals: 0 },
-            ]}
-          />
-        );
-      }}
     />
   );
 }
