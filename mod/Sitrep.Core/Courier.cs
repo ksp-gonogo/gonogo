@@ -449,6 +449,7 @@ namespace Sitrep.Core
             // of the run.
             _owedScenes.Clear();
             _deliveries.Clear();
+            _shortenings.Clear();
             _deliveriesFired = 0;
             _newestDelivered.Clear();
             // UT has moved backwards, so a schedule set on the abandoned timeline
@@ -1065,7 +1066,7 @@ namespace Sitrep.Core
                     {
                         continue;
                     }
-                    var at = sample.ValidAt + DelayOf(sample, vantage, liveDelay);
+                    var at = ArrivalOf(sample.ValidAt, sample.ValidAt + DelayOf(sample, vantage, liveDelay));
                     if (at <= now && at >= arrivedAt)
                     {
                         arrived = sample;
@@ -1078,7 +1079,14 @@ namespace Sitrep.Core
                     // Delivered through the stamped lane, whose scene is exactly
                     // this sample's own ValidAt, so it also moves the vantage's
                     // retention cursor the way the ledger read used to.
-                    Deliver(node, topic, subscriber, now, now - arrived.Value.ValidAt, isCatchUp: true);
+                    Deliver(
+                        node,
+                        topic,
+                        subscriber,
+                        now,
+                        DelayOf(arrived.Value, vantage, liveDelay),
+                        isCatchUp: true,
+                        sampleInstant: arrived.Value.ValidAt);
                 }
             }
 
@@ -1093,8 +1101,14 @@ namespace Sitrep.Core
             foreach (var sample in archived)
             {
                 var sampleDelay = DelayOf(sample, vantage, liveDelay);
-                var fireUt = sample.ValidAt + sampleDelay;
-                if (fireUt <= now || double.IsPositiveInfinity(fireUt))
+                var stampedFireUt = sample.ValidAt + sampleDelay;
+                if (double.IsPositiveInfinity(stampedFireUt))
+                {
+                    continue;
+                }
+                // A delay shortened since this was sent owes it sooner than its stamp says.
+                var fireUt = ArrivalOf(sample.ValidAt, stampedFireUt);
+                if (fireUt <= now)
                 {
                     continue;
                 }
@@ -1893,6 +1907,32 @@ namespace Sitrep.Core
         }
 
         private readonly List<ScheduledDelivery> _deliveries = new List<ScheduledDelivery>();
+
+        // Each time a delay shortened: the instant it took effect and what was left to travel afterwards, as a share. Oldest first, bounded.
+        private readonly List<(double EffectiveUt, double RemainingFactor)> _shortenings = new List<(double, double)>();
+        private const int ShorteningsKept = 256;
+
+        /*
+         * When a reading sent at validAt, stamped to arrive at stampedArrivalUt,
+         * arrives now that the delay has shortened since. Each shortening
+         * after the send that the reading was still crossing scales what was
+         * left of its journey, in the order they happened, which is what
+         * BringForwardDeliveries did to a reading already on the clock. A
+         * subscriber that joins afterwards would otherwise be owed it at the
+         * old time.
+         */
+        private double ArrivalOf(double validAt, double stampedArrivalUt)
+        {
+            var arrival = stampedArrivalUt;
+            foreach (var (effectiveUt, remainingFactor) in _shortenings)
+            {
+                if (effectiveUt > validAt && arrival > effectiveUt)
+                {
+                    arrival = effectiveUt + ((arrival - effectiveUt) * remainingFactor);
+                }
+            }
+            return arrival;
+        }
         private long _deliverySeq;
         private int _deliveriesFired;
 
@@ -1937,6 +1977,11 @@ namespace Sitrep.Core
             }
 
             var factor = Math.Max(0.0, remainingFactor);
+            _shortenings.Add((nowUt, factor));
+            if (_shortenings.Count > ShorteningsKept)
+            {
+                _shortenings.RemoveAt(0);
+            }
             _deliveries.RemoveAll(d => d.Fired);
             _deliveriesFired = 0;
             foreach (var delivery in _deliveries.OrderBy(d => d.Seq).ToList())
