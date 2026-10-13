@@ -119,6 +119,8 @@ const OMITTED_WHEN_NULL = new Set([
   // it is left out rather than transmitted as an absence, the same rule the
   // `Args` skip below states.
   "CommandRequest.vantage",
+  // The vessel the client last saw as active; a request that has seen none carries no key (EnvelopeCodec.WriteCommandRequest).
+  "CommandRequest.seenVesselId",
 ]);
 
 /**

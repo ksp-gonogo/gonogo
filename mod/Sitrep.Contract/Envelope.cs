@@ -138,6 +138,19 @@ public class CommandRequest<TArgs>
     [SitrepUnit(Units.Id)]
     public string? Vantage { get; set; }
 
+    /// <summary>
+    /// The vessel the operator was looking at when the command was pressed: the
+    /// <c>vesselId</c> of the newest <c>vessel.identity</c> reading the client
+    /// holds. Optional: null or empty states nothing and the command is not
+    /// checked against it. A command for the active vessel is refused with
+    /// <c>wrongState</c> at the press when the game's active vessel is not this
+    /// one, because the operator's screen runs one signal delay behind the game
+    /// and a switch inside that delay is not yet visible there. Commands that are
+    /// not addressed to the active vessel ignore it.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? SeenVesselId { get; set; }
+
     /// <summary>The command's arguments, in the command's own argument
     /// type.</summary>
     public TArgs Args { get; set; } = default!;

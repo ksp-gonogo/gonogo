@@ -323,6 +323,59 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The operator's screen runs one signal delay behind the game. An order pressed
+        /// while the screen still shows the craft the game has switched away from is
+        /// refused at the press, so it is never tagged with, and run on, the new craft.
+        /// </summary>
+        [Fact]
+        public void AnOrderPressedWhileSeeingTheCraftTheGameSwitchedAwayFromIsRefusedAtThePress()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                TickActive(engine, uplink, 1.0, loaded: true, craft: "H");
+                object? result = null;
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op, seenVesselId: CraftId);
+
+                var refusal = Assert.IsType<CommandResult>(result);
+                Assert.False(refusal.Success);
+                Assert.Equal(CommandErrorCode.WrongState, refusal.ErrorCode);
+                Assert.Empty(Pending(engine));
+                Assert.Empty(Journey(engine).Events);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>The same press naming the craft that is active, or naming none, is accepted.</summary>
+        [Fact]
+        public void AnOrderPressedWhileSeeingTheActiveCraftOrNoneIsAccepted()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op, seenVesselId: CraftId);
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op);
+
+                Assert.Equal(2, Pending(engine).Count);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// A held command's gates are asked again where it lands: one that
         /// passed at the press and fails by the time the command reaches the
         /// craft is refused there, as a member of a group would be.

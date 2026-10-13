@@ -1408,6 +1408,8 @@ namespace Sitrep.Core.StoreAndForward
                 {
                     continue;
                 }
+                // A retry that did not leave on its announced instant is no longer the departure the loss report named.
+                held.RetryAnnounced = false;
                 if (!held.ReportedHeld && message is CommandMessage command)
                 {
                     held.ReportedHeld = true;
