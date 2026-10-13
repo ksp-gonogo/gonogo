@@ -525,6 +525,56 @@ describe("FleetRosterComponent", () => {
     });
   });
 
+  describe("the signal card's Delay line at zero", () => {
+    async function cardWith(delay: { oneWaySeconds: number | null }) {
+      const fixture = setupStreamFixture({ suspendFrames: true });
+      renderRoster(fixture);
+      act(() => {
+        fixture.emit("system.vessels", ONE_PROBE);
+      });
+      const trigger = await screen.findByRole("button", {
+        name: /Explorer signal/i,
+      });
+      act(() => {
+        fixture.emit("fleet.v-probe.delay", { ...delay, connected: true });
+      });
+      act(() => {
+        trigger.focus();
+      });
+      return waitFor(() => {
+        const panel = document.getElementById(
+          trigger.getAttribute("aria-describedby") ?? "",
+        );
+        expect(panel).not.toBeNull();
+        return panel as HTMLElement;
+      });
+    }
+
+    const hasDelayTerm = (panel: HTMLElement) =>
+      Array.from(panel.querySelectorAll("dt")).some((el) =>
+        /^Delay/.test(el.textContent ?? ""),
+      );
+
+    it("draws no Delay line for a delay of zero", async () => {
+      const panel = await cardWith({ oneWaySeconds: 0 });
+
+      expect(hasDelayTerm(panel)).toBe(false);
+    });
+
+    it("draws the line for a delay just above zero", async () => {
+      const panel = await cardWith({ oneWaySeconds: 0.0007 });
+
+      expect(hasDelayTerm(panel)).toBe(true);
+    });
+
+    it("draws no Delay line for a craft with no path, as before", async () => {
+      const panel = await cardWith({ oneWaySeconds: null });
+
+      expect(hasDelayTerm(panel)).toBe(false);
+      expect(visibleText(panel)).toMatch(/Link/);
+    });
+  });
+
   /** The last `.delay` payload before a blackout still claims `connected: true`; the Link row must read the freeze-exempt `.contact`. */
   const BLACKED_OUT_PROBE = {
     vessels: [

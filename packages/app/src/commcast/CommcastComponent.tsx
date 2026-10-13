@@ -284,7 +284,7 @@ registerComponent({
   id: "commcast",
   name: "Commcast",
   description:
-    "Messages and push-to-talk radio between the command centres and craft on this mission, always addressed to a group. An inbox of group threads, each message crossing the light-time to every member and acknowledged back, so your own words appear only once that acknowledgement returns and the wait you feel is the wait that is really there. Anyone in a group can add somebody to it; they hear from the moment word of it reaches them.",
+    "Messages and push-to-talk radio between the command centres and craft on this mission, always addressed to a group. An inbox of group threads, each message crossing whatever signal delay there is to every member and acknowledged back, so your own words appear only once that acknowledgement returns and the wait you feel is the wait that is really there. Anyone in a group can add somebody to it; they hear from the moment word of it reaches them.",
   tags: ["mission-control", "comms"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },

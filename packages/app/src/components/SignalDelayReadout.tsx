@@ -5,13 +5,13 @@ import {
   useObservedVantage,
   useSelectedVantage,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { delayVisibility, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   useLatestValue,
   useOwnCraftVantage,
 } from "@ksp-gonogo/sitrep-sdk/spine";
 import { NULL_DISPLAY, Text, Unit, VisuallyHidden } from "@ksp-gonogo/ui-kit";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { usePeerClient } from "../peer/PeerClientContext";
 import { useActiveCentres } from "./VantageControl";
 
@@ -99,26 +99,37 @@ function deriveSignalDelay({
  * Not a live region: the strip it sits in deliberately is not one, and a delay
  * that moves with the craft would announce on every change.
  */
-export function SignalDelayReadout() {
-  if (useScreen() === "pilot") return <PilotSignalDelay />;
-  return <CentreSignalDelay />;
+export function SignalDelayReadout({ wrap }: { wrap?: Wrap }) {
+  if (useScreen() === "pilot") return <PilotSignalDelay wrap={wrap} />;
+  return <CentreSignalDelay wrap={wrap} />;
 }
 
-function CentreSignalDelay() {
+/**
+ * Puts the readout inside whatever labels it, drawn only when the readout
+ * itself is, so a delay of zero leaves neither the figure nor its caption.
+ */
+type Wrap = (readout: ReactNode) => ReactNode;
+
+function CentreSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
   /*
    * Split on the selection the same way `OwnCraftDelayGate` is, so a screen
    * that has chosen no vantage does not subscribe `vessel.orbit` just to learn
    * it is not standing on the craft.
    */
   return useSelectedVantage() === undefined ? (
-    <CentreSignalDelayValue ownCraftVantage={false} />
+    <CentreSignalDelayValue ownCraftVantage={false} wrap={wrap} />
   ) : (
-    <OwnCraftAwareSignalDelay />
+    <OwnCraftAwareSignalDelay wrap={wrap} />
   );
 }
 
-function OwnCraftAwareSignalDelay() {
-  return <CentreSignalDelayValue ownCraftVantage={useOwnCraftVantage()} />;
+function OwnCraftAwareSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
+  return (
+    <CentreSignalDelayValue
+      ownCraftVantage={useOwnCraftVantage()}
+      wrap={wrap}
+    />
+  );
 }
 
 /**
@@ -129,8 +140,10 @@ function OwnCraftAwareSignalDelay() {
  */
 function CentreSignalDelayValue({
   ownCraftVantage,
+  wrap,
 }: {
   ownCraftVantage: boolean;
+  wrap: Wrap | undefined;
 }) {
   const { owltSeconds } = useTimeContexts();
   const { homeId } = useActiveCentres();
@@ -155,6 +168,7 @@ function CentreSignalDelayValue({
           ? { ...state, seconds: owltSeconds }
           : state
       }
+      wrap={wrap}
     />
   );
 }
@@ -164,7 +178,7 @@ function CentreSignalDelayValue({
  * clock runs aboard, at zero, so this reads the latest figures themselves:
  * home's off `comms.delay`, any other centre's off the list.
  */
-function PilotSignalDelay() {
+function PilotSignalDelay({ wrap }: { wrap: Wrap | undefined }) {
   const hostCentre = useHostCommandCentre();
   const aboard = useSelectedVantage();
   const { homeId } = useActiveCentres();
@@ -187,7 +201,7 @@ function PilotSignalDelay() {
           centreDelays,
           linkConnected,
         });
-  return <SignalDelayValue state={state} />;
+  return <SignalDelayValue state={state} wrap={wrap} />;
 }
 
 /**
@@ -224,7 +238,24 @@ function useHostCommandCentre(): string | null {
   return centreId;
 }
 
-function SignalDelayValue({ state }: { state: SignalDelayState }) {
+function SignalDelayValue({
+  state,
+  wrap,
+}: {
+  state: SignalDelayState;
+  wrap: Wrap | undefined;
+}) {
+  if (
+    (state.kind === "delay" || state.kind === "via-home") &&
+    delayVisibility(state.seconds) === "hidden"
+  ) {
+    return null;
+  }
+  const readout = <SignalDelayFigure state={state} />;
+  return <>{wrap ? wrap(readout) : readout}</>;
+}
+
+function SignalDelayFigure({ state }: { state: SignalDelayState }) {
   switch (state.kind) {
     case "delay":
       return (

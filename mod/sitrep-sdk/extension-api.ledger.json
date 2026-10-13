@@ -11497,8 +11497,16 @@
         "note": "The game's present in UT seconds with no signal delay taken off; ui-kit's in-flight countdown reads it once a second"
       },
       {
+        "key": "sitrep-sdk . ZERO_DELAY_DEAD_ZONE_SECONDS",
+        "note": "The one-way delay, in seconds, at or below which a delay readout is drawn as no delay"
+      },
+      {
         "key": "sitrep-sdk . asStatic",
         "note": "Exported from the root barrel, where its documentation already said it was"
+      },
+      {
+        "key": "sitrep-sdk . delayVisibility",
+        "note": "Decides in one place whether a delay readout is shown, left out for a delay of zero, or replaced by the no-path state"
       },
       {
         "key": "sitrep-sdk . eccentricFromTrueAnomaly",
