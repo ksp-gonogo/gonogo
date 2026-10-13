@@ -85,7 +85,15 @@ namespace Sitrep.Core
             public bool Ran;
             public object? Result;
             public Action<CommandResponse> OnResponse = null!;
+
+            // The order the command was sent in, and the handles that withdraw
+            // what is scheduled for it.
+            public long Sent;
+            public Action? CancelExecute;
+            public Action? CancelConfirm;
         }
+
+        private long _sent;
 
         private readonly IClock _clock;
         private readonly INetwork _network;
@@ -322,6 +330,7 @@ namespace Sitrep.Core
             };
             lock (_commandsGate)
             {
+                pending.Sent = ++_sent;
                 _pendingCommands[requestId] = pending;
             }
 
@@ -342,7 +351,7 @@ namespace Sitrep.Core
                 ScheduleConfirm(pending);
                 return;
             }
-            _clock.Schedule(pending.ExecuteUt, () =>
+            pending.CancelExecute = _clock.Schedule(pending.ExecuteUt, () =>
             {
                 var result = _commandHandler(
                     pending.Command, pending.Args, pending.Node, pending.Vantage, pending.Craft);
@@ -357,7 +366,7 @@ namespace Sitrep.Core
 
         private void ScheduleConfirm(PendingCommand pending)
         {
-            _clock.Schedule(pending.ConfirmUt, () =>
+            pending.CancelConfirm = _clock.Schedule(pending.ConfirmUt, () =>
             {
                 // Remove before invoking the callback: a re-entrant
                 // SnapshotCommands() from inside onResponse must not see
@@ -1857,10 +1866,93 @@ namespace Sitrep.Core
                 };
                 lock (_commandsGate)
                 {
+                    pending.Sent = ++_sent;
                     _pendingCommands[pending.RequestId] = pending;
                 }
                 ScheduleCommand(pending);
             }
+        }
+
+        /// <summary>
+        /// C#-ONLY addition (no TS reference). Brings forward every command on its
+        /// way: what is still to travel on each leg is multiplied by
+        /// <paramref name="remainingFactor"/>, so a factor of 0 delivers
+        /// everything at once and 0.5 halves what is left. Order is the order the
+        /// commands were sent in, and each one's execute and confirm keep that
+        /// order at any factor. A factor of 1 or more changes nothing, so a delay
+        /// that grows leaves what is already sent as it was.
+        ///
+        /// <para><paramref name="nowUt"/> is the instant the change takes effect,
+        /// which can be ahead of the clock until the tick advances it. A command
+        /// that has run is not run again: only its confirmation
+        /// moves. Returns each moved command's new UTs so the caller can correct
+        /// what it published about them.</para>
+        /// </summary>
+        public IReadOnlyList<(string RequestId, double ExecuteUt, double ConfirmUt)> BringForward(double remainingFactor, double nowUt)
+        {
+            var moved = new List<(string, double, double)>();
+            if (double.IsNaN(remainingFactor) || remainingFactor >= 1.0)
+            {
+                return moved;
+            }
+
+            var factor = Math.Max(0.0, remainingFactor);
+            var now = nowUt;
+            List<PendingCommand> inOrder;
+            lock (_commandsGate)
+            {
+                inOrder = _pendingCommands.Values.OrderBy(p => p.Sent).ToList();
+            }
+
+            var changed = new List<PendingCommand>();
+            foreach (var pending in inOrder)
+            {
+                var execute = pending.ExecuteUt;
+                var confirm = pending.ConfirmUt;
+                if (!pending.Ran && execute > now)
+                {
+                    var legConfirm = confirm - execute;
+                    execute = now + ((execute - now) * factor);
+                    confirm = execute + (legConfirm * factor);
+                }
+                else if (confirm > now)
+                {
+                    confirm = now + ((confirm - now) * factor);
+                }
+
+                if (execute != pending.ExecuteUt || confirm != pending.ConfirmUt)
+                {
+                    pending.ExecuteUt = execute;
+                    pending.ConfirmUt = confirm;
+                    changed.Add(pending);
+                }
+            }
+
+            if (changed.Count == 0)
+            {
+                return moved;
+            }
+
+            // Everything still scheduled is withdrawn and put back in the order
+            // sent, so commands due at the same instant run in that order.
+            foreach (var pending in inOrder)
+            {
+                pending.CancelExecute?.Invoke();
+                pending.CancelConfirm?.Invoke();
+                pending.CancelExecute = null;
+                pending.CancelConfirm = null;
+            }
+
+            foreach (var pending in inOrder)
+            {
+                ScheduleCommand(pending);
+                if (changed.Contains(pending))
+                {
+                    moved.Add((pending.RequestId, pending.ExecuteUt, pending.ConfirmUt));
+                }
+            }
+
+            return moved;
         }
     }
 

@@ -9217,6 +9217,7 @@ namespace Sitrep.Host
             // prediction-only doc comment: entries age out on the PREDICTED
             // round trip (DispatchedAt + 2*OneWaySeconds), independent of
             // whether anything is subscribed.
+            BringForwardWhatTravelsOnAShorterDelay(tick.Ut);
             PrunePendingUplinks(tick.Ut);
             FollowPendingPredictions(tick.Ut);
             timing.End(ref timing.Refresh);
@@ -9990,6 +9991,43 @@ namespace Sitrep.Host
         /// tied to the real command completing/executing: see
         /// <see cref="PendingUplink"/>'s prediction-only doc comment.
         /// </summary>
+        // The product of the delay modifiers last tick saw; NaN until the first tick.
+        private double _delayFactorSeen = double.NaN;
+
+        /// <summary>
+        /// When the delay modifiers in force multiply to less than they did, the
+        /// delay has been shortened or switched off, and every command already on
+        /// its way arrives that much sooner: what each still has to travel is
+        /// scaled by the same ratio, in the order the commands were sent, and the
+        /// pending entry of each is brought to the new round trip. A growing delay
+        /// changes nothing already sent.
+        ///
+        /// <para>Only the live path is brought forward. A command held for want of
+        /// a path stays held, because the delay was removed and the path was not,
+        /// and one passing through store-and-forward keeps the hop times its route
+        /// was planned with.</para>
+        /// </summary>
+        private void BringForwardWhatTravelsOnAShorterDelay(double ut)
+        {
+            var factor = DelayModifiers.Product;
+            var seen = _delayFactorSeen;
+            _delayFactorSeen = factor;
+            if (double.IsNaN(seen) || !(factor < seen))
+            {
+                return;
+            }
+
+            var moved = _courier.BringForward(seen > 0.0 ? factor / seen : 0.0, ut);
+            foreach (var (requestId, _, confirmUt) in moved)
+            {
+                var entry = _pending.Find(p => string.Equals(p.Id, requestId, StringComparison.Ordinal));
+                if (entry != null && entry.LaneSeq == null)
+                {
+                    entry.OneWaySeconds = Math.Max(0.0, (confirmUt - entry.DispatchedAt) / 2.0);
+                }
+            }
+        }
+
         private void PrunePendingUplinks(double ut)
         {
             if (_pending.Count == 0)

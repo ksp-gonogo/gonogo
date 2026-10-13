@@ -185,6 +185,58 @@ namespace Gonogo.KSP.Tests.Comms
             Assert.Empty(logged);
         }
 
+        [Theory]
+        [InlineData(true, 1.0, false, 1.0, 0.0)]
+        [InlineData(true, 1.0, true, 2.0, 0.5)]
+        [InlineData(true, 2.0, true, 4.0, 0.5)]
+        public void ADelayMadeShorterIsAnnouncedWithWhatIsLeftOfAnyDelayStillRunning(
+            bool wasEnabled, double wasScale, bool nowEnabled, double nowScale, double expected)
+        {
+            var previous = CommsCoreUplink.AuthoredSignalDelayConfig;
+            var heard = new System.Collections.Generic.List<double>();
+            void Hear(double factor) => heard.Add(factor);
+            CommsCoreUplink.DelayShortened += Hear;
+            try
+            {
+                CommsCoreUplink.ConfigureSignalDelay(new Sitrep.Host.Comms.SignalDelayConfig { Enabled = wasEnabled, LightSpeedScale = wasScale });
+                heard.Clear();
+
+                CommsCoreUplink.ConfigureSignalDelay(new Sitrep.Host.Comms.SignalDelayConfig { Enabled = nowEnabled, LightSpeedScale = nowScale });
+
+                Assert.Equal(new[] { expected }, heard);
+            }
+            finally
+            {
+                CommsCoreUplink.DelayShortened -= Hear;
+                CommsCoreUplink.ConfigureSignalDelay(previous);
+            }
+        }
+
+        [Theory]
+        [InlineData(false, 1.0, true, 1.0)]
+        [InlineData(true, 2.0, true, 1.0)]
+        [InlineData(true, 1.0, true, 1.0)]
+        public void ADelayMadeLongerOrLeftAloneIsNotAnnounced(bool wasEnabled, double wasScale, bool nowEnabled, double nowScale)
+        {
+            var previous = CommsCoreUplink.AuthoredSignalDelayConfig;
+            var heard = new System.Collections.Generic.List<double>();
+            void Hear(double factor) => heard.Add(factor);
+            CommsCoreUplink.DelayShortened += Hear;
+            try
+            {
+                CommsCoreUplink.ConfigureSignalDelay(new Sitrep.Host.Comms.SignalDelayConfig { Enabled = wasEnabled, LightSpeedScale = wasScale });
+                heard.Clear();
+                CommsCoreUplink.ConfigureSignalDelay(new Sitrep.Host.Comms.SignalDelayConfig { Enabled = nowEnabled, LightSpeedScale = nowScale });
+
+                Assert.Empty(heard);
+            }
+            finally
+            {
+                CommsCoreUplink.DelayShortened -= Hear;
+                CommsCoreUplink.ConfigureSignalDelay(previous);
+            }
+        }
+
         private static void WithSave(bool enabled, float scale, Action<GonogoGameParameters> body)
         {
             var previousFetch = HighLogic.fetch;
