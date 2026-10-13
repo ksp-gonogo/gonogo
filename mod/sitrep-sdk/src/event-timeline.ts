@@ -64,8 +64,10 @@ export interface EventRevealOptions {
  */
 export interface EventTimelineOptions {
   /**
-   * How many seconds of UT behind the newest occurrence to keep. Older ones are
-   * removed as new ones arrive. Defaults to 300.
+   * How many seconds of UT to keep an occurrence after the operator may see it:
+   * behind the newest occurrence, less the delay {@link EventTimeline.revealed}
+   * was last asked with. Older ones are removed as new ones arrive. Defaults to
+   * 300.
    */
   retentionSeconds?: number;
 }
@@ -93,6 +95,8 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
   private occurrences: EventOccurrence<Kind, Payload>[] = [];
   private currentEpoch = 0;
   private readonly retentionSeconds: number;
+  /* The delay `revealed` was last asked with. An occurrence younger than this is still on its way to the operator, so it is not evicted. */
+  private revealDelaySeconds = 0;
 
   /** Increases whenever the occurrences held change. */
   revision = 0;
@@ -135,6 +139,9 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
   revealed(options: EventRevealOptions): EventOccurrence<Kind, Payload>[] {
     const { now } = options;
     const delaySeconds = options.delaySeconds ?? 0;
+    if (Number.isFinite(delaySeconds) && delaySeconds >= 0) {
+      this.revealDelaySeconds = delaySeconds;
+    }
     const connectivityAt = options.connectivityAt;
     return this.occurrences.filter((o) => {
       if (now < o.ut + delaySeconds) return false;
@@ -188,7 +195,9 @@ export class EventTimeline<Kind extends string = string, Payload = unknown> {
   private autoEvict(): void {
     const latest = this.latest();
     if (!latest) return;
-    this.evictBelow(latest.ut - this.retentionSeconds);
+    this.evictBelow(
+      latest.ut - this.revealDelaySeconds - this.retentionSeconds,
+    );
   }
 
   private insertionIndex(occurrence: EventOccurrence<Kind, Payload>): number {

@@ -1,5 +1,10 @@
 import type { BodyEntry, TargetAvailable } from "@ksp-gonogo/sitrep-sdk";
-import { TargetKind, TargetKnowledge, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  Situation,
+  TargetKind,
+  TargetKnowledge,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { TopicReading } from "./reading";
 import { clearReckoners, registerCoreReckoners } from "./reckoners";
@@ -68,6 +73,15 @@ const ACTIVE_ORBIT = {
 const IN_RANGE = 0;
 const KNOWN = 1;
 const KNOWN_WITHOUT_AN_ORBIT = 2;
+const LANDED = 3;
+const AIMED_AT_THE_GROUND = 4;
+
+/** What the game reports for a craft sitting on the surface: the conic of a point turning with the planet, most of it underground. */
+const SURFACE_CONIC = {
+  ...circular(310_000),
+  ecc: value("1", 0.94),
+  meanAnomalyAtEpoch: value("rad", Math.PI),
+};
 
 const ROSTER: TargetAvailable = {
   entries: [
@@ -96,6 +110,30 @@ const ROSTER: TargetAvailable = {
       vesselId: "c",
       source: TargetKnowledge.CommandCentre,
       asOfUt: value("ut", 0),
+      isCurrent: false,
+    },
+    {
+      kind: TargetKind.Vessel,
+      name: "Base",
+      vesselId: "d",
+      situation: Situation.Landed,
+      source: TargetKnowledge.CommandCentre,
+      asOfUt: value("ut", 0),
+      via: "KSC",
+      orbit: SURFACE_CONIC,
+      orbitBodyIndex: PLANET_INDEX,
+      isCurrent: false,
+    },
+    {
+      kind: TargetKind.Vessel,
+      name: "Descent stage",
+      vesselId: "e",
+      situation: Situation.SubOrbital,
+      source: TargetKnowledge.CommandCentre,
+      asOfUt: value("ut", 0),
+      via: "KSC",
+      orbit: SURFACE_CONIC,
+      orbitBodyIndex: PLANET_INDEX,
       isCurrent: false,
     },
   ],
@@ -178,6 +216,18 @@ describe("the range to a craft the active one only knows of", () => {
     const roster = scene().at(HALF_ORBIT);
 
     expect(reckonedRange(roster, KNOWN_WITHOUT_AN_ORBIT)).toBeUndefined();
+  });
+
+  it("offers nothing for a craft on the surface, whose conic falls through the planet", () => {
+    const roster = scene().at(HALF_ORBIT);
+
+    expect(reckonedRange(roster, LANDED)).toBeUndefined();
+  });
+
+  it("offers nothing for a craft whose orbit dips under the surface", () => {
+    const roster = scene().at(HALF_ORBIT);
+
+    expect(reckonedRange(roster, AIMED_AT_THE_GROUND)).toBeUndefined();
   });
 
   it("offers nothing while the active craft's own orbit has not arrived", () => {

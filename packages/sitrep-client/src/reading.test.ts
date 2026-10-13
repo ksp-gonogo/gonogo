@@ -41,6 +41,44 @@ const VIEW_UT = 15;
 const AT = { reckonUt: VIEW_UT, receivedUt: VIEW_UT };
 
 describe("readingFrom", () => {
+  it("declines a model whose answer is not a number, and names the field", () => {
+    const lostItsPeer: ReckonerFor<{ oneWaySeconds: Value<"s"> }> = () => ({
+      modelled: [
+        { path: "", basis: "kepler-propagation" },
+        { path: "oneWaySeconds", basis: "kepler-propagation" },
+      ],
+      reckon: () => ({ oneWaySeconds: value("s", Number.NaN) }),
+    });
+
+    const observed: TimelinePoint<{ oneWaySeconds: Value<"s"> }> = {
+      validAt: 10,
+      payload: { oneWaySeconds: value("s", 4) },
+      meta: makeMeta({ validAt: 10, deliveredAt: 10 }),
+      epoch: 0,
+    };
+    const reading = readingFrom(observed, "held", AT, lostItsPeer);
+
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "model-inapplicable", input: "oneWaySeconds" },
+    });
+    expect(reading).toMatchObject({ value: { oneWaySeconds: value("s", 4) } });
+  });
+
+  it("declines a model whose whole answer is not a number", () => {
+    const dividesByZero: ReckonerFor<number> = () => ({
+      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+      reckon: () => Number.POSITIVE_INFINITY,
+    });
+
+    expect(
+      readingFrom(point(10, 5), "held", AT, dividesByZero).reckoning,
+    ).toEqual({
+      status: "declined",
+      declined: { reason: "model-inapplicable" },
+    });
+  });
+
   it("has no point yet, so the reading is pending", () => {
     expect(readingFrom(undefined, "resyncing", AT)).toEqual({
       state: "pending",

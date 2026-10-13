@@ -154,4 +154,80 @@ describe("MissionStore", () => {
       expect(await store.listMissions()).toHaveLength(1);
     });
   });
+
+  describe("a mission stored in parts", () => {
+    const part = (label: string, topic: string): ReplayFixture => ({
+      subscribedTopics: [topic],
+      frames: [`${label}-1`, `${label}-2`],
+    });
+
+    it("is listed once and read back as one fixture, its parts joined in order", async () => {
+      const store = freshStore();
+      const { meta } = mission({ frameCount: 2 });
+      await store.saveMissionPart(meta, 0, part("a", "vessel.orbit"));
+      await store.saveMissionPart(
+        { ...meta, lastFrameUt: 240, frameCount: 4 },
+        1,
+        part("b", "vessel.flight"),
+      );
+
+      const list = await store.listMissions();
+      expect(list).toHaveLength(1);
+      expect(list[0]).toMatchObject({
+        id: "m1",
+        lastFrameUt: 240,
+        frameCount: 4,
+        partCount: 2,
+      });
+      expect((await store.getMissionFixture("m1"))?.fixture).toEqual({
+        subscribedTopics: ["vessel.orbit", "vessel.flight"],
+        frames: ["a-1", "a-2", "b-1", "b-2"],
+      });
+    });
+
+    it("still holds the later parts of a mission whose first part was never stored", async () => {
+      const store = freshStore();
+      const { meta } = mission({ frameCount: 4 });
+
+      await store.saveMissionPart(meta, 1, part("b", "vessel.orbit"));
+
+      expect(await store.listMissions()).toHaveLength(1);
+      expect((await store.getMissionFixture("m1"))?.fixture.frames).toEqual([
+        "b-1",
+        "b-2",
+      ]);
+    });
+
+    it("keeps a star and chapters the operator set while it was being recorded", async () => {
+      const store = freshStore();
+      const { meta } = mission();
+      await store.saveMissionPart(meta, 0, part("a", "vessel.orbit"));
+      await store.updateMissionMeta("m1", { starred: true });
+
+      await store.saveMissionPart(meta, 1, part("b", "vessel.orbit"));
+
+      expect((await store.getMissionMeta("m1"))?.starred).toBe(true);
+    });
+
+    it("is deleted whole, leaving the missions beside it alone", async () => {
+      const store = freshStore();
+      const { meta } = mission();
+      await store.saveMissionPart(meta, 0, part("a", "vessel.orbit"));
+      await store.saveMissionPart(meta, 1, part("b", "vessel.orbit"));
+      await store.saveMissionPart(meta, 2, part("c", "vessel.orbit"));
+      await store.saveMission(mission({ id: "m10" }));
+
+      await store.deleteMission("m1");
+
+      expect((await store.listMissions()).map((m) => m.id)).toEqual(["m10"]);
+      expect(await store.getMissionFixture("m1")).toBeNull();
+      // Its parts are gone too: a mission stored under the same id afterwards starts with none of them.
+      await store.saveMissionPart(meta, 1, part("z", "vessel.orbit"));
+      expect((await store.getMissionFixture("m1"))?.fixture.frames).toEqual([
+        "z-1",
+        "z-2",
+      ]);
+      expect(await store.getMissionFixture("m10")).not.toBeNull();
+    });
+  });
 });

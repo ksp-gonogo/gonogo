@@ -1,7 +1,6 @@
 {
   "@ksp-gonogo/sitrep-sdk": [
     "./media:attachEncodedWorkerFrameDelay",
-    "./media:createWorkerFrameDelayStream",
     "./testing:ACT_GATE_STRETCH_ENV",
     "./testing:clearRequestedAlarms",
     "./testing:getRequestedAlarms",

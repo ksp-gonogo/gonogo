@@ -11,6 +11,7 @@ import {
   UPLINK_CANCEL_COMMAND,
   type UplinkActionOutcome,
 } from "./held-command-actions";
+import type { CommandStatus } from "./lifecycle";
 
 /**
  * One `send` captured by {@link sendTogether}: everything the frame needs, and
@@ -35,12 +36,17 @@ export interface CapturedSend {
 /**
  * Where a group sent with {@link sendTogether} has got to, folded over its
  * members. Useful for showing the operator whether a group of commands to a
- * vessel is still travelling, was confirmed, failed or was lost. Held by
- * {@link CommandGroupHandle}.
+ * vessel is still travelling, was confirmed, was refused by the game, failed
+ * or was lost. Held by {@link CommandGroupHandle}.
  *
  * @category Commands
  */
-export type CommandGroupPhase = "in-flight" | "confirmed" | "failed" | "lost";
+export type CommandGroupPhase =
+  | "in-flight"
+  | "confirmed"
+  | "refused"
+  | "failed"
+  | "lost";
 
 /**
  * Commands sent together with {@link sendTogether}: one message, one place in
@@ -55,7 +61,7 @@ export interface CommandGroupHandle {
   readonly id: string;
   /** The request id of each member, in the order they run. */
   readonly requestIds: readonly string[];
-  /** Where the group has got to: `in-flight` until every member is answered, then `confirmed`, or `failed` or `lost` if any member was. */
+  /** Where the group has got to: `in-flight` until every member is answered, then `confirmed`. It is `failed` if any member failed or never left, otherwise `refused` if the game refused any, otherwise `lost` if any went unanswered. A member answered after it was reported lost counts as what its late answer said. */
   readonly status: CommandGroupPhase;
   /** Every member's reply, in order. Rejects with the first member's rejection. */
   readonly result: Promise<AnyCommandReply[]>;
@@ -261,17 +267,35 @@ function refusedGroup(members: readonly Member[]): CommandGroupHandle {
   };
 }
 
+/** One member's part in its group's phase: a late answer counts as what it said. */
+function memberPhase(status: CommandStatus): CommandGroupPhase {
+  switch (status.phase) {
+    case "confirmed":
+      return "confirmed";
+    case "refused":
+      return "refused";
+    case "failed":
+    case "undelivered":
+      return "failed";
+    case "lost":
+      return "lost";
+    case "found":
+      if (status.outcome === "ran") return "confirmed";
+      return status.outcome === "refused" ? "refused" : "failed";
+    default:
+      return "in-flight";
+  }
+}
+
 function phaseOf(
   client: TelemetryClient,
   requestIds: readonly string[],
 ): CommandGroupPhase {
-  const phases = requestIds.map((id) => client.getCommand(id).phase);
-  if (phases.some((p) => p === "failed" || p === "undelivered"))
-    return "failed";
-  if (phases.some((p) => p === "lost")) return "lost";
-  if (phases.every((p) => p === "confirmed" || p === "found"))
-    return "confirmed";
-  return "in-flight";
+  const phases = requestIds.map((id) => memberPhase(client.getCommand(id)));
+  if (phases.includes("failed")) return "failed";
+  if (phases.includes("refused")) return "refused";
+  if (phases.includes("lost")) return "lost";
+  return phases.every((p) => p === "confirmed") ? "confirmed" : "in-flight";
 }
 
 /** Cancels the group's place on its lane, found by the request id of its first member. */

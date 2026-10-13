@@ -99,6 +99,16 @@ export interface PresentationPacerOptions<Frame> {
    */
   maxBacklogSeconds: number;
   /**
+   * How far ahead of now, in wall-clock seconds, the newest queued frame may be
+   * due. Past it the pacer shows that frame at once and drops the ones before
+   * it: the source's clock is running faster than its frames can be shown at
+   * their own spacing, as under time warp, or it has jumped forward. Set it
+   * above the longest burst the source releases together. Unset, there is no
+   * limit, which suits a source whose frames must all be played, such as a
+   * radio transmission.
+   */
+  maxLeadSeconds?: number;
+  /**
    * How many UT seconds of arrivals the pacer measures before it trusts the
    * measured rate. Until then it spaces frames at 1:1.
    */
@@ -215,22 +225,25 @@ export class PresentationPacer<Frame> {
     const rate = this.playoutRate();
 
     const head = this.queue[0];
-    if (head === undefined) return;
+    const newest = this.queue[this.queue.length - 1];
+    if (head === undefined || newest === undefined) return;
     const headDue = this.dueWallFor(head, nowWall, rate);
-    if (nowWall - headDue > this.opts.maxBacklogSeconds) {
-      // Fallen too far behind: jump straight to the newest queued frame
-      // rather than draining the backlog in slow motion. Everything else
-      // queued is skipped (closed by the caller via onSkip), never
-      // presented.
-      const newest = this.queue[this.queue.length - 1];
+    const lead = this.dueWallFor(newest, nowWall, rate) - nowWall;
+    /*
+     * Too far behind, or too far ahead. Either way the queue cannot be shown at
+     * its own spacing, so the newest frame is shown now and the rest are handed
+     * to `onSkip` to be closed, never presented.
+     */
+    if (
+      nowWall - headDue > this.opts.maxBacklogSeconds ||
+      lead > (this.opts.maxLeadSeconds ?? Number.POSITIVE_INFINITY)
+    ) {
       for (const dropped of this.queue) {
         if (dropped !== newest) this.opts.onSkip?.(dropped);
       }
       this.queue = [];
-      if (newest !== undefined) {
-        this.opts.onPresent(newest);
-        this.lastPresented = { ut: newest.ut, wall: nowWall };
-      }
+      this.opts.onPresent(newest);
+      this.lastPresented = { ut: newest.ut, wall: nowWall };
       return;
     }
 
@@ -247,6 +260,19 @@ export class PresentationPacer<Frame> {
       // compounding jitter from one frame to the next.
       this.lastPresented = { ut: next.ut, wall: due };
     }
+  }
+
+  /**
+   * Drops everything still queued, through `onSkip`, and forgets the frame it
+   * last presented and the rate it measured, so the next frame submitted is
+   * shown at once. Call it when the frames before and after are not one
+   * continuous run, as when the pipeline feeding it is flushed.
+   */
+  reset(): void {
+    this.dispose();
+    this.lastPresented = null;
+    this.arrivalAnchor = null;
+    this.arrivalLatest = null;
   }
 
   /** Drop (via `onSkip`) everything still queued, without presenting it,

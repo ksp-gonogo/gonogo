@@ -79,6 +79,15 @@ export interface WebSocketTransportOptions {
   /** Ceiling the doubling retry delay settles at, ms (default 5000). */
   maxRetryIntervalMs?: number;
   /**
+   * How long a socket may take to open before the attempt is abandoned and
+   * retried, ms (default 5000; 0 waits for as long as the browser does).
+   *
+   * A host that is asleep or behind a firewall drops the connection attempt in
+   * silence, and the browser then waits out its own timeout, which can be
+   * minutes, before it reports a failure.
+   */
+  connectTimeoutMs?: number;
+  /**
    * How long a subscribed, open socket may deliver nothing before the transport
    * asks the server something it must answer, ms (default 3000; 0 turns the
    * watchdog off).
@@ -179,6 +188,7 @@ const DEFAULT_PORT = 8090;
 const DEFAULT_RETRY_INTERVAL_MS = 1_000;
 const DEFAULT_COMMAND_HOLD_MS = 5 * 60 * 1000;
 const DEFAULT_MAX_RETRY_INTERVAL_MS = 5_000;
+const DEFAULT_CONNECT_TIMEOUT_MS = 5_000;
 const DEFAULT_SILENCE_TIMEOUT_MS = 3_000;
 const DEFAULT_PROBE_TIMEOUT_MS = 2_000;
 
@@ -254,6 +264,7 @@ export class WebSocketTransport implements Transport {
   private readonly url: string;
   private readonly retryIntervalMs: number;
   private readonly maxRetryIntervalMs: number;
+  private readonly connectTimeoutMs: number;
   private readonly silenceTimeoutMs: number;
   private readonly probeTimeoutMs: number;
   private readonly commandHoldMs: number;
@@ -265,6 +276,7 @@ export class WebSocketTransport implements Transport {
   private ws: WebSocketLike | null = null;
   private disposed = false;
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectTimer: ReturnType<typeof setTimeout> | null = null;
   private retryStart: number | null = null;
   private failedAttempts = 0;
   private unwatchEnvironment: (() => void) | null = null;
@@ -313,6 +325,8 @@ export class WebSocketTransport implements Transport {
     this.commandHoldMs = options.commandHoldMs ?? DEFAULT_COMMAND_HOLD_MS;
     this.maxRetryIntervalMs =
       options.maxRetryIntervalMs ?? DEFAULT_MAX_RETRY_INTERVAL_MS;
+    this.connectTimeoutMs =
+      options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS;
     this.silenceTimeoutMs =
       options.silenceTimeoutMs ?? DEFAULT_SILENCE_TIMEOUT_MS;
     this.probeTimeoutMs = options.probeTimeoutMs ?? DEFAULT_PROBE_TIMEOUT_MS;
@@ -444,6 +458,7 @@ export class WebSocketTransport implements Transport {
   dispose(): void {
     this.disposed = true;
     this.stopRetrying();
+    this.stopConnectWatch();
     this.stopSilenceWatch();
     this.unwatchEnvironment?.();
     this.unwatchEnvironment = null;
@@ -471,6 +486,13 @@ export class WebSocketTransport implements Transport {
       return;
     }
     this.ws = ws;
+    this.stopConnectWatch();
+    if (this.connectTimeoutMs > 0) {
+      this.connectTimer = setTimeout(() => {
+        this.connectTimer = null;
+        this.handleDrop(ws);
+      }, this.connectTimeoutMs);
+    }
 
     // The mod server sends stream frames as BINARY WebSocket frames. Request
     // ArrayBuffer delivery so `handleMessage` can decode them synchronously,
@@ -482,6 +504,7 @@ export class WebSocketTransport implements Transport {
 
     ws.addEventListener("open", () => {
       if (this.ws !== ws) return;
+      this.stopConnectWatch();
       // The outage clock measures the CURRENT outage, not the whole session: a successful open starts the next drop's command-hold window afresh.
       this.retryStart = null;
       this.failedAttempts = 0;
@@ -521,6 +544,7 @@ export class WebSocketTransport implements Transport {
   private handleDrop(ws: WebSocketLike): void {
     if (this.ws !== ws) return;
     this.ws = null;
+    this.stopConnectWatch();
     this.stopSilenceWatch();
     // Defensive close for the error path (harmless on an already-closed socket) so a stuck-open socket can't linger while we reconnect.
     try {
@@ -663,6 +687,12 @@ export class WebSocketTransport implements Transport {
         }
       }
     }
+  }
+
+  private stopConnectWatch(): void {
+    if (this.connectTimer === null) return;
+    clearTimeout(this.connectTimer);
+    this.connectTimer = null;
   }
 
   private stopRetrying(): void {

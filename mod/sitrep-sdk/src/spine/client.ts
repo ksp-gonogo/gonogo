@@ -15,6 +15,8 @@ import { type TopicOwnership, TopicOwnershipTracker } from "./topic-ownership";
 import { META_VANTAGE } from "./vantage";
 
 type Callback = (value: unknown) => void;
+/** A subscriber that is also handed the `Meta` of the frame that carried the value, where the client still holds it. */
+type FrameCallback = (value: unknown, meta: Meta | undefined) => void;
 type StoreListener = () => void;
 
 /*
@@ -46,6 +48,12 @@ type StoreListener = () => void;
  * classification and the commcast reveal logic.
  */
 export const LOSS_MARGIN = 3;
+
+/** The longest a deadline in game UT waits on the client's clock before it reads the game's UT again, in seconds. */
+const GAME_UT_RECHECK_SECONDS = 5;
+
+/** How close to a deadline in game UT counts as reached, in seconds, so that rounding in the clock arithmetic cannot leave a timer one tick short. */
+const GAME_UT_TOLERANCE = 1e-6;
 
 /**
  * Dispatch-rate budget for every command this client sends.
@@ -94,7 +102,7 @@ const COMMAND_DISPATCH_BUDGET = new PerfBudget({
  * call must ref-count independently (see `off()` in `subscribe`).
  */
 interface Subscription {
-  cb: Callback;
+  cb: FrameCallback;
 }
 
 /**
@@ -130,6 +138,24 @@ interface Subscription {
  */
 const UNKNOWN_COMMAND: CommandStatus = Object.freeze({ phase: "idle" });
 
+/** How many answered commands a client keeps a record of. The oldest go first once it holds more. */
+const ANSWERED_COMMAND_CAP = 256;
+
+/** The record count at which the oldest answered commands are dropped, set above the cap so a sweep runs once per many dispatches and not on each. */
+const ANSWERED_COMMAND_SWEEP_AT = 2 * ANSWERED_COMMAND_CAP;
+
+/**
+ * The phases nothing further can happen to. A command still in flight awaits
+ * its reply, and one reported lost can still be found, so neither is here.
+ */
+const FINAL_PHASES: ReadonlySet<CommandStatus["phase"]> = new Set([
+  "confirmed",
+  "refused",
+  "failed",
+  "undelivered",
+  "found",
+]);
+
 interface PendingCommand {
   /**
    * What was dispatched, kept so a refusal can name it. Without these three a
@@ -156,8 +182,12 @@ interface PendingCommand {
    * once cancelled (or if no timer was ever scheduled, e.g. `StubTransport`).
    */
   cancelLossTimer: (() => void) | null;
-  /** The UT the command's reply is expected by, kept so the command can be stored while it is still outstanding. */
+  /** When the command's reply is expected, in seconds on the client's own clock. */
   etaConfirm: number;
+  /** The game UT the reply is expected by, kept so the command can be stored while it is still outstanding. Absent while no frame has said what UT the game is at. */
+  replyDueUt?: number;
+  /** A deadline the game gave in UT, which the loss timer follows through time warp and a pause. Absent for a command timed on the client's clock alone. */
+  gameDeadlineUt?: number;
   /** True for a command read back from the outstanding store rather than dispatched by this client. */
   restored: boolean;
   /** The promise a restored command settles, handed to the first `useCommand` that adopts it. */
@@ -250,7 +280,7 @@ export interface GroupMember {
 /**
  * One command a client has sent and not yet had answered, as it is stored for
  * its screen: the request id it was sent under, the command, its arguments
- * and label, and the UT its reply was expected by. Useful for letting a
+ * and label, and the game UT its reply was expected by. Useful for letting a
  * reloaded screen ask the game for the answer to a command held for a craft
  * out of contact. Used by {@link OutstandingCommandStore}.
  */
@@ -259,8 +289,8 @@ export interface OutstandingCommand {
   command: string;
   args: unknown;
   label: string;
-  /** The UT its reply was expected by when it was sent. */
-  etaConfirm: number;
+  /** The game UT its reply is expected by. Absent for a command sent before any frame had said what UT the game was at. */
+  replyDueUt?: number;
 }
 
 /**
@@ -361,6 +391,8 @@ export class TelemetryClient {
    * auto-builds, or a caller-supplied one).
    */
   private readonly stores = new Set<TimelineStore>();
+  /** The game UT of the newest frame, with the reading of the client's clock it arrived at and its timeline. */
+  private gameClock: { ut: number; at: number; epoch: number } | undefined;
   /** The keyframe interval each topic's `subscribed` ack declared, kept so a store attached later is told too. */
   private readonly declaredKeyframeIntervals = new Map<string, number>();
 
@@ -431,6 +463,8 @@ export class TelemetryClient {
           this.notifyStore();
         })
       : undefined;
+    /* A transport still connecting reports no change until it opens, so the tracker is told here that nothing can ack yet. */
+    if (transport.status !== "connected") this.ownership?.handleDisconnected();
     this.unsubscribeFromTransport = transport.onMessage((message, delivery) => {
       for (const listener of this.rawMessageListeners) listener(message);
       this.handleMessage(message, delivery?.replayed === true);
@@ -495,12 +529,14 @@ export class TelemetryClient {
           status: {
             phase: "in-flight",
             requestId: held.requestId,
-            etaConfirm: held.etaConfirm,
+            etaConfirm: this.clock.now(),
           },
           resolve,
           reject,
           cancelLossTimer: null,
-          etaConfirm: held.etaConfirm,
+          etaConfirm: this.clock.now(),
+          replyDueUt: held.replyDueUt,
+          gameDeadlineUt: held.replyDueUt,
           restored: true,
           taken: false,
           unclaimable: false,
@@ -510,9 +546,15 @@ export class TelemetryClient {
       const pending = this.commands.get(held.requestId);
       if (!pending) continue;
       pending.restoredResult = result;
-      /* The claim's answer has to travel first, so the deadline starts from now when the old one has passed. */
+      /*
+       * A deadline in game UT cannot be placed until a frame says what UT the
+       * game is at, and `noteGameUt` arms it then. One with no such deadline
+       * was timed on the last page's clock, which this page cannot read, so it
+       * gets the time the claim's answer needs to travel.
+       */
+      if (pending.gameDeadlineUt !== undefined) continue;
       pending.cancelLossTimer = this.clock.schedule(
-        Math.max(held.etaConfirm, this.clock.now()) + LOSS_MARGIN,
+        this.clock.now() + LOSS_MARGIN,
         () => this.handleLoss(held.requestId),
       );
     }
@@ -569,7 +611,7 @@ export class TelemetryClient {
         command: pending.command,
         args: pending.args,
         label: pending.label,
-        etaConfirm: pending.etaConfirm,
+        replyDueUt: pending.replyDueUt,
       });
     }
     return list.slice(-OUTSTANDING_COMMAND_CAP);
@@ -778,6 +820,16 @@ export class TelemetryClient {
    * wire: the call warns once and returns a no-op unsubscribe.
    */
   subscribe(topic: string, cb: Callback): () => void {
+    /* Wrapped so the callback is called with the value alone: a caller's own optional second parameter must not be handed a `Meta`. */
+    return this.subscribeFrames(topic, (value) => cb(value));
+  }
+
+  /**
+   * Subscribes as {@link subscribe} does, and hands `cb` the `Meta` of the
+   * frame that carried each value as well. The `Meta` is `undefined` for a
+   * value replayed on subscribe whose frame the client no longer holds.
+   */
+  subscribeFrames(topic: string, cb: FrameCallback): () => void {
     if (topic === "") {
       this.warnEmptyTopicOnce();
       return () => {};
@@ -793,7 +845,11 @@ export class TelemetryClient {
     subs.add(sub);
 
     if (this.lastValues.has(topic)) {
-      this.invokeCallback(cb, this.lastValues.get(topic));
+      this.invokeCallback(
+        cb,
+        this.lastValues.get(topic),
+        this.lastPoints.get(topic)?.meta,
+      );
     }
 
     return () => {
@@ -1092,6 +1148,8 @@ export class TelemetryClient {
         : undefined);
     const etaConfirm = predictedEta ?? this.clock.now();
     if (predictedEta === undefined) this.warnNoLossDeadlineOnce();
+    const replyDueUt =
+      predictedEta === undefined ? undefined : this.gameUtAt(predictedEta);
 
     const result = new Promise<unknown>((resolve, reject) => {
       this.commands.set(requestId, {
@@ -1103,12 +1161,14 @@ export class TelemetryClient {
         reject,
         cancelLossTimer: null,
         etaConfirm,
+        replyDueUt,
         restored: false,
         taken: false,
         unclaimable: false,
       });
     });
     this.outstandingDirty = true;
+    this.dropOldestAnswered();
 
     if (predictedEta !== undefined) {
       const cancel = this.clock.schedule(predictedEta + LOSS_MARGIN, () =>
@@ -1136,7 +1196,24 @@ export class TelemetryClient {
     };
   }
 
-  /** Current lifecycle status for a dispatched command, or `idle` if unknown. */
+  /**
+   * Drops the records of the oldest answered commands once the client holds
+   * {@link ANSWERED_COMMAND_SWEEP_AT}, down to {@link ANSWERED_COMMAND_CAP}. A
+   * continuous control sends ten commands a second, and each record is walked
+   * whenever the outstanding list is written.
+   */
+  private dropOldestAnswered(): void {
+    if (this.commands.size < ANSWERED_COMMAND_SWEEP_AT) return;
+    let excess = this.commands.size - ANSWERED_COMMAND_CAP;
+    for (const [requestId, pending] of this.commands) {
+      if (excess <= 0) return;
+      if (!FINAL_PHASES.has(pending.status.phase)) continue;
+      this.commands.delete(requestId);
+      excess -= 1;
+    }
+  }
+
+  /** Current lifecycle status for a dispatched command, or `idle` if the client holds no record of it: it was never sent, or it was answered long enough ago to be dropped. */
   getCommand(requestId: string): CommandStatus {
     return this.commands.get(requestId)?.status ?? UNKNOWN_COMMAND;
   }
@@ -1278,6 +1355,8 @@ export class TelemetryClient {
     if (message.type === "event") {
       if (message.name === "subscribed") {
         this.ownership?.noteAck(message.topic);
+        /* An ack can arrive after the window that called the topic unowned, and it is the mod's own answer. */
+        for (const store of this.stores) store.markTopicOwned(message.topic);
         const interval: unknown = message.keyframeIntervalUt;
         if (typeof interval === "number") {
           this.declaredKeyframeIntervals.set(message.topic, interval);
@@ -1342,6 +1421,7 @@ export class TelemetryClient {
     replayed: boolean,
   ): void {
     this.noteObservedVantage(meta.vantage);
+    this.noteGameUt(meta, replayed);
     const point = {
       validAt: meta.validAt,
       payload,
@@ -1353,7 +1433,7 @@ export class TelemetryClient {
       if (this.subscribers.has(topic)) this.lastPoints.set(topic, point);
       const subs = this.subscribers.get(topic);
       if (subs) {
-        for (const sub of subs) this.invokeCallback(sub.cb, payload);
+        for (const sub of subs) this.invokeCallback(sub.cb, payload, meta);
       }
     }
     for (const store of this.stores) {
@@ -1407,26 +1487,150 @@ export class TelemetryClient {
     /*
      * A held command replies when its route says, waits included, which can be
      * long after twice the one-way time; one with no predicted route can still
-     * run up to its expiry.
+     * run up to its expiry. Both figures are game UT, so they are timed against
+     * the game's clock and never handed to the client's own.
      */
-    const etaConfirm =
+    const gameDeadlineUt =
       predictedReplyUt != null && Number.isFinite(predictedReplyUt)
         ? predictedReplyUt
         : expiresAtUt != null && Number.isFinite(expiresAtUt)
           ? expiresAtUt
-          : roundTrip;
-    if (etaConfirm === undefined) return;
+          : undefined;
+    if (warning && pending.status.phase === "in-flight") {
+      pending.status = { ...pending.status, warning };
+    }
+    if (gameDeadlineUt !== undefined) {
+      pending.gameDeadlineUt = gameDeadlineUt;
+      pending.replyDueUt = gameDeadlineUt;
+      this.outstandingDirty = true;
+      if (this.placeGameDeadline(requestId, pending)) {
+        this.notifyStore();
+        return;
+      }
+    }
+    /*
+     * Reached with a game deadline only while no frame has said what UT the
+     * game is at. The round trip stands in until `noteGameUt` places it.
+     */
+    if (roundTrip === undefined) {
+      this.notifyStore();
+      return;
+    }
     pending.cancelLossTimer?.();
-    pending.etaConfirm = etaConfirm;
+    pending.etaConfirm = roundTrip;
+    pending.replyDueUt ??= this.gameUtAt(roundTrip);
     this.outstandingDirty = true;
-    pending.status = warning
-      ? { phase: "in-flight", requestId, etaConfirm, warning }
-      : { phase: "in-flight", requestId, etaConfirm };
-    pending.cancelLossTimer = this.clock.schedule(
-      etaConfirm + LOSS_MARGIN,
-      () => this.handleLoss(requestId),
+    if (pending.status.phase === "in-flight") {
+      pending.status = { ...pending.status, etaConfirm: roundTrip };
+    }
+    pending.cancelLossTimer = this.clock.schedule(roundTrip + LOSS_MARGIN, () =>
+      this.handleLoss(requestId),
     );
     this.notifyStore();
+  }
+
+  /**
+   * The game's UT now, carried forward on the client's clock from the newest
+   * frame. `undefined` until a frame has arrived.
+   */
+  private gameUtNow(): number | undefined {
+    const anchor = this.gameClock;
+    if (!anchor) return undefined;
+    return anchor.ut + (this.clock.now() - anchor.at);
+  }
+
+  /** The game UT that a reading of the client's clock falls on, or `undefined` until a frame has arrived. */
+  private gameUtAt(clockSeconds: number): number | undefined {
+    const nowUt = this.gameUtNow();
+    if (nowUt === undefined) return undefined;
+    return nowUt + (clockSeconds - this.clock.now());
+  }
+
+  /**
+   * Records the game UT a frame was delivered at, which is the only thing that
+   * relates a deadline in game UT to the client's clock.
+   *
+   * Frames keep arriving while the game is paused, each with the same UT, and
+   * arrive faster than a second of UT apart under time warp. Taking every one
+   * is what lets a deadline wait out a pause and come early under warp. A
+   * replayed frame describes the past, and one from an earlier timeline or an
+   * earlier UT on the same one would move the estimate backwards.
+   */
+  private noteGameUt(meta: Meta, replayed: boolean): void {
+    const ut = meta.deliveredAt;
+    if (replayed || !Number.isFinite(ut)) return;
+    const epoch = meta.timelineEpoch ?? 0;
+    const prior = this.gameClock;
+    if (prior && epoch < prior.epoch) return;
+    if (prior && epoch === prior.epoch && ut < prior.ut) return;
+    this.gameClock = { ut, at: this.clock.now(), epoch };
+    if (prior) return;
+    let placed = false;
+    for (const [requestId, pending] of this.commands) {
+      if (pending.gameDeadlineUt === undefined) continue;
+      /* The claim's answer has to travel first, so a deadline that passed while the page was away starts from now. */
+      if (pending.restored) {
+        pending.gameDeadlineUt = Math.max(pending.gameDeadlineUt, ut);
+      }
+      placed = this.placeGameDeadline(requestId, pending) || placed;
+    }
+    if (placed) this.notifyStore();
+  }
+
+  /**
+   * Moves a command still in flight onto its deadline in game UT, and says
+   * whether it could: it cannot until a frame has said what UT the game is at.
+   */
+  private placeGameDeadline(
+    requestId: string,
+    pending: PendingCommand,
+  ): boolean {
+    const dueUt = pending.gameDeadlineUt;
+    const nowUt = this.gameUtNow();
+    if (dueUt === undefined || nowUt === undefined) return false;
+    if (pending.status.phase !== "in-flight") return false;
+    const etaConfirm = this.clock.now() + (dueUt - nowUt);
+    pending.etaConfirm = etaConfirm;
+    pending.status = { ...pending.status, etaConfirm };
+    this.armGameDeadline(requestId, pending);
+    return true;
+  }
+
+  /**
+   * Arms the loss timer for a deadline in game UT. The client's clock cannot
+   * count game time through time warp or a pause, so the timer never waits
+   * longer than {@link GAME_UT_RECHECK_SECONDS} before it reads the game's UT
+   * again.
+   */
+  private armGameDeadline(requestId: string, pending: PendingCommand): void {
+    const dueAt = this.clockTimeOfLoss(pending);
+    if (dueAt === undefined) return;
+    pending.cancelLossTimer?.();
+    const recheckAt = this.clock.now() + GAME_UT_RECHECK_SECONDS;
+    pending.cancelLossTimer = this.clock.schedule(
+      Math.min(dueAt, recheckAt),
+      () => {
+        const due = this.clockTimeOfLoss(pending);
+        if (due === undefined || this.clock.now() >= due - GAME_UT_TOLERANCE) {
+          this.handleLoss(requestId);
+          return;
+        }
+        this.armGameDeadline(requestId, pending);
+      },
+    );
+  }
+
+  /**
+   * The reading of the client's clock at which a command's deadline in game UT
+   * and its margin run out, were the game to run at normal speed from the
+   * newest frame. Worked from that frame's own reading, so a deadline a whole
+   * number of seconds away lands on one.
+   */
+  private clockTimeOfLoss(pending: PendingCommand): number | undefined {
+    const anchor = this.gameClock;
+    const dueUt = pending.gameDeadlineUt;
+    if (!anchor || dueUt === undefined) return undefined;
+    return anchor.at + (dueUt + LOSS_MARGIN - anchor.ut);
   }
 
   private handleCommandResponse(requestId: string, rawResult: unknown): void {
@@ -1690,9 +1894,13 @@ export class TelemetryClient {
   }
 
   /** Invoke a single subscriber callback, isolating one throw from the rest of fan-out. */
-  private invokeCallback(cb: Callback, payload: unknown): void {
+  private invokeCallback(
+    cb: FrameCallback,
+    payload: unknown,
+    meta: Meta | undefined,
+  ): void {
     try {
-      cb(payload);
+      cb(payload, meta);
     } catch (error) {
       // A throwing subscriber must not break delivery to sibling subscribers
       // or skip the store-notify that follows. TODO: route through the

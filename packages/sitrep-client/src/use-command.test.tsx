@@ -14,7 +14,7 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { CommandDelay } from "@ksp-gonogo/ui-kit";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
 import { TelemetryProvider } from "./context";
@@ -198,13 +198,13 @@ describe("useCommand", () => {
  * can't depend on `@ksp-gonogo/components`' `setupStreamFixture`, which
  * sits above it in the dependency graph).
  */
-function setupFixture({ suspendFrames = false } = {}) {
+function setupFixture({ suspendFrames = false, warpRate = 1 } = {}) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport, undefined, { idPrefix: "t" });
   const clock = new ViewClock({
     nowWall: wall.now,
-    warpRate: () => 1,
+    warpRate: () => warpRate,
     delaySeconds: () => 0,
   });
   if (suspendFrames) clock.suspendFrames();
@@ -435,6 +435,69 @@ describe("useCommand inFlight", () => {
     expect(screen.getByText("count:1")).toBeTruthy();
   });
 
+  it("takes a command the game refused off the rail, never leaving it overdue", async () => {
+    const fixture = setupFixture();
+    fixture.transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: "modeUnavailable",
+    }));
+    fixture.transport.holdCommands();
+    render(
+      <fixture.Provider>
+        <DeployWithInFlight />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    fireEvent.click(screen.getByText("go1"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "engine-id",
+              clientRequestId: id,
+              command: "deploy",
+              label: "",
+              topic: "t",
+              vantage: "ksc",
+              dispatchedAt: 0,
+              oneWaySeconds: 2,
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByText("phases:in-transit")).toBeTruthy(),
+    );
+
+    // The game answers, and its answer is no.
+    await act(async () => {
+      fixture.transport.answerHeldCommands();
+    });
+    expect(fixture.client.getCommand(id).phase).toBe("refused");
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [] },
+        { validAt: 4 + LOSS_MARGIN + 1, deliveredAt: 4 + LOSS_MARGIN + 1 },
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+
   it("matches its own pending entry on the echoed requestId, never on the engine's id", async () => {
     const fixture = setupFixture();
     render(
@@ -517,6 +580,61 @@ describe("useCommand inFlight", () => {
       );
     });
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+});
+
+describe("useCommand inFlight under time warp", () => {
+  it("still shows a held command whose queue entry arrives a moment later, many game seconds on", async () => {
+    // A hundred game seconds pass in each real one.
+    const fixture = setupFixture({ warpRate: 100 });
+    fixture.transport.holdCommands();
+    render(
+      <fixture.Provider>
+        <DeployWithInFlight />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    fireEvent.click(screen.getByText("go1"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+
+    // A third of a real second later the game's clock reads 30, and the queue snapshot that was already on its way does not hold the command yet.
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [] },
+        { validAt: 30, deliveredAt: 30 },
+      );
+    });
+    await act(async () => {});
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id: "engine-id",
+              clientRequestId: id,
+              command: "deploy",
+              label: "",
+              topic: "t",
+              vantage: "ksc",
+              dispatchedAt: 0,
+              oneWaySeconds: 600,
+            },
+          ],
+        },
+        { validAt: 31, deliveredAt: 31 },
+      );
+    });
+
+    await waitFor(() => expect(screen.getByText("count:1")).toBeTruthy());
   });
 });
 
@@ -1133,6 +1251,59 @@ describe("useCommand dismiss", () => {
     await waitFor(() => expect(screen.getByText("count:1")).toBeTruthy());
     fireEvent.click(screen.getByText("dismiss"));
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+
+  it("stops asking about a command once it is dismissed", async () => {
+    const fixture = setupFixture();
+    fixture.transport.holdCommands();
+    render(
+      <fixture.Provider>
+        <DeployWithDismiss />
+      </fixture.Provider>,
+    );
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    // Two sends: the handle's own status follows the later one, so the earlier is tracked only for the rail.
+    fireEvent.click(screen.getByText("go"));
+    fireEvent.click(screen.getByText("go"));
+    const [first, second] = fixture.transport.sentCommands.map(
+      (c) => c.requestId,
+    );
+    const held = (clientRequestId: string) => ({
+      id: `engine-${clientRequestId}`,
+      clientRequestId,
+      command: "deploy",
+      label: "",
+      topic: "t",
+      vantage: "ksc",
+      dispatchedAt: 0,
+      oneWaySeconds: 6,
+    });
+    const pending = (ut: number) =>
+      act(() => {
+        fixture.transport.emit(
+          "system.uplink.pending",
+          { pending: [held(first), held(second)] },
+          { validAt: ut, deliveredAt: ut },
+        );
+      });
+    pending(0);
+    await waitFor(() => expect(screen.getByText("count:2")).toBeTruthy());
+    fireEvent.click(screen.getByText("dismiss"));
+    await waitFor(() => expect(screen.getByText("count:1")).toBeTruthy());
+    await act(async () => {});
+
+    // The hook asks the client about every command it still tracks, on each render.
+    const asked = vi.spyOn(fixture.client, "getCommand");
+    pending(1);
+    pending(2);
+    expect(asked.mock.calls.filter(([id]) => id === first)).toHaveLength(0);
+    expect(screen.getByText("count:1")).toBeTruthy();
   });
 });
 

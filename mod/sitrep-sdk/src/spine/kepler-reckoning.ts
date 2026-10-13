@@ -391,7 +391,9 @@ function trajectoryAuthority(
  *   it before `viewUt`
  * - `viewUt` is at or past the next change of sphere of influence
  * - `viewUt` is past the orbit's own `horizon`
- * - the orbit reaches into the atmosphere by `viewUt`
+ * - the orbit is outside its body's sphere of influence at `viewUt`
+ * - the orbit is inside the atmosphere at `viewUt`, or under the surface of a
+ *   body with none, or passed through either since the elements were taken
  *
  * A missing `bodies` or encounter is not a reason to decline. A burn that
  * nothing has reported, such as by a craft out of contact, cannot be seen
@@ -445,10 +447,26 @@ export function keplerAdmissibility(
       },
     };
   }
+  const elements = buildElements(orbit);
+  const solved = trySolve(elements, viewUt);
+  const radius = solved == null ? Number.NaN : magnitude(solved.position);
+  /*
+   * The encounter says when the patch ends, and it is locked until the save can
+   * compute one. The body's own sphere of influence is the same boundary stated
+   * as a distance, which every save has.
+   */
+  const reach = sphereOfInfluenceRadius(bodies, orbit.referenceBodyIndex);
+  if (reach !== undefined && Number.isFinite(radius) && radius > reach) {
+    return {
+      declined: {
+        reason: "beyond-horizon",
+        input: "@system.bodies",
+        note: "outside the body's sphere of influence, where another body's gravity takes over",
+      },
+    };
+  }
   const floor = entryInterfaceRadius(bodies, orbit.referenceBodyIndex);
   if (floor !== undefined) {
-    const solved = trySolve(buildElements(orbit), viewUt);
-    const radius = solved == null ? Number.NaN : magnitude(solved.position);
     if (Number.isFinite(radius) && radius <= floor) {
       return {
         declined: {
@@ -458,8 +476,59 @@ export function keplerAdmissibility(
         },
       };
     }
+    /*
+     * A conic whose periapsis is under the floor climbs back above it on the
+     * far side, so where it is at `viewUt` does not say whether it went
+     * through the floor on the way there.
+     */
+    if (
+      elements.sma * (1 - elements.ecc) <= floor &&
+      periapsisPassedBy(elements, orbitPoint.validAt, viewUt)
+    ) {
+      return {
+        declined: {
+          reason: "beyond-horizon",
+          input: "@system.bodies",
+          note: "the conic passed below the atmosphere interface or the surface before then",
+        },
+      };
+    }
   }
   return { ok: true };
+}
+
+/** The radius of a body's sphere of influence, in metres, or `undefined` when `bodies` does not state one for it. */
+function sphereOfInfluenceRadius(
+  bodies: ConicBodiesInput | undefined,
+  index: number | null | undefined,
+): number | undefined {
+  if (index == null || !bodies) return undefined;
+  const radius = mag(
+    bodies.bodies.find((b) => b.index === index)?.sphereOfInfluence,
+  );
+  return radius > 0 ? radius : undefined;
+}
+
+/**
+ * Whether the orbit passes periapsis after `fromUt` and at or before `toUt`.
+ * A closed orbit does so once a period; an open one does so once, and only
+ * while it is still inbound at `fromUt`. `false` for a parabolic orbit, which
+ * has no anomaly to time it by.
+ */
+function periapsisPassedBy(
+  elements: OrbitElements,
+  fromUt: number,
+  toUt: number,
+): boolean {
+  const from = trySolveAnomalies(elements, fromUt);
+  if (from === null || !(from.meanMotion > 0)) return false;
+  if (isHyperbolic(elements.ecc)) {
+    return (
+      from.meanAnomaly < 0 &&
+      fromUt - from.meanAnomaly / from.meanMotion <= toUt
+    );
+  }
+  return fromUt + (2 * Math.PI - from.meanAnomaly) / from.meanMotion <= toUt;
 }
 
 /**

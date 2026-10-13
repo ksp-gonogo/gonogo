@@ -45,6 +45,7 @@ export class StreamRecorder {
   private readonly client: TelemetryClient;
   private readonly recordAllTopics: boolean;
   private frames: string[] = [];
+  private bufferedCharacters = 0;
   private readonly observedTopics = new Set<string>();
   private detachRawTap: (() => void) | undefined;
   private readonly extraSubscriptions: Array<() => void> = [];
@@ -66,6 +67,15 @@ export class StreamRecorder {
     return this.frames.length;
   }
 
+  /**
+   * How much the recorder holds, as the length of its frames' JSON text in
+   * characters. The wire's text is ASCII apart from names, so this is close to
+   * the bytes a store writes for it.
+   */
+  get bufferedSize(): number {
+    return this.bufferedCharacters;
+  }
+
   /** The highest `meta.validAt` observed so far: the recording's "now", in UT seconds. `0` before any frame lands. */
   get latestUt(): number {
     return this.latestValidAt;
@@ -79,13 +89,16 @@ export class StreamRecorder {
     if (this.recordingFlag) return;
     this.recordingFlag = true;
     this.frames = [];
+    this.bufferedCharacters = 0;
     this.observedTopics.clear();
     this.latestValidAt = 0;
 
     this.detachRawTap = this.client.onRawMessage((message) => {
       if (message.type !== "stream-data" && message.type !== "event") return;
       this.observedTopics.add(message.topic);
-      this.frames.push(JSON.stringify(message));
+      const frame = JSON.stringify(message);
+      this.frames.push(frame);
+      this.bufferedCharacters += frame.length;
       if (
         message.type === "stream-data" &&
         message.meta.validAt > this.latestValidAt
@@ -103,6 +116,26 @@ export class StreamRecorder {
         this.extraSubscriptions.push(this.client.subscribe(topic, () => {}));
       }
     }
+  }
+
+  /**
+   * Hands back the frames captured so far as a `ReplayFixture` and carries on
+   * recording into an empty buffer. No frame is lost or repeated between the
+   * part handed back and the next: frames are delivered one at a time, and the
+   * buffers are swapped between two of them. A part holds only its own frames,
+   * so parts replay as one recording when their frames are joined in the order
+   * they were taken. Useful for storing a long recording in pieces of a
+   * bounded size.
+   */
+  takePart(): ReplayFixture {
+    const part: ReplayFixture = {
+      subscribedTopics: [...this.observedTopics],
+      frames: this.frames,
+    };
+    this.frames = [];
+    this.bufferedCharacters = 0;
+    this.observedTopics.clear();
+    return part;
   }
 
   /**

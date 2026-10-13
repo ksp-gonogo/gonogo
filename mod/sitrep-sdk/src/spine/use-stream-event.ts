@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import type { Meta } from "../__generated__/contract";
 import { useTelemetryClientOptional } from "./context";
 
 /**
@@ -16,8 +17,9 @@ import { useTelemetryClientOptional } from "./context";
  *
  * The last value the client replays on subscribe is not an event, so a widget
  * that mounts after a crash does not raise the alarm for it again, and
- * neither does a remount, StrictMode or a layout change. Only frames that
- * arrive after the subscription count.
+ * neither does a remount, StrictMode or a layout change. Only events that
+ * arrive after the subscription count. An event the mod sends again after a
+ * reconnect or a change of command centre is not delivered twice.
  *
  * `handler` may change identity on every render without re-subscribing. The
  * latest one is always called, so callers need not memoize it.
@@ -34,16 +36,36 @@ export function useStreamEvent<Payload>(
 
   useEffect(() => {
     if (!client) return;
-    // `client.subscribe` replays the sticky last value synchronously, inside
-    // this call: flag that window so the replay is skipped and only genuinely
-    // new deliveries (which arrive on a later tick, with `replayingSticky`
-    // already cleared) reach the handler.
+    /*
+     * `client.subscribe` replays the sticky last value synchronously, inside
+     * the call: that window is flagged so the replay is skipped and only later
+     * deliveries reach the handler.
+     *
+     * The mod also answers a resubscribe, which follows every reconnect and
+     * every change of command centre, with the Topic's last sample as a new
+     * frame. It is the same event, so each delivery is compared with the last
+     * one seen, the replayed one included. The frame's own sequence number
+     * cannot tell them apart, since the mod stamps one on every frame it sends.
+     */
     let replayingSticky = true;
-    const unsubscribe = client.subscribe(topic, (payload) => {
-      if (replayingSticky) return;
+    let lastSeen: string | undefined;
+    const unsubscribe = client.subscribeFrames(topic, (payload, meta) => {
+      const seen = eventKey(payload, meta);
+      const repeat = seen !== undefined && seen === lastSeen;
+      lastSeen = seen;
+      if (replayingSticky || repeat) return;
       handlerRef.current(payload as Payload);
     });
     replayingSticky = false;
     return unsubscribe;
   }, [client, topic]);
+}
+
+/** What makes two deliveries the same event: the timeline, the instant and the payload. `undefined` where the frame's `Meta` is not known. */
+function eventKey(
+  payload: unknown,
+  meta: Meta | undefined,
+): string | undefined {
+  if (meta === undefined) return undefined;
+  return `${meta.timelineEpoch ?? 0}\0${meta.validAt}\0${JSON.stringify(payload)}`;
 }

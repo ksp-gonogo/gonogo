@@ -323,4 +323,90 @@ describe("PresentationPacer", () => {
     pacer.tick(100);
     expect(presented).toEqual(["a"]);
   });
+
+  it("stays bounded under time warp, where frames arrive faster than their own spacing lets them be shown", () => {
+    const presented: string[] = [];
+    const skipped: string[] = [];
+    let queued = 0;
+    const pacer = new PresentationPacer<string>({
+      onPresent: (f) => {
+        presented.push(f.data);
+        queued -= 1;
+      },
+      onSkip: (f) => {
+        skipped.push(f.data);
+        queued -= 1;
+      },
+      maxBacklogSeconds: 0.5,
+      maxLeadSeconds: 2,
+    });
+
+    // 4x warp at 30 frames a second: each frame is 4/30 s of UT after the last, and arrives 1/30 s of wall time after it.
+    let most = 0;
+    for (let i = 0; i < 30 * 60; i += 1) {
+      const wall = i / 30;
+      pacer.submit(frame(1000 + (i * 4) / 30, `f${i}`), wall);
+      queued += 1;
+      pacer.tick(wall);
+      most = Math.max(most, queued);
+    }
+
+    // Two seconds of lead at 0.8 wall seconds a UT second is under twenty frames.
+    expect(most).toBeLessThan(30);
+    expect(skipped.length).toBeGreaterThan(0);
+    // What is on screen is never more than the lead behind what arrived.
+    const last = Number(presented[presented.length - 1]?.slice(1));
+    expect(30 * 60 - 1 - last).toBeLessThan(30);
+  });
+
+  it("shows the frame at once after the source's clock jumps forward", () => {
+    const presented: string[] = [];
+    const pacer = new PresentationPacer<string>({
+      onPresent: (f) => presented.push(f.data),
+      maxBacklogSeconds: 0.5,
+      maxLeadSeconds: 2,
+    });
+    pacer.submit(frame(100, "before"));
+    pacer.tick(0);
+
+    // A quickload or a jump along the timeline: the next frame is hours of UT later.
+    pacer.submit(frame(100 + 6 * 3600, "after"));
+    pacer.tick(0.033);
+
+    expect(presented).toEqual(["before", "after"]);
+  });
+
+  it("keeps a long burst whole when no lead limit is set, as a radio transmission needs", () => {
+    const presented: string[] = [];
+    const pacer = new PresentationPacer<string>({
+      onPresent: (f) => presented.push(f.data),
+      maxBacklogSeconds: 0.5,
+    });
+    for (let i = 0; i < 10; i += 1) pacer.submit(frame(i, `c${i}`));
+
+    for (let wall = 0; wall <= 9; wall += 0.25) pacer.tick(wall);
+
+    expect(presented).toHaveLength(10);
+  });
+
+  it("starts afresh after a reset, dropping what was queued", () => {
+    const presented: string[] = [];
+    const skipped: string[] = [];
+    const pacer = new PresentationPacer<string>({
+      onPresent: (f) => presented.push(f.data),
+      onSkip: (f) => skipped.push(f.data),
+      maxBacklogSeconds: 0.5,
+    });
+    pacer.submit(frame(100, "a"));
+    pacer.tick(0);
+    pacer.submit(frame(130, "left over"));
+
+    pacer.reset();
+    // Thirty UT seconds earlier than the dropped frame, and due at once all the same.
+    pacer.submit(frame(100.5, "b"));
+    pacer.tick(0.1);
+
+    expect(skipped).toEqual(["left over"]);
+    expect(presented).toEqual(["a", "b"]);
+  });
 });

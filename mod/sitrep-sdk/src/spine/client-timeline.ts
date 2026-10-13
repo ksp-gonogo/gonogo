@@ -126,12 +126,15 @@ export class ClientTimeline<Payload = unknown> {
 
   /** Latest point with `validAt <= ut` (current epoch only, the buffer never holds stale-epoch points). */
   at(ut: number): TimelinePoint<Payload> | undefined {
-    // points are sorted ascending by validAt; scan back from the end since reads cluster near the live edge.
-    for (let i = this.points.length - 1; i >= 0; i--) {
-      const point = this.points[i];
-      if (point.validAt <= ut) return point;
+    // Points are sorted ascending by validAt, so the last one at or before `ut` is found by halving.
+    let low = 0;
+    let high = this.points.length;
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (this.points[mid].validAt <= ut) low = mid + 1;
+      else high = mid;
     }
-    return undefined;
+    return low === 0 ? undefined : this.points[low - 1];
   }
 
   /**

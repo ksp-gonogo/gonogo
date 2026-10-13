@@ -210,7 +210,7 @@ export type CommandStatus =
       phase: "in-flight";
       /** Identifies the send. */
       requestId: string;
-      /** When the reply is due, in UT seconds. */
+      /** When the reply is due, in seconds on the clock the client was built with. In the running app that clock counts from the page's start, so this is not a game UT. */
       etaConfirm: number;
       /** What the mod said of a command it accepted against the odds, as a sentence to show: a continuous input that its centre's plan says will be dropped on the way. Absent for an ordinary command. */
       warning?: string;

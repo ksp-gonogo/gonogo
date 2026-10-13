@@ -1,8 +1,8 @@
 import { isValue, Quality, value } from "@ksp-gonogo/sitrep-sdk";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { clearReckoners, registerCoreReckoners } from "./reckoners";
 import { makeMeta } from "./stub-transport";
-import type { TimelinePoint } from "./timeline";
+import { ClientTimeline, type TimelinePoint } from "./timeline";
 import { type GapModel, TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
 
@@ -103,6 +103,30 @@ beforeEach(() => {
 });
 
 describe("TimelineStore.gapModel", () => {
+  it("reads the warp in force at the gap without copying the warp record", () => {
+    const s = store();
+    for (let ut = 0; ut < 500; ut += 1) {
+      s.ingest("time.warp", point(ut, warp(ut < 250 ? 1 : AT_100000X)));
+    }
+    s.ingest("vessel.dock", point(100, dock(100)));
+    s.ingest("vessel.dock", point(101, dock(100.5)));
+    s.beginFrame();
+    const [before, after] =
+      s.sampleRange<unknown>("vessel.dock.distance", 0, 500) ?? [];
+    if (!before || !after) throw new Error("the scene needs two samples");
+
+    const ranged = vi.spyOn(ClientTimeline.prototype, "range");
+    const gap = s.gapModel("vessel.dock.distance", before, after);
+    const wholeRecordReads = ranged.mock.calls.filter(
+      ([fromUt]) => fromUt === Number.NEGATIVE_INFINITY,
+    );
+    ranged.mockRestore();
+
+    // The warp at UT 101 is 1x, whatever it became later.
+    expect(gap).toMatchObject({ carried: true });
+    expect(wholeRecordReads).toHaveLength(0);
+  });
+
   it("withdraws a dead-reckoned distance across a tick nothing observed", () => {
     const s = store();
     s.ingest("time.warp", point(0, warp(AT_100000X)));

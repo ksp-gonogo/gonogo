@@ -279,10 +279,16 @@ describe("OrbitViewComponent", () => {
       </stream.Provider>,
     );
     act(() => {
+      // Whole elements, as the wire always carries them: a conic with no gravitational parameter or epoch cannot be advanced, and the widget then draws nothing.
       stream.emit("vessel.orbit", {
         sma: 700_000,
         ecc: 0.1,
+        inc: 0,
+        lan: 0,
         argPe: 0,
+        meanAnomalyAtEpoch: 0,
+        epoch: 0,
+        mu: 3.5316e12,
         horizon: {
           kind: PropagationHorizonKindLike.Unbounded,
           trajectoryKind: TrajectoryKindLike.Analytic,

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
 import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
+import type { TransportStatus } from "./transport";
 import { ViewClock } from "./view-clock";
 
 /**
@@ -24,6 +25,29 @@ function harness(options: { decidesTopicOwnership?: boolean } = {}) {
   const detach = client.attachStore(store);
   store.beginFrame();
   return { transport, client, store, detach };
+}
+
+/** A transport that is still connecting when its client is built, as the socket is while the game is not running. */
+class ConnectingTransport extends StubTransport {
+  private current: TransportStatus = "reconnecting";
+  private readonly listeners = new Set<(status: TransportStatus) => void>();
+
+  constructor() {
+    super({ decidesTopicOwnership: true });
+    Object.defineProperty(this, "status", { get: () => this.current });
+  }
+
+  override onStatusChange(
+    listener: (status: TransportStatus) => void,
+  ): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
+  open(): void {
+    this.current = "connected";
+    for (const listener of this.listeners) listener("connected");
+  }
 }
 
 describe("a topic nothing will ever publish", () => {
@@ -128,6 +152,46 @@ describe("a topic nothing will ever publish", () => {
     store.beginFrame();
     expect(store.sampleReading("vessel.altitude")).toMatchObject({
       state: "observed",
+    });
+  });
+
+  it("decides nothing while the transport has not connected yet", () => {
+    const transport = new ConnectingTransport();
+    const client = new TelemetryClient(transport);
+    const store = new TimelineStore(
+      new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 }),
+    );
+    client.attachStore(store);
+    const seen: string[] = [];
+    client.onTopicUnowned((topic) => seen.push(topic));
+
+    // The dashboard is open and the game is not running: nothing can ack.
+    client.subscribe("vessel.orbit", () => {});
+    vi.advanceTimersByTime(OWNERSHIP_ACK_WINDOW_MS * 3);
+    expect(seen).toEqual([]);
+    expect(client.topicOwnership("vessel.orbit")).toBe("undecided");
+    expect(store.isTopicUnowned("vessel.orbit")).toBe(false);
+
+    // Once it connects, the window runs against a mod that can answer.
+    transport.open();
+    vi.advanceTimersByTime(OWNERSHIP_ACK_WINDOW_MS - 1);
+    expect(client.topicOwnership("vessel.orbit")).toBe("undecided");
+    vi.advanceTimersByTime(1);
+    expect(client.topicOwnership("vessel.orbit")).toBe("unowned");
+  });
+
+  it("takes back the verdict when the ack arrives after the window", () => {
+    const { transport, client, store } = harness();
+    client.subscribe("vessel.target", () => {});
+    vi.advanceTimersByTime(OWNERSHIP_ACK_WINDOW_MS);
+    expect(store.isTopicUnowned("vessel.target")).toBe(true);
+
+    // Acked, and with nothing to publish yet: no target is set.
+    transport.ackSubscribe("vessel.target");
+    expect(client.topicOwnership("vessel.target")).toBe("owned");
+    expect(store.sampleReading("vessel.target")).toEqual({
+      state: "pending",
+      reckoning: { status: "none" },
     });
   });
 

@@ -48,6 +48,7 @@
 
 import type { DelayClockLike } from "./delayed-playout-buffer";
 import {
+  DEFAULT_PACING_MAX_LEAD_SECONDS,
   type FrameDelayPipeline,
   type FrameLike,
   type FrameSink,
@@ -159,6 +160,7 @@ export function attachEncodedFrameDelayTransform(
     pacing: {
       maxBacklogSeconds:
         opts.maxPacingBacklogSeconds ?? DEFAULT_PACING_MAX_BACKLOG_SECONDS,
+      maxLeadSeconds: DEFAULT_PACING_MAX_LEAD_SECONDS,
     },
   });
 }

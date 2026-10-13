@@ -44,3 +44,26 @@ export function interpolateCaptureUt(
   const elapsedSec = Math.max(0, (nowMs - sample.atMs) / 1000);
   return sample.ut + elapsedSec * (sample.warpRate || 1);
 }
+
+/**
+ * Returns a function that gives the UT to stamp a video frame with, from the
+ * capture clock's latest sample and the wall-clock time in milliseconds. While
+ * the sample has no UT it gives the last UT it worked out, and
+ * `Number.POSITIVE_INFINITY` before the first, so a frame that cannot be dated
+ * is held and is never shown ahead of the delayed telemetry. Useful for stamping
+ * the frames of one delayed video. Used by the delayed video playout in this
+ * package, one per camera.
+ *
+ * @category Delayed video
+ */
+export function captureUtStamper(): (
+  sample: CaptureClockSample,
+  nowMs: number,
+) => number {
+  let last = Number.POSITIVE_INFINITY;
+  return (sample, nowMs) => {
+    const ut = interpolateCaptureUt(sample, nowMs);
+    if (ut !== null) last = ut;
+    return last;
+  };
+}

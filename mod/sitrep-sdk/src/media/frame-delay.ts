@@ -135,6 +135,8 @@ export interface FrameDelayPipelineOptions<Frame extends FrameLike> {
   pacing?: {
     /** See `PresentationPacerOptions.maxBacklogSeconds`. */
     maxBacklogSeconds: number;
+    /** See `PresentationPacerOptions.maxLeadSeconds`. */
+    maxLeadSeconds?: number;
   };
 }
 
@@ -194,6 +196,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
   const pacer = opts.pacing
     ? new PresentationPacer<Frame>({
         maxBacklogSeconds: opts.pacing.maxBacklogSeconds,
+        maxLeadSeconds: opts.pacing.maxLeadSeconds,
         onPresent: (f) => writeAndClose(f.data),
         onSkip: (f) => f.data.close?.(),
       })
@@ -245,6 +248,7 @@ export function runFrameDelayPipeline<Frame extends FrameLike>(
   return {
     flush() {
       buffer.flush();
+      pacer?.reset();
     },
     dispose() {
       if (disposed) return;
@@ -313,6 +317,14 @@ export function isFrameDelaySupported(): boolean {
  *  genuine stall (a backgrounded tab, GC pause, etc.) well before it grows
  *  into visible added latency. */
 const DEFAULT_PACING_MAX_BACKLOG_SECONDS = 0.5;
+
+/**
+ * How far ahead of now a paced video frame may be due before the pacer jumps to
+ * it, in seconds. Above the second of game time that one telemetry sample can
+ * release together, and low enough that a time-warped camera holds a few dozen
+ * frames at most.
+ */
+export const DEFAULT_PACING_MAX_LEAD_SECONDS = 2;
 
 /**
  * Options for {@link createFrameDelayStream}: the delay clock, the capture time
@@ -395,6 +407,7 @@ export function createFrameDelayStream(
       pacing: {
         maxBacklogSeconds:
           opts.maxPacingBacklogSeconds ?? DEFAULT_PACING_MAX_BACKLOG_SECONDS,
+        maxLeadSeconds: DEFAULT_PACING_MAX_LEAD_SECONDS,
       },
     });
 

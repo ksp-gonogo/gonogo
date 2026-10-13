@@ -1,6 +1,8 @@
 /**
- * The clock `TelemetryClient` schedules its loss inference on, in UT seconds
- * (KSP's universal time).
+ * The clock `TelemetryClient` schedules its loss inference on, in seconds from
+ * an origin of the clock's own choosing. It need not be the game's UT: a
+ * deadline the game gives in UT is placed on this clock by the UT of the frames
+ * the client receives.
  *
  * The `Clock` injected into `TelemetryClient` must share the time domain of
  * the transport's `predictConfirmEta()`. If the two disagree, such as a
@@ -13,7 +15,7 @@ export interface Clock {
   /*
    * Structural clock seam for `TelemetryClient`'s client-side loss inference.
    * The client never computes network delay itself, it only
-   * schedules a callback at a UT a `Transport` predicted via
+   * schedules a callback at a time a `Transport` predicted via
    * `predictConfirmEta()`: but it still needs a `Clock` to do the scheduling.
    *
    * Deliberately not imported from `@ksp-gonogo/sitrep-server`: sitrep-client
@@ -22,10 +24,10 @@ export interface Clock {
    * exactly, so its `ManualClock` structurally satisfies this interface in
    * tests without either package importing the other.
    */
-  /** Current UT, in seconds. */
+  /** The clock's current reading, in seconds. */
   now(): number;
   /**
-   * Fire `fn` once UT reaches `atUt`. Returns a cancel handle that removes
+   * Fire `fn` once the clock reads `atUt`. Returns a cancel handle that removes
    * the pending callback if called before it fires; calling it after (or
    * more than once) is a no-op.
    */

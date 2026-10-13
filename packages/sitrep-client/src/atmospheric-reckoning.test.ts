@@ -146,6 +146,7 @@ interface FlightSample {
   verticalSpeed: Value<"m/s">;
   orbitalSpeed: Value<"m/s">;
   gForce: Value<"g">;
+  altitudeTerrain?: Value<"m">;
 }
 
 function flightPoint(
@@ -154,6 +155,7 @@ function flightPoint(
   verticalSpeed: number,
   gForce: number,
   meta: Partial<ReturnType<typeof makeMeta>> = {},
+  altitudeTerrain?: number,
 ): TimelinePoint<FlightSample> {
   return {
     validAt,
@@ -162,6 +164,9 @@ function flightPoint(
       verticalSpeed: value("m/s", verticalSpeed),
       orbitalSpeed: value("m/s", 2200),
       gForce: value("g", gForce),
+      ...(altitudeTerrain === undefined
+        ? {}
+        : { altitudeTerrain: value("m", altitudeTerrain) }),
     },
     meta: makeMeta({
       validAt,
@@ -260,17 +265,27 @@ function scene(
         gForce?: number;
         gapSinceUt?: number;
         source?: string;
+        altitudeTerrain?: number;
       }[],
     ) {
       for (const s of samples) {
         wall = s.at + lightTimeSeconds;
         store.ingest(
           "vessel.flight",
-          flightPoint(s.at, s.altitudeAsl, s.verticalSpeed, s.gForce ?? 2, {
-            deliveredAt: wall,
-            ...(s.gapSinceUt === undefined ? {} : { gapSinceUt: s.gapSinceUt }),
-            ...(s.source === undefined ? {} : { source: s.source }),
-          }),
+          flightPoint(
+            s.at,
+            s.altitudeAsl,
+            s.verticalSpeed,
+            s.gForce ?? 2,
+            {
+              deliveredAt: wall,
+              ...(s.gapSinceUt === undefined
+                ? {}
+                : { gapSinceUt: s.gapSinceUt }),
+              ...(s.source === undefined ? {} : { source: s.source }),
+            },
+            s.altitudeTerrain,
+          ),
         );
       }
     },
@@ -508,6 +523,48 @@ describe("the handover between the conic and the air", () => {
 });
 
 describe("what the descent withdraws on", () => {
+  /** Steady at 150 m/s down over ground a kilometre above sea level, last seen 200 m above it. */
+  const OVER_HIGH_GROUND = [
+    { at: 0, altitudeAsl: 1500, verticalSpeed: -150, altitudeTerrain: 500 },
+    { at: 1, altitudeAsl: 1350, verticalSpeed: -150, altitudeTerrain: 350 },
+    { at: 2, altitudeAsl: 1200, verticalSpeed: -150, altitudeTerrain: 200 },
+  ].map((sample) => ({ ...sample, gForce: 1 }));
+
+  it("carries the altitude down to the ground it last saw below it", () => {
+    const s = scene();
+    s.descend(OVER_HIGH_GROUND);
+
+    expect(reckonedAltitude(s.at(3))).toBeCloseTo(1050, 6);
+  });
+
+  it("declines once the descent would be under that ground", () => {
+    const s = scene();
+    s.descend(OVER_HIGH_GROUND);
+
+    // Three seconds on the rate puts it at 750 m, a quarter of a kilometre inside the hill.
+    expect(s.at(5).reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "beyond-horizon", input: "altitudeTerrain" },
+    });
+  });
+
+  it("declines below sea level where no ground was observed", () => {
+    const s = scene();
+    s.descend(
+      OVER_HIGH_GROUND.map(({ altitudeTerrain: _unseen, ...sample }) => ({
+        ...sample,
+        altitudeAsl: sample.altitudeAsl - 1000,
+      })),
+    );
+
+    // 200 m above the sea at the last sample, and 250 m under it three seconds on.
+    expect(reckonedAltitude(s.at(3))).toBeCloseTo(50, 6);
+    expect(s.at(5).reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "beyond-horizon" },
+    });
+  });
+
   it("declines past the horizon rather than extrapolating confidently", () => {
     const s = scene();
     s.descend(UNEVEN_DESCENT);

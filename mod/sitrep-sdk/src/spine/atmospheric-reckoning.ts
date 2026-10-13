@@ -12,6 +12,7 @@ import {
   atmosphereDepthOf,
   type ConicBodiesInput,
   entryInterfaceRadius,
+  mag,
 } from "./kepler-reckoning";
 
 /**
@@ -137,6 +138,8 @@ const FLOAT_RESIDUE_ULPS = 8;
 export interface AtmosphericFlightInput {
   /** Height above sea level, metres. */
   altitudeAsl?: Quantityish;
+  /** Height above the terrain below, metres. Without it the model takes sea level as the lowest the craft can be. */
+  altitudeTerrain?: Quantityish;
   /** Vertical speed, m/s, negative when descending. */
   verticalSpeed?: Quantityish;
   /** The acceleration the craft feels apart from gravity, in multiples of standard gravity. */
@@ -361,6 +364,9 @@ export function verticalAccelerationOver(
  *   (`"insufficient-history"`)
  * - the measured acceleration is more than gravity plus the sensed g-force
  *   allow, as across a change of regime, a rewind or a scene change
+ * - the descent would be at or under the ground by the view time
+ *   (`"beyond-horizon"`): the terrain the craft was last seen above, or sea
+ *   level where no terrain height was observed
  *
  * `gravity` is the local gravity in m/s², from {@link localGravity}. When it is
  * `undefined` the last check is skipped.
@@ -480,6 +486,18 @@ export function atmosphericAdmissibility(
       };
     }
   }
+  const ground = groundLevelAsl(altitudeAsl, point.payload?.altitudeTerrain);
+  if (
+    lowestAltitudeOver(altitudeAsl, verticalSpeed, fit.slope, dt) <= ground.asl
+  ) {
+    return {
+      declined: {
+        reason: "beyond-horizon",
+        ...(ground.input === undefined ? {} : { input: ground.input }),
+        note: "the descent reaches the ground before then, and nothing here models what happens on it",
+      },
+    };
+  }
   return {
     anchorUt: point.validAt,
     altitudeAsl,
@@ -489,6 +507,41 @@ export function atmosphericAdmissibility(
     horizonSeconds,
     samples: fit.samples,
   };
+}
+
+/**
+ * The lowest the craft can be, in metres above sea level, with the input that
+ * says so when one does: the terrain it was last seen above, or sea level where
+ * that is lower or no terrain height was observed. The terrain height under water is the sea
+ * bed's, and a craft stops at the surface.
+ */
+function groundLevelAsl(
+  altitudeAsl: number,
+  altitudeTerrain: Quantityish | undefined,
+): { asl: number; input?: string } {
+  const aboveTerrain = mag(altitudeTerrain);
+  const terrainAsl = altitudeAsl - aboveTerrain;
+  return Number.isFinite(terrainAsl) && terrainAsl > 0
+    ? { asl: terrainAsl, input: "altitudeTerrain" }
+    : { asl: 0 };
+}
+
+/**
+ * The lowest altitude a constant-acceleration path reaches in the `dt` seconds
+ * after its start. A descent that is slowing can bottom out and climb again
+ * inside the interval, so the end of it is not always the lowest point.
+ */
+function lowestAltitudeOver(
+  altitude: number,
+  speed: number,
+  acceleration: number,
+  dt: number,
+): number {
+  const at = (t: number) => altitude + speed * t + 0.5 * acceleration * t * t;
+  const turn = acceleration > 0 ? -speed / acceleration : Number.NaN;
+  const lowestAtTurn =
+    turn > 0 && turn < dt ? at(turn) : Number.POSITIVE_INFINITY;
+  return Math.min(altitude, at(dt), lowestAtTurn);
 }
 
 /**

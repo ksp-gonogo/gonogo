@@ -271,6 +271,17 @@ describe("the vessel.orbit reckoner", () => {
    * to have crossed, and every orbit read in the frames before the body channel
    * lands must still be carried.
    */
+  it("declines a parabolic orbit, which has no anomaly to advance", () => {
+    const reading = scene(Quality.OnRails, undefined, {
+      orbit: orbitPayload({ ecc: 1 }),
+    }).at(PERIOD / 4);
+
+    expect(reading.reckoning).toMatchObject({
+      status: "declined",
+      declined: { reason: "model-inapplicable", input: "ecc" },
+    });
+  });
+
   it("still advances the conic while the body roster has not arrived", () => {
     const reading = scene(Quality.OnRails, null).at(PERIOD / 4);
 

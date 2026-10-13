@@ -337,6 +337,204 @@ describe("AutoRecordController", () => {
     expect(getAutoRecordStatus().vesselName).toBe("Alpha");
   });
 
+  it("reports a finished flight the store refused, and clears the report once a later one is stored", async () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+    const save = vi
+      .spyOn(rig.missionStore, "saveMissionPart")
+      .mockRejectedValueOnce(new Error("QuotaExceededError"));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    end(rig, 5, "vA");
+
+    await vi.waitFor(() =>
+      expect(getAutoRecordStatus().saveFailure).toEqual({
+        vesselName: "Alpha",
+        cause: "QuotaExceededError",
+      }),
+    );
+
+    start(rig, 10, { flightId: "vB", vesselId: "vB", vesselName: "Bravo" });
+    tickFrame(rig, 15, "vB", "Bravo");
+    end(rig, 15, "vB");
+
+    await vi.waitFor(() =>
+      expect(getAutoRecordStatus().saveFailure).toBeNull(),
+    );
+    expect(save).toHaveBeenCalledTimes(2);
+  });
+
+  describe("a flight too long to store whole", () => {
+    /** Small enough that every couple of ticks fills a part. */
+    const tree = (rig: Rig) => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled partSizeLimit={600} />
+      </TelemetryProvider>
+    );
+    /**
+     * Waits out every store write the test started. The status the controller
+     * reports to is shared by the whole file, so a write still in flight when a
+     * test ends would land in the next one.
+     */
+    const settled = async (save: {
+      mock: { results: { value: unknown }[] };
+    }): Promise<void> => {
+      await Promise.allSettled(save.mock.results.map((result) => result.value));
+      await act(async () => {});
+    };
+    const utOf = (frame: string): number => {
+      const parsed: { meta: { deliveredAt: number } } = JSON.parse(frame);
+      return parsed.meta.deliveredAt;
+    };
+
+    it("is stored in parts that list as one flight and replay as one continuous timeline", async () => {
+      const rig = buildRig();
+      const save = vi.spyOn(rig.missionStore, "saveMissionPart");
+      render(tree(rig));
+
+      start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+      for (let ut = 1; ut <= 12; ut += 1) tickFrame(rig, ut, "vA", "Alpha");
+      end(rig, 12, "vA");
+      await vi.waitFor(async () =>
+        expect(await rig.source.listFlights()).toHaveLength(1),
+      );
+
+      expect(save.mock.calls.length).toBeGreaterThanOrEqual(2);
+      expect(save.mock.calls.map(([, part]) => part)).toEqual(
+        save.mock.calls.map((_, index) => index),
+      );
+      const [flight] = await rig.source.listFlights();
+      const { frames } = await rig.source.exportFlight(flight?.id ?? "");
+      // Every frame of every part, once each, in the order it arrived.
+      expect(frames).toHaveLength(flight?.sampleCount ?? -1);
+      expect(new Set(frames).size).toBe(frames.length);
+      const arrived = frames.map(utOf);
+      expect(arrived).toEqual([...arrived].sort((a, b) => a - b));
+      // Recording starts on the frame that announces the flight, so the first one kept is the tick after it.
+      expect(arrived[0]).toBe(1);
+      expect(arrived[arrived.length - 1]).toBe(12);
+      expect(flight).toMatchObject({ firstFrameUt: 1, lastFrameUt: 12 });
+      // And it plays as one: the altitude series runs from the first tick to the last.
+      const range = await rig.source.queryRange(
+        "vessel.identity.name",
+        0,
+        12,
+        flight?.id,
+      );
+      expect(range.t[0]).toBe(1);
+      expect(range.t[range.t.length - 1]).toBe(12);
+      await settled(save);
+    });
+
+    it("counts the frames of the whole flight while it records, not of the part in hand", async () => {
+      const rig = buildRig();
+      const save = vi.spyOn(rig.missionStore, "saveMissionPart");
+      render(tree(rig));
+
+      start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+      const counts: number[] = [];
+      for (let ut = 1; ut <= 12; ut += 1) {
+        tickFrame(rig, ut, "vA", "Alpha");
+        counts.push(getAutoRecordStatus().frameCount);
+      }
+
+      expect(counts).toEqual([...counts].sort((a, b) => a - b));
+      expect(counts[counts.length - 1]).toBeGreaterThanOrEqual(24);
+      await settled(save);
+    });
+
+    it("reports a part the store refused and still stores the parts after it", async () => {
+      const rig = buildRig();
+      const save = vi
+        .spyOn(rig.missionStore, "saveMissionPart")
+        .mockRejectedValueOnce(new Error("QuotaExceededError"));
+      render(tree(rig));
+
+      start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+      for (let ut = 1; ut <= 12; ut += 1) tickFrame(rig, ut, "vA", "Alpha");
+      end(rig, 12, "vA");
+      await settled(save);
+
+      expect(save.mock.calls.length).toBeGreaterThanOrEqual(2);
+      const [flight] = await rig.source.listFlights();
+      const { frames } = await rig.source.exportFlight(flight?.id ?? "");
+      // What is stored starts after the part that was lost, and runs to the end.
+      expect(frames.length).toBeGreaterThan(0);
+      expect(utOf(frames[0] ?? "")).toBeGreaterThan(1);
+      expect(utOf(frames[frames.length - 1] ?? "")).toBe(12);
+      // The loss is still on show: storing the later parts of the same flight does not clear it.
+      expect(getAutoRecordStatus().saveFailure).toEqual({
+        vesselName: "Alpha",
+        cause: "QuotaExceededError",
+      });
+    });
+  });
+
+  it("does not start recording a flight that has ended when the master switch is turned back on", async () => {
+    const rig = buildRig();
+    const tree = (enabled: boolean) => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled={enabled} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree(true));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    end(rig, 5, "vA");
+    expect(await rig.source.listFlights()).toHaveLength(1);
+
+    act(() => rerender(tree(false)));
+    act(() => rerender(tree(true)));
+
+    expect(getAutoRecordStatus().recording).toBe(false);
+  });
+
+  it("resumes the tracked flight when the operator leaves the Flight scene and returns to the same vessel", async () => {
+    const rig = buildRig();
+    const tree = (scene: "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Flight"));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 5, "vA", "Alpha");
+    act(() => rerender(tree("SpaceCenter")));
+    expect(getAutoRecordStatus().recording).toBe(false);
+    expect(await rig.source.listFlights()).toHaveLength(1);
+
+    // Back in flight, and the mod says nothing new: only its ticks name the vessel.
+    act(() => rerender(tree("Flight")));
+    tickFrame(rig, 60, "vA", "Alpha");
+
+    expect(getAutoRecordStatus().recording).toBe(true);
+    expect(getAutoRecordStatus().vesselName).toBe("Alpha");
+  });
+
+  it("does not resume the tracked flight when the operator returns to a different vessel", () => {
+    const rig = buildRig();
+    const tree = (scene: "Flight" | "SpaceCenter") => (
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled scene={scene} />
+      </TelemetryProvider>
+    );
+    const { rerender } = render(tree("Flight"));
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    act(() => rerender(tree("SpaceCenter")));
+    act(() => rerender(tree("Flight")));
+    tickFrame(rig, 60, "vB", "Bravo");
+
+    expect(getAutoRecordStatus().recording).toBe(false);
+  });
+
   it("treats a revert (the mod republishes flight.ended{reverted} then flight.started) as a fresh mission", async () => {
     const rig = buildRig();
     const { rerender } = render(

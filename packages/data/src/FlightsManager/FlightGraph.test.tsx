@@ -5,7 +5,7 @@ import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MissionStore } from "../storage/MissionStore";
-import { FlightGraph } from "./FlightGraph";
+import { FlightGraph, plottedPoints } from "./FlightGraph";
 import { MissionHistorySource } from "./MissionHistorySource";
 
 function frame(topic: string, payload: unknown, deliveredAt: number): string {
@@ -73,8 +73,8 @@ describe("FlightGraph", () => {
     render(
       <FlightGraph
         missionId={missionId}
-        firstFrameUt={firstFrameUt}
-        lastFrameUt={lastFrameUt}
+        fromUt={firstFrameUt}
+        toUt={lastFrameUt}
       />,
     );
 
@@ -87,8 +87,8 @@ describe("FlightGraph", () => {
     render(
       <FlightGraph
         missionId={missionId}
-        firstFrameUt={firstFrameUt}
-        lastFrameUt={lastFrameUt}
+        fromUt={firstFrameUt}
+        toUt={lastFrameUt}
       />,
     );
 
@@ -97,6 +97,31 @@ describe("FlightGraph", () => {
       expect(screen.queryByText("Vessel name")).toBeNull();
       expect(screen.getByText("Altitude")).toBeTruthy();
     });
+  });
+
+  it("plots the magnitude of every recorded sample of a quantity", async () => {
+    const range = await historySource.queryRange(
+      "vessel.flight.altitudeAsl",
+      firstFrameUt,
+      lastFrameUt,
+      missionId,
+    );
+    // What the source hands back is decoded: a quantity with its unit, never a bare number.
+    expect(range.v[0]).toEqual({ magnitude: 1000, unit: "m" });
+
+    expect(plottedPoints(range, firstFrameUt)).toEqual({
+      x: [0, 5000, 10000, 15000, 20000],
+      y: [1000, 1100, 1200, 1300, 1400],
+    });
+  });
+
+  it("leaves out a sample with no finite number", () => {
+    expect(
+      plottedPoints(
+        { t: [10, 11, 12], v: [{ magnitude: 1, unit: "m" }, null, "landed"] },
+        10,
+      ),
+    ).toEqual({ x: [0], y: [1] });
   });
 
   it("evicts the mission's cached full-history store when the panel unmounts", async () => {
@@ -113,8 +138,8 @@ describe("FlightGraph", () => {
     const { unmount } = render(
       <FlightGraph
         missionId={missionId}
-        firstFrameUt={firstFrameUt}
-        lastFrameUt={lastFrameUt}
+        fromUt={firstFrameUt}
+        toUt={lastFrameUt}
       />,
     );
 
@@ -132,18 +157,14 @@ describe("FlightGraph", () => {
     const { rerender } = render(
       <FlightGraph
         missionId={missionId}
-        firstFrameUt={firstFrameUt}
-        lastFrameUt={lastFrameUt}
+        fromUt={firstFrameUt}
+        toUt={lastFrameUt}
       />,
     );
 
     const evictSpy = vi.spyOn(historySource, "evictFullHistoryStore");
     rerender(
-      <FlightGraph
-        missionId="m2"
-        firstFrameUt={firstFrameUt}
-        lastFrameUt={lastFrameUt}
-      />,
+      <FlightGraph missionId="m2" fromUt={firstFrameUt} toUt={lastFrameUt} />,
     );
 
     expect(evictSpy).toHaveBeenCalledWith(missionId);

@@ -1,3 +1,4 @@
+import { FaultCode } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -9,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
 import { createFakeWallClock } from "./fake-wall-clock";
-import { StubTransport } from "./stub-transport";
+import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import {
   type CommandGroupHandle,
@@ -100,6 +101,76 @@ describe("sendTogether", () => {
     expect(replies).toHaveLength(3);
     await waitFor(() => expect(captured?.status).toBe("confirmed"));
     await act(async () => {});
+  });
+
+  it("reads refused when the game refuses the group", async () => {
+    const { transport, Provider } = setup();
+    transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: "modeUnavailable",
+    }));
+    let captured: CommandGroupHandle | undefined;
+    render(
+      <Provider>
+        <Widget group={() => {}} onGroup={(g) => (captured = g)} />
+      </Provider>,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("go"));
+    });
+    await expect(captured?.result).rejects.toBeDefined();
+
+    expect(captured?.status).toBe("refused");
+    await act(async () => {});
+  });
+
+  it("does not read confirmed when a member lost and then found turns out refused", async () => {
+    const { transport, client, Provider } = setup();
+    transport.holdCommands();
+    let captured: CommandGroupHandle | undefined;
+    render(
+      <Provider>
+        <Widget group={() => {}} onGroup={(g) => (captured = g)} />
+      </Provider>,
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByText("go"));
+    });
+    const ids = captured?.requestIds ?? [];
+
+    // Every member is given up on, then two turn out to have run and one to have been refused.
+    await act(async () => {
+      for (const requestId of ids) {
+        transport.emitRaw({
+          type: "error",
+          requestId,
+          code: FaultCode.ReplyNotReceived,
+          message: "the game holds no answer for that request",
+        });
+      }
+    });
+    expect(captured?.status).toBe("lost");
+    await act(async () => {
+      ids.forEach((requestId, index) => {
+        transport.emitRaw({
+          type: "command-response",
+          requestId,
+          result:
+            index === 0
+              ? { success: false, errorCode: "modeUnavailable" }
+              : { ok: true },
+          meta: makeMeta(),
+        });
+      });
+    });
+    expect(ids.map((id) => client.getCommand(id).phase)).toEqual([
+      "found",
+      "found",
+      "found",
+    ]);
+
+    expect(captured?.status).toBe("refused");
   });
 
   it("sends three action groups as they are today, applied together: one frame of three setActionGroup commands", async () => {

@@ -200,6 +200,49 @@ describe("useControlStream", () => {
     ).toBeGreaterThan(0);
   });
 
+  it("keeps no record of an input that went unanswered", async () => {
+    vi.useFakeTimers();
+    const fixture = setupFixture();
+    // Nothing answers, and the round trip is two seconds, so each input is given up on.
+    fixture.transport.holdCommands();
+    fixture.client.setDelaySource(() => 1);
+    const { rerender } = render(
+      <fixture.Provider>
+        <Probe value={0.1} />
+      </fixture.Provider>,
+    );
+    for (const value of [0.3, 0.5, 0.7]) {
+      // eslint-disable-next-line no-await-in-loop
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(300);
+      });
+      rerender(
+        <fixture.Provider>
+          <Probe value={value} />
+        </fixture.Provider>,
+      );
+    }
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_000);
+    });
+    const sent = fixture.transport.sentCommands.map((c) => c.requestId);
+    // An input that is given up on is sent again, so the newest is always still on its way.
+    const lost = sent.filter(
+      (id) => fixture.client.getCommand(id).phase === "lost",
+    );
+    expect(lost.length).toBeGreaterThanOrEqual(3);
+
+    // A kept loss is asked about on every change the client reports, for as long as the widget is mounted.
+    const asked = vi.spyOn(fixture.client, "getCommand");
+    act(() => {
+      fixture.transport.emit("comms.delay", { oneWaySeconds: 1 });
+      fixture.transport.emit("comms.delay", { oneWaySeconds: 2 });
+    });
+    expect(asked.mock.calls.filter(([id]) => lost.includes(id))).toHaveLength(
+      0,
+    );
+  });
+
   it("bounds the ring on every coalesced tick even while the channel sits on a direct/no-delay link", async () => {
     // Regression for the bug: the derived-strip memo early-returns before
     // ever calling `trimBySpan` while `oneWaySeconds` is null/low, so a cap

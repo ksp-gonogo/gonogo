@@ -6,7 +6,12 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { HeartIcon } from "@ksp-gonogo/ui";
-import { EmptyState, NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
+import {
+  EmptyState,
+  Notice,
+  NULL_DISPLAY,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
 import {
   Fragment,
   useCallback,
@@ -490,8 +495,8 @@ export function FlightsManager({
                           />
                           <FlightGraph
                             missionId={f.id}
-                            firstFrameUt={f.firstFrameUt ?? 0}
-                            lastFrameUt={f.lastFrameUt ?? 0}
+                            fromUt={f.firstValidUt ?? f.firstFrameUt ?? 0}
+                            toUt={f.lastValidUt ?? f.lastFrameUt ?? 0}
                           />
                         </Td>
                       </Tr>
@@ -619,6 +624,11 @@ function AutoRecordStatus({
 
   return (
     <RecordingToolbar>
+      {status.saveFailure && (
+        <Notice tone="nogo" title="Flight not saved">
+          {status.saveFailure.vesselName}: {status.saveFailure.cause}
+        </Notice>
+      )}
       {missionHistoryEnabled ? (
         status.recording ? (
           // No `role="status"`/`aria-live` here deliberately: the frame

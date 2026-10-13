@@ -94,14 +94,22 @@ function buildSeekFixture(
 
 /** The earliest `meta.deliveredAt` across a fixture's data/event frames, `start()`'s anchor point. `0` for an empty fixture. */
 function earliestDeliveredAt(fixture: ReplayFixture): number {
-  let earliest = Number.POSITIVE_INFINITY;
+  return deliveredSpan(fixture)?.first ?? 0;
+}
+
+/** The earliest and latest `meta.deliveredAt` across a fixture's data/event frames, or `undefined` for a fixture with none. */
+function deliveredSpan(
+  fixture: ReplayFixture,
+): { first: number; last: number } | undefined {
+  let first = Number.POSITIVE_INFINITY;
+  let last = Number.NEGATIVE_INFINITY;
   for (const raw of fixture.frames) {
     const message: unknown = JSON.parse(raw);
     if (!isDataOrEventFrame(message)) continue;
-    if (message.meta.deliveredAt < earliest)
-      earliest = message.meta.deliveredAt;
+    first = Math.min(first, message.meta.deliveredAt);
+    last = Math.max(last, message.meta.deliveredAt);
   }
-  return Number.isFinite(earliest) ? earliest : 0;
+  return Number.isFinite(first) ? { first, last } : undefined;
 }
 
 export interface ReplaySessionSnapshot {
@@ -145,6 +153,19 @@ export class ReplaySessionController {
   private snapshot: ReplaySessionSnapshot = IDLE_SNAPSHOT;
   private fixture: ReplayFixture | null = null;
   private transport: ReplayTransport | null = null;
+  /*
+   * Where the replay has got to, on the time its frames were delivered at:
+   * the instant playback started from, the clock counting from there while it
+   * plays, and the last frame's instant, past which there is nothing to reach.
+   * The session's view clock cannot stand in for it. That reads the time each
+   * sample was valid at, which in a recording made across a signal delay runs
+   * the whole delay behind the frames that carry it.
+   */
+  private cursor: {
+    fromUt: number;
+    running: Pick<Clock, "now"> | null;
+    endUt: number;
+  } = { fromUt: 0, running: null, endUt: 0 };
   private readonly listeners = new Set<Listener>();
 
   getSnapshot(): ReplaySessionSnapshot {
@@ -168,6 +189,7 @@ export class ReplaySessionController {
     this.transport?.stop();
     this.transport = null;
     this.fixture = null;
+    this.cursor = { fromUt: 0, running: null, endUt: 0 };
     this.snapshot = IDLE_SNAPSHOT;
     this.emit();
   }
@@ -175,6 +197,7 @@ export class ReplaySessionController {
   /** Freeze playback where it currently sits. `store`/`client` stay mounted (widgets keep showing the last-delivered state), only new frame delivery stops. */
   pause(): void {
     if (!this.snapshot.active) return;
+    this.cursor = { ...this.cursor, fromUt: this.cursorUt(), running: null };
     this.transport?.stop();
     this.snapshot = { ...this.snapshot, playing: false };
     this.emit();
@@ -183,12 +206,7 @@ export class ReplaySessionController {
   /** Resume from wherever the view currently sits. */
   play(): void {
     if (!this.snapshot.active || !this.fixture || !this.snapshot.meta) return;
-    this.launch(
-      this.snapshot.meta,
-      this.currentViewUt(),
-      this.snapshot.rate,
-      true,
-    );
+    this.launch(this.snapshot.meta, this.cursorUt(), this.snapshot.rate, true);
   }
 
   /** Jump to `targetUt` (a `deliveredAt`-domain UT: the same domain the mission's `meta.firstFrameUt`/`lastFrameUt` are in). Keeps the current play/pause state. */
@@ -207,14 +225,20 @@ export class ReplaySessionController {
     if (!this.snapshot.active || !this.fixture || !this.snapshot.meta) return;
     this.launch(
       this.snapshot.meta,
-      this.currentViewUt(),
+      this.cursorUt(),
       rate,
       this.snapshot.playing,
     );
   }
 
-  private currentViewUt(): number {
-    return this.snapshot.store?.clock.viewUt() ?? 0;
+  /**
+   * Where the replay has got to, as a UT on the time its frames were delivered
+   * at: the domain of the mission's `firstFrameUt` and `lastFrameUt`, and of
+   * {@link seekTo}. It stands still while paused and stops at the last frame.
+   */
+  cursorUt(): number {
+    const { fromUt, running, endUt } = this.cursor;
+    return running ? Math.min(fromUt + running.now(), endUt) : fromUt;
   }
 
   /**
@@ -261,6 +285,17 @@ export class ReplaySessionController {
     client.attachStore(store);
 
     this.transport = transport;
+    /*
+     * The transport plays from its fixture's first frame. That is the anchor
+     * wherever a frame was delivered by then, and the first frame after it for
+     * a seek to before the recording starts.
+     */
+    const span = deliveredSpan(this.fixture);
+    this.cursor = {
+      fromUt: playing ? (deliveredSpan(fixture)?.first ?? anchorUt) : anchorUt,
+      running: playing ? transportClock : null,
+      endUt: Math.max(span?.last ?? anchorUt, anchorUt),
+    };
     this.snapshot = { active: true, meta, client, store, playing, rate };
     this.emit();
   }

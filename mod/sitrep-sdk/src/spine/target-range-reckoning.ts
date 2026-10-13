@@ -1,5 +1,5 @@
 import type { TargetListEntry } from "../__generated__/contract";
-import { TargetKnowledge } from "../__generated__/contract";
+import { Situation, TargetKnowledge } from "../__generated__/contract";
 import { value } from "../unit-system/value";
 import type { CelestialFacts } from "./celestial-facts";
 import type { CommsPeerOrbit } from "./comms-path-geometry";
@@ -29,10 +29,16 @@ export interface KnownCraftOrbit {
   readonly elements: OrbitElements;
 }
 
+const ON_THE_SURFACE: ReadonlySet<Situation> = new Set([
+  Situation.Landed,
+  Situation.Splashed,
+  Situation.PreLaunch,
+]);
+
 /**
  * Every entry whose place can be carried forward: known only by word or by sight,
- * with a closed orbit round a body the catalogue gives a gravitational parameter
- * for. Useful for finding which targets a modelled range can be shown for. Used by
+ * off the surface, with an orbit that stays above the surface of a body the
+ * catalogue gives a gravitational parameter for. Useful for finding which targets a modelled range can be shown for. Used by
  * the SDK's built-in target range reckoner. An entry the vessel sees as it is
  * keeps its measured range.
  */
@@ -45,10 +51,13 @@ export function knownCraftOrbits(
     if (entry?.source == null || entry.source === TargetKnowledge.InRange) {
       return;
     }
+    /* A craft on the surface is carried round by its body, and the conic the game reports for it is the free fall it is not in. */
+    if (entry.situation != null && ON_THE_SURFACE.has(entry.situation)) return;
     const orbit = entry.orbit;
     const bodyIndex = entry.orbitBodyIndex;
     if (orbit == null || bodyIndex == null) return;
-    const mu = facts.bodies.find((b) => b.index === bodyIndex)?.gravParameter;
+    const body = facts.bodies.find((b) => b.index === bodyIndex);
+    const mu = body?.gravParameter;
     if (mu == null || !(mu > 0)) return;
     if (
       orbit.sma == null ||
@@ -77,6 +86,13 @@ export function knownCraftOrbits(
       elements.epoch,
     ].every((n) => Number.isFinite(n));
     if (!defined || elements.ecc === 1) return;
+    /* An orbit that dips under the surface ends there, and nothing here says when. */
+    if (
+      body?.radius != null &&
+      elements.sma * (1 - elements.ecc) < body.radius
+    ) {
+      return;
+    }
     known.push({ index, bodyIndex, elements });
   });
   return known;

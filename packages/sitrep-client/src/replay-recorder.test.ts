@@ -188,4 +188,49 @@ describe("StreamRecorder", () => {
       store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma.magnitude,
     ).toBe(750_000);
   });
+
+  it("hands back a part and carries on recording, with no frame lost or repeated at the seam", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    client.subscribe("vessel.orbit", () => {});
+    const recorder = new StreamRecorder(client);
+    recorder.start();
+
+    transport.emit("vessel.orbit", { sma: 1 }, { validAt: 1 });
+    transport.emit("vessel.orbit", { sma: 2 }, { validAt: 2 });
+    expect(recorder.bufferedSize).toBeGreaterThan(0);
+    const first = recorder.takePart();
+
+    expect(recorder.recording).toBe(true);
+    expect(recorder.bufferedSize).toBe(0);
+    transport.emit("vessel.orbit", { sma: 3 }, { validAt: 3 });
+    const second = recorder.stop();
+
+    const smaOf = (frame: string) => {
+      const parsed: { payload: { sma: { magnitude: number } } } =
+        JSON.parse(frame);
+      return parsed.payload.sma.magnitude;
+    };
+    expect(first.frames.map(smaOf)).toEqual([1, 2]);
+    expect(second.frames.map(smaOf)).toEqual([3]);
+    expect(first.subscribedTopics).toEqual(["vessel.orbit"]);
+    expect(second.subscribedTopics).toEqual(["vessel.orbit"]);
+    // The recording's own clock runs on across the seam.
+    expect(recorder.latestUt).toBe(3);
+  });
+
+  it("measures what it holds by the text of its frames", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    client.subscribe("vessel.orbit", () => {});
+    const recorder = new StreamRecorder(client);
+    recorder.start();
+
+    transport.emit("vessel.orbit", { sma: 1 }, { validAt: 1 });
+    transport.emit("vessel.orbit", { sma: 2 }, { validAt: 2 });
+
+    const held = recorder.bufferedSize;
+    const { frames } = recorder.stop();
+    expect(held).toBe(frames.reduce((sum, frame) => sum + frame.length, 0));
+  });
 });

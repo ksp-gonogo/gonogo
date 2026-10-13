@@ -8887,6 +8887,18 @@
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
       },
       {
+        "key": "sitrep-sdk ./media DelayedStreamLease#failed",
+        "note": "New: says the shared build failed, so a consumer can stop waiting and acquire again"
+      },
+      {
+        "key": "sitrep-sdk ./media FrameDelayPipelineOptions#pacing?",
+        "note": "Gains maxLeadSeconds, the limit on how far ahead a paced frame may be due"
+      },
+      {
+        "key": "sitrep-sdk ./media PresentationPacer#reset",
+        "note": "New: drops the queue and forgets the last frame presented, for a flushed pipeline"
+      },
+      {
         "key": "sitrep-sdk ./registry ~AugmentSettingField#type",
         "note": "an augment setting field names its kind with SettingKind, the same type a registered setting and a mod settings row use"
       },
@@ -9051,6 +9063,10 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
+        "key": "sitrep-sdk ./spine ConnectivityHistory#get size",
+        "note": "New: how many changes of link state the history holds, which is now bounded"
+      },
+      {
         "key": "sitrep-sdk ./spine DataSourceState#status",
         "note": "the useDataSources element type, now on the facade as well as the spine"
       },
@@ -9117,6 +9133,10 @@
       {
         "key": "sitrep-sdk ./spine RailTags#kind",
         "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReplaySessionController#cursorUt",
+        "note": "New: where a replay has got to on the time its frames arrived at, the domain seekTo takes"
       },
       {
         "key": "sitrep-sdk ./spine SettingDefinitionOf",
@@ -9191,6 +9211,14 @@
         "note": "the type parameter named SettingKind is now ValueType, so it no longer shadows the SettingKind wire enum"
       },
       {
+        "key": "sitrep-sdk ./spine StreamRecorder#get bufferedSize",
+        "note": "New: how much the recorder holds, as the length of its frames JSON text"
+      },
+      {
+        "key": "sitrep-sdk ./spine StreamRecorder#takePart",
+        "note": "New: hands back the frames captured so far and carries on recording, for storing a long recording in parts"
+      },
+      {
         "key": "sitrep-sdk ./spine StreamStatusValue",
         "note": "Gains the members loading and no-game, for a reading held because the game is loading a scene or sits at its main menu. A caller that switches over the grades without a default stops compiling until it names them; every one in this repository does, and none outside it exists before release"
       },
@@ -9211,6 +9239,10 @@
         "note": "New: hands a useCommand the commands an earlier page of the screen left outstanding"
       },
       {
+        "key": "sitrep-sdk ./spine TelemetryClient#subscribeFrames",
+        "note": "New: subscribes as subscribe does and also hands over the Meta of the frame that carried each value"
+      },
+      {
         "key": "sitrep-sdk ./spine TimelineStore#declareKeyframeInterval",
         "note": "New: passes the keyframe interval the mod declared for a topic to its heartbeat tracker"
       },
@@ -9221,6 +9253,10 @@
       {
         "key": "sitrep-sdk ./spine TimelineStore#ingest",
         "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
+      },
+      {
+        "key": "sitrep-sdk ./spine TimelineStore#markTopicOwned",
+        "note": "New: takes back an unowned verdict when the ack for a topic arrives after the window"
       },
       {
         "key": "sitrep-sdk ./spine TimelineStore#setGameState",
@@ -9497,6 +9533,10 @@
       {
         "key": "sitrep-sdk ./testing TimelineStore#ingest",
         "note": "Gains an optional options argument whose replayed flag keeps a replayed sample from pulling the clock anchor back"
+      },
+      {
+        "key": "sitrep-sdk ./testing TimelineStore#markTopicOwned",
+        "note": "New: takes back an unowned verdict when the ack for a topic arrives after the window"
       },
       {
         "key": "sitrep-sdk ./testing TimelineStore#setGameState",
@@ -9837,6 +9877,10 @@
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#restoredCommands",
         "note": "New: hands a useCommand the commands an earlier page of the screen left outstanding"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#subscribeFrames",
+        "note": "New: subscribes as subscribe does and also hands over the Meta of the frame that carried each value"
       },
       {
         "key": "sitrep-sdk ./testing ~Transport#onMessage",
@@ -10405,6 +10449,10 @@
         "note": "New: whether a send is expected to arrive, assuming nobody intervenes"
       },
       {
+        "key": "sitrep-sdk . AtmosphericFlightInput#altitudeTerrain?",
+        "note": "New input: the height above terrain, which the descent model reads as the ground it cannot go under"
+      },
+      {
         "key": "sitrep-sdk . AugmentDefinition#sizeDelta?",
         "note": "Optional room this extension asks of its host widget, added to its defaultSize and minSize while it renders"
       },
@@ -10765,6 +10813,14 @@
         "note": "The Topics the framework reads for a widget, keyed by the hook or component that reads them, which a scan of a widget's reads leaves out"
       },
       {
+        "key": "sitrep-sdk . FlightRecord#firstValidUt?",
+        "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
+      },
+      {
+        "key": "sitrep-sdk . FlightRecord#lastValidUt?",
+        "note": "New: the latest instant a recorded sample is valid at"
+      },
+      {
         "key": "sitrep-sdk . HEALTH_STATE_NAMES",
         "note": "published because UplinkHealthStateName is keyed on it"
       },
@@ -10775,6 +10831,18 @@
       {
         "key": "sitrep-sdk . MapViewScope#bodyName",
         "note": "Exported by name, so a widget or augment reading this scope can name its type"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#firstValidUt?",
+        "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#lastValidUt?",
+        "note": "New: the latest instant a recorded sample is valid at"
+      },
+      {
+        "key": "sitrep-sdk . MissionMeta#partCount?",
+        "note": "New: how many parts a recording is stored in, absent for one"
       },
       {
         "key": "sitrep-sdk . OwnedReckonableValue",
@@ -11499,6 +11567,10 @@
       {
         "key": "sitrep-sdk ./frames ~TrajectoryArcAnswer",
         "note": "Reachable through arcInOrbitPlane now; the type itself is unchanged"
+      },
+      {
+        "key": "sitrep-sdk ./media PresentationPacerOptions#maxLeadSeconds?",
+        "note": "New: how far ahead of now the newest queued frame may be due before the pacer jumps to it, as under time warp"
       },
       {
         "key": "sitrep-sdk ./registry ~ActionGroupSlotContext",
@@ -12637,6 +12709,10 @@
         "note": "New: whether a send is expected to arrive, assuming nobody intervenes"
       },
       {
+        "key": "sitrep-sdk ./spine AtmosphericFlightInput#altitudeTerrain?",
+        "note": "New input: the height above terrain, which the descent model reads as the ground it cannot go under"
+      },
+      {
         "key": "sitrep-sdk ./spine BodyPose",
         "note": "One body's place at the instant on screen and how that is known; a held pose is positioned at its asOfUt rather than advanced"
       },
@@ -12865,12 +12941,12 @@
         "note": "New: one command stored while it is outstanding"
       },
       {
-        "key": "sitrep-sdk ./spine OutstandingCommand#etaConfirm",
+        "key": "sitrep-sdk ./spine OutstandingCommand#label",
         "note": "New: one command stored while it is outstanding"
       },
       {
-        "key": "sitrep-sdk ./spine OutstandingCommand#label",
-        "note": "New: one command stored while it is outstanding"
+        "key": "sitrep-sdk ./spine OutstandingCommand#replyDueUt?",
+        "note": "Replaces etaConfirm: the game UT a stored command is due by, which a reloaded page can read where a page clock reading cannot"
       },
       {
         "key": "sitrep-sdk ./spine OutstandingCommand#requestId",
@@ -13317,8 +13393,24 @@
         "note": "The sample kinds the mod sends on system.uplinks, by topic and by namespace prefix"
       },
       {
+        "key": "sitrep-sdk ./spine ~FrameCallback",
+        "note": "The subscriber subscribeFrames takes: the value and the Meta of its frame"
+      },
+      {
         "key": "sitrep-sdk ./spine ~GeneratedReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#firstValidUt?",
+        "note": "New: the earliest instant a recorded sample is valid at, which across a signal delay is before the first frame arrived"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#lastValidUt?",
+        "note": "New: the latest instant a recorded sample is valid at"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~MissionMeta#partCount?",
+        "note": "New: how many parts a recording is stored in, absent for one"
       },
       {
         "key": "sitrep-sdk ./spine ~OwnedReckonableValue",
@@ -13327,6 +13419,14 @@
       {
         "key": "sitrep-sdk ./spine ~OwnedReckonableValue#owner",
         "note": "A reckonable row with the owner whose contract declared it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingCommand#gameDeadlineUt?",
+        "note": "A deadline the game gave in UT, followed through time warp and a pause"
+      },
+      {
+        "key": "sitrep-sdk ./spine ~PendingCommand#replyDueUt?",
+        "note": "The game UT a reply is due by, kept for the outstanding store"
       },
       {
         "key": "sitrep-sdk ./spine ~PendingCommand#restoredResult?",
@@ -13649,6 +13749,10 @@
         "note": "DelayClockLike is named by the typed view clock, so it is on the testing surface too"
       },
       {
+        "key": "sitrep-sdk ./testing ~FrameCallback",
+        "note": "The subscriber subscribeFrames takes: the value and the Meta of its frame"
+      },
+      {
         "key": "sitrep-sdk ./testing ~GameStatus",
         "note": "New: what the game is doing and the scene it names"
       },
@@ -13701,12 +13805,12 @@
         "note": "New: one command stored while it is outstanding"
       },
       {
-        "key": "sitrep-sdk ./testing ~OutstandingCommand#etaConfirm",
+        "key": "sitrep-sdk ./testing ~OutstandingCommand#label",
         "note": "New: one command stored while it is outstanding"
       },
       {
-        "key": "sitrep-sdk ./testing ~OutstandingCommand#label",
-        "note": "New: one command stored while it is outstanding"
+        "key": "sitrep-sdk ./testing ~OutstandingCommand#replyDueUt?",
+        "note": "Replaces etaConfirm: the game UT a stored command is due by, which a reloaded page can read where a page clock reading cannot"
       },
       {
         "key": "sitrep-sdk ./testing ~OutstandingCommand#requestId",
@@ -13731,6 +13835,14 @@
       {
         "key": "sitrep-sdk ./testing ~OwnedReckonableValue#owner",
         "note": "A reckonable row with the owner whose contract declared it"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PendingCommand#gameDeadlineUt?",
+        "note": "A deadline the game gave in UT, followed through time warp and a pause"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~PendingCommand#replyDueUt?",
+        "note": "The game UT a reply is due by, kept for the outstanding store"
       },
       {
         "key": "sitrep-sdk ./testing ~PendingCommand#restoredResult?",

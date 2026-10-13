@@ -10,7 +10,7 @@ import {
   resolveValueTopic,
   type TimelineStore,
 } from "@ksp-gonogo/sitrep-client";
-import { ListenerSet } from "@ksp-gonogo/sitrep-sdk";
+import { getKeepCount, ListenerSet } from "@ksp-gonogo/sitrep-sdk";
 import { getTopicFieldCatalog } from "../schema/topicFieldCatalog";
 import type {
   MissionMeta,
@@ -71,10 +71,14 @@ export class MissionHistorySource implements DataSource {
 
   constructor(private readonly missionStore: MissionStore) {}
 
-  // No live connection: this source only ever reads IndexedDB. Always
-  // "connected": there's nothing to reconnect or fail.
-
-  async connect(): Promise<void> {}
+  /**
+   * There is no live connection to open: this source only reads IndexedDB, so
+   * its status is always "connected". Connecting is the app starting, which is
+   * when keep latest prunes what earlier sessions left.
+   */
+  async connect(): Promise<void> {
+    await this.pruneToKeepCount();
+  }
 
   disconnect(): void {}
 
@@ -159,6 +163,32 @@ export class MissionHistorySource implements DataSource {
   async saveMission(record: MissionRecord): Promise<void> {
     await this.missionStore.saveMission(record);
     this.flightListSubscribers.fire();
+    await this.pruneToKeepCount();
+  }
+
+  /**
+   * Stores one part of a recording that is saved in several, with the
+   * mission's meta as it stands once the part is counted, and fires
+   * `onFlightListChange`. `part` counts from 0. A mission is listed from its
+   * first stored part on, and reads back as one recording.
+   */
+  async saveMissionPart(
+    meta: MissionMeta,
+    part: number,
+    fixture: ReplayFixture,
+  ): Promise<void> {
+    await this.missionStore.saveMissionPart(meta, part, fixture);
+    // A graph open on this mission holds a store built from fewer parts.
+    this.historyCache.delete(meta.id);
+    this.flightListSubscribers.fire();
+    await this.pruneToKeepCount();
+  }
+
+  /** Applies keep latest, when it is on, to the missions stored now. */
+  private async pruneToKeepCount(): Promise<void> {
+    const keepCount = getKeepCount();
+    if (keepCount <= 0) return;
+    await this.pruneFlightsKeepLatest({ keepCount });
   }
 
   async exportFlight(id: string): Promise<ReplayFixture> {
@@ -303,5 +333,7 @@ function missionMetaToFlightRecord(meta: MissionMeta): FlightRecord {
     outcome: undefined,
     firstFrameUt: meta.firstFrameUt,
     lastFrameUt: meta.lastFrameUt,
+    firstValidUt: meta.firstValidUt,
+    lastValidUt: meta.lastValidUt,
   };
 }

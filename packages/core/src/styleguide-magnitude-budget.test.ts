@@ -285,7 +285,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // the wire-to-plain-model adapter for the parts list, so every read here is
   // the same boundary said once per field.
   "packages/data/src/hooks/vesselPartsAdapter.ts": 22,
-  "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
   // `numOrNull`, the one funnel where a body's wire quantities become the plain
   // numbers the system diagram scales into SVG coordinates. One place,
   // deliberately, and it is why re-pointing that file at the unit system was a

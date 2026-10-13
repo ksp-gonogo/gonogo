@@ -1828,10 +1828,15 @@ export class TimelineStore {
     if (this.tagsOf(topic).kind !== "continuous") return undefined;
     const gap = after.validAt - before.validAt;
     if (!(gap > 0)) return undefined;
-    const warp = this.sampleRange<{
+    /* Asked once per pair of points a chart draws, so the warp in force is looked up and its record is never copied. */
+    const warpRecord = this.timelineFor<{
       observationQuantumUt?: Quantityish | null;
       sampleIntervalUt?: Quantityish | null;
-    }>("time.warp", Number.NEGATIVE_INFINITY, after.validAt)?.at(-1)?.payload;
+    }>("time.warp");
+    const warp =
+      warpRecord.epoch < this.clock.getEpoch()
+        ? undefined
+        : warpRecord.at(after.validAt)?.payload;
     const quantum = magnitudeOr(warp?.observationQuantumUt, Number.NaN);
     if (!(quantum > 0)) return undefined;
     const span = Math.min(gap, quantum);
@@ -3683,6 +3688,13 @@ export class TimelineStore {
     if (this.unownedTopics.has(topic)) return;
     this.unownedTopics.add(topic);
     // The reading's other inputs are unchanged, so the identity cache would hand back the `pending` arm it built before the verdict.
+    this.readings.delete(topic);
+    for (const listener of this.frameListeners) listener();
+  }
+
+  /** Take back an `unowned` verdict for `topic`: the mod has acknowledged it, so its reading is `pending` until a sample arrives. */
+  markTopicOwned(topic: string): void {
+    if (!this.unownedTopics.delete(topic)) return;
     this.readings.delete(topic);
     for (const listener of this.frameListeners) listener();
   }

@@ -394,6 +394,48 @@ describe("TelemetryClient commands", () => {
   });
 });
 
+describe("TelemetryClient: commands kept over a long session", () => {
+  it("forgets the oldest answered commands and keeps every one still open", async () => {
+    vi.useFakeTimers();
+    try {
+      const transport = new StubTransport();
+      const client = new TelemetryClient(transport, new FakeClock(0));
+
+      // One that is never answered, sent first, so it is the oldest of all.
+      transport.holdCommands();
+      const open = client.dispatch("vessel.staging.activate");
+      void open.result.catch(() => undefined);
+
+      const answered: string[] = [];
+      // The stick held over for a minute: ten inputs a second, each answered.
+      for (let second = 0; second < 60; second += 1) {
+        for (let input = 0; input < 10; input += 1) {
+          const { requestId, result } = client.dispatch(
+            "vessel.control.setThrottle",
+          );
+          void result.catch(() => undefined);
+          answered.push(requestId);
+          transport.emitRaw({
+            type: "command-response",
+            requestId,
+            result: { ok: true },
+            meta: makeMeta(),
+          });
+        }
+        vi.advanceTimersByTime(1000);
+      }
+
+      expect(client.getCommand(answered[0]).phase).toBe("idle");
+      expect(client.getCommand(answered[answered.length - 1]).phase).toBe(
+        "confirmed",
+      );
+      expect(client.getCommand(open.requestId).phase).toBe("in-flight");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("TelemetryClient delayed command lifecycle (eta + loss)", () => {
   it("carries the transport's predicted etaConfirm on the in-flight status", () => {
     const clock = new FakeClock(0);

@@ -134,6 +134,24 @@ export function useControlStream(
   // gonogo:reads vessel.control.setAxes, vessel.control.setThrottle
   const command = useCommand(channel?.writeCommand ?? "", { rail: false });
   /*
+   * Nothing draws this handle's outcomes: the stream's own strip shows what was
+   * sent and what came back. An outcome the handle kept would stay for as long
+   * as the widget is mounted, one for every input that went unanswered or was
+   * refused, so each is dismissed as it arrives.
+   */
+  const { dismiss, losses, founds, undelivered, failures, refusals } = command;
+  useEffect(() => {
+    for (const outcome of [
+      ...losses,
+      ...founds,
+      ...undelivered,
+      ...failures,
+      ...refusals,
+    ]) {
+      dismiss(outcome.id);
+    }
+  }, [dismiss, losses, founds, undelivered, failures, refusals]);
+  /*
    * The rail axes for this channel. Continuous because this hook is what makes
    * an axis continuous (it rolls a ring against light-time and coalesces at
    * 10 Hz; there is no way to use it for a one-shot), with delivery read off

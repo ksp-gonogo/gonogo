@@ -725,6 +725,14 @@ function registerCommsDelayReckoner(): void {
         facts: deriveCelestialFacts(bodiesPoint?.payload?.bodies),
       });
       if ("declined" in fit) return fit;
+      if (!Number.isFinite(commsDelaySecondsAt(fit, reckonUt))) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            note: `nothing places ${peer.id} at the view time, so there is no path to measure`,
+          },
+        };
+      }
       return {
         modelled: movedFields("kepler-propagation", "oneWaySeconds"),
         reckon: (at) => ({
@@ -1109,6 +1117,15 @@ function registerOrbitReckoner(): void {
         };
       }
       const elements = buildElements(orbit);
+      if (trySolveAnomalies(elements, reckonUt) == null) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            input: "ecc",
+            note: "parabolic elements have no anomaly to advance",
+          },
+        };
+      }
       return {
         modelled: movedFields(
           "kepler-propagation",

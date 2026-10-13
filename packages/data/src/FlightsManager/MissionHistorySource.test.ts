@@ -1,7 +1,7 @@
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
-import { describe, expect, it } from "vitest";
+import { Quality, Staleness, setKeepCount } from "@ksp-gonogo/sitrep-sdk";
+import { afterEach, describe, expect, it } from "vitest";
 import { getTopicFieldCatalog } from "../schema/topicFieldCatalog";
 import type { MissionMeta, MissionRecord } from "../storage/MissionStore";
 import { MissionStore } from "../storage/MissionStore";
@@ -113,6 +113,45 @@ function freshSource(): {
 }
 
 describe("MissionHistorySource", () => {
+  describe("keep latest", () => {
+    afterEach(() => setKeepCount(0));
+
+    it("prunes down to the keep count as each mission is saved", async () => {
+      const { source } = freshSource();
+      setKeepCount(2);
+
+      await source.saveMission(mission({ id: "a", launchedAt: 1 }));
+      await source.saveMission(mission({ id: "b", launchedAt: 2 }));
+      await source.saveMission(mission({ id: "c", launchedAt: 3 }));
+
+      expect((await source.listFlights()).map((f) => f.id).sort()).toEqual([
+        "b",
+        "c",
+      ]);
+    });
+
+    it("prunes what an earlier session left when it connects", async () => {
+      const { source, store } = freshSource();
+      await store.saveMission(mission({ id: "a", launchedAt: 1 }));
+      await store.saveMission(mission({ id: "b", launchedAt: 2 }));
+      await store.saveMission(mission({ id: "c", launchedAt: 3 }));
+      setKeepCount(1);
+
+      await source.connect();
+
+      expect((await source.listFlights()).map((f) => f.id)).toEqual(["c"]);
+    });
+
+    it("deletes nothing while keep latest is off", async () => {
+      const { source } = freshSource();
+      await source.saveMission(mission({ id: "a", launchedAt: 1 }));
+      await source.saveMission(mission({ id: "b", launchedAt: 2 }));
+      await source.connect();
+
+      expect(await source.listFlights()).toHaveLength(2);
+    });
+  });
+
   describe("schema", () => {
     it("offers a field with its label and unit", () => {
       const { source } = freshSource();
@@ -160,6 +199,67 @@ describe("MissionHistorySource", () => {
       expect(flight.firstFrameUt).toBe(0);
       expect(flight.lastFrameUt).toBe(900);
       expect(flight.outcome).toBeUndefined();
+    });
+  });
+
+  describe("a mission stored in parts", () => {
+    it("graphs the parts stored so far, and the next one as soon as it is stored", async () => {
+      const { source } = freshSource();
+      const { meta } = mission({ lastFrameUt: 400, frameCount: 2 });
+      await source.saveMissionPart(meta, 0, {
+        subscribedTopics: ["vessel.flight"],
+        frames: [flightFrame(100, 0), flightFrame(5000, 400)],
+      });
+      const early = await source.queryRange(
+        "vessel.flight.altitudeAsl",
+        0,
+        900,
+        "m1",
+      );
+      expect(early.t).toEqual([0, 400]);
+
+      await source.saveMissionPart(
+        { ...meta, lastFrameUt: 900, frameCount: 3 },
+        1,
+        {
+          subscribedTopics: ["vessel.flight"],
+          frames: [flightFrame(70000, 900)],
+        },
+      );
+
+      const whole = await source.queryRange(
+        "vessel.flight.altitudeAsl",
+        0,
+        900,
+        "m1",
+      );
+      expect(whole.t).toEqual([0, 400, 900]);
+      expect(await source.listFlights()).toHaveLength(1);
+    });
+
+    it("tells its listeners when a part is stored", async () => {
+      const { source } = freshSource();
+      let told = 0;
+      source.onFlightListChange(() => {
+        told += 1;
+      });
+
+      await source.saveMissionPart(mission().meta, 0, longFixture());
+
+      expect(told).toBe(1);
+    });
+  });
+
+  describe("a mission recorded across a signal delay", () => {
+    it("lists the span its samples are valid over, which is what a graph of it covers", async () => {
+      const { source } = freshSource();
+      await source.saveMission(
+        mission({ firstFrameUt: 100, firstValidUt: 96, lastValidUt: 896 }),
+      );
+
+      const [flight] = await source.listFlights();
+
+      expect(flight).toMatchObject({ firstValidUt: 96, lastValidUt: 896 });
     });
   });
 

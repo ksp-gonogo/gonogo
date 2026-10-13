@@ -103,7 +103,9 @@ export interface DelayedStreamLease<Result, Contribution> {
   /** The currently published result, or `undefined` while the build is in
    *  flight. */
   get(): Result | undefined;
-  /** Notified whenever the published result changes. */
+  /** Whether the build failed. No result will be published on this lease: release it, and acquire again to retry. */
+  failed(): boolean;
+  /** Notified whenever the published result changes, and when the build fails. */
   subscribe(cb: () => void): () => void;
   /** Update this lease's contribution (call on every render, cheap). */
   setContribution(c: Contribution): void;
@@ -118,6 +120,7 @@ interface Entry<Result, Contribution> {
   built?: BuiltDelayedStream<Result>;
   result?: Result;
   settled: boolean;
+  failed: boolean;
   /** Live leases, in acquisition order: the Map's iteration order is what
    *  makes `contribution()` deterministic ("first still-live lease"). */
   contributions: Map<object, Contribution | undefined>;
@@ -154,6 +157,7 @@ export class SharedDelayedStreams<Result, Contribution, Key = object> {
     if (!entry) {
       entry = {
         settled: false,
+        failed: false,
         contributions: new Map(),
         listeners: new Set(),
       };
@@ -185,8 +189,11 @@ export class SharedDelayedStreams<Result, Contribution, Key = object> {
       const abort = () => {
         // A throwing build leaves nothing to publish; drop the entry so a later
         // acquire on the same key can retry rather than wedging on a
-        // permanently-"building" record.
+        // permanently-"building" record. The leases already taken are told, since
+        // nothing else will ever reach them.
         if (this.entries.get(key) === e) this.entries.delete(key);
+        e.failed = true;
+        for (const cb of e.listeners) cb();
       };
       // Settle SYNCHRONOUSLY when `build` is synchronous (the encoded and
       // main-thread backends), so a consumer sees the result in the same tick
@@ -215,6 +222,7 @@ export class SharedDelayedStreams<Result, Contribution, Key = object> {
 
     return {
       get: () => e.result,
+      failed: () => e.failed,
       subscribe: (cb) => {
         e.listeners.add(cb);
         return () => {

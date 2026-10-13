@@ -7,7 +7,7 @@ import type {
   TopicReading,
 } from "../reading";
 import { topicReading } from "../reading";
-import { value } from "../unit-system/value";
+import { isValue, value } from "../unit-system/value";
 import { VISIBLE_GAP_SECONDS } from "./view-clock";
 
 /**
@@ -118,6 +118,31 @@ function assertModelledPathsPresent(
 }
 
 /** Run `model` for `viewUt` and refuse a result that lacks a path the model claims. */
+/**
+ * The first path a model claims to move whose value in `result` is a number
+ * that is not finite, or `undefined` when every one is. A model that divides by
+ * nothing or solves an orbit it cannot would otherwise be shown as an answer.
+ * Only the claimed paths are looked at: the rest of the payload is the
+ * observation carried along.
+ */
+function nonFiniteModelledPath(
+  modelled: readonly ModelledField[],
+  result: unknown,
+): string | undefined {
+  for (const { path } of modelled) {
+    let current: unknown = result;
+    for (const segment of path === "" ? [] : path.split(".")) {
+      current =
+        current !== null && typeof current === "object"
+          ? Reflect.get(current, segment)
+          : undefined;
+    }
+    if (typeof current === "number" && !Number.isFinite(current)) return path;
+    if (isValue(current) && !current.isFinite()) return path;
+  }
+  return undefined;
+}
+
 function reckonedValue<Payload>(
   owner: string,
   model: TopicModel<Payload>,
@@ -251,22 +276,36 @@ export function readingFrom<Payload>(
   const { reckonUt, receivedUt } = at;
   const model = reckoner?.(point, live ? undefined : status, reckonUt);
   const root = model && rootCoverage(model);
-  const modelled =
+  /* Held in an object so that a model whose answer is `undefined` is still told apart from no model at all. */
+  const answer =
     model && root
+      ? { model, root, value: reckonedValue(owner, model, reckonUt) }
+      : undefined;
+  const notANumber = answer
+    ? nonFiniteModelledPath(answer.model.modelled, answer.value)
+    : undefined;
+  if (notANumber !== undefined) {
+    declined = {
+      reason: "model-inapplicable",
+      ...(notANumber === "" ? {} : { input: notANumber }),
+    };
+  }
+  const modelled =
+    answer && notANumber === undefined
       ? ({
           status: "available",
-          value: reckonedValue(owner, model, reckonUt),
+          value: answer.value,
           atUt: value("ut", reckonUt),
           beyondReceived: reckonUt - receivedUt >= VISIBLE_GAP_SECONDS,
-          basis: root.basis,
-          modelled: model.modelled,
+          basis: answer.root.basis,
+          modelled: answer.model.modelled,
           owner,
           /*
            * Asked only where the model was actually used, and at the same
            * `reckonUt` it was reckoned for, so a model sharing work between the
            * two can cache on the argument.
            */
-          bands: model.bandAt?.(reckonUt),
+          bands: answer.model.bandAt?.(reckonUt),
         } as const)
       : undefined;
   /*

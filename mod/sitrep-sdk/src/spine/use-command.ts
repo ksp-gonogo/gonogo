@@ -126,14 +126,12 @@ function isModFault(code: string): boolean {
 }
 
 /**
- * How long (real UT seconds) a dispatched id may go without ever appearing
- * in `system.uplink.pending` before this hook gives up tracking it, the
- * graceful no-delay/LAN degradation path. A genuinely delayed command's
- * entry appears in the very next queue snapshot regardless of its own
- * `oneWaySeconds` (the reveal-gate stamps `dispatchedAt` the instant the
- * command leaves the ground station; only its resolution takes
- * `2*oneWaySeconds`), so this window only needs to outlast one queue
- * broadcast cycle, never a full round trip.
+ * How long, in real seconds, a dispatched id may go without appearing in
+ * `system.uplink.pending` before this hook gives up tracking it, which is how
+ * a command that was never delayed leaves the tracking. A delayed command's
+ * entry is in the next queue snapshot whatever its own `oneWaySeconds`, so the
+ * window has only to outlast one queue broadcast, never a round trip. The hook
+ * counts in game UT, so the window is this many seconds times the warp rate.
  */
 const NEVER_TRACKED_GRACE_SECONDS = 5;
 
@@ -345,6 +343,7 @@ function resolveTracked(
   nowUt: number,
   pathConnectedDuring: PathConnectedDuring,
   acknowledged: (id: string) => boolean,
+  graceUt: number,
 ): TrackedResolution {
   /* Matched on the requestId the queue echoes back, never on `entry.id`, which is the engine's own counter and collides with this client's. */
   const found = queue?.pending.find((entry) => entry.clientRequestId === id);
@@ -366,10 +365,7 @@ function resolveTracked(
 
   if (!entry) {
     const firstSeen = firstSeenAt.get(id);
-    if (
-      firstSeen !== undefined &&
-      nowUt - firstSeen >= NEVER_TRACKED_GRACE_SECONDS
-    ) {
+    if (firstSeen !== undefined && nowUt - firstSeen >= graceUt) {
       return { kind: "expired" };
     }
     return { kind: "waiting" };
@@ -584,15 +580,22 @@ export function useCommand(
     };
   }, [client, command, vantage]);
   const localRefusalSeqRef = useRef(0);
-  // Whether a tracked dispatch has actually been ANSWERED, which is what
-  // separates a command that arrived from one nobody ever heard. Read straight
-  // off the client's own per-request record: `confirmed` and `failed` are both
-  // answers (a refusal arrives as a `failed`), while `lost` and `in-flight` are
-  // the absence of one.
+  /*
+   * Whether a tracked dispatch has been settled by something other than
+   * silence, which is what separates a command that arrived from one nobody
+   * ever heard. Read off the client's own record for the request: `in-flight`
+   * and `lost` are the absence of an answer, and every other phase is one,
+   * a refusal, a late reply and a command that never left included.
+   */
   const acknowledged = useCallback(
     (id: string) => {
       const phase = client?.getCommand(id).phase;
-      return phase === "confirmed" || phase === "failed";
+      return (
+        phase !== undefined &&
+        phase !== "idle" &&
+        phase !== "in-flight" &&
+        phase !== "lost"
+      );
     },
     [client],
   );
@@ -695,6 +698,11 @@ export function useCommand(
   // the freshly-computed render-scope value.
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
+  const graceUt =
+    NEVER_TRACKED_GRACE_SECONDS *
+    Math.max(1, store?.clock.snapshot().warpRate ?? 1);
+  const graceUtRef = useRef(graceUt);
+  graceUtRef.current = graceUt;
   // The clock and the command's delay, for `send` to judge arrival at the moment it is called.
   const storeRef = useRef(store);
   storeRef.current = store;
@@ -737,6 +745,7 @@ export function useCommand(
         nowUt,
         pathConnectedDuring,
         acknowledged,
+        graceUt,
       );
       if (resolution.kind === "classified") computed.push(resolution.item);
     }
@@ -769,8 +778,15 @@ export function useCommand(
   // ref at that point.
   // biome-ignore lint/correctness/useExhaustiveDependencies: ackPhases is a re-run trigger, not a body input
   useEffect(() => {
+    /*
+     * A dismissed dispatch is dropped outright. A command classified lost or
+     * overdue never resolves on its own, so one that was only hidden would be
+     * resolved again on every render for the rest of the session.
+     */
+    const dismissed = dismissedIds;
     setDispatchedIds((prev) => {
       const keep = prev.filter((id) => {
+        if (dismissed.includes(id)) return false;
         const resolution = resolveTracked(
           id,
           queue,
@@ -779,6 +795,7 @@ export function useCommand(
           nowUtRef.current,
           pathConnectedDuring,
           acknowledged,
+          graceUtRef.current,
         );
         return (
           resolution.kind === "classified" || resolution.kind === "waiting"
@@ -786,23 +803,9 @@ export function useCommand(
       });
       return keep.length === prev.length ? prev : keep;
     });
-    // Prune dismissed ids that have left the underlying set (resolved/expired/ gone from the pending queue), so the dismissed set stays bounded.
     setDismissedIds((prev) => {
       if (prev.length === 0) return prev;
-      const keep = prev.filter((id) => {
-        const resolution = resolveTracked(
-          id,
-          queue,
-          entryCacheRef.current,
-          firstSeenAtRef.current,
-          nowUtRef.current,
-          pathConnectedDuring,
-          acknowledged,
-        );
-        return (
-          resolution.kind === "classified" || resolution.kind === "waiting"
-        );
-      });
+      const keep = prev.filter((id) => !dismissed.includes(id));
       return keep.length === prev.length ? prev : keep;
     });
     /*
@@ -810,7 +813,23 @@ export function useCommand(
      * landing for a tracked dispatch changes what resolves, exactly as a queue
      * snapshot does.
      */
-  }, [queue, pathConnectedDuring, acknowledged, ackPhases]);
+  }, [queue, pathConnectedDuring, acknowledged, ackPhases, dismissedIds]);
+
+  /*
+   * Forget what was kept for a dispatch once it is no longer tracked. Only an
+   * id that was tracked on the last commit is dropped: a dispatch writes its
+   * first-seen time before its id reaches `dispatchedIds`, so an id that has
+   * never been in the list is one that is about to be.
+   */
+  const trackedBeforeRef = useRef<readonly string[]>(dispatchedIds);
+  useEffect(() => {
+    for (const id of trackedBeforeRef.current) {
+      if (dispatchedIds.includes(id)) continue;
+      entryCacheRef.current.delete(id);
+      firstSeenAtRef.current.delete(id);
+    }
+    trackedBeforeRef.current = dispatchedIds;
+  }, [dispatchedIds]);
 
   /*
    * Promote a loss the client has since heard back about, or learned never

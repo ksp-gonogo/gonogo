@@ -368,6 +368,15 @@ export interface FlightRecord {
   firstFrameUt?: number;
   /** The UT, in seconds, of the latest captured frame. */
   lastFrameUt?: number;
+  /**
+   * The earliest UT, in seconds, that any captured sample is valid at. Across a
+   * signal delay it is that delay before `firstFrameUt`, which is when the
+   * frame arrived. A graph plots samples by the time they are valid at, so it
+   * spans these two. Absent on a record made before they were kept.
+   */
+  firstValidUt?: number;
+  /** The latest UT, in seconds, that any captured sample is valid at. */
+  lastValidUt?: number;
 }
 
 /**
@@ -466,8 +475,22 @@ export interface MissionMeta {
   firstFrameUt: number;
   /** UT (seconds) of the last captured frame. */
   lastFrameUt: number;
+  /**
+   * The earliest UT, in seconds, that any captured sample is valid at. Across a
+   * signal delay it is that delay before `firstFrameUt`, which is when the
+   * frame arrived. Absent on a mission recorded before it was kept.
+   */
+  firstValidUt?: number;
+  /** The latest UT, in seconds, that any captured sample is valid at. */
+  lastValidUt?: number;
   /** How many frames the recording holds. */
   frameCount: number;
+  /**
+   * How many parts the recording is stored in. A recording too large to store
+   * whole is stored as several, in the order they were recorded, and they replay
+   * joined as one. Absent means one.
+   */
+  partCount?: number;
   /**
    * Whether the operator starred the mission. Starred missions are never pruned
    * automatically, but can still be deleted by hand. Absent means not starred.

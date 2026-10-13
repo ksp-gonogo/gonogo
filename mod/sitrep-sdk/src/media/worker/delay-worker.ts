@@ -60,12 +60,13 @@
 
 import type { ClockFormulaSnapshot } from "../../view-clock-formula";
 import type { CaptureClockSample } from "../capture-clock";
-import { interpolateCaptureUt } from "../capture-clock";
+import { captureUtStamper } from "../capture-clock";
 import {
   attachEncodedFrameDelayTransform,
   type EncodedTransformerLike,
 } from "../encoded-frame-delay";
 import {
+  DEFAULT_PACING_MAX_LEAD_SECONDS,
   type FrameDelayPipeline,
   runFrameDelayPipeline,
   startPacingTicker,
@@ -288,6 +289,7 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
       stopPacingTicker: () => {},
     };
     pipelines.set(msg.pipelineId, entry);
+    const stampUt = captureUtStamper();
 
     const pipeline = runFrameDelayPipeline<VideoFrame>({
       view: clock,
@@ -295,12 +297,14 @@ function handleCreatePipeline(msg: CreatePipelineMessage): void {
       // see the module-level `nowWall` doc. Since `sample.atMs` is a raw
       // main-thread `performance.now()` reading, the comparison has to land on
       // that same basis and not the worker's own uncorrected clock.
-      captureUt: () =>
-        interpolateCaptureUt(entry.captureSample, nowWallMs(clockNowWall)) ?? 0,
+      captureUt: () => stampUt(entry.captureSample, nowWallMs(clockNowWall)),
       maxBufferedFrames: msg.maxBufferedFrames,
       source: processor.readable.getReader(),
       sink: writer.writable.getWriter(),
-      pacing: { maxBacklogSeconds: msg.maxPacingBacklogSeconds },
+      pacing: {
+        maxBacklogSeconds: msg.maxPacingBacklogSeconds,
+        maxLeadSeconds: DEFAULT_PACING_MAX_LEAD_SECONDS,
+      },
       onError: (err) => {
         workerSelf.postMessage({
           type: "pipelineNonFatalError",
@@ -375,11 +379,11 @@ function handleRtcTransform(event: RtcTransformEventLike): void {
     stopPacingTicker: () => {},
   };
   pipelines.set(pipelineId, entry);
+  const stampUt = captureUtStamper();
 
   const pipeline = attachEncodedFrameDelayTransform(event.transformer, {
     view: clock,
-    captureUt: () =>
-      interpolateCaptureUt(entry.captureSample, nowWallMs(clockNowWall)) ?? 0,
+    captureUt: () => stampUt(entry.captureSample, nowWallMs(clockNowWall)),
     maxBufferedBytes: options.maxBufferedBytes,
     maxPacingBacklogSeconds: options.maxPacingBacklogSeconds,
     onError: (err) => {

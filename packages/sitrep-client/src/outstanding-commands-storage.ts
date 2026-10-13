@@ -13,8 +13,7 @@ function isOutstanding(value: unknown): value is OutstandingCommand {
     typeof held.requestId === "string" &&
     typeof held.command === "string" &&
     typeof held.label === "string" &&
-    typeof held.etaConfirm === "number" &&
-    Number.isFinite(held.etaConfirm)
+    (held.replyDueUt === undefined || Number.isFinite(held.replyDueUt))
   );
 }
 

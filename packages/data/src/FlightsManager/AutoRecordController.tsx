@@ -1,5 +1,6 @@
 import { type GameScene, getDataSource } from "@ksp-gonogo/core";
 import {
+  type ReplayFixture,
   type StreamRecorder,
   useStreamRecorder,
 } from "@ksp-gonogo/sitrep-client";
@@ -11,8 +12,16 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef } from "react";
 import { useOptionalStreamEvent } from "../hooks/useOptionalStreamEvent";
-import { setAutoRecordStatus } from "./autoRecordStatus";
-import { buildMissionRecord } from "./buildMissionRecord";
+import type { MissionMeta } from "../storage/MissionStore";
+import {
+  setAutoRecordSaveFailure,
+  setAutoRecordStatus,
+} from "./autoRecordStatus";
+import {
+  buildMissionRecord,
+  MISSION_PART_SIZE_LIMIT,
+  withMissionPart,
+} from "./buildMissionRecord";
 import type { MissionHistorySource } from "./MissionHistorySource";
 
 function getSource(): MissionHistorySource | undefined {
@@ -54,6 +63,12 @@ export interface AutoRecordControllerProps {
    * Default `"Unknown"`: no scene signal, no scene-exit finalization.
    */
   scene?: GameScene;
+  /**
+   * The size at which the recording in progress is stored as a part and carried
+   * on, as the length of its frames' JSON text in characters. Default
+   * `MISSION_PART_SIZE_LIMIT`.
+   */
+  partSizeLimit?: number;
 }
 
 /**
@@ -100,6 +115,7 @@ export function AutoRecordController({
   recordAllTopics = false,
   videoRecordingEnabled: _videoRecordingEnabled = false,
   scene = "Unknown",
+  partSizeLimit = MISSION_PART_SIZE_LIMIT,
 }: AutoRecordControllerProps = {}) {
   const recorder = useStreamRecorder({ recordAllTopics });
 
@@ -111,6 +127,58 @@ export function AutoRecordController({
   const prevSceneRef = useRef<GameScene>(scene);
   const missionHistoryEnabledRef = useRef(missionHistoryEnabled);
   missionHistoryEnabledRef.current = missionHistoryEnabled;
+  const sceneRef = useRef(scene);
+  sceneRef.current = scene;
+  /** The mission being recorded once its first part has been handed to the store: its meta so far, and the number of its next part. */
+  const missionRef = useRef<{ meta: MissionMeta; nextPart: number } | null>(
+    null,
+  );
+  /** The mission whose part last failed to store, so that a later part of it does not clear the report. */
+  const failedMissionIdRef = useRef<string | null>(null);
+
+  /**
+   * Stores what a recorder handed back as the next part of the mission being
+   * recorded, and does not wait for the write. A part that cannot be stored is
+   * reported, and the parts after it are stored all the same.
+   */
+  const storePart = useCallback((fixture: ReplayFixture): void => {
+    const recorded = missionRef.current;
+    const record = buildMissionRecord({
+      vesselName: activeVesselNameRef.current,
+      launchedAt: activeLaunchedAtRef.current,
+      fixture,
+      id: recorded?.meta.id,
+    });
+    if (!record) return;
+    const meta = recorded
+      ? withMissionPart(recorded.meta, record.meta)
+      : record.meta;
+    const part = recorded?.nextPart ?? 0;
+    missionRef.current = { meta, nextPart: part + 1 };
+    const src = getSource();
+    /*
+     * `getSource()` is a cast, so the method is checked and not only the
+     * source: during an abnormal teardown the registered "missionHistory"
+     * source may not be the real one, and calling a missing method would throw
+     * and mask the error that caused the teardown.
+     */
+    if (typeof src?.saveMissionPart !== "function") return;
+    src.saveMissionPart(meta, part, fixture).then(
+      () => {
+        // A part of the same flight being stored does not undo the loss of an earlier one.
+        if (failedMissionIdRef.current === meta.id) return;
+        failedMissionIdRef.current = null;
+        setAutoRecordSaveFailure(null);
+      },
+      (error: unknown) => {
+        failedMissionIdRef.current = meta.id;
+        setAutoRecordSaveFailure({
+          vesselName: meta.vesselName,
+          cause: error instanceof Error ? error.message : String(error),
+        });
+      },
+    );
+  }, []);
 
   /**
    * Synchronous stop (grabs whatever's buffered) + fire-and-forget async
@@ -119,26 +187,19 @@ export function AutoRecordController({
    * gap between finishing one flight's recording and starting the next; only
    * the IndexedDB write trails behind.
    */
-  const finishAndSave = useCallback((r: StreamRecorder): void => {
-    if (!r.recording) return;
-    const fixture = r.stop();
-    const record = buildMissionRecord({
-      vesselName: activeVesselNameRef.current,
-      launchedAt: activeLaunchedAtRef.current,
-      fixture,
-    });
-    if (record) {
-      const src = getSource();
-      // `getSource()` is a cast (getDataSource returns the base DataSource shape),
-      // so guard the method exists, not just the source: during an abnormal
-      // teardown (e.g. an unrelated error-boundary unmount) the registered
-      // "missionHistory" source may momentarily not be the real
-      // MissionHistorySource, and calling a missing `saveMission` would throw and
-      // mask the original error. `finishAndSave` is fire-and-forget best-effort.
-      if (typeof src?.saveMission === "function") void src.saveMission(record);
-    }
-    setAutoRecordStatus({ recording: false, vesselName: null, frameCount: 0 });
-  }, []);
+  const finishAndSave = useCallback(
+    (r: StreamRecorder): void => {
+      if (!r.recording) return;
+      storePart(r.stop());
+      missionRef.current = null;
+      setAutoRecordStatus({
+        recording: false,
+        vesselName: null,
+        frameCount: 0,
+      });
+    },
+    [storePart],
+  );
 
   // Master switch off -> stop + save whatever's in flight.
   useEffect(() => {
@@ -212,27 +273,49 @@ export function AutoRecordController({
         if (!recorder) return;
         if (payload.flightId !== activeFlightIdRef.current) return;
         finishAndSave(recorder);
+        // Nothing is tracked once the flight is over, so neither the master switch nor a later tick can start recording it again.
+        activeFlightIdRef.current = null;
+        activeFlightStartedUtRef.current = null;
       },
       [recorder, finishAndSave],
     ),
   );
 
-  // Live frame-count heartbeat: flight.current ticks every sample while a
-  // flight is active (the same cadence StreamRecorder's own capture rides),
-  // so it's the natural per-tick pulse to refresh the UI-facing status now
-  // that boundary detection itself is fully event-driven. Boundary state
-  // (activeFlightIdRef etc.) is untouched here, this only re-reads
-  // recorder.frameCount.
+  /*
+   * flight.current ticks every sample while a flight is active, the cadence
+   * StreamRecorder's own capture rides, so it refreshes the frame count the
+   * status shows.
+   *
+   * It is also what resumes a recording that leaving the Flight scene closed.
+   * The mod sends no second flight.started for a vessel the operator returns
+   * to, and a tick naming the tracked flight is the proof that it is the one
+   * flying again. The scene alone is not: it changes before the mod has said
+   * which vessel the operator went to.
+   */
   useOptionalStreamEvent<FlightCurrent>(
     "flight.current",
-    useCallback(() => {
-      if (!recorder?.recording) return;
-      setAutoRecordStatus({
-        recording: true,
-        vesselName: activeVesselNameRef.current,
-        frameCount: recorder.frameCount,
-      });
-    }, [recorder]),
+    useCallback(
+      (payload) => {
+        if (!recorder) return;
+        if (!recorder.recording) {
+          if (!missionHistoryEnabledRef.current) return;
+          if (payload.flightId !== activeFlightIdRef.current) return;
+          if (sceneRef.current !== "Flight") return;
+          recorder.start();
+        }
+        /* A recording that has grown to the size of one stored part is stored and carried on, so a long flight is neither held in memory whole nor written in one piece. */
+        if (recorder.bufferedSize >= partSizeLimit) {
+          storePart(recorder.takePart());
+        }
+        setAutoRecordStatus({
+          recording: true,
+          vesselName: activeVesselNameRef.current,
+          frameCount:
+            (missionRef.current?.meta.frameCount ?? 0) + recorder.frameCount,
+        });
+      },
+      [recorder, partSizeLimit, storePart],
+    ),
   );
 
   // Unmount (or recorder identity change): flush whatever's in flight

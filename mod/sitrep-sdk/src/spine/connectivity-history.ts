@@ -21,6 +21,9 @@ interface ConnectivityTransition {
   connected: boolean;
 }
 
+/** The most changes of state a history keeps. A window that starts before the oldest of them reads as connected up to it, as an unobserved one does. */
+const MAX_TRANSITIONS = 512;
+
 /**
  * A record of when the radio path between the command centre and a vessel was
  * connected, stamped in universal time. Useful for deciding whether a command
@@ -34,13 +37,29 @@ export class ConnectivityHistory {
   /**
    * Records whether the path was connected at universal time `atUt`. A sample
    * is kept only when the state changed or it is the first observation, so a
-   * run of unchanged samples adds nothing. Record in non-decreasing `atUt`
-   * order.
+   * run of unchanged samples adds nothing. An `atUt` earlier than the last one
+   * recorded means the game has gone back to that instant, as after a
+   * quickload, and everything recorded from then on is forgotten. Only the
+   * newest {@link MAX_TRANSITIONS} changes are kept.
    */
   record(atUt: number, connected: boolean): void {
+    while (
+      this.transitions.length > 0 &&
+      this.transitions[this.transitions.length - 1].atUt > atUt
+    ) {
+      this.transitions.pop();
+    }
     const last = this.transitions[this.transitions.length - 1];
     if (last && last.connected === connected) return;
     this.transitions.push({ atUt, connected });
+    if (this.transitions.length > MAX_TRANSITIONS) {
+      this.transitions = this.transitions.slice(-MAX_TRANSITIONS);
+    }
+  }
+
+  /** How many changes of state are held. */
+  get size(): number {
+    return this.transitions.length;
   }
 
   /**

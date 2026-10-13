@@ -22,13 +22,19 @@ export function ReplaySessionBanner() {
     (cb) => controller.subscribe(cb),
     () => controller.getSnapshot(),
   );
-  const viewUt = useViewUt();
+  // Read for the re-render it brings on every frame of the replay's clock. The position is the controller's.
+  useViewUt();
 
   if (!snapshot.active || !snapshot.meta) return null;
 
   const meta = snapshot.meta;
-  // `.magnitude`: the scrubber's `value`/`min`/`max` and the elapsed arithmetic are all plain numbers on a range input, and the frame metadata beside it is too.
-  const position = viewUt?.magnitude ?? meta.firstFrameUt;
+  /*
+   * The scrubber runs from the first frame to the last on the time frames
+   * arrived at, so the position is read on that time too. The view time is when
+   * each sample was valid, a signal delay earlier in a recording made across
+   * one, and would never reach the end of the bar.
+   */
+  const position = controller.cursorUt();
   const duration = Math.max(0, meta.lastFrameUt - meta.firstFrameUt);
   const elapsed = Math.max(0, position - meta.firstFrameUt);
 

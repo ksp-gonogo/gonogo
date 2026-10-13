@@ -76,6 +76,14 @@ describe("an event about a command with no lane number", () => {
   });
 });
 
+describe("a journey that does not say which timeline it is on", () => {
+  it("is not read as one, since its events could not be told from an earlier timeline's", () => {
+    // Timeline 0 is the first of a save, so reading absence as 0 names a real one.
+    expect(readJourney({ events: [event({})] })).toBeNull();
+    expect(readJourney({ epoch: "one", events: [event({})] })).toBeNull();
+  });
+});
+
 describe("one command's journey", () => {
   const journey = readJourney({
     epoch: 1,

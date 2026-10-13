@@ -52,4 +52,33 @@ describe("ConnectivityHistory", () => {
     // correctly off what prune retained.
     expect(h.connectedDuring(7, 10)).toBe(false);
   });
+
+  it("forgets what followed an instant the game has gone back to", () => {
+    const h = new ConnectivityHistory();
+    h.record(0, true);
+    h.record(100, false);
+    h.record(120, true);
+
+    // A quickload to UT 50: the outage at 100 never happened on this timeline.
+    h.record(50, true);
+
+    expect(h.connectedDuring(60, 200)).toBe(true);
+    // What came before the load still did.
+    h.record(70, false);
+    expect(h.connectedDuring(60, 200)).toBe(false);
+    expect(h.connectedDuring(10, 40)).toBe(true);
+  });
+
+  it("keeps a bounded record through a long session of dropouts", () => {
+    const h = new ConnectivityHistory();
+    for (let pass = 0; pass < 5_000; pass += 1) {
+      h.record(pass * 100, false);
+      h.record(pass * 100 + 50, true);
+    }
+
+    expect(h.size).toBeLessThanOrEqual(512);
+    // The newest of it is still answered as it happened.
+    expect(h.connectedDuring(499_960, 499_990)).toBe(true);
+    expect(h.connectedDuring(499_890, 499_910)).toBe(false);
+  });
 });

@@ -121,16 +121,16 @@ function readEvent(raw: unknown): JourneyEvent | null {
 
 /**
  * A `comms.journey` payload as a `Journey`, or `null` for a payload that is not
- * one. A malformed event is left out. Useful for reading the journey reports
+ * one, which includes one that does not say which timeline it is on. A
+ * malformed event is left out. Useful for reading the journey reports
  * of the commands sent to a vessel. Used by the command group that follows a
  * batch of sends and by the held-command actions that cancel or resend.
  */
 export function readJourney(payload: unknown): Journey | null {
   if (typeof payload !== "object" || payload === null) return null;
   if (!("events" in payload) || !Array.isArray(payload.events)) return null;
-  const epoch =
-    readCount("epoch" in payload ? payload.epoch : undefined) ??
-    value("count", 0);
+  const epoch = readCount("epoch" in payload ? payload.epoch : undefined);
+  if (epoch === undefined) return null;
   return {
     epoch,
     events: payload.events.flatMap((raw) => readEvent(raw) ?? []),

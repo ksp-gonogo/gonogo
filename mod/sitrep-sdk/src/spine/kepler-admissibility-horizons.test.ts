@@ -75,12 +75,18 @@ function orbitPoint(orbit: ConicOrbitInput): TimelinePoint<ConicOrbitInput> {
 }
 
 /** `atmosphere` omitted is the wire's own way of saying the body is airless. */
-function kerbin(opts: { atmosphere: boolean }): ConicBodiesInput {
+function kerbin(opts: {
+  atmosphere: boolean;
+  sphereOfInfluence?: number;
+}): ConicBodiesInput {
   return {
     bodies: [
       {
         index: 1,
         radius: value("m", KERBIN_RADIUS),
+        ...(opts.sphereOfInfluence === undefined
+          ? {}
+          : { sphereOfInfluence: value("m", opts.sphereOfInfluence) }),
         ...(opts.atmosphere
           ? { atmosphere: { depth: value("m", KERBIN_ATMOSPHERE_DEPTH) } }
           : {}),
@@ -146,6 +152,100 @@ describe("keplerAdmissibility along an arc: the atmospheric interface", () => {
     expect(
       admits(ENTRY_ARC, { bodies: [{ index: 1, radius: null }] }, PERIAPSIS_UT),
     ).toBe(true);
+  });
+});
+
+describe("keplerAdmissibility along an arc: what lies between the elements and the view", () => {
+  it("declines after the arc has passed through the ground, though the conic has climbed back out", () => {
+    // A whole period on: the conic is at apoapsis again, having gone 100 km into rock on the way.
+    const backAtApoapsis = 2 * IMPACT_SIDE_UT;
+    expect(
+      keplerAdmissibility(
+        orbitPoint(IMPACT_ARC),
+        kerbin({ atmosphere: false }),
+        backAtApoapsis,
+      ),
+    ).toMatchObject({
+      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+    });
+  });
+
+  it("declines after the arc has passed through the air, though the conic has climbed back out", () => {
+    expect(
+      admits(ENTRY_ARC, kerbin({ atmosphere: true }), 2 * PERIAPSIS_UT),
+    ).toBe(false);
+  });
+
+  it("admits the arc right up to the periapsis that ends it", () => {
+    // Above the interface the whole way: periapsis is still ahead.
+    expect(
+      admits(ENTRY_ARC, kerbin({ atmosphere: true }), 0.25 * PERIAPSIS_UT),
+    ).toBe(true);
+  });
+
+  it("keeps admitting an arc that clears the floor, however many periapses it passes", () => {
+    // Airless, so the 30 km periapsis is clear of the ground on every pass.
+    expect(
+      admits(ENTRY_ARC, kerbin({ atmosphere: false }), 9 * PERIAPSIS_UT),
+    ).toBe(true);
+  });
+
+  it("declines after an open arc has dipped through the air on its way past", () => {
+    // Inbound on a hyperbola whose periapsis is 30 km up, seen again on the way out.
+    const flyby: ConicOrbitInput = {
+      ...ENTRY_ARC,
+      sma: value("m", -630_000),
+      ecc: value("1", 2),
+      meanAnomalyAtEpoch: value("rad", -3),
+    };
+    const meanMotion = Math.sqrt(MU_KERBIN / 630_000 ** 3);
+    const periapsisUt = 3 / meanMotion;
+    expect(admits(flyby, kerbin({ atmosphere: true }), 0)).toBe(true);
+    expect(admits(flyby, kerbin({ atmosphere: true }), 2 * periapsisUt)).toBe(
+      false,
+    );
+    expect(admits(flyby, kerbin({ atmosphere: false }), 2 * periapsisUt)).toBe(
+      true,
+    );
+  });
+});
+
+describe("keplerAdmissibility along an arc: the sphere of influence", () => {
+  const KERBIN_SOI = 84_159_286;
+  /** Leaving Kerbin on a hyperbola, with the encounter locked as it is before patched conics are unlocked. */
+  const ESCAPE: ConicOrbitInput = {
+    ...ENTRY_ARC,
+    sma: value("m", -2_000_000),
+    ecc: value("1", 1.4),
+    meanAnomalyAtEpoch: value("rad", 0.5),
+    encounter: { locked: [] },
+  };
+  const DAY = 21_600;
+
+  it("admits the escape while it is inside the sphere of influence", () => {
+    expect(
+      admits(
+        ESCAPE,
+        kerbin({ atmosphere: true, sphereOfInfluence: KERBIN_SOI }),
+        600,
+      ),
+    ).toBe(true);
+  });
+
+  it("declines once the conic has carried the craft out of the sphere of influence", () => {
+    expect(
+      keplerAdmissibility(
+        orbitPoint(ESCAPE),
+        kerbin({ atmosphere: true, sphereOfInfluence: KERBIN_SOI }),
+        30 * DAY,
+      ),
+    ).toMatchObject({
+      declined: { reason: "beyond-horizon", input: "@system.bodies" },
+    });
+  });
+
+  it("admits it unchanged when the body states no sphere of influence", () => {
+    expect(admits(ESCAPE, kerbin({ atmosphere: true }), 30 * DAY)).toBe(true);
   });
 });
 

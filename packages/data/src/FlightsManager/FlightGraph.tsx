@@ -3,7 +3,9 @@ import type { ChartSeries, KeyOption } from "@ksp-gonogo/ui";
 import { DataKeyMultiPicker, LineChart } from "@ksp-gonogo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
+import { plotValue } from "../hooks/useDataSeries";
 import { useNumericFields } from "../hooks/useTopicFields";
+import type { SeriesRange } from "../types";
 import type { MissionHistorySource } from "./MissionHistorySource";
 
 /**
@@ -13,12 +15,12 @@ import type { MissionHistorySource } from "./MissionHistorySource";
  * `LineChart`. Lives alongside the flight list so users can inspect any
  * recorded flight without needing the live dashboard.
  *
- * Unit note: Missions are UT-**seconds**-based (`firstFrameUt`/
- * `lastFrameUt`), but `LineChart`'s default `xTickFormat`
+ * Unit note: Missions are UT-**seconds**-based (`fromUt`/
+ * `toUt`), but `LineChart`'s default `xTickFormat`
  * (`timeXTickFormat`/`formatTimeLabel`) hard-assumes **milliseconds**: see
  * `packages/ui/src/lineChartMath.ts`. So `xDomain` and every series' x-values
- * here are **elapsed milliseconds since `firstFrameUt`**, converted once at
- * the query-response boundary (`(validAtUt - firstFrameUt) * 1000`), the
+ * here are **elapsed milliseconds since `fromUt`**, converted once at
+ * the query-response boundary (`(validAtUt - fromUt) * 1000`), the
  * same anchor and unit `ChaptersEditor`'s `startMs`/`endMs` already use, so
  * a chapter's elapsed time and a graph's x-axis always agree.
  */
@@ -40,17 +42,13 @@ function getSource(): MissionHistorySource | undefined {
 
 export interface FlightGraphProps {
   missionId: string;
-  /** UT (seconds) of the first captured frame, the chart's elapsed-ms-0 anchor. */
-  firstFrameUt: number;
-  /** UT (seconds) of the last captured frame. */
-  lastFrameUt: number;
+  /** The earliest UT, in seconds, a sample of the recording is valid at: where the chart's elapsed time starts. */
+  fromUt: number;
+  /** The latest UT, in seconds, a sample of the recording is valid at. */
+  toUt: number;
 }
 
-export function FlightGraph({
-  missionId,
-  firstFrameUt,
-  lastFrameUt,
-}: FlightGraphProps) {
+export function FlightGraph({ missionId, fromUt, toUt }: FlightGraphProps) {
   const numericFields = useNumericFields();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [series, setSeries] = useState<ChartSeries[]>([]);
@@ -117,30 +115,13 @@ export function FlightGraph({
 
     const keys = [...selected];
     Promise.all(
-      keys.map((key) =>
-        source.queryRange(key, firstFrameUt, lastFrameUt, missionId),
-      ),
+      keys.map((key) => source.queryRange(key, fromUt, toUt, missionId)),
     )
       .then((ranges) => {
         if (cancelled) return;
         const meta = new Map(numericFields.map((s) => [s.key, s]));
-        // Build a series per key. Non-finite values are dropped rather than
-        // letting them wreck the LineChart's autoscale. queryRange returns
-        // UT seconds (TimelineStore's native domain): convert to elapsed
-        // ms since firstFrameUt here, at the display edge, so the chart
-        // (and LineChart's default ms-based tick formatter) never see a
-        // raw UT value.
         const next: ChartSeries[] = keys.map((key, i) => {
-          const raw = ranges[i];
-          const xs: number[] = [];
-          const ys: number[] = [];
-          for (let j = 0; j < raw.t.length; j++) {
-            const v = raw.v[j];
-            if (typeof v === "number" && Number.isFinite(v)) {
-              xs.push((raw.t[j] - firstFrameUt) * 1000);
-              ys.push(v);
-            }
-          }
+          const data = plottedPoints(ranges[i], fromUt);
           const m = meta.get(key);
           return {
             id: key,
@@ -148,7 +129,7 @@ export function FlightGraph({
             axis: "primary",
             color: PALETTE[i % PALETTE.length],
             type: "line",
-            data: { x: xs, y: ys },
+            data,
           };
         });
         setSeries(next);
@@ -164,12 +145,12 @@ export function FlightGraph({
     return () => {
       cancelled = true;
     };
-  }, [selected, missionId, firstFrameUt, lastFrameUt, numericFields]);
+  }, [selected, missionId, fromUt, toUt, numericFields]);
 
-  // LineChart wants a non-empty x-domain, in elapsed ms since firstFrameUt
+  // LineChart wants a non-empty x-domain, in elapsed ms since fromUt
   // (0-based: see the unit note above). Fall back to a 1-minute placeholder
   // window if the mission has zero duration so we never divide by zero.
-  const durationMs = Math.max(0, (lastFrameUt - firstFrameUt) * 1000);
+  const durationMs = Math.max(0, (toUt - fromUt) * 1000);
   const xDomain: [number, number] =
     durationMs > 0 ? [0, durationMs] : [0, 60_000];
 
@@ -220,6 +201,28 @@ export function FlightGraph({
       )}
     </Wrap>
   );
+}
+
+/**
+ * One recorded range as the points a line chart draws: x in elapsed
+ * milliseconds since `fromUt`, y the magnitude of each sample. A range
+ * holds decoded samples, so a quantity arrives as a value with its unit. A
+ * sample with no finite number is left out, since it would wreck the chart's
+ * autoscale.
+ */
+export function plottedPoints(
+  range: SeriesRange,
+  fromUt: number,
+): { x: number[]; y: number[] } {
+  const x: number[] = [];
+  const y: number[] = [];
+  for (let j = 0; j < range.t.length; j++) {
+    const v = plotValue(range.v[j]);
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    x.push((range.t[j] - fromUt) * 1000);
+    y.push(v);
+  }
+  return { x, y };
 }
 
 /**

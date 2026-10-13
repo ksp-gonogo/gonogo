@@ -34,6 +34,26 @@ interface FixtureRow {
   video?: VideoRecordingRef;
 }
 
+/** What separates a mission's id from a part's number in a fixture row's key. Mission ids are UUIDs, which hold no `#`. */
+const PART_SEPARATOR = "#part-";
+
+/**
+ * The key of the fixture row holding one part of a mission. The first part
+ * is keyed by the mission's own id, which is where a mission stored whole
+ * keeps its only fixture.
+ */
+function partKey(id: string, part: number): string {
+  return part === 0 ? id : `${id}${PART_SEPARATOR}${part}`;
+}
+
+/** Every key a mission's later parts can have, for deleting them without knowing how many there are. */
+function laterPartKeys(id: string): IDBKeyRange {
+  return IDBKeyRange.bound(
+    `${id}${PART_SEPARATOR}`,
+    `${id}${PART_SEPARATOR}\uffff`,
+  );
+}
+
 /** A stored meta row when it carries the identity and launch instant the list
  *  view sorts and keys on, and `null` for anything else in the store. */
 function asMissionMeta(row: unknown): MissionMeta | null {
@@ -82,6 +102,41 @@ export class MissionStore {
         fixture: record.fixture,
         video: record.video,
       };
+      tx.objectStore(FIXTURE_STORE).put(fixtureRow);
+    });
+  }
+
+  /**
+   * Stores one part of a mission that is recorded in several, with the
+   * mission's meta as it stands once this part is counted. `part` counts from
+   * 0, in the order the parts were recorded.
+   *
+   * The meta is written with every part, so a mission whose first part could
+   * not be stored still has a row once a later one is. What the operator set on
+   * the mission while it was being recorded, its star and its chapters, is kept.
+   */
+  async saveMissionPart(
+    meta: MissionMeta,
+    part: number,
+    fixture: ReplayFixture,
+  ): Promise<void> {
+    await this.runTx([META_STORE, FIXTURE_STORE], "readwrite", (tx) => {
+      const metaStore = tx.objectStore(META_STORE);
+      const existingReq = metaStore.get(meta.id);
+      existingReq.onsuccess = () => {
+        const existing = asMissionMeta(existingReq.result);
+        metaStore.put({
+          ...meta,
+          partCount: Math.max(meta.partCount ?? 1, part + 1),
+          ...(existing?.starred === undefined
+            ? {}
+            : { starred: existing.starred }),
+          ...(existing?.chapters === undefined
+            ? {}
+            : { chapters: existing.chapters }),
+        });
+      };
+      const fixtureRow: FixtureRow = { id: partKey(meta.id, part), fixture };
       tx.objectStore(FIXTURE_STORE).put(fixtureRow);
     });
   }
@@ -139,28 +194,48 @@ export class MissionStore {
     });
   }
 
-  /** Loads the (potentially large) fixture payload for one mission, only called when actually replaying/exporting, never for the list view. */
+  /**
+   * Loads the (potentially large) fixture payload for one mission, only called
+   * when actually replaying/exporting, never for the list view. A mission stored
+   * in parts comes back as one fixture, its parts' frames joined in the order
+   * they were recorded. A part that was never stored is left out.
+   */
   async getMissionFixture(
     id: string,
   ): Promise<{ fixture: ReplayFixture; video?: VideoRecordingRef } | null> {
+    const partCount = (await this.getMissionMeta(id))?.partCount ?? 1;
     const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const req = db
-        .transaction(FIXTURE_STORE)
-        .objectStore(FIXTURE_STORE)
-        .get(id);
-      req.onsuccess = () => {
-        const row = asFixtureRow(req.result);
-        resolve(row ? { fixture: row.fixture, video: row.video } : null);
-      };
-      req.onerror = () => reject(req.error);
-    });
+    const store = db.transaction(FIXTURE_STORE).objectStore(FIXTURE_STORE);
+    const rows = await Promise.all(
+      Array.from(
+        { length: partCount },
+        (_, part) =>
+          new Promise<FixtureRow | null>((resolve, reject) => {
+            const req = store.get(partKey(id, part));
+            req.onsuccess = () => resolve(asFixtureRow(req.result));
+            req.onerror = () => reject(req.error);
+          }),
+      ),
+    );
+    const stored = rows.filter((row): row is FixtureRow => row !== null);
+    if (stored.length === 0) return null;
+    const topics = new Set<string>();
+    const frames: string[] = [];
+    for (const row of stored) {
+      for (const topic of row.fixture.subscribedTopics ?? []) topics.add(topic);
+      for (const frame of row.fixture.frames) frames.push(frame);
+    }
+    return {
+      fixture: { subscribedTopics: [...topics], frames },
+      video: stored[0]?.video,
+    };
   }
 
   async deleteMission(id: string): Promise<void> {
     await this.runTx([META_STORE, FIXTURE_STORE], "readwrite", (tx) => {
       tx.objectStore(META_STORE).delete(id);
       tx.objectStore(FIXTURE_STORE).delete(id);
+      tx.objectStore(FIXTURE_STORE).delete(laterPartKeys(id));
     });
   }
 

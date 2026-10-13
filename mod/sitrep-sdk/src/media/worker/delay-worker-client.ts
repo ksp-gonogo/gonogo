@@ -115,12 +115,37 @@ function getSharedWorker(): Worker | null {
           return;
       }
     };
+    /*
+     * A worker whose script does not load, or that throws while running, never
+     * posts anything. Everything waiting on it is told why, and it is dropped so
+     * the next camera starts a fresh one.
+     */
+    worker.onerror = (ev: ErrorEvent) =>
+      failSharedWorker(worker, ev.message || "the delay worker failed");
+    worker.onmessageerror = () =>
+      failSharedWorker(
+        worker,
+        "a message from the delay worker was unreadable",
+      );
     sharedWorker = worker;
     return worker;
   } catch {
     sharedWorker = null;
     return null;
   }
+}
+
+/** Ends `worker` and tells every pipeline on it, waiting or running, that it failed. A later call builds a new worker. */
+function failSharedWorker(worker: Worker, reason: string): void {
+  if (sharedWorker !== worker) return;
+  sharedWorker = undefined;
+  worker.terminate();
+  const waiting = [...pendingReady.values()];
+  pendingReady.clear();
+  for (const pending of waiting) pending.reject(reason);
+  const running = [...nonFatalErrorHandlers.values()];
+  nonFatalErrorHandlers.clear();
+  for (const report of running) report(reason);
 }
 
 function post(

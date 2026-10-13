@@ -461,6 +461,55 @@ describe("WebSocketTransport", () => {
     transport.dispose();
   });
 
+  it("gives up on a socket that neither opens nor fails, and tries again", () => {
+    vi.useFakeTimers();
+    try {
+      const fakes = makeFakeSocketCtor();
+      const transport = new WebSocketTransport({
+        url: SITREP_URL,
+        retryIntervalMs: 1_000,
+        connectTimeoutMs: 4_000,
+        WebSocketImpl: fakes.ctor,
+      });
+      // A host that drops the connection attempt in silence: no open, no close, no error.
+      expect(fakes.instances).toHaveLength(1);
+
+      vi.advanceTimersByTime(3_999);
+      expect(fakes.instances).toHaveLength(1);
+      vi.advanceTimersByTime(1);
+      expect(fakes.instances[0]?.readyState).toBe(3);
+      expect(transport.status).toBe("reconnecting");
+
+      vi.advanceTimersByTime(1_000);
+      expect(fakes.instances).toHaveLength(2);
+      transport.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does not give up on a socket that opened in time", () => {
+    vi.useFakeTimers();
+    try {
+      const fakes = makeFakeSocketCtor();
+      const transport = new WebSocketTransport({
+        url: SITREP_URL,
+        connectTimeoutMs: 4_000,
+        silenceTimeoutMs: 0,
+        WebSocketImpl: fakes.ctor,
+      });
+      fakes.instances[0]?.fire("open");
+
+      vi.advanceTimersByTime(60_000);
+
+      expect(transport.status).toBe("connected");
+      expect(fakes.instances).toHaveLength(1);
+      transport.dispose();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("retryNow opens the next socket at once instead of waiting out the backoff", async () => {
     vi.useFakeTimers();
     try {

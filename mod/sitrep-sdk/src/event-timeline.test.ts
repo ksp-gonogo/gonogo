@@ -111,6 +111,30 @@ describe("EventTimeline", () => {
       expect(t.all().map((o) => o.kind)).toEqual(["new"]);
     });
 
+    it("keeps an occurrence the delay has not let the operator see yet", () => {
+      // Ten minutes one way: what happened at UT 10 is seen at 610.
+      const t = new EventTimeline({ retentionSeconds: 100 });
+      t.append(occ(10, "engine out"));
+      expect(t.revealed({ now: 20, delaySeconds: 600 })).toEqual([]);
+
+      // More happens while that news is still travelling.
+      t.append(occ(400, "later"));
+
+      expect(
+        t.revealed({ now: 620, delaySeconds: 600 }).map((o) => o.kind),
+      ).toEqual(["engine out"]);
+    });
+
+    it("still evicts behind the delay it was last asked with", () => {
+      const t = new EventTimeline({ retentionSeconds: 100 });
+      t.append(occ(10, "old"));
+      t.revealed({ now: 20, delaySeconds: 600 });
+      t.append(occ(800, "new"));
+
+      // 800 - 600 delay - 100 retention = 100 floor.
+      expect(t.all().map((o) => o.kind)).toEqual(["new"]);
+    });
+
     it("evictBelow drops occurrences under an external bound", () => {
       const t = new EventTimeline();
       [10, 20, 30].forEach((ut) => {

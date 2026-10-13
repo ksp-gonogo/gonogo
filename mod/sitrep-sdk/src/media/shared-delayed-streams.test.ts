@@ -190,3 +190,37 @@ describe("SharedDelayedStreams: one pipeline per camera, shared by all consumers
     expect(flush).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("SharedDelayedStreams: a build that fails", () => {
+  it("tells the leases already taken, which would otherwise wait for ever", async () => {
+    const cache = new SharedDelayedStreams<string, unknown>();
+    const camera = {};
+    const build = () => Promise.reject(new Error("the worker died"));
+
+    const lease = cache.acquire(camera, build);
+    const told = vi.fn();
+    lease.subscribe(told);
+    expect(lease.failed()).toBe(false);
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    expect(told).toHaveBeenCalled();
+    expect(lease.failed()).toBe(true);
+    expect(lease.get()).toBeUndefined();
+  });
+
+  it("builds again for a consumer that acquires after the failure", async () => {
+    const cache = new SharedDelayedStreams<string, unknown>();
+    const camera = {};
+    cache.acquire(camera, () => Promise.reject(new Error("the worker died")));
+    await flushMicrotasks();
+    await flushMicrotasks();
+
+    const { build } = trackedBuild("delayed@A");
+    const retry = cache.acquire(camera, build);
+
+    expect(build).toHaveBeenCalledTimes(1);
+    expect(retry.failed()).toBe(false);
+    expect(retry.get()).toBe("delayed@A");
+  });
+});
