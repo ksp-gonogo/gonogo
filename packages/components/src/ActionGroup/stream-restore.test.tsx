@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("ActionGroup across a stream drop and restore", () => {
-  it("never draws the disabled dash, and never offers a press on a value that may have changed", () => {
+  it("never draws the disabled dash, and keeps the last value pressable while it is drawn held", async () => {
     vi.useFakeTimers();
     const fixture = setupStreamFixture({ suspendFrames: true });
     const commandHandler = vi.fn(() => ({ ok: true }));
@@ -82,8 +82,8 @@ describe("ActionGroup across a stream drop and restore", () => {
 
     expect(frames.some((f) => f.startsWith(NULL_DISPLAY))).toBe(false);
     expect(frames[0]).toBe("ON|current|enabled");
-    expect(frames[1]).toBe("ON|held|disabled");
-    expect(frames[2]).toBe("ON|held|disabled");
+    expect(frames[1]).toBe("ON|held|enabled");
+    expect(frames[2]).toBe("ON|held|enabled");
     expect(frames[4]).toBe("OFF|current|enabled");
     act(() => {
       fixture.store.setTransportConnected(false);
@@ -92,6 +92,10 @@ describe("ActionGroup across a stream drop and restore", () => {
     act(() => {
       toggle().click();
     });
-    expect(commandHandler).not.toHaveBeenCalled();
+    // The press is offered while the last value is held, and names the explicit opposite of it (the last value was OFF); the reply lands a microtask later.
+    await act(async () => {});
+    expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
+      enabled: true,
+    });
   });
 });

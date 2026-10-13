@@ -1,18 +1,13 @@
 import type { ActionGroup } from "@ksp-gonogo/core";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
-/** Stated on the disabled toggle only, never as a badge. */
-export const HELD_STATE = "Cannot invert a held state";
-
 export type UnavailableReason =
-  | typeof HELD_STATE
   | "State unreadable"
   | "Paused"
   | "No signal"
   | "Not reported";
 
 export const UNAVAILABLE_TITLES: Record<UnavailableReason, string> = {
-  [HELD_STATE]: HELD_STATE,
   "State unreadable":
     "The backend reported this group but could not read whether it is engaged, so the toggle is held",
   Paused: "The action group can't fire right now",
@@ -23,19 +18,16 @@ export const UNAVAILABLE_TITLES: Record<UnavailableReason, string> = {
 
 /** In precedence order; "Not reported" is last because it alone names a cause that is not about the press itself. */
 export function unavailableReasonOf({
-  valueHeld,
   stateUnreadable,
   isPaused,
   commConnected,
   provenance,
 }: {
-  valueHeld: boolean;
   stateUnreadable: boolean;
   isPaused: boolean | undefined;
   commConnected: boolean | undefined;
   provenance: ActionGroup["provenance"];
 }): UnavailableReason | null {
-  if (valueHeld) return HELD_STATE;
   if (stateUnreadable) return "State unreadable";
   if (isPaused === true) return "Paused";
   if (commConnected === false) return "No signal";
