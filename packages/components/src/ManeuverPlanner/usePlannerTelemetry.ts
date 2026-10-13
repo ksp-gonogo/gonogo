@@ -18,6 +18,7 @@ import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
 import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
+import { type BurnContext, orbitShape } from "./burnFlown";
 import { buildCurrentOrbit, computeMu } from "./planning";
 
 /**
@@ -62,12 +63,19 @@ export function usePlannerTelemetry() {
   const targetMarking = derivedMarking(targetReading);
   // Latched rather than `currentThrust > 0` and kept when held, so it survives a dropped frame; undefined is not "engines off".
   const propulsion = stillTrue(useTelemetry("vessel.propulsion"), undefined);
-  const thrustLatch = propulsion
-    ? {
-        thrusting: propulsion.thrustStartedUt?.isFinite() === true,
-        lastThrustEndUt: magnitudeOf(propulsion.lastThrustEndUt),
-      }
+  const thrusting = propulsion
+    ? propulsion.thrustStartedUt?.isFinite() === true
     : undefined;
+  const lastThrustEndUt = propulsion
+    ? magnitudeOf(propulsion.lastThrustEndUt)
+    : undefined;
+  const thrustLatch = useMemo(
+    () =>
+      thrusting === undefined || lastThrustEndUt === undefined
+        ? undefined
+        : { thrusting, lastThrustEndUt },
+    [thrusting, lastThrustEndUt],
+  );
   // The current orbit's curve is the propagation seam's answer, never a diagram's own choice.
   const currentTrajectory: OrbitTrajectory | null =
     useOrbitPlaneTrajectory(orbit);
@@ -152,6 +160,19 @@ export function usePlannerTelemetry() {
     [orbitalSpeed, radius, sma, period],
   );
 
+  // What a burn's flown-ness is judged against; null where any element of the craft's orbit is unknown.
+  const burnContext = useMemo<BurnContext>(
+    () => ({
+      nowUt: nowUtSeconds ?? null,
+      current:
+        sma !== undefined && ecc !== undefined && inclination !== undefined
+          ? orbitShape(sma, ecc, inclination)
+          : null,
+      thrust: thrustLatch,
+    }),
+    [nowUtSeconds, sma, ecc, inclination, thrustLatch],
+  );
+
   const currentOrbit: CurrentOrbit | null = buildCurrentOrbit({
     sma,
     ecc,
@@ -167,6 +188,7 @@ export function usePlannerTelemetry() {
     orbitMarking,
     targetMarking,
     thrustLatch,
+    burnContext,
     currentTrajectory,
     sma,
     ecc,

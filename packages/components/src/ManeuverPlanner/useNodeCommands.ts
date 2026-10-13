@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useState } from "react";
 import { useBurnCompletionTracker } from "./BurnCompletionTracker";
+import type { BurnContext } from "./burnFlown";
 import type { NodeEditPatch } from "./NodeRow";
 import {
   describeNodeRejection,
@@ -32,6 +33,7 @@ const UNADDRESSABLE =
 export function useNodeCommands(
   nodes: readonly ParsedManeuverNode[],
   plan: PlanResult | null,
+  burnContext: BurnContext,
 ) {
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,9 +53,10 @@ export function useNodeCommands(
     },
     [removeNodeCmd.send],
   );
-  const { completedNodes, maxDvByUt } = useBurnCompletionTracker(
+  const { completedNodes, watches } = useBurnCompletionTracker(
     nodes,
     removeNode,
+    burnContext,
   );
 
   async function dispatchPlanBurns(toDispatch: PlanResult): Promise<void> {
@@ -175,7 +178,7 @@ export function useNodeCommands(
     error,
     setError,
     completedNodes,
-    maxDvByUt,
+    watches,
     handleCommit,
     handleDelete,
     handleEdit,

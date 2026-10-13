@@ -409,58 +409,146 @@ describe("ManeuverPlannerComponent", () => {
     expect(calls[0]).toMatch(/^o\.addManeuverNode\[/);
   });
 
-  it("flashes a completed node green for 10s then auto-removes it from KSP", async () => {
-    // A guid, not the index-shaped default id, so a raw-index dispatch cannot pass for a correct one.
+  describe("burn completion", () => {
     const NODE_GUID = "3f2504e0-4f89-11d3-9a0c-0305e82c3301";
+    const NODE_UT = 1_000_120;
+    const AFTER_BURN_ORBIT = { sma: 900_000, ecc: 0.2 };
+    const PATCH = {
+      sma: AFTER_BURN_ORBIT.sma,
+      ecc: AFTER_BURN_ORBIT.ecc,
+      inc: 0,
+    };
 
-    const calls: string[] = [];
-    utFixture.transport.setCommandHandler((command, args) => {
-      if (command === "vessel.maneuver.remove") {
-        const a = commandArgs<"vessel.maneuver.remove">(args);
-        calls.push(`o.removeManeuverNode[${a?.nodeId}]`);
-      }
-      return null;
+    function emitPlan(dvPrograde: number, patches: unknown[]): void {
+      utFixture.emit("vessel.maneuver", {
+        nodes: [
+          {
+            id: NODE_GUID,
+            ut: NODE_UT,
+            dvRadial: 0,
+            dvNormal: 0,
+            dvPrograde,
+            dvTotal: dvPrograde,
+            frame: ManeuverFrame.RadialNormalPrograde,
+            ignitionUt: 1_000_098,
+            cutoffUt: 1_000_143,
+            patches,
+          },
+        ],
+      });
+    }
+
+    // The fixture is shared by the whole file, so the clock goes back to where every other test expects it.
+    afterEach(() => {
+      unmountAll();
+      utFixture.scrubTo(UT_FIXTURE_VALUE);
     });
 
-    vi.useFakeTimers({ shouldAdvanceTime: true });
-    try {
+    function recordRemovals(): string[] {
+      const calls: string[] = [];
+      utFixture.transport.setCommandHandler((command, args) => {
+        if (command === "vessel.maneuver.remove") {
+          const a = commandArgs<"vessel.maneuver.remove">(args);
+          calls.push(`o.removeManeuverNode[${a?.nodeId}]`);
+        }
+        return null;
+      });
+      return calls;
+    }
+
+    async function mount() {
       render(
         <utFixture.Provider>
           <ManeuverPlannerComponent id="mnv" config={{}} />
         </utFixture.Provider>,
       );
       act(() => {
+        utFixture.scrubTo(UT_FIXTURE_VALUE);
         emitFullOrbit();
+        utFixture.emit("vessel.propulsion", {
+          thrustStartedUt: null,
+          lastThrustEndUt: null,
+        });
       });
-      // Fake timers also fake requestAnimationFrame, so the frame tick needs an explicit advance.
-      act(() => {
-        emitManeuverNode([{ id: NODE_GUID, ut: 1_000_120, dvPrograde: 30 }]);
-      });
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(20);
-      });
-
-      expect(visibleText()).toMatch(/30 m\/s/);
-      expect(screen.queryByText(/Burn complete/i)).toBeNull();
-
-      act(() => {
-        emitManeuverNode([{ id: NODE_GUID, ut: 1_000_120, dvPrograde: 0.1 }]);
-      });
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(20);
-      });
-
-      expect(screen.getByText(/Burn complete/i)).toBeInTheDocument();
-      expect(calls).toHaveLength(0);
-
-      await act(async () => {
-        await vi.advanceTimersByTimeAsync(10_000);
-      });
-
-      expect(calls).toEqual([`o.removeManeuverNode[${NODE_GUID}]`]);
-    } finally {
-      vi.useRealTimers();
     }
+
+    async function settle() {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20);
+      });
+    }
+
+    it("flashes a burn green for 10s once it was flown, then removes it from KSP", async () => {
+      const calls = recordRemovals();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        await mount();
+        act(() => {
+          emitPlan(30, [PATCH]);
+        });
+        await settle();
+        expect(screen.queryByText(/Burn complete/i)).toBeNull();
+
+        act(() => {
+          utFixture.scrubTo(1_000_100);
+          utFixture.emit("vessel.propulsion", {
+            thrustStartedUt: 1_000_099,
+            lastThrustEndUt: null,
+          });
+        });
+        await settle();
+        act(() => {
+          utFixture.scrubTo(1_000_150);
+          utFixture.emit("vessel.propulsion", {
+            thrustStartedUt: null,
+            lastThrustEndUt: 1_000_143,
+          });
+          utFixture.emit("vessel.orbit", {
+            ...VESSEL_ORBIT_STREAM_FIXTURE,
+            ...AFTER_BURN_ORBIT,
+          });
+        });
+        await settle();
+
+        expect(screen.getByText(/Burn complete/i)).toBeInTheDocument();
+        expect(calls).toHaveLength(0);
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10_000);
+        });
+        expect(calls).toEqual([`o.removeManeuverNode[${NODE_GUID}]`]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("keeps a plan trimmed to almost nothing, never calling it a finished burn", async () => {
+      const calls = recordRemovals();
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        await mount();
+        act(() => {
+          emitPlan(30, [PATCH]);
+        });
+        await settle();
+        act(() => {
+          emitPlan(0.1, [{ sma: 700_050, ecc: 0.01, inc: 0 }]);
+        });
+        await settle();
+        act(() => {
+          utFixture.scrubTo(1_000_150);
+        });
+        await settle();
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10_000);
+        });
+
+        expect(screen.queryByText(/Burn complete/i)).toBeNull();
+        expect(calls).toEqual([]);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   // Projected apsides are altitudes, so the body radius subtracted must be the reported one.
