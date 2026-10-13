@@ -69,6 +69,14 @@ namespace Sitrep.Host.Tests.Comms
 
             public Action HearCentreReport(string vesselId, string centre, Action<CentreReport> heard) => Hear();
 
+            public Action HearCraftForecast(string vesselId, string centre, Action<CraftForecast> heard) => Hear();
+
+            public void RecordHomeVerdict(string vesselId, HomeVerdict verdict, double ut)
+            {
+            }
+
+            public Action HearHomeVerdict(string vesselId, string centre, Action<HomeVerdict> heard) => Hear();
+
             public void RecordCraftRadio(string vesselId, ContactRadio radio, double ut)
             {
             }
@@ -106,7 +114,7 @@ namespace Sitrep.Host.Tests.Comms
             var host = new Silent();
             var hearing = new CentreHearing(host);
             hearing.Listen(new[] { Home, Crewed }, new[] { "probe" });
-            Assert.Equal(12, host.Listening);
+            Assert.Equal(16, host.Listening);
 
             host.Released!("probe");
             hearing.Listen(new[] { Home, Crewed }, new string[0]);

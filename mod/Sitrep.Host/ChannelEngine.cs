@@ -36,7 +36,7 @@ namespace Sitrep.Host
     /// only ever touches primitives, registered mapper delegates, and the
     /// explicit job queue.
     /// </summary>
-    public sealed partial class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, IDisposable
+    public sealed partial class ChannelEngine : IUplinkHost, Comms.IDelayModifierSource, IVesselJourneyWriter, CommandCentres.ICommandReachWriter, Comms.ICraftForecastWriter, CommandCentres.ICentreRouteWriter, CommandCentres.IActiveRouteHost, Commcast.IAddressedStreamHost, IDisposable
     {
         public const string NodeId = "system";
 

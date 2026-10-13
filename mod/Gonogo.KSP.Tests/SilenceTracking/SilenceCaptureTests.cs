@@ -10,7 +10,8 @@ namespace Gonogo.KSP.Tests.SilenceTracking
     /// <summary>
     /// What the silence capture hands the tracker each tick from the game's
     /// vessel list: one sample per vessel, in contact exactly when the vessel's
-    /// own link says it is connected.
+    /// route ends at a ground station, the ground being where the forecast's
+    /// geometry and the home centre's hearing both stand.
     /// </summary>
     [Collection(CommsCoreUplinkStatics.Name)]
     public class SilenceCaptureTests
@@ -33,12 +34,14 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         }
 
         [Fact]
-        public void ACraftWhoseLinkIsConnectedIsNominal()
+        public void ACraftWhoseRouteEndsAtTheGroundIsNominal()
         {
             using var ksp = new UnityStandIns(Ut, DelayOn());
 
-            Assert.Equal(SilenceState.Nominal, StateAfterOneCapture(ksp, UnityStandIns.Craft(CraftId, UnityStandIns.Link(connected: true))));
+            Assert.Equal(SilenceState.Nominal, StateAfterOneCapture(ksp, UnityStandIns.Craft(CraftId, Grounded())));
         }
+
+        private static CommNet.CommNetVessel Grounded() => UnityStandIns.Link(connected: true, UnityStandIns.Hop(1_000.0, endsAtHome: true));
 
         [Fact]
         public void ACraftWhoseLinkIsDownIsSilent()
@@ -57,16 +60,17 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         }
 
         /// <summary>
-        /// Connected is the link's own flag, which a path ending at another craft
-        /// sets as readily as one ending at the ground.
+        /// The link's own flag is set for a path ending at another craft as
+        /// readily as one ending at the ground, so it is not what is read: the
+        /// ground cannot hear such a craft.
         /// </summary>
         [Fact]
-        public void ACraftConnectedOnlyThroughAnotherCraftIsNominal()
+        public void ACraftConnectedOnlyThroughAnotherCraftIsSilent()
         {
             using var ksp = new UnityStandIns(Ut, DelayOn());
             var craft = UnityStandIns.Craft(CraftId, UnityStandIns.Link(connected: true, UnityStandIns.Hop(1_000.0, endsAtHome: false)));
 
-            Assert.Equal(SilenceState.Nominal, StateAfterOneCapture(ksp, craft));
+            Assert.Equal(SilenceState.Silent, StateAfterOneCapture(ksp, craft));
         }
 
         [Fact]
@@ -90,8 +94,8 @@ namespace Gonogo.KSP.Tests.SilenceTracking
         public void ACraftThatLeavesTheVesselListIsDeclaredDestroyedOnTheNextCapture()
         {
             using var ksp = new UnityStandIns(Ut, DelayOn());
-            var craft = UnityStandIns.Craft(CraftId, UnityStandIns.Link(connected: true));
-            var other = UnityStandIns.Craft(OtherId, UnityStandIns.Link(connected: true));
+            var craft = UnityStandIns.Craft(CraftId, Grounded());
+            var other = UnityStandIns.Craft(OtherId, Grounded());
             var tracker = Tracker();
             var capture = new FleetSilenceChannels();
 
