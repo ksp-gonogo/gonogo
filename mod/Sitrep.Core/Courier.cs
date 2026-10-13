@@ -448,6 +448,8 @@ namespace Sitrep.Core
             // it would hold retention at a scene no longer reachable, for the rest
             // of the run.
             _owedScenes.Clear();
+            _deliveries.Clear();
+            _deliveriesFired = 0;
             _newestDelivered.Clear();
             // UT has moved backwards, so a schedule set on the abandoned timeline
             // would sit in the future and suppress pruning for the rest of the run.
@@ -846,19 +848,19 @@ namespace Sitrep.Core
                     // wholesale (ManualClock.Reset), exactly as the re-read lane
                     // would have returned nothing for an abandoned sample.
                     var forwarded = new ArchiveSample(value, validAtUt, epoch, stamp);
-                    _clock.Schedule(fireUt, () =>
+                    ScheduleDelivery(fireUt, fireAt =>
                     {
                         if (!subs.Contains(subscriber))
                         {
                             return;
                         }
-                        DeliverSample(node, topic, subscriber, forwarded, fireUt);
+                        DeliverSample(node, topic, subscriber, forwarded, fireAt);
                     });
                 }
                 else
                 {
                     NoteOwedScene(node, topic, validAtUt);
-                    _clock.Schedule(fireUt, () =>
+                    ScheduleDelivery(fireUt, fireAt =>
                     {
                         ClearOwedScene(node, topic, validAtUt);
                         if (!subs.Contains(subscriber))
@@ -866,7 +868,7 @@ namespace Sitrep.Core
                             // Unsubscribed before the delivery fired.
                             return;
                         }
-                        Deliver(node, topic, subscriber, fireUt, delay);
+                        Deliver(node, topic, subscriber, fireAt, delay, sampleInstant: validAtUt);
                     });
                 }
             }
@@ -968,13 +970,13 @@ namespace Sitrep.Core
                 return;
             }
             var fireUt = addressed.Sample.ValidAt + addressed.Sample.Stamp!.For(subscriber.Vantage);
-            _clock.Schedule(fireUt, () =>
+            ScheduleDelivery(fireUt, fireAt =>
             {
                 if (!subs.Contains(subscriber))
                 {
                     return;
                 }
-                subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, addressed.Sample, fireUt, isCatchUp: false));
+                subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, addressed.Sample, fireAt, isCatchUp: false));
             });
         }
 
@@ -1098,14 +1100,14 @@ namespace Sitrep.Core
                 }
                 var owedScene = sample.ValidAt;
                 NoteOwedScene(node, topic, owedScene);
-                _clock.Schedule(fireUt, () =>
+                ScheduleDelivery(fireUt, fireAt =>
                 {
                     ClearOwedScene(node, topic, owedScene);
                     if (!subs.Contains(subscriber))
                     {
                         return;
                     }
-                    Deliver(node, topic, subscriber, fireUt, sampleDelay);
+                    Deliver(node, topic, subscriber, fireAt, sampleDelay, sampleInstant: owedScene);
                 });
             }
 
@@ -1193,11 +1195,17 @@ namespace Sitrep.Core
             Subscriber subscriber,
             double fireUt,
             double? stampedDelaySeconds,
-            bool isCatchUp = false)
+            bool isCatchUp = false,
+            double? sampleInstant = null)
         {
             var archive = ArchiveFor(node);
             var sample = stampedDelaySeconds != null
-                ? archive.ReadAtInstant(topic, subscriber.Vantage, fireUt - stampedDelaySeconds.Value, fireUt)
+                ? archive.ReadAtInstant(
+                    topic,
+                    subscriber.Vantage,
+                    sampleInstant ?? (fireUt - stampedDelaySeconds.Value),
+                    // A delivery brought forward reads as arrived at the time it was first promised for, since the archive counts a sample as arrived by its stamp.
+                    sampleInstant != null ? Math.Max(fireUt, sampleInstant.Value + stampedDelaySeconds.Value) : fireUt)
                 : archive.ReadAtVantage(
                     topic, subscriber.Vantage, _network.DelayTo(subscriber.Vantage, node), fireUt);
             if (sample == null || LostInFlight(node, topic, sample.Value.ValidAt))
@@ -1871,6 +1879,76 @@ namespace Sitrep.Core
                     _pendingCommands[pending.RequestId] = pending;
                 }
                 ScheduleCommand(pending);
+            }
+        }
+
+        // A stream delivery put on the clock, with the handle that lets a shorter delay bring it forward.
+        private sealed class ScheduledDelivery
+        {
+            public long Seq;
+            public double FireUt;
+            public Action<double> Fire = null!;
+            public Action? Cancel;
+            public bool Fired;
+        }
+
+        private readonly List<ScheduledDelivery> _deliveries = new List<ScheduledDelivery>();
+        private long _deliverySeq;
+        private int _deliveriesFired;
+
+        private void ScheduleDelivery(double fireUt, Action<double> fire)
+        {
+            var delivery = new ScheduledDelivery { Seq = ++_deliverySeq, FireUt = fireUt, Fire = fire };
+            _deliveries.Add(delivery);
+            PutOnClock(delivery);
+        }
+
+        private void PutOnClock(ScheduledDelivery delivery)
+        {
+            delivery.Cancel = _clock.Schedule(delivery.FireUt, () =>
+            {
+                delivery.Fired = true;
+                if (++_deliveriesFired > 512 && _deliveriesFired * 2 > _deliveries.Count)
+                {
+                    _deliveries.RemoveAll(d => d.Fired);
+                    _deliveriesFired = 0;
+                }
+                delivery.Fire(delivery.FireUt);
+            });
+        }
+
+        /// <summary>
+        /// C#-ONLY addition (no TS reference). Brings forward every stream
+        /// delivery still on its way, the readings a delay holds back: what is left
+        /// of each is multiplied by <paramref name="remainingFactor"/>, so 0
+        /// delivers them all at once and 0.5 halves what is left. They keep the
+        /// order they were recorded in, and each is delivered as the sample it was,
+        /// not as the newest one. A factor of 1 or more changes nothing.
+        ///
+        /// <para>Only readings already handed to the Courier with a path are here.
+        /// A reading withheld because its craft had no path was never put on the
+        /// clock, and stays withheld.</para>
+        /// </summary>
+        public void BringForwardDeliveries(double remainingFactor, double nowUt)
+        {
+            if (double.IsNaN(remainingFactor) || remainingFactor >= 1.0)
+            {
+                return;
+            }
+
+            var factor = Math.Max(0.0, remainingFactor);
+            _deliveries.RemoveAll(d => d.Fired);
+            _deliveriesFired = 0;
+            foreach (var delivery in _deliveries.OrderBy(d => d.Seq).ToList())
+            {
+                if (delivery.FireUt <= nowUt)
+                {
+                    continue;
+                }
+
+                delivery.Cancel?.Invoke();
+                delivery.FireUt = nowUt + ((delivery.FireUt - nowUt) * factor);
+                PutOnClock(delivery);
             }
         }
 
