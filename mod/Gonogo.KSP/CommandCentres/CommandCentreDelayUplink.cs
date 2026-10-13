@@ -153,6 +153,7 @@ namespace Gonogo.KSP.CommandCentres
                 centre => ReachesGround(centre, vessels, config));
             capture.Ut = snapshot != null ? snapshot.Ut : 0.0;
             capture.ActiveRoutes = activeRoutes;
+            capture.OffTheGround = FleetCommsReader.OffTheGround(vessels, config);
             AddHomeRoute(activeRoutes, centres, _home(), vessels, activeGuid, config, nameOf);
 
             PathSolveBudget.Record(solves.Count, capture.Ut);
@@ -282,6 +283,7 @@ namespace Gonogo.KSP.CommandCentres
             var reach = _host as ICommandReachWriter;
             reach?.SetAuthorityDelays(fleetRows);
             reach?.SetUnroutable(cap.Unroutable);
+            reach?.SetOffTheGround(cap.OffTheGround);
             (_host as ICentreRouteWriter)?.SetCentreRoutes(
                 centreRoutes.ToDictionary(r => r.Key, r => (IReadOnlyCollection<string>)r.Value));
         }
@@ -560,6 +562,7 @@ namespace Gonogo.KSP.CommandCentres
                 new Dictionary<string, IReadOnlyCollection<string>>();
             public IReadOnlyDictionary<string, IReadOnlyList<CommsHop>> ActiveRoutes =
                 new Dictionary<string, IReadOnlyList<CommsHop>>();
+            public IReadOnlyCollection<string> OffTheGround = new List<string>();
             public double Ut;
         }
 

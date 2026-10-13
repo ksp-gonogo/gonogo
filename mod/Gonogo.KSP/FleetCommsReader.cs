@@ -226,6 +226,24 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Every craft whose route is known to end somewhere other than a ground
+        /// station, its link down included, by bare guid. A craft whose route
+        /// cannot be read is left out: it is not known to be off the ground.
+        /// </summary>
+        internal static List<string> OffTheGround(IEnumerable<Vessel> vessels, SignalDelayConfig? config)
+        {
+            var off = new List<string>();
+            foreach (var vessel in vessels)
+            {
+                if (vessel != null && ReachesGround(vessel, config) == false)
+                {
+                    off.Add(vessel.id.ToString());
+                }
+            }
+            return off;
+        }
+
+        /// <summary>
         /// Routed one-way signal delay between two arbitrary comms nodes, or null
         /// when the elected backend does not route between them. Unlike
         /// <see cref="ReadVessel"/>, which can only ever answer "how far is this

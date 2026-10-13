@@ -50,6 +50,25 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Null(state.Links["vessel:b"].Strength);
         }
 
+        /// <summary>Which centres can hear each craft, as each centre last heard it, survives a save, so a centre's contact is what it was before the load.</summary>
+        [Fact]
+        public void WhoCanHearEachCraftComesBackAsTheCentreLastHeardIt()
+        {
+            var reach = new CraftReach("vessel:a", 300.0, new Dictionary<string, double> { ["ground:ksc"] = 300.0, ["ground:far"] = 120.0 });
+            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[]
+            {
+                new HeardAtCentre("ground:ksc", new CraftState[0], new Dictionary<string, bool>(), reaches: new[] { reach }),
+            }));
+
+            var back = Assert.Single(HeardSnapshotCodec.Decode(encoded)!.Centres.Single().Reaches);
+
+            Assert.Equal("vessel:a", back.Id);
+            Assert.Equal(300.0, back.CapturedUt);
+            Assert.True(back.Reaches("ground:ksc"));
+            Assert.False(back.Reaches("ground:far"));
+            Assert.Equal(120.0, back.LastReachedAt("ground:far"));
+        }
+
         private sealed class FakeRestorer : ILinkStrengthRestorer
         {
             public IContactLinkStrength? RestoreLinkStrength(string modelId, IReadOnlyDictionary<string, object?> data) => RestoreFake(modelId, data);

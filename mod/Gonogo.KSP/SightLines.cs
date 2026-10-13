@@ -13,7 +13,9 @@ namespace Gonogo.KSP
     /// orbit of to every command centre that can see it, keyed
     /// <c>vessel:&lt;id&gt;</c> then by centre id. A centre cannot see an object
     /// when a body lies between them, a body being a sphere of its occluding
-    /// radius; nothing else blocks the line, terrain and distance included. A
+    /// radius; nothing else blocks the line, terrain and distance included. In
+    /// a save with no comms model nothing blocks it at all: such a save models
+    /// no occlusion and no blackout, so every centre sees every object. A
     /// centre with no line to an object has no entry in its row. The home
     /// centre sees through every ground station, so its delay is the shortest
     /// of theirs that can see the object.
@@ -24,7 +26,7 @@ namespace Gonogo.KSP
         /// <param name="positionOf">An object's world position at the capture instant.</param>
         /// <param name="centres">The centres that look; only placed centres have eyes.</param>
         /// <param name="roster">The roster, which says which centre is home.</param>
-        /// <param name="config">The signal delay switch and light-speed scale; every delay is zero with it off.</param>
+        /// <param name="config">The signal delay switch and light-speed scale; every delay is zero with it off. Whether the save models comms at all comes from <see cref="SignalDelayConfig.CutForNoCommsModel"/>.</param>
         /// <param name="bodies">Every body that can come between, where it is at the capture instant and its occluding radius.</param>
         internal static Dictionary<string, IReadOnlyDictionary<string, double>> Table(
             IEnumerable<Vessel> vessels,
@@ -64,6 +66,7 @@ namespace Gonogo.KSP
                 }
             }
             var homeLooks = home != null && eyes.Exists(eye => eye.Id == home);
+            var occluders = config.CutForNoCommsModel ? Array.Empty<SightBody>() : bodies;
 
             var sight = new Dictionary<string, IReadOnlyDictionary<string, double>>(StringComparer.Ordinal);
             foreach (var (key, at) in objects)
@@ -72,7 +75,7 @@ namespace Gonogo.KSP
                 var nearestGround = double.PositiveInfinity;
                 foreach (var eye in eyes)
                 {
-                    if (!Clear(eye.Position, at, bodies))
+                    if (!Clear(eye.Position, at, occluders))
                     {
                         continue;
                     }

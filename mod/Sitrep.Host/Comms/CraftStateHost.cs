@@ -61,6 +61,14 @@ namespace Sitrep.Host.Comms
         Action HearCraftLink(string vesselId, string centre, Action<bool> heard);
 
         /// <summary>
+        /// Calls <paramref name="heard"/> each time word of which centres can hear
+        /// the craft reaches <paramref name="centre"/>. Word that a centre has lost
+        /// its route reaches it at the signal delay it last heard the craft at.
+        /// Returns what stops it.
+        /// </summary>
+        Action HearCraftReach(string vesselId, string centre, Action<CraftReach> heard);
+
+        /// <summary>
         /// Records what a craft's radio says of its own link, on the craft's
         /// node. It reaches each centre no sooner than light from the farthest
         /// node on the path it was measured over.

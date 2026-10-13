@@ -191,6 +191,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the far centre has a route to the relay. Without one it is listed as unable to reach it.</summary>
         public bool FarRoutedToRelay { get; set; } = true;
 
+        /// <summary>Whether the relay's route ends somewhere other than a ground station, so the home centre cannot hear it.</summary>
+        public bool RelayOffTheGround { get; set; }
+
         /// <summary>
         /// The route the game carries the active craft's samples to a centre by,
         /// as a comms backend solves it, keyed by centre. A centre listed here is
@@ -614,6 +617,9 @@ namespace Sitrep.Host.IntegrationTests
             new ConcurrentDictionary<(string, string), CraftState>();
         private float _wall;
         private int _handled;
+        private readonly ConcurrentDictionary<(string Centre, string VesselId), CraftReach> _reach =
+            new ConcurrentDictionary<(string Centre, string VesselId), CraftReach>();
+
         private bool _listening;
 
         public ScriptedContactUplink(ScriptedContactGame game, ChannelEngine engine)
@@ -686,6 +692,10 @@ namespace Sitrep.Host.IntegrationTests
         public CraftState? Heard(string centre, string vesselId) =>
             _heard.TryGetValue((centre, vesselId), out var state) ? state : null;
 
+        /// <summary>The newest word of who can hear the craft to have reached the centre, or null when none has.</summary>
+        public CraftReach? Reach(string centre, string vesselId) =>
+            _reach.TryGetValue((centre, vesselId), out var reach) ? reach : null;
+
         public UplinkHealth Health() => _source.Health();
 
         public void Register(IUplinkHost host)
@@ -756,6 +766,7 @@ namespace Sitrep.Host.IntegrationTests
                     foreach (var vesselId in new[] { ScriptedContactGame.ActiveGuid, ScriptedContactGame.RelayGuid })
                     {
                         _engine.HearCraftState(vesselId, centre, state => _heard[(centre, vesselId)] = state);
+                        _engine.HearCraftReach(vesselId, centre, reach => _reach[(centre, vesselId)] = reach);
                     }
                 }
             }
@@ -789,6 +800,7 @@ namespace Sitrep.Host.IntegrationTests
                 unroutable[ScriptedContactGame.Far] = new[] { ChannelEngine.FleetNodePrefix + ScriptedContactGame.RelayGuid };
             }
             _engine.SetUnroutable(unroutable);
+            _engine.SetOffTheGround(ledger.RelayExists && ledger.RelayOffTheGround ? new[] { ScriptedContactGame.RelayGuid } : new string[0]);
 
             // The live links, for whether light that was sent lands and for a
             // relay's own link: the relay to each centre while it has one.
@@ -826,12 +838,15 @@ namespace Sitrep.Host.IntegrationTests
                 ActiveLinkedToRelaySeconds = game.ActiveLinkedToRelaySeconds;
                 ActiveLinkedToHomeSeconds = game.ActiveLinkedToHomeSeconds;
                 FarRoutedToRelay = game.FarRoutedToRelay;
+                RelayOffTheGround = game.RelayOffTheGround;
                 GameRoutes = new Dictionary<string, IReadOnlyList<CommsHop>>(game.GameRoutes);
             }
 
             public Dictionary<string, IReadOnlyList<CommsHop>> GameRoutes { get; }
 
             public bool FarRoutedToRelay { get; }
+
+            public bool RelayOffTheGround { get; }
 
             public double ActiveSeconds { get; }
 

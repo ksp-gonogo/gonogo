@@ -109,6 +109,115 @@ namespace Sitrep.Host
             });
         }
 
+        internal const string CraftReachSuffix = ".reach";
+
+        /// <summary>
+        /// The topic word of which centres can hear a craft is recorded under.
+        /// Never held by a blackout: losing a route is the ground noticing that
+        /// nothing arrives, which no link has to carry.
+        /// </summary>
+        internal static string CraftReachTopic(string vesselId) => CraftStatePrefix + vesselId + CraftReachSuffix;
+
+        /// <summary>For each craft, each centre that has had a route to it: the last tick it had one and the signal delay it had then.</summary>
+        private readonly Dictionary<string, Dictionary<string, (double Ut, double Seconds)>> _craftReached =
+            new Dictionary<string, Dictionary<string, (double Ut, double Seconds)>>(StringComparer.Ordinal);
+
+        /// <summary>The centres each craft was last said to be heard at, so only a change is said.</summary>
+        private readonly Dictionary<string, HashSet<string>> _craftReachSaid = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+
+        /// <summary>The delays each craft's last word of who can hear it was sent under, which its release waits out like its other stamps.</summary>
+        private readonly Dictionary<string, DelayStamp> _craftReachStamps = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
+
+        /// <summary>The craft whose route ends somewhere other than a ground station, as of the last pass. Courier thread only.</summary>
+        private HashSet<string> _offTheGround = new HashSet<string>(StringComparer.Ordinal);
+
+        public void SetOffTheGround(IReadOnlyCollection<string> vesselIds) =>
+            _offTheGround = new HashSet<string>(vesselIds, StringComparer.Ordinal);
+
+        /// <summary>
+        /// Says, for each craft present this tick whose set has changed, which
+        /// centres can hear it, on the craft's own node.
+        ///
+        /// <para>Each centre is sent it under the signal delay it last heard the
+        /// craft at. A centre that has a route now is sent it on that route, and
+        /// one that has just lost its route learns so when the last of what the
+        /// craft sent stops arriving, which is that delay after it stopped. A
+        /// centre that has never had a route is never sent it.</para>
+        /// </summary>
+        private void SayCraftReach()
+        {
+            if (_fleetVesselsThisTick.Count == 0)
+            {
+                return;
+            }
+            var ut = Math.Max(_tickUt, _clock.Now());
+            var home = HomeCentre();
+            var modelled = _deliveryInputs.NetworkModelled;
+            foreach (var vesselId in _fleetVesselsThisTick)
+            {
+                var node = FleetNodePrefix + vesselId;
+                var stamp = _network.StampFor(node);
+                var connected = SubjectConnected(node);
+                var offTheGround = _offTheGround.Contains(vesselId);
+                if (!_craftReached.TryGetValue(vesselId, out var reached))
+                {
+                    reached = new Dictionary<string, (double, double)>(StringComparer.Ordinal);
+                    _craftReached[vesselId] = reached;
+                }
+                var now = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var centre in _activeCentreIds)
+                {
+                    var seconds = stamp.For(centre);
+                    var unroutable = _unroutable.TryGetValue(centre, out var nodes) && nodes.Contains(node);
+                    if (!CentreReach.Reaches(centre, vesselId, modelled, connected, home, offTheGround, unroutable))
+                    {
+                        continue;
+                    }
+                    if (!IsFiniteNonNegative(seconds))
+                    {
+                        // A save with no comms network delivers at once whatever its routes say; otherwise no row means nothing is delivered there.
+                        if (modelled)
+                        {
+                            continue;
+                        }
+                        seconds = 0.0;
+                    }
+                    now.Add(centre);
+                    reached[centre] = (ut, seconds);
+                }
+                // No centre has ever had a route, so there is no one this could reach.
+                if (reached.Count == 0 || (_craftReachSaid.TryGetValue(vesselId, out var said) && said.SetEquals(now)))
+                {
+                    continue;
+                }
+                _craftReachSaid[vesselId] = now;
+                var lastReachedUt = new Dictionary<string, double>(StringComparer.Ordinal);
+                var sentUnder = new Dictionary<string, double>(StringComparer.Ordinal);
+                foreach (var row in reached)
+                {
+                    lastReachedUt[row.Key] = row.Value.Ut;
+                    sentUnder[row.Key] = row.Value.Seconds;
+                }
+                var topic = CraftReachTopic(vesselId);
+                var sent = new DelayStamp(double.PositiveInfinity, sentUnder);
+                _lastRecordedUt[topic] = ut;
+                _courier.Record(NodeFor(topic), topic, new CraftReach(CraftStateRecorder.VesselPrefix + vesselId, ut, lastReachedUt), ut, sentUnder: sent);
+                _craftReachStamps[vesselId] = sent;
+            }
+        }
+
+        public Action HearCraftReach(string vesselId, string centre, Action<CraftReach> heard)
+        {
+            var topic = CraftReachTopic(vesselId);
+            return _courier.SubscribeStream(NodeFor(topic), topic, centre, delivered =>
+            {
+                if (delivered.Payload is CraftReach reach)
+                {
+                    heard(reach);
+                }
+            });
+        }
+
         internal const string CraftRadioSuffix = ".radio";
 
         /// <summary>The topic a craft's radio readings are recorded under.</summary>
@@ -367,6 +476,9 @@ namespace Sitrep.Host
             _craftLinkSaid.Clear();
             _craftRadioStamps.Clear();
             _craftSightStamps.Clear();
+            _craftReached.Clear();
+            _craftReachSaid.Clear();
+            _craftReachStamps.Clear();
             /* The clock's schedule goes with the timeline, and with it the release a
                departed craft was waiting on. A craft that is back on the roster cancels
                its departure when it is next read, so every one still departed is timed

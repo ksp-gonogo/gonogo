@@ -34,6 +34,9 @@ namespace Sitrep.Host.Comms
             /// <summary>The newest reading of each craft's radio to have arrived here, by node id.</summary>
             public Dictionary<string, ContactRadio> Radio { get; } = new Dictionary<string, ContactRadio>(StringComparer.Ordinal);
 
+            /// <summary>The newest word of which centres can hear each craft to have arrived here, by node id.</summary>
+            public Dictionary<string, CraftReach> Reach { get; } = new Dictionary<string, CraftReach>(StringComparer.Ordinal);
+
             public long News { get; set; }
 
             /// <summary>How many radio readings have arrived here. Apart from <see cref="News"/>, which a plan is checked against: a reading changes no plan.</summary>
@@ -155,12 +158,14 @@ namespace Sitrep.Host.Comms
                             listeningEar.Readings++;
                         }
                     });
+                    var stopReach = _host.HearCraftReach(vesselId, centre, reach => Reached(listeningEar, reach));
                     ear.Stop[vesselId] = () =>
                     {
                         stopState();
                         stopSeen();
                         stopLink();
                         stopRadio();
+                        stopReach();
                     };
                 }
             }
@@ -206,6 +211,23 @@ namespace Sitrep.Host.Comms
         public ContactRadio? RadioAt(string centre, string nodeId) =>
             _ears.TryGetValue(centre, out var ear) && ear.Radio.TryGetValue(nodeId, out var radio) ? radio : null;
 
+        /// <summary>The newest word of which centres can hear the craft to have reached <paramref name="centre"/>, or null when none has.</summary>
+        public CraftReach? ReachAt(string centre, string nodeId) =>
+            _ears.TryGetValue(centre, out var ear) && ear.Reach.TryGetValue(nodeId, out var reach) ? reach : null;
+
+        /// <summary>What <paramref name="centre"/> knows of its contact with the craft, or null when nothing about it has reached the centre.</summary>
+        public CentreContact? ContactAt(string centre, string nodeId)
+        {
+            if (!_ears.TryGetValue(centre, out var ear))
+            {
+                return null;
+            }
+            ear.Known.TryGetValue(nodeId, out var known);
+            ear.Heard.TryGetValue(nodeId, out var heard);
+            ear.Reach.TryGetValue(nodeId, out var reach);
+            return CentreContact.Of(centre, known, heard, reach);
+        }
+
         /// <summary>A count that moves each time a radio reading reaches <paramref name="centre"/>.</summary>
         public long ReadingsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.Readings : 0;
 
@@ -239,7 +261,8 @@ namespace Sitrep.Host.Comms
                     new List<CraftState>(ear.Value.Heard.Values),
                     new Dictionary<string, bool>(ear.Value.Link, StringComparer.Ordinal),
                     new List<ContactRadio>(ear.Value.Radio.Values),
-                    new List<CraftSighting>(ear.Value.Seen.Values)));
+                    new List<CraftSighting>(ear.Value.Seen.Values),
+                    new List<CraftReach>(ear.Value.Reach.Values)));
             }
             return new HeardSnapshot(centres);
         }
@@ -278,6 +301,10 @@ namespace Sitrep.Host.Comms
                 foreach (var radio in centre.Radios)
                 {
                     ear.Radio[radio.CraftId] = radio;
+                }
+                foreach (var reach in centre.Reaches)
+                {
+                    Reached(ear, reach);
                 }
                 ear.News++;
                 ear.Readings++;
@@ -366,6 +393,16 @@ namespace Sitrep.Host.Comms
             Know(ear, sighting.Id);
             ear.News++;
             return true;
+        }
+
+        /// <summary>Word of who can hear a craft older than the newest held changes nothing.</summary>
+        private static void Reached(Ear ear, CraftReach reach)
+        {
+            if (ear.Reach.TryGetValue(reach.Id, out var held) && held.CapturedUt >= reach.CapturedUt)
+            {
+                return;
+            }
+            ear.Reach[reach.Id] = reach;
         }
 
         private static void Know(Ear ear, string id)

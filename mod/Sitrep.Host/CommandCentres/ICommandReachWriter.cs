@@ -25,5 +25,12 @@ namespace Sitrep.Host.CommandCentres
         /// is never refused on its own reach.
         /// </summary>
         void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre);
+
+        /// <summary>
+        /// Replace the whole set of craft, by bare guid, whose route ends
+        /// somewhere other than a ground station. The home centre hears a craft
+        /// through every ground station, so it cannot hear one of these.
+        /// </summary>
+        void SetOffTheGround(IReadOnlyCollection<string> vesselIds);
     }
 }

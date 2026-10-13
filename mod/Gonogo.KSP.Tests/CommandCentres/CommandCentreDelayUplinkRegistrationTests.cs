@@ -160,6 +160,28 @@ namespace Gonogo.KSP.Tests.CommandCentres
         }
 
         /// <summary>
+        /// The craft whose route ends away from the ground reach the engine as one
+        /// set every pass, empty included, so a craft that regains a ground station
+        /// is heard at home again.
+        /// </summary>
+        [Fact]
+        public void TheCraftOffTheGroundAreHandedOverAsOneSetEveryPass()
+        {
+            var host = new RecordingUplinkHost();
+            var uplink = new CommandCentreDelayUplink(new CommandCentreRegistry());
+            uplink.Register(host);
+
+            var capture = Capture();
+            capture.OffTheGround = new[] { "G" };
+            uplink.ApplyLedgerOnCourier(capture);
+            uplink.ApplyLedgerOnCourier(Capture());
+
+            Assert.Equal(2, host.OffTheGround.Count);
+            Assert.Equal(new[] { "G" }, host.OffTheGround[0]);
+            Assert.Empty(host.OffTheGround[1]);
+        }
+
+        /// <summary>
         /// The ledger pass hands its rows to the engine and publishes nothing.
         /// What a client is shown of each centre's delay is that centre's own,
         /// from what it has heard, and is the contact plan source's to send: the
@@ -250,6 +272,8 @@ namespace Gonogo.KSP.Tests.CommandCentres
                 AuthorityDelays.Add(rows.Select(r => (r.CentreId, r.VesselId, r.OneWaySeconds)).ToList());
             public void SetUnroutable(IReadOnlyDictionary<string, IReadOnlyCollection<string>> nodesByCentre) =>
                 Unroutable.Add(nodesByCentre);
+            public List<IReadOnlyCollection<string>> OffTheGround { get; } = new List<IReadOnlyCollection<string>>();
+            public void SetOffTheGround(IReadOnlyCollection<string> vesselIds) => OffTheGround.Add(vesselIds);
             public void SetCentreDelay(string fromCentreId, string toCentreId, double oneWaySeconds) => throw new NotSupportedException();
             public void SetHomeCommandDelays(IReadOnlyDictionary<string, double> oneWaySecondsByCentre) =>
                 HomeCommandDelays.Add(new Dictionary<string, double>(oneWaySecondsByCentre));

@@ -61,6 +61,8 @@ namespace Sitrep.Host.Tests.Comms
 
             public Action HearCraftLink(string vesselId, string centre, Action<bool> heard) => Hear();
 
+            public Action HearCraftReach(string vesselId, string centre, Action<CraftReach> heard) => Hear();
+
             public void RecordCraftRadio(string vesselId, ContactRadio radio, double ut)
             {
             }
@@ -98,7 +100,7 @@ namespace Sitrep.Host.Tests.Comms
             var host = new Silent();
             var hearing = new CentreHearing(host);
             hearing.Listen(new[] { Home, Crewed }, new[] { "probe" });
-            Assert.Equal(8, host.Listening);
+            Assert.Equal(10, host.Listening);
 
             host.Released!("probe");
             hearing.Listen(new[] { Home, Crewed }, new string[0]);
@@ -202,6 +204,42 @@ namespace Sitrep.Host.Tests.Comms
             var held = Assert.Single(hearing.HeardAt(Home));
             Assert.Equal(200.0, held.CapturedUt);
             Assert.Equal("Probe", held.Roster!["name"]);
+        }
+
+        private static HeardSnapshot Reached(double ut, double lastHomeUt) => new HeardSnapshot(new[]
+        {
+            new HeardAtCentre(
+                Home,
+                new[] { CraftState.Orbiting(Probe, 100.0, Kerbin, Orbit, null, null, true, new Dictionary<string, CraftLink>()) },
+                new Dictionary<string, bool>(),
+                reaches: new[] { new CraftReach(Probe, ut, new Dictionary<string, double> { [Home] = lastHomeUt }) }),
+        });
+
+        /// <summary>Word of who can hear a craft that left before the word a centre holds changes nothing, as with every other word of a craft.</summary>
+        [Fact]
+        public void OlderWordOfWhoCanHearACraftLeavesTheCentreTheNewerWordItHad()
+        {
+            var hearing = new CentreHearing(new Silent());
+            hearing.Restore(Reached(300.0, 299.0));
+            hearing.Restore(Reached(200.0, 200.0));
+            hearing.Listen(new[] { Home }, new[] { "probe" });
+
+            Assert.Equal(300.0, hearing.ReachAt(Home, Probe)!.CapturedUt);
+            var contact = hearing.ContactAt(Home, Probe)!.Value;
+            Assert.Equal(CentreContactState.Silent, contact.State);
+            Assert.Equal(299.0, contact.LastContactUt);
+        }
+
+        [Fact]
+        public void WhoCanHearACraftIsSavedWithWhatTheCentreHeard()
+        {
+            var hearing = new CentreHearing(new Silent());
+            hearing.Restore(Reached(300.0, 300.0));
+            hearing.Listen(new[] { Home }, new[] { "probe" });
+
+            var saved = Assert.Single(Assert.Single(hearing.Snapshot().Centres).Reaches);
+            Assert.True(saved.Reaches(Home));
+            Assert.Equal(CentreContactState.InContact, hearing.ContactAt(Home, Probe)!.Value.State);
         }
 
         [Fact]

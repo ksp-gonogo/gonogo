@@ -17,16 +17,23 @@ namespace Sitrep.Host.Comms
             IReadOnlyList<CraftState> states,
             IReadOnlyDictionary<string, bool> links,
             IReadOnlyList<ContactRadio>? radios = null,
-            IReadOnlyList<CraftSighting>? sightings = null)
+            IReadOnlyList<CraftSighting>? sightings = null,
+            IReadOnlyList<CraftReach>? reaches = null)
         {
             Centre = centre;
             States = states;
             Links = links;
             Radios = radios ?? NoRadios;
             Sightings = sightings ?? NoSightings;
+            Reaches = reaches ?? NoReaches;
         }
 
         private static readonly IReadOnlyList<CraftSighting> NoSightings = new CraftSighting[0];
+
+        private static readonly IReadOnlyList<CraftReach> NoReaches = new CraftReach[0];
+
+        /// <summary>The newest word of which centres can hear each craft to have reached the centre.</summary>
+        public IReadOnlyList<CraftReach> Reaches { get; }
 
         /// <summary>The newest sighting of each object to have reached the centre: where each was last seen to be.</summary>
         public IReadOnlyList<CraftSighting> Sightings { get; }
@@ -168,9 +175,19 @@ namespace Sitrep.Host.Comms
                         ["listed"] = sighting.Listed == null ? null : new Dictionary<string, object?>(Copy(sighting.Listed)),
                     });
                 }
+                var reaches = new List<object?>();
+                foreach (var reach in centre.Reaches)
+                {
+                    var last = new Dictionary<string, object?>(StringComparer.Ordinal);
+                    foreach (var row in reach.LastReachedUt)
+                    {
+                        last[row.Key] = row.Value;
+                    }
+                    reaches.Add(new Dictionary<string, object?> { ["id"] = reach.Id, ["capturedUt"] = reach.CapturedUt, ["lastReachedUt"] = last });
+                }
                 centres.Add(new Dictionary<string, object?>
                 {
-                    ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios, ["sightings"] = sightings,
+                    ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios, ["sightings"] = sightings, ["reaches"] = reaches,
                 });
             }
             var root = new Dictionary<string, object?> { ["version"] = (double)FormatVersion, ["centres"] = centres };
@@ -234,7 +251,24 @@ namespace Sitrep.Host.Comms
                             ? CraftSighting.Of(seenId, seenUt, Get(seen, "listed") is Dictionary<string, object?> listing ? Listed(listing) : null)
                             : CraftSighting.Gone(seenId, seenUt));
                     }
-                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings));
+                    var reaches = new List<CraftReach>();
+                    foreach (var item3 in List(centre, "reaches"))
+                    {
+                        var reach = (Dictionary<string, object?>)item3!;
+                        var last = new Dictionary<string, double>(StringComparer.Ordinal);
+                        if (Get(reach, "lastReachedUt") is Dictionary<string, object?> rows)
+                        {
+                            foreach (var row in rows)
+                            {
+                                if (row.Value is double ut)
+                                {
+                                    last[row.Key] = ut;
+                                }
+                            }
+                        }
+                        reaches.Add(new CraftReach((string)reach["id"]!, (double)reach["capturedUt"]!, last));
+                    }
+                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings, reaches));
                 }
                 return new HeardSnapshot(centres);
             }

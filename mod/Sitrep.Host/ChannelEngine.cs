@@ -1624,6 +1624,7 @@ namespace Sitrep.Host
                 IsFreezeExempt(topic)
                 || IsPerVesselField(topic, CraftStatePrefix, CraftSightingSuffix)
                 || IsPerVesselField(topic, CraftStatePrefix, CraftRadioLostSuffix)
+                || IsPerVesselField(topic, CraftStatePrefix, CraftReachSuffix)
                 || (_channelDeclarations.TryGetValue(topic, out var declared) && declared.Delay == DelayRole.TrueNow));
             // Routed through InvokeCommandHandler (not a raw dictionary
             // lookup + call) so a handler that throws on THIS delayed path,
@@ -8027,6 +8028,10 @@ namespace Sitrep.Host
             {
                 longest = Math.Max(longest, Longest(sight));
             }
+            if (_craftReachStamps.TryGetValue(vesselId, out var reach))
+            {
+                longest = Math.Max(longest, Longest(reach));
+            }
             _craftReleaseFloor[node] = Math.Max(_tickUt, _clock.Now()) + longest + ReleaseMarginSeconds;
             ScheduleRelease(node);
         }
@@ -8165,6 +8170,9 @@ namespace Sitrep.Host
                 _craftLinkSaid.Remove(vesselId);
                 _craftRadioStamps.Remove(vesselId);
                 _craftSightStamps.Remove(vesselId);
+                _craftReached.Remove(vesselId);
+                _craftReachSaid.Remove(vesselId);
+                _craftReachStamps.Remove(vesselId);
             }
             ForgetRecorderState(node);
         }
@@ -9202,6 +9210,7 @@ namespace Sitrep.Host
             // the sampled-source handles (SetVesselDelay) and the delay refresh
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
+            SayCraftReach();
             NoteActivePathMeasurement(tick);
             _activeVesselSwitched = false;
 

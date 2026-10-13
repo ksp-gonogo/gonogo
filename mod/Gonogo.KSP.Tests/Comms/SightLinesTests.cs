@@ -121,6 +121,26 @@ namespace Gonogo.KSP.Tests.Comms
         }
 
         [Fact]
+        public void InASaveWithNoCommsModelABodyBetweenBlocksNothing()
+        {
+            var noCommNet = new SignalDelayConfig { Enabled = false, LightSpeedScale = 1.0, CutForNoCommsModel = true };
+            var sight = Table(Craft(), new Vector3d(3.0 * KerbinRadius, 0.0, 0.0), noCommNet, Kerbin,
+                Centre(Home, CommandCentreKind.GroundStation, -KerbinRadius));
+
+            Assert.True(sight[Row].ContainsKey(Home));
+        }
+
+        /// <summary>Switching signal delay off is not switching comms off: a body still blocks the line.</summary>
+        [Fact]
+        public void WithSignalDelayOffABodyBetweenStillBlocks()
+        {
+            var sight = Table(Craft(), new Vector3d(3.0 * KerbinRadius, 0.0, 0.0), new SignalDelayConfig { Enabled = false, LightSpeedScale = 1.0 }, Kerbin,
+                Centre(Home, CommandCentreKind.GroundStation, -KerbinRadius));
+
+            Assert.Empty(sight[Row]);
+        }
+
+        [Fact]
         public void ABodyAModelGivesNoOccludingRadiusBlocksNothing()
         {
             var transparent = new[] { new SightBody(new Vector3d(0.0, 0.0, 0.0), 0.0) };
