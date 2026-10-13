@@ -114,6 +114,34 @@ namespace Gonogo.KSP.Tests.Comms
             });
         }
 
+        [Theory]
+        [InlineData(0.01f, 0.01)]
+        [InlineData(100f, 100.0)]
+        [InlineData(0.5f, 0.5)]
+        public void TheSlidersEndsReadBackAsThemselvesDespiteTheNodeStoringAFloat(float stored, double expected)
+        {
+            WithSave(enabled: true, scale: stored, node =>
+            {
+                CommsCoreUplink.SyncSignalDelayFromSave();
+
+                Assert.Equal(expected, CommsCoreUplink.AuthoredSignalDelayConfig.LightSpeedScale, 6);
+                var shown = new CommsCoreUplink().ReadModSetting(CommsDelayModSettings.LightSpeedScaleId).AsNumber;
+                Assert.Equal(expected, shown, 6);
+            });
+        }
+
+        [Fact]
+        public void TheSliderSetToItsLowestWithTheSwitchOffReadsBackAsBoth()
+        {
+            WithSave(enabled: false, scale: (float)SignalDelayChoice.MinLightSpeedScale, node =>
+            {
+                var uplink = new CommsCoreUplink();
+
+                Assert.False(uplink.ReadModSetting(CommsDelayModSettings.EnabledId).AsBool);
+                Assert.Equal(0.01, uplink.ReadModSetting(CommsDelayModSettings.LightSpeedScaleId).AsNumber, 6);
+            });
+        }
+
         [Fact]
         public void ABadStoredLightSpeedIsHeldAsRealLightSpeed()
         {

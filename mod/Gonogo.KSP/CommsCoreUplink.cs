@@ -195,7 +195,6 @@ namespace Gonogo.KSP
             internal static string? Unavailable() =>
                 Node() == null ? "no save is loaded" : null;
 
-            // A light speed the node cannot validly hold reads as real light speed, since a scale of zero or less is an infinite delay.
             internal static SignalDelayChoice? Read()
             {
                 var node = Node();
@@ -204,8 +203,7 @@ namespace Gonogo.KSP
                     return null;
                 }
 
-                var scale = (double)node.lightSpeedScale;
-                return new SignalDelayChoice(node.signalDelay, CommsDelayModSettings.RefuseLightSpeed(scale) == null ? scale : 1.0);
+                return new SignalDelayChoice(node.signalDelay, CommsDelayModSettings.HeldLightSpeed(node.lightSpeedScale));
             }
 
             internal static bool Write(SignalDelayChoice choice)

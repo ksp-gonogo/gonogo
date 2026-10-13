@@ -141,6 +141,22 @@ namespace Gonogo.KSP
                 : CommandResult.Fail(CommandErrorCode.ModeUnavailable, "the signal delay setting could not be set");
         }
 
+        /*
+         * The light speed a save's stored value means. The node keeps a float, so the
+         * slider's own ends read back a hair outside the double range (0.01f is a
+         * little under 0.01): a value at or past an end is that end, and only a value
+         * that would mean an infinite or undefined delay reads as real light speed.
+         */
+        internal static double HeldLightSpeed(double stored)
+        {
+            if (double.IsNaN(stored) || stored <= 0.0)
+            {
+                return 1.0;
+            }
+
+            return Math.Min(SignalDelayChoice.MaxLightSpeedScale, Math.Max(SignalDelayChoice.MinLightSpeedScale, stored));
+        }
+
         /// <summary>Why a light speed cannot be held, or null when it can.</summary>
         internal static string? RefuseLightSpeed(double scale)
         {
