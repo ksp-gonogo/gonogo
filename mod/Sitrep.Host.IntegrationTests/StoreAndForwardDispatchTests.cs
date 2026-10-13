@@ -57,6 +57,40 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// Signal delay switched off removes the waiting and not the missing
+        /// route: a command held for want of a path is still held, and still
+        /// pending, until a path opens.
+        /// </summary>
+        [Fact]
+        public void SwitchingDelayOffDoesNotDeliverACommandHeldForWantOfAPath()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new HeldCommandTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                CutRoute(engine);
+                Tick(engine, 0.0);
+                engine.DispatchCommandAndWait(HeldCommandTestUplink.Command, "x", Centre, _ => { }, TestBudgets.Op);
+                Tick(engine, 10.0);
+                Assert.Single(Pending(engine));
+
+                using var off = engine.DelayModifiers.Register(0.0, "test: switched off");
+                Tick(engine, 20.0);
+                Tick(engine, 30.0);
+
+                Assert.Equal(0, uplink.HandledCount);
+                Assert.Single(Pending(engine));
+                Assert.Contains(Journey(engine).Events, e => e.Kind == JourneyEventKind.Held && e.Craft == CraftNode);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public void AHeldCommandThatExpiresReportsAgainstItsCraftAndRefusesItsRequest()
         {

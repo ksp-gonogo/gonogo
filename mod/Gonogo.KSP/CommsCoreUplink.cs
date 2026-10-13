@@ -243,7 +243,9 @@ namespace Gonogo.KSP
         /// </summary>
         public static void ConfigureSignalDelay(SignalDelayConfig config)
         {
+            var before = DelayFactor(_signalDelayConfig);
             _signalDelayConfig = config ?? SignalDelayConfig.Off();
+            var after = DelayFactor(_signalDelayConfig);
             _base = new SignalDelayConfig
             {
                 Enabled = true,
@@ -251,7 +253,22 @@ namespace Gonogo.KSP
                 SilenceDeclarationSeconds = _signalDelayConfig.SilenceDeclarationSeconds,
             };
             HoldSettingsModifiers(_delayModifiers);
+            if (before > 0.0 && after < before)
+            {
+                DelayShortened?.Invoke(after / before);
+            }
         }
+
+        // What every signal delay is multiplied by under a config: nothing when switched off, the inverse of the light speed otherwise.
+        private static double DelayFactor(SignalDelayConfig config) =>
+            config.Enabled && config.LightSpeedScale > 0.0 ? 1.0 / config.LightSpeedScale : 0.0;
+
+        /// <summary>
+        /// Raised when the signal delay choice makes every delay shorter, with the
+        /// fraction of what is left of any delay still running that remains: 0 when
+        /// delay is switched off, 0.5 when the light speed doubles.
+        /// </summary>
+        internal static event Action<double>? DelayShortened;
 
         /*
          * The modifiers every delay reader's config is folded through: the
