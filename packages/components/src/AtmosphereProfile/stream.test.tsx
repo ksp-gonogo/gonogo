@@ -1,7 +1,10 @@
 import { DashboardItemContext, registerStockBodies } from "@ksp-gonogo/core";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
+import {
+  installFixedSizeResizeObserver,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
+import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { AtmosphereProfileComponent } from "./index";
 
@@ -12,8 +15,16 @@ import { AtmosphereProfileComponent } from "./index";
  * readings are raw `vessel.flight` fields.
  */
 describe("AtmosphereProfile: genuinely runs off the stream (M3 batch 2)", () => {
+  let restoreResizeObserver: () => void = () => {};
+  afterEach(() => restoreResizeObserver());
+
   it("reads body/altitude/density/temperatures off the real stream pipeline, not legacy", async () => {
     registerStockBodies();
+    // The chart measures itself before drawing, and the chip is placed from what it measures.
+    restoreResizeObserver = installFixedSizeResizeObserver({
+      width: 800,
+      height: 500,
+    });
     const fixture = setupStreamFixture({
       pinnedUt: 10,
       suspendFrames: true,

@@ -30,7 +30,7 @@ function heldMark(container: HTMLElement): Element | null {
 
 function chartName(container: HTMLElement): string {
   return (
-    container.querySelector("svg[role='img']")?.getAttribute("aria-label") ?? ""
+    container.querySelector("svg[aria-label]")?.getAttribute("aria-label") ?? ""
   );
 }
 
@@ -139,7 +139,11 @@ describe("AtmosphereProfile when the flight reading is held", () => {
     loseTheLink();
 
     await waitFor(() => expect(heldMark(container)).not.toBeNull());
-    expect(container.querySelector("[role='status']")).toBeNull();
+    // The chart's own live region stays empty until a key moves its crosshair, so only one carrying words is a sentence.
+    const sentences = [...container.querySelectorAll("[role='status']")].filter(
+      (region) => region.textContent,
+    );
+    expect(sentences).toEqual([]);
   });
 
   it("does not present a withheld chip as a vacuum", async () => {

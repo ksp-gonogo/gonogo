@@ -16,8 +16,20 @@ import {
   type UnitValue,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
-import React, { useId, useMemo, useState } from "react";
-import { sampleNearest, sampleTimes, stepTime } from "./crosshairMath";
+import React, {
+  type ReactNode,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
+import { boxAsTrace, type PixelBox, placeCard } from "./cardPlacement";
+import {
+  orderedByX,
+  sampleNearest,
+  sampleTimes,
+  stepTime,
+} from "./crosshairMath";
 import { LimitCrossingMark } from "./LimitCrossingMark";
 import { isPast, type LimitSide, limitCrossings } from "./limitCrossings";
 import {
@@ -63,6 +75,8 @@ export interface ChartSeriesData {
   bridges?: readonly SeriesBridge[];
 }
 
+const HEAD_MARK_RADIUS = 4;
+
 /** Larger than a scatter dot so it holds its own against the dashed line crossing it. */
 const OBSERVED_MARK_RADIUS = 2.5;
 
@@ -88,6 +102,10 @@ export interface ChartSeries {
   fillOpacity?: number;
   /** Writes one of this series' figures with its unit, for the crosshair readout. Falls back to the axis tick formatter. */
   format?: (y: number) => string;
+  /** A mark on the newest sample: a filled dot, or a ring where the figure is held or modelled and so states less than a measurement does. */
+  headMark?: "dot" | "ring";
+  /** A curve with one figure at every x: the crosshair reads it between its samples, not at the nearest one. */
+  readBetween?: boolean;
   data: ChartSeriesData;
 }
 
@@ -198,13 +216,38 @@ export interface LineChartProps {
   /** Names what the chart is, before the layers add their own clauses. */
   "aria-label"?: string;
   /**
-   * A crosshair that reads every series at one instant: on pointer hover, and
-   * from the keyboard (the chart takes focus; arrow keys step through the
-   * samples, shift for ten at a time, Home and End for the ends, Escape to
-   * clear). Only meaningful when x is time, so that samples are ordered along
-   * it. Off by default.
+   * A crosshair that reads every series at one x: on pointer hover, and from
+   * the keyboard (the chart takes focus; arrow keys step through the samples,
+   * shift for ten at a time, Home and End for the ends, Escape to clear). On a
+   * value axis (`xKind`) the samples are looked up by x, wherever they stand in
+   * the series. Off by default.
    */
   crosshair?: boolean;
+  /**
+   * What x is. `"time"` (default) reads a series at its own instants and keeps
+   * the holes it declares. `"value"` is any other numeric quantity: a series is
+   * read at the sample nearest the line, and only within a few percent of the
+   * axis span, so a trace is silent where the craft never was.
+   */
+  xKind?: "time" | "value";
+  /** Names the x axis, with its unit, under the tick labels. Not drawn on a spatial plot or with `hideXAxis`. */
+  xAxisLabel?: string;
+  /** Names the primary y axis, with its unit, up the left edge. */
+  yAxisLabel?: string;
+  /** Names the secondary y axis, with its unit, down the right edge. */
+  ySecondaryAxisLabel?: string;
+  /**
+   * A fixed card drawn over the plot in a corner clear of every trace, line
+   * and legend chip, at the size it measures. Drawn in no corner when none is
+   * clear. A function is handed the room the plot offers and the form to
+   * draw, counting from 0, and is asked for the next form (up to `cardForms`
+   * in all) while the one it gave has no clear corner.
+   */
+  card?:
+    | ReactNode
+    | ((room: { width: number; height: number; form: number }) => ReactNode);
+  /** How many forms `card` can draw, the most spread out first. 1 when omitted. */
+  cardForms?: number;
   width: number;
   height: number;
 }
@@ -233,6 +276,24 @@ const Y_LABEL_INSET = 4;
 /** The most of a plot's width its label gutter may take. */
 const MAX_GUTTER_SHARE = 0.4;
 const SPATIAL_GRID_PITCH_PX = 26;
+/** The strip an axis title takes beside or under its tick labels. */
+const AXIS_TITLE_PX = 14;
+/** The card's inset from the plot's edge, as `placeCard` keeps it. */
+const CARD_EDGE_PX = 4;
+/** How far a value axis reads a trace from the line, as a share of the axis span. */
+const VALUE_READ_SHARE = 0.03;
+
+/** `text` cut to fit `px` at the 10 px type titles use, keeping a trailing unit in parentheses whole where there is room for it. */
+function fitTitle(text: string, px: number): string {
+  const chars = Math.max(0, Math.floor(px / 6));
+  if (text.length <= chars) return text;
+  const unitAt = text.lastIndexOf(" (");
+  if (unitAt > 0 && text.length - unitAt + 4 <= chars) {
+    const room = chars - (text.length - unitAt) - 3;
+    return `${text.slice(0, room)}...${text.slice(unitAt)}`;
+  }
+  return chars < 4 ? "" : `${text.slice(0, chars - 3)}...`;
+}
 
 /** Inset half a pitch so no dot sits on the frame's own edge. */
 function spatialGrid(
@@ -351,6 +412,12 @@ export function LineChart({
   layers,
   "aria-label": ariaLabel,
   crosshair = false,
+  xKind = "time",
+  xAxisLabel,
+  yAxisLabel,
+  ySecondaryAxisLabel,
+  card,
+  cardForms = 1,
   width,
   height,
 }: Readonly<LineChartProps>) {
@@ -364,6 +431,43 @@ export function LineChart({
   } | null>(null);
   const [focusRing, setFocusRing] = useState(false);
   const [announcement, setAnnouncement] = useState("");
+  const [cardEl, setCardEl] = useState<HTMLDivElement | null>(null);
+  const [cardForm, setCardForm] = useState(0);
+  const [measured, setMeasured] = useState<{
+    w: number;
+    h: number;
+    form: number;
+  } | null>(null);
+  const hasCard = card !== undefined && card !== null;
+  // The card's own size decides where it fits, so it is rendered first and measured, not given a size by its caller. A size measured for another form says nothing about this one.
+  const cardSize = measured?.form === cardForm ? measured : null;
+  useLayoutEffect(() => {
+    if (!cardEl) {
+      setMeasured(null);
+      return;
+    }
+    const read = () =>
+      setMeasured((prev) => {
+        const next = {
+          w: cardEl.offsetWidth,
+          h: cardEl.offsetHeight,
+          form: cardForm,
+        };
+        return prev?.w === next.w &&
+          prev?.h === next.h &&
+          prev?.form === next.form
+          ? prev
+          : next;
+      });
+    read();
+    const ro = new ResizeObserver(read);
+    ro.observe(cardEl);
+    return () => ro.disconnect();
+  }, [cardEl, cardForm]);
+  // A new plot size starts the forms over from the most spread out.
+  useLayoutEffect(() => {
+    if (width >= 0 && height >= 0) setCardForm(0);
+  }, [width, height]);
   const w = width;
   const h = height;
 
@@ -375,10 +479,17 @@ export function LineChart({
   );
   const hasSecondary = secondarySeries.length > 0;
 
+  const titledX = !spatial && !hideXAxis && !!xAxisLabel;
+  const titledY = !spatial && !!yAxisLabel;
+  const titledSecondary = !spatial && hasSecondary && !!ySecondaryAxisLabel;
   // One pixel of inset keeps the outermost stroke from being clipped by the frame.
-  const fitted = spatial
+  const base = spatial
     ? { top: 1, right: 1, bottom: 1, left: 1 }
     : fitMargins(w, h, hasSecondary);
+  const fitted = {
+    ...base,
+    bottom: base.bottom + (titledX ? AXIS_TITLE_PX : 0),
+  };
   const plotY0 = fitted.top;
   const plotY1 = h - fitted.bottom;
   const plotH = plotY1 - plotY0;
@@ -486,10 +597,13 @@ export function LineChart({
     ? fitted
     : {
         ...fitted,
-        left: labelGutter(yTicksPrimary, fitted.left),
-        right: hasSecondary
-          ? labelGutter(yTicksSecondary, fitted.right)
-          : fitted.right,
+        left:
+          labelGutter(yTicksPrimary, fitted.left) +
+          (titledY ? AXIS_TITLE_PX : 0),
+        right:
+          (hasSecondary
+            ? labelGutter(yTicksSecondary, fitted.right)
+            : fitted.right) + (titledSecondary ? AXIS_TITLE_PX : 0),
       };
   const plotX0 = margin.left;
   // The card, legend and captions share one placement: a column beside the plot when the chart has room, the plot itself otherwise.
@@ -812,6 +926,50 @@ export function LineChart({
     captionsFit,
   ]);
 
+  // The card is placed before the threshold labels, which then yield to it: a label is short and can move, a card cannot.
+  const cardBox: PixelBox | undefined = (() => {
+    if (!hasCard || cardSize === null || spatial) return undefined;
+    const half = LIMIT_MARK_SIZE / 2;
+    const traces = [
+      ...series
+        .filter((s) => (s.type ?? "line") !== "band")
+        .flatMap((s) => {
+          const scaleY = s.axis === "primary" ? scaleYPrimary : scaleYSecondary;
+          const cx = s.data.x.map(scaleX);
+          const cy = s.data.y.map(scaleY);
+          // Dots are not joined, so each is its own obstacle.
+          return s.type === "scatter"
+            ? cx.map((px, i) => ({ cx: [px], cy: [cy[i]] }))
+            : [{ cx, cy }];
+        }),
+      ...thresholdLines.map((t) => ({ cx: [plotX0, plotX1], cy: [t.y, t.y] })),
+    ];
+    const obstacles: PixelBox[] = [
+      ...crossingMarks.map((m) => ({
+        x0: m.x - half,
+        y0: m.y - half,
+        x1: m.x + half,
+        y1: m.y + half,
+      })),
+      ...(legend === "none" || column
+        ? []
+        : series.map((s, i) => ({
+            x0: plotX0 + 3,
+            y0: plotY0 + 6 + i * 16,
+            x1: plotX0 + 3 + Math.min(s.label.length * 6 + 8, plotW - 6),
+            y1: plotY0 + 6 + i * 16 + 13,
+          }))),
+    ];
+    const at = placeCard({
+      plot: { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
+      card: { width: cardSize.w, height: cardSize.h },
+      traces,
+      obstacles,
+    });
+    return at
+      ? { x0: at.x, y0: at.y, x1: at.x + cardSize.w, y1: at.y + cardSize.h }
+      : undefined;
+  })();
   // A label yields to another label always, and to a mark, the legend and a trace where it can. A plot too small for captions draws none: the lines and the marks stand alone.
   const labelPlaces = useMemo(() => {
     if (!captionsFit) return new Map<string, null>();
@@ -828,6 +986,7 @@ export function LineChart({
         })),
       plot: column ?? { x0: plotX0, y0: plotY0, x1: plotX1, y1: plotY1 },
       obstacles: [
+        ...(cardBox ? [cardBox] : []),
         ...crossingMarks.map((m) => ({
           x0: m.x - half,
           y0: m.y - half,
@@ -859,6 +1018,7 @@ export function LineChart({
     });
   }, [
     captionsFit,
+    cardBox,
     column,
     thresholdLines,
     crossingMarks,
@@ -917,8 +1077,11 @@ export function LineChart({
   ].join("; ");
 
   const crosshairSeries = useMemo(
-    () => series.filter((s) => s.data.x.length > 0),
-    [series],
+    () =>
+      series
+        .filter((s) => s.data.x.length > 0)
+        .map((s) => (xKind === "value" ? orderedByX(s) : s)),
+    [series, xKind],
   );
   const crosshairTimes = useMemo(
     () => (crosshairOn ? sampleTimes(crosshairSeries) : []),
@@ -926,11 +1089,13 @@ export function LineChart({
   );
   const xLo = Math.min(xDomain[0], xDomain[1]);
   const xHi = Math.max(xDomain[0], xDomain[1]);
+  const readWithin =
+    xKind === "value" ? (xHi - xLo) * VALUE_READ_SHARE : undefined;
 
   /** Every series' figure at `at`, and the limits, with the words that name the instant. */
   function readAt(at: number): { heading: string; rows: PlotCrosshairRow[] } {
     const rows: PlotCrosshairRow[] = crosshairSeries.map((s) => {
-      const sample = sampleNearest(s, at);
+      const sample = sampleNearest(s, at, readWithin);
       const write = s.format ?? yTickFormat;
       const scaleY = s.axis === "primary" ? scaleYPrimary : scaleYSecondary;
       const isBand = (s.type ?? "line") === "band";
@@ -988,6 +1153,20 @@ export function LineChart({
       cx: s.data.x.map(scaleX),
       cy: s.data.y.map(s.axis === "primary" ? scaleYPrimary : scaleYSecondary),
     }));
+  const cardTraces = cardBox
+    ? [...tracePixels, boxAsTrace(cardBox)]
+    : tracePixels;
+
+  // The next form is tried once this one is measured and has no clear corner.
+  const needsNextForm =
+    hasCard &&
+    !spatial &&
+    cardSize !== null &&
+    !cardBox &&
+    cardForm < cardForms - 1;
+  useLayoutEffect(() => {
+    if (needsNextForm) setCardForm((form) => form + 1);
+  }, [needsNextForm]);
   // The line stands on a sample the way the keys put it, so the instant it names is a sample's own time and does not depend on where the plot's pixels fall.
   const snapped = (at: number): number => {
     let best = at;
@@ -1015,7 +1194,7 @@ export function LineChart({
       heading: crosshairReading.heading,
       rows: crosshairReading.rows,
       column,
-      traces: tracePixels,
+      traces: cardTraces,
     });
 
   function timeAtPointer(e: React.PointerEvent<SVGSVGElement>): number | null {
@@ -1253,6 +1432,47 @@ export function LineChart({
           </text>
         ))}
 
+      {titledX && (
+        <text
+          x={(plotX0 + plotX1) / 2}
+          y={h - 5}
+          textAnchor="middle"
+          fill="var(--color-text-muted)"
+          fontSize={10}
+          data-axis-title="x"
+        >
+          {fitTitle(xAxisLabel as string, plotW)}
+        </text>
+      )}
+      {titledY && (
+        <text
+          x={AXIS_TITLE_PX / 2}
+          y={(plotY0 + plotY1) / 2}
+          transform={`rotate(-90 ${AXIS_TITLE_PX / 2} ${(plotY0 + plotY1) / 2})`}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="var(--color-text-muted)"
+          fontSize={10}
+          data-axis-title="y"
+        >
+          {fitTitle(yAxisLabel as string, plotH)}
+        </text>
+      )}
+      {titledSecondary && (
+        <text
+          x={w - AXIS_TITLE_PX / 2}
+          y={(plotY0 + plotY1) / 2}
+          transform={`rotate(90 ${w - AXIS_TITLE_PX / 2} ${(plotY0 + plotY1) / 2})`}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="var(--color-text-muted)"
+          fontSize={10}
+          data-axis-title="y2"
+        >
+          {fitTitle(ySecondaryAxisLabel as string, plotH)}
+        </text>
+      )}
+
       {/* An even lattice at a fixed screen pitch, not on tick positions, so it reads as a map grid. */}
       {spatial &&
         spatialGrid(plotX0, plotX1, plotY0, plotY1, gridScale)
@@ -1441,6 +1661,31 @@ export function LineChart({
           )),
         )}
 
+      {series.map((s) => {
+        if (!s.headMark) return null;
+        const scaleY = s.axis === "primary" ? scaleYPrimary : scaleYSecondary;
+        let last = s.data.x.length - 1;
+        while (
+          last >= 0 &&
+          !(Number.isFinite(s.data.x[last]) && Number.isFinite(s.data.y[last]))
+        ) {
+          last -= 1;
+        }
+        if (last < 0) return null;
+        return (
+          <circle
+            key={`${s.id}-head`}
+            cx={scaleX(s.data.x[last])}
+            cy={scaleY(s.data.y[last])}
+            r={HEAD_MARK_RADIUS}
+            fill={s.headMark === "dot" ? s.color : "var(--color-surface-panel)"}
+            stroke={s.color}
+            strokeWidth={s.headMark === "dot" ? 0 : 1.5}
+            data-head-mark={s.headMark}
+          />
+        );
+      })}
+
       {layers && layers.length > 0 && (
         <g clipPath={`url(#${layerClipId})`}>
           <PlotLayers layers={layers} frame={layerFrame} pass="foreground" />
@@ -1538,16 +1783,51 @@ export function LineChart({
           heading={crosshairReading.heading}
           rows={crosshairReading.rows}
           column={column}
-          traces={tracePixels}
+          traces={cardTraces}
         />
       )}
     </svg>
   );
 
-  if (!crosshairOn) return chart;
+  const cardNode = hasCard ? (
+    <div
+      ref={setCardEl}
+      data-plot-card=""
+      style={{
+        position: "absolute",
+        left: cardBox?.x0 ?? 0,
+        top: cardBox?.y0 ?? 0,
+        visibility: cardBox ? "visible" : "hidden",
+        pointerEvents: "none",
+        width: "max-content",
+        padding: "var(--gap-line) var(--gap-related)",
+        background: "var(--color-surface-panel)",
+        border: "1px solid var(--color-border-strong)",
+        borderRadius: 3,
+      }}
+    >
+      {typeof card === "function"
+        ? card({
+            width: plotW - CARD_EDGE_PX * 2,
+            height: plotH - CARD_EDGE_PX * 2,
+            form: cardForm,
+          })
+        : card}
+    </div>
+  ) : null;
+
+  if (!crosshairOn) {
+    return (
+      <>
+        {chart}
+        {cardNode}
+      </>
+    );
+  }
   return (
     <>
       {chart}
+      {cardNode}
       <VisuallyHidden id={`${uid}-crosshair-hint`}>
         Use the arrow keys to read the values at each sample
       </VisuallyHidden>

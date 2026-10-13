@@ -77,6 +77,7 @@ export function buildLiveSeries(
           ? writeQuantity({ magnitude: y, unit: meta.unit })
           : formatReadoutValue(y),
       data,
+      ...(cfg.head && !xIsTime ? { headMark: cfg.head } : {}),
     };
   });
 }

@@ -1,3 +1,4 @@
+export { axisTitle } from "./axisTitle";
 export * from "./Badge";
 export * from "./BannerPill";
 export * from "./BannerStack";

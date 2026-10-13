@@ -47,6 +47,8 @@ export interface GraphSeries {
   color?: string;
   /** Which axis the series is drawn against. Absent means `"auto"`. */
   axis?: "primary" | "secondary" | "auto";
+  /** A mark on the newest sample: a dot while it is a measurement, a ring while it is held or modelled. Drawn on a value axis, where a single sample draws no line. */
+  head?: "dot" | "ring";
 }
 
 /**
@@ -125,6 +127,10 @@ interface GraphFrameConfig {
   gridScale?: number;
   /** Unit token for the primary Y tick labels, written through the unit registry's ladder. */
   yUnit?: string;
+  /** Names the primary Y axis; the names of the series drawn on it when absent. */
+  yLabel?: string;
+  /** Names the X axis; time says "Time", a field says its own name, a pinned domain says nothing unless this is given. */
+  xLabel?: string;
   /** Pins the primary-axis domain; the data range when absent. */
   yDomainPrimary?: [number, number];
   /** Pins the secondary-axis domain; the data range when absent. */
