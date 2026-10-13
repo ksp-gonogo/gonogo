@@ -44,7 +44,7 @@ export interface StatusIndicatorProps
  * @example
  * ```tsx
  * <StatusIndicator tone="caution" pulse="fast" live>
- *   Reconnecting to the relay
+ *   Reconnecting to the game
  * </StatusIndicator>
  * ```
  *

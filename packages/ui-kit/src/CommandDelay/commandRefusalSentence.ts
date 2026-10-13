@@ -25,7 +25,8 @@ export interface CommandRefusalLike {
    * The refinement's id, when the refusal was more specific than its root
    * `errorCode`. A refinement is a narrower reason an Uplink declares under a
    * root code, such as a particular kind of `wrongState`; a client that does
-   * not know it still reads the root.
+   * not know it still reads the root. An Uplink declares one in C# with
+   * `Refine` on the root `RefusalCode`, as `owner.name`.
    */
   reason?: string;
   /** The command id that was dispatched, e.g. `career.facility.upgrade`. */

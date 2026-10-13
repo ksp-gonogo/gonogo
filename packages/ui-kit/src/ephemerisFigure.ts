@@ -27,13 +27,14 @@ export type EphemerisFigure = <Unit extends string>(
  * right mark. Used by the transfer window planner. Pass the poses `useSystemInstant` returns and the bodies
  * the figure rests on.
  *
- * The figure is as current as the least current pose it rests on. Where every
- * one of those poses is `exact` (on a fixed conic, an orbit that never changes, as every body of a stock
- * install is) the figure is stamped deterministic and takes no mark, however long
- * ago the catalogue last arrived. Where any is `held`, because the instant is
- * past its provider's horizon or the catalogue stopped arriving under a body
- * that drifts, the figure comes back held as of the oldest of them. A `modelled`
- * pose claims no exactness and takes no mark.
+ * The figure is as current as the least current pose it rests on (a pose is
+ * a body's position at an instant). Where every one of those poses is `exact`
+ * (the body follows a fixed orbit that never changes, as every body of a stock
+ * install does) the figure takes no mark, however long ago the body list last
+ * arrived. Where any is `held`, because the instant is later than the last
+ * moment the position can be computed for or the body list stopped arriving
+ * for a body whose orbit drifts, the figure comes back held as of the oldest of
+ * them. A `modelled` pose claims no exactness and takes no mark.
  *
  * A figure that also rests on the craft does not come through here: give it
  * the craft's mark with {@link derivedMarking}, since one inexact input makes

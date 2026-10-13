@@ -5,8 +5,8 @@ import { TONE_TEXT } from "./tone";
 
 /**
  * How far plain text recedes: `muted` for secondary text, `faint` the quietest
- * tier below it, for a readout that should recede, like the numeric echo beside
- * an analog stick. Useful for letting the operator's eye pass over words that
+ * tier below it, for a readout that should recede, such as the number echoing
+ * a value already drawn as a bar. Useful for letting the operator's eye pass over words that
  * support a figure. Taken by the `level` prop of {@link Text}.
  *
  * @category Typography

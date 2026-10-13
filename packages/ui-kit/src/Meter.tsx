@@ -140,8 +140,9 @@ export interface MeterProps<UnitSymbol extends string = string>
  *
  * ## Bands
  *
- * Where a reading carries an {@link UncertaintyBand} (how far its forward
- * model, see {@link TopicReckoning}, would defend the figure), the meter draws
+ * Where a reading carries an {@link UncertaintyBand} (the range around its
+ * figure that its forward model, see {@link TopicReckoning}, gives as where
+ * the true value lies), the meter draws
  * a tick at each end of it on the track: two marks, never a shaded interval.
  * The bar still shows the observed value, and the ticks sit where the model
  * puts the value now. A band on the capacity is ticked near the track's end, as a
@@ -174,6 +175,9 @@ export interface MeterProps<UnitSymbol extends string = string>
  *
  * @example Row meters in a stack, sharing columns so every bar lines up
  * ```tsx
+ * import { value } from "@ksp-gonogo/sitrep-sdk";
+ * import { Meter, MeterStack } from "@ksp-gonogo/ui-kit";
+ *
  * <MeterStack>
  *   <Meter label="LF" layout="row" value={value("units", 320)} capacity={value("units", 400)} />
  *   <Meter label="Ox" layout="row" value={value("units", 391)} capacity={value("units", 489)} />

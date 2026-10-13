@@ -4,7 +4,8 @@ The design system behind [Gonogo](https://github.com/ksp-gonogo/gonogo), a missi
 dashboard for Kerbal Space Program. It's the same set of primitives the built-in widgets are
 made of, published so that widgets and Uplinks written outside the Gonogo repository look like they belong
 on the same screen. Compose them and your widget picks up the host's theme, spacing and type
-scale without you writing CSS for any of it.
+scale without you writing CSS for any of it. Import `@ksp-gonogo/ui-kit/tokens.css` once, or every
+colour and size is unset.
 
 A widget ships inside an **Uplink**, the extension unit that pairs a KSP mod with a client
 bundle. This package is one of its two halves; the other is `@ksp-gonogo/sitrep-sdk`, which

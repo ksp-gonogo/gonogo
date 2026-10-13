@@ -57,8 +57,7 @@ void _everySegmentListed;
  * Uplink fills any widget's header badges, which the operator sees beside the
  * widget's title, by contributing to
  * `"<widget-id>.badges"` with its handle's `registerContribution`, without the
- * widget declaring the slot. Useful for an Uplink author checking which
- * segment names every widget carries. `compute` returns {@link BadgeEntry} items. How
+ * widget declaring the slot. `compute` returns {@link BadgeEntry} items. How
  * the panel draws them, and a whole example, are under Standard slots on
  * {@link Panel}.
  *

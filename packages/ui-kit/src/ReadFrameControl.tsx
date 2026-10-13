@@ -49,7 +49,8 @@ export interface ReadFrameControlProps {
  *
  * A read frame is the frame of reference a widget draws positions in, such as
  * centred on a body; it changes only the drawing. The Control Frame is the
- * frame the game itself is set to, reported on the `system.frame` Topic. The
+ * frame the game's own navigation view is expressed in, one at a time, reported
+ * on the `system.frame` Topic and settable with the `system.frame.set` command. The
  * selected option is found by frame equality with `value`
  * (`readFrameChoicesEqual` from `@ksp-gonogo/sitrep-sdk/frames`), so options
  * need no ids of their own.

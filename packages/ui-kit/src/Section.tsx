@@ -117,7 +117,8 @@ export function Section({
  * a panel's. Used by the settings and alarms dialogs.
  *
  * Use `as="h3"` (or another heading tag) for a real heading; `$rule` draws a
- * hairline under it.
+ * hairline under it. The `$` prefix marks a styled-components transient prop:
+ * it styles the heading and is never passed on to the DOM element.
  *
  * @category Layout
  */

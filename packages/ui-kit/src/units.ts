@@ -872,11 +872,12 @@ export interface FormatQuantityOptions {
   /** Override the kind's decimal places. */
   decimals?: number;
   /**
-   * The unit the last render settled on, read from the formatted quantity's `rung`.
-   * Pass it back so a value hovering on a boundary between two units does not
-   * flicker between them. Nothing keeps it for you: {@link Unit} formats each
-   * render from its props alone, so a caller that wants the steadiness holds
-   * the last rung and passes it here.
+   * The unit the last render settled on, read from the formatted quantity's
+   * `rung`. A rung is one unit on the ladder a kind of quantity climbs as it
+   * grows (`m`, then `km`, then `Mm`). Pass it back so a value hovering on the
+   * boundary between two rungs does not flicker between them. Nothing keeps it
+   * for you: {@link Unit} formats each render from its props alone, so a caller
+   * that wants the steadiness holds the last rung and passes it here.
    */
   heldSymbol?: string;
 }
@@ -886,7 +887,7 @@ export interface FormattedQuantity {
   value: string;
   /** The symbol to show beside it. Empty when the unit is unknown or bare. */
   symbol: string;
-  /** The rung actually used, to feed back as `heldSymbol` on the next render. */
+  /** The unit actually used, one rung of the kind's ladder (`m`, `km`, `Mm`), to feed back as `heldSymbol` on the next render. */
   rung: string;
 }
 
@@ -1212,8 +1213,10 @@ export interface QuantityScale {
 }
 
 /**
- * Build a {@link QuantityScale} whose rung is taken from `reference`. Useful
- * for giving the operator marks that read against one unit. Used by
+ * Build a {@link QuantityScale} whose unit is the one `reference` is written
+ * in, chosen from the kind's ladder of units (`m`, `km`, `Mm`) by its size, so
+ * every mark reads against that one unit. Useful for giving the operator marks
+ * that read against one unit. Used by
  * {@link Tape}.
  *
  * `reference` is the value that defines the scale rather than a value on it:

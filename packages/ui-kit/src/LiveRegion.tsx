@@ -29,9 +29,9 @@ export interface LiveRegionProps {
    * whatever the operator is doing, such as a mission abort, and nothing softer.
    */
   assertive?: boolean;
-  /** The element the region renders as. */
+  /** The tag the region is drawn with: `span` to sit inside a line of text, `div` for a block. */
   as?: "div" | "span";
-  /** A class for the region's element, so a styled-component can extend it. */
+  /** The class `styled(LiveRegion)` passes in to style the region. */
   className?: string;
 }
 

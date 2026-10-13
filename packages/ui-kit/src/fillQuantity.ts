@@ -4,7 +4,7 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
  * How much there is, and what that is a fraction of, for {@link TinyEssentials}.
  * Both halves are the same kind of quantity, which the types enforce, and the
  * kit divides them itself. Useful for giving a gauge both the amount in a tank
- * and its capacity. Taken by the fill-fraction helper.
+ * and its capacity. Taken by the helper that divides one by the other.
  *
  * @category Unit
  */

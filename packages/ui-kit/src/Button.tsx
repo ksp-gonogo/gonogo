@@ -59,7 +59,11 @@ export type ButtonSize = "sm" | "md";
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** How prominent the button is. Defaults to `default`. */
   variant?: ButtonVariant;
-  /** Defaults to `go` for a primary button and `neutral` otherwise. */
+  /**
+   * What pressing the button does, as a status colour: `nogo` for a destructive
+   * action, `warn` for one that needs attention. Defaults to `go` for a primary
+   * button and `neutral` otherwise.
+   */
   tone?: ButtonTone;
   /** Defaults to `md`. */
   size?: ButtonSize;

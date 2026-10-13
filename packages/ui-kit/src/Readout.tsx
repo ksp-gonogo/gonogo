@@ -88,7 +88,7 @@ export function Readout({
  * A muted uppercase secondary line for a {@link Readout} (a mode tag, say),
  * placed inside it after the figure. Useful for telling the operator what the
  * figure above it measures. Used by the settings version line and the warp
- * control. It renders a `span` and takes every prop that element does.
+ * control.
  *
  * @category Readout
  */

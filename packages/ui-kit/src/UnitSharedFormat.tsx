@@ -29,7 +29,7 @@ import {
 
 /**
  * What a group settles, and what every member inside it is written at. The fields are the formatter's own, so applying one is a spread.
- * Returned by the shared-format hook and applied by {@link Unit}.
+ * Read from the enclosing {@link UnitSharedFormat} group by each {@link Unit} inside it, and applied by that Unit.
  *
  * An absent field is a group with no opinion: the member's own props fill it.
  *

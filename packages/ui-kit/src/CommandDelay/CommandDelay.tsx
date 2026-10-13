@@ -42,11 +42,13 @@ export interface CommandDelayHandle {
    */
   inFlight: InFlightCommandLike[];
   /**
-   * What this entry is on the delay rail's three axes, in full: `direction`
-   * (a `command` leaving or `telemetry` arriving), `kind` (`event` or
-   * `discrete`, one point, or `continuous`, a span) and `delivery` (`acked`, answered, or
-   * `fire-and-forget`). The delay rail is the strip a panel draws above its
-   * header to show what is crossing the signal delay. The renderer follows
+   * What this entry is on the delay rail's three axes, in full. `direction`
+   * is `command` for something leaving the command centre or `telemetry` for
+   * something arriving from the vessel. `kind` is `event` or `discrete` for one
+   * point in time, or `continuous` for a span. `delivery` is `acked` when the
+   * vessel confirms receipt, `answered` when it replies with a result, or
+   * `fire-and-forget` when nothing comes back. The delay rail is the strip a
+   * panel draws above its header to show what is crossing the signal delay. The renderer follows
    * from these, so no consumer branches on what kind of command this is. A
    * command handle gets them from {@link useCommand}; a producer that is not a
    * command (an open microphone) states them with {@link railTagsForTelemetry}.

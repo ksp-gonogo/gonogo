@@ -207,9 +207,10 @@ export interface UnitProps<UnitSymbol extends string = string>
    */
   hideUnitInGroup?: boolean;
   /**
-   * Draw the reading's model rather than its observation, where the model has
-   * one, and mark the figure as modelled wherever it is not a reading of now:
-   * a blue triangle, where a held figure takes the warning dot. For a figure a
+   * Draw the reading's model in place of its observation, where the model has
+   * one. The figure is always marked as modelled wherever it is not a reading
+   * of now (a blue triangle, where a held figure takes the warning dot), so it
+   * never passes for an observed one. For a figure a
    * person reads as the truth about now (a position, an altitude, a clock);
    * leave it off where the number is an input to a computation.
    */
@@ -325,9 +326,8 @@ function UnitSymbol({
  *
  * @category Unit
  * @categoryDescription Unit
- * Drawing a quantity. A {@link Unit} puts a value with its unit on screen,
- * formatted the same way everywhere, and every number with a unit is drawn
- * through one. Around it sit the marks for a figure that is held or modelled
+ * A {@link Unit} puts a value with its unit on screen, formatted the same way
+ * everywhere, and every number with a unit is drawn through one. Around it sit the marks for a figure that is held or modelled
  * instead of current, the bands for a figure known only within limits, the
  * null token for no value, and the helpers that write a quantity as text where
  * a node will not do.

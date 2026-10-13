@@ -32,18 +32,19 @@ const STREAM_STATUS_WORD: Readonly<Record<StreamStatusValue, string | null>> = {
  * why a figure is not a live reading. Used by {@link StreamStatusBadge} and
  * {@link Panel}.
  *
- * The words:
+ * The words, exactly as returned (every one is upper case, and a badge draws
+ * it as it stands):
  *
- * - `"held"`: `HELD`
- * - `"disconnected"`: offline
- * - `"last-before-blackout"`: blackout, the last value sent before a known
+ * - `"held"`: `"HELD"`
+ * - `"disconnected"`: `"OFFLINE"`
+ * - `"last-before-blackout"`: `"BLACKOUT"`, the last value sent before a known
  *   loss of signal (a blackout is a stretch when the craft's signal cannot
  *   reach the command centre)
- * - `"recorded"`: recorded
- * - `"loading"`: loading
- * - `"no-game"`: no game
- * - `"resyncing"`: syncing
- * - `"absent"`: "NO DATA"
+ * - `"recorded"`: `"RECORDED"`
+ * - `"loading"`: `"LOADING"`
+ * - `"no-game"`: `"NO GAME"`
+ * - `"resyncing"`: `"SYNCING"`
+ * - `"absent"`: `"NO DATA"`
  *
  * @category Badge
  */

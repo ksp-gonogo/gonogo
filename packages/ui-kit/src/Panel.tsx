@@ -1296,11 +1296,12 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * The dashboard sets the blackout grades itself, from the widget's declared
    * channels (the Topics it reads). A blackout is a stretch when the craft's
    * signal cannot reach the command centre: the last value sent before it is
-   * `last-before-blackout`, and a value the craft sent once contact came back
-   * is `recorded`. The grades are listed on {@link StreamStatusValue}. Any
-   * other grade shows only when set here, so set it for a panel that reads one
-   * specific Topic. It is merged, worst first, with the dashboard's status and
-   * any badge drawn with `report`.
+   * graded `last-before-blackout`, and a value the craft sent once contact came
+   * back is graded `recorded`. Every grade is listed on
+   * {@link StreamStatusValue}. Any other grade shows only when set here, so set
+   * it for a panel that reads one specific Topic. It is merged, worst first,
+   * with the dashboard's status and with the state of every {@link Badge} given
+   * a `report` prop.
    */
   panelStatus?: StreamStatusValue | "none";
   /**
@@ -1406,8 +1407,7 @@ function mergeBadges(
 /**
  * The standard augment segments {@link Panel} mounts for every widget:
  * `sections` and `actions`. Useful for an Uplink author checking which segment
- * names every widget carries. Used by the render probe that `uplink-tools`
- * runs, to avoid binding a standard slot a second time on a stand-in host. An
+ * names every widget already has, so as not to declare the same slot again. An
  * Uplink binds `"<widget-id>.sections"` or
  * `"<widget-id>.actions"` with `registerAugment` for any widget, whether or
  * not the widget declares slots of its own. Neither passes props (see
@@ -2144,7 +2144,7 @@ function holdsOnlyAFrame(section: ReactNode): boolean {
  *
  * - `Panel.Container`: the bordered frame
  * - `Panel.Context`: the provider that links the body's scroller to the glow;
- *   take no props but `children`
+ *   it takes no props but `children`
  * - `Panel.Delay`: the delay rail above the header
  * - `Panel.Header`: the title and its aside on one row, collapsing the aside
  *   to status dots when they no longer fit
