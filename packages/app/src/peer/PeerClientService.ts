@@ -104,6 +104,7 @@ type ClientEventMap = {
   alarmFired: [fire: { id: string; name: string; ut: number }];
   triggerSnapshot: [snap: import("@ksp-gonogo/components").TriggerSnapshot];
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
+  noteResult: [result: Extract<PeerMessage, { type: "note-result" }>];
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
   flightChange: [flight: FlightRecord | null];
@@ -562,21 +563,48 @@ export class PeerClientService {
     } satisfies PeerMessage);
   }
 
-  sendNoteAdd(body: string) {
-    this.conn?.send({ type: "note-add", body } satisfies PeerMessage);
+  /**
+   * The note mutations return whether the message left this device: false
+   * when there is no open connection, so the caller can say so rather than
+   * let the edit vanish. The host's verdict arrives as a `note-result` for the
+   * same `ref`.
+   */
+  sendNoteAdd(ref: string, body: string): boolean {
+    return this.sendNote({ type: "note-add", ref, body });
   }
-  sendNoteUpdate(id: string, body: string) {
-    this.conn?.send({ type: "note-update", id, body } satisfies PeerMessage);
+  sendNoteUpdate(
+    ref: string,
+    id: string,
+    body: string,
+    baseVersion: number,
+  ): boolean {
+    return this.sendNote({ type: "note-update", ref, id, body, baseVersion });
   }
-  sendNoteDelete(id: string) {
-    this.conn?.send({ type: "note-delete", id } satisfies PeerMessage);
+  sendNoteDelete(ref: string, id: string, baseVersion: number): boolean {
+    return this.sendNote({ type: "note-delete", ref, id, baseVersion });
   }
-  sendNoteReorder(id: string, afterId: string | null) {
-    this.conn?.send({
+  sendNoteReorder(
+    ref: string,
+    id: string,
+    afterId: string | null,
+    baseVersion: number,
+  ): boolean {
+    return this.sendNote({
       type: "note-reorder",
+      ref,
       id,
       afterId,
-    } satisfies PeerMessage);
+      baseVersion,
+    });
+  }
+  private sendNote(msg: PeerMessage): boolean {
+    if (!this.conn || this.connStatus !== "connected") return false;
+    try {
+      this.conn.send(msg);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   sendAlarmWarpIntent(index: number) {
@@ -1067,6 +1095,12 @@ export class PeerClientService {
     return this.events.on("notesSnapshot", cb);
   }
 
+  onNoteResult(
+    cb: (result: Extract<PeerMessage, { type: "note-result" }>) => void,
+  ) {
+    return this.events.on("noteResult", cb);
+  }
+
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
     return this.events.on("alarmFired", cb);
   }
@@ -1199,6 +1233,9 @@ export class PeerClientService {
     },
     "notes-snapshot": (msg) => {
       this.events.emit("notesSnapshot", msg.snapshot);
+    },
+    "note-result": (msg) => {
+      this.events.emit("noteResult", msg);
     },
     "alarm-fired": (msg) => {
       this.events.emit("alarmFired", {

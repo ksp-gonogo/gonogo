@@ -6,6 +6,16 @@ import { useEffect } from "react";
 import type { PeerHostService } from "./PeerHostService";
 
 /**
+ * The command centre this screen stands at: the one it chose, or before it has
+ * chosen, the one its frames arrive from; null until either is known.
+ */
+export function useHostCentre(): string | null {
+  const selected = useSelectedVantage();
+  const observed = useObservedVantage();
+  return selected ?? observed ?? null;
+}
+
+/**
  * Tells the peer mesh which command centre this screen stands at: the one it
  * chose, or before it has chosen, the one its frames arrive from. The same
  * answer the vantage picker shows.
@@ -19,9 +29,7 @@ export function HostCommandCentreAnnouncer({
 }: {
   host: Pick<PeerHostService, "setCommandCentre">;
 }) {
-  const selected = useSelectedVantage();
-  const observed = useObservedVantage();
-  const centreId = selected ?? observed ?? null;
+  const centreId = useHostCentre();
   useEffect(() => {
     host.setCommandCentre(centreId);
   }, [host, centreId]);

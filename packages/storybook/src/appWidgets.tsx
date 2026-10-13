@@ -12,12 +12,14 @@ import { NotesHostService } from "../../app/src/notes/NotesHostService";
 import type { Note } from "../../app/src/notes/types";
 
 const AT = 1_700_000_000_000;
+const CENTRE = "ground:home";
 
 const NOTES: Note[] = [
   {
     id: "n1",
     body: "Circularise at {{vessel.orbit.apoapsis}} before the Mun transfer",
     order: 0,
+    version: 1,
     createdAt: AT,
     updatedAt: AT,
   },
@@ -25,6 +27,7 @@ const NOTES: Note[] = [
     id: "n2",
     body: "Jeb on EVA after the burn",
     order: 1,
+    version: 1,
     createdAt: AT,
     updatedAt: AT,
   },
@@ -37,7 +40,10 @@ const NOTES: Note[] = [
 export const APP_WIDGET_WRAPS: Record<string, (tree: ReactNode) => ReactNode> =
   {
     notes: (tree) => (
-      <NotesHostProvider service={new NotesHostService({ load: () => NOTES })}>
+      <NotesHostProvider
+        service={new NotesHostService({ load: () => ({ [CENTRE]: NOTES }) })}
+        centreId={CENTRE}
+      >
         {tree}
       </NotesHostProvider>
     ),
