@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 /**
- * Review renders for a `admin-building.screens` contribution that draws its own
+ * Review renders for a `administration-building.screens` contribution that draws its own
  * actions: the host draws that screen's cards with neither an Activate button
  * nor a price, because the price it would show is stock's activation cost and
  * the spend belongs to the Uplink's own body. The stock scene is the same
@@ -11,7 +11,7 @@
  * input, and a scene added to it with no committed baseline fails the gate
  * as missing. This exists to be looked at by a person.
  *
- * Run via `pnpm --filter @ksp-gonogo/components render-admin-building-own-actions`.
+ * Run via `pnpm --filter @ksp-gonogo/components render-administration-building-own-actions`.
  * Pass `--out <dir>` to write somewhere other than this checkout's
  * `local_docs`.
  */
@@ -19,22 +19,22 @@ import { renderWidgets, type WidgetRenderConfig } from "./widgetRenderHarness";
 
 const CONFIGS: WidgetRenderConfig[] = [
   {
-    widgetId: "admin-building",
-    label: "admin-building/admin-building-own-actions",
-    slug: "admin-building-own-actions",
-    fixturesPath: "AdminBuilding/__fixtures__/probe",
-    outPath: "renders/admin-building-own-actions",
+    widgetId: "administration-building",
+    label: "administration-building/administration-building-own-actions",
+    slug: "administration-building-own-actions",
+    fixturesPath: "AdministrationBuilding/__fixtures__/probe",
+    outPath: "renders/administration-building-own-actions",
     fullContent: true,
     modes: [
       { name: "wide-9x12", w: 9, h: 12, forFixtures: ["own-actions-screen"] },
     ],
   },
   {
-    widgetId: "admin-building",
-    label: "admin-building/stock",
-    slug: "admin-building-stock",
-    fixturesPath: "AdminBuilding/__fixtures__",
-    outPath: "renders/admin-building-stock",
+    widgetId: "administration-building",
+    label: "administration-building/stock",
+    slug: "administration-building-stock",
+    fixturesPath: "AdministrationBuilding/__fixtures__",
+    outPath: "renders/administration-building-stock",
     fullContent: true,
     modes: [
       { name: "wide-9x12", w: 9, h: 12, forFixtures: ["small-career-detail"] },

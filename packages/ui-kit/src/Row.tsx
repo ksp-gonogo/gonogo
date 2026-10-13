@@ -77,7 +77,7 @@ function RowBase({
 /**
  * The name inside a {@link Row}: fills the free width and truncates with an
  * ellipsis. Useful for keeping a long vessel or part name from pushing a row's
- * badges and actions out of the tile. Used by the admin building's rows. Also
+ * badges and actions out of the tile. Used by the administration building's rows. Also
  * reachable as `Row.Name`.
  *
  * @category Layout

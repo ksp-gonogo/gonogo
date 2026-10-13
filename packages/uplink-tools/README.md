@@ -194,7 +194,7 @@ need the widget around it:
 A fixture can then name the widget it extends:
 
 ```json
-{ "_scene": { "hostWidget": "admin-building" } }
+{ "_scene": { "hostWidget": "administration-building" } }
 ```
 
 There is nothing to `import` from `/widgets`. It exports no symbols: importing it
@@ -214,7 +214,7 @@ and `Panel` draws every widget's `<id>.badges` itself, so a badge contribution
 lands there exactly as it lands in the real widget.
 
 Every **other** contribution slot is drawn by the host widget's own body, and a
-stand-in's body draws nothing. `admin-building.screens`,
+stand-in's body draws nothing. `administration-building.screens`,
 `space-center-status.facilities` and `astronaut-complex.readouts` are each read
 by a `useContributions(...)` inside the widget. Standing in for those produces a
 blank frame that reports success. A real widget's own body is the only thing that draws

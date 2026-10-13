@@ -101,7 +101,7 @@ export interface CarriedCurrency {
  * Returns a value you have already computed as a {@link Reading}, dated by
  * the inputs it came from. Useful for showing the operator a figure your own
  * code derived while keeping how current it is. Used by the maneuver planner and
- * the admin building.
+ * the administration building.
  *
  * Unlike {@link combineReadings}, it never withholds the value: use it when
  * your own code has already decided what a missing input means.

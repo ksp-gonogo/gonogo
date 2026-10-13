@@ -9,7 +9,7 @@ import noStrategies from "./__fixtures__/no-strategies-early-career.json";
 import oneActive from "./__fixtures__/one-active-room-for-more.json";
 import gatedPerStrategy from "./__fixtures__/per-strategy-refusals.json";
 import overCap from "./__fixtures__/three-active-cap-of-two.json";
-import { AdminBuildingComponent } from "./index";
+import { AdministrationBuildingComponent } from "./index";
 
 /** DOM snapshots off the stream pipeline, driven by each fixture's own `_stream` block. */
 
@@ -25,10 +25,10 @@ const FIXTURES: Record<string, Record<string, unknown>> = {
   "per-strategy-refusals": gatedPerStrategy,
 };
 
-const config = getWidget("admin-building");
+const config = getWidget("administration-building");
 if (!config) throw new Error("strategies missing from widgets.ts");
 
-describe("Admin Building DOM snapshots", () => {
+describe("Administration Building DOM snapshots", () => {
   for (const [name, fixture] of Object.entries(FIXTURES)) {
     // This harness never dispatches a mode's `clicks`, so a mode snapshots only the fixtures it names.
     const modes = config.modes.filter(
@@ -37,7 +37,7 @@ describe("Admin Building DOM snapshots", () => {
     for (const mode of modes) {
       it(`${name} @ ${mode.name}`, async () => {
         const html = await snapshotWidgetMode({
-          Widget: AdminBuildingComponent,
+          Widget: AdministrationBuildingComponent,
           fixture,
           mode,
         });

@@ -13,7 +13,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { perItemGateReport } from "../test/perItemGate";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
-  AdminBuildingComponent,
+  AdministrationBuildingComponent,
   parseEffectLines,
   parseStrategies,
 } from "./index";
@@ -166,7 +166,7 @@ describe("parseStrategies: absent figures", () => {
   });
 });
 
-describe("AdminBuildingComponent", () => {
+describe("AdministrationBuildingComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(() => {
@@ -180,7 +180,7 @@ describe("AdminBuildingComponent", () => {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "s" }}>
-          <AdminBuildingComponent config={{}} id="s" />
+          <AdministrationBuildingComponent config={{}} id="s" />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );

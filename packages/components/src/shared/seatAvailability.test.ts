@@ -147,7 +147,7 @@ describe("the built-in catalogue, derived", () => {
           "domains": [
             "career",
           ],
-          "id": "admin-building",
+          "id": "administration-building",
         },
         {
           "domains": [

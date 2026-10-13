@@ -22,6 +22,7 @@ describe("component-id migration", () => {
     expect(migrateComponentId("targeting")).toBe("targeting");
     expect(migrateComponentId("distance-to-target")).toBe("distance-to-target");
     expect(migrateComponentId("tech-tree")).toBe("tech-tree");
+    expect(migrateComponentId("admin-building")).toBe("admin-building");
     const items: DashboardItem[] = [
       item("a", "targeting"),
       item("b", "tech-tree"),
