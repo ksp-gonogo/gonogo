@@ -2,8 +2,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 
 /**
  * KSP HIGH-warp ladder: labels match the in-game tooltip, indices are what
- * `time.setWarpIndex` takes. Physics warp uses a different ladder and is not
- * surfaced.
+ * `time.setWarpIndex` takes while the game is in high warp.
  */
 export const HIGH_LEVELS: ReadonlyArray<{ index: number; label: string }> = [
   { index: 0, label: "1×" },
@@ -16,11 +15,29 @@ export const HIGH_LEVELS: ReadonlyArray<{ index: number; label: string }> = [
   { index: 7, label: "100k×" },
 ];
 
-export const TOP_WARP_INDEX = HIGH_LEVELS.length - 1;
+/** KSP physics-warp ladder: the same index space as `HIGH_LEVELS`, but a different rate behind each index, and only four of them. */
+export const PHYSICS_LEVELS: ReadonlyArray<{ index: number; label: string }> = [
+  { index: 0, label: "1×" },
+  { index: 1, label: "2×" },
+  { index: 2, label: "3×" },
+  { index: 3, label: "4×" },
+];
+
+/** The ladder the published warp index addresses: the physics one while the mode caption reads "Physics". */
+export function ladderFor(
+  mode: string | null,
+): ReadonlyArray<{ index: number; label: string }> {
+  return mode === "Physics" ? PHYSICS_LEVELS : HIGH_LEVELS;
+}
+
+/** The highest index on the ladder the mode addresses. */
+export function topWarpIndex(mode: string | null): number {
+  return ladderFor(mode).length - 1;
+}
 
 /** The ladder label for a warp index, or the bare index off the ladder. */
-export function warpLabel(index: number): string {
-  return HIGH_LEVELS[index]?.label ?? `${index}`;
+export function warpLabel(index: number, mode: string | null): string {
+  return ladderFor(mode)[index]?.label ?? `${index}`;
 }
 
 /**

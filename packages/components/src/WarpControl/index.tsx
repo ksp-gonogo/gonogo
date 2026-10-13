@@ -31,7 +31,7 @@ import { WarpControlConfigForm } from "./WarpControlConfigForm";
 import { WarpControlView } from "./WarpControlView";
 import read from "./warp-control.declarations.g";
 import { armWarpEvent, warpEventTargets } from "./warpEvents";
-import { normalizeWarpMode, TOP_WARP_INDEX, warpLabel } from "./warpLevels";
+import { normalizeWarpMode, topWarpIndex, warpLabel } from "./warpLevels";
 
 export { delayRequiringAlarm } from "./alarmGate";
 export type { WarpControlActions, WarpControlConfig } from "./config";
@@ -115,6 +115,7 @@ function useWarpControl(config: WarpControlConfig | undefined) {
     viewUt: viewUt?.valueOf(),
   });
 
+  const mode = normalizeWarpMode(warp?.warpMode);
   const setWarp = (idx: number) => {
     // Announced before the command, so this screen alone skips its unscheduled-warp alert for it.
     announceWarpIntent?.();
@@ -141,16 +142,17 @@ function useWarpControl(config: WarpControlConfig | undefined) {
   useActionInput<WarpControlActions>({
     "step-up": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      if (alarmRequired) return undefined;
-      const next = Math.min(TOP_WARP_INDEX, (currentIndex ?? 0) + 1);
+      if (alarmRequired || currentIndex === null) return undefined;
+      const next = Math.min(topWarpIndex(mode), currentIndex + 1);
       setWarp(next);
-      return { Warp: warpLabel(next) };
+      return { Warp: warpLabel(next, mode) };
     },
     "step-down": (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
-      const next = Math.max(0, (currentIndex ?? 0) - 1);
+      if (currentIndex === null) return undefined;
+      const next = Math.max(0, currentIndex - 1);
       setWarp(next);
-      return { Warp: warpLabel(next) };
+      return { Warp: warpLabel(next, mode) };
     },
     stop: (payload) => {
       if (payload.kind === "button" && payload.value !== true) return undefined;
@@ -199,12 +201,11 @@ function useWarpEssentials({
   return [
     {
       label: "WARP",
-      // The ladder's own label while on the high-warp ladder; physics warp has its own, so its rate is written as it is.
       word:
         warp === undefined
           ? NULL_DISPLAY
-          : currentIndex !== null && !physics
-            ? warpLabel(currentIndex)
+          : currentIndex !== null
+            ? warpLabel(currentIndex, normalizeWarpMode(warp.warpMode))
             : `${writeQuantity(warp.warpRate, { decimals: 0 })}×`,
       tone: physics ? "warn" : "neutral",
     },
