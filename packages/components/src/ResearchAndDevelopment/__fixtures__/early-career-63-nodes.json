@@ -4,7 +4,7 @@
     "capturedAt": "2026-05-29",
     "body": "Kerbin",
     "situation": "Career flight",
-    "notes": "Live tech.nodes capture (63 nodes) from the legacy fork's tech-tree handler."
+    "notes": "Live tech.nodes capture (63 nodes) from the legacy fork's research-and-development handler."
   },
   "tech.nodes": [
     {

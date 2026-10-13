@@ -12,10 +12,10 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { parseTechNodes, TechTreeComponent } from "./index";
+import { parseTechNodes, ResearchAndDevelopmentComponent } from "./index";
 
 /**
- * TechTree off a real stream pipeline. Nodes are emitted in the explicit-`state` shape `parseTechNodes` also accepts, which lets these tests exercise the per-node `parts` rendering the real wire has no field for.
+ * ResearchAndDevelopment off a real stream pipeline. Nodes are emitted in the explicit-`state` shape `parseTechNodes` also accepts, which lets these tests exercise the per-node `parts` rendering the real wire has no field for.
  */
 
 const SAMPLE_NODES = [
@@ -83,13 +83,13 @@ function renderTree(fixture: StreamFixture) {
   return render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "tt" }}>
-        <TechTreeComponent config={{}} id="tt" />
+        <ResearchAndDevelopmentComponent config={{}} id="tt" />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
 }
 
-describe("TechTreeComponent", () => {
+describe("ResearchAndDevelopmentComponent", () => {
   // Reset at the start of each test, when the prior tree is already unmounted, so no mutation fires against a live component.
   beforeEach(() => {
     clearActionHandlers();
@@ -218,7 +218,7 @@ describe("TechTreeComponent", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tt" }}>
-          <TechTreeComponent config={{}} id="tt" w={16} h={12} />
+          <ResearchAndDevelopmentComponent config={{}} id="tt" w={16} h={12} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

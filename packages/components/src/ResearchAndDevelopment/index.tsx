@@ -13,8 +13,8 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf } from "../shared/magnitude";
 import { computeResearchable } from "./graph-layout";
-import { TechTreeView } from "./TechTreeView";
-import read from "./tech-tree.declarations.g";
+import { ResearchAndDevelopmentView } from "./ResearchAndDevelopmentView";
+import read from "./research-and-development.declarations.g";
 import { parseTechNodes } from "./wire";
 
 export type { TechNode, TechNodeState, TechPart } from "./wire";
@@ -31,14 +31,16 @@ const topics = defineTopicManifest({
   ],
 });
 
-type TechTreeConfig = Record<string, never>;
+type ResearchAndDevelopmentConfig = Record<string, never>;
 
 /**
  * Resolves career telemetry into the typed shape the view renders, then hands off.
  * One record, two currency decisions. The node list is a fact (nobody can spend down a link that is not delivering), so a held tree is still the tree.
  * The science balance feeds the price readout's `canAfford`, a claim about now, so only a current balance colours it. Whether Unlock is available is the command's per-node gate.
  */
-function TechTreeComponent({ w }: Readonly<ComponentProps<TechTreeConfig>>) {
+function ResearchAndDevelopmentComponent({
+  w,
+}: Readonly<ComponentProps<ResearchAndDevelopmentConfig>>) {
   const career = topics.useTelemetry("career.status");
   const tech = stillTrue(career, undefined)?.tech;
   /*
@@ -70,7 +72,7 @@ function TechTreeComponent({ w }: Readonly<ComponentProps<TechTreeConfig>>) {
   const sciAvailable = magnitudeOf(careerScience);
 
   return (
-    <TechTreeView
+    <ResearchAndDevelopmentView
       w={w}
       allNodes={allNodes}
       unlockedCount={tech?.unlockedCount ?? null}
@@ -84,7 +86,7 @@ function TechTreeComponent({ w }: Readonly<ComponentProps<TechTreeConfig>>) {
 }
 
 /** How many nodes the balance can buy now, and the balance. */
-function useTechTreeEssentials(): readonly TinyEssential[] {
+function useResearchAndDevelopmentEssentials(): readonly TinyEssential[] {
   const career = topics.useTelemetry("career.status");
   return [
     {
@@ -112,25 +114,25 @@ function useTechTreeEssentials(): readonly TinyEssential[] {
   ];
 }
 
-registerComponent<TechTreeConfig>({
-  id: "tech-tree",
-  name: "Tech Tree",
+registerComponent<ResearchAndDevelopmentConfig>({
+  id: "research-and-development",
+  name: "Research and Development",
   description:
     "Browse and research career tech. From 10 grid units wide it draws the tech tree as the game does, coloured by what you own, can research and cannot reach yet; narrower, it becomes a searchable list with every part each node unlocks.",
   tags: ["career", "tech"],
   defaultSize: { w: 6, h: 9 },
   // Three columns and rows hold the two essentials the tiny form draws.
   minSize: { w: 5, h: 4 },
-  component: TechTreeComponent,
-  tiny: { title: "TECH", useEssentials: useTechTreeEssentials },
+  component: ResearchAndDevelopmentComponent,
+  tiny: { title: "TECH", useEssentials: useResearchAndDevelopmentEssentials },
   channels: topics.channels,
   ...read,
   fields: topics.fields,
   defaultConfig: {},
   actions: [],
-  augmentSlots: ["tech-tree.sections"],
+  augmentSlots: ["research-and-development.sections"],
   pushable: true,
   requires: ["career"],
 });
 
-export { TechTreeComponent };
+export { ResearchAndDevelopmentComponent };

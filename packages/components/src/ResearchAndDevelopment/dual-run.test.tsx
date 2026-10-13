@@ -5,12 +5,12 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import smallCareerDetail from "./__fixtures__/small-career-detail.json";
-import { TechTreeComponent } from "./index";
+import { ResearchAndDevelopmentComponent } from "./index";
 
 /**
  * Renders a small hand-authored tech tree (5 nodes, one multi-parent, 3 unlocked) through the stream pipeline in the real wire shape, including each node's `description`.
  */
-describe("TechTree: real small career-detail fixture render off the stream (delay=0)", () => {
+describe("ResearchAndDevelopment: real small career-detail fixture render off the stream (delay=0)", () => {
   it("renders science, unlocked/researchable counts, and every node off the stream, no legacy leg", async () => {
     const mode = { name: "default-6x9", w: 6, h: 9 };
 
@@ -22,7 +22,7 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     const { container } = render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tt-dual" }}>
-          <TechTreeComponent id="tt-dual" w={mode.w} h={mode.h} />
+          <ResearchAndDevelopmentComponent id="tt-dual" w={mode.w} h={mode.h} />
         </DashboardItemContext.Provider>
       </streamFixture.Provider>,
     );
@@ -80,7 +80,7 @@ describe("TechTree: real small career-detail fixture render off the stream (dela
     render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tt-desc" }}>
-          <TechTreeComponent id="tt-desc" w={6} h={9} />
+          <ResearchAndDevelopmentComponent id="tt-desc" w={6} h={9} />
         </DashboardItemContext.Provider>
       </streamFixture.Provider>,
     );

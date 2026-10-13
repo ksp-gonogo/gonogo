@@ -2,15 +2,15 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { TechTreeComponent } from "./index";
+import { ResearchAndDevelopmentComponent } from "./index";
 
-/** TechTree off the real stream pipeline: science and tech nodes stream, with no `DataSource`. */
+/** ResearchAndDevelopment off the real stream pipeline: science and tech nodes stream, with no `DataSource`. */
 // Reset at the start of each test, when the prior tree is already unmounted.
 beforeEach(() => {
   clearActionHandlers();
 });
 
-describe("TechTree: genuinely runs off the stream", () => {
+describe("ResearchAndDevelopment: genuinely runs off the stream", () => {
   it("renders the science readout derived from career.status.balances.science", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -20,7 +20,7 @@ describe("TechTree: genuinely runs off the stream", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tt-stream" }}>
-          <TechTreeComponent id="tt-stream" w={6} h={9} />
+          <ResearchAndDevelopmentComponent id="tt-stream" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
