@@ -209,7 +209,13 @@ namespace Sitrep.Host
 
                         if (ChannelEngine.ContractRefusalReason(attr.ContractMajor, attr.ContractMinor) != null)
                         {
-                            found.Add(new DiscoveredUplink(null, attr.ContractMajor, attr.ContractMinor, attr.Id));
+                            // A refused Uplink is never constructed, so its attribute is the only name it
+                            // has; an empty one is recorded under the type so the refusal stays addressable.
+                            found.Add(new DiscoveredUplink(
+                                null,
+                                attr.ContractMajor,
+                                attr.ContractMinor,
+                                string.IsNullOrEmpty(attr.Id) ? type.FullName : attr.Id));
                             continue;
                         }
 

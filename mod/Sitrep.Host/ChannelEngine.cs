@@ -123,8 +123,8 @@ namespace Sitrep.Host
         ///
         /// <para>A disjoint prefix rather than publishing under
         /// <see cref="FleetNodePrefix"/> directly, because
-        /// <see cref="RegisterDynamicNamespace"/> is last-registration-wins per
-        /// prefix: a second uplink registering "fleet." would overwrite the fleet
+        /// <see cref="RegisterDynamicNamespace"/> keeps a prefix with the Uplink that
+        /// registered it first: a second uplink registering "fleet." would otherwise overwrite the fleet
         /// capture's LossyLatest template (and its channel ownership) with the
         /// event lane's ReliableOrdered one. Same node, own namespace, earned by
         /// declaring <see cref="ChannelDeclaration.PerVesselNode"/> at the
@@ -145,9 +145,9 @@ namespace Sitrep.Host
         /// <para>A disjoint prefix rather than publishing under
         /// <see cref="FleetNodePrefix"/> directly, for the same reason
         /// <see cref="CurrencyEventPrefix"/> is disjoint:
-        /// <see cref="RegisterDynamicNamespace"/> is last-registration-wins per
-        /// prefix, and re-registering "fleet." here would clobber the fleet
-        /// capture's own template/ownership. Same node, own namespace, earned by
+        /// <see cref="RegisterDynamicNamespace"/> keeps a prefix with its first
+        /// registrant, and re-registering "fleet." here would be refused, leaving the
+        /// event lane without its own template/ownership. Same node, own namespace, earned by
         /// declaring <see cref="ChannelDeclaration.PerVesselNode"/> at the
         /// registration rather than by being named here.</para>
         /// </summary>
@@ -2710,12 +2710,20 @@ namespace Sitrep.Host
                     LogHost($"uplink \"{d.Id}\" refused: {d.LoadFailure}");
                     continue;
                 }
+                if (TakenByRegisteredUplink(d.Id, d.Uplink))
+                {
+                    continue;
+                }
                 if (!PassesContractMajorCheck(d.Uplink, d.Id, d.ContractMajor, d.ContractMinor))
                 {
                     continue;
                 }
                 var uplink = d.Uplink!;
                 var refusal = ManifestRefusal(uplink, d.Id, all, out var id);
+                if (refusal == null && TakenByRegisteredUplink(id, uplink))
+                {
+                    continue;
+                }
                 if (refusal != null)
                 {
                     if (id != null)
@@ -3053,7 +3061,7 @@ namespace Sitrep.Host
             var refusal = ContractRefusalReason(contractMajor, contractMinor);
             if (refusal != null)
             {
-                var refusedId = string.IsNullOrEmpty(declaredId) ? uplink!.Manifest.Id : declaredId!;
+                var refusedId = string.IsNullOrEmpty(declaredId) ? uplink?.Manifest.Id ?? "(unnamed Uplink)" : declaredId!;
                 _availability[refusedId] = Availability.Unavailable(refusal);
                 _contractRefusals[refusedId] = new ContractRefusal(refusedId, contractMajor, contractMinor, refusal);
                 return false;
@@ -3074,6 +3082,32 @@ namespace Sitrep.Host
         /// <paramref name="id"/> is the id the refusal is recorded under, null when none
         /// can be read.
         /// </summary>
+        /// <summary>
+        /// True, with a log line, when <paramref name="declaredId"/> already belongs to an
+        /// Uplink registered directly (core's own, which register before discovery). The
+        /// incumbent's availability and declared contract are left as they are: a
+        /// discovered Uplink reusing a core id is the one that does not load.
+        /// </summary>
+        private bool TakenByRegisteredUplink(string? declaredId, ISitrepUplink? uplink)
+        {
+            string? id;
+            try
+            {
+                id = string.IsNullOrEmpty(declaredId) ? uplink?.Manifest.Id : declaredId;
+            }
+            catch (Exception)
+            {
+                // ManifestRefusal reports a manifest that throws, with the reason.
+                return false;
+            }
+            if (id == null || !_registeredUplinks.TryGetValue(id, out var incumbent) || ReferenceEquals(incumbent, uplink))
+            {
+                return false;
+            }
+            LogHost($"uplink \"{id}\" refused: the id already belongs to {incumbent.GetType().Assembly.GetName().Name}");
+            return true;
+        }
+
         private static string? ManifestRefusal(
             ISitrepUplink uplink,
             string? declaredId,
@@ -3523,6 +3557,7 @@ namespace Sitrep.Host
             {
                 _network.SetDelay(centre, HomeCommandNode, double.PositiveInfinity);
             }
+            var heardAgain = _homeSilentCentres.Where(oneWaySecondsByCentre.ContainsKey).ToList();
             _homeSilentCentres = silent;
 
             _homeRowCentres.Clear();
@@ -3534,6 +3569,17 @@ namespace Sitrep.Host
                 }
                 _network.SetDelay(row.Key, HomeCommandNode, row.Value);
                 _homeRowCentres.Add(row.Key);
+            }
+
+            /* What changed while a centre had no route home never reached it, and a
+               fact that changes once is not sent again. The newest of each is sent
+               now that the route is back. */
+            foreach (var centre in heardAgain)
+            {
+                if (centre != MetaVantage)
+                {
+                    _courier.ReissueUnheard(HomeCommandNode, centre);
+                }
             }
         }
 
@@ -3882,8 +3928,14 @@ namespace Sitrep.Host
             {
                 throw new ArgumentException(UndefinedKind("namespace \"" + prefix + "\"", template.Kind), nameof(template));
             }
+            var registrant = _currentRegisteringUplinkId ?? "";
+            if (_dynamicNamespaceOwner.TryGetValue(prefix, out var holder) && holder != registrant)
+            {
+                throw new InvalidOperationException(
+                    "namespace \"" + prefix + "\" already belongs to \"" + holder + "\"");
+            }
             _dynamicNamespaces[prefix] = template;
-            _dynamicNamespaceOwner[prefix] = _currentRegisteringUplinkId ?? "";
+            _dynamicNamespaceOwner[prefix] = registrant;
             if (template.PerVesselNode && !_perVesselNamespacePrefixes.Contains(prefix))
             {
                 _perVesselNamespacePrefixes.Add(prefix);
@@ -7114,10 +7166,10 @@ namespace Sitrep.Host
         /// <see cref="TimeoutException"/> when the dispatch is not processed within
         /// <paramref name="timeout"/>.
         /// </summary>
-        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<string>? onWarned = null)
+        internal void DispatchCommandAndWait(string command, object? args, string vantage, Action<object?> onResult, TimeSpan timeout, string label = "", string topic = "", Action<FaultCode, string>? onRefused = null, Action<double?>? onAccepted = null, Action<string>? onMalformed = null, string clientRequestId = "", string? sessionId = null, Action<string>? onWarned = null, string? seenVesselId = null)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnWarned = onWarned });
+            EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, barrier, label, topic, onRefused, onAccepted, onMalformed, clientRequestId, sessionId) { OnWarned = onWarned, SeenVesselId = seenVesselId });
             if (!barrier.Wait(timeout))
             {
                 throw new TimeoutException(
@@ -7531,7 +7583,11 @@ namespace Sitrep.Host
                 // RefreshConnectivityFromCapability (same tick), so
                 // _commsConnected here still reflects connectivity as of the
                 // outgoing value about to be replaced.
-                if (SubjectConnected(NodeId) && !_activeVesselSwitched)
+                // Outside flight the connectivity read keeps its last value while the
+                // delay computes a no-path 0, so the outgoing value there is not a
+                // delay in contact and is never kept as one.
+                var outsideFlight = _activeCraftKnown && !_activeCraftLoaded;
+                if (SubjectConnected(NodeId) && !_activeVesselSwitched && !outsideFlight)
                 {
                     _subjectLastConnectedDelay[NodeId] = _signalDelaySeconds;
                 }
@@ -7953,6 +8009,7 @@ namespace Sitrep.Host
                 _emitter.Forget(topic);
             }
             _courier.ForgetNode(node);
+            _network.ForgetNode(node);
             var vesselId = node.Substring(FleetNodePrefix.Length);
             foreach (var listener in _craftReleasedListeners)
             {
@@ -8198,6 +8255,30 @@ namespace Sitrep.Host
             if (!wasConnected && connected)
             {
                 ReplayInBlackoutBacklog(node, ut);
+            }
+        }
+
+        /// <summary>
+        /// The active-vessel node is one subject whatever craft it shows, so a switch away
+        /// from a craft that was dark would read this tick's link as that craft coming
+        /// back: its recording would be dumped as the new craft's history and its
+        /// loss-of-signal mark carried onto it. The recording is dropped with the craft and
+        /// the node starts the new one connected, so a dark new craft begins its own outage.
+        /// </summary>
+        private void ForgetTheDarkCraftSwitchedAwayFrom(double ut)
+        {
+            if (SubjectConnected(NodeId))
+            {
+                return;
+            }
+            DiscardInBlackoutBacklog(NodeId);
+            _subjectDarkSinceUt.Remove(NodeId);
+            _courier.MarkSubjectLinkUp(NodeId);
+            _releasing.Remove(NodeId);
+            _subjectConnected[NodeId] = true;
+            if (_subjectConnectivityHistory.TryGetValue(NodeId, out var history))
+            {
+                history.Add((ut, true));
             }
         }
 
@@ -8873,6 +8954,7 @@ namespace Sitrep.Host
                     _activeVesselSwitched = true;
                     _subjectLastConnectedDelay.Remove(NodeId);
                     _subjectLastConnectedStamp.Remove(NodeId);
+                    ForgetTheDarkCraftSwitchedAwayFrom(tick.Ut);
                 }
                 _lastActiveVesselId = activeVesselId;
             }
@@ -9546,6 +9628,11 @@ namespace Sitrep.Host
             // node through, so a command can never disagree with the topic it
             // names.
             var node = ResolveSubjectNode(job);
+
+            if (RefuseIfAnotherCraftIsActive(job, node))
+            {
+                return;
+            }
 
             // Comms-loss uplink gate: honest silence. A DELAYED command (a kOS
             // keystroke, a vessel actuation) dispatched while the link to its
@@ -10515,7 +10602,7 @@ namespace Sitrep.Host
 
             RegisterRoute(session, req.RequestId);
             var home = VantageOf(session);
-            return MakeDispatchJob(
+            var job = MakeDispatchJob(
                 req.Command,
                 req.Args,
                 string.IsNullOrEmpty(req.Vantage) ? home : req.Vantage,
@@ -10584,6 +10671,8 @@ namespace Sitrep.Host
                 };
                 Reply(req.RequestId, session, home, Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)), terminal: true);
             }, clientRequestId: req.RequestId, sessionId: session.Connection.Id);
+            job.SeenVesselId = req.SeenVesselId;
+            return job;
         }
 
         private void OnMessageReceived(ClientSession session, ArraySegment<byte> payload)
@@ -11039,6 +11128,9 @@ namespace Sitrep.Host
             /// time, which then gets <see cref="OnAccepted"/>.
             /// </summary>
             public Action<double?, double?, double?, string?>? OnAcceptedHeld { get; set; }
+
+            /// <summary>The vessel the operator's screen showed as active when this was pressed, or null when the request stated none.</summary>
+            public string? SeenVesselId { get; set; }
 
             /// <summary>Told what the acceptance warns of, for a caller that takes <see cref="OnAccepted"/> and has no frame to put a warning on.</summary>
             public Action<string>? OnWarned { get; set; }

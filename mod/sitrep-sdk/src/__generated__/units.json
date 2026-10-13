@@ -278,6 +278,7 @@
       "command": "id",
       "label": "text",
       "requestId": "id",
+      "seenVesselId": "id",
       "sentAt": "ut",
       "topic": "id",
       "type": "id",

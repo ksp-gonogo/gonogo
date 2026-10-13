@@ -366,6 +366,12 @@ namespace Sitrep.Contract.Serialization
                 JsonWriter.AppendString(sb, msg.Vantage);
             }
 
+            if (!string.IsNullOrEmpty(msg.SeenVesselId))
+            {
+                AppendField(sb, "seenVesselId");
+                JsonWriter.AppendString(sb, msg.SeenVesselId);
+            }
+
             AppendField(sb, "args");
             JsonWriter.AppendValue(sb, msg.Args);
 
@@ -377,7 +383,8 @@ namespace Sitrep.Contract.Serialization
 
         /// <summary>Parses a <c>command-request</c> envelope. <c>label</c>,
         /// <c>topic</c> and <c>vantage</c> are optional and read as an empty
-        /// string when absent; an absent <c>args</c> reads as <c>null</c>.</summary>
+        /// string when absent, <c>seenVesselId</c> is optional and reads as
+        /// <c>null</c>; an absent <c>args</c> reads as <c>null</c>.</summary>
         /// <param name="json">The JSON text of the envelope.</param>
         /// <returns>The parsed envelope.</returns>
         /// <exception cref="FormatException">The text is not a
@@ -400,6 +407,8 @@ namespace Sitrep.Contract.Serialization
                 Topic = TryGetString(raw, "topic") ?? "",
                 // Optional: "" makes the server use the session's selected vantage.
                 Vantage = TryGetString(raw, "vantage") ?? "",
+                // Optional: absent states no vessel and the command is not checked against one.
+                SeenVesselId = TryGetString(raw, "seenVesselId"),
                 Args = raw.TryGetValue("args", out var args) ? args : null,
                 SentAt = RequireDouble(raw, "sentAt"),
             };

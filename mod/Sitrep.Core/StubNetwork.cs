@@ -331,6 +331,13 @@ namespace Sitrep.Core
         void SetNodeJourney(string node, Journey journey);
 
         /// <summary>
+        /// Lets go of every delay, journey, reachability row and path break held for
+        /// <paramref name="node"/>, a node that no longer exists. A later read of it
+        /// falls back to the defaults, as for a node never seen.
+        /// </summary>
+        void ForgetNode(string node);
+
+        /// <summary>
         /// Sets the one-way delay for an explicit (vantage, node) pair, the
         /// highest-precedence tier of <see cref="DelayTo"/>. Overrides the
         /// <see cref="SetNodeDelay"/> node-default for that specific observer.
@@ -709,6 +716,23 @@ namespace Sitrep.Core
                 return;
             }
             _nodeDelays[node] = clamped;
+            _revision++;
+        }
+
+        public void ForgetNode(string node)
+        {
+            _nodeDelays.Remove(node);
+            _nodeJourneys.Remove(node);
+            _drops.Remove(node);
+            _stamps.Remove(node);
+            foreach (var byNode in _delays.Values)
+            {
+                byNode.Remove(node);
+            }
+            foreach (var byNode in _reachability.Values)
+            {
+                byNode.Remove(node);
+            }
             _revision++;
         }
 

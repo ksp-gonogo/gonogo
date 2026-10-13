@@ -124,6 +124,20 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void A_namespace_another_uplink_registered_is_refused_to_a_second_one()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            var owner = new TestUplink(Manifest("owner"), host => host.RegisterDynamicNamespace("shared.", Channel("shared.")));
+            var thief = new TestUplink(Manifest("thief"), host => host.RegisterDynamicNamespace("shared.", Channel("shared.")));
+
+            engine.RegisterUplink(owner);
+            engine.RegisterUplink(thief);
+
+            Assert.True(engine.AvailabilityOf("owner").IsAvailable);
+            Assert.False(engine.AvailabilityOf("thief").IsAvailable);
+        }
+
+        [Fact]
         public void A_command_another_uplink_owns_is_refused()
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0");
@@ -150,6 +164,54 @@ namespace Sitrep.Host.Tests
             Assert.True(engine.AvailabilityOf("owner").IsAvailable);
             Assert.False(engine.AvailabilityOf("thief").IsAvailable);
             Assert.Contains("\"owner\" owns", engine.AvailabilityOf("thief").Reason);
+        }
+
+        [Fact]
+        public void A_version_refused_Uplink_with_no_id_is_refused_and_the_rest_still_register()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            var healthy = new TestUplink(Manifest("healthy", topic: "healthy.topic"));
+
+            engine.RegisterDiscoveredUplinks(new[]
+            {
+                new UplinkDiscovery.DiscoveredUplink(null, ContractVersion.Major + 1, 0, string.Empty),
+                new UplinkDiscovery.DiscoveredUplink(null, ContractVersion.Major + 1, 0, null),
+                Discovered(healthy, "healthy"),
+            });
+
+            Assert.True(healthy.Registered);
+            Assert.True(engine.AvailabilityOf("healthy").IsAvailable);
+        }
+
+        [Fact]
+        public void A_discovered_Uplink_reusing_a_directly_registered_id_is_the_one_refused()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            var core = new TestUplink(Manifest("core", topic: "core.topic"));
+            engine.RegisterUplink(core);
+            var impostor = new TestUplink(Manifest("core", topic: "impostor.topic"));
+
+            engine.RegisterDiscoveredUplinks(new[]
+            {
+                Discovered(impostor, "core"),
+                new UplinkDiscovery.DiscoveredUplink(null, ContractVersion.Major + 1, 0, "core"),
+            });
+
+            Assert.True(engine.AvailabilityOf("core").IsAvailable);
+            Assert.False(impostor.Registered);
+        }
+
+        [Fact]
+        public void A_discovered_Uplink_declaring_a_directly_registered_Uplinks_topic_is_refused()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterUplink(new TestUplink(Manifest("core", topic: "core.topic")));
+            var thief = new TestUplink(Manifest("thief", topic: "core.topic"));
+
+            engine.RegisterDiscoveredUplinks(new[] { Discovered(thief, "thief") });
+
+            Assert.True(engine.AvailabilityOf("core").IsAvailable);
+            Assert.False(engine.AvailabilityOf("thief").IsAvailable);
         }
 
         [Fact]

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Sitrep.Contract;
 
 // Sitrep.Core has no reason to carry the TS StreamData<T>/CommandResponse<TResult>
@@ -1557,6 +1558,57 @@ namespace Sitrep.Core
                 }
             }
             return false;
+        }
+
+        /// <summary>
+        /// Sends <paramref name="vantage"/> the newest sample of every topic on
+        /// <paramref name="node"/> that it subscribes to and never received because
+        /// no route reached it when the sample was recorded. A sample recorded with an
+        /// infinite delay for that vantage is skipped at delivery and at catch-up, so
+        /// a fact that changed once during the silence would otherwise stay unseen
+        /// until it changed again. It arrives after the delay now in force, or at
+        /// once when that has already passed.
+        /// </summary>
+        public void ReissueUnheard(string node, string vantage)
+        {
+            if (!_subscribers.TryGetValue(node, out var byTopic))
+            {
+                return;
+            }
+            var live = _network.DelayTo(vantage, node);
+            if (double.IsNaN(live) || double.IsInfinity(live))
+            {
+                return;
+            }
+            var now = _clock.Now();
+            foreach (var entry in byTopic.ToList())
+            {
+                var topic = entry.Key;
+                var subs = entry.Value;
+                var mine = subs.Where(s => s.Vantage == vantage).ToList();
+                var archived = ArchiveFor(node).Samples(topic);
+                if (mine.Count == 0 || archived.Count == 0)
+                {
+                    continue;
+                }
+                var newest = archived[archived.Count - 1];
+                if (newest.Stamp == null || !double.IsPositiveInfinity(newest.Stamp.For(vantage)))
+                {
+                    continue;
+                }
+                var fireUt = Math.Max(now, newest.ValidAt + live);
+                var reissued = new ArchiveSample(newest.Value, newest.ValidAt, newest.Epoch, _network.StampFor(node));
+                foreach (var subscriber in mine)
+                {
+                    _clock.Schedule(fireUt, () =>
+                    {
+                        if (subs.Contains(subscriber))
+                        {
+                            DeliverSample(node, topic, subscriber, reissued, fireUt);
+                        }
+                    });
+                }
+            }
         }
 
         /// <summary>
