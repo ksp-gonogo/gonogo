@@ -41,6 +41,8 @@ import {
   type PropagationHorizonLike,
   rotatePerifocalToInertial,
   solve,
+  solveAnomalies,
+  solveEccentricAnomaly,
   TrajectoryKindLike,
   type Vec3Tuple,
 } from "./kepler";
@@ -480,6 +482,37 @@ export function trajectoryFrameKindFor(
 }
 
 /**
+ * `count` instants from `fromUt` to `toUt` spaced evenly in eccentric anomaly,
+ * which spaces the points evenly along a closed orbit's length. Even steps in
+ * time would leave a high-eccentricity ellipse a few points across its whole
+ * periapsis pass and draw it as a corner.
+ */
+function instantsEvenInEccentricAnomaly(
+  elements: OrbitElements,
+  fromUt: number,
+  toUt: number,
+  count: number,
+): number[] {
+  const { ecc } = elements;
+  const meanMotion = Math.sqrt(elements.mu / elements.sma ** 3);
+  const start = solveAnomalies(elements, fromUt).eccentricAnomaly;
+  const startMean = start - ecc * Math.sin(start);
+  const endMean = startMean + meanMotion * (toUt - fromUt);
+  const laps = Math.floor(endMean / (2 * Math.PI));
+  const end = solveEccentricAnomaly(endMean, ecc) + 2 * Math.PI * laps;
+  const instants: number[] = [];
+  for (let i = 0; i < count; i++) {
+    if (i === count - 1) {
+      instants.push(toUt);
+      break;
+    }
+    const e = start + ((end - start) * i) / (count - 1);
+    instants.push(fromUt + (e - ecc * Math.sin(e) - startMean) / meanMotion);
+  }
+  return instants;
+}
+
+/**
  * The osculating conic sampled forward from the view instant, stopping at
  * whichever comes first: the horizon the provider named, or one full revolution.
  *
@@ -515,8 +548,13 @@ function sampleArc(
 
   const count = Math.max(2, Math.floor(samples ?? DEFAULT_ARC_SAMPLES));
   const points: TrajectoryPoint[] = [];
-  for (let i = 0; i < count; i++) {
-    const ut = viewUt + ((toUt - viewUt) * i) / (count - 1);
+  const instants = closed
+    ? instantsEvenInEccentricAnomaly(elements, viewUt, toUt, count)
+    : Array.from(
+        { length: count },
+        (_, i) => viewUt + ((toUt - viewUt) * i) / (count - 1),
+      );
+  for (const ut of instants) {
     const [x, y, z] = solve(elements, ut).position;
     if (!Number.isFinite(x + y + z)) return null;
     points.push({ x, y, z, ut });

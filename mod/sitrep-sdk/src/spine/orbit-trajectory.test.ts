@@ -248,6 +248,34 @@ describe("orbitTrajectory: what the far end of a sampled conic means", () => {
     expect(answer.farEnd).toBe("horizon");
   });
 
+  it("spaces a lap's points along the orbit, so a high eccentricity has no corner at periapsis", () => {
+    const answer = orbitTrajectory({
+      orbit: lko({
+        sma: { magnitude: 1_890_000 },
+        ecc: { magnitude: 0.64 },
+        meanAnomalyAtEpoch: { magnitude: 2.5 },
+        horizon: {
+          kind: Reach.Until,
+          untilUt: 1e9,
+          trajectoryKind: Shape.Integrated,
+        },
+      }),
+      viewUt: 0,
+    });
+    expect(answer.shape).toBe("arc");
+    if (answer.shape !== "arc") return;
+    expect(answer.points).toHaveLength(128);
+    const focusAngle = (p: { x: number; y: number }) => Math.atan2(p.y, p.x);
+    const turns = answer.points.slice(1).map((p, i) => {
+      const step = Math.abs(focusAngle(p) - focusAngle(answer.points[i]));
+      return Math.min(step, 2 * Math.PI - step);
+    });
+    // Even steps in time turn ~0.4 rad at periapsis here; even steps along the orbit stay well under 0.2.
+    expect(Math.max(...turns)).toBeLessThan(0.2);
+    const last = answer.points[answer.points.length - 1];
+    expect(last.ut).toBe(answer.toUt);
+  });
+
   it("answers every arc in the parent's inertial frame, named for the body it is measured against", () => {
     const answer = orbitTrajectory({
       orbit: lko({
