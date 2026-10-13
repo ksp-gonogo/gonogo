@@ -328,17 +328,6 @@ function randomIdPrefix(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-/**
- * The vessel the operator's screen shows as active, as the optional
- * `seenVesselId` of a command frame, or nothing when no `vessel.identity`
- * reading has arrived. The mod refuses an order for the active vessel when the
- * game has since switched to another one.
- */
-function seenVessel(identity: unknown): { seenVesselId?: string } {
-  const id = (identity as { vesselId?: unknown } | undefined)?.vesselId;
-  return typeof id === "string" && id !== "" ? { seenVesselId: id } : {};
-}
-
 export class TelemetryClient {
   private readonly transport: Transport;
   private readonly clock: Clock;
@@ -1202,7 +1191,6 @@ export class TelemetryClient {
         topic: topic ?? "",
         // Per-call vantage override (delay-UX): "" ⇒ the server uses the session vantage; "meta" pins a program-meta command to instant dispatch.
         vantage: vantage ?? "",
-        ...seenVessel(this.lastValues.get("vessel.identity")),
         args: wireArgs,
         sentAt: 0,
       },

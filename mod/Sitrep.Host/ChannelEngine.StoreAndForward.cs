@@ -296,10 +296,7 @@ namespace Sitrep.Host
                 ExecuteDelivered,
                 OnJourneyReport,
                 beliefs: SenderPlans,
-                deliverSpan: OnSpanDelivered)
-            {
-                Diagnostics = LogHost,
-            };
+                deliverSpan: OnSpanDelivered);
         }
 
         private void DeclareDeliveryChannels()
@@ -363,34 +360,6 @@ namespace Sitrep.Host
 
         /// <summary>What an operator is told when an order for the active craft is pressed with no craft loaded.</summary>
         internal const string NoActiveCraftDetail = "The game is not in flight, so no craft is the active vessel to receive this order.";
-
-        /// <summary>
-        /// Refuses at the press an order for the active craft that the operator
-        /// pressed while looking at another one. The screen runs a signal delay
-        /// behind the game, so the craft it shows can already have been switched
-        /// away from; tagging the order with the craft that is active now would
-        /// send it to a craft the operator had not seen. True when refused.
-        /// </summary>
-        private bool RefuseIfAnotherCraftIsActive(DispatchCommandJob job, string node)
-        {
-            if (!SeenAnotherCraft(job, node))
-            {
-                return false;
-            }
-            job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, SwitchedAwayDetail));
-            job.Done?.Set();
-            return true;
-        }
-
-        /// <summary>True when <paramref name="job"/> is for the active craft and names a different one as the craft the operator saw.</summary>
-        private bool SeenAnotherCraft(DispatchCommandJob job, string node) =>
-            !string.IsNullOrEmpty(job.SeenVesselId)
-            && string.Equals(node, NodeId, StringComparison.Ordinal)
-            && _activeCraftLoaded
-            && !string.Equals("vessel:" + job.SeenVesselId, _activeCraftId, StringComparison.Ordinal);
-
-        /// <summary>What an operator is told when an order is pressed for a craft the game has already switched away from.</summary>
-        internal const string SwitchedAwayDetail = "The active vessel has changed since the one on screen was current, so this order was not sent.";
 
         /// <summary>The craft id a courier node addresses, or null for one that is not a craft.</summary>
         private string? CraftIdFor(string node)

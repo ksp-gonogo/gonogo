@@ -408,7 +408,6 @@ function defineEnvelopes(schemas, contract) {
       label: field("CommandRequest", "label"),
       topic: field("CommandRequest", "topic"),
       vantage: field("CommandRequest", "vantage"),
-      seenVesselId: field("CommandRequest", "seenVesselId"),
       args: {
         description:
           "The command's own arguments. Each command's `command-request` " +

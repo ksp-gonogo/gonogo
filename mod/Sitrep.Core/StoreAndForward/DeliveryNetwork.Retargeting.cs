@@ -114,9 +114,6 @@ namespace Sitrep.Core.StoreAndForward
     public sealed partial class DeliveryNetwork
     {
         private IDishActuator? _actuator;
-
-        /// <summary>Told, one line at a time, of a dish turn or restore that threw, so a dish left on loan has a trace of why.</summary>
-        public Action<string>? Diagnostics { get; set; }
         private RetargetOptions _retargetOptions = new RetargetOptions();
         private Func<string, bool> _autoRetarget = _ => true;
         private readonly List<RetargetEvent> _retargetEvents = new List<RetargetEvent>();
@@ -351,9 +348,8 @@ namespace Sitrep.Core.StoreAndForward
                 {
                     restoreRecord = actuator.Turn(record.Node, record.Dish, record.Peer, nowUt);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Diagnostics?.Invoke("turning dish " + record.Dish + " on " + record.Node + " threw: " + ex.Message);
                     restoreRecord = null;
                 }
                 Locked(() => Turned(e, restoreRecord, nowUt));
@@ -443,9 +439,8 @@ namespace Sitrep.Core.StoreAndForward
                 {
                     settled = actuator.Restore(recordId, nowUt);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    Diagnostics?.Invoke("restoring dish record " + recordId + " threw: " + ex.Message);
                     settled = false;
                 }
                 if (settled || attemptsLeft <= 1)

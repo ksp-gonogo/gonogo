@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 41.2.0
+  version: 41.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -11057,20 +11057,6 @@ components:
             strategy, contract) sends `"meta"`, which carries no delay whichever centre
             the operator has selected. A centre that is not active is refused with an
             `unknownVantage` error.
-        seenVesselId:
-          type:
-            - string
-            - "null"
-          x-sitrep-unit: id
-          description: |-
-            The vessel the operator was looking at when the command was pressed: the
-            `vesselId` of the newest `vessel.identity` reading the client holds.
-            Optional: null or empty states nothing and the command is not checked
-            against it. A command for the active vessel is refused with `wrongState` at
-            the press when the game's active vessel is not this one, because the
-            operator's screen runs one signal delay behind the game and a switch inside
-            that delay is not yet visible there. Commands that are not addressed to the
-            active vessel ignore it.
         args:
           description: The command's own arguments. Each command's `command-request` message narrows this to that command's args schema.
         sentAt:

@@ -55,42 +55,6 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void SeenVesselIdSurvivesWriteThenParseRoundTrip()
-        {
-            var original = new CommandRequest<object?>
-            {
-                Type = "command-request",
-                RequestId = "req-1",
-                Command = "vessel.control.stage",
-                SeenVesselId = "aaaaaaaa-0000-0000-0000-000000000000",
-                Args = null,
-                SentAt = 100,
-            };
-
-            var wire = EnvelopeCodec.WriteCommandRequest(original);
-            var parsed = EnvelopeCodec.ParseCommandRequest(wire);
-
-            Assert.Contains("\"seenVesselId\":\"aaaaaaaa-0000-0000-0000-000000000000\"", wire);
-            Assert.Equal(original.SeenVesselId, parsed.SeenVesselId);
-        }
-
-        [Fact]
-        public void AnAbsentSeenVesselIdIsNotWrittenAndReadsAsNull()
-        {
-            var wire = EnvelopeCodec.WriteCommandRequest(new CommandRequest<object?>
-            {
-                Type = "command-request",
-                RequestId = "req-1",
-                Command = "vessel.control.stage",
-                Args = null,
-                SentAt = 100,
-            });
-
-            Assert.DoesNotContain("seenVesselId", wire);
-            Assert.Null(EnvelopeCodec.ParseCommandRequest(wire).SeenVesselId);
-        }
-
-        [Fact]
         public void VantageSurvivesWriteThenParseRoundTrip()
         {
             var original = new CommandRequest<object?>

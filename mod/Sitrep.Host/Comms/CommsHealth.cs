@@ -52,20 +52,12 @@ namespace Sitrep.Host.Comms
         /// </param>
         public static UplinkHealth Evaluate(bool backendElected, bool? modelPresent = null, bool forcedBlackout = false)
         {
-            var health = Underlying(backendElected, modelPresent);
-            if (!forcedBlackout)
+            if (forcedBlackout)
             {
-                return health;
+                return new UplinkHealth(
+                    UplinkHealthState.Degraded,
+                    "dev tools are forcing a comms blackout: the active craft reads out of contact whatever its link, until GameData/GonogoDevTools/Plugins/PluginData/force-comms-request.cfg is set to restore");
             }
-            const string forced =
-                "dev tools are forcing a comms blackout: the active craft reads out of contact whatever its link, until GameData/GonogoDevTools/Plugins/PluginData/force-comms-request.cfg is set to restore";
-            return new UplinkHealth(
-                UplinkHealthState.Degraded,
-                string.IsNullOrEmpty(health.Detail) ? forced : forced + "; also: " + health.Detail);
-        }
-
-        private static UplinkHealth Underlying(bool backendElected, bool? modelPresent)
-        {
             if (!backendElected)
             {
                 return new UplinkHealth(UplinkHealthState.Degraded, "no comms backend elected");

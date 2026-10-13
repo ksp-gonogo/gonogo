@@ -3534,17 +3534,6 @@ export interface CommandRequest<Args>
 	* `unknownVantage` error.
 	*/
 	vantage?: string;
-	/**
-	* The vessel the operator was looking at when the command was pressed: the
-	* `vesselId` of the newest `vessel.identity` reading the client holds.
-	* Optional: null or empty states nothing and the command is not checked
-	* against it. A command for the active vessel is refused with `wrongState` at
-	* the press when the game's active vessel is not this one, because the
-	* operator's screen runs one signal delay behind the game and a switch inside
-	* that delay is not yet visible there. Commands that are not addressed to the
-	* active vessel ignore it.
-	*/
-	seenVesselId?: string;
 	/** The command's arguments, in the command's own argument type. */
 	args: Args;
 	/**

@@ -318,7 +318,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     command: "id",
     label: "text",
     requestId: "id",
-    seenVesselId: "id",
     sentAt: "ut",
     topic: "id",
     type: "id",

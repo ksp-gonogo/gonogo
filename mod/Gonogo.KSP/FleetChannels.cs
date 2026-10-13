@@ -164,38 +164,13 @@ namespace Gonogo.KSP
             {
                 return;
             }
-            var present = new HashSet<string>(StringComparer.Ordinal);
             foreach (var link in links)
             {
-                present.Add(link.Id);
-                ReportLink(link.Id, link.Connected);
-            }
-            foreach (var id in new List<string>(_lastReportedLink.Keys))
-            {
-                if (!present.Contains(id))
+                // A link that could not be read leaves the last reading standing.
+                if (link.Connected is { } connected)
                 {
-                    _lastReportedLink.Remove(id);
+                    _host?.SetVesselConnectivity(link.Id, connected);
                 }
-            }
-        }
-
-        /* Courier-thread-only: the last link each vessel was reported at. The engine
-           counts a vessel on the roster only on the tick it is told a link, so a link
-           that cannot be read this tick is told again as the last reading, which is
-           also what it stands at, and the craft is not taken for one that has left. */
-        private readonly Dictionary<string, bool> _lastReportedLink = new Dictionary<string, bool>(StringComparer.Ordinal);
-
-        private void ReportLink(string vesselId, bool? connected)
-        {
-            if (connected is { } read)
-            {
-                _lastReportedLink[vesselId] = read;
-                _host?.SetVesselConnectivity(vesselId, read);
-                return;
-            }
-            if (_lastReportedLink.TryGetValue(vesselId, out var lastRead))
-            {
-                _host?.SetVesselConnectivity(vesselId, lastRead);
             }
         }
 
@@ -337,7 +312,10 @@ namespace Gonogo.KSP
                 // order matters on a disconnect tick: after the delay, so the last
                 // connected light-time is kept, and before the publishes, so they
                 // freeze.
-                ReportLink(v.Id, v.Connected);
+                if (v.Connected is { } connected)
+                {
+                    _host?.SetVesselConnectivity(v.Id, connected);
+                }
                 if (v.Orbit != null)
                 {
                     _orbitSource.Publisher(v.Id + ".orbit").Publish(v.Orbit, cap.Ut);

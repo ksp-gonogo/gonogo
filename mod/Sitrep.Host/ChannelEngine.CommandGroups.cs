@@ -142,12 +142,6 @@ namespace Sitrep.Host
                     return;
                 }
                 var memberNode = ResolveSubjectNode(job);
-                if (SeenAnotherCraft(job, memberNode))
-                {
-                    job.OnResult(CommandResult.Fail(CommandErrorCode.WrongState, SwitchedAwayDetail));
-                    RefuseGroup(group, job, "the active vessel has changed since the one on screen was current");
-                    return;
-                }
                 if (node != null && !string.Equals(node, memberNode, StringComparison.Ordinal))
                 {
                     job.OnRefused?.Invoke(FaultCode.InvalidEnvelope, "\"" + job.Command + "\" is addressed to a different craft from the rest of its group, and a group goes to one craft.");

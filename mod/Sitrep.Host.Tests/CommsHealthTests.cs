@@ -33,16 +33,6 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
-        public void AForcedBlackoutKeepsTheOtherFaultsVisible()
-        {
-            var health = CommsHealth.Evaluate(backendElected: false, forcedBlackout: true);
-
-            Assert.Equal(UplinkHealthState.Degraded, health.State);
-            Assert.Contains("force-comms-request.cfg", health.Detail);
-            Assert.Contains("no comms backend elected", health.Detail);
-        }
-
-        [Fact]
         public void ReportsHealthy_OnceABackendIsElected()
         {
             var health = CommsHealth.Evaluate(backendElected: true);

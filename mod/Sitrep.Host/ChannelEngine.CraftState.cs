@@ -359,18 +359,8 @@ namespace Sitrep.Host
             _craftStateSaid.Clear();
             _craftLinkSaid.Clear();
             _craftRadioStamps.Clear();
-            /* The clock's schedule goes with the timeline, and with it the release a
-               departed craft was waiting on. A craft that is back on the roster cancels
-               its departure when it is next read, so every one still departed is timed
-               again from here rather than left held for the session. */
-            var departed = new List<string>(_craftDeparted.Keys);
-            departed.AddRange(_releaseWhenUnwatched);
             _craftDeparted.Clear();
             _releaseWhenUnwatched.Clear();
-            foreach (var node in departed)
-            {
-                NoteDeparted(node);
-            }
             foreach (var listener in _timelineResetListeners)
             {
                 try
