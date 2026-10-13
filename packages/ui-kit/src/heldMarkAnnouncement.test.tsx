@@ -11,6 +11,7 @@ import {
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { ReactElement } from "react";
 import { describe, expect, it } from "vitest";
+import { Button } from "./Button";
 import { ControlDelayStream } from "./CommandDelay/ControlDelayStream";
 import { Countdown } from "./Countdown";
 import { Dial } from "./Dial";
@@ -20,6 +21,7 @@ import { InstrumentHeldMark } from "./instrumentCurrency";
 import { Meter } from "./Meter";
 import { MissionDate } from "./MissionDate";
 import { ReckonedUnit } from "./ModelledAlongside";
+import { derivedMarking } from "./readingCurrency";
 import { StatFigure } from "./StatContributions";
 import { Tape } from "./Tape";
 import { TinyEssentials } from "./TinyEssentials";
@@ -148,6 +150,11 @@ const PAINTERS: Record<string, (grade: HeldGrade | undefined) => ReactElement> =
         }}
       />
     ),
+    "Button, marked": (grade) => (
+      <Button marked={derivedMarking(held(value("s", 90), grade))}>
+        SAS ON
+      </Button>
+    ),
     ControlDelayStream: (grade) => (
       <ControlDelayStream
         streams={[
@@ -197,6 +204,7 @@ function kitSources(): Record<string, string> {
  * two definitions are named with the painters that use them.
  */
 const DRAWN_BY: Record<string, readonly string[]> = {
+  "./Button.tsx": ["Button, marked"],
   "./HeldMark.tsx": ["Meter, caller's label", "Countdown", "UnitInput"],
   "./instrumentCurrency.tsx": ["Dial", "Dial, half face", "Tape"],
   "./Unit.tsx": ["Unit"],

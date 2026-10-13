@@ -1,7 +1,15 @@
 import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import { type ButtonHTMLAttributes, forwardRef } from "react";
 import styled, { css } from "styled-components";
+import {
+  buttonTipText,
+  reasonedDisabled,
+  swallowPress,
+  withButtonTip,
+} from "./buttonTip";
 import { focusRing } from "./focusRing";
+import { HeldFigure } from "./HeldMark";
+import type { ReckoningMarking } from "./readingCurrency";
 import type { PredictedOutcome } from "./SendStatus/predictedOutcome";
 import { TONE_MARK, TONE_ON_STATUS, TONE_STATUS, TONE_TEXT } from "./tone";
 
@@ -69,6 +77,22 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
    * disabled look. The tooltip says what the prediction is.
    */
   predictedOutcome?: PredictedOutcome;
+  /**
+   * Why the button is disabled, shown as its tip. With `disabled`, the button
+   * is `aria-disabled` rather than natively disabled, so it keeps keyboard
+   * focus and the tip can be reached; pressing it does nothing. A disabled
+   * button with no reason says nothing about why, so give one wherever the
+   * reason is known.
+   */
+  disabledReason?: string;
+  /**
+   * Marks the state the button shows as held or modelled, for a toggle whose
+   * state comes from an old or late reading. The button stays pressable: the
+   * label takes the kit's held mark, and the mark's words (hand it
+   * {@link derivedMarking}, with what the press does added) are spoken after
+   * the label and shown as its tip, so nothing is drawn beside it.
+   */
+  marked?: ReckoningMarking | null;
 }
 
 /**
@@ -106,6 +130,11 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
  * Buttons for things that happen on this screen: plain, icon and text buttons,
  * toggles, groups, and a button that fits its label to the space it has. A
  * button that sends a command to the game is a {@link CommandButton}.
+ *
+ * A button that is a glyph alone, or whose `aria-label` says more than its words
+ * do, shows that name as a tip on hover and keyboard focus; a button whose words
+ * are the whole story shows none. A disabled button given a `disabledReason`
+ * shows the reason.
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
@@ -115,12 +144,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       size = "md",
       pressed,
       predictedOutcome,
+      disabledReason,
+      marked,
       type = "button",
       ...rest
     },
     ref,
   ) {
-    return (
+    const reasoned = reasonedDisabled(rest.disabled, disabledReason);
+    const tip = buttonTipText({
+      label: rest["aria-label"],
+      children: rest.children,
+      disabledReason: reasoned ? disabledReason : undefined,
+    });
+    const { disabled, onClick, children, ...passed } = rest;
+    return withButtonTip(
       <Button__Body
         ref={ref}
         $variant={variant}
@@ -129,10 +167,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         $pressed={pressed === true}
         aria-pressed={pressed}
         data-predicted={predictedOutcome}
-        {...rest}
+        {...passed}
+        disabled={reasoned ? undefined : disabled}
+        {...(reasoned ? { "aria-disabled": true } : {})}
+        onClick={reasoned ? swallowPress : onClick}
         // After the caller's own props, so a button that passed a type keeps the attribute where it always sat.
         type={type}
-      />
+      >
+        {marked ? (
+          <HeldFigure kind={marked.kind} caption={marked.caption}>
+            {children}
+          </HeldFigure>
+        ) : (
+          children
+        )}
+      </Button__Body>,
+      tip,
+      reasoned,
     );
   },
 );
@@ -211,7 +262,7 @@ function variantLook(variant: ButtonVariant, tone: ButtonTone) {
 /* A filled button keeps its fill under the pointer; only an outlined one brightens its edge and words. */
 const OUTLINE_HOVER = css`
   @media (hover: hover) {
-    &:hover:not(:disabled) {
+    &:hover:not(:disabled):not([aria-disabled="true"]) {
       border-color: var(--color-text-faint);
       color: var(--color-text-primary);
     }
@@ -263,7 +314,8 @@ export const Button__Body = styled.button<{
       ? ""
       : OUTLINE_HOVER}
   ${focusRing}
-  &:disabled {
+  &:disabled,
+  &[aria-disabled="true"] {
     opacity: 0.4;
     cursor: not-allowed;
   }
@@ -353,7 +405,7 @@ const IconButton__Body = styled.button`
   transition: color var(--duration-fast);
 
   @media (hover: hover) {
-    &:hover {
+    &:hover:not([aria-disabled="true"]) {
       color: var(--color-text-primary);
     }
   }
@@ -362,7 +414,8 @@ const IconButton__Body = styled.button`
     ${filledLook("go")}
   }
   ${focusRing}
-  &:disabled {
+  &:disabled,
+  &[aria-disabled="true"] {
     opacity: 0.4;
     cursor: not-allowed;
   }
@@ -386,13 +439,16 @@ export interface IconButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Makes the button a toggle: sets `aria-pressed` and, while true, draws the pressed look. */
   pressed?: boolean;
+  /** Why the button is disabled, shown as its tip. As for {@link Button}. */
+  disabledReason?: string;
 }
 
 /**
  * An icon-only `button` with no chrome, just the glyph. Useful for compact
  * controls whose meaning an icon carries, such as closing a panel. Used by the
  * maneuver node rows and the connection settings. Give it an `aria-label`,
- * since the icon inside is decorative. As a toggle, with `pressed`, it sets
+ * since the icon inside is decorative; the name is also its tip, so a glyph is
+ * never unexplained. As a toggle, with `pressed`, it sets
  * `aria-pressed` and takes the filled pressed look while pressed. The ref
  * reaches the `button` element. Under a coarse pointer it grows to a 44px touch
  * target.
@@ -413,7 +469,25 @@ export interface IconButtonProps
  * @category Button
  */
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
-  function IconButton({ pressed, ...rest }, ref) {
-    return <IconButton__Body ref={ref} aria-pressed={pressed} {...rest} />;
+  function IconButton({ pressed, disabledReason, ...rest }, ref) {
+    const reasoned = reasonedDisabled(rest.disabled, disabledReason);
+    const tip = buttonTipText({
+      label: rest["aria-label"],
+      children: rest.children,
+      disabledReason: reasoned ? disabledReason : undefined,
+    });
+    const { disabled, onClick, ...passed } = rest;
+    return withButtonTip(
+      <IconButton__Body
+        ref={ref}
+        aria-pressed={pressed}
+        {...passed}
+        disabled={reasoned ? undefined : disabled}
+        {...(reasoned ? { "aria-disabled": true } : {})}
+        onClick={reasoned ? swallowPress : onClick}
+      />,
+      tip,
+      reasoned,
+    );
   },
 );

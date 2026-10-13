@@ -9,12 +9,7 @@ import {
   ToggleButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import {
-  flagLabel,
-  lockStateText,
-  motorStateText,
-  stepperLabel,
-} from "../unreadLabels";
+import { lockStateText, motorStateText } from "../unreadLabels";
 import { type RotorInfo, RPM_STEP, TORQUE_STEP } from "./rotors";
 
 /** A brake toggle's state word; an unread brake is "unknown", never off. */
@@ -68,8 +63,9 @@ export function RotorControls({
           variant="ghost"
           size="sm"
           type="button"
-          aria-label={stepperLabel("Lower RPM cap", selected.rpmLimit)}
+          aria-label="Lower RPM cap"
           disabled={selected.rpmLimit === null}
+          disabledReason="The RPM cap is not reported"
           onClick={() =>
             selected.rpmLimit !== null &&
             setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
@@ -90,8 +86,9 @@ export function RotorControls({
           variant="ghost"
           size="sm"
           type="button"
-          aria-label={stepperLabel("Raise RPM cap", selected.rpmLimit)}
+          aria-label="Raise RPM cap"
           disabled={selected.rpmLimit === null}
+          disabledReason="The RPM cap is not reported"
           onClick={() =>
             selected.rpmLimit !== null &&
             setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
@@ -104,8 +101,9 @@ export function RotorControls({
           variant="ghost"
           size="sm"
           type="button"
-          aria-label={stepperLabel("Lower torque limit", selected.torqueLimit)}
+          aria-label="Lower torque limit"
           disabled={selected.torqueLimit === null}
+          disabledReason="The torque limit is not reported"
           onClick={() =>
             selected.torqueLimit !== null &&
             setTorqueLimit(selected.partId, selected.torqueLimit - TORQUE_STEP)
@@ -127,8 +125,9 @@ export function RotorControls({
           variant="ghost"
           size="sm"
           type="button"
-          aria-label={stepperLabel("Raise torque limit", selected.torqueLimit)}
+          aria-label="Raise torque limit"
           disabled={selected.torqueLimit === null}
+          disabledReason="The torque limit is not reported"
           onClick={() =>
             selected.torqueLimit !== null &&
             setTorqueLimit(selected.partId, selected.torqueLimit + TORQUE_STEP)
@@ -145,7 +144,7 @@ export function RotorControls({
           pressed={selected.motorEngaged === true}
           tone="go"
           disabled={selected.motorEngaged === null}
-          aria-label={flagLabel("Toggle motor", selected.motorEngaged)}
+          disabledReason="The motor state is not reported"
           onClick={() =>
             selected.motorEngaged !== null &&
             setMotor(selected.partId, !selected.motorEngaged)
@@ -158,7 +157,7 @@ export function RotorControls({
           pressed={selected.locked === true}
           tone="warn"
           disabled={selected.locked === null}
-          aria-label={flagLabel("Toggle lock", selected.locked)}
+          disabledReason="The lock state is not reported"
           onClick={() =>
             selected.locked !== null &&
             setLock(selected.partId, !selected.locked)
@@ -174,11 +173,7 @@ export function RotorControls({
           }
           tone="warn"
           disabled={selected.brakePercentage === null}
-          aria-label={
-            selected.brakePercentage === null
-              ? "Toggle brake (unavailable, not reported)"
-              : undefined
-          }
+          disabledReason="The brake is not reported"
           onClick={() =>
             selected.brakePercentage !== null &&
             setBrake(selected.partId, selected.brakePercentage > 0 ? 0 : 100)

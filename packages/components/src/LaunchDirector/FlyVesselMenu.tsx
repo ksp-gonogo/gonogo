@@ -45,6 +45,7 @@ export function FlyVesselMenu({
             type="button"
             variant="ghost"
             disabled={vessels.length === 0}
+            disabledReason="No vessels in this save"
             aria-expanded={flyOpen}
             onClick={() => setFlyOpen((v) => !v)}
           >

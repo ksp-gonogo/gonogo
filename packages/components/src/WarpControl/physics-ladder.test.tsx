@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it, vi } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import { WarpControlView, type WarpControlViewProps } from "./WarpControlView";
 
 const base: WarpControlViewProps = {
@@ -57,8 +58,8 @@ describe("WarpControl in physics warp", () => {
 
   it("stops the stepper at the top physics rung", () => {
     render(<WarpControlView {...base} cols={3} rows={3} />);
-    expect(
-      screen.getByRole("button", { name: "Warp up" }).hasAttribute("disabled"),
-    ).toBe(true);
+    expect(isDisabled(screen.getByRole("button", { name: "Warp up" }))).toBe(
+      true,
+    );
   });
 });

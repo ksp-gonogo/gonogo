@@ -5,6 +5,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { getByTip, queryByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { LaunchDirectorComponent } from "./index";
 
@@ -348,7 +349,7 @@ describe("LaunchDirector: what undefined telemetry renders today", () => {
 
     // An absent target roster reads as a save with no other vessels, in the tooltip.
     const switcher = screen.getByRole("button", { name: /Switch to vessel/ });
-    expect(switcher).toBeDisabled();
+    expect(isDisabled(switcher)).toBe(true);
     expect(switcher.getAttribute("data-tooltip")).toBe(
       "No other vessels in this save",
     );

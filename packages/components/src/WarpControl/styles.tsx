@@ -106,6 +106,7 @@ export function WarpButton({
 }: Readonly<
   ButtonHTMLAttributes<HTMLButtonElement> & {
     $active: boolean;
+    disabledReason?: string;
     style?: CSSProperties;
   }
 >) {

@@ -9,6 +9,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AlarmsLauncherProvider } from "../shared/AlarmsLauncher";
+import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
@@ -121,7 +122,7 @@ describe("WarpControl: event targets", () => {
 
     await open(user);
     await user.click(screen.getByRole("button", { name: "Signal back" }));
-    expect(armButton().disabled).toBe(false);
+    expect(isDisabled(armButton())).toBe(false);
     await user.click(armButton());
 
     expect(creator).toHaveBeenCalledTimes(1);
@@ -140,7 +141,7 @@ describe("WarpControl: event targets", () => {
     await user.click(screen.getByRole("button", { name: "Signal back" }));
 
     expect(screen.getByText("No prediction")).toBeTruthy();
-    expect(armButton().disabled).toBe(true);
+    expect(isDisabled(armButton())).toBe(true);
     expect(creator).not.toHaveBeenCalled();
   });
 
@@ -152,7 +153,7 @@ describe("WarpControl: event targets", () => {
     await user.click(screen.getByRole("button", { name: "Signal back" }));
 
     expect(screen.getByText("No prediction")).toBeTruthy();
-    expect(armButton().disabled).toBe(true);
+    expect(isDisabled(armButton())).toBe(true);
   });
 
   it("arms the next sphere-of-influence entry at the patch's end", async () => {
@@ -195,7 +196,7 @@ describe("WarpControl: event targets", () => {
     await user.click(screen.getByRole("button", { name: "SOI change" }));
 
     expect(screen.getByText("No prediction")).toBeTruthy();
-    expect(armButton().disabled).toBe(true);
+    expect(isDisabled(armButton())).toBe(true);
     expect(creator).not.toHaveBeenCalled();
   });
 
@@ -241,7 +242,7 @@ describe("WarpControl: event targets", () => {
 
     await open(user);
     await user.click(screen.getByRole("button", { name: "Signal lost" }));
-    expect(armButton().disabled).toBe(false);
+    expect(isDisabled(armButton())).toBe(false);
     await user.click(armButton());
 
     expect(creator.mock.calls[0][0]).toMatchObject({
@@ -259,7 +260,7 @@ describe("WarpControl: event targets", () => {
     await user.click(screen.getByRole("button", { name: "Signal lost" }));
 
     expect(screen.getByText("Out of contact now")).toBeTruthy();
-    expect(armButton().disabled).toBe(true);
+    expect(isDisabled(armButton())).toBe(true);
   });
 
   it("arms sunrise and sunset at the instants the mod predicts", async () => {
@@ -303,7 +304,7 @@ describe("WarpControl: event targets", () => {
     await user.click(screen.getByRole("button", { name: "Sunrise" }));
 
     expect(screen.getByText("No prediction")).toBeTruthy();
-    expect(armButton().disabled).toBe(true);
+    expect(isDisabled(armButton())).toBe(true);
     expect(creator).not.toHaveBeenCalled();
   });
 

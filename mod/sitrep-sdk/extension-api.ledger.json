@@ -14321,6 +14321,14 @@
         "note": "Places in the stack, which fix its width"
       },
       {
+        "key": "ui-kit . ButtonProps#disabledReason?",
+        "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
+      },
+      {
+        "key": "ui-kit . ButtonProps#marked?",
+        "note": "New: marks the state a button shows as held or modelled with the kit's held mark; the button stays pressable"
+      },
+      {
         "key": "ui-kit . ButtonProps#predictedOutcome?",
         "note": "New: the predicted result of pressing, drawn as a dashed or dotted edge that does not change the button's size"
       },
@@ -14443,6 +14451,10 @@
       {
         "key": "ui-kit . IconButtonProps",
         "note": "IconButton is a component taking pressed, which sets aria-pressed"
+      },
+      {
+        "key": "ui-kit . IconButtonProps#disabledReason?",
+        "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
       },
       {
         "key": "ui-kit . IconButtonProps#pressed?",
@@ -14795,6 +14807,14 @@
       {
         "key": "ui-kit . TINY_SIZE",
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
+        "key": "ui-kit . ToggleButtonProps#disabledReason?",
+        "note": "New: the reason a disabled button is disabled, shown as its tip; the button becomes aria-disabled so it keeps focus"
+      },
+      {
+        "key": "ui-kit . ToggleButtonProps#marked?",
+        "note": "New: marks the state a button shows as held or modelled with the kit's held mark; the button stays pressable"
       },
       {
         "key": "ui-kit . ToggleButtonProps#pressed?",

@@ -8,6 +8,7 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
@@ -112,8 +113,12 @@ describe("WarpControl: a warp index that has not arrived", () => {
         .getByRole("button", { name: "Drop to realtime" })
         .getAttribute("aria-pressed"),
     ).toBe("false");
-    expect(screen.getByRole("button", { name: "Warp down" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Warp up" })).toBeDisabled();
+    expect(isDisabled(screen.getByRole("button", { name: "Warp down" }))).toBe(
+      true,
+    );
+    expect(isDisabled(screen.getByRole("button", { name: "Warp up" }))).toBe(
+      true,
+    );
   });
 
   it("the stepUp action refuses rather than step from an index nobody knows", async () => {

@@ -2,7 +2,7 @@ import { type ComponentPropsWithoutRef, type ReactNode, useId } from "react";
 import styled, { css } from "styled-components";
 import { Button } from "./Button";
 import { SendIcon } from "./Icons";
-import { useTooltip } from "./Tooltip";
+import { Tooltip } from "./Tooltip";
 import { VisuallyHidden } from "./VisuallyHidden";
 
 /**
@@ -97,7 +97,6 @@ export function ComposerBar({
   children,
   ...rest
 }: ComposerBarProps) {
-  const { anchor, tip } = useTooltip(sendTooltip);
   const described = useId();
   return (
     <ComposerBar__Row $blocked={blocked} {...rest}>
@@ -106,25 +105,26 @@ export function ComposerBar({
       )}
       {children}
       {onSend !== undefined && (
-        <ComposerBar__SendAnchor {...anchor}>
+        <>
           {/* aria-disabled rather than disabled, so the button keeps focus after the draft it sent empties and its tooltip stays reachable by keyboard. */}
-          <ComposerBar__Send
-            type="button"
-            aria-disabled={sendDisabled || undefined}
-            onClick={sendDisabled ? undefined : onSend}
-            $icon={sendVariant === "icon"}
-            {...(sendTooltip ? { "aria-describedby": described } : {})}
-            {...(sendVariant === "icon" ? { "aria-label": sendLabel } : {})}
-          >
-            {sendVariant === "icon" ? <SendIcon size={16} /> : sendLabel}
-          </ComposerBar__Send>
+          <Tooltip text={sendTooltip} announce={false}>
+            <ComposerBar__Send
+              type="button"
+              aria-disabled={sendDisabled || undefined}
+              onClick={sendDisabled ? undefined : onSend}
+              $icon={sendVariant === "icon"}
+              {...(sendTooltip ? { "aria-describedby": described } : {})}
+              {...(sendVariant === "icon" ? { "aria-label": sendLabel } : {})}
+            >
+              {sendVariant === "icon" ? <SendIcon size={16} /> : sendLabel}
+            </ComposerBar__Send>
+          </Tooltip>
           {sendTooltip && (
             <VisuallyHidden id={described}>
               {sendTooltip.replaceAll("\n", ". ")}
             </VisuallyHidden>
           )}
-          {tip}
-        </ComposerBar__SendAnchor>
+        </>
       )}
       {flag !== undefined && (
         // `role="status"`, never `alert`: a lost path is ambient, not an interruption.
@@ -165,10 +165,6 @@ const ComposerBar__Prompt = styled.span`
  * keystroke. `font-size` is stated, not inherited from a terminal's character
  * pitch on the row.
  */
-const ComposerBar__SendAnchor = styled.span`
-  display: inline-flex;
-
-`;
 
 const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
   flex: 0 0 auto;
