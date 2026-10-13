@@ -4,7 +4,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { TargetingComponent } from "./index";
+import { RendezvousComponent } from "./index";
 
 /**
  * `vessel.dock` alone stops being current while `vessel.target` keeps
@@ -36,7 +36,7 @@ function mountAtDockingRange() {
   render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "dtt-dock-stale" }}>
-        <TargetingComponent id="dtt-dock-stale" w={12} h={10} />
+        <RendezvousComponent id="dtt-dock-stale" w={12} h={10} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -70,7 +70,7 @@ function mountAtDockingRange() {
   return { fixture, emitTarget };
 }
 
-describe("Targeting: the dock channel alone stops being current", () => {
+describe("Rendezvous: the dock channel alone stops being current", () => {
   it("carries the alignment forward and captions it, while the approach numbers keep coming", async () => {
     const { fixture, emitTarget } = mountAtDockingRange();
 
@@ -170,7 +170,7 @@ describe("Targeting: the dock channel alone stops being current", () => {
   });
 });
 
-describe("Targeting under signal delay", () => {
+describe("Rendezvous under signal delay", () => {
   function mountDelayed(owlt: number) {
     const fixture = setupStreamFixture({
       delaySeconds: owlt,
@@ -179,7 +179,7 @@ describe("Targeting under signal delay", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-delay" }}>
-          <TargetingComponent id="dtt-delay" w={12} h={10} />
+          <RendezvousComponent id="dtt-delay" w={12} h={10} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -231,7 +231,7 @@ describe("Targeting under signal delay", () => {
   });
 });
 
-describe("Targeting's time to closest approach under signal delay", () => {
+describe("Rendezvous's time to closest approach under signal delay", () => {
   it("counts down from the received edge, with the target model's figure for the craft's present beside it", async () => {
     const owlt = 20;
     const fixture = setupStreamFixture({
@@ -241,7 +241,7 @@ describe("Targeting's time to closest approach under signal delay", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-tca" }}>
-          <TargetingComponent id="dtt-tca" w={6} h={9} />
+          <RendezvousComponent id="dtt-tca" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

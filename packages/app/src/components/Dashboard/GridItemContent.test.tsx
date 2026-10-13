@@ -148,6 +148,21 @@ describe("GridItemContent: draggableCancel structural guard", () => {
     expect(cancelTarget).toContainElement(configureBtn);
   });
 
+  it("renders nothing for a saved widget whose id is no longer registered, without throwing", () => {
+    const { container } = render(
+      <GridItemContent
+        item={{ i: "w9", componentId: "targeting" }}
+        w={3}
+        h={3}
+        updateItemConfig={vi.fn()}
+        updateItemMappings={vi.fn()}
+        removeItem={vi.fn()}
+      />,
+    );
+
+    expect(container.textContent).toBe("");
+  });
+
   it("wraps the Remove button in .widget-action-buttons even without a config component", () => {
     render(
       <GridItemContent

@@ -4,20 +4,20 @@ import type { TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState } from "@ksp-gonogo/ui-kit";
 import { closingRateReading, rangeReading } from "../shared/dockAngles";
 import { ApproachHud } from "./ApproachHud";
-import type { DockingHudMode, TargetingConfig } from "./config";
+import type { DockingHudMode, RendezvousConfig } from "./config";
 import { DockingHud } from "./DockingHud";
-import { TargetingConfigForm } from "./TargetingConfigForm";
-import { TargetPanel, TrackingView } from "./TargetingView";
-import { useTargetingMode } from "./useTargetingMode";
-import { targetingTopics, useTargetingReading } from "./useTargetingReading";
+import { RendezvousConfigForm } from "./RendezvousConfigForm";
+import { TargetPanel, TrackingView } from "./RendezvousView";
+import { useRendezvousMode } from "./useRendezvousMode";
+import { rendezvousTopics, useRendezvousReading } from "./useRendezvousReading";
 
-export type { TargetingHudContext } from "./slots";
+export type { RendezvousHudContext } from "./slots";
 
-function TargetingComponent({
+function RendezvousComponent({
   config,
   w,
   h,
-}: Readonly<ComponentProps<TargetingConfig>>) {
+}: Readonly<ComponentProps<RendezvousConfig>>) {
   const autoSwitch = config?.autoSwitch !== false;
   const hudMode: DockingHudMode = config?.hudMode ?? "hud-with-camera";
 
@@ -45,9 +45,9 @@ function TargetingComponent({
     outOfContact,
     reckoned,
     reckonedDistance,
-  } = useTargetingReading();
+  } = useRendezvousReading();
 
-  const mode = useTargetingMode({
+  const mode = useRendezvousMode({
     autoSwitch,
     dockable,
     dockingAvailable,
@@ -143,8 +143,8 @@ function TargetingComponent({
 }
 
 /** How far the target is and how fast that is closing. */
-function useTargetingEssentials(): readonly TinyEssential[] {
-  const target = targetingTopics.useTelemetry("vessel.target");
+function useRendezvousEssentials(): readonly TinyEssential[] {
+  const target = rendezvousTopics.useTelemetry("vessel.target");
   return [
     { label: "Range", value: rangeReading(target.relativePosition) },
     {
@@ -157,26 +157,26 @@ function useTargetingEssentials(): readonly TinyEssential[] {
   ];
 }
 
-registerComponent<TargetingConfig>({
-  id: "targeting",
-  name: "Targeting",
+registerComponent<RendezvousConfig>({
+  id: "rendezvous",
+  name: "Rendezvous",
   description:
-    "Your target's name and distance. Closing on a vessel or docking port, it switches to a docking view with an alignment reticle, over a camera picture when an Uplink supplies one through the `targeting.camera` slot.",
+    "Your target's name, range and closing rate, whether it is a vessel, a docking port or a body. Closing on a vessel or docking port, it switches to a docking view with an alignment reticle, over a camera picture when an Uplink supplies one through the `rendezvous.camera` slot.",
   tags: ["telemetry", "rendezvous"],
   defaultSize: { w: 6, h: 9 },
   // Five rows: at four the overflow glow painted out the waiting hint's last word.
   minSize: { w: 3, h: 5 },
-  component: TargetingComponent,
+  component: RendezvousComponent,
   tiny: {
     title: "TARGET",
-    useEssentials: useTargetingEssentials,
+    useEssentials: useRendezvousEssentials,
   },
-  configComponent: TargetingConfigForm,
-  channels: targetingTopics.channels,
+  configComponent: RendezvousConfigForm,
+  channels: rendezvousTopics.channels,
   defaultConfig: { autoSwitch: true, hudMode: "hud-with-camera" },
-  augmentSlots: ["targeting.camera", "targeting.overlay"],
+  augmentSlots: ["rendezvous.camera", "rendezvous.overlay"],
   pushable: true,
   requires: ["flight"],
 });
 
-export { TargetingComponent };
+export { RendezvousComponent };

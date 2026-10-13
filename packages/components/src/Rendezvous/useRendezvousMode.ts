@@ -34,7 +34,7 @@ function nextMode(
  * assert something about now, so anything held falls back to tracking,
  * which can state its age.
  */
-export function useTargetingMode(params: {
+export function useRendezvousMode(params: {
   autoSwitch: boolean;
   dockable: boolean;
   dockingAvailable: boolean;

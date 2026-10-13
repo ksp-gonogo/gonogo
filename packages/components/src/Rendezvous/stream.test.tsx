@@ -4,10 +4,10 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { TargetingComponent } from "./index";
+import { RendezvousComponent } from "./index";
 
 /**
- * Targeting running off the real stream pipeline via `StubTransport`. Every
+ * Rendezvous running off the real stream pipeline via `StubTransport`. Every
  * scalar and angle is derived client-side from the `vessel.target` and
  * `vessel.dock` Vec3 fields; docking roll is not on the wire and renders the
  * null placeholder.
@@ -16,7 +16,7 @@ afterEach(() => {
   clearActionHandlers();
 });
 
-describe("Targeting: genuinely runs off the stream", () => {
+describe("Rendezvous: genuinely runs off the stream", () => {
   it("renders tracking-mode distance/closing-rate derived from vessel.target's Vec3 fields", async () => {
     const fixture = setupStreamFixture({
       pinnedUt: 10,
@@ -26,7 +26,7 @@ describe("Targeting: genuinely runs off the stream", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-stream" }}>
-          <TargetingComponent id="dtt-stream" w={6} h={9} />
+          <RendezvousComponent id="dtt-stream" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -60,7 +60,7 @@ describe("Targeting: genuinely runs off the stream", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-dock" }}>
-          <TargetingComponent id="dtt-dock" w={12} h={10} />
+          <RendezvousComponent id="dtt-dock" w={12} h={10} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -105,7 +105,7 @@ describe("Targeting: genuinely runs off the stream", () => {
     const { container } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-cleared" }}>
-          <TargetingComponent id="dtt-cleared" w={6} h={9} />
+          <RendezvousComponent id="dtt-cleared" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -150,7 +150,7 @@ describe("Targeting: genuinely runs off the stream", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-tca" }}>
-          <TargetingComponent id="dtt-tca" w={6} h={9} />
+          <RendezvousComponent id="dtt-tca" w={6} h={9} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

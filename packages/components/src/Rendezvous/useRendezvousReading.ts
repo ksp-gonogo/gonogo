@@ -12,7 +12,7 @@ import {
 
 // Side-effect import: registers the `vessel.target` reckoner (stubbed, so it declines) and its processor.
 
-export const targetingTopics = defineTopicManifest({
+export const rendezvousTopics = defineTopicManifest({
   channels: ["vessel.target", "vessel.dock"],
 });
 
@@ -23,9 +23,9 @@ export const targetingTopics = defineTopicManifest({
  * stops being drawn once it is held. Its `absent` and `pending` both
  * mean no HUD.
  */
-export function useTargetingReading() {
-  const targetReading = targetingTopics.useTelemetry("vessel.target");
-  const dockReading = targetingTopics.useTelemetry("vessel.dock");
+export function useRendezvousReading() {
+  const targetReading = rendezvousTopics.useTelemetry("vessel.target");
+  const dockReading = rendezvousTopics.useTelemetry("vessel.dock");
   // `vessel.dock` is reckonable: the modelled separation overlays the observation, while relative velocity and `forwardDot` do not move.
   // The observation first: `reckoning.status` narrows the reckoning, not the arm carrying it.
   const dockObserved =
@@ -174,4 +174,4 @@ export function useTargetingReading() {
   };
 }
 
-export type TargetingReading = ReturnType<typeof useTargetingReading>;
+export type RendezvousReading = ReturnType<typeof useRendezvousReading>;

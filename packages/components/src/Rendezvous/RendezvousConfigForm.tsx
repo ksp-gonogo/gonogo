@@ -9,20 +9,20 @@ import {
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
-import type { DockingHudMode, TargetingConfig } from "./config";
+import type { DockingHudMode, RendezvousConfig } from "./config";
 
-export function TargetingConfigForm({
+export function RendezvousConfigForm({
   config,
   onSave,
-}: Readonly<ConfigComponentProps<TargetingConfig>>) {
+}: Readonly<ConfigComponentProps<RendezvousConfig>>) {
   const [autoSwitch, setAutoSwitch] = useState(config?.autoSwitch !== false);
   const [hudMode, setHudMode] = useState<DockingHudMode>(
     config?.hudMode ?? "hud-with-camera",
   );
-  // No camera picker: the augment filling `targeting.camera` picks, and a pinned id round-trips as an override.
+  // No camera picker: the augment filling `rendezvous.camera` picks, and a pinned id round-trips as an override.
   const pinnedCameraId = config?.cameraFlightId;
 
-  const candidate = useMemo<TargetingConfig>(
+  const candidate = useMemo<RendezvousConfig>(
     () => ({
       autoSwitch,
       hudMode,

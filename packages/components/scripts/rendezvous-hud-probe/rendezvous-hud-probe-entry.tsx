@@ -1,6 +1,6 @@
 /**
- * Dedicated probe for Targeting's docking HUD, with and without a
- * `targeting.camera` backdrop.
+ * Dedicated probe for Rendezvous's docking HUD, with and without a
+ * `rendezvous.camera` backdrop.
  *
  * The standard widget probe cannot show the backdrop at all: the only augment
  * that fills that slot is a camera Uplink's, which ships from its own
@@ -13,7 +13,7 @@
  *
  * The real augment can now be photographed in this widget, and this stub does
  * not replace that. It runs from the Uplink's side: a fixture naming
- * `_scene.hostWidget: "targeting"` plus `uplink-tools render --with <this repo's
+ * `_scene.hostWidget: "rendezvous"` plus `uplink-tools render --with <this repo's
  * packages/components/src/index.ts>` mounts the genuine `<video>` inside the
  * genuine host. That is the run to make when
  * the question is about the picture, because a stub cannot answer what
@@ -43,7 +43,7 @@ import { defaultDarkTheme } from "@ksp-gonogo/ui-kit";
 import { createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
-// Side-effect import: every built-in widget (Targeting included) self-registers on module load, same contract as the shared probe.
+// Side-effect import: every built-in widget (Rendezvous included) self-registers on module load, same contract as the shared probe.
 import "../../src";
 import {
   type StreamFixture,
@@ -53,7 +53,7 @@ import {
 registerStockBodies();
 
 /**
- * Stub `targeting.camera` backdrop: a flat approach view standing in for the
+ * Stub `rendezvous.camera` backdrop: a flat approach view standing in for the
  * live docking camera this headless probe has no source for. Styled exactly as
  * the real augment's `<video>` is, so the render answers where the video layer
  * sits and how much of the frame it fills, and answers nothing about any
@@ -74,22 +74,22 @@ function StubDockingCamera() {
   });
 }
 
-registerAugment<"targeting.camera">({
-  id: "probe-targeting-camera-stub",
-  augments: "targeting.camera",
+registerAugment<"rendezvous.camera">({
+  id: "probe-rendezvous-camera-stub",
+  augments: "rendezvous.camera",
   component: StubDockingCamera,
 });
 
-export interface TargetingHudProbeEmit {
+export interface RendezvousHudProbeEmit {
   channel: string;
   value: unknown;
 }
 
-export interface TargetingHudProbePayload {
+export interface RendezvousHudProbePayload {
   /** UT to pin the view clock at; forwarded to `setupStreamFixture`. */
   pinnedUt?: number;
   /** Replayed in order, one `StubTransport.emit` per entry, post-mount. */
-  emits: TargetingHudProbeEmit[];
+  emits: RendezvousHudProbeEmit[];
   /** Widget config for this render; `hudMode` is what mounts the camera slot. */
   config: Record<string, unknown>;
   /** Grid units passed to the widget (`w`/`h` props), gate its layout branches. */
@@ -126,18 +126,19 @@ function settle(ms: number): Promise<void> {
   });
 }
 
-async function renderTargetingHudProbe(
-  payload: TargetingHudProbePayload,
+async function renderRendezvousHudProbe(
+  payload: RendezvousHudProbePayload,
 ): Promise<void> {
   const root = document.getElementById("root");
-  if (!root) throw new Error("Targeting-HUD probe: #root element missing");
+  if (!root) throw new Error("Rendezvous-HUD probe: #root element missing");
 
   if (activeRoot) {
     activeRoot.unmount();
     activeRoot = null;
   }
-  const def = getComponent("targeting");
-  if (!def) throw new Error('Targeting-HUD probe: "targeting" not registered');
+  const def = getComponent("rendezvous");
+  if (!def)
+    throw new Error('Rendezvous-HUD probe: "rendezvous" not registered');
   const WidgetComponent = def.component as React.ComponentType<
     ComponentProps<Record<string, unknown>>
   >;
@@ -216,10 +217,10 @@ async function renderTargetingHudProbe(
 
 declare global {
   interface Window {
-    __renderTargetingHudProbe: (
-      payload: TargetingHudProbePayload,
+    __renderRendezvousHudProbe: (
+      payload: RendezvousHudProbePayload,
     ) => Promise<void>;
   }
 }
 
-window.__renderTargetingHudProbe = renderTargetingHudProbe;
+window.__renderRendezvousHudProbe = renderRendezvousHudProbe;
