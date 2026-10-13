@@ -10035,6 +10035,22 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . Fill",
+        "note": "removed: a position: relative flex column that drew nothing; a caller wanting an overlay anchor writes a position: relative element of its own"
+      },
+      {
+        "key": "ui-kit . FillProps",
+        "note": "removed with Fill"
+      },
+      {
+        "key": "ui-kit . FillProps#children?",
+        "note": "removed with Fill"
+      },
+      {
+        "key": "ui-kit . FillProps#grow?",
+        "note": "removed with Fill"
+      },
+      {
         "key": "ui-kit . HeldFigure",
         "note": "Gains the optional elsewhere prop and its kind widens with \"current\" (decision 81). A caller that passes neither, or a kind of held or modelled alone, draws exactly as before"
       },

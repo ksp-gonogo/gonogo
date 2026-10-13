@@ -1,7 +1,7 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { defineTopicManifest, registerComponent } from "@ksp-gonogo/core";
 import { deriveReading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
-import { Fill, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
 import { type GraphThreshold, GraphView, type GraphViewConfig } from "../Graph";
 import { magnitudeOf } from "../shared/magnitude";
@@ -138,36 +138,30 @@ function AtmosphereProfileComponent({
     liveDensity?.greaterThan(value(liveDensity.unit, 1e-9)) === true &&
     body?.hasAtmosphere === true;
   return (
-    <Fill>
-      <Fill grow>
-        {/* gonogo:reads vessel.flight */}
-        <GraphView
-          config={graphConfig}
-          thresholds={thresholds}
-          referenceCurves={referenceCurve ? [referenceCurve] : undefined}
-          title={title}
-          notice={notice}
-          plotReadout={
-            showLiveChip
-              ? (room) => (
-                  <LiveAirChip
-                    density={flightReading.atmDensity}
-                    airTemp={flightReading.atmosphericTemperature}
-                    skinTemp={flightReading.externalTemperature}
-                    stacked={room.compact}
-                    tight={room.tight}
-                  />
-                )
-              : undefined
-          }
-          emptyState={
-            body
-              ? `No atmosphere on ${body.name}`
-              : "Waiting for body telemetry..."
-          }
-        />
-      </Fill>
-    </Fill>
+    // gonogo:reads vessel.flight
+    <GraphView
+      config={graphConfig}
+      thresholds={thresholds}
+      referenceCurves={referenceCurve ? [referenceCurve] : undefined}
+      title={title}
+      notice={notice}
+      plotReadout={
+        showLiveChip
+          ? (room) => (
+              <LiveAirChip
+                density={flightReading.atmDensity}
+                airTemp={flightReading.atmosphericTemperature}
+                skinTemp={flightReading.externalTemperature}
+                stacked={room.compact}
+                tight={room.tight}
+              />
+            )
+          : undefined
+      }
+      emptyState={
+        body ? `No atmosphere on ${body.name}` : "Waiting for body telemetry..."
+      }
+    />
   );
 }
 

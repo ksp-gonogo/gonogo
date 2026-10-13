@@ -79,7 +79,7 @@ export interface GraphNoticeProps extends HTMLAttributes<HTMLDivElement> {
   children?: ReactNode;
   /**
    * `overlay` pins the pill to the bottom-left corner over the graph (pair with
-   * a `position: relative` ancestor such as `Fill`); `center` pins it to the
+   * a `position: relative` ancestor); `center` pins it to the
    * middle of that ancestor instead. `inline` sits as a flow
    * row below the graph, where an overlay would cover labels the caller draws
    * under it.
@@ -123,14 +123,14 @@ const PLACEMENT_STYLES = {
  * it never intercepts the graph's clicks, and `role="status"` by default;
  * override via `role`.
  *
- * @example Over a graph in a `Fill`
+ * @example Over a graph in a `position: relative` container
  * ```tsx
- * <Fill>
+ * <div style={{ position: "relative" }}>
  *   <LineGraph series={series} aria-label="Altitude trend" />
  *   {series.length === 0 && (
  *     <GraphNotice placement="overlay">no reference data</GraphNotice>
  *   )}
- * </Fill>
+ * </div>
  * ```
  *
  * @category LineGraph

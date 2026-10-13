@@ -293,7 +293,6 @@ export {
   type ExpandableTextProps,
 } from "./ExpandableText";
 export { type EphemerisFigure, ephemerisFigureOf } from "./ephemerisFigure";
-export { Fill, type FillProps } from "./Fill";
 export {
   FilterChip,
   type FilterChipProps,
