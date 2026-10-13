@@ -14,6 +14,7 @@ import {
   AlarmsLauncherProvider,
   type PendingAlarmSummary,
 } from "../shared/AlarmsLauncher";
+import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { delayRequiringAlarm, WarpControlComponent } from "./index";
 
@@ -94,9 +95,8 @@ async function mount(opts: MountOptions) {
 }
 
 function higherRungsDisabled(): boolean[] {
-  return HIGHER_RUNGS.map(
-    (name) =>
-      (screen.getByRole("button", { name }) as HTMLButtonElement).disabled,
+  return HIGHER_RUNGS.map((name) =>
+    isDisabled(screen.getByRole("button", { name })),
   );
 }
 
@@ -128,10 +128,7 @@ describe("WarpControl: an alarm is required to warp under delay", () => {
     await mount({ oneWaySeconds: 742, pending: [] });
 
     expect(higherRungsDisabled().every(Boolean)).toBe(true);
-    expect(
-      (screen.getByRole("button", { name: "1×" }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(false);
+    expect(isDisabled(screen.getByRole("button", { name: "1×" }))).toBe(false);
     expect(
       screen.getByRole("button", { name: "Set alarm to warp" }),
     ).toBeTruthy();
@@ -141,14 +138,10 @@ describe("WarpControl: an alarm is required to warp under delay", () => {
     await mount({ oneWaySeconds: 742, pending: [], warpIndex: 3 });
 
     for (const name of ["1×", "5×", "10×", "50×"]) {
-      expect(
-        (screen.getByRole("button", { name }) as HTMLButtonElement).disabled,
-      ).toBe(false);
+      expect(isDisabled(screen.getByRole("button", { name }))).toBe(false);
     }
     for (const name of ["100×", "1k×", "10k×", "100k×"]) {
-      expect(
-        (screen.getByRole("button", { name }) as HTMLButtonElement).disabled,
-      ).toBe(true);
+      expect(isDisabled(screen.getByRole("button", { name }))).toBe(true);
     }
   });
 

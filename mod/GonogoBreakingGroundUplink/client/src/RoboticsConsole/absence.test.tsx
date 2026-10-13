@@ -167,10 +167,10 @@ describe("RoboticsConsole: an unread target commands nothing", () => {
       name: /Increase target/i,
     });
     const lower = screen.getByRole("button", { name: /Decrease target/i });
-    expect(raise).toBeDisabled();
-    expect(lower).toBeDisabled();
-    expect(raise.getAttribute("aria-label")).toContain("not reported");
-    expect(lower.getAttribute("aria-label")).toContain("not reported");
+    expect(raise).toHaveAttribute("aria-disabled", "true");
+    expect(lower).toHaveAttribute("aria-disabled", "true");
+    expect(raise).toHaveAccessibleDescription(/not reported/);
+    expect(lower).toHaveAccessibleDescription(/not reported/);
   });
 
   it("dispatches no servo target command when the + button is pressed", async () => {

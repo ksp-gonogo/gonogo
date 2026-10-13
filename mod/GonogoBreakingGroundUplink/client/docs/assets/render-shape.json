@@ -43,12 +43,12 @@
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "a0918b7370c947dc",
+      "hash": "2eeaa5feb9c69665",
       "elements": 65,
       "text": "f14fa8db"
     },
     "rotors--min.png": {
-      "hash": "d28b8f83d937e120",
+      "hash": "c31884410360e3a0",
       "elements": 53,
       "text": "482ff170"
     },
@@ -58,22 +58,22 @@
       "text": "f903d91f"
     },
     "rotors-link-lost--default.png": {
-      "hash": "99d6a379d4e6ed64",
+      "hash": "062bd826125a1cf3",
       "elements": 79,
       "text": "8b5ad60a"
     },
     "servos--default.png": {
-      "hash": "8a29939773c3af6e",
+      "hash": "934104c6792661bd",
       "elements": 61,
       "text": "c9621c46"
     },
     "servos--min.png": {
-      "hash": "dd0c930e65df2c1f",
+      "hash": "45d6f48132ae785d",
       "elements": 36,
       "text": "220c5a23"
     },
     "servos-link-lost--default.png": {
-      "hash": "08b8ffc76470d8a0",
+      "hash": "d1ee26e0c992fbfb",
       "elements": 72,
       "text": "03c0e156"
     }

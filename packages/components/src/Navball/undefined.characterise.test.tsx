@@ -7,6 +7,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -143,8 +144,8 @@ describe("Navball control surface: what undefined means today", () => {
     expect(screen.queryByRole("note")).toBeNull();
     const sas = screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` });
     const rcs = screen.getByRole("button", { name: `RCS ${NULL_DISPLAY}` });
-    expect(sas).not.toBeDisabled();
-    expect(rcs).not.toBeDisabled();
+    expect(isDisabled(sas)).toBe(false);
+    expect(isDisabled(rcs)).toBe(false);
     expect(screen.queryByRole("button", { name: "SAS ON" })).toBeNull();
     expect(screen.queryByRole("button", { name: "SAS OFF" })).toBeNull();
     // A step from an unread throttle is refused; the absolute commands stay live.
@@ -152,10 +153,14 @@ describe("Navball control surface: what undefined means today", () => {
       name: "Throttle",
     }).parentElement;
     expect(group?.textContent).toContain(NULL_DISPLAY);
-    expect(screen.getByRole("button", { name: "+10%" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "−10%" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "ZERO" })).not.toBeDisabled();
-    expect(screen.getByRole("button", { name: "FULL" })).not.toBeDisabled();
+    expect(isDisabled(screen.getByRole("button", { name: "+10%" }))).toBe(true);
+    expect(isDisabled(screen.getByRole("button", { name: "−10%" }))).toBe(true);
+    expect(isDisabled(screen.getByRole("button", { name: "ZERO" }))).toBe(
+      false,
+    );
+    expect(isDisabled(screen.getByRole("button", { name: "FULL" }))).toBe(
+      false,
+    );
   });
 
   it("banners and disables the surface only on a CONFIRMED uncontrollable vessel", async () => {
@@ -176,8 +181,8 @@ describe("Navball control surface: what undefined means today", () => {
       ),
     );
     expect(
-      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),
-    ).toBeDisabled();
+      isDisabled(screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` })),
+    ).toBe(true);
   });
 
   it("refuses to dispatch a SAS or RCS toggle when vessel.control has never arrived", async () => {
@@ -199,8 +204,8 @@ describe("Navball control surface: what undefined means today", () => {
     expect(sentNamed("vessel.control.setRcs")).toEqual([]);
     // The refusal is invisible: the button stays enabled.
     expect(
-      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),
-    ).not.toBeDisabled();
+      isDisabled(screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` })),
+    ).toBe(false);
   });
 
   it("dispatches that same click once a real boolean has arrived", async () => {

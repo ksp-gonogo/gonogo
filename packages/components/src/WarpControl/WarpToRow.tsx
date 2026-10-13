@@ -192,6 +192,11 @@ export function WarpToRow({
             variant="primary"
             size="sm"
             disabled={!armable}
+            disabledReason={
+              timeTo === null
+                ? "There is no target instant to warp to"
+                : "The target instant has already passed"
+            }
             onClick={arm}
           >
             Set alarm

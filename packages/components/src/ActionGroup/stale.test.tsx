@@ -10,6 +10,7 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AlarmsLauncherProvider } from "../shared/AlarmsLauncher";
+import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
@@ -98,7 +99,7 @@ describe("ActionGroup when the group's state is held", () => {
     const toggle = () => screen.getByRole("button", { name: "Toggle SAS" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
     expect(toggle().getAttribute("data-tooltip")).toBe("Toggle SAS");
-    expect(toggle()).not.toBeDisabled();
+    expect(isDisabled(toggle())).toBe(false);
   });
 
   it("keeps the last state drawn held once it stops arriving, and says why the press is refused", async () => {
@@ -111,7 +112,7 @@ describe("ActionGroup when the group's state is held", () => {
 
     stopDelivering(fixture);
 
-    await waitFor(() => expect(toggle()).toBeDisabled());
+    await waitFor(() => expect(isDisabled(toggle())).toBe(true));
     expect(toggle().textContent).toContain("ON");
     expect(toggle().querySelector("[data-held-mark]")).not.toBeNull();
     expect(toggle().getAttribute("data-tooltip")).toBe(
@@ -142,7 +143,7 @@ describe("ActionGroup when the group's state is held", () => {
     expect(fixture.transport.sentCommands).toHaveLength(1);
 
     stopDelivering(fixture);
-    await waitFor(() => expect(toggle()).toBeDisabled());
+    await waitFor(() => expect(isDisabled(toggle())).toBe(true));
 
     act(() => {
       toggle().click();
@@ -166,7 +167,9 @@ describe("ActionGroup when the group's state is held", () => {
         .getAttribute("data-tooltip"),
     ).toBe("Toggle SAS");
     // Nothing to invert yet, so no press is offered; the tooltip still names no cause.
-    expect(screen.getByRole("button", { name: "Toggle SAS" })).toBeDisabled();
+    expect(isDisabled(screen.getByRole("button", { name: "Toggle SAS" }))).toBe(
+      true,
+    );
   });
 });
 
@@ -193,8 +196,8 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Toggle Radiators" }),
-      ).toBeDisabled(),
+        isDisabled(screen.getByRole("button", { name: "Toggle Radiators" })),
+      ).toBe(true),
     );
     expect(screen.queryByText("No action group configured")).toBeNull();
     expect(
@@ -223,7 +226,7 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
     );
     expect(toggle().textContent).toBe("4");
     expect(toggle().getAttribute("data-tooltip")).toBe("Toggle Stage");
-    expect(toggle()).not.toBeDisabled();
+    expect(isDisabled(toggle())).toBe(false);
 
     act(() => {
       toggle().click();

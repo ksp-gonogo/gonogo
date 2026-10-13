@@ -17,6 +17,7 @@ import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { axe } from "../test/axe";
+import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   ActionGroupComponent,
@@ -174,7 +175,7 @@ describe("ActionGroupComponent", () => {
     const pill = await screen.findByRole("button", { name: /toggle sas/i });
     // Wait for the content: the pill renders before any value arrives.
     await waitFor(() => expect(pill).toHaveTextContent("OFF"));
-    expect(pill).not.toBeDisabled();
+    expect(isDisabled(pill)).toBe(false);
   });
 
   it("reflects ON state via aria-pressed on the pill button", async () => {
@@ -250,8 +251,10 @@ describe("ActionGroupComponent", () => {
   it("disables the pill for a group with no toggle key (Precision Control)", () => {
     renderGroup({ actionGroupId: "Precision Control" });
     expect(
-      screen.getByRole("button", { name: /toggle precision control/i }),
-    ).toBeDisabled();
+      isDisabled(
+        screen.getByRole("button", { name: /toggle precision control/i }),
+      ),
+    ).toBe(true);
   });
 
   it("has no axe violations with the pill toggle button", async () => {

@@ -90,6 +90,12 @@ export function ActionGroupView({
   const unavailableTitle = unavailableReason
     ? UNAVAILABLE_TITLES[unavailableReason]
     : undefined;
+  // A group nothing can press names why: the known reason, else that it has no action to invert.
+  const cannotToggleBecause =
+    unavailableTitle ??
+    (group?.toggle
+      ? "The group's state cannot be inverted"
+      : "No toggle is configured for this group");
 
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
@@ -207,6 +213,7 @@ export function ActionGroupView({
                   pressed={isOn}
                   size="sm"
                   disabled={!canToggle}
+                  disabledReason={cannotToggleBecause}
                   onClick={press}
                   aria-label={`Toggle ${currentLabel}`}
                 >

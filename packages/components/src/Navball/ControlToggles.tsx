@@ -1,5 +1,4 @@
 import {
-  HeldFigure,
   Notice,
   NULL_DISPLAY,
   type ReckoningMarking,
@@ -32,6 +31,9 @@ interface ControlTogglesProps {
  * too small for the mode grid it is the only place the mode appears. Precision
  * has no set command, so it is a readout.
  */
+/** Why every control of the toggle row is dark while the vessel cannot be flown. */
+const NOT_CONTROLLABLE = "The vessel is not controllable";
+
 export function ControlToggles({
   disabled,
   sas,
@@ -43,14 +45,14 @@ export function ControlToggles({
   onToggleSas,
   onToggleRcs,
 }: ControlTogglesProps) {
-  const marked = (label: string) =>
-    marking === null ? (
-      label
-    ) : (
-      <HeldFigure kind={marking.kind} caption={marking.caption}>
-        {label}
-      </HeldFigure>
-    );
+  // A held state stays pressable; the tip says what the press does with it.
+  const heldState =
+    marking === null
+      ? null
+      : {
+          ...marking,
+          caption: `${marking.caption}. The press sends the opposite of the state shown`,
+        };
   return (
     <>
       {disabled && <Notice>Vessel not controllable: buttons disabled.</Notice>}
@@ -63,8 +65,10 @@ export function ControlToggles({
             pressed={sas === true}
             onClick={onToggleSas}
             disabled={disabled || sasUnavailableReason !== null}
+            disabledReason={sasUnavailableReason ?? NOT_CONTROLLABLE}
+            marked={heldState}
           >
-            {marked(armLabel("SAS", sas, sasBadgeMode))}
+            {armLabel("SAS", sas, sasBadgeMode)}
           </ToggleButton>
         </Tooltip>
         <ToggleButton
@@ -74,8 +78,10 @@ export function ControlToggles({
           pressed={rcs === true}
           onClick={onToggleRcs}
           disabled={disabled}
+          disabledReason={NOT_CONTROLLABLE}
+          marked={heldState}
         >
-          {marked(armLabel("RCS", rcs))}
+          {armLabel("RCS", rcs)}
         </ToggleButton>
         {/* A dim chip means off, so there is no chip until precision is read. */}
         {typeof precision === "boolean" && (
@@ -85,6 +91,7 @@ export function ControlToggles({
             style={TOGGLE_CELL}
             pressed={precision}
             disabled
+            disabledReason="Precision mode is set in the game, not from here"
           >
             PRECISION
           </ToggleButton>

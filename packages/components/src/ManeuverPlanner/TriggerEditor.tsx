@@ -35,6 +35,11 @@ export function TriggerEditor({
   const valueN = Number.parseFloat(triggerValueDraft);
   const armDisabled =
     !triggerKey || !Number.isFinite(valueN) || externallyDisabled;
+  const armBlockedBecause = externallyDisabled
+    ? "There is no plan to attach a trigger to"
+    : !triggerKey
+      ? "Pick the value the trigger watches"
+      : "Enter a number for the trigger's value";
   return (
     <Stack style={EDITOR_STYLE}>
       <div style={EDITOR_TITLE_STYLE}>When this condition holds</div>
@@ -86,6 +91,7 @@ export function TriggerEditor({
             onArm({ dataKey: triggerKey, op: triggerOp, value: valueN });
           }}
           disabled={armDisabled}
+          disabledReason={armBlockedBecause}
         >
           Arm
         </Button>

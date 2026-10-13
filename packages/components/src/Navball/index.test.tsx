@@ -20,6 +20,7 @@ import {
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import {
   type StreamFixture,
   setupStreamFixture,
@@ -146,7 +147,7 @@ describe("NavballComponent", () => {
       },
     });
     const toggle = await screen.findByRole("button", { name: "SAS OFF" });
-    expect(toggle).toBeDisabled();
+    expect(isDisabled(toggle)).toBe(true);
     expect(toggle).toHaveAttribute(
       "data-tooltip",
       "No SAS: needs a Pilot aboard or a probe core with SAS",
@@ -190,7 +191,7 @@ describe("NavballComponent", () => {
       /Vessel not controllable/i,
     );
     const proButton = screen.getByRole("button", { name: /^PRO$/ });
-    expect(proButton).toBeDisabled();
+    expect(isDisabled(proButton)).toBe(true);
   });
 
   it("arms FBW on click and disarms on unmount", async () => {

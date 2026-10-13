@@ -7,6 +7,7 @@ import {
 import { makeMeta } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import { ActionGroupComponent } from "./index";
 
 /**
@@ -99,13 +100,13 @@ describe("ActionGroup when the stream's peer goes silent without closing", () =>
       await vi.advanceTimersByTimeAsync(500);
     });
     expect(transport.status).toBe("connected");
-    expect(toggle().disabled).toBe(false);
+    expect(isDisabled(toggle())).toBe(false);
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(7_000);
     });
     expect(transport.status).toBe("reconnecting");
-    expect(toggle().disabled).toBe(true);
+    expect(isDisabled(toggle())).toBe(true);
     expect(toggle().querySelector("[data-held-mark]")).not.toBeNull();
 
     transport.dispose();

@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/test-utils";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
@@ -175,7 +176,9 @@ describe("ActionGroup (Precision Control): read-only, no toggle command", () => 
 
     await screen.findByText("ON");
     expect(
-      screen.getByRole("button", { name: "Toggle Precision Control" }),
-    ).toBeDisabled();
+      isDisabled(
+        screen.getByRole("button", { name: "Toggle Precision Control" }),
+      ),
+    ).toBe(true);
   });
 });
