@@ -19,3 +19,26 @@ The mod listens on port 8090 with no password, and that port accepts commands th
 Open the app, then **Settings, Help, Checking telemetry is arriving**. The first-run setup runs the same checks for you, and **Settings, Connection, Run setup again** opens it again.
 
 For running KSP on a second computer, firewalls and stations, see [NETWORKING.md](NETWORKING.md).
+
+## Signal loss and CommNet
+
+Gonogo makes distance matter. Commands to a craft and readings from it take the time light needs to cross the distance between mission control and the craft, so a probe at Duna answers minutes after you ask. Signal delay is on by default, at real light speed. A craft that is out of contact, behind a planet or past the range of its antennas, is out of contact whether delay is on or off.
+
+### Turning signal delay off, or changing the speed
+
+The choice belongs to the save, so each game has its own. Set it in KSP under **Settings, Difficulty options, Gonogo**, when you create a game or at any time in one that is running. It has two settings:
+
+- **Signal delay** is the switch. Off, commands and readings arrive at once
+- **Light speed** is how fast signals travel as a fraction of the speed of light, from 0.01 to 100. 1 is real light speed, and 0.5 doubles every delay. It cannot be 0, because that would mean a delay that never ends
+
+The same two settings appear in the Gonogo app, under **Settings, Gonogo, Signal delay**, while KSP is connected, and a change in either place shows in the other within a second. A craft already on its way keeps the arrival time it was given when it left, so a command sent just before you turn delay off can arrive after one sent just after.
+
+A save made with an earlier build of the mod used a `SIGNAL_DELAY` entry in `GameData/Gonogo/PluginData/gonogo.cfg`. That entry is no longer read: set the choice in the difficulty options instead.
+
+### What still applies with signal delay off
+
+Switching delay off removes the waiting and nothing else. Gonogo still follows the game's CommNet, so a craft behind a planet or beyond its antennas' reach is out of contact, loses its readings during a blackout, and refuses commands while it has no path to mission control.
+
+### Stock CommNet is a different setting
+
+KSP's own **Enable Comm Network** option, in the same difficulty screen, is not the same thing. With it off, the game treats every craft as in perfect sight of mission control: nothing is occluded and nothing blacks out, so there is no signal loss to model. Gonogo then reports every craft as in contact.

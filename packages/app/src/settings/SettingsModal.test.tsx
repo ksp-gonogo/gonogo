@@ -1162,6 +1162,43 @@ describe("SettingsModal: the Uplinks tab", () => {
     await act(async () => {});
   });
 
+  it("draws the signal delay choice the save holds under the Gonogo tab, and writes it through the mod", async () => {
+    const stream = setupTelemetryStream();
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModalWithStream(stream);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("tab", { name: "Gonogo" }));
+    act(() => {
+      stream.emitTopic("settings.comms", {
+        uplink: "comms",
+        failure: null,
+        settings: [
+          {
+            id: "delayEnabled",
+            label: "Signal delay",
+            description:
+              "Off, they arrive at once; a craft with no path is still out of contact",
+            kind: 1,
+            unit: null,
+            group: "",
+            setIn: "Difficulty settings, Gonogo",
+            writable: true,
+            value: "True",
+            unavailable: null,
+          },
+        ],
+      });
+    });
+
+    expect(
+      await screen.findByRole("checkbox", { name: "Signal delay" }),
+    ).toBeChecked();
+    expect(
+      screen.getByText("Set in Difficulty settings, Gonogo"),
+    ).toBeInTheDocument();
+    await act(async () => {});
+  });
+
   it("marks an Uplink whose Gonogo settings could not be declared", async () => {
     const stream = setupTelemetryStream();
     registerDataSource(makeSitrepStub(vi.fn(), "connected"));

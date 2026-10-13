@@ -165,14 +165,9 @@ namespace Gonogo.KSP
                 _settings = settings;
                 _engine.Settings = settings;
 
-                // Bind the light-time delay capability BEFORE discovery, so the
-                // comms uplink's SignalDelay source is configured at Register
-                // time. The subscription fires as it is made, which is what
-                // carries SIGNAL_DELAY's stored values in.
-                CommsCoreUplink.BindSettings(settings);
-                var delay = CommsCoreUplink.AuthoredSignalDelayConfig;
-                Debug.Log("[Gonogo] SignalDelay enabled=" + delay.Enabled
-                    + " lightSpeedScale=" + delay.LightSpeedScale);
+                // The signal delay choice lives in the save, not in the file; a
+                // block left over from the file is named once so nobody hunts for it.
+                CommsCoreUplink.NoteLegacySettings(settings, msg => Debug.LogWarning("[Gonogo] " + msg));
 
                 // The dev-capture recorder's own row. Off unless the file says
                 // otherwise, unlike signal delay: recording costs disk and log
@@ -351,14 +346,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Reads the signal delay delay config from
-        /// <c>GameData/Gonogo/PluginData/gonogo.cfg</c> (a <c>SIGNAL_DELAY</c>
-        /// node: <c>enabled = true|false</c>, <c>lightSpeedScale = &lt;double&gt;</c>).
-        /// Default when the file/node is absent: delay on at real light-speed
-        /// (scale 1.0): the mod's realism default. A smaller scale lengthens
-        /// delay (slower light); a larger scale shortens it. Never throws.
-        /// </summary>
-        /// <summary>
         /// Which binary is actually running, logged at startup.
         ///
         /// <para>Verifying a live fix means knowing the game loaded the DLL you
@@ -443,6 +430,9 @@ namespace Gonogo.KSP
             // blocks (bounded) waiting on exactly this drain. Never throws.
             _engine?.RunPendingCommands();
             _loadReporter?.Update();
+            // The save's signal delay choice, taken into force within a frame
+            // of an edit in the difficulty settings or from the app.
+            CommsCoreUplink.SyncSignalDelayFromSave();
             // Re-read every gated command's requirements and publish them to
             // system.uplink.gates, so a control can be drawn dark before it is
             // pressed. HERE rather than in a channel mapper because a gate
