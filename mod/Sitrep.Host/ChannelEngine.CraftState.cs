@@ -70,12 +70,19 @@ namespace Sitrep.Host
         /// </summary>
         internal static string CraftSightingTopic(string vesselId) => CraftStatePrefix + vesselId + CraftSightingSuffix;
 
+        /// <summary>Each object's delays as of its last sighting, which a gone object's release waits out like its other stamps.</summary>
+        private readonly Dictionary<string, DelayStamp> _craftSightStamps = new Dictionary<string, DelayStamp>(StringComparer.Ordinal);
+
         public void RecordCraftSighting(string vesselId, CraftSighting sighting, double ut, IReadOnlyDictionary<string, double> lightSeconds)
         {
             var topic = CraftSightingTopic(vesselId);
             _lastRecordedUt[topic] = ut;
             // A centre the sighting has no light-time to is never sent it.
-            _courier.Record(NodeFor(topic), topic, sighting, ut, sentUnder: new DelayStamp(double.PositiveInfinity, lightSeconds));
+            var stamp = new DelayStamp(double.PositiveInfinity, lightSeconds);
+            _courier.Record(NodeFor(topic), topic, sighting, ut, sentUnder: stamp);
+            _craftSightStamps[vesselId] = stamp;
+            // A sighting of an object already gone, its going included, is held for until it lands.
+            HoldDepartedUntil(FleetNodePrefix + vesselId, Math.Max(_tickUt, _clock.Now()) + Longest(stamp) + ReleaseMarginSeconds);
         }
 
         public Action HearCraftSighting(string vesselId, string centre, Action<CraftSighting> seen)
@@ -359,6 +366,7 @@ namespace Sitrep.Host
             _craftStateSaid.Clear();
             _craftLinkSaid.Clear();
             _craftRadioStamps.Clear();
+            _craftSightStamps.Clear();
             /* The clock's schedule goes with the timeline, and with it the release a
                departed craft was waiting on. A craft that is back on the roster cancels
                its departure when it is next read, so every one still departed is timed

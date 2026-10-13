@@ -206,12 +206,12 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// The relay's light takes nine hundred seconds to reach home and its
-        /// radio six hundred. Destroyed out of contact it says nothing, and the
-        /// light of its going never takes it off home's list: home lists it for
-        /// good.
+        /// radio six hundred. Destroyed out of contact it says nothing, and
+        /// leaves home's list when the light of its going arrives, long after
+        /// its radio's delay has passed.
         /// </summary>
         [Fact]
-        public async Task ACraftDestroyedOutOfContactWhoseLightIsSlowerThanItsRadioIsNeverDropped()
+        public async Task ACraftDestroyedOutOfContactWhoseLightIsSlowerThanItsRadioLeavesTheListWhenItsLightArrives()
         {
             await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 900.0 });
             await seated.TickAsync(1, 2, 700, 702, 950, 952);
@@ -219,10 +219,11 @@ namespace Sitrep.Host.IntegrationTests
             seated.World.Game.RelayConnected = false;
             await seated.TickAsync(980, 982);
             seated.World.Game.DestroyRelay();
-            await seated.TickAsync(T0, T0 + 2, T0 + 599, T0 + 603, T0 + 899, T0 + 903, T0 + 905);
-            await seated.TickAsync(T0 + 5000, T0 + 5002);
+            await seated.TickAsync(T0, T0 + 2, T0 + 599, T0 + 603, T0 + 899);
+            Reckoned.True(seated.View.Vessel(Relay) != null, "home dropped a destroyed craft before the light of its going could arrive");
 
-            Assert.NotNull(seated.View.Vessel(Relay));
+            await seated.TickAsync(T0 + 903, T0 + 904, T0 + 905);
+            Assert.Null(seated.View.Vessel(Relay));
         }
 
         /// <summary>A tracking station that cannot place a vessel sees nothing: an object with no radio is never listed, and a craft is known by its radio alone.</summary>

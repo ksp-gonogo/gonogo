@@ -8010,9 +8010,24 @@ namespace Sitrep.Host
             {
                 longest = Math.Max(longest, Longest(radio));
             }
+            if (_craftSightStamps.TryGetValue(vesselId, out var sight))
+            {
+                longest = Math.Max(longest, Longest(sight));
+            }
             var releaseUt = Math.Max(_tickUt, _clock.Now()) + longest + ReleaseMarginSeconds;
             _craftDeparted[node] = releaseUt;
             _clock.Schedule(releaseUt, () => ReleaseCraft(node, releaseUt));
+        }
+
+        /// <summary>Moves a departed craft's release no earlier than <paramref name="untilUt"/>. A craft that has not departed is untouched.</summary>
+        private void HoldDepartedUntil(string node, double untilUt)
+        {
+            if (!_craftDeparted.TryGetValue(node, out var due) || untilUt <= due)
+            {
+                return;
+            }
+            _craftDeparted[node] = untilUt;
+            _clock.Schedule(untilUt, () => ReleaseCraft(node, untilUt));
         }
 
         /// <summary>The longest finite delay a stamp holds, 0 when it holds none.</summary>
@@ -8102,6 +8117,7 @@ namespace Sitrep.Host
                 var vesselId = node.Substring(FleetNodePrefix.Length);
                 _craftLinkSaid.Remove(vesselId);
                 _craftRadioStamps.Remove(vesselId);
+                _craftSightStamps.Remove(vesselId);
             }
             ForgetRecorderState(node);
         }
