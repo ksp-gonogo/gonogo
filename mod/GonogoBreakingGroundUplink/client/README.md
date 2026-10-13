@@ -20,7 +20,7 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | | |
 | --- | --- |
 | Widget id | `deployed-science` |
-| Reads, as dotted paths (a Topic id or a field of its payload) | `deployed.bases`, `game.dlc.breakingGround` |
+| Reads, as flat keys (Topic ids or Topic field paths) | `deployed.bases`, `game.dlc.breakingGround` |
 | Slots | `deployed-science.experiment` |
 | Default size | 5 × 9 |
 | Smallest size | 5 × 7 |
@@ -35,7 +35,7 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | | |
 | --- | --- |
 | Widget id | `robotics-console` |
-| Reads, as dotted paths (a Topic id or a field of its payload) | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
+| Reads, as flat keys (Topic ids or Topic field paths) | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
 | Actions an input can be bound to | Target + (`target-up`): Increase the selected joint's target; Target − (`target-down`): Decrease the selected joint's target; Toggle motor (`toggle-motor`): Engage / disengage the selected joint's motor; Toggle lock (`toggle-lock`): Lock / unlock the selected joint |
 | Needs | a vessel in flight |
 | Default size | 5 × 8 |
@@ -51,7 +51,7 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | | |
 | --- | --- |
 | Widget id | `rotor-tachometer` |
-| Reads, as dotted paths (a Topic id or a field of its payload) | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
+| Reads, as flat keys (Topic ids or Topic field paths) | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
 | Actions an input can be bound to | RPM up (`rpm-up`): Raise the selected rotor's RPM cap; RPM down (`rpm-down`): Lower the selected rotor's RPM cap; Toggle motor (`toggle-motor`): Engage / disengage the selected rotor's motor; Toggle lock (`toggle-lock`): Lock / unlock the selected rotor; Reverse (`reverse`): Flip the selected rotor's spin direction |
 | Needs | a vessel in flight |
 | Default size | 6 × 10 |

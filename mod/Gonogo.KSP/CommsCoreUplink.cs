@@ -8,7 +8,6 @@ using Sitrep.Host;
 using Sitrep.Host.CommandCentres;
 using Sitrep.Host.Comms;
 using Sitrep.Host.Settings;
-using UnityEngine;
 
 namespace Gonogo.KSP
 {
@@ -49,7 +48,7 @@ namespace Gonogo.KSP
     /// in <c>Sitrep.Host.Comms</c> rather than here).</para>
     /// </summary>
     [SitrepUplink("comms")]
-    public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer, IModSettingsSource, IModSettingsWriter
+    public sealed class CommsCoreUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         public const string ConnectivityTopic = "comms.connectivity";
         public const string SignalTopic = "comms.signal";
@@ -124,116 +123,54 @@ namespace Gonogo.KSP
         /// </summary>
         public const string FleetSilenceTopic = "fleet.silence";
 
-        // The authored choice before any save is read: delay on at real light
-        // speed, which is also what a save that holds no Gonogo section loads.
-        private static SignalDelayConfig _signalDelayConfig = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
+        // The config flag lives in core (§3). Default OFF for in-place upgraders;
+        // the intended forward default is ON at real light-speed (§3.1), that
+        // literal is a config/onboarding decision, so core ships it off and the
+        // settings layer flips it. Held here so the settings store can set it
+        // before Register wires the delay source.
+        private static SignalDelayConfig _signalDelayConfig = SignalDelayConfig.Off();
 
-        /// <summary>The block of <c>gonogo.cfg</c> that held the signal delay choice before it moved into the save.</summary>
-        internal const string LegacySignalDelayBlock = "SIGNAL_DELAY";
+        /// <summary>The settings block this uplink owns.</summary>
+        public const string SignalDelayBlock = "SIGNAL_DELAY";
+
+        internal const string DelayEnabledRow = SignalDelayBlock + "/enabled";
+        internal const string LightSpeedScaleRow = SignalDelayBlock + "/lightSpeedScale";
 
         /// <summary>
-        /// Say once, when <c>gonogo.cfg</c> still carries the signal delay
-        /// block, that the choice now lives in the save and is not read from the
-        /// file.
+        /// Bind the signal-delay policy to a settings store: declare the rows,
+        /// seeding whatever the file did not carry, and apply the block on every
+        /// commit that touches it.
+        ///
+        /// <para>Call before <see cref="Register"/>, so the delay source is
+        /// wired against the settings actually in force. The subscription fires
+        /// immediately, which is what carries the file's values in at boot.</para>
         /// </summary>
-        public static void NoteLegacySettings(SettingsStore store, Action<string> log)
+        public static void BindSettings(SettingsStore store)
         {
             if (store == null)
             {
                 throw new ArgumentNullException(nameof(store));
             }
 
-            if (store.Text(LegacySignalDelayBlock + "/enabled") != null
-                || store.Text(LegacySignalDelayBlock + "/lightSpeedScale") != null)
-            {
-                log("gonogo.cfg holds a SIGNAL_DELAY block, which is no longer read: signal delay is now set per save, "
-                    + "under Difficulty settings, Gonogo, or in the Gonogo app's Uplinks settings");
-            }
+            // Delay is ON at real light-speed when the file says nothing: a
+            // player who never opened the settings still flies under the rule
+            // the mod exists to enforce.
+            store.Declare(SettingsRow.Bool(DelayEnabledRow, true, "Apply light-time delay to commands and telemetry"));
+            store.Declare(SettingsRow.Number(LightSpeedScaleRow, 1.0, "One-way light time as a fraction of c, where 1 is real light speed"));
+            store.OnChanged(SignalDelayBlock, _ => ConfigureSignalDelay(ReadSignalDelay(store)));
         }
 
-        private static readonly CommsDelayModSettings DelayModSettings = new CommsDelayModSettings(
-            unavailable: () => SaveChoice.Unavailable(),
-            read: () => SaveChoice.Read(),
-            write: choice => SaveChoice.Write(choice));
-
-        public IReadOnlyList<ModSetting> ListModSettings() => DelayModSettings.ListModSettings();
-
-        public ModSettingValue ReadModSetting(string id) => DelayModSettings.ReadModSetting(id);
-
-        public CommandResult WriteModSetting(string id, ModSettingValue value) => DelayModSettings.WriteModSetting(id, value);
-
-        /// <summary>
-        /// Take the save's signal delay choice into force. Called every frame
-        /// from the main thread: it does nothing unless the save's choice
-        /// differs from the one in force, and keeps the choice in force while no
-        /// game is loaded.
-        /// </summary>
-        public static void SyncSignalDelayFromSave()
+        private static SignalDelayConfig ReadSignalDelay(SettingsStore store)
         {
-            var choice = SaveChoice.Read();
-            if (!choice.HasValue)
+            var scale = store.Number(LightSpeedScaleRow);
+            return new SignalDelayConfig
             {
-                return;
-            }
-
-            var held = _signalDelayConfig;
-            if (held.Enabled == choice.Value.Enabled && held.LightSpeedScale == choice.Value.LightSpeedScale)
-            {
-                return;
-            }
-
-            ConfigureSignalDelay(new SignalDelayConfig
-            {
-                Enabled = choice.Value.Enabled,
-                LightSpeedScale = choice.Value.LightSpeedScale,
-                SilenceDeclarationSeconds = held.SilenceDeclarationSeconds,
-            });
-        }
-
-        private static class SaveChoice
-        {
-            internal static string? Unavailable() =>
-                Node() == null ? "no save is loaded" : null;
-
-            // A light speed the node cannot validly hold reads as real light speed, since a scale of zero or less is an infinite delay.
-            internal static SignalDelayChoice? Read()
-            {
-                var node = Node();
-                if (node == null)
-                {
-                    return null;
-                }
-
-                var scale = (double)node.lightSpeedScale;
-                return new SignalDelayChoice(node.signalDelay, CommsDelayModSettings.RefuseLightSpeed(scale) == null ? scale : 1.0);
-            }
-
-            internal static bool Write(SignalDelayChoice choice)
-            {
-                var node = Node();
-                if (node == null)
-                {
-                    return false;
-                }
-
-                node.signalDelay = choice.Enabled;
-                node.lightSpeedScale = (float)choice.LightSpeedScale;
-                SyncSignalDelayFromSave();
-                return true;
-            }
-
-            private static GonogoGameParameters? Node()
-            {
-                try
-                {
-                    return HighLogic.CurrentGame?.Parameters?.CustomParams<GonogoGameParameters>();
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogWarning("[Gonogo] the signal delay setting could not be read from the save: " + ex.Message);
-                    return null;
-                }
-            }
+                Enabled = store.Bool(DelayEnabledRow),
+                // A scale of zero or less is not a slower light speed, it is an
+                // infinite delay, so it reverts to real light-speed rather than
+                // freezing every channel.
+                LightSpeedScale = scale > 0.0 ? scale : 1.0,
+            };
         }
 
         /// <summary>
@@ -243,9 +180,7 @@ namespace Gonogo.KSP
         /// </summary>
         public static void ConfigureSignalDelay(SignalDelayConfig config)
         {
-            var before = DelayFactor(_signalDelayConfig);
             _signalDelayConfig = config ?? SignalDelayConfig.Off();
-            var after = DelayFactor(_signalDelayConfig);
             _base = new SignalDelayConfig
             {
                 Enabled = true,
@@ -253,22 +188,7 @@ namespace Gonogo.KSP
                 SilenceDeclarationSeconds = _signalDelayConfig.SilenceDeclarationSeconds,
             };
             HoldSettingsModifiers(_delayModifiers);
-            if (before > 0.0 && after < before)
-            {
-                DelayShortened?.Invoke(after / before);
-            }
         }
-
-        // What every signal delay is multiplied by under a config: nothing when switched off, the inverse of the light speed otherwise.
-        private static double DelayFactor(SignalDelayConfig config) =>
-            config.Enabled && config.LightSpeedScale > 0.0 ? 1.0 / config.LightSpeedScale : 0.0;
-
-        /// <summary>
-        /// Raised when the signal delay choice makes every delay shorter, with the
-        /// fraction of what is left of any delay still running that remains: 0 when
-        /// delay is switched off, 0.5 when the light speed doubles.
-        /// </summary>
-        internal static event Action<double>? DelayShortened;
 
         /*
          * The modifiers every delay reader's config is folded through: the

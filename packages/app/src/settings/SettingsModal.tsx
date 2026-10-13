@@ -21,7 +21,6 @@ import { AppVersion } from "./AppVersion";
 import { ControlFrameSettings } from "./ControlFrameSettings";
 import { GonogoSettings } from "./GonogoSettings";
 import { HelpSettings } from "./HelpSettings";
-import { ModSettingsSection } from "./ModSettingsSection";
 import type { SettingDefinition } from "./registry";
 import { getSettingsForScreen } from "./registry";
 import { bucketBy, CategoryRows } from "./SettingRows";
@@ -101,12 +100,6 @@ export function SettingsModal({
     content: (
       <SectionStack>
         <GonogoSettings />
-        <Stack as="section" gap="related-comfortable">
-          <SectionTitle as="h3" $rule>
-            Signal delay
-          </SectionTitle>
-          <ModSettingsSection uplinkId="comms" name="Signal delay" />
-        </Stack>
         <Stack as="section" gap="related-comfortable">
           <SectionTitle as="h3" $rule>
             Control Frame

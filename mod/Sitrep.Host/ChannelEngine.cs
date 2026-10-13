@@ -7397,11 +7397,6 @@ namespace Sitrep.Host
                     return;
                 }
 
-                if (_channelDeclarations.TryGetValue(topic, out var held) && held.Kind == SampleKind.Event)
-                {
-                    LogHost("held " + topic + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
-                        + ": " + NodeFor(topic) + " is out of contact, so it reaches no centre until a link returns");
-                }
                 Hold(topic, value, ut);
                 return;
             }
@@ -9217,7 +9212,6 @@ namespace Sitrep.Host
             // prediction-only doc comment: entries age out on the PREDICTED
             // round trip (DispatchedAt + 2*OneWaySeconds), independent of
             // whether anything is subscribed.
-            BringForwardWhatTravelsOnAShorterDelay(tick.Ut);
             PrunePendingUplinks(tick.Ut);
             FollowPendingPredictions(tick.Ut);
             timing.End(ref timing.Refresh);
@@ -9883,8 +9877,7 @@ namespace Sitrep.Host
                 correlation: clientRequestId,
                 label: job.Label ?? "",
                 topic: job.Topic ?? "",
-                craft: string.Equals(node, NodeId, StringComparison.Ordinal) ? _activeCraftId : null,
-                sendOrder: ++_sendOrder);
+                craft: string.Equals(node, NodeId, StringComparison.Ordinal) ? _activeCraftId : null);
             job.Carried = true;
 
             // The response rides the delay and lands on a later tick, which a
@@ -9992,59 +9985,6 @@ namespace Sitrep.Host
         /// tied to the real command completing/executing: see
         /// <see cref="PendingUplink"/>'s prediction-only doc comment.
         /// </summary>
-        // The product of the delay modifiers last tick saw; NaN until the first tick.
-        private double _delayFactorSeen = double.NaN;
-
-        /// <summary>
-        /// When the delay modifiers in force multiply to less than they did, the
-        /// delay has been shortened or switched off, and every command already on
-        /// its way arrives that much sooner: what each still has to travel is
-        /// scaled by the same ratio, in the order the commands were sent, and the
-        /// pending entry of each is brought to the new round trip. A growing delay
-        /// changes nothing already sent.
-        ///
-        /// <para>Commands on the live path and light on a hop of the relayed path
-        /// are brought forward together, in the order the commands were sent. A
-        /// command held for want of a path, whether at its centre or at a relay
-        /// waiting for a hop that is not yet open, stays held: the delay was
-        /// removed and the path was not.</para>
-        /// </summary>
-        private void BringForwardWhatTravelsOnAShorterDelay(double ut)
-        {
-            var factor = DelayModifiers.Product;
-            var seen = _delayFactorSeen;
-            _delayFactorSeen = factor;
-            if (double.IsNaN(seen) || !(factor < seen))
-            {
-                return;
-            }
-
-            var ratio = seen > 0.0 ? factor / seen : 0.0;
-            var steps = _courier.PlanBringForward(ratio, ut).ToList();
-            if (_delivery != null)
-            {
-                steps.AddRange(_delivery.PlanBringForward(ratio, ut));
-            }
-
-            // One send order across the live path and the relayed one.
-            foreach (var step in steps.OrderBy(step => step.Order))
-            {
-                step.Apply();
-                if (!step.Moved)
-                {
-                    continue;
-                }
-                var entry = _pending.Find(p => string.Equals(p.Id, step.RequestId, StringComparison.Ordinal));
-                if (entry != null && entry.LaneSeq == null)
-                {
-                    entry.OneWaySeconds = Math.Max(0.0, (step.ConfirmUt - entry.DispatchedAt) / 2.0);
-                }
-            }
-        }
-
-        // Where the last command sent stands in the order everything was sent in, on the live path and the relayed one alike.
-        private long _sendOrder;
-
         private void PrunePendingUplinks(double ut)
         {
             if (_pending.Count == 0)

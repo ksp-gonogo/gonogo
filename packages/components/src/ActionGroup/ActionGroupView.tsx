@@ -11,9 +11,9 @@ import {
   Button,
   Cluster,
   getSizeBucket,
+  HeldFigure,
   IconButton,
   Inline,
-  type ReckoningMarking,
   Section,
   Stack,
   Text,
@@ -24,14 +24,14 @@ import { useRef, useState } from "react";
 import { useAlarmsLauncher } from "../shared/AlarmsLauncher";
 import type { ActionGroupConfig } from "./config";
 import type { ActionGroupSlotContext } from "./slots";
-import { UNAVAILABLE_TITLES } from "./toggleAvailability";
+import { HELD_STATE, UNAVAILABLE_TITLES } from "./toggleAvailability";
 import { useGroupToggle } from "./useGroupToggle";
 
 export interface ActionGroupViewProps
   extends Readonly<ComponentProps<ActionGroupConfig>> {
   group: ActionGroup | undefined;
   value: unknown;
-  /** The value is the last one received while its reading is withheld; it is drawn marked held, and a press sends the explicit opposite of it. */
+  /** The value is the last one received while its reading is withheld; it is drawn marked held and cannot be inverted. */
   valueHeld: boolean;
   /** The value is the last one received, its updates running late; it is drawn marked held. */
   valueLate: boolean;
@@ -97,18 +97,6 @@ export function ActionGroupView({
       ? "The group's state cannot be inverted"
       : "No toggle is configured for this group");
 
-  // The state shown is held or late, and the press still goes: it names the target state, the opposite of the one shown.
-  const heldWord = valueLate
-    ? "Last reading, updates running late"
-    : "Last reading, held";
-  const heldPress: ReckoningMarking | null =
-    valueLate || (valueHeld && value != null)
-      ? {
-          kind: "held",
-          caption: `${heldWord}. The press sends the opposite of the state shown`,
-        }
-      : null;
-
   const cols = w ?? 6;
   const showOfficialName = cols >= 5;
   // At tiny size the bell crowds the pill; it stays reachable from the alarms menu.
@@ -147,7 +135,9 @@ export function ActionGroupView({
       panelTitle="ACTION GROUP"
       compactTitle={["ACTIONS", "AG"]}
       panelBadges={
-        unavailableReason && getSizeBucket(w, h) !== "tiny"
+        unavailableReason &&
+        unavailableReason !== HELD_STATE &&
+        getSizeBucket(w, h) !== "tiny"
           ? [
               {
                 id: "unavailable",
@@ -224,11 +214,22 @@ export function ActionGroupView({
                   size="sm"
                   disabled={!canToggle}
                   disabledReason={cannotToggleBecause}
-                  marked={heldPress}
                   onClick={press}
                   aria-label={`Toggle ${currentLabel}`}
                 >
-                  {stateLabel}
+                  {valueLate || (valueHeld && value != null) ? (
+                    <HeldFigure
+                      caption={
+                        valueLate
+                          ? "Last reading, updates running late"
+                          : "Last reading, held"
+                      }
+                    >
+                      {stateLabel}
+                    </HeldFigure>
+                  ) : (
+                    stateLabel
+                  )}
                 </ToggleButton>
               </Tooltip>
             </Inline>

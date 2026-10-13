@@ -38,9 +38,9 @@ describe("widgetFactsOf", () => {
     expect(widgetFactsOf(record()).map((f) => f.id)).toEqual(["id"]);
   });
 
-  it("reads dotted paths under their own label when no channels are declared", () => {
+  it("reads flat keys under their own label when no channels are declared", () => {
     expect(rowOf(record({ dataRequirements: ["a.b"] }), "reads")).toEqual({
-      label: "Reads, as dotted paths (a Topic id or a field of its payload)",
+      label: "Reads, as flat keys (Topic ids or Topic field paths)",
       value: "`a.b`",
     });
   });

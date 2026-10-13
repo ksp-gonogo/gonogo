@@ -17,11 +17,8 @@ import { type MergedPlot, mergePlots } from "./mergePlots";
  */
 export const MIN_PLOT_PX = 120;
 
-/** The height of a plot's heading row with a held badge beside the title, which the row keeps without one so a badge arriving moves nothing below it. */
-const HEADING_ROW_PX = 17;
-
 /** The height a plot's heading takes above its square, with the gap under it. */
-const PLOT_HEADING_PX = HEADING_ROW_PX + 8;
+const PLOT_HEADING_PX = 24;
 
 /** How the board lays its plots out: how many sit across, and the side of every one. */
 export interface PlotGrid {
@@ -184,8 +181,6 @@ export function PlotBoard({
   );
 }
 
-const HEADING_ROW = { minWidth: 0, minHeight: HEADING_ROW_PX } as const;
-
 const ONE_LINE = {
   minWidth: 0,
   overflow: "hidden",
@@ -205,22 +200,20 @@ function Plot({ plot }: { plot: MergedPlot }) {
       }}
     >
       {/* One line whatever the plot's width: a heading that wrapped when a held badge joined it would push the plot down mid-flight. The full title is in the tooltip and the chart's own name. */}
-      <div style={HEADING_ROW}>
-        {plot.held === undefined ? (
+      {plot.held === undefined ? (
+        <SectionTitle style={ONE_LINE} data-tooltip={plot.title}>
+          {plot.title}
+        </SectionTitle>
+      ) : (
+        <Cluster align="baseline">
           <SectionTitle style={ONE_LINE} data-tooltip={plot.title}>
             {plot.title}
           </SectionTitle>
-        ) : (
-          <Cluster align="baseline">
-            <SectionTitle style={ONE_LINE} data-tooltip={plot.title}>
-              {plot.title}
-            </SectionTitle>
-            <span style={{ flexShrink: 0 }}>
-              <HeldBadge grade={plot.held} subject={plot.title} size="sm" />
-            </span>
-          </Cluster>
-        )}
-      </div>
+          <span style={{ flexShrink: 0 }}>
+            <HeldBadge grade={plot.held} subject={plot.title} size="sm" />
+          </span>
+        </Cluster>
+      )}
       <div
         style={{
           display: "flex",
@@ -263,11 +256,9 @@ function EmptyPlot({ slot }: { slot: PlotSlot }) {
         gap: "var(--gap-related)",
       }}
     >
-      <div style={HEADING_ROW}>
-        <SectionTitle style={ONE_LINE} data-tooltip={slot.title}>
-          {slot.title}
-        </SectionTitle>
-      </div>
+      <SectionTitle style={ONE_LINE} data-tooltip={slot.title}>
+        {slot.title}
+      </SectionTitle>
       <div
         style={{
           display: "flex",

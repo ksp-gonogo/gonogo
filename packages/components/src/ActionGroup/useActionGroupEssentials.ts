@@ -4,6 +4,7 @@ import { stillTrue, type TinyEssential } from "@ksp-gonogo/sitrep-sdk";
 import { useStatusContribution } from "@ksp-gonogo/ui-kit";
 import type { ActionGroupConfig } from "./config";
 import { groupStateOf } from "./groupState";
+import { HELD_STATE } from "./toggleAvailability";
 import { useGroupToggle } from "./useGroupToggle";
 
 /**
@@ -38,7 +39,7 @@ export function useActionGroupEssentials(
   });
   // The tile has no room for the body's badge, so the reason rides the header's status dot.
   useStatusContribution(
-    toggle.unavailableReason !== null
+    toggle.unavailableReason !== null && toggle.unavailableReason !== HELD_STATE
       ? {
           id: "unavailable",
           severity: "warn",

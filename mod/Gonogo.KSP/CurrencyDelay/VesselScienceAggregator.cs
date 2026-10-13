@@ -117,19 +117,6 @@ namespace Gonogo.KSP.CurrencyDelay
         }
 
         /// <summary>
-        /// Multiplies the signal delay every open window will reveal with by
-        /// <paramref name="factor"/>, for a delay that has just been shortened or
-        /// switched off.
-        /// </summary>
-        public void ScaleLightTimes(double factor)
-        {
-            foreach (var window in _windows.Values)
-            {
-                window.LatestLightTimeSeconds *= Math.Max(0.0, factor);
-            }
-        }
-
-        /// <summary>
         /// Flushes every vessel whose window has exceeded the cadence with
         /// no new increment to trigger it inline - the case a stalled or
         /// stopped vessel needs, since <see cref="Accept"/> only checks a

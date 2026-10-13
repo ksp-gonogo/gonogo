@@ -233,9 +233,6 @@ namespace Sitrep.Core.StoreAndForward
         private readonly Action<SpanMessage, double>? _deliverSpan;
         private readonly Dictionary<string, List<Held>> _held = new Dictionary<string, List<Held>>(StringComparer.Ordinal);
         private readonly List<Flight> _flights = new List<Flight>();
-
-        // Where each command stands in the order everything was sent in, when its sender said.
-        private readonly Dictionary<string, long> _sendOrder = new Dictionary<string, long>(StringComparer.Ordinal);
         private readonly Dictionary<string, List<CancelMessage>> _storedCancels = new Dictionary<string, List<CancelMessage>>(StringComparer.Ordinal);
         // What each node has taken in, and when, so a second arrival of the same message is told from the first.
         private readonly Dictionary<string, Dictionary<string, double>> _seen = new Dictionary<string, Dictionary<string, double>>(StringComparer.Ordinal);
@@ -354,8 +351,7 @@ namespace Sitrep.Core.StoreAndForward
             double nowUt,
             double? arriveBeforeUt,
             string? id = null,
-            string clientRequestId = "",
-            long sendOrder = 0)
+            string clientRequestId = "")
         {
             try
             {
@@ -382,10 +378,6 @@ namespace Sitrep.Core.StoreAndForward
                         ClientRequestId = clientRequestId,
                     };
                     _sentCommands[message.Id] = message;
-                    if (sendOrder != 0)
-                    {
-                        _sendOrder[message.Id] = sendOrder;
-                    }
                     CopiesOut(lane, seq).Add(message.Id);
                     Hold(lane.Vantage, message, nowUt, null);
                     Depart(lane.Vantage, nowUt);
@@ -1734,11 +1726,6 @@ namespace Sitrep.Core.StoreAndForward
         private void Fly(Flight flight)
         {
             _flights.Add(flight);
-            ScheduleLanding(flight);
-        }
-
-        private void ScheduleLanding(Flight flight)
-        {
             flight.Cancel = _clock.Schedule(flight.ArriveUt, () => Locked(() =>
             {
                 if (!_flights.Remove(flight))
@@ -1749,64 +1736,6 @@ namespace Sitrep.Core.StoreAndForward
                 // Whatever landed may leave again at once: a relay forwarding on a live link holds nothing.
                 Depart(flight.To, flight.ArriveUt);
             }));
-        }
-
-        /// <summary>
-        /// What <see cref="BringForward"/> would do, as one step per light on its
-        /// way. Each carries the order its command was sent in, so a caller that
-        /// also holds commands elsewhere can apply the steps of both in one send
-        /// order; a message that is not a command with a known place in that order
-        /// follows the commands, in the order its light left.
-        ///
-        /// <para>Only light already on a hop is moved, because that is delay. A
-        /// copy waiting at a node for a hop that is not yet open is waiting for a
-        /// path, and it leaves when the path does, on whatever delay is then in
-        /// force.</para>
-        /// </summary>
-        public IReadOnlyList<Retiming> PlanBringForward(double remainingFactor, double nowUt)
-        {
-            var plan = new List<Retiming>();
-            if (double.IsNaN(remainingFactor) || remainingFactor >= 1.0)
-            {
-                return plan;
-            }
-
-            var factor = Math.Max(0.0, remainingFactor);
-            lock (_gate)
-            {
-                var left = 0;
-                foreach (var flight in _flights.ToList())
-                {
-                    left++;
-                    var order = flight.Message is CommandMessage && _sendOrder.TryGetValue(flight.Message.Id, out var sent)
-                        ? sent
-                        : long.MaxValue - 1000000 + left;
-                    var arrive = flight.ArriveUt > nowUt ? nowUt + ((flight.ArriveUt - nowUt) * factor) : flight.ArriveUt;
-                    var custody = flight.Custody;
-                    var until = custody != null && custody.CustodyUntilUt > nowUt
-                        ? nowUt + ((custody.CustodyUntilUt - nowUt) * factor)
-                        : custody?.CustodyUntilUt ?? 0.0;
-                    var target = flight;
-                    plan.Add(new Retiming(order, flight.Message.Id, arrive, arrive, arrive != flight.ArriveUt, () => Locked(() =>
-                    {
-                        if (!_flights.Contains(target))
-                        {
-                            return;
-                        }
-                        target.Cancel?.Invoke();
-                        target.ArriveUt = arrive;
-                        ScheduleLanding(target);
-                        if (target.Custody != null && target.Custody.EndWatch != null)
-                        {
-                            target.Custody.EndWatch();
-                            target.Custody.CustodyUntilUt = until;
-                            WatchCustody(target.From, target.Custody);
-                        }
-                    })));
-                }
-            }
-
-            return plan;
         }
 
         /// <summary>Schedules the end of <paramref name="held"/>'s custody at <paramref name="node"/>.</summary>
@@ -2211,7 +2140,7 @@ namespace Sitrep.Core.StoreAndForward
 
             public double DepartUt { get; }
 
-            public double ArriveUt { get; set; }
+            public double ArriveUt { get; }
 
             public bool EndToEnd { get; }
 

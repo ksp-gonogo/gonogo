@@ -85,15 +85,7 @@ namespace Sitrep.Core
             public bool Ran;
             public object? Result;
             public Action<CommandResponse> OnResponse = null!;
-
-            // The order the command was sent in, and the handles that withdraw
-            // what is scheduled for it.
-            public long Sent;
-            public Action? CancelExecute;
-            public Action? CancelConfirm;
         }
-
-        private long _sent;
 
         private readonly IClock _clock;
         private readonly INetwork _network;
@@ -293,8 +285,7 @@ namespace Sitrep.Core
             string correlation = "",
             string label = "",
             string topic = "",
-            string? craft = null,
-            long sendOrder = 0)
+            string? craft = null)
         {
             if (!_network.Reachable(vantage, node))
             {
@@ -331,7 +322,6 @@ namespace Sitrep.Core
             };
             lock (_commandsGate)
             {
-                pending.Sent = sendOrder != 0 ? sendOrder : ++_sent;
                 _pendingCommands[requestId] = pending;
             }
 
@@ -352,7 +342,7 @@ namespace Sitrep.Core
                 ScheduleConfirm(pending);
                 return;
             }
-            pending.CancelExecute = _clock.Schedule(pending.ExecuteUt, () =>
+            _clock.Schedule(pending.ExecuteUt, () =>
             {
                 var result = _commandHandler(
                     pending.Command, pending.Args, pending.Node, pending.Vantage, pending.Craft);
@@ -367,7 +357,7 @@ namespace Sitrep.Core
 
         private void ScheduleConfirm(PendingCommand pending)
         {
-            pending.CancelConfirm = _clock.Schedule(pending.ConfirmUt, () =>
+            _clock.Schedule(pending.ConfirmUt, () =>
             {
                 // Remove before invoking the callback: a re-entrant
                 // SnapshotCommands() from inside onResponse must not see
@@ -1867,122 +1857,11 @@ namespace Sitrep.Core
                 };
                 lock (_commandsGate)
                 {
-                    pending.Sent = ++_sent;
                     _pendingCommands[pending.RequestId] = pending;
                 }
                 ScheduleCommand(pending);
             }
         }
-
-        /// <summary>
-        /// C#-ONLY addition (no TS reference). Brings forward every command on its
-        /// way: what is still to travel on each leg is multiplied by
-        /// <paramref name="remainingFactor"/>, so a factor of 0 delivers
-        /// everything at once and 0.5 halves what is left. Order is the order the
-        /// commands were sent in, and each one's execute and confirm keep that
-        /// order at any factor. A factor of 1 or more changes nothing, so a delay
-        /// that grows leaves what is already sent as it was.
-        ///
-        /// <para><paramref name="nowUt"/> is the instant the change takes effect,
-        /// which can be ahead of the clock until the tick advances it. A command
-        /// that has run is not run again: only its confirmation moves. Returns each
-        /// moved command's new UTs so the caller can correct what it published
-        /// about them.</para>
-        /// </summary>
-        public IReadOnlyList<(string RequestId, double ExecuteUt, double ConfirmUt)> BringForward(double remainingFactor, double nowUt)
-        {
-            var plan = PlanBringForward(remainingFactor, nowUt);
-            foreach (var item in plan.OrderBy(p => p.Order))
-            {
-                item.Apply();
-            }
-
-            return plan.Where(p => p.Moved).Select(p => (p.RequestId, p.ExecuteUt, p.ConfirmUt)).ToList();
-        }
-
-        /// <summary>
-        /// What <see cref="BringForward"/> would do, as one step per command on its
-        /// way carrying the order it was sent in. Nothing is moved until a step is
-        /// applied, so a caller that also holds other commands on their way can
-        /// apply the steps of both in one send order.
-        /// </summary>
-        public IReadOnlyList<Retiming> PlanBringForward(double remainingFactor, double nowUt)
-        {
-            var plan = new List<Retiming>();
-            if (double.IsNaN(remainingFactor) || remainingFactor >= 1.0)
-            {
-                return plan;
-            }
-
-            var factor = Math.Max(0.0, remainingFactor);
-            List<PendingCommand> inOrder;
-            lock (_commandsGate)
-            {
-                inOrder = _pendingCommands.Values.OrderBy(p => p.Sent).ToList();
-            }
-
-            foreach (var pending in inOrder)
-            {
-                var execute = pending.ExecuteUt;
-                var confirm = pending.ConfirmUt;
-                if (!pending.Ran && execute > nowUt)
-                {
-                    var legConfirm = confirm - execute;
-                    execute = nowUt + ((execute - nowUt) * factor);
-                    confirm = execute + (legConfirm * factor);
-                }
-                else if (confirm > nowUt)
-                {
-                    confirm = nowUt + ((confirm - nowUt) * factor);
-                }
-
-                var moved = execute != pending.ExecuteUt || confirm != pending.ConfirmUt;
-                var target = pending;
-                plan.Add(new Retiming(pending.Sent, pending.RequestId, execute, confirm, moved, () =>
-                {
-                    target.ExecuteUt = execute;
-                    target.ConfirmUt = confirm;
-                    target.CancelExecute?.Invoke();
-                    target.CancelConfirm?.Invoke();
-                    target.CancelExecute = null;
-                    target.CancelConfirm = null;
-                    ScheduleCommand(target);
-                }));
-            }
-
-            return plan;
-        }
-    }
-
-    /// <summary>
-    /// One step of bringing what is on its way forward: the order the item was
-    /// sent in, its new times, and the action that puts it on the clock again.
-    /// </summary>
-    public readonly struct Retiming
-    {
-        public Retiming(long order, string requestId, double executeUt, double confirmUt, bool moved, Action apply)
-        {
-            Order = order;
-            RequestId = requestId;
-            ExecuteUt = executeUt;
-            ConfirmUt = confirmUt;
-            Moved = moved;
-            Apply = apply;
-        }
-
-        /// <summary>Where the item stands in the order everything was sent in.</summary>
-        public long Order { get; }
-
-        public string RequestId { get; }
-
-        public double ExecuteUt { get; }
-
-        public double ConfirmUt { get; }
-
-        /// <summary>Whether its times differ from what it had.</summary>
-        public bool Moved { get; }
-
-        public Action Apply { get; }
     }
 
     /// <summary>

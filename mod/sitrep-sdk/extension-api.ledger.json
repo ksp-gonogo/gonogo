@@ -10143,10 +10143,6 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
-        "key": "ui-kit . StatusBreakdownEntry#labels",
-        "note": "Each row carries the words of the contributions at its severity, so a collapsed header can describe every status it summarises"
-      },
-      {
         "key": "ui-kit . Tape",
         "note": "its label prop is now aria-label"
       },

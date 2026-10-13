@@ -36,26 +36,6 @@ namespace Gonogo.KSP.CurrencyDelay
         {
             _interceptor.Subscribe();
             DelayedScienceSink.Bind(_aggregator, Ledger);
-            CommsCoreUplink.DelayShortened += BringForward;
-        }
-
-        /// <summary>
-        /// A shortened or switched-off signal delay releases what is held: every
-        /// credit still waiting is due that much sooner, and the open science
-        /// windows reveal with the shorter delay. The next tick reveals what has
-        /// become due, in the order the credits were taken in.
-        /// </summary>
-        internal void BringForward(double remainingFactor)
-        {
-            try
-            {
-                Ledger.BringForward(Planetarium.GetUniversalTime(), remainingFactor);
-                _aggregator.ScaleLightTimes(remainingFactor);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError("[Gonogo] bringing held credits forward failed: " + ex);
-            }
         }
 
         /// <summary>
@@ -95,7 +75,6 @@ namespace Gonogo.KSP.CurrencyDelay
 
         internal void Stop()
         {
-            CommsCoreUplink.DelayShortened -= BringForward;
             _interceptor.Unsubscribe();
             DelayedScienceSink.Unbind();
         }

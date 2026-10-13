@@ -27,35 +27,6 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <summary>Read-only view of every row still waiting to mature.</summary>
         public IReadOnlyList<PendingCreditRow> Pending => _rows;
 
-        /// <summary>
-        /// Brings every row not yet due forward: what is left until each row's
-        /// reveal is multiplied by <paramref name="remainingFactor"/>, so 0 makes
-        /// every row due now and 0.5 halves what is left. Rows keep the order
-        /// they were taken in. A factor of 1 or more changes nothing.
-        /// </summary>
-        public void BringForward(double nowUt, double remainingFactor)
-        {
-            if (double.IsNaN(remainingFactor) || remainingFactor >= 1.0)
-            {
-                return;
-            }
-
-            var factor = Math.Max(0.0, remainingFactor);
-            for (var i = 0; i < _rows.Count; i++)
-            {
-                var row = _rows[i];
-                if (row.RevealUt > nowUt)
-                {
-                    _rows[i] = new PendingCreditRow(
-                        row.Currency,
-                        row.BaseAmount,
-                        nowUt + ((row.RevealUt - nowUt) * factor),
-                        row.OriginVesselId,
-                        row.OriginDescription);
-                }
-            }
-        }
-
         public void Enqueue(PendingCreditRow row)
         {
             if (row == null) throw new ArgumentNullException(nameof(row));

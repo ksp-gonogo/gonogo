@@ -50,21 +50,13 @@ namespace Sitrep.Host.Settings
         /// <summary>The latest payload, for the channel source. Safe to read from any thread.</summary>
         public object Snapshot => _snapshot;
 
-        /*
-         * A boolean a hand-edited file spells in lower case is still a boolean to
-         * the store, so it is published in the one spelling a client compares
-         * against; an unparseable value is published as it is.
-         */
-        private static string Spelled(SettingsRow row, string text) =>
-            row.Kind == SettingKind.Bool && SettingsText.ToBool(text) is bool on ? SettingsText.FromBool(on) : text;
-
         /// <summary>Rebuild the payload from the store as it stands. Call on the thread that changes the store.</summary>
         public void Rebuild()
         {
             var rows = new List<SettingsWire.Row>();
             foreach (var row in _store.DeclaredRows)
             {
-                rows.Add(new SettingsWire.Row(row, OwnerOf(row.Path), Spelled(row, _store.Text(row.Path) ?? row.DefaultText)));
+                rows.Add(new SettingsWire.Row(row, OwnerOf(row.Path), _store.Text(row.Path) ?? row.DefaultText));
             }
 
             var (state, reason) = Persistence();

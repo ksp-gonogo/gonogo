@@ -152,9 +152,7 @@ describe("PanelStatusStore.getBreakdown", () => {
   it("counts a single contributor as one entry", () => {
     const store = createPanelStatusStore();
     store.register({ id: "a", severity: "warn", label: "A" });
-    expect(store.getBreakdown()).toEqual([
-      { severity: "warn", count: 1, labels: ["A"] },
-    ]);
+    expect(store.getBreakdown()).toEqual([{ severity: "warn", count: 1 }]);
   });
 
   it("counts N contributors at one severity as ONE entry (never folded into a worse tier)", () => {
@@ -162,9 +160,7 @@ describe("PanelStatusStore.getBreakdown", () => {
     store.register({ id: "a", severity: "caution", label: "A" });
     store.register({ id: "b", severity: "caution", label: "B" });
     // Two cautions are ONE caution entry with count 2, NOT merged into a warning.
-    expect(store.getBreakdown()).toEqual([
-      { severity: "caution", count: 2, labels: ["A", "B"] },
-    ]);
+    expect(store.getBreakdown()).toEqual([{ severity: "caution", count: 2 }]);
   });
 
   it("orders entries worst-first", () => {
@@ -173,9 +169,9 @@ describe("PanelStatusStore.getBreakdown", () => {
     store.register({ id: "b", severity: "nogo", label: "B" });
     store.register({ id: "c", severity: "info", label: "C" });
     expect(store.getBreakdown()).toEqual([
-      { severity: "nogo", count: 1, labels: ["B"] },
-      { severity: "caution", count: 1, labels: ["A"] },
-      { severity: "info", count: 1, labels: ["C"] },
+      { severity: "nogo", count: 1 },
+      { severity: "caution", count: 1 },
+      { severity: "info", count: 1 },
     ]);
   });
 
@@ -186,9 +182,9 @@ describe("PanelStatusStore.getBreakdown", () => {
     store.register({ id: "c", severity: "warn", label: "C" });
     store.register({ id: "d", severity: "offline", label: "D" });
     expect(store.getBreakdown()).toEqual([
-      { severity: "offline", count: 1, labels: ["D"] },
-      { severity: "warn", count: 1, labels: ["C"] },
-      { severity: "caution", count: 2, labels: ["A", "B"] },
+      { severity: "offline", count: 1 },
+      { severity: "warn", count: 1 },
+      { severity: "caution", count: 2 },
     ]);
   });
 
@@ -197,13 +193,11 @@ describe("PanelStatusStore.getBreakdown", () => {
     store.register({ id: "a", severity: "warn", label: "A" });
     const dropB = store.register({ id: "b", severity: "caution", label: "B" });
     expect(store.getBreakdown()).toEqual([
-      { severity: "warn", count: 1, labels: ["A"] },
-      { severity: "caution", count: 1, labels: ["B"] },
+      { severity: "warn", count: 1 },
+      { severity: "caution", count: 1 },
     ]);
     dropB();
-    expect(store.getBreakdown()).toEqual([
-      { severity: "warn", count: 1, labels: ["A"] },
-    ]);
+    expect(store.getBreakdown()).toEqual([{ severity: "warn", count: 1 }]);
   });
 
   it("is referentially stable while the contribution set is unchanged", () => {
@@ -213,25 +207,13 @@ describe("PanelStatusStore.getBreakdown", () => {
     expect(store.getBreakdown()).toBe(first);
   });
 
-  it("carries a renamed contribution's new words, and keeps the object when nothing differs", () => {
+  it("preserves identity when a label-only change leaves the breakdown unchanged", () => {
     const store = createPanelStatusStore();
     store.register({ id: "a", severity: "warn", label: "A" });
     const first = store.getBreakdown();
-    store.update("a", { severity: "warn", label: "A" });
-    expect(store.getBreakdown()).toBe(first);
     store.update("a", { severity: "warn", label: "RENAMED" });
-    expect(store.getBreakdown()).toEqual([
-      { severity: "warn", count: 1, labels: ["RENAMED"] },
-    ]);
-  });
-
-  it("leaves an empty label out of the words but still counts it", () => {
-    const store = createPanelStatusStore();
-    store.register({ id: "a", severity: "warn", label: "" });
-    store.register({ id: "b", severity: "warn", label: "B" });
-    expect(store.getBreakdown()).toEqual([
-      { severity: "warn", count: 2, labels: ["B"] },
-    ]);
+    // Same severities + counts, so the breakdown object is unchanged.
+    expect(store.getBreakdown()).toBe(first);
   });
 
   it("returns a fresh breakdown when a count or severity actually changes", () => {
@@ -242,8 +224,8 @@ describe("PanelStatusStore.getBreakdown", () => {
     const next = store.getBreakdown();
     expect(next).not.toBe(first);
     expect(next).toEqual([
-      { severity: "warn", count: 1, labels: ["A"] },
-      { severity: "caution", count: 1, labels: ["B"] },
+      { severity: "warn", count: 1 },
+      { severity: "caution", count: 1 },
     ]);
   });
 });

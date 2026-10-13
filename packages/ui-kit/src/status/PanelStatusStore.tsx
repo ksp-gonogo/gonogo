@@ -52,8 +52,6 @@ export interface StatusBreakdownEntry {
   severity: Severity;
   /** How many contributions sit at it, never zero: a severity nobody reports has no row. */
   count: number;
-  /** The words of the contributions at this severity, in registration order, with the empty ones left out. */
-  labels: readonly string[];
 }
 
 /**
@@ -107,33 +105,25 @@ function breakdownOf(
   contributions: readonly StatusContribution[],
 ): readonly StatusBreakdownEntry[] {
   if (contributions.length === 0) return EMPTY_BREAKDOWN;
-  const rows = new Map<Severity, { count: number; labels: string[] }>();
+  const counts = new Map<Severity, number>();
   for (const c of contributions) {
-    const row = rows.get(c.severity) ?? { count: 0, labels: [] };
-    row.count += 1;
-    if (c.label !== "") row.labels.push(c.label);
-    rows.set(c.severity, row);
+    counts.set(c.severity, (counts.get(c.severity) ?? 0) + 1);
   }
-  return Array.from(rows, ([severity, row]) => ({ severity, ...row })).sort(
+  return Array.from(counts, ([severity, count]) => ({ severity, count })).sort(
     (a, b) => severityRank(b.severity) - severityRank(a.severity),
   );
 }
 
 /** Structural equality over the worst-first entries (same length, same
- * severity, count and labels at each index), so a change that leaves the
- * breakdown identical preserves the array's identity. */
+ * severity + count at each index), so a change that leaves the breakdown
+ * identical (a label-only update) preserves the array's identity. */
 function breakdownEqual(
   a: readonly StatusBreakdownEntry[],
   b: readonly StatusBreakdownEntry[],
 ): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
-    if (
-      a[i].severity !== b[i].severity ||
-      a[i].count !== b[i].count ||
-      a[i].labels.length !== b[i].labels.length ||
-      a[i].labels.some((label, j) => label !== b[i].labels[j])
-    ) {
+    if (a[i].severity !== b[i].severity || a[i].count !== b[i].count) {
       return false;
     }
   }

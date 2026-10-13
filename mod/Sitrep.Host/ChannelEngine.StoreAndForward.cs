@@ -445,7 +445,7 @@ namespace Sitrep.Host
             _laneCraftNodes[craft] = node;
             var requestId = NextRequestId();
             var arriveBefore = ArriveBeforeUt(job);
-            var message = _delivery.SendCommand(lane, job.Command, job.Args, node, null, now, arriveBefore, requestId, job.ClientRequestId, ++_sendOrder);
+            var message = _delivery.SendCommand(lane, job.Command, job.Args, node, null, now, arriveBefore, requestId, job.ClientRequestId);
             job.Carried = true;
             DeliveryMessagesBudget.Record(1, now);
             _deliveryJobs[message.Id] = job;
