@@ -6,7 +6,11 @@ import {
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
-import { getByTip, visibleText } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  getByTip,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -201,6 +205,65 @@ describe("LaunchDirectorComponent", () => {
     await waitFor(() => expect(visibleText()).toMatch(/1\/2 ready/i));
     expect(visibleText()).toMatch(/Expensive Lander/);
     expect(visibleText()).not.toMatch(/Tech-Locked Plane/);
+  });
+
+  it("explains a greyed-out craft row on the row itself, once", async () => {
+    const { container } = renderWidget();
+    act(() => {
+      emitFunds(stream, 5000);
+      stream.emit("spaceCenter.launchSites", [padSite("LaunchPad", "KSC Pad")]);
+      stream.emit("spaceCenter.savedShips", [
+        {
+          name: "Cheap Probe",
+          partCount: 5,
+          totalMass: 1.2,
+          facility: "VAB",
+          requiresFunds: 1500,
+          missingParts: [],
+        },
+        {
+          name: "Expensive Lander",
+          partCount: 30,
+          totalMass: 18,
+          facility: "VAB",
+          requiresFunds: 99000,
+          missingParts: [],
+        },
+        {
+          name: "Tech-Locked Rocket",
+          partCount: 8,
+          totalMass: 3,
+          facility: "VAB",
+          requiresFunds: 5001,
+          missingParts: ["nuclearEngine"],
+        },
+      ]);
+    });
+    await waitFor(() => expect(visibleText()).toMatch(/1\/3 ready/i));
+    const rowOf = (name: string) =>
+      Array.from(
+        container.querySelectorAll<HTMLElement>("[data-ship-row]"),
+      ).find((r) => r.textContent?.includes(name));
+
+    expect(rowOf("Cheap Probe")?.getAttribute("data-tooltip")).toBeNull();
+    expect(rowOf("Expensive Lander")?.getAttribute("data-tooltip")).toBe(
+      "Insufficient funds",
+    );
+    expect(rowOf("Tech-Locked Rocket")?.getAttribute("data-tooltip")).toBe(
+      "Insufficient funds\nMissing: nuclearEngine",
+    );
+    // The row is a button, so keyboard focus reaches the tip.
+    expect(rowOf("Expensive Lander")?.tagName).toBe("BUTTON");
+    // One reason per row: no tag inside it repeats it, and no native title.
+    const inner = Array.from(
+      container.querySelectorAll("[data-ship-row] [data-tooltip]"),
+    ).map((e) => e.getAttribute("data-tooltip"));
+    expect(inner.filter((t) => /Insufficient|Missing/.test(t ?? ""))).toEqual(
+      [],
+    );
+    expect(container.querySelectorAll("[title]")).toHaveLength(0);
+    await expectNoA11yViolations(container);
+    await act(async () => {});
   });
 
   it("lists the pads with an occupied one first, and says which are unreported", async () => {

@@ -763,6 +763,14 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "tall-5x14", w: 5, h: 14 },
       // Wide landscape: buttons and rows have horizontal breathing room.
       { name: "wide-10x7", w: 10, h: 7 },
+      // A greyed-out craft row under the pointer: the row's own tip gives the reason.
+      {
+        name: "blocked-row-tip-7x10",
+        w: 7,
+        h: 10,
+        hovers: [{ selector: "[data-ship-row][aria-disabled='true']" }],
+        forFixtures: ["pre-launch-insufficient-funds"],
+      },
       // Click-driven modes: capture the arm-then-confirm sequences
       // that are otherwise invisible to the static probe. Scoped to
       // in-flight fixtures via `forFixtures` since arm-recover /

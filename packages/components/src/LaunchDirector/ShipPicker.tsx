@@ -1,6 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { SelectableRow, Tooltip, Unit } from "@ksp-gonogo/ui-kit";
-import { type SavedShip, shipBlocked } from "./ships";
+import { type SavedShip, shipBlocked, shipBlockedReason } from "./ships";
 import {
   BlockedTag,
   CostTag,
@@ -33,52 +33,47 @@ export function ShipPicker({
       </SectionLabel>
       <ShipList>
         {padCraft.map((s) => {
-          const blocked = shipBlocked(s, fundsAvailable);
+          const reason = shipBlockedReason(s, fundsAvailable);
+          const blocked = reason !== null;
           return (
-            <SelectableRow
-              key={`${s.facility}/${s.file}`}
-              layout="split"
-              gap="related"
-              selectedLook="outline"
-              data-ship-row
-              selected={selectedShip === s.file}
-              aria-disabled={blocked}
-              onClick={() => {
-                if (blocked) return;
-                onSelectShip(selectedShip === s.file ? null : s.file);
-              }}
-            >
-              <ShipMeta>
-                <ShipName>{s.name}</ShipName>
-                <ShipDetails>
-                  {s.partCount} parts ·{" "}
-                  <Unit value={value("t", s.totalMass)} decimals={1} />
-                </ShipDetails>
-              </ShipMeta>
-              <ShipCost>
-                {/* One Unit carrying the value, so the cost groups like the balance. */}
-                {s.requiresFunds > fundsAvailable && (
-                  <Tooltip text="Insufficient funds" focusable>
+            <Tooltip key={`${s.facility}/${s.file}`} text={reason ?? undefined}>
+              <SelectableRow
+                layout="split"
+                gap="related"
+                selectedLook="outline"
+                data-ship-row
+                selected={selectedShip === s.file}
+                aria-disabled={blocked}
+                onClick={() => {
+                  if (blocked) return;
+                  onSelectShip(selectedShip === s.file ? null : s.file);
+                }}
+              >
+                <ShipMeta>
+                  <ShipName>{s.name}</ShipName>
+                  <ShipDetails>
+                    {s.partCount} parts ·{" "}
+                    <Unit value={value("t", s.totalMass)} decimals={1} />
+                  </ShipDetails>
+                </ShipMeta>
+                <ShipCost>
+                  {/* One Unit carrying the value, so the cost groups like the balance. */}
+                  {s.requiresFunds > fundsAvailable && (
                     <BlockedTag>
                       <Unit value={value("funds", s.requiresFunds)} />
                     </BlockedTag>
-                  </Tooltip>
-                )}
-                {s.requiresFunds <= fundsAvailable && s.requiresFunds > 0 && (
-                  <CostTag>
-                    <Unit value={value("funds", s.requiresFunds)} />
-                  </CostTag>
-                )}
-                {s.missingParts.length > 0 && (
-                  <Tooltip
-                    text={`Missing: ${s.missingParts.join(", ")}`}
-                    focusable
-                  >
+                  )}
+                  {s.requiresFunds <= fundsAvailable && s.requiresFunds > 0 && (
+                    <CostTag>
+                      <Unit value={value("funds", s.requiresFunds)} />
+                    </CostTag>
+                  )}
+                  {s.missingParts.length > 0 && (
                     <BlockedTag>{s.missingParts.length} locked</BlockedTag>
-                  </Tooltip>
-                )}
-              </ShipCost>
-            </SelectableRow>
+                  )}
+                </ShipCost>
+              </SelectableRow>
+            </Tooltip>
           );
         })}
       </ShipList>

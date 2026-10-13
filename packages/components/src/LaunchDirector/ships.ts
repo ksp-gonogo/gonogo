@@ -75,7 +75,24 @@ export function craftForPad(
   return ships.filter((s) => launchFacilityArg(s) === pad.facility);
 }
 
+/**
+ * Why the save cannot launch a craft now, one line per cause: more than the
+ * funds on hand, parts still locked. Null for a craft it can launch.
+ */
+export function shipBlockedReason(
+  ship: SavedShip,
+  fundsAvailable: number,
+): string | null {
+  const causes = [
+    ship.requiresFunds > fundsAvailable ? "Insufficient funds" : null,
+    ship.missingParts.length > 0
+      ? `Missing: ${ship.missingParts.join(", ")}`
+      : null,
+  ].filter((cause) => cause !== null);
+  return causes.length === 0 ? null : causes.join("\n");
+}
+
 /** A craft the save cannot launch now: parts still locked, or more than the funds on hand. */
 export function shipBlocked(ship: SavedShip, fundsAvailable: number): boolean {
-  return ship.missingParts.length > 0 || ship.requiresFunds > fundsAvailable;
+  return shipBlockedReason(ship, fundsAvailable) !== null;
 }
