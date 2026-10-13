@@ -13,7 +13,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { DELTA_V_MODE_SHORT, type DeltaVMode } from "./config";
-import { budgetFigure, fmtFixed, pickDeltaV, pickTWR } from "./deltaV";
+import { budgetFigure, pickDeltaV, pickTWR } from "./deltaV";
 
 function burnLabel(
   budgetReading: Reading<DeltaVBudget>,
@@ -22,6 +22,17 @@ function burnLabel(
   // NaN is a burn time the wire did not carry, not a stage that burns for no time.
   if (!Number.isFinite(burnTime)) return NULL_DISPLAY;
   return <Unit value={budgetFigure(budgetReading, value("s", burnTime))} />;
+}
+
+/** A stage's thrust-to-weight ratio, dated as the budget it is part of. */
+function twrLabel(
+  budgetReading: Reading<DeltaVBudget>,
+  twr: number,
+): ReactNode {
+  if (!Number.isFinite(twr)) return NULL_DISPLAY;
+  return (
+    <Unit value={budgetFigure(budgetReading, value("1", twr))} decimals={2} />
+  );
 }
 
 /**
@@ -89,7 +100,7 @@ export function StageStackSection({
                 }}
               >
                 {burnLabel(budgetReading, s.burnTime)} · TWR{" "}
-                {fmtFixed(pickTWR(s, mode), 2)}
+                {twrLabel(budgetReading, pickTWR(s, mode))}
               </Text>
             </MeterRowGroup>
           );
