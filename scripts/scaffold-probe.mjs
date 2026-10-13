@@ -693,20 +693,6 @@ function publishesToReleases() {
   writeFileSync(bundleFile, `${bundleSource}\n// changed after publishing\n`);
   try {
     mustFail(
-      "a bundle the plugin does not vouch for, seen by publish",
-      /the plugin vouches for sha256-/,
-      "npx",
-      ["uplink-tools", "publish"],
-      { cwd: client, env: noHooks },
-    );
-    // Baked again with the changed bytes, the plugin vouches for them, and what stops the publish is the version already out there.
-    must(
-      "bake with the changed bundle",
-      "npx",
-      ["uplink-tools", "bake", "--bundle", bundleFile],
-      { cwd: client, env: noHooks },
-    );
-    mustFail(
       "a published version given different bytes, seen by publish",
       /already published with different bytes/,
       "npx",
@@ -715,12 +701,6 @@ function publishesToReleases() {
     );
   } finally {
     writeFileSync(bundleFile, bundleSource);
-    must(
-      "bake with the original bundle",
-      "npx",
-      ["uplink-tools", "bake", "--bundle", bundleFile],
-      { cwd: client, env: noHooks },
-    );
   }
 }
 

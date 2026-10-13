@@ -15,7 +15,6 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
@@ -94,52 +93,12 @@ const git = (dir: string, ...args: string[]): GitResult => {
 };
 
 /**
- * Brings an existing releases checkout up to what the remote holds before a
- * release is copied into it, so a version published from another machine or by
- * CI is seen by the overwrite check and the push is a fast-forward. A checkout
- * with commits the remote lacks is left alone, since those are an earlier run's
- * release that could not be sent. One that has diverged from the remote is
- * refused.
- */
-function catchUpToRemote(dir: string, ref: string): void {
-  const remote = git(dir, "ls-remote", "--exit-code", "--heads", "origin", ref);
-  if (!remote.ok) return;
-  const tracking = `refs/remotes/origin/${ref}`;
-  const fetched = git(
-    dir,
-    "fetch",
-    "--no-tags",
-    "origin",
-    `+refs/heads/${ref}:${tracking}`,
-  );
-  if (!fetched.ok) {
-    throw new Error(`could not fetch ${ref} from origin: ${fetched.out}`);
-  }
-  if (git(dir, "merge-base", "--is-ancestor", tracking, "HEAD").ok) return;
-  if (git(dir, "merge-base", "--is-ancestor", "HEAD", tracking).ok) {
-    const moved = git(dir, "merge", "--ff-only", tracking);
-    if (!moved.ok) {
-      throw new Error(
-        `could not bring ${dir} up to origin/${ref}: ${moved.out}`,
-      );
-    }
-    return;
-  }
-  throw new Error(
-    `${dir} and origin/${ref} have each moved on without the other. Resolve it in ${dir} (git pull --rebase origin ${ref}), then run this again.`,
-  );
-}
-
-/**
  * `<root>/.releases`, a worktree of `ref`: the remote's branch when it has one,
  * otherwise a new orphan branch, so the first release needs no setup.
  */
 function releasesCheckout(uplinkDir: string, ref: string): string {
   const dir = join(uplinkDir, ".releases");
-  if (existsSync(dir)) {
-    catchUpToRemote(dir, ref);
-    return dir;
-  }
+  if (existsSync(dir)) return dir;
   const top = git(uplinkDir, "rev-parse", "--show-toplevel");
   if (!top.ok) {
     throw new Error(
@@ -173,13 +132,6 @@ function releasesCheckout(uplinkDir: string, ref: string): string {
     if (!added.ok) throw new Error(`could not create ${ref}: ${added.out}`);
   }
   return dir;
-}
-
-/** The hash `bake` wrote for the plugin to vouch for, or `undefined` when it has not run. */
-function bakedClientHash(uplinkDir: string): string | undefined {
-  const file = join(uplinkDir, "mod", "ExpectedClientHash.g.cs");
-  if (!existsSync(file)) return undefined;
-  return /Value = "([^"]*)"/.exec(readFileSync(file, "utf8"))?.[1];
 }
 
 export interface PublishPlan {
@@ -264,7 +216,6 @@ export function copyRelease(
   from: string,
   root: string,
   specSheet?: string,
-  bakedHash?: string,
 ): PublishResult {
   const bundleName = `${plan.id}.client.js`;
   const copies: [string, string][] = [
@@ -284,18 +235,6 @@ export function copyRelease(
       throw new Error(
         `${join(from, file)} does not exist. Build it first: uplink-tools release. The loader derives ` +
           "the sidecar's URL from the bundle's own, so both are published together or the fetch half-succeeds.",
-      );
-    }
-  }
-  if (bakedHash !== undefined) {
-    const actual = `sha256-${createHash("sha256")
-      .update(readFileSync(join(from, bundleName)))
-      .digest("hex")}`;
-    if (actual !== bakedHash) {
-      throw new Error(
-        `${join(from, bundleName)} hashes to ${actual}, and the plugin vouches for ${bakedHash || "no hash"}. ` +
-          "Published, it would sit at an address that can never be rewritten while the app refused it as " +
-          "tampered with. Run uplink-tools release again so the bundle and the plugin are built together.",
       );
     }
   }
@@ -453,18 +392,11 @@ export async function publish(
   const fault = to && plan.ref ? checkoutFault(root, plan.ref) : undefined;
   if (fault) throw new Error(`${id}: ${fault}`);
 
-  const baked = bakedClientHash(uplinkDir);
-  if (baked === undefined) {
-    throw new Error(
-      `${id}: mod/ExpectedClientHash.g.cs does not exist, so there is no hash to check the bundle against. Run uplink-tools release first.`,
-    );
-  }
   const result = copyRelease(
     plan,
     from,
     root,
     join(clientDir, "docs", "spec.json"),
-    baked,
   );
   console.log(`${id}: published to ${result.target}`);
   console.log(`  bundle   ${result.bundleUrl}`);

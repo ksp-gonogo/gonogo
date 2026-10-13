@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Locator, Page } from "playwright";
@@ -23,7 +23,6 @@ import {
 import { buildProbePage, type ProbePage } from "./page";
 import { pngSize } from "./png";
 import { PROBE_CHROME_ATTR, RENDER_PROBE_GLOBAL } from "./probe-global";
-import { recordRenders, removeRecordedRenders } from "./rendered-files";
 import { payloadFor } from "./sceneModel";
 import {
   assertEveryWidgetCovered,
@@ -343,14 +342,13 @@ export async function renderUplink(
     }
 
     await mkdir(opts.outDir, { recursive: true });
-    const kept = await removeRecordedRenders(opts.outDir, opts.scene);
+    await cleanPngsAndGifs(opts.outDir);
 
     const assets: RenderedAsset[] = [];
     const ledger = guestLedger(read.inventory);
     for (const scene of scenes) {
       await renderOneScene(tab, scene, opts, assets, ledger);
     }
-    recordRenders(opts.outDir, [...kept, ...assets.map((a) => a.file)]);
     reportUnjudgedGuests(ledger, opts.scene !== undefined);
 
     if (pageErrors.length > 0) {
@@ -1356,4 +1354,20 @@ async function shootFrame(
   const root = await tab.$("#root");
   if (!root) throw new Error("render: #root vanished mid-motion");
   return root.screenshot({ path, animations: "disabled" });
+}
+
+/** Wipe this tool's own artifacts so a removed scene leaves no orphan. Only the
+ *  two extensions it writes, so a sibling directory is never destroyed. */
+async function cleanPngsAndGifs(dir: string): Promise<void> {
+  let entries: string[] = [];
+  try {
+    entries = await readdir(dir);
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    if (entry.endsWith(".png") || entry.endsWith(".gif")) {
+      await rm(join(dir, entry));
+    }
+  }
 }

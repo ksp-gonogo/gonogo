@@ -81,15 +81,6 @@ export function packageMod(uplinkDir: string, outDir: string): PackageResult {
     );
   }
 
-  if (
-    !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(gamedata) ||
-    gamedata.endsWith(".")
-  ) {
-    throw new Error(
-      `${join(uplinkDir, "uplink.json")} declares "gamedata": "${gamedata}", which is not a plain folder name. ` +
-        "It names the one folder under GameData the zip holds, and is emptied before packaging.",
-    );
-  }
   const staging = join(outDir, "gamedata", gamedata);
   rmSync(staging, { recursive: true, force: true });
   mkdirSync(join(staging, "Plugins"), { recursive: true });

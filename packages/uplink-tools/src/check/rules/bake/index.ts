@@ -239,20 +239,6 @@ export function bakeRule(build: BuildClient = buildClient): Rule {
           apply: () => writeAtomic(path, content),
         });
       }
-      for (const name of BAKED_FILES) {
-        const path = join(uplinkDir, "mod", name);
-        if (expected.files.has(name) || !existsSync(path)) continue;
-        out.push({
-          rule: "bake/stale",
-          severity: "error",
-          file: path,
-          line: 1,
-          message: `${name} is still here, and bake no longer writes it: uplink.json declares no client.url, so the plugin would announce a client the Uplink does not have.`,
-          fixable: true,
-          fix: "Run `uplink-tools bake`, which removes it.",
-          apply: () => rmSync(path),
-        });
-      }
       return out;
     },
   };

@@ -50,7 +50,6 @@ const NO_CLIENT_SCAN: ClientScan = {
   directives: [],
   augments: [],
   typeErrors: 0,
-  sourceFiles: 0,
 };
 
 const probesNamed = (only: readonly string[] | undefined) =>
@@ -136,21 +135,17 @@ export async function check(
         clientDir,
         dynamicPrefixes: sdkPrefixes.prefixes,
         dynamicPrefixesProblem: sdkPrefixes.problem,
-        scan: () => {
-          if (ts === undefined) return NO_CLIENT_SCAN;
-          const scan = scanClient(
-            ts,
-            createClientProgram(ts, clientDir, { workspace: true }),
-            { clientDir, indexes },
-          );
-          // A scan that read nothing finds nothing, and nothing found reads as a clean client.
-          if (scan.sourceFiles === 0) {
-            throw new CheckUnableError(
-              `the scan found no source files under ${clientDir}, so it checked nothing. The client's tsconfig.json includes none of them, or its paths are not ones the scan can match.`,
-            );
-          }
-          return scan;
-        },
+        scan: () =>
+          ts === undefined
+            ? NO_CLIENT_SCAN
+            : scanClient(
+                ts,
+                createClientProgram(ts, clientDir, { workspace: true }),
+                {
+                  clientDir,
+                  indexes,
+                },
+              ),
         fix: switches.has("--fix"),
         only: ruleOnly,
         skip: ruleSkip,

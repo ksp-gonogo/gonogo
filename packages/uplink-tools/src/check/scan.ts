@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, sep } from "node:path";
 import type * as TS from "typescript";
 import type {
   ArgumentKind,
@@ -105,11 +105,9 @@ export interface Scanner {
   resolver: Resolver;
 }
 
-/** TypeScript names files with forward slashes on every platform, so paths are compared in that form. */
-const slashed = (path: string) => path.replaceAll("\\", "/");
-
 const inNodeModules = (fileName: string) =>
-  slashed(fileName).includes("/node_modules/");
+  fileName.includes(`${sep}node_modules${sep}`) ||
+  fileName.includes("/node_modules/");
 
 /**
  * Reads every widget registration in the client's program and what each widget
@@ -129,13 +127,13 @@ export function createScanner(
   program: TS.Program,
   options: ScanOptions,
 ): Scanner {
-  const clientRoot = slashed(options.clientDir).endsWith("/")
-    ? slashed(options.clientDir)
-    : `${slashed(options.clientDir)}/`;
+  const clientRoot = options.clientDir.endsWith(sep)
+    ? options.clientDir
+    : options.clientDir + sep;
   const isOwnSource = (file: TS.SourceFile) =>
     !file.isDeclarationFile &&
     !inNodeModules(file.fileName) &&
-    slashed(file.fileName).startsWith(clientRoot);
+    file.fileName.startsWith(clientRoot);
   const resolver = createResolver(ts, program, isOwnSource);
 
   const directives = new Map<string, DirectiveRecord>();
@@ -171,7 +169,7 @@ export function createScanner(
   };
   /** A directive in a file the client does not own is judged only when the scan went through the function it sits in. */
   const isJudged = (directive: DirectiveRecord) =>
-    slashed(directive.file).startsWith(clientRoot) ||
+    directive.file.startsWith(clientRoot) ||
     (walked.get(directive.file) ?? []).some(
       ([start, end]) => directive.line >= start && directive.line <= end,
     );
@@ -1218,10 +1216,8 @@ export function createScanner(
     }
 
     let typeErrors = 0;
-    let sourceFiles = 0;
     for (const file of program.getSourceFiles()) {
       if (!isOwnSource(file)) continue;
-      sourceFiles++;
       typeErrors += program
         .getSemanticDiagnostics(file)
         .filter((d) => d.category === ts.DiagnosticCategory.Error).length;
@@ -1234,7 +1230,6 @@ export function createScanner(
       directives: [...directives.values()].filter(isJudged),
       augments,
       typeErrors,
-      sourceFiles,
     };
   };
 

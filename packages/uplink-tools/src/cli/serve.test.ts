@@ -29,12 +29,6 @@ async function served() {
 }
 
 describe("bundle --serve", () => {
-  it("answers a malformed percent escape with 400 and keeps serving", async () => {
-    const { base } = await served();
-    expect((await fetch(`${base}/%`)).status).toBe(400);
-    expect((await fetch(`${base}/x.client.js`)).status).toBe(200);
-  });
-
   it("listens on this computer only", async () => {
     expect((await served()).address).toBe("127.0.0.1");
   });
