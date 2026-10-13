@@ -17,6 +17,12 @@ import { POWER_LABEL, POWER_TONE, powerBalance, powerState } from "./power";
 
 const XS2_STYLE = { fontSize: "var(--font-size-caption)" } as const;
 
+const FIGURE_AND_BADGE = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: "var(--gap-related)",
+} as const;
+
 /** A completion fraction as a percentage, exactly as current as `deployed.bases` is. */
 function progressPercentReading(
   source: Reading<unknown>,
@@ -107,7 +113,7 @@ export function DeployedBaseCard({
               }
               valueLabelNode={
                 exp.progress === null ? undefined : (
-                  <>
+                  <span style={FIGURE_AND_BADGE}>
                     <Unit
                       value={progressPercentReading(basesReading, exp.progress)}
                       decimals={0}
@@ -119,7 +125,7 @@ export function DeployedBaseCard({
                         </Badge>
                       </Tooltip>
                     )}
-                  </>
+                  </span>
                 )
               }
             />
