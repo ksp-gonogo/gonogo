@@ -107,16 +107,16 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    // MapView paints to <canvas> (equirectangular body texture + coverage
+    // GroundTrack paints to <canvas> (equirectangular body texture + coverage
     // overlay + vessel trail). The playwright harness captures the
     // canvas pixels directly: no parallel SVG renderer needed for
     // visual coverage, just the standard fixture/mode pattern. The DOM
     // snapshot test snaps the chrome around the canvas (which is the
     // useful structural-regression layer); canvas pixels live only in
     // the PNG harness, which we don't pixel-diff.
-    widgetId: "map-view",
-    fixturesPath: "MapView/__fixtures__",
-    outPath: "renders/map-view-widget",
+    widgetId: "ground-track",
+    fixturesPath: "GroundTrack/__fixtures__",
+    outPath: "renders/ground-track-widget",
     modes: [
       // Minimum size: chrome thin, body fill dominates.
       { name: "tiny-3x4", w: 3, h: 4 },
@@ -148,7 +148,7 @@ const WIDGETS: WidgetRenderConfig[] = [
         h,
         zooms: [
           {
-            selector: '[data-testid="map-view-base-canvas"]',
+            selector: '[data-testid="ground-track-base-canvas"]',
             steps,
             // The craft in both scenes, as fractions of the map: longitude -132 on the equator.
             at: [0.383, 0.5] as const,

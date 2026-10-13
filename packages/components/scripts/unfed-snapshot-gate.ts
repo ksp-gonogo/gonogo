@@ -73,7 +73,7 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "depicts the pre-telemetry placeholder deliberately, as its own case",
   "LaunchDirector/awaiting":
     "depicts the pre-telemetry placeholder deliberately, as its own case",
-  "MapView/no-vessel-data":
+  "GroundTrack/no-vessel-data":
     "no vessel position to plot, so the map draws its ground state only",
   "SemiMajorAxis/no-data":
     "no orbit to report; the widget is a single readout with nothing behind it",

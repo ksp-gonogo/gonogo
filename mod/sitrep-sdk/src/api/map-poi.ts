@@ -8,9 +8,9 @@ import type { MapPoiProviderDefinition } from "./types";
  * this registry and then had no published way to assert it had.
  *
  * A provider contributes data (an array of points for the currently-mapped
- * body), not a renderable component. MapView owns the one shared
+ * body), not a renderable component. GroundTrack owns the one shared
  * hover/action/marker-styling surface, so N providers do not each invent their
- * own hover UX. Consumed by MapView's `MapPoiLayer`.
+ * own hover UX. Consumed by GroundTrack's `MapPoiLayer`.
  */
 
 /**
@@ -20,7 +20,7 @@ import type { MapPoiProviderDefinition } from "./types";
  * A module-static `Map` was safe while `core` was the only home and nothing
  * bundled it. Now that this file can be bundled into an Uplink, a module-static
  * one would be the silent second-copy-of-a-registry failure: the Uplink
- * registers a provider into its own copy and MapView reads the app's, with no
+ * registers a provider into its own copy and GroundTrack reads the app's, with no
  * error anywhere. Same reasoning, and the same fix, as `PerfBudget`'s registry.
  */
 const MAP_POI_REGISTRY_KEY = "__GONOGO_MAP_POI_PROVIDERS__" as const;

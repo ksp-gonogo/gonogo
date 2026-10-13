@@ -7,11 +7,11 @@
 // revision had each slot-owning
 // widget carry a SECOND `declare module "@ksp-gonogo/sitrep-sdk"` block
 // alongside its existing `declare module "@ksp-gonogo/core"` one (see e.g.
-// MapView/index.tsx). That doesn't work: TypeScript only applies ambient
+// GroundTrack/index.tsx). That doesn't work: TypeScript only applies ambient
 // module augmentation from files that are actually part of the compiled
 // PROGRAM, and a facade-sealed client (which must not import
 // `@ksp-gonogo/components`) never pulls those files in: so
-// `SlotProps<"map-view.overlay">` etc. resolve to `never` for a sealed
+// `SlotProps<"ground-track.overlay">` etc. resolve to `never` for a sealed
 // client, exactly the failure mode this seam exists to prevent.
 //
 // The fix is NOT `import type` from `@ksp-gonogo/components`, same leaf
@@ -574,7 +574,7 @@ export interface SystemOverlayContext {
 // "system-view.actions" carries no props today.
 
 /**
- * Props passed to every `map-view.overlay` augment: a layer over the Map View's
+ * Props passed to every `ground-track.overlay` augment: a layer over the Ground Track widget's
  * canvases, with the projection the map draws with.
  *
  * The map is an equirectangular world image, `worldW` by `worldH` pixels, seen
@@ -607,7 +607,7 @@ export interface MapOverlayContext {
   worldW: number;
   /** Height of the world image in world pixels, spanning 180 degrees of latitude. */
   worldH: number;
-  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `ground-track.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
   /** The mapped body's radius in metres. `undefined` while it is not known. */
   bodyRadius: number | undefined;
@@ -638,21 +638,21 @@ export interface MapOverlayContext {
 }
 
 /**
- * What the Map View is showing, read with `useWidgetScope("map-view")` from
+ * What the Ground Track widget is showing, read with `useWidgetScope("ground-track")` from
  * `@ksp-gonogo/ui-kit`.
  * Useful for letting an augment follow the body the operator is looking at. Used
- * by the Map View.
+ * by the Ground Track widget.
  *
  * @category Widget slots
  */
-export interface MapViewScope {
-  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+export interface GroundTrackScope {
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `ground-track.base` augment is given as `bodyId`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyName: string | undefined;
 }
 
 /**
  * How much of the mapped body's surface is revealed, combined from every
- * registered coverage source, such as scanner coverage. A `map-view.base`
+ * registered coverage source, such as scanner coverage. A `ground-track.base`
  * augment reads it to paint only what has been revealed.
  * Useful for painting only the ground the operator has revealed.
  *
@@ -672,7 +672,7 @@ export interface MapCoverageGate {
 }
 
 /**
- * Props passed to every `map-view.base` augment: the base surface of the Map
+ * Props passed to every `ground-track.base` augment: the base surface of the Map
  * View, under every other layer.
  *
  * Any number of augments can fill this slot at once. Each hands back a canvas
@@ -683,12 +683,12 @@ export interface MapCoverageGate {
  * texture, and transparent pixels show what is beneath. An augment that declares `suppressesVanillaBase` removes the stock
  * texture.
  * Useful for painting the body's surface with data such as coverage or terrain.
- * Used by the Map View.
+ * Used by the Ground Track widget.
  *
  * @category Widget slots
  */
 export interface MapBaseLayerContext {
-  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `map-view.overlay` augment is given as `bodyName`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
+  /** The name of the body the map shows, such as `"Kerbin"`: the same string a `ground-track.overlay` augment is given as `bodyName`. It can differ from the active vessel's body when the operator picks another. `undefined` while none is known. */
   bodyId: string | undefined;
   /** Width of the map area in pixels. */
   width: number;
@@ -1091,27 +1091,27 @@ declare module "./types" {
     "system-view.overlay": SystemOverlayContext;
 
     /**
-     * A layer over every canvas of the Map View, the same size as the map
+     * A layer over every canvas of the Ground Track widget, the same size as the map
      * area, for marks placed by latitude and longitude with
      * {@link MapOverlayContext.project}. The
      * layer passes pointer events through to the map, so an element that
      * needs clicks turns them back on itself. Passes a
      * {@link MapOverlayContext}.
      */
-    "map-view.overlay": MapOverlayContext;
+    "ground-track.overlay": MapOverlayContext;
     /**
-     * The Map View's base surface, under every other layer, for a picture of
+     * The Ground Track's base surface, under every other layer, for a picture of
      * the whole body such as a scanned terrain map. The augment draws nothing
      * itself: it paints a canvas and hands it to the map with
      * {@link MapBaseLayerContext.onLayer}, and
      * returns `null`. Set `suppressesVanillaBase` on the augment to remove the
      * stock texture. Passes a {@link MapBaseLayerContext}.
      */
-    "map-view.base": MapBaseLayerContext;
-    /** Content of your own at the end of the Map View widget's body, after everything the widget itself draws. Passes no props. */
-    "map-view.sections": Record<string, never>;
-    /** The standard header segment of the Map View widget: controls of your own in its panel header. Passes no props. */
-    "map-view.actions": Record<string, never>;
+    "ground-track.base": MapBaseLayerContext;
+    /** Content of your own at the end of the Ground Track widget's body, after everything the widget itself draws. Passes no props. */
+    "ground-track.sections": Record<string, never>;
+    /** The standard header segment of the Ground Track widget: controls of your own in its panel header. Passes no props. */
+    "ground-track.actions": Record<string, never>;
 
     /** Content of your own at the end of the Research and Development widget's body, after everything the widget itself draws. Passes no props. */
     "research-and-development.sections": Record<string, never>;
@@ -1184,8 +1184,8 @@ declare module "./types" {
   // the slot props above are: a widget in `packages/components` declaring its
   // scope is invisible to a sealed client that cannot see that package.
   interface WidgetScopeRegistry {
-    /** What the Map View is showing: the body it maps. Read with `useWidgetScope("map-view")`. */
-    "map-view": MapViewScope;
+    /** What the Ground Track widget is showing: the body it maps. Read with `useWidgetScope("ground-track")`. */
+    "ground-track": GroundTrackScope;
     /** The resource Power Systems is showing, as the operator picked it. Read with `useWidgetScope("power-systems")`. */
     "power-systems": PowerSystemsScope;
   }

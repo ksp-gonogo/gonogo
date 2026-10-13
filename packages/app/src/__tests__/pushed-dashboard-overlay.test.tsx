@@ -145,7 +145,7 @@ describe("PushedDashboardOverlay", () => {
   });
 
   it("provides DashboardItemContext so pushed widgets can call useActionInput without crashing", () => {
-    // Regression: MapView / ActionGroup etc. read useDashboardItemId through
+    // Regression: GroundTrack / ActionGroup etc. read useDashboardItemId through
     // useActionInput. Without the context wrapper, pushing them from a
     // station threw on the main screen.
     const ACTIONS = [

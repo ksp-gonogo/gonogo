@@ -104,7 +104,7 @@ describe("no widget renders a named slot on a framework segment", () => {
         }
       }
     }
-    expect(slots.has("map-view.overlay")).toBe(true);
+    expect(slots.has("ground-track.overlay")).toBe(true);
     expect(slots.size).toBeGreaterThan(5);
   });
 

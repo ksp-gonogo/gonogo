@@ -10,9 +10,9 @@ import type { AbsenceScene } from "./absenceScene";
  */
 export const ABSENCE_SCENES: AbsenceScene[] = [
   {
-    id: "map-view-position-never-arrived",
-    widget: "map-view",
-    fixture: "MapView/__fixtures__/kerbin-lko-equator.json",
+    id: "ground-track-position-never-arrived",
+    widget: "ground-track",
+    fixture: "GroundTrack/__fixtures__/kerbin-lko-equator.json",
     channel: "vessel.flight",
     mode: { name: "tiny-3x4", w: 3, h: 4 },
     because:
@@ -26,7 +26,7 @@ export const ABSENCE_SCENES: AbsenceScene[] = [
       "has never reported and a craft whose position we hold both look like",
     withholds: ["75.00"],
     showsMore: [NULL_DISPLAY, "No position data"],
-    stillPaints: ["MAP"],
+    stillPaints: ["GROUND"],
   },
   {
     id: "research-and-development-balance-never-arrived",

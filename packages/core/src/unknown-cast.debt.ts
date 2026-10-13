@@ -105,7 +105,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/host.ts :: registerAugment": 1,
   "packages/app/src/uplinks/host.ts :: useRouteCommands": 1,
   // packages/components: 2 at 2 points in 2 files (0 out of `any`, 2 in tests), walked 1048 files
-  "packages/components/src/MapView/paintBaseSurface.test.ts :: namedSource": 1,
+  "packages/components/src/GroundTrack/paintBaseSurface.test.ts :: namedSource": 1,
   "packages/components/src/ShipMap/partMetersContribution.test.ts :: part": 1,
   // packages/core: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 280 files
   "packages/core/src/hooks/defineTopicManifest.ts :: boundHook": 1,
@@ -165,7 +165,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/host.ts :: registerAugment": 1,
   "packages/app/src/uplinks/host.ts :: useRouteCommands": 1,
   // packages/components: 2 at 2 points in 2 files (0 out of `any`, 2 in tests), walked 1048 files
-  "packages/components/src/MapView/paintBaseSurface.test.ts :: namedSource": 1,
+  "packages/components/src/GroundTrack/paintBaseSurface.test.ts :: namedSource": 1,
   "packages/components/src/ShipMap/partMetersContribution.test.ts :: part": 1,
   // packages/core: 1 at 1 points in 1 files (0 out of `any`, 0 in tests), walked 280 files
   "packages/core/src/hooks/defineTopicManifest.ts :: boundHook": 1,

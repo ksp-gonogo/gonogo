@@ -4,7 +4,7 @@
  * Nothing here is persisted, because nothing here is the game's only copy: the
  * mod that sources a layer holds the full coverage in the save and re-sends a
  * body's whole bitmap when it is subscribed, so a reload repaints from the
- * stream. The MapView reads each layer's mask independently and composes them
+ * stream. The GroundTrack reads each layer's mask independently and composes them
  * at paint time.
  */
 

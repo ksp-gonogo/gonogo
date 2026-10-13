@@ -21,7 +21,7 @@ import type { BodyDefinition } from "./types";
 /**
  * The altitudes, in metres, between which a vessel can image a body, with the
  * best altitude and the camera field of view in degrees. Useful for showing
- * the operator where over a body a survey camera works. Used by the map view to
+ * the operator where over a body a survey camera works. Used by the ground track widget to
  * mark the imaging band.
  *
  * A value the body definition does not give is derived: the lowest altitude is
@@ -109,7 +109,7 @@ export function getBody(id: string): BodyDefinition | undefined {
 
 /**
  * Returns every registered celestial body. Useful for letting the operator
- * pick a body from a list. Used by the map view's settings to offer its body
+ * pick a body from a list. Used by the ground track widget's settings to offer its body
  * choices.
  *
  * @category Solar system and fleet

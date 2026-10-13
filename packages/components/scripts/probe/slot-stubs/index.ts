@@ -10,7 +10,7 @@ import "./fuel-status";
 import "./landing-status";
 import "./launch-director";
 import "./maneuver-planner";
-import "./map-view";
+import "./ground-track";
 import "./objectives";
 import "./orbit-view";
 import "./power-systems";

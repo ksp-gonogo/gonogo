@@ -9,7 +9,7 @@
      invisible over dark chrome and looks broken where it does show. We keep
      the handles as generous invisible hit zones and let the per-direction
      cursor (below) signal resize affordance like an OS window edge. */
-  /* Sits above widget content so SVG-heavy widgets (Ship Map, MapView)
+  /* Sits above widget content so SVG-heavy widgets (Ship Map, GroundTrack)
      can't intercept the drag-to-resize gesture. Widget content is at
      the default stacking level inside the grid item; this handle needs
      to be reliably on top. */
