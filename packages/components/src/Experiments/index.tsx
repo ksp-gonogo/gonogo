@@ -214,7 +214,15 @@ function ExperimentsComponent({
                 ? ` · ${totals.inoperable} inoperable`
                 : ""}
               {totalDataMits > 0 && (
-                <Tooltip text="Total stored science data (mits)" focusable>
+                <Tooltip
+                  /* A held figure's own tip says so, and a second tip anchored on the same figure would sit over it. */
+                  text={
+                    heldGrade(experimentsReading) === undefined
+                      ? "Total stored science data (mits)"
+                      : null
+                  }
+                  focusable
+                >
                   <Text spaced>
                     ·{" "}
                     <Unit
