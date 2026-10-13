@@ -30,7 +30,7 @@ namespace Sitrep.Host.Alarms
     /// unreadable, which is what an operator at that distance genuinely
     /// knows.</para>
     /// </summary>
-    public sealed class RevealedScetStateReader : IScetStateReader
+    public sealed class RevealedScetStateReader : IScetStateReader, IScetFinishedContracts
     {
         /// <summary>
         /// What a topic looks like at this vantage now: the arrived payload, or
@@ -43,6 +43,17 @@ namespace Sitrep.Host.Alarms
         private readonly string _vantage;
         private readonly double _nowUt;
 
+        /*
+         * The career's whole finished-contract index, taken from the same
+         * snapshot that built the tick. The career payload at a vantage lists
+         * only the recent finishes, so a contract that was cancelled, expired or
+         * pushed off those lists would otherwise be unreadable for ever. It is
+         * offered only once the career payload has arrived at the vantage (see
+         * FinishedContracts), and the match reads it only for a contract that
+         * payload no longer lists as active.
+         */
+        private readonly IDictionary<string, object?>? _finishedContracts;
+
         /// <summary>
         /// One tick's worth of answers, so several alarms on one Topic cost one
         /// archive read. Within the tick only: the whole point of the read is
@@ -54,12 +65,19 @@ namespace Sitrep.Host.Alarms
             new Dictionary<string, object?>(StringComparer.Ordinal);
 
         public RevealedScetStateReader(
-            Func<string, string, double, object?> readAtVantage, string vantage, double nowUt)
+            Func<string, string, double, object?> readAtVantage,
+            string vantage,
+            double nowUt,
+            IDictionary<string, object?>? finishedContracts = null)
         {
             _readAtVantage = readAtVantage ?? throw new ArgumentNullException(nameof(readAtVantage));
             _vantage = vantage ?? "";
             _nowUt = nowUt;
+            _finishedContracts = finishedContracts;
         }
+
+        public IDictionary<string, object?>? FinishedContracts(string subject) =>
+            ReadPayload(subject, CareerViewProvider.Topic) == null ? null : _finishedContracts;
 
         public IDictionary<string, object?>? ReadPayload(string subject, string topic) =>
             Arrived(topic) is { } root

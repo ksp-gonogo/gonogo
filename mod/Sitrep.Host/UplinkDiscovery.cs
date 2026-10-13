@@ -71,6 +71,14 @@ namespace Sitrep.Host
             /// </summary>
             public string? Id { get; }
 
+            /// <summary>
+            /// Why part of an assembly that references the contract did not load, set
+            /// only on the entry <see cref="Unloadable"/> makes. An Uplink among the
+            /// types that failed cannot be named or constructed, so the assembly is
+            /// what the roster reports as unavailable.
+            /// </summary>
+            public string? LoadFailure { get; }
+
             public DiscoveredUplink(ISitrepUplink? uplink, int contractMajor, int contractMinor, string? id = null)
             {
                 Uplink = uplink;
@@ -78,6 +86,16 @@ namespace Sitrep.Host
                 ContractMinor = contractMinor;
                 Id = id;
             }
+
+            private DiscoveredUplink(string id, string loadFailure)
+            {
+                Id = id;
+                LoadFailure = loadFailure;
+            }
+
+            /// <summary>An assembly of which only some types loaded, reported under <c>assembly:&lt;name&gt;</c> so it cannot collide with an Uplink's own id.</summary>
+            public static DiscoveredUplink Unloadable(string assemblyName, string reason) =>
+                new DiscoveredUplink("assembly:" + assemblyName, reason);
         }
 
         /// <summary>
@@ -154,9 +172,10 @@ namespace Sitrep.Host
                         .Select(reason => reason!.Message)
                         .Distinct(StringComparer.Ordinal)
                         .ToList();
-                    Log(
-                        "assembly \"" + assembly.FullName + "\" loaded only " + types.Length + " of its types; an Uplink among the rest is absent"
-                        + (reasons.Count == 0 ? "" : ": " + string.Join("; ", reasons)));
+                    var failure = "only " + types.Length + " of its types loaded, so an Uplink among the rest is absent"
+                        + (reasons.Count == 0 ? "" : ": " + string.Join("; ", reasons));
+                    Log("assembly \"" + assembly.FullName + "\" " + failure);
+                    found.Add(DiscoveredUplink.Unloadable(assembly.GetName().Name ?? assembly.FullName ?? "(unnamed)", failure));
                 }
                 catch (Exception ex)
                 {

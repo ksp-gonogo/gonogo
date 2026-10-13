@@ -558,6 +558,7 @@ namespace Gonogo.KSP
                 var hasAudience = _host?.IsAnyTopicSubscribed(RosterTopic) ?? false;
                 var hasTopicsAudience = _host?.IsAnyTopicSubscribed(TopicsTopic) ?? false;
                 ScetAlarmTickState tick;
+                IDictionary<string, object?>? finishedContracts = null;
                 bool stopWarp;
                 List<ScetAlarmActionsDue> actionsDue;
                 var flown = ActiveVesselScope.Current;
@@ -570,6 +571,10 @@ namespace Gonogo.KSP
                     _roster.EvaluatePass(tick, ScetAlarmVantage.IsTheSubjectsOwn, _ => state);
                     stopWarp = tick.StopWarp;
                     actionsDue = new List<ScetAlarmActionsDue>(tick.ActionsDue);
+                    if (_roster.WatchesContracts())
+                    {
+                        finishedContracts = state.FinishedContracts("game");
+                    }
                 }
 
                 if (stopWarp)
@@ -599,6 +604,7 @@ namespace Gonogo.KSP
                     HasAudience = hasAudience,
                     HasTopicsAudience = hasTopicsAudience,
                     Tick = tick,
+                    FinishedContracts = finishedContracts,
                     StoppedOnCapture = stopWarp,
                 };
             }
@@ -650,7 +656,7 @@ namespace Gonogo.KSP
                     _roster.EvaluatePass(
                         publish.Tick,
                         alarm => !ScetAlarmVantage.IsTheSubjectsOwn(alarm),
-                        alarm => ReaderAt(ScetAlarmVantage.Of(alarm), read, publish.Ut, readers));
+                        alarm => ReaderAt(ScetAlarmVantage.Of(alarm), read, publish.Ut, publish.FinishedContracts, readers));
                     tick = _roster.EndTick(publish.Tick);
 
                     var publishing = _audience.ShouldPublish(publish.HasAudience, tick.RosterChanged);
@@ -820,6 +826,7 @@ namespace Gonogo.KSP
             string vantage,
             Func<string, string, double, object?>? read,
             double nowUt,
+            IDictionary<string, object?>? finishedContracts,
             Dictionary<string, IScetStateReader?> readers)
         {
             if (read == null)
@@ -828,7 +835,7 @@ namespace Gonogo.KSP
             }
             if (!readers.TryGetValue(vantage, out var reader))
             {
-                reader = new RevealedScetStateReader(read, vantage, nowUt);
+                reader = new RevealedScetStateReader(read, vantage, nowUt, finishedContracts);
                 readers[vantage] = reader;
             }
             return reader;
@@ -851,6 +858,13 @@ namespace Gonogo.KSP
             /// evaluate against one universal time and one rewind decision.
             /// </summary>
             public ScetAlarmTickState? Tick;
+
+            /// <summary>
+            /// The career's finished-contract index as this tick's snapshot held
+            /// it, for the alarms read at a command centre; null when no alarm
+            /// waits on a contract or the list could not be read.
+            /// </summary>
+            public IDictionary<string, object?>? FinishedContracts;
 
             /// <summary>
             /// Whether the capture already commanded the stop for its own pass.

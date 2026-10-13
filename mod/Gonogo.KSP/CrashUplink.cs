@@ -140,6 +140,7 @@ namespace Gonogo.KSP
             GameEvents.onLaunch.Add(OnLaunch);
             GameEvents.onStageSeparation.Add(OnStageSeparation);
             GameEvents.onPartDie.Add(OnPartDie);
+            GameEvents.onCrewKilled.Add(OnCrewKilled);
             // The hooks live for the whole process: the addon that hosts this
             // uplink is KSPAddon(once) + DontDestroyOnLoad, so Register runs once,
             // before the main menu, and crash detection must span every flight.
@@ -176,6 +177,16 @@ namespace Gonogo.KSP
                 return;
             }
             _tracker.RecordPartsLost(vessel.id.ToString());
+        }
+
+        private void OnCrewKilled(EventReport report)
+        {
+            var vessel = report?.origin?.vessel;
+            if (vessel == null)
+            {
+                return;
+            }
+            _tracker.RecordKerbalsKilled(vessel.id.ToString());
         }
 
         private void OnCrash(EventReport report) => NoteImpact(report, "Crash");
@@ -224,6 +235,7 @@ namespace Gonogo.KSP
                 var vesselType = vessel.vesselType.ToString();
                 if (!CrashPayload.ShouldPublish(vesselType))
                 {
+                    _tracker.Forget(vessel.id.ToString());
                     return;
                 }
 

@@ -119,7 +119,7 @@ namespace Gonogo.KSP
                     Topic = BreakingGroundViewProvider.DeployedTopic,
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
-                    // Global across every loaded vessel, but still a
+                    // Global across the whole save, but still a
                     // vessel/craft-sourced surface: rides the delay clock.
                     Delay = DelayRole.Delayed,
                 },

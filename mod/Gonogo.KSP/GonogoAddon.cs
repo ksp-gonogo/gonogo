@@ -191,21 +191,15 @@ namespace Gonogo.KSP
                 // capability, the same reasoning CommandCentreDelayUplink
                 // below is registered directly for.
                 _engine.RegisterUplink(new FleetChannels());
-                // Same sink as SetDiagnosticLog above, for the same reason: the
-                // scan's three rejection paths (unscannable assembly, no public
-                // parameterless constructor, a throwing constructor) went only to
-                // Console.Error, so a third-party Uplink the scan refused looked
-                // exactly like one that loaded and had not published yet.
-                _engine.RegisterDiscoveredUplinks(
-                    UplinkDiscovery.Discover(msg => Debug.LogWarning("[Gonogo] " + msg)));
-
                 // Plan 3 command centres (agent-6): the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own
                 // registry) AND the per-(authority, subject) delay pass + roster
                 // (the uplink's registry). The sources are stateless enumerators, so
-                // both registries enumerate identically. Registered after discovery,
-                // before ResolveCapabilities: the delay uplink declares one channel
-                // (commandCentre.roster) and no capability provider. VERIFY at fold.
+                // both registries enumerate identically. Registered before
+                // discovery, so a discovered Uplink claiming one of their ids or
+                // topics is the one refused, and before ResolveCapabilities: the
+                // delay uplink declares one channel (commandCentre.roster) and no
+                // capability provider.
                 var ccSources = new Sitrep.Contract.ICommandCentreSource[]
                 {
                     new CommandCentres.StockHomeNodeSource(),
@@ -230,6 +224,14 @@ namespace Gonogo.KSP
                 // Messages and radio between centres, timed by the centre-to-centre
                 // rows the pass above writes.
                 _engine.RegisterUplink(new Sitrep.Host.Commcast.CommcastUplink());
+                // Same sink as SetDiagnosticLog above, for the same reason: the
+                // scan's three rejection paths (unscannable assembly, no public
+                // parameterless constructor, a throwing constructor) went only to
+                // Console.Error, so a third-party Uplink the scan refused looked
+                // exactly like one that loaded and had not published yet.
+                _engine.RegisterDiscoveredUplinks(
+                    UplinkDiscovery.Discover(msg => Debug.LogWarning("[Gonogo] " + msg)));
+
                 // comms.commandCentre: give
                 // CommsCoreUplink the SAME registry instance so it resolves the
                 // active vessel's terminal node against the live centres the

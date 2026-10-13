@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using Sitrep.Contract;
 
@@ -502,6 +503,11 @@ namespace Sitrep.Host.Alarms
                 }
             }
         }
+
+        /// <summary>Whether any armed alarm waits on a contract objective, so a tick can skip building the career index when none does.</summary>
+        public bool WatchesContracts() =>
+            _entries.Any(e => e.Alarm.State == ScetAlarmState.Armed
+                && e.Alarm.Condition?.Kind == ScetAlarmConditionKind.ContractParameter);
 
         /// <summary>Close the tick and answer what it decided, over every pass.</summary>
         public ScetAlarmTick EndTick(ScetAlarmTickState state) => state.Tick;

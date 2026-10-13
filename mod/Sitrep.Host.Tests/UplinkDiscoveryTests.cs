@@ -109,6 +109,22 @@ namespace Sitrep.Host.Tests
             Assert.Contains("Method 'Health' does not have an implementation.", line);
         }
 
+        [Fact]
+        public void APartlyLoadedAssemblyAppearsOnTheRosterAsUnavailableWithItsReason()
+        {
+            var partial = new PartlyLoadedAssembly(
+                new[] { typeof(NormalDiscoverableUplink), null },
+                new Exception?[] { new TypeLoadException("Method 'Health' does not have an implementation."), null });
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+
+            engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover(new System.Reflection.Assembly[] { partial }));
+
+            var availability = engine.AvailabilityOf("assembly:PartlyLoadedUplinks");
+            Assert.False(availability.IsAvailable);
+            Assert.Contains("Method 'Health' does not have an implementation.", availability.Reason);
+            Assert.True(engine.AvailabilityOf("discovery-test-normal").IsAvailable);
+        }
+
         private sealed class PartlyLoadedAssembly : System.Reflection.Assembly
         {
             public const string Name = "PartlyLoadedUplinks, Version=1.0.0.0";

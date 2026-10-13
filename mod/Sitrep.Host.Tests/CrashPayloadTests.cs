@@ -243,11 +243,26 @@ namespace Sitrep.Host.Tests
             Assert.Null(stats.HighestGee);
             Assert.Null(stats.TotalDistance);
             Assert.Null(stats.GroundDistance);
-            Assert.Null(stats.PartsLost);
+            Assert.Equal(1, stats.PartsLost);
             Assert.Null(stats.KerbalsKilled);
             Assert.Equal(140, stats.MissionTime);
             Assert.True(stats.LiftOff);
             Assert.True(stats.MissionEnd);
+        }
+
+        [Fact]
+        public void Tracker_KerbalsKilledAreCountedForACraftNeverSampled()
+        {
+            var tracker = new FlightStatsTracker();
+            tracker.RecordKerbalsKilled("booster", 2);
+
+            Assert.Equal(2, tracker.Snapshot("booster").KerbalsKilled);
+        }
+
+        [Fact]
+        public void Tracker_AnUnreportedCraftHasNoPartsLostFigure()
+        {
+            Assert.Null(new FlightStatsTracker().Snapshot("never-seen").PartsLost);
         }
 
         [Fact]

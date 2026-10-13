@@ -82,6 +82,48 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void A_topic_the_engine_declares_itself_is_refused_to_an_uplink()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            var thief = new TestUplink(Manifest("thief", topic: "system.uplinks"));
+
+            engine.RegisterUplink(thief);
+
+            var refused = engine.AvailabilityOf("thief");
+            Assert.False(refused.IsAvailable);
+            Assert.Contains("channel \"system.uplinks\" belongs to the engine itself", refused.Reason);
+            Assert.False(thief.Registered);
+        }
+
+        [Fact]
+        public void A_discovered_uplink_cannot_take_a_topic_from_one_core_registered_first()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterUplink(new TestUplink(Manifest("core-one", topic: "comms.contacts")));
+            var third = new TestUplink(Manifest("third-party", topic: "comms.contacts"));
+
+            engine.RegisterDiscoveredUplinks(new[] { Discovered(third, "third-party") });
+
+            Assert.True(engine.AvailabilityOf("core-one").IsAvailable);
+            Assert.Contains("already belongs to \"core-one\"", engine.AvailabilityOf("third-party").Reason);
+            Assert.False(third.Registered);
+        }
+
+        [Fact]
+        public void A_discovered_uplink_reusing_a_core_id_leaves_the_core_uplink_running()
+        {
+            var engine = new ChannelEngine("ws://127.0.0.1:0");
+            var core = new TestUplink(Manifest("core-one", topic: "core.topic"));
+            engine.RegisterUplink(core);
+            var third = new TestUplink(Manifest("core-one", topic: "third.topic"));
+
+            engine.RegisterDiscoveredUplinks(new[] { Discovered(third, "core-one") });
+
+            Assert.True(engine.AvailabilityOf("core-one").IsAvailable);
+            Assert.False(third.Registered);
+        }
+
+        [Fact]
         public void A_command_another_uplink_owns_is_refused()
         {
             var engine = new ChannelEngine("ws://127.0.0.1:0");

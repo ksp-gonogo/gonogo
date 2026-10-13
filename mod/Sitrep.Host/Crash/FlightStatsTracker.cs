@@ -152,7 +152,8 @@ namespace Sitrep.Host.Crash
         /// of every published crash.
         ///
         /// <para>Every accumulated figure is null for a vessel that was never
-        /// sampled: a craft that crashed while another was flown, or one loaded
+        /// sampled, except the parts lost and kerbals killed counts, which are
+        /// reported whenever the game reported at least one: a craft that crashed while another was flown, or one loaded
         /// since the last restart, has no maxima to report. The mission time and
         /// lift-off are read off the vessel at the crash when
         /// <paramref name="missionTimeAtCrash"/> is given, so they are known
@@ -165,8 +166,8 @@ namespace Sitrep.Host.Crash
             var missionTime = missionTimeAtCrash ?? (sampled ? s!.MissionTime : (double?)null);
             return new FlightStats
             {
-                KerbalsKilled = sampled ? s!.KerbalsKilled : (int?)null,
-                PartsLost = sampled ? s!.PartsLost : (int?)null,
+                KerbalsKilled = sampled || s?.KerbalsKilled > 0 ? s!.KerbalsKilled : (int?)null,
+                PartsLost = sampled || s?.PartsLost > 0 ? s!.PartsLost : (int?)null,
                 FlightEndMode = "CATASTROPHIC_FAILURE",
                 HighestSpeedOverLand = sampled ? s!.HighestSpeedOverLand : (double?)null,
                 MissionEnd = true,

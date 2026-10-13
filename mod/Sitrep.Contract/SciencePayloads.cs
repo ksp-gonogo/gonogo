@@ -435,14 +435,16 @@ public class LabEntry
 /// <summary> One entry in the <c>deployed.bases</c> Topic payload: a
 /// Breaking Ground deployed-science experiment
 /// (<c>ModuleGroundExperiment</c>). The Topic payload is a bare array
-/// (<c>DeployedEntry[]</c>) or <c>null</c> when no loaded vessel carries a
-/// deployed experiment (including an install without Breaking Ground).
+/// (<c>DeployedEntry[]</c>) or <c>null</c> when Breaking Ground is not
+/// installed and no loaded vessel carries a deployed experiment.
 ///
 /// <para>Unlike the <c>science.*</c> channels, <c>deployed.bases</c> covers
-/// every loaded vessel, not just the active one: a deployed cluster is its own
+/// the whole save, not just the active vessel: a deployed cluster is its own
 /// ground vessel, so an entry normally describes a vessel other than the
-/// active one, named by <see cref="VesselName"/>. A cluster whose vessel is not
-/// loaded does not appear.</para>
+/// active one, named by <see cref="VesselName"/>. An experiment on a vessel that
+/// is not loaded is read from Breaking Ground's cluster registry and carries
+/// no power or connection sentence. One that belongs to no cluster is listed
+/// only while its vessel is loaded.</para>
 ///
 /// <para>Every field is nullable, and is <c>null</c> whenever the raw value is
 /// absent or could not be read.</para>

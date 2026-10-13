@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Sitrep.Contract;
 using Sitrep.Host.Alarms;
 using Xunit;
 
@@ -153,6 +154,44 @@ namespace Sitrep.Host.Tests
                 ScetReadingStatus.NotObservable,
                 reader.Read("vessel:abc", "vessel.flight", "altitudeAsl").Status);
             Assert.Empty(archive.Asked);
+        }
+
+        private static Dictionary<string, object?> Career(string source) =>
+            new Dictionary<string, object?>
+            {
+                ["meta"] = new Dictionary<string, object?> { ["source"] = source },
+                ["contracts"] = new Dictionary<string, object?>
+                {
+                    ["active"] = new List<object?>(),
+                    ["completedRecent"] = new List<object?>(),
+                    ["failedRecent"] = new List<object?>(),
+                },
+            };
+
+        [Fact]
+        public void AContractThatLeftTheCareerIsNeverMetAtAVantageHoldingTheFinishedIndex()
+        {
+            var archive = new Archive { Payload = Career("game") };
+            var reader = new RevealedScetStateReader(
+                archive.Read, Vantage, 1000, new Dictionary<string, object?>());
+
+            var matched = ScetPayload.MatchContractParameter(
+                reader.ReadPayload("game", CareerViewProvider.Topic)!,
+                reader.FinishedContracts("game"),
+                "c-1",
+                "Vessel state",
+                KspParameterState.Complete);
+
+            Assert.Equal(ContractParameterMatch.Never, matched);
+        }
+
+        [Fact]
+        public void TheFinishedIndexIsWithheldUntilTheCareerHasArrivedAtTheVantage()
+        {
+            var reader = new RevealedScetStateReader(
+                new Archive().Read, Vantage, 1000, new Dictionary<string, object?>());
+
+            Assert.Null(reader.FinishedContracts("game"));
         }
     }
 }

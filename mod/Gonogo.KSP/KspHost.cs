@@ -4673,12 +4673,8 @@ namespace Gonogo.KSP
 
             var byId = new Dictionary<string, object?>(StringComparer.Ordinal);
             var kept = new Dictionary<Contract, Dictionary<string, object?>>();
-            foreach (var contract in finished)
+            void Index(Contract contract)
             {
-                if (contract == null)
-                {
-                    continue;
-                }
                 if (!_finishedEntries.TryGetValue(contract, out var entry))
                 {
                     entry = BuildContractEntry(contract);
@@ -4686,9 +4682,36 @@ namespace Gonogo.KSP
                 kept[contract] = entry;
                 byId[contract.ContractID.ToString()] = entry;
             }
+
+            foreach (var contract in finished)
+            {
+                if (contract != null)
+                {
+                    Index(contract);
+                }
+            }
+
+            // Stock moves a contract that just finished into ContractsFinished on a
+            // later step, so for a tick or two it sits in Contracts in its terminal
+            // state, which neither the active list nor the finished list shows.
+            if (system.Contracts != null)
+            {
+                foreach (var contract in system.Contracts)
+                {
+                    if (contract != null && IsTerminal(contract.ContractState))
+                    {
+                        Index(contract);
+                    }
+                }
+            }
             _finishedEntries = kept;
             return byId;
         }
+
+        private static bool IsTerminal(Contract.State state) =>
+            state != Contract.State.Generated
+            && state != Contract.State.Offered
+            && state != Contract.State.Active;
 
         /// <summary>
         /// The last <see cref="CompletedRecentLimit"/> contracts from
@@ -5856,7 +5879,7 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Every Breaking Ground deployed experiment in the save, loaded or not.
+        /// The Breaking Ground deployed experiments in the save, loaded or not.
         ///
         /// <para>Once deployed, each cluster is its own ground vessel, not part
         /// of the craft being flown, so this walks the game rather than the
@@ -5870,8 +5893,9 @@ namespace Gonogo.KSP
         ///
         /// <para>Null when Breaking Ground is not installed and nothing loaded
         /// carries one of its experiments: the whole group omitted. With it
-        /// installed the list is complete, so an empty one says there are no
-        /// deployed experiments.</para>
+        /// installed the list holds every loaded experiment and every unloaded one
+        /// that belongs to a cluster; an unloaded experiment with no cluster is not
+        /// in it, so an empty list does not rule one out.</para>
         ///
         /// <para><b>Reflection guard.</b> The loaded walk matches the module by
         /// <c>GetType().Name == "ModuleGroundExperiment"</c> and reads every

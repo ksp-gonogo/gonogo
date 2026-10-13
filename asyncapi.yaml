@@ -1401,14 +1401,16 @@ channels:
 
       One entry in the `deployed.bases` Topic payload: a Breaking Ground
       deployed-science experiment (`ModuleGroundExperiment`). The Topic payload is
-      a bare array (`DeployedEntry[]`) or `null` when no loaded vessel carries a
-      deployed experiment (including an install without Breaking Ground).
+      a bare array (`DeployedEntry[]`) or `null` when Breaking Ground is not
+      installed and no loaded vessel carries a deployed experiment.
 
-      Unlike the `science.*` channels, `deployed.bases` covers every loaded
-      vessel, not just the active one: a deployed cluster is its own ground
-      vessel, so an entry normally describes a vessel other than the active one,
-      named by `DeployedEntry.vesselName`. A cluster whose vessel is not loaded
-      does not appear.
+      Unlike the `science.*` channels, `deployed.bases` covers the whole save, not
+      just the active vessel: a deployed cluster is its own ground vessel, so an
+      entry normally describes a vessel other than the active one, named by
+      `DeployedEntry.vesselName`. An experiment on a vessel that is not loaded is
+      read from Breaking Ground's cluster registry and carries no power or
+      connection sentence. One that belongs to no cluster is listed only while its
+      vessel is loaded.
 
       Every field is nullable, and is `null` whenever the raw value is absent or
       could not be read.
@@ -13615,14 +13617,16 @@ components:
       description: |-
         One entry in the `deployed.bases` Topic payload: a Breaking Ground
         deployed-science experiment (`ModuleGroundExperiment`). The Topic payload is
-        a bare array (`DeployedEntry[]`) or `null` when no loaded vessel carries a
-        deployed experiment (including an install without Breaking Ground).
+        a bare array (`DeployedEntry[]`) or `null` when Breaking Ground is not
+        installed and no loaded vessel carries a deployed experiment.
 
-        Unlike the `science.*` channels, `deployed.bases` covers every loaded
-        vessel, not just the active one: a deployed cluster is its own ground
-        vessel, so an entry normally describes a vessel other than the active one,
-        named by `DeployedEntry.vesselName`. A cluster whose vessel is not loaded
-        does not appear.
+        Unlike the `science.*` channels, `deployed.bases` covers the whole save, not
+        just the active vessel: a deployed cluster is its own ground vessel, so an
+        entry normally describes a vessel other than the active one, named by
+        `DeployedEntry.vesselName`. An experiment on a vessel that is not loaded is
+        read from Breaking Ground's cluster registry and carries no power or
+        connection sentence. One that belongs to no cluster is listed only while its
+        vessel is loaded.
 
         Every field is nullable, and is `null` whenever the raw value is absent or
         could not be read.

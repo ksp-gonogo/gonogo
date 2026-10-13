@@ -2120,12 +2120,20 @@ namespace Sitrep.Host
                 {
                     return "channel \"" + channel.Topic + "\" already belongs to \"" + owner + "\"";
                 }
+                if (!_channelOwner.ContainsKey(channel.Topic) && _channelDeclarations.ContainsKey(channel.Topic))
+                {
+                    return "channel \"" + channel.Topic + "\" belongs to the engine itself";
+                }
             }
             foreach (var command in manifest.Commands)
             {
                 if (_commandOwner.TryGetValue(command.Command, out var owner) && owner != id)
                 {
                     return "command \"" + command.Command + "\" already belongs to \"" + owner + "\"";
+                }
+                if (!_commandOwner.ContainsKey(command.Command) && _commandDeclarations.ContainsKey(command.Command))
+                {
+                    return "command \"" + command.Command + "\" belongs to the engine itself";
                 }
             }
             return null;
@@ -2695,6 +2703,13 @@ namespace Sitrep.Host
             var accepted = new List<ISitrepUplink>();
             foreach (var d in all)
             {
+                if (d.LoadFailure != null)
+                {
+                    _availability[d.Id!] = Availability.Unavailable(d.LoadFailure);
+                    _contractRefusals[d.Id!] = new ContractRefusal(d.Id!, null, null, d.LoadFailure);
+                    LogHost($"uplink \"{d.Id}\" refused: {d.LoadFailure}");
+                    continue;
+                }
                 if (!PassesContractMajorCheck(d.Uplink, d.Id, d.ContractMajor, d.ContractMinor))
                 {
                     continue;
@@ -3001,11 +3016,11 @@ namespace Sitrep.Host
         private readonly struct ContractRefusal
         {
             public string Id { get; }
-            public int DeclaredMajor { get; }
-            public int DeclaredMinor { get; }
+            public int? DeclaredMajor { get; }
+            public int? DeclaredMinor { get; }
             public string Reason { get; }
 
-            public ContractRefusal(string id, int declaredMajor, int declaredMinor, string reason)
+            public ContractRefusal(string id, int? declaredMajor, int? declaredMinor, string reason)
             {
                 Id = id;
                 DeclaredMajor = declaredMajor;
@@ -3084,7 +3099,7 @@ namespace Sitrep.Host
             var claimants = new List<string>();
             foreach (var other in all)
             {
-                if (string.Equals(other.Id, id, StringComparison.Ordinal))
+                if (other.LoadFailure == null && string.Equals(other.Id, id, StringComparison.Ordinal))
                 {
                     claimants.Add(other.Uplink?.GetType().Assembly.GetName().Name ?? "(refused before construction)");
                 }
