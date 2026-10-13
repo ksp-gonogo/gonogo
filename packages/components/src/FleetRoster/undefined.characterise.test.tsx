@@ -83,8 +83,8 @@ describe("FleetRoster: nothing has arrived at all", () => {
     expect(screen.queryByRole("meter", { name: "Comms coverage" })).toBeNull();
     // A tally of a roster never delivered would say the same thing in words.
     expect(visibleText()).not.toContain("0 linked");
-    // `commsRollup([])`'s own branch, distinct from "No Link".
-    expect(screen.getByText("No Vessels")).toBeInTheDocument();
+    // A roster that never arrived is not an empty fleet.
+    expect(screen.queryByText("No Vessels")).toBeNull();
     expect(screen.queryByText("No Link")).toBeNull();
   });
 
