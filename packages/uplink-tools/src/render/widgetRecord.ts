@@ -38,8 +38,8 @@ export interface WidgetRecord {
   dataRequirements: string[];
   /** The fields of its Topics the widget draws. */
   fields: string[];
-  /** The actions an input can be bound to, each with the label an operator reads. */
-  actions: { id: string; label: string }[];
+  /** The actions an input can be bound to, each with the label an operator reads and, when the registration gives one, what it does. */
+  actions: { id: string; label: string; description: string | null }[];
   /** The augment slots the widget renders, as the registration names them. */
   augmentSlots: string[];
   /** The contribution slots the widget reads, as the registration names them. */
@@ -77,7 +77,11 @@ export function widgetRecordOf(def: ComponentDefinition): WidgetRecord {
     readsFromConfig: def.channelsFromConfig !== undefined,
     dataRequirements: (def.dataRequirements ?? []).map((r) => String(r)),
     fields: [...(def.fields ?? [])].map((f) => String(f)),
-    actions: (def.actions ?? []).map((a) => ({ id: a.id, label: a.label })),
+    actions: (def.actions ?? []).map((a) => ({
+      id: a.id,
+      label: a.label,
+      description: a.description ?? null,
+    })),
     augmentSlots: [...(def.augmentSlots ?? [])],
     contributionSlots: [...(def.contributionSlots ?? [])],
     requires: (def.requires ?? []).map((r) => String(r)),

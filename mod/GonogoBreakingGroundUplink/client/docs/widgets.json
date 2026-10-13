@@ -60,19 +60,23 @@
       "actions": [
         {
           "id": "target-up",
-          "label": "Target +"
+          "label": "Target +",
+          "description": "Increase the selected joint's target."
         },
         {
           "id": "target-down",
-          "label": "Target −"
+          "label": "Target −",
+          "description": "Decrease the selected joint's target."
         },
         {
           "id": "toggle-motor",
-          "label": "Toggle motor"
+          "label": "Toggle motor",
+          "description": "Engage / disengage the selected joint's motor."
         },
         {
           "id": "toggle-lock",
-          "label": "Toggle lock"
+          "label": "Toggle lock",
+          "description": "Lock / unlock the selected joint."
         }
       ],
       "augmentSlots": [],
@@ -115,23 +119,28 @@
       "actions": [
         {
           "id": "rpm-up",
-          "label": "RPM up"
+          "label": "RPM up",
+          "description": "Raise the selected rotor's RPM cap."
         },
         {
           "id": "rpm-down",
-          "label": "RPM down"
+          "label": "RPM down",
+          "description": "Lower the selected rotor's RPM cap."
         },
         {
           "id": "toggle-motor",
-          "label": "Toggle motor"
+          "label": "Toggle motor",
+          "description": "Engage / disengage the selected rotor's motor."
         },
         {
           "id": "toggle-lock",
-          "label": "Toggle lock"
+          "label": "Toggle lock",
+          "description": "Lock / unlock the selected rotor."
         },
         {
           "id": "reverse",
-          "label": "Reverse"
+          "label": "Reverse",
+          "description": "Flip the selected rotor's spin direction."
         }
       ],
       "augmentSlots": [],

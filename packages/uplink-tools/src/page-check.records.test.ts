@@ -87,7 +87,7 @@ describe("docs/widgets.json beside the README", () => {
       defaultSize: { w: 4, h: 3 },
       minSize: { w: 3, h: 2 },
       tiny: false,
-      actions: [{ id: "toggle", label: "Toggle units" }],
+      actions: [{ id: "toggle", label: "Toggle units", description: null }],
     });
     const readme = readFileSync(join(dir, "README.md"), "utf8");
     expect(readme).toContain("### Planted Gauge");

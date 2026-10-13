@@ -81,10 +81,26 @@ describe("widgetFactsOf", () => {
     ).toBe("3 × 3, drawing only its tiny form; 3 × 4 for the full widget");
   });
 
+  it("follows an action with what it does, and separates such actions by semicolons", () => {
+    expect(
+      rowOf(
+        record({
+          actions: [
+            { id: "a", label: "A", description: "Does a" },
+            { id: "b", label: "B", description: null },
+          ],
+        }),
+        "actions",
+      )?.value,
+    ).toBe("A (`a`): Does a; B (`b`)");
+  });
+
   it("writes an action as its label then its id, escaping a pipe", () => {
     expect(
-      rowOf(record({ actions: [{ id: "t", label: "A | B" }] }), "actions")
-        ?.value,
+      rowOf(
+        record({ actions: [{ id: "t", label: "A | B", description: null }] }),
+        "actions",
+      )?.value,
     ).toBe("A \\| B (`t`)");
   });
 

@@ -21,11 +21,13 @@ export const mapViewActions = [
     id: "zoom-in",
     label: "Zoom In",
     accepts: ["button"],
+    description: "Zoom the map in one step.",
   },
   {
     id: "zoom-out",
     label: "Zoom Out",
     accepts: ["button"],
+    description: "Zoom the map out one step.",
   },
   {
     id: "reset-view",

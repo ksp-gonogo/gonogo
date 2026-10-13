@@ -35,6 +35,8 @@ export type WidgetFactItem =
       code: string;
       /** The label an operator reads for it. */
       label?: string;
+      /** What it does, as one sentence. */
+      description?: string;
     }
   | {
       /** A plain phrase. */
@@ -149,7 +151,11 @@ export function widgetFactsOf(
     {
       id: "actions",
       label: "Actions an input can be bound to",
-      items: record.actions.map((a) => ({ code: a.id, label: a.label })),
+      items: record.actions.map((a) => ({
+        code: a.id,
+        label: a.label,
+        ...(a.description ? { description: a.description } : {}),
+      })),
     },
     { id: "slots", label: "Slots", items: codes(slots) },
     {
@@ -198,7 +204,14 @@ export function widgetFactValueMd(items: readonly WidgetFactItem[]): string {
     .map((item) => {
       if ("prose" in item) return prose(item.prose);
       const code = `\`${item.code.replace(/\|/g, "\\|")}\``;
-      return item.label ? `${prose(item.label)} (${code})` : code;
+      const named = item.label ? `${prose(item.label)} (${code})` : code;
+      return item.description
+        ? `${named}: ${prose(item.description.replace(/\.$/, ""))}`
+        : named;
     })
-    .join(", ");
+    .join(
+      items.some((item) => "description" in item && item.description)
+        ? "; "
+        : ", ",
+    );
 }
