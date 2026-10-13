@@ -33,6 +33,7 @@ import read from "./navball.declarations.g";
 import { lastObserved, numericOrNull } from "./readings";
 import { badgeSasMode } from "./sasModes";
 import { ThrottleGauge } from "./ThrottleGauge";
+import { useTrimSender } from "./trimCoalescer";
 import { MIN_DIAL_PX, useDialFit } from "./useDialFit";
 import { useFlyByWire } from "./useFlyByWire";
 import { type TrimField, useNavballInputs } from "./useNavballInputs";
@@ -137,9 +138,9 @@ function NavballComponent({
 
   // Trim has no readback to anchor a control stream, so it sends `setAxes` one field at a time, never clobbering a live axis.
   const trimCmd = useCommand("vessel.control.setAxes");
-  const sendTrim = (field: TrimField, raw: number) => {
+  const sendTrim = useTrimSender((field: TrimField, raw: number) => {
     void trimCmd.send({ [field]: raw }, { label: TRIM_LABELS[field] });
-  };
+  });
 
   /*
    * `oneWaySeconds` is 0 with the delay feature off. Read as last-observed: a
