@@ -689,34 +689,38 @@ export function OrbitDiagram({
           ))}
 
           {/* Outside the rotation group so the labels always read horizontally. */}
-          {showMarkers && cfg.showLabels && (
+          {showMarkers && (cfg.showLabels || hoveredMarker !== null) && (
             <g pointerEvents="none">
-              {!isHyperbolic && (
+              {!isHyperbolic && (cfg.showLabels || hoveredMarker === "ap") && (
                 <ApsisLabel
                   x={apoLabelPos.x}
                   y={apoLabelPos.y}
                   fill="var(--color-apoapsis-mark)"
                   fontSizePx={labelPxSize}
                   vbPerPx={vbPerPx}
+                  hovered={hoveredMarker === "ap"}
                   text={
                     hoveredMarker === "ap"
-                      ? formatAltitude(apoapsis, bodyRadius)
+                      ? `Apoapsis, ${formatAltitude(apoapsis, bodyRadius)}`
                       : "Ap"
                   }
                 />
               )}
-              <ApsisLabel
-                x={periLabelPos.x}
-                y={periLabelPos.y}
-                fill="var(--color-periapsis-mark)"
-                fontSizePx={labelPxSize}
-                vbPerPx={vbPerPx}
-                text={
-                  hoveredMarker === "pe"
-                    ? formatAltitude(periapsis, bodyRadius)
-                    : "Pe"
-                }
-              />
+              {(cfg.showLabels || hoveredMarker === "pe") && (
+                <ApsisLabel
+                  x={periLabelPos.x}
+                  y={periLabelPos.y}
+                  fill="var(--color-periapsis-mark)"
+                  fontSizePx={labelPxSize}
+                  vbPerPx={vbPerPx}
+                  hovered={hoveredMarker === "pe"}
+                  text={
+                    hoveredMarker === "pe"
+                      ? `Periapsis, ${formatAltitude(periapsis, bodyRadius)}`
+                      : "Pe"
+                  }
+                />
+              )}
             </g>
           )}
         </Rotated>
@@ -792,7 +796,6 @@ const ApsisMarker = styled.circle.attrs<{ r: number | string }>(({ r }) => ({
   role: "img",
   style: { "--apsis-focus-stroke-w": `${Number(r) * 0.5}px` },
 }))`
-  cursor: help;
   outline: none;
   &:focus-visible {
     stroke: var(--color-focus);
@@ -807,10 +810,13 @@ function ApsisLabel({
   fontSizePx,
   vbPerPx,
   text,
+  hovered = false,
 }: Readonly<{
   x: number;
   y: number;
   fill: string;
+  /** The full name and altitude are being read, a wide line: it extends from its position toward the body, and so stays inside the frame. */
+  hovered?: boolean;
   /** Target rendered size in CSS pixels. */
   fontSizePx: number;
   /** ViewBox-units per CSS pixel: the SVG transform's scale factor. */
@@ -825,7 +831,7 @@ function ApsisLabel({
       <text
         x={0}
         y={0}
-        textAnchor="middle"
+        textAnchor={hovered ? (x > 0 ? "end" : "start") : "middle"}
         dominantBaseline="middle"
         fill={fill}
         fontSize={fontSizePx}
