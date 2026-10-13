@@ -1,8 +1,19 @@
-import { asQuantityish, magnitudeOf, magnitudeOr } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 
 /** Fixed-decimal readout with no locale grouping, so the visual gate stays deterministic. */
 export function fixed(value: number, decimals: number): string {
   return value.toFixed(decimals);
+}
+
+/** Most science left first, rows that do not say how much last. */
+function byRemainingPotential(
+  a: { remainingPotential: number | null },
+  b: { remainingPotential: number | null },
+): number {
+  if (a.remainingPotential === null)
+    return b.remainingPotential === null ? 0 : 1;
+  if (b.remainingPotential === null) return -1;
+  return b.remainingPotential - a.remainingPotential;
 }
 
 export interface ParsedExperiment {
@@ -40,9 +51,9 @@ export interface ExperimentBreakdownEntry {
   biome: string;
   situation: string;
   expTitle: string;
-  dataMits: number;
-  /** subjectScienceCap - subjectScience; how much science is left in this subject. */
-  remainingPotential: number;
+  dataMits: number | null;
+  /** subjectScienceCap - subjectScience; how much science is left in this subject. Null when the record omits it. */
+  remainingPotential: number | null;
 }
 
 /**
@@ -66,11 +77,11 @@ export function parseExperimentBreakdown(
       biome: typeof e.biome === "string" ? e.biome : "",
       situation: typeof e.situation === "string" ? e.situation : "",
       expTitle: typeof e.expTitle === "string" ? e.expTitle : "(unnamed)",
-      dataMits: magnitudeOr(asQuantityish(e.dataMits), 0),
-      remainingPotential: magnitudeOr(asQuantityish(e.remainingPotential), 0),
+      dataMits: magnitudeOf(asQuantityish(e.dataMits)),
+      remainingPotential: magnitudeOf(asQuantityish(e.remainingPotential)),
     });
   }
-  out.sort((a, b) => b.remainingPotential - a.remainingPotential);
+  out.sort(byRemainingPotential);
   return out;
 }
 
@@ -83,10 +94,10 @@ export interface ArchiveSubject {
   situation: string;
   biome: string;
   title: string;
-  /** Science banked for this subject so far. */
-  science: number;
-  /** How much science is left in this subject. */
-  remainingPotential: number;
+  /** Science banked for this subject so far; null when the record omits it. */
+  science: number | null;
+  /** How much science is left in this subject; null when the record omits it. */
+  remainingPotential: number | null;
 }
 
 /**
@@ -111,8 +122,8 @@ export function parseArchive(raw: unknown): ArchiveSubject[] | null {
       situation: typeof e.situation === "string" ? e.situation : "",
       biome: typeof e.biome === "string" ? e.biome : "",
       title: typeof e.title === "string" ? e.title : "(unnamed)",
-      science: magnitudeOr(asQuantityish(e.science), 0),
-      remainingPotential: magnitudeOr(asQuantityish(e.remainingPotential), 0),
+      science: magnitudeOf(asQuantityish(e.science)),
+      remainingPotential: magnitudeOf(asQuantityish(e.remainingPotential)),
     });
   }
   return out;
@@ -145,9 +156,7 @@ export function groupArchiveByExperiment(
   }
 
   return Array.from(bodyMap.entries()).map(([body, bodyEntries]) => {
-    const sorted = [...bodyEntries].sort(
-      (a, b) => b.remainingPotential - a.remainingPotential,
-    );
+    const sorted = [...bodyEntries].sort(byRemainingPotential);
     const expMap = new Map<string, ArchiveExperimentGroup>();
     for (const entry of sorted) {
       const expId =

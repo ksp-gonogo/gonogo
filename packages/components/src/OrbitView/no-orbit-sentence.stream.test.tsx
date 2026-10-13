@@ -89,4 +89,10 @@ describe("OrbitView's empty sentence follows the reason the conic withdrew", () 
 
     expect(screen.queryByText(/No orbital data|packed/)).toBeNull();
   });
+
+  it("draws no diagram when the orbit's argument of periapsis is not reported, rather than turning it to zero", () => {
+    scene({ argPe: null });
+
+    expect(screen.getByText("No orbital data")).toBeInTheDocument();
+  });
 });

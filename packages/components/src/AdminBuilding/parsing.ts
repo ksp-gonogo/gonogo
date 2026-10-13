@@ -1,4 +1,4 @@
-import { asQuantityish, magnitudeOr } from "../shared/magnitude";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import type { Strategy } from "./types";
 
 // A career model that sends no source only ever answered from inside the building, so its verdicts are screened.
@@ -27,18 +27,17 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
       description: typeof e.description === "string" ? e.description : "",
       departmentName: typeof e.department === "string" ? e.department : "",
       isActive: e.isActive === true,
-      factor: magnitudeOr(asQuantityish(e.factor), 0),
-      dateActivated: magnitudeOr(asQuantityish(e.dateActivated), 0),
-      requiredReputation: magnitudeOr(asQuantityish(e.requiredReputation), 0),
-      initialCostFunds: magnitudeOr(asQuantityish(e.initialCostFunds), 0),
-      initialCostScience: magnitudeOr(asQuantityish(e.initialCostScience), 0),
-      initialCostReputation: magnitudeOr(
+      factor: magnitudeOf(asQuantityish(e.factor)),
+      dateActivated: magnitudeOf(asQuantityish(e.dateActivated)),
+      requiredReputation: magnitudeOf(asQuantityish(e.requiredReputation)),
+      initialCostFunds: magnitudeOf(asQuantityish(e.initialCostFunds)),
+      initialCostScience: magnitudeOf(asQuantityish(e.initialCostScience)),
+      initialCostReputation: magnitudeOf(
         asQuantityish(e.initialCostReputation),
-        0,
       ),
       hasFactorSlider: e.hasFactorSlider === true,
-      factorSliderDefault: magnitudeOr(asQuantityish(e.factorSliderDefault), 0),
-      factorSliderSteps: magnitudeOr(asQuantityish(e.factorSliderSteps), 1),
+      factorSliderDefault: magnitudeOf(asQuantityish(e.factorSliderDefault)),
+      factorSliderSteps: magnitudeOf(asQuantityish(e.factorSliderSteps)),
       // Only a real boolean is an answer; absent and null both mean the question went unasked.
       canActivate: typeof e.canActivate === "boolean" ? e.canActivate : null,
       activateBlockedReason:
@@ -80,4 +79,33 @@ export function parseEffectLines(raw: string): string[] {
     }
   }
   return lines;
+}
+
+/**
+ * The commitment slider's lower bound and step size, or null when the record
+ * carries either one: a slider cannot be drawn from a guessed range.
+ */
+export function factorSliderOf(
+  s: Strategy,
+): { min: number; step: number } | null {
+  if (!s.hasFactorSlider) return null;
+  if (s.factorSliderDefault === null || s.factorSliderSteps === null)
+    return null;
+  return {
+    min: s.factorSliderDefault,
+    step: (1 - s.factorSliderDefault) / Math.max(s.factorSliderSteps, 1),
+  };
+}
+
+/**
+ * The factor an activation sends, or null when the strategy has a slider whose
+ * position is unknown and so no commitment can be named. A strategy without a
+ * slider ignores the figure.
+ */
+export function activationFactor(
+  s: Strategy,
+  factor: number | null,
+): number | null {
+  if (factor !== null) return factor;
+  return s.hasFactorSlider ? null : 0;
 }

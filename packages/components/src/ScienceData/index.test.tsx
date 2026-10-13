@@ -319,6 +319,28 @@ describe("parseExperimentBreakdown", () => {
   });
 });
 
+describe("parsers: absent figures", () => {
+  it("keeps a missing breakdown figure as null and sorts it last", () => {
+    const parsed = parseExperimentBreakdown([
+      { subjectId: "none", expTitle: "None" },
+      { subjectId: "some", expTitle: "Some", remainingPotential: 2 },
+    ]);
+    expect(parsed?.map((e) => e.subjectId)).toEqual(["some", "none"]);
+    expect(parsed?.[1].dataMits).toBeNull();
+    expect(parsed?.[1].remainingPotential).toBeNull();
+  });
+
+  it("keeps a missing archive figure as null, and a real zero as zero", () => {
+    const parsed = parseArchive([
+      { subjectId: "a", science: 0 },
+      { subjectId: "b" },
+    ]);
+    expect(parsed?.[0].science).toBe(0);
+    expect(parsed?.[1].science).toBeNull();
+    expect(parsed?.[1].remainingPotential).toBeNull();
+  });
+});
+
 describe("parseArchive", () => {
   it("distinguishes a null (Sandbox) archive from an empty (fresh career) one", () => {
     expect(parseArchive(null)).toBeNull();

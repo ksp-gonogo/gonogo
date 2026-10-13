@@ -60,7 +60,12 @@ const breakdownColumns = (
     header: "Data",
     align: "end",
     width: "9ch",
-    render: (b) => <Unit value={dated(from, "Mit", b.dataMits)} />,
+    render: (b) =>
+      b.dataMits === null ? (
+        <Text level="muted">{NULL_DISPLAY}</Text>
+      ) : (
+        <Unit value={dated(from, "Mit", b.dataMits)} />
+      ),
   },
   {
     key: "remaining",
@@ -68,7 +73,9 @@ const breakdownColumns = (
     align: "end",
     width: "10ch",
     render: (b) =>
-      b.remainingPotential > 0 ? (
+      b.remainingPotential === null ? (
+        <Text level="muted">{NULL_DISPLAY}</Text>
+      ) : b.remainingPotential > 0 ? (
         <Unit value={dated(from, "science", b.remainingPotential)} />
       ) : (
         <Text level="muted">complete</Text>

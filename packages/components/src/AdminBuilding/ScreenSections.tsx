@@ -10,6 +10,7 @@ import {
   type CommandButtonHandle,
   Divider,
   Grid,
+  NULL_DISPLAY,
   ScrollArea,
   Section,
   Slider,
@@ -20,7 +21,7 @@ import {
 import type { Dispatch, SetStateAction } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AvailableRow, StrategyDescription } from "./AvailableRow";
-import { parseEffectLines } from "./parsing";
+import { factorSliderOf, parseEffectLines } from "./parsing";
 import { partition, sharedReason } from "./partition";
 import { ShortRow, type ShortState } from "./ShortForm";
 import {
@@ -120,76 +121,82 @@ export function ScreenSections({
       note={note}
     />
   );
-  const shortRow = (s: Strategy, state: ShortState) => (
-    <ShortRow
-      key={s.id}
-      strategy={s}
-      state={state}
-      expanded={expandedId === s.id}
-      onToggleExpanded={() => setExpandedId(expandedId === s.id ? null : s.id)}
-      funds={fundsNow}
-      reputation={reputationNow}
-      science={scienceNow}
-      rosterFrom={rosterFrom}
-      factor={factorById[s.id] ?? s.factorSliderDefault}
-      activateCmd={activateCmd}
-      deactivateCmd={deactivateCmd}
-      drawsOwnActions={drawsOwnActions}
-      details={
-        <>
-          {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-          {state.kind === "active" && (
-            <FactorTag>
-              factor{" "}
-              <Unit
-                value={datedFrom(rosterFrom, value("%", s.factor * 100))}
-                decimals={0}
-              />
-            </FactorTag>
-          )}
-          <StrategyDescription of={s} />
-          <EffectList>
-            {parseEffectLines(s.effect).map((line, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
-              <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
-            ))}
-          </EffectList>
-          {(state.kind === "available" || state.kind === "unchecked") &&
-            !drawsOwnActions &&
-            s.hasFactorSlider && (
-              <FactorRow>
-                <FactorLabel>Factor</FactorLabel>
-                <Slider
-                  min={s.factorSliderDefault}
-                  max={1}
-                  step={
-                    (1 - s.factorSliderDefault) /
-                    Math.max(s.factorSliderSteps, 1)
-                  }
-                  value={factorById[s.id] ?? s.factorSliderDefault}
-                  onChange={(e) =>
-                    setFactorById((prev) => ({
-                      ...prev,
-                      [s.id]: Number.parseFloat(e.target.value),
-                    }))
-                  }
-                  aria-label={`Commitment factor for ${s.title}`}
-                />
-                <FactorValue>
+  const shortRow = (s: Strategy, state: ShortState) => {
+    const slider = factorSliderOf(s);
+    return (
+      <ShortRow
+        key={s.id}
+        strategy={s}
+        state={state}
+        expanded={expandedId === s.id}
+        onToggleExpanded={() =>
+          setExpandedId(expandedId === s.id ? null : s.id)
+        }
+        funds={fundsNow}
+        reputation={reputationNow}
+        science={scienceNow}
+        rosterFrom={rosterFrom}
+        factor={factorById[s.id] ?? s.factorSliderDefault}
+        activateCmd={activateCmd}
+        deactivateCmd={deactivateCmd}
+        drawsOwnActions={drawsOwnActions}
+        details={
+          <>
+            {showDepartment && <CardDept>{s.departmentName}</CardDept>}
+            {state.kind === "active" && (
+              <FactorTag>
+                factor{" "}
+                {s.factor === null ? (
+                  NULL_DISPLAY
+                ) : (
                   <Unit
-                    value={staticValue(
-                      "%",
-                      (factorById[s.id] ?? s.factorSliderDefault) * 100,
-                    )}
+                    value={datedFrom(rosterFrom, value("%", s.factor * 100))}
                     decimals={0}
                   />
-                </FactorValue>
-              </FactorRow>
+                )}
+              </FactorTag>
             )}
-        </>
-      }
-    />
-  );
+            <StrategyDescription of={s} />
+            <EffectList>
+              {parseEffectLines(s.effect).map((line, i) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+                <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
+              ))}
+            </EffectList>
+            {(state.kind === "available" || state.kind === "unchecked") &&
+              !drawsOwnActions &&
+              slider !== null && (
+                <FactorRow>
+                  <FactorLabel>Factor</FactorLabel>
+                  <Slider
+                    min={slider.min}
+                    max={1}
+                    step={slider.step}
+                    value={factorById[s.id] ?? slider.min}
+                    onChange={(e) =>
+                      setFactorById((prev) => ({
+                        ...prev,
+                        [s.id]: Number.parseFloat(e.target.value),
+                      }))
+                    }
+                    aria-label={`Commitment factor for ${s.title}`}
+                  />
+                  <FactorValue>
+                    <Unit
+                      value={staticValue(
+                        "%",
+                        (factorById[s.id] ?? slider.min) * 100,
+                      )}
+                      decimals={0}
+                    />
+                  </FactorValue>
+                </FactorRow>
+              )}
+          </>
+        }
+      />
+    );
+  };
   if (short && listsStrategies) {
     const none =
       active.length +
@@ -273,13 +280,17 @@ export function ScreenSections({
                       <>
                         <FactorTag>
                           factor{" "}
-                          <Unit
-                            value={datedFrom(
-                              rosterFrom,
-                              value("%", s.factor * 100),
-                            )}
-                            decimals={0}
-                          />
+                          {s.factor === null ? (
+                            NULL_DISPLAY
+                          ) : (
+                            <Unit
+                              value={datedFrom(
+                                rosterFrom,
+                                value("%", s.factor * 100),
+                              )}
+                              decimals={0}
+                            />
+                          )}
                         </FactorTag>
                         {!drawsOwnActions && (
                           <CommandButton

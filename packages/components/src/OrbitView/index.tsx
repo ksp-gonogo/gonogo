@@ -115,7 +115,9 @@ function OrbitViewComponent({
   );
 
   // Periapsis, not apoapsis, is the orbit signal: apoapsis is `null` on a hyperbolic orbit.
-  const hasOrbit = sma != null && eccentricity != null && periapsisR != null;
+  // The argument of periapsis places the conic in its plane, so an orbit without one cannot be drawn or handed to an overlay.
+  const hasOrbit =
+    sma != null && eccentricity != null && periapsisR != null && argPe != null;
 
   // A withheld trajectory is not a missing orbit; the two get different sentences because they have different remedies.
   const withheld =
@@ -150,7 +152,7 @@ function OrbitViewComponent({
       periapsis={periapsisR}
       craft={craft}
       spread={orbitSpread(orbitReading, orbitObserved)}
-      argPe={argPe?.magnitude ?? 0}
+      argPe={argPe.magnitude}
       showMarkers={showMarkers}
       bodyColor={body?.color}
       bodyRadius={body?.radius}
@@ -169,7 +171,7 @@ function OrbitViewComponent({
         escaping,
         apoapsis: apoapsisR,
         periapsis: periapsisR,
-        argPe: argPe?.magnitude ?? 0,
+        argPe: argPe.magnitude,
         trueAnomaly: craft?.current ?? craft?.held ?? craft?.modelled ?? 0,
         bodyRadius: body?.radius,
         held: orbitReading,

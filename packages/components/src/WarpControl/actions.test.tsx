@@ -10,7 +10,7 @@ import { WarpControlComponent } from "./index";
 
 const INSTANCE = "warp-actions";
 
-function renderAtIndex(warpRateIndex: number) {
+function renderAtIndex(warpRateIndex: number | null) {
   const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
   render(
     <fixture.Provider>
@@ -22,7 +22,7 @@ function renderAtIndex(warpRateIndex: number) {
   act(() => {
     fixture.emit("time.warp", {
       warpRate: 1,
-      warpRateIndex,
+      ...(warpRateIndex === null ? {} : { warpRateIndex }),
       warpMode: 0,
       paused: false,
     });
@@ -77,6 +77,32 @@ describe("WarpControl step-down", () => {
       result = dispatchAction(INSTANCE, "step-down", {
         kind: "button",
         value: false,
+      });
+    });
+    await act(async () => {});
+
+    expect(result).toBeUndefined();
+    expect(warpCommands()).toHaveLength(0);
+  });
+});
+
+describe("WarpControl step actions with the warp index unknown", () => {
+  afterEach(() => {
+    clearActionHandlers();
+  });
+
+  it.each([
+    "step-up",
+    "step-down",
+  ])("%s refuses and sends nothing", async (actionId) => {
+    const { warpCommands } = renderAtIndex(null);
+    await act(async () => {});
+
+    let result: unknown = "unset";
+    act(() => {
+      result = dispatchAction(INSTANCE, actionId, {
+        kind: "button",
+        value: true,
       });
     });
     await act(async () => {});

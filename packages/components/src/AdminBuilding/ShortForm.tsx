@@ -10,6 +10,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { StrategyCost } from "./AvailableRow";
+import { activationFactor } from "./parsing";
 import { StrategyName } from "./styles";
 import type { Strategy } from "./types";
 
@@ -35,7 +36,7 @@ export interface ShortRowProps {
   reputation: number | null;
   science: number | null;
   rosterFrom: readonly CarriedCurrency[];
-  factor: number;
+  factor: number | null;
   activateCmd: CommandButtonHandle;
   deactivateCmd: CommandButtonHandle;
   /** True when the screen's own body carries the verbs, so the row draws neither button nor price. */
@@ -64,6 +65,7 @@ export function ShortRow({
   drawsOwnActions,
   details,
 }: Readonly<ShortRowProps>) {
+  const sentFactor = activationFactor(s, factor);
   const offersActivate =
     state.kind === "available" || state.kind === "unchecked";
   const badge = (() => {
@@ -116,11 +118,11 @@ export function ShortRow({
           />
         )}
       </Row>
-      {!drawsOwnActions && offersActivate && (
+      {!drawsOwnActions && offersActivate && sentFactor !== null && (
         <CommandButton
           size="sm"
           handle={activateCmd}
-          args={{ strategyId: s.id, factor }}
+          args={{ strategyId: s.id, factor: sentFactor }}
           commandLabel={`Activate ${s.title}`}
           label="Activate"
           confirmLabel="Confirm activate"

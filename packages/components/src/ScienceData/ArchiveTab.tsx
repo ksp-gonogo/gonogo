@@ -37,7 +37,12 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
     header: "Banked",
     align: "end",
     width: "9ch",
-    render: (r) => <Unit value={value("science", r.science)} />,
+    render: (r) =>
+      r.science === null ? (
+        <Text level="muted">{NULL_DISPLAY}</Text>
+      ) : (
+        <Unit value={value("science", r.science)} />
+      ),
   },
   {
     key: "remaining",
@@ -45,7 +50,9 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
     align: "end",
     width: "10ch",
     render: (r) =>
-      r.remainingPotential > 0 ? (
+      r.remainingPotential === null ? (
+        <Text level="muted">{NULL_DISPLAY}</Text>
+      ) : r.remainingPotential > 0 ? (
         <Unit value={value("science", r.remainingPotential)} />
       ) : (
         <Text level="muted">complete</Text>

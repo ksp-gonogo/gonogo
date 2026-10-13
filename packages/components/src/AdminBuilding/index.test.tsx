@@ -143,6 +143,29 @@ describe("parseStrategies", () => {
   });
 });
 
+describe("parseStrategies: absent figures", () => {
+  const bare = { id: "Bare", title: "Bare", isActive: false };
+
+  it("keeps a missing figure as null, never zero", () => {
+    const [s] = parseStrategies([bare]) ?? [];
+    expect(s).toMatchObject({
+      factor: null,
+      dateActivated: null,
+      requiredReputation: null,
+      initialCostFunds: null,
+      initialCostScience: null,
+      initialCostReputation: null,
+      factorSliderDefault: null,
+      factorSliderSteps: null,
+    });
+  });
+
+  it("keeps a real zero as zero", () => {
+    const [s] = parseStrategies([{ ...bare, initialCostFunds: 0 }]) ?? [];
+    expect(s.initialCostFunds).toBe(0);
+  });
+});
+
 describe("AdminBuildingComponent", () => {
   let stream: ReturnType<typeof setupStreamFixture>;
 
@@ -404,5 +427,26 @@ describe("AdminBuildingComponent", () => {
       await screen.findByText("Push harder on every deal."),
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^Show more/ })).toBeNull();
+  });
+  it("does not call a strategy free when its prices are absent", async () => {
+    renderWidget();
+    act(() => {
+      emitCareer(
+        stream,
+        [
+          {
+            id: "NoPrices",
+            title: "No Prices",
+            isActive: false,
+            canActivate: true,
+            hasFactorSlider: true,
+          },
+        ],
+        { funds: 1000, reputation: 10, science: 5 },
+      );
+    });
+    expect(await screen.findByText("No Prices")).toBeInTheDocument();
+    expect(screen.queryByText(/No funds, science or rep cost/)).toBeNull();
+    expect(screen.queryByRole("slider")).toBeNull();
   });
 });

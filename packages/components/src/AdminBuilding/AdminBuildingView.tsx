@@ -97,8 +97,8 @@ export function AdminBuildingView({
   const overCap = inferredCap !== null && activeShown.compare(inferredCap) > 0;
 
   // A narrow tile keeps funds alone, except for a currency some strategy it lists is priced in: a price needs its balance beside it.
-  const priced = (cost: (s: Strategy) => number) =>
-    strategies.some((s) => !s.isActive && cost(s) > 0);
+  const priced = (cost: (s: Strategy) => number | null) =>
+    strategies.some((s) => !s.isActive && (cost(s) ?? 0) > 0);
   const wide = (w ?? 9) >= 6;
   const showReputation = wide || priced((s) => s.initialCostReputation);
   const showScience = wide || priced((s) => s.initialCostScience);

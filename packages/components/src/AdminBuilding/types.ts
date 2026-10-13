@@ -1,18 +1,19 @@
+/** A figure the record did not carry is `null`, never zero: zero is a real price and a real factor. */
 export interface Strategy {
   id: string;
   title: string;
   description: string;
   departmentName: string;
   isActive: boolean;
-  factor: number;
-  dateActivated: number;
-  requiredReputation: number;
-  initialCostFunds: number;
-  initialCostScience: number;
-  initialCostReputation: number;
+  factor: number | null;
+  dateActivated: number | null;
+  requiredReputation: number | null;
+  initialCostFunds: number | null;
+  initialCostScience: number | null;
+  initialCostReputation: number | null;
   hasFactorSlider: boolean;
-  factorSliderDefault: number;
-  factorSliderSteps: number;
+  factorSliderDefault: number | null;
+  factorSliderSteps: number | null;
   /** Null when the question could not be put to the game at all, which is not a refusal. */
   canActivate: boolean | null;
   activateBlockedReason: string;

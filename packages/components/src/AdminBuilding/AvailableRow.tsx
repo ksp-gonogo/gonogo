@@ -13,7 +13,7 @@ import {
   Slider,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { parseEffectLines } from "./parsing";
+import { activationFactor, factorSliderOf, parseEffectLines } from "./parsing";
 import {
   BlockedNote,
   CardDept,
@@ -54,15 +54,19 @@ export function StrategyCost({
   reputation: number | null;
   science: number | null;
   rosterFrom: readonly CarriedCurrency[];
-  factor: number;
+  factor: number | null;
 }>) {
   /*
    * The record carries each cost of an inactive strategy at the slider's default factor, and KSP prices a strategy by interpolating between a minimum and a maximum, which the record does not carry. A price at any other commitment is therefore unknown, and is drawn as the null token with no verdict.
    */
-  const atRecordFactor = Math.abs(factor - s.factorSliderDefault) < 1e-9;
-  const priced = (cost: number): number | null =>
+  const atRecordFactor =
+    factor === null || s.factorSliderDefault === null
+      ? factor === s.factorSliderDefault
+      : Math.abs(factor - s.factorSliderDefault) < 1e-9;
+  const priced = (cost: number | null): number | null =>
     atRecordFactor ? cost : null;
   const scaledFunds = priced(s.initialCostFunds);
+  // Only a record that states every price as zero is free; a price it left out is unknown.
   const noListedCost =
     s.initialCostFunds === 0 &&
     s.initialCostScience === 0 &&
@@ -90,7 +94,7 @@ export function StrategyCost({
     <>
       {!noListedCost && (
         <CostRow>
-          {s.initialCostFunds > 0 && (
+          {s.initialCostFunds !== 0 && (
             <CostChip
               size="sm"
               tone={costTone(affordVerdict(scaledFunds, funds))}
@@ -105,7 +109,7 @@ export function StrategyCost({
               )}
             </CostChip>
           )}
-          {s.initialCostScience > 0 && (
+          {s.initialCostScience !== 0 && (
             <CostChip
               size="sm"
               tone={costTone(affordVerdict(scaledScience, science))}
@@ -120,7 +124,7 @@ export function StrategyCost({
               )}
             </CostChip>
           )}
-          {s.initialCostReputation > 0 && (
+          {s.initialCostReputation !== 0 && (
             <CostChip
               size="sm"
               tone={costTone(affordVerdict(scaledRep, reputation))}
@@ -166,7 +170,7 @@ export function AvailableRow({
   reputation: number | null;
   science: number | null;
   rosterFrom: readonly CarriedCurrency[];
-  factor: number;
+  factor: number | null;
   onFactorChange: (v: number) => void;
   /** The shared activate handle; each row's `CommandButton` holds its own arm and in-flight state. */
   activateCmd: CommandButtonHandle;
@@ -182,6 +186,8 @@ export function AvailableRow({
   /** A standing account of this card's own state, on screen above the price. */
   note?: string;
 }) {
+  const slider = factorSliderOf(s);
+  const sentFactor = activationFactor(s, factor);
   return (
     <StrategyCard
       title={
@@ -198,10 +204,10 @@ export function AvailableRow({
         showDepartment ? <CardDept>{s.departmentName}</CardDept> : undefined
       }
       footer={
-        drawsOwnActions ? undefined : (
+        drawsOwnActions || sentFactor === null ? undefined : (
           <CommandButton
             handle={activateCmd}
-            args={{ strategyId: s.id, factor }}
+            args={{ strategyId: s.id, factor: sentFactor }}
             commandLabel={`Activate ${s.title}`}
             label="Activate"
             confirmLabel="Confirm activate"
@@ -230,15 +236,13 @@ export function AvailableRow({
           factor={factor}
         />
       )}
-      {!drawsOwnActions && s.hasFactorSlider && (
+      {!drawsOwnActions && slider !== null && factor !== null && (
         <FactorRow>
           <FactorLabel>Factor</FactorLabel>
           <Slider
-            min={s.factorSliderDefault}
+            min={slider.min}
             max={1}
-            step={
-              (1 - s.factorSliderDefault) / Math.max(s.factorSliderSteps, 1)
-            }
+            step={slider.step}
             value={factor}
             onChange={(e) => onFactorChange(Number.parseFloat(e.target.value))}
             aria-label={`Commitment factor for ${s.title}`}
