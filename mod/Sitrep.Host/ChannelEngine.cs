@@ -10029,6 +10029,7 @@ namespace Sitrep.Host
             }
 
             var ratio = seen > 0.0 ? factor / seen : 0.0;
+            _courier.BringForwardDeliveries(ratio, ut);
             var steps = _courier.PlanBringForward(ratio, ut).ToList();
             if (_delivery != null)
             {
