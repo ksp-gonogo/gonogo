@@ -1162,6 +1162,9 @@ export function LineChart({
     hasCard &&
     !spatial &&
     cardSize !== null &&
+    // A card that measures nothing (not laid out) says nothing about which form fits.
+    cardSize.w > 0 &&
+    cardSize.h > 0 &&
     !cardBox &&
     cardForm < cardForms - 1;
   useLayoutEffect(() => {

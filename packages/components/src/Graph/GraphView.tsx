@@ -161,6 +161,8 @@ export interface ReadoutRoom {
   present?: PresentPoint;
   /** Figures set beside their labels have no clear corner, so they should be stacked under them. */
   compact: boolean;
+  /** Stacked figures have no clear corner either, so they should be drawn as small as they can be. */
+  tight: boolean;
 }
 
 /** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
@@ -505,6 +507,7 @@ export function GraphView({
           height: Number.POSITIVE_INFINITY,
           present,
           compact: false,
+          tight: false,
         })
       : plotReadout;
   const hasReadout = columnReadout !== undefined && columnReadout !== null;
@@ -564,11 +567,12 @@ export function GraphView({
                           height: room.height,
                           present,
                           compact: room.form > 0,
+                          tight: room.form > 1,
                         })
                     : plotReadout
                   : undefined
               }
-              cardForms={typeof plotReadout === "function" ? 2 : 1}
+              cardForms={typeof plotReadout === "function" ? 3 : 1}
               width={size.w}
               height={size.h}
             />

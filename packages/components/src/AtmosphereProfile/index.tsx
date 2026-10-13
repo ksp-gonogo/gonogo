@@ -101,10 +101,10 @@ function AtmosphereProfileComponent({
         // Narrow: the pressure alone, so the right-anchored label stays short.
         label: narrow
           ? undefined
-          : `At ${writeQuantity(altitude, { decimals: 0 })}`,
+          : `${cols < 8 ? "" : "At "}${writeQuantity(altitude, { decimals: 0 })}`,
       },
     ];
-  }, [pressureReading, altitude, narrow]);
+  }, [pressureReading, altitude, narrow, cols]);
 
   const graphConfig: GraphViewConfig = useMemo(
     () => ({
@@ -155,6 +155,7 @@ function AtmosphereProfileComponent({
                     airTemp={flightReading.atmosphericTemperature}
                     skinTemp={flightReading.externalTemperature}
                     stacked={room.compact}
+                    tight={room.tight}
                   />
                 )
               : undefined
