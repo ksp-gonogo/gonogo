@@ -153,7 +153,7 @@ registerComponent<SemiMajorAxisConfig>({
   id: "semi-major-axis",
   name: "Semi-major axis",
   description:
-    "The semi-major axis of your current orbit: half its longest width, measured through the body's centre. It sets the orbital period.",
+    "The semi-major axis of your current orbit: half its longest width, measured through the body's centre. It sets the orbital period. In a pulsating reference frame, whose unit of length moves with a pair of bodies, the frame is named beneath the figure.",
   tags: ["telemetry", "orbit"],
   defaultSize: { w: 4, h: 4 },
   minSize: { w: 3, h: 3 },

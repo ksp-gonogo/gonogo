@@ -222,7 +222,7 @@ function sizeStoryBlocks(sizes: SizeStories): string[] {
 export const Tiny: Story = {
   name: "Tiny",
   args: { fixture: sizesScene, w: ${TINY_SIZE.w}, h: ${TINY_SIZE.h}${mode} },
-  parameters: { docs: { description: { story: "The widget at ${TINY_SIZE.w} by ${TINY_SIZE.h} grid units, the smallest size any widget can be resized to, drawing its tiny form: only the figures it can still show." } } },
+  parameters: { docs: { description: { story: "The widget at ${TINY_SIZE.w} by ${TINY_SIZE.h} grid units, the smallest size a widget with a tiny form can be resized to, drawing that tiny form: only the figures it can still show." } } },
 };
 `,
     `

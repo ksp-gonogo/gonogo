@@ -757,10 +757,10 @@ declare module "./types" {
     };
     /**
      * The data rate of each hop on the comms route CommNet Signal draws, for a
-     * comms mod that models bitrate. No built-in Topic carries a hop's rate, so
-     * the contribution reads it from a Topic your own mod publishes. Each rate
-     * is shown beside its hop, and
-     * the slowest hop is marked. The route, and so the rates, appear only
+     * comms mod that models bitrate. No Topic in the core contract carries a hop's
+     * rate, so the contribution reads it from a Topic an Uplink publishes, such
+     * as a channel a comms-modelling Uplink publishes for its hop rates. Each rate is shown
+     * beside its hop, and the slowest hop is marked. The route, and so the rates, appear only
      * when the widget is large enough to draw the full path. Returns
      * {@link CommSignalHopRateEntry} entries.
      */

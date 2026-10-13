@@ -1,3 +1,4 @@
+import { TINY_SIZE } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import type { WidgetRecord } from "./render/widgetRecord";
 import { widgetFactsOf, widgetFactValueMd } from "./widget-facts";
@@ -39,7 +40,7 @@ describe("widgetFactsOf", () => {
 
   it("reads flat keys under their own label when no channels are declared", () => {
     expect(rowOf(record({ dataRequirements: ["a.b"] }), "reads")).toEqual({
-      label: "Reads, as flat keys",
+      label: "Reads, as flat keys (Topic ids or Topic field paths)",
       value: "`a.b`",
     });
   });
@@ -64,6 +65,20 @@ describe("widgetFactsOf", () => {
     expect(rowOf(r, "defaultSize")?.value).toBe("4 × 3");
     expect(rowOf(r, "minSize")?.value).toBe("2 × 2");
     expect(rowOf(r, "needs")?.value).toBe("a vessel in flight");
+  });
+
+  it("uses the sdk's tiny size", () => {
+    const row = rowOf(
+      record({ tiny: true, minSize: { w: 9, h: 9 } }),
+      "minSize",
+    );
+    expect(row?.value).toContain(`${TINY_SIZE.w} × ${TINY_SIZE.h}`);
+  });
+
+  it("gives a widget with a tiny form both its tiny size and its full-widget size", () => {
+    expect(
+      rowOf(record({ tiny: true, minSize: { w: 3, h: 4 } }), "minSize")?.value,
+    ).toBe("3 × 3, drawing only its tiny form; 3 × 4 for the full widget");
   });
 
   it("writes an action as its label then its id, escaping a pipe", () => {

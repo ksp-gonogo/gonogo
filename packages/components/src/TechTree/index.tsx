@@ -116,7 +116,7 @@ registerComponent<TechTreeConfig>({
   id: "tech-tree",
   name: "Tech Tree",
   description:
-    "Browse and research career tech. From 10 columns wide it draws the tech tree as the game does, coloured by what you own, can research and cannot reach yet; narrower, it becomes a searchable list with every part each node unlocks.",
+    "Browse and research career tech. From 10 grid units wide it draws the tech tree as the game does, coloured by what you own, can research and cannot reach yet; narrower, it becomes a searchable list with every part each node unlocks.",
   tags: ["career", "tech"],
   defaultSize: { w: 6, h: 9 },
   // Three columns and rows hold the two essentials the tiny form draws.

@@ -1066,7 +1066,7 @@ describe("the widget section of the page", () => {
 
   it("says a widget's Topics follow its settings, and says nothing otherwise", () => {
     expect(readmeWith({ readsFromConfig: true })).toContain(
-      "the Topics chosen in the tile's settings",
+      "the Topics chosen in the widget's settings",
     );
     expect(readmeWith({})).not.toContain("Reads from settings");
   });

@@ -74,6 +74,17 @@ const REQUIREMENT_WORDS: Record<string, string> = {
   career: "a career or science save",
 };
 
+/* The sdk's `TINY_SIZE`, kept here because this module loads in plain Node, where the sdk's source cannot be imported. A test holds the two equal. */
+const TINY_SIZE = { w: 3, h: 3 } as const;
+
+const smallestSizeOf = (
+  record: WidgetRecord,
+  minSize: { w: number; h: number },
+): string =>
+  record.tiny
+    ? `${TINY_SIZE.w} × ${TINY_SIZE.h}, drawing only its tiny form; ${minSize.w} × ${minSize.h} for the full widget`
+    : `${minSize.w} × ${minSize.h}`;
+
 const codes = (values: readonly string[]): WidgetFactItem[] =>
   values.map((code) => ({ code }));
 
@@ -104,12 +115,14 @@ export function widgetFactsOf(
     { id: "id", label: "Widget id", items: [{ code: record.id }] },
     {
       id: "reads",
-      label: flatKeys ? "Reads, as flat keys" : "Reads",
+      label: flatKeys
+        ? "Reads, as flat keys (Topic ids or Topic field paths)"
+        : "Reads",
       items: codes(reads),
     },
     {
       id: "drawsOnly",
-      label: "Draws only these fields",
+      label: "Fields it draws, of the Topics it reads",
       items: codes(record.fields),
     },
     {
@@ -127,7 +140,7 @@ export function widgetFactsOf(
         ? [
             {
               prose:
-                "the Topics chosen in the tile's settings, each as a Topic id or a field path such as `vessel.flight.altitudeAsl`",
+                "the Topics chosen in the widget's settings, each as a Topic id or a field path such as `vessel.flight.altitudeAsl`",
             },
           ]
         : [],
@@ -135,7 +148,7 @@ export function widgetFactsOf(
     { id: "sends", label: "Sends", items: codes(record.commands) },
     {
       id: "actions",
-      label: "Actions to bind",
+      label: "Actions an input can be bound to",
       items: record.actions.map((a) => ({ code: a.id, label: a.label })),
     },
     { id: "slots", label: "Slots", items: codes(slots) },
@@ -164,7 +177,7 @@ export function widgetFactsOf(
       id: "minSize",
       label: "Smallest size",
       items: record.minSize
-        ? [{ prose: `${record.minSize.w} × ${record.minSize.h}` }]
+        ? [{ prose: smallestSizeOf(record, record.minSize) }]
         : [],
     },
   ];

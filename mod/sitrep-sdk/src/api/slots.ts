@@ -954,13 +954,13 @@ export interface FleetRosterUpdatesContext {
 // ambiguity.
 declare module "./types" {
   interface SlotRegistry {
-    /** The standard body segment of the Space Center Status widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the Space Center Status widget's body, after everything the widget itself draws. Passes no props. */
     "space-center-status.sections": Record<string, never>;
 
-    /** The standard body segment of the Maneuver Planner widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the Maneuver Planner widget's body, after everything the widget itself draws. Passes no props. */
     "maneuver-planner.sections": Record<string, never>;
 
-    /** The standard body segment of the Target Picker widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the Target Picker widget's body, after everything the widget itself draws. Passes no props. */
     "target-picker.sections": Record<string, never>;
 
     /**
@@ -995,7 +995,7 @@ declare module "./types" {
      */
     "targeting.overlay": TargetingHudContext;
 
-    /** The standard body segment of the CommNet Signal widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the CommNet Signal widget's body, after everything the widget itself draws. Passes no props. */
     "comm-signal.sections": Record<string, never>;
 
     /**
@@ -1108,12 +1108,12 @@ declare module "./types" {
      * stock texture. Passes a {@link MapBaseLayerContext}.
      */
     "map-view.base": MapBaseLayerContext;
-    /** The standard body segment of the Map View widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the Map View widget's body, after everything the widget itself draws. Passes no props. */
     "map-view.sections": Record<string, never>;
     /** The standard header segment of the Map View widget: controls of your own in its panel header. Passes no props. */
     "map-view.actions": Record<string, never>;
 
-    /** The standard body segment of the Tech Tree widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the Tech Tree widget's body, after everything the widget itself draws. Passes no props. */
     "tech-tree.sections": Record<string, never>;
 
     /**
@@ -1132,7 +1132,7 @@ declare module "./types" {
      */
     "orbit-view.overlay": OrbitOverlayContext;
 
-    /** The standard body segment of the Landing Status widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the Landing Status widget's body, after everything the widget itself draws. Passes no props. */
     "landing-status.sections": Record<string, never>;
     /** The standard header segment of the Landing Status widget: controls of your own in its panel header. Passes no props. */
     "landing-status.actions": Record<string, never>;
@@ -1155,10 +1155,10 @@ declare module "./types" {
      */
     "deployed-science.experiment": DeployedExperimentContext;
 
-    /** The standard body segment of the Fuel & ΔV widget: content of your own after everything the widget draws. Passes no props. */
+    /** Content of your own at the end of the Fuel & ΔV widget's body, after everything the widget itself draws. Passes no props. */
     "fuel-status.sections": Record<string, never>;
 
-    /** The standard body segment of the Power Systems widget: content of your own after everything the widget draws. Passes no props; read the resource in focus with `useWidgetScope`, passing the widget id `"power-systems"`. */
+    /** Content of your own at the end of the Power Systems widget's body, after everything the widget itself draws. Passes no props; read the resource in focus with `useWidgetScope`, passing the widget id `"power-systems"`. */
     "power-systems.sections": Record<string, never>;
 
     /**

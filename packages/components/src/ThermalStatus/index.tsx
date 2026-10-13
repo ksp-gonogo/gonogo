@@ -30,7 +30,7 @@ registerComponent<ThermalStatusConfig>({
   id: "thermal-status",
   name: "Thermal",
   description:
-    "Your vessel's temperatures: the hottest part, the hottest engine, and the heat shield's temperature and heat flux. Each reads nominal below 75% of its limit, warm from 75%, hot from 90% and critical from 97%, and an engine the game flags as overheating reads critical.",
+    "Your vessel's temperatures: the hottest part, with the highest internal temperature aboard as a share of its limit, the hottest engine, and the heat shield's temperature and heat flux. Each reads nominal below 75% of its limit, warm from 75%, hot from 90% and critical from 97%, and an engine the game flags as overheating reads critical. A reading that is held reads unknown.",
   tags: ["telemetry", "thermal"],
   defaultSize: { w: 8, h: 7 },
   // Below four columns and five rows the body is the band pill alone, or its hottest part clipped.

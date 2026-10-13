@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "shows": "The game in a scene time warp does not run in, so the controls sit dimmed under a No active save banner.",
+    "shows": "The game in the Editor, a scene where time warp does not run, so the controls sit dimmed under a No active save banner.",
     "scenario": "editor-no-active-save",
     "notes": "KSP is in the Editor, not Flight, Space Center or Tracking Station. DimmedOverlay fires with its message alone."
   },

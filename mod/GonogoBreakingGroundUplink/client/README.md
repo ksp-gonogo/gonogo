@@ -20,7 +20,7 @@ Power balance and per-experiment science progress for Breaking Ground deployed s
 | | |
 | --- | --- |
 | Widget id | `deployed-science` |
-| Reads, as flat keys | `deployed.bases`, `game.dlc.breakingGround` |
+| Reads, as flat keys (Topic ids or Topic field paths) | `deployed.bases`, `game.dlc.breakingGround` |
 | Slots | `deployed-science.experiment` |
 | Default size | 5 × 9 |
 | Smallest size | 5 × 7 |
@@ -35,8 +35,8 @@ Current-vs-target position, at-target state and motor/lock controls for Breaking
 | | |
 | --- | --- |
 | Widget id | `robotics-console` |
-| Reads, as flat keys | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
-| Actions to bind | Target + (`target-up`), Target − (`target-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`) |
+| Reads, as flat keys (Topic ids or Topic field paths) | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
+| Actions an input can be bound to | Target + (`target-up`), Target − (`target-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`) |
 | Needs | a vessel in flight |
 | Default size | 5 × 8 |
 | Smallest size | 4 × 4 |
@@ -51,8 +51,8 @@ Live RPM vs commanded cap for Breaking Ground robotic rotors, with motor, lock, 
 | | |
 | --- | --- |
 | Widget id | `rotor-tachometer` |
-| Reads, as flat keys | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
-| Actions to bind | RPM up (`rpm-up`), RPM down (`rpm-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`), Reverse (`reverse`) |
+| Reads, as flat keys (Topic ids or Topic field paths) | `robotics.servos`, `robotics.available.available`, `game.dlc.breakingGround` |
+| Actions an input can be bound to | RPM up (`rpm-up`), RPM down (`rpm-down`), Toggle motor (`toggle-motor`), Toggle lock (`toggle-lock`), Reverse (`reverse`) |
 | Needs | a vessel in flight |
 | Default size | 6 × 10 |
 | Smallest size | 4 × 4 |
