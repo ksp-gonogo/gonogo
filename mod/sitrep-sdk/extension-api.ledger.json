@@ -10175,6 +10175,10 @@
         "note": "removed: no kit variable carries it, so it drove nothing"
       },
       {
+        "key": "ui-kit . TinyEssentials",
+        "note": "TinyEssentialsProps takes an optional equalRows, which draws every figure as an equal row; omitted, the first figure is drawn largest as before"
+      },
+      {
         "key": "ui-kit . ToggleButtonProps#active?",
         "note": "renamed to pressed, matching Button and IconButton"
       },
@@ -11173,6 +11177,10 @@
         "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
       },
       {
+        "key": "sitrep-sdk . TinyEssential#signed?",
+        "note": "Draws an explicit plus before a figure that is zero or above, so an angle or rate reads as signed. Optional, so an essential without it is drawn as before"
+      },
+      {
         "key": "sitrep-sdk . TinyEssentialMark",
         "note": "The shape of a tiny essential's stated mark: kind, elsewhere and caption"
       },
@@ -11187,6 +11195,10 @@
       {
         "key": "sitrep-sdk . TinyEssentialMark#kind?",
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
+        "key": "sitrep-sdk . TinyMode#equalRows?",
+        "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
       },
       {
         "key": "sitrep-sdk . Transport#claimsAnswers?",
@@ -12677,6 +12689,10 @@
         "note": "The mark a tiny essential states for its figure where its Reading cannot say it (decision 78): how current the figure is and whether it is of something other than its label names, drawn with the marks a full readout uses. Optional, so an essential without it is drawn as before"
       },
       {
+        "key": "sitrep-sdk ./registry ~TinyEssential#signed?",
+        "note": "Draws an explicit plus before a figure that is zero or above, so an angle or rate reads as signed. Optional, so an essential without it is drawn as before"
+      },
+      {
         "key": "sitrep-sdk ./registry ~TinyEssentialMark",
         "note": "The shape of a tiny essential's stated mark: kind, elsewhere and caption"
       },
@@ -12691,6 +12707,10 @@
       {
         "key": "sitrep-sdk ./registry ~TinyEssentialMark#kind?",
         "note": "How current the figure is, held or modelled; a reading of now when omitted"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~TinyMode#equalRows?",
+        "note": "Draws every essential as an equal row in shared columns with no large first figure, for a widget whose figures are peers. Optional, so a tiny mode without it is drawn as before"
       },
       {
         "key": "sitrep-sdk ./registry ~UiKitTheme",
@@ -14807,6 +14827,10 @@
       {
         "key": "ui-kit . TINY_SIZE",
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
+      },
+      {
+        "key": "ui-kit . TinyEssentialsProps#equalRows?",
+        "note": "TinyEssentialsProps takes an optional equalRows, which draws every figure as an equal row; omitted, the first figure is drawn largest as before"
       },
       {
         "key": "ui-kit . ToggleButtonProps#disabledReason?",

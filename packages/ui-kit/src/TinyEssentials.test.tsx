@@ -550,3 +550,43 @@ describe("an urgent state word", () => {
     expect(container.querySelector("[aria-live=assertive]")).toBeNull();
   });
 });
+
+describe("TinyEssentials equal rows", () => {
+  const ANGLES: readonly TinyEssential[] = [
+    { label: "HDG", value: value("°", 90), decimals: 0 },
+    { label: "PCH", value: value("°", 45), decimals: 0, signed: true },
+    { label: "RLL", value: value("°", -10), decimals: 0, signed: true },
+  ];
+
+  it("draws every essential as a row of the same weight, with no large first figure", () => {
+    render(<TinyEssentials title="NAV" essentials={ANGLES} equalRows />);
+    const rows = [...document.querySelectorAll("[data-tiny-essential]")];
+    expect(rows).toHaveLength(3);
+    expect(rows.map((r) => r.tagName)).toEqual(["DIV", "DIV", "DIV"]);
+    expect(rows[0].textContent).toContain("HDG");
+  });
+
+  it("draws the first essential large when the rows are not equal", () => {
+    render(<TinyEssentials title="NAV" essentials={ANGLES} />);
+    const [hero] = [...document.querySelectorAll("[data-tiny-essential]")];
+    expect(hero.tagName).toBe("DL");
+  });
+
+  it("puts a plus before a signed figure that is zero or above, and leaves a negative its own minus", () => {
+    render(<TinyEssentials title="NAV" essentials={ANGLES} equalRows />);
+    const [heading, pitch, roll] = [
+      ...document.querySelectorAll("[data-tiny-essential]"),
+    ].map((r) => r.textContent ?? "");
+    expect(heading).not.toContain("+");
+    expect(pitch).toMatch(/\+\s*45/);
+    expect(roll).not.toContain("+");
+    expect(roll).toMatch(/[-−]\s*10/);
+  });
+
+  it("has no accessibility violations", async () => {
+    const { container } = render(
+      <TinyEssentials title="NAV" essentials={ANGLES} equalRows />,
+    );
+    await expectNoA11yViolations(container);
+  });
+});

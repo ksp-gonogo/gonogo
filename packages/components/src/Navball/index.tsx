@@ -9,8 +9,11 @@ import { useCommand } from "@ksp-gonogo/sitrep-client";
 import {
   collapseControlStateLevel,
   enumNameOf,
+  readingOf,
   SAS_MODE_NAMES,
   stillTrue,
+  type TinyEssential,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -83,11 +86,13 @@ const TRIM_LABELS: Record<TrimField, string> = {
   rollTrim: "Roll trim",
 };
 
-function NavballComponent({
+/**
+ * Everything the navball reads and every input it binds, shared by the body and
+ * the tiny form so a bound key or stick keeps working at either size.
+ */
+function useNavball({
   config,
   onConfigChange,
-  w,
-  h,
 }: Readonly<ComponentProps<NavballConfig>>) {
   const useCoM = config?.useCoMFrame === true;
   const controlMode = config?.controlMode === true;
@@ -172,6 +177,91 @@ function NavballComponent({
     sendTrim,
   });
 
+  return {
+    controlMode,
+    heading,
+    pitch,
+    roll,
+    attitudeReading,
+    attitudeObserved,
+    controlReading,
+    control,
+    sasMode,
+    sasBadgeMode,
+    throttle,
+    isControllable,
+    throttleCmd,
+    setThrottleCmd,
+    throttleKnown,
+    throttleStream,
+    axisStreams,
+    sasRaw,
+    sasUnavailableReason,
+    rcsRaw,
+    toggleSas,
+    toggleRcs,
+    setSasMode,
+    unconfirmedSasModes,
+    dismissSasUnconfirmed,
+    fbwState,
+    armFbw,
+    disarmFbw,
+    showFbwDelayWarning,
+    delaySeconds,
+    oneWayDelay,
+  };
+}
+
+/** Heading, pitch and roll as the figures of the tiny form, each drawn off the attitude's own reading so a held one is marked. */
+function useNavballEssentials(
+  props: Readonly<ComponentProps<NavballConfig>>,
+): readonly TinyEssential[] {
+  const { heading, pitch, roll, attitudeReading } = useNavball(props);
+  const degrees = (angle: number | null) =>
+    angle === null ? null : readingOf(attitudeReading, () => value("°", angle));
+  return [
+    { label: "HDG", value: degrees(heading), decimals: 0 },
+    { label: "PCH", value: degrees(pitch), decimals: 0, signed: true },
+    { label: "RLL", value: degrees(roll), decimals: 0, signed: true },
+  ];
+}
+
+function NavballComponent(props: Readonly<ComponentProps<NavballConfig>>) {
+  const { w, h } = props;
+  const {
+    controlMode,
+    heading,
+    pitch,
+    roll,
+    attitudeReading,
+    attitudeObserved,
+    controlReading,
+    control,
+    sasMode,
+    sasBadgeMode,
+    throttle,
+    isControllable,
+    throttleCmd,
+    setThrottleCmd,
+    throttleKnown,
+    throttleStream,
+    axisStreams,
+    sasRaw,
+    sasUnavailableReason,
+    rcsRaw,
+    toggleSas,
+    toggleRcs,
+    setSasMode,
+    unconfirmedSasModes,
+    dismissSasUnconfirmed,
+    fbwState,
+    armFbw,
+    disarmFbw,
+    showFbwDelayWarning,
+    delaySeconds,
+    oneWayDelay,
+  } = useNavball(props);
+
   // The control surface needs ~350px beyond the dial, so a smaller tile degrades control mode to a plain dial.
   const cols = w ?? 8;
   const rows = h ?? 11;
@@ -194,7 +284,7 @@ function NavballComponent({
   // Armed with the control surface out of sight (control mode off, or a small tile), the override still says so and can be dropped.
   const fbwOutsideSurface = fbwState !== "off" && !showControlSurface;
   // Under the stacked readout's own floor the figures take one fixed-width line each.
-  const compactReadout = rows < 5 || cols < 4;
+  const compactReadout = rows < 5;
 
   return (
     <Panel
@@ -347,9 +437,15 @@ registerComponent<NavballConfig>({
     "Your vessel's heading, pitch and roll, measured at the root part (or at the centre of mass when the widget's `useCoMFrame` setting is on), with, when its `controlMode` setting is on, controls for every SAS mode, throttle, pitch, yaw, roll, RCS translation and trim. Bind a joystick or keyboard key to them on the Inputs tab of the widget's settings to fly the vessel from it. Under signal delay, a strip for each control shows the commands still crossing to the craft and the values it has confirmed back.",
   tags: ["telemetry", "control"],
   defaultSize: { w: 8, h: 11 },
-  // Three columns by three rows is the smallest tile that holds all three figures, with the title behind a hover.
-  minSize: { w: 3, h: 3 },
+  // Below four columns the three figures are the tiny form's, with the title behind a hover.
+  minSize: { w: 4, h: 3 },
   component: NavballComponent,
+  tiny: {
+    title: "NAVBALL",
+    bindsActions: true,
+    equalRows: true,
+    useEssentials: useNavballEssentials,
+  },
   configComponent: NavballConfigForm,
   channels: topics.channels,
   ...read,

@@ -8,7 +8,7 @@ import type {
   Value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { Fragment, useLayoutEffect, useRef, useState } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { fillFraction } from "./fillQuantity";
 import { HeldFigure } from "./HeldMark";
 import { LevelBars } from "./LevelBars";
@@ -35,6 +35,8 @@ export interface TinyEssentialsProps {
   title: string;
   /** The figures the widget cannot do without, in the order drawn. */
   essentials: readonly TinyEssential[];
+  /** Draws every figure as a row of equal weight, in shared columns, with no large first figure. */
+  equalRows?: boolean;
 }
 
 /**
@@ -57,8 +59,13 @@ export interface TinyEssentialsProps {
  * A widget's tiny form: the essential values it keeps at the smallest tile
  * size, drawn the same way for every widget.
  */
-export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
-  const [hero, ...rest] = essentials;
+export function TinyEssentials({
+  title,
+  essentials,
+  equalRows = false,
+}: TinyEssentialsProps) {
+  const hero = equalRows ? undefined : essentials[0];
+  const rest = equalRows ? essentials : essentials.slice(1);
   const { rowsRef, drawn } = useRowsThatFit(rest);
   const mayInterrupt = essentials.some((e) => e.urgent !== undefined);
   // A lone figure named like the tile already has its caption in the heading.
@@ -105,11 +112,12 @@ export function TinyEssentials({ title, essentials }: TinyEssentialsProps) {
             </TinyEssentials__Hero>
           )}
           {rest.length > 0 && (
-            <TinyEssentials__Rows ref={rowsRef}>
+            <TinyEssentials__Rows ref={rowsRef} $equal={equalRows}>
               {rest.slice(0, drawn).map((essential) => (
                 <TinyEssentials__Row
                   key={essential.label}
                   data-tiny-essential=""
+                  $equal={equalRows}
                 >
                   <TinyEssentials__Label>
                     {essential.label}
@@ -251,18 +259,25 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
  */
 function MarkedFigure({ essential }: { essential: TinyEssential }) {
   const { mark, value, decimals } = essential;
-  const { held } = resolveCurrency(value);
+  const { held, shown } = resolveCurrency(value);
+  const plus =
+    essential.signed === true && shown != null && !shown.isNegative()
+      ? "+"
+      : "";
   const figure = (
-    <Unit
-      value={value}
-      decimals={decimals}
-      scale="compact"
-      elsewhere={
-        mark?.elsewhere === true && (held || mark.kind === undefined)
-          ? mark.caption
-          : undefined
-      }
-    />
+    <>
+      {plus}
+      <Unit
+        value={value}
+        decimals={decimals}
+        scale="compact"
+        elsewhere={
+          mark?.elsewhere === true && (held || mark.kind === undefined)
+            ? mark.caption
+            : undefined
+        }
+      />
+    </>
   );
   if (mark === undefined || held || mark.kind === undefined) return figure;
   return (
@@ -411,7 +426,13 @@ export function gridFloor(
 
 function TinyBody({ tiny, props }: { tiny: TinyMode; props: ComponentProps }) {
   const essentials = tiny.useEssentials(props);
-  return <TinyEssentials title={tiny.title} essentials={essentials} />;
+  return (
+    <TinyEssentials
+      title={tiny.title}
+      essentials={essentials}
+      equalRows={tiny.equalRows}
+    />
+  );
 }
 
 /* The label comes first for the reader and sits under the figure for the eye. */
@@ -471,27 +492,54 @@ const TinyEssentials__Label = styled.dt`
   white-space: nowrap;
 `;
 
-const TinyEssentials__Rows = styled.dl`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--gap-row-wrap);
+/* Equal rows share two columns spread across the tile, labels left and figures right, so a changing figure never moves a label. */
+const TinyEssentials__Rows = styled.dl<{ $equal: boolean }>`
+  ${({ $equal }) =>
+    $equal
+      ? css`
+          display: grid;
+          grid-template-columns: auto auto;
+          justify-content: space-between;
+          /* The section around the rows shrinks to its content, so the rows take the tile's width from the fit body, which is the query container. */
+          min-width: 100cqw;
+          align-items: baseline;
+          column-gap: var(--gap-label-value-tight);
+          row-gap: var(--gap-related-packed);
+        `
+      : css`
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: var(--gap-row-wrap);
+        `}
   margin: 0;
   max-width: 100%;
 `;
 
 /* A row too wide for the tile drops its figure under its label rather than spilling past the edges. */
-const TinyEssentials__Row = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: baseline;
-  column-gap: var(--gap-label-value-tight);
+const TinyEssentials__Row = styled.div<{ $equal: boolean }>`
+  ${({ $equal }) =>
+    $equal
+      ? css`
+          display: grid;
+          grid-template-columns: subgrid;
+          grid-column: 1 / -1;
+          align-items: baseline;
+          white-space: nowrap;
+        `
+      : css`
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          align-items: baseline;
+          column-gap: var(--gap-label-value-tight);
+        `}
   max-width: 100%;
 `;
 
 const TinyEssentials__RowFigure = styled.dd<{ $tone: Tone }>`
   display: inline-flex;
+  justify-content: flex-end;
   align-items: baseline;
   gap: var(--gap-figure-parts);
   margin: 0;

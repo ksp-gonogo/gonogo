@@ -252,6 +252,8 @@ export interface TinyEssential {
   urgent?: boolean;
   /** Decimal places, where the unit's own default says more than the figure means. */
   decimals?: number;
+  /** Draws an explicit `+` before a figure that is zero or above, so an angle or a rate reads as signed and not as a magnitude. A negative figure carries its own minus. */
+  signed?: boolean;
   /**
    * What the figure is where the Reading in `value` cannot say it, drawn with
    * the marks a full readout uses. `kind` is how current it is: `held` or
@@ -361,6 +363,14 @@ export interface TinyMode<Config = Record<string, unknown>> {
    * refuses a widget with actions and a tiny mode without it.
    */
   bindsActions?: boolean;
+  /**
+   * Draws every essential as a row of equal weight, its label on the left and
+   * its figure right-aligned in a column shared by every row, with no large
+   * first figure. For a widget whose figures are peers, such as an attitude's
+   * heading, pitch and roll. A tile too short for every row still drops the
+   * rows from the end. Absent, the first essential is drawn largest.
+   */
+  equalRows?: boolean;
 }
 
 /**

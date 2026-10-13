@@ -20,7 +20,7 @@ function mountMicro(attitude: {
   const rendered = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "nb-micro" }}>
-        <NavballComponent config={{}} id="nb-micro" w={3} h={3} />
+        <NavballComponent config={{}} id="nb-micro" w={4} h={3} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -42,7 +42,7 @@ const lines = () =>
     figure: line.querySelector("[data-attitude-figure]")?.textContent,
   }));
 
-describe("Navball at its smallest tile", () => {
+describe("Navball at its smallest body tile", () => {
   it("shows heading, pitch and roll as three labelled figures with signed pitch and roll", async () => {
     const { container } = mountMicro({ heading: 90, pitch: 45, roll: 0 });
 
@@ -102,7 +102,7 @@ describe("Navball at its smallest tile", () => {
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "nb-micro-none" }}>
-          <NavballComponent config={{}} id="nb-micro-none" w={3} h={3} />
+          <NavballComponent config={{}} id="nb-micro-none" w={4} h={3} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
