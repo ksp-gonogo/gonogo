@@ -1,113 +1,180 @@
 import type { ParsedManeuverNode } from "@ksp-gonogo/data";
 import { describe, expect, it } from "vitest";
 import {
-  COMPLETED_THRESHOLD_DV,
   type CompletedEntry,
   computeCompletionUpdate,
 } from "./BurnCompletionTracker";
+import {
+  type BurnContext,
+  type BurnWatch,
+  type OrbitShape,
+  orbitShape,
+} from "./burnFlown";
+
+const BEFORE: OrbitShape = orbitShape(700_000, 0.01, 0);
+const AFTER: OrbitShape = orbitShape(900_000, 0.2, 0);
 
 function node(
-  partial: Partial<ParsedManeuverNode> & {
-    UT: number;
-    deltaVMagnitude: number;
-  },
+  over: Partial<ParsedManeuverNode> & { target?: OrbitShape } = {},
 ): ParsedManeuverNode {
+  const { target, ...rest } = over;
+  const t = target ?? AFTER;
   return {
     id: "0",
+    UT: 1000,
+    deltaV: [0, 0, 30],
     frame: null,
-    ignitionUt: null,
-    cutoffUt: null,
-    orbitPatches: [],
-    deltaV: [partial.deltaVMagnitude, 0, 0],
-    ...partial,
+    deltaVMagnitude: 30,
+    ignitionUt: 990,
+    cutoffUt: 1010,
+    orbitPatches: [
+      {
+        sma: t.sma,
+        ecc: t.ecc,
+        inc: t.inc,
+      },
+    ] as never,
+    ...rest,
   };
 }
 
+const ctx = (over: Partial<BurnContext>): BurnContext => ({
+  nowUt: 500,
+  current: BEFORE,
+  thrust: { thrusting: false, lastThrustEndUt: null },
+  ...over,
+});
+
+const AFTER_BURN = ctx({
+  nowUt: 1012,
+  current: AFTER,
+  thrust: { thrusting: false, lastThrustEndUt: 1009 },
+});
+
 describe("computeCompletionUpdate", () => {
-  it("does nothing when no node has crossed below the threshold", () => {
+  it("does nothing while the burn has not been flown", () => {
     const current = new Map<number, CompletedEntry>();
-    const max = new Map<number, number>();
+    const watches = new Map<number, BurnWatch>();
     const result = computeCompletionUpdate(
       current,
-      [node({ UT: 100, deltaVMagnitude: 30 })],
-      max,
+      [node()],
+      watches,
+      ctx({}),
       1000,
     );
-    // Same reference back: no transitions.
     expect(result).toBe(current);
-    expect(max.get(100)).toBe(30);
+    expect(watches.get(1000)?.mismatchSeen).toBe(true);
   });
 
-  it("marks a node complete the first time its ΔV crosses below threshold", () => {
+  it("marks a node complete once its burn was flown", () => {
     const current = new Map<number, CompletedEntry>();
-    const max = new Map<number, number>();
-    // Tick 1: 30 m/s: establishes max above threshold.
+    const watches = new Map<number, BurnWatch>();
+    const planned = node();
+    computeCompletionUpdate(current, [planned], watches, ctx({}), 1000);
     computeCompletionUpdate(
       current,
-      [node({ UT: 100, deltaVMagnitude: 30 })],
-      max,
-      1000,
+      [planned],
+      watches,
+      ctx({
+        nowUt: 995,
+        thrust: { thrusting: true, lastThrustEndUt: null },
+      }),
+      1500,
     );
-    // Tick 2: drops to 0.1: should mark complete.
-    const completed = node({ UT: 100, deltaVMagnitude: 0.1 });
-    const result = computeCompletionUpdate(current, [completed], max, 2000);
-    expect(result).not.toBe(current);
-    expect(result.get(100)).toEqual({
-      snapshot: completed,
-      completedAt: 2000,
-    });
-  });
-
-  it("does not mark a freshly-planned tiny correction burn as complete", () => {
-    // Below the threshold from the start, so never observed above it.
-    const current = new Map<number, CompletedEntry>();
-    const max = new Map<number, number>();
     const result = computeCompletionUpdate(
       current,
-      [node({ UT: 100, deltaVMagnitude: 0.1 })],
-      max,
-      1000,
+      [planned],
+      watches,
+      AFTER_BURN,
+      2000,
+    );
+    expect(result.get(1000)).toEqual({ snapshot: planned, completedAt: 2000 });
+  });
+
+  it("never completes a node trimmed under the old half-metre threshold", () => {
+    const current = new Map<number, CompletedEntry>();
+    const watches = new Map<number, BurnWatch>();
+    computeCompletionUpdate(current, [node()], watches, ctx({}), 1000);
+    const trimmed = node({
+      deltaV: [0, 0, 0.3],
+      deltaVMagnitude: 0.3,
+      target: orbitShape(700_100, 0.01, 0),
+    });
+    computeCompletionUpdate(current, [trimmed], watches, ctx({}), 1100);
+    const result = computeCompletionUpdate(
+      current,
+      [trimmed],
+      watches,
+      ctx({
+        nowUt: 1012,
+        thrust: { thrusting: false, lastThrustEndUt: 1009 },
+      }),
+      1200,
+    );
+    expect(result).toBe(current);
+  });
+
+  it("never completes a node whose time passed with no thrust", () => {
+    const current = new Map<number, CompletedEntry>();
+    const watches = new Map<number, BurnWatch>();
+    computeCompletionUpdate(current, [node()], watches, ctx({}), 1000);
+    const result = computeCompletionUpdate(
+      current,
+      [node()],
+      watches,
+      ctx({ nowUt: 1012 }),
+      2000,
+    );
+    expect(result).toBe(current);
+  });
+
+  it("never completes a burn stopped short of its orbit", () => {
+    const current = new Map<number, CompletedEntry>();
+    const watches = new Map<number, BurnWatch>();
+    computeCompletionUpdate(current, [node()], watches, ctx({}), 1000);
+    const result = computeCompletionUpdate(
+      current,
+      [node()],
+      watches,
+      ctx({
+        nowUt: 1012,
+        current: orbitShape(800_000, 0.1, 0),
+        thrust: { thrusting: false, lastThrustEndUt: 1004 },
+      }),
+      2000,
     );
     expect(result).toBe(current);
   });
 
   it("uses UT as the stable key across KSP renumbering", () => {
     const current = new Map<number, CompletedEntry>();
-    const max = new Map<number, number>();
-    // First tick: node at UT=100 with id=0.
+    const watches = new Map<number, BurnWatch>();
+    computeCompletionUpdate(current, [node({ id: "0" })], watches, ctx({}), 1);
     computeCompletionUpdate(
       current,
-      [node({ id: "0", UT: 100, deltaVMagnitude: 30 })],
-      max,
-      1000,
-    );
-    // Second tick: same UT, but KSP renumbered id to 1 after another removal.
-    const renumbered = node({ id: "1", UT: 100, deltaVMagnitude: 0.1 });
-    const result = computeCompletionUpdate(current, [renumbered], max, 2000);
-    expect(result.get(100)?.snapshot.id).toBe("1");
-  });
-
-  it("respects the threshold parameter", () => {
-    const current = new Map<number, CompletedEntry>();
-    const max = new Map<number, number>();
-    computeCompletionUpdate(
-      current,
-      [node({ UT: 100, deltaVMagnitude: 5 })],
-      max,
-      1000,
+      [node({ id: "1" })],
+      watches,
+      ctx({
+        nowUt: 995,
+        thrust: { thrusting: true, lastThrustEndUt: null },
+      }),
       2,
     );
     const result = computeCompletionUpdate(
       current,
-      [node({ UT: 100, deltaVMagnitude: 1 })],
-      max,
-      2000,
-      2,
+      [node({ id: "1" })],
+      watches,
+      AFTER_BURN,
+      3,
     );
-    expect(result.get(100)).toBeDefined();
+    expect(result.get(1000)?.snapshot.id).toBe("1");
   });
 
-  it("exports the expected default threshold", () => {
-    expect(COMPLETED_THRESHOLD_DV).toBe(0.5);
+  it("forgets the watch of a node that left the plan", () => {
+    const current = new Map<number, CompletedEntry>();
+    const watches = new Map<number, BurnWatch>();
+    computeCompletionUpdate(current, [node()], watches, ctx({}), 1);
+    computeCompletionUpdate(current, [], watches, ctx({}), 2);
+    expect(watches.size).toBe(0);
   });
 });

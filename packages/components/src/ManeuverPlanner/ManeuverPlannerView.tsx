@@ -65,12 +65,12 @@ export function ManeuverPlannerComponent({
     error,
     setError,
     completedNodes,
-    maxDvByUt,
+    watches,
     handleCommit,
     handleDelete,
     handleEdit,
     handleClearAll,
-  } = useNodeCommands(nodes, plan);
+  } = useNodeCommands(nodes, plan, telemetry.burnContext);
 
   const triggerService = usePlannerTriggerService();
   const armedTriggers = useTriggerSnapshot(triggerService).triggers;
@@ -195,8 +195,9 @@ export function ManeuverPlannerComponent({
           key="conformance"
           nodes={nodes}
           awaiting={planAwaited}
-          maxDvByUt={maxDvByUt}
+          watches={watches}
           telemetry={telemetry}
+          from={planCurrency}
         />,
       ]}
     />
