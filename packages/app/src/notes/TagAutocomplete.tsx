@@ -29,6 +29,10 @@ export interface TagAutocompleteProps {
   placeholder?: string;
   "aria-label"?: string;
   autoFocus?: boolean;
+  /** Marks the text as one that has not been accepted. */
+  invalid?: boolean;
+  /** Stops edits, for a composer with nowhere to send what it holds. */
+  disabled?: boolean;
   onBlur?: () => void;
 }
 
@@ -54,6 +58,8 @@ export const TagAutocomplete = forwardRef<
     placeholder,
     "aria-label": ariaLabel,
     autoFocus,
+    invalid,
+    disabled,
     onBlur,
   },
   forwardedRef,
@@ -205,6 +211,9 @@ export const TagAutocomplete = forwardRef<
         placeholder={placeholder}
         aria-label={ariaLabel}
         autoFocus={autoFocus}
+        aria-invalid={invalid || undefined}
+        readOnly={disabled}
+        aria-disabled={disabled || undefined}
       />
       {openAt !== null && filtered.length > 0 && (
         <Floating anchor={popoverAnchor}>
@@ -275,6 +284,13 @@ const inputStyles = `
 
   &:focus {
     border-color: var(--color-accent-fg);
+  }
+  &[aria-invalid="true"] {
+    border-color: var(--color-warn-mark);
+  }
+  &[aria-disabled="true"] {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 

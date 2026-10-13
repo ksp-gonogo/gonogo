@@ -1,31 +1,52 @@
-import { Button, Panel, Section } from "@ksp-gonogo/ui-kit";
+import { Button, Panel, Section, useTooltip } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import { NoteRow } from "./NoteRow";
-import { AddRow, Empty } from "./notesStyles";
+import { AddRow, Empty, Field } from "./notesStyles";
 import { TagAutocomplete } from "./TagAutocomplete";
-import type { NotesSnapshot } from "./types";
+import type { NoteOutcome, NotesSnapshot } from "./types";
 
+/**
+ * The changes a notes list takes. Each settles with what became of it; the
+ * ones on an existing note name the version the caller last saw.
+ */
 export interface NotesActions {
-  addNote: (body: string) => void;
-  updateNote: (id: string, body: string) => void;
-  deleteNote: (id: string) => void;
-  reorderNote: (id: string, afterId: string | null) => void;
+  addNote: (body: string) => Promise<NoteOutcome>;
+  updateNote: (
+    id: string,
+    body: string,
+    baseVersion: number,
+  ) => Promise<NoteOutcome>;
+  deleteNote: (id: string, baseVersion: number) => Promise<NoteOutcome>;
+  reorderNote: (
+    id: string,
+    afterId: string | null,
+    baseVersion: number,
+  ) => Promise<NoteOutcome>;
 }
 
 export function NotesView({
   snap,
   actions,
-}: Readonly<{ snap: NotesSnapshot; actions: NotesActions }>) {
+  blockedReason = null,
+}: Readonly<{
+  snap: NotesSnapshot;
+  actions: NotesActions;
+  /** Why changes are switched off, shown as the composer's tip; null when they work. */
+  blockedReason?: string | null;
+}>) {
   const [draft, setDraft] = useState("");
+  const blocked = blockedReason !== null;
+  const composerTip = useTooltip(blockedReason);
   const ordered = useMemo(
     () => [...snap.notes].sort((a, b) => a.order - b.order),
     [snap.notes],
   );
-  const submit = () => {
+  const submit = async () => {
     const body = draft.trim();
-    if (!body) return;
-    actions.addNote(body);
-    setDraft("");
+    if (!body || blocked) return;
+    // The draft goes only once the host has taken it, so a note that did not leave is still in the field.
+    const outcome = await actions.addNote(body);
+    if (outcome.status === "ok") setDraft("");
   };
   return (
     <Panel
@@ -33,22 +54,27 @@ export function NotesView({
       /* The composer is PINNED by Panel rather than merely rendered last. */
       panelFooter={
         <AddRow>
-          <TagAutocomplete
-            aria-label="New note body (use {{ to insert a variable)"
-            placeholder="New note"
-            value={draft}
-            onChange={setDraft}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter" || e.shiftKey) return;
-              e.preventDefault();
-              submit();
-            }}
-          />
+          <Field {...composerTip.anchor}>
+            <TagAutocomplete
+              aria-label="New note body (use {{ to insert a variable)"
+              placeholder="New note"
+              value={draft}
+              disabled={blocked}
+              onChange={setDraft}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter" || e.shiftKey) return;
+                e.preventDefault();
+                void submit();
+              }}
+            />
+            {composerTip.tip}
+          </Field>
           <Button
             variant="primary"
             type="button"
-            onClick={submit}
-            disabled={!draft.trim()}
+            onClick={() => void submit()}
+            disabled={!draft.trim() || blocked}
+            disabledReason={blockedReason ?? undefined}
           >
             Add
           </Button>
@@ -66,8 +92,9 @@ export function NotesView({
                 note={note}
                 isFirst={idx === 0}
                 isLast={idx === ordered.length - 1}
-                prevId={idx > 0 ? ordered[idx - 1].id : null}
-                nextId={idx < ordered.length - 1 ? ordered[idx + 1].id : null}
+                prevNote={idx > 0 ? ordered[idx - 1] : null}
+                nextNote={idx < ordered.length - 1 ? ordered[idx + 1] : null}
+                blocked={blocked}
                 actions={actions}
               />
             ))

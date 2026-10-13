@@ -182,10 +182,11 @@ class ScenePeerClient implements PeerClient {
   sendWidgetPush = () => {};
   sendWidgetRecall = () => {};
   onNotesSnapshot = () => () => {};
-  sendNoteAdd = () => {};
-  sendNoteUpdate = () => {};
-  sendNoteDelete = () => {};
-  sendNoteReorder = () => {};
+  sendNoteAdd = () => true;
+  sendNoteUpdate = () => true;
+  sendNoteDelete = () => true;
+  sendNoteReorder = () => true;
+  onNoteResult = () => () => {};
   sendUplinkRelay = () => new Promise<unknown>(() => {});
   sendBundleFetch = () => new Promise<ArrayBuffer>(() => {});
 

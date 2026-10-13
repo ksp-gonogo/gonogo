@@ -47,10 +47,34 @@ export const Body = styled.div`
   word-wrap: break-word;
 `;
 
-export const RenderedBody = styled.div`
+// A real button so the keyboard reaches it; reset to read as the plain note text it replaces.
+export const RenderedBody = styled.button`
+  display: block;
+  width: 100%;
+  margin: 0;
+  background: none;
+  border: none;
+  border-radius: var(--radius-regular);
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: text;
   white-space: pre-wrap;
+  word-wrap: break-word;
   padding: var(--inset-line);
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+`;
+
+// Holds the editor so one tooltip can say why an edit is stuck.
+export const EditorSlot = styled.div<{ $stuck: boolean }>`
+  min-width: 0;
+  border-radius: var(--radius-regular);
+  outline: ${({ $stuck }) =>
+    $stuck ? "1px solid var(--color-warn-mark)" : "none"};
 `;
 
 export const RowActions = styled.div`
@@ -88,4 +112,11 @@ export const Empty = styled.div`
   /* The tighter inset is what keeps the message inside the body at the minimum size. */
   padding: var(--inset-surface);
   text-align: center;
+`;
+
+// Carries the tip for a composer that is switched off; a disabled field gets no pointer events of its own.
+export const Field = styled.div`
+  display: flex;
+  flex: 1;
+  min-width: 0;
 `;
