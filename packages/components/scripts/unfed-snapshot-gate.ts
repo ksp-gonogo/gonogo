@@ -20,7 +20,7 @@
  * is the dashboard's, derived by the host from `dataRequirements`, so under a bare
  * widget harness it never renders at all and the wait is satisfied on the first
  * paint, before any emit. The flaw was diagnosed in a comment in
- * `Targeting/snapshots.test.tsx` and fixed only there, while the same wait
+ * `Rendezvous/snapshots.test.tsx` and fixed only there, while the same wait
  * stayed load-bearing elsewhere.
  *
  * A textual detector found the first widget and missed the second, because one
@@ -77,7 +77,7 @@ const EMPTY_BY_DESIGN: Record<string, string> = {
     "no vessel position to plot, so the map draws its ground state only",
   "SemiMajorAxis/no-data":
     "no orbit to report; the widget is a single readout with nothing behind it",
-  "Targeting/no-target":
+  "Rendezvous/no-target":
     "at tiny-3x3 the widget draws only the Range/Closing readouts as em dashes, with nothing left to distinguish a confirmed no-target from a stream that has not reported yet; the other seven modes DO render distinguishing text and fail when starved",
   "Twr/engine-off-empty":
     "engines off, so there is genuinely no thrust-to-weight to show",

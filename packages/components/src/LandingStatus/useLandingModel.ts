@@ -87,7 +87,7 @@ export interface LandingModel {
 }
 
 export function useLandingModel(): LandingModel {
-  // Range to the target, measured with the same pair `Targeting` uses so the two widgets agree.
+  // Range to the target, measured with the same pair `Rendezvous` uses so the two widgets agree.
   const targetReading = useStream<{ relativePosition?: Vec3Of<"m"> }>(
     "vessel.target",
   );

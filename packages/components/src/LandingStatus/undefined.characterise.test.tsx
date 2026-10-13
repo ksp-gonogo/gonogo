@@ -404,7 +404,7 @@ describe("LandingStatus: what undefined means today", () => {
     expect(screen.queryByText("Target range")).toBeNull();
   });
 
-  /** The present case: a 3-4-5 triangle scaled by 1000 gives a range of 5 km, measured as `Targeting` measures it. */
+  /** The present case: a 3-4-5 triangle scaled by 1000 gives a range of 5 km, measured as `Rendezvous` measures it. */
   it("shows the Divert section and the range once a target is on the wire", async () => {
     renderWidget();
 

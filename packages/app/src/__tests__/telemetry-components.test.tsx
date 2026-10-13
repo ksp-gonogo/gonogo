@@ -1,6 +1,6 @@
 /**
  * Smoke tests for telemetry visualisation components:
- * CurrentOrbit, Targeting, OrbitView, MapView.
+ * CurrentOrbit, Rendezvous, OrbitView, MapView.
  *
  * These are integration tests: real data source, real hooks, real components,
  * only the network is intercepted by MSW.
@@ -10,7 +10,7 @@ import {
   CurrentOrbitComponent,
   MapViewComponent,
   OrbitViewComponent,
-  TargetingComponent,
+  RendezvousComponent,
 } from "@ksp-gonogo/components";
 import {
   clearBodies,
@@ -73,7 +73,7 @@ afterEach(() => {
 // over a StubTransport) for widgets that read via the canonical `useTelemetry`
 // stream path post-P1 vocabulary migration. Mirrors
 // `packages/components/src/test/setupStreamFixture.tsx` (the pattern used by
-// Targeting's and OrbitView's own dedicated stream tests), duplicated
+// Rendezvous's and OrbitView's own dedicated stream tests), duplicated
 // here in miniature rather than imported, since `@ksp-gonogo/components`'s test
 // helpers aren't part of its published surface.
 function setupTelemetryStream() {
@@ -184,13 +184,13 @@ describe("CurrentOrbitComponent", () => {
   });
 });
 
-describe("TargetingComponent", () => {
+describe("RendezvousComponent", () => {
   it("waits for telemetry rather than claiming no target is set, before anything is received", () => {
     // The old assertion (and this test's own old title) had it backwards: "not
     // yet received" is pending, and "No target set in KSP" is a claim about the
     // GAME that only a tombstone can support. `TopicReading<T>` splits the two, and
     // no provider is mounted here at all, so this is the pending branch.
-    render(<TargetingComponent config={{}} id="tar" />);
+    render(<RendezvousComponent config={{}} id="tar" />);
     expect(
       screen.getByText("Waiting for target telemetry"),
     ).toBeInTheDocument();
@@ -200,14 +200,14 @@ describe("TargetingComponent", () => {
   it("shows target name and distance when telemetry arrives", async () => {
     // P1: the widget no longer reads a legacy `tar.distance`
     // scalar: it derives distance client-side from the `vessel.target` Vec3
-    // `relativePosition` (see Targeting's own `stream.test.tsx`).
+    // `relativePosition` (see Rendezvous's own `stream.test.tsx`).
     // `tar.name` maps to `vessel.target.name`, a raw-field subtopic of the
     // same carried record, so it rides the stream too, no legacy "data"
     // WS emission needed for this case.
     const stream = setupTelemetryStream();
     const { container } = render(
       <stream.Provider>
-        <TargetingComponent config={{}} id="tar" />
+        <RendezvousComponent config={{}} id="tar" />
       </stream.Provider>,
     );
     act(() => {
@@ -236,7 +236,7 @@ describe("TargetingComponent", () => {
     const stream = setupTelemetryStream();
     render(
       <stream.Provider>
-        <TargetingComponent config={{}} id="tar" />
+        <RendezvousComponent config={{}} id="tar" />
       </stream.Provider>,
     );
     act(() => {

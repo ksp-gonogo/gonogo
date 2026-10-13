@@ -250,7 +250,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * writes it, and clamped by the algebra's own `max(0)` rather than by
    * `Math.max` on an unwrapped magnitude.
    */
-  "packages/components/src/Targeting/useTargetingReading.ts": 2,
+  "packages/components/src/Rendezvous/useRendezvousReading.ts": 2,
   "packages/components/src/ThermalStatus/readouts.tsx": 2,
   "packages/components/src/ThermalStatus/useThermal.ts": 7,
   // 1: the Δv budget the reach list compares against.

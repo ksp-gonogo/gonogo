@@ -167,7 +167,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
    * (Navball's 9px and 14px terms in a 74px reserve, TechTree's card
-   * ladder against CARD_H = 48, Targeting's 11px, PanelStatusDot's
+   * ladder against CARD_H = 48, Rendezvous's 11px, PanelStatusDot's
    * 7px pinned under an 11px dot), plus `shared/` and mod widgets no slice
    * owned.
    */

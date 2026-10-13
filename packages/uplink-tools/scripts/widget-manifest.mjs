@@ -54,7 +54,7 @@ const PAGE_SCENES = {
   "space-center-status": "mid-career-mixed",
   "admin-building": "one-active-room-for-more",
   "target-picker": "lko-station-target",
-  targeting: "approach-closing",
+  rendezvous: "approach-closing",
   "tech-tree": "small-career-detail",
   "transfer-window": "earth-mars-go",
   "warp-control": "rails-warp-1000x",

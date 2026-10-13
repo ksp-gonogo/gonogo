@@ -15,13 +15,13 @@ import { SCENES as maneuverPlanner } from "./maneuver-planner";
 import { SCENES as mapView } from "./map-view";
 import { SCENES as orbitView } from "./orbit-view";
 import { SCENES as powerSystems } from "./power-systems";
+import { SCENES as rendezvous } from "./rendezvous";
 import { SCENES as resourceOps } from "./resource-ops";
 import { SCENES as scienceData } from "./science-data";
 import { SCENES as shipMap } from "./ship-map";
 import { SCENES as spaceCenterStatus } from "./space-center-status";
 import { SCENES as systemView } from "./system-view";
 import { SCENES as targetPicker } from "./target-picker";
-import { SCENES as targeting } from "./targeting";
 import { SCENES as techTree } from "./tech-tree";
 import { SCENES as transferWindow } from "./transfer-window";
 import { SCENES as warpControl } from "./warp-control";
@@ -54,7 +54,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...strategies,
   ...systemView,
   ...targetPicker,
-  ...targeting,
+  ...rendezvous,
   ...transferWindow,
   ...techTree,
   ...warpControl,
@@ -86,7 +86,10 @@ export const COMBINED_SLOT_SCENES: readonly {
     slots: ["admin-building.screens", "admin-building.screen-body"],
   },
   // Both mount in the docking view, the overlay over the camera's picture.
-  { widgetId: "targeting", slots: ["targeting.camera", "targeting.overlay"] },
+  {
+    widgetId: "rendezvous",
+    slots: ["rendezvous.camera", "rendezvous.overlay"],
+  },
   // The base paints the surface the overlay is drawn over, in one projection.
   { widgetId: "map-view", slots: ["map-view.base", "map-view.overlay"] },
   // One per-kerbal source: its row tone summarises the meters under the row.

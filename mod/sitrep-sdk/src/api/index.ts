@@ -153,6 +153,7 @@ export type {
   ObjectiveSourceContext,
   OrbitOverlayContext,
   PowerSystemsScope,
+  RendezvousHudContext,
   ScienceDataAboardRowContext,
   ShipMapBounds,
   ShipMapOverlayContext,
@@ -160,7 +161,6 @@ export type {
   ShipMapPartStateModule,
   ShipMapPartType,
   SystemOverlayContext,
-  TargetingHudContext,
 } from "./slots";
 export type {
   ThemeColors,

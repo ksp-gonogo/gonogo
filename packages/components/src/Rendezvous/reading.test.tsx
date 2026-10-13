@@ -7,7 +7,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
-import { TargetingComponent } from "./index";
+import { RendezvousComponent } from "./index";
 
 /**
  * The `TopicReading<T>` proof: `vessel.target` is `absenceIsData`, so all four
@@ -45,14 +45,14 @@ function mount(instanceId: string, pinnedUt = 10) {
   const rendered = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>
-        <TargetingComponent id={instanceId} w={6} h={9} />
+        <RendezvousComponent id={instanceId} w={6} h={9} />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
   return { fixture, rendered };
 }
 
-describe("Targeting: pending is no longer reported as a confirmed absence", () => {
+describe("Rendezvous: pending is no longer reported as a confirmed absence", () => {
   it("says it is waiting, not that no target is set, before anything arrives", async () => {
     mount("dtt-pending");
 
@@ -83,7 +83,7 @@ describe("Targeting: pending is no longer reported as a confirmed absence", () =
   });
 });
 
-describe("Targeting: stale renders the last observation as an observation", () => {
+describe("Rendezvous: stale renders the last observation as an observation", () => {
   it("keeps the last distance, marked held by Unit rather than captioned, once the link drops", async () => {
     const { fixture } = mount("dtt-stale", 10);
 
@@ -140,11 +140,11 @@ describe("Targeting: stale renders the last observation as an observation", () =
 
   it("renders the modelled range beside the observation once a model exists", async () => {
     // With a model available, the widget renders BOTH the observation with its age and the model with its basis.
-    declareTestReckonable("vessel.target", "targeting");
+    declareTestReckonable("vessel.target", "rendezvous");
     registerReckoner(
       "vessel.target",
       // A non-core owner, so the election prefers it over core's own model.
-      "targeting",
+      "rendezvous",
       {
         deps: [],
         reckon: () => ({
@@ -191,7 +191,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "dtt-hud-stale" }}>
-          <TargetingComponent id="dtt-hud-stale" w={12} h={10} />
+          <RendezvousComponent id="dtt-hud-stale" w={12} h={10} />
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

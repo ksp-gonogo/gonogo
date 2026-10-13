@@ -52,7 +52,6 @@ export const RENAMED_COMPONENT_IDS: Record<string, string> = {
   "mission-director": "contract-manager",
   "mission-status": "objectives",
   "deployed-base-monitor": "deployed-science",
-  "distance-to-target": "targeting",
   "aero-state": "aerodynamics",
 };
 

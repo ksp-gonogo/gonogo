@@ -1,21 +1,21 @@
 #!/usr/bin/env tsx
 /**
- * Renders Targeting's docking HUD to PNGs under
- * `local_docs/renders/targeting-hud/`, in both camera states: with a
- * `targeting.camera` backdrop and without one.
+ * Renders Rendezvous's docking HUD to PNGs under
+ * `local_docs/renders/rendezvous-hud/`, in both camera states: with a
+ * `rendezvous.camera` backdrop and without one.
  *
  * Two states because they are two different layout questions. Without a
  * backdrop the reticle frame is the only thing in the upper half, and the
  * question is whether it still reads as an instrument. With one, the video
  * fills that frame and the question is whether the readouts beside it survive
- * having a picture next to them. The standard `render-widget targeting` set
+ * having a picture next to them. The standard `render-widget rendezvous` set
  * can only ever answer the first: no augment in this repo fills that slot, so
- * this is a dedicated probe (`targeting-hud-probe/`) that registers a stub
+ * this is a dedicated probe (`rendezvous-hud-probe/`) that registers a stub
  * backdrop, the same pattern and the same reason as
  * `render-crew-status-avatar.ts`.
  *
  * Pass `--out-suffix <s>` to write into a sibling directory
- * (`targeting-hud-<s>/`), which is how a before/after pair is captured from
+ * (`rendezvous-hud-<s>/`), which is how a before/after pair is captured from
  * two states of the working tree without one clobbering the other.
  */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
@@ -26,19 +26,19 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { build, type Plugin } from "esbuild";
 import { chromium } from "playwright";
 import { jetbrainsMonoFontFace } from "./jetbrainsMonoFontFace";
-import type { TargetingHudProbePayload } from "./targeting-hud-probe/targeting-hud-probe-entry";
+import type { RendezvousHudProbePayload } from "./rendezvous-hud-probe/rendezvous-hud-probe-entry";
 
 const require = createRequire(import.meta.url);
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const PROBE_DIR = resolve(HERE, "targeting-hud-probe");
-const PROBE_ENTRY = join(PROBE_DIR, "targeting-hud-probe-entry.tsx");
-const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "targeting-hud-probe.html");
+const PROBE_DIR = resolve(HERE, "rendezvous-hud-probe");
+const PROBE_ENTRY = join(PROBE_DIR, "rendezvous-hud-probe-entry.tsx");
+const PROBE_HTML_TEMPLATE = join(PROBE_DIR, "rendezvous-hud-probe.html");
 const RENDERS_ROOT = resolve(HERE, "../../../local_docs/renders");
 const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 const FIXTURE_PATH = resolve(
   HERE,
-  "../src/Targeting/__fixtures__/docking-aligned.json",
+  "../src/Rendezvous/__fixtures__/docking-aligned.json",
 );
 
 /* Grid-unit -> pixel conversion, verbatim from `widgetRenderHarness.ts`
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
   }
   const outDir = join(
     RENDERS_ROOT,
-    suffix ? `targeting-hud-${suffix}` : "targeting-hud",
+    suffix ? `rendezvous-hud-${suffix}` : "rendezvous-hud",
   );
 
   await mkdir(outDir, { recursive: true });
@@ -124,7 +124,7 @@ async function main(): Promise<void> {
 
   const fixture: FixtureFile = JSON.parse(await readFile(FIXTURE_PATH, "utf8"));
 
-  console.log("Bundling targeting-hud-probe-entry with esbuild...");
+  console.log("Bundling rendezvous-hud-probe-entry with esbuild...");
   const bundleResult = await build({
     entryPoints: [PROBE_ENTRY],
     bundle: true,
@@ -149,13 +149,13 @@ async function main(): Promise<void> {
       () => `<style id="probe-theme">${fontFace}${theme}</style>`,
     )
     .replace(
-      '<script type="module" src="./targeting-hud-probe-entry.bundle.js"></script>',
+      '<script type="module" src="./rendezvous-hud-probe-entry.bundle.js"></script>',
       () => `<script type="module">${escapedBundle}</script>`,
     );
 
   const probeHtmlOut = join(
     tmpdir(),
-    `gonogo-targeting-hud-probe-${process.pid}.html`,
+    `gonogo-rendezvous-hud-probe-${process.pid}.html`,
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");
 
@@ -184,13 +184,13 @@ async function main(): Promise<void> {
         await page.waitForFunction(
           () =>
             typeof (
-              window as unknown as { __renderTargetingHudProbe?: unknown }
-            ).__renderTargetingHudProbe === "function",
+              window as unknown as { __renderRendezvousHudProbe?: unknown }
+            ).__renderRendezvousHudProbe === "function",
           undefined,
           { timeout: 10_000 },
         );
 
-        const payload: TargetingHudProbePayload = {
+        const payload: RendezvousHudProbePayload = {
           pinnedUt: fixture._stream.pinnedUt,
           emits: fixture._stream.emits,
           config: { autoSwitch: true, hudMode: state.hudMode },
@@ -204,9 +204,11 @@ async function main(): Promise<void> {
           (p) =>
             (
               window as unknown as {
-                __renderTargetingHudProbe: (payload: typeof p) => Promise<void>;
+                __renderRendezvousHudProbe: (
+                  payload: typeof p,
+                ) => Promise<void>;
               }
-            ).__renderTargetingHudProbe(p),
+            ).__renderRendezvousHudProbe(p),
           payload,
         );
 
@@ -214,8 +216,8 @@ async function main(): Promise<void> {
            tile-box shot: no `fullContent` growth pass, which would only
            stretch a frame that is already filling the height it was given. */
         const root = await page.$("#root");
-        if (!root) throw new Error("Targeting-HUD probe: #root missing");
-        const outName = `targeting-hud--${state.name}--${mode.name}.png`;
+        if (!root) throw new Error("Rendezvous-HUD probe: #root missing");
+        const outName = `rendezvous-hud--${state.name}--${mode.name}.png`;
         await root.screenshot({ path: join(outDir, outName) });
 
         /* Reported alongside the picture, because two states can render
@@ -254,7 +256,7 @@ async function main(): Promise<void> {
         await context.close();
       }
     }
-    console.log(`\nRendered Targeting docking HUD -> ${outDir}`);
+    console.log(`\nRendered Rendezvous docking HUD -> ${outDir}`);
   } finally {
     await browser.close();
   }

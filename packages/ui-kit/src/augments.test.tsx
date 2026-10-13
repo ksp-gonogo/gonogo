@@ -30,8 +30,8 @@ declare module "@ksp-gonogo/sitrep-sdk" {
   }
 }
 
-/** The targeting HUD's own context, for the same reason as `MAP_OVERLAY`. */
-const TARGETING_CAMERA: SlotProps<"targeting.camera"> = {
+/** The rendezvous HUD's own context, for the same reason as `MAP_OVERLAY`. */
+const RENDEZVOUS_CAMERA: SlotProps<"rendezvous.camera"> = {
   maxDeg: 15,
   reticleOffset: { x: 0, y: 0 },
   reticleTravelPx: 40,
@@ -567,7 +567,7 @@ describe("augment registry: retired slot ids", () => {
 
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain("distance-to-target.camera");
-    expect(errors[0]).toContain("targeting.camera");
+    expect(errors[0]).toContain("rendezvous.camera");
     expect(errors[0]).toContain("docking-camera");
     expect(errors[0]).toContain("Demo Mod (demomod)");
     expect(errors[0]).toContain("render nothing");
@@ -593,22 +593,22 @@ describe("augment registry: retired slot ids", () => {
     });
 
     expect(errors).toHaveLength(1);
-    expect(errors[0]).toContain("targeting.overlay");
+    expect(errors[0]).toContain("rendezvous.overlay");
     expect(errors[0]).toContain("unknown");
   });
 
   it("stays quiet for the replacement id, and the augment actually renders", () => {
     registerAugment({
       id: "updated-aug",
-      augments: "targeting.camera",
+      augments: "rendezvous.camera",
       component: () => <div>backdrop</div>,
     });
 
     expect(errors).toEqual([]);
-    expect(getAugmentsForSlot("targeting.camera")).toHaveLength(1);
+    expect(getAugmentsForSlot("rendezvous.camera")).toHaveLength(1);
 
     const { container } = render(
-      <AugmentSlot name="targeting.camera" props={TARGETING_CAMERA} />,
+      <AugmentSlot name="rendezvous.camera" props={RENDEZVOUS_CAMERA} />,
     );
     expect(container.textContent).toBe("backdrop");
   });
@@ -632,9 +632,9 @@ describe("augment registry: retired slot ids", () => {
 
     // The registry holds it, yet no slot renders it under either name.
     expect(getAugments().map((a) => a.id)).toContain("stale-aug");
-    expect(getAugmentsForSlot("targeting.camera")).toEqual([]);
+    expect(getAugmentsForSlot("rendezvous.camera")).toEqual([]);
     const { container } = render(
-      <AugmentSlot name="targeting.camera" props={TARGETING_CAMERA} />,
+      <AugmentSlot name="rendezvous.camera" props={RENDEZVOUS_CAMERA} />,
     );
     expect(container.textContent).toBe("");
   });

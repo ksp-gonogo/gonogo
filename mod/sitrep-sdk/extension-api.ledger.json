@@ -8371,8 +8371,24 @@
         "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"rendezvous.camera\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"rendezvous.overlay\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
         "key": "sitrep-sdk . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"targeting.camera\"",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"targeting.overlay\"",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
       {
         "key": "sitrep-sdk . StatEntry#value?",
@@ -8467,8 +8483,44 @@
         "note": "Gains crash.hasRecent and recovery.hasRecent, now one-field payloads with their own types where each was a bare boolean. The alarm roster Topic alarm.scet is now alarm.activeList, since it lists every kind of alarm"
       },
       {
-        "key": "sitrep-sdk . TargetingHudContext#held",
-        "note": "TargetingHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+        "key": "sitrep-sdk . TargetingHudContext",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#aligned",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#ax",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#ay",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#cameraFlightId",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#distance",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#maxDeg",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#reportPictureAspect",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#reticleOffset",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . TargetingHudContext#reticleTravelPx",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
       {
         "key": "sitrep-sdk . ThemeDefinition#theme",
@@ -9787,8 +9839,24 @@
         "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"rendezvous.camera\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"rendezvous.overlay\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"targeting.camera\"",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"targeting.overlay\"",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
       {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
@@ -9875,8 +9943,44 @@
         "note": "Gains the optional modSettings flag the host already sends on each entry, so a client can tell whether an Uplink has host mod settings; a reader that ignores it is unchanged"
       },
       {
-        "key": "sitrep-sdk ./testing ~TargetingHudContext#held",
-        "note": "TargetingHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+        "key": "sitrep-sdk ./testing ~TargetingHudContext",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#aligned",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#ax",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#ay",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#cameraFlightId",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#distance",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#maxDeg",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#reportPictureAspect",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#reticleOffset",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~TargetingHudContext#reticleTravelPx",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
       {
         "key": "sitrep-sdk ./testing ~TelemetryClient@mod/sitrep-sdk/src/spine/client#dispatchGroup",
@@ -10131,8 +10235,24 @@
         "note": "Admin Building widget slot and types, renamed from Strategies"
       },
       {
+        "key": "ui-kit . SlotRegistry#\"rendezvous.camera\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"rendezvous.overlay\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
         "key": "ui-kit . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"targeting.camera\"",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"targeting.overlay\"",
+        "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
       },
       {
         "key": "ui-kit . Spinner",
@@ -11003,6 +11123,50 @@
       {
         "key": "sitrep-sdk . ReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#aligned",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#ax",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#ay",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#cameraFlightId",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#distance",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#held",
+        "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#maxDeg",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#reportPictureAspect",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#reticleOffset",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . RendezvousHudContext#reticleTravelPx",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
         "key": "sitrep-sdk . ResolvedDeps",
@@ -12221,6 +12385,50 @@
         "note": "Whether the sea is seen from above or from the side"
       },
       {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#aligned",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#ax",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#ay",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#cameraFlightId",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#distance",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#held",
+        "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#maxDeg",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#reportPictureAspect",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#reticleOffset",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~RendezvousHudContext#reticleTravelPx",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SampleKind",
         "note": "How a channel's samples relate in time: continuous, discrete or event"
       },
@@ -12525,6 +12733,14 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"rendezvous.camera\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"rendezvous.overlay\"",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"science-data.aboard-row\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -12546,14 +12762,6 @@
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"target-picker.sections\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"targeting.camera\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"targeting.overlay\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
@@ -12626,50 +12834,6 @@
       },
       {
         "key": "sitrep-sdk ./registry ~SystemOverlayContext#width",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#aligned",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#ax",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#ay",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#cameraFlightId",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#distance",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#held",
-        "note": "TargetingHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#maxDeg",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#reportPictureAspect",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#reticleOffset",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~TargetingHudContext#reticleTravelPx",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
@@ -13967,6 +14131,50 @@
       {
         "key": "sitrep-sdk ./testing ~ReckonableFieldMap",
         "note": "The marked fields of each object Topic, which an Uplink augments with declare module for its own"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#aligned",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#ax",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#ay",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#cameraFlightId",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#distance",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#held",
+        "note": "RendezvousHudContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#maxDeg",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#reportPictureAspect",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#reticleOffset",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~RendezvousHudContext#reticleTravelPx",
+        "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
         "key": "sitrep-sdk ./testing ~SampleKind",

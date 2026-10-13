@@ -92,7 +92,7 @@ export interface ModalSaveBarOptions<Draft> {
  * modal's sticky footer, and marks the modal dirty so it asks before
  * discarding unsaved edits. Useful for letting the operator save a widget's
  * settings without scrolling to the bottom of its config form. Used by the
- * config forms of the warp control, targeting and current orbit widgets.
+ * config forms of the warp control, rendezvous and current orbit widgets.
  *
  * The form counts as dirty only when `value` differs, by {@link configEqual},
  * from both its value when the modal opened and `saved`. The hook renders

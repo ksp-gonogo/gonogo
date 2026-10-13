@@ -18,13 +18,13 @@ import {
 import { useState } from "react";
 import { Crosshair, HorizTick, Reticle, VertTick } from "./DockingReticle";
 import { reticleTravelPx } from "./reticleGeometry";
-import type { TargetingHudContext } from "./slots";
+import type { RendezvousHudContext } from "./slots";
 
 interface DockingHudProps {
   name: string;
   distance: number | undefined;
   /** The reading the alignment and distance were drawn from, handed to the augments drawn over the HUD. */
-  figuresReading: TargetingHudContext["held"];
+  figuresReading: RendezvousHudContext["held"];
   relVel: number | undefined;
   ax: number | undefined;
   ay: number | undefined;
@@ -109,7 +109,7 @@ export function DockingHud(props: DockingHudProps) {
   // Positive relVel is opening, the KSP convention.
   const closing = relVel !== undefined && Number.isFinite(relVel) && relVel < 0;
 
-  const hudContext: TargetingHudContext = {
+  const hudContext: RendezvousHudContext = {
     maxDeg: MAX_DEG,
     reticleOffset: { x: dx, y: dy },
     reticleTravelPx: travel,
@@ -273,7 +273,7 @@ export function DockingHud(props: DockingHudProps) {
             <FramedDisplay style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
               {/* Gated like the video it hosts: not in the HUD-only variant, not when too small. The frame is what the augment's `inset: 0` resolves against. */}
               {showCamera && (
-                <AugmentSlot name="targeting.camera" props={hudContext} />
+                <AugmentSlot name="rendezvous.camera" props={hudContext} />
               )}
               <div
                 ref={layerRef}
@@ -299,7 +299,7 @@ export function DockingHud(props: DockingHudProps) {
                 {[-1, -0.5, 0.5, 1].map((units) => (
                   <VertTick key={`v${units}`} top={tick(units)} />
                 ))}
-                <AugmentSlot name="targeting.overlay" props={hudContext} />
+                <AugmentSlot name="rendezvous.overlay" props={hudContext} />
               </div>
             </FramedDisplay>
           </Section>
