@@ -150,7 +150,7 @@ describe("GroundTrack predicts the ground track only in the shape the provider s
   it("draws no track, and says why, when the producer states reach but not shape", async () => {
     const container = await mountMap(UNBOUNDED_HORIZON);
     expect(segments(container)).toBe(0);
-    expect(visibleText(container)).toContain("SHAPE NOT STATED");
+    expect(visibleText(container)).toContain("NO DATA");
   });
 
   it("draws no track when the provider integrates, rather than a two-body one", async () => {

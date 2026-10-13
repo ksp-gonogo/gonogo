@@ -1,6 +1,7 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  DeclinedEmptyState,
   FramedDisplay,
   NULL_DISPLAY,
   type ReckoningMarking,
@@ -10,7 +11,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { OrbitDiagram, type ProjectedOrbit } from "../shared/OrbitDiagram";
-import { WithheldPath } from "../shared/WithheldPath";
 import {
   type ConformanceRegime,
   devianceIsAttributable,
@@ -150,7 +150,7 @@ export function ConformancePlot({
       </Tooltip>
       {withheld ? (
         // A lone planned conic, with nothing to read it against, would look like "on plan".
-        <WithheldPath withheld={withheld} />
+        <DeclinedEmptyState declined={withheld.declined} />
       ) : current ? (
         <div
           // Dimmed, not hidden, when the current orbit is described rather than observed.

@@ -1,11 +1,9 @@
 import { getComponent } from "@ksp-gonogo/core";
 import { act } from "@ksp-gonogo/test-utils";
-import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { listWidgets } from "../../scripts/widgets";
 // Importing the package index self-registers every built-in component.
 import "../index";
-import { trajectoryWithheldCopy } from "@ksp-gonogo/sitrep-sdk/frames";
 import { renderWidgetMode, type WidgetSnapshotMode } from "./widgetDomSnapshot";
 
 /**
@@ -29,15 +27,22 @@ const SEAM_WIDGETS = [
   "maneuver-planner",
 ] as const;
 
-/** Every heading `trajectoryWithheldCopy` can produce, so a new reason cannot slip past. */
-const REFUSAL_HEADINGS = (
-  [
-    { shape: "withheld", reason: "no-horizon-stated" },
-    { shape: "withheld", reason: "past-horizon" },
-    { shape: "withheld", reason: "shape-not-stated" },
-    { shape: "withheld", reason: "no-arc-available" },
-  ] as const
-).map((w) => trajectoryWithheldCopy(w).heading);
+/** The sentence behind every way the seam can withhold a path, so a new reason cannot slip past. */
+const REFUSAL_NOTES = [
+  "Nothing says how far ahead",
+  "The trajectory is not computed this far ahead yet",
+  "These orbital elements cannot be trusted this far ahead",
+  "Nothing has said whether this trajectory is a conic",
+  "The integrated trajectory could not be sampled",
+  "Pick another frame",
+] as const;
+
+/** The tooltip sentences of the status words on screen, since a withheld path keeps its reason out of the visible text. */
+function statusNotes(container: HTMLElement): string[] {
+  return Array.from(container.querySelectorAll('[role="status"]')).map(
+    (el) => el.getAttribute("data-tooltip") ?? "",
+  );
+}
 
 function fixturesFor(
   fixturesPath: string,
@@ -117,10 +122,10 @@ describe("widgets draw the trajectories their fixtures authorise", () => {
           });
           try {
             await settle();
-            const text = visibleText(container);
-            expect(REFUSAL_HEADINGS.filter((h) => text.includes(h))).toEqual(
-              [],
-            );
+            const notes = statusNotes(container);
+            expect(
+              REFUSAL_NOTES.filter((n) => notes.some((t) => t.includes(n))),
+            ).toEqual([]);
           } finally {
             teardown();
           }

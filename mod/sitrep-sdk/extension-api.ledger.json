@@ -8271,6 +8271,10 @@
         "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
       },
       {
+        "key": "sitrep-sdk . ReckoningDecline#reason",
+        "note": "The union widens with \"frame-unavailable\", a model that holds but whose requested frame cannot be built. A caller that switches exhaustively over the union needs a case for it"
+      },
+      {
         "key": "sitrep-sdk . SDK_VERSION",
         "note": "Removed. It was generated from package.json at build, and a release stamps the version onto the packed manifest after that, so every published sdk said 0.0.1. Nothing reads it; the package's version is in its package.json"
       },
@@ -8955,6 +8959,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./frames OrbitTrajectory",
+        "note": "The withheld arm carries `declined: ReckoningDecline`, the standard decline with its sentence, in place of `reason` and `trajectoryKind`. A caller shows it the way it shows any declined model"
+      },
+      {
         "key": "sitrep-sdk ./frames SystemInstant#positionByIndex",
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
@@ -8985,6 +8993,10 @@
       {
         "key": "sitrep-sdk ./frames ~CelestialBody#trueAnomaly",
         "note": "Removed: a body's place is a pose, not a field of the catalogue. Read it from useSystemInstant, which carries how well the place is known; a field on a static fact had no way to say it was stale"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~TrajectoryWithheldReason",
+        "note": "Removed: the withheld arm uses the standard ReckoningDecline reasons (no-horizon-stated and shape-not-stated are input-absent, past-horizon is beyond-horizon, no-arc-available is model-inapplicable, frame-unavailable is added to the standard union)"
       },
       {
         "key": "sitrep-sdk ./media DelayedStreamLease#failed",
@@ -9045,6 +9057,10 @@
       {
         "key": "sitrep-sdk ./registry ~PlotMarkerLayer#shape?",
         "note": "the marker shape union gains vessel, drawn as the shared vessel mark"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~ReckoningDecline#reason",
+        "note": "Follows ReckoningDecline#reason"
       },
       {
         "key": "sitrep-sdk ./registry ~ShipMapPartMetaEntry",
@@ -9219,6 +9235,10 @@
         "note": "The tuple type formerly named Vector3 is Vec3Tuple, so every signature naming it reads differently; the unit system's Vector3 keeps its name"
       },
       {
+        "key": "sitrep-sdk ./spine OrbitTrajectory",
+        "note": "Follows the frames entry"
+      },
+      {
         "key": "sitrep-sdk ./spine PatchConic",
         "note": "A patch's period is optional and its gravitational parameter is read, so an open patch (a flyby or an escape leg), which has no period, can be propagated"
       },
@@ -9233,6 +9253,10 @@
       {
         "key": "sitrep-sdk ./spine RailTags#kind",
         "note": "The entry's sample kind: continuous is drawn as a ribbon along the rail, discrete and event as a dot travelling it"
+      },
+      {
+        "key": "sitrep-sdk ./spine ReckoningDecline#reason",
+        "note": "Follows ReckoningDecline#reason"
       },
       {
         "key": "sitrep-sdk ./spine ReplaySessionController#cursorUt",
@@ -9373,6 +9397,10 @@
       {
         "key": "sitrep-sdk ./spine TimelineStore#tagsOf",
         "note": "New: what the contracts say about a value, its sample kind, whether it keys its list entry, and the models declared on it"
+      },
+      {
+        "key": "sitrep-sdk ./spine TrajectoryWithheldReason",
+        "note": "Removed with the frames entry's copy"
       },
       {
         "key": "sitrep-sdk ./spine UplinkClientHandle#description",
@@ -9801,6 +9829,10 @@
       {
         "key": "sitrep-sdk ./testing ~ReckonableTopic",
         "note": "Read through ReckonableFieldMap, which an Uplink augments for an object Topic its own contract marks, so its reading is typed reckonable too"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ReckoningDecline#reason",
+        "note": "Follows ReckoningDecline#reason"
       },
       {
         "key": "sitrep-sdk ./testing ~ServerMessage",
@@ -10452,7 +10484,7 @@
       },
       {
         "key": "ui-kit . TrajectoryWithheldNote",
-        "note": "Removed. A component per reason-set is not a kit primitive: a widget draws the heading with EmptyState and Tooltip"
+        "note": "Removed. A withheld orbit path is a ReckoningDecline, shown with DeclinedEmptyState like any declined model"
       },
       {
         "key": "ui-kit . UI_KIT_VERSION",
@@ -10476,7 +10508,7 @@
       },
       {
         "key": "ui-kit . WithheldTrajectory",
-        "note": "Moved to the sdk frames entry, beside OrbitTrajectory"
+        "note": "Removed: the withheld arm of OrbitTrajectory carries a ReckoningDecline, so no type of its own is needed"
       },
       {
         "key": "ui-kit . WidgetScopeRegistry#\"ground-track\"",
@@ -10508,7 +10540,7 @@
       },
       {
         "key": "ui-kit . trajectoryWithheldCopy",
-        "note": "Moved to the sdk frames entry, beside useOrbitTrajectory, since the wording is a function of its published result"
+        "note": "Removed: useOrbitTrajectory's withheld answer carries its own sentence in `declined.note`, shown with DeclinedEmptyState"
       },
       {
         "key": "ui-kit . widgetDeclaredTopics",
@@ -11849,10 +11881,6 @@
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
-        "key": "sitrep-sdk ./frames WithheldTrajectory",
-        "note": "The withheld arm of OrbitTrajectory, as the type the wording function takes"
-      },
-      {
         "key": "sitrep-sdk ./frames arcInOrbitPlane",
         "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
       },
@@ -11879,10 +11907,6 @@
       {
         "key": "sitrep-sdk ./frames rotatePerifocalToInertial",
         "note": "Published on /frames beside the frame arithmetic: it turns a point in an orbit's plane into the parent body's inertial frame"
-      },
-      {
-        "key": "sitrep-sdk ./frames trajectoryWithheldCopy",
-        "note": "The heading and sentence for each reason a path is withheld, so every widget words it alike"
       },
       {
         "key": "sitrep-sdk ./frames trueAnomalyFromEccentric",
@@ -11939,6 +11963,22 @@
       {
         "key": "sitrep-sdk ./frames ~PatchSpan",
         "note": "Reachable through PatchChainPatch: a patch's conic with its window and its body"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~ReckoningDecline",
+        "note": "ReckoningDecline now rides on the frames entry through OrbitTrajectory's withheld arm"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~ReckoningDecline#input?",
+        "note": "ReckoningDecline now rides on the frames entry through OrbitTrajectory's withheld arm"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~ReckoningDecline#note?",
+        "note": "ReckoningDecline now rides on the frames entry through OrbitTrajectory's withheld arm"
+      },
+      {
+        "key": "sitrep-sdk ./frames ~ReckoningDecline#reason",
+        "note": "ReckoningDecline now rides on the frames entry through OrbitTrajectory's withheld arm"
       },
       {
         "key": "sitrep-sdk ./frames ~TrajectoryArcAnswer",
@@ -13541,10 +13581,6 @@
         "note": "The bare [x, y, z] tuple type the frame arithmetic takes and returns, under a name the unit system's Vector3 does not share"
       },
       {
-        "key": "sitrep-sdk ./spine WithheldTrajectory",
-        "note": "Same type, as the spine entry also exports it"
-      },
-      {
         "key": "sitrep-sdk ./spine arcInOrbitPlane",
         "note": "New: an inertial arc put back in its orbit plane, for a diagram that draws the plane flat"
       },
@@ -13635,10 +13671,6 @@
       {
         "key": "sitrep-sdk ./spine systemPosesAt",
         "note": "The same placement without a stream, for a test or a figure computed at an instant of the caller's choosing"
-      },
-      {
-        "key": "sitrep-sdk ./spine trajectoryWithheldCopy",
-        "note": "Same function, as the spine entry also exports it"
       },
       {
         "key": "sitrep-sdk ./spine trueAnomalyFromHyperbolic",
@@ -14817,6 +14849,10 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
+        "key": "ui-kit . DeclinedEmptyState",
+        "note": "The state word for a declined model with its note in a tooltip, standing in for a drawing the model could not produce; used for a withheld orbit path"
+      },
+      {
         "key": "ui-kit . DisclosureProps#\"aria-label\"?",
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
@@ -15387,6 +15423,10 @@
       {
         "key": "ui-kit . createWheelGesture",
         "note": "builds the wheel rule state for replay in a test"
+      },
+      {
+        "key": "ui-kit . declinedState",
+        "note": "The one short state word for every declined model, moved here from the app's widgets so an Uplink words a decline the same way"
       },
       {
         "key": "ui-kit . describeSendStatus",

@@ -1,6 +1,9 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
-import { EmptyState, SectionTitle } from "@ksp-gonogo/ui-kit";
-import { WithheldPath } from "../shared/WithheldPath";
+import {
+  DeclinedEmptyState,
+  EmptyState,
+  SectionTitle,
+} from "@ksp-gonogo/ui-kit";
 import { HyperbolicNotice, WaitingPanel } from "./styles";
 
 interface NotPlannableNoticeProps {
@@ -28,7 +31,10 @@ export function NotPlannableNotice({
   if (currentTrajectory !== null && currentTrajectory.shape === "withheld") {
     return (
       <WaitingPanel>
-        <WithheldPath withheld={currentTrajectory} layout="fill" />
+        <DeclinedEmptyState
+          declined={currentTrajectory.declined}
+          layout="fill"
+        />
       </WaitingPanel>
     );
   }

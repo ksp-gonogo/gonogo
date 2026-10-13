@@ -18,6 +18,8 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import {
+  DeclinedEmptyState,
+  declinedState,
   derivedMarking,
   FramedDisplay,
   Panel,
@@ -28,7 +30,6 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
-import { declinedState } from "../shared/declinedState";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
 import { orbitSpread } from "../shared/orbitSpread";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
@@ -36,7 +37,6 @@ import { useBodyName, useParentBodyIndex } from "../shared/useBodyName";
 import { useIsOrbiting } from "../shared/useIsOrbiting";
 import { useOrbitPlaneTrajectory } from "../shared/useOrbitPlaneTrajectory";
 import { useStreamBody } from "../shared/useStreamBody";
-import { WithheldPath } from "../shared/WithheldPath";
 import { CurrentOrbitConfigForm } from "./CurrentOrbitConfigForm";
 import {
   type CurrentOrbitActions,
@@ -245,7 +245,7 @@ function CurrentOrbitComponent({
           <Section key="orbit" fill>
             <FramedDisplay padded={withheld !== null} style={DIAGRAM_FRAME}>
               {withheld ? (
-                <WithheldPath withheld={withheld} />
+                <DeclinedEmptyState declined={withheld.declined} />
               ) : (
                 canDrawDiagram && (
                   <OrbitDiagram
