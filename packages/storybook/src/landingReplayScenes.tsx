@@ -3,10 +3,11 @@ import {
   getReplaySessionController,
   ReplaySessionProvider,
 } from "@ksp-gonogo/sitrep-sdk/spine";
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import crashfall from "../../components/src/LandingStatus/__fixtures__/rig/landing-crashfall.replay.json";
 import lowpass from "../../components/src/LandingStatus/__fixtures__/rig/landing-lowpass.replay.json";
 import { RequiresGuard } from "../../components/src/shared/RequiresGuard";
+import { builtOnce } from "../scripts/builtOnce";
 import { DEFAULT_SIZE } from "../scripts/landingStorySize";
 import { PlaybackStart } from "./PlaybackStart";
 import { WidgetScene } from "./WidgetScene";
@@ -69,6 +70,34 @@ const RECORDINGS = {
 } as const;
 
 export type LandingRecording = keyof typeof RECORDINGS;
+
+/**
+ * What the scene hands the widget mount for a recording, built once per recording. The mount tears down and rebuilds the widget whenever its fixture or wrap changes identity, and the scene re-renders every time the elapsed readout ticks, so fresh literals here would rebuild the widget several times a second.
+ */
+const sceneFor = builtOnce((recording: LandingRecording) => {
+  const { label, gated } = RECORDINGS[recording];
+  return {
+    fixture: {
+      _meta: { scenario: label, synthetic: false },
+      _stream: { pinnedUt: 10, emits: [] },
+    },
+    wrap: (tree: ReactNode) => (
+      <ReplaySessionProvider>
+        {gated ? (
+          <RequiresGuard
+            requires={["flight"]}
+            heldOpenBy={["crash-ending"]}
+            title="LANDING"
+          >
+            {tree}
+          </RequiresGuard>
+        ) : (
+          tree
+        )}
+      </ReplaySessionProvider>
+    ),
+  };
+});
 
 /** Recording seconds played per real second. */
 const REPLAY_RATE = 6;
@@ -155,7 +184,8 @@ export function LandingReplayScene({
   w = DEFAULT_SIZE.w,
   h = DEFAULT_SIZE.h,
 }: LandingReplaySceneProps) {
-  const { fixture, label, gated } = RECORDINGS[recording];
+  const { fixture, label } = RECORDINGS[recording];
+  const scene = sceneFor(recording);
   const [first, last] = useMemo(() => spanOf(fixture.frames), [fixture]);
   const seconds = last - first;
   const [run, setRun] = useState(0);
@@ -182,27 +212,10 @@ export function LandingReplayScene({
       <WidgetScene
         key={`scene-${run}`}
         widgetId="landing-status"
-        fixture={{
-          _meta: { scenario: label, synthetic: false },
-          _stream: { pinnedUt: 10, emits: [] },
-        }}
+        fixture={scene.fixture}
         w={w}
         h={h}
-        wrap={(tree) => (
-          <ReplaySessionProvider>
-            {gated ? (
-              <RequiresGuard
-                requires={["flight"]}
-                heldOpenBy={["crash-ending"]}
-                title="LANDING"
-              >
-                {tree}
-              </RequiresGuard>
-            ) : (
-              tree
-            )}
-          </ReplaySessionProvider>
-        )}
+        wrap={scene.wrap}
       />
     </div>
   );
