@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Sitrep.Contract;
 
 namespace Sitrep.Host.Alarms
@@ -212,6 +213,32 @@ namespace Sitrep.Host.Alarms
             string parameterTitle,
             KspParameterState target)
         {
+            int? position = null;
+            return MatchContractParameter(career, finishedById, contractId, parameterTitle, target, ref position);
+        }
+
+        /// <summary>
+        /// <see cref="MatchContractParameter(IDictionary{string, object}, IDictionary{string, object}, string, string, KspParameterState)"/>
+        /// that also follows the objective by its position in the contract's list.
+        ///
+        /// <para>An objective's title is the game's display text and can change
+        /// with its state: a state objective titled "Vessel state" reads "Vessel
+        /// state: Altitude ..." once it is complete. A title that matched is
+        /// therefore recorded as a position in <paramref name="position"/>, and
+        /// a contract's list in which no title matches is read at that position,
+        /// so the objective the alarm was armed on is still the one judged after
+        /// it renames itself. With no position recorded, and no title that
+        /// matches, the objective is not found.</para>
+        /// </summary>
+        /// <param name="position">Where the armed objective sat in its contract's list when its title last matched, updated on each match; null before one.</param>
+        internal static ContractParameterMatch MatchContractParameter(
+            IDictionary<string, object?> career,
+            IDictionary<string, object?>? finishedById,
+            string contractId,
+            string parameterTitle,
+            KspParameterState target,
+            ref int? position)
+        {
             if (!career.TryGetValue("contracts", out var rawContracts)
                 || rawContracts is not IDictionary<string, object?> contracts
                 || !contracts.TryGetValue("active", out var rawActive)
@@ -222,7 +249,7 @@ namespace Sitrep.Host.Alarms
 
             if (FindContract(active, contractId) is { } live)
             {
-                return MatchParameter(live, parameterTitle, target, finished: false);
+                return MatchParameter(live, parameterTitle, target, finished: false, ref position);
             }
             foreach (var finishedList in new[] { "completedRecent", "failedRecent" })
             {
@@ -230,7 +257,7 @@ namespace Sitrep.Host.Alarms
                     && rawFinished is IEnumerable<object?> finished
                     && FindContract(finished, contractId) is { } done)
                 {
-                    return MatchParameter(done, parameterTitle, target, finished: true);
+                    return MatchParameter(done, parameterTitle, target, finished: true, ref position);
                 }
             }
             if (finishedById == null)
@@ -240,7 +267,7 @@ namespace Sitrep.Host.Alarms
             if (finishedById.TryGetValue(contractId, out var rawEarlier)
                 && rawEarlier is IDictionary<string, object?> earlier)
             {
-                return MatchParameter(earlier, parameterTitle, target, finished: true);
+                return MatchParameter(earlier, parameterTitle, target, finished: true, ref position);
             }
             return ContractParameterMatch.Never;
         }
@@ -260,7 +287,11 @@ namespace Sitrep.Host.Alarms
         }
 
         private static ContractParameterMatch MatchParameter(
-            IDictionary<string, object?> contract, string parameterTitle, KspParameterState target, bool finished)
+            IDictionary<string, object?> contract,
+            string parameterTitle,
+            KspParameterState target,
+            bool finished,
+            ref int? position)
         {
             var notYet = finished ? ContractParameterMatch.Never : ContractParameterMatch.NotYet;
             if (!contract.TryGetValue("parameters", out var rawParameters)
@@ -268,22 +299,35 @@ namespace Sitrep.Host.Alarms
             {
                 return ContractParameterMatch.Unread;
             }
-            foreach (var rawParameter in parameters)
+
+            var list = parameters.ToList();
+            var at = -1;
+            for (var i = 0; i < list.Count; i++)
             {
-                if (rawParameter is not IDictionary<string, object?> parameter
-                    || !parameter.TryGetValue("title", out var title)
-                    || !string.Equals(title as string, parameterTitle, StringComparison.Ordinal))
+                if (list[i] is IDictionary<string, object?> candidate
+                    && candidate.TryGetValue("title", out var title)
+                    && string.Equals(title as string, parameterTitle, StringComparison.Ordinal))
                 {
-                    continue;
+                    at = i;
+                    break;
                 }
-                parameter.TryGetValue("stateOrdinal", out var ordinal);
-                if (AsFiniteNumber(ordinal) is not { } state)
-                {
-                    return ContractParameterMatch.Unread;
-                }
-                return state == (int)target ? ContractParameterMatch.Holds : notYet;
             }
-            return notYet;
+            if (at < 0 && position is { } remembered && remembered < list.Count)
+            {
+                at = remembered;
+            }
+            if (at < 0 || list[at] is not IDictionary<string, object?> parameter)
+            {
+                return notYet;
+            }
+
+            position = at;
+            parameter.TryGetValue("stateOrdinal", out var ordinal);
+            if (AsFiniteNumber(ordinal) is not { } state)
+            {
+                return ContractParameterMatch.Unread;
+            }
+            return state == (int)target ? ContractParameterMatch.Holds : notYet;
         }
 
         private static double? AsFiniteNumber(object? value)

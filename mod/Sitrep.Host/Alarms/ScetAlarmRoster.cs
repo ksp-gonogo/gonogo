@@ -165,6 +165,13 @@ namespace Sitrep.Host.Alarms
             /// it was false for.
             /// </summary>
             public double? MatchSinceUt;
+
+            /// <summary>
+            /// Contract objective only: where the objective sat in its
+            /// contract's list the last time its title matched, so it is still
+            /// found after the game renames it.
+            /// </summary>
+            public int? ParameterPosition;
         }
 
         /// <summary>Insertion-ordered so the roster, and the notices off it, keep the order the operator armed things in.</summary>
@@ -662,6 +669,10 @@ namespace Sitrep.Host.Alarms
         /// with the objective in another state, or has left the career, which only
         /// a reader that is also an <see cref="IScetFinishedContracts"/> can
         /// tell.</para>
+        ///
+        /// <para>The objective is found by its armed title and then followed by
+        /// its position in the contract's list, because the game renames an
+        /// objective when it completes.</para>
         /// </summary>
         private static void EvaluateContractParameter(
             Entry entry,
@@ -679,7 +690,8 @@ namespace Sitrep.Host.Alarms
                 (state as IScetFinishedContracts)?.FinishedContracts("game"),
                 condition.ContractId ?? "",
                 condition.ParameterTitle ?? "",
-                condition.TargetState);
+                condition.TargetState,
+                ref entry.ParameterPosition);
             switch (matched)
             {
                 case ContractParameterMatch.Holds:

@@ -393,6 +393,174 @@ namespace Sitrep.Host.Tests
             Assert.Single(tick.Fired);
         }
 
+        private const string IdleTitle = "Vessel state";
+        private const string DoneTitle = "Vessel state: Altitude (terrain): Greater than 40 km";
+
+        private static KspSnapshot ContractSnapshot(
+            IEnumerable<(string title, int ordinal)> activeParameters,
+            IEnumerable<(string id, string title, int ordinal)> finished)
+        {
+            Dictionary<string, object?> Entry(string id, IEnumerable<(string title, int ordinal)> parameters) =>
+                new Dictionary<string, object?>
+                {
+                    ["id"] = id,
+                    ["parameters"] = parameters
+                        .Select(p => (object?)new Dictionary<string, object?>
+                        {
+                            ["title"] = p.title,
+                            ["stateOrdinal"] = p.ordinal,
+                        })
+                        .ToList(),
+                };
+
+            var active = new List<object?>();
+            var parameters = activeParameters.ToList();
+            if (parameters.Count > 0)
+            {
+                active.Add(Entry("c-42", parameters));
+            }
+            var done = finished.ToList();
+            return new KspSnapshot
+            {
+                Ut = 10,
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["contracts"] = new Dictionary<string, object?>
+                        {
+                            ["active"] = active,
+                            ["offered"] = new List<object?>(),
+                            // The ten newest the host keeps, and a burst can leave ours out of them
+                            ["completedRecent"] = done
+                                .Where(f => f.id != "c-42")
+                                .Take(10)
+                                .Select(f => (object?)Entry(f.id, new[] { (f.title, f.ordinal) }))
+                                .ToList(),
+                            ["failedRecent"] = new List<object?>(),
+                            ["finished"] = done.ToDictionary(
+                                f => f.id,
+                                f => (object?)Entry(f.id, new[] { (f.title, f.ordinal) })),
+                        },
+                    },
+                },
+            };
+        }
+
+        /// <summary>
+        /// An objective that renames itself when it completes (a state objective
+        /// titled "Vessel state" reads "Vessel state: ..." once done) is still the
+        /// objective the alarm was armed on. Its contract has more objectives, so it
+        /// stays in the active list under the new name.
+        /// </summary>
+        [Fact]
+        public void AnObjectiveRenamedByCompletingStillFiresWhileItsContractIsActive()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(title: IdleTitle), "");
+            var reader = new CareerReader
+            {
+                Career = Career(("c-42", IdleTitle, 0), ("c-42", "Land", 0)),
+            };
+            roster.Evaluate(10, reader);
+
+            reader.Career = Career(("c-42", DoneTitle, 1), ("c-42", "Land", 0));
+            var tick = roster.Evaluate(11, reader);
+
+            Assert.Equal("a1", Assert.Single(tick.Fired).Id);
+        }
+
+        /// <summary>
+        /// The completion that takes the contract out of the active list in the same
+        /// stock call also renames the objective. The contract is found only among
+        /// the finished, under the new name.
+        /// </summary>
+        [Fact]
+        public void AnObjectiveRenamedByCompletingItsContractFires()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(title: IdleTitle), "");
+            var reader = new WholeCareerReader { Career = Career(("c-42", IdleTitle, 0)) };
+            roster.Evaluate(10, reader);
+
+            reader.Career = Finished("completedRecent", "c-42", DoneTitle, 1);
+            reader.Finished = new Dictionary<string, object?> { ["c-42"] = FinishedEntry("c-42", DoneTitle, 1) };
+            var tick = roster.Evaluate(11, reader);
+
+            Assert.Equal("a1", Assert.Single(tick.Fired).Id);
+        }
+
+        /// <summary>
+        /// Never seen in the recent lists at all, through the real snapshot reader:
+        /// the tick that finds the contract finished is the first that sees it renamed.
+        /// </summary>
+        [Fact]
+        public void ARenamedObjectiveOfAContractOnlyInTheFinishedIndexFires()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(title: IdleTitle), "");
+            roster.Evaluate(
+                10,
+                new SnapshotScetStateReader(
+                    ContractSnapshot(new[] { (IdleTitle, 0) }, new (string, string, int)[0]),
+                    ScetThresholdSources.CoreOnly));
+
+            var tick = roster.Evaluate(
+                11,
+                new SnapshotScetStateReader(
+                    ContractSnapshot(new (string, int)[0], new[] { ("c-42", DoneTitle, 1) }),
+                    ScetThresholdSources.CoreOnly));
+
+            Assert.Equal("a1", Assert.Single(tick.Fired).Id);
+        }
+
+        /// <summary>
+        /// A teleport completes fourteen contracts in one tick: ours is outside the
+        /// ten recent ones, in the finished index, and renamed.
+        /// </summary>
+        [Fact]
+        public void ARenamedObjectiveAmongFourteenSimultaneousCompletionsFires()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(title: IdleTitle), "");
+            roster.Evaluate(
+                10,
+                new SnapshotScetStateReader(
+                    ContractSnapshot(new[] { (IdleTitle, 0) }, new (string, string, int)[0]),
+                    ScetThresholdSources.CoreOnly));
+
+            var burst = Enumerable.Range(0, 13)
+                .Select(i => ("c-other-" + i, "Reach " + i + " km", 1))
+                .Concat(new[] { ("c-42", DoneTitle, 1) })
+                .ToList();
+            var tick = roster.Evaluate(
+                11,
+                new SnapshotScetStateReader(
+                    ContractSnapshot(new (string, int)[0], burst),
+                    ScetThresholdSources.CoreOnly));
+
+            Assert.Equal("a1", Assert.Single(tick.Fired).Id);
+        }
+
+        /// <summary>
+        /// An objective never seen under its armed name, because the first read
+        /// already finds the contract finished and renamed, is not guessed at.
+        /// </summary>
+        [Fact]
+        public void AnObjectiveNeverSeenUnderItsArmedNameInAFinishedContractDoesNotFire()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(Objective(title: IdleTitle), "");
+
+            var tick = roster.Evaluate(
+                10,
+                new SnapshotScetStateReader(
+                    ContractSnapshot(new (string, int)[0], new[] { ("c-42", DoneTitle, 1) }),
+                    ScetThresholdSources.CoreOnly));
+
+            Assert.Empty(tick.Fired);
+        }
+
         [Fact]
         public void ChangingTheObjectiveIsAChange()
         {
