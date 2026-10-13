@@ -292,6 +292,91 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// An end taken out of contact is held on the active craft's link, the
+        /// one link the flight topics have, and is delivered when that link
+        /// comes back with no other craft on screen.
+        /// </summary>
+        [Fact]
+        public async Task AHeldEndIsDeliveredWhenTheLinkComesBackWithNoOtherCraftActive()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new TestFlightUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FlightTopics.EndedTopic, Timeout);
+                await HoldAnEndTakenOutOfContactAsync(engine, uplink, client);
+
+                uplink.Connected = true;
+                engine.TickAndWait(7.0, new KspSnapshot { Ut = 7.0, Values = new Dictionary<string, object?>() }, Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var ended = frames.Single(f => f.Topic == FlightTopics.EndedTopic);
+                var payload = Assert.IsType<Dictionary<string, object?>>(ended.Payload);
+                Assert.Equal(VesselA, payload["vesselId"]);
+                Assert.Equal((double)FlightEndReason.Destroyed, Convert.ToDouble(payload["reason"]));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// Switching to another craft while the active link is dark lets go of
+        /// everything held on it, the end of the craft switched away from
+        /// included, so the end is never delivered.
+        /// </summary>
+        [Fact]
+        public async Task AHeldEndIsNeverDeliveredOnceADifferentCraftBecomesActive()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            var uplink = new TestFlightUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FlightTopics.EndedTopic, Timeout);
+                await HoldAnEndTakenOutOfContactAsync(engine, uplink, client);
+
+                uplink.Connected = true;
+                foreach (var ut in new[] { 7.0, 7.02, 8.0 })
+                {
+                    engine.TickAndWait(ut, SnapshotFor(ut, VesselB, "Bravo"), Timeout);
+                }
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(frames, f => f.Topic == FlightTopics.EndedTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        private static async Task HoldAnEndTakenOutOfContactAsync(ChannelEngine engine, TestFlightUplink uplink, TestClient client)
+        {
+            engine.TickAndWait(5.0, SnapshotFor(5.0, VesselA, "Alpha"), Timeout);
+            uplink.Connected = false;
+            engine.TickAndWait(5.02, new KspSnapshot { Ut = 5.02, Values = new Dictionary<string, object?>() }, Timeout);
+
+            uplink.Ended.Publish(new FlightEnded
+            {
+                FlightId = VesselA,
+                VesselId = VesselA,
+                VesselName = "Alpha",
+                Reason = FlightEndReason.Destroyed,
+                Ut = 6.0,
+            }, 6.0);
+            engine.TickAndWait(6.02, new KspSnapshot { Ut = 6.02, Values = new Dictionary<string, object?>() }, Timeout);
+            engine.TickAndWait(6.04, new KspSnapshot { Ut = 6.04, Values = new Dictionary<string, object?>() }, Timeout);
+            Assert.DoesNotContain(await DrainAllStreamDataAsync(client, Quiet), f => f.Topic == FlightTopics.EndedTopic);
+        }
+
+        /// <summary>
         /// The ordinary case, over the real engine: KSP boots before the
         /// browser, so the flight is already in the air by the time anything
         /// subscribes. <c>ChannelEngine.ProcessPublish</c> drops a publish for

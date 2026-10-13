@@ -149,6 +149,66 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void ALostCraftThatComesBackKeepsTheUtItWasDeclaredLostAt()
+        {
+            var tracker = NewTracker(deadlineSec: 10);
+
+            tracker.Tick(One(VesselA, false), ut: 0);
+            tracker.Tick(One(VesselA, false), ut: 15);
+            tracker.Tick(One(VesselA, true), ut: 20);
+
+            var back = tracker.TryGetState(VesselA)!;
+            Assert.Equal(SilenceState.Nominal, back.State);
+            Assert.Equal(15, back.DeclaredLostUt);
+        }
+
+        [Fact]
+        public void ALostCraftStaysLostThroughMoreSilenceWithoutCountingANewLoss()
+        {
+            var tracker = NewTracker(deadlineSec: 10);
+
+            tracker.Tick(One(VesselA, false), ut: 0);
+            tracker.Tick(One(VesselA, false), ut: 15);
+            tracker.Tick(One(VesselA, false), ut: 30);
+            tracker.Tick(One(VesselA, false), ut: 45);
+
+            var state = tracker.TryGetState(VesselA)!;
+            Assert.Equal(SilenceState.Lost, state.State);
+            Assert.Equal(1, state.LostSeq);
+            Assert.Equal(15, state.DeclaredLostUt);
+        }
+
+        [Fact]
+        public void ACraftCalledDestroyedThatReappearsWithoutALinkStaysDestroyedAndOutOfTheLiveFleet()
+        {
+            var tracker = NewTracker();
+
+            tracker.Tick(One(VesselA, true), ut: 0);
+            tracker.Tick(new SilenceSample[0], ut: 1);
+            tracker.Tick(One(VesselA, false), ut: 2);
+
+            var state = tracker.TryGetState(VesselA)!;
+            Assert.Equal(SilenceState.Lost, state.State);
+            Assert.Equal(SilenceDeadlineBasis.Destroyed, state.DeadlineBasis);
+            Assert.Empty(tracker.LiveStates);
+        }
+
+        [Fact]
+        public void ACraftCalledDestroyedThatReappearsWithALinkIsNominalAndLiveAgain()
+        {
+            var tracker = NewTracker();
+
+            tracker.Tick(One(VesselA, true), ut: 0);
+            tracker.Tick(new SilenceSample[0], ut: 1);
+            tracker.Tick(One(VesselA, true), ut: 2);
+
+            var state = tracker.TryGetState(VesselA)!;
+            Assert.Equal(SilenceState.Nominal, state.State);
+            Assert.Equal(1, state.DeclaredLostUt);
+            Assert.Single(tracker.LiveStates);
+        }
+
+        [Fact]
         public void VesselMissingFromTheFleetIsDeclaredDestroyedImmediately()
         {
             var tracker = NewTracker();

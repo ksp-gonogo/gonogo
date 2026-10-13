@@ -123,7 +123,12 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
 
-            var ut = snapshot?.Ut ?? Planetarium.GetUniversalTime();
+            return CaptureSilence(tracker, all, snapshot?.Ut ?? Planetarium.GetUniversalTime());
+        }
+
+        /// <summary>One capture of <paramref name="all"/> into <paramref name="tracker"/> at <paramref name="ut"/>.</summary>
+        internal object CaptureSilence(SilenceTracker tracker, List<Vessel> all, double ut)
+        {
             var config = CommsCoreUplink.SignalDelayConfig;
             var present = new List<SilenceSample>(all.Count);
             foreach (var vessel in all)

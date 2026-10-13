@@ -1326,10 +1326,11 @@ namespace Gonogo.DevTools
                 var correlations = Correlations.Unreadable;
                 var fault = instanceFault;
 
-                var interceptor = scenarioType.GetField("_interceptor", Instance)?.GetValue(scenario);
+                var books = scenarioType.GetField("_books", Instance)?.GetValue(scenario);
+                var interceptor = books?.GetType().GetField("_interceptor", Instance)?.GetValue(books);
                 if (interceptor == null)
                 {
-                    fault = Append(fault, "could not read _interceptor");
+                    fault = Append(fault, "could not read _books._interceptor");
                 }
                 else
                 {
@@ -1380,7 +1381,7 @@ namespace Gonogo.DevTools
 
                 var pendingRows = -1;
                 List<LedgerRowReading>? readings = null;
-                var ledger = scenarioType.GetField("_ledger", Instance)?.GetValue(scenario);
+                var ledger = books?.GetType().GetProperty("Ledger", Instance)?.GetValue(books, null);
                 var pending = ledger?.GetType().GetProperty("Pending", BindingFlags.Public | BindingFlags.Instance)?.GetValue(ledger, null);
                 if (pending is System.Collections.IEnumerable rows)
                 {

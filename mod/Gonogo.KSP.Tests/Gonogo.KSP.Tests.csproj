@@ -274,6 +274,7 @@
     <Compile Remove="HarmonyPatchProbeMirrorTests.cs" />
     <Compile Remove="FacilityLivenessTests.cs" />
     <Compile Remove="IlSteps.cs" />
+    <Compile Remove="UnityStandIns.cs" />
     <!-- CraftCatalogueBackendTests.cs exercises the real CraftCatalogueBackend,
          which reads HighLogic, ShipConstruction and ConfigNode straight from
          Assembly-CSharp, so it is gated the same way. -->
@@ -479,6 +480,16 @@
     <Compile Include="..\Gonogo.KSP\Gates\ItemGates.cs" />
     <Compile Include="..\Gonogo.KSP\Gates\UnlockGates.cs" />
     <Compile Include="..\Gonogo.KSP\OrbitKnowledge.cs" />
+    <Compile Include="..\Gonogo.KSP\SightLines.cs" />
+    <Compile Include="UnityStandIns.cs" />
+    <!-- The currency glue: the interceptor's handlers, one save's books and the
+         reveal. Each is driven directly in a test with KSP's own statics stood in
+         (UnityStandIns.cs), never through a GameEvents firing. The scenario itself
+         stays out: a ScenarioModule in this assembly hangs xunit's discovery. -->
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\StockCurrencyInterceptor.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\CurrencyDelayBooks.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\RevealApplier.cs" />
+    <Compile Include="..\Gonogo.KSP\CurrencyDelay\DelayedScienceSink.cs" />
     <Compile Include="..\Gonogo.KSP\Career\HirePrice.cs" />
     <Compile Include="..\Gonogo.KSP\GameWords.cs" />
     <!-- The launch pre-flight WALK: which of KSP's own launch tests refuses,

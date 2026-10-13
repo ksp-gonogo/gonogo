@@ -39,6 +39,26 @@ public class SilenceTrackerPersistenceTests
     }
 
     [Fact]
+    public void APredictedReturnAndItsGraceSurviveSaveAndLoad()
+    {
+        var source = new SilenceTracker((sample, onsetUt) =>
+            new SilenceDeadline(900, SilenceDeadlineBasis.PredictedReacquisition, predictedReacquisitionUt: onsetUt + 600, predictionGraceSec: 300));
+        source.Tick(new[] { new SilenceSample("vessel-behind", true, null, false) }, ut: 0);
+        source.Tick(new[] { new SilenceSample("vessel-behind", false, null, false) }, ut: 10);
+
+        var node = new ConfigNode("SCENARIO");
+        SilenceTrackerPersistence.Save(source, node);
+        var target = NewTracker();
+        SilenceTrackerPersistence.Load(target, node);
+
+        var after = target.TryGetState("vessel-behind")!;
+        Assert.Equal(SilenceState.Silent, after.State);
+        Assert.Equal(610.0, after.PredictedReacquisitionUt);
+        Assert.Equal(300.0, after.PredictionGraceSec);
+        Assert.Equal(SilenceDeadlineBasis.PredictedReacquisition, after.DeadlineBasis);
+    }
+
+    [Fact]
     public void SaveThenLoadRoundTripsAConnectedTrueVesselToo()
     {
         // The bool round-trip needs BOTH values pinned: a lazy encode could

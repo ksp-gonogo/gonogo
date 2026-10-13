@@ -685,6 +685,41 @@ public class StockCurrencyStateMachineTests
         Assert.Equal(-20.0, claimsForB[0].BaseAmount);
     }
 
+    // Two craft destroyed in the same frame share a UT, so nothing can tell
+    // their crews apart: a later reputation change lands on whichever craft
+    // was pushed last.
+    [Fact]
+    public void two_craft_destroyed_in_the_same_frame_charge_a_later_crew_death_to_the_craft_destroyed_last()
+    {
+        var state = Seeded(reputation: 500.0);
+
+        state.PushDeathVessel("vessel-A", ut: 7.0);
+        state.PushDeathVessel("vessel-B", ut: 7.0);
+        var first = state.OnReputationChanged(StockTransactionReason.VesselLoss, newTotal: 490.0, baseAmount: -10.0, ut: 7.0);
+        var second = state.OnReputationChanged(StockTransactionReason.VesselLoss, newTotal: 479.0, baseAmount: -11.0, ut: 7.0);
+
+        Assert.Equal("vessel-B", first.OriginVesselId);
+        Assert.Equal("vessel-B", second.OriginVesselId);
+    }
+
+    // The crew-first ordering of the same collision: every crew death defers,
+    // and the first craft whose destruction arrives takes all of them, so the
+    // second craft's own push claims nothing.
+    [Fact]
+    public void two_craft_destroyed_in_the_same_frame_charge_every_earlier_crew_death_to_the_craft_destroyed_first()
+    {
+        var state = Seeded(reputation: 500.0);
+
+        state.OnReputationChanged(StockTransactionReason.VesselLoss, newTotal: 490.0, baseAmount: -10.0, ut: 7.0);
+        state.OnReputationChanged(StockTransactionReason.VesselLoss, newTotal: 479.0, baseAmount: -11.0, ut: 7.0);
+        var claimsForA = state.PushDeathVessel("vessel-A", ut: 7.0);
+        var claimsForB = state.PushDeathVessel("vessel-B", ut: 7.0);
+
+        Assert.Equal(2, claimsForA.Count);
+        Assert.All(claimsForA, c => Assert.Equal("vessel-A", c.OriginVesselId));
+        Assert.Empty(claimsForB);
+    }
+
     [Fact]
     public void ClassifyOrigin_reflects_VesselLoss_as_Away_only_once_a_death_vessel_is_claimed()
     {

@@ -277,51 +277,7 @@ namespace Gonogo.KSP
             {
                 return null;
             }
-            var config = CommsCoreUplink.SignalDelayConfig;
-            var factor = config.Enabled && config.LightSpeedScale > 0.0 ? 1.0 / config.LightSpeedScale : 0.0;
-            string? home = null;
-            foreach (var entry in roster)
-            {
-                if (entry.IsHome)
-                {
-                    home = entry.Id;
-                }
-            }
-            var eyes = new List<(string Id, Vector3d Position, bool Ground)>();
-            foreach (var centre in centres)
-            {
-                if (centre is KspCommandCentre placed)
-                {
-                    eyes.Add((placed.Id, placed.Position, placed.Kind == CommandCentreKind.GroundStation));
-                }
-            }
-
-            var sight = new Dictionary<string, IReadOnlyDictionary<string, double>>(System.StringComparer.Ordinal);
-            foreach (var vessel in vessels)
-            {
-                if (vessel == null || !OrbitKnown(vessel))
-                {
-                    continue;
-                }
-                var at = vessel.GetWorldPos3D();
-                var row = new Dictionary<string, double>(System.StringComparer.Ordinal);
-                var nearestGround = double.PositiveInfinity;
-                foreach (var eye in eyes)
-                {
-                    var seconds = (eye.Position - at).magnitude / PairPlan.SpeedOfLight * factor;
-                    row[eye.Id] = seconds;
-                    if (eye.Ground)
-                    {
-                        nearestGround = System.Math.Min(nearestGround, seconds);
-                    }
-                }
-                if (home != null && row.ContainsKey(home) && !double.IsPositiveInfinity(nearestGround))
-                {
-                    row[home] = nearestGround;
-                }
-                sight["vessel:" + vessel.id] = row;
-            }
-            return sight;
+            return SightLines.Table(vessels, vessel => vessel.GetWorldPos3D(), centres, roster, CommsCoreUplink.SignalDelayConfig);
         }
 
         private static bool TrackingStationPlacesVessels()
@@ -336,19 +292,6 @@ namespace Gonogo.KSP
                 }
                 var level = ScenarioUpgradeableFacilities.GetFacilityLevel(SpaceCenterFacility.TrackingStation);
                 return rules.GetOrbitDisplayMode(level) >= GameVariables.OrbitDisplayMode.AllOrbits;
-            }
-            catch (System.Exception)
-            {
-                return true;
-            }
-        }
-
-        /// <summary>Whether the game has state vectors for the vessel, which every craft it made for the player has.</summary>
-        private static bool OrbitKnown(Vessel vessel)
-        {
-            try
-            {
-                return vessel.DiscoveryInfo == null || OrbitKnowledge.Known(vessel.DiscoveryInfo.Level);
             }
             catch (System.Exception)
             {

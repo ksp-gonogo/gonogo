@@ -25,11 +25,10 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
     ///
     /// <para><b>Source text, not behaviour</b>, and deliberately so. Every unit
     /// test of the settle can call it itself, which proves the settle works and
-    /// says nothing about whether the shipped game ever reaches it - the exact
-    /// blindness that let this ship. <c>CurrencyDelayScenario</c> and
-    /// <c>StockCurrencyInterceptor</c> need a live scene and are not compiled into
-    /// this project at all, so a text scan is the only instrument that can see
-    /// them. Same discipline, and the same reason, as
+    /// says nothing about whether the shipped game ever reaches it. The scenario
+    /// is a <c>ScenarioModule</c>, which cannot be compiled into this project
+    /// (xunit's discovery hangs on it), so a text scan is the only instrument
+    /// that can see its <c>Update</c>. Same discipline as
     /// <c>Sitrep.Core.Tests.SeamIsWiredTests</c>.</para>
     /// </summary>
     public class CurrencyDelaySettlePumpIsWiredTests
@@ -39,8 +38,11 @@ namespace Gonogo.KSP.Tests.CurrencyDelay
         {
             var update = CurrencyDelaySourceText.MethodBody(
                 CurrencyDelaySourceText.Read("CurrencyDelayScenario.cs"), "private void Update()");
+            var tick = CurrencyDelaySourceText.MethodBody(
+                CurrencyDelaySourceText.Read("CurrencyDelayBooks.cs"), "internal void Tick()");
 
-            Assert.Contains("SettleStaleDefers", update, StringComparison.Ordinal);
+            Assert.Contains("Tick()", update, StringComparison.Ordinal);
+            Assert.Contains("SettleStaleDefers", tick, StringComparison.Ordinal);
         }
 
         [Fact]
