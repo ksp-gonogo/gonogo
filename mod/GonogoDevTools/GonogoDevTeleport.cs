@@ -48,7 +48,7 @@ namespace Gonogo.DevTools
         /// craft somewhere else entirely and read as a successful setup.</summary>
         private static readonly string[] KnownKeys =
         {
-            "id", "body", "periapsisKm", "apoapsisKm", "inclinationDeg", "meanAnomalyDeg",
+            "id", "body", "periapsisKm", "apoapsisKm", "inclinationDeg", "meanAnomalyDeg", "altitudeAboveTerrainM",
         };
 
         private const float PollIntervalSeconds = 1f;
@@ -205,6 +205,10 @@ namespace Gonogo.DevTools
                     meanAnomalyDeg = 0.0;
                 }
 
+                // Optional: the height above the terrain under the placed point.
+                // Absent leaves the point where the orbit puts it.
+                var wantsHeight = TryGetDouble(node, "altitudeAboveTerrainM", out var requestedHeightM);
+
                 var (sma, ecc) = OrbitFromApsides(body.Radius, periKm, apoKm);
 
                 Debug.Log(string.Format(CultureInfo.InvariantCulture,
@@ -236,17 +240,61 @@ namespace Gonogo.DevTools
                     /* argPe */ 0.0,
                     /* ObT */ 0.0);
 
-                Debug.Log("[Gonogo] dev-teleport: applied request id=" + id);
+                var heightNote = "";
+                if (wantsHeight)
+                {
+                    heightNote = PlaceAboveTerrain(
+                        bodyIndex, body, vessel, ref periKm, ref apoKm, inclinationDeg, meanAnomalyDeg, requestedHeightM);
+                    (sma, ecc) = OrbitFromApsides(body.Radius, periKm, apoKm);
+                }
+
+                Debug.Log("[Gonogo] dev-teleport: applied request id=" + id + heightNote);
                 WriteResult(id, ok: true,
                     string.Format(CultureInfo.InvariantCulture,
                         "teleported {0} to {1} peri={2}km apo={3}km inc={4}deg mna={5}deg (sma={6:F1} ecc={7:F6})",
-                        vessel.vesselName, body.bodyName, periKm, apoKm, inclinationDeg, meanAnomalyDeg, sma, ecc));
+                        vessel.vesselName, body.bodyName, periKm, apoKm, inclinationDeg, meanAnomalyDeg, sma, ecc)
+                        + heightNote);
             }
             catch (Exception ex)
             {
                 Debug.LogError("[Gonogo] dev-teleport: teleport failed for id=" + id + ": " + ex);
                 WriteResult(id, ok: false, "exception: " + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Reads the terrain height under the point the orbit placed the craft at
+        /// and, when the craft stands lower above it than asked, places it once
+        /// more with both apsides raised by the shortfall. Returns the text the
+        /// result carries: the terrain height read, the height achieved, and
+        /// whether it placed again.
+        /// </summary>
+        private static string PlaceAboveTerrain(
+            int bodyIndex, CelestialBody body, Vessel vessel, ref double periKm, ref double apoKm,
+            double inclinationDeg, double meanAnomalyDeg, double requestedHeightM)
+        {
+            Read(body, vessel, out var altitudeM, out var terrainM);
+            var again = TeleportHeight.Correction(periKm, apoKm, altitudeM, terrainM, requestedHeightM);
+            var replaced = again.HasValue;
+            if (again.HasValue)
+            {
+                periKm = again.Value.PeriapsisKm;
+                apoKm = again.Value.ApoapsisKm;
+                var (sma, ecc) = OrbitFromApsides(body.Radius, periKm, apoKm);
+                FlightGlobals.fetch.SetShipOrbit(
+                    bodyIndex, ecc, sma, inclinationDeg, 0.0, TeleportAnomaly.ToRadians(meanAnomalyDeg), 0.0, 0.0);
+                Read(body, vessel, out altitudeM, out terrainM);
+            }
+
+            return string.Format(CultureInfo.InvariantCulture,
+                "; terrain={0:F1}m altitude={1:F1}m heightAboveTerrain={2:F1}m requested={3:F1}m replaced={4}",
+                terrainM, altitudeM, altitudeM - terrainM, requestedHeightM, replaced);
+        }
+
+        private static void Read(CelestialBody body, Vessel vessel, out double altitudeM, out double terrainM)
+        {
+            body.GetLatLonAlt(vessel.GetWorldPos3D(), out var latitude, out var longitude, out altitudeM);
+            terrainM = body.TerrainAltitude(latitude, longitude);
         }
 
         /// <summary>
