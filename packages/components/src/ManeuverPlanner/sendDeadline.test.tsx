@@ -33,12 +33,8 @@ function mountPlanner(inputs: PlannerInputs) {
   });
   const view = renderHook(
     () => {
-      const telemetry = usePlannerTelemetry();
-      const { plan } = usePlan(inputs, telemetry);
-      return {
-        plan,
-        commands: useNodeCommands([], plan, telemetry.burnContext),
-      };
+      const { plan } = usePlan(inputs, usePlannerTelemetry());
+      return { plan, commands: useNodeCommands([], plan) };
     },
     { wrapper: fixture.Provider },
   );

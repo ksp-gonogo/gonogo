@@ -3,14 +3,8 @@ import type { OrbitPatch } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Section, Stack } from "@ksp-gonogo/ui-kit";
 import type { ProjectedOrbit } from "../shared/OrbitDiagram";
 import { BurnConformanceRow } from "./BurnConformanceRow";
-import {
-  type BurnWatch,
-  burnNeverLit,
-  burnPhase,
-  watchBurn,
-} from "./burnFlown";
 import { ConformancePlot } from "./ConformancePlot";
-import type { BurnConformance } from "./conformance";
+import { burnConformance } from "./conformance";
 import { conformanceRegime, finiteBurnResidual } from "./conformanceRegime";
 import type { PlannerTelemetry } from "./usePlannerTelemetry";
 
@@ -18,8 +12,7 @@ interface ConformanceSectionProps {
   nodes: readonly ParsedManeuverNode[];
   /** True until the plan has arrived, so an empty list is not read as an empty plan. */
   awaiting: boolean;
-  /** Each burn's watch from the completion tracker, so this section and the tracker cannot disagree about whether a burn was flown. */
-  watches: ReadonlyMap<number, BurnWatch>;
+  maxDvByUt: ReadonlyMap<number, number>;
   telemetry: PlannerTelemetry;
 }
 
@@ -46,14 +39,14 @@ export function plannedConic(
 }
 
 /**
- * Each burn's plan and how far the craft has got with it, whoever planned it.
- * The delta-v delivered is not on the stream, so the row carries the ask and
- * a phase read from the clock, the thrust latch and the orbit reached.
+ * What each burn was planned with against what it has delivered, whoever
+ * planned it. The planned figure is the tracker's `maxDvByUt`, since one sample
+ * cannot tell a 300 m/s burn with 300 to go from a 1000 m/s one.
  */
 export function ConformanceSection({
   nodes,
   awaiting,
-  watches,
+  maxDvByUt,
   telemetry,
 }: ConformanceSectionProps) {
   const {
@@ -63,7 +56,7 @@ export function ConformanceSection({
     PeR,
     trueAnomaly,
     argPe,
-    burnContext,
+    thrustLatch,
     currentTrajectory,
     nowUtSeconds,
     period,
@@ -101,15 +94,12 @@ export function ConformanceSection({
       <Stack>
         {nodes.map((node) => {
           const first = node.orbitPatches[0];
-          // One reading feeds both the row and the plot's regime, so they cannot contradict.
-          const watch =
-            watches.get(node.UT) ?? watchBurn(undefined, node, burnContext);
-          const conformance: BurnConformance = {
-            plannedDv: Number.isFinite(node.deltaVMagnitude)
-              ? node.deltaVMagnitude
-              : null,
-            phase: burnPhase(watch, node, burnContext),
-          };
+          // One conformance reading feeds both the row and the plot's regime, so they cannot contradict.
+          const conformance = burnConformance(
+            node.deltaVMagnitude,
+            maxDvByUt.get(node.UT) ?? null,
+            thrustLatch,
+          );
           return (
             <Stack key={node.UT}>
               <Stack
@@ -130,7 +120,7 @@ export function ConformanceSection({
                     cutoffUt: node.cutoffUt,
                   },
                   nowUtSeconds,
-                  burnNeverLit(node, burnContext) ? 0 : null,
+                  conformance.deliveredDv,
                   node.deltaVMagnitude,
                 )}
                 residual={finiteBurnResidual(
