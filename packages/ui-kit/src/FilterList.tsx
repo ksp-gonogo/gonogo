@@ -47,8 +47,8 @@ export interface FilterListProps {
 }
 
 /**
- * A filterable list of pre-rendered rows, with its filter control (toggle chips
- * for contributed terms, then a search box) above it. Useful for letting the
+ * A filterable list of pre-rendered rows, with its filter control (a search box,
+ * then toggle chips for contributed terms under it) above it. Useful for letting the
  * operator narrow a long list. Used by the resource operations widget. Each row
  * carries the text it is searchable by, so the list only matches strings: a row
  * shows while its `searchText` contains every selected term and the typed text,

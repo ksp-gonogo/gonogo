@@ -72,7 +72,7 @@ function VesselList({ fill = false }: { fill?: boolean }) {
   );
 }
 
-/** Inside a widget whose providers contributed terms, so toggles sit above the search box. */
+/** Inside a widget whose providers contributed terms, so toggles sit under the search box. */
 function InWidget({ children }: { children: ReactNode }) {
   return (
     <WidgetMetaContext.Provider
@@ -99,7 +99,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof FilterRegion>;
 
-/** Contributed toggles and the search box above the host's own rows; both narrow the list together. */
+/** The search box with the contributed toggles under it, above the host's own rows; both narrow the list together. */
 export const WithToggles: Story = {
   render: () => (
     <InWidget>

@@ -13,7 +13,6 @@ import type {
   ReckonedUnit,
   Stepper,
   Tape,
-  UnitInput,
 } from "@ksp-gonogo/ui-kit";
 import type { ComponentProps } from "react";
 import { absent, held, live, pending } from "./readings";
@@ -75,6 +74,43 @@ export const UI_KIT_PRESETS = {
         value: pending(),
         min: value("deg", 0),
         max: value("deg", 360),
+      },
+    },
+    {
+      name: "Gauge",
+      args: {
+        "aria-label": "Airspeed",
+        value: live("m/s", 212),
+        min: value("m/s", 0),
+        max: value("m/s", 300),
+        startAngle: -90,
+        sweep: 180,
+        readout: "large",
+        width: 220,
+        height: 140,
+        zones: [
+          {
+            from: value("m/s", 0),
+            to: value("m/s", 200),
+            color: "var(--color-go-mark)",
+          },
+          {
+            from: value("m/s", 200),
+            to: value("m/s", 260),
+            color: "var(--color-caution-mark)",
+          },
+          {
+            from: value("m/s", 260),
+            to: value("m/s", 300),
+            color: "var(--color-nogo-mark)",
+          },
+        ],
+        ticks: [
+          { value: value("m/s", 0), label: "0" },
+          { value: value("m/s", 100), label: "100" },
+          { value: value("m/s", 200), label: "200" },
+          { value: value("m/s", 300), label: "300" },
+        ],
       },
     },
   ] satisfies Presets<ComponentProps<typeof Dial>>,
@@ -148,17 +184,6 @@ export const UI_KIT_PRESETS = {
       },
     },
   ] satisfies Presets<ComponentProps<typeof LineGraph>>,
-  UnitInput: [
-    {
-      name: "Metres",
-      args: {
-        label: "Target altitude",
-        value: value("m", 80_000),
-        unit: "m",
-        onChange: () => {},
-      },
-    },
-  ] satisfies Presets<ComponentProps<typeof UnitInput>>,
   ReadOnlyField: [
     {
       name: "Quantity",

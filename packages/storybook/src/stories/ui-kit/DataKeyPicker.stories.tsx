@@ -14,46 +14,57 @@ function Column({ children }: { children: ReactNode }) {
   return <div style={{ width: 360, minHeight: 380 }}>{children}</div>;
 }
 
+/** Real Topic fields, keyed `<topic>.<field>` and grouped by Topic, as the app's own pickers offer them. */
 const KEYS: KeyOption[] = [
   {
-    key: "v.altitude",
-    label: "Altitude (sea level)",
-    group: "Flight",
+    key: "vessel.flight.altitudeAsl",
+    label: "Altitude ASL",
+    group: "vessel.flight",
     unit: "m",
   },
   {
-    key: "v.heightFromTerrain",
-    label: "Radar altitude",
-    group: "Flight",
-    unit: "m",
-  },
-  {
-    key: "v.surfaceSpeed",
+    key: "vessel.flight.surfaceSpeed",
     label: "Surface speed",
-    group: "Flight",
+    group: "vessel.flight",
     unit: "m/s",
   },
   {
-    key: "v.verticalSpeed",
+    key: "vessel.flight.verticalSpeed",
     label: "Vertical speed",
-    group: "Flight",
+    group: "vessel.flight",
     unit: "m/s",
   },
-  { key: "o.ApA", label: "Apoapsis", group: "Orbit", unit: "m" },
-  { key: "o.PeA", label: "Periapsis", group: "Orbit", unit: "m" },
-  { key: "o.inclination", label: "Inclination", group: "Orbit", unit: "°" },
   {
-    key: "r.LiquidFuel",
-    label: "Liquid fuel",
-    group: "Resources",
-    unit: "units",
+    key: "vessel.surface.heightFromTerrain",
+    label: "Height from terrain",
+    group: "vessel.surface",
+    unit: "m",
   },
-  { key: "r.Oxidizer", label: "Oxidizer", group: "Resources", unit: "units" },
+  { key: "vessel.orbit.sma", label: "Sma", group: "vessel.orbit", unit: "m" },
   {
-    key: "r.ElectricCharge",
-    label: "Electric charge",
-    group: "Resources",
-    unit: "EC",
+    key: "vessel.orbit.timeToAp",
+    label: "Time to ap",
+    group: "vessel.orbit",
+    unit: "s",
+  },
+  {
+    key: "vessel.orbit.timeToPe",
+    label: "Time to pe",
+    group: "vessel.orbit",
+    unit: "s",
+  },
+  { key: "vessel.orbit.inc", label: "Inc", group: "vessel.orbit", unit: "°" },
+  {
+    key: "vessel.propulsion.currentThrust",
+    label: "Current thrust",
+    group: "vessel.propulsion",
+    unit: "kN",
+  },
+  {
+    key: "vessel.propulsion.totalMass",
+    label: "Total mass",
+    group: "vessel.propulsion",
+    unit: "t",
   },
 ];
 
@@ -100,7 +111,11 @@ export const Open: Story = {
       document.getElementById("dkp-input")?.focus();
     }, []);
     return (
-      <Controlled keys={KEYS} initial="o.ApA" subjectNoun="plotted value" />
+      <Controlled
+        keys={KEYS}
+        initial="vessel.orbit.sma"
+        subjectNoun="plotted value"
+      />
     );
   },
 };
@@ -110,7 +125,7 @@ export const Picked: Story = {
   render: () => (
     <Controlled
       keys={KEYS}
-      initial="r.LiquidFuel"
+      initial="vessel.propulsion.totalMass"
       clearable
       subjectNoun="plotted value"
     />
@@ -129,7 +144,7 @@ export const Retired: Story = {
   render: () => (
     <Controlled
       keys={KEYS}
-      initial="survey.coverage.Mun.biome"
+      initial="vessel.flight.altitude"
       clearable
       subjectNoun="plotted value"
       hint={false}
@@ -139,5 +154,7 @@ export const Retired: Story = {
 
 /** The catalogue has not arrived: a saved key shows as typed and is not judged retired. */
 export const CatalogueLoading: Story = {
-  render: () => <Controlled keys={[]} initial="o.ApA" hint={false} />,
+  render: () => (
+    <Controlled keys={[]} initial="vessel.orbit.sma" hint={false} />
+  ),
 };

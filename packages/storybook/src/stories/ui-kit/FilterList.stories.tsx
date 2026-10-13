@@ -80,7 +80,7 @@ const PARTS: FilterRow[] = [
   ),
 ];
 
-/** Inside a widget whose providers contributed terms, so toggles sit above the search box. */
+/** Inside a widget whose providers contributed terms, so toggles sit under the search box. */
 function InWidget({ children }: { children: ReactNode }) {
   return (
     <WidgetMetaContext.Provider

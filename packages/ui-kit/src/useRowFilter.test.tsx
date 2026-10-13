@@ -1,7 +1,18 @@
+import {
+  clearContributions,
+  registerContribution,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import { ContributionsProvider } from "./contributionsRuntime";
 import { Panel } from "./Panel";
 import { FilterRegion, useRowFilter } from "./useRowFilter";
+import { WidgetMetaContext } from "./WidgetMetaContext";
+
+// beforeEach, never afterEach: clearing while the previous tree is mounted would notify a subscriber outside act().
+beforeEach(() => {
+  clearContributions();
+});
 
 const ROWS = ["Mun biome", "Minmus flats"];
 
@@ -56,6 +67,29 @@ describe("FilterRegion", () => {
     });
     expect(screen.queryByText("Mun biome")).toBeNull();
     expect(screen.getByText("Minmus flats")).toBeTruthy();
+  });
+});
+
+describe("FilterRegion with contributed terms", () => {
+  it("draws the term toggles under the search box, not above its label", () => {
+    registerContribution({
+      id: "row-filter-terms",
+      contributes: "row-filter-test.filters",
+      compute: () => ["Lander", "Probe"],
+    });
+    render(
+      <WidgetMetaContext.Provider
+        value={{ componentId: "row-filter-test", contributionSlots: [] }}
+      >
+        <ContributionsProvider>
+          <Region />
+        </ContributionsProvider>
+      </WidgetMetaContext.Provider>,
+    );
+    const search = screen.getByLabelText("Search");
+    const toggles = screen.getByRole("group", { name: "Filters" });
+    expect(follows(search, toggles)).toBe(true);
+    expect(follows(toggles, screen.getByText("Mun biome"))).toBe(true);
   });
 });
 

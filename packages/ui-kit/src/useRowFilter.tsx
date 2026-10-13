@@ -13,7 +13,7 @@ import { Stack } from "./Stack";
 /**
  * A filter made by {@link useRowFilter}. Useful for narrowing a list to the
  * rows the operator typed or toggled. Test each row with `matches`. Its
- * control (contributed toggles, then a search box) is not part of this object:
+ * control (a search box, then the contributed toggles under it) is not part of this object:
  * it renders above the list it narrows when the filter is passed to
  * {@link FilterRegion} or to `Panel`'s `panelFilter`.
  *
@@ -141,6 +141,15 @@ export function useRowFilter({
 
   const control = (
     <Stack gap="related-packed">
+      <Field>
+        <FieldLabel htmlFor={searchId}>{label}</FieldLabel>
+        <SearchBox
+          id={searchId}
+          value={typed}
+          placeholder={placeholder}
+          onChange={setTyped}
+        />
+      </Field>
       {uniqueTerms.length > 0 && (
         <Cluster
           justify="start"
@@ -159,15 +168,6 @@ export function useRowFilter({
           ))}
         </Cluster>
       )}
-      <Field>
-        <FieldLabel htmlFor={searchId}>{label}</FieldLabel>
-        <SearchBox
-          id={searchId}
-          value={typed}
-          placeholder={placeholder}
-          onChange={setTyped}
-        />
-      </Field>
     </Stack>
   );
 
