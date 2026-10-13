@@ -48,7 +48,7 @@ namespace Gonogo.DevTools
         /// craft somewhere else entirely and read as a successful setup.</summary>
         private static readonly string[] KnownKeys =
         {
-            "id", "body", "periapsisKm", "apoapsisKm", "inclinationDeg",
+            "id", "body", "periapsisKm", "apoapsisKm", "inclinationDeg", "meanAnomalyDeg",
         };
 
         private const float PollIntervalSeconds = 1f;
@@ -199,11 +199,17 @@ namespace Gonogo.DevTools
                     inclinationDeg = 0.0;
                 }
 
+                // Optional, default 0 (periapsis); 180 places the craft at apoapsis.
+                if (!TryGetDouble(node, "meanAnomalyDeg", out var meanAnomalyDeg))
+                {
+                    meanAnomalyDeg = 0.0;
+                }
+
                 var (sma, ecc) = OrbitFromApsides(body.Radius, periKm, apoKm);
 
                 Debug.Log(string.Format(CultureInfo.InvariantCulture,
-                    "[Gonogo] dev-teleport: request id={0} body={1} periKm={2} apoKm={3} incDeg={4} -> sma={5:F1} ecc={6:F6}",
-                    id, body.bodyName, periKm, apoKm, inclinationDeg, sma, ecc));
+                    "[Gonogo] dev-teleport: request id={0} body={1} periKm={2} apoKm={3} incDeg={4} mnaDeg={5} -> sma={6:F1} ecc={7:F6}",
+                    id, body.bodyName, periKm, apoKm, inclinationDeg, meanAnomalyDeg, sma, ecc));
 
                 var bodyIndex = FlightGlobals.Bodies.IndexOf(body);
                 if (bodyIndex < 0)
@@ -216,24 +222,25 @@ namespace Gonogo.DevTools
                 // public method runs KSP's own PrepForOrbitSet / SetOrbit /
                 // PostOrbitSet sequence internally.
                 //   SetShipOrbit(selBodyIndex, ecc, sma, inc, LAN, mna, argPe, ObT)
-                // inclination is degrees (Orbit.inclination is degrees); LAN,
-                // meanAnomalyAtEpoch, argumentOfPeriapsis default to 0; ObT is
-                // unused by SetShipOrbit (it uses Planetarium.GetUniversalTime()).
+                // inclination is degrees (Orbit.inclination is degrees); LAN and
+                // argumentOfPeriapsis default to 0; mna is radians, taken from the
+                // request's degrees; ObT is unused by SetShipOrbit (it uses
+                // Planetarium.GetUniversalTime()).
                 FlightGlobals.fetch.SetShipOrbit(
                     bodyIndex,
                     ecc,
                     sma,
                     inclinationDeg,
                     /* LAN */ 0.0,
-                    /* mna */ 0.0,
+                    /* mna */ TeleportAnomaly.ToRadians(meanAnomalyDeg),
                     /* argPe */ 0.0,
                     /* ObT */ 0.0);
 
                 Debug.Log("[Gonogo] dev-teleport: applied request id=" + id);
                 WriteResult(id, ok: true,
                     string.Format(CultureInfo.InvariantCulture,
-                        "teleported {0} to {1} peri={2}km apo={3}km inc={4}deg (sma={5:F1} ecc={6:F6})",
-                        vessel.vesselName, body.bodyName, periKm, apoKm, inclinationDeg, sma, ecc));
+                        "teleported {0} to {1} peri={2}km apo={3}km inc={4}deg mna={5}deg (sma={6:F1} ecc={7:F6})",
+                        vessel.vesselName, body.bodyName, periKm, apoKm, inclinationDeg, meanAnomalyDeg, sma, ecc));
             }
             catch (Exception ex)
             {
