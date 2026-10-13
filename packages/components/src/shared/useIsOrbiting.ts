@@ -5,7 +5,8 @@ import { useBodyName, useParentBodyIndex } from "./useBodyName";
 import { useStreamBody } from "./useStreamBody";
 
 type OrbitInfo = {
-  isOrbiting: boolean;
+  /** `null` while the parent body's entry has not arrived: the atmosphere height is unknown, so neither answer is. */
+  isOrbiting: boolean | null;
   periapsis: number | undefined;
   apoapsis: number | undefined;
   threshold: number;
@@ -29,13 +30,16 @@ export function useIsOrbiting(
   const body = useStreamBody(bodyName);
 
   return useMemo(() => {
+    // Altitudes and the atmosphere's height both come off the body, so before its entry arrives nothing says whether the orbit clears it.
+    if (body === undefined) {
+      return { isOrbiting: null, periapsis: PeA, apoapsis: ApA, threshold: 0 };
+    }
     if (PeA === undefined || ApA === undefined) {
       return { isOrbiting: false, periapsis: PeA, apoapsis: ApA, threshold: 0 };
     }
 
-    const hasAtmosphere = body?.hasAtmosphere ?? false;
-    const maxAtmosphere = body?.maxAtmosphere ?? 0;
-    const threshold = hasAtmosphere ? maxAtmosphere : 0;
+    // A body that has arrived and reports no atmosphere is a known zero.
+    const threshold = body.hasAtmosphere ? (body.maxAtmosphere ?? 0) : 0;
 
     const isOrbiting = PeA > threshold && PeA > 0 && ApA > 0;
 

@@ -4,7 +4,11 @@ import { screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { type OrbitScenario, renderOrbitViewStream } from "./streamHarness";
+import {
+  emitScenario,
+  type OrbitScenario,
+  renderOrbitViewStream,
+} from "./streamHarness";
 
 /**
  * Characterisation of what OrbitView does when its telemetry reads are absent, not what it should do.
@@ -100,15 +104,38 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
     expect(visibleText(container)).toBe("ORBIT VIEWApPeorbit plane");
   });
 
-  it("reads a real orbit as 'Sub-orbital' when the apsis ALTITUDES are absent", async () => {
-    // 7x3 is the pill branch; `useIsOrbiting` reads absent apsis altitudes as not orbiting, so absence shows as SUB-O.
+  it("draws the orbit with no verdict and no atmosphere ring while the body is absent, then gives it one once the body lands", async () => {
+    const { container, fixture } = renderOrbitViewStream(
+      { w: 9, h: 18 },
+      LKO_NO_BODY,
+    );
+    const diagram = () => container.querySelector("[data-orbiting]");
+    await waitFor(() => {
+      if (diagram() === null) throw new Error("diagram has not rendered yet");
+    });
+    expect(diagram()?.getAttribute("data-orbiting")).toBe("unknown");
+    expect(container.querySelector("[data-atmosphere]")).toBeNull();
+
+    emitScenario(fixture, LKO);
+    await waitFor(() =>
+      expect(diagram()?.getAttribute("data-orbiting")).toBe("yes"),
+    );
+  });
+
+  it("reads a real orbit as undetermined, with what it waits for on the tooltip, while the body is absent", async () => {
+    // 7x3 is the pill branch. With no body entry there is no atmosphere height, so neither orbiting nor sub-orbital is an answer.
     const { container } = renderOrbitViewStream({ w: 7, h: 3 }, LKO_NO_BODY);
 
     await waitFor(() => {
-      if (!visibleText(container).includes("SUB-O")) {
+      if (
+        container.querySelector('[data-tooltip="Waiting for body data"]') ===
+        null
+      ) {
         throw new Error("status pill has not resolved yet");
       }
     });
+    // The title and the no-data token only: no verdict word in the pill.
+    expect(visibleText(container)).toBe(`ORBIT VIEW${NULL_DISPLAY}`);
     expect(container.querySelector("svg")).toBeNull();
   });
 

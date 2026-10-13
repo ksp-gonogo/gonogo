@@ -3,11 +3,12 @@ import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
 import { Badge, Panel } from "@ksp-gonogo/ui";
 import type { WithheldTrajectory } from "@ksp-gonogo/ui-kit";
-import { FramedDisplay, Section, Text } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, Section, Text, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { InlaidTrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { noOrbitSentence, TrajectoryWithheld } from "./emptyStates";
 import type { OrbitPill } from "./orbitPill";
+
 import type { OrbitOverlayContext } from "./slots";
 import {
   DiagramOverlayWrap,
@@ -87,7 +88,7 @@ export function OrbitViewPanel({
                 {bodyName}
               </Text>
             )}
-            <Badge tone={pill.tone}>{pill.label}</Badge>
+            <PillBadge pill={pill} />
           </LandscapeChrome>
         }
         sidebarSide="start"
@@ -117,7 +118,7 @@ export function OrbitViewPanel({
     if (!showDiagram)
       return (
         <PillFill>
-          <Badge tone={pill.tone}>{pill.label}</Badge>
+          <PillBadge pill={pill} />
         </PillFill>
       );
     if (withheld) return <TrajectoryWithheld withheld={withheld} />;
@@ -153,3 +154,15 @@ export function OrbitViewPanel({
 }
 
 const DIAGRAM_FRAME = { flex: 1, minHeight: 0 } as const;
+
+/** The regime pill, with what it waits for on its tooltip where it has no answer yet. */
+function PillBadge({ pill }: Readonly<{ pill: OrbitPill }>) {
+  const badge = <Badge tone={pill.tone}>{pill.label}</Badge>;
+  return pill.title === undefined ? (
+    badge
+  ) : (
+    <Tooltip text={pill.title} focusable>
+      {badge}
+    </Tooltip>
+  );
+}
