@@ -1,4 +1,8 @@
-import { ANALYTIC_BODY_HORIZON } from "@ksp-gonogo/sitrep-client";
+import {
+  ANALYTIC_BODY_HORIZON,
+  type BodyPose,
+  type BodyPoseCurrency,
+} from "@ksp-gonogo/sitrep-client";
 import { describe, expect, it } from "vitest";
 import { placeBodies } from "./diagramGeometry";
 import { INERTIAL_PLACEMENT } from "./projection";
@@ -77,5 +81,33 @@ describe("placeBodies", () => {
   it("leaves out a body whose orbit lacks an element, however its pose reads", () => {
     expect(place([body(1, { semiMajorAxis: null })]).bodies).toEqual([]);
     expect(place([body(2, { lan: null })]).bodies).toEqual([]);
+  });
+
+  it("says which bodies are placed from a held pose, so the mark can say it is old", () => {
+    const pose = (index: number, currency: BodyPoseCurrency): BodyPose => ({
+      index,
+      currency,
+      atUt: 100,
+      asOfUt: currency === "held" ? 100 : null,
+      untilUt: null,
+      position: [0, 0, 0],
+      velocity: [0, 0, 0],
+      trueAnomaly: 30,
+    });
+    const placed = placeBodies({
+      parent: null,
+      children: [body(1), body(2)],
+      poses: {
+        ut: 200,
+        poseByIndex: { 1: pose(1, "held"), 2: pose(2, "exact") },
+      },
+      placement: INERTIAL_PLACEMENT,
+      plotScale: 1e-5,
+    }).bodies;
+
+    expect(placed.map((p) => [p.body.index, p.held])).toEqual([
+      [1, true],
+      [2, false],
+    ]);
   });
 });

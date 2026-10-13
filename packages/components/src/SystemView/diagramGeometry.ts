@@ -43,6 +43,8 @@ export interface PlacedPoint {
 
 export interface PlacedBody extends PlacedPoint, PlacedRing {
   body: CelestialBody;
+  /** Whether the body is placed from a held pose, the last place known for it rather than where it is now. */
+  held: boolean;
 }
 
 /** Where an open arc stops, in plot units, and the way it was heading there. */
@@ -298,6 +300,7 @@ export function placeBodies({
       return [
         {
           body: c,
+          held: poses?.poseByIndex[c.index]?.currency === "held",
           ...placedPointOf(
             placement,
             plotScale,
