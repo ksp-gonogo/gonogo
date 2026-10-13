@@ -3,8 +3,8 @@ import {
   Badge,
   NULL_DISPLAY,
   type ReckoningMarking,
+  Text,
   ToggleButton,
-  Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { type HeldSince, heldFigure } from "../shared/heldFigure";
@@ -30,17 +30,6 @@ import {
 } from "./styles";
 import { type ReachEntry, reachVerdict } from "./transferData";
 
-/** Why a budget figure is missing: the game confirmed it has none, none has arrived yet, or what arrived is not a number. */
-export type BudgetGap = "absent" | "pending" | "unusable";
-
-const BUDGET_GAP_TIP: Record<BudgetGap, string> = {
-  absent:
-    "The game has no delta-v figure for this craft right now, so destinations show cost only",
-  pending: "Waiting for the craft's delta-v",
-  unusable:
-    "The game returned a delta-v figure that cannot be used, so destinations show cost only",
-};
-
 /**
  * The reach list: which destinations this craft can get to on its current
  * budget, cheapest first. The verdict column is dropped when there is no budget:
@@ -55,7 +44,7 @@ export function ReachList({
   selectedIndex,
   onSelect,
   budgetHeldSince,
-  budgetGap,
+  budgetConfirmedAbsent,
   orbitMarking,
 }: {
   entries: ReachEntry[];
@@ -67,8 +56,7 @@ export function ReachList({
   selectedIndex: number;
   onSelect: (bodyIndex: number) => void;
   budgetHeldSince: HeldSince;
-  /** Why there is no budget figure, or null when there is one. */
-  budgetGap: BudgetGap | null;
+  budgetConfirmedAbsent: boolean;
   /** Each destination's Δv is costed from the parking orbit, so it takes the orbit's mark. */
   orbitMarking: ReckoningMarking | null;
 }) {
@@ -80,14 +68,6 @@ export function ReachList({
       <ReachHead>
         <ListTitle id="reach-caption">Reach from {originName}</ListTitle>
         {/* The budget sits directly above the verdicts it produced, the funds-readout rule; `vac` stays because the ISP assumption is part of the figure. */}
-        {budgetGap !== null && (
-          <BudgetReadout>
-            <Muted>Budget</Muted>{" "}
-            <Tooltip text={BUDGET_GAP_TIP[budgetGap]}>
-              <Muted tabIndex={0}>{NULL_DISPLAY}</Muted>
-            </Tooltip>
-          </BudgetReadout>
-        )}
         {budgetDeltaV != null && (
           <BudgetReadout>
             <Muted>Budget</Muted>{" "}
@@ -105,6 +85,13 @@ export function ReachList({
           </BudgetReadout>
         )}
       </ReachHead>
+      {/* Confirmed-absent means the stock sim has nothing, which is not the same as nothing heard. */}
+      {budgetConfirmedAbsent && (
+        <Text tone="warn" size="xs" role="status" aria-live="polite">
+          No Δv figure for this craft: the stock simulation reports none, so
+          costs are shown without a verdict.
+        </Text>
+      )}
       <ReachScroll>
         <ReachTable aria-describedby="reach-caption">
           <thead>

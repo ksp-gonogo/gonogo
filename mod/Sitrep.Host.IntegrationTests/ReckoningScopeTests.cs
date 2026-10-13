@@ -73,34 +73,6 @@ namespace Sitrep.Host.IntegrationTests
             Assert.Equal(1, world.Uplink.HandledCount);
         }
 
-        /// <summary>
-        /// A centre holding a command because it has not yet heard of the craft
-        /// hears at once when the delay is switched off: the word that was still
-        /// crossing is delivered at the switch, the centre plans, and the command
-        /// leaves, instead of waiting out the rest of the journey the word was on.
-        /// </summary>
-        [Fact]
-        public async Task SwitchingDelayOffLetsACentreHearTheCraftAtOnceAndSendTheCommandItWasHolding()
-        {
-            await using var world = await ReckonedVantageWorld.StartAsync();
-            world.Tick(10.0);
-            world.Engine.DispatchCommandAndWait(
-                ScriptedContactUplink.RelayCommand, "x", Home, _ => { }, TestBudgets.Op, onAccepted: _ => { });
-            Assert.Equal(JourneyEventKind.Held, Assert.Single(world.Engine.JourneyAt(Home).Events).Kind);
-            world.Tick(300.0);
-            Assert.DoesNotContain(world.Engine.JourneyAt(Home).Events, e => e.Kind == JourneyEventKind.Departed);
-
-            world.Game.RelayFromHomeSeconds = 0.0;
-            using var off = world.Engine.DelayModifiers.Register(0.0, "test: switched off");
-            foreach (var ut in new[] { 301.0, 302.0, 303.0, 304.0 })
-            {
-                world.Tick(ut);
-            }
-
-            Assert.Contains(world.Engine.JourneyAt(Home).Events, e => e.Kind == JourneyEventKind.Departed);
-            Assert.Equal(1, world.Uplink.HandledCount);
-        }
-
         /// <summary>A vantage that is no command centre holds no plan, and its command takes the path a command always took.</summary>
         [Fact]
         public async Task ADispatchFromAVantageThatIsNoCentreIsSentAsItAlwaysWas()

@@ -2,51 +2,29 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { EMPTY_NOTES_SNAPSHOT, type Note, type NotesSnapshot } from "./types";
 
-const STORAGE_KEY = "gonogo.notes.v2";
-const LEGACY_STORAGE_KEY = "gonogo.notes.v1";
+const STORAGE_KEY = "gonogo.notes.v1";
 
 type Listener = (snap: NotesSnapshot) => void;
 
-export type NoteResult = { ok: true } | { ok: false; current: Note | null };
-
 /**
- * Main-screen owner of the mission notes, one list per command centre. Holds
- * the canonical state, persists to localStorage so notes survive a refresh,
- * and emits the changed centre's snapshot to subscribers. The peer bridge fans
- * a snapshot out to the stations at that centre and routes their changes back
- * through the public mutator API.
- *
- * A change to an existing note names the version the sender last saw and is
- * refused when the note has moved on, so a second edit never silently replaces
- * the first.
+ * Main-screen owner of the mission notes list. Holds the canonical state,
+ * persists to localStorage so notes survive a refresh, and emits to
+ * subscribers whenever the list changes. The peer bridge fans the snapshot
+ * out to stations and routes mutations back through the public mutator API.
  */
 export class NotesHostService {
-  private centres = new Map<string, Note[]>();
-  /** The pre-centre list, held until a centre exists to give it to. */
-  private legacy: Note[] | null = null;
+  private notes: Note[] = [];
   private listeners = new Set<Listener>();
   private nowFn: () => number;
 
-  constructor(
-    opts: {
-      now?: () => number;
-      /** Seeds the lists, keyed by centre id; replaces what storage holds. */
-      load?: () => Record<string, Note[]> | null;
-    } = {},
-  ) {
+  constructor(opts: { now?: () => number; load?: () => Note[] | null } = {}) {
     this.nowFn = opts.now ?? (() => Date.now());
     const loaded = opts.load ? opts.load() : this.loadFromStorage();
-    if (loaded) {
-      for (const [centreId, notes] of Object.entries(loaded)) {
-        this.centres.set(centreId, [...notes]);
-      }
-    }
-    if (!opts.load) this.legacy = this.loadLegacy();
+    if (loaded) this.notes = [...loaded];
   }
 
-  snapshot(centreId: string | null): NotesSnapshot {
-    if (centreId === null) return EMPTY_NOTES_SNAPSHOT;
-    return { centreId, notes: this.centres.get(centreId) ?? [] };
+  snapshot(): NotesSnapshot {
+    return { notes: this.notes };
   }
 
   subscribe(listener: Listener): () => void {
@@ -54,97 +32,48 @@ export class NotesHostService {
     return () => this.listeners.delete(listener);
   }
 
-  /**
-   * Gives the list from before notes were kept per centre to `centreId`, once.
-   * Called with the first centre a screen resolves; until then the list waits
-   * in storage, never in a centre of its own.
-   */
-  adoptLegacy(centreId: string): void {
-    if (this.legacy === null) return;
-    const adopted = this.legacy;
-    this.legacy = null;
-    const existing = this.centres.get(centreId) ?? [];
-    this.centres.set(centreId, [...existing, ...adopted]);
-    this.persistAndEmit(centreId);
-    this.dropLegacy();
-  }
-
-  addNote(centreId: string, input: { body: string; createdBy?: string }): Note {
+  addNote(input: { body: string; createdBy?: string }): Note {
     const now = this.nowFn();
-    const list = this.centres.get(centreId) ?? [];
     const note: Note = {
       id: safeRandomUuid(),
       body: input.body,
-      order: nextOrder(list),
-      version: 1,
+      order: this.nextOrder(),
       createdAt: now,
       updatedAt: now,
       createdBy: input.createdBy,
     };
-    this.centres.set(centreId, [...list, note]);
-    this.persistAndEmit(centreId);
+    this.notes = [...this.notes, note];
+    this.persistAndEmit();
     return note;
   }
 
-  updateNote(
-    centreId: string,
-    id: string,
-    body: string,
-    baseVersion: number,
-  ): NoteResult {
-    const list = this.centres.get(centreId) ?? [];
-    const idx = list.findIndex((n) => n.id === id);
-    if (idx < 0) return { ok: false, current: null };
-    const current = list[idx];
-    if (current.version !== baseVersion) return { ok: false, current };
-    if (current.body === body) return { ok: true };
-    const next = [...list];
-    next[idx] = {
-      ...current,
-      body,
-      version: current.version + 1,
-      updatedAt: this.nowFn(),
-    };
-    this.centres.set(centreId, next);
-    this.persistAndEmit(centreId);
-    return { ok: true };
+  updateNote(id: string, body: string): void {
+    const idx = this.notes.findIndex((n) => n.id === id);
+    if (idx < 0) return;
+    if (this.notes[idx].body === body) return;
+    const next = [...this.notes];
+    next[idx] = { ...next[idx], body, updatedAt: this.nowFn() };
+    this.notes = next;
+    this.persistAndEmit();
   }
 
-  deleteNote(centreId: string, id: string, baseVersion: number): NoteResult {
-    const list = this.centres.get(centreId) ?? [];
-    const current = list.find((n) => n.id === id);
-    if (!current) return { ok: false, current: null };
-    if (current.version !== baseVersion) return { ok: false, current };
-    this.centres.set(
-      centreId,
-      list.filter((n) => n.id !== id),
-    );
-    this.persistAndEmit(centreId);
-    return { ok: true };
+  deleteNote(id: string): void {
+    const before = this.notes.length;
+    this.notes = this.notes.filter((n) => n.id !== id);
+    if (this.notes.length === before) return;
+    this.persistAndEmit();
   }
 
   /**
    * Reorder `id` to land directly after `afterId` (or first when null).
    * Recomputes orders densely so two reorders never collide on equal
-   * `order` values. Only the moved note's version advances.
+   * `order` values.
    */
-  reorderNote(
-    centreId: string,
-    id: string,
-    afterId: string | null,
-    baseVersion: number,
-  ): NoteResult {
-    const list = this.centres.get(centreId) ?? [];
-    const found = list.find((n) => n.id === id);
-    if (!found) return { ok: false, current: null };
-    if (found.version !== baseVersion) return { ok: false, current: found };
-    if (afterId === id) return { ok: true };
-    const subject: Note = {
-      ...found,
-      version: found.version + 1,
-      updatedAt: this.nowFn(),
-    };
-    const remaining = list
+  reorderNote(id: string, afterId: string | null): void {
+    const subject = this.notes.find((n) => n.id === id);
+    if (!subject) return;
+    if (afterId === id) return;
+    const remaining = this.notes
       .filter((n) => n.id !== id)
       .sort((a, b) => a.order - b.order);
     let inserted = false;
@@ -161,27 +90,35 @@ export class NotesHostService {
       }
     }
     if (!inserted) next.push(subject);
-    this.centres.set(
-      centreId,
-      next.map((n, i) => ({ ...n, order: i })),
-    );
-    this.persistAndEmit(centreId);
-    return { ok: true };
+    this.notes = next.map((n, i) => ({ ...n, order: i }));
+    this.persistAndEmit();
   }
 
-  private persistAndEmit(centreId: string): void {
+  /**
+   * Replace every note's body wholesale. Test-only convenience for
+   * round-tripping snapshots from storage; not exposed to the peer
+   * protocol.
+   */
+  replaceForTesting(notes: readonly Note[]): void {
+    this.notes = [...notes];
+    this.persistAndEmit();
+  }
+
+  private nextOrder(): number {
+    if (this.notes.length === 0) return 0;
+    return Math.max(...this.notes.map((n) => n.order)) + 1;
+  }
+
+  private persistAndEmit(): void {
     this.persistToStorage();
-    const snap = this.snapshot(centreId);
+    const snap = this.snapshot();
     for (const l of this.listeners) l(snap);
   }
 
   private persistToStorage(): void {
     if (typeof localStorage === "undefined") return;
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify(Object.fromEntries(this.centres)),
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.notes));
     } catch (err) {
       logger.warn("[notes] persist failed", {
         error: err instanceof Error ? err.message : String(err),
@@ -189,20 +126,21 @@ export class NotesHostService {
     }
   }
 
-  private loadFromStorage(): Record<string, Note[]> | null {
+  private loadFromStorage(): Note[] | null {
     if (typeof localStorage === "undefined") return null;
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       const parsed: unknown = JSON.parse(raw);
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        return null;
-      }
-      const out: Record<string, Note[]> = {};
-      for (const [centreId, rows] of Object.entries(parsed)) {
-        if (Array.isArray(rows)) out[centreId] = validNotes(rows);
-      }
-      return out;
+      if (!Array.isArray(parsed)) return null;
+      const rows: Note[] = parsed;
+      return rows.filter(
+        (n) =>
+          n &&
+          typeof n.id === "string" &&
+          typeof n.body === "string" &&
+          typeof n.order === "number",
+      );
     } catch (err) {
       logger.warn("[notes] load failed", {
         error: err instanceof Error ? err.message : String(err),
@@ -210,59 +148,6 @@ export class NotesHostService {
       return null;
     }
   }
-
-  private loadLegacy(): Note[] | null {
-    if (typeof localStorage === "undefined") return null;
-    try {
-      const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (!raw) return null;
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return null;
-      const notes = validNotes(parsed);
-      return notes.length > 0 ? notes : null;
-    } catch {
-      return null;
-    }
-  }
-
-  private dropLegacy(): void {
-    if (typeof localStorage === "undefined") return;
-    try {
-      localStorage.removeItem(LEGACY_STORAGE_KEY);
-    } catch {
-      /* storage refused; the list is already in its centre */
-    }
-  }
-}
-
-function nextOrder(list: readonly Note[]): number {
-  if (list.length === 0) return 0;
-  return Math.max(...list.map((n) => n.order)) + 1;
-}
-
-/** Rows that carry the fields a note needs; a missing version counts as the first. */
-function validNotes(rows: readonly unknown[]): Note[] {
-  const out: Note[] = [];
-  for (const row of rows) {
-    if (!row || typeof row !== "object") continue;
-    const n = row as Partial<Note>;
-    if (
-      typeof n.id !== "string" ||
-      typeof n.body !== "string" ||
-      typeof n.order !== "number"
-    )
-      continue;
-    out.push({
-      id: n.id,
-      body: n.body,
-      order: n.order,
-      version: typeof n.version === "number" ? n.version : 1,
-      createdAt: typeof n.createdAt === "number" ? n.createdAt : 0,
-      updatedAt: typeof n.updatedAt === "number" ? n.updatedAt : 0,
-      createdBy: n.createdBy,
-    });
-  }
-  return out;
 }
 
 export { EMPTY_NOTES_SNAPSHOT };

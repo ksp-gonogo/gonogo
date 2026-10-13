@@ -302,41 +302,20 @@ export type PeerMessage =
   // optimistically reload after every RPC.
   | { type: "flight-list-changed" }
   // ──────────────────────────────────────────────────────────────────────
-  // Mission notes: the host owns one list per command centre and sends each
-  // station the list of the centre it stands at, in full, on every change.
-  // Stations send mutations as `note-add`, `note-update`, `note-delete`,
-  // `note-reorder`; the host applies them and answers the sender with
-  // `note-result`. Templated `{{key.path}}` tags inside `body` are
+  // Mission notes: host owns the canonical list and broadcasts the full
+  // snapshot on every change. Stations send mutations as `note-add`,
+  // `note-update`, `note-delete`, `note-reorder`; the host applies them and
+  // re-broadcasts. Templated `{{key.path}}` tags inside `body` are
   // resolved client-side at render time against the local data feed.
   // ──────────────────────────────────────────────────────────────────────
   | {
       type: "notes-snapshot";
       snapshot: import("../notes/types").NotesSnapshot;
     }
-  | { type: "note-add"; ref: string; body: string }
-  | {
-      type: "note-update";
-      ref: string;
-      id: string;
-      body: string;
-      baseVersion: number;
-    }
-  | { type: "note-delete"; ref: string; id: string; baseVersion: number }
-  | {
-      type: "note-reorder";
-      ref: string;
-      id: string;
-      afterId: string | null;
-      baseVersion: number;
-    }
-  // Host → the one station that sent the mutation `ref`. A refusal carries
-  // the note as the host now holds it, or null when it no longer exists.
-  | {
-      type: "note-result";
-      ref: string;
-      ok: boolean;
-      current?: import("../notes/types").Note | null;
-    }
+  | { type: "note-add"; body: string }
+  | { type: "note-update"; id: string; body: string }
+  | { type: "note-delete"; id: string }
+  | { type: "note-reorder"; id: string; afterId: string | null }
 
   // ──────────────────────────────────────────────────────────────────────
   // Sitrep telemetry-stream forwarding. The host taps its own

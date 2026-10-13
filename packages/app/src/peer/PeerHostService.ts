@@ -292,10 +292,7 @@ type NoteUpdateListener = (
   peerId: string,
   msg: Extract<PeerMessage, { type: "note-update" }>,
 ) => void;
-type NoteDeleteListener = (
-  peerId: string,
-  msg: Extract<PeerMessage, { type: "note-delete" }>,
-) => void;
+type NoteDeleteListener = (peerId: string, id: string) => void;
 type NoteReorderListener = (
   peerId: string,
   msg: Extract<PeerMessage, { type: "note-reorder" }>,
@@ -333,7 +330,6 @@ type HostEventMap = {
   noteUpdate: Parameters<NoteUpdateListener>;
   noteDelete: Parameters<NoteDeleteListener>;
   noteReorder: Parameters<NoteReorderListener>;
-  centresChanged: [];
 };
 
 export class PeerHostService {
@@ -1196,7 +1192,6 @@ export class PeerHostService {
     this.connVantage.set(conn, vantage);
     for (const topic of claimed) this.retainSitrepSub(conn, topic);
     this.announceRequestedVantages();
-    this.events.emit("centresChanged");
   }
 
   /** Tell whoever owns the upstream sessions which vantages are wanted now. */
@@ -1352,38 +1347,6 @@ export class PeerHostService {
     if (this.commandCentre === centreId) return;
     this.commandCentre = centreId;
     this.broadcast({ type: "host-command-centre", centreId });
-    this.events.emit("centresChanged");
-  }
-
-  /** The command centre this screen stands at, or null before one is known. */
-  getCommandCentre(): string | null {
-    return this.commandCentre;
-  }
-
-  /**
-   * The command centre the connection `peerId` stands at: the vantage it asked
-   * for, else the host's own centre. Null when neither is known yet, or when
-   * the peer is not connected.
-   */
-  centreOf(peerId: string): string | null {
-    const conn = this.findConnByPeerId(peerId);
-    if (!conn) return null;
-    const vantage = this.vantageOf(conn);
-    return vantage === HOST_SESSION ? this.commandCentre : vantage;
-  }
-
-  /** Every connected peer id, for whatever fans a message out by centre. */
-  connectedPeerIds(): string[] {
-    return [...this.connections].map((c) => c.peer);
-  }
-
-  /**
-   * Fires when the centre of the host, or of any connection, may have changed:
-   * a station chose a vantage, or the host moved and its followers moved with
-   * it.
-   */
-  onCentresChanged(cb: () => void): () => void {
-    return this.events.on("centresChanged", cb);
   }
 
   /** Current retained consent: exposed for the heartbeat re-assert and
@@ -1652,7 +1615,7 @@ export class PeerHostService {
       this.events.emit("noteUpdate", conn.peer, msg);
     },
     "note-delete": (msg, conn) => {
-      this.events.emit("noteDelete", conn.peer, msg);
+      this.events.emit("noteDelete", conn.peer, msg.id);
     },
     "note-reorder": (msg, conn) => {
       this.events.emit("noteReorder", conn.peer, msg);

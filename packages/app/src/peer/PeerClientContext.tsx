@@ -26,7 +26,6 @@ export type PeerClient = Pick<
   | "sendWidgetPush"
   | "sendWidgetRecall"
   | "onNotesSnapshot"
-  | "onNoteResult"
   | "sendNoteAdd"
   | "sendNoteUpdate"
   | "sendNoteDelete"

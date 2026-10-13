@@ -40,7 +40,7 @@ import {
 import { bodyLabel, STATUS_LABEL, STATUS_SEVERITY } from "./labels";
 import { PhaseDial } from "./PhaseDial";
 import { Porkchop } from "./Porkchop";
-import { type BudgetGap, ReachList } from "./ReachList";
+import { ReachList } from "./ReachList";
 import {
   Body,
   ContentGrid,
@@ -130,15 +130,7 @@ function TransferWindowComponent({
   const budgetHeldSince: HeldSince = budgetHeld
     ? { asOfUt: budget?.budget.asOfUt }
     : null;
-  /* A figure, or why there is none: told apart because each reads differently to the operator. A summary that arrived with no usable total is not the same as one that never came. */
-  const budgetGap: BudgetGap | null =
-    budgetDeltaV != null
-      ? null
-      : budget?.budget.confirmedAbsent
-        ? "absent"
-        : budget === undefined || budget.budget.state === "pending"
-          ? "pending"
-          : "unusable";
+  const budgetConfirmedAbsent = budget?.budget.confirmedAbsent ?? false;
   const createAlarm = useAlarmCreator<TimeTrigger>();
 
   const origin = bodyAtIndex(facts, orbit?.referenceBodyIndex);
@@ -334,7 +326,7 @@ function TransferWindowComponent({
               selectedIndex={dest.index}
               onSelect={setDestIndex}
               budgetHeldSince={budgetHeldSince}
-              budgetGap={budgetGap}
+              budgetConfirmedAbsent={budgetConfirmedAbsent}
               orbitMarking={orbitMarking}
             />
             {/* Container-queried on the body's own width. Renders whether or not a transfer solves, so the destination select stays reachable. */}
