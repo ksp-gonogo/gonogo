@@ -9555,6 +9555,10 @@
         "note": "Gains an optional replayed argument: a replayed sample anchors the estimate only when it is the newest delivery seen"
       },
       {
+        "key": "sitrep-sdk ./testing harnessTheme",
+        "note": "the test theme follows the trimmed theme contract: no borders, weights or letter spacings"
+      },
+      {
         "key": "sitrep-sdk ./testing ~ActionGroupSlotContext#held",
         "note": "ActionGroupSlotContext carries the reading its telemetry figures were drawn from, so an augment can draw them held"
       },
@@ -10143,12 +10147,36 @@
         "note": "the label prop is aria-label everywhere; Dial and Tape require it"
       },
       {
+        "key": "ui-kit . ThemeBorders",
+        "note": "removed: a theme sets CSS variables, and borders were composed from colours the theme already sets"
+      },
+      {
+        "key": "ui-kit . ThemeBorders#strong",
+        "note": "removed: a theme sets CSS variables, and borders were composed from colours the theme already sets"
+      },
+      {
+        "key": "ui-kit . ThemeBorders#subtle",
+        "note": "removed: a theme sets CSS variables, and borders were composed from colours the theme already sets"
+      },
+      {
+        "key": "ui-kit . ThemeTypography#letterSpacing",
+        "note": "removed: no kit variable carries it, so it drove nothing"
+      },
+      {
+        "key": "ui-kit . ThemeTypography#weight",
+        "note": "removed: no kit variable carries it, so it drove nothing"
+      },
+      {
         "key": "ui-kit . ToggleButtonProps#active?",
         "note": "renamed to pressed, matching Button and IconButton"
       },
       {
         "key": "ui-kit . UI_KIT_VERSION",
         "note": "Removed. It was a hand-typed copy of the package version that the app refused clients against, and a release never moved it, so every client built against a published kit was refused. The kit's surface is covered by EXTENSION_API_VERSION"
+      },
+      {
+        "key": "ui-kit . UiKitTheme#borders",
+        "note": "removed with ThemeBorders"
       },
       {
         "key": "ui-kit . Unit",
@@ -11097,18 +11125,6 @@
         "note": "The one kit-wide tiny size, 3x3, which every widget with a tiny mode shrinks to"
       },
       {
-        "key": "sitrep-sdk . ThemeBorders",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk . ThemeBorders#strong",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk . ThemeBorders#subtle",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
         "key": "sitrep-sdk . ThemeColors",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
@@ -11141,15 +11157,7 @@
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
-        "key": "sitrep-sdk . ThemeTypography#letterSpacing",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
         "key": "sitrep-sdk . ThemeTypography#size",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk . ThemeTypography#weight",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
@@ -11178,10 +11186,6 @@
       },
       {
         "key": "sitrep-sdk . UiKitTheme",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk . UiKitTheme#borders",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
@@ -12625,18 +12629,6 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the type itself is unchanged"
       },
       {
-        "key": "sitrep-sdk ./registry ~ThemeBorders",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ThemeBorders#strong",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ThemeBorders#subtle",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
         "key": "sitrep-sdk ./registry ~ThemeColors",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
@@ -12669,15 +12661,7 @@
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
-        "key": "sitrep-sdk ./registry ~ThemeTypography#letterSpacing",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
         "key": "sitrep-sdk ./registry ~ThemeTypography#size",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~ThemeTypography#weight",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
@@ -12702,10 +12686,6 @@
       },
       {
         "key": "sitrep-sdk ./registry ~UiKitTheme",
-        "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~UiKitTheme#borders",
         "note": "Theme contract type moved into the sdk from the private theme package, and re-exported by ui-kit"
       },
       {
@@ -14807,6 +14787,22 @@
       {
         "key": "ui-kit . ToggleButtonProps#pressed?",
         "note": "toggle state is pressed on Button, ToggleButton and IconButton"
+      },
+      {
+        "key": "ui-kit . UiKitThemeProvider",
+        "note": "New: writes a theme's colours and type onto the kit's CSS variables, so a registered theme recolours every widget and a switch reaches them"
+      },
+      {
+        "key": "ui-kit . UiKitThemeProviderProps",
+        "note": "New: props of UiKitThemeProvider"
+      },
+      {
+        "key": "ui-kit . UiKitThemeProviderProps#children?",
+        "note": "New: props of UiKitThemeProvider"
+      },
+      {
+        "key": "ui-kit . UiKitThemeProviderProps#theme",
+        "note": "New: props of UiKitThemeProvider"
       },
       {
         "key": "ui-kit . UnitProps#elsewhere?",

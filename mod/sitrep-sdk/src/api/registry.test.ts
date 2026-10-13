@@ -61,15 +61,7 @@ const mockTheme: ThemeDefinition = {
     typography: {
       family: { mono: "monospace" },
       size: { xs: "10px", sm: "12px", base: "14px", lg: "16px" },
-      weight: { regular: 400, bold: 700 },
-      letterSpacing: {
-        tight: "-0.01em",
-        label: "0.1em",
-        wide: "0.2em",
-        body: "0",
-      },
     },
-    borders: { subtle: "1px solid #222", strong: "1px solid #444" },
   },
 };
 

@@ -23,8 +23,12 @@ export {
 } from "./DefaultThemeProvider";
 export { defaultDarkTheme } from "./defaultDarkTheme";
 export type {
-  ThemeBorders,
   ThemeColors,
   ThemeTypography,
   UiKitTheme,
 } from "./theme";
+export { THEME_VARIABLE_NAMES, themeVariables } from "./themeVariables";
+export {
+  UiKitThemeProvider,
+  type UiKitThemeProviderProps,
+} from "./UiKitThemeProvider";

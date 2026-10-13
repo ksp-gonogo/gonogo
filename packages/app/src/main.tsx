@@ -8,9 +8,9 @@ import {
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { ModalProvider } from "@ksp-gonogo/ui";
+import { UiKitThemeProvider } from "@ksp-gonogo/ui-kit";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ThemeProvider } from "styled-components";
 // Side-effect imports below trigger self-registration of built-in
 // extensions: themes (from @ksp-gonogo/ui), components (from @ksp-gonogo/components),
 // and data sources (from ./dataSources).
@@ -58,11 +58,11 @@ function renderApp(): void {
   createRoot(rootNode).render(
     <StrictMode>
       <ErrorBoundary>
-        <ThemeProvider theme={activeThemeValue}>
+        <UiKitThemeProvider theme={activeThemeValue}>
           <ModalProvider>
             <App />
           </ModalProvider>
-        </ThemeProvider>
+        </UiKitThemeProvider>
       </ErrorBoundary>
     </StrictMode>,
   );

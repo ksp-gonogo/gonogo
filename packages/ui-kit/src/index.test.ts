@@ -33,12 +33,6 @@ describe("ui-kit foundation", () => {
     expect(defaultDarkTheme.colors.focus).toBe("var(--color-focus)");
   });
 
-  it("carries the extended token scales the primitives depend on", () => {
-    expect(defaultDarkTheme.typography.letterSpacing.tight).toBe("0.05em");
-    expect(defaultDarkTheme.typography.letterSpacing.label).toBe("0.1em");
-    expect(defaultDarkTheme.typography.letterSpacing.wide).toBe("0.15em");
-  });
-
   it("points every size handle at a token the stylesheet declares", () => {
     // A `var()` naming a deleted token invalidates the declaration silently, so each must exist in the sheet.
     const tokens = readFileSync(

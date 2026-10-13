@@ -1,10 +1,10 @@
 /*
  * The theme contract: what a theme supplies, and what `ThemeDefinition.theme`
  * holds. Tokens are named by role so a palette change edits the value behind
- * the role instead of forcing a sweep across every consumer. Values are CSS
- * variable strings so the responsive overrides in tokens.css (coarse-pointer
- * bumps, prefers-reduced-motion) keep working when a component reads the theme
- * rather than the raw variable.
+ * the role instead of forcing a sweep across every consumer. Each token names
+ * the CSS variable of `@ksp-gonogo/ui-kit/tokens.css` that it sets: a theme
+ * provider writes the values onto those variables, and the kit draws from the
+ * variables, never from the theme object.
  *
  * The styled-components DefaultTheme augmentation lives in ui-kit's
  * src/styledComponentsTheme.ts, because an augmentation only applies where it
@@ -13,11 +13,10 @@
 
 /**
  * The colour half of a {@link UiKitTheme}. Tokens are named by role
- * (`text.muted`, `surface.raised`), not by hue, and each value is a CSS colour,
- * in the default theme a CSS variable string such as
- * `var(--color-text-muted)`.
- * Useful for colouring text, surfaces and borders by role, so a widget follows
- * the theme the operator has chosen.
+ * (`text.muted`, `surface.raised`), not by hue, and each value is a CSS colour
+ * that becomes the matching `--color-*` variable (`text.muted` sets
+ * `--color-text-muted`). Useful for colouring text, surfaces and borders by
+ * role, so every widget follows the theme the operator has chosen.
  *
  * @category Theme
  */
@@ -58,10 +57,10 @@ export interface ThemeColors {
 }
 
 /**
- * The type half of a {@link UiKitTheme}: the font family, a size scale, weights
- * and letter spacings. Sizes are CSS variable strings such as
- * `var(--font-size-base)`; weights are numbers.
- * Useful for setting type in every widget from one scale.
+ * The type half of a {@link UiKitTheme}: the font family and a size scale. Each
+ * value is a CSS value that becomes the matching `--font-family-*` or
+ * `--font-size-*` variable. Useful for setting type in every widget from one
+ * scale.
  *
  * @category Theme
  */
@@ -71,7 +70,7 @@ export interface ThemeTypography {
     /** The monospace family every widget is set in. */
     mono: string;
   };
-  /** The size scale, smallest first, each a CSS variable string. */
+  /** The size scale, smallest first, each a CSS length. */
   size: {
     /** The smallest step of the scale. */
     xs: string;
@@ -82,43 +81,11 @@ export interface ThemeTypography {
     /** One step above body text. */
     lg: string;
   };
-  /** The font weights, as numbers. */
-  weight: {
-    /** Body text. */
-    regular: number;
-    /** Emphasis. */
-    bold: number;
-  };
-  /** The letter spacings, as CSS lengths. */
-  letterSpacing: {
-    /** Subtle negative-to-zero tracking for dense running text. */
-    tight: string;
-    /** Wide tracking for uppercase labels and section headers. */
-    label: string;
-    /** Widest tracking for spaced-out captions and status chips. */
-    wide: string;
-    /** Neutral (no) tracking for body copy. */
-    body: string;
-  };
 }
 
 /**
- * Whole CSS `border` shorthands for a {@link UiKitTheme}, such as
- * `1px solid var(--color-border-subtle)`.
- * Useful for outlining panels and controls the same way in every widget.
- *
- * @category Theme
- */
-export interface ThemeBorders {
-  /** The quieter of the two borders, in the subtle border colour. */
-  subtle: string;
-  /** The more prominent of the two borders, in the strong border colour. */
-  strong: string;
-}
-
-/**
- * What a theme supplies: colour, type and borders. This is the object a theme
- * hands to styled-components' `ThemeProvider`, and what `theme` holds inside a
+ * What a theme supplies: colour and type. A theme provider writes each value
+ * onto its CSS variable, and the same object is what `theme` holds inside a
  * styled-components template.
  *
  * Spacing and corner radii are not part of a theme. They are CSS variables the
@@ -132,8 +99,6 @@ export interface ThemeBorders {
 export interface UiKitTheme {
   /** Every colour the kit draws with. */
   colors: ThemeColors;
-  /** The font family, sizes, weights and letter spacings. */
+  /** The font family and sizes. */
   typography: ThemeTypography;
-  /** The border shorthands. */
-  borders: ThemeBorders;
 }

@@ -163,7 +163,6 @@ export type {
   TargetingHudContext,
 } from "./slots";
 export type {
-  ThemeBorders,
   ThemeColors,
   ThemeTypography,
   UiKitTheme,

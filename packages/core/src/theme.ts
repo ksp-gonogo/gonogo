@@ -12,7 +12,6 @@
  * the theme packs compile without a rename sweep.
  */
 export type {
-  ThemeBorders,
   ThemeColors,
   ThemeTypography,
   UiKitTheme,

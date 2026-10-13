@@ -38,7 +38,6 @@ type Leaf = readonly [path: string, value: unknown];
 const THEME_GROUPS = {
   colors: true,
   typography: true,
-  borders: true,
 } as const satisfies Record<keyof UiKitTheme, true>;
 
 function leaves(node: unknown, path: string[] = []): Leaf[] {

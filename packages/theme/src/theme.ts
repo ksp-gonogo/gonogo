@@ -4,7 +4,6 @@
  * theme package's own name for them.
  */
 export type {
-  ThemeBorders,
   ThemeColors,
   ThemeTypography,
   UiKitTheme,

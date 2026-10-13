@@ -13,10 +13,11 @@ export type { AlertTone, Tone } from "@ksp-gonogo/sitrep-sdk";
 export {
   DefaultThemeProvider,
   defaultDarkTheme,
-  type ThemeBorders,
   type ThemeColors,
   type ThemeTypography,
   type UiKitTheme,
+  UiKitThemeProvider,
+  type UiKitThemeProviderProps,
 } from "@ksp-gonogo/theme";
 export {
   ActionMenu,

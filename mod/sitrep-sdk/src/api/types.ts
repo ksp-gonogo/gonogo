@@ -508,7 +508,9 @@ export interface ComponentDefinition<Config = Record<string, unknown>> {
 }
 
 /**
- * What {@link registerTheme} takes: a theme the operator can switch to. Useful
+ * What {@link registerTheme} takes: a theme the app can mount with
+ * `UiKitThemeProvider`, which writes its colours and type onto the kit's CSS
+ * variables, so every widget follows it and a switch reaches them all. Useful
  * for restyling every widget on the operator's screen at once.
  *
  * @category Registering

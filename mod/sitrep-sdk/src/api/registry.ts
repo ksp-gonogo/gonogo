@@ -198,7 +198,7 @@ export function unregisterDataSource(id: string): void {
 }
 
 /**
- * Adds a theme the operator can switch to. Theme ids are unique, and registering
+ * Adds a theme the app can mount with `UiKitThemeProvider`. Theme ids are unique, and registering
  * a second theme under an id already taken throws. Used by the app's default
  * dark theme.
  *

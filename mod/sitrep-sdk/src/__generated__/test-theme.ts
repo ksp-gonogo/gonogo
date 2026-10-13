@@ -54,20 +54,5 @@ export const GENERATED_TEST_THEME = {
       base: "var(--font-size-base)",
       lg: "var(--font-size-lg)",
     },
-    weight: {
-      regular: 400,
-      bold: 700,
-    },
-    letterSpacing: {
-      tight: "0.05em",
-      label: "0.1em",
-      wide: "0.15em",
-      body: "0",
-    },
-  },
-  /** Whole CSS border declarations, such as `1px solid var(--color-border-subtle)`. */
-  borders: {
-    subtle: "1px solid var(--color-border-subtle)",
-    strong: "1px solid var(--color-border-strong)",
   },
 } as const;

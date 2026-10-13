@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { ThemeProvider } from "styled-components";
 import { defaultDarkTheme } from "./defaultDarkTheme";
+import { UiKitThemeProvider } from "./UiKitThemeProvider";
 
 /**
  * Props for {@link DefaultThemeProvider}.
@@ -12,17 +12,14 @@ export interface DefaultThemeProviderProps {
 }
 
 /**
- * Mounts {@link defaultDarkTheme} in a styled-components `ThemeProvider`, the
- * same theme the app mounts. Useful for rendering a component outside the app
- * (a test, a story, a standalone page) whose own styles read `theme.colors`
+ * Mounts {@link defaultDarkTheme} through {@link UiKitThemeProvider}, the same
+ * theme the app mounts. Useful for rendering a component outside the app (a
+ * test, a story, a standalone page) whose own styles read `theme.colors`
  * through a styled-components callback.
  *
  * The kit's components draw from the CSS variables that
- * `@ksp-gonogo/ui-kit/tokens.css` defines and read nothing off the theme
- * context, so import that sheet once: without it every colour and size is
- * unset, whichever theme is mounted. The theme's values are those same
- * variables, so a styled-components callback reading `theme.colors` gets
- * `var(--color-...)` strings.
+ * `@ksp-gonogo/ui-kit/tokens.css` defines, so import that sheet once: without
+ * it every colour and size is unset, whichever theme is mounted.
  *
  * @example
  * ```tsx
@@ -43,5 +40,7 @@ export interface DefaultThemeProviderProps {
 export function DefaultThemeProvider({
   children,
 }: Readonly<DefaultThemeProviderProps>) {
-  return <ThemeProvider theme={defaultDarkTheme}>{children}</ThemeProvider>;
+  return (
+    <UiKitThemeProvider theme={defaultDarkTheme}>{children}</UiKitThemeProvider>
+  );
 }
