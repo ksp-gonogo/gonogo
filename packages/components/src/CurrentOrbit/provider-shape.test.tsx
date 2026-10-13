@@ -84,7 +84,7 @@ describe("CurrentOrbit draws the shape the provider states", () => {
   it("draws no curve at all when the producer states reach but not shape", async () => {
     const { container } = render({ ...LKO, horizon: UNBOUNDED_HORIZON });
     // `Unspecified` is what a producer that dropped the field sends, so it must not read as conic.
-    await waitForText(container, "SHAPE NOT STATED");
+    await waitForText(container, "NO DATA");
     expect(closedConics(container)).toBe(0);
     expect(container.querySelector("svg path[data-trajectory]")).toBeNull();
   });
@@ -92,14 +92,14 @@ describe("CurrentOrbit draws the shape the provider states", () => {
   it("draws no curve once the view instant runs past the integrator's horizon", async () => {
     // The fixture pins the view clock at UT 0, so a horizon in the PAST is the operator looking at an instant the provider has not computed.
     const { container } = render({ ...LKO, horizon: integratedHorizon(-100) });
-    await waitForText(container, "BEYOND INTEGRATION");
+    await waitForText(container, "CANNOT MODEL");
     expect(closedConics(container)).toBe(0);
   });
 
   it("keeps the numbers when the curve is refused", async () => {
     // A refusal is about the path; blanking the measured numbers would report an outage that has not happened.
     const { container } = render({ ...LKO, horizon: UNBOUNDED_HORIZON });
-    await waitForText(container, "SHAPE NOT STATED");
+    await waitForText(container, "NO DATA");
     const text = visibleText(container);
     expect(text).toContain("Ap");
     expect(text).toContain("Pe");

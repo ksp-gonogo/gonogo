@@ -347,7 +347,7 @@ describe("drawing an open orbit", () => {
     });
     expect(answer).toMatchObject({
       shape: "withheld",
-      reason: "no-arc-available",
+      declined: { reason: "model-inapplicable" },
     });
   });
 });

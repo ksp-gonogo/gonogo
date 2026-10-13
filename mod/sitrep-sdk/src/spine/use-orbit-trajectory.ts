@@ -44,8 +44,7 @@ function orbitKey(
  * How the vessel's path may be drawn at the instant on screen, for a
  * `vessel.orbit` value you have already read. Useful for drawing the orbit the
  * operator sees, as a conic, a sampled arc or a refusal with its reason. Used by
- * the system diagram, the map's telemetry, the orbit plane trajectory hook and
- * {@link TrajectoryWithheldNote}.
+ * the system diagram, the map's telemetry and the orbit plane trajectory hook.
  *
  * Pass the whole payload, horizon included: the horizon says how far ahead the
  * elements hold, and the answer will not reach past it. You decide which reading

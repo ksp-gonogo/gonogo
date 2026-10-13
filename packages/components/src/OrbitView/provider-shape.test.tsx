@@ -77,7 +77,7 @@ describe("OrbitView draws the shape the provider states", () => {
     );
     // `Unspecified` is what a producer that dropped the field sends, so it must not read as conic.
     await waitFor(() => {
-      if (!visibleText(container).includes("SHAPE NOT STATED")) {
+      if (!visibleText(container).includes("NO DATA")) {
         throw new Error("shape-refusal has not rendered yet");
       }
     });
@@ -92,7 +92,7 @@ describe("OrbitView draws the shape the provider states", () => {
       { ...LKO, horizon: integratedHorizon(-100) },
     );
     await waitFor(() => {
-      if (!visibleText(container).includes("BEYOND INTEGRATION")) {
+      if (!visibleText(container).includes("CANNOT MODEL")) {
         throw new Error("horizon-refusal has not rendered yet");
       }
     });
@@ -110,7 +110,7 @@ describe("OrbitView draws the shape the provider states", () => {
         throw new Error("status pill has not resolved yet");
       }
     });
-    expect(visibleText(container)).not.toContain("BEYOND INTEGRATION");
+    expect(visibleText(container)).not.toContain("CANNOT MODEL");
     expect(container.querySelector("svg")).toBeNull();
   });
 

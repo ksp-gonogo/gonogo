@@ -267,6 +267,7 @@ export {
   type DataTableProps,
   type DataTableSection,
 } from "./DataTable";
+export { DeclinedEmptyState, declinedState } from "./DeclinedEmptyState";
 export {
   Dial,
   type DialProps,
