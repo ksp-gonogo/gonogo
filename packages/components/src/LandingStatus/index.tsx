@@ -18,7 +18,7 @@ import {
   seaLevelOnRail,
 } from "./CarriedAltitude";
 import { CommitLayer, REGIME_LABEL, REGIME_TONE } from "./CommitLayer";
-import { CrashOutcome } from "./CrashOutcome";
+import { CrashLine, CrashOutcome } from "./CrashOutcome";
 import { DescentBoard } from "./DescentBoard";
 import {
   ComDatumNote,
@@ -108,6 +108,10 @@ function LandingStatusComponent({
   const showBoard = !recordOnly && (descending || flight !== undefined);
 
   // Each plot keeps its place through the whole descent: before its data arrives, and after it has no more to say, its frame stays and says so.
+  // With the board up the descent already keeps a row for the body, so the crash takes that row's place and nothing above the plots grows.
+  const crashInContext =
+    crash !== undefined && showBoard && bodyName !== undefined;
+  const bodyLine = `${bodyName} · ${atmospheric ? "atmospheric" : "vacuum"}`;
   const idle = crash
     ? "Crashed"
     : landed
@@ -234,7 +238,9 @@ function LandingStatusComponent({
         <Section key="link" full>
           <Stack>
             {commitLayerEl}
-            {crash && <CrashOutcome crash={crash} record={recordOnly} />}
+            {crash && !crashInContext && (
+              <CrashOutcome crash={crash} record={recordOnly} />
+            )}
             {showBoard && (
               <Text level="muted">
                 RT{" "}
@@ -255,9 +261,13 @@ function LandingStatusComponent({
         </Section>,
         bodyName !== undefined && !recordOnly ? (
           <Section key="context" full>
-            <Text level="muted" size="xs">
-              {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
-            </Text>
+            {crashInContext ? (
+              <CrashLine crash={crash} context={bodyLine} />
+            ) : (
+              <Text level="muted" size="xs">
+                {bodyLine}
+              </Text>
+            )}
           </Section>
         ) : null,
         /* Not a filling section: the readouts scroll with the panel body, and a section held to the leftover height would overflow past the body's bottom inset. */
