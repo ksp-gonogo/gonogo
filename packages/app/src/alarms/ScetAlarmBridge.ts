@@ -553,7 +553,7 @@ export class ScetAlarmBridge {
         subject: "game",
         condition: {
           kind: ScetAlarmConditionKind.ContractParameter,
-          contractId: String(trigger.contractId),
+          contractId: trigger.contractId,
           parameterTitle: trigger.parameterTitle,
           targetState:
             trigger.targetState === "Failed"

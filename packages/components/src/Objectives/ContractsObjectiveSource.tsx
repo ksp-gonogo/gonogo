@@ -26,23 +26,10 @@ export const contractsTopics = defineTopicManifest({
  */
 interface ContractParameterAlarmTrigger {
   kind: "contract-parameter";
-  contractId: number;
+  contractId: string;
   parameterTitle: string;
   targetState: "Complete" | "Failed";
   sustainSeconds: number;
-}
-
-/**
- * A contract id as a JS number when it fits the safe-integer range, else null.
- * Gates features that depend on the alarm system's `contractId: number`.
- */
-function contractIdToSafeNumber(id: string): number | null {
-  // Negative ids are valid; scientific notation would already be lossy.
-  if (!/^-?\d+$/.test(id)) return null;
-  const n = Number(id);
-  if (!Number.isFinite(n)) return null;
-  if (!Number.isSafeInteger(n)) return null;
-  return n;
 }
 
 /** `"Unknown"` reads as pending: it is never claimed as reached or failed. */
@@ -98,9 +85,8 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   if (items.length === 0) return null;
 
   const renderAlarm = (o: ObjectiveItem): ReactNode => {
-    if (o.state !== "pending" || !o.contractId || !createAlarm) return null;
-    const numericId = contractIdToSafeNumber(o.contractId);
-    if (numericId === null) return null;
+    const contractId = o.contractId;
+    if (o.state !== "pending" || !contractId || !createAlarm) return null;
     const existingId =
       alarmManager?.find((trigger) => {
         if (!trigger || typeof trigger !== "object" || Array.isArray(trigger))
@@ -108,7 +94,7 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
         const t = trigger as Record<string, unknown>;
         return (
           t.kind === "contract-parameter" &&
-          t.contractId === numericId &&
+          t.contractId === contractId &&
           t.parameterTitle === o.title
         );
       }) ?? null;
@@ -139,7 +125,7 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
               name: `${o.title} → Complete`,
               trigger: {
                 kind: "contract-parameter",
-                contractId: numericId,
+                contractId,
                 parameterTitle: o.title,
                 targetState: "Complete",
                 sustainSeconds: 0,
