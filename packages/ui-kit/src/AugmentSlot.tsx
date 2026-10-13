@@ -181,7 +181,7 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
  * present: the same check {@link AugmentSlot} makes before rendering it. Useful
  * for asking that question without rendering the augment, since an Uplink
  * client registers its augments whether or not its mod is running. Used by the
- * map view's vanilla suppression check.
+ * ground track widget's vanilla suppression check.
  *
  * @category Extensions
  */

@@ -207,7 +207,7 @@ function rotationPeriodOf(
 /**
  * The predicted point where the vessel will touch the surface, as a latitude and
  * longitude, or `null` when there is none to give. Useful for marking the
- * operator's predicted landing site on a map. Used by the map view's telemetry
+ * operator's predicted landing site on a map. Used by the ground track widget's telemetry
  * hook.
  *
  * `null` unless the vessel is descending (`verticalSpeed < 0`) toward terrain

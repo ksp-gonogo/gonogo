@@ -8371,6 +8371,38 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"ground-track.actions\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"ground-track.base\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"ground-track.overlay\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"ground-track.sections\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"map-view.actions\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"map-view.base\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"map-view.overlay\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"map-view.sections\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
         "key": "sitrep-sdk . SlotRegistry#\"rendezvous.camera\"",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
@@ -8565,6 +8597,14 @@
       {
         "key": "sitrep-sdk . UseCommandResult#sendStatus",
         "note": "what an order sent now would do, from the sending centre's comms.route and comms.nextLoss; required, so a hand-built handle must now carry it (undefined when nothing is known)"
+      },
+      {
+        "key": "sitrep-sdk . WidgetScopeRegistry#\"ground-track\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . WidgetScopeRegistry#\"map-view\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
       },
       {
         "key": "sitrep-sdk . defineUplinkClient",
@@ -9847,6 +9887,38 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.actions\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.base\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.overlay\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"ground-track.sections\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.actions\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.base\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.overlay\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"map-view.sections\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"rendezvous.camera\"",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
@@ -10251,6 +10323,38 @@
         "note": "The Admin Building widget is now Administration Building, so its slot ids and screen types take the new name"
       },
       {
+        "key": "ui-kit . SlotRegistry#\"ground-track.actions\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"ground-track.base\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"ground-track.overlay\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"ground-track.sections\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"map-view.actions\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"map-view.base\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"map-view.overlay\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"map-view.sections\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
+      },
+      {
         "key": "ui-kit . SlotRegistry#\"rendezvous.camera\"",
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
@@ -10357,6 +10461,14 @@
       {
         "key": "ui-kit . WithheldTrajectory",
         "note": "Moved to the sdk frames entry, beside OrbitTrajectory"
+      },
+      {
+        "key": "ui-kit . WidgetScopeRegistry#\"ground-track\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "ui-kit . WidgetScopeRegistry#\"map-view\"",
+        "note": "Removed with the rename of the Map View widget to Ground Track; its slot ids, scope key and scope type take the new name, with no alias"
       },
       {
         "key": "ui-kit . bandClaim",
@@ -11025,16 +11137,16 @@
         "note": "New: the latest instant a recorded sample is valid at"
       },
       {
+        "key": "sitrep-sdk . GroundTrackScope",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk . GroundTrackScope#bodyName",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
         "key": "sitrep-sdk . HEALTH_STATE_NAMES",
         "note": "published because UplinkHealthStateName is keyed on it"
-      },
-      {
-        "key": "sitrep-sdk . MapViewScope",
-        "note": "Exported by name, so a widget or augment reading this scope can name its type"
-      },
-      {
-        "key": "sitrep-sdk . MapViewScope#bodyName",
-        "note": "Exported by name, so a widget or augment reading this scope can name its type"
       },
       {
         "key": "sitrep-sdk . MissionMeta#firstValidUt?",
@@ -12709,6 +12821,22 @@
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.actions\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.base\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.overlay\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"ground-track.sections\"",
+        "note": "The Map View widget is now Ground Track, so its slot ids, scope key and scope type take the new name"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"landing-status.actions\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -12726,22 +12854,6 @@
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"maneuver-planner.sections\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.actions\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.base\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.overlay\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"map-view.sections\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {

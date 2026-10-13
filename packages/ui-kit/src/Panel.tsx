@@ -1525,7 +1525,7 @@ const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
  * `${componentId}.sections` slot, in priority order, skipping any whose
  * `requires` Domain is not present. The augments get no props. Useful for
  * placing the sections an Uplink adds to a widget somewhere the operator
- * expects them, such as inside a tab. Used by the map view and the space centre
+ * expects them, such as inside a tab. Used by the ground track widget and the space centre
  * status widget.
  *
  * {@link Panel} already mounts this at the end of its body, so a widget

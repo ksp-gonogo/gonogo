@@ -158,7 +158,7 @@ describe("PeerClientDataSource", () => {
 
     const schema = source.schema();
     expect(schema).toHaveLength(2);
-    // Critically, the label/unit/group are preserved, this is what drives the MapView config's grouped, searchable key picker on a station.
+    // Critically, the label/unit/group are preserved, this is what drives the GroundTrack config's grouped, searchable key picker on a station.
     expect(schema[0]).toMatchObject({
       key: "v.altitude",
       label: "Altitude",

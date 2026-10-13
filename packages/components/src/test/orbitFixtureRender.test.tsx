@@ -24,7 +24,7 @@ const FIXTURE_MODULES = import.meta.glob<{ default: Record<string, unknown> }>(
 const SEAM_WIDGETS = [
   "orbit-view",
   "current-orbit",
-  "map-view",
+  "ground-track",
   "system-view",
   "maneuver-planner",
 ] as const;
@@ -56,7 +56,7 @@ function fixturesFor(
 
 /**
  * The biggest mode that does not override config: a small cell renders no
- * diagram, so a refusal there is invisible. MapView's config modes pin a body
+ * diagram, so a refusal there is invisible. GroundTrack's config modes pin a body
  * the vessel is not at, removing the track for another reason.
  */
 function drawingMode(modes: readonly WidgetSnapshotMode[]): WidgetSnapshotMode {

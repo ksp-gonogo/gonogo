@@ -151,7 +151,7 @@ function notifyAugmentChange(): void {
  * Calls `cb` whenever an augment is registered or the registry is cleared.
  * Returns a function that unsubscribes. Useful for a widget that must redraw
  * when an Uplink adds content after the widget has mounted. Used by
- * {@link AugmentSlot} and by the map view's base layer list.
+ * {@link AugmentSlot} and by the ground track widget's base layer list.
  *
  * @category Extensions
  */
@@ -195,7 +195,7 @@ export function registerAugment<Slot extends string>(
  * (default 0), ties in registration order. It includes augments whose
  * `requires` Domain is absent; {@link AugmentSlot} applies that gate when it
  * renders. Useful for a widget that needs to know what Uplinks add to a slot
- * before it draws. Used by {@link AugmentSlot} and by the map view when it
+ * before it draws. Used by {@link AugmentSlot} and by the ground track widget when it
  * paints its base layers.
  *
  * @category Extensions
@@ -229,7 +229,7 @@ export function getAugments(): AnyAugment[] {
  * after its own settings; each block's `namespace` (the augment id) scopes its
  * fields in the widget instance's config. An Uplink that is not loaded adds no
  * block. Useful for showing the operator the settings Uplinks add to a widget.
- * Used by the map view's configuration form, which hands the result to
+ * Used by the ground track widget's configuration form, which hands the result to
  * {@link AugmentSettingsPanel}.
  *
  * @category Extensions

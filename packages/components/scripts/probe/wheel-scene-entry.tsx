@@ -1,6 +1,6 @@
 /**
  * A scrolling dashboard for recording wheel behaviour: filler blocks around a
- * System View tile and a Map View tile, mounted on one live provider, so a
+ * System View tile and a Ground Track tile, mounted on one live provider, so a
  * real wheel gesture can start on the page and carry over a diagram, or start
  * on a diagram. The widget library is imported by the generated entry that
  * bundles this file, so the same scene runs against any revision of it.
@@ -244,7 +244,7 @@ async function mountScene(): Promise<void> {
             h={7}
           />
           <Block height={360} label="Dashboard, between the diagrams" />
-          <Tile tileId="scene-map" id="map-view" config={{}} w={10} h={7} />
+          <Tile tileId="scene-map" id="ground-track" config={{}} w={10} h={7} />
           <Block height={360} label="Dashboard, between the diagrams" />
           <ShipTile />
           <Block height={1000} label="Dashboard, below the diagrams" />

@@ -107,7 +107,7 @@ describe("push-to-main round trip", () => {
     const pushMsg: PeerMessage = {
       type: "widget-push",
       widgetInstanceId: "map-instance-1",
-      componentId: "map-view",
+      componentId: "ground-track",
       config: stationConfig,
       width: 8,
       height: 6,
@@ -120,7 +120,7 @@ describe("push-to-main round trip", () => {
     expect(snap[0].config).toEqual(stationConfig);
     expect(snap[0].width).toBe(8);
     expect(snap[0].height).toBe(6);
-    expect(snap[0].componentId).toBe("map-view");
+    expect(snap[0].componentId).toBe("ground-track");
 
     pushHost.dispose();
   });
@@ -137,7 +137,7 @@ describe("push-to-main round trip", () => {
     conn.emit("data", {
       type: "widget-push",
       widgetInstanceId: "w",
-      componentId: "map-view",
+      componentId: "ground-track",
       config: { telemetryKeys: ["v.altitude"], trajectoryLength: 500 },
       width: 4,
       height: 3,
@@ -146,7 +146,7 @@ describe("push-to-main round trip", () => {
     conn.emit("data", {
       type: "widget-push",
       widgetInstanceId: "w",
-      componentId: "map-view",
+      componentId: "ground-track",
       config: { telemetryKeys: ["v.mach"], trajectoryLength: 1000 },
       width: 4,
       height: 3,

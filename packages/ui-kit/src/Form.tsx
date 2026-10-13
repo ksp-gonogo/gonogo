@@ -103,7 +103,7 @@ export const Field = styled.div`
 /**
  * A labelled control laid out horizontally: label on the left, control on the
  * right, vertically centred. Useful for a compact setting such as a switch or a
- * short value. Used by the map view's configuration form and the serial input
+ * short value. Used by the ground track widget's configuration form and the serial input
  * mapping tab. Pick {@link Field} instead when the control is wide, such as a
  * select or a text input, and wants the full width under its label.
  *
