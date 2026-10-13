@@ -145,15 +145,15 @@ describe("Navball dial fit", () => {
   });
 
   it("stacks all three rather than two-and-one on a column too narrow for three", () => {
-    // tiny 3x4's column is 78px; the layout must never depend on how many digits the attitude has.
+    // a narrow column of 78px; the layout must never depend on how many digits the attitude has.
     installSizedObserver(78, 85);
-    renderAt({ w: 3, h: 4 }, emitAttitude);
+    renderAt({ w: 4, h: 5 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
   });
 
   it("brings the readout back to three across when the column grows", () => {
     installSizedObserver(78, 85);
-    renderAt({ w: 3, h: 4 }, emitAttitude);
+    renderAt({ w: 4, h: 5 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
     reportSize(300, 85);
     expect(readoutShape()).toBe("three-across");
