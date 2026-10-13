@@ -230,7 +230,7 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "Twr/__fixtures__",
     outPath: "renders/twr-widget",
     modes: [
-      // Documented minimum: the figure alone in the frame, no trend strip.
+      // The tiny size: the ratio as a figure over a gauge, no title.
       { name: "small-3x3", w: 3, h: 3 },
       // Default: the gauge over its trend strip, in one frame.
       { name: "default-4x5", w: 4, h: 5 },
@@ -262,9 +262,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     fixturesPath: "SemiMajorAxis/__fixtures__",
     outPath: "renders/semi-major-axis-widget",
     modes: [
-      // No subtitle, no sparkline: value only.
+      // The tiny size: the figure and its unit, no title.
       { name: "tiny-3x3", w: 3, h: 3 },
-      // Sparkline appears (cols≥3, rows≥4), subtitle still suppressed (cols<4).
+      // One column short of the body: still the tiny form.
       { name: "narrow-3x4", w: 3, h: 4 },
       // Default: subtitle + sparkline both visible.
       { name: "default-4x4", w: 4, h: 4 },

@@ -1,7 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { plotColumnsOf } from "@ksp-gonogo/data";
-import { combineReadings, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  combineReadings,
+  type TinyEssential,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline } from "@ksp-gonogo/ui";
 import {
   Dial,
@@ -15,19 +19,20 @@ import {
 import { useMemo } from "react";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
-import { GAUGE_MAX, GAUGE_MIN, toneColorFor, twrOf, ZONES } from "./scale";
+import {
+  GAUGE_MAX,
+  GAUGE_MIN,
+  TINY_BANDS,
+  tinyToneFor,
+  toneColorFor,
+  twrOf,
+  ZONES,
+} from "./scale";
 import read from "./twr.declarations.g";
 
 type TwrConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 60;
-
-type Variant = "small" | "normal";
-
-function variantFor(cols: number, rows: number): Variant {
-  if (rows < 4 || cols < 4) return "small";
-  return "normal";
-}
 
 /** Thrust over weight: the wire carries thrust and mass, not their ratio. */
 function useTwrReading() {
@@ -46,7 +51,21 @@ function useTwrReading() {
   );
 }
 
-function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
+/** The ratio on a dial's own scale, which the tiny form draws as a figure over a gauge. */
+function useTwrEssentials(): readonly TinyEssential[] {
+  const twrReading = useTwrReading();
+  const twr = twrReading.value;
+  return [
+    {
+      label: "TWR",
+      value: twrReading,
+      gauge: { min: GAUGE_MIN, max: GAUGE_MAX, bands: TINY_BANDS },
+      tone: twr === undefined ? "neutral" : tinyToneFor(twr),
+    },
+  ];
+}
+
+function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
   const twrReading = useTwrReading();
   // A held TWR stays drawn, never blanked: the empty state means the craft has no engine.
   const twr = twrReading.value;
@@ -58,13 +77,10 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
   );
   const sparkValues = useMemo(() => plotColumnsOf(series).v, [series]);
 
-  // The variant follows grid size; only the drawings inside the frame are measured, and the frame's size never depends on them.
+  // Only the drawings inside the frame are measured, and the frame's size never depends on them.
   const cols = w ?? 4;
-  const rows = h ?? 5;
-  const variant = variantFor(cols, rows);
-  const showSparkline = variant === "normal";
   // Below five columns the caption would sit on the gauge arc.
-  const showCaption = variant === "normal" && cols >= 5;
+  const showCaption = cols >= 5;
 
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 200, h: 110 });
   // The dial draws the largest arc that fits what it is given, and at a height too short for any arc it draws the figure alone.
@@ -103,19 +119,17 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
                 : undefined
             }
             strip={
-              showSparkline ? (
-                <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
-                  <div style={SPARK_PLOT_STYLE}>
-                    <Sparkline
-                      values={sparkValues}
-                      width={sparkSize.w + SPARK_OVERDRAW_PX}
-                      height={sparkSize.h + SPARK_OVERDRAW_PX}
-                      color={toneColorFor(twr)}
-                      aria-label="TWR trend"
-                    />
-                  </div>
+              <div ref={sparkRef} style={SPARK_SLOT_STYLE}>
+                <div style={SPARK_PLOT_STYLE}>
+                  <Sparkline
+                    values={sparkValues}
+                    width={sparkSize.w + SPARK_OVERDRAW_PX}
+                    height={sparkSize.h + SPARK_OVERDRAW_PX}
+                    color={toneColorFor(twr)}
+                    aria-label="TWR trend"
+                  />
                 </div>
-              ) : undefined
+              </div>
             }
           >
             <div
@@ -189,8 +203,10 @@ registerComponent<TwrConfig>({
     "The vessel's thrust-to-weight ratio right now, its current thrust over its weight at standard gravity (9.81 m/s², whatever body you are at, not the local gravity), as a dial running 0 to 3 that pins at 3: red below 1 (cannot lift off), amber from 1 to 1.5, green above, with a line showing the last minute.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
-  minSize: { w: 3, h: 3 },
+  // Below four columns or four rows the dial and its trend stop fitting, and the tile draws the ratio as a figure over a gauge.
+  minSize: { w: 4, h: 4 },
   component: TwrComponent,
+  tiny: { title: "TWR", useEssentials: useTwrEssentials },
   channels: ["vessel.propulsion"],
   fields: ["vessel.propulsion.currentThrust", "vessel.propulsion.totalMass"],
   ...read,

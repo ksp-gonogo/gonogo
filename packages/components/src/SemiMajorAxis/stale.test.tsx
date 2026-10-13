@@ -117,9 +117,9 @@ describe("SemiMajorAxis when vessel.orbit is held", () => {
     expect(visibleText(container)).not.toContain("OFFLINE");
   });
 
-  it("marks the held figure at 3x3, where the body holds only the figure", async () => {
+  it("marks the held figure at 4x4, where the body holds only the figure", async () => {
     const fixture = newFixture();
-    const container = mount(fixture, "sma-stale-tiny", { w: 3, h: 3 });
+    const container = mount(fixture, "sma-stale-tiny", { w: 4, h: 4 });
     emitOrbit(fixture);
     await waitFor(() => expect(visibleText(container)).toContain("675.0 km"));
 

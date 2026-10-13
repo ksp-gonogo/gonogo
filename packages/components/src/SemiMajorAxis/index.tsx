@@ -12,6 +12,7 @@ import {
   controlFrameLabel,
   lengthsAreLengths,
   stillTrue,
+  type TinyEssential,
 } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
 import {
@@ -32,6 +33,36 @@ const topics = defineTopicManifest({
 type SemiMajorAxisConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 300;
+
+/**
+ * The semi-major axis as one figure. A hyperbolic orbit and a pulsating frame
+ * each add a row, which a tile too short for it drops from the picture and
+ * keeps for a screen reader.
+ */
+function useSemiMajorAxisEssentials(): readonly TinyEssential[] {
+  // A propagated orbit conserves SMA, so a modelled figure would be the observed number dressed as fresh.
+  const orbitReading = withoutReckoning(topics.useTelemetry("vessel.orbit"));
+  const sma = stillTrue(orbitReading, undefined)?.sma;
+  const controlFrame = stillTrue(
+    useStream<ControlFrame>("system.frame"),
+    undefined,
+  );
+  return [
+    {
+      label: "SMA",
+      value: readingOf(orbitReading, (orbit) => orbit.sma),
+    },
+    ...(sma?.isNegative() ? [{ label: "Orbit", word: "HYPERBOLIC" }] : []),
+    ...(lengthsAreLengths(controlFrame) === "invalid"
+      ? [
+          {
+            label: "Frame",
+            word: controlFrameLabel(controlFrame) ?? "pulsating frame",
+          },
+        ]
+      : []),
+  ];
+}
 
 function SemiMajorAxisComponent({
   w,
@@ -55,7 +86,6 @@ function SemiMajorAxisComponent({
   const cols = w ?? 4;
   const rows = h ?? 4;
   const showSubtitle = rows >= 5 && cols >= 4;
-  const showSparkline = rows >= 3;
 
   const fontPx = readoutFontPx(cols);
 
@@ -76,18 +106,14 @@ function SemiMajorAxisComponent({
     <Panel
       panelTitle="SMA"
       fitToSize
-      panelTrend={
-        showSparkline
-          ? ({ w, h }) => (
-              <Sparkline
-                values={sparkValues}
-                width={w}
-                height={h}
-                aria-label="SMA trend"
-              />
-            )
-          : undefined
-      }
+      panelTrend={({ w, h }) => (
+        <Sparkline
+          values={sparkValues}
+          width={w}
+          height={h}
+          aria-label="SMA trend"
+        />
+      )}
       sections={
         <Section full gap="related-dense">
           {showSubtitle && (
@@ -125,7 +151,6 @@ function SemiMajorAxisComponent({
 
 // Font scales with width so the value never wraps into the subtitle.
 function readoutFontPx(cols: number): number {
-  if (cols <= 3) return 18;
   if (cols <= 4) return 22;
   return 28;
 }
@@ -156,8 +181,10 @@ registerComponent<SemiMajorAxisConfig>({
     "The semi-major axis of your current orbit: half its longest width, measured through the body's centre. It sets the orbital period. In a pulsating reference frame, whose unit of length moves with a pair of bodies, the frame is named beneath the figure.",
   tags: ["telemetry", "orbit"],
   defaultSize: { w: 4, h: 4 },
-  minSize: { w: 3, h: 3 },
+  // Below four columns or four rows the figure shares the tile with a heading it has no room for, and the tile draws the figure alone.
+  minSize: { w: 4, h: 4 },
   component: SemiMajorAxisComponent,
+  tiny: { title: "SMA", useEssentials: useSemiMajorAxisEssentials },
   channels: topics.channels,
   ...read,
   fields: topics.fields,
