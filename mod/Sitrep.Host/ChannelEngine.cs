@@ -7397,6 +7397,11 @@ namespace Sitrep.Host
                     return;
                 }
 
+                if (_channelDeclarations.TryGetValue(topic, out var held) && held.Kind == SampleKind.Event)
+                {
+                    LogHost("held " + topic + " at UT " + ut.ToString("F1", System.Globalization.CultureInfo.InvariantCulture)
+                        + ": " + NodeFor(topic) + " is out of contact, so it reaches no centre until a link returns");
+                }
                 Hold(topic, value, ut);
                 return;
             }
