@@ -247,7 +247,8 @@ export function UnitInput<Unit extends string>({
         type(index, { text, against: parts[index] });
         return;
       }
-      const next = parts.slice();
+      // With no value yet the other boxes are empty, and typing in one makes the rest zero.
+      const next = parts.map((part) => (Number.isFinite(part) ? part : 0));
       next[index] = amount;
       const total = next.reduce(
         (sum, each, i) =>

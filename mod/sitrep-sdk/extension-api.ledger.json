@@ -9959,6 +9959,10 @@
         "note": "renamed pressed, the name Button and ToggleButton use"
       },
       {
+        "key": "ui-kit . CommandButtonProps#onPressReady?",
+        "note": "the listed press takes no argument and binds the control's own confirm step, so an input cannot skip the confirm"
+      },
+      {
         "key": "ui-kit . CommandDelay",
         "note": "its label prop is now aria-label"
       },
@@ -14589,6 +14593,10 @@
         "note": "exported, since a published component's props or return type already names it"
       },
       {
+        "key": "ui-kit . PENDING_BACKSTOP_MS",
+        "note": "exported, since the published docs of useCommandButton link it"
+      },
+      {
         "key": "ui-kit . PanZoomCamera",
         "note": "where a diagram is looking: the diagram point at the middle of the view and the zoom, shared by every pannable diagram"
       },
@@ -14747,6 +14755,10 @@
       {
         "key": "ui-kit . PredictedOutcome",
         "note": "New: held or at-risk, the predicted result a control outlines"
+      },
+      {
+        "key": "ui-kit . REFUSAL_TIMEOUT_MS",
+        "note": "exported, since the published docs of useCommandButton link it"
       },
       {
         "key": "ui-kit . ReadoutProps",

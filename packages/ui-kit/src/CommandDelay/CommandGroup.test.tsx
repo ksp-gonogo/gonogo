@@ -14,11 +14,13 @@ interface PanTiltValue {
 function PanTiltHarness({
   onCommit,
   gated,
+  gatedReason,
   orientation,
   wrap,
 }: {
   onCommit: (v: PanTiltValue) => void;
   gated?: boolean;
+  gatedReason?: string;
   orientation?: "column" | "row";
   wrap?: boolean;
 }) {
@@ -28,6 +30,7 @@ function PanTiltHarness({
       value={value}
       onCommit={onCommit}
       gated={gated}
+      gatedReason={gatedReason}
       orientation={orientation}
       wrap={wrap}
     >
@@ -84,12 +87,23 @@ describe("CommandGroup", () => {
   });
 
   it("keeps a gated commit reachable by keyboard, with the reason as its description", () => {
-    render(<PanTiltHarness onCommit={vi.fn()} gated />);
+    render(
+      <PanTiltHarness
+        onCommit={vi.fn()}
+        gated
+        gatedReason="No path to the craft"
+      />,
+    );
     const commitButton = screen.getByRole("button", { name: "Commit" });
     expect(commitButton).not.toBeDisabled();
-    expect(commitButton).toHaveAccessibleDescription(
-      "No path: command dispatch is disabled",
-    );
+    expect(commitButton).toHaveAccessibleDescription("No path to the craft");
+  });
+
+  it("invents no reason when a gated commit is given none", () => {
+    render(<PanTiltHarness onCommit={vi.fn()} gated />);
+    const commitButton = screen.getByRole("button", { name: "Commit" });
+    expect(commitButton).toHaveAttribute("aria-disabled", "true");
+    expect(commitButton).toHaveAccessibleDescription("");
   });
 
   it("has no axe violations, gated or not", async () => {

@@ -213,8 +213,10 @@ export function MissionDateField({
           const typed = event.target.value;
           setDraft({ key, text: typed });
           if (typed.trim() === "") return;
-          const next = Number(typed);
-          if (!Number.isFinite(next)) return;
+          const typedNumber = Number(typed);
+          if (!Number.isFinite(typedNumber)) return;
+          // The box's own floor and whole numbers, so the emitted instant is the one the fields then read back.
+          const next = Math.max(min, Math.round(typedNumber));
           // The epoch is the base only once the operator has typed something.
           onChange(utOfParts({ ...(parts ?? EPOCH_PARTS), [key]: next }));
         }}

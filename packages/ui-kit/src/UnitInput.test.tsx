@@ -212,6 +212,24 @@ describe("UnitInput", () => {
       );
     });
 
+    it("emits a finite total when the first keystroke lands with no value yet", () => {
+      const onChange = vi.fn();
+      render(
+        <UnitInput
+          label="Coast"
+          unit="s"
+          rungs={["h", "min", "s"]}
+          value={null}
+          onChange={onChange}
+        />,
+      );
+
+      fireEvent.change(screen.getByLabelText("Coast h"), {
+        target: { value: "5" },
+      });
+      expect(onChange.mock.calls[0][0].magnitude).toBe(5 * 3600);
+    });
+
     it("keeps the remainder on the smallest rung rather than losing it", () => {
       const onChange = vi.fn();
       render(

@@ -205,7 +205,9 @@ export function Tape<Unit extends string = string>({
   const { anchor, tip } = useTooltip(caption);
 
   // Unwrapped once into pixel geometry; every figure a reader sees goes back out through the unit layer.
+  // A present but non-finite magnitude is no figure at all, the same as a null reading.
   const current = shown?.magnitude ?? Number.NaN;
+  const figure = Number.isFinite(current) ? shown : null;
   const axisMin = min.magnitude;
   const axisMax = max.magnitude;
   const span = axisMax - axisMin;
@@ -213,15 +215,15 @@ export function Tape<Unit extends string = string>({
   const clamped =
     span > 0 ? Math.max(axisMin, Math.min(axisMax, safe)) : axisMin;
   // No figure, no pointer: one resting at the foot of the rail would say the vessel is there.
-  const hasFigure = shown != null;
+  const hasFigure = figure != null;
 
   // One rung for the whole strip, so every mark and the head symbol agree.
   const scale = quantityScale(max, { format });
   const spoken =
-    shown == null
+    figure == null
       ? NULL_DISPLAY
       : speakQuantity(
-          { magnitude: safe, unit: shown.unit },
+          { magnitude: safe, unit: figure.unit },
           { format: scale.rung },
         );
   // Each mark picks its own rung, so a band's two ends are not rounded onto the same figure by the scale's.
@@ -248,7 +250,9 @@ export function Tape<Unit extends string = string>({
   ];
   // The model's interval, narrowed to the figure's own unit: one in another kind is about something else.
   const interval =
-    shown == null || band === null ? null : (bandIn(band, shown.unit) ?? null);
+    figure == null || band === null
+      ? null
+      : (bandIn(band, figure.unit) ?? null);
 
   // Floored: a squeezed `fillHeight` rail can measure under the padding, and SVG rejects a negative height.
   const usable = Math.max(0, h - PAD_TOP - PAD_BOTTOM);

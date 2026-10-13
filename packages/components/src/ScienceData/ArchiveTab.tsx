@@ -23,7 +23,7 @@ const COLUMNS: ReadonlyArray<DataTableColumn<ArchiveSubject>> = [
   {
     key: "situation",
     header: "Situation",
-    width: "1fr",
+    width: "100%",
     minWidth: "14ch",
     render: (r) => r.situation || NULL_DISPLAY,
   },

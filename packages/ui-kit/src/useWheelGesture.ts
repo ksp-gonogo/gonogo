@@ -1,4 +1,4 @@
-import { type RefObject, useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import {
   createWheelGesture,
   type WheelGestureOptions,
@@ -45,8 +45,17 @@ export function useWheelGesture<Zoomed extends HTMLElement>(
     gesture.current = createWheelGesture({ quietMs });
   }, [quietMs]);
 
+  /*
+   * The element is read back after every render, so a viewport that mounts
+   * later, or is replaced by another node, is bound on the render that follows
+   * instead of leaving the listener on a detached node.
+   */
+  const [el, setEl] = useState<Zoomed | null>(null);
   useEffect(() => {
-    const el = ref.current;
+    if (ref.current !== el) setEl(ref.current);
+  });
+
+  useEffect(() => {
     if (!el || !onZoom) return;
     const inside = (target: EventTarget | null) =>
       target instanceof Node && el.contains(target);
@@ -115,5 +124,5 @@ export function useWheelGesture<Zoomed extends HTMLElement>(
       window.removeEventListener("scroll", trackScroll, { capture: true });
       el.removeEventListener("wheel", handler);
     };
-  }, [ref, onZoom]);
+  }, [el, onZoom]);
 }

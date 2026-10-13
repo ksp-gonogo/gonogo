@@ -610,8 +610,8 @@ export function ControlDelayStream({
     ? resolveCurrency(delayReading ?? null).caption
     : null;
   const { anchor, tip } = useTooltip(delayCaption);
-  // Every entry crosses the same gap, so the first one's light-time serves the strip.
-  const first = streams[0] ?? ribbons[0];
+  // Every entry crosses the same gap, so the first one that knows its light-time serves the strip.
+  const first = [...streams, ...ribbons].find((e) => e.oneWaySeconds !== null);
   const oneWay = first?.oneWaySeconds ?? null;
   if (!first || oneWay === null || oneWay <= 0) return null;
   const drawStreams = oneWay >= STREAM_MIN_DELAY_SECONDS;
@@ -771,7 +771,7 @@ export function ControlDelayStream({
             </span>
           </ControlDelayStream__Zones>
           <ControlDelayStream__Legend aria-hidden="true">
-            {streams.map((s, i) => (
+            {(drawStreams ? streams : []).map((s, i) => (
               <span key={s.id}>
                 <i
                   style={{
@@ -792,7 +792,7 @@ export function ControlDelayStream({
               </span>
             ))}
             {/* Ribbons have no commanded path to deviate from. */}
-            {streams.length > 0 && (
+            {drawStreams && streams.length > 0 && (
               <span data-role="legend-deviation">
                 <i style={{ background: "var(--color-warn-mark)" }} />
                 off-command

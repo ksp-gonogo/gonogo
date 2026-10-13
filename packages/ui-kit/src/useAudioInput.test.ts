@@ -90,6 +90,62 @@ describe("useAudioInput", () => {
     expect(result.current.devices[0].label).toBe("Built-in Microphone");
   });
 
+  it("stops a stream that resolves after release, and stays released", async () => {
+    const media = fakeMediaDevices();
+    let grant!: () => void;
+    const real = media.getUserMedia.getMockImplementation();
+    media.getUserMedia.mockImplementationOnce(
+      (constraints: MediaStreamConstraints) =>
+        new Promise((resolve) => {
+          grant = () => resolve(real?.(constraints) as never);
+        }),
+    );
+    const { result } = renderHook(() => useAudioInput());
+    await act(async () => {});
+
+    let pending!: Promise<void>;
+    act(() => {
+      pending = result.current.request();
+    });
+    expect(result.current.status).toBe("requesting");
+    act(() => {
+      result.current.release();
+    });
+    await act(async () => {
+      grant();
+      await pending;
+    });
+
+    expect(result.current.status).toBe("unasked");
+    expect(result.current.stream).toBeNull();
+    expect(media.opened[0].getTracks()[0].stopped).toBe(true);
+  });
+
+  it("offers a request again once a device appears after none was found", async () => {
+    const media = fakeMediaDevices();
+    let listener: (() => void) | undefined;
+    media.addEventListener = ((_: string, fn: () => void) => {
+      listener = fn;
+    }) as typeof media.addEventListener;
+    media.enumerateDevices.mockResolvedValueOnce([]);
+    media.getUserMedia.mockRejectedValueOnce(
+      Object.assign(new Error("none"), { name: "NotFoundError" }),
+    );
+    const { result } = renderHook(() => useAudioInput());
+    await act(async () => {});
+
+    await act(async () => {
+      await result.current.request();
+    });
+    expect(result.current.status).toBe("no-device");
+
+    await act(async () => {
+      listener?.();
+    });
+    expect(result.current.status).toBe("unasked");
+    expect(result.current.devices).toHaveLength(1);
+  });
+
   it("carries the caller's constraints into the request", async () => {
     const media = fakeMediaDevices();
     const { result } = renderHook(() =>

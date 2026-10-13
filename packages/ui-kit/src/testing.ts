@@ -142,7 +142,10 @@ export function getAllByTip(
   return [...container.querySelectorAll<HTMLElement>("[data-tooltip]")].filter(
     (el) => {
       const tip = el.getAttribute("data-tooltip") ?? "";
-      return typeof text === "string" ? tip === text : text.test(tip);
+      if (typeof text === "string") return tip === text;
+      // A global or sticky pattern carries `lastIndex` from one test to the next, which would make every other tip miss.
+      text.lastIndex = 0;
+      return text.test(tip);
     },
   );
 }

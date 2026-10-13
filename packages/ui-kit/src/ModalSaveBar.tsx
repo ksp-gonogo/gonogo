@@ -142,6 +142,10 @@ export function useModalSaveBar<Draft>(
   const dirty =
     !configEqual(value, baselineRef.current.v) && !configEqual(value, saved);
 
+  // Read at press time, so a form's inline onSave that closes over the latest draft does not rebuild the footer on every keystroke.
+  const onSaveRef = useRef(onSave);
+  onSaveRef.current = onSave;
+
   const footer = useMemo(
     () => (
       <>
@@ -149,14 +153,14 @@ export function useModalSaveBar<Draft>(
         <Button
           variant="primary"
           type="button"
-          onClick={onSave}
+          onClick={() => onSaveRef.current()}
           disabled={disabled}
         >
           {saveLabel}
         </Button>
       </>
     ),
-    [extra, onSave, disabled, saveLabel],
+    [extra, disabled, saveLabel],
   );
   useModalChrome(footer, dirty);
 }

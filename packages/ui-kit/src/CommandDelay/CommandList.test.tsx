@@ -6,6 +6,7 @@ import {
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it } from "vitest";
 import { emittedRuleFor } from "../test/emittedRule";
 import { CommandList } from "./CommandList";
@@ -224,5 +225,33 @@ describe("CommandList", () => {
       </>,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("CommandList: focus after a dismiss", () => {
+  it("lands on the next dismiss button rather than the page", async () => {
+    const user = userEvent.setup();
+    function Harness() {
+      const [entries, setEntries] = useState<RailRefusal[]>([
+        { ...refusal, id: "a" },
+        { ...refusal, id: "b" },
+      ]);
+      return (
+        <CommandList
+          kind="refused"
+          live={false}
+          entries={entries}
+          onDismiss={(id) =>
+            setEntries((all) => all.filter((e) => e.id !== id))
+          }
+        />
+      );
+    }
+    render(<Harness />);
+    const [first, second] = screen.getAllByRole("button");
+
+    await user.click(first);
+
+    expect(second).toHaveFocus();
   });
 });

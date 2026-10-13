@@ -265,6 +265,10 @@ export function useAudioInput(
           ? devices.length === 0
           : !devices.some((device) => device.deviceId === openId));
       setState((prev) => {
+        // A device plugged in after "no device" makes a request worth offering again.
+        if (prev.status === "no-device" && devices.length > 0) {
+          return { ...prev, status: "unasked", devices };
+        }
         if (prev.status !== "ready" || !lost) return { ...prev, devices };
         return {
           ...prev,
@@ -306,9 +310,14 @@ export function useAudioInput(
     };
   }, [closeStream]);
 
+  // Bumped by every open and by release, so a getUserMedia answer that lands after either is recognised as stale.
+  const requestSeqRef = useRef(0);
+
   const open = useCallback(async (deviceId: string | null) => {
     const media = navigator.mediaDevices;
     if (!media || typeof media.getUserMedia !== "function") return;
+    const seq = ++requestSeqRef.current;
+    const stale = () => requestSeqRef.current !== seq;
 
     setState((prev) => ({
       ...prev,
@@ -323,7 +332,7 @@ export function useAudioInput(
 
     try {
       const stream = await media.getUserMedia({ audio });
-      if (!mountedRef.current) {
+      if (!mountedRef.current || stale()) {
         stopTracks(stream);
         return;
       }
@@ -332,6 +341,7 @@ export function useAudioInput(
       if (previous && previous !== stream) stopTracks(previous);
 
       const listed = await listInputs();
+      if (stale()) return;
       const active = trackDeviceId(stream) ?? deviceId ?? listed[0]?.deviceId;
       const devices =
         listed.length > 0 ? listed : openDeviceOnly(stream, active);
@@ -345,7 +355,7 @@ export function useAudioInput(
       });
       optionsRef.current.onStream?.(stream);
     } catch (err) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || stale()) return;
       const failure: AudioInputFailure = { name: errorName(err), deviceId };
       setState((prev) =>
         prev.stream
@@ -364,10 +374,14 @@ export function useAudioInput(
   const request = useCallback(() => open(null), [open]);
   const select = useCallback((deviceId: string) => open(deviceId), [open]);
   const release = useCallback(() => {
+    requestSeqRef.current++;
     closeStream();
     setState((prev) => ({
       ...prev,
-      status: prev.status === "ready" ? "unasked" : prev.status,
+      status:
+        prev.status === "ready" || prev.status === "requesting"
+          ? "unasked"
+          : prev.status,
       deviceId: null,
       stream: null,
     }));
