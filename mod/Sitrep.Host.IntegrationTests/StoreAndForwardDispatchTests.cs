@@ -596,6 +596,73 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A tick that carries the vessel's other readings but not its identity says
+        /// nothing about whether a craft is loaded. The press is neither refused as
+        /// "not in flight" nor sent on a guess: the craft last known to be loaded
+        /// stays loaded until a tick shows there is none.
+        /// </summary>
+        [Fact]
+        public void AnOrderForTheActiveCraftIsNotRefusedBecauseItsIdentityCouldNotBeRead()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                uplink.Loaded = true;
+                engine.TickAndWait(
+                    1.0,
+                    new KspSnapshot
+                    {
+                        Ut = 1.0,
+                        Values = new Dictionary<string, object?>
+                        {
+                            ["vessel"] = new Dictionary<string, object?>
+                            {
+                                ["orbit"] = new Dictionary<string, object?> { ["sma"] = 700000.0 },
+                            },
+                        },
+                    },
+                    TestBudgets.Op);
+
+                object? result = null;
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op);
+
+                Assert.Null(result);
+                Assert.Single(Pending(engine));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>No identity and no vessel at all is a tick with no craft loaded, and the press is refused as before.</summary>
+        [Fact]
+        public void AnOrderIsStillRefusedWhenATickCarriesNoVesselAtAll()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: OneWaySeconds);
+            var uplink = new ActiveCraftTestUplink();
+            engine.RegisterUplink(uplink);
+            engine.Start();
+            try
+            {
+                TickActive(engine, uplink, 0.0, loaded: true);
+                TickActive(engine, uplink, 1.0, loaded: false);
+                object? result = null;
+                engine.DispatchCommandAndWait(ActiveCraftTestUplink.Command, "x", Centre, r => result = r, TestBudgets.Op);
+
+                Assert.Equal(CommandErrorCode.WrongScene, Assert.IsType<CommandResult>(result).ErrorCode);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         /// <summary>The same press with the active craft loaded is accepted, sent and run.</summary>
         [Fact]
         public void AnOrderForTheActiveCraftStillGoesThroughWhenItIsLoaded()

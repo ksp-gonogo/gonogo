@@ -1546,6 +1546,17 @@ namespace Sitrep.Host
             return vessel != null && TryGetSubjectId(vessel, out var vesselId) ? vesselId : null;
         }
 
+        /// <summary>
+        /// True when the snapshot carries the vessel's readings but not its identity,
+        /// so a craft is present and which one is not known. Distinct from a snapshot
+        /// with no vessel at all, which says there is none.
+        /// </summary>
+        public static bool IsVesselPresentButUnidentified(KspSnapshot? snapshot)
+        {
+            var vessel = GetVesselGroup(snapshot);
+            return vessel != null && !TryGetSubjectId(vessel, out _);
+        }
+
         // Wire adapters -- see the class doc comment for why these exist.
 
         public static object? BuildIdentityWire(KspSnapshot? snapshot) =>

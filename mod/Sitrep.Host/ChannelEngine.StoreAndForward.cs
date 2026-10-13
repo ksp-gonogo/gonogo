@@ -1374,6 +1374,14 @@ namespace Sitrep.Host
                 return;
             }
             var active = VesselViewProvider.TryGetActiveVesselId(snapshot);
+            if (active == null && VesselViewProvider.IsVesselPresentButUnidentified(snapshot))
+            {
+                /* The vessel's readings arrived without its identity, which says a
+                   craft is there and nothing about which. Not knowing is not the
+                   same as there being none, so what the last tick established
+                   stands, and a press is not refused as "not in flight" on it. */
+                return;
+            }
             _activeCraftKnown = true;
             _activeCraftLoaded = active != null;
             if (active != null)
