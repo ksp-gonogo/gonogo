@@ -24,8 +24,8 @@ namespace Sitrep.Host.Comms
         /// <para>Honestly a policy, not a pretend measurement: there is no
         /// signal delay to a craft nothing can reach. It exists so the
         /// never-regains-contact case terminates at all, rather than leaving a
-        /// penalty pending forever. An event released early on reacquisition
-        /// takes <c>min(deadline, reacquisitionUt + lightTime)</c>.</para>
+        /// penalty pending forever. The event is released at the deadline and
+        /// at no other time: regaining contact does not bring it forward.</para>
         /// </summary>
         public double SilenceDeclarationSeconds { get; set; } =
             GameDayDefaults.StockDaySeconds;

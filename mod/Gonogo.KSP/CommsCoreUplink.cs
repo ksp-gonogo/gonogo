@@ -513,7 +513,7 @@ namespace Gonogo.KSP
             // the reveal gate the SAME subscription-independent, main-thread way
             // as the delay. When the control link is down, the gate withholds
             // (freezes) every Delayed channel instead of revealing it live off a
-            // zero/None delay; on reconnect it drops the backlog and resumes. See
+            // zero/None delay; on reconnect it replays what it held. See
             // IUplinkHost.SetConnectivitySource.
             host.SetConnectivitySource(ComputeConnectedOnMain);
 

@@ -1575,8 +1575,9 @@ namespace Sitrep.Contract
         /// value, while <see cref="DelayRole.TrueNow"/> channels
         /// (<c>comms.delay</c>, <c>comms.connectivity</c>, <c>time.*</c>,
         /// <c>system.bodies</c>) keep flowing, so the operator sees the outage
-        /// live. On reconnect the withheld backlog is dropped and delivery
-        /// resumes from the moment of reconnection.</para>
+        /// live. On reconnect what was withheld is delivered. If the active
+        /// vessel changes while the link is down, what was withheld is
+        /// discarded and never delivered.</para>
         ///
         /// <para>A source that throws disables its owning Uplink and the link
         /// is treated as connected. A <c>null</c> result leaves the last known

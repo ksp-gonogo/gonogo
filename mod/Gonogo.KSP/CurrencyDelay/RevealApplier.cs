@@ -20,8 +20,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// requires.
     ///
     /// Every AddX call here runs under the same <see cref="CurrencyDelayGuard"/> instance
-    /// StockCurrencyInterceptor's neutralise path uses (constructed once by the owner - the future
-    /// CurrencyDelayScenario - and passed to both). Without that shared guard, a reveal's AddX
+    /// StockCurrencyInterceptor's neutralise path uses (constructed once by their owner and passed
+    /// to both). Without that shared guard, a reveal's AddX
     /// would look to the interceptor like a brand-new remote-origin change: it would neutralise the
     /// reveal right back into the ledger and it would never actually land - an infinite defer.
     /// </summary>

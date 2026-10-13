@@ -106,7 +106,7 @@ namespace Gonogo.KSP.CurrencyDelay
         // the rest of its Die() call (components torn down, possibly the
         // GameObject destroyed), so it cannot be resolved lazily at claim
         // time the way a recovery ProtoVessel or a still-loaded lab vessel
-        // can. Never pruned, same reasoning as the two dictionaries above.
+        // can. Never pruned, same reasoning as the dictionary above.
         private readonly Dictionary<string, KscDelay> _deathLightTimesById = new Dictionary<string, KscDelay>();
 
         public StockCurrencyInterceptor(PendingCreditLedger ledger, VesselScienceAggregator scienceAggregator, CurrencyDelayGuard guard)

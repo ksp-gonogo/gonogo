@@ -5,30 +5,19 @@ using UnityEngine;
 
 namespace Gonogo.KSP.CurrencyDelay
 {
-    // This file references Vessel/ProtoVessel/CelestialBody/CommNet types
-    // that only resolve against the real KSP/Unity reference DLLs, so a
-    // worktree without KspManaged configured cannot compile it standalone;
-    // it builds as part of Gonogo.KSP.csproj wherever those DLLs are
-    // available. Member usage (Vessel.GetWorldPos3D,
-    // ProtoVessel.orbitSnapShot/landed/splashed/latitude/longitude/altitude,
-    // OrbitSnapshot.Load/ReferenceBodyIndex, Orbit.getPositionAtUT,
-    // CelestialBody.GetWorldSurfacePosition) is decompile-confirmed against
-    // Assembly-CSharp.dll and mirrors KspHost.cs's own
-    // orbit.getPositionAtUT(ut) usage. The pure distance/light-speed math +
-    // routed-vs-straight-line decision this wraps lives in
-    // KscLightTimeMath.cs, which has no such dependency and is unit-tested
-    // unconditionally.
+    // This file references Vessel and CommNet types that only resolve against
+    // the real KSP/Unity reference DLLs, so it compiles wherever KspManaged is
+    // configured. The routed-or-unroutable decision it wraps lives in
+    // KscLightTimeMath.cs, which has no such dependency and is unit-tested on
+    // every checkout.
 
     /// <summary>
     /// KSC-anchored one-way signal delay for a currency-earning event:
     /// earn-location -&gt; KSC, always, regardless of any command-centre
     /// vantage (the currency-delay design's deliberate simplification,
     /// distinct from CommandCentreDelayUplink's per-vantage authority
-    /// matrix). Reuses FleetCommsReader for the routed vessel&lt;-&gt;KSC
-    /// signal delay when a vessel is live, and StockHomeNodeSource for the KSC
-    /// position on the straight-line fallback - the same two building blocks
-    /// CommandCentreDelayUplink.RouteDelay already composes for its own
-    /// (ksc, subject) row.
+    /// matrix). The delay is FleetCommsReader's reading of the live vessel's
+    /// control path; a vessel that is not live, or has no path, is unroutable.
     /// </summary>
     public static class KscLightTime
     {

@@ -21,7 +21,7 @@ namespace Gonogo.KSP.SilenceTracking
     /// legitimately declared before the save - otherwise a reload could
     /// either resurrect an already-lost vessel for one tick, or silently
     /// re-increment <c>lostSeq</c> a second time for the same occurrence,
-    /// breaking the idempotency a future currency consumer relies on.</para>
+    /// so one loss would carry two numbers.</para>
     /// </summary>
     public static class SilenceTrackerPersistence
     {

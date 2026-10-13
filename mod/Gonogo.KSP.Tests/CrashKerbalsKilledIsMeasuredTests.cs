@@ -9,7 +9,7 @@ namespace Gonogo.KSP.Tests
     /// game reported, so the crash uplink has to listen for the game's crew-killed event.
     ///
     /// <para>Source text, not behaviour: the uplink reads live KSP and cannot be compiled
-    /// into this project. The count itself is tested in <c>FlightStatsTrackerTests</c>.</para>
+    /// into this project. The count itself is tested in <c>CrashPayloadTests</c>.</para>
     /// </summary>
     public class CrashKerbalsKilledIsMeasuredTests
     {

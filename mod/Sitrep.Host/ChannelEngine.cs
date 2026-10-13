@@ -781,9 +781,10 @@ namespace Sitrep.Host
         /// a fleet subject's. Publishing a "gone quiet at UT, presumed lost by
         /// UT" report down a lane frozen by the very silence it describes
         /// buries it: every in-blackout sample takes an infinite reveal horizon
-        /// and is then dropped by <see cref="DropInBlackoutBacklog"/> on
-        /// reconnect, so the operator is told nothing at all about the craft
-        /// that went dark, the exact opposite of the feature's point.
+        /// and is held until <see cref="ReplayInBlackoutBacklog"/> releases it
+        /// on reconnect, or <see cref="DiscardInBlackoutBacklog"/> lets it go
+        /// with the craft, so while the craft is dark the operator is told
+        /// nothing about it, the exact opposite of the feature's point.
         ///
         /// <para>Deliberately one field of a fleet subject, not the namespace:
         /// that vessel's ordinary telemetry (.orbit, .delay) must keep freezing

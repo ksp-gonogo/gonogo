@@ -29,9 +29,9 @@ namespace Gonogo.KSP.CurrencyDelay
         /// <param name="measure">The route read, run only for the entry that matched.</param>
         /// <returns>
         /// The matched vessel's measured delay, or <see cref="KscDelay.Unroutable"/>
-        /// when nothing in the roster carries that id - which is the honest answer
-        /// for an origin the game no longer has, and the only case that should ever
-        /// reach the silence deadline.
+        /// when nothing in the roster carries that id, which is the honest answer
+        /// for an origin the game no longer has. A matched vessel with no control
+        /// path is also unroutable, through <paramref name="measure"/>.
         /// </returns>
         internal static KscDelay Resolve<TVessel>(
             string? vesselId,

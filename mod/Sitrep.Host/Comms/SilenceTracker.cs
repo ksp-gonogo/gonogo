@@ -261,10 +261,11 @@ namespace Sitrep.Host.Comms
 
         /// <summary>
         /// Monotonic: incremented once per new declare-lost transition, never
-        /// on a repeat sample that is already Lost. A future currency
-        /// consumer arms against (VesselId, LostSeq) so a reload replaying
-        /// the same declaration cannot double-charge, and a later
-        /// reconnect-then-re-lose cycle gets a fresh id.
+        /// on a repeat sample that is already Lost, and kept across a return
+        /// to contact. With the vessel id it names one loss: a reload that
+        /// replays the same declaration has the same pair, and a later
+        /// reconnect-then-re-lose cycle gets a fresh one. Nothing reads it
+        /// outside this tracker and its persistence.
         /// </summary>
         public int LostSeq;
 

@@ -40,9 +40,10 @@ namespace Gonogo.KSP.CurrencyDelay
         /// A shorter deadline is a more forgiving policy, not a wrong
         /// measurement; <c>SilenceDeclarationSeconds</c> is already an authored
         /// knob a player can set, and a live-derived seed would have to lose to
-        /// an authored value, which is wiring nothing here can test. Above all,
-        /// only an origin the roster cannot produce reaches this number at all,
-        /// so it governs craft nothing can reach and nothing else.</para>
+        /// an authored value, which is wiring nothing here can test. Every
+        /// origin with no control path reaches this number: one the roster no
+        /// longer carries, and one still on it with nothing to route over, which
+        /// is every crew death on a craft destroyed out of contact.</para>
         /// </summary>
         internal const double DefaultSilenceDeclarationSeconds =
             GameDayDefaults.StockDaySeconds;

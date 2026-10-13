@@ -4,7 +4,7 @@ namespace Gonogo.KSP.CurrencyDelay
 {
     /// <summary>
     /// The one and only way a currency event's delay is computed: the one-way
-    /// signal delay of a live CommNet control path whose last hop is home.
+    /// signal delay of a live CommNet control path, wherever its last hop ends.
     ///
     /// <para>A straight-line arm here - subject position to KSC position,
     /// divided by c, used whenever no route existed - would be wrong in a way

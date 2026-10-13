@@ -8,10 +8,10 @@ namespace Gonogo.KSP.CurrencyDelay
     ///
     /// Pure logic: no GameEvents, no Harmony, no live KSP calls. The only KSP
     /// type touched is <see cref="ConfigNode"/> for save/load, which is a
-    /// plain data structure with no scene/runtime dependency. A future
-    /// <c>CurrencyDelayScenario : ScenarioModule</c> owns an instance of this
-    /// ledger and round-trips it through <c>OnSave</c>/<c>OnLoad</c> exactly
-    /// like the stock Funding/RnD/Reputation scenario modules.
+    /// plain data structure with no scene/runtime dependency. Each save's
+    /// ledger is round-tripped through <c>CurrencyDelayScenario</c>'s
+    /// <c>OnSave</c>/<c>OnLoad</c>, as the stock Funding/RnD/Reputation
+    /// scenario modules do their balances.
     ///
     /// <see cref="PendingCreditRow"/> and <see cref="DelayedCurrency"/> live
     /// in their own file (PendingCreditRow.cs) precisely so they - and

@@ -7,7 +7,7 @@ namespace Gonogo.KSP.CurrencyDelay
     {
         /// <summary>A genuine zero: signal delay is switched off, so events land immediately and honestly.</summary>
         Instant,
-        /// <summary>A live CommNet control path whose last hop is home. The one and only way a delay gets measured.</summary>
+        /// <summary>A live CommNet control path, timed hop by hop. Where its last hop ends is not checked. The one and only way a delay gets measured.</summary>
         Routed,
         /// <summary>No route home. Not a delay of any length, an absence of one.</summary>
         Unroutable,
@@ -23,8 +23,8 @@ namespace Gonogo.KSP.CurrencyDelay
     /// seconds.</para>
     ///
     /// <para>The rule it enforces: a currency event is delayed by exactly one
-    /// number, the one-way signal delay of a live control path whose last hop is
-    /// home. There is no second way to compute a delay, and specifically no
+    /// number, the one-way signal delay of the craft's live control path, wherever
+    /// its last hop ends. There is no second way to compute a delay, and specifically no
     /// straight-line distance fallback, a chord through the planet a craft is
     /// hiding behind is not a signal path.</para>
     /// </summary>
