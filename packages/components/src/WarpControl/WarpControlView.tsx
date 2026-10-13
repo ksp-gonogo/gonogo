@@ -33,7 +33,7 @@ import {
 } from "./styles";
 import { WarpToRow } from "./WarpToRow";
 import type { WarpEventTarget } from "./warpEvents";
-import { formatRate, HIGH_LEVELS, TOP_WARP_INDEX } from "./warpLevels";
+import { formatRate, ladderFor, topWarpIndex } from "./warpLevels";
 
 export interface WarpControlViewProps {
   cols: number;
@@ -88,9 +88,12 @@ export function WarpControlView({
   const rateTone: RateTone = mode?.toLowerCase().startsWith("phys")
     ? "physics"
     : "high";
+  // An index that has not arrived is unknown, which is not realtime: the stepper presses and steps nothing until it does.
   const idx = currentIndex ?? 0;
+  const indexKnown = currentIndex !== null;
   const downIdx = Math.max(0, idx - 1);
-  const upIdx = Math.min(TOP_WARP_INDEX, idx + 1);
+  const topIdx = topWarpIndex(mode);
+  const upIdx = Math.min(topIdx, idx + 1);
 
   return (
     <Panel
@@ -143,7 +146,7 @@ export function WarpControlView({
                       role="group"
                       aria-label="Time warp levels"
                     >
-                      {HIGH_LEVELS.map((lvl) => {
+                      {ladderFor(mode).map((lvl) => {
                         const active = currentIndex === lvl.index;
                         return (
                           <WarpButton
@@ -171,7 +174,7 @@ export function WarpControlView({
                       <WarpButton
                         type="button"
                         $active={false}
-                        disabled={idx === 0}
+                        disabled={!indexKnown || idx === 0}
                         onClick={() => onSetWarp(downIdx)}
                         aria-label="Warp down"
                       >
@@ -179,8 +182,8 @@ export function WarpControlView({
                       </WarpButton>
                       <WarpButton
                         type="button"
-                        $active={idx === 0}
-                        aria-pressed={idx === 0}
+                        $active={indexKnown && idx === 0}
+                        aria-pressed={indexKnown && idx === 0}
                         onClick={() => onSetWarp(0)}
                         aria-label="Drop to realtime"
                       >
@@ -189,7 +192,9 @@ export function WarpControlView({
                       <WarpButton
                         type="button"
                         $active={false}
-                        disabled={alarmRequired || idx === TOP_WARP_INDEX}
+                        disabled={
+                          !indexKnown || alarmRequired || idx === topIdx
+                        }
                         onClick={() => onSetWarp(upIdx)}
                         aria-label="Warp up"
                       >

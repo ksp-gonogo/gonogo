@@ -17,7 +17,7 @@
         "channel": "time.warp",
         "value": {
           "warpRate": 4,
-          "warpRateIndex": 0,
+          "warpRateIndex": 3,
           "warpMode": 1,
           "paused": false
         }
