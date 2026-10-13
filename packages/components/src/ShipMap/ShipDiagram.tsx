@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type React from "react";
 import type { CSSProperties } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PartActionMenu } from "./PartActionMenu";
 import { PartTooltip } from "./PartTooltip";
 import { NO_METERS } from "./partMeters";
@@ -104,9 +104,18 @@ export function ShipDiagram({
     };
   };
 
+  /*
+   * Only the tooltip reads the pointer, so a move over no part renders nothing: the position is kept in a ref and enters state only while a part is hovered, and once as a part becomes hovered.
+   */
+  const pointerRef = useRef({ x: 0, y: 0 });
   const onWrapperMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    setPointer({ x: e.clientX, y: e.clientY });
+    pointerRef.current = { x: e.clientX, y: e.clientY };
+    if (hovered) setPointer(pointerRef.current);
   };
+  const hoveredId = hovered?.flightId;
+  useEffect(() => {
+    if (hoveredId !== undefined) setPointer(pointerRef.current);
+  }, [hoveredId]);
 
   // The same `partMeters` list the in-body bars read, rendered through ui-kit's `<Meter>` like every other meter-bearing widget.
   const hoveredMeters = hovered

@@ -74,6 +74,21 @@ export function ShipDiagramSvg({
     () => project(parts),
     [parts],
   );
+  /* Painter's algorithm: back-to-front by depth, quantised to the mm so float noise does not disturb the tiebreak. Parts at the same depth draw outermost first so the central column overlaps on top. Fuel lines render as arrows in a separate top layer. Kept across renders that change nothing about the parts. */
+  const { drawOrder, fuelLines, partsById } = useMemo(
+    () => ({
+      drawOrder: [...projected]
+        .filter((p) => p.type !== "fuel-line")
+        .sort((a, b) => {
+          const depthOrder =
+            Math.round(a.depth * 1000) - Math.round(b.depth * 1000);
+          return depthOrder !== 0 ? depthOrder : b.spineDist - a.spineDist;
+        }),
+      fuelLines: projected.filter((p) => p.type === "fuel-line"),
+      partsById: new Map(projected.map((p) => [p.flightId, p])),
+    }),
+    [projected],
+  );
   // useId's colons would need escaping inside url(#...).
   const heldHatchId = `ship-held-hatch-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
 
@@ -108,17 +123,6 @@ export function ShipDiagramSvg({
 
   const transform = `translate(${cam.panX}, ${cam.panY}) scale(${cam.zoom})`;
   const stroke = (n: number) => n / cam.zoom;
-
-  /* Painter's algorithm: back-to-front by depth, quantised to the mm so float noise does not disturb the tiebreak. Parts at the same depth draw outermost first so the central column overlaps on top. Fuel lines render as arrows in a separate top layer. */
-  const drawOrder = [...projected]
-    .filter((p) => p.type !== "fuel-line")
-    .sort((a, b) => {
-      const depthOrder =
-        Math.round(a.depth * 1000) - Math.round(b.depth * 1000);
-      return depthOrder !== 0 ? depthOrder : b.spineDist - a.spineDist;
-    });
-  const fuelLines = projected.filter((p) => p.type === "fuel-line");
-  const partsById = new Map(projected.map((p) => [p.flightId, p]));
 
   const interactive = !!onPartHover;
 

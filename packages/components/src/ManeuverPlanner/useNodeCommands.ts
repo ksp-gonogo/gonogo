@@ -142,12 +142,24 @@ export function useNodeCommands(
   }
 
   async function handleClearAll() {
+    let notRemoved = 0;
     // Last node first, so the plan empties from the far end inward as the operator expects.
     for (let i = nodes.length - 1; i >= 0; i--) {
-      await removeNodeCmd.send(
-        { nodeId: nodes[i].id },
-        { label: "Remove maneuver node" },
-      );
+      const nodeId = nodes[i].id;
+      // A node with no id cannot be named to the game, which would take "" for a node.
+      if (!nodeId) {
+        notRemoved += 1;
+        continue;
+      }
+      try {
+        await removeNodeCmd.send({ nodeId }, { label: "Remove maneuver node" });
+      } catch {
+        // The refusal is drawn on the command's own rail; the rest of the plan is still cleared.
+        notRemoved += 1;
+      }
+    }
+    if (notRemoved > 0) {
+      setError(`${notRemoved} of ${nodes.length} nodes could not be removed.`);
     }
   }
 

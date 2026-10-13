@@ -100,7 +100,8 @@ function OrbitViewComponent({
     orbitHeld && orbitObserved !== undefined
       ? conicApsides(orbitObserved, body?.radius)
       : solve;
-  const trueAnomaly = solve?.trueAnomaly ?? undefined;
+  // The place the diagram draws the craft, which is the one an augment marking it must be handed.
+  const craft = craftOnOrbit(orbitReading, orbitObserved, solve);
   const apoapsisR = apsisShape?.apoapsisRadius;
   const periapsisR = apsisShape?.periapsisRadius;
 
@@ -147,7 +148,7 @@ function OrbitViewComponent({
       // Ignored by OrbitDiagram on a hyperbolic orbit, so the fallback is never drawn.
       apoapsis={apoapsisR ?? 0}
       periapsis={periapsisR}
-      craft={craftOnOrbit(orbitReading, orbitObserved, solve)}
+      craft={craft}
       spread={orbitSpread(orbitReading, orbitObserved)}
       argPe={argPe?.magnitude ?? 0}
       showMarkers={showMarkers}
@@ -169,7 +170,7 @@ function OrbitViewComponent({
         apoapsis: apoapsisR,
         periapsis: periapsisR,
         argPe: argPe?.magnitude ?? 0,
-        trueAnomaly: trueAnomaly ?? 0,
+        trueAnomaly: craft?.current ?? craft?.held ?? craft?.modelled ?? 0,
         bodyRadius: body?.radius,
         held: orbitReading,
       })

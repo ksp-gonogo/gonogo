@@ -1,10 +1,15 @@
-import { DashboardItemContext } from "@ksp-gonogo/core";
+import {
+  clearAugments,
+  DashboardItemContext,
+  registerAugment,
+} from "@ksp-gonogo/core";
 import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { OrbitViewComponent } from "./index";
+import type { OrbitOverlayContext } from "./slots";
 
 /**
  * An orbit that was heard and then stopped arriving, with no model to carry
@@ -25,6 +30,11 @@ function mount() {
 }
 
 describe("OrbitView: an orbit held with no model", () => {
+  // Cleared before, not after: an after-hook would clear the registry while the tree is still mounted and re-render it outside act.
+  beforeEach(() => {
+    clearAugments();
+  });
+
   it("draws the held orbit and the craft as the held square at its last place, in place of the sentence", async () => {
     const { fixture, container } = mount();
     act(() => {
@@ -82,6 +92,61 @@ describe("OrbitView: an orbit held with no model", () => {
     expect(
       screen.queryByText(/No coast under physics|No orbital data/),
     ).toBeNull();
+    await act(async () => {});
+  });
+
+  it("hands an overlay the craft's held place, where it hands the diagram's, and not periapsis", async () => {
+    registerAugment({
+      id: "test-held-overlay",
+      augments: "orbit-view.overlay",
+      component: (ctx: OrbitOverlayContext) => (
+        <div data-testid="overlay-anomaly">{ctx.trueAnomaly.toFixed(1)}</div>
+      ),
+    });
+    const { fixture } = mount();
+    act(() => {
+      fixture.emit("system.bodies", {
+        bodies: [{ name: "Kerbin", index: 1, radius: 600000 }],
+      });
+      fixture.emit("vessel.identity", {
+        vesselId: "v1",
+        name: "Test Vessel",
+        vesselType: 0,
+        situation: 3,
+        parentBodyIndex: 1,
+      });
+      fixture.emit(
+        "vessel.orbit",
+        {
+          referenceBodyIndex: 1,
+          sma: 682500,
+          ecc: 0.3,
+          inc: 0.3,
+          lan: 0,
+          argPe: 12.5,
+          mu: 3.5316e12,
+          horizon: ANALYTIC_UNBOUNDED_HORIZON,
+          meanAnomalyAtEpoch: 1.5,
+          epoch: 10,
+        },
+        { quality: Quality.Loaded },
+      );
+    });
+    await screen.findByTestId("overlay-anomaly");
+    const live = Number(screen.getByTestId("overlay-anomaly").textContent);
+    expect(live).not.toBe(0);
+
+    act(() => {
+      fixture.store.setTransportConnected(false);
+      fixture.store.beginFrame();
+    });
+    await waitFor(() =>
+      expect(fixture.store.sampleReading("vessel.orbit").state).toBe("held"),
+    );
+    // The diagram draws the craft held at the place the elements were taken; the overlay is handed the same, never 0.
+    const held = Number(screen.getByTestId("overlay-anomaly").textContent);
+    expect(held).not.toBe(0);
+    expect(Math.abs(held - live)).toBeLessThan(1);
     await act(async () => {});
   });
 

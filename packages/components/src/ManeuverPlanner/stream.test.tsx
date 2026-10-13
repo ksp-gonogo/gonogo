@@ -106,6 +106,61 @@ describe("ManeuverPlanner: maneuver-node id round-trip", () => {
     );
   });
 
+  it("Clear all removes every node it can and says how many it could not", async () => {
+    const fixture = setupStreamFixture({
+      pinnedUt: 1_000_000,
+      suspendFrames: true,
+    });
+    const commandHandler = vi.fn((_command: string, args: unknown) => {
+      if (JSON.stringify(args).includes("far-node")) {
+        throw new Error("refused");
+      }
+      return { ok: true };
+    });
+    fixture.transport.setCommandHandler(commandHandler);
+
+    render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: "mnv-clear" }}>
+          <ManeuverPlannerComponent id="mnv-clear" config={{}} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+
+    const node = (id: string, ut: number) => ({
+      id,
+      ut,
+      dvRadial: 0,
+      dvNormal: 0,
+      dvPrograde: 30,
+      dvTotal: 30,
+      frame: ManeuverFrame.RadialNormalPrograde,
+      patches: [],
+    });
+    act(() => {
+      emitOrbitReady(fixture);
+      fixture.emit("vessel.maneuver", {
+        nodes: [node("near-node", 1_000_120), node("far-node", 1_000_900)],
+      });
+    });
+
+    const clear = await screen.findByRole("button", { name: "Clear all" });
+    await waitForManeuverStreamFrame(fixture);
+    act(() => {
+      clear.click();
+    });
+
+    // The far node is tried first and refused; the near one is still removed.
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("vessel.maneuver.remove", {
+        nodeId: "near-node",
+      }),
+    );
+    await waitFor(() =>
+      expect(visibleText()).toContain("1 of 2 nodes could not be removed."),
+    );
+  });
+
   it("offers no Delete control when no stream is mounted", () => {
     // With no provider mounted there are no nodes, so no row renders.
     render(
