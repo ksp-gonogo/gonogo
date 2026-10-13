@@ -40,6 +40,12 @@ namespace Sitrep.Host.Comms
             /// <summary>The newest report from each crewed centre to have arrived here, by the reporting centre's id.</summary>
             public Dictionary<string, CentreReport> Reports { get; } = new Dictionary<string, CentreReport>(StringComparer.Ordinal);
 
+            /// <summary>The newest forecast for each craft to have arrived here, by node id.</summary>
+            public Dictionary<string, CraftForecast> Forecasts { get; } = new Dictionary<string, CraftForecast>(StringComparer.Ordinal);
+
+            /// <summary>The newest home judgement of each craft to have arrived here, by node id.</summary>
+            public Dictionary<string, HomeVerdict> Verdicts { get; } = new Dictionary<string, HomeVerdict>(StringComparer.Ordinal);
+
             /// <summary>A count that moves each time what this centre knows of its contact with some craft may have changed.</summary>
             public long Contacts { get; set; }
 
@@ -166,6 +172,12 @@ namespace Sitrep.Host.Comms
                     });
                     var stopReach = _host.HearCraftReach(vesselId, centre, reach => Reached(listeningEar, reach));
                     var stopReport = _host.HearCentreReport(vesselId, centre, report => Reported(listeningEar, report));
+                    var stopForecast = _host.HearCraftForecast(vesselId, centre, forecast => Forecast(listeningEar, forecast));
+                    var stopVerdict = _host.HearHomeVerdict(vesselId, centre, verdict =>
+                    {
+                        listeningEar.Verdicts[nodeId] = verdict;
+                        listeningEar.Contacts++;
+                    });
                     ear.Stop[vesselId] = () =>
                     {
                         stopState();
@@ -174,6 +186,8 @@ namespace Sitrep.Host.Comms
                         stopRadio();
                         stopReach();
                         stopReport();
+                        stopForecast();
+                        stopVerdict();
                     };
                 }
             }
@@ -256,6 +270,14 @@ namespace Sitrep.Host.Comms
             }
             return contacts;
         }
+
+        /// <summary>The newest forecast for the craft to have reached <paramref name="centre"/>, or null when none has.</summary>
+        public CraftForecast? ForecastAt(string centre, string nodeId) =>
+            _ears.TryGetValue(centre, out var ear) && ear.Forecasts.TryGetValue(nodeId, out var forecast) ? forecast : null;
+
+        /// <summary>The newest home judgement of the craft to have reached <paramref name="centre"/>, or null when none has.</summary>
+        public HomeVerdict? VerdictAt(string centre, string nodeId) =>
+            _ears.TryGetValue(centre, out var ear) && ear.Verdicts.TryGetValue(nodeId, out var verdict) ? verdict : null;
 
         /// <summary>A count that moves each time what <paramref name="centre"/> knows of its contact with some craft may have changed.</summary>
         public long ContactNewsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.Contacts : 0;
@@ -364,7 +386,9 @@ namespace Sitrep.Host.Comms
                     new List<ContactRadio>(ear.Value.Radio.Values),
                     new List<CraftSighting>(ear.Value.Seen.Values),
                     new List<CraftReach>(ear.Value.Reach.Values),
-                    new List<CentreReport>(ear.Value.Reports.Values)));
+                    new List<CentreReport>(ear.Value.Reports.Values),
+                    new List<CraftForecast>(ear.Value.Forecasts.Values),
+                    new List<HomeVerdict>(ear.Value.Verdicts.Values)));
             }
             return new HeardSnapshot(centres);
         }
@@ -411,6 +435,14 @@ namespace Sitrep.Host.Comms
                 foreach (var report in centre.Reports)
                 {
                     Reported(ear, report);
+                }
+                foreach (var forecast in centre.Forecasts)
+                {
+                    Forecast(ear, forecast);
+                }
+                foreach (var verdict in centre.Verdicts)
+                {
+                    ear.Verdicts[verdict.Id] = verdict;
                 }
                 ear.News++;
                 ear.Readings++;
@@ -509,6 +541,17 @@ namespace Sitrep.Host.Comms
                 return;
             }
             ear.Reach[reach.Id] = reach;
+            ear.Contacts++;
+        }
+
+        /// <summary>A forecast older than the newest held changes nothing.</summary>
+        private static void Forecast(Ear ear, CraftForecast forecast)
+        {
+            if (ear.Forecasts.TryGetValue(forecast.Id, out var held) && held.CapturedUt >= forecast.CapturedUt)
+            {
+                return;
+            }
+            ear.Forecasts[forecast.Id] = forecast;
             ear.Contacts++;
         }
 

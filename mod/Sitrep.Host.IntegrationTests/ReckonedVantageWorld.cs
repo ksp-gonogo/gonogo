@@ -261,6 +261,13 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>Whether the active craft's route ends somewhere other than a ground station.</summary>
         public bool ActiveOffTheGround { get; set; }
 
+        /// <summary>The ground's forecast for each craft, by bare guid, recorded as the silence capture would when it changes.</summary>
+        public Dictionary<string, CraftForecast> Forecasts { get; } = new Dictionary<string, CraftForecast>();
+
+        /// <summary>The ground's forecast for a craft it lost at <paramref name="onsetUt"/>, to be declared at <paramref name="deadlineUt"/>.</summary>
+        public static CraftForecast Forecast(string vesselId, double onsetUt, double deadlineUt) =>
+            new CraftForecast("vessel:" + vesselId, onsetUt, onsetUt, deadlineUt, SilenceDeadlineBasis.PolicyCeiling, null, null);
+
         /// <summary>The active craft's signal delay from the relay, while the relay is a centre the engine lists.</summary>
         public double ActiveFromRelaySeconds { get; set; } = 5.0;
 
@@ -638,6 +645,8 @@ namespace Sitrep.Host.IntegrationTests
 
         private bool _listening;
 
+        private readonly Dictionary<string, CraftForecast> _forecastsSaid = new Dictionary<string, CraftForecast>();
+
         public ScriptedContactUplink(ScriptedContactGame game, ChannelEngine engine)
         {
             _game = game;
@@ -711,6 +720,15 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>The newest word of who can hear the craft to have reached the centre, or null when none has.</summary>
         public CraftReach? Reach(string centre, string vesselId) =>
             _reach.TryGetValue((centre, vesselId), out var reach) ? reach : null;
+
+        /// <summary>The home centre's judgement of the craft as it stands.</summary>
+        public HomeVerdict? HomeVerdict(string vesselId) => _source.HomeVerdictOf(CraftStateRecorder.VesselPrefix + vesselId);
+
+        /// <summary>The ground's forecast for the craft as it has reached the centre.</summary>
+        public CraftForecast? ForecastHeardAt(string centre, string vesselId) => _source.ForecastHeardAt(centre, CraftStateRecorder.VesselPrefix + vesselId);
+
+        /// <summary>The home centre's judgement of the craft as it has reached the centre.</summary>
+        public HomeVerdict? VerdictHeardAt(string centre, string vesselId) => _source.VerdictHeardAt(centre, CraftStateRecorder.VesselPrefix + vesselId);
 
         /// <summary>What the home centre knows of contact with the craft from every centre whose word has reached it.</summary>
         public CentreContact? HomeContact(string vesselId) => _source.HomeContact(CraftStateRecorder.VesselPrefix + vesselId);
@@ -846,6 +864,23 @@ namespace Sitrep.Host.IntegrationTests
                 offTheGround.Add(ScriptedContactGame.ActiveGuid);
             }
             _engine.SetOffTheGround(offTheGround);
+            if (ledger.RelayIsEngineCentre)
+            {
+                var home = new Dictionary<string, double> { [ScriptedContactGame.Home] = 0.0, [ScriptedContactGame.Far] = 0.0 };
+                if (ledger.RelayConnected)
+                {
+                    home[ScriptedContactGame.Relay] = ledger.RelayFromFarSeconds;
+                }
+                _engine.SetHomeCommandDelays(home);
+            }
+            foreach (var forecast in ledger.Forecasts)
+            {
+                if (!_forecastsSaid.TryGetValue(forecast.Key, out var said) || !ReferenceEquals(said, forecast.Value))
+                {
+                    _forecastsSaid[forecast.Key] = forecast.Value;
+                    _engine.RecordCraftForecast(forecast.Key, forecast.Value, forecast.Value.CapturedUt);
+                }
+            }
 
             // The live links, for whether light that was sent lands and for a
             // relay's own link: the relay to each centre while it has one.
@@ -888,6 +923,7 @@ namespace Sitrep.Host.IntegrationTests
                 Unroutable = new List<(string, string)>(game.Unroutable);
                 ActiveOffTheGround = game.ActiveOffTheGround;
                 ActiveFromRelaySeconds = game.ActiveFromRelaySeconds;
+                Forecasts = new Dictionary<string, CraftForecast>(game.Forecasts);
                 GameRoutes = new Dictionary<string, IReadOnlyList<CommsHop>>(game.GameRoutes);
             }
 
@@ -904,6 +940,8 @@ namespace Sitrep.Host.IntegrationTests
             public bool ActiveOffTheGround { get; }
 
             public double ActiveFromRelaySeconds { get; }
+
+            public Dictionary<string, CraftForecast> Forecasts { get; }
 
             public double ActiveSeconds { get; }
 

@@ -19,7 +19,9 @@ namespace Sitrep.Host.Comms
             IReadOnlyList<ContactRadio>? radios = null,
             IReadOnlyList<CraftSighting>? sightings = null,
             IReadOnlyList<CraftReach>? reaches = null,
-            IReadOnlyList<CentreReport>? reports = null)
+            IReadOnlyList<CentreReport>? reports = null,
+            IReadOnlyList<CraftForecast>? forecasts = null,
+            IReadOnlyList<HomeVerdict>? verdicts = null)
         {
             Centre = centre;
             States = states;
@@ -28,7 +30,15 @@ namespace Sitrep.Host.Comms
             Sightings = sightings ?? NoSightings;
             Reaches = reaches ?? NoReaches;
             Reports = reports ?? NoReports;
+            Forecasts = forecasts ?? new CraftForecast[0];
+            Verdicts = verdicts ?? new HomeVerdict[0];
         }
+
+        /// <summary>The newest forecast for each craft to have reached the centre.</summary>
+        public IReadOnlyList<CraftForecast> Forecasts { get; }
+
+        /// <summary>The newest home judgement of each craft to have reached the centre.</summary>
+        public IReadOnlyList<HomeVerdict> Verdicts { get; }
 
         private static readonly IReadOnlyList<CentreReport> NoReports = new CentreReport[0];
 
@@ -205,10 +215,36 @@ namespace Sitrep.Host.Comms
                     }
                     reports.Add(new Dictionary<string, object?> { ["centre"] = report.Centre, ["capturedUt"] = report.CapturedUt, ["contacts"] = contacts });
                 }
+                var forecasts = new List<object?>();
+                foreach (var forecast in centre.Forecasts)
+                {
+                    forecasts.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = forecast.Id,
+                        ["capturedUt"] = forecast.CapturedUt,
+                        ["onsetUt"] = forecast.OnsetUt,
+                        ["deadlineUt"] = forecast.DeadlineUt,
+                        ["basis"] = forecast.Basis,
+                        ["predictedReacquisitionUt"] = forecast.PredictedReacquisitionUt,
+                        ["predictionGraceSec"] = forecast.PredictionGraceSec,
+                    });
+                }
+                var verdicts = new List<object?>();
+                foreach (var verdict in centre.Verdicts)
+                {
+                    verdicts.Add(new Dictionary<string, object?>
+                    {
+                        ["id"] = verdict.Id,
+                        ["state"] = verdict.State.ToString(),
+                        ["declaredLostUt"] = verdict.DeclaredLostUt,
+                        ["lostSeq"] = (double)verdict.LostSeq,
+                        ["withdrawnUt"] = verdict.WithdrawnUt,
+                    });
+                }
                 centres.Add(new Dictionary<string, object?>
                 {
                     ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios, ["sightings"] = sightings, ["reaches"] = reaches,
-                    ["reports"] = reports,
+                    ["reports"] = reports, ["forecasts"] = forecasts, ["verdicts"] = verdicts,
                 });
             }
             var root = new Dictionary<string, object?> { ["version"] = (double)FormatVersion, ["centres"] = centres };
@@ -308,7 +344,37 @@ namespace Sitrep.Host.Comms
                         }
                         reports.Add(new CentreReport((string)report["centre"]!, (double)report["capturedUt"]!, contacts));
                     }
-                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings, reaches, reports));
+                    var forecasts = new List<CraftForecast>();
+                    foreach (var item5 in List(centre, "forecasts"))
+                    {
+                        var forecast = (Dictionary<string, object?>)item5!;
+                        forecasts.Add(new CraftForecast(
+                            (string)forecast["id"]!,
+                            (double)forecast["capturedUt"]!,
+                            Get(forecast, "onsetUt") as double?,
+                            Get(forecast, "deadlineUt") as double?,
+                            Get(forecast, "basis") as string,
+                            Get(forecast, "predictedReacquisitionUt") as double?,
+                            Get(forecast, "predictionGraceSec") as double?));
+                    }
+                    var verdicts = new List<HomeVerdict>();
+                    foreach (var item6 in List(centre, "verdicts"))
+                    {
+                        var verdict = (Dictionary<string, object?>)item6!;
+                        if (!(Get(verdict, "state") is string named) || !Enum.TryParse<HomeVerdictState>(named, out var state))
+                        {
+                            continue;
+                        }
+                        verdicts.Add(new HomeVerdict
+                        {
+                            Id = (string)verdict["id"]!,
+                            State = state,
+                            DeclaredLostUt = Get(verdict, "declaredLostUt") as double?,
+                            LostSeq = Get(verdict, "lostSeq") is double seq ? (int)seq : 0,
+                            WithdrawnUt = Get(verdict, "withdrawnUt") as double?,
+                        });
+                    }
+                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings, reaches, reports, forecasts, verdicts));
                 }
                 return new HeardSnapshot(centres);
             }
