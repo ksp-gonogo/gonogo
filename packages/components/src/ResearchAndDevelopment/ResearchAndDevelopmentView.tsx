@@ -30,7 +30,7 @@ import { TechGraph } from "./TechGraph";
 import { unlockHandlersFor } from "./unlock";
 import { sortNodes, type TechNode } from "./wire";
 
-export interface TechTreeViewProps {
+export interface ResearchAndDevelopmentViewProps {
   w?: number;
   allNodes: TechNode[] | null;
   /** The mod's own count of unlocked nodes; `null` when it did not arrive. */
@@ -93,7 +93,7 @@ function TechStats({
   );
 }
 
-export function TechTreeView({
+export function ResearchAndDevelopmentView({
   w,
   allNodes,
   unlockedCount = null,
@@ -102,7 +102,7 @@ export function TechTreeView({
   chargesScience,
   unlockCmd,
   unlockBlocked,
-}: Readonly<TechTreeViewProps>) {
+}: Readonly<ResearchAndDevelopmentViewProps>) {
   const [listFilter, setListFilter] = useState<ListFilter>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);

@@ -166,7 +166,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * scale's `lg` ceiling (18/20/22/24/28px readouts) and fluid `clamp()`
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
-   * (Navball's 9px and 14px terms in a 74px reserve, TechTree's card
+   * (Navball's 9px and 14px terms in a 74px reserve, ResearchAndDevelopment's card
    * ladder against CARD_H = 48, Rendezvous's 11px, PanelStatusDot's
    * 7px pinned under an 11px dot), plus `shared/` and mod widgets no slice
    * owned.
@@ -184,7 +184,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/shared/OrbitalEventChips.tsx": 2,
     "packages/ui/src/StationConnectView/StationConnectView.styles.ts": 7,
     "packages/components/src/SystemView/index.tsx": 1,
-    "packages/components/src/TechTree/styles.ts": 3,
+    "packages/components/src/ResearchAndDevelopment/styles.ts": 3,
     "packages/components/src/WarpControl/styles.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
@@ -209,7 +209,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   lineHeight: {
     "packages/components/src/SpaceCenterStatus/styles.ts": 1,
-    "packages/components/src/TechTree/styles.ts": 1,
+    "packages/components/src/ResearchAndDevelopment/styles.ts": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 1,
   },

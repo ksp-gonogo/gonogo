@@ -1136,9 +1136,9 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
-    widgetId: "tech-tree",
-    fixturesPath: "TechTree/__fixtures__",
-    outPath: "renders/tech-tree-widget",
+    widgetId: "research-and-development",
+    fixturesPath: "ResearchAndDevelopment/__fixtures__",
+    outPath: "renders/research-and-development-widget",
     modes: [
       { name: "tiny-3x3", w: 3, h: 3 },
       // The kit's tiny form: researchable count over the science balance.
@@ -1147,7 +1147,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       { name: "default-6x9", w: 6, h: 9 },
       // tall: more of the tree visible without scrolling.
       { name: "tall-6x16", w: 6, h: 16 },
-      // wide landscape: closest to an in-game tech-tree aspect.
+      // wide landscape: closest to an in-game tech tree aspect.
       { name: "wide-16x10", w: 16, h: 10 },
       // large: generous room for a node-graph layout.
       { name: "xl-18x16", w: 18, h: 16 },

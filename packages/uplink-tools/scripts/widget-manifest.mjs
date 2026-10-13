@@ -55,7 +55,7 @@ const PAGE_SCENES = {
   "admin-building": "one-active-room-for-more",
   "target-picker": "lko-station-target",
   rendezvous: "approach-closing",
-  "tech-tree": "small-career-detail",
+  "research-and-development": "small-career-detail",
   "transfer-window": "earth-mars-go",
   "warp-control": "rails-warp-1000x",
 };

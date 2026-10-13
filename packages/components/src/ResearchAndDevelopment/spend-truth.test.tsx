@@ -8,7 +8,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { TechTreeComponent } from "./index";
+import { ResearchAndDevelopmentComponent } from "./index";
 
 /**
  * What the Unlock control may claim about a spend: a price that never arrived is not free, and a command the career model refuses outright (one that researches through a queue of its own) is not a purchase the balance decides.
@@ -36,7 +36,7 @@ const PRICEY = {
   parents: [],
 };
 
-describe("TechTree spend truth", () => {
+describe("ResearchAndDevelopment spend truth", () => {
   let stream: StreamFixture;
 
   beforeEach(() => {
@@ -51,7 +51,7 @@ describe("TechTree spend truth", () => {
     render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tt-spend" }}>
-          <TechTreeComponent config={{}} id="tt-spend" />
+          <ResearchAndDevelopmentComponent config={{}} id="tt-spend" />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );

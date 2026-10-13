@@ -29,9 +29,9 @@ export const ABSENCE_SCENES: AbsenceScene[] = [
     stillPaints: ["MAP"],
   },
   {
-    id: "tech-tree-balance-never-arrived",
-    widget: "tech-tree",
-    fixture: "TechTree/__fixtures__/small-career-detail.json",
+    id: "research-and-development-balance-never-arrived",
+    widget: "research-and-development",
+    fixture: "ResearchAndDevelopment/__fixtures__/small-career-detail.json",
     channel: "career.status",
     mode: { name: "default-6x9", w: 6, h: 9 },
     because:

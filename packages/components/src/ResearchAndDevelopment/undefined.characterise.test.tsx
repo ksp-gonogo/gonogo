@@ -9,10 +9,10 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { TechTreeComponent } from "./index";
+import { ResearchAndDevelopmentComponent } from "./index";
 
 /**
- * Pins what TechTree renders when its reads are `undefined`: absent nodes draw a placeholder, and an unknown science balance withholds Unlock with a stated reason rather than leaving a spend control live on an absence.
+ * Pins what ResearchAndDevelopment renders when its reads are `undefined`: absent nodes draw a placeholder, and an unknown science balance withholds Unlock with a stated reason rather than leaving a spend control live on an absence.
  */
 
 function newFixture() {
@@ -30,7 +30,7 @@ function renderTree(
     <fixture.Provider>
       {probe && <ReadingProbe topic="career.status" />}
       <DashboardItemContext.Provider value={{ instanceId: "tt-char" }}>
-        <TechTreeComponent config={{}} id="tt-char" />
+        <ResearchAndDevelopmentComponent config={{}} id="tt-char" />
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -85,7 +85,7 @@ beforeEach(() => {
   clearActionHandlers();
 });
 
-describe("TechTree: nothing has arrived at all", () => {
+describe("ResearchAndDevelopment: nothing has arrived at all", () => {
   it("renders the awaiting placeholder and none of the browsing chrome", () => {
     renderTree(newFixture());
 
@@ -103,7 +103,7 @@ describe("TechTree: nothing has arrived at all", () => {
   });
 });
 
-describe("TechTree: the `allNodes === null` absence gate", () => {
+describe("ResearchAndDevelopment: the `allNodes === null` absence gate", () => {
   it("fires for a never-arrived topic and yields a DIFFERENT message from a confirmed-empty tree", async () => {
     const fixture = newFixture();
     renderTree(fixture);
@@ -152,7 +152,7 @@ describe("TechTree: the `allNodes === null` absence gate", () => {
   });
 });
 
-describe("TechTree: null versus undefined", () => {
+describe("ResearchAndDevelopment: null versus undefined", () => {
   it("does NOT distinguish a whole-topic tombstone from a topic that never arrived", async () => {
     const fixture = newFixture();
     renderTree(fixture, { probe: true });
@@ -167,14 +167,14 @@ describe("TechTree: null versus undefined", () => {
   });
 });
 
-describe("TechTree: no building-scene gate on Unlock", () => {
+describe("ResearchAndDevelopment: no building-scene gate on Unlock", () => {
   it("arms Unlock on an affordable node with no scene telemetry ever mounted", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
     renderTree(fixture);
 
     act(() => {
-      // TechTree carries no scene channel at all: the backend enforces no scene, so the client checks none either.
+      // ResearchAndDevelopment carries no scene channel at all: the backend enforces no scene, so the client checks none either.
       fixture.emit(
         "career.status",
         careerStatus([PRICEY_RESEARCHABLE], {
@@ -196,7 +196,7 @@ describe("TechTree: no building-scene gate on Unlock", () => {
   });
 });
 
-describe("TechTree: an absent balances.science", () => {
+describe("ResearchAndDevelopment: an absent balances.science", () => {
   it("leaves Unlock on a 500-science node to its gate while the balance is unknown", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
@@ -262,7 +262,7 @@ describe("TechTree: an absent balances.science", () => {
   });
 });
 
-describe("TechTree: computeResearchable and the balance", () => {
+describe("ResearchAndDevelopment: computeResearchable and the balance", () => {
   // The count is a claim about the tree's shape, not an offer to spend: a node with unlocked parents is reachable, and the Unlock button refuses the spend on its own.
   it("still counts a 500-science node as researchable while the balance is unknown", async () => {
     const fixture = newFixture();

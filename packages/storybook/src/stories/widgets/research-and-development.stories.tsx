@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { withGonogoFrame } from "../../frame";
-import { TechTreeCareerScene } from "../../techTreeScenes";
+import { ResearchAndDevelopmentCareerScene } from "../../researchAndDevelopmentScenes";
 
 const meta = {
-  title: "Widgets/tech-tree/Career playback",
-  component: TechTreeCareerScene,
+  title: "Widgets/research-and-development/Career playback",
+  component: ResearchAndDevelopmentCareerScene,
   decorators: [withGonogoFrame],
   tags: ["playback"],
   parameters: { layout: "fullscreen" },
@@ -12,7 +12,7 @@ const meta = {
     w: { control: { type: "range", min: 5, max: 36, step: 1 } },
     h: { control: { type: "range", min: 4, max: 40, step: 1 } },
   },
-} satisfies Meta<typeof TechTreeCareerScene>;
+} satisfies Meta<typeof ResearchAndDevelopmentCareerScene>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
