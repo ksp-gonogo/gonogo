@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Threading.Tasks;
+using Sitrep.Contract;
 using Xunit;
 
 using static Sitrep.Host.IntegrationTests.WsTestHarness;
@@ -277,6 +278,45 @@ namespace Sitrep.Host.IntegrationTests
 
             await seated.TickAsync(T0 + 2103, T0 + 2104, T0 + 2105);
             Assert.Null(seated.View.Vessel(Relay));
+        }
+
+        private static int PlaceSource(CentreView view) => view.Vessel(Relay)!.Value.GetProperty("placeSource").GetInt32();
+
+        private static double PlaceAsOfUt(CentreView view) => view.Vessel(Relay)!.Value.GetProperty("placeAsOfUt").GetDouble();
+
+        /// <summary>
+        /// The relay burns at T0. Home sees the burn a hundred seconds later,
+        /// before its radio could say, and its list gives that place as seen,
+        /// true at T0.
+        /// </summary>
+        [Fact]
+        public async Task ACentresListSaysAPlaceWasSeenAndWhenItWasTrue()
+        {
+            await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 100.0 });
+            await seated.TickAsync(1, 2, 700, 702);
+
+            seated.World.Game.BurnRelay(T0);
+            await seated.TickAsync(T0, T0 + 2, T0 + 103, T0 + 104, T0 + 105);
+
+            Assert.Equal((int)RosterPlaceSource.Seen, PlaceSource(seated.View));
+            Assert.Equal(T0, PlaceAsOfUt(seated.View));
+        }
+
+        /// <summary>
+        /// With nothing tracked by sight, the relay's burn reaches home only by
+        /// its radio, and home's list gives that place as heard, true at T0.
+        /// </summary>
+        [Fact]
+        public async Task ACentresListSaysAPlaceWasHeardAndWhenItWasTrue()
+        {
+            await using var seated = await AtHomeAsync(new ScriptedContactGame { RelaySeenFromHomeSeconds = 100.0, TracksBySight = false });
+            await seated.TickAsync(1, 2, 700, 702);
+
+            seated.World.Game.BurnRelay(T0);
+            await seated.TickAsync(T0, T0 + 603, T0 + 604, T0 + 605);
+
+            Assert.Equal((int)RosterPlaceSource.Heard, PlaceSource(seated.View));
+            Assert.Equal(T0, PlaceAsOfUt(seated.View));
         }
 
         /// <summary>A tracking station that cannot place a vessel sees nothing: an object with no radio is never listed, and a craft is known by its radio alone.</summary>

@@ -1311,6 +1311,9 @@ namespace Sitrep.Host.Comms
                     {
                         entry["commsConnected"] = link.Value;
                     }
+                    var place = _hearing.PlaceAt(centre, state.Id);
+                    entry["placeSource"] = place.HasValue ? (int)place.Value.Source : (int?)null;
+                    entry["placeAsOfUt"] = place?.AsOfUt;
                     vessels.Add(entry);
                 }
                 if (looked.VesselsUnread && vessels.Count == 0)

@@ -1632,6 +1632,8 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     latitude: "°",
     longitude: "°",
     name: "text",
+    placeAsOfUt: "ut",
+    placeSource: "enum",
     situation: "enum",
     vesselId: "id",
     vesselType: "enum",
@@ -3090,6 +3092,7 @@ export const GENERATED_TYPE_ENUMS: Readonly<Record<string, EnumsByField>> = {
   },
   "VesselRosterEntry": {
     commsControlSource: "RosterCommsControlSource",
+    placeSource: "RosterPlaceSource",
     situation: "Situation",
     vesselType: "VesselType",
   },
@@ -3385,6 +3388,10 @@ export const GENERATED_ENUM_MEMBERS: Readonly<Record<string, Readonly<Record<num
     1: "Partial",
     2: "Full",
     3: "Unknown",
+  },
+  "RosterPlaceSource": {
+    0: "Heard",
+    1: "Seen",
   },
   "SasMode": {
     0: "StabilityAssist",

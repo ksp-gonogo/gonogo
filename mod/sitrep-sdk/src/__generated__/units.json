@@ -1592,6 +1592,8 @@
       "latitude": "°",
       "longitude": "°",
       "name": "text",
+      "placeAsOfUt": "ut",
+      "placeSource": "enum",
       "situation": "enum",
       "vesselId": "id",
       "vesselType": "enum"
@@ -3005,6 +3007,7 @@
     },
     "VesselRosterEntry": {
       "commsControlSource": "RosterCommsControlSource",
+      "placeSource": "RosterPlaceSource",
       "situation": "Situation",
       "vesselType": "VesselType"
     },
@@ -3263,6 +3266,10 @@
       "1": "Partial",
       "2": "Full",
       "3": "Unknown"
+    },
+    "RosterPlaceSource": {
+      "0": "Heard",
+      "1": "Seen"
     },
     "SasMode": {
       "0": "StabilityAssist",

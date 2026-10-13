@@ -8287,6 +8287,18 @@ export enum RosterCommsControlSource {
 	Unknown = 3
 }
 /**
+* How a command centre last learned where a vessel on its `SystemVessels` list
+* is.
+*
+* @category Solar system and fleet
+*/
+export enum RosterPlaceSource {
+	/** The vessel said where it is, over a link that reached the centre. */
+	Heard = 0,
+	/** The centre saw the vessel there, with nothing between them. */
+	Seen = 1
+}
+/**
 * One vessel in the `SystemVessels` roster. A vessel with no resolvable stable
 * id is left out rather than given a made-up one, so
 * `VesselRosterEntry.vesselId` is always present.
@@ -8372,6 +8384,19 @@ export interface VesselRosterEntry
 	* vessel has no orbit yet (during a scene transition), never a sentinel.
 	*/
 	orbit?: OrbitEntry | null;
+	/**
+	* How the centre this list belongs to last learned where the vessel is: heard
+	* over a link, or seen. The place is whichever of the two is newer. A vessel
+	* can be seen while no link reaches it, so a seen place says nothing about its
+	* crew or its link. Null where the producer does not say.
+	*/
+	placeSource?: RosterPlaceSource | null;
+	/**
+	* The universal time the place this entry gives was true at: when the vessel
+	* said it, or when the light the centre saw it by left it. Null exactly when
+	* `VesselRosterEntry.placeSource` is.
+	*/
+	placeAsOfUt?: Value<"ut"> | null;
 }
 /**
 * How the active vessel comes to know of another vessel on `target.available`,

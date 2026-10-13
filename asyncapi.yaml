@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 41.2.0
+  version: 41.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 88 telemetry
     channels a client subscribes to, and 62 commands it dispatches, with the payload
@@ -17786,6 +17786,19 @@ components:
             The game reported a control level this build does not name. Not
             `RosterCommsControlSource.None`: nothing was measured to be absent, the
             level simply has no tier here yet.
+    RosterPlaceSource:
+      type: integer
+      description: |-
+        How a command centre last learned where a vessel on its `SystemVessels` list
+        is.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Heard
+          description: The vessel said where it is, over a link that reached the centre.
+        - const: 1
+          title: Seen
+          description: The centre saw the vessel there, with nothing between them.
     RotorReverseArgs:
       type: object
       description: |-
@@ -22521,6 +22534,25 @@ components:
           anyOf:
             - $ref: "#/components/schemas/OrbitEntry"
             - type: "null"
+        placeSource:
+          description: |-
+            How the centre this list belongs to last learned where the vessel is: heard
+            over a link, or seen. The place is whichever of the two is newer. A vessel
+            can be seen while no link reaches it, so a seen place says nothing about its
+            crew or its link. Null where the producer does not say.
+          anyOf:
+            - $ref: "#/components/schemas/RosterPlaceSource"
+              x-sitrep-unit: enum
+            - type: "null"
+        placeAsOfUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time the place this entry gives was true at: when the vessel
+            said it, or when the light the centre saw it by left it. Null exactly when
+            `VesselRosterEntry.placeSource` is.
     VesselStructure:
       type: object
       description: |-

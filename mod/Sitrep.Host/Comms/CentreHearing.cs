@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Sitrep.Contract;
 
 namespace Sitrep.Host.Comms
 {
@@ -172,6 +173,26 @@ namespace Sitrep.Host.Comms
         /// </summary>
         public IReadOnlyCollection<CraftState> HeardAt(string centre) =>
             _ears.TryGetValue(centre, out var ear) ? ear.Known.Values : (IReadOnlyCollection<CraftState>)Array.Empty<CraftState>();
+
+        /// <summary>
+        /// How <paramref name="centre"/> knows where the craft is: seen, when its
+        /// newest sighting is newer than the newest state heard from it, otherwise
+        /// heard; with the UT that place was true at. Null when it knows neither.
+        /// </summary>
+        public (RosterPlaceSource Source, double AsOfUt)? PlaceAt(string centre, string nodeId)
+        {
+            if (!_ears.TryGetValue(centre, out var ear))
+            {
+                return null;
+            }
+            ear.Heard.TryGetValue(nodeId, out var heard);
+            ear.Seen.TryGetValue(nodeId, out var seen);
+            if (seen != null && (heard == null || heard.CapturedUt < seen.CapturedUt))
+            {
+                return (RosterPlaceSource.Seen, seen.CapturedUt);
+            }
+            return heard != null ? (RosterPlaceSource.Heard, heard.CapturedUt) : ((RosterPlaceSource, double)?)null;
+        }
 
         /// <summary>
         /// Whether <paramref name="centre"/> has heard that the craft's radio

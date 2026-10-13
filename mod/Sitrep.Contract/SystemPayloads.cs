@@ -457,6 +457,24 @@ public enum RosterCommsControlSource
 }
 
 /// <summary>
+/// How a command centre last learned where a vessel on its
+/// <see cref="SystemVessels"/> list is.
+/// </summary>
+/// <category>Solar system and fleet</category>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum RosterPlaceSource
+{
+    /// <summary>The vessel said where it is, over a link that reached the centre.</summary>
+    Heard,
+
+    /// <summary>The centre saw the vessel there, with nothing between them.</summary>
+    Seen,
+}
+
+/// <summary>
 /// One vessel in the <see cref="SystemVessels"/> roster. A vessel with no
 /// resolvable stable id is left out rather than given a made-up one, so
 /// <see cref="VesselId"/> is always present.
@@ -565,4 +583,21 @@ public class VesselRosterEntry
     /// </internal>
     /// </summary>
     public OrbitEntry? Orbit { get; set; }
+
+    /// <summary>
+    /// How the centre this list belongs to last learned where the vessel is:
+    /// heard over a link, or seen. The place is whichever of the two is newer.
+    /// A vessel can be seen while no link reaches it, so a seen place says
+    /// nothing about its crew or its link. Null where the producer does not say.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public RosterPlaceSource? PlaceSource { get; set; }
+
+    /// <summary>
+    /// The universal time the place this entry gives was true at: when the
+    /// vessel said it, or when the light the centre saw it by left it. Null
+    /// exactly when <see cref="PlaceSource"/> is.
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? PlaceAsOfUt { get; set; }
 }

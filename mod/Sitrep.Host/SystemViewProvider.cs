@@ -411,6 +411,9 @@ namespace Sitrep.Host
                     // orbitDriver to read), so an absent orbit maps to null rather
                     // than an all-null OrbitEntry.
                     ["orbit"] = rawVessel.ContainsKey("sma") ? BuildOrbit(rawVessel) : null,
+                    // How a centre learned this place is that centre's, set on its own list.
+                    ["placeSource"] = null,
+                    ["placeAsOfUt"] = null,
                 });
             }
 
