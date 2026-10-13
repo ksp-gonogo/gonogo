@@ -56,6 +56,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         connected: true,
         signalStrength: 0.87,
       });
+      fixture.emit("comms.signal", { strength: 0.87, modelled: false });
     });
 
     await waitFor(() => expect(visibleText()).toContain("87 %"));
@@ -81,6 +82,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.87 });
+      fixture.emit("comms.signal", { strength: 0.87, modelled: false });
     });
     await waitFor(() => expect(visibleText()).toContain("87 %"));
 
@@ -129,6 +131,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
       act(() => {
         fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.87 });
+        fixture.emit("comms.signal", { strength: 0.87, modelled: false });
       });
       await waitFor(() => expect(visibleText()).toContain("87 %"));
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy();
@@ -137,6 +140,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
       act(() => {
         fixture.emit("comms.link", { connected: false });
         fixture.emit("vessel.comms", { connected: false, signalStrength: 0 });
+        fixture.emit("comms.signal", { strength: 0, modelled: false });
       });
       await waitFor(() => {
         if (visibleText(container).includes("SYNCING")) {
@@ -153,6 +157,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
       act(() => {
         fixture.emit("comms.link", { connected: true });
         fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+        fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       });
       await waitFor(() => expect(visibleText()).toContain("60 %"));
       expect(screen.queryByText("LOS")).toBeNull();
@@ -179,6 +184,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         connected: true,
         signalStrength: 0.9,
       });
+      fixture.emit("comms.signal", { strength: 0.9, modelled: false });
     });
     await waitFor(() => expect(visibleText()).toContain("90 %"));
     expect(visibleText()).toContain("90 %");
@@ -206,7 +212,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
       act(() => {
         fixture.emit(
           "vessel.comms",
-          { connected: true, signalStrength: 0.5 },
+          { connected: true, controlState: 3 },
           { validAt: 0, deliveredAt: 0 },
         );
       });
@@ -218,25 +224,25 @@ describe("CommSignal: genuinely runs off the stream", () => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
       });
-      await waitFor(() => expect(visibleText()).toContain("50 %"));
+      await waitFor(() => expect(visibleText()).toContain("Partial"));
 
       act(() => {
         fixture.emit(
           "vessel.comms",
-          { connected: true, signalStrength: 0.9 },
+          { connected: true, controlState: 4 },
           { validAt: 20, deliveredAt: 20 },
         );
         fixture.store.beginFrame();
       });
-      expect(visibleText()).toContain("50 %");
-      expect(visibleText()).not.toContain("90 %");
+      expect(visibleText()).toContain("Partial");
+      expect(visibleText()).not.toContain("Full");
 
       act(() => {
         fixture.wall.advanceBy(5);
         fixture.store.beginFrame();
       });
-      await waitFor(() => expect(visibleText()).toContain("90 %"));
-      expect(visibleText()).not.toContain("50 %");
+      await waitFor(() => expect(visibleText()).toContain("Full"));
+      expect(visibleText()).not.toContain("Partial");
     },
   );
 
@@ -261,6 +267,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         signalStrength: 0.4,
         controlState: 3,
       });
+      fixture.emit("comms.signal", { strength: 0.4, modelled: false });
       fixture.emit("comms.delay", { oneWaySeconds: 1.2 });
     });
 
@@ -287,6 +294,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
     act(() => {
       fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("comms.commandCentre", {
         id: "vessel:abc-123",
         displayName: "Constant Companion",
@@ -321,6 +329,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
       // The caption asserts a signal, so it needs a link verdict to render at all.
       fixture.emit("comms.link", { connected: true });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
     });
 
     await waitFor(() => expect(screen.getByText("Signal")).toBeTruthy());
@@ -350,6 +359,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         bodyIndex: 1,
       });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("vessel.identity", {
         vesselId: "v1",
         name: "Active Vessel",
@@ -424,6 +434,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         bodyIndex: 1,
       });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("comms.path", {
         hops: [
           { from: "Active Vessel", to: "Relay Sat 1", kind: 1 },
@@ -463,6 +474,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         bodyIndex: 1,
       });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("comms.path", {
         hops: [
           { from: "Active Vessel", to: "Relay Sat 1", kind: 1 },
@@ -508,6 +520,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         bodyIndex: 1,
       });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("comms.path", {
         hops: [{ from: "Active Vessel", to: "home", kind: 0 }],
       });
@@ -554,6 +567,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("vessel.identity", {
         vesselId: "v1",
         name: "Active Vessel",
@@ -632,6 +646,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("comms.path", {
         hops: [
           { from: "Active Vessel", to: "Relay 1", kind: 1 },
@@ -672,6 +687,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
         bodyIndex: 1,
       });
       fixture.emit("vessel.comms", { connected: true, signalStrength: 0.6 });
+      fixture.emit("comms.signal", { strength: 0.6, modelled: false });
       fixture.emit("comms.path", {
         hops: [{ from: "Active Vessel", to: "home", kind: 0 }],
       });
@@ -700,6 +716,7 @@ describe("CommSignal: genuinely runs off the stream", () => {
     act(() => {
       fixture.emit("comms.link", { connected: false });
       fixture.emit("vessel.comms", { connected: false, signalStrength: 0 });
+      fixture.emit("comms.signal", { strength: 0, modelled: false });
       fixture.emit("comms.path", { hops: [] });
     });
 

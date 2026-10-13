@@ -102,6 +102,7 @@ describe("CommSignal control tone", () => {
           signalStrength: 0.82,
           controlState: ordinal,
         });
+        fixture.emit("comms.signal", { strength: 0.82, modelled: false });
       });
 
       await waitFor(() => expect(controlValueCell()).toHaveTextContent(name));

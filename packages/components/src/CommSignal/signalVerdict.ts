@@ -37,24 +37,29 @@ function controlTone(state: number | undefined): Tone {
 
 /**
  * How many of the four bars are lit, or `null` when nothing arrived to judge
- * the link by: a count of zero is a verdict. With no strength reading, bars
- * derive from the control state (Full 4, Partial 2, None 0).
+ * the link by: a count of zero is a verdict. Where the strength was said to be
+ * absent (no link budget modelled), bars derive from the control state (Full 4,
+ * Partial 2, None 0); where it has not arrived, there are none.
  */
 export function signalBarCount({
   noSignal,
   connected,
   pct,
   controlState,
+  controlBars,
 }: {
   noSignal: boolean;
   connected: boolean | undefined;
   pct: number | null;
   controlState: number | undefined;
+  /** Whether the control state may stand in for a strength that was said to be absent. False while the strength is still to come: the control state is then the craft's own word and not the active route's. */
+  controlBars: boolean;
 }): number | null {
   // Withheld: `controlState` is read off the held `vessel.comms`, so the bars would otherwise paint a confident "Full" above a caption saying the verdict is held.
   if (noSignal) return 0;
   if (connected === false) return 0;
   if (pct !== null) return Math.max(1, Math.ceil(pct * 4));
+  if (!controlBars) return null;
   if (controlState === 2) return 4;
   if (controlState === 1) return 2;
   if (controlState === 0) return 0;

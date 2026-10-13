@@ -8,7 +8,9 @@ import {
   type TinyEssential,
   type TinyEssentialMark,
   type TinyEssentialTone,
+  type Value,
 } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   type ControlDescription,
   describeControl,
@@ -38,21 +40,30 @@ export interface SignalVerdict {
   quantity: string | null;
   /** The observed strength reading, or null wherever `pct` is. */
   strengthReading: TinyEssential["value"];
-  /**
-   * How the strength is marked, or null where it is the measured worth of the
-   * active route. Worked out for that route where the craft's radio has not
-   * reported on it; or measured, but on another route.
-   */
+  /** How the strength is marked, or null where it is the measured worth of the active route. Only a figure worked out for that route is marked. */
   strengthMark: TinyEssentialMark | null;
+  /**
+   * The headline figure is still to come: this command centre has not been sent
+   * a strength for the active route, and the craft's own figure is not drawn in
+   * its place.
+   */
+  strengthAwaited: boolean;
+  /** A sentence for the headline's tooltip: the craft's own figure while the active route's is awaited, or what a figure measured on another route is. Null where there is nothing to add. */
+  strengthTip: string | null;
 }
 
 /** What the modelled mark on the strength means, on hover and in the spoken name. */
 export const MODELLED_STRENGTH =
   "Worked out for the active route, not measured";
 
-/** The craft's own figure, drawn until this command centre is sent a strength for its own path. */
-export const CRAFT_ROUTE_STRENGTH =
-  "Measured by the craft's radio on the route it was using: this command centre has not been sent a strength for the active route";
+/** What the craft's own figure is, offered on the headline's tooltip while this command centre has not been sent a strength for the active route. */
+export function craftFigureCaption(
+  figure: Value<"ratio">,
+  quantity: string | null,
+): string {
+  const named = quantity === null ? "" : ` (${quantity.toLowerCase()})`;
+  return `The craft's own radio reports ${writeQuantity(figure, { as: "%", decimals: 0 })}${named}, on the route it was using. The strength of the active route has not arrived yet`;
+}
 
 /** The stops' names in order, which is all the route's wording reads of a measured path. */
 interface MeasuredPath {
@@ -87,20 +98,10 @@ export function otherPathStrength(path?: MeasuredPath | null): string {
 }
 
 function strengthMarkOf(
-  told:
-    | {
-        modelled: boolean;
-        otherPath: boolean;
-        measuredPath?: MeasuredPath | null;
-      }
-    | undefined,
-  fromCraft: boolean,
+  told: { modelled: boolean } | undefined,
 ): TinyEssentialMark | null {
-  if (fromCraft) return { elsewhere: true, caption: CRAFT_ROUTE_STRENGTH };
   if (told?.modelled === true)
     return { kind: "modelled", caption: MODELLED_STRENGTH };
-  if (told?.otherPath === true)
-    return { elsewhere: true, caption: otherPathStrength(told.measuredPath) };
   return null;
 }
 
@@ -111,15 +112,15 @@ export function useSignalVerdict(): SignalVerdict {
   const commsReading = useTelemetry("vessel.comms");
   const connected =
     linkReading.state === "observed" ? linkReading.value.connected : undefined;
-  // The strength sent to this command centre for the active route. The craft's own figure is of whatever path the game had it on, and stands in only until the centre is sent one.
+  // The strength sent to this command centre for the active route. The craft's own figure is of whatever path the game had it on, so it is never drawn in its place.
   const signalReading = useTelemetry("comms.signal");
   const told =
     signalReading.state === "observed" ? signalReading.value : undefined;
-  const strength =
-    told?.strength ??
-    (commsReading.state === "observed"
+  const strength = told?.strength;
+  const craftStrength =
+    commsReading.state === "observed"
       ? commsReading.value.signalStrength
-      : undefined);
+      : undefined;
   const noSignal =
     linkReading.state === "held" || commsReading.state === "held";
   // Kept through a held reading because a pill that blanked between frames would read as a control loss; `noSignal` withholds it on screen.
@@ -140,10 +141,14 @@ export function useSignalVerdict(): SignalVerdict {
   const strengthValid =
     typeof raw === "number" && Number.isFinite(raw) && raw > 0;
   const pct = strengthValid ? Math.max(0, Math.min(1, raw)) : null;
+  const craftFigure =
+    craftStrength?.greaterThan(0) === true ? craftStrength : null;
   const nothingHasArrived =
     connected === undefined &&
     strength === undefined &&
+    craftStrength === undefined &&
     controlState === undefined;
+  const strengthAwaited = told === undefined;
   return {
     connected,
     noSignal,
@@ -155,28 +160,31 @@ export function useSignalVerdict(): SignalVerdict {
       commsReading.state !== "absent" &&
       (linkReading.state === "pending" || commsReading.state === "pending"),
     pct,
-    bars: signalBarCount({ noSignal, connected, pct, controlState }),
+    bars: signalBarCount({
+      noSignal,
+      connected,
+      pct,
+      controlState,
+      controlBars: !strengthAwaited,
+    }),
     control: describeControl(controlStateName, controlState),
-    // The strength shown is the sent one where there is one, so its quantity is the sent one's, and the craft's own otherwise.
-    quantity: describeQuantity(
-      told?.strength === undefined || told.strength === null
-        ? commsHeld?.signalQuantity
-        : told.quantity,
-    ),
+    // The quantity is the sent strength's; with none sent there is no figure to describe.
+    quantity: told === undefined ? null : describeQuantity(told.quantity),
     strengthReading:
-      pct === null
-        ? null
-        : told === undefined
-          ? commsReading.signalStrength
-          : signalReading.strength,
-    // The craft's own figure is of whatever path the game had it on, which is another path as far as this centre can say.
-    strengthMark:
-      pct === null
-        ? null
-        : strengthMarkOf(
-            told,
-            told?.strength === undefined || told.strength === null,
-          ),
+      pct === null || told === undefined ? null : signalReading.strength,
+    strengthMark: pct === null ? null : strengthMarkOf(told),
+    strengthAwaited,
+    strengthTip:
+      told === undefined
+        ? craftFigure === null
+          ? null
+          : craftFigureCaption(
+              craftFigure,
+              describeQuantity(commsHeld?.signalQuantity),
+            )
+        : pct !== null && told.otherPath === true
+          ? otherPathStrength(told.measuredPath)
+          : null,
   };
 }
 

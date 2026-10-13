@@ -119,6 +119,7 @@ describe("CommSignal: what undefined means today", () => {
         signalStrength: 0.9,
         controlState: CONTROL_STATE_FULL,
       });
+      fixture.emit("comms.signal", { strength: 0.9, modelled: false });
     });
     await waitFor(() =>
       expect(screen.getByLabelText("Signal 4 of 4")).toBeTruthy(),
@@ -126,6 +127,7 @@ describe("CommSignal: what undefined means today", () => {
 
     act(() => {
       fixture.emit("vessel.comms", null);
+      fixture.emit("comms.signal", null);
     });
 
     // A confirmed "no comms" is an answer, so it is not awaited.
@@ -135,12 +137,26 @@ describe("CommSignal: what undefined means today", () => {
     expect(screen.queryByLabelText(/^Signal \d of 4$/)).toBeNull();
   });
 
-  it("falls back to the control state when the record arrived without a signalStrength", async () => {
+  it("draws no bars off the control state while the active route's strength has not been sent", async () => {
     const { fixture } = renderComm();
 
     act(() => {
-      // The record exists without a strength field, so the bars come off the control state.
+      // The craft's own record exists without a strength, and no comms.signal has arrived.
       fixture.emit("vessel.comms", { controlState: CONTROL_STATE_FULL });
+    });
+
+    await waitFor(() =>
+      expect(screen.getByLabelText("Signal unknown")).toBeTruthy(),
+    );
+    expect(visibleText()).not.toContain("%");
+  });
+
+  it("falls back to the control state when comms.signal says no strength is modelled", async () => {
+    const { fixture } = renderComm();
+
+    act(() => {
+      fixture.emit("vessel.comms", { controlState: CONTROL_STATE_FULL });
+      fixture.emit("comms.signal", { strength: null, modelled: false });
     });
 
     await waitFor(() =>
@@ -159,6 +175,7 @@ describe("CommSignal: what undefined means today", () => {
         signalStrength: 0,
         controlState: CONTROL_STATE_FULL,
       });
+      fixture.emit("comms.signal", { strength: 0, modelled: false });
     });
 
     await waitFor(() =>

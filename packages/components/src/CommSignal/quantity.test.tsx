@@ -45,6 +45,29 @@ describe("CommSignal says which quantity the strength is", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("names the craft's own quantity on the headline's tooltip while the active route's strength is awaited", async () => {
+    const { fixture } = mount();
+
+    act(() => {
+      fixture.emit("comms.link", { connected: true });
+      fixture.emit("vessel.comms", {
+        connected: true,
+        signalStrength: 0.6,
+        signalQuantity: SignalQuantity.DataRateHeadroom,
+      });
+    });
+
+    await waitFor(() =>
+      expect(
+        [...document.querySelectorAll("[data-tooltip]")].map((el) =>
+          el.getAttribute("data-tooltip"),
+        ),
+      ).toContain(
+        "The craft's own radio reports 60 % (data-rate ladder position), on the route it was using. The strength of the active route has not arrived yet",
+      ),
+    );
+  });
+
   it("draws no strength row for KSP's own signal strength, the headline already reads it", async () => {
     const { fixture } = mount();
 
@@ -54,6 +77,12 @@ describe("CommSignal says which quantity the strength is", () => {
         connected: true,
         signalStrength: 0.6,
         signalQuantity: SignalQuantity.RangeFraction,
+      });
+      fixture.emit("comms.signal", {
+        strength: 0.6,
+        quantity: SignalQuantity.RangeFraction,
+        modelled: false,
+        otherPath: false,
       });
     });
 

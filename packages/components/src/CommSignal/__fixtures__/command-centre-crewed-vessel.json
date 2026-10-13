@@ -48,6 +48,15 @@
         }
       },
       {
+        "channel": "comms.signal",
+        "value": {
+          "strength": 0.63,
+          "quantity": 1,
+          "modelled": false,
+          "otherPath": false
+        }
+      },
+      {
         "channel": "vessel.comms",
         "value": {
           "connected": true,

@@ -33,6 +33,7 @@ describe("CommSignal: full readout off the stream", () => {
         signalStrength: 0.87,
         controlState: 4,
       });
+      fixture.emit("comms.signal", { strength: 0.87, modelled: false });
       fixture.emit("comms.delay", { oneWaySeconds: 0.0004 });
       fixture.emit("comms.link", { connected: true });
       fixture.emit("comms.commandCentre", {

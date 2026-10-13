@@ -13,6 +13,7 @@ import {
   type ReckoningMarking,
   Section,
   Stack,
+  Tooltip,
   Unit,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -38,15 +39,19 @@ function signalHeadline({
   connected,
   percent,
   controlLabel,
+  strengthAwaited,
 }: {
   noSignal: boolean;
   connected: boolean | undefined;
   percent: ReactNode | null;
   controlLabel: string;
+  strengthAwaited: boolean;
 }): ReactNode {
   if (noSignal) return NULL_DISPLAY;
   if (connected === false) return "LOS";
   if (percent !== null) return percent;
+  // Not the control state in its place: that is the craft's own word, and the active route's strength has yet to come.
+  if (strengthAwaited) return NULL_DISPLAY;
   return controlLabel;
 }
 
@@ -64,6 +69,8 @@ export function CommSignalComponent({
     control,
     quantity,
     strengthMark,
+    strengthAwaited,
+    strengthTip,
   } = useSignalVerdict();
   // Reckonable, but read observed-only because it is drawn in the verdicts' styling.
   const delayReading = useTelemetry("comms.delay");
@@ -154,7 +161,6 @@ export function CommSignalComponent({
     figure !== null && strengthMark !== null ? (
       <HeldFigure
         kind={strengthMark.kind ?? "current"}
-        elsewhere={strengthMark.elsewhere}
         caption={strengthMark.caption}
       >
         {figure}
@@ -167,7 +173,16 @@ export function CommSignalComponent({
     connected,
     percent,
     controlLabel: control.label,
+    strengthAwaited,
   });
+  const headlineWithTip =
+    strengthTip !== null && !noSignal && connected !== false ? (
+      <Tooltip text={strengthTip} focusable>
+        <span>{headline}</span>
+      </Tooltip>
+    ) : (
+      headline
+    );
 
   const liveAnnouncement = connectionAnnouncement(connected);
   return (
@@ -204,7 +219,7 @@ export function CommSignalComponent({
                   noSignal={noSignal}
                 />
                 <SignalHeadline
-                  headline={headline}
+                  headline={headlineWithTip}
                   lost={connected === false}
                 />
               </Cluster>

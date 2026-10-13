@@ -19,6 +19,7 @@ describe("CommSignal tiny mode", () => {
         signalStrength: 0.62,
         controlState: 2,
       });
+      fixture.emit("comms.signal", { strength: 0.62, modelled: false });
     });
 
     await waitFor(() => expect(visibleText()).toContain("62 %"));
@@ -33,7 +34,7 @@ describe("CommSignal tiny mode", () => {
     await act(async () => {});
   });
 
-  it("carries the same mark as the body: none for the active route's measured worth, the triangle for a worked-out one, the ring for another route's", async () => {
+  it("carries the same mark as the body: none for the active route's measured worth, the triangle for a worked-out one, none for another route's", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     renderWidget("comm-signal", { w: 3, h: 3, wrapper: fixture.Provider });
     const mark = () => document.querySelector("[data-held-mark]");
@@ -54,6 +55,7 @@ describe("CommSignal tiny mode", () => {
       /worked out for the active route/i,
     );
 
+    // A strength measured on another route carries no mark either: the tiny tile has no tooltip to put it on.
     act(() => {
       fixture.emit("comms.signal", {
         strength: 0.6,
@@ -61,13 +63,7 @@ describe("CommSignal tiny mode", () => {
         otherPath: true,
       });
     });
-    await waitFor(() =>
-      expect(mark()?.getAttribute("data-reckoning-mark")).toBe("current"),
-    );
-    expect(mark()?.hasAttribute("data-elsewhere")).toBe(true);
-    expect(document.body.textContent).toMatch(
-      /a route other than the active route/i,
-    );
+    await waitFor(() => expect(mark()).toBeNull());
     await act(async () => {});
   });
 
@@ -91,6 +87,7 @@ describe("CommSignal tiny mode", () => {
         signalStrength: 0,
         controlState: 0,
       });
+      fixture.emit("comms.signal", { strength: 0, modelled: false });
     });
 
     await waitFor(() => expect(visibleText()).toContain("LOS"));

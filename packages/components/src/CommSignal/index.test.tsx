@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -31,6 +32,13 @@ afterEach(() => {
   renderedTrees.length = 0;
 });
 
+/** What every tooltip on screen says. */
+function tooltips(): string[] {
+  return [...document.querySelectorAll("[data-tooltip]")].map(
+    (el) => el.getAttribute("data-tooltip") ?? "",
+  );
+}
+
 describe("CommSignalComponent", () => {
   it("says it is awaiting the first signal until any signal field arrives, and never that there is none", () => {
     renderComm(newFixture());
@@ -49,6 +57,7 @@ describe("CommSignalComponent", () => {
         signalStrength: 0.82,
         controlState: CONTROL_STATE_FULL,
       });
+      fixture.emit("comms.signal", { strength: 0.82, modelled: false });
     });
 
     await waitFor(() =>
@@ -130,7 +139,7 @@ describe("CommSignalComponent", () => {
     await act(async () => {});
   });
 
-  it("marks a strength measured on another path with the ring, as a figure of now, and says so", async () => {
+  it("draws a strength measured on another route plain, with no mark, and says so on hover", async () => {
     const fixture = newFixture();
     renderComm(fixture);
     act(() => {
@@ -143,17 +152,15 @@ describe("CommSignalComponent", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("60 %"));
-    const ring = document.querySelector("[data-elsewhere]");
-    expect(ring?.getAttribute("data-reckoning-mark")).toBe("current");
-    // Not the held square: the figure is not stale.
-    expect(document.querySelector('[data-reckoning-mark="held"]')).toBeNull();
-    expect(document.body.textContent).toMatch(
-      /measured by the craft's radio on a route other than the active route/i,
+    expect(document.querySelector("[data-held-mark]")).toBeNull();
+    expect(document.querySelector("[data-elsewhere]")).toBeNull();
+    expect(tooltips()).toContain(
+      "Measured by the craft's radio on a route other than the active route",
     );
     await act(async () => {});
   });
 
-  it("names the route in the mark's caption where the stream says which path was measured", async () => {
+  it("names the route on the headline's tooltip where the stream says which path was measured", async () => {
     const fixture = newFixture();
     renderComm(fixture);
     act(() => {
@@ -173,13 +180,13 @@ describe("CommSignalComponent", () => {
     });
 
     await waitFor(() => expect(visibleText()).toContain("60 %"));
-    expect(document.body.textContent).toMatch(
-      /Measured via Relay A to KSC, a route other than the active route/,
+    expect(tooltips()).toContain(
+      "Measured via Relay A to KSC, a route other than the active route",
     );
     await act(async () => {});
   });
 
-  it("marks the craft's own figure with the ring until this command centre is sent a strength of its own", async () => {
+  it("draws no headline figure and no bars until this command centre is sent a strength, the craft's own figure on hover only", async () => {
     const fixture = newFixture();
     renderComm(fixture);
     act(() => {
@@ -191,22 +198,23 @@ describe("CommSignalComponent", () => {
       });
     });
 
-    await waitFor(() => expect(visibleText()).toContain("82 %"));
-    expect(
-      document
-        .querySelector("[data-elsewhere]")
-        ?.getAttribute("data-reckoning-mark"),
-    ).toBe("current");
-    expect(document.body.textContent).toMatch(
-      /measured by the craft's radio on the route it was using/i,
+    await waitFor(() =>
+      expect(screen.getByLabelText("Signal unknown")).toBeInTheDocument(),
+    );
+    expect(visibleText()).not.toContain("82 %");
+    expect(visibleText()).toContain(NULL_DISPLAY);
+    expect(document.querySelector("[data-elsewhere]")).toBeNull();
+    expect(tooltips()).toContain(
+      "The craft's own radio reports 82 %, on the route it was using. The strength of the active route has not arrived yet",
     );
 
-    // Sent its own path's measured worth, the figure carries no mark at all.
+    // Sent its own route's measured worth, the figure is drawn with no mark at all.
     act(() => {
       fixture.emit("comms.signal", { strength: 0.6, modelled: false });
     });
     await waitFor(() => expect(visibleText()).toContain("60 %"));
     expect(document.querySelector("[data-held-mark]")).toBeNull();
+    expect(tooltips().join(" ")).not.toContain("craft's own radio");
     await act(async () => {});
   });
 
