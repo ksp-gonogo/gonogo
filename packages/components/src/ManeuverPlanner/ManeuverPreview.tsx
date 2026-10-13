@@ -1,6 +1,6 @@
 import type { BodyDefinition, CurrentOrbit, DataKey } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
-import { delayVisibility, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { Button } from "@ksp-gonogo/ui";
 import {
   ContainerBreak,
@@ -134,12 +134,13 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
         </Button>
         {/* One group, so a narrow row wraps the light time with the control it qualifies. */}
         <SendGroup>
-          {delayVisibility(props.sendDelay.oneWaySeconds) === "shown" && (
-            <SignalDelayBadge
-              oneWaySeconds={props.sendDelay.oneWaySeconds as number}
-              delayReading={props.sendDelay.reading}
-            />
-          )}
+          {props.sendDelay.oneWaySeconds !== null &&
+            props.sendDelay.oneWaySeconds > 0 && (
+              <SignalDelayBadge
+                oneWaySeconds={props.sendDelay.oneWaySeconds}
+                delayReading={props.sendDelay.reading}
+              />
+            )}
           <Button
             onClick={() => void props.onCommit()}
             disabled={props.committing || props.feasible === false}

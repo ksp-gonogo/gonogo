@@ -176,26 +176,6 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// With delay switched off a centre is told a known zero while the craft
-        /// has a path, and no path once it has none, the same as with delay on:
-        /// a zero is never stated for a craft nothing can reach.
-        /// </summary>
-        [Fact]
-        public async Task WithDelayOffACentresDelayIsZeroOnAPathAndNoneWithout()
-        {
-            await using var seated = await SeatedAsync();
-            seated.World.Uplink.Inputs.SetLightFactor(0.0);
-            await seated.TickAsync(1, 2, 700, 702);
-            Assert.Equal(0.0, Delay(seated.HomeView));
-            Assert.Equal(0.0, Delay(seated.FarView));
-
-            seated.World.Game.DestroyRelay();
-            await seated.TickAsync(T0, T0 + 2, T0 + 12, T0 + 299, T0 + 301, T0 + 302, T0 + 304, T0 + 601, T0 + 602, T0 + 604);
-            Assert.Null(Delay(seated.FarView));
-            Assert.Null(Delay(seated.HomeView));
-        }
-
-        /// <summary>
         /// The craft's radio reads its whole path at once, far hops included.
         /// The craft is a second away, so its reading would tell a centre what
         /// the relay's link is doing minutes before the relay's own light

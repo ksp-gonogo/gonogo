@@ -1,6 +1,5 @@
 import {
   currentMode,
-  delayVisibility,
   useViewClockOptional,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -63,9 +62,7 @@ export function signalDelayPresentation({
   canQueue,
   alwaysBadge = false,
 }: SignalDelayPresentationInput): SignalDelayPresentation {
-  if (oneWaySeconds === null || delayVisibility(oneWaySeconds) !== "shown") {
-    return "none";
-  }
+  if (oneWaySeconds === null || oneWaySeconds <= 0) return "none";
   if (alwaysBadge) return "badge";
   if (currentMode({ oneWaySeconds: value("s", oneWaySeconds) }) === "live") {
     return "badge";

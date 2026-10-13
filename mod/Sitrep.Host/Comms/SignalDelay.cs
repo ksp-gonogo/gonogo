@@ -102,26 +102,6 @@ namespace Sitrep.Host.Comms
             return SpeedOfLightMetersPerSecond * lightSpeedScale;
         }
 
-        /// <summary>Whether <paramref name="path"/> has hops and every one of them a length, which is what delay on needs to state a delay at all.</summary>
-        private static bool HasMeasurableRoute(CommsPath? path)
-        {
-            var hops = path?.Hops;
-            if (hops == null || hops.Count == 0)
-            {
-                return false;
-            }
-
-            foreach (var hop in hops)
-            {
-                if (hop == null || hop.DistanceMeters == null)
-                {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
         /// <summary>
         /// <see cref="Compute"/> for a craft's own route home: a craft with no
         /// route reads as no path whether delay is on or switched off, so a dark
@@ -132,7 +112,7 @@ namespace Sitrep.Host.Comms
         public static CommsDelay ComputeForCraft(SignalDelayConfig? config, CommsPath? path, string source)
         {
             var switchedOff = config != null && !config.Enabled && !config.CutForNoCommsModel;
-            if (switchedOff && !HasMeasurableRoute(path))
+            if (switchedOff && (path?.Hops == null || path.Hops.Count == 0))
             {
                 return NoPath(new PayloadMeta { Source = source ?? "" });
             }

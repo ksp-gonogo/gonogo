@@ -66,12 +66,10 @@ export type {
 export {
   classifyRetained,
   currentMode,
-  delayVisibility,
   deriveInFlight,
   deriveRailEntry,
   latchForward,
   pendingCrossing,
-  ZERO_DELAY_DEAD_ZONE_SECONDS,
 } from "./command-delay";
 /*
  * The typed command vocabulary: the write-side twin of the Topic registry below.

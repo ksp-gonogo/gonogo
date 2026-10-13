@@ -149,11 +149,6 @@ interface Scene {
   settled: Record<CodeState, string>;
 }
 
-/** What the header ends with while delay is off: `ZERO_DELAY_BEFORE=1` expects the bare zero the header drew before it left the figure out. */
-const ZERO_SETTLED = process.env.ZERO_DELAY_BEFORE
-  ? "DelaySignal delay 0s"
-  : "CCKSCHome";
-
 const NOT_REPORTED = "Signal delay from this command centre is not reported";
 
 const SCENES: Scene[] = [
@@ -270,25 +265,6 @@ const SCENES: Scene[] = [
       before: "DelaySignal delay 0s",
     },
     emit: [...flight(false), ["vessel.orbit", CRAFT_ORBIT]],
-  },
-  {
-    // Delay switched off: the wire reads a known zero, and the header has no delay to state.
-    name: "delay-off",
-    screen: "main",
-    vantage: KSC,
-    settled: { after: ZERO_SETTLED, before: ZERO_SETTLED },
-    emit: [...flight(true), ["comms.delay", { oneWaySeconds: 0, source: 0 }]],
-  },
-  {
-    // A delay a second or so, which is still a delay.
-    name: "delay-small",
-    screen: "main",
-    vantage: KSC,
-    settled: { after: "DelaySignal delay 1s", before: "DelaySignal delay 1s" },
-    emit: [
-      ...flight(true),
-      ["comms.delay", { oneWaySeconds: 1.2, source: SIGNAL_DELAY }],
-    ],
   },
   {
     name: "no-active-vessel",

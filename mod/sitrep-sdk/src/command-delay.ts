@@ -173,43 +173,6 @@ export interface RailCrossing {
 const STAGED_THRESHOLD_SECONDS = 1;
 
 /**
- * A one-way delay at or below this many seconds is drawn as no delay at all.
- * Delay switched off reads exactly 0. The margin, half a millisecond, is the
- * smallest delay the finest time rung any readout has can show as more than
- * zero, so a figure inside it would print as "0 ms" or "0 s" and read as delay
- * switched off.
- *
- * @category Delay and vantage
- */
-export const ZERO_DELAY_DEAD_ZONE_SECONDS = 0.0005;
-
-/**
- * Whether a delay readout is drawn, left out, or replaced by the no-path
- * state: `"shown"` for a one-way delay above the dead zone, `"hidden"` for a
- * delay of zero (delay switched off), and `"no-path"` when there is no route or
- * no reading. Useful for deciding in one
- * place whether the operator sees a delay figure, so no surface prints a bare
- * "0 s" for a craft that has no delay to report. Used by the delay readouts of
- * the dashboard header, the command rail and the fleet roster.
- *
- * @category Delay and vantage
- */
-export function delayVisibility(
-  oneWaySeconds: number | Value<"s"> | null | undefined,
-): "shown" | "hidden" | "no-path" {
-  if (typeof oneWaySeconds === "object" && oneWaySeconds !== null) {
-    if (!oneWaySeconds.isFinite()) return "no-path";
-    return oneWaySeconds.greaterThan(value("s", ZERO_DELAY_DEAD_ZONE_SECONDS))
-      ? "shown"
-      : "hidden";
-  }
-  if (typeof oneWaySeconds !== "number" || !Number.isFinite(oneWaySeconds)) {
-    return "no-path";
-  }
-  return oneWaySeconds > ZERO_DELAY_DEAD_ZONE_SECONDS ? "shown" : "hidden";
-}
-
-/**
  * Returns how a command sent now would travel, from a `comms.delay` payload:
  * `"live"` for a one-way delay of a second or less, `"staged"` for a longer
  * one, and `"no-path"` when `oneWaySeconds` is `null` or there is no payload.

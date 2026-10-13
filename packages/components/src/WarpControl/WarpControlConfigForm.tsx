@@ -1,6 +1,5 @@
 import type { ConfigComponentProps } from "@ksp-gonogo/core";
-import { useTelemetry } from "@ksp-gonogo/core";
-import { delayVisibility, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   ConfigForm,
   Field,
@@ -16,15 +15,6 @@ export function WarpControlConfigForm({
   config,
   onSave,
 }: Readonly<ConfigComponentProps<WarpControlConfig>>) {
-  const delayReading = useTelemetry("comms.delay");
-  /*
-   * The setting governs warping under a delay, so it is left out while the
-   * craft is known to have none. Any other state keeps it: an unreported delay
-   * is not a delay of zero.
-   */
-  const noDelay =
-    delayReading.state === "observed" &&
-    delayVisibility(delayReading.value.oneWaySeconds) === "hidden";
   const [requireAlarm, setRequireAlarm] = useState(
     config?.requireAlarmUnderDelay !== false,
   );
@@ -37,7 +27,6 @@ export function WarpControlConfigForm({
     value: candidate,
     saved: config ?? {},
   });
-  if (noDelay) return <ConfigForm>{null}</ConfigForm>;
   return (
     <ConfigForm>
       <Field>

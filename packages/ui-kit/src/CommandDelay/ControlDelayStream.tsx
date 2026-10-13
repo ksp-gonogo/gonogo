@@ -1,9 +1,4 @@
-import {
-  delayVisibility,
-  type Reading,
-  type Value,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { type Reading, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { useId } from "react";
 import styled from "styled-components";
 import {
@@ -618,9 +613,7 @@ export function ControlDelayStream({
   // Every entry crosses the same gap, so the first one that knows its light-time serves the strip.
   const first = [...streams, ...ribbons].find((e) => e.oneWaySeconds !== null);
   const oneWay = first?.oneWaySeconds ?? null;
-  if (!first || oneWay === null || delayVisibility(oneWay) !== "shown") {
-    return null;
-  }
+  if (!first || oneWay === null || oneWay <= 0) return null;
   const drawStreams = oneWay >= STREAM_MIN_DELAY_SECONDS;
   if (!drawStreams && ribbons.length === 0) return null;
 

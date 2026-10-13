@@ -1780,20 +1780,14 @@ namespace Sitrep.Host.Comms
                 {
                     plan = null;
                 }
-                var gameRoute = looked.ActiveCraft == null ? null : _routes?.ActiveVesselRoute(centre);
-                // A delay that is switched off, or a save with no network to cross, is a setting and not a distance: it needs no plan to state. Where delay is merely off, a craft the centre believes has no path still has none.
+                // A delay that is switched off, or a save with no network to cross, is a setting and not a distance: it needs no plan to state.
                 var measured = modelled && lightFactor > 0.0;
                 if (!measured && _host!.IsAnyTopicSubscribed(DelayTopic) && (looked.RoutesDue || _pathsAsked[DelayTopic].Contains(centre)))
                 {
-                    var offHeard = _hearing!.HeardAt(centre);
-                    var offPath = !modelled
-                        ? null
-                        : (gameRoute != null
-                            ? CentrePath.Taken(gameRoute, looked.ActiveCraft!, _stations, id => NameOf(offHeard, id), looked.Ut)
-                            : CentrePath.For(plan, looked.ActiveCraft, centre, centre == home, _stations, id => NameOf(offHeard, id), looked.Ut, lightFactor)).Path;
-                    _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, offPath, source), looked.Ut, ToItself(centre));
+                    _streams!.PublishAddressedTo(DelayTopic, CentreDelay.NotMeasured(modelled, source), looked.Ut, ToItself(centre));
                     frames++;
                 }
+                var gameRoute = looked.ActiveCraft == null ? null : _routes?.ActiveVesselRoute(centre);
                 if (plan == null && looked.ActiveCraft != null && gameRoute == null)
                 {
                     // Between one plan and the next the centre believes what it last believed.

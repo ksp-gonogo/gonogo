@@ -115,18 +115,14 @@ function VesselField() {
   );
 }
 
-/**
- * No active vessel, no field: there is no craft for a delay to be measured to.
- * Delay switched off leaves no field either, since a caption over a bare zero
- * would state a delay that is not there.
- */
+/** No active vessel, no field: there is no craft for a delay to be measured to. */
 function SignalDelayField() {
   const { inFlight } = useGameContext();
   if (!inFlight) return null;
   return (
-    <SignalDelayReadout
-      wrap={(readout) => <BannerField label="Delay">{readout}</BannerField>}
-    />
+    <BannerField label="Delay">
+      <SignalDelayReadout />
+    </BannerField>
   );
 }
 

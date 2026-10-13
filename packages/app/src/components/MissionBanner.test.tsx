@@ -10,7 +10,6 @@ import {
   CommsDelaySource,
   type VesselOrbit,
   value,
-  ZERO_DELAY_DEAD_ZONE_SECONDS,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   createFakeWallClock,
@@ -525,8 +524,9 @@ describe("MissionBanner signal delay", () => {
     expect(delayValue()?.innerHTML).not.toContain(atDelay);
   });
 
-  it("leaves the delay out once the selected centre is the craft itself", async () => {
+  it("reads zero once the selected centre is the craft itself", async () => {
     const atDelay = unitMarkup(187.4);
+    const atZero = unitMarkup(0);
     const fixture = setupDelayedStream();
     render(
       <fixture.Provider>
@@ -565,7 +565,7 @@ describe("MissionBanner signal delay", () => {
     }
 
     await waitFor(() => {
-      expect(screen.queryByText("Delay")).toBeNull();
+      expect(delayValue()?.innerHTML).toContain(atZero);
     });
     // And the clock runs at that zero: the store reads the craft's latest sample, no longer held a light-time behind it.
     await screen.findByText("subject sample at UT 374.8");
@@ -816,15 +816,14 @@ describe("MissionBanner signal delay aboard the craft", () => {
     });
   });
 
-  it("leaves the delay out when mission control stands aboard this same craft", async () => {
+  it("reads zero when mission control stands aboard this same craft", async () => {
+    const expected = unitMarkup(0);
     const { tell, fly } = renderPilot();
-    await fly(false);
-    expect(screen.getByText("Delay")).toBeInTheDocument();
-
     tell(CRAFT);
+    await fly(false);
 
     await waitFor(() => {
-      expect(screen.queryByText("Delay")).toBeNull();
+      expect(delayValue()?.innerHTML).toContain(expected);
     });
   });
 
@@ -837,60 +836,5 @@ describe("MissionBanner signal delay aboard the craft", () => {
         "Signal delay to mission control unknown",
       );
     });
-  });
-});
-
-describe("MissionBanner delay at zero", () => {
-  /**
-   * The delay field mounts on the frame after the scene says Flight and the
-   * link is published only once it is on screen, so the link follows the
-   * field rather than the scene.
-   */
-  async function flyUnder(oneWaySeconds: number, connected = true) {
-    const fixture = setupDelayedStream();
-    render(
-      <fixture.Provider>
-        <MissionBanner />
-      </fixture.Provider>,
-    );
-    fixture.emit("commandCentre.roster", MULTI_ROSTER, KSC);
-    fixture.emit("spaceCenter.scene", { scene: "Flight" }, KSC);
-    fixture.emit(
-      "comms.delay",
-      { oneWaySeconds, source: CommsDelaySource.None },
-      KSC,
-    );
-    await screen.findByText("Delay");
-    fixture.linkAt(connected, 0, oneWaySeconds, KSC);
-    return fixture;
-  }
-
-  it("draws no Delay field when delay is switched off", async () => {
-    await flyUnder(0);
-
-    await waitFor(() => expect(screen.queryByText("Delay")).toBeNull());
-    expect(screen.queryByText(/signal delay/i)).toBeNull();
-  });
-
-  it("draws no Delay field for a delay inside the dead zone", async () => {
-    await flyUnder(ZERO_DELAY_DEAD_ZONE_SECONDS / 2);
-
-    await waitFor(() => expect(screen.queryByText("Delay")).toBeNull());
-  });
-
-  it("draws the field for a delay just above zero", async () => {
-    await flyUnder(0.0007);
-
-    await act(async () => {});
-    expect(screen.getByText("Delay")).toBeInTheDocument();
-  });
-
-  it("still says disconnected where the link is down, the same as with delay on", async () => {
-    await flyUnder(0, false);
-
-    await waitFor(() =>
-      expect(screen.getByText(/disconnected/)).toBeInTheDocument(),
-    );
-    expect(screen.getByText("Delay")).toBeInTheDocument();
   });
 });
