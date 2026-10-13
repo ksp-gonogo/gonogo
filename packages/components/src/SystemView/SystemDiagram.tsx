@@ -13,7 +13,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import { BodyMark, bodyTone } from "./BodyMark";
+import { BodyMark, bodyTone, FrameBodyMark } from "./BodyMark";
 import { DEPTH_LEVEL_COLOUR } from "./depthCues";
 import {
   diagramPlotScale,
@@ -569,24 +569,16 @@ export function SystemDiagram({
           />
         )}
 
-        <circle
-          data-body={parent.name ?? ""}
-          cx={placed.parent.x}
-          cy={placed.parent.y}
-          r={6 / zoom}
+        <FrameBodyMark
+          body={parent}
+          at={placed.parent}
+          zoom={zoom}
           fill={parentColor(parent)}
-          stroke="var(--color-text-inverse)"
-          strokeWidth={1 / zoom}
+          onHoverStart={hoverStart}
+          onHoverEnd={clearHover}
+          pinned={parent.index === pinnedBodyIndex}
+          onActivate={onBodyActivate ?? NO_ACTIVATE}
         />
-        <text
-          x={placed.parent.x}
-          y={placed.parent.y + 18 / zoom}
-          fill="var(--color-text-primary)"
-          fontSize={10 / zoom}
-          textAnchor="middle"
-        >
-          {parent.name}
-        </text>
 
         {placed.bodies.map((p) => {
           const isTarget = Boolean(targetName) && p.body.name === targetName;
