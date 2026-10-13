@@ -124,11 +124,6 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           type="button"
           onClick={() => props.setTriggerEditorOpen((o) => !o)}
           disabled={props.committing || !plan}
-          disabledReason={
-            props.committing
-              ? "The node is being added"
-              : "There is no plan yet"
-          }
           aria-expanded={props.triggerEditorOpen}
         >
           Add Node When...
@@ -145,11 +140,6 @@ export function ManeuverPreview(props: ManeuverPreviewProps) {
           <Button
             onClick={() => void props.onCommit()}
             disabled={props.committing || props.feasible === false}
-            disabledReason={
-              props.committing
-                ? "The node is being added"
-                : "The vessel does not have the delta-v for this plan"
-            }
           >
             {props.committing ? "Adding..." : "Add node"}
           </Button>

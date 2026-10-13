@@ -12,7 +12,6 @@ import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isDisabled } from "../test/isDisabled";
 import { ANALYTIC_UNBOUNDED_HORIZON } from "../test/orbitHorizon";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ManeuverPlannerComponent } from "./index";
@@ -258,7 +257,7 @@ describe("ManeuverPlannerComponent", () => {
     expect(visibleText(banner)).toMatch(/short\.?$/i);
 
     const addBtn = screen.getByRole("button", { name: /^add node$/i });
-    expect(isDisabled(addBtn)).toBe(true);
+    expect(addBtn).toBeDisabled();
   });
 
   // Its own fixture: topic values on the shared one are sticky, and a zero budget would block every later dispatch.
@@ -317,9 +316,7 @@ describe("ManeuverPlannerComponent", () => {
       .closest('[role="status"]') as HTMLElement;
     expect(banner).not.toBeNull();
     expect(visibleText(banner)).toMatch(/short\.?$/i);
-    expect(
-      isDisabled(screen.getByRole("button", { name: /^add node$/i })),
-    ).toBe(true);
+    expect(screen.getByRole("button", { name: /^add node$/i })).toBeDisabled();
   });
 
   it("arms a conditional trigger and dispatches the burn when the condition holds", async () => {

@@ -2,7 +2,6 @@ import type { Tone } from "@ksp-gonogo/sitrep-sdk";
 import type { ButtonHTMLAttributes } from "react";
 import { forwardRef } from "react";
 import { Button } from "./Button";
-import type { ReckoningMarking } from "./readingCurrency";
 
 /**
  * The fill a pressed {@link ToggleButton} takes: `go`, or `nogo` / `warn` when
@@ -37,10 +36,6 @@ export interface ToggleButtonProps
   tone?: ToggleButtonTone;
   /** Defaults to `md`. */
   size?: ToggleButtonSize;
-  /** Why the toggle is disabled, shown as its tip. As for {@link Button}. */
-  disabledReason?: string;
-  /** Marks the state shown as held or modelled; the button stays pressable. As for {@link Button}. */
-  marked?: ReckoningMarking | null;
 }
 
 /**

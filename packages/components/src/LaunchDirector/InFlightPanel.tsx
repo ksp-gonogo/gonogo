@@ -113,7 +113,6 @@ export function InFlightPanel({
             type="button"
             variant="ghost"
             disabled={totalAvailable === 0}
-            disabledReason="No other vessels in this save"
             aria-expanded={switchOpen}
             aria-haspopup="listbox"
             onClick={() => setSwitchOpen((v) => !v)}

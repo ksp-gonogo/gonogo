@@ -9,7 +9,6 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AlarmsLauncherProvider } from "../shared/AlarmsLauncher";
-import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
@@ -91,7 +90,7 @@ describe("ActionGroup when the backend could not read the group", () => {
     const toggle = () =>
       screen.getByRole("button", { name: "Toggle Radiators" });
     await waitFor(() => expect(toggle().textContent).toBe("OFF"));
-    expect(isDisabled(toggle())).toBe(false);
+    expect(toggle()).not.toBeDisabled();
     expect(screen.queryByRole("status")).toBeNull();
   });
 
@@ -148,7 +147,7 @@ describe("ActionGroup when the backend could not read the group", () => {
         actionGroups: [{ index: 5, name: "Radiators", state: null }],
       });
     });
-    await waitFor(() => expect(isDisabled(toggle())).toBe(true));
+    await waitFor(() => expect(toggle()).toBeDisabled());
 
     act(() => {
       toggle().click();

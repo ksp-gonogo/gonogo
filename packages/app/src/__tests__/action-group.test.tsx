@@ -173,10 +173,10 @@ describe("ActionGroup component", () => {
     stream.emitControl({ precisionControl: false });
 
     expect(await screen.findByText("Precision Control")).toBeInTheDocument();
-    // The state pill is now a toggle button at every size, but a read-only group (no toggle action) renders it aria-disabled, with its reason as the tip, so it cannot be actioned.
+    // The state pill is now a toggle button at every size, but a read-only group (no toggle action) renders it disabled so it can't be actioned.
     expect(
       screen.getByRole("button", { name: /toggle precision control/i }),
-    ).toHaveAttribute("aria-disabled", "true");
+    ).toBeDisabled();
   });
 
   it("toggles SAS independently from AG1", async () => {

@@ -1,4 +1,4 @@
-import { Button, type ButtonProps, ContainerBreak } from "@ksp-gonogo/ui-kit";
+import { Button, ContainerBreak } from "@ksp-gonogo/ui-kit";
 import type {
   ButtonHTMLAttributes,
   CSSProperties,
@@ -223,11 +223,15 @@ const COMPACT_BUTTON_STYLE: CSSProperties = {
   padding: "var(--inset-form-footer-button)",
 };
 
-export function CompactPrimaryButton(props: Readonly<ButtonProps>) {
+export function CompactPrimaryButton(
+  props: Readonly<ButtonHTMLAttributes<HTMLButtonElement>>,
+) {
   return <Button variant="primary" style={COMPACT_BUTTON_STYLE} {...props} />;
 }
 
-export function SecondaryButton(props: Readonly<ButtonProps>) {
+export function SecondaryButton(
+  props: Readonly<ButtonHTMLAttributes<HTMLButtonElement>>,
+) {
   return <Button variant="ghost" style={COMPACT_BUTTON_STYLE} {...props} />;
 }
 

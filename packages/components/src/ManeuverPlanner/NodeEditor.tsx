@@ -68,21 +68,13 @@ export function NodeEditor({
         onChange={(next) => setRadial(next.magnitude)}
       />
       <EditActions>
-        <SecondaryButton
-          type="button"
-          onClick={onCancel}
-          disabled={saving}
-          disabledReason="The node is being saved"
-        >
+        <SecondaryButton type="button" onClick={onCancel} disabled={saving}>
           Cancel
         </SecondaryButton>
         <CompactPrimaryButton
           type="button"
           onClick={() => void onSave({ ut, radial, normal, prograde })}
           disabled={saving || !dirty}
-          disabledReason={
-            saving ? "The node is being saved" : "Nothing has changed"
-          }
         >
           {saving ? "Saving..." : "Save"}
         </CompactPrimaryButton>

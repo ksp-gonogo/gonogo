@@ -94,11 +94,6 @@ export function WarpControlView({
   const downIdx = Math.max(0, idx - 1);
   const topIdx = topWarpIndex(mode);
   const upIdx = Math.min(topIdx, idx + 1);
-  const upBlockedBecause = !indexKnown
-    ? "The warp level is not reported"
-    : alarmRequired
-      ? "Under signal delay, warping faster needs an alarm set first"
-      : "Already at the fastest warp";
 
   return (
     <Panel
@@ -160,7 +155,6 @@ export function WarpControlView({
                             $active={active}
                             aria-pressed={active}
                             disabled={alarmRequired && lvl.index > idx}
-                            disabledReason="Under signal delay, warping faster needs an alarm set first"
                             onClick={() => onSetWarp(lvl.index)}
                           >
                             {lvl.label}
@@ -181,11 +175,6 @@ export function WarpControlView({
                         type="button"
                         $active={false}
                         disabled={!indexKnown || idx === 0}
-                        disabledReason={
-                          indexKnown
-                            ? "Already at the slowest warp"
-                            : "The warp level is not reported"
-                        }
                         onClick={() => onSetWarp(downIdx)}
                         aria-label="Warp down"
                       >
@@ -206,7 +195,6 @@ export function WarpControlView({
                         disabled={
                           !indexKnown || alarmRequired || idx === topIdx
                         }
-                        disabledReason={upBlockedBecause}
                         onClick={() => onSetWarp(upIdx)}
                         aria-label="Warp up"
                       >

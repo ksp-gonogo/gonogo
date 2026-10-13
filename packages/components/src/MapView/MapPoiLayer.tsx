@@ -14,6 +14,7 @@ import { Button } from "@ksp-gonogo/ui";
 import {
   Floating,
   repeatsInView,
+  Tooltip,
   Unit,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -416,15 +417,22 @@ function PoiHoverCardView({
         {poi.actions && poi.actions.length > 0 && (
           <PoiHoverActions>
             {poi.actions.map((action) => (
-              <Button
+              <Tooltip
                 key={action.id}
-                type="button"
-                disabled={action.disabled}
-                disabledReason={action.disabledReason}
-                onClick={() => void action.run()}
+                text={
+                  action.disabled && action.disabledReason
+                    ? action.disabledReason
+                    : undefined
+                }
               >
-                {action.label}
-              </Button>
+                <Button
+                  type="button"
+                  disabled={action.disabled}
+                  onClick={() => void action.run()}
+                >
+                  {action.label}
+                </Button>
+              </Tooltip>
             ))}
           </PoiHoverActions>
         )}

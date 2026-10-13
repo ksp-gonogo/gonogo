@@ -140,10 +140,10 @@ describe("RotorTachometer: an unread cap commands nothing", () => {
       name: /Raise RPM cap/i,
     });
     const lower = screen.getByRole("button", { name: /Lower RPM cap/i });
-    expect(raise).toHaveAttribute("aria-disabled", "true");
-    expect(lower).toHaveAttribute("aria-disabled", "true");
-    expect(raise).toHaveAccessibleDescription(/not reported/);
-    expect(lower).toHaveAccessibleDescription(/not reported/);
+    expect(raise).toBeDisabled();
+    expect(lower).toBeDisabled();
+    expect(raise.getAttribute("aria-label")).toContain("not reported");
+    expect(lower.getAttribute("aria-label")).toContain("not reported");
   });
 
   it("dispatches no setRpmLimit when the + button is pressed", async () => {

@@ -2,7 +2,6 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
 
@@ -46,7 +45,7 @@ describe("ActionGroup across a stream drop and restore", () => {
     const frames: string[] = [];
     const sample = () =>
       frames.push(
-        `${toggle().textContent?.split(",")[0]}|${toggle().querySelector("[data-held-mark]") ? "held" : "current"}|${isDisabled(toggle()) ? "disabled" : "enabled"}`,
+        `${toggle().textContent?.split(",")[0]}|${toggle().querySelector("[data-held-mark]") ? "held" : "current"}|${(toggle() as HTMLButtonElement).disabled ? "disabled" : "enabled"}`,
       );
 
     act(() => {

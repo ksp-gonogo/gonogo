@@ -5,7 +5,6 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AlarmsLauncherProvider } from "../shared/AlarmsLauncher";
-import { isDisabled } from "../test/isDisabled";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { WarpControlComponent } from "./index";
 
@@ -93,9 +92,10 @@ describe("WarpControl: warp-to targets", () => {
     await user.click(screen.getByRole("button", { name: "Before node" }));
 
     expect(screen.getByText("No maneuver node ahead")).toBeTruthy();
-    expect(isDisabled(screen.getByRole("button", { name: "Set alarm" }))).toBe(
-      true,
-    );
+    expect(
+      (screen.getByRole("button", { name: "Set alarm" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
     expect(creator).not.toHaveBeenCalled();
   });
 
@@ -108,17 +108,17 @@ describe("WarpControl: warp-to targets", () => {
     const arm = () =>
       screen.getByRole("button", { name: "Set alarm" }) as HTMLButtonElement;
     // Nothing is stated until the operator types an instant.
-    expect(isDisabled(arm())).toBe(true);
+    expect(arm().disabled).toBe(true);
 
     const day = screen.getByRole("spinbutton", { name: "Target instant DAY" });
     await user.clear(day);
     await user.type(day, "3");
     expect(screen.getByText("Already past")).toBeTruthy();
-    expect(isDisabled(arm())).toBe(true);
+    expect(arm().disabled).toBe(true);
 
     await user.clear(day);
     await user.type(day, "300");
-    expect(isDisabled(arm())).toBe(false);
+    expect(arm().disabled).toBe(false);
     await user.click(arm());
 
     expect(creator.mock.calls[0][0]).toMatchObject({
@@ -139,12 +139,12 @@ describe("WarpControl: warp-to targets", () => {
       "true",
     );
     // No duration is stated until one is typed.
-    expect(isDisabled(arm())).toBe(true);
+    expect(arm().disabled).toBe(true);
 
     const minutes = screen.getByRole("spinbutton", { name: /MIN/i });
     await user.clear(minutes);
     await user.type(minutes, "5");
-    expect(isDisabled(arm())).toBe(false);
+    expect(arm().disabled).toBe(false);
     await user.click(arm());
 
     expect(creator.mock.calls[0][0]).toMatchObject({

@@ -63,9 +63,6 @@ export const FBW_VIEW: Record<
   },
 };
 
-/** Why every control of the surface is dark while the vessel cannot be flown. */
-const NOT_CONTROLLABLE = "The vessel is not controllable";
-
 export function ControlSurface({
   disabled,
   sasMode,
@@ -83,9 +80,6 @@ export function ControlSurface({
   delaySeconds,
   oneWayDelay,
 }: ControlSurfaceProps) {
-  const throttleBlockedBecause = disabled
-    ? NOT_CONTROLLABLE
-    : "The throttle command is not reported";
   return (
     <div style={CONTROL_WRAP}>
       <div style={GROUP}>
@@ -111,7 +105,6 @@ export function ControlSurface({
                     : onSetSasMode(mode)
                 }
                 disabled={disabled}
-                disabledReason={NOT_CONTROLLABLE}
               >
                 {(() => {
                   const markerId = SAS_MODE_MARKERS[mode];
@@ -152,7 +145,6 @@ export function ControlSurface({
             type="button"
             onClick={() => onSetThrottleCmd(0)}
             disabled={disabled}
-            disabledReason={NOT_CONTROLLABLE}
           >
             ZERO
           </Button>
@@ -160,7 +152,6 @@ export function ControlSurface({
             type="button"
             onClick={() => onSetThrottleCmd((v) => clamp(v - 0.1, 0, 1))}
             disabled={disabled || throttleCmd === null}
-            disabledReason={throttleBlockedBecause}
           >
             −10%
           </Button>
@@ -168,7 +159,6 @@ export function ControlSurface({
             type="button"
             onClick={() => onSetThrottleCmd((v) => clamp(v + 0.1, 0, 1))}
             disabled={disabled || throttleCmd === null}
-            disabledReason={throttleBlockedBecause}
           >
             +10%
           </Button>
@@ -176,7 +166,6 @@ export function ControlSurface({
             type="button"
             onClick={() => onSetThrottleCmd(1)}
             disabled={disabled}
-            disabledReason={NOT_CONTROLLABLE}
           >
             FULL
           </Button>
@@ -198,7 +187,6 @@ export function ControlSurface({
               FBW_VIEW[fbwState].press === "arm" ? onArmFbw : onDisarmFbw
             }
             disabled={disabled}
-            disabledReason={NOT_CONTROLLABLE}
           >
             {FBW_VIEW[fbwState].label}
           </ToggleButton>

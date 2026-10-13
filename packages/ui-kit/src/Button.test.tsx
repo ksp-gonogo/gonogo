@@ -1,11 +1,9 @@
 // An inline `<svg>` beside a word sits on the text baseline unless the button centres it, which no role query can see.
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { Button, IconButton, TextButton } from "./Button";
 import { CloseIcon, PlusIcon } from "./Icons";
-import { Tooltip } from "./Tooltip";
 import { emittedRuleFor, emittedStateRuleFor } from "./test/emittedRule";
 
 describe("a kit button carrying an icon and a word", () => {
@@ -202,132 +200,5 @@ describe("IconButton as a toggle", () => {
         '[aria-pressed="true"]',
       ),
     ).toContain("background:var(--color-go-status)");
-  });
-});
-
-describe("the button tooltip rule", () => {
-  const tipOf = (name: string) =>
-    screen.getByRole("button", { name }).getAttribute("data-tooltip");
-
-  it("tips the name of a button that is a glyph alone", () => {
-    render(
-      <>
-        <IconButton aria-label="Close">
-          <CloseIcon />
-        </IconButton>
-        <Button aria-label="Add a node">
-          <PlusIcon />
-        </Button>
-      </>,
-    );
-    expect(tipOf("Close")).toBe("Close");
-    expect(tipOf("Add a node")).toBe("Add a node");
-  });
-
-  it("tips the name of a button whose words do not fully say what it does", () => {
-    render(<Button aria-label="Delete node 3">Delete</Button>);
-    expect(tipOf("Delete node 3")).toBe("Delete node 3");
-  });
-
-  it("gives a button whose words are the whole story no tip", () => {
-    render(
-      <>
-        <Button>Save</Button>
-        <Button aria-label="Cancel">
-          <span>Cancel</span>
-        </Button>
-      </>,
-    );
-    expect(tipOf("Save")).toBeNull();
-    expect(tipOf("Cancel")).toBeNull();
-  });
-
-  it("does not tip twice when an enclosing Tooltip already has", () => {
-    render(
-      <Tooltip text="Closes the panel">
-        <IconButton aria-label="Close">
-          <CloseIcon />
-        </IconButton>
-      </Tooltip>,
-    );
-    expect(tipOf("Close")).toBe("Closes the panel");
-  });
-
-  it("says why a disabled button is disabled, and keeps it focusable with presses doing nothing", async () => {
-    const user = userEvent.setup();
-    const onClick = vi.fn();
-    render(
-      <Button disabled disabledReason="No vessel is loaded" onClick={onClick}>
-        Fly
-      </Button>,
-    );
-    const button = screen.getByRole("button", { name: "Fly" });
-    expect(button).toHaveAttribute("aria-disabled", "true");
-    expect(button).not.toBeDisabled();
-    expect(button.getAttribute("data-tooltip")).toBe("No vessel is loaded");
-    expect(button).toHaveAccessibleDescription("No vessel is loaded");
-    await user.click(button);
-    expect(onClick).not.toHaveBeenCalled();
-    button.focus();
-    expect(button).toHaveFocus();
-  });
-
-  it("puts the name before the reason for a disabled glyph", () => {
-    render(
-      <IconButton aria-label="Undo" disabled disabledReason="Nothing to undo">
-        <CloseIcon />
-      </IconButton>,
-    );
-    expect(tipOf("Undo")).toBe("Undo: Nothing to undo");
-  });
-
-  it("keeps a disabled button with no reason natively disabled", () => {
-    render(<Button disabled>Fly</Button>);
-    expect(screen.getByRole("button", { name: "Fly" })).toBeDisabled();
-  });
-
-  it("submits no form from a button disabled with a reason", () => {
-    const onSubmit = vi.fn((e: { preventDefault: () => void }) =>
-      e.preventDefault(),
-    );
-    render(
-      <form onSubmit={onSubmit}>
-        <Button type="submit" disabled disabledReason="Nothing to send">
-          Send
-        </Button>
-      </form>,
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Send" }));
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
-});
-
-describe("a button showing a held state", () => {
-  const heldMarking = {
-    kind: "held" as const,
-    caption: "Last known state. The press sends the opposite.",
-  };
-
-  it("stays pressable, draws the kit's held mark and says what it means", async () => {
-    const user = userEvent.setup();
-    const onClick = vi.fn();
-    render(
-      <Button marked={heldMarking} onClick={onClick}>
-        SAS ON
-      </Button>,
-    );
-    const button = screen.getByRole("button", { name: /SAS ON/ });
-    expect(button).not.toBeDisabled();
-    expect(button).not.toHaveAttribute("aria-disabled");
-    expect(button.querySelector("[data-held-mark]")).not.toBeNull();
-    expect(button).toHaveTextContent(heldMarking.caption);
-    await user.click(button);
-    expect(onClick).toHaveBeenCalledOnce();
-  });
-
-  it("adds nothing to a button that is not marked", () => {
-    render(<Button marked={null}>SAS ON</Button>);
-    const button = screen.getByRole("button", { name: "SAS ON" });
-    expect(button.querySelector("[data-held-mark]")).toBeNull();
   });
 });

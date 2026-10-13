@@ -13,7 +13,12 @@ import {
   Unit,
   type UnitValue,
 } from "@ksp-gonogo/ui-kit";
-import { lockStateText, motorStateText } from "../unreadLabels";
+import {
+  flagLabel,
+  lockStateText,
+  motorStateText,
+  stepperLabel,
+} from "../unreadLabels";
 import { positionDecimals, type ServoInfo, TARGET_STEP } from "./servos";
 
 type PositionReading = UnitValue<"°" | "m">;
@@ -131,9 +136,8 @@ export function RoboticsConsoleView({
                 variant="ghost"
                 size="sm"
                 type="button"
-                aria-label="Decrease target"
+                aria-label={stepperLabel("Decrease target", selected.target)}
                 disabled={selected.target === null}
-                disabledReason="The target is not reported"
                 onClick={() =>
                   selected.target !== null &&
                   setTarget(
@@ -156,9 +160,8 @@ export function RoboticsConsoleView({
                 variant="ghost"
                 size="sm"
                 type="button"
-                aria-label="Increase target"
+                aria-label={stepperLabel("Increase target", selected.target)}
                 disabled={selected.target === null}
-                disabledReason="The target is not reported"
                 onClick={() =>
                   selected.target !== null &&
                   setTarget(
@@ -183,11 +186,7 @@ export function RoboticsConsoleView({
                 disabled={
                   selected.motorEngaged === null || selected.motorized === false
                 }
-                disabledReason={
-                  selected.motorEngaged === null
-                    ? "The motor state is not reported"
-                    : "This part has no motor"
-                }
+                aria-label={flagLabel("Toggle motor", selected.motorEngaged)}
                 onClick={() =>
                   selected.motorEngaged !== null &&
                   setMotor(selected.partId, !selected.motorEngaged)
@@ -205,7 +204,7 @@ export function RoboticsConsoleView({
                 pressed={selected.locked === true}
                 tone="warn"
                 disabled={selected.locked === null}
-                disabledReason="The lock state is not reported"
+                aria-label={flagLabel("Toggle lock", selected.locked)}
                 onClick={() =>
                   selected.locked !== null &&
                   setLock(selected.partId, !selected.locked)

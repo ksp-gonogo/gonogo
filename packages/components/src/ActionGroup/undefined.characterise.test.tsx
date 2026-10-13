@@ -8,7 +8,6 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { isDisabled } from "../test/isDisabled";
 import { ReadingProbe } from "../test/ReadingProbe";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { ActionGroupComponent } from "./index";
@@ -92,7 +91,7 @@ describe("ActionGroup: nothing has arrived at all", () => {
     expect(toggle.textContent).toBe(NULL_DISPLAY);
     expect(toggle.getAttribute("aria-pressed")).toBe("false");
     // With no state to invert a press would do nothing, so none is offered.
-    expect(isDisabled(toggle)).toBe(true);
+    expect(toggle).toBeDisabled();
     expect(screen.getByRole("button", { name: "Rename SAS" })).toBeTruthy();
   });
 
@@ -241,7 +240,7 @@ describe("ActionGroup: a partial payload", () => {
 
     const toggle = screen.getByRole("button", { name: "Toggle AG1" });
     expect(toggle.textContent).toBe(NULL_DISPLAY);
-    expect(isDisabled(toggle)).toBe(true);
+    expect(toggle).toBeDisabled();
   });
 });
 
@@ -258,9 +257,7 @@ describe("ActionGroup: null versus undefined", () => {
         screen.getByRole("button", { name: "Toggle SAS" }).textContent,
       ).toBe(NULL_DISPLAY),
     );
-    expect(isDisabled(screen.getByRole("button", { name: "Toggle SAS" }))).toBe(
-      true,
-    );
+    expect(screen.getByRole("button", { name: "Toggle SAS" })).toBeDisabled();
 
     act(() => {
       screen.getByRole("button", { name: "Toggle SAS" }).click();
