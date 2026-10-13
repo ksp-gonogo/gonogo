@@ -73,7 +73,7 @@ afterEach(() => {
 });
 
 describe("ActionGroup when the stream's peer goes silent without closing", () => {
-  it("offers a press while the stream is live and a held, disabled control once the transport judges it dead", async () => {
+  it("offers a press while the stream is live and a held control, still pressable, once the transport judges it dead", async () => {
     vi.useFakeTimers();
     const transport = new WebSocketTransport({
       url: "ws://localhost:8090",
@@ -106,7 +106,7 @@ describe("ActionGroup when the stream's peer goes silent without closing", () =>
       await vi.advanceTimersByTimeAsync(7_000);
     });
     expect(transport.status).toBe("reconnecting");
-    expect(isDisabled(toggle())).toBe(true);
+    expect(isDisabled(toggle())).toBe(false);
     expect(toggle().querySelector("[data-held-mark]")).not.toBeNull();
 
     transport.dispose();

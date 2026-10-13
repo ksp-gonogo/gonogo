@@ -17,7 +17,7 @@ import {
 export interface GroupToggleInput {
   group: ActionGroup | undefined;
   value: unknown;
-  /** The state is the last one received while its reading is withheld: drawn, never inverted. */
+  /** The state is the last one received while its reading is withheld: drawn held, and a press sends the explicit opposite of it. */
   valueHeld: boolean;
   /** A current payload named this group and could not say whether it is engaged. */
   stateUnreadable: boolean;
@@ -57,8 +57,11 @@ export function useGroupToggle({
   const toggleCommand = group ? toggleCommandFor(group) : null;
   const toggleCmd = useCommand(toggleCommand ?? "");
 
+  // A held reading with no value for this group has nothing to send the opposite of.
+  const unreadable = stateUnreadable || (valueHeld && value == null);
+
   const press = () => {
-    if (!group?.toggle || !toggleCommand || valueHeld) return;
+    if (!group?.toggle || !toggleCommand) return;
     const args = buildToggleArgs(group, value);
     if (args === TOGGLE_INVALID) return;
     void toggleCmd.send(args, { label: `Toggle ${label}` });
@@ -78,16 +81,14 @@ export function useGroupToggle({
     // Some groups, Stage among them, report a number rather than a boolean.
     isOn: typeof value === "number" ? value > 0 : value === true,
     stateLabel: stateLabelOf(value),
-    // A press that `buildToggleArgs` would refuse is not offered: with no state to invert, an enabled button would do nothing.
+    // A press that `buildToggleArgs` would refuse is not offered: with no state to invert, an enabled button would do nothing. A held state is one to invert: the command sets the explicit opposite.
     canToggle:
       Boolean(group?.toggle) &&
-      !valueHeld &&
-      !stateUnreadable &&
+      !unreadable &&
       buildToggleArgs(group as ActionGroup, value) !== TOGGLE_INVALID,
     unavailableReason: group
       ? unavailableReasonOf({
-          valueHeld,
-          stateUnreadable,
+          stateUnreadable: unreadable,
           isPaused,
           commConnected,
           provenance: group.provenance,

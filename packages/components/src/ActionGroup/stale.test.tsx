@@ -80,14 +80,6 @@ function stopDelivering(fixture: ReturnType<typeof mount>["fixture"]) {
   });
 }
 
-/** Let a fire-and-forget command settle, so "no dispatch" is a real observation. */
-async function settle() {
-  await act(async () => {
-    await Promise.resolve();
-    await Promise.resolve();
-  });
-}
-
 describe("ActionGroup when the group's state is held", () => {
   it("shows the state while it is current", async () => {
     // Control: without it a widget that never shows a state would pass.
@@ -102,7 +94,7 @@ describe("ActionGroup when the group's state is held", () => {
     expect(isDisabled(toggle())).toBe(false);
   });
 
-  it("keeps the last state drawn held once it stops arriving, and says why the press is refused", async () => {
+  it("keeps the last state drawn held once it stops arriving, and still offers the press", async () => {
     const { fixture, container } = mount("SAS");
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
@@ -112,18 +104,22 @@ describe("ActionGroup when the group's state is held", () => {
 
     stopDelivering(fixture);
 
-    await waitFor(() => expect(isDisabled(toggle())).toBe(true));
+    await waitFor(() =>
+      expect(toggle().querySelector("[data-held-mark]")).not.toBeNull(),
+    );
     expect(toggle().textContent).toContain("ON");
-    expect(toggle().querySelector("[data-held-mark]")).not.toBeNull();
-    expect(toggle().getAttribute("data-tooltip")).toBe(
-      "Cannot invert a held state",
+    expect(isDisabled(toggle())).toBe(false);
+    expect(toggle().getAttribute("data-tooltip")).toBe("Toggle SAS");
+    // The held mark's own tip says what the press does.
+    expect(document.body.innerHTML).toContain(
+      "The press sends the opposite of the state shown",
     );
     // Time is only ever shown through Unit, so the widget writes no currency wording of its own.
     expect(visibleText(container)).not.toMatch(/last contact/i);
     expect(screen.queryByRole("status")).toBeNull();
   });
 
-  it("stops presenting the pill as operable, rather than swallowing the press", async () => {
+  it("sends the explicit opposite of the held state when it is pressed", async () => {
     const { fixture, commandHandler } = mount("SAS");
     act(() => {
       fixture.emit("vessel.control", { ...CONTROL_ALL_OFF, sas: true });
@@ -131,26 +127,20 @@ describe("ActionGroup when the group's state is held", () => {
     const toggle = () => screen.getByRole("button", { name: "Toggle SAS" });
     await waitFor(() => expect(toggle().textContent).toBe("ON"));
 
-    // The press reaches the wire while current, so the refusal below is a refusal.
+    stopDelivering(fixture);
+    await waitFor(() =>
+      expect(toggle().querySelector("[data-held-mark]")).not.toBeNull(),
+    );
+
     act(() => {
       toggle().click();
     });
+    // The command names the target state outright, so a stale value cannot flip it the wrong way.
     await waitFor(() =>
       expect(commandHandler).toHaveBeenCalledWith("vessel.control.setSas", {
         enabled: false,
       }),
     );
-    expect(fixture.transport.sentCommands).toHaveLength(1);
-
-    stopDelivering(fixture);
-    await waitFor(() => expect(isDisabled(toggle())).toBe(true));
-
-    act(() => {
-      toggle().click();
-    });
-    await settle();
-    // An inverted held boolean is a command to the wrong state, not a late one.
-    expect(fixture.transport.sentCommands).toHaveLength(1);
   });
 
   it("says nothing about a withheld state before anything has ever arrived", async () => {
@@ -196,8 +186,10 @@ describe("ActionGroup: what a stale link does NOT take away", () => {
 
     await waitFor(() =>
       expect(
-        isDisabled(screen.getByRole("button", { name: "Toggle Radiators" })),
-      ).toBe(true),
+        screen
+          .getByRole("button", { name: "Toggle Radiators" })
+          .querySelector("[data-held-mark]"),
+      ).not.toBeNull(),
     );
     expect(screen.queryByText("No action group configured")).toBeNull();
     expect(
