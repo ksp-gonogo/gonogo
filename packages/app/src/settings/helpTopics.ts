@@ -205,6 +205,22 @@ export const HELP_TOPICS: readonly HelpTopic[] = [
     ],
   },
   {
+    id: "delay",
+    title: "Signal delay",
+    blocks: [
+      text(
+        "Signal delay makes commands and readings take the time light needs to travel between a command centre and a craft, so a far craft answers late. It is a setting of each save, on by default.",
+      ),
+      text(
+        "To switch it off, open the game's Difficulty settings and find the Gonogo section: the Signal delay switch is there, and so is Light speed. Settings, Gonogo in this app has the same two controls. Light speed scales how fast signals travel: a higher value shortens every delay and a lower one lengthens it.",
+      ),
+      list(
+        "Switching delay off does not switch off loss of signal: a craft with no path to a command centre is still out of contact",
+        "With the game's CommNet option disabled, every craft counts as connected and nothing is delayed",
+      ),
+    ],
+  },
+  {
     id: "app",
     title: "Running the app",
     blocks: [

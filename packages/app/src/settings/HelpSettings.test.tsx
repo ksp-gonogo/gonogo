@@ -45,6 +45,25 @@ describe("HelpSettings", () => {
     await expectNoA11yViolations(container);
   });
 
+  it("explains signal delay, where to switch it off and what it leaves alone", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<HelpSettings />);
+    await user.click(screen.getByRole("button", { name: "Signal delay" }));
+    expect(screen.getByText(/Difficulty settings/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/a higher value shortens every delay/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/does not switch off loss of signal/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /CommNet option disabled, every craft counts as connected/,
+      ),
+    ).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+  });
+
   it("never prints the engineering codename, an em-dash or a CKAN step", () => {
     const all = JSON.stringify(HELP_TOPICS);
     expect(all).not.toMatch(/sitrep/i);
