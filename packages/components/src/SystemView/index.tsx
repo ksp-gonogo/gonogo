@@ -30,7 +30,6 @@ import {
 import type { ControlFrame, VesselOrbit } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, useElementSize } from "@ksp-gonogo/ui";
 import {
-  DeclinedEmptyState,
   FramedDisplay,
   NULL_DISPLAY,
   PanZoomViewport,
@@ -42,6 +41,7 @@ import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
 import { useEncounterIn } from "../shared/useEncounterIn";
+import { WithheldPath } from "../shared/WithheldPath";
 import { AlmanacPanel } from "./AlmanacPanel";
 import { ContactCaption, FRAME_CAPTION } from "./ContactCaption";
 import type { SystemViewConfig } from "./config";
@@ -741,7 +741,7 @@ function SystemViewComponent({
             />
             {/* Beside the caption rather than over the diagram: only the vessel's curve is missing. */}
             {trajectoryWithheld && (
-              <DeclinedEmptyState declined={trajectoryWithheld.declined} />
+              <WithheldPath withheld={trajectoryWithheld} />
             )}
             {drawnTarget !== null &&
               targetHorizon !== null &&
@@ -754,7 +754,7 @@ function SystemViewComponent({
                 />
               )}
             {targetTrajectory?.shape === "withheld" && (
-              <DeclinedEmptyState declined={targetTrajectory.declined} />
+              <WithheldPath withheld={targetTrajectory} />
             )}
             {commsSource !== undefined && (
               <CommsSourceCaption

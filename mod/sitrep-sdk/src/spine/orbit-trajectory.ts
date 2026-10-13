@@ -32,7 +32,6 @@
  */
 
 import { PerfBudget } from "../perf/PerfBudget";
-import type { ReckoningDecline } from "../reading";
 import { finite } from "./catalogue-elements";
 import type { CelestialBody, CelestialFacts } from "./celestial-facts";
 import {
@@ -40,7 +39,6 @@ import {
   horizonUtOf,
   type OrbitElements,
   type PropagationHorizonLike,
-  type PropagationRefusal,
   rotatePerifocalToInertial,
   solve,
   solveAnomalies,
@@ -153,24 +151,40 @@ export type ArcFarEnd =
   | "revolution";
 
 /**
+ * Why a trajectory may not be drawn. Useful for telling the operator which of
+ * the distinct reasons applied, so the readout says what happened. Carried by
+ * the withheld arm of {@link OrbitTrajectory}.
+ */
+export type TrajectoryWithheldReason =
+  /** No provider stated a horizon. Silence must not render as health. */
+  | "no-horizon-stated"
+  /** The view instant is past the bound the provider named. */
+  | "past-horizon"
+  /** The provider stated reach but not shape, so a conic is not known to be right. */
+  | "shape-not-stated"
+  /** These osculating elements cannot be sampled into an arc. */
+  | "no-arc-available"
+  /**
+   * There is a curve, and the frame asked for could not be formed from the
+   * bodies the catalogue carries: a body it has not sent yet, a rotating frame
+   * asked for on the root star, or a pair whose separation is degenerate.
+   *
+   * Distinct from every reason above because the propagation is fine. Drawing
+   * the curve in whatever frame it arrived in would answer a question nobody
+   * asked, and in a rotating frame the difference is the whole shape of the
+   * path rather than an offset.
+   */
+  | "frame-unavailable";
+
+/**
  * How a vessel's path may be drawn at the instant on screen, returned by
  * {@link useOrbitTrajectory}: as a conic from its elements, as the sampled arc
  * the provider vouched for, or not at all. Useful for deciding what to draw for
  * the vessel's orbit. Used by the maneuver planner's preview and conformance
- * plot and the current orbit widget.
+ * plot, the current orbit widget and {@link trajectoryWithheldCopy}.
  *
- * A `withheld` answer carries a {@link ReckoningDecline}, the same shape a
- * declined model gives, so show it the way any declined figure is shown: a short
- * label from `reason` where the curve would be and `note` as its explanation.
- * It is a statement about what the provider vouched for, not a missing value.
- *
- * The `reason` is `input-absent` when the provider stated no horizon or no
- * shape, `beyond-horizon` when the instant on screen is past the bound it named,
- * `model-inapplicable` when the elements cannot be sampled into an arc, and
- * `frame-unavailable` when the frame asked for cannot be built from the bodies
- * known. Past an integrating provider's horizon the `note` says the path is not
- * computed that far yet, which resolves by itself; past an analytic provider's
- * it says the elements cannot be trusted that far, which does not.
+ * A `withheld` answer carries its reason. Show it where the curve would be: it
+ * is a statement about what the provider vouched for, not a missing value.
  *
  * @category Frames of reference
  */
@@ -202,8 +216,15 @@ export type OrbitTrajectory =
   | {
       /** The path may not be drawn. */
       shape: "withheld";
-      /** Why it may not, and the sentence to show the operator. */
-      declined: ReckoningDecline;
+      /** Why it may not. */
+      reason: TrajectoryWithheldReason;
+      /**
+       * What kind of answer was refused, when the provider said. Present so a
+       * readout can distinguish an integrator that has not computed this far yet
+       * (which resolves on its own) from an analytic provider claiming a bound
+       * (which is a producer bug that does not).
+       */
+      trajectoryKind?: TrajectoryKindLike;
     };
 
 /**
@@ -212,6 +233,73 @@ export type OrbitTrajectory =
  * by the impact-point prediction.
  */
 export type TrajectoryArcAnswer = Extract<OrbitTrajectory, { shape: "arc" }>;
+
+/**
+ * The withheld arm of {@link OrbitTrajectory}: an orbit path that may not be
+ * drawn, and the reason. An orbit's elements are the numbers that define its
+ * curve, and its horizon is how far ahead in game time they can be trusted.
+ * The path is withheld when no horizon was stated for it, the instant on screen
+ * is past its horizon, its shape (a conic drawn from the elements, or an arc
+ * sampled by the provider) was not stated, the frame asked for cannot be built
+ * (a body not yet received, say), or it could not be sampled. Useful for
+ * telling the operator why a vessel's path is missing. Taken by
+ * {@link trajectoryWithheldCopy}.
+ *
+ * @category Frames of reference
+ */
+export type WithheldTrajectory = Extract<
+  OrbitTrajectory,
+  { shape: "withheld" }
+>;
+
+/**
+ * The heading and sentence for a withheld path. Each reason has its own
+ * wording, saying what would let the path be drawn. Useful for telling the
+ * operator why a path is not drawn, in the same words in every widget: the
+ * heading where the path would be, the sentence in a tooltip. Used by the map
+ * view, the orbit view and the maneuver planner.
+ *
+ * @category Frames of reference
+ */
+export function trajectoryWithheldCopy(withheld: WithheldTrajectory): {
+  heading: string;
+  detail: string;
+} {
+  switch (withheld.reason) {
+    case "no-horizon-stated":
+      return {
+        heading: "NO HORIZON STATED",
+        detail:
+          "Nothing says how far ahead these orbital elements can be trusted.",
+      };
+    case "past-horizon":
+      return withheld.trajectoryKind === TrajectoryKindLike.Integrated
+        ? {
+            heading: "BEYOND INTEGRATION",
+            detail: "The trajectory is not computed this far ahead yet.",
+          }
+        : {
+            heading: "PAST HORIZON",
+            detail: "These orbital elements cannot be trusted this far ahead.",
+          };
+    case "shape-not-stated":
+      return {
+        heading: "SHAPE NOT STATED",
+        detail: "Nothing has said whether this trajectory is a conic.",
+      };
+    case "frame-unavailable":
+      return {
+        heading: "FRAME UNAVAILABLE",
+        detail:
+          "The trajectory is fine; the frame it was asked for cannot be built from the bodies known here. Pick another frame.",
+      };
+    default:
+      return {
+        heading: "NO PATH AVAILABLE",
+        detail: "The integrated trajectory could not be sampled.",
+      };
+  }
+}
 
 export interface OrbitTrajectoryInput {
   /**
@@ -271,50 +359,6 @@ const TRAJECTORY_TRANSFORM_BUDGET = new PerfBudget({
 });
 
 /**
- * The withheld answer for a refusal: the standard decline carrying the sentence
- * the operator reads. An integrating provider and an analytic one are worded
- * apart past their horizon, since only the first resolves on its own.
- */
-function withheld(
-  declined: ReckoningDecline,
-): Extract<OrbitTrajectory, { shape: "withheld" }> {
-  return { shape: "withheld", declined };
-}
-
-function refused(
-  refusal: Exclude<PropagationRefusal, { propagatable: true }>,
-): OrbitTrajectory {
-  if (refusal.reason === "no-horizon-stated") {
-    return withheld({
-      reason: "input-absent",
-      note: "Nothing says how far ahead these orbital elements can be trusted.",
-    });
-  }
-  return withheld({
-    reason: "beyond-horizon",
-    note:
-      refusal.trajectoryKind === TrajectoryKindLike.Integrated
-        ? "The trajectory is not computed this far ahead yet."
-        : "These orbital elements cannot be trusted this far ahead.",
-  });
-}
-
-const SHAPE_NOT_STATED: ReckoningDecline = {
-  reason: "input-absent",
-  note: "Nothing has said whether this trajectory is a conic.",
-};
-
-const NO_ARC_AVAILABLE: ReckoningDecline = {
-  reason: "model-inapplicable",
-  note: "The integrated trajectory could not be sampled.",
-};
-
-const FRAME_UNAVAILABLE: ReckoningDecline = {
-  reason: "frame-unavailable",
-  note: "The trajectory is fine; the frame it was asked for cannot be built from the bodies known here. Pick another frame.",
-};
-
-/**
  * The trajectory the propagation provider vouches for, in a form that can be
  * drawn. Useful for choosing between drawing a conic, drawing a sampled arc and
  * telling the operator nothing can be drawn. Called by {@link useOrbitTrajectory}.
@@ -332,7 +376,7 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
 
   const refusal = canPropagate(horizon, viewUt, viewUt);
   if (!refusal.propagatable) {
-    return refused(refusal);
+    return { shape: "withheld", reason: refusal.reason, trajectoryKind };
   }
 
   const reframing = wantsReframing(input.readFrame);
@@ -351,7 +395,7 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
       orbit.referenceBodyIndex,
     );
     if (sampled === null) {
-      return withheld(NO_ARC_AVAILABLE);
+      return { shape: "withheld", reason: "no-arc-available", trajectoryKind };
     }
     return reframeArc(sampled, orbit, reframing, viewUt);
   }
@@ -359,7 +403,7 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
     // `Unspecified`, or absent entirely. Both are what a producer that never
     // stated a shape sends, and reading either as "conic" would restore the
     // permissive default the enum's zero-value ordering exists to remove.
-    return withheld(SHAPE_NOT_STATED);
+    return { shape: "withheld", reason: "shape-not-stated", trajectoryKind };
   }
 
   // An integrating provider's elements are the conic the craft is tangent to
@@ -375,7 +419,7 @@ export function orbitTrajectory(input: OrbitTrajectoryInput): OrbitTrajectory {
     orbit.referenceBodyIndex,
   );
   if (arc === null) {
-    return withheld(NO_ARC_AVAILABLE);
+    return { shape: "withheld", reason: "no-arc-available", trajectoryKind };
   }
   if (reframing === null) return arc;
   return reframeArc(arc, orbit, reframing, viewUt);
@@ -416,7 +460,10 @@ function reframeArc(
   readFrame: { choice: ReadFrameChoice; facts: CelestialFacts },
   viewUt: number,
 ): OrbitTrajectory {
-  const unavailable = withheld(FRAME_UNAVAILABLE);
+  const unavailable: OrbitTrajectory = {
+    shape: "withheld",
+    reason: "frame-unavailable",
+  };
   const centreIndex = orbit.referenceBodyIndex ?? arc.frame.centreBodyIndex;
   if (centreIndex === undefined) return unavailable;
   if (arc.frame.kind !== TrajectoryFrameKindLike.BodyCentredInertial) {

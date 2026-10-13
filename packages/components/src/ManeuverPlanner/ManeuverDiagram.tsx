@@ -1,5 +1,6 @@
-import { DeclinedEmptyState, FramedDisplay } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay } from "@ksp-gonogo/ui-kit";
 import { OrbitDiagram } from "../shared/OrbitDiagram";
+import { WithheldPath } from "../shared/WithheldPath";
 import type { ManeuverPreviewProps } from "./ManeuverPreview";
 import { isSequence } from "./planning";
 import { DiagramWrap } from "./styles";
@@ -24,10 +25,7 @@ export function ManeuverDiagram({
     return (
       <DiagramWrap>
         <FramedDisplay padded style={FRAME_STYLE}>
-          <DeclinedEmptyState
-            declined={currentTrajectory.declined}
-            layout="fill"
-          />
+          <WithheldPath withheld={currentTrajectory} layout="fill" />
         </FramedDisplay>
       </DiagramWrap>
     );

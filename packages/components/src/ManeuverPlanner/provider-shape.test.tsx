@@ -148,7 +148,7 @@ describe("ManeuverPlanner's conformance plot draws the shape the provider states
       "mnv-shape-unstated",
     );
     // A comparison with one half missing reads as a match.
-    expect(visibleText(container)).toContain("NO DATA");
+    expect(visibleText(container)).toContain("SHAPE NOT STATED");
     expect(plot(container).querySelectorAll("svg ellipse").length).toBe(0);
     expect(
       plot(container).querySelector("svg path[data-trajectory]"),
@@ -186,7 +186,7 @@ describe("ManeuverPlanner's preview diagram draws the shape the provider states"
       "mnv-preview-unstated",
     );
     await waitFor(() => {
-      if (!visibleText(container).includes("NO DATA")) {
+      if (!visibleText(container).includes("SHAPE NOT STATED")) {
         throw new Error("the refusal has not rendered yet");
       }
     });

@@ -260,6 +260,7 @@ export type {
   TrajectoryFrame,
   TrajectoryPoint,
   TrajectoryScaleConvention,
+  TrajectoryWithheldReason,
   Vec3Tuple,
 } from "./kepler";
 export {

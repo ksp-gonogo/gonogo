@@ -1,16 +1,12 @@
 import { AugmentSlot } from "@ksp-gonogo/core";
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import type { ReckoningDecline } from "@ksp-gonogo/sitrep-sdk";
+import type { WithheldTrajectory } from "@ksp-gonogo/sitrep-sdk/frames";
 import { Badge, Panel } from "@ksp-gonogo/ui";
-import {
-  DeclinedEmptyState,
-  FramedDisplay,
-  Section,
-  Text,
-  Tooltip,
-} from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, Section, Text, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { InlaidTrajectoryFrameCaption } from "../shared/trajectoryFrame";
+import { WithheldPath } from "../shared/WithheldPath";
 import { noOrbitSentence } from "./emptyStates";
 import type { OrbitPill } from "./orbitPill";
 
@@ -30,7 +26,7 @@ export interface OrbitViewPanelProps {
   layout: { isLandscape: boolean; showDiagram: boolean; showSubtitle: boolean };
   hasOrbit: boolean;
   trajectory: OrbitTrajectory | null;
-  withheld: Extract<OrbitTrajectory, { shape: "withheld" }> | null;
+  withheld: WithheldTrajectory | null;
   declined: ReckoningDecline | undefined;
   centreBodyIndex: number | undefined;
   /** The orbit drawn is the last one observed, held with nothing carrying it to now: the panel says so. */
@@ -126,8 +122,7 @@ export function OrbitViewPanel({
           <PillBadge pill={pill} />
         </PillFill>
       );
-    if (withheld)
-      return <DeclinedEmptyState declined={withheld.declined} layout="fill" />;
+    if (withheld) return <WithheldPath withheld={withheld} layout="fill" />;
     return diagramWithCaption;
   };
 

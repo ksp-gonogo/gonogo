@@ -120,43 +120,37 @@ describe("orbitTrajectory", () => {
         orbit: lko({ horizon: { kind: Reach.Unbounded } }),
         viewUt: 0,
       }),
-    ).toMatchObject({
+    ).toEqual({
       shape: "withheld",
-      declined: {
-        reason: "input-absent",
-        note: "Nothing has said whether this trajectory is a conic.",
-      },
+      reason: "shape-not-stated",
+      trajectoryKind: undefined,
     });
   });
 
   it("withholds when no horizon rides on the sample at all", () => {
-    expect(orbitTrajectory({ orbit: lko(), viewUt: 0 })).toMatchObject({
+    expect(orbitTrajectory({ orbit: lko(), viewUt: 0 })).toEqual({
       shape: "withheld",
-      declined: { reason: "input-absent" },
+      reason: "no-horizon-stated",
+      trajectoryKind: undefined,
     });
   });
 
-  it("withholds past a stated horizon, wording the kind that was bounded", () => {
-    const pastHorizon = (trajectoryKind: number) =>
+  it("withholds past a stated horizon, naming the kind that was bounded", () => {
+    expect(
       orbitTrajectory({
         orbit: lko({
-          horizon: { kind: Reach.Until, untilUt: 100, trajectoryKind },
+          horizon: {
+            kind: Reach.Until,
+            untilUt: 100,
+            trajectoryKind: Shape.Integrated,
+          },
         }),
         viewUt: 500,
-      });
-    expect(pastHorizon(Shape.Integrated)).toEqual({
+      }),
+    ).toEqual({
       shape: "withheld",
-      declined: {
-        reason: "beyond-horizon",
-        note: "The trajectory is not computed this far ahead yet.",
-      },
-    });
-    expect(pastHorizon(Shape.Analytic)).toEqual({
-      shape: "withheld",
-      declined: {
-        reason: "beyond-horizon",
-        note: "These orbital elements cannot be trusted this far ahead.",
-      },
+      reason: "past-horizon",
+      trajectoryKind: Shape.Integrated,
     });
   });
 
@@ -196,9 +190,10 @@ describe("orbitTrajectory", () => {
         }),
         viewUt: 0,
       }),
-    ).toMatchObject({
+    ).toEqual({
       shape: "withheld",
-      declined: { reason: "model-inapplicable" },
+      reason: "no-arc-available",
+      trajectoryKind: Shape.Integrated,
     });
   });
 
@@ -469,13 +464,7 @@ describe("orbitTrajectory read frames", () => {
           facts: SYSTEM,
         },
       }),
-    ).toEqual({
-      shape: "withheld",
-      declined: {
-        reason: "frame-unavailable",
-        note: expect.stringContaining("Pick another frame"),
-      },
-    });
+    ).toEqual({ shape: "withheld", reason: "frame-unavailable" });
   });
 
   it("refuses when the curve cannot be placed in the system", () => {
@@ -491,13 +480,7 @@ describe("orbitTrajectory read frames", () => {
           facts: SYSTEM,
         },
       }),
-    ).toEqual({
-      shape: "withheld",
-      declined: {
-        reason: "frame-unavailable",
-        note: expect.stringContaining("Pick another frame"),
-      },
-    });
+    ).toEqual({ shape: "withheld", reason: "frame-unavailable" });
   });
 
   it("draws in the frame the curve came in when the control frame is not being published", () => {

@@ -300,15 +300,12 @@ export interface TopicModel<Payload, Projection = Payload> {
  *   Gonogo has none of its own to fall back on, so none is used
  * - `insufficient-history`: the model needs more past samples of its own Topic
  *   than its {@link ReckonerWindow} holds. `note` says how many were found
- * - `frame-unavailable`: the model holds, but the frame the figure was asked
- *   for cannot be built from the bodies known so far, such as a body not yet
- *   received. Asking for another frame resolves it
  *
  * Branch on `reason`, never on `input` or `note`.
  *
  * Useful for telling the operator why a modelled figure is unavailable. Used by
- * the orbit view's empty states, by the components that show a modelled figure
- * and by the withheld arm of {@link OrbitTrajectory}.
+ * the orbit view's empty states and by the components that show a modelled
+ * figure.
  *
  * @category Reckoners
  */
@@ -320,8 +317,7 @@ export interface ReckoningDecline {
     | "model-inapplicable"
     | "under-physics"
     | "contested"
-    | "insufficient-history"
-    | "frame-unavailable";
+    | "insufficient-history";
   /** The input responsible, spelled as the contract declares it, such as `"@vessel.orbit"`. Absent where the reason has none. */
   readonly input?: string;
   /** One sentence to show the operator. Its wording can change, so never branch on it. */

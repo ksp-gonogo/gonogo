@@ -7,9 +7,9 @@ import {
   latLonToMap,
   registerComponent,
 } from "@ksp-gonogo/core";
+import { trajectoryWithheldCopy } from "@ksp-gonogo/sitrep-sdk/frames";
 import { Switch } from "@ksp-gonogo/ui";
 import {
-  declinedState,
   derivedMarking,
   Panel,
   PanZoomViewport,
@@ -457,9 +457,12 @@ function GroundTrackComponent({
           /* Under the map, not over it: only the forward track is refused. */
           trajectoryWithheld && predictionEnabled && telemetry.hasPatchChain ? (
             <Section key="withheld">
-              <Tooltip text={trajectoryWithheld.declined.note} focusable>
+              <Tooltip
+                text={trajectoryWithheldCopy(trajectoryWithheld).detail}
+                focusable
+              >
                 <ReadoutCaption role="status">
-                  {declinedState(trajectoryWithheld.declined) ?? "NO DATA"}: no
+                  {trajectoryWithheldCopy(trajectoryWithheld).heading}: no
                   predicted ground track
                 </ReadoutCaption>
               </Tooltip>

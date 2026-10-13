@@ -15,7 +15,6 @@ export function noOrbitSentence(
     case "model-inapplicable":
     case "contested":
     case "insufficient-history":
-    case "frame-unavailable":
       return "No orbital data";
     default: {
       const unnamed: never = reason;

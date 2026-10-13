@@ -8,7 +8,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   Band,
-  declinedState,
   Grid,
   NULL_DISPLAY,
   ReadoutCaption,
@@ -17,6 +16,7 @@ import {
   Tooltip,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import { declinedState } from "../shared/declinedState";
 import type { RailPrediction } from "./AltitudeRail";
 import { altitudeDecimals, GridCellPair, roundedHeight } from "./readouts";
 
