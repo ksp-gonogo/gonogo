@@ -240,7 +240,7 @@ export const PlusIcon = makeIcon(Plus, { strokeWidth: 2.4 });
 
 /**
  * An X. Useful for the control that closes or dismisses something. Used by the
- * maneuver planner's node rows and armed triggers list, the tech tree detail
+ * maneuver planner's node rows and armed triggers list, the research and development detail
  * panel and the pushed dashboard overlay.
  *
  * @category Icons
@@ -255,7 +255,7 @@ export const CloseIcon = makeIcon(X);
 export const PencilIcon = makeIcon(Pencil);
 /**
  * A check mark. Useful for confirming or marking something done. Used by the
- * space centre upgrade button and the tech tree node facts.
+ * space centre upgrade button and the research and development node facts.
  *
  * @category Icons
  */

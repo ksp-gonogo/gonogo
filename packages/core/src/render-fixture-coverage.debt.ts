@@ -63,14 +63,14 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/ScienceData#state",
   "packages/components/src/AdminBuilding#state",
   /*
-   * `reading.state` here too, but TechTree also reads a tech node's own
+   * `reading.state` here too, but ResearchAndDevelopment also reads a tech node's own
    * `e.state` in `parseTechNodes`, so the discriminant is not the whole answer.
    * It stays a coincidence for a different reason: the `state` the scan matched
-   * belongs to `CareerContract`, which TechTree never reads, and
+   * belongs to `CareerContract`, which ResearchAndDevelopment never reads, and
    * `CareerTechNode` declares `unlocked` and no `state` at all. No fixture of
    * `career.status` can carry the field this widget is looking for.
    */
-  "packages/components/src/TechTree#state",
+  "packages/components/src/ResearchAndDevelopment#state",
   /*
    * `body.period` and `body.referenceBody` off `CelestialBody`, the sdk's
    * derived body record (`celestial-facts.ts`: `period` is `2π√(a³/μ_parent)`

@@ -21,7 +21,11 @@ describe("component-id migration", () => {
   it("leaves the id of a renamed widget alone when no migration was written, so the dashboard treats it as unknown", () => {
     expect(migrateComponentId("targeting")).toBe("targeting");
     expect(migrateComponentId("distance-to-target")).toBe("distance-to-target");
-    const items: DashboardItem[] = [item("a", "targeting")];
+    expect(migrateComponentId("tech-tree")).toBe("tech-tree");
+    const items: DashboardItem[] = [
+      item("a", "targeting"),
+      item("b", "tech-tree"),
+    ];
     expect(migrateDashboardItems(items)).toBe(items);
   });
 

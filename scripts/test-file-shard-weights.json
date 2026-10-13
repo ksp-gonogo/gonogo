@@ -38,7 +38,7 @@
   "packages/components/src/SystemView/liveTickPlacementRate.integration.test.tsx": 3,
   "packages/components/src/TargetPicker/index.test.tsx": 7,
   "packages/components/src/Rendezvous/snapshots.test.tsx": 10,
-  "packages/components/src/TechTree/index.test.tsx": 3,
+  "packages/components/src/ResearchAndDevelopment/index.test.tsx": 3,
   "packages/components/src/ThermalStatus/snapshots.test.tsx": 11,
   "packages/components/src/TransferWindow/index.test.tsx": 9,
   "packages/components/src/Twr/snapshots.test.tsx": 6,

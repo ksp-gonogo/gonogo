@@ -187,6 +187,13 @@ describe("the built-in catalogue, derived", () => {
             "career",
             "spaceCenter",
           ],
+          "id": "research-and-development",
+        },
+        {
+          "domains": [
+            "career",
+            "spaceCenter",
+          ],
           "id": "science-data",
         },
         {
@@ -195,13 +202,6 @@ describe("the built-in catalogue, derived", () => {
             "spaceCenter",
           ],
           "id": "space-center-status",
-        },
-        {
-          "domains": [
-            "career",
-            "spaceCenter",
-          ],
-          "id": "tech-tree",
         },
       ]
     `);

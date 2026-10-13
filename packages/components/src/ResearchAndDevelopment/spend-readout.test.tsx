@@ -7,7 +7,7 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { TechTreeComponent } from "./index";
+import { ResearchAndDevelopmentComponent } from "./index";
 
 /**
  * Tech is paid up front, in science, so the balance has to sit beside the Unlock it is spent by, in the widget body, at every tile size.
@@ -43,7 +43,7 @@ function careerStatus(science: number): Record<string, unknown> {
   };
 }
 
-describe("TechTree spend readout", () => {
+describe("ResearchAndDevelopment spend readout", () => {
   let stream: StreamFixture;
 
   beforeEach(() => {
@@ -55,7 +55,12 @@ describe("TechTree spend readout", () => {
     const view = render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tt-readout" }}>
-          <TechTreeComponent config={{}} id="tt-readout" w={w} h={h} />
+          <ResearchAndDevelopmentComponent
+            config={{}}
+            id="tt-readout"
+            w={w}
+            h={h}
+          />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );

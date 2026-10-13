@@ -8379,6 +8379,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "sitrep-sdk . SlotRegistry#\"research-and-development.sections\"",
+        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
+      },
+      {
         "key": "sitrep-sdk . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -8389,6 +8393,10 @@
       {
         "key": "sitrep-sdk . SlotRegistry#\"targeting.overlay\"",
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk . SlotRegistry#\"tech-tree.sections\"",
+        "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
       },
       {
         "key": "sitrep-sdk . StatEntry#value?",
@@ -9847,6 +9855,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"research-and-development.sections\"",
+        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
+      },
+      {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -9857,6 +9869,10 @@
       {
         "key": "sitrep-sdk ./testing ~SlotRegistry#\"targeting.overlay\"",
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~SlotRegistry#\"tech-tree.sections\"",
+        "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
       },
       {
         "key": "sitrep-sdk ./testing ~StatEntry#value?",
@@ -10259,6 +10275,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "ui-kit . SlotRegistry#\"research-and-development.sections\"",
+        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
+      },
+      {
         "key": "ui-kit . SlotRegistry#\"strategies.screen-body\"",
         "note": "Strategies widget renamed to Admin Building; its slot ids and types follow"
       },
@@ -10269,6 +10289,10 @@
       {
         "key": "ui-kit . SlotRegistry#\"targeting.overlay\"",
         "note": "Removed with the rename of the Targeting widget to Rendezvous; the slot ids and the context type move to rendezvous, with no alias"
+      },
+      {
+        "key": "ui-kit . SlotRegistry#\"tech-tree.sections\"",
+        "note": "Removed with the rename of the Tech Tree widget to Research and Development; its sections slot moves to research-and-development.sections, with no alias"
       },
       {
         "key": "ui-kit . Spinner",
@@ -12765,6 +12789,10 @@
         "note": "The Targeting widget is now Rendezvous, so its slot ids and context type take the new name"
       },
       {
+        "key": "sitrep-sdk ./registry ~SlotRegistry#\"research-and-development.sections\"",
+        "note": "The Tech Tree widget is now Research and Development, so its sections slot takes the new id"
+      },
+      {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"science-data.aboard-row\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
@@ -12786,10 +12814,6 @@
       },
       {
         "key": "sitrep-sdk ./registry ~SlotRegistry#\"target-picker.sections\"",
-        "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
-      },
-      {
-        "key": "sitrep-sdk ./registry ~SlotRegistry#\"tech-tree.sections\"",
         "note": "Reachable through ./registry now that augmentSlots is typed by the SlotRegistry keys; the slot and its props are unchanged"
       },
       {

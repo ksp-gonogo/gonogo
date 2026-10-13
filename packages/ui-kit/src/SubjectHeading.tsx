@@ -31,7 +31,7 @@ export interface SubjectHeadingProps {
 /**
  * A subject and its state on one line, subject first and the state pushed to
  * the end. Useful for showing the operator a node or vessel name with its
- * status badge. Used by the tech tree's detail panel. The order is fixed, so
+ * status badge. Used by the research and development detail panel. The order is fixed, so
  * the state always reads after the thing it describes, to an eye and to a
  * screen reader.
  *

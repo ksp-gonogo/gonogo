@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ProbeMount } from "../../components/scripts/probe/probe-entry";
-import early from "../../components/src/TechTree/__fixtures__/early-career-63-nodes.json";
+import early from "../../components/src/ResearchAndDevelopment/__fixtures__/early-career-63-nodes.json";
 import {
   type CareerFrame,
   type CareerNode,
@@ -65,21 +65,21 @@ function describe(frame: CareerFrame): string {
     : "A new career, nothing researched";
 }
 
-export interface TechTreeCareerSceneProps {
+export interface ResearchAndDevelopmentCareerSceneProps {
   w?: number;
   h?: number;
 }
 
 /**
- * Tech Tree mounted on a new career, then fed one frame after another: science
+ * Research and Development mounted on a new career, then fed one frame after another: science
  * comes back from flights, the researchable count rises with the balance, and
  * the cheapest reachable node is bought, lighting the graph as it goes.
  * Replay starts the career over.
  */
-export function TechTreeCareerScene({
+export function ResearchAndDevelopmentCareerScene({
   w = 32,
   h = 31,
-}: TechTreeCareerSceneProps) {
+}: ResearchAndDevelopmentCareerSceneProps) {
   const frames = useMemo(() => playCareer(TREE), []);
   const first = useMemo(
     () => ({
@@ -137,7 +137,7 @@ export function TechTreeCareerScene({
       </div>
       <WidgetScene
         key={run}
-        widgetId="tech-tree"
+        widgetId="research-and-development"
         fixture={first}
         w={w}
         h={h}

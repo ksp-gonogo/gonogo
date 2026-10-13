@@ -1113,8 +1113,8 @@ declare module "./types" {
     /** The standard header segment of the Map View widget: controls of your own in its panel header. Passes no props. */
     "map-view.actions": Record<string, never>;
 
-    /** Content of your own at the end of the Tech Tree widget's body, after everything the widget itself draws. Passes no props. */
-    "tech-tree.sections": Record<string, never>;
+    /** Content of your own at the end of the Research and Development widget's body, after everything the widget itself draws. Passes no props. */
+    "research-and-development.sections": Record<string, never>;
 
     /**
      * A line under each science subject on the Science Data widget's Aboard

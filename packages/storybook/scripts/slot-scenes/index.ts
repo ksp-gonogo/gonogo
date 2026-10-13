@@ -16,13 +16,13 @@ import { SCENES as mapView } from "./map-view";
 import { SCENES as orbitView } from "./orbit-view";
 import { SCENES as powerSystems } from "./power-systems";
 import { SCENES as rendezvous } from "./rendezvous";
+import { SCENES as researchAndDevelopment } from "./research-and-development";
 import { SCENES as resourceOps } from "./resource-ops";
 import { SCENES as scienceData } from "./science-data";
 import { SCENES as shipMap } from "./ship-map";
 import { SCENES as spaceCenterStatus } from "./space-center-status";
 import { SCENES as systemView } from "./system-view";
 import { SCENES as targetPicker } from "./target-picker";
-import { SCENES as techTree } from "./tech-tree";
 import { SCENES as transferWindow } from "./transfer-window";
 import { SCENES as warpControl } from "./warp-control";
 
@@ -56,7 +56,7 @@ export const SLOT_SCENE_OVERRIDES: readonly ExtensionScene[] = [
   ...targetPicker,
   ...rendezvous,
   ...transferWindow,
-  ...techTree,
+  ...researchAndDevelopment,
   ...warpControl,
 ];
 

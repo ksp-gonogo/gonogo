@@ -7,10 +7,10 @@ import {
   type StreamFixture,
   setupStreamFixture,
 } from "../test/setupStreamFixture";
-import { TechTreeComponent } from "./index";
+import { ResearchAndDevelopmentComponent } from "./index";
 
 /**
- * When `career.status` stops being current, TechTree keeps the node list (nobody can spend down a dead link, so the tree is still the tree) and keeps the science balance on screen marked held, without letting Unlock turn it into a claim about now. The assertions that matter separate held from never-arrived.
+ * When `career.status` stops being current, ResearchAndDevelopment keeps the node list (nobody can spend down a dead link, so the tree is still the tree) and keeps the science balance on screen marked held, without letting Unlock turn it into a claim about now. The assertions that matter separate held from never-arrived.
  */
 
 const PRICEY_RESEARCHABLE = {
@@ -37,7 +37,7 @@ function careerStatus(science: number): Record<string, unknown> {
   };
 }
 
-describe("TechTree when the career record is held", () => {
+describe("ResearchAndDevelopment when the career record is held", () => {
   let stream: StreamFixture;
 
   beforeEach(() => {
@@ -52,7 +52,12 @@ describe("TechTree when the career record is held", () => {
     return render(
       <stream.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "tt-stale" }}>
-          <TechTreeComponent config={{}} id="tt-stale" w={w} h={h} />
+          <ResearchAndDevelopmentComponent
+            config={{}}
+            id="tt-stale"
+            w={w}
+            h={h}
+          />
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
@@ -172,7 +177,7 @@ describe("TechTree when the career record is held", () => {
 
   it("keeps tiny mode's balance line, marked held rather than replaced", async () => {
     // A held balance must not reuse tiny mode's no-balance path, or a dropped link looks like a save with no science.
-    const { container } = renderWidget("tech-tree", {
+    const { container } = renderWidget("research-and-development", {
       instanceId: "tt-stale",
       w: 4,
       h: 3,

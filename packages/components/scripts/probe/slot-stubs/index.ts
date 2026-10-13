@@ -21,6 +21,6 @@ import "./admin-building";
 import "./system-view";
 import "./target-picker";
 import "./rendezvous";
-import "./tech-tree";
+import "./research-and-development";
 import "./warp-control";
 import "./contributions";

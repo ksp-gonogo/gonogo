@@ -60,7 +60,7 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // selector (PowerSystems), an :empty collapse (FleetRoster/UpdatesRow), and a
 // page route that is not a widget (StationConnectView). The other seven hold
 // bespoke control states on hand-rolled buttons (LaunchDirector,
-// SpaceCenterStatus, Strategies, TargetPicker, TechTree, TransferWindow,
+// SpaceCenterStatus, Strategies, TargetPicker, ResearchAndDevelopment, TransferWindow,
 // MapView); a kit primitive that took arbitrary state CSS through props was
 // refused (#428) as an escape hatch. Deleting an ignore to tidy the list
 // deletes a focus ring or a hover state, so do not lower this number without
