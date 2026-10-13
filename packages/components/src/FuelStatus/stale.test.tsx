@@ -80,27 +80,6 @@ describe("FuelStatus when the ΔV budget is held", () => {
     expect(visibleText()).not.toMatch(/last contact/i);
   });
 
-  it("marks a stage's thrust-to-weight ratio as well as its burn time", async () => {
-    const { fixture } = renderAt(8, 14);
-    const stageFigures = () =>
-      [...document.querySelectorAll("span")].find(
-        (el) =>
-          el.textContent?.includes("· TWR") &&
-          !el.querySelector("[data-meter-row]") &&
-          el.querySelector("[data-figure]"),
-      );
-    await waitFor(() => expect(stageFigures()).toBeTruthy());
-    expect(stageFigures()?.querySelectorAll("[data-held-mark]")).toHaveLength(
-      0,
-    );
-    dropTheLink(fixture);
-    await waitFor(() =>
-      expect(stageFigures()?.querySelectorAll("[data-held-mark]")).toHaveLength(
-        2,
-      ),
-    );
-  });
-
   it("marks the held hero figure on a tiny tile rather than captioning it", async () => {
     const { fixture, container } = renderAt(3, 3);
     await waitFor(() => expect(visibleText()).toContain("3900"));

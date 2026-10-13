@@ -63,12 +63,6 @@ afterEach(() => {
   trees.length = 0;
 });
 
-/** The innermost element carrying the banked-science readout, whose figure and caption are separate nodes. */
-const banked = (_: string, el: Element | null) =>
-  el !== null &&
-  /1,234.*SCI banked/.test(el.textContent ?? "") &&
-  ![...el.children].some((c) => /SCI banked/.test(c.textContent ?? ""));
-
 describe("ScienceData with nothing on the stream", () => {
   it("renders the Aboard tab with the awaiting line, the no-data state, and no table", () => {
     renderData();
@@ -107,11 +101,11 @@ describe("ScienceData with nothing on the stream", () => {
     const fixture = renderData();
     feed(fixture, "career.status", { balances: { science: 1234 } });
     // An absent `career.mode` reads as "not a career", suppressing a figure that did arrive.
-    expect(screen.queryByText(banked)).not.toBeInTheDocument();
+    expect(screen.queryByText(/1234 SCI/)).not.toBeInTheDocument();
 
     feed(fixture, "career.mode", { mode: 1 });
     // The only change is the mode arriving, so the assertion above is not passing for some other reason.
-    expect(screen.getByText(banked)).toBeInTheDocument();
+    expect(screen.getByText(/1234 SCI/)).toBeInTheDocument();
   });
 });
 

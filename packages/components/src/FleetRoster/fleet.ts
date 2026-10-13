@@ -83,8 +83,6 @@ const EMPTY_FLEET = { vessels: [] as never[] };
 /** `system.vessels` to the widget's row shape. `known` separates "never delivered" from "delivered an empty fleet". */
 export function useFleet(): {
   known: boolean;
-  /** The roster's own reading, so a badge drawn from it can say it is held. */
-  reading: ReturnType<typeof fleetRosterTopics.useTelemetry<"system.vessels">>;
   vessels: FleetVessel[];
   coverage: Reading<Value<"ratio">>;
 } {
@@ -136,12 +134,7 @@ export function useFleet(): {
     [systemReading],
   );
 
-  return {
-    known: system !== undefined,
-    reading: systemReading,
-    vessels,
-    coverage,
-  };
+  return { known: system !== undefined, vessels, coverage };
 }
 
 export function crewLabel(v: FleetVessel): string {

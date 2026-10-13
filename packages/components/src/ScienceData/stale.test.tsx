@@ -126,27 +126,7 @@ describe("ScienceData when its reads are held", () => {
     );
     expect(screen.getByText("Crew Report")).toBeInTheDocument();
     expect(visibleText(container)).not.toContain("No science data aboard");
-    expect(visibleText(container)).toContain("1,234");
-  });
-
-  it("marks the banked science as held once the career record stops arriving", async () => {
-    const { container } = renderData();
-    emitLandedWithScience();
-    await waitFor(() => expect(visibleText(container)).toContain("1,234"));
-    const banked = () =>
-      [...container.querySelectorAll("span, p, div")].find(
-        (el) =>
-          el.textContent?.includes("SCI banked") &&
-          el.querySelector("[data-figure]") &&
-          !el.querySelector("[data-panel-body]"),
-      );
-    expect(banked()?.querySelector("[data-held-mark]") ?? null).toBeNull();
-
-    goHeld();
-
-    await waitFor(() =>
-      expect(banked()?.querySelector("[data-held-mark]")).toBeTruthy(),
-    );
+    expect(visibleText(container)).toContain("1234");
   });
 
   it("does not turn a dropped link into a Sandbox save on the Archive tab", async () => {

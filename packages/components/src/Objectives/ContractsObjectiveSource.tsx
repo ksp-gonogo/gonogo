@@ -1,6 +1,6 @@
 import { defineTopicManifest } from "@ksp-gonogo/core";
 import { stillTrue } from "@ksp-gonogo/sitrep-sdk";
-import { BellIcon, HeldBadge, IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
+import { BellIcon, IconButton, Tooltip } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import {
   type ContractEntry,
@@ -8,7 +8,6 @@ import {
   parseContracts,
 } from "../ContractManager";
 import { useAlarmCreator, useAlarmManager } from "../shared/AlarmsLauncher";
-import { heldGrade } from "../shared/heldGrade";
 import type {
   ObjectiveItem,
   ObjectiveSourceContext,
@@ -88,9 +87,10 @@ export function contractObjectives(
 /** The active-contracts source, with a per-item alarm on parameter completion. */
 export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   // Contracts and their parameter states change only on events, so the last board received is still the board.
-  const careerReading = contractsTopics.useTelemetry("career.status");
-  const contractsRaw = stillTrue(careerReading, undefined)?.contracts?.active;
-  const boardHeld = heldGrade(careerReading);
+  const contractsRaw = stillTrue(
+    contractsTopics.useTelemetry("career.status"),
+    undefined,
+  )?.contracts?.active;
   const createAlarm = useAlarmCreator<ContractParameterAlarmTrigger>();
   const alarmManager = useAlarmManager();
 
@@ -153,14 +153,7 @@ export function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
     );
   };
 
-  return (
-    <>
-      {boardHeld !== undefined && (
-        <HeldBadge grade={boardHeld} subject="Contract board" size="sm" />
-      )}
-      <Section items={items} renderAlarm={renderAlarm} />
-    </>
-  );
+  return <Section items={items} renderAlarm={renderAlarm} />;
 }
 
 const ALARM_BELL: CSSProperties = {

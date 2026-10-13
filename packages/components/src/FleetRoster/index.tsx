@@ -5,12 +5,7 @@ import {
   useSelectedVantage,
 } from "@ksp-gonogo/sitrep-client";
 import { Meter } from "@ksp-gonogo/ui";
-import {
-  NULL_DISPLAY,
-  Panel,
-  ReadoutCaption,
-  Section,
-} from "@ksp-gonogo/ui-kit";
+import { Panel, ReadoutCaption, Section } from "@ksp-gonogo/ui-kit";
 import { commsRollup } from "./comms";
 import { useFleet } from "./fleet";
 import read from "./fleet-roster.declarations.g";
@@ -25,7 +20,7 @@ type FleetRosterConfig = Record<string, never>;
 function FleetRosterComponent({
   w,
 }: Readonly<ComponentProps<FleetRosterConfig>>) {
-  const { known, reading, vessels, coverage } = useFleet();
+  const { known, vessels, coverage } = useFleet();
   const rollup = commsRollup(vessels);
   // Whose light-time the delays are computed from: the selected command centre, else the one the frames name.
   const chosenVantage = useSelectedVantage();
@@ -44,15 +39,7 @@ function FleetRosterComponent({
     <Panel
       panelTitle="Fleet"
       panelBadges={[
-        // Before the roster arrives there is nothing to roll up, which "No Vessels" would claim is an empty fleet.
-        known
-          ? {
-              id: "rollup",
-              label: rollup.badgeLabel,
-              tone: rollup.tone,
-              held: reading,
-            }
-          : { id: "rollup", label: NULL_DISPLAY, tone: "neutral" },
+        { id: "rollup", label: rollup.badgeLabel, tone: rollup.tone },
       ]}
       panelFooter={
         <Meter

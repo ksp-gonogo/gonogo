@@ -33,7 +33,7 @@ describe("CommSignal tiny mode", () => {
     await act(async () => {});
   });
 
-  it("carries the same mark as the body: none for the active route's measured worth, the triangle for a worked-out one, the ring for another route's", async () => {
+  it("carries the same mark as the body: none for the believed path's measured worth, the triangle for a worked-out one, the ring for another path's", async () => {
     const fixture = setupStreamFixture({ pinnedUt: 10, suspendFrames: true });
     renderWidget("comm-signal", { w: 3, h: 3, wrapper: fixture.Provider });
     const mark = () => document.querySelector("[data-held-mark]");
@@ -50,9 +50,7 @@ describe("CommSignal tiny mode", () => {
     await waitFor(() =>
       expect(mark()?.getAttribute("data-reckoning-mark")).toBe("modelled"),
     );
-    expect(document.body.textContent).toMatch(
-      /worked out for the active route/i,
-    );
+    expect(document.body.textContent).toMatch(/worked out for the path/i);
 
     act(() => {
       fixture.emit("comms.signal", {
@@ -65,9 +63,7 @@ describe("CommSignal tiny mode", () => {
       expect(mark()?.getAttribute("data-reckoning-mark")).toBe("current"),
     );
     expect(mark()?.hasAttribute("data-elsewhere")).toBe(true);
-    expect(document.body.textContent).toMatch(
-      /a route other than the active route/i,
-    );
+    expect(document.body.textContent).toMatch(/measured on another path/i);
     await act(async () => {});
   });
 

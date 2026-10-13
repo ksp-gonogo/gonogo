@@ -12,20 +12,21 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import {
   enumNameOf,
-  readingOf,
   SITUATION_NAMES,
   type SituationName,
   stillTrue,
   type VesselIdentity,
 } from "@ksp-gonogo/sitrep-sdk";
 import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
-import { Panel, Section, Text, Unit } from "@ksp-gonogo/ui-kit";
+import { Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { currencyOf } from "../shared/currencyOf";
+import { asQuantityish, magnitudeOf } from "../shared/magnitude";
 import { useBodyName } from "../shared/useBodyName";
 import { AboardTab } from "./AboardTab";
 import { ArchiveTab } from "./ArchiveTab";
 import {
+  fixed,
   groupArchiveByExperiment,
   parseArchive,
   parseExperimentBreakdown,
@@ -112,10 +113,10 @@ function ScienceDataComponent({
     : undefined;
 
   // A balance moves only on events, and nothing here spends it, so the last one received is still shown.
-  const careerReading = useTelemetry("career.status");
-  const careerScience = readingOf(
-    careerReading,
-    (c) => c.balances?.science ?? undefined,
+  const careerScience = magnitudeOf(
+    asQuantityish(
+      stillTrue(useTelemetry("career.status"), undefined)?.balances?.science,
+    ),
   );
 
   const archiveGroups = archive ? groupArchiveByExperiment(archive) : [];
@@ -158,13 +159,9 @@ function ScienceDataComponent({
       /* The balance sits in the body, not the aside, which folds away at narrow widths. */
       sections={
         <Section full>
-          {isCareerLike &&
-            (careerScience.state === "observed" ||
-              careerScience.state === "held") && (
-              <Text size="sm">
-                <Unit value={careerScience} decimals={0} /> SCI banked
-              </Text>
-            )}
+          {isCareerLike && careerScience !== null && (
+            <Text size="sm">{fixed(careerScience, 0)} SCI banked</Text>
+          )}
           <Tabs
             tabs={tabs}
             activeId={noVessel && tab === "aboard" ? "archive" : tab}

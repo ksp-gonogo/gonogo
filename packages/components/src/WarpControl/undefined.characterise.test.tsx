@@ -99,24 +99,25 @@ describe("WarpControl: nothing has arrived at all", () => {
   });
 });
 
-describe("WarpControl: a warp index that has not arrived", () => {
-  it("the stepper presses nothing and steps nothing off a read that never arrived", () => {
+describe("WarpControl: the `currentIndex ?? 0` coercion", () => {
+  it("the stepper asserts realtime, and disables warp-down, off a read that never arrived", () => {
     // 4x3 is below the full ladder's area threshold, so this is the stepper.
     mount(4, 3);
 
     expect(
       screen.getByRole("group", { name: "Time warp controls" }),
     ).toBeTruthy();
+    // `idx = currentIndex ?? 0`: nothing arrived reads as a confirmed 1x.
     expect(
       screen
         .getByRole("button", { name: "Drop to realtime" })
         .getAttribute("aria-pressed"),
-    ).toBe("false");
+    ).toBe("true");
+    // Same coercion: warp-down is disabled as if already at the bottom.
     expect(screen.getByRole("button", { name: "Warp down" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Warp up" })).toBeDisabled();
   });
 
-  it("the stepUp action refuses rather than step from an index nobody knows", async () => {
+  it("the stepUp action steps to index 1, treating the absent index as 0", async () => {
     const { commandHandler } = mount(4, 3);
     const { dispatchAction } = await import("@ksp-gonogo/core");
 
@@ -127,8 +128,12 @@ describe("WarpControl: a warp index that has not arrived", () => {
       });
     });
 
-    await act(async () => {});
-    expect(commandHandler).not.toHaveBeenCalled();
+    // A step up with no telemetry commands 5x rather than refusing.
+    await waitFor(() =>
+      expect(commandHandler).toHaveBeenCalledWith("time.setWarpIndex", {
+        index: 1,
+      }),
+    );
   });
 
   it("a ladder click dispatches unconditionally: there is no absence gate on the command path", async () => {

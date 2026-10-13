@@ -40,19 +40,19 @@ export interface SignalVerdict {
   strengthReading: TinyEssential["value"];
   /**
    * How the strength is marked, or null where it is the measured worth of the
-   * active route. Worked out for that route where the craft's radio has not
-   * reported on it; or measured, but on another route.
+   * path this command centre believes in. Worked out for that path where the
+   * craft's radio has not reported on it; or measured, but on another path.
    */
   strengthMark: TinyEssentialMark | null;
 }
 
 /** What the modelled mark on the strength means, on hover and in the spoken name. */
 export const MODELLED_STRENGTH =
-  "Worked out for the active route, not measured";
+  "Worked out for the path this command centre believes in, not measured";
 
 /** The craft's own figure, drawn until this command centre is sent a strength for its own path. */
 export const CRAFT_ROUTE_STRENGTH =
-  "Measured by the craft's radio on the route it was using: this command centre has not been sent a strength for the active route";
+  "Measured by the craft on the route it was using: this command centre has not been sent a strength for the path it believes in";
 
 /** The stops' names in order, which is all the route's wording reads of a measured path. */
 interface MeasuredPath {
@@ -75,15 +75,15 @@ export function measuredRoute(
 }
 
 /**
- * What the mark means on a strength the craft's radio measured on a route other
- * than the active route, naming that path where the stream says
+ * What the mark means on a strength the craft's radio measured on a path this
+ * command centre does not believe in, naming that path where the stream says
  * which it was.
  */
 export function otherPathStrength(path?: MeasuredPath | null): string {
   const route = measuredRoute(path);
   return route === undefined
-    ? "Measured by the craft's radio on a route other than the active route"
-    : `Measured ${route}, a route other than the active route`;
+    ? "Measured on another path: the craft's radio reported this on a route this command centre does not believe in"
+    : `Measured ${route}, a route this command centre does not believe in`;
 }
 
 function strengthMarkOf(
@@ -111,7 +111,7 @@ export function useSignalVerdict(): SignalVerdict {
   const commsReading = useTelemetry("vessel.comms");
   const connected =
     linkReading.state === "observed" ? linkReading.value.connected : undefined;
-  // The strength sent to this command centre for the active route. The craft's own figure is of whatever path the game had it on, and stands in only until the centre is sent one.
+  // The strength sent to this command centre for the path it believes in. The craft's own figure is of whatever path the game had it on, and stands in only until the centre is sent one.
   const signalReading = useTelemetry("comms.signal");
   const told =
     signalReading.state === "observed" ? signalReading.value : undefined;
