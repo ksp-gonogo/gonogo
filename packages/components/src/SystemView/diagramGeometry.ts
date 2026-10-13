@@ -282,28 +282,37 @@ export function placeBodies({
 }): { parent: PlacedPoint; bodies: PlacedBody[] } {
   return {
     parent: placedPointOf(placement, plotScale, [0, 0, 0]),
-    bodies: children.map((c, i) => {
-      const sma = c.semiMajorAxis ?? 0;
-      const ecc = c.eccentricity ?? 0;
-      const lan = c.lan ?? 0;
-      const argPe = c.argumentOfPeriapsis ?? 0;
-      const inclination = c.inclination ?? 0;
-      return {
-        body: c,
-        ...placedPointOf(
-          placement,
-          plotScale,
-          orbitPointAt(
-            sma,
-            ecc,
-            lan,
-            argPe,
-            inclination,
-            poses?.poseByIndex[c.index]?.trueAnomaly ?? 0,
+    // A body with no pose or no orbit to be placed on is left out: a missing anomaly or semi-major axis put it at periapsis or on its parent, which claims a place it was never given.
+    bodies: children.flatMap((c, i) => {
+      const anomaly = poses?.poseByIndex[c.index]?.trueAnomaly;
+      if (
+        anomaly == null ||
+        c.semiMajorAxis == null ||
+        c.eccentricity == null ||
+        c.lan == null ||
+        c.argumentOfPeriapsis == null ||
+        c.inclination == null
+      ) {
+        return [];
+      }
+      return [
+        {
+          body: c,
+          ...placedPointOf(
+            placement,
+            plotScale,
+            orbitPointAt(
+              c.semiMajorAxis,
+              c.eccentricity,
+              c.lan,
+              c.argumentOfPeriapsis,
+              c.inclination,
+              anomaly,
+            ),
           ),
-        ),
-        ...rings[i],
-      };
+          ...rings[i],
+        },
+      ];
     }),
   };
 }
