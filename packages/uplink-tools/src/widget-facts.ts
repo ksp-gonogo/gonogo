@@ -118,7 +118,7 @@ export function widgetFactsOf(
     {
       id: "reads",
       label: flatKeys
-        ? "Reads, as flat keys (Topic ids or Topic field paths)"
+        ? "Reads, as dotted paths (a Topic id or a field of its payload)"
         : "Reads",
       items: codes(reads),
     },
