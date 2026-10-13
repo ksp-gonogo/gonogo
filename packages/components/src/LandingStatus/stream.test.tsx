@@ -224,6 +224,65 @@ describe("LandingStatus: full-vector solve genuinely runs off the stream", () =>
       expect(text()).not.toContain("No landing in progress");
     });
 
+    it("keeps every row above the touchdown plots and the plots' own headings as they were when the crash arrives, so the plots keep their size and place", async () => {
+      const { container } = renderWidget({ w: 16, h: 24 });
+      act(() => {
+        emitMunDescent();
+      });
+      const grid = () =>
+        container.querySelector<HTMLElement>("[data-plot-columns]");
+      await waitFor(() => expect(grid()).not.toBeNull());
+      /*
+       * What stands above the plots in document order: a row more there takes
+       * room from the plots, which are sized to what is left of the tile.
+       */
+      const rowsAbove = () => {
+        const above: string[] = [];
+        const walker = document.createTreeWalker(
+          container,
+          NodeFilter.SHOW_TEXT,
+        );
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const parent = n.parentElement;
+          if (!parent || !n.textContent?.trim()) continue;
+          const g = grid();
+          if (
+            g &&
+            (g.compareDocumentPosition(parent) &
+              Node.DOCUMENT_POSITION_PRECEDING) !==
+              0 &&
+            !parent.contains(g)
+          ) {
+            above.push(
+              parent.tagName + ":" + parent.getAttribute("data-tooltip"),
+            );
+          }
+        }
+        return above.length;
+      };
+      const headings = () =>
+        Array.from(grid()?.children ?? []).map(
+          (slot) => (slot.firstElementChild as HTMLElement).style.minHeight,
+        );
+      const rowsBefore = rowsAbove();
+      const headingsBefore = headings();
+      expect(headingsBefore).not.toContain("");
+
+      act(() => {
+        stream.emit("crash.hasRecent", { recent: true });
+        stream.emit("crash.lastCrash", {
+          ...crash,
+          ut: 10,
+          vesselId: "test-vessel",
+        });
+      });
+      await waitFor(() => expect(visibleText(container)).toContain("CRASHED"));
+      expect(visibleText(container)).toContain("Muna 1");
+
+      expect(rowsAbove()).toBe(rowsBefore);
+      expect(headings()).toEqual(headingsBefore);
+    });
+
     it("leaves a crash from an earlier flight out of it", async () => {
       renderWidget({ w: 12, h: 16 });
       act(() => {
