@@ -808,6 +808,96 @@ namespace Sitrep.Host.Comms
             };
         }
 
+        /// <summary>The ground stations on the newest roster, by id. Courier thread only.</summary>
+        private List<string> _groundCentres = new List<string>();
+
+        private void NoteGroundCentres(Looked looked)
+        {
+            if (looked.Roster == null)
+            {
+                return;
+            }
+            var ground = new List<string>();
+            foreach (var entry in looked.Roster)
+            {
+                if (entry.Kind == nameof(CommandCentreKind.GroundStation))
+                {
+                    ground.Add(entry.Id);
+                }
+            }
+            _groundCentres = ground;
+        }
+
+        /// <summary>What the home centre knows of contact with the craft from every centre whose word has reached it: see <see cref="CentreHearing.HomeContactAt"/>. Courier thread only.</summary>
+        internal CentreContact? HomeContact(string nodeId)
+        {
+            var home = _audience?.HomeCentre();
+            return home == null || _hearing == null ? null : _hearing.HomeContactAt(home, _groundCentres, nodeId);
+        }
+
+        /// <summary>What each crewed centre's contact count stood at when it was last looked at, by centre id. Courier thread only.</summary>
+        private readonly Dictionary<string, long> _reportsSaid = new Dictionary<string, long>(StringComparer.Ordinal);
+
+        /// <summary>The last report each crewed centre sent, by centre id. Courier thread only.</summary>
+        private readonly Dictionary<string, CentreReport> _reportsSent = new Dictionary<string, CentreReport>(StringComparer.Ordinal);
+
+        /// <summary>
+        /// Has each crewed centre whose contact with some craft may have changed
+        /// report what it now knows, aboard its own craft, when that differs
+        /// from what it last reported. A craft it stays in contact with is no
+        /// news however recently it was heard from. A ground station does not
+        /// report: it is the home centre's own antenna.
+        /// </summary>
+        private void SayCentreReports(Looked looked)
+        {
+            if (looked.Roster == null)
+            {
+                return;
+            }
+            foreach (var entry in looked.Roster)
+            {
+                if (entry.Kind != nameof(CommandCentreKind.CrewedVessel)
+                    || !entry.Id.StartsWith(CraftStateRecorder.VesselPrefix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                var news = _hearing!.ContactNewsAt(entry.Id);
+                if (_reportsSaid.TryGetValue(entry.Id, out var said) && said == news)
+                {
+                    continue;
+                }
+                _reportsSaid[entry.Id] = news;
+                var contacts = _hearing.ContactsAt(entry.Id);
+                if (_reportsSent.TryGetValue(entry.Id, out var sent) && SameNews(sent.Contacts, contacts))
+                {
+                    continue;
+                }
+                var report = new CentreReport(entry.Id, looked.Ut, contacts);
+                _reportsSent[entry.Id] = report;
+                _craftHost!.RecordCentreReport(entry.Id.Substring(CraftStateRecorder.VesselPrefix.Length), report, looked.Ut);
+            }
+        }
+
+        private static bool SameNews(IReadOnlyDictionary<string, CentreContact> was, IReadOnlyDictionary<string, CentreContact> now)
+        {
+            if (was.Count != now.Count)
+            {
+                return false;
+            }
+            foreach (var row in now)
+            {
+                if (!was.TryGetValue(row.Key, out var before) || before.State != row.Value.State)
+                {
+                    return false;
+                }
+                if (row.Value.State != CentreContactState.InContact && before.LastContactUt != row.Value.LastContactUt)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Courier thread: records what was read, listens at every centre,
         /// publishes the round of plans that finished, and starts the next for
@@ -857,6 +947,8 @@ namespace Sitrep.Host.Comms
                 _rosterMemory.Clear();
                 _unreachableSent.Clear();
                 _vesselsNews.Clear();
+                _reportsSaid.Clear();
+                _reportsSent.Clear();
                 // The version does not move here: the first plan after the reset is judged against the
                 // one it replaces, so a load that finds the same contacts is not a change to them.
                 _offered = new Dictionary<string, Planned>(StringComparer.Ordinal);
@@ -882,6 +974,8 @@ namespace Sitrep.Host.Comms
                 // What is kept for the next save no longer holds them.
                 _heardNowNews = -1;
             }
+            NoteGroundCentres(looked);
+            SayCentreReports(looked);
             KeepHeardForSave(listening);
             // What is kept for a save is now what the centres were given back and have heard since.
             System.Threading.Volatile.Write(ref _restore, null);

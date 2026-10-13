@@ -218,6 +218,26 @@ namespace Sitrep.Host
             });
         }
 
+        internal const string CentreReportSuffix = ".report";
+
+        /// <summary>The topic a crewed centre's reports are recorded under, on the node of the craft it is aboard.</summary>
+        internal static string CentreReportTopic(string vesselId) => CraftStatePrefix + vesselId + CentreReportSuffix;
+
+        public void RecordCentreReport(string vesselId, CentreReport report, double ut) =>
+            Emit(CentreReportTopic(vesselId), report, ut);
+
+        public Action HearCentreReport(string vesselId, string centre, Action<CentreReport> heard)
+        {
+            var topic = CentreReportTopic(vesselId);
+            return _courier.SubscribeStream(NodeFor(topic), topic, centre, delivered =>
+            {
+                if (delivered.Payload is CentreReport report)
+                {
+                    heard(report);
+                }
+            });
+        }
+
         internal const string CraftRadioSuffix = ".radio";
 
         /// <summary>The topic a craft's radio readings are recorded under.</summary>

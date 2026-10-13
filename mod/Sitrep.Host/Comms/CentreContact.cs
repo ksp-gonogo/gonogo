@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Sitrep.Host.Comms
 {
@@ -32,6 +33,37 @@ namespace Sitrep.Host.Comms
 
         /// <summary>The last instant the centre knows it had a route to the craft, or null when it knows of none.</summary>
         public double? LastContactUt { get; }
+
+        /// <summary>
+        /// One view made of several centres' views of the same craft: gone when
+        /// any of them knows the craft is gone, since a craft that has gone does
+        /// not come back, otherwise in contact when any of them is, and otherwise
+        /// silent. The last contact is the latest any of them
+        /// knows of. Null when there are no views.
+        /// </summary>
+        public static CentreContact? Consolidated(IEnumerable<CentreContact> views)
+        {
+            var any = false;
+            var inContact = false;
+            var gone = false;
+            double? last = null;
+            foreach (var view in views)
+            {
+                any = true;
+                inContact |= view.State == CentreContactState.InContact;
+                gone |= view.State == CentreContactState.Gone;
+                if (view.LastContactUt != null && (last == null || view.LastContactUt > last))
+                {
+                    last = view.LastContactUt;
+                }
+            }
+            if (!any)
+            {
+                return null;
+            }
+            var state = gone ? CentreContactState.Gone : inContact ? CentreContactState.InContact : CentreContactState.Silent;
+            return new CentreContact(state, last);
+        }
 
         /// <summary>
         /// What <paramref name="centre"/> knows of its contact with a craft, or

@@ -69,6 +69,28 @@ namespace Sitrep.Host.Tests.Comms
             Assert.Equal(120.0, back.LastReachedAt("ground:far"));
         }
 
+        [Fact]
+        public void ACrewedCentresReportComesBackAsTheCentreLastHadIt()
+        {
+            var report = new CentreReport("vessel:crewed", 480.0, new Dictionary<string, CentreContact>
+            {
+                ["vessel:a"] = new CentreContact(CentreContactState.Silent, 470.0),
+                ["vessel:b"] = new CentreContact(CentreContactState.InContact, 480.0),
+            });
+            var encoded = HeardSnapshotCodec.Encode(new HeardSnapshot(new[]
+            {
+                new HeardAtCentre("ground:ksc", new CraftState[0], new Dictionary<string, bool>(), reports: new[] { report }),
+            }));
+
+            var back = Assert.Single(HeardSnapshotCodec.Decode(encoded)!.Centres.Single().Reports);
+
+            Assert.Equal("vessel:crewed", back.Centre);
+            Assert.Equal(480.0, back.CapturedUt);
+            Assert.Equal(CentreContactState.Silent, back.Contacts["vessel:a"].State);
+            Assert.Equal(470.0, back.Contacts["vessel:a"].LastContactUt);
+            Assert.Equal(CentreContactState.InContact, back.Contacts["vessel:b"].State);
+        }
+
         private sealed class FakeRestorer : ILinkStrengthRestorer
         {
             public IContactLinkStrength? RestoreLinkStrength(string modelId, IReadOnlyDictionary<string, object?> data) => RestoreFake(modelId, data);

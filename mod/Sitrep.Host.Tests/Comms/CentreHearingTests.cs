@@ -63,6 +63,12 @@ namespace Sitrep.Host.Tests.Comms
 
             public Action HearCraftReach(string vesselId, string centre, Action<CraftReach> heard) => Hear();
 
+            public void RecordCentreReport(string vesselId, CentreReport report, double ut)
+            {
+            }
+
+            public Action HearCentreReport(string vesselId, string centre, Action<CentreReport> heard) => Hear();
+
             public void RecordCraftRadio(string vesselId, ContactRadio radio, double ut)
             {
             }
@@ -100,7 +106,7 @@ namespace Sitrep.Host.Tests.Comms
             var host = new Silent();
             var hearing = new CentreHearing(host);
             hearing.Listen(new[] { Home, Crewed }, new[] { "probe" });
-            Assert.Equal(10, host.Listening);
+            Assert.Equal(12, host.Listening);
 
             host.Released!("probe");
             hearing.Listen(new[] { Home, Crewed }, new string[0]);
@@ -240,6 +246,91 @@ namespace Sitrep.Host.Tests.Comms
             var saved = Assert.Single(Assert.Single(hearing.Snapshot().Centres).Reaches);
             Assert.True(saved.Reaches(Home));
             Assert.Equal(CentreContactState.InContact, hearing.ContactAt(Home, Probe)!.Value.State);
+        }
+
+        private const string Far = "ground:far";
+
+        private static CraftReach ReachOf(string craft, double ut, params (string Centre, double LastUt)[] rows)
+        {
+            var last = new Dictionary<string, double>();
+            foreach (var (centre, lastUt) in rows)
+            {
+                last[centre] = lastUt;
+            }
+            return new CraftReach(craft, ut, last);
+        }
+
+        private static CentreReport Report(double ut, CentreContactState state, double? last) =>
+            new CentreReport(Crewed, ut, new Dictionary<string, CentreContact> { [Probe] = new CentreContact(state, last) });
+
+        /// <summary>
+        /// The home centre: silent with the probe itself, in contact with the crewed
+        /// centre, holding the reports given, and a far ground station that heard
+        /// the probe as <paramref name="farOnProbe"/> says.
+        /// </summary>
+        private static CentreHearing HomeHearing(bool homeHearsCrewed, CraftReach? farOnProbe, params CentreReport[] reports)
+        {
+            var hearing = new CentreHearing(new Silent());
+            var homeReaches = new List<CraftReach>
+            {
+                ReachOf(Probe, 500.0, (Home, 400.0)),
+                homeHearsCrewed ? ReachOf(Crewed, 500.0, (Home, 500.0)) : ReachOf(Crewed, 500.0, (Home, 450.0)),
+            };
+            var centres = new List<HeardAtCentre>
+            {
+                new HeardAtCentre(Home, new CraftState[0], new Dictionary<string, bool>(), reaches: homeReaches, reports: reports),
+            };
+            if (farOnProbe != null)
+            {
+                centres.Add(new HeardAtCentre(Far, new CraftState[0], new Dictionary<string, bool>(), reaches: new[] { farOnProbe }));
+            }
+            hearing.Restore(new HeardSnapshot(centres));
+            hearing.Listen(new[] { Home, Far }, new[] { "probe", "crewed" });
+            return hearing;
+        }
+
+        [Fact]
+        public void HomeIsInContactWithACraftAGroundStationHearsThoughItCannotItself()
+        {
+            var hearing = HomeHearing(true, ReachOf(Probe, 500.0, (Far, 500.0)));
+
+            Assert.Equal(CentreContactState.InContact, hearing.HomeContactAt(Home, new[] { Home, Far }, Probe)!.Value.State);
+            Assert.Equal(CentreContactState.Silent, hearing.ContactAt(Home, Probe)!.Value.State);
+        }
+
+        [Fact]
+        public void HomeIsInContactWithACraftACrewedCentreReportsItHears()
+        {
+            var hearing = HomeHearing(true, null, Report(480.0, CentreContactState.InContact, 480.0));
+
+            Assert.Equal(CentreContactState.InContact, hearing.HomeContactAt(Home, new[] { Home, Far }, Probe)!.Value.State);
+        }
+
+        /// <summary>A crewed centre the ground has lost may still be hearing the craft, but home knows only that it was when it last reported.</summary>
+        [Fact]
+        public void ACrewedCentreTheGroundHasLostLeavesHomeSilentSinceItsLastReport()
+        {
+            var hearing = HomeHearing(false, null, Report(440.0, CentreContactState.InContact, 440.0));
+
+            var contact = hearing.HomeContactAt(Home, new[] { Home, Far }, Probe)!.Value;
+            Assert.Equal(CentreContactState.Silent, contact.State);
+            Assert.Equal(440.0, contact.LastContactUt);
+        }
+
+        [Fact]
+        public void AnOlderReportFromTheSameCentreChangesNothingAndReportsAreSaved()
+        {
+            var hearing = HomeHearing(true, null, Report(480.0, CentreContactState.Silent, 470.0));
+            hearing.Restore(new HeardSnapshot(new[]
+            {
+                new HeardAtCentre(Home, new CraftState[0], new Dictionary<string, bool>(), reports: new[] { Report(300.0, CentreContactState.InContact, 300.0) }),
+            }));
+
+            var contact = hearing.HomeContactAt(Home, new[] { Home, Far }, Probe)!.Value;
+            Assert.Equal(CentreContactState.Silent, contact.State);
+            Assert.Equal(470.0, contact.LastContactUt);
+            var saved = Assert.Single(hearing.Snapshot().Centres.Single(c => c.Centre == Home).Reports);
+            Assert.Equal(480.0, saved.CapturedUt);
         }
 
         [Fact]

@@ -37,6 +37,12 @@ namespace Sitrep.Host.Comms
             /// <summary>The newest word of which centres can hear each craft to have arrived here, by node id.</summary>
             public Dictionary<string, CraftReach> Reach { get; } = new Dictionary<string, CraftReach>(StringComparer.Ordinal);
 
+            /// <summary>The newest report from each crewed centre to have arrived here, by the reporting centre's id.</summary>
+            public Dictionary<string, CentreReport> Reports { get; } = new Dictionary<string, CentreReport>(StringComparer.Ordinal);
+
+            /// <summary>A count that moves each time what this centre knows of its contact with some craft may have changed.</summary>
+            public long Contacts { get; set; }
+
             public long News { get; set; }
 
             /// <summary>How many radio readings have arrived here. Apart from <see cref="News"/>, which a plan is checked against: a reading changes no plan.</summary>
@@ -159,6 +165,7 @@ namespace Sitrep.Host.Comms
                         }
                     });
                     var stopReach = _host.HearCraftReach(vesselId, centre, reach => Reached(listeningEar, reach));
+                    var stopReport = _host.HearCentreReport(vesselId, centre, report => Reported(listeningEar, report));
                     ear.Stop[vesselId] = () =>
                     {
                         stopState();
@@ -166,6 +173,7 @@ namespace Sitrep.Host.Comms
                         stopLink();
                         stopRadio();
                         stopReach();
+                        stopReport();
                     };
                 }
             }
@@ -228,6 +236,99 @@ namespace Sitrep.Host.Comms
             return CentreContact.Of(centre, known, heard, reach);
         }
 
+        /// <summary>What <paramref name="centre"/> knows of its contact with every craft it knows anything of, by node id.</summary>
+        public Dictionary<string, CentreContact> ContactsAt(string centre)
+        {
+            var contacts = new Dictionary<string, CentreContact>(StringComparer.Ordinal);
+            if (!_ears.TryGetValue(centre, out var ear))
+            {
+                return contacts;
+            }
+            var ids = new HashSet<string>(ear.Known.Keys, StringComparer.Ordinal);
+            ids.UnionWith(ear.Reach.Keys);
+            foreach (var id in ids)
+            {
+                var contact = ContactAt(centre, id);
+                if (contact != null)
+                {
+                    contacts[id] = contact.Value;
+                }
+            }
+            return contacts;
+        }
+
+        /// <summary>A count that moves each time what <paramref name="centre"/> knows of its contact with some craft may have changed.</summary>
+        public long ContactNewsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.Contacts : 0;
+
+        /// <summary>The newest report from each crewed centre to have reached <paramref name="centre"/>, by the reporting centre's id.</summary>
+        public IReadOnlyCollection<CentreReport> ReportsAt(string centre) =>
+            _ears.TryGetValue(centre, out var ear) ? ear.Reports.Values : (IReadOnlyCollection<CentreReport>)Array.Empty<CentreReport>();
+
+        /// <summary>
+        /// What the home centre knows of contact with a craft from every centre
+        /// whose word has reached it, or null when none has word of the craft.
+        ///
+        /// <para>Each ground station is the home centre's own antenna, so what
+        /// each has heard counts at home as it arrives there. A crewed centre's
+        /// contact counts once its report has reached home over its own link, and
+        /// only while the ground can hear that centre: a report from a centre the
+        /// ground has lost says only that it was in contact when it was sent.
+        /// They are put together by <see cref="CentreContact.Consolidated"/>.</para>
+        /// </summary>
+        /// <param name="home">The home centre's id.</param>
+        /// <param name="groundCentres">Every ground station, the home centre among them or not.</param>
+        /// <param name="nodeId">The craft, as <c>vessel:&lt;guid&gt;</c>.</param>
+        public CentreContact? HomeContactAt(string home, IEnumerable<string> groundCentres, string nodeId)
+        {
+            var views = new List<CentreContact>();
+            void Add(CentreContact? contact)
+            {
+                if (contact != null)
+                {
+                    views.Add(contact.Value);
+                }
+            }
+            var grounds = new List<string> { home };
+            foreach (var ground in groundCentres)
+            {
+                if (ground != home)
+                {
+                    grounds.Add(ground);
+                }
+            }
+            foreach (var ground in grounds)
+            {
+                Add(ContactAt(ground, nodeId));
+            }
+            foreach (var report in ReportsAt(home))
+            {
+                if (!report.Contacts.TryGetValue(nodeId, out var reported))
+                {
+                    continue;
+                }
+                // A centre the ground cannot hear may have heard the craft since; all home knows is the report it last had.
+                if (reported.State == CentreContactState.InContact && !GroundHears(grounds, report.Centre))
+                {
+                    reported = new CentreContact(CentreContactState.Silent, report.CapturedUt);
+                }
+                views.Add(reported);
+            }
+            return CentreContact.Consolidated(views);
+        }
+
+        /// <summary>Whether any of <paramref name="grounds"/> is in contact with the craft <paramref name="nodeId"/>, as each knows it.</summary>
+        private bool GroundHears(IEnumerable<string> grounds, string nodeId)
+        {
+            foreach (var ground in grounds)
+            {
+                if (ContactAt(ground, nodeId)?.State == CentreContactState.InContact)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         /// <summary>A count that moves each time a radio reading reaches <paramref name="centre"/>.</summary>
         public long ReadingsAt(string centre) => _ears.TryGetValue(centre, out var ear) ? ear.Readings : 0;
 
@@ -262,7 +363,8 @@ namespace Sitrep.Host.Comms
                     new Dictionary<string, bool>(ear.Value.Link, StringComparer.Ordinal),
                     new List<ContactRadio>(ear.Value.Radio.Values),
                     new List<CraftSighting>(ear.Value.Seen.Values),
-                    new List<CraftReach>(ear.Value.Reach.Values)));
+                    new List<CraftReach>(ear.Value.Reach.Values),
+                    new List<CentreReport>(ear.Value.Reports.Values)));
             }
             return new HeardSnapshot(centres);
         }
@@ -305,6 +407,10 @@ namespace Sitrep.Host.Comms
                 foreach (var reach in centre.Reaches)
                 {
                     Reached(ear, reach);
+                }
+                foreach (var report in centre.Reports)
+                {
+                    Reported(ear, report);
                 }
                 ear.News++;
                 ear.Readings++;
@@ -403,6 +509,18 @@ namespace Sitrep.Host.Comms
                 return;
             }
             ear.Reach[reach.Id] = reach;
+            ear.Contacts++;
+        }
+
+        /// <summary>A report older than the newest held from the same centre changes nothing.</summary>
+        private static void Reported(Ear ear, CentreReport report)
+        {
+            if (ear.Reports.TryGetValue(report.Centre, out var held) && held.CapturedUt >= report.CapturedUt)
+            {
+                return;
+            }
+            ear.Reports[report.Centre] = report;
+            ear.Contacts++;
         }
 
         private static void Know(Ear ear, string id)
@@ -410,6 +528,7 @@ namespace Sitrep.Host.Comms
             ear.Heard.TryGetValue(id, out var heard);
             ear.Seen.TryGetValue(id, out var seen);
             var known = CraftSighting.Known(heard, seen);
+            ear.Contacts++;
             if (known == null)
             {
                 ear.Known.Remove(id);

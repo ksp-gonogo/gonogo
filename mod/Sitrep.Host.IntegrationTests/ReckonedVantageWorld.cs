@@ -246,7 +246,23 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        public IReadOnlyList<string> Centres() => new[] { Home, Far };
+        public IReadOnlyList<string> Centres() => RelayIsEngineCentre && RelayExists ? new[] { Home, Far, Relay } : new[] { Home, Far };
+
+        /// <summary>
+        /// Whether the relay is also among the engine's command centres, so word
+        /// of other craft is timed to it and what it hears is its own. Implies
+        /// <see cref="RelayIsCentre"/>.
+        /// </summary>
+        public bool RelayIsEngineCentre { get; set; }
+
+        /// <summary>Pairs of a centre and a craft's bare guid that the centre's own route finding finds no path between.</summary>
+        public HashSet<(string Centre, string VesselId)> Unroutable { get; } = new HashSet<(string Centre, string VesselId)>();
+
+        /// <summary>Whether the active craft's route ends somewhere other than a ground station.</summary>
+        public bool ActiveOffTheGround { get; set; }
+
+        /// <summary>The active craft's signal delay from the relay, while the relay is a centre the engine lists.</summary>
+        public double ActiveFromRelaySeconds { get; set; } = 5.0;
 
         /// <summary>
         /// How long the relay's light takes to reach the home centre in a
@@ -696,6 +712,9 @@ namespace Sitrep.Host.IntegrationTests
         public CraftReach? Reach(string centre, string vesselId) =>
             _reach.TryGetValue((centre, vesselId), out var reach) ? reach : null;
 
+        /// <summary>What the home centre knows of contact with the craft from every centre whose word has reached it.</summary>
+        public CentreContact? HomeContact(string vesselId) => _source.HomeContact(CraftStateRecorder.VesselPrefix + vesselId);
+
         public UplinkHealth Health() => _source.Health();
 
         public void Register(IUplinkHost host)
@@ -792,15 +811,41 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     rows.Add((ScriptedContactGame.Far, ScriptedContactGame.RelayGuid, ledger.RelayFromFarSeconds));
                 }
+                if (ledger.RelayIsEngineCentre)
+                {
+                    rows.Add((ScriptedContactGame.Relay, ScriptedContactGame.ActiveGuid, ledger.ActiveFromRelaySeconds));
+                }
             }
             _engine.SetAuthorityDelays(rows);
-            var unroutable = new Dictionary<string, IReadOnlyCollection<string>>();
+            var unroutable = new Dictionary<string, List<string>>();
+            void NoRoute(string centre, string vesselId)
+            {
+                if (!unroutable.TryGetValue(centre, out var nodes))
+                {
+                    nodes = new List<string>();
+                    unroutable[centre] = nodes;
+                }
+                nodes.Add(ChannelEngine.FleetNodePrefix + vesselId);
+            }
             if (ledger.RelayExists && !ledger.FarRoutedToRelay)
             {
-                unroutable[ScriptedContactGame.Far] = new[] { ChannelEngine.FleetNodePrefix + ScriptedContactGame.RelayGuid };
+                NoRoute(ScriptedContactGame.Far, ScriptedContactGame.RelayGuid);
             }
-            _engine.SetUnroutable(unroutable);
-            _engine.SetOffTheGround(ledger.RelayExists && ledger.RelayOffTheGround ? new[] { ScriptedContactGame.RelayGuid } : new string[0]);
+            foreach (var (centre, vesselId) in ledger.Unroutable)
+            {
+                NoRoute(centre, vesselId);
+            }
+            _engine.SetUnroutable(unroutable.ToDictionary(r => r.Key, r => (IReadOnlyCollection<string>)r.Value));
+            var offTheGround = new List<string>();
+            if (ledger.RelayExists && ledger.RelayOffTheGround)
+            {
+                offTheGround.Add(ScriptedContactGame.RelayGuid);
+            }
+            if (ledger.ActiveOffTheGround)
+            {
+                offTheGround.Add(ScriptedContactGame.ActiveGuid);
+            }
+            _engine.SetOffTheGround(offTheGround);
 
             // The live links, for whether light that was sent lands and for a
             // relay's own link: the relay to each centre while it has one.
@@ -839,6 +884,10 @@ namespace Sitrep.Host.IntegrationTests
                 ActiveLinkedToHomeSeconds = game.ActiveLinkedToHomeSeconds;
                 FarRoutedToRelay = game.FarRoutedToRelay;
                 RelayOffTheGround = game.RelayOffTheGround;
+                RelayIsEngineCentre = game.RelayIsEngineCentre;
+                Unroutable = new List<(string, string)>(game.Unroutable);
+                ActiveOffTheGround = game.ActiveOffTheGround;
+                ActiveFromRelaySeconds = game.ActiveFromRelaySeconds;
                 GameRoutes = new Dictionary<string, IReadOnlyList<CommsHop>>(game.GameRoutes);
             }
 
@@ -847,6 +896,14 @@ namespace Sitrep.Host.IntegrationTests
             public bool FarRoutedToRelay { get; }
 
             public bool RelayOffTheGround { get; }
+
+            public bool RelayIsEngineCentre { get; }
+
+            public List<(string Centre, string VesselId)> Unroutable { get; }
+
+            public bool ActiveOffTheGround { get; }
+
+            public double ActiveFromRelaySeconds { get; }
 
             public double ActiveSeconds { get; }
 
@@ -1048,6 +1105,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.SetReleaseClockForTests(() => wall += 0.05);
             var game = scripted ?? new ScriptedContactGame();
             engine.RegisterCommandCentreSource(new Grounds(ScriptedContactGame.Home, ScriptedContactGame.Far));
+            engine.RegisterCommandCentreSource(new CrewedRelay(game));
             var uplink = new ScriptedContactUplink(game, engine);
             if (game.LinkStrengths != null)
             {
@@ -1179,6 +1237,36 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>Ground stations under the ids the scripted game plans for.</summary>
+        /// <summary>The relay as a crewed command centre, while the script says the engine lists it.</summary>
+        private sealed class CrewedRelay : ICommandCentreSource
+        {
+            private readonly ScriptedContactGame _game;
+
+            public CrewedRelay(ScriptedContactGame game) => _game = game;
+
+            public string ProviderId => "reckoned-vantage-relay";
+
+            public IEnumerable<ICommandCentre> Enumerate() =>
+                _game.RelayIsEngineCentre && _game.RelayExists ? new ICommandCentre[] { new Crewed() } : new ICommandCentre[0];
+
+            private sealed class Crewed : ICommandCentre
+            {
+                public string Id => ScriptedContactGame.Relay;
+
+                public string DisplayName => "Relay";
+
+                public CommandCentreKind Kind => CommandCentreKind.CrewedVessel;
+
+                public int? BodyIndex => null;
+
+                public double? Latitude => null;
+
+                public double? Longitude => null;
+
+                public bool IsActiveNow() => true;
+            }
+        }
+
         private sealed class Grounds : ICommandCentreSource
         {
             private readonly string[] _ids;

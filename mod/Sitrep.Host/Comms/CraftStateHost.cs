@@ -69,6 +69,17 @@ namespace Sitrep.Host.Comms
         Action HearCraftReach(string vesselId, string centre, Action<CraftReach> heard);
 
         /// <summary>
+        /// Records what the crewed centre aboard the craft knows of its contact
+        /// with every craft, on the craft's own node. It is held while the
+        /// craft's link is down, as the rest of what it sends is.
+        /// </summary>
+        /// <param name="vesselId">The bare guid of the craft the centre is aboard.</param>
+        void RecordCentreReport(string vesselId, CentreReport report, double ut);
+
+        /// <summary>Calls <paramref name="heard"/> each time a report from the centre aboard the craft reaches <paramref name="centre"/>. Returns what stops it.</summary>
+        Action HearCentreReport(string vesselId, string centre, Action<CentreReport> heard);
+
+        /// <summary>
         /// Records what a craft's radio says of its own link, on the craft's
         /// node. It reaches each centre no sooner than light from the farthest
         /// node on the path it was measured over.

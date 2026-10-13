@@ -705,6 +705,10 @@ namespace Sitrep.Host.Tests.Comms
 
             public System.Action HearCraftReach(string vesselId, string centre, System.Action<CraftReach> heard) => () => { };
 
+            public void RecordCentreReport(string vesselId, CentreReport report, double ut) => Calls.Add("report " + vesselId + "@" + ut);
+
+            public System.Action HearCentreReport(string vesselId, string centre, System.Action<CentreReport> heard) => () => { };
+
             public void RecordCraftRadio(string vesselId, ContactRadio radio, double ut) => Calls.Add("radio " + vesselId + "@" + ut);
 
             public System.Action HearCraftRadio(string vesselId, string centre, System.Action<ContactRadio> heard) => () => { };

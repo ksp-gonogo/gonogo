@@ -18,7 +18,8 @@ namespace Sitrep.Host.Comms
             IReadOnlyDictionary<string, bool> links,
             IReadOnlyList<ContactRadio>? radios = null,
             IReadOnlyList<CraftSighting>? sightings = null,
-            IReadOnlyList<CraftReach>? reaches = null)
+            IReadOnlyList<CraftReach>? reaches = null,
+            IReadOnlyList<CentreReport>? reports = null)
         {
             Centre = centre;
             States = states;
@@ -26,7 +27,13 @@ namespace Sitrep.Host.Comms
             Radios = radios ?? NoRadios;
             Sightings = sightings ?? NoSightings;
             Reaches = reaches ?? NoReaches;
+            Reports = reports ?? NoReports;
         }
+
+        private static readonly IReadOnlyList<CentreReport> NoReports = new CentreReport[0];
+
+        /// <summary>The newest report from each crewed centre to have reached the centre.</summary>
+        public IReadOnlyList<CentreReport> Reports { get; }
 
         private static readonly IReadOnlyList<CraftSighting> NoSightings = new CraftSighting[0];
 
@@ -185,9 +192,23 @@ namespace Sitrep.Host.Comms
                     }
                     reaches.Add(new Dictionary<string, object?> { ["id"] = reach.Id, ["capturedUt"] = reach.CapturedUt, ["lastReachedUt"] = last });
                 }
+                var reports = new List<object?>();
+                foreach (var report in centre.Reports)
+                {
+                    var contacts = new Dictionary<string, object?>(StringComparer.Ordinal);
+                    foreach (var contact in report.Contacts)
+                    {
+                        contacts[contact.Key] = new Dictionary<string, object?>
+                        {
+                            ["state"] = contact.Value.State.ToString(), ["lastContactUt"] = contact.Value.LastContactUt,
+                        };
+                    }
+                    reports.Add(new Dictionary<string, object?> { ["centre"] = report.Centre, ["capturedUt"] = report.CapturedUt, ["contacts"] = contacts });
+                }
                 centres.Add(new Dictionary<string, object?>
                 {
                     ["centre"] = centre.Centre, ["states"] = states, ["links"] = links, ["radios"] = radios, ["sightings"] = sightings, ["reaches"] = reaches,
+                    ["reports"] = reports,
                 });
             }
             var root = new Dictionary<string, object?> { ["version"] = (double)FormatVersion, ["centres"] = centres };
@@ -268,7 +289,26 @@ namespace Sitrep.Host.Comms
                         }
                         reaches.Add(new CraftReach((string)reach["id"]!, (double)reach["capturedUt"]!, last));
                     }
-                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings, reaches));
+                    var reports = new List<CentreReport>();
+                    foreach (var item4 in List(centre, "reports"))
+                    {
+                        var report = (Dictionary<string, object?>)item4!;
+                        var contacts = new Dictionary<string, CentreContact>(StringComparer.Ordinal);
+                        if (Get(report, "contacts") is Dictionary<string, object?> rows)
+                        {
+                            foreach (var row in rows)
+                            {
+                                if (row.Value is Dictionary<string, object?> contact
+                                    && Get(contact, "state") is string named
+                                    && Enum.TryParse<CentreContactState>(named, out var state))
+                                {
+                                    contacts[row.Key] = new CentreContact(state, Get(contact, "lastContactUt") as double?);
+                                }
+                            }
+                        }
+                        reports.Add(new CentreReport((string)report["centre"]!, (double)report["capturedUt"]!, contacts));
+                    }
+                    centres.Add(new HeardAtCentre((string)centre["centre"]!, states, links, radios, sightings, reaches, reports));
                 }
                 return new HeardSnapshot(centres);
             }

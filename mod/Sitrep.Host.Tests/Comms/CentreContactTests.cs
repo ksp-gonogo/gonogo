@@ -76,6 +76,29 @@ namespace Sitrep.Host.Tests.Comms
             Assert.True(Reaches(Home, modelled: false, connected: false, offTheGround: true));
         }
 
+        private static CentreContact View(CentreContactState state, double? last) => new CentreContact(state, last);
+
+        [Fact]
+        public void SeveralViewsAreInContactWhenAnyIsAndSilentSinceTheLatestContactOtherwise()
+        {
+            var inContact = CentreContact.Consolidated(new[] { View(CentreContactState.Silent, 100.0), View(CentreContactState.InContact, 50.0) })!.Value;
+            var silent = CentreContact.Consolidated(new[] { View(CentreContactState.Silent, 100.0), View(CentreContactState.Silent, 150.0), View(CentreContactState.Silent, null) })!.Value;
+
+            Assert.Equal(CentreContactState.InContact, inContact.State);
+            Assert.Equal(CentreContactState.Silent, silent.State);
+            Assert.Equal(150.0, silent.LastContactUt);
+            Assert.Null(CentreContact.Consolidated(new CentreContact[0]));
+        }
+
+        /// <summary>A craft one centre knows has gone does not come back because another centre's word of it is older.</summary>
+        [Fact]
+        public void AViewThatKnowsTheCraftIsGoneOutweighsOneStillInContact()
+        {
+            var views = new[] { View(CentreContactState.InContact, 300.0), View(CentreContactState.Gone, 250.0) };
+
+            Assert.Equal(CentreContactState.Gone, CentreContact.Consolidated(views)!.Value.State);
+        }
+
         [Fact]
         public void ACentreThatHasHeardNothingOfACraftKnowsNoContact()
         {
