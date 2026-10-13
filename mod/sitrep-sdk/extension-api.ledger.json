@@ -11265,6 +11265,14 @@
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
       },
       {
+        "key": "sitrep-sdk . ViewClockLike",
+        "note": "The type useViewClock and useViewClockOptional return: DelayClockLike plus the game's present, so a countdown can follow game time"
+      },
+      {
+        "key": "sitrep-sdk . ViewClockLike#utNowEstimate",
+        "note": "The game's present in UT seconds with no signal delay taken off; ui-kit's in-flight countdown reads it once a second"
+      },
+      {
         "key": "sitrep-sdk . asStatic",
         "note": "Exported from the root barrel, where its documentation already said it was"
       },
@@ -14071,6 +14079,14 @@
       {
         "key": "sitrep-sdk ./testing ~ValueTags#kind?",
         "note": "The tags a contract declares on one value: its own sample kind and whether it keys its list entry"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ViewClockLike",
+        "note": "The same type as it appears in the test host a test installs"
+      },
+      {
+        "key": "sitrep-sdk ./testing ~ViewClockLike#utNowEstimate",
+        "note": "A test host that supplies a view clock gives it the game's present too"
       },
       {
         "key": "sitrep-sdk ./uplink-load AppCompatIdentity",

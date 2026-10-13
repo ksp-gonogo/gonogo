@@ -1,5 +1,6 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
+import { installTestGameClock } from "../test/gameClock";
 import { InFlightList, type InFlightListItem } from "./InFlightList";
 
 const ITEMS: InFlightListItem[] = [
@@ -13,6 +14,9 @@ const ITEMS: InFlightListItem[] = [
 ];
 
 // Density changes what the list paints, never what it knows: a screen reader hears the same thing at every size.
+// The in-flight list counts down in game time, which it reads from the host.
+installTestGameClock();
+
 describe("InFlightList density", () => {
   it("prints label and countdown per command when there is room", () => {
     render(<InFlightList items={ITEMS} density="full" />);

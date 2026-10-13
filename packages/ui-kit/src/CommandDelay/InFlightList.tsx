@@ -1,4 +1,8 @@
-import { currentMode, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  currentMode,
+  useViewClockOptional,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   type CSSProperties,
   type RefObject,
@@ -225,42 +229,67 @@ function nearestEta(items: InFlightListItem[]): number | null {
   return best;
 }
 
-/** Re-seed the local countdown only on a jump this large (seconds): the caller's `etaSeconds` drifts by fractions on every re-render. */
+/** Take the caller's figure again only on a change this large (seconds): its `etaSeconds` drifts by fractions on every re-render. */
 const RESYNC_THRESHOLD_SECONDS = 1;
 
 /**
- * A local-ticking countdown: seeds from `etaSeconds`, resyncs only on a real
- * jump, and otherwise decrements once per second on its own interval, so the
- * number stays smooth whatever the caller's cadence. Useful for showing the
- * operator the seconds left before a command arrives. Used by
- * {@link InFlightList}. Reads only the value passed in.
+ * The seconds left before something arrives, counted down in game time from
+ * the figure the caller passes. Useful for showing the operator the seconds
+ * left before a command reaches the vessel. Used by {@link InFlightList}.
+ *
+ * It follows the game's clock: it stands still while the game is paused and
+ * falls at the warp rate under time warp. The caller need not re-render for
+ * it to move, and a new `etaSeconds` replaces the count once it differs from
+ * the last one taken by a second or more. With no telemetry stream mounted
+ * there is no game clock, and it returns `etaSeconds` unchanged.
  */
 export function useCountdown(etaSeconds: number | null): number | null {
+  const clock = useViewClockOptional();
+  const clockRef = useRef(clock);
+  clockRef.current = clock;
   const [value, setValue] = useState(etaSeconds);
-  const lastSeedRef = useRef(etaSeconds);
+  // The figure last taken from the caller, and the game time it was taken at.
+  const seedRef = useRef({ eta: etaSeconds, ut: gameNow(clock) });
 
   useEffect(() => {
-    const last = lastSeedRef.current;
+    const last = seedRef.current.eta;
     const jumped =
       (last === null) !== (etaSeconds === null) ||
       (last !== null &&
         etaSeconds !== null &&
         Math.abs(etaSeconds - last) >= RESYNC_THRESHOLD_SECONDS);
     if (jumped) {
-      lastSeedRef.current = etaSeconds;
+      seedRef.current = { eta: etaSeconds, ut: gameNow(clockRef.current) };
       setValue(etaSeconds);
     }
   }, [etaSeconds]);
 
-  // Mount-once and not keyed on `etaSeconds`, which drifts every render and would never let a full second elapse.
+  /*
+   * The interval is only what redraws the number once a second. What it draws
+   * is read off the game clock each time, so wall time passing while game time
+   * does not (a paused game) moves nothing. Mount-once and not keyed on
+   * `etaSeconds`, which drifts every render and would never let a second pass.
+   */
   useEffect(() => {
     const id = setInterval(() => {
-      setValue((prev) => (prev === null ? null : Math.max(0, prev - 1)));
+      const { eta, ut } = seedRef.current;
+      if (eta === null) return;
+      const now = gameNow(clockRef.current);
+      if (ut === undefined || now === undefined) return;
+      setValue(Math.max(0, eta - (now - ut)));
     }, 1000);
     return () => clearInterval(id);
   }, []);
 
   return value;
+}
+
+/** The game's present in UT seconds, or `undefined` with no clock or before it has a time. */
+function gameNow(
+  clock: ReturnType<typeof useViewClockOptional>,
+): number | undefined {
+  const ut = clock?.utNowEstimate();
+  return ut !== undefined && Number.isFinite(ut) ? ut : undefined;
 }
 
 /**

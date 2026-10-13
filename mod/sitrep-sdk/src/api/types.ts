@@ -1859,6 +1859,25 @@ export interface DelayClockLike {
   onFrame(cb: (viewUt: number) => void): () => void;
 }
 
+/**
+ * The view clock every widget on the screen renders against: what a delayed
+ * media player needs of it, and the game's present. Useful for counting the
+ * operator down to an instant in game time, which stands still while the game
+ * is paused and runs at the warp rate under time warp. Returned by
+ * {@link useViewClock} and {@link useViewClockOptional}.
+ *
+ * @category Delay and vantage
+ */
+export interface ViewClockLike extends DelayClockLike {
+  /**
+   * The game's present in UT seconds, with no signal delay taken off: the
+   * last instant heard from the game, carried forward at the rate game time
+   * was last seen to pass. It keeps advancing through a loss of signal, where
+   * `confirmedEdgeUt` stops at the last sample received.
+   */
+  utNowEstimate(): number;
+}
+
 // The real one, from this package's own `perf/PerfBudget.ts`. It was mirrored
 // here, like every other type in this file, because the class lived in
 // `@ksp-gonogo/core` and the leaf could not name it. The class is now in this

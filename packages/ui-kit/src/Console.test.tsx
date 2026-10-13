@@ -4,10 +4,14 @@ import { describe, expect, it } from "vitest";
 import type { InFlightListItem } from "./CommandDelay/InFlightList";
 import { Console } from "./Console";
 import { expectNoA11yViolations } from "./expectNoA11yViolations";
+import { installTestGameClock } from "./test/gameClock";
 
 const OUT: InFlightListItem[] = [
   { id: "1", label: "run boot.ks", etaSeconds: 90, phase: "in-transit" },
 ];
+
+// The in-flight list counts down in game time, which it reads from the host.
+installTestGameClock();
 
 describe("Console", () => {
   it("renders its scrollback", () => {

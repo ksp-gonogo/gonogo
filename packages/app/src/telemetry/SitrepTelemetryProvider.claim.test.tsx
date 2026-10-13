@@ -43,7 +43,7 @@ function storeOutstanding(screenKey: string, requestId: string) {
         command: "vessel.control.setActionGroup",
         args: { group: "Custom01", state: true },
         label: "",
-        etaConfirm: 100,
+        replyDueUt: 100,
       },
     ]),
   );

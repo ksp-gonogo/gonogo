@@ -36,7 +36,6 @@ import type {
   AnyContribution,
   AugmentDefinition,
   DataSourceState,
-  DelayClockLike,
   HostIceServers,
   LateTelemetrySubscribe,
   PerfBudgetHandle,
@@ -49,6 +48,7 @@ import type {
   UseCommandOptions,
   UseCommandResult,
   UseRouteCommandsResult,
+  ViewClockLike,
 } from "./types";
 
 /**
@@ -106,7 +106,7 @@ export interface GonogoHost {
     readonly __carriesCurrency?: Carried;
   }): (Carried extends true ? Reading<Result> : Result) | undefined;
   /** What {@link useViewClock} calls. */
-  useViewClock(): DelayClockLike;
+  useViewClock(): ViewClockLike;
   /** What {@link useAlarmRequest} calls. */
   useAlarmRequest(
     owner: UplinkClientHandle,
@@ -132,7 +132,7 @@ export interface GonogoHost {
   /** What {@link useTelemetryStoreOptional} calls. */
   useTelemetryStoreOptional(): unknown;
   /** What {@link useViewClockOptional} calls. */
-  useViewClockOptional(): DelayClockLike | undefined;
+  useViewClockOptional(): ViewClockLike | undefined;
 
   /** What {@link useReplaySessionActive} calls. */
   useReplaySessionActive(): boolean;

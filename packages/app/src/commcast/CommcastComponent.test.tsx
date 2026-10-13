@@ -654,6 +654,50 @@ describe("Commcast, rendered", () => {
     await act(async () => {});
   });
 
+  it("keeps a message's countdown where it was when a member is added while game time stands still", async () => {
+    const log = makeLog();
+    log.setVantage("ksc");
+    renderOnStream(
+      log,
+      [
+        { id: "vessel:ares", displayName: "Ares 4", active: true },
+        { id: "ground:woomera", displayName: "Woomera Range", active: true },
+      ],
+      [
+        { from: "ksc", to: "vessel:ares", oneWaySeconds: 240 },
+        { from: "ksc", to: "ground:woomera", oneWaySeconds: 60 },
+      ],
+    );
+    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.type(screen.getByLabelText("Message"), "hello ares{Enter}");
+    const before = log.snapshot().outbox.find((o) => o.msg.kind === "text");
+
+    // The fixture's clock is pinned, so game time stands still while two wall seconds pass.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2100));
+    });
+    const queueText = () =>
+      screen.getByLabelText(/Uplink queue/).textContent ?? "";
+    const shown = queueText();
+    expect(shown).toContain("4min");
+    expect(shown).not.toMatch(/3min/);
+
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Woomera Range/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Add" }));
+
+    expect(queueText()).toBe(shown);
+    // Nothing about the message already sent moved: its send instant and its one delivery are as they were.
+    expect(log.snapshot().outbox.find((o) => o.msg.kind === "text")).toEqual(
+      before,
+    );
+    await act(async () => {});
+  }, 15_000);
+
   it("shows NOTHING at all for a message whose arrival instant has not come", async () => {
     // What has not arrived is absent, not described: not the body, not the author, not a conversation for it to be in.
     const log = makeLog();

@@ -3,6 +3,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import { emittedRuleFor } from "../test/emittedRule";
+import { installTestGameClock } from "../test/gameClock";
 import {
   InFlightList,
   type InFlightListItem,
@@ -14,6 +15,9 @@ const ITEMS: InFlightListItem[] = [
   { id: "2", label: "run land.ks", etaSeconds: 12, phase: "awaiting-reply" },
   { id: "3", label: "run abort.ks", etaSeconds: null, phase: "lost" },
 ];
+
+// The in-flight list counts down in game time, which it reads from the host.
+installTestGameClock();
 
 describe("InFlightList", () => {
   it("renders nothing for an empty set", () => {

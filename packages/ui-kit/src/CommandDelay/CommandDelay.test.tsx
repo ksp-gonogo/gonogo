@@ -6,6 +6,7 @@ import {
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { installTestGameClock } from "../test/gameClock";
 import { CommandDelay, type CommandDelayHandle } from "./CommandDelay";
 import type { ControlStreamDatum } from "./ControlDelayStream";
 import { resetUnrepresentedRailReports } from "./railTags";
@@ -37,6 +38,9 @@ const STREAM: ControlStreamDatum = {
 };
 
 describe("CommandDelay", () => {
+  // The in-flight list counts down in game time, which it reads from the host.
+  installTestGameClock();
+
   it("renders nothing at zero effective delay (meta-vantage / instant)", () => {
     const handle: CommandDelayHandle = {
       inFlight: [],

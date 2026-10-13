@@ -5,7 +5,10 @@ import {
   type RailRegistry,
   RailRegistryContext,
 } from "@ksp-gonogo/sitrep-sdk/spine";
-import { render as bareRender } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  render as bareRender,
+  installTestHost,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
   fireEvent,
@@ -14,10 +17,10 @@ import {
   waitFor,
 } from "@ksp-gonogo/test-utils";
 import { CommandDelay } from "@ksp-gonogo/ui-kit";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
-import { TelemetryProvider } from "./context";
+import { TelemetryProvider, useViewClockOptional } from "./context";
 import { createFakeWallClock } from "./fake-wall-clock";
 import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
@@ -130,6 +133,16 @@ class EtaTransport implements Transport {
     }
   }
 }
+
+// The rows these tests draw count down on the view clock, which the list reads through the host.
+let removeHost: (() => void) | undefined;
+beforeEach(() => {
+  removeHost = installTestHost({ useViewClockOptional });
+});
+afterEach(() => {
+  removeHost?.();
+  removeHost = undefined;
+});
 
 describe("useCommand", () => {
   it("fires a command and reflects the lifecycle to confirmed", async () => {
