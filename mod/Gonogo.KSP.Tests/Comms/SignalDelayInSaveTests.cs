@@ -185,6 +185,23 @@ namespace Gonogo.KSP.Tests.Comms
             Assert.Empty(logged);
         }
 
+        [Fact]
+        public void TheHomeCommandLedgerRowsReadTheNewDelayAtTheNextTickAfterTheSwitchIsFlipped()
+        {
+            var route = Gonogo.KSP.CurrencyDelay.KscDelay.Routed(37.5);
+            CommsCoreUplink.ConfigureCommsModelProbe(() => true);
+            WithSave(enabled: true, scale: 1f, node =>
+            {
+                CommsCoreUplink.SyncSignalDelayFromSave();
+                Assert.Equal(37.5, Gonogo.KSP.CurrencyDelay.KscDelayPolicy.DelaySeconds(route, CommsCoreUplink.SignalDelayConfig));
+
+                node.signalDelay = false;
+                CommsCoreUplink.SyncSignalDelayFromSave();
+                Assert.Equal(0.0, Gonogo.KSP.CurrencyDelay.KscDelayPolicy.DelaySeconds(route, CommsCoreUplink.SignalDelayConfig));
+            });
+            CommsCoreUplink.ConfigureCommsModelProbe(null);
+        }
+
         [Theory]
         [InlineData(true, 1.0, false, 1.0, 0.0)]
         [InlineData(true, 1.0, true, 2.0, 0.5)]
