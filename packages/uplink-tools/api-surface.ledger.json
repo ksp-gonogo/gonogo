@@ -428,6 +428,58 @@
   "pending": {
     "breaks": [
       {
+        "key": "uplink-tools . COL_WIDTH",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . FontFace",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . FontFace#advice?",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . FontFace#css",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . FontFace#mode",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . FontMode",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . GRID_MARGIN",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . ROW_HEIGHT",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . display",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . encodeGif",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . generateEntry",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . jetbrainsMonoFace",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
+        "key": "uplink-tools . themeTokensCss",
+        "note": "Removed from the root barrel: render internals that no Uplink author calls"
+      },
+      {
         "key": "uplink-tools . ~InventoryWidget",
         "note": "InventoryWidget now extends WidgetRecord and adds only modes"
       },
@@ -836,6 +888,26 @@
       {
         "key": "uplink-tools . widgetRecordsOf",
         "note": "An inventory's widgets as records, which the README and docs/widgets.json are both made from"
+      },
+      {
+        "key": "uplink-tools . ~FontFace",
+        "note": "No longer exported by name from the root; still reachable as a type of UplinkPackage"
+      },
+      {
+        "key": "uplink-tools . ~FontFace#advice?",
+        "note": "No longer exported by name from the root; still reachable as a type of UplinkPackage"
+      },
+      {
+        "key": "uplink-tools . ~FontFace#css",
+        "note": "No longer exported by name from the root; still reachable as a type of UplinkPackage"
+      },
+      {
+        "key": "uplink-tools . ~FontFace#mode",
+        "note": "No longer exported by name from the root; still reachable as a type of UplinkPackage"
+      },
+      {
+        "key": "uplink-tools . ~FontMode",
+        "note": "No longer exported by name from the root; still reachable as a type of UplinkPackage"
       },
       {
         "key": "uplink-tools ./render-probe WidgetRecord",

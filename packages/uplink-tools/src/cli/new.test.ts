@@ -193,6 +193,43 @@ describe("uplink-tools new", () => {
     expect(scripts.build).toBeUndefined();
   });
 
+  it("writes a display name with quotes and backslashes as valid string literals", () => {
+    const name = 'My "Radar" \\ Uplink';
+    const files = renderSeed({
+      id: "widgets",
+      name,
+      author: "me",
+      repo: "https://elsewhere.test/r",
+      clientUrl: "https://elsewhere.test/widgets.js",
+      contractVersion: "4.5.6",
+      topics: "own",
+      dependencies: {},
+      devDependencies: {},
+    });
+    const escaped = JSON.stringify(name).slice(1, -1);
+    for (const file of [
+      "client/src/uplink.ts",
+      "client/src/Heartbeat/index.tsx",
+    ]) {
+      const text = files.get(file) ?? "";
+      const literal = /description: ("(?:[^"\\]|\\.)*"),/.exec(text)?.[1];
+      expect(literal, file).toBeDefined();
+      expect(JSON.parse(literal as string)).toContain(name);
+      expect(text).toContain(escaped);
+    }
+  });
+
+  it.each([
+    "a */ b",
+    "two\nlines",
+  ])("refuses the display name %j, which would break the comment it is written into", async (name) => {
+    const root = workdir();
+    await expect(
+      newUplink(["fresh", "--dir", root, "--name", name, ...BARE]),
+    ).rejects.toThrow(/display name/);
+    expect(existsSync(join(root, "fresh"))).toBe(false);
+  });
+
   it("refuses an id that cannot name a namespace", () => {
     expect(validateUplinkId("my-uplink")).toMatch(/not a usable/);
     expect(validateUplinkId("1abc")).toMatch(/not a usable/);

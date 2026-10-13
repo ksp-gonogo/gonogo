@@ -68,6 +68,8 @@ export function renderSeed(o: SeedOptions): Map<string, string> {
   const Id = pascal(id);
   const ns = `Gonogo${Id}Uplink`;
   const upper = id.toUpperCase();
+  // The display name goes inside double-quoted literals in the client, so its quotes and backslashes are escaped.
+  const nameInString = JSON.stringify(o.name).slice(1, -1);
   const widgetId = `${id}-heartbeat`;
   const topic = `${id}.heartbeat`;
   const json = (value: unknown): string =>
@@ -232,7 +234,7 @@ export const ${upper} = defineUplinkClient({
   id: "${id}",
   version: UPLINK_VERSION,
   name: ${JSON.stringify(o.name)},
-  description: "Shows that the ${o.name} Uplink is installed and publishing: a count of its samples and the game time of the latest.",
+  description: "Shows that the ${nameInString} Uplink is installed and publishing: a count of its samples and the game time of the latest.",
   // What the contract slice declares about its values: how each relates in time, and any value a model of yours carries forward.
   tags: GENERATED_CONTRACT_TAGS,
 });
@@ -385,7 +387,7 @@ registerComponent({
   id: "${widgetId}",
   name: "Heartbeat",
   // Shown in the widget picker and on the generated page: what it shows and what an operator can do with it, in plain words.
-  description: "How many samples the ${o.name} Uplink has published, and the game time of the latest one. It has no controls.",
+  description: "How many samples the ${nameInString} Uplink has published, and the game time of the latest one. It has no controls.",
   tags: ["${id}"],
   // In grid units. The smallest size is the smallest at which the title and both lines can still be read, which \`uplink-tools docs\` checks in a real browser.
   defaultSize: { w: 6, h: 4 },

@@ -46,9 +46,15 @@ export function serveDir(dir: string, port: number): Promise<Server> {
       res.writeHead(405).end();
       return;
     }
-    const path = decodeURIComponent(
-      new URL(req.url ?? "/", "http://localhost").pathname,
-    );
+    let path: string;
+    try {
+      path = decodeURIComponent(
+        new URL(req.url ?? "/", "http://localhost").pathname,
+      );
+    } catch {
+      res.writeHead(400, { "Content-Type": "text/plain" }).end("bad request\n");
+      return;
+    }
     const file = normalize(join(dir, path));
     const inside = file.startsWith(normalize(dir) + sep);
     if (!inside || !existsSync(file) || !statSync(file).isFile()) {

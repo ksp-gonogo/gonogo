@@ -102,6 +102,19 @@ export function validateUplinkId(id: string): string | undefined {
   );
 }
 
+/**
+ * Why a display name cannot be written into the scaffold, or nothing. The name
+ * is quoted in string literals and sits in a block comment in the client, so a
+ * comment terminator or a line break would break the file.
+ */
+export function validateDisplayName(name: string): string | undefined {
+  if (!name.trim()) return "It needs a name.";
+  if (name.includes("*/") || /[\r\n]/.test(name)) {
+    return `"${name}" cannot be a display name: it is written into a comment in the client, so it holds no "*/" and no line break.`;
+  }
+  return undefined;
+}
+
 export const pascal = (id: string): string => id[0].toUpperCase() + id.slice(1);
 
 /**
@@ -224,13 +237,19 @@ export const QUESTIONS = [
     flag: "--name <name>",
     help: "the display name, shown in the app and on the generated page (default: the id, capitalised)",
     values: ["--name"],
-    read: (flags) => flags.values.get("--name"),
+    read: (flags) => {
+      const name = flags.values.get("--name");
+      if (name === undefined) return undefined;
+      const invalid = validateDisplayName(name);
+      if (invalid) throw new Error(invalid);
+      return name;
+    },
     fallback: defaultName,
     ask: (prompter, context) =>
       prompter.text({
         message: "Display name",
         initialValue: defaultName(context),
-        validate: (value) => (value?.trim() ? undefined : "It needs a name."),
+        validate: (value) => validateDisplayName(value ?? ""),
       }),
   }),
   question({
