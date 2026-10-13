@@ -46,6 +46,11 @@ namespace Gonogo.DevTools
         /// this addon used to ignore a name it did not recognise, so a request
         /// saying <c>periKm</c> instead of <c>periapsisKm</c> silently placed the
         /// craft somewhere else entirely and read as a successful setup.</summary>
+        private static readonly string[] DropKeys =
+        {
+            "id", "body", "latitudeDeg", "longitudeDeg", "heightAboveTerrainM", "headingDeg",
+        };
+
         private static readonly string[] KnownKeys =
         {
             "id", "body", "periapsisKm", "apoapsisKm", "inclinationDeg", "meanAnomalyDeg", "altitudeAboveTerrainM",
@@ -111,7 +116,7 @@ namespace Gonogo.DevTools
             }
 
             var root = ConfigNode.Load(_requestPath);
-            var node = root?.GetNode("TELEPORT");
+            var node = root?.GetNode("TELEPORT") ?? root?.GetNode("DROP");
             if (node == null)
             {
                 return;
@@ -148,10 +153,15 @@ namespace Gonogo.DevTools
 
         private void ApplyRequest(string id, ConfigNode node)
         {
+            if (node.name == "DROP")
+            {
+                ApplyDrop(id, node);
+                return;
+            }
 
             try
             {
-                var unknown = UnknownKeys(node);
+                var unknown = UnknownKeys(node, KnownKeys);
                 if (unknown.Length > 0)
                 {
                     Debug.LogError("[Gonogo] dev-teleport: request id=" + id
@@ -263,6 +273,76 @@ namespace Gonogo.DevTools
         }
 
         /// <summary>
+        /// Places the active craft a height above the terrain at a latitude and
+        /// longitude, moving with the ground there, through the game's own
+        /// set-vessel-position path (it sets state vectors, so the craft has the
+        /// ground's speed in the inertial frame), and lets physics take it from
+        /// there: the craft unpacks a few physics frames later and falls.
+        /// </summary>
+        private void ApplyDrop(string id, ConfigNode node)
+        {
+            try
+            {
+                var unknown = UnknownKeys(node, DropKeys);
+                if (unknown.Length > 0)
+                {
+                    WriteResult(id, ok: false, "unknown field name(s) " + unknown
+                        + "; a DROP accepts only " + string.Join(", ", DropKeys) + ". Nothing was applied.");
+                    return;
+                }
+
+                var vessel = FlightGlobals.ActiveVessel;
+                if (vessel == null)
+                {
+                    WriteResult(id, ok: false, "no active vessel");
+                    return;
+                }
+
+                var body = FindBody(node.GetValue("body") ?? "");
+                if (body == null)
+                {
+                    WriteResult(id, ok: false, "missing or unknown 'body'");
+                    return;
+                }
+
+                if (!TryGetDouble(node, "latitudeDeg", out var latitude)
+                    || !TryGetDouble(node, "longitudeDeg", out var longitude)
+                    || !TryGetDouble(node, "heightAboveTerrainM", out var height))
+                {
+                    WriteResult(id, ok: false, "missing/invalid 'latitudeDeg', 'longitudeDeg' or 'heightAboveTerrainM'");
+                    return;
+                }
+
+                if (!TryGetDouble(node, "headingDeg", out var heading))
+                {
+                    heading = 0.0;
+                }
+
+                var bodyIndex = FlightGlobals.Bodies.IndexOf(body);
+                if (bodyIndex < 0)
+                {
+                    WriteResult(id, ok: false, "body '" + body.bodyName + "' not in FlightGlobals.Bodies");
+                    return;
+                }
+
+                FlightGlobals.fetch.SetVesselPosition(
+                    bodyIndex, latitude, longitude, height, 0.0, heading, asl: false, easeToSurface: false);
+
+                Read(body, vessel, out var altitudeM, out var terrainM);
+                var note = string.Format(CultureInfo.InvariantCulture,
+                    "dropped {0} on {1} at lat={2}deg lon={3}deg heading={4}deg; terrain={5:F1}m altitude={6:F1}m heightAboveTerrain={7:F1}m requested={8:F1}m",
+                    vessel.vesselName, body.bodyName, latitude, longitude, heading, terrainM, altitudeM, altitudeM - terrainM, height);
+                Debug.Log("[Gonogo] dev-teleport: applied drop id=" + id + "; " + note);
+                WriteResult(id, ok: true, note);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("[Gonogo] dev-teleport: drop failed for id=" + id + ": " + ex);
+                WriteResult(id, ok: false, "exception: " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Reads the terrain height under the point the orbit placed the craft at
         /// and, when the craft stands lower above it than asked, places it once
         /// more with both apsides raised by the shortfall. Returns the text the
@@ -293,7 +373,7 @@ namespace Gonogo.DevTools
 
         private static void Read(CelestialBody body, Vessel vessel, out double altitudeM, out double terrainM)
         {
-            body.GetLatLonAlt(vessel.GetWorldPos3D(), out var latitude, out var longitude, out altitudeM);
+            body.GetLatLonAltOrbital(vessel.orbit.pos, out var latitude, out var longitude, out altitudeM);
             terrainM = body.TerrainAltitude(latitude, longitude);
         }
 
@@ -342,14 +422,14 @@ namespace Gonogo.DevTools
 
         /// <summary>The names in this teleport node that mean nothing here, comma
         /// separated, or an empty string when every name is one we act on.</summary>
-        private static string UnknownKeys(ConfigNode node)
+        private static string UnknownKeys(ConfigNode node, string[] accepted)
         {
             var unknown = new List<string>();
             for (var i = 0; i < node.values.Count; i++)
             {
                 var name = node.values[i].name;
                 var known = false;
-                foreach (var candidate in KnownKeys)
+                foreach (var candidate in accepted)
                 {
                     if (string.Equals(candidate, name, StringComparison.Ordinal))
                     {

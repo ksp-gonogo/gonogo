@@ -5,8 +5,8 @@ namespace Gonogo.KSP.Tests.DevTools
 {
     /// <summary>
     /// A teleport that names a height above terrain is placed again, once, with
-    /// the orbit raised by exactly the shortfall; one that already stands high
-    /// enough is left where the orbit put it.
+    /// the orbit moved by exactly the difference, up or down; one that already
+    /// stands within the tolerance is left where the orbit put it.
     /// </summary>
     public sealed class TeleportHeightTests
     {
@@ -33,9 +33,13 @@ namespace Gonogo.KSP.Tests.DevTools
         }
 
         [Fact]
-        public void ACraftThatIsAlreadyHigherIsNotLowered()
+        public void ACraftHigherThanRequestedIsLoweredByTheExcess()
         {
-            Assert.Null(TeleportHeight.Correction(-599.9, 0.1, altitudeM: 400.0, terrainM: 130.0, requestedAboveTerrainM: 8.0));
+            var again = TeleportHeight.Correction(-599.9, 0.1, altitudeM: 400.0, terrainM: 130.0, requestedAboveTerrainM: 8.0);
+
+            Assert.NotNull(again);
+            Assert.Equal(-600.162, again!.Value.PeriapsisKm, 6);
+            Assert.Equal(-0.162, again.Value.ApoapsisKm, 6);
         }
     }
 }

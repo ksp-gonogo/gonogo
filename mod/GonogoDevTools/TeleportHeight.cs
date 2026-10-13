@@ -16,9 +16,10 @@ namespace Gonogo.DevTools
 
         /// <summary>
         /// The apsides, in km above the surface, to place again with, or null when
-        /// the craft already stands at least the requested height above terrain.
-        /// Both apsides move by the same shortfall, so the point's radius rises by
-        /// about that much whichever point of the orbit it is.
+        /// the craft already stands within <see cref="ToleranceM"/> of the
+        /// requested height above terrain. Both apsides move by the same amount,
+        /// up or down, so the point's radius changes by about that much whichever
+        /// point of the orbit it is.
         /// </summary>
         /// <param name="periapsisKm">The apsis placed with, in km above the surface.</param>
         /// <param name="apoapsisKm">The apsis placed with, in km above the surface.</param>
@@ -28,12 +29,12 @@ namespace Gonogo.DevTools
         public static (double PeriapsisKm, double ApoapsisKm)? Correction(
             double periapsisKm, double apoapsisKm, double altitudeM, double terrainM, double requestedAboveTerrainM)
         {
-            var shortfallM = requestedAboveTerrainM - (altitudeM - terrainM);
-            if (double.IsNaN(shortfallM) || shortfallM <= ToleranceM)
+            var offM = requestedAboveTerrainM - (altitudeM - terrainM);
+            if (double.IsNaN(offM) || Math.Abs(offM) <= ToleranceM)
             {
                 return null;
             }
-            var shiftKm = shortfallM / 1000.0;
+            var shiftKm = offM / 1000.0;
             return (periapsisKm + shiftKm, apoapsisKm + shiftKm);
         }
     }
