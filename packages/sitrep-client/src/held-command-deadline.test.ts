@@ -48,20 +48,6 @@ function gameAt(transport: StubTransport, ut: number): void {
   });
 }
 
-/** A `time.warp` frame carrying the fields given, at a game UT. */
-function warpAt(
-  transport: StubTransport,
-  ut: number,
-  payload: { paused: boolean },
-): void {
-  transport.emitRaw({
-    type: "stream-data",
-    topic: "time.warp",
-    payload,
-    meta: makeMeta({ validAt: ut, deliveredAt: ut }),
-  });
-}
-
 function heldClient(
   options?: ConstructorParameters<typeof TelemetryClient>[2],
 ) {
@@ -156,30 +142,6 @@ describe("a held command's deadline, given in game UT", () => {
     expect(client.getCommand(requestId)?.phase).toBe("in-flight");
 
     // It runs again: thirty more game seconds and the margin.
-    clock.advanceTo(300 + 30 + LOSS_MARGIN);
-    expect(client.getCommand(requestId)?.phase).toBe("lost");
-  });
-
-  it("waits out a pause the game reports once and then sends nothing during", () => {
-    const { transport, clock, client } = heldClient();
-    gameAt(transport, SAVE_UT);
-    const { requestId } = send(client);
-    transport.emitRaw({
-      type: "command-accepted",
-      requestId,
-      predictedReplyUt: SAVE_UT + 60,
-    });
-
-    // The game stops at +30, says so once, and every channel then holds still.
-    clock.advanceTo(30);
-    warpAt(transport, SAVE_UT + 30, { paused: true });
-    clock.advanceTo(300);
-    expect(client.getCommand(requestId)?.phase).toBe("in-flight");
-
-    // It runs again: thirty more game seconds and the margin.
-    warpAt(transport, SAVE_UT + 30, { paused: false });
-    clock.advanceTo(300 + 30 + LOSS_MARGIN - 0.001);
-    expect(client.getCommand(requestId)?.phase).toBe("in-flight");
     clock.advanceTo(300 + 30 + LOSS_MARGIN);
     expect(client.getCommand(requestId)?.phase).toBe("lost");
   });

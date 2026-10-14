@@ -1,5 +1,5 @@
 /**
- * Widget-level mirror test. Boots both screens with a OrbitView
+ * Widget-level mirror test. Boots both screens with a CurrentOrbit
  * widget pre-placed on the dashboard and asserts the rendered Ap value
  * matches on host and station: the data-flow tests only prove values
  * reach the data source layer; this one proves they reach the DOM.
@@ -22,7 +22,7 @@ const SITREP_CONFIG = JSON.stringify({
 });
 
 const dashboardWithOrbit = () => ({
-  items: [{ i: "orbit", componentId: "orbit-view" }],
+  items: [{ i: "orbit", componentId: "current-orbit" }],
   layouts: {
     lg: [{ i: "orbit", x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
     md: [{ i: "orbit", x: 0, y: 0, w: 4, h: 6, moved: false, static: false }],
@@ -115,17 +115,17 @@ async function readOrbitAp(page: Page): Promise<string> {
       // rows at all: this helper silently timed out for exactly that
       // reason after the Panel migration.
       const titles = Array.from(document.querySelectorAll("*")).filter(
-        (el) => el.textContent?.trim() === "ORBIT VIEW",
+        (el) => el.textContent?.trim() === "ORBIT",
       );
       for (const title of titles) {
         let panel: Element | null = title.parentElement;
         while (panel && !panel.querySelector("[data-panel-body]")) {
           panel = panel.parentElement;
         }
-        if (!panel) continue;
-        // The figures sit in the sidebar beside the diagram, and the diagram marks its own Ap, so the label is the one outside the drawing.
-        const labels = Array.from(panel.querySelectorAll("*")).filter(
-          (el) => el.textContent?.trim() === "Ap" && !el.closest("svg"),
+        const body = panel?.querySelector("[data-panel-body]");
+        if (!body) continue;
+        const labels = Array.from(body.querySelectorAll("*")).filter(
+          (el) => el.textContent?.trim() === "Ap",
         );
         if (labels.length === 0) continue;
         const apLabel = labels[0];
@@ -158,7 +158,7 @@ async function readOrbitAp(page: Page): Promise<string> {
 }
 
 test.describe("widget DOM mirror", () => {
-  test("OrbitView renders on host and station with the same Ap value", async ({
+  test("CurrentOrbit renders on host and station with the same Ap value", async ({
     browser,
   }) => {
     const mainContext = await browser.newContext();
@@ -169,14 +169,14 @@ test.describe("widget DOM mirror", () => {
     const main = await mainContext.newPage();
     // Empty `?uplinkLoaderIds=` → loader loads nothing, no consent modal over the dashboard (see helpers.ts bootstrapPair for the full why).
     await main.goto(`${MAIN_URL}?uplinkLoaderIds=`);
-    await expect(main.getByText("ORBIT VIEW", { exact: true })).toBeVisible({
+    await expect(main.getByText("ORBIT", { exact: true })).toBeVisible({
       timeout: 30_000,
     });
     const peerId = await getHostPeerId(main);
 
     const station = await stationContext.newPage();
     await station.goto(`${STATION_URL}?host=${peerId}&uplinkLoaderIds=`);
-    await expect(station.getByText("ORBIT VIEW", { exact: true })).toBeVisible({
+    await expect(station.getByText("ORBIT", { exact: true })).toBeVisible({
       timeout: 30_000,
     });
 

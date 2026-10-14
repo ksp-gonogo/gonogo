@@ -42,9 +42,7 @@ export interface ClockFormulaInputs {
 /**
  * {@link ClockFormulaInputs} with the timeline generation it was taken in.
  * Useful for a receiver, such as a web worker, that must discard a snapshot taken
- * before a save was loaded. The app's view clock produces it with its
- * `snapshot()` method, which is not part of what {@link useViewClock} returns:
- * it exists for code that needs a copy of the clock, such as a delay worker.
+ * before a save was loaded. Returned by the view clock's `snapshot()`.
  *
  * @category Delay and vantage
  */
@@ -54,10 +52,8 @@ export interface ClockFormulaSnapshot extends ClockFormulaInputs {
 }
 
 /**
- * The estimated UT at the vessel now: the anchor UT (the UT of the last sample
- * the clock was fitted to) carried forward at `warpRate` for the wall-clock
- * time since the anchor. This is not what {@link useUtNow} returns, which is
- * the view time, the screen's instant, behind this by the signal delay. Before any anchor it
+ * The estimated UT at the vessel now: the anchor UT carried forward at
+ * `warpRate` for the wall-clock time since the anchor. Before any anchor it
  * returns `maxSampleUt`, and 0 while `maxSampleUt` is still
  * `Number.NEGATIVE_INFINITY` (no sample received), so the result is always a
  * finite number. Useful for counting game time between samples. Used by the view
@@ -81,9 +77,7 @@ export function computeUtNowEstimate(
 /**
  * The latest UT that may be shown to the operator: the estimate from
  * {@link computeUtNowEstimate} minus the signal delay, but never more than
- * `slackSeconds` past the latest sample received; `slackSeconds` is the
- * allowance described on {@link ClockFormulaInputs}, 0 unless the view clock is
- * given one. Returns
+ * `slackSeconds` past the latest sample received. Returns
  * `Number.NEGATIVE_INFINITY` before any sample. Used by the view clock.
  *
  * @category Delay and vantage

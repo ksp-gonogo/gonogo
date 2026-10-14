@@ -23,42 +23,31 @@ import { focusRing } from "./focusRing";
  *   Input,
  *   Select,
  * } from "@ksp-gonogo/ui-kit";
- * import { useState } from "react";
  *
- * function ActionGroupForm({
- *   groups,
- * }: {
- *   groups: ReadonlyArray<{ id: string; name: string }>;
- * }) {
- *   const [groupId, setGroupId] = useState(groups[0]?.id ?? "");
- *   const [label, setLabel] = useState("");
- *   return (
- *     <ConfigForm>
- *       <Field>
- *         <FieldLabel htmlFor="ag-select">Action Group</FieldLabel>
- *         <Select
- *           id="ag-select"
- *           value={groupId}
- *           onChange={(e) => setGroupId(e.target.value)}
- *         >
- *           {groups.map((g) => (
- *             <option key={g.id} value={g.id}>{g.name}</option>
- *           ))}
- *         </Select>
- *       </Field>
- *       <Field>
- *         <FieldLabel htmlFor="ag-label">Custom Label</FieldLabel>
- *         <Input
- *           id="ag-label"
- *           type="text"
- *           value={label}
- *           onChange={(e) => setLabel(e.target.value)}
- *         />
- *         <FieldHint>Leave blank to use the action group name.</FieldHint>
- *       </Field>
- *     </ConfigForm>
- *   );
- * }
+ * <ConfigForm>
+ *   <Field>
+ *     <FieldLabel htmlFor="ag-select">Action Group</FieldLabel>
+ *     <Select
+ *       id="ag-select"
+ *       value={groupId}
+ *       onChange={(e) => setGroupId(e.target.value)}
+ *     >
+ *       {groups.map((g) => (
+ *         <option key={g.id} value={g.id}>{g.name}</option>
+ *       ))}
+ *     </Select>
+ *   </Field>
+ *   <Field>
+ *     <FieldLabel htmlFor="ag-label">Custom Label</FieldLabel>
+ *     <Input
+ *       id="ag-label"
+ *       type="text"
+ *       value={label}
+ *       onChange={(e) => setLabel(e.target.value)}
+ *     />
+ *     <FieldHint>Leave blank to use the action group name.</FieldHint>
+ *   </Field>
+ * </ConfigForm>
  * ```
  *
  * @category Form
@@ -96,19 +85,11 @@ export const ConfigForm = styled.div<{
  *
  * @example
  * ```tsx
- * import { Field, FieldHint, FieldLabel, Input } from "@ksp-gonogo/ui-kit";
- * import { useState } from "react";
- *
- * function GainField() {
- *   const [gain, setGain] = useState("1");
- *   return (
- *     <Field>
- *       <FieldLabel htmlFor="gain">Gain</FieldLabel>
- *       <Input id="gain" value={gain} onChange={(e) => setGain(e.target.value)} />
- *       <FieldHint>Applied on the next frame.</FieldHint>
- *     </Field>
- *   );
- * }
+ * <Field>
+ *   <FieldLabel htmlFor="gain">Gain</FieldLabel>
+ *   <Input id="gain" value={gain} onChange={(e) => setGain(e.target.value)} />
+ *   <FieldHint>Applied on the next frame.</FieldHint>
+ * </Field>
  * ```
  *
  * @category Form
@@ -129,19 +110,13 @@ export const Field = styled.div`
  * @example
  * ```tsx
  * import { ConfigForm, FieldLabel, FieldRow, Switch } from "@ksp-gonogo/ui-kit";
- * import { useState } from "react";
  *
- * function GridSetting() {
- *   const [showGrid, setShowGrid] = useState(false);
- *   return (
- *     <ConfigForm>
- *       <FieldRow>
- *         <FieldLabel>Show grid</FieldLabel>
- *         <Switch aria-label="Show grid" checked={showGrid} onChange={setShowGrid} />
- *       </FieldRow>
- *     </ConfigForm>
- *   );
- * }
+ * <ConfigForm>
+ *   <FieldRow>
+ *     <FieldLabel>Show grid</FieldLabel>
+ *     <Switch aria-label="Show grid" checked={showGrid} onChange={setShowGrid} />
+ *   </FieldRow>
+ * </ConfigForm>
  * ```
  *
  * @category Form

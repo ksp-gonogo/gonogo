@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "shows": "A hyperbolic escape from Kerbin with eccentricity 1.28 and a negative semi-major axis, periapsis about 79 km and no period or apoapsis countdown.",
+    "scenario": "escape-trajectory",
+    "notes": "Hyperbolic escape trajectory from Kerbin. Eccentricity > 1, sma negative (the convention for hyperbolic orbits). ApA is large/undefined in-game; the wire often reports a very large positive value. hasOrbit checks sma/ecc/ApR/PeR, all present, so diagram may render. isOrbiting=false (PeA < atmosphere threshold or the orbit doesn't close). Tests whether OrbitDiagram handles ecc>1 without throwing."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 999999999,
+  "o.PeA": 85000,
+  "o.ApR": 999999999,
+  "o.PeR": 685000,
+  "o.sma": -2400000,
+  "o.eccentricity": 1.283,
+  "o.trueAnomaly": 35,
+  "o.argumentOfPeriapsis": 20,
+  "o.inclination": 4.7,
+  "o.period": 0,
+  "o.timeToAp": 0,
+  "o.timeToPe": 620.5,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": -2400000,
+          "ecc": 1.283,
+          "inc": 4.7,
+          "lan": 0,
+          "argPe": 20,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
+}

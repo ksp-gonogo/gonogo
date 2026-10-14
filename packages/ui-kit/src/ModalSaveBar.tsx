@@ -92,16 +92,15 @@ export interface ModalSaveBarOptions<Draft> {
  * modal's sticky footer, and marks the modal dirty so it asks before
  * discarding unsaved edits. Useful for letting the operator save a widget's
  * settings without scrolling to the bottom of its config form. Used by the
- * config forms of the warp control, rendezvous and orbit view widgets.
+ * config forms of the warp control, rendezvous and current orbit widgets.
  *
  * The form counts as dirty only when `value` differs, by {@link configEqual},
  * from both its value when the modal opened and `saved`. The hook renders
  * nothing where it is called and does nothing outside a modal.
  *
  * The form is a widget's `configComponent`: register it beside the widget with
- * `registerComponent({ ..., configComponent: NavballConfigForm })`, with the
- * form the example below defines, and the dashboard opens it in a modal with
- * the saved `config` and an `onSave`.
+ * `registerComponent({ ..., configComponent: NavballConfigForm })`, and the
+ * dashboard opens it in a modal with the saved `config` and an `onSave`.
  *
  * @example
  * ```tsx

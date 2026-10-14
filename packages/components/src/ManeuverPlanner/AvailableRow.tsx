@@ -8,11 +8,11 @@ interface AvailableRowProps {
   feasible: boolean | null;
 }
 
-/** The vessel's vacuum ΔV total beside the plan's feasibility verdict, labelled with the vacuum basis. */
+/** The vessel's available ΔV beside the plan's feasibility verdict. */
 export function AvailableRow({ availableDeltaV, feasible }: AvailableRowProps) {
   return (
     <>
-      <Label>Available (VAC)</Label>
+      <Label>Available</Label>
       <PreviewValue>
         <ValueNum>
           {availableDeltaV === null ? (

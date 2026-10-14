@@ -36,7 +36,7 @@ export const CREW_STANDING_ORDER: readonly CrewStanding[] = [
 
 /**
  * Returns a {@link CrewStanding} from KSP's roster status, for a crew entry
- * whose `standing` is absent.
+ * that carries no `standing` of its own, as from an older version of the mod.
  * An applicant returns `Applicant`, and a missing or unknown status returns
  * `Unknown`. Useful for showing the operator a standing for every kerbal in a
  * crew list. Used by the astronaut complex roster.
@@ -114,11 +114,10 @@ export function canBeSacked(standing: number | null | undefined): boolean {
  *
  * @param reason - The payload's `unavailableReason`. Empty or absent means the
  * kerbal can fly.
- * @param endsAtUt - The payload's `standingEndsAtUt` as a plain number of
- * seconds: the payload field is a `Value`, so pass the number it holds, not the
- * `Value`. `null` or `undefined` when the standing has no set end.
- * @param formatUt - Your own UT formatter, which takes that number of seconds,
- * so the date uses the game's calendar. Omit it to get the reason alone.
+ * @param endsAtUt - The payload's `standingEndsAtUt`, or `null` when the
+ * standing has no set end.
+ * @param formatUt - Your own UT formatter, so the date uses the game's
+ * calendar. Omit it to get the reason alone.
  *
  * @category Crew
  */

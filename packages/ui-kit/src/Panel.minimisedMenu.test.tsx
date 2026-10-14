@@ -130,26 +130,6 @@ describe("the collapsed header's menu", () => {
     expect(box().open).toBe(true);
   });
 
-  it("leaves an Escape to whatever holds focus outside the menu, such as a dialog", async () => {
-    collapse();
-    const user = userEvent.setup();
-    const seen: string[] = [];
-    const onKey = (e: KeyboardEvent) => seen.push(e.key);
-    document.addEventListener("keydown", onKey);
-    render(
-      <>
-        {panel()}
-        <button type="button">dialog</button>
-      </>,
-    );
-    await user.click(summary());
-    expect(box().open).toBe(true);
-    act(() => screen.getByRole("button", { name: "dialog" }).focus());
-    await user.keyboard("{Escape}");
-    document.removeEventListener("keydown", onKey);
-    expect(seen).toEqual(["Escape"]);
-  });
-
   it("closes a pinned menu on a press outside it", async () => {
     collapse();
     const user = userEvent.setup();

@@ -28,7 +28,7 @@ test.describe("fab cluster names", () => {
     await seedContext(
       context,
       "gonogo:dashboard:main",
-      dashboardWithWidget("orbit-view"),
+      dashboardWithWidget("current-orbit"),
     );
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");
@@ -52,7 +52,7 @@ test.describe("fab cluster names", () => {
     await seedContext(
       context,
       "gonogo:dashboard:main",
-      dashboardWithWidget("orbit-view"),
+      dashboardWithWidget("current-orbit"),
     );
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");

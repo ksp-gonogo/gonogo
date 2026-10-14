@@ -18,23 +18,6 @@ import { resolve } from "node:path";
 const packagesDir = resolve(import.meta.dirname, "..");
 const modDir = resolve(import.meta.dirname, "../../mod");
 
-/** The file an `exports` value names, or the source file behind a built one. */
-function sourceOf(pkgDir: string, value: unknown): string | null {
-  if (typeof value === "string") return resolve(pkgDir, value);
-  const built =
-    typeof value === "object" && value !== null && "import" in value
-      ? value.import
-      : null;
-  const stem =
-    typeof built === "string" ? /^\.\/dist\/(.+)\.js$/.exec(built)?.[1] : null;
-  if (!stem) return null;
-  for (const ext of ["ts", "tsx"]) {
-    const file = resolve(pkgDir, `src/${stem}.${ext}`);
-    if (existsSync(file)) return file;
-  }
-  return null;
-}
-
 function aliasEntry(pkgDir: string): [string, string][] {
   const pkgJsonPath = resolve(pkgDir, "package.json");
   const srcIndex = resolve(pkgDir, "src/index.ts");
@@ -47,15 +30,14 @@ function aliasEntry(pkgDir: string): [string, string][] {
   // as matching `importee === find` OR `importee.startsWith(find + "/")` and
   // takes the first array match, so if the bare `name` entry came first it
   // would swallow `name/media` too and append the literal "/media" onto the
-  // resolved `src/index.ts` file path (ENOTDIR at build time). A subpath given
-  // as `{ types, import }` points at a built file, so it resolves to the source
-  // file of the same name when one exists.
+  // resolved `src/index.ts` file path (ENOTDIR at build time). Only string-
+  // valued subpaths are handled, every export in this repo's packages is one.
   const subpathEntries: [string, string][] = Object.entries(exportsMap ?? {})
-    .filter(([key]) => key !== ".")
-    .flatMap(([key, value]): [string, string][] => {
-      const target = sourceOf(pkgDir, value);
-      return target ? [[`${name}/${key.replace(/^\.\//, "")}`, target]] : [];
-    });
+    .filter(([key, value]) => key !== "." && typeof value === "string")
+    .map(([key, value]) => [
+      `${name}/${key.replace(/^\.\//, "")}`,
+      resolve(pkgDir, value as string),
+    ]);
   return [...subpathEntries, [name, srcIndex]];
 }
 

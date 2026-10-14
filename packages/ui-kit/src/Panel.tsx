@@ -455,13 +455,12 @@ export function PanelHeader({
     if (!menuShown) return;
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      // Focus elsewhere, such as in a dialog opened over the panel, owns the key.
-      if (!expandRef.current?.contains(document.activeElement)) return;
       event.stopPropagation();
+      const focusInside = expandRef.current?.contains(document.activeElement);
       cancelLeave();
       setHovering(false);
       setOpenWhileCollapsed(false);
-      summaryRef.current?.focus();
+      if (focusInside) summaryRef.current?.focus();
     };
     const onPress = (event: PointerEvent) => {
       if (expandRef.current?.contains(event.target as Node)) return;

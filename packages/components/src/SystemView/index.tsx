@@ -37,14 +37,7 @@ import {
   Section,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { countdownOf } from "../shared/countdownOf";
 import { craftOnOrbit } from "../shared/craftOnOrbit";
 import { TrajectoryFrameCaption } from "../shared/trajectoryFrame";
@@ -77,7 +70,6 @@ import {
 } from "./targetOrbit";
 // Registers the built-in vessel-orbits contribution.
 import "./vesselOrbitsContribution";
-import { orbitFramingZoom } from "./orbitFraming";
 import { panelHohmannFor, transferStatusesFor } from "./transferWindow";
 import {
   type CelestialBody,
@@ -541,20 +533,13 @@ function SystemViewComponent({
     ],
   );
 
-  // Apart from the instant and the poses so a ring's inputs hold still while the view clock ticks.
-  const lookups = useMemo(
+  const places = useMemo(
     () => ({
+      ut: universalTime,
       muOf: (bodyName: string) =>
         bodies.find((b) => b.name === bodyName)?.gravParameter ?? null,
       soiOf: (bodyName: string) =>
         bodies.find((b) => b.name === bodyName)?.soi ?? null,
-    }),
-    [bodies],
-  );
-  const places = useMemo(
-    () => ({
-      ut: universalTime,
-      ...lookups,
       bodyPlace: (bodyIndex: number) => {
         const body = poseAtIndex(poses, bodyIndex);
         const frameBody = poseAtIndex(poses, frameBodyIndex);
@@ -569,7 +554,7 @@ function SystemViewComponent({
         };
       },
     }),
-    [universalTime, lookups, poses, frameBodyIndex],
+    [universalTime, bodies, poses, frameBodyIndex],
   );
   const fitGeometry = useMemo(
     () =>
@@ -656,32 +641,7 @@ function SystemViewComponent({
     anchored: anchoredName !== null,
     view: panZoom,
   });
-  const orbitZoom = orbitFramingZoom({
-    orbit: vesselOrbit,
-    frameName: parentName,
-    // The scale only reads as metres in a frame that draws plain metres.
-    plotScale:
-      projection === null || projection.extent.kind === "auto-fit-metres"
-        ? (fitGeometry?.plotScale ?? null)
-        : null,
-    halfPicturePlotUnits: fitGeometry
-      ? Math.min(fitGeometry.width, fitGeometry.height) / 2
-      : null,
-  });
-  /*
-   * The picture opens on the craft's orbit rather than the whole system, once: the first instant there is an orbit to frame, unless the operator has already moved the view. Later telemetry never moves it again; only the two view buttons do.
-   */
-  const opened = useRef(false);
-  const { setView } = panZoom;
-  useLayoutEffect(() => {
-    if (opened.current || orbitZoom === null) return;
-    opened.current = true;
-    if (panZoom.zoom !== 1 || panZoom.pan.x !== 0 || panZoom.pan.y !== 0) {
-      return;
-    }
-    setView({ zoom: orbitZoom, pan: { x: 0, y: 0 } });
-  }, [orbitZoom, setView, panZoom.zoom, panZoom.pan.x, panZoom.pan.y]);
-  // Reset view lets go of an anchor as well as the zoom and the centre; Focus vessel also zooms to the craft's orbit.
+  // Reset view lets go of an anchor as well as the zoom and the centre.
   const viewControls = useMemo(
     () => ({
       ...panZoom,
@@ -689,21 +649,8 @@ function SystemViewComponent({
         setAnchor(null);
         panZoom.resetView();
       },
-      focusVessel: () => {
-        if (panZoom.following) {
-          panZoom.setFollowing(false);
-          return;
-        }
-        panZoom.setFollowing(true);
-        if (orbitZoom !== null) {
-          panZoom.easeView(
-            { zoom: panZoom.zoom, pan: panZoom.pan },
-            { zoom: orbitZoom },
-          );
-        }
-      },
     }),
-    [panZoom, orbitZoom],
+    [panZoom],
   );
   const overlayContext = useMemo(
     () => viewedGeometry(fitGeometry, panZoom.zoom, panZoom.pan),

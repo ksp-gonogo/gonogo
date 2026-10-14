@@ -32,7 +32,7 @@ export interface WidgetRecord {
   channelFamilies: string[];
   /** The Topic families the widget reads when present and draws without otherwise. */
   optionalChannelFamilies: string[];
-  /** Whether the Topics the widget reads depend on the widget's settings, as a graph's chosen series do. */
+  /** Whether the Topics the widget reads depend on the tile's settings, as a graph's chosen series do. */
   readsFromConfig: boolean;
   /** The flat data keys an older widget declares instead of `channels`. */
   dataRequirements: string[];
@@ -50,9 +50,9 @@ export interface WidgetRecord {
   replaces: string | null;
   /** Whether a station can push this widget to the main screen. */
   pushable: boolean;
-  /** The size a new widget opens at, in grid units, or `null` for the dashboard's default. */
+  /** The size a new tile opens at, in grid units, or `null` for the dashboard's default. */
   defaultSize: { w: number; h: number } | null;
-  /** The smallest the widget may be resized to, in grid units, or `null` when unset. */
+  /** The smallest the tile may be resized to, in grid units, or `null` when unset. */
   minSize: { w: number; h: number } | null;
   /** Whether the widget has a tiny form for the smallest tiles. */
   tiny: boolean;

@@ -78,25 +78,25 @@ export interface UplinkDeclaration {
    * `defineUplinkClient` gives it; building the manifest fails when nothing
    * does.
    *
-   * @readBy bake, bundle, check, codegen, docs, package, page, release
+   * @readBy bake, bundle, codegen, docs, package, page, release
    */
   id?: string;
   /**
    * The name an operator sees, as `defineUplinkClient` gives it.
    *
-   * @readBy bake, bundle, check, docs, page
+   * @readBy bake, bundle, docs, page
    */
   name?: string;
   /**
    * Who wrote it, shown when the app asks the operator whether to load the client.
    *
-   * @readBy bake, bundle, check, docs, page
+   * @readBy bake, bundle, docs, page
    */
   author?: string;
   /**
    * The URL of its source repository, shown beside the author.
    *
-   * @readBy bake, bundle, check, docs, page
+   * @readBy bake, bundle, docs, page
    */
   repo?: string;
   /**
@@ -125,7 +125,7 @@ export interface UplinkDeclaration {
    * The C# namespace the plugin's sources are in. `uplink-tools bake` writes
    * its generated classes into it.
    *
-   * @readBy bake, check
+   * @readBy bake
    */
   csharpNamespace?: string;
   /**
@@ -136,7 +136,7 @@ export interface UplinkDeclaration {
    * copied into `gonogo-uplink.json`, where the app shows them beside the
    * Uplink when asking whether to load it.
    *
-   * @readBy bundle, check, docs, page
+   * @readBy bundle, docs, page
    */
   mod?: UplinkWrappedMod | null;
   /**
@@ -145,7 +145,7 @@ export interface UplinkDeclaration {
    * when the slice starts emitting another file. Absent for an Uplink with no
    * contract slice of its own.
    *
-   * @readBy check, codegen
+   * @readBy codegen
    */
   codegen?: UplinkCodegenDeclaration;
   /**

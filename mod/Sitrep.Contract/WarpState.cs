@@ -83,7 +83,7 @@ public class WarpState
     /// <summary>
     /// What every on-rails warp rung of this install actually runs at, indexed by
     /// <see cref="WarpRateIndex"/>, so <c>warpRates[i]</c> is the multiplier
-    /// <c>time.setWarpIndex</c> (<see cref="SetWarpIndexArgs"/>) with <c>index = i</c> produces. Null when the
+    /// <c>time.setWarpIndex</c> with <c>index = i</c> produces. Null when the
     /// game has no warp controller to read it off (no scene that can warp).
     ///
     /// <para>The table is configuration, not a constant: Kopernicus and
@@ -110,8 +110,9 @@ public class WarpState
     /// cadence on every tick, so the mod also waits at least this long in real
     /// time. The gap a client sees between two keyframes of a quiet channel is
     /// therefore at least <c>keyframeFloorSec × warpRate</c> UT. A client that
-    /// judges how current a channel is from the gap between its keyframes
-    /// should allow for that much.</para>
+    /// judges how current a channel is from its keyframe cadence has to allow
+    /// for that, or every quiet channel reads as held too long just after a
+    /// warp step-up.</para>
     /// <internal>
     /// On this topic because its only use is that product, and both halves then
     /// arrive in the same sample.
@@ -131,9 +132,8 @@ public class WarpState
     /// = 10,000 s at 100,000x), or one physics
     /// tick where a tick advances the game further than that.
     /// Nothing between two consecutive samples was observed, so a line drawn
-    /// between two samples that differ would claim a path across this span that
-    /// only a reckoner's model of the value (see the Reckoners page) can
-    /// support. Two samples further apart
+    /// between two samples that differ asserts a path across this span that
+    /// only a model of the value can stand behind. Two samples further apart
     /// than this are a channel that did not change in between.</para>
     ///
     /// <para>It changes only when the warp rate does. A client judging a gap

@@ -1658,9 +1658,8 @@ export interface CommcastMessageSendArgs
 * for. `commcast.message.send` is the command, of the core mod's Commcast
 * group messaging and radio, that sends a text message to a group of command
 * centres. A centre is a `commandCentre.roster` entry, a place commands are
-* sent from. It says nothing of arrival: a listener is a centre that receives
-* the message, and arrival is known only when that listener sends
-* `commcast.message.ack` (`CommcastMessageAckArgs`) back.
+* sent from. It says nothing of arrival, which only each listener's
+* acknowledgement does.
 *
 * @category Command results
 * @categoryDescription Command results
@@ -3313,17 +3312,15 @@ export interface CrashRecent
 * **Order.** The numbering is the reading order: sorted by value, a crew list
 * reads free to fly, then committed, then off the books. The SDK's
 * `CREW_STANDING_ORDER` is derived from it. A new member is inserted at its
-* place in that order rather than appended, so a member's number can change
-* between versions: never store or compare a raw number, compare members by
-* name through the generated enum.
+* place in that order rather than appended.
 *
 * @category Crew
 */
 export enum CrewStanding {
 	/**
 	* No backend could say. Distinct from every member below, and never a stand-in
-	* for one: a roster entry for which the game reported no roster status at all
-	* gets this rather than guessing at Available.
+	* for one: a capture that read no roster status at all reports this rather
+	* than guessing at Available.
 	*/
 	Unknown = 0,
 	/** A hireable candidate, not yet on the books. */
@@ -3334,7 +3331,7 @@ export enum CrewStanding {
 	Assigned = 3,
 	/**
 	* On the books, standing down after a flight, and not assignable until the
-	* rest period ends. `CrewRosterEntry.standingEndsAtUt` carries its end.
+	* rest period ends. CrewStandingReading.StandingEndsAtUt carries its end.
 	*
 	* Derived from KSP's own `ProtoCrewMember.inactive`, so the stock backend
 	* reports it and every install gets it.
@@ -3891,10 +3888,9 @@ export interface Pong
 * One kerbal currently outside a craft, on the `eva.crew` channel.
 *
 * A kerbal on EVA is a vessel in KSP's model, with its own id, so it already
-* appears on `system.vessels` and on its own per-vessel Topics
-* (`fleet.<guid>.contact` and `fleet.<guid>.orbit`). What is here and nowhere
-* else is the suit: what it is carrying, what it can do, and whether the place
-* it is standing in would kill the wearer without it.
+* appears on `system.vessels` and on its own `fleet.` topics. What is here and
+* nowhere else is the suit: what it is carrying, what it can do, and whether
+* the place it is standing in would kill the wearer without it.
 *
 * Every field is `null` when the value could not be read. Absence is never a
 * zero: a kerbal whose propellant could not be read is not a kerbal with an
@@ -3967,11 +3963,12 @@ export interface EvaKerbal
 /**
 * Every kerbal currently outside a craft.
 *
-* The vessel Topics stay with the craft the kerbal left; this Topic carries
-* what is true of the kerbal.
+* A channel of its own so that a kerbal stepping out does not change what the
+* vessel channels report: those stay with the craft they left, and this
+* carries what is true of the kerbal.
 *
-* An empty list is a real reading: nobody is outside. The Topic has no reading
-* only until its first sample arrives.
+* An empty list is a real reading: nobody is outside. The channel is absent
+* only before anything has been captured.
 *
 * @category Crew
 */
@@ -5053,9 +5050,8 @@ export enum MissionObjectiveState {
 	/** The mission has not reached this objective yet. */
 	Pending = 0,
 	/**
-	* The mission is on this objective now and is still running. Once the mission
-	* ends, the objective it ended on is `MissionObjectiveState.Reached` or
-	* `MissionObjectiveState.Failed` instead.
+	* The mission is on this objective now: it is the step the mission is on now
+	* and the mission is still running.
 	*/
 	Active = 1,
 	/**
@@ -5091,11 +5087,10 @@ export interface MissionObjectiveEntry
 * The `missions.active` Topic payload: the Making History mission that is
 * running, or has just ended, in the current game. The whole payload is `null`
 * when there is no mission game, when no mission has been set up, or when the
-* expansion is not installed. The `game.dlc` Topic (`GameDlc`) says only
-* whether the expansion is installed; with it installed, a `null` payload is
-* one of the other two, and nothing on the stream says which. A `null` payload
-* reaches a widget as a reading whose `state` is `"absent"` and which carries
-* no value, so test the state rather than the value for `null`.
+* expansion is not installed; read the `game.dlc` Topic (`GameDlc`) to tell
+* the last from the others. A `null` payload reaches a widget as a reading
+* whose `state` is `"absent"` and which carries no value, so test the state
+* rather than the value for `null`.
 *
 * A mission that has ended stays in the payload with `MissionStatus.finished`
 * true until the game leaves the mission, so a client can show the outcome.
@@ -5172,8 +5167,7 @@ export interface ModSettingsModel
 	/**
 	* The payload's provenance. Its `source` is always `"game"`: these settings
 	* describe the game install, never a craft, and like the rest of this Topic
-	* they are always current and never delayed. Gonogo's own `settings.gonogo`
-	* payload, `SettingsModel`, has no such field.
+	* they are always current and never delayed.
 	*/
 	meta: PayloadMeta;
 }
@@ -5190,19 +5184,16 @@ export interface ModSettingRow
 	label: string;
 	/** Why the setting matters, read under the label. May be empty. */
 	description: string;
-	/** What the value may be: a switch, a line of text or a number (`SettingKind`). */
+	/** What the value may be. */
 	kind: SettingKind;
 	/**
-	* The id of the unit a number is in, from the unit ids the units and values
-	* page lists, or null for a count or a setting that is not a number.
+	* The unit token a number is in, or null for a count or a setting that is not
+	* a number.
 	*/
 	unit?: string | null;
 	/** A named block inside the Uplink's section. Empty for none. */
 	group: string;
-	/**
-	* Where in the game an operator changes it, such as "Difficulty settings".
-	* Empty when nowhere.
-	*/
+	/** Where in the game an operator changes it. Empty when nowhere. */
 	setIn: string;
 	/** Whether `settings.mod.write` may change it. */
 	writable: boolean;
@@ -7305,9 +7296,9 @@ export interface SettingsModel
 export interface SettingsRowState
 {
 	/**
-	* Where the setting lives, as the name of a block of the settings file and the
-	* setting's name inside it, separated by `/`: `SIGNAL_DELAY/enabled`, or
-	* `Uplinks/<id>/<name>` for an Uplink's own. This is the path a save names.
+	* Where the setting lives, as blocks and a name separated by `/`:
+	* `SIGNAL_DELAY/enabled`, or `Uplinks/<id>/<name>` for an Uplink's own. This
+	* is the path a save names.
 	*/
 	path: string;
 	/** Who declared it: `"gonogo"` for the mod itself, or the Uplink's id. */
@@ -7558,9 +7549,7 @@ export interface SpaceCenterScene
 * (not an empty array) when no sample has arrived yet, which tells "no data
 * yet" apart from "zero crew".
 *
-* Kept at the home command centre, like `LaunchSiteEntry`: the one that holds
-* the career ledger, so a screen working from another command centre sees a
-* change after the signal delay from home.
+* Kept at the home command centre, like `LaunchSiteEntry`.
 *
 * @category Crew
 * @categoryDescription Crew
@@ -7589,32 +7578,28 @@ export interface CrewRosterEntry
 	* Whether the kerbal can be assigned to a flight today.
 	*
 	* **Branch on this for a yes or no.** It is derived from
-	* `CrewRosterEntry.standing`: only `Available` and `Applicant` can fly, so a
-	* standing added to `CrewStanding` later reads as unavailable here. An
-	* applicant counts as free because nothing blocks hiring one, but it is not
-	* yet crew: check `CrewRosterEntry.isApplicant` before offering one a flight.
+	* `CrewRosterEntry.standing` by CrewStandings.CanFly: only `Available` and
+	* `Applicant` can fly, so a standing added to `CrewStanding` later reads as
+	* unavailable here.
 	*
-	* A mod that knows better about a kerbal's availability, such as a career mod,
-	* may set it outright.
+	* A backend may override it outright.
 	*/
 	available?: boolean | null;
 	/**
 	* Why the kerbal can't fly, in prose: `Assigned` reads "On mission", `Resting`
 	* reads "Standing down", and every other blocking standing reads its own name.
-	* Empty string when `CrewRosterEntry.available` is true. A mod that knows
-	* better may set the wording.
+	* Empty string when `CrewRosterEntry.available` is true. A backend may
+	* override the wording.
 	*
 	* **No date, ever.** The end is on `CrewRosterEntry.standingEndsAtUt` as a
 	* `ut` value, so the client formats it in its own calendar. This is the only
-	* text on the payload written as a sentence by the mod, so a client cannot
-	* reformat it.
+	* string on the payload a client could not re-render.
 	*/
 	unavailableReason?: string | null;
 	/**
 	* The kerbal's standing, as the dashboard means it: the field to branch on.
-	* The reading of a mod that supplies its own where there is one, otherwise
-	* Gonogo's own rule applied to every axis KSP exposes (roster status,
-	* applicant and the stand-down flag).
+	* The elected ICrewStandingBackend's reading where it has one, otherwise
+	* derived by the stock backend from every axis KSP exposes.
 	*
 	* The roster status alone is not enough: an applicant has none, and a kerbal
 	* standing down still reads `Available` there. See `CrewStanding`.
@@ -7664,8 +7649,9 @@ export interface CrewRosterEntry
 	inactive?: boolean | null;
 	/**
 	* When the stand-down ends (`ProtoCrewMember.inactiveTimeEnd`), as universal
-	* time. Absent when `CrewRosterEntry.inactive` is false, because the field
-	* then holds the end of an earlier rest that is already over.
+	* time. Absent when `CrewRosterEntry.inactive` is false: KSP leaves the field
+	* at whatever the last rest period set, so quoting it for a kerbal on duty
+	* would date a rest that is already over.
 	*/
 	inactiveUntilUt?: Value<"ut"> | null;
 	/**
@@ -7794,9 +7780,7 @@ export interface SpaceCenterPartsAvailable
 * career save whose pool is empty sends a non-null payload with an empty
 * `AstronautComplexInfo.applicants` list.
 *
-* Kept at the home command centre, like `CrewRosterEntry`: the one that holds
-* the career ledger, so a screen working from another command centre sees a
-* change after the signal delay from home.
+* Kept at the home command centre, like `CrewRosterEntry`.
 *
 * @category Crew
 */
@@ -7820,9 +7804,9 @@ export interface AstronautComplexInfo
 	* Active-crew cap set by the Astronaut Complex facility tier
 	* (`GameVariables.GetActiveCrewLimit` over the facility's normalised level). A
 	* hire is blocked once `AstronautComplexInfo.activeCrew` reaches it.
-	* `int.MaxValue` (2147483647) at the top facility tier (unlimited); preserved
-	* as-is on the wire, never clamped, so the client can render "unlimited". Null
-	* when the facility isn't queryable.
+	* `int.MaxValue` at the top facility tier (unlimited); preserved as-is on the
+	* wire, never clamped, so the client can render "unlimited". Null when the
+	* facility isn't queryable.
 	*/
 	crewCapacity?: Value<"count"> | null;
 	/**
@@ -8657,11 +8641,11 @@ export interface TimeCalendar
 	* calendar holds an anchor date, as a planet-pack mod's does does; the stock
 	* formatter holds none.
 	*
-	* `null` means the game has no real-world calendar, which is the normal case
-	* and is not the same as an epoch of zero. Stock KSP has no real calendar: its
-	* own UI prints Year 1, Day 1, and so should every consumer. A planet pack
-	* that changes the day length without installing a date-based formatter has no
-	* anchor either. Do not render a default anchor for those games.
+	* `null` is the normal value, and it is not zero. Stock KSP has no real
+	* calendar: its own UI prints Year 1, Day 1, and so should every consumer. A
+	* planet pack that changes the day length without installing a date-based
+	* formatter has no anchor either. Do not render a default anchor for those
+	* games.
 	*/
 	epoch?: string | null;
 	/**
@@ -9576,9 +9560,9 @@ export interface CrewMember
 	*/
 	slots?: Value<"count"> | null;
 	/**
-	* Their packed-volume limit, stock default 40, in KSP's own cargo-volume unit:
-	* a number with no physical dimension. A repair kit takes 5 of it, so this is
-	* what actually bounds how many kits they can carry.
+	* Their packed-volume limit, stock default 40 in KSP's own cargo-volume unit.
+	* With a repair kit at 5, this is what actually bounds how many they can
+	* carry.
 	*/
 	packedVolumeLimit?: Value<"1"> | null;
 	/** Packed volume they are currently using, same unit as the limit. */
@@ -11602,9 +11586,8 @@ export interface WarpState
 	/**
 	* What every on-rails warp rung of this install actually runs at, indexed by
 	* `WarpState.warpRateIndex`, so `warpRates[i]` is the multiplier
-	* `time.setWarpIndex` (`SetWarpIndexArgs`) with `index = i` produces. Null
-	* when the game has no warp controller to read it off (no scene that can
-	* warp).
+	* `time.setWarpIndex` with `index = i` produces. Null when the game has no
+	* warp controller to read it off (no scene that can warp).
 	*
 	* The table is configuration, not a constant: Kopernicus and RealSolarSystem
 	* both republish it, so a rung stock runs at 100x may run at 10000x on another
@@ -11620,7 +11603,8 @@ export interface WarpState
 	* on every tick, so the mod also waits at least this long in real time. The
 	* gap a client sees between two keyframes of a quiet channel is therefore at
 	* least `keyframeFloorSec × warpRate` UT. A client that judges how current a
-	* channel is from the gap between its keyframes should allow for that much.
+	* channel is from its keyframe cadence has to allow for that, or every quiet
+	* channel reads as held too long just after a warp step-up.
 	*/
 	keyframeFloorSec: Value<"s">;
 	/**
@@ -11632,10 +11616,9 @@ export interface WarpState
 	* passes in a tenth of a real second at the current rate (0.1 s x 100,000 =
 	* 10,000 s at 100,000x), or one physics tick where a tick advances the game
 	* further than that. Nothing between two consecutive samples was observed, so
-	* a line drawn between two samples that differ would claim a path across this
-	* span that only a reckoner's model of the value (see the Reckoners page) can
-	* support. Two samples further apart than this are a channel that did not
-	* change in between.
+	* a line drawn between two samples that differ asserts a path across this span
+	* that only a model of the value can stand behind. Two samples further apart
+	* than this are a channel that did not change in between.
 	*
 	* It changes only when the warp rate does. A client judging a gap reads the
 	* quantum in force when the later sample was taken.

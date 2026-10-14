@@ -1,0 +1,69 @@
+{
+  "_meta": {
+    "shows": "A sub-orbital Kerbin trajectory with periapsis 5 km below the surface and apoapsis at 72 km, the craft falling at 33.5 km up, drawn in the non-orbiting style.",
+    "scenario": "sub-orbital",
+    "notes": "Sub-orbital trajectory above Kerbin. PeA is negative (below surface), isOrbiting=false. hasOrbit guard: sma, eccentricity, ApR, PeR all present so hasOrbit=true and diagram still renders, but isOrbiting=false changes the diagram's visual style. The phase puts the craft 33.5 km up and falling, a quarter turn short of the periapsis it will never reach: sampled AT that periapsis it would be 5.3 km underground, which is not a position the game can report."
+  },
+  "v.body": "Kerbin",
+  "o.referenceBody": "Kerbin",
+  "o.ApA": 72000,
+  "o.PeA": -5000,
+  "o.ApR": 672000,
+  "o.PeR": 595000,
+  "o.sma": 633500,
+  "o.eccentricity": 0.0612,
+  "o.trueAnomaly": 340,
+  "o.argumentOfPeriapsis": 5,
+  "o.inclination": 2.1,
+  "o.period": 1627.4,
+  "o.timeToAp": 820,
+  "o.timeToPe": 185,
+  "_stream": {
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 633500,
+          "ecc": 0.0612,
+          "inc": 2.1,
+          "lan": 0,
+          "argPe": 5,
+          "meanAnomalyAtEpoch": 4.7736,
+          "epoch": 10,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 10
+  }
+}

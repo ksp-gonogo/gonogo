@@ -18,7 +18,7 @@ const panel = (i, componentId, x, y, w, h, config) => ({
 const flight = [
   panel("navball", "navball", 0, 0, 9, 14),
   panel("ascent", "circular-orbit", 9, 0, 9, 14),
-  panel("orbit", "orbit-view", 18, 0, 9, 14),
+  panel("orbit", "current-orbit", 18, 0, 9, 14),
   panel("fuel", "fuel-status", 27, 0, 9, 22),
   panel("twr", "twr", 0, 14, 9, 8),
   panel("warp", "warp-control", 9, 14, 9, 8),

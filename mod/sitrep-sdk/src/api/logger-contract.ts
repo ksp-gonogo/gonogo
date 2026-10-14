@@ -10,7 +10,7 @@ export interface LogContext {
   requestId?: string;
   /** An id for the operator the entry concerns, as a string; leave it out when there is none. */
   userId?: string;
-  /** Which part of the code wrote the entry, such as an Uplink's id, kept on the entry for finding it later. Unlike a tag, it does not decide whether the entry prints. */
+  /** Which part of the code wrote the entry, such as an Uplink's id. */
   service?: string;
   /** Any other field is kept on the entry as it is. */
   [key: string]: unknown;
@@ -40,8 +40,7 @@ export interface TaggedLogger {
 
 /**
  * The app's logger, with a method for each severity. Useful for leaving a line
- * in the operator's log buffer that is also sent to the deployment's remote log
- * store, when it has one.
+ * in the operator's log buffer that is also sent on to the app's log service.
  * Reached through the `logger` export of this package.
  *
  * Every entry is kept in the log buffer. The browser console shows an entry

@@ -24,8 +24,8 @@ const ACTION_HANDLERS_KEY = "__GONOGO_ACTION_HANDLERS__" as const;
 /**
  * The function that runs when an input bound to one action of one placed widget
  * fires, and what it returns is written back to the device that fired it.
- * Useful for naming the type of a handler that takes the payload of any bound
- * input. Taken by {@link registerActionHandler}.
+ * Useful for letting the operator drive a widget from a serial device or
+ * keyboard key. Taken by {@link registerActionHandler}.
  *
  * @category Actions
  */
@@ -51,12 +51,11 @@ function bucketFor(instanceId: string): Map<string, ActionHandler> {
 
 /**
  * Sets the function that runs when an input bound to one action of one placed
- * widget fires, replacing any set before it. A widget does not call it: it
- * calls {@link useActionInput}, which registers its handlers and removes them
- * when the widget unmounts. Useful for a test that stands in for a widget's
- * handlers. `instanceId` is the id the dashboard gave that one placed copy of
- * the widget, which the widget reads as the `id` of its {@link ComponentProps},
- * so two copies of one widget keep separate bindings. Used by `useActionInput`.
+ * widget fires, replacing any set before it. Useful for letting the operator
+ * drive a widget from a serial device or keyboard key. `instanceId` is the id
+ * the dashboard gave that one placed copy of the widget, so two copies of one
+ * widget keep separate bindings. Used by `useActionInput`, which a widget calls
+ * instead of calling this directly.
  *
  * @category Actions
  */

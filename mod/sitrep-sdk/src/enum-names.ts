@@ -2,8 +2,7 @@
  * Returns the names of a numeric enum's members, indexed by value, for an enum
  * whose values run 0, 1, 2 and so on, as every enum Gonogo defines for itself
  * does: with the SDK's {@link Situation}, `namesOf(Situation)[0]` is
- * `"Landed"`. It is built from the enum, so it covers every member, and an ordinal
- * past the last one gives `undefined`, since the array has no gaps. The
+ * `"Landed"`. It is built from the enum, so it covers every member. The
  * contract's mirrors of KSP's own enums (the `Ksp*` enums) may start at -1 or
  * be bitmasks; use {@link namesByValue} for those. Useful for showing the
  * operator a numbered enum from the stream by name. Used to build

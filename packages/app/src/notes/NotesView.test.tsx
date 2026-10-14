@@ -73,23 +73,6 @@ describe("NotesView", () => {
     expect((composer as HTMLTextAreaElement).value).toBe("check fuel");
   });
 
-  it("keeps what was typed into the composer while an add is in flight", async () => {
-    let answer: (o: NoteOutcome) => void = () => {};
-    renderNotes([], {
-      addNote: vi.fn(() => new Promise<NoteOutcome>((r) => (answer = r))),
-    });
-    const composer = screen.getByLabelText(/New note body/);
-    fireEvent.change(composer, { target: { value: "check fuel" } });
-    fireEvent.keyDown(composer, { key: "Enter" });
-    fireEvent.change(composer, {
-      target: { value: "check fuel and oxidiser" },
-    });
-    await act(async () => answer(ok));
-    expect((composer as HTMLTextAreaElement).value).toBe(
-      "check fuel and oxidiser",
-    );
-  });
-
   it("offers one way to remove a note, which deletes it at the version shown", async () => {
     const { actions } = renderNotes([note("a", "first", 0, 4)]);
     fireEvent.click(screen.getByLabelText("Delete note"));
@@ -218,93 +201,6 @@ describe("NotesView", () => {
       );
       await user.type(screen.getByDisplayValue("first mine"), "{Enter}");
       expect(actions.addNote).toHaveBeenCalledWith("first mine");
-    });
-  });
-
-  describe("a note deleted on another screen while it is being edited", () => {
-    it("stays on screen with the typed text, ready to be added again", async () => {
-      const user = userEvent.setup();
-      const { rerender, actions } = renderNotes([note("a", "first", 0)]);
-      await user.click(screen.getByRole("button", { name: "first" }));
-      await user.type(screen.getByDisplayValue("first"), " mine");
-      rerender(
-        <NotesView
-          snap={{ centreId: "ground:home", notes: [] }}
-          actions={actions}
-        />,
-      );
-      const editor = screen.getByDisplayValue("first mine");
-      expect(tipOn(editor)).toBe(
-        "Deleted elsewhere. Enter adds it again, Escape drops it",
-      );
-      await user.type(editor, "{Enter}");
-      expect(actions.addNote).toHaveBeenCalledWith("first mine");
-      expect(actions.updateNote).not.toHaveBeenCalled();
-    });
-
-    it("goes when the operator drops the edit", async () => {
-      const user = userEvent.setup();
-      const { rerender, actions } = renderNotes([note("a", "first", 0)]);
-      await user.click(screen.getByRole("button", { name: "first" }));
-      await user.type(screen.getByDisplayValue("first"), " mine");
-      rerender(
-        <NotesView
-          snap={{ centreId: "ground:home", notes: [] }}
-          actions={actions}
-        />,
-      );
-      await user.type(screen.getByDisplayValue("first mine"), "{Escape}");
-      expect(screen.queryByDisplayValue("first mine")).toBeNull();
-    });
-
-    it("does not keep an unchanged editor open", async () => {
-      const user = userEvent.setup();
-      const { rerender, actions } = renderNotes([note("a", "first", 0)]);
-      await user.click(screen.getByRole("button", { name: "first" }));
-      rerender(
-        <NotesView
-          snap={{ centreId: "ground:home", notes: [] }}
-          actions={actions}
-        />,
-      );
-      expect(screen.queryByDisplayValue("first")).toBeNull();
-    });
-
-    it("is not carried into the list of another command centre", async () => {
-      const user = userEvent.setup();
-      const { rerender, actions } = renderNotes([note("a", "first", 0)]);
-      await user.click(screen.getByRole("button", { name: "first" }));
-      await user.type(screen.getByDisplayValue("first"), " mine");
-      rerender(
-        <NotesView
-          snap={{ centreId: "ground:other", notes: [] }}
-          actions={actions}
-        />,
-      );
-      expect(screen.queryByDisplayValue("first mine")).toBeNull();
-    });
-
-    it("says a refused re-add was refused, not that the screen is offline", async () => {
-      const user = userEvent.setup();
-      const { rerender, actions } = renderNotes([note("a", "first", 0)], {
-        addNote: vi.fn(
-          async () => ({ status: "refused", current: null }) as NoteOutcome,
-        ),
-      });
-      await user.click(screen.getByRole("button", { name: "first" }));
-      await user.type(screen.getByDisplayValue("first"), " mine");
-      rerender(
-        <NotesView
-          snap={{ centreId: "ground:home", notes: [] }}
-          actions={actions}
-        />,
-      );
-      await user.type(screen.getByDisplayValue("first mine"), "{Enter}");
-      await waitFor(() =>
-        expect(tipOn(screen.getByDisplayValue("first mine"))).toBe(
-          "Not added, this screen has no command centre. Enter tries again, Escape drops your edit",
-        ),
-      );
     });
   });
 

@@ -423,19 +423,8 @@ export class ViewClock {
     else clearTimeout(handle.id);
   }
 
-  /**
-   * The page's own clock in seconds, which runs on at one second a second
-   * while the game is paused or warping: the `nowWall` option when one was
-   * given, else `performance.now()`. Useful for timing something the operator
-   * waits on in real time whatever the game's clock is doing. Used by
-   * `useCommand` to stop tracking a command no queue snapshot ever listed.
-   */
-  wallNow(): number {
-    return (this.options.nowWall ?? defaultNowWall)();
-  }
-
   private now(): number {
-    return this.wallNow();
+    return (this.options.nowWall ?? defaultNowWall)();
   }
 
   private warpRate(): number {

@@ -34,10 +34,7 @@ function withTheme(Extra?: Wrapper): Wrapper {
  * mounted, so a `@ksp-gonogo/ui-kit` component renders without a provider of
  * your own. A `wrapper` you pass is mounted inside the theme. It needs
  * `@testing-library/react` and `styled-components` installed, and a DOM test
- * environment such as jsdom, in which a widget also needs
- * {@link installDomStubs} to have run. Any test runner works; the example uses
- * vitest, installed with `npm install -D vitest jsdom` and set to
- * `environment: "jsdom"` in its config.
+ * environment such as jsdom. Any test runner works; the example uses vitest.
  * Its options and result are Testing Library's own `RenderOptions` and
  * `RenderResult`, with Testing Library's default queries, which the signature
  * shows as `queries`. Useful for testing what an operator sees of a ui-kit

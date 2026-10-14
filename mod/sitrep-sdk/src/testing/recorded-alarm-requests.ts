@@ -4,15 +4,13 @@ import type { UplinkClientHandle } from "../api/types";
 /**
  * An alarm a widget asked for through `useAlarmRequest` under a test host,
  * recorded instead of created, so a test can check the request. Read them with
- * {@link getRequestedAlarms}. Nothing is created, so a request with the same key
- * as an earlier one is recorded again as its own entry; the real app
- * updates the alarm instead. Useful for testing that pressing a widget's alarm
+ * {@link getRequestedAlarms}. Useful for testing that pressing a widget's alarm
  * control asks for the alarm the operator expects.
  *
  * @category Test doubles
  */
 export interface RecordedAlarmRequest extends UplinkAlarmRequest {
-  /** The id of the Uplink client handle the widget passed to `useAlarmRequest`. */
+  /** The id off the handle the widget passed to `useAlarmRequest`. */
   uplinkId: string;
 }
 

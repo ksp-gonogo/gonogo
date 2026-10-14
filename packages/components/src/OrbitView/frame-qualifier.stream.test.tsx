@@ -41,11 +41,6 @@ function setup() {
   return fixture;
 }
 
-/** The words drawn on the diagram, apart from the figures' own Ap and Pe labels. */
-function drawingText(): string {
-  return document.querySelector("svg")?.textContent ?? "";
-}
-
 describe("OrbitView: the apsis markers and the view frame", () => {
   it("draws the Ap and Pe labels in a frame that has apsides", async () => {
     // The contrast case: without it, the absence below could pass on a widget that never drew the labels.
@@ -54,8 +49,8 @@ describe("OrbitView: the apsis markers and the view frame", () => {
       fixture.emit("system.frame", { kind: 1, centreBody: "Kerbin" });
     });
 
-    await waitFor(() => expect(drawingText()).toContain("Ap"));
-    expect(drawingText()).toContain("Pe");
+    await waitFor(() => expect(screen.getByText("Ap")).toBeTruthy());
+    expect(screen.getByText("Pe")).toBeTruthy();
   });
 
   it("draws neither in a frame defined by a pair of bodies", async () => {
@@ -71,7 +66,7 @@ describe("OrbitView: the apsis markers and the view frame", () => {
 
     // Wait for the diagram first: `waitFor` around a negative assertion passes on its first tick.
     await waitFor(() => expect(screen.getByText(/orbit plane/)).toBeTruthy());
-    expect(drawingText()).not.toContain("Ap");
-    expect(drawingText()).not.toContain("Pe");
+    expect(screen.queryByText("Ap")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pe")).not.toBeInTheDocument();
   });
 });

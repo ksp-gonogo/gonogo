@@ -65,9 +65,8 @@ public class SettingsModel
 public class SettingsRowState
 {
     /// <summary>
-    /// Where the setting lives, as the name of a block of the settings file and
-    /// the setting's name inside it, separated by <c>/</c>:
-    /// <c>SIGNAL_DELAY/enabled</c>, or
+    /// Where the setting lives, as blocks and a name separated by
+    /// <c>/</c>: <c>SIGNAL_DELAY/enabled</c>, or
     /// <c>Uplinks/&lt;id&gt;/&lt;name&gt;</c> for an Uplink's own. This is the
     /// path a save names.
     /// </summary>

@@ -33,9 +33,8 @@ import type { Meta, StreamBinary } from "./__generated__/contract";
 export const BINARY_LANE_MAGIC = 0x9e;
 
 /**
- * The lane byte, the second byte of a binary frame, which says what kind of
- * binary frame follows. `stream-binary` is the only kind, so this is the only
- * value a frame can carry; any other is refused as an unknown lane. Used by
+ * The lane byte of a `stream-binary` frame, the only lane byte a frame can carry.
+ * Any other value is refused as an unknown lane. Used by
  * {@link decodeBinaryFrame} to refuse a frame whose lane this build does not
  * know.
  *
@@ -154,10 +153,7 @@ const HEADER_TEXT_DECODER = new TextDecoder("utf-8", { fatal: false });
  * the JSON text frames everything else arrives in: how to tell a binary frame
  * from a text one and read its header and body. Only code that reads the socket
  * itself meets these: a widget that reads Topics with {@link useTelemetry} or
- * {@link useStream} can skip this page. The one Topic that arrives this way is
- * `commcast.radio`, the group radio; the first segment of each of its frames is
- * a {@link CommcastRadioBatch}, and the Radio page shows how its audio is
- * decoded.
+ * {@link useStream} can skip this page.
  *
  * @concept Binary lane
  * The binary lane is how the stream carries a payload that is opaque bytes,

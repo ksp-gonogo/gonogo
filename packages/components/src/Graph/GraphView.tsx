@@ -4,23 +4,33 @@ import type {
   SeriesTimeBasis,
 } from "@ksp-gonogo/data";
 import { plotColumnsOf, useTopicFieldCatalog } from "@ksp-gonogo/data";
-import { type PlotLayer, seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
 import {
-  type ChartSeries,
-  Graph,
-  type GraphThreshold,
+  magnitudeOf,
+  type PlotLayer,
+  seriesKeyOf,
+} from "@ksp-gonogo/sitrep-sdk";
+import type { ChartSeries, ThresholdRule } from "@ksp-gonogo/ui";
+import { LineChart, utXTickFormat } from "@ksp-gonogo/ui";
+import {
+  Box,
+  FramedDisplay,
+  GraphNotice,
   getSizeBucket,
-  type ReadoutRoom,
-  type ReferenceCurve,
+  Panel,
+  placeGraphNotice,
+  resolveCurrency,
+  Section,
+  speakQuantity,
   Text,
-  utXTickFormat,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import {
+  type CSSProperties,
   type ReactNode,
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -38,14 +48,56 @@ import {
   resolvePanelTitle,
 } from "./header";
 import { buildLiveSeries } from "./liveSeries";
-import { formatNumericTick } from "./ticks";
-import type { ComputedSeries, GraphVariant, GraphViewConfig } from "./types";
+import { formatNumericTick, unitTick, writeThreeFigures } from "./ticks";
+import type {
+  ComputedSeries,
+  GraphThreshold,
+  GraphVariant,
+  GraphViewConfig,
+} from "./types";
 
-export type {
-  PresentPoint,
-  ReadoutRoom,
-  ReferenceCurve,
-} from "@ksp-gonogo/ui-kit";
+/** A caller-sampled static curve overlaid on a non-time chart, as parallel `xs` / `ys` arrays; nothing is subscribed for it. */
+export interface ReferenceCurve {
+  /** Stable ID; must not collide with any series ID. */
+  id: string;
+  label: string;
+  xs: number[];
+  ys: number[];
+  /** CSS color, a dim accent when omitted. */
+  color?: string;
+  /** Which Y axis the curve belongs to, `"primary"` when omitted. */
+  axis?: "primary" | "secondary";
+}
+
+/**
+ * A threshold as the chart draws it: placed at the figure its quantity
+ * resolves to, which is the model's where the reading carries one, and labelled
+ * with that figure after the caller's own words. A line with no finite figure
+ * is not drawn.
+ */
+function thresholdRuleOf(
+  line: GraphThreshold,
+  index: number,
+): ThresholdRule | null {
+  const { shown } = resolveCurrency(line.value, { drawsReckoning: true });
+  // The one number the chart's scale needs, taken where the line is placed.
+  const at = magnitudeOf(shown);
+  if (at === null) return null;
+  return {
+    id: line.id ?? `threshold-${index}`,
+    value: at,
+    ...(line.kind === "limit"
+      ? { kind: line.kind, bad: line.bad }
+      : { kind: line.kind }),
+    axis: line.axis,
+    // Drawn with the unit's symbol like every other figure on the chart, and read aloud with its word.
+    label: [line.label, shown ? writeThreeFigures(shown) : undefined]
+      .filter(Boolean)
+      .join(": "),
+    spokenLabel: [line.label, speakQuantity(shown)].filter(Boolean).join(": "),
+    reading: "state" in line.value ? line.value : undefined,
+  };
+}
 
 export interface GraphViewProps {
   config: GraphViewConfig | undefined;
@@ -80,6 +132,41 @@ export interface GraphViewProps {
    * drawn.
    */
   plotReadout?: ReactNode | ((room: ReadoutRoom) => ReactNode);
+}
+
+/** The newest sample of the first plotted series, with the figure each reference curve has at its x. */
+export interface PresentPoint {
+  x: number;
+  y: number;
+  /** Reference curves read at `x`, by curve id; a curve that does not reach `x` is left out. */
+  references: Readonly<Record<string, number>>;
+}
+
+/** The value of a sampled curve at `x` by straight lines between samples, or nothing outside the curve. */
+function readCurveAt(
+  xs: readonly number[],
+  ys: readonly number[],
+  x: number,
+): number | undefined {
+  for (let i = 1; i < xs.length; i++) {
+    const [x0, x1] = [xs[i - 1], xs[i]];
+    if (x >= Math.min(x0, x1) && x <= Math.max(x0, x1) && x1 !== x0) {
+      return ys[i - 1] + ((ys[i] - ys[i - 1]) * (x - x0)) / (x1 - x0);
+    }
+  }
+  return undefined;
+}
+
+/** The space a readout is offered, so it can answer with a form that fits: a column has all it needs, a card on the plot has the plot's. */
+export interface ReadoutRoom {
+  width: number;
+  height: number;
+  /** Where the first plotted series stands now (its newest sample) and what each reference curve reads there, in the plot's own numbers. Absent on a time axis or before a sample arrives. */
+  present?: PresentPoint;
+  /** Figures set beside their labels have no clear corner, so they should be stacked under them. */
+  compact: boolean;
+  /** Stacked figures have no clear corner either, so they should be drawn as small as they can be. */
+  tight: boolean;
 }
 
 /** Referentially stable, so an unlayered chart does not remount its layer renderer every render. */
@@ -152,6 +239,51 @@ export function GraphView({
   }
   const resolvedVariant = resolveVariant();
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
+  const areaRef = useRef<HTMLDivElement>(null);
+  const [area, setArea] = useState<{ w: number; h: number } | null>(null);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind the observer when the variant flips, chart and readout share `containerRef` but render different elements, so the ref points to a fresh node.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      setSize({ w: Math.floor(width), h: Math.floor(height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [resolvedVariant]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-bind when the variant flips, the readout renders no area
+  useEffect(() => {
+    const el = areaRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      setArea({ w: Math.floor(width), h: Math.floor(height) });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [resolvedVariant]);
+
+  const [asideSize, setAsideSize] = useState<{ w: number; h: number } | null>(
+    null,
+  );
+  const [asideEl, setAsideEl] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!asideEl) return;
+    const ro = new ResizeObserver(() =>
+      setAsideSize({
+        w: asideEl.offsetWidth + ASIDE_CHROME_PX,
+        h: asideEl.offsetHeight + ASIDE_CHROME_PX,
+      }),
+    );
+    ro.observe(asideEl);
+    return () => ro.disconnect();
+  }, [asideEl]);
+
   const [fetchedData, setSeriesData] = useState<
     Map<string, SeriesRange<number>>
   >(new Map());
@@ -206,6 +338,31 @@ export function GraphView({
     cfg.type === "band" && cfg.high ? [cfg.high] : [],
   );
 
+  const thresholdRules = useMemo(
+    () =>
+      (thresholds ?? [])
+        .map(thresholdRuleOf)
+        .filter((rule): rule is ThresholdRule => rule !== null),
+    [thresholds],
+  );
+
+  // Reference curves are functions of X, so a time-axis graph skips them.
+  const overlaySeries: ChartSeries[] =
+    !xIsTime && referenceCurves
+      ? referenceCurves.map((curve) => ({
+          id: `__ref_${curve.id}`,
+          label: curve.label,
+          axis: curve.axis ?? "primary",
+          color: curve.color ?? "var(--color-text-faint)",
+          type: "line" as const,
+          dashed: true,
+          readBetween: true,
+          data: { x: curve.xs, y: curve.ys },
+        }))
+      : [];
+
+  const chartSeries: ChartSeries[] = [...liveSeries, ...overlaySeries];
+
   const reckonedWindowEnd = series.reduce<number | undefined>(
     (furthest, cfg) => {
       const raw = seriesData.get(seriesKeyOf(cfg.source));
@@ -221,7 +378,7 @@ export function GraphView({
     if (xPinned) return config?.xDomain as [number, number];
     if (xIsTime)
       return timeWindowDomain(liveSeries, windowSec, reckonedWindowEnd);
-    return computeXDomain(xData.v as number[], referenceCurves ?? [], layers);
+    return computeXDomain(xData.v as number[], overlaySeries, layers);
   }
   const xDomain = resolveXDomain();
 
@@ -240,8 +397,14 @@ export function GraphView({
       ) => string)
     | undefined {
     if (xIsTime) return timeBasis === "ut-seconds" ? utXTickFormat : undefined;
-    // A pinned axis with a unit is written by the graph's own unit ladder.
-    if (xPinned && config?.xUnit) return undefined;
+    if (xPinned && config?.xUnit) {
+      const unit = config.xUnit;
+      return (
+        v: number,
+        _domain: readonly [number, number],
+        ticks?: readonly number[],
+      ) => unitTick(unit, v, ticks);
+    }
     return (v: number) => formatNumericTick(v, xMeta?.unit);
   }
   const xTickFormat = resolveXTickFormat();
@@ -257,6 +420,11 @@ export function GraphView({
             return formatNumericTick(v, xReadUnit);
           }
         };
+
+  const yTickFormat = config?.yUnit
+    ? (v: number, ticks?: readonly number[]) =>
+        unitTick(config.yUnit as string, v, ticks)
+    : undefined;
 
   const derive = deriveAxisTitles === true;
   const xAxisTitle = axisTitle(
@@ -292,6 +460,7 @@ export function GraphView({
         cfg={cfg}
         meta={metaMap.get(key)}
         raw={seriesData.get(key) ?? { t: [], v: [] }}
+        containerRef={containerRef}
         needsFetch={!computedKeys.has(key)}
         windowSec={windowSec}
         onData={handleData}
@@ -299,51 +468,197 @@ export function GraphView({
     );
   }
 
-  return (
-    <Graph
-      chrome={chrome}
-      title={resolvePanelTitle(title, units, fullTitle)}
-      headerActions={headerActions}
-      series={liveSeries}
-      xDomain={xDomain}
-      xTickFormat={xTickFormat}
-      xReadFormat={xReadFormat}
-      xUnit={xPinned && !xIsTime ? config?.xUnit : undefined}
-      yUnit={config?.yUnit}
-      yDomainPrimary={config?.yDomainPrimary}
-      yDomainSecondary={config?.yDomainSecondary}
-      yScalePrimary={config?.yScalePrimary}
-      yScaleSecondary={config?.yScaleSecondary}
-      thresholds={thresholds}
-      referenceCurves={referenceCurves}
-      layers={ownLayers}
-      xKind={xIsTime ? "time" : "value"}
-      xAxisLabel={xAxisTitle}
-      yAxisLabel={yAxisLabel}
-      ySecondaryAxisLabel={ySecondaryAxisLabel}
-      aria-label={ariaLabel}
-      hideXAxis={config?.hideXAxis}
-      spatial={config?.spatial}
-      gridScale={config?.gridScale}
-      notice={notice}
-      emptyState={emptyState}
-      footer={
-        hasThirdUnit ? (
-          <Text tone="warn">Add explicit axes to plot 3+ units</Text>
-        ) : undefined
-      }
-      plotReadout={plotReadout}
+  const plotIsEmpty =
+    series.length === 0 && overlaySeries.length === 0 && layers.length === 0;
+  const plotHasData =
+    layers.length > 0 || chartSeries.some((cs) => (cs.data.x?.length ?? 0) > 0);
+  const notices: ReactNode[] = [];
+  if (plotIsEmpty) notices.push(emptyState);
+  if (notice) notices.push(notice);
+  // Until the first measurement an empty plot is assumed roomy, so a frame that will end up alone in its panel does not start out with a notice beside it.
+  const noticePlacement = area
+    ? placeGraphNotice({ width: area.w, height: area.h, plotHasData })
+    : plotHasData
+      ? "inline"
+      : "center";
+
+  const noticeNode = (
+    <GraphNotice placement={noticePlacement}>
+      {notices.map((n, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: the list is rebuilt whole each render and never reordered
+        <div key={i}>{n}</div>
+      ))}
+    </GraphNotice>
+  );
+
+  const present = ((): PresentPoint | undefined => {
+    if (xIsTime) return undefined;
+    const lead = liveSeries.find(
+      (s) => s.type !== "band" && s.data.x.length > 0,
+    );
+    if (!lead) return undefined;
+    let last = lead.data.x.length - 1;
+    while (
+      last >= 0 &&
+      !(
+        Number.isFinite(lead.data.x[last]) && Number.isFinite(lead.data.y[last])
+      )
+    ) {
+      last -= 1;
+    }
+    if (last < 0) return undefined;
+    const x = lead.data.x[last];
+    const references: Record<string, number> = {};
+    for (const curve of referenceCurves ?? []) {
+      const at = readCurveAt(curve.xs, curve.ys, x);
+      if (at !== undefined) references[curve.id] = at;
+    }
+    return { x, y: lead.data.y[last], references };
+  })();
+  // A readout that answers with nothing for the present state has nothing to place.
+  const columnReadout =
+    typeof plotReadout === "function"
+      ? plotReadout({
+          width: Number.POSITIVE_INFINITY,
+          height: Number.POSITIVE_INFINITY,
+          present,
+          compact: false,
+          tight: false,
+        })
+      : plotReadout;
+  const hasReadout = columnReadout !== undefined && columnReadout !== null;
+  // Beside the plot only where the plot keeps a usable width and the column fits the height; until the column has been measured it is assumed a typical width.
+  const readoutBeside =
+    hasReadout &&
+    area !== null &&
+    area.w - (asideSize?.w ?? ASIDE_GUESS_PX) >= ASIDE_PLOT_KEEPS_PX &&
+    area.h >= (asideSize?.h ?? 0);
+
+  const chartBody = (
+    <div
+      ref={areaRef}
+      style={{
+        ...CHART_BODY,
+        flexDirection: noticePlacement === "beside" ? "row" : "column",
+      }}
     >
-      <GraphFetchers
-        series={series.filter(
-          (cfg) => !computedKeys.has(seriesKeyOf(cfg.source)),
+      <FramedDisplay
+        style={CHART_FRAME}
+        footer={
+          hasThirdUnit ? (
+            <Text tone="warn">Add explicit axes to plot 3+ units</Text>
+          ) : undefined
+        }
+      >
+        <div ref={containerRef} style={CHART_AREA}>
+          {size && (
+            <LineChart
+              series={chartSeries}
+              xDomain={xDomain}
+              xTickFormat={xTickFormat}
+              xReadFormat={xReadFormat}
+              yDomainPrimary={config?.yDomainPrimary}
+              yDomainSecondary={config?.yDomainSecondary}
+              yScalePrimary={config?.yScalePrimary}
+              yScaleSecondary={config?.yScaleSecondary}
+              yTickFormat={yTickFormat}
+              thresholds={thresholdRules}
+              layers={layers}
+              hideXAxis={config?.hideXAxis}
+              spatial={config?.spatial}
+              gridScale={config?.gridScale}
+              aria-label={ariaLabel}
+              crosshair={!config?.hideXAxis}
+              xKind={xIsTime ? "time" : "value"}
+              xAxisLabel={config?.spatial ? undefined : xAxisTitle}
+              yAxisLabel={config?.spatial ? undefined : yAxisLabel}
+              ySecondaryAxisLabel={
+                config?.spatial ? undefined : ySecondaryAxisLabel
+              }
+              card={
+                hasReadout && !readoutBeside
+                  ? typeof plotReadout === "function"
+                    ? (room) =>
+                        plotReadout({
+                          width: room.width,
+                          height: room.height,
+                          present,
+                          compact: room.form > 0,
+                          tight: room.form > 1,
+                        })
+                    : plotReadout
+                  : undefined
+              }
+              cardForms={typeof plotReadout === "function" ? 3 : 1}
+              width={size.w}
+              height={size.h}
+            />
+          )}
+          {/* Inside the frame, so a notice laid over an empty plot leaves the frame the body's only content. */}
+          {notices.length > 0 && noticePlacement === "center" && noticeNode}
+        </div>
+        {readoutBeside && (
+          <Box pad="surface" style={PLOT_ASIDE}>
+            <div ref={setAsideEl} data-plot-aside="">
+              {columnReadout}
+            </div>
+          </Box>
         )}
-        extraFetches={extraFetches}
-        xFetch={xPinned ? undefined : xSource}
-        windowSec={windowSec}
-        onData={handleData}
-        onXData={handleXData}
-      />
-    </Graph>
+        {/* Draws nothing, so it rides inside the frame and leaves it the chart's only content when there's no notice beside it. */}
+        <GraphFetchers
+          series={series.filter(
+            (cfg) => !computedKeys.has(seriesKeyOf(cfg.source)),
+          )}
+          extraFetches={extraFetches}
+          xFetch={xPinned ? undefined : xSource}
+          windowSec={windowSec}
+          onData={handleData}
+          onXData={handleXData}
+        />
+      </FramedDisplay>
+      {notices.length > 0 && noticePlacement !== "center" && noticeNode}
+    </div>
+  );
+
+  if (chrome === "bare") return chartBody;
+
+  return (
+    <Panel
+      panelTitle={resolvePanelTitle(title, units, fullTitle)}
+      panelAside={headerActions}
+      sections={<Section fill>{chartBody}</Section>}
+    />
   );
 }
+
+/** A column beside the plot is assumed this wide until it has been measured. */
+const ASIDE_GUESS_PX = 180;
+/** The column's padding and border around the readout it holds, which the measured readout does not include. */
+const ASIDE_CHROME_PX = 24;
+/** What the plot must keep, its axes included, once the column is taken. */
+const ASIDE_PLOT_KEEPS_PX = 300;
+
+const CHART_BODY: CSSProperties = {
+  flex: 1,
+  display: "flex",
+  position: "relative",
+  minHeight: 0,
+  minWidth: 0,
+};
+
+const CHART_FRAME: CSSProperties = { flex: 1, minHeight: 0, minWidth: 0 };
+
+const PLOT_ASIDE: CSSProperties = {
+  flex: "0 0 auto",
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  borderLeft: "1px solid var(--color-border-subtle)",
+};
+
+const CHART_AREA: CSSProperties = {
+  flex: 1,
+  position: "relative",
+  minHeight: 0,
+  minWidth: 0,
+};

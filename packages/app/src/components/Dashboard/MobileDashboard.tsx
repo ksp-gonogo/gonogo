@@ -24,7 +24,6 @@ import {
 import styled from "styled-components";
 import {
   getUplinkOutcomes,
-  haveUplinksSettled,
   subscribeUplinkOutcomes,
 } from "../../uplinks/loaderState";
 import type { DashboardItem, DashboardProps } from "./index";
@@ -116,11 +115,6 @@ const MobileItemContent = memo(function MobileItemContent({
     getUplinkOutcomes,
     getUplinkOutcomes,
   );
-  const uplinksSettled = useSyncExternalStore(
-    subscribeUplinkOutcomes,
-    haveUplinksSettled,
-    haveUplinksSettled,
-  );
   const def = getComponent(item.componentId);
 
   const onSaveConfig = useCallback(
@@ -164,7 +158,6 @@ const MobileItemContent = memo(function MobileItemContent({
         <ComponentWrapper>
           <UnavailableWidget
             componentId={item.componentId}
-            settled={uplinksSettled}
             onRemove={onRemove}
           />
         </ComponentWrapper>

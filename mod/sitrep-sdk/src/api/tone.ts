@@ -1,16 +1,14 @@
 /**
  * The state a badge, meter, figure, plot layer or button shows: a contribution
- * names a tone, never a colour (a plot's field and water layers may also give a
- * `tint`, the colour of the body they draw), and the design-system package `@ksp-gonogo/ui-kit`
+ * names a tone, never a colour, and the design-system package `@ksp-gonogo/ui-kit`
  * (`npm install @ksp-gonogo/ui-kit`) chooses the colour for where it is drawn.
  *
  * `neutral` carries no state. `info` is something worth noticing that is
  * neither good nor bad. `go` is all well. `caution` is a milder `warn`, and
  * `nogo` is worse than both `caution` and `warn`, so from least to most severe
- * the four states run `go`, `caution`, `warn`, `nogo`. `offline` means there is no
- * reading behind the thing to show (its state is not `observed` or `held`, see
- * {@link Reading}), which is not the same as a neutral reading, and it sits
- * outside that scale with `neutral` and `info`.
+ * the four states run `go`, `caution`, `warn`, `nogo`. `offline` means the data
+ * behind the thing is gone, which is not the same as a neutral reading, and it
+ * sits outside that scale with `neutral` and `info`.
  *
  * Useful for telling the operator how a reading stands without choosing a
  * colour. Taken by the `tone` of a {@link PlotLayer} and of contribution
@@ -50,7 +48,7 @@ export const TONES: readonly Tone[] = [
 
 /**
  * The tones a contribution uses to say how alarming something it reports is,
- * such as each entry the `compute` function of a contribution returns. `go` is not among them: when all is
+ * such as each entry its `compute` returns. `go` is not among them: when all is
  * well, return no entry at all rather than one with a reassuring tone.
  * Useful for letting the operator see at a glance how serious a contribution's
  * report is. Used by entries such as {@link CrewRowToneEntry} and {@link

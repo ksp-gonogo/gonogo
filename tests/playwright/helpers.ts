@@ -58,7 +58,7 @@ export interface DashboardLayout {
 /**
  * Build a dashboard config containing a single widget under `componentId`.
  * The default 8×6 footprint is large enough for any widget's rich
- * layout (OrbitView's diagram slot etc.): use `size` to override
+ * layout (CurrentOrbit's diagram slot etc.): use `size` to override
  * for niche cases.
  */
 export function dashboardWithWidget(
@@ -314,7 +314,7 @@ export async function teardownPair(pair: BootstrappedPair): Promise<void> {
  *
  * The widgets render `<Label>X</Label><Value>...</Value>` pairs inside a
  * grid; this walks `nextElementSibling` from the label until it finds
- * a match. Use this for grid-laid-out widgets like OrbitView. For
+ * a match. Use this for grid-laid-out widgets like CurrentOrbit. For
  * widgets with a single readout (CommSignal headline, etc.) just
  * `page.getByText` directly.
  */

@@ -92,7 +92,7 @@ describe("docs/widgets.json beside the README", () => {
     const readme = readFileSync(join(dir, "README.md"), "utf8");
     expect(readme).toContain("### Planted Gauge");
     expect(readme).toContain("Toggle units (`toggle`)");
-    expect(readme).toContain("| Default size, in grid units | 4 × 3 |");
+    expect(readme).toContain("| Default size | 4 × 3 |");
     expect(checkUplinkPage({ root: dir }).differences).toEqual([]);
   });
 

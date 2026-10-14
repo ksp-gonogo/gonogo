@@ -1,10 +1,7 @@
 import type { DataKeyMeta } from "@ksp-gonogo/data";
 import { type PlotLayer, seriesKeyOf } from "@ksp-gonogo/sitrep-sdk";
-import {
-  type ChartSeries,
-  plotLayerExtent,
-  type ReferenceCurve,
-} from "@ksp-gonogo/ui-kit";
+import type { ChartSeries } from "@ksp-gonogo/ui";
+import { plotLayerExtent } from "@ksp-gonogo/ui";
 import type { GraphSeries } from "./types";
 
 export function withDefaults(raw: GraphSeries): GraphSeries {
@@ -28,11 +25,11 @@ export function computeValueDomain(
 /** X domain for non-time graphs: the live X buffer plus every reference curve and contributed layer, so no curve is clipped off the edge before a sample arrives. */
 export function computeXDomain(
   liveXs: readonly number[],
-  curves: readonly ReferenceCurve[],
+  overlays: readonly ChartSeries[],
   layers: readonly PlotLayer[],
 ): [number, number] {
   const all = [...liveXs];
-  for (const curve of curves) all.push(...curve.xs);
+  for (const o of overlays) all.push(...o.data.x);
   for (const layer of layers) all.push(...plotLayerExtent(layer).xs);
   return computeValueDomain(all);
 }

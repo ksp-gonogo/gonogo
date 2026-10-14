@@ -4,8 +4,7 @@ import type { Logger } from "./logger-contract";
 /**
  * The app's logger. Entries go to the browser console, to the log buffer the
  * app keeps in the page (what its in-app log viewer and log export read), and,
- * when the deployment has a remote log store configured, there too; an Uplink
- * does nothing to turn that on. Useful for recording
+ * where the app has a remote log sink set up, to that. Useful for recording
  * what an Uplink's code is doing, so the operator can export the log when
  * reporting a problem. Throws when used with no app or test host installed.
  *

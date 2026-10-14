@@ -1,4 +1,4 @@
-import { FaultCode, PerfBudget } from "@ksp-gonogo/sitrep-sdk";
+import { FaultCode } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -86,24 +86,6 @@ function StatusProbe() {
 
 const returnsAPromise: () => void = async () => {};
 
-/**
- * Enough throttle inputs to make the client sweep its answered records. They
- * stand in for a control stream several seconds long, sent in one tick, so the
- * dispatch budget's one-second window sees a rate no real stream reaches and
- * is cleared afterwards.
- */
-async function sendControlStream(client: TelemetryClient): Promise<void> {
-  await act(async () => {
-    for (let input = 0; input < 700; input += 1) {
-      const { result } = client.dispatch("vessel.control.setThrottle");
-      await result.catch(() => undefined);
-    }
-  });
-  for (const budget of PerfBudget.getAll()) {
-    if (budget.name === "TelemetryClient command dispatch/sec") budget.reset();
-  }
-}
-
 describe("sendTogether", () => {
   it("sends the members as one command-group frame and answers each under its own id", async () => {
     const { transport, Provider } = setup();
@@ -148,7 +130,12 @@ describe("sendTogether", () => {
     await captured?.result;
     await act(async () => {});
 
-    await sendControlStream(client);
+    await act(async () => {
+      for (let input = 0; input < 700; input += 1) {
+        const { result } = client.dispatch("vessel.control.setThrottle");
+        await result.catch(() => undefined);
+      }
+    });
 
     expect(client.getCommand(captured?.requestIds[0] ?? "").phase).toBe("idle");
     expect(captured?.status).toBe("confirmed");
@@ -456,7 +443,12 @@ describe("useCommand: answered records the client has dropped", () => {
     });
     await waitFor(() => screen.getByText("phase:confirmed"));
 
-    await sendControlStream(client);
+    await act(async () => {
+      for (let input = 0; input < 700; input += 1) {
+        const { result } = client.dispatch("vessel.control.setThrottle");
+        await result.catch(() => undefined);
+      }
+    });
 
     expect(screen.getByText("phase:confirmed")).toBeTruthy();
   });

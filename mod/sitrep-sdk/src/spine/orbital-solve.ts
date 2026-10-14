@@ -18,7 +18,7 @@ import {
  * asked about and the reference body's radius. Useful for showing the operator
  * where the vessel is on its orbit and when it next reaches each apsis. Used for
  * the vessel's orbit (`vessel.orbit`) and its target's (`vessel.target.orbit`)
- * alike, and read by the orbit view widget.
+ * alike, and read by the current orbit widget and the orbit view.
  *
  * Pass `undefined` for a body radius that cannot be resolved yet and `null` for a
  * confirmed absence, and the two altitude fields answer the same way. On an open
@@ -179,7 +179,7 @@ function nextApsis(
 /**
  * The apsides of a conic, which depend on its shape alone and not on where the
  * vessel is on it. Useful for showing the operator the highest and lowest points
- * of an orbit. Used by the orbit view widget. An open orbit
+ * of an orbit. Used by the current orbit widget and the orbit view. An open orbit
  * has no apoapsis. `referenceBodyRadius` follows {@link solveOrbit}'s rule, and
  * only the altitudes read it.
  */

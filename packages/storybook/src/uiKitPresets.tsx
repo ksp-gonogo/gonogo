@@ -5,7 +5,6 @@ import type {
   CommandGroup,
   Countdown,
   Dial,
-  Graph,
   IconButton,
   LineChart,
   LineGraph,
@@ -164,59 +163,6 @@ export const UI_KIT_PRESETS = {
     },
     { name: "Held", args: { value: held("m", 71_420) } },
   ] satisfies Presets<ComponentProps<typeof ReckonedUnit>>,
-  Graph: [
-    {
-      name: "Altitude against time",
-      args: {
-        chrome: "bare",
-        height: 260,
-        xKind: "value",
-        xDomain: [0, 6],
-        xAxisLabel: "Time (s)",
-        yAxisLabel: "Altitude (m)",
-        series: [
-          {
-            id: "alt",
-            label: "Altitude",
-            axis: "primary",
-            color: "var(--color-go-text)",
-            data: {
-              x: [0, 1, 2, 3, 4, 5, 6],
-              y: [0, 1, 4, 9, 16, 25, 36],
-            },
-          },
-        ],
-        thresholds: [
-          {
-            id: "ceiling",
-            kind: "limit",
-            bad: "above",
-            value: value("m", 30),
-            label: "Ceiling",
-          },
-        ],
-      },
-    },
-    {
-      name: "With a notice",
-      args: {
-        chrome: "bare",
-        height: 260,
-        xKind: "value",
-        xDomain: [0, 6],
-        series: [
-          {
-            id: "alt",
-            label: "Altitude",
-            axis: "primary",
-            color: "var(--color-go-text)",
-            data: { x: [0, 1, 2, 3], y: [0, 1, 4, 9] },
-          },
-        ],
-        notice: "No reference data: plotting trace only.",
-      },
-    },
-  ] satisfies Presets<ComponentProps<typeof Graph>>,
   LineChart: [
     {
       name: "Two series with a limit",

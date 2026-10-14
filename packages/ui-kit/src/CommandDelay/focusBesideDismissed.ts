@@ -18,14 +18,11 @@ export function focusBesideDismissed(from: HTMLElement): void {
     beside.focus();
     return;
   }
-  const railFrame = scope.closest("[data-panel-rail-frame]");
-  const body = railFrame
-    ? railFrame.parentElement?.querySelector<HTMLElement>("[data-panel-body]")
-    : scope.closest<HTMLElement>("[data-panel-body]");
+  const body = scope
+    .closest("[data-panel-rail-frame]")
+    ?.parentElement?.querySelector<HTMLElement>("[data-panel-body]");
   if (!body) return;
-  const first = [...body.querySelectorAll<HTMLElement>(FOCUSABLE)].find(
-    (control) => control !== from,
-  );
+  const first = body.querySelector<HTMLElement>(FOCUSABLE);
   if (first) {
     first.focus();
     return;

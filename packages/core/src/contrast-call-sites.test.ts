@@ -43,8 +43,8 @@ const SCANNED: Readonly<Record<string, ScanOptions>> = {
  * change. Each entry is `package/file site: token property on ground`.
  */
 const AWAITING_RULING: Readonly<Record<string, string>> = {
-  "components/Graph/GraphView.tsx <Graph referenceCurves>: go-mark fill on surface-panel":
-    "the circular-orbit reference curve is green as a mark, and Graph also draws a series colour as its label's text, 4.07:1 where text needs 4.5:1",
+  "components/Graph/GraphView.tsx <LineChart series>: go-mark fill on surface-panel":
+    "the circular-orbit reference curve is green as a mark, and LineChart also draws a series colour as its label's text, 4.07:1 where text needs 4.5:1",
 };
 
 /**

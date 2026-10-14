@@ -2015,21 +2015,6 @@ describe("loadFromLiveRoster: a registry that cannot be read", () => {
     expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it("clears the registry quarantine of an Uplink the next read finds to ship no client", async () => {
-    const withExtra: RosterEntry[] = [
-      ...roster,
-      { id: "modonly", version: "1.0.0", available: true, reason: null },
-    ];
-    await loadFromLiveRoster(
-      ctx({ index: "fail", roster: withExtra, importBundle }),
-    );
-    expect(getUplinkOutcomes().map((o) => o.id)).toContain("modonly");
-    await loadFromLiveRoster(
-      ctx({ index: indexWith(goodHash), roster: withExtra, importBundle }),
-    );
-    expect(getUplinkOutcomes().map((o) => o.id)).not.toContain("modonly");
-  });
-
   it("reads no registry again for an Uplink it found to ship no client", async () => {
     const withExtra: RosterEntry[] = [
       ...roster,

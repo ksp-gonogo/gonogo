@@ -19,8 +19,8 @@ import { type Value, value } from "./unit-system";
  *
  * - `in-transit`: on its way to the craft
  * - `awaiting-reply`: arrived, with its reply on the way back
- * - `due`: the moment its reply is expected has come, and it is not yet late
- * - `overdue`: that moment has passed without a reply
+ * - `due`: its reply is expected now
+ * - `overdue`: its reply is late
  * - `lost`: the signal path broke while it was travelling, so no reply is coming
  *
  * @category Delay and vantage
@@ -110,9 +110,7 @@ export interface CommsDelayLike {
  * operator what is in transit and when it is expected to arrive. Made by
  * {@link deriveRailEntry} and listed by {@link InFlightList}.
  *
- * Unlike {@link PendingEntry}, whose times are `Value` objects, the times here
- * are plain numbers of seconds: `dispatchedAt` is the UT that
- * `PendingEntry.dispatchedAt` holds as a `Value`, as a number.
+ * Times here are plain numbers of seconds.
  *
  * @category Delay and vantage
  */
@@ -435,9 +433,8 @@ const PHASE_ORDER: Record<PredictedPhase, number> = {
 
 /**
  * Returns `items` with each `predictedPhase` kept from moving backwards since
- * the last call, so a row does not switch back to an earlier phase when the
- * view time steps back slightly for one frame. Useful for keeping the
- * operator's delay rail steady.
+ * the last call, so a row does not flicker when the view time steps back
+ * slightly for one frame. Useful for keeping the operator's delay rail steady.
  * Used by the stream's route commands hook.
  *
  * `memory` holds each row's last phase between calls, usually in a `useRef`.

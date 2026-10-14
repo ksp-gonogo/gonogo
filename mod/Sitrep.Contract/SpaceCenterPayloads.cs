@@ -126,9 +126,7 @@ public class SpaceCenterScene
 /// is <c>null</c> (not an empty array) when no sample has arrived yet, which
 /// tells "no data yet" apart from "zero crew".</para>
 ///
-/// <para>Kept at the home command centre, like <see cref="LaunchSiteEntry"/>:
-/// the one that holds the career ledger, so a screen working from another
-/// command centre sees a change after the signal delay from home.</para>
+/// <para>Kept at the home command centre, like <see cref="LaunchSiteEntry"/>.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildCrewRoster</c> /
 /// <c>BuildAstronautComplex</c>. Typing-only mirror: the provider hand-builds
@@ -166,14 +164,11 @@ public class CrewRosterEntry
     /// Whether the kerbal can be assigned to a flight today.
     ///
     /// <para><b>Branch on this for a yes or no.</b> It is derived from
-    /// <see cref="Standing"/>: only <c>Available</c> and <c>Applicant</c> can
-    /// fly, so a standing added to <see cref="CrewStanding"/> later reads as
-    /// unavailable here. An applicant counts as free because nothing blocks
-    /// hiring one, but it is not yet crew: check <see cref="IsApplicant"/> before
-    /// offering one a flight.</para>
+    /// <see cref="Standing"/> by <see cref="CrewStandings.CanFly"/>: only
+    /// <c>Available</c> and <c>Applicant</c> can fly, so a standing added to
+    /// <see cref="CrewStanding"/> later reads as unavailable here.</para>
     ///
-    /// <para>A mod that knows better about a kerbal's availability, such as a
-    /// career mod, may set it outright.</para>
+    /// <para>A backend may override it outright.</para>
     /// </summary>
     [SitrepUnit(Units.Flag)]
     public bool? Available { get; set; }
@@ -182,21 +177,19 @@ public class CrewRosterEntry
     /// Why the kerbal can't fly, in prose: <c>Assigned</c> reads "On mission",
     /// <c>Resting</c> reads "Standing down", and every other blocking standing
     /// reads its own name. Empty string when <see cref="Available"/> is true. A
-    /// mod that knows better may set the wording.
+    /// backend may override the wording.
     ///
     /// <para><b>No date, ever.</b> The end is on <see cref="StandingEndsAtUt"/>
     /// as a <c>ut</c> value, so the client formats it in its own calendar. This
-    /// is the only text on the payload written as a sentence by the mod, so a
-    /// client cannot reformat it.</para>
+    /// is the only string on the payload a client could not re-render.</para>
     /// </summary>
     [SitrepUnit(Units.Text)]
     public string? UnavailableReason { get; set; }
 
     /// <summary>
     /// The kerbal's standing, as the dashboard means it: the field to branch on.
-    /// The reading of a mod that supplies its own where there is one, otherwise
-    /// Gonogo's own rule applied to every axis KSP exposes (roster status,
-    /// applicant and the stand-down flag).
+    /// The elected <see cref="ICrewStandingBackend"/>'s reading where it has one,
+    /// otherwise derived by the stock backend from every axis KSP exposes.
     ///
     /// <para>The roster status alone is not enough: an applicant has none, and
     /// a kerbal standing down still reads <c>Available</c> there. See
@@ -260,8 +253,9 @@ public class CrewRosterEntry
 
     /// <summary>
     /// When the stand-down ends (<c>ProtoCrewMember.inactiveTimeEnd</c>), as
-    /// universal time. Absent when <see cref="Inactive"/> is false, because the
-    /// field then holds the end of an earlier rest that is already over.
+    /// universal time. Absent when <see cref="Inactive"/> is false: KSP leaves
+    /// the field at whatever the last rest period set, so quoting it for a
+    /// kerbal on duty would date a rest that is already over.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double? InactiveUntilUt { get; set; }
@@ -414,9 +408,7 @@ public class SpaceCenterPartsAvailable
 /// applicant pool exists; a career save whose pool is empty sends a non-null
 /// payload with an empty <see cref="Applicants"/> list.</para>
 ///
-/// <para>Kept at the home command centre, like <see cref="CrewRosterEntry"/>:
-/// the one that holds the career ledger, so a screen working from another
-/// command centre sees a change after the signal delay from home.</para>
+/// <para>Kept at the home command centre, like <see cref="CrewRosterEntry"/>.</para>
 /// <internal>
 /// Produced by <c>Sitrep.Host.SpaceCenterViewProvider.BuildAstronautComplex</c>.
 /// Typing-only mirror: the provider hand-builds the dict and <c>JsonWriter</c>
@@ -438,7 +430,7 @@ public class AstronautComplexInfo
     [SitrepUnit(Units.Count)]
     public int? ActiveCrew { get; set; }
 
-    /// <summary>Active-crew cap set by the Astronaut Complex facility tier (<c>GameVariables.GetActiveCrewLimit</c> over the facility's normalised level). A hire is blocked once <see cref="ActiveCrew"/> reaches it. <c>int.MaxValue</c> (2147483647) at the top facility tier (unlimited); preserved as-is on the wire, never clamped, so the client can render "unlimited". Null when the facility isn't queryable.</summary>
+    /// <summary>Active-crew cap set by the Astronaut Complex facility tier (<c>GameVariables.GetActiveCrewLimit</c> over the facility's normalised level). A hire is blocked once <see cref="ActiveCrew"/> reaches it. <c>int.MaxValue</c> at the top facility tier (unlimited); preserved as-is on the wire, never clamped, so the client can render "unlimited". Null when the facility isn't queryable.</summary>
     [SitrepUnit(Units.Count)]
     public int? CrewCapacity { get; set; }
 

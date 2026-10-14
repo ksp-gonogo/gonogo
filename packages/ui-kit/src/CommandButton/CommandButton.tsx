@@ -199,9 +199,8 @@ export type CommandButtonPhase =
   | "blocked";
 
 /**
- * The tones a {@link CommandButton} can draw in: `neutral`, `go`, `warn` and
- * `nogo`, the same set as a plain {@link Button}. Set with the `tone` prop of
- * {@link CommandButton}.
+ * The tones a {@link CommandButton} can draw in; the same set as a plain
+ * {@link Button}. Set with the `tone` prop of {@link CommandButton}.
  * Useful for colouring a command button by how serious the command is for the
  * operator.
  *
@@ -210,8 +209,7 @@ export type CommandButtonPhase =
 export type CommandButtonTone = ButtonTone;
 
 /**
- * The two sizes of {@link CommandButton}: `sm` for a dense row and `md`, the
- * default. Set with its `size` prop.
+ * The two sizes of {@link CommandButton}. Set with its `size` prop.
  * Useful for fitting a command button into a dense row or a roomier form.
  *
  * @category CommandButton
@@ -696,9 +694,10 @@ export interface CommandButtonProps<Result = CommandReplyLike, Args = unknown>
    * settle. The pending state itself needs nothing from you.
    *
    * Receives what the dispatch resolved with, typed off the handle. A confirmed
-   * command did not necessarily run again: the plugin may answer a repeat of
-   * the same dispatch with the reply it gave the first time. The value is the
-   * reply envelope; the command's own value is on `payload`.
+   * command did not necessarily do something: a mod that de-duplicates on
+   * request id (the id each dispatch carries) replies to a repeat of the same
+   * dispatch with the receipt it stored the first time. The
+   * value is the reply envelope; the command's own value is on `payload`.
    */
   onConfirmed?: (result: Result) => void;
 }

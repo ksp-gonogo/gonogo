@@ -37,7 +37,7 @@ export function ScreenProvider({
 
 /**
  * The screen this component is on. Useful for drawing a different interface on
- * the main screen than on a station. Used by the Settings window. With no screen
+ * the main screen than on a station. Used by the settings panel. With no screen
  * provider above it, as in a test that mounts a widget on its own, it is
  * `"main"`.
  *

@@ -51,7 +51,7 @@ export const WIZARD_COPY = {
   "connect.instruction":
     "Start KSP with the Gonogo mod installed and wait for the main menu. If KSP runs on another computer, press the gear below and set Host to its address.",
   "connect.twoComputers":
-    "Optional tip: if KSP pauses when its window is not in front, the dashboard stops updating while you look at it. With KSP closed, check that settings.cfg in the KSP install folder has the line SIMULATE_IN_BACKGROUND = True, or keep the dashboard on a second screen or device.",
+    "Optional tip: if KSP pauses when its window is not in front, the dashboard stops updating while you look at it. Turn on Simulate in background in KSP's settings, or keep the dashboard on a second screen or device.",
   "connect.trust":
     "Port 8090 has no password and accepts commands that fly your ship. Keep it to a network you trust and never forward it to the internet.",
   "connect.confirm":

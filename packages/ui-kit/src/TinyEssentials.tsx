@@ -259,22 +259,16 @@ function EssentialFigure({ essential }: { essential: TinyEssential }) {
  */
 function MarkedFigure({ essential }: { essential: TinyEssential }) {
   const { mark, value, decimals } = essential;
-  const { held, shown, mark: currencyMark } = resolveCurrency(value);
-  // Only a signed figure is read for its sign, so a figure handed over bare is drawn as it came.
-  const finite = essential.signed === true && shown?.isFinite() === true;
-  // A figure that rounds to zero draws as zero, so "-0" never sits beside "+0".
-  const roundsToZero =
-    finite &&
-    decimals !== undefined &&
-    Math.abs(shown.valueOf()) < 0.5 * 10 ** -decimals;
-  const plus = finite && (roundsToZero || !shown.isNegative()) ? "+" : "";
-  const drawn =
-    roundsToZero && !held && currencyMark === null ? shown.abs() : value;
+  const { held, shown } = resolveCurrency(value);
+  const plus =
+    essential.signed === true && shown != null && !shown.isNegative()
+      ? "+"
+      : "";
   const figure = (
     <>
       {plus}
       <Unit
-        value={drawn}
+        value={value}
         decimals={decimals}
         scale="compact"
         elsewhere={

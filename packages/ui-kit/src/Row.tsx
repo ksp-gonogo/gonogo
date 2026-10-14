@@ -164,9 +164,6 @@ const Row__Root = styled.li<{
  *
  * @example
  * ```tsx
- * import { Badge, Inline, Row } from "@ksp-gonogo/ui-kit";
- *
- * // The name vessels stands for your own list of vessels.
  * <ul>
  *   {vessels.map((v) => (
  *     <Row key={v.id}>

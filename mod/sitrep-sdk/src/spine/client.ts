@@ -407,12 +407,6 @@ export class TelemetryClient {
   private readonly stores = new Set<TimelineStore>();
   /** The game UT of the newest frame, with the reading of the client's clock it arrived at and its timeline. */
   private gameClock: { ut: number; at: number; epoch: number } | undefined;
-  /**
-   * Whether the newest `time.warp` said the game is paused. A paused game can
-   * go quiet on every channel, so its UT is held still rather than carried
-   * forward on the client's clock until a frame says it runs again.
-   */
-  private gamePaused = false;
   /** The keyframe interval each topic's `subscribed` ack declared, kept so a store attached later is told too. */
   private readonly declaredKeyframeIntervals = new Map<string, number>();
 
@@ -1465,7 +1459,6 @@ export class TelemetryClient {
   ): void {
     this.noteObservedVantage(meta.vantage);
     this.noteGameUt(meta, replayed);
-    if (topic === "time.warp" && !replayed) this.notePaused(payload);
     const point = {
       validAt: meta.validAt,
       payload,
@@ -1580,15 +1573,7 @@ export class TelemetryClient {
   private gameUtNow(): number | undefined {
     const anchor = this.gameClock;
     if (!anchor) return undefined;
-    if (this.gamePaused) return anchor.ut;
     return anchor.ut + (this.clock.now() - anchor.at);
-  }
-
-  /** Reads the pause flag off a `time.warp` record; a record that does not carry one leaves it as it was. */
-  private notePaused(payload: unknown): void {
-    if (typeof payload !== "object" || payload === null) return;
-    const paused: unknown = Reflect.get(payload, "paused");
-    if (typeof paused === "boolean") this.gamePaused = paused;
   }
 
   /** The game UT that a reading of the client's clock falls on, or `undefined` until a frame has arrived. */
@@ -1676,14 +1661,12 @@ export class TelemetryClient {
    * The reading of the client's clock at which a command's deadline in game UT
    * and its margin run out, were the game to run at normal speed from the
    * newest frame. Worked from that frame's own reading, so a deadline a whole
-   * number of seconds away lands on one. Infinite while the game is paused, so
-   * the timer keeps rechecking rather than spending the deadline on the pause.
+   * number of seconds away lands on one.
    */
   private clockTimeOfLoss(pending: PendingCommand): number | undefined {
     const anchor = this.gameClock;
     const dueUt = pending.gameDeadlineUt;
     if (!anchor || dueUt === undefined) return undefined;
-    if (this.gamePaused) return Number.POSITIVE_INFINITY;
     return anchor.at + (dueUt + LOSS_MARGIN - anchor.ut);
   }
 

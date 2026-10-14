@@ -10,14 +10,11 @@ import { countdownOf } from "./countdownOf";
 import { encounterKindOf } from "./encounterKind";
 import { useBodyName } from "./useBodyName";
 import { useEncounterIn } from "./useEncounterIn";
-import { useTrajectoryKind } from "./useTrajectoryKind";
 
 /**
- * SOI encounter or escape, the next apsis, and a landed or suborbital chip
- * when the craft is not in orbit; nothing when none has data. The encounter comes from
- * the game's patched-conic solver, the apsis is solved from the elements, so an
- * encounter chip can stand alone. A periapsis below the surface is never
- * offered as the next apsis.
+ * SOI encounter or escape, and the next apsis; nothing when neither has data.
+ * The encounter comes from the game's patched-conic solver, the apsis is
+ * solved from the elements, so an encounter chip can stand alone.
  */
 export function OrbitalEventChips() {
   // Every chip is a claim about what happens next, so all withhold unless the orbit is current.
@@ -37,7 +34,6 @@ export function OrbitalEventChips() {
     encBody.length > 0 &&
     encIn.value?.greaterThan(0) === true;
 
-  const kind = useTrajectoryKind();
   const apsisType = orbit === undefined ? null : (solve?.nextApsisType ?? null);
   // The model's countdown is offered only while it counts to the same apsis.
   const timeToApsis =
@@ -47,30 +43,14 @@ export function OrbitalEventChips() {
           s.nextApsisType === apsisType ? s.timeToNextApsis : null,
         );
   const hasApsis =
-    kind !== "landed" &&
-    (apsisType === 1 || (apsisType === -1 && kind !== "suborbital")) &&
+    (apsisType === 1 || apsisType === -1) &&
     timeToApsis?.value?.isFinite() === true &&
     !timeToApsis.value.lessThan(0);
-  const offOrbit = kind === "landed" || kind === "suborbital";
 
-  if (!hasEncounter && !hasApsis && !offOrbit && lockedEncounter === null) {
-    return null;
-  }
+  if (!hasEncounter && !hasApsis && lockedEncounter === null) return null;
 
   return (
     <Cluster justify="start" wrap>
-      {offOrbit && (
-        <Chip
-          variant="neutral"
-          tip={
-            kind === "landed"
-              ? "On the surface: the orbital elements describe a path through the body"
-              : "Periapsis is below the surface: the craft will not complete an orbit"
-          }
-        >
-          <ChipLabel>{kind === "landed" ? "LANDED" : "SUBORBITAL"}</ChipLabel>
-        </Chip>
-      )}
       {lockedEncounter !== null && (
         <Chip variant="neutral" tip="Sphere of influence encounter">
           <ChipLabel>ENC</ChipLabel>

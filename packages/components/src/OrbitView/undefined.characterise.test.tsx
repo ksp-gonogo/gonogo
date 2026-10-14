@@ -32,21 +32,19 @@ describe("OrbitView: nothing has arrived at all", () => {
     // No `vessel.orbit` point means no decline to name, so the generic sentence renders.
     expect(visibleText(container)).toContain("No orbital data");
     expect(visibleText(container)).not.toContain("packed");
-    // The gate on the elements fires, so nothing that reads `sma.magnitude` is reached.
+    // `hasOrbit` fires, so nothing that reads `sma.magnitude` is reached.
     expect(container.querySelector("svg")).toBeNull();
-    // A missing body suppresses the caption outright: no placeholder, no dash, no body row. The figures keep their labels over dashes.
+    // `bodyName === undefined` suppresses the caption outright: no placeholder, no dash, no body row.
     expect(visibleText(container)).not.toContain("Kerbin");
-    expect(visibleText(container)).toBe(
-      `ORBIT VIEWNo orbital dataAp${NULL_DISPLAY}Pe${NULL_DISPLAY}t-Ap${NULL_DISPLAY}t-Pe${NULL_DISPLAY}Inc${NULL_DISPLAY}Ecc${NULL_DISPLAY}T${NULL_DISPLAY}`,
-    );
+    expect(visibleText(container)).toBe("ORBIT VIEWNo orbital data");
   });
 
-  it("shows the sentence and no regime badge in a tiny 3x3 cell", () => {
+  it("shows the sentence rather than the pill placeholder in a tiny 3x3 cell", () => {
     const { container } = renderOrbitViewStream({ w: 3, h: 3 });
 
-    // Without an orbit there is no regime to name, so the only dashes are the two figures that fit.
+    // `!hasOrbit` is tested before the size branch, so tiny mode never shows the pill without telemetry.
     expect(visibleText(container)).toContain("No orbital data");
-    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(2);
+    expect(screen.queryByText(NULL_DISPLAY)).toBeNull();
   });
 });
 
@@ -103,9 +101,7 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
     });
     // Without the body the name, colour and rotation marker drop out; the frame caption does not need the body.
     // Inlaid on the frame rather than a preceding sibling, so it now reads after the diagram's own SVG text.
-    expect(visibleText(container)).toBe(
-      `ORBIT VIEWApPeorbit plane${NULL_DISPLAY}Ap${NULL_DISPLAY}Pe${NULL_DISPLAY}t-Ap15min 40st-Pe0sInc0.0°Ecc0.0050T31min 21s`,
-    );
+    expect(visibleText(container)).toBe("ORBIT VIEWApPeorbit plane");
   });
 
   it("draws the orbit with no verdict and no atmosphere ring while the body is absent, then gives it one once the body lands", async () => {
@@ -127,7 +123,7 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
   });
 
   it("reads a real orbit as undetermined, with what it waits for on the tooltip, while the body is absent", async () => {
-    // With no body entry there is no atmosphere height, so neither orbiting nor sub-orbital is an answer.
+    // 7x3 is the pill branch. With no body entry there is no atmosphere height, so neither orbiting nor sub-orbital is an answer.
     const { container } = renderOrbitViewStream({ w: 7, h: 3 }, LKO_NO_BODY);
 
     await waitFor(() => {
@@ -138,10 +134,8 @@ describe("OrbitView: a partial payload, the orbit without its body", () => {
         throw new Error("status pill has not resolved yet");
       }
     });
-    // The badge is a dash and no verdict word, ahead of the two figures that fit.
-    expect(visibleText(container)).toBe(
-      `ORBIT VIEW${NULL_DISPLAY}Ap${NULL_DISPLAY}Pe${NULL_DISPLAY}`,
-    );
+    // The title and the no-data token only: no verdict word in the pill.
+    expect(visibleText(container)).toBe(`ORBIT VIEW${NULL_DISPLAY}`);
     expect(container.querySelector("svg")).toBeNull();
   });
 

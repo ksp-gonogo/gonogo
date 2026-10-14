@@ -18,7 +18,7 @@ test.describe("fab tower over the dashboard grid", () => {
     await seedContext(
       context,
       "gonogo:dashboard:main",
-      dashboardWithWidget("orbit-view", { size: { w: 12, h: 6 } }),
+      dashboardWithWidget("current-orbit", { size: { w: 12, h: 6 } }),
     );
     const page = await context.newPage();
     await page.goto("/?uplinkLoaderIds=");

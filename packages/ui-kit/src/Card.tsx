@@ -137,9 +137,6 @@ function CardRoot({
  *
  * @example
  * ```tsx
- * import { Badge, Card, resourceColor, Unit } from "@ksp-gonogo/ui-kit";
- *
- * // The name tank stands for your own resource tank: its name, its amount as a value, and two flags.
  * <Card
  *   title={tank.resource}
  *   titleRight={tank.low && <Badge tone="warn">Low</Badge>}

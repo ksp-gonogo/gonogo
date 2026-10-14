@@ -1,10 +1,4 @@
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-} from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import browserslistToEsbuild from "browserslist-to-esbuild";
@@ -268,10 +262,7 @@ const spaFallback = (): PluginOption => ({
   apply: "build",
   closeBundle() {
     const outDir = resolve(__dirname, "dist");
-    const shell = resolve(outDir, "index.html");
-    // A failed build leaves no shell, and throwing here would hide its real error.
-    if (!existsSync(shell)) return;
-    copyFileSync(shell, resolve(outDir, "404.html"));
+    copyFileSync(resolve(outDir, "index.html"), resolve(outDir, "404.html"));
   },
 });
 

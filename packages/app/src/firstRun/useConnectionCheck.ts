@@ -1,8 +1,4 @@
-import {
-  type DataSource,
-  getDataSource,
-  useDataSources,
-} from "@ksp-gonogo/core";
+import { getDataSource, useDataSources } from "@ksp-gonogo/core";
 import { useEffect, useState } from "react";
 import {
   CONNECT_GRACE_MS,
@@ -13,19 +9,10 @@ import {
 
 /*
  * When the connection was first seen unanswered, kept across steps so the
- * connect and health steps agree on how long it has been. Cleared the moment
- * the source reports connected, whether or not a step is mounted to see it.
+ * connect and health steps agree on how long it has been. Cleared the moment a
+ * mounted step sees it connect.
  */
 let unansweredSince: number | null = null;
-const watched = new WeakSet<DataSource>();
-
-function watchConnection(source: DataSource | undefined): void {
-  if (!source || watched.has(source)) return;
-  watched.add(source);
-  source.onStatusChange((status) => {
-    if (status === "connected") unansweredSince = null;
-  });
-}
 
 /** Test-only: forget how long the connection has been unanswered. */
 export function __resetConnectionClock(): void {
@@ -60,7 +47,6 @@ function useGaveUp(connected: boolean): boolean {
 export function useConnectionCheck(): SetupCheck {
   const source = useDataSources().find((s) => s.id === "sitrep");
   const { host, port } = sitrepAddress();
-  watchConnection(getDataSource("sitrep"));
   const gaveUp = useGaveUp(source?.status === "connected");
   return connectionCheck(source?.status, `${host}:${port}`, gaveUp);
 }

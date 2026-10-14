@@ -63,7 +63,7 @@ const PORT = Number.parseInt(process.env.SITREP_REPLAY_PORT ?? "8090", 10);
 // PayloadMeta (inner, per-record) is { source }; vessel.orbit's also carries its quality.
 //
 // Quality is OnRails, not Loaded: the orbit solve behind the apsis, period
-// and anomaly figures SemiMajorAxis/OrbitView/EscapeProfile/KeplerPeriod
+// and anomaly figures SemiMajorAxis/CurrentOrbit/EscapeProfile/KeplerPeriod
 // draw declines under physics. A stable ~100km Kerbin orbit with nothing else
 // nearby (this fixture's scenario) is exactly when real KSP puts a vessel on
 // rails, so OnRails is also the realistic choice, not just the one that

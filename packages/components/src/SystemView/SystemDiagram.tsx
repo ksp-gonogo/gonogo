@@ -113,10 +113,7 @@ export interface SystemDiagramProps {
   view: Pick<
     PanZoom,
     "zoom" | "pan" | "following" | "setFollowing" | "resetView" | "focusOn"
-  > & {
-    /** What the Focus vessel button does, when the host has more to do than follow the craft. Absent follows it at the present zoom. */
-    focusVessel?: () => void;
-  };
+  >;
 }
 
 const ZERO_METRES: readonly [number, number, number] = [0, 0, 0];
@@ -656,7 +653,7 @@ export function SystemDiagram({
           <TextButton
             type="button"
             aria-pressed={following}
-            onClick={view.focusVessel ?? (() => setFollowing(!following))}
+            onClick={() => setFollowing(!following)}
             style={following ? VIEW_BUTTON_ON : VIEW_BUTTON}
           >
             Focus vessel

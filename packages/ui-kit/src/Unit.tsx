@@ -186,7 +186,7 @@ export interface UnitProps<UnitSymbol extends string = string>
   /**
    * Pin the unit rather than letting the value's size choose it, where
    * convention calls for one: km/h on a launch broadcast, km/s in a technical
-   * readout. Takes a registered unit of the value's kind.
+   * readout.
    *
    * Validated against the value's kind: it checks on a speed and is a type error on a length.
    */
@@ -194,8 +194,7 @@ export interface UnitProps<UnitSymbol extends string = string>
   /**
    * Show the value in a different unit of the same kind: `as="°C"` on a kelvin
    * field, `as="g"` on an m/s² one. The contract says what the field is, this
-   * says what the operator wants to read. Takes everything `format` takes and
-   * also the presentation-only units of the kind, such as `°C`.
+   * says what the operator wants to read.
    *
    * Validated against the value's kind, as `format` is. A cross-kind request at runtime renders the value in its own unit.
    */

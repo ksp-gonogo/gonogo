@@ -2,7 +2,6 @@ import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  PROCESSOR_UNCOMPARABLE_BUDGET,
   type ProcessorRuntime,
   processorRuntimeFor,
   setProcessorUncomparableRecorder,
@@ -502,11 +501,8 @@ describe("the notify guard's answer set", () => {
     expect(reported[0]).toEqual(["core:uncomparable-map", "[object Map]"]);
     // Delivered, every time. `uncomparable` behaves exactly like `different`, so nothing is withheld on a shape this does not understand.
     expect(cb).toHaveBeenCalledTimes(10);
-    // Every unreadable frame counts against a budget of zero, so the test gate fails any other test that produces one.
-    expect(PROCESSOR_UNCOMPARABLE_BUDGET.windowTotal()).toBe(10);
 
     setProcessorUncomparableRecorder(undefined);
-    PROCESSOR_UNCOMPARABLE_BUDGET.reset();
     unsubscribe();
     deactivate();
   });
@@ -533,7 +529,6 @@ describe("the notify guard's answer set", () => {
     expect(reported).toEqual(["function", "function", "function"]);
 
     setProcessorUncomparableRecorder(undefined);
-    PROCESSOR_UNCOMPARABLE_BUDGET.reset();
     deactivate();
   });
 
@@ -584,7 +579,6 @@ describe("the notify guard's answer set", () => {
     expect(cb).toHaveBeenCalledTimes(3);
 
     setProcessorUncomparableRecorder(undefined);
-    PROCESSOR_UNCOMPARABLE_BUDGET.reset();
     unsubscribe();
     deactivate();
   });
@@ -616,7 +610,6 @@ describe("the notify guard's answer set", () => {
     expect(reported).toEqual([]);
 
     setProcessorUncomparableRecorder(undefined);
-    PROCESSOR_UNCOMPARABLE_BUDGET.reset();
     deactivate();
   });
 });

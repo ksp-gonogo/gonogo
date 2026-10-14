@@ -70,13 +70,6 @@ export function buildMissionRecord(params: {
 export const MISSION_PART_SIZE_LIMIT = 16 * 1024 * 1024;
 
 /**
- * The page time, in seconds, after which a recording in progress is stored as
- * a part and carried on whatever its size. The part in hand lives only in
- * memory, so this is the most of a flight a closed or crashed tab can lose.
- */
-export const MISSION_PART_SECONDS = 60;
-
-/**
  * A mission's meta once a further part of its recording is counted: the span
  * of both, and the frames of both. `part` is the meta `buildMissionRecord`
  * gives for that part's own fixture.

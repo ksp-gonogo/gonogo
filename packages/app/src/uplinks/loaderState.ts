@@ -77,7 +77,6 @@ type Listener = () => void;
 
 const outcomes = new Map<string, UplinkLoadOutcome>();
 let clientless = new Set<string>();
-let settled = false;
 const listeners = new Set<Listener>();
 let snapshot: UplinkLoadOutcome[] = [];
 
@@ -103,21 +102,9 @@ export function subscribeUplinkOutcomes(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
-/**
- * Replace the roster ids the last registry read found to ship no client, which no later roster can make loadable.
- * An id among them drops a quarantine recorded while the registry was unreadable, since that read says nothing
- * about an Uplink with no client.
- */
+/** Replace the roster ids the last registry read found to ship no client, which no later roster can make loadable. */
 export function setClientlessUplinks(ids: Iterable<string>): void {
   clientless = new Set(ids);
-  let cleared = false;
-  for (const [id, outcome] of outcomes) {
-    if (outcome.registryUnavailable && clientless.has(id)) {
-      outcomes.delete(id);
-      cleared = true;
-    }
-  }
-  if (cleared) recompute();
 }
 
 /** Whether the last registry read found this roster id to ship no client. */
@@ -125,27 +112,9 @@ export function isClientlessUplink(id: string): boolean {
   return clientless.has(id);
 }
 
-/**
- * Record that a load pass has finished against a roster, or an explicit list of
- * Uplinks to load, so every Uplink that can load has an outcome. Before that a
- * widget no registered widget answers to may simply belong to an Uplink whose
- * client has not been attempted yet.
- */
-export function setUplinksSettled(): void {
-  if (settled) return;
-  settled = true;
-  recompute();
-}
-
-/** Whether a load pass has finished against a roster; see {@link setUplinksSettled}. */
-export function haveUplinksSettled(): boolean {
-  return settled;
-}
-
 /** Test-only: clear all recorded outcomes. */
 export function __resetUplinkOutcomes(): void {
   outcomes.clear();
   clientless = new Set();
-  settled = false;
   recompute();
 }
