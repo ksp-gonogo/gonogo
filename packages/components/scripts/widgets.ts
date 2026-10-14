@@ -175,7 +175,7 @@ const WIDGETS: WidgetRenderConfig[] = [
       // controlMode degrades to dial-only: same display as a wide-mode
       // widget. Useful for catching regressions to the degrade path.
       { name: "degraded-7x12", w: 7, h: 12, config: { controlMode: true } },
-      // Minimum sensible control-mode size; everything above lights up the SAS / throttle / FBW surface. With a signal delay the surface needs one more row and this tile falls back to the dial.
+      // Minimum sensible control-mode size; everything above lights up the SAS / throttle / FBW surface.
       { name: "full-7x20", w: 7, h: 20, config: { controlMode: true } },
       // Generous control-mode size that lets every group breathe.
       { name: "xl-9x24", w: 9, h: 24, config: { controlMode: true } },
@@ -188,14 +188,6 @@ const WIDGETS: WidgetRenderConfig[] = [
         h: 20,
         config: { controlMode: true },
         forFixtures: ["control-delay"],
-      },
-      // The smallest tile that carries the control surface with the delay strip, and the same under a fly-by-wire delay warning.
-      {
-        name: "control-delay-7x21",
-        w: 7,
-        h: 21,
-        config: { controlMode: true },
-        forFixtures: ["control-delay", "fly-by-wire-delayed"],
       },
     ],
   },
@@ -2118,8 +2110,8 @@ const WIDGETS: WidgetRenderConfig[] = [
 
 /**
  * Mobile portrait approximation in grid units. 9w × 8h converts to
- * roughly 349 × 244 px via the harness's COL_WIDTH=21 / ROW_HEIGHT=13
- * / GRID_MARGIN=20 constants: close to a typical phone width (375 px
+ * roughly 352 × 256 px via the harness's COL_WIDTH=32 / ROW_HEIGHT=25
+ * / GRID_MARGIN=8 constants: close to a typical phone width (375 px
  * minus chrome) and an aspect ratio that matches the
  * `mobileHeight: 240`-shaped widgets the MobileDashboard renders.
  *

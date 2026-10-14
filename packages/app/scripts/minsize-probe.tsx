@@ -106,7 +106,7 @@ function Canary() {
         <input
           aria-label="Canary clipped field"
           readOnly
-          style={{ width: 40, height: 9, padding: 0 }}
+          style={{ width: 40 }}
           value="A value no forty pixel field could show"
         />
         <div style={{ overflow: "hidden", width: 80 }}>
@@ -229,15 +229,15 @@ const SCROLLS_ID = "minsize-gate-scrolls";
 /**
  * Pushes the line below the fold by a few pixels and no more.
  *
- * Measured rather than reasoned: at 3x3 the panel's body scroller is 77px and
+ * Measured rather than reasoned: at 3x3 the panel's body scroller is 89px and
  * its own title unit and insets take 85 of them around a single 22px line, so
- * the body overflows it by eight with no spacer and leaves thirteen of that line
- * under a mask reaching about seventeen. The number has to sit between the overflow
+ * twelve more pixels overflow it by eight and leave thirteen of that line under
+ * a mask reaching about seventeen. The number has to sit between the overflow
  * and the mask, which is the whole point of the widget and not something CSS
  * can state. If the panel's chrome changes height the gate fails as `BLIND`
  * rather than going quiet, and retuning this is the fix.
  */
-const MASKED_SPACER_PX = 0;
+const MASKED_SPACER_PX = 12;
 
 /** Deep enough that the body cannot fit it, shallow enough that the scroll it
  *  buys is smaller than the mask: the shape the finding exists for. */

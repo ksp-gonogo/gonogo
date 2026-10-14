@@ -15,11 +15,10 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from "react";
 import { useState } from "react";
-import type { BurnInstants } from "./burnFlown";
+import { type BurnInstants, engineLitFor } from "./burnFlown";
 import type { ThrustObservation } from "./conformance";
 import { NodeEditor } from "./NodeEditor";
 import { FeasibilityChip } from "./styles";
-import { useEngineLitFor } from "./useEngineLitFor";
 
 /**
  * An edit, in the positional slots the node arrived in. The field names are the
@@ -65,14 +64,7 @@ export function NodeRow({
   const dated = <UnitSymbol extends string>(
     figure: ReturnType<typeof value<UnitSymbol>>,
   ) => (from === undefined ? figure : datedFrom(from, figure));
-  const litFor = useEngineLitFor();
-  // Asked on every render, so the engine start is attributed while the burn's window still holds.
-  const lit = litFor(
-    node.id,
-    instantsOf(node),
-    thrust?.thrusting ? thrust.startedUt : null,
-  );
-  const phase = completed ? "ahead" : phaseOf(node, currentUT, lit);
+  const phase = completed ? "ahead" : phaseOf(node, currentUT, thrust);
   // A burn already flown or in progress has no shortfall to report: the figure is its planned size, and the available total is already being drawn down by the burn.
   const feasible =
     completed ||
@@ -188,10 +180,14 @@ export function NodeRow({
 function phaseOf(
   node: ParsedManeuverNode,
   currentUT: Value<"ut"> | undefined,
-  engineLit: boolean,
+  thrust: ThrustObservation | undefined,
 ): "ahead" | "underway" | "passed" {
   if (currentUT === undefined) return "ahead";
-  if (pastCutoff(node, currentUT)) return engineLit ? "underway" : "passed";
+  if (pastCutoff(node, currentUT)) {
+    return thrust?.thrusting && engineLitFor(instantsOf(node), thrust.startedUt)
+      ? "underway"
+      : "passed";
+  }
   if (
     node.ignitionUt !== null &&
     currentUT.greaterThanOrEqual(value("ut", node.ignitionUt))

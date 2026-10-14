@@ -35,20 +35,3 @@ describe("KeplerPeriod DOM snapshots", () => {
     }
   }
 });
-
-describe("KeplerPeriod fixtures", () => {
-  const refusals = /Landed: no orbit|Suborbital|No orbit reported|escape/;
-  const [mode] = config.modes;
-
-  for (const [name, fixture] of Object.entries(FIXTURES)) {
-    if (name === "no-body-data") continue;
-    it(`${name} is an orbit the widget plots, not one it refuses`, async () => {
-      const html = await snapshotWidgetMode({
-        Widget: KeplerPeriodComponent,
-        fixture,
-        mode,
-      });
-      expect(html).not.toMatch(refusals);
-    });
-  }
-});

@@ -14,7 +14,7 @@ import {
   unlessLocked,
   type Value,
 } from "@ksp-gonogo/sitrep-sdk";
-import { useEngineLitFor } from "./useEngineLitFor";
+import { engineLitFor } from "./burnFlown";
 
 /** The next burn against what the craft can give it. */
 export function useManeuverEssentials(): readonly TinyEssential[] {
@@ -28,9 +28,8 @@ export function useManeuverEssentials(): readonly TinyEssential[] {
     ? propulsion.thrustStartedUt
     : null;
   const nodes = unlessLocked(maneuver.nodes.value);
-  const litFor = useEngineLitFor();
   const passed = (n: ManeuverNode, now: Value<"ut">) =>
-    nodePassed(n, now, startedUt, litFor);
+    nodePassed(n, now, startedUt);
   const underway = nodeUnderway(nodes, nowUt, passed);
   // Every node is behind the craft: a dash would say nothing about why there is no figure.
   const allPassed =
@@ -76,11 +75,9 @@ function nodePassed(
   node: ManeuverNode,
   nowUt: Value<"ut">,
   thrustStartedUt: Value<"ut"> | null,
-  litFor: ReturnType<typeof useEngineLitFor>,
 ): boolean {
-  // Asked on every look, so the engine start is attributed while the burn's window still holds.
-  const lit = litFor(
-    node.id,
+  if (!nowUt.greaterThan(node.cutoffUt ?? node.ut)) return false;
+  return !engineLitFor(
     {
       ut: node.ut,
       ignitionUt: node.ignitionUt ?? null,
@@ -88,7 +85,6 @@ function nodePassed(
     },
     thrustStartedUt,
   );
-  return nowUt.greaterThan(node.cutoffUt ?? node.ut) && !lit;
 }
 
 /** The next node's delta-v that has not been flown past, or none while there is no such node or the save cannot hold one. */

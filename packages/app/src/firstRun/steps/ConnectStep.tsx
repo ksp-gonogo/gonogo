@@ -1,5 +1,5 @@
 import { CommandBlock } from "@ksp-gonogo/ui";
-import { Disclosure, Stack, Text } from "@ksp-gonogo/ui-kit";
+import { Stack, Text } from "@ksp-gonogo/ui-kit";
 import { SitrepConnection } from "../../settings/SitrepConnection";
 import { runs, say } from "../copy";
 import {
@@ -16,49 +16,14 @@ import { Hint, HintList, Prose, StepCheck } from "./StepParts";
 
 const ADDRESS_SYSTEMS = ["windows", "macos", "linux"] as const;
 
-function AddressCommand({
-  system,
-}: Readonly<{ system: (typeof ADDRESS_SYSTEMS)[number] }>) {
-  return (
-    <Stack gap="related-dense">
-      <span>{say(`connect.address.${system}`)}</span>
-      <CommandBlock
-        command={ADDRESS_COMMAND[system]}
-        label={say("connect.addressCommandLabel")}
-      />
-    </Stack>
-  );
-}
-
 /**
- * The address commands for the KSP computer. The browser's own system comes
- * first because it is the likeliest to match, and the other two sit behind a
- * disclosure since the KSP computer need not run the same system. When the
- * browser does not say which it is, all three show.
+ * The address command for this browser's system alone, or all three when the
+ * browser does not say which it is. The KSP computer need not be this one, so
+ * the full list is the fallback rather than a guess.
  */
-function AddressCommands() {
+function addressSystems(): readonly (typeof ADDRESS_SYSTEMS)[number][] {
   const own = browserSystem();
-  if (!own) {
-    return (
-      <>
-        {ADDRESS_SYSTEMS.map((system) => (
-          <AddressCommand key={system} system={system} />
-        ))}
-      </>
-    );
-  }
-  return (
-    <>
-      <AddressCommand system={own} />
-      <Disclosure label={say("connect.address.other")} variant="inline">
-        <Stack gap="related">
-          {ADDRESS_SYSTEMS.filter((system) => system !== own).map((system) => (
-            <AddressCommand key={system} system={system} />
-          ))}
-        </Stack>
-      </Disclosure>
-    </>
-  );
+  return own ? [own] : ADDRESS_SYSTEMS;
 }
 
 /**
@@ -117,7 +82,15 @@ export function ConnectStep() {
             <li>
               <Stack gap="related">
                 <span>{say("connect.hint.address")}</span>
-                <AddressCommands />
+                {addressSystems().map((system) => (
+                  <Stack key={system} gap="related-dense">
+                    <span>{say(`connect.address.${system}`)}</span>
+                    <CommandBlock
+                      command={ADDRESS_COMMAND[system]}
+                      label={say("connect.addressCommandLabel")}
+                    />
+                  </Stack>
+                ))}
               </Stack>
             </li>
           </HintList>

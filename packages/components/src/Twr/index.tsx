@@ -6,6 +6,7 @@ import {
   combineReadings,
   type Reading,
   stillTrue,
+  type TinyEssential,
   type Value,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -23,7 +24,15 @@ import { useMemo } from "react";
 import { budgetFigure } from "../FuelStatus/deltaV";
 import { magnitudeOf } from "../shared/magnitude";
 import { useComputedSeries } from "../shared/useComputedSeries";
-import { GAUGE_MAX, GAUGE_MIN, toneColorFor, twrOf, ZONES } from "./scale";
+import {
+  GAUGE_MAX,
+  GAUGE_MIN,
+  TINY_BANDS,
+  tinyToneFor,
+  toneColorFor,
+  twrOf,
+  ZONES,
+} from "./scale";
 import read from "./twr.declarations.g";
 
 type TwrConfig = Record<string, never>;
@@ -95,7 +104,21 @@ function nextStageWithThrust(
   return best;
 }
 
-function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
+/** The ratio on a dial's own scale, which the tiny form draws as a figure over a gauge. */
+function useTwrEssentials(): readonly TinyEssential[] {
+  const { reading: twrReading, stage } = useTwrReading();
+  const twr = twrReading.value;
+  return [
+    {
+      label: stage === undefined ? "TWR" : `TWR S${stage}`,
+      value: twrReading,
+      gauge: { min: GAUGE_MIN, max: GAUGE_MAX, bands: TINY_BANDS },
+      tone: twr === undefined ? "neutral" : tinyToneFor(twr),
+    },
+  ];
+}
+
+function TwrComponent({ w }: Readonly<ComponentProps<TwrConfig>>) {
   const { reading: twrReading, stage } = useTwrReading();
   // A held TWR stays drawn, never blanked: the empty state means the craft has no engine.
   const twr = twrReading.value;
@@ -109,10 +132,8 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   // Only the drawings inside the frame are measured, and the frame's size never depends on them.
   const cols = w ?? 4;
-  // Below four columns or four rows the frame, caption and trend strip give way and the dial fills the tile alone.
-  const tiny = cols < 4 || (h ?? 5) < 4;
   // Below five columns the caption would sit on the gauge arc.
-  const showCaption = cols >= 5 && !tiny;
+  const showCaption = cols >= 5;
 
   const { ref: gaugeRef, size: gaugeSize } = useElementSize({ w: 200, h: 110 });
   // The dial draws the largest arc that fits what it is given, and at a height too short for any arc it draws the figure alone.
@@ -131,34 +152,6 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
         sections={
           <Section full>
             <EmptyState>No engine data</EmptyState>
-          </Section>
-        }
-      />
-    );
-  }
-
-  if (tiny) {
-    return (
-      <Panel
-        panelTitle="TWR"
-        fitToSize
-        hoverTitle
-        sections={
-          <Section full>
-            <div ref={gaugeRef} style={TINY_GAUGE_SLOT_STYLE}>
-              <Dial
-                startAngle={-90}
-                sweep={180}
-                value={twrReading}
-                min={GAUGE_MIN}
-                max={GAUGE_MAX}
-                zones={ZONES}
-                width={gaugeW}
-                height={gaugeH}
-                readout="large"
-                aria-label={`TWR ${writeQuantity(twr)}`}
-              />
-            </div>
           </Section>
         }
       />
@@ -256,12 +249,6 @@ const GAUGE_SLOT_STYLE = {
   overflow: "hidden",
 } as const;
 
-/** The tiny tile has nothing but the dial, so its slot is the whole tile. */
-const TINY_GAUGE_SLOT_STYLE = {
-  ...GAUGE_SLOT_STYLE,
-  height: "100%",
-} as const;
-
 const GAUGE_SLOT_UNDER_CAPTION = {
   ...GAUGE_SLOT_STYLE,
   alignItems: "flex-end",
@@ -285,9 +272,10 @@ registerComponent<TwrConfig>({
     "The vessel's thrust-to-weight ratio right now: its current thrust over its weight at standard gravity (9.81 m/s²), whatever body you are at, not the local gravity. It is a dial running 0 to 3 that pins at 3, with a small line chart (a sparkline) of the last minute. The dial is red below 1, where thrust is less than the vessel's weight at standard gravity, amber from 1 to 1.5, and green above.",
   tags: ["telemetry", "stages"],
   defaultSize: { w: 4, h: 5 },
-  // The dial alone fits a 3 by 3 tile: the title moves behind a hover and the frame, caption and trend are left out.
-  minSize: { w: 3, h: 3 },
+  // Below four columns or four rows the dial and its trend stop fitting, and the tile draws the ratio as a figure over a gauge.
+  minSize: { w: 4, h: 4 },
   component: TwrComponent,
+  tiny: { title: "TWR", useEssentials: useTwrEssentials },
   channels: ["vessel.propulsion"],
   fields: ["vessel.propulsion.currentThrust", "vessel.propulsion.totalMass"],
   ...read,

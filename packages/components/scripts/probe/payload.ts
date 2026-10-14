@@ -96,13 +96,13 @@ export interface ProbePayload {
 }
 
 /*
- * The dashboard's grid: row height and margin mirror
- * packages/app/src/components/Dashboard/GridDashboard.tsx, and the column
+ * The dashboard's grid: ROW_HEIGHT and margin mirror
+ * packages/app/src/components/Dashboard/layoutNormalization.ts, and the column
  * width approximates `lg` (cols=36) at a comfortable viewport.
  */
-const COL_WIDTH = 21;
-const ROW_HEIGHT = 13;
-const GRID_MARGIN = 20;
+const COL_WIDTH = 32;
+const ROW_HEIGHT = 25;
+const GRID_MARGIN = 8;
 
 /** The pixel box a `w` by `h` grid tile occupies. */
 export function tilePixels(w: number, h: number): { pxW: number; pxH: number } {

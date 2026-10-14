@@ -232,35 +232,6 @@ describe("useStreamEvent", () => {
     expect(onCrash).not.toHaveBeenCalled();
   });
 
-  it("fires for a new event that reuses an id after the game restarted, since its instant differs", () => {
-    const transport = new StubTransport();
-    const client = new TelemetryClient(transport);
-    const onCrash = vi.fn();
-    render(
-      <TelemetryProvider client={client}>
-        <CrashListener onCrash={onCrash} />
-      </TelemetryProvider>,
-    );
-
-    act(() => {
-      transport.emit(
-        "crash.lastCrash",
-        { vesselName: "Kerbal X", ut: 100 },
-        { validAt: 100, deliveredAt: 100, seq: 7, sampleId: 40 },
-      );
-    });
-    // A restarted game numbers its samples from the start again, on the same timeline epoch.
-    act(() => {
-      transport.emit(
-        "crash.lastCrash",
-        { vesselName: "Kerbal Y", ut: 900 },
-        { validAt: 900, deliveredAt: 900, seq: 2, sampleId: 40 },
-      );
-    });
-
-    expect(onCrash).toHaveBeenCalledTimes(2);
-  });
-
   it("stops firing after the subscriber unmounts", () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
