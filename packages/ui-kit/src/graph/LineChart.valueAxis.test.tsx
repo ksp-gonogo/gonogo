@@ -1,6 +1,6 @@
-import { act, fireEvent, render } from "@ksp-gonogo/test-utils";
-import { installFixedSizeResizeObserver } from "@ksp-gonogo/ui-kit/testing";
+import { act, fireEvent, render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { installFixedSizeResizeObserver } from "../testing";
 import { orderedByX, sampleNearest } from "./crosshairMath";
 import { type ChartSeries, LineChart } from "./LineChart";
 

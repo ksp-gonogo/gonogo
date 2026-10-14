@@ -1,6 +1,7 @@
 import type { PlotEmphasis, PlotLayer } from "@ksp-gonogo/sitrep-sdk";
-import { TONE_MARK, TONE_TEXT, VesselMarkSvg } from "@ksp-gonogo/ui-kit";
 import { type ReactElement, useId } from "react";
+import { TONE_MARK, TONE_TEXT } from "../tone";
+import { VesselMarkSvg } from "../vesselMark";
 import { RELIEF_RESOLUTION, sampleGrid } from "./reliefGrid";
 import { WaterLayer } from "./waterLayer";
 
@@ -73,7 +74,13 @@ function scaleYOf(frame: PlotLayerFrame, layer: PlotLayer) {
     : frame.scaleYPrimary;
 }
 
-/** Data-space extents for domain expansion; a rule constrains one axis only. */
+/**
+ * The range of data a plot layer covers on each axis; a rule constrains one axis only. Useful for
+ * widening a graph's domain so a layer such as a body surface or a limit line is not cut off at the
+ * edge. Used by the graph widget when it works out an x range from its layers.
+ *
+ * @category Graph
+ */
 export function plotLayerExtent(layer: PlotLayer): {
   xs: number[];
   ys: number[];
