@@ -11,8 +11,7 @@ import { SerialDevicesMenu } from "./SerialDevicesMenu";
 
 /**
  * Joystick FAB: opens the Input Devices management modal (user-facing
- * name; the package/component/hook names underneath stay "Serial"; see
- * CLAUDE.md's Serial Input Platform section). Reveals with the FAB cluster
+ * name; the package/component/hook names underneath stay "Serial"). Reveals with the FAB cluster
  * on hover. A small status dot appears on the FAB when any registered
  * web-serial device is dropped or errored, so the operator notices a
  * mid-session disconnect without having to open the menu.

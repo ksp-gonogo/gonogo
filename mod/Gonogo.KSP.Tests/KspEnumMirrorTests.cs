@@ -69,7 +69,6 @@ namespace Gonogo.KSP.Tests
         /// comparison, so a <see cref="Members"/> that silently returned nothing
         /// would make every mirror pass and report success - including an empty
         /// one. This pins one known member set by hand so that cannot happen.
-        /// See CLAUDE.md on instruments blind to their own failure mode.
         /// </summary>
         [Fact]
         public void CanReadMembersOffALiveKspEnumAtAll()

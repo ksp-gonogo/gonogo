@@ -793,7 +793,7 @@ console.error(
   `${problems.map((p) => formatProblem(p, "confirmation run")).join("\n")}\n`,
 );
 console.error(
-  "An act warning is always our bug (CLAUDE.md, Testing Philosophy). A new or grown " +
+  "An act warning is always our bug (a test must wrap its updates in act(), or await the settle inside it). A new or grown " +
     "entry means a test started updating React outside act(), and it reproduced on a " +
     "second measurement so it is not the intermittency described above.",
 );

@@ -47,7 +47,7 @@
  * Wiring them would have meant rebuilding a subsystem that was deliberately
  * removed. `kos.run` is the surviving way to run anything on a CPU.
  *
- * The three career spends CLAUDE.md's funds rule names by hand, research, a
+ * The three career spends the spending rule (a widget shows what an action costs) names by hand, research, a
  * facility upgrade and a strategy activation. Each landed in the surface the
  * operator was already looking at rather than in one Uplink screen: research on
  * the tech tree, the facility tier on the Space Center, and the Program accept on

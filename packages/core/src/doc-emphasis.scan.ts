@@ -5,7 +5,7 @@ import { join } from "node:path";
 /**
  * The scan behind `styleguide-doc-emphasis.test.ts`.
  *
- * The rule, from CLAUDE.md: no capitals for emphasis. A word in capitals is an
+ * The rule: no capitals for emphasis. A word in capitals is an
  * acronym or a label the UI prints; if a sentence needs the stress to be read
  * correctly, the sentence is reworded. Emphasis capitals do not land with a
  * reader, so the rule covers every doc comment in the repo (`/** *\/` in TS and

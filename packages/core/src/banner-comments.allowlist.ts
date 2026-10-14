@@ -44,8 +44,8 @@ export const MATCHER_REVISION = 2;
 /**
  * Files carrying an isolated banner comment. SHRINK-ONLY, and empty: every
  * banner in the tree is gone. Never add a line. A new entry means new code
- * just created the violation, and the rule has been in CLAUDE.md the whole
- * time.
+ * just created the violation, and the rule has always been "no banner
+ * comments above an obvious call".
  *
  * Seeded 2026-08-22 at 43 files / 64 banners under revision 1, and emptied on
  * 2026-09-01. RE-SEEDED 2026-09-02 at 32 files / 46 banners under revision 2:

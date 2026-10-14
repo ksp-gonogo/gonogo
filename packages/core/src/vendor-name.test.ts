@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -36,7 +38,7 @@ const NEEDLE = ["tele", "machus"].join("");
  * counting. That they are tracked at all looks like an oversight worth fixing
  * separately, and excluding them here does not depend on that happening.
  */
-const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
+const EXEMPT_PREFIXES = ["local_docs/", ".serena/"];
 
 /**
  * `git grep -c -i <needle>`, parsed into path -> matching-line count.
@@ -45,12 +47,16 @@ const EXEMPT_PREFIXES = ["CLAUDE.md", "local_docs/", ".serena/"];
  * rather than a property of the grep, and keeping them out of here is what
  * lets an exempt path serve as a positive control for the needle itself.
  */
-function countLines(needle: string): Map<string, number> {
+function countLines(
+  needle: string,
+  where: { cwd: string; untracked?: boolean } = { cwd: REPO_ROOT },
+): Map<string, number> {
+  const noIndex = where.untracked ? "--no-index" : "";
   // `|| true`: git grep exits 1 when nothing matches, which is a legitimate result here (it is what "finished" looks like) and not an error.
   const out = execFileSync(
     "sh",
-    ["-c", `git grep -c -i ${needle} -- . || true`],
-    { cwd: REPO_ROOT, encoding: "utf-8", maxBuffer: 32 * 1024 * 1024 },
+    ["-c", `git grep ${noIndex} -c -i ${needle} -- . || true`],
+    { cwd: where.cwd, encoding: "utf-8", maxBuffer: 32 * 1024 * 1024 },
   );
   const counts = new Map<string, number>();
   for (const line of out.split("\n")) {
@@ -127,27 +133,30 @@ describe("vendor name", () => {
    * not reasoned: with a real violation planted in a tracked file and one
    * letter altered in a fragment, all four tests in this file passed.
    *
-   * `CLAUDE.md` is the control because the project rule deliberately keeps the
-   * name there, so it is a known-present instance no sweep will ever remove.
-   * Being exempt is what qualifies it: its match was never part of the debt, so
-   * this assertion cannot go blind at the moment the debt reaches zero, which
-   * is the failure the pipeline control was itself introduced to avoid.
+   * The control is one scratch file that carries the name, grepped through the
+   * same function the tree scan uses. It is a known-present instance no sweep
+   * will ever remove, so this assertion cannot go blind at the moment the debt
+   * reaches zero, which is the failure the pipeline control was itself
+   * introduced to avoid.
    */
   it("the assembled needle actually matches the name", () => {
-    expect(
-      [...countLines(NEEDLE).keys()],
-      [
-        "The needle this gate hunts with no longer matches the name.",
-        "",
-        "It is assembled from fragments, and a typo in one of them cannot fail",
-        "anywhere else: the scan simply returns nothing and the debt assertions",
-        "pass over an empty tree. CLAUDE.md is the positive control because the",
-        "project rule keeps the name there on purpose.",
-        "",
-        "If CLAUDE.md genuinely no longer carries the name, this control needs",
-        "re-siting onto another known-present instance. Do not delete it.",
-      ].join("\n"),
-    ).toContain("CLAUDE.md");
+    const dir = mkdtempSync(join(tmpdir(), "vendor-name-control-"));
+    try {
+      writeFileSync(join(dir, "control.txt"), `the ${NEEDLE} name\n`);
+      expect(
+        [...countLines(NEEDLE, { cwd: dir, untracked: true }).keys()],
+        [
+          "The needle this gate hunts with no longer matches the name.",
+          "",
+          "It is assembled from fragments, and a typo in one of them cannot fail",
+          "anywhere else: the scan simply returns nothing and the debt assertions",
+          "pass over an empty tree. The positive control is a scratch file that",
+          "carries the name.",
+        ].join("\n"),
+      ).toContain("control.txt");
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("the published SDK surface carries the name nowhere at all", () => {

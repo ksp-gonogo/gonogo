@@ -161,7 +161,7 @@ describe("design-system: punctuation dashes", () => {
       [
         "A non-ASCII punctuation dash was written into a file.",
         "",
-        "CLAUDE.md: no em-dashes; use commas, colons, parentheses, or separate",
+        "The rule: no em-dashes; use commas, colons, parentheses, or separate",
         "sentences instead. The en dash and its relatives are the same character",
         "in a different codepoint, and the rule does not turn on which one.",
         "",

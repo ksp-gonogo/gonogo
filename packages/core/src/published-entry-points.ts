@@ -10,7 +10,7 @@ const REPO_ROOT = join(import.meta.dirname, "..", "..", "..");
  * reference page documents them.
  */
 export const NOT_AUTHOR_SURFACE: Readonly<Record<string, readonly string[]>> = {
-  // First-party runtime seams the app's import map resolves; CLAUDE.md names only /frames, /media and /testing as author subpaths.
+  // First-party runtime seams the app's import map resolves; only /frames, /media and /testing are author subpaths.
   "@ksp-gonogo/sitrep-sdk": ["./spine", "./registry"],
 };
 

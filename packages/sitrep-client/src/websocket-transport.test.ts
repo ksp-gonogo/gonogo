@@ -60,7 +60,7 @@ function streamFrame(topic: string, payload: unknown): string {
  * saturates every core: a real WS handshake or reconnect can then legitimately
  * take longer than a second. Sizing the window to the operation (not the idle
  * case) is what stops this file from flaking under contention, without touching
- * any assertion. See the "act-warnings load-dependent" note in CLAUDE.md.
+ * any assertion.
  */
 const WAIT_TIMEOUT_MS = 4000;
 

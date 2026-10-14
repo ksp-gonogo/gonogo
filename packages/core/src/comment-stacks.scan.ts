@@ -10,7 +10,7 @@ import { join } from "node:path";
  * spans lines and depends on sentence detection that is easy to re-implement
  * slightly differently.
  *
- * The rule, from CLAUDE.md: a genuinely multi-line thought uses proper
+ * The rule: a genuinely multi-line thought uses proper
  * multi-line formatting, a `/** *\/` block or a real paragraph, and never one
  * long sentence mashed into a stack of single-line `//` fragments. A merely-long
  * single comment stays one line and relies on editor wrapping.

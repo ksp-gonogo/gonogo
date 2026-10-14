@@ -40,7 +40,7 @@ namespace Sitrep.Host.Tests
             {
                 Skip =
                     $"recording \"{recordingFileName}\" is not at \"{RecordingPath}\". It is a "
-                    + "gitignored local-only capture (local_docs/ per CLAUDE.md) and is never "
+                    + "gitignored local-only capture (under local_docs/) and is never "
                     + "present in CI, so this test has no input to run against.";
             }
         }

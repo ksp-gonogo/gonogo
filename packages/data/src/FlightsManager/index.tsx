@@ -632,9 +632,8 @@ function AutoRecordStatus({
       {missionHistoryEnabled ? (
         status.recording ? (
           // No `role="status"`/`aria-live` here deliberately: the frame
-          // count updates at stream rate (~4Hz), and CLAUDE.md's
-          // accessibility rule is explicit that streaming telemetry must
-          // NOT be a live region (it would flood a screen reader). This is
+          // count updates at stream rate (~4Hz), and streaming
+          // telemetry must not be a live region (it would flood a screen reader). This is
           // a passive visual readout, not a mission-state announcement.
           <RecordingBadge>
             ● recording {status.vesselName ?? "flight"} (

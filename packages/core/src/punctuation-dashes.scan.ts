@@ -5,7 +5,7 @@ import { join } from "node:path";
 /**
  * The scan behind `styleguide-punctuation-dashes.test.ts`.
  *
- * The rule, from CLAUDE.md: no em-dashes; use commas, colons, parentheses, or
+ * The rule: no em-dashes; use commas, colons, parentheses, or
  * separate sentences instead. The em dash is one character of a family, and
  * `styleguide-emdash.test.ts` gates that one character. Every other dash in the
  * family is the same defect wearing a different codepoint, and the en dash is

@@ -28,8 +28,8 @@ import type {
 /**
  * Full-history-store rebuilds are one-shot/user-triggered (panel expand),
  * never a steady-state loop: but `MissionHistorySource` is still a
- * registry-visible `DataSource`, and CLAUDE.md's rule ("any new data source
- * MUST register a sample-rate/dispatch-rate PerfBudget") is written to catch
+ * registry-visible `DataSource`, and the rule that any new data source
+ * must register a sample-rate/dispatch-rate PerfBudget is written to catch
  * exactly the failure mode a memoization bug here would cause: a cache-key
  * miss on every render turning "expand one graph panel" into "replay this
  * mission's entire fixture every frame". Threshold is generous (rebuilding

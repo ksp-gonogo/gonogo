@@ -15,8 +15,8 @@ import { describe, expect, it } from "vitest";
  * `export * from "@ksp-gonogo/theme"` did exactly this until it was replaced
  * with an explicit named list. This guard keeps it from coming back, and
  * keeps a new one from opening the same hole against a different internal
- * package. Per CLAUDE.md, `@ksp-gonogo/ui-kit` and `@ksp-gonogo/sitrep-sdk`
- * are the only two published workspace packages; everything else under the
+ * package. `@ksp-gonogo/ui-kit` and `@ksp-gonogo/sitrep-sdk` are published
+ * workspace packages; everything else under the
  * `@ksp-gonogo/` scope is `private: true`, so a star export from any of them
  * is the same hole.
  */

@@ -29,7 +29,7 @@ import {
 } from "./ratchetBaseRef";
 
 /**
- * Banner-comment ratchet. CLAUDE.md has always said "no banner comments above an
+ * Banner-comment ratchet. The rule has always been "no banner comments above an
  * obvious call" and nothing enforced it, so the population grew for months.
  *
  * The definition lives in `banner-comments.matcher.ts` and the numbers live in
@@ -289,7 +289,7 @@ describe("banner comments", () => {
       [
         "A banner comment appeared where the ratchet was not expecting one.",
         "",
-        'CLAUDE.md: no banner comments ("// --- Registration ---") above an',
+        'The rule: no banner comments ("// --- Registration ---") above an',
         "obvious call, and a rule / title / rule sandwich is the same thing",
         "spread over three lines. Delete the rule characters. If the comment is",
         "worth keeping, keep the sentence and drop the decoration; if it only",

@@ -107,8 +107,7 @@ function memoryStorage(): Storage {
 /**
  * Rendered trees, tracked so afterEach can unmount them before it clears the
  * stores they read through useSyncExternalStore: a clear that notifies a
- * still-mounted tree is a state update outside act() (CLAUDE.md -> Testing
- * Philosophy), and RTL auto-cleanup runs after this file's afterEach.
+ * still-mounted tree is a state update outside act(), and RTL auto-cleanup runs after this file's afterEach.
  */
 const renderedTrees: Array<() => void> = [];
 

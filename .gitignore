@@ -18,6 +18,12 @@ coverage/
 memory/
 local_docs/
 .claude/
+# Private working notes and tool config: kept on disk, never tracked, because the
+# repo is public. Root-anchored, with the other assistants' twins so none is committed.
+/CLAUDE.md
+/.mcp.json
+/AGENTS.md
+/GEMINI.md
 /test-results/
 /playwright-report/
 .playwright-mcp/

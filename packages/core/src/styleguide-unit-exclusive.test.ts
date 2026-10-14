@@ -11,7 +11,7 @@ import {
 /**
  * `Unit` is the only unit renderer, enforced rather than merely stated.
  *
- * CLAUDE.md has said "Unit is the ONLY unit renderer" for months while
+ * The rule "Unit is the only unit renderer" stood for months while
  * `packages/ui-kit/src/index.ts` exported `formatDuration` from the barrel, so
  * any widget and any Uplink could reach a raw string ladder by importing it.
  * Eleven files did. That is this repo's characteristic defect: a principle

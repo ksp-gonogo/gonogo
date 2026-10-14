@@ -93,7 +93,7 @@ const ACCESSORS =
  * The optional `<identifier>.` prefix is the whole point. A widget in the built-in
  * library declares its topics through `defineTopicManifest` and reads through the
  * bound hook it yields, `const x = topics.useTelemetry("vessel.orbit")`, and that is
- * the form CLAUDE.md prescribes precisely because declaration and read cannot drift
+ * the form the built-in library prescribes precisely because declaration and read cannot drift
  * apart. Matching only the free function made this scan blind to the recommended
  * shape: 30 of the 115 reads in the tree, and a share that grew every time a widget
  * adopted the house style. A gate whose coverage shrinks as the codebase improves is

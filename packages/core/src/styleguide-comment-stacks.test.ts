@@ -30,7 +30,7 @@ import {
 import { scanScope } from "./scanScope";
 
 /**
- * Comment-stack ratchet. CLAUDE.md says that a genuinely multi-line thought uses
+ * Comment-stack ratchet. A genuinely multi-line thought uses
  * proper multi-line formatting, never one long sentence mashed into a stack of
  * single-line fragments, and that a merely-long single comment stays one line.
  *
@@ -221,7 +221,7 @@ describe("comment stacks", () => {
       [
         "A single sentence was split across two or more // comment lines.",
         "",
-        "CLAUDE.md: a genuinely multi-line thought uses proper multi-line",
+        "The rule: a genuinely multi-line thought uses proper multi-line",
         "formatting (a /** */ block or a real paragraph), never one long",
         "sentence mashed into a stack of single-line // fragments. A merely-long",
         "single comment stays one line and relies on editor wrapping.",

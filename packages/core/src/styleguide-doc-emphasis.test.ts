@@ -10,7 +10,7 @@ import { ratchetRepoRoot } from "./ratchetBaseRef";
 import { scanScope } from "./scanScope";
 
 /**
- * Doc-comment emphasis ratchet. CLAUDE.md says a word in capitals is an acronym
+ * Doc-comment emphasis ratchet. A word in capitals is an acronym
  * or a label the UI prints, never stress, and that a sentence needing the stress
  * to be read correctly is reworded. A doc comment (`/** *\/` in TS and TSX,
  * `///` in C#) is held to zero anywhere in the repo, published or not. A plain
@@ -89,7 +89,7 @@ describe("doc comment emphasis", () => {
       [
         "A doc comment uses a word in capitals for emphasis.",
         "",
-        "CLAUDE.md: no capitals for emphasis. A word in capitals is an acronym or",
+        "The rule: no capitals for emphasis. A word in capitals is an acronym or",
         "a label the UI prints. Lower the word; if the sentence needs the stress",
         "to be read correctly, reword it. A label the UI prints goes in quotes or",
         "code font. A real acronym, unit or file name is added to ACRONYMS in",

@@ -5,7 +5,7 @@
 
   A Sitrep.Contract doc comment has two audiences and only one of them is a
   client: what the value IS belongs on the published surface, WHY it is that way
-  belongs beside the type (see CLAUDE.md, "Contract doc comments"). `RtDocText`
+  belongs beside the type, inside an `<internal>` subtree of the summary. `RtDocText`
   already drops these subtrees on the way to TSDoc and asyncapi.yaml, so the
   published TypeScript half never carried them; the XML doc file shipped beside
   the assembly is the same published surface for the C# half, and would

@@ -33,7 +33,7 @@
  * pattern from fragments instead and both files come out clean. That is why
  * there is no self-exemption here any more.
  *
- * Exempt: `CLAUDE.md` and `local_docs/**` keep their history.
+ * Exempt: `local_docs/**` keeps its history.
  *
  * SHRINK-ONLY, and the counts are exact. Clean a file and the test fails until
  * you lower its number; that is the ratchet, and it is why the numbers are here

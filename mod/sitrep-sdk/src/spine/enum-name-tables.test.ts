@@ -97,8 +97,7 @@ function csharpEnumMembers(relativePath: string, enumName: string): string[] {
 describe("enum name tables cover their enums", () => {
   // Guards the guard. Every assertion below is a comparison against
   // `declaredNames`, so a `declaredNames` that silently returned nothing would
-  // make an empty table pass and report success. See CLAUDE.md on instruments
-  // blind to their own failure mode.
+  // make an empty table pass and report success.
   it("can read the members off a generated enum at all", () => {
     expect(declaredNames(Situation)).toEqual([
       "Landed",

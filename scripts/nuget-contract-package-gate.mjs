@@ -21,7 +21,7 @@
  *      one GonogoCore already loaded into the shared AppDomain.
  *   3. MAINTAINER PROSE IS PUBLISHED. A contract doc comment's `<internal>`
  *      subtree is for whoever maintains the type, not for an Uplink author's
- *      IntelliSense (CLAUDE.md, "Contract doc comments"). `RtDocText` drops it
+ *      IntelliSense. `RtDocText` drops it
  *      on the way to TSDoc; `strip-internal-doc-prose.xslt` drops it on the way
  *      into this package, and a stylesheet that silently stopped matching would
  *      leave no trace but 29 extra paragraphs in a shipped .xml.
