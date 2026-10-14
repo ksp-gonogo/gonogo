@@ -168,6 +168,48 @@ describe("Experiments: the experiments.instruments contribution slot", () => {
     expect(screen.queryByText("Awaiting instrument telemetry")).toBeNull();
   });
 
+  it("keeps the tech notice, not 'No instruments aboard', when the inventory is locked and only a contributed instrument is aboard", async () => {
+    SCANNER_MOD.registerContribution({
+      id: "scan-science",
+      contributes: "experiments.instruments",
+      compute: () => [SCANNER],
+    });
+    const fixture = renderWithContributions();
+    act(() => {
+      fixture.emit("system.uplink.gates", {
+        gates: [],
+        channels: [
+          {
+            topic: "science.instruments",
+            verdict: {
+              outcome: 1,
+              errorCode: "notUnlocked",
+              detail: "",
+              missing: [
+                {
+                  kind: 0,
+                  id: "advExploration",
+                  name: "Advanced Exploration",
+                  scienceCost: 160,
+                },
+              ],
+            },
+          },
+        ],
+      });
+    });
+    act(() => {
+      fixture.emit("vessel.parts", {
+        parts: [
+          { id: "sar-1", name: "sar", modules: ["ModuleSCANresourceScanner"] },
+        ],
+      });
+    });
+
+    await waitFor(() => expect(screen.getByText(/Missing tech/)).toBeTruthy());
+    expect(screen.queryByText("No instruments aboard")).toBeNull();
+  });
+
   it("counts contributed instruments in the header totals", async () => {
     SCANNER_MOD.registerContribution({
       id: "scan-science",

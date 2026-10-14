@@ -90,12 +90,15 @@ const INSTRUMENT_MODULES: readonly string[] = [
  */
 function InstrumentsLocked({ lock }: { lock: LockSummary }) {
   const parts = useTelemetry("vessel.parts");
+  // A contributed instrument is aboard whatever the stock inventory says, and the stock list it would be deduplicated against cannot be read here.
+  const contributed = useContributions("experiments.instruments");
   const known =
     parts.state === "observed" || parts.state === "held"
       ? parts.value.parts
       : undefined;
   if (
     known !== undefined &&
+    contributed.length === 0 &&
     !known.some((p) => p.modules.some((m) => INSTRUMENT_MODULES.includes(m)))
   ) {
     return (
